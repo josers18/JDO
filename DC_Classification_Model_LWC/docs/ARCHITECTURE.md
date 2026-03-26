@@ -27,14 +27,14 @@ sequenceDiagram
 
     User->>LWC: Opens record page
     LWC->>LWC: recordId set by platform
-    LWC->>Apex: runPredictionFlow(flowApiName, recordId, var names...)
-    Apex->>Flow: Flow.Interview.createInterview + start
+    LWC->>Apex: runPredictionFlow (flow API name, record Id, output vars)
+    Apex->>Flow: createInterview and start
     Flow-->>Apex: prediction, factors, recommendations
-    Apex-->>LWC: PredictionResult (JSON strings + Decimal prediction)
-    LWC->>LWC: Render gauge + lists; animate
+    Apex-->>LWC: PredictionResult JSON plus prediction number
+    LWC->>LWC: Render gauge, lists, and bar animation
 
-    alt promptTemplateId set and autoGenerateSummary
-        LWC->>Apex: generateAnalysisSummary(templateId, inputApiName, ...)
+    alt When prompt template set and auto summary on
+        LWC->>Apex: generateAnalysisSummary
         Apex->>LLM: generateMessagesForPromptTemplate
         LLM-->>Apex: generation text
         Apex-->>LWC: summary string
