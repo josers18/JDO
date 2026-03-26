@@ -20,8 +20,8 @@
         </template>
         <template lwc:elseif={hasData}>
             <div class="two-col">
-                <div class="gauge-wrap">
-                    <template lwc:if={showPercentGauge}>
+                <template lwc:if={showPercentGauge}>
+                    <div class="gauge-wrap">
                         <svg
                             class="gauge-svg"
                             width="170"
@@ -67,8 +67,10 @@
                             </template>
                             <span class="score-sub">{gaugeSubtitleDisplay}</span>
                         </div>
-                    </template>
-                    <template lwc:else>
+                    </div>
+                </template>
+                <template lwc:else>
+                    <div class="value-hero-panel">
                         <div class="value-hero" role="img" aria-label={numericAriaLabel}>
                             <template lwc:if={hasPredictionValue}>
                                 <div class="value-hero__amount">
@@ -92,14 +94,14 @@
                                 </div>
                             </template>
                             <template lwc:else>
-                                <div class="value-hero__amount">
-                                    <span class="score-num score-num--empty">—</span>
+                                <div class="value-hero__amount value-hero__amount--empty">
+                                    <span class="value-hero__placeholder">—</span>
                                 </div>
                             </template>
-                            <span class="score-sub">{gaugeSubtitleDisplay}</span>
+                            <span class="value-hero__caption">{gaugeSubtitleDisplay}</span>
                         </div>
-                    </template>
-                </div>
+                    </div>
+                </template>
 
                 <div class="lwc-right-col">
                     <section class="predict-section" aria-labelledby="factors-heading">
