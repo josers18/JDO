@@ -23,10 +23,23 @@ Quick reference for **Prediction Model** (`classificationModelLwc`) and **`Class
 
 ---
 
-## Gauge shows but lists are empty
+## Main prediction shows but lists are empty
 
 - **Flow output variable names** in App Builder must match what the flow assigns (`prediction`, `factors`, `recommendations` by default).
 - `factors` / `recommendations` must be a **JSON array** (or a string that parses to one). See [FLOW_GUIDE.md](FLOW_GUIDE.md).
+
+---
+
+## Wrong layout: expected gauge but see a wide panel (or the opposite)
+
+- Check **Prediction output format** in App Builder: **`percent`** (or `classification`) drives the **gauge**; **`integer`**, **`decimal`**, or **`currency`** (and alias `regression` → decimal) drives the **full-width metric panel** with no arc. See [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) and [UI_LAYOUT.md](UI_LAYOUT.md).
+
+---
+
+## Numeric prediction still looks too small or cramped
+
+- Deploy the latest `classificationModelLwc` bundle; the metric panel is **full column width** (not the 170px gauge column). Hard-refresh the browser.
+- If typography still looks off, confirm the parent Lightning page gives the component enough horizontal space; the shell uses **container queries** (`cqw`) — very narrow slots shrink the font slightly by design. See [UI_LAYOUT.md](UI_LAYOUT.md).
 
 ---
 
@@ -41,7 +54,8 @@ Quick reference for **Prediction Model** (`classificationModelLwc`) and **`Class
 
 ## Gauge color does not change when editing properties
 
-- Perform a **full browser refresh** after deploy; stale inline styles were addressed in recent versions—ensure latest bundle is deployed.
+- Applies only when **Prediction output format** is **`percent`** (numeric modes have no arc).
+- Perform a **full browser refresh** after deploy; `renderedCallback` clears inline `stroke` on the arc so template-bound colors win — ensure latest bundle is deployed.
 - **Reverse arc colors** has little visible effect near **50%**; test with scores near **0** or **100**.
 
 ---
@@ -71,3 +85,10 @@ sf project deploy start --source-dir force-app --test-level NoTestRun --wait 30
 ## Component not available on a record page
 
 The metadata `<objects>` section may list only **Account**. Add your object to `classificationModelLwc.js-meta.xml` and redeploy. See [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md).
+
+---
+
+## More documentation
+
+- [UI_LAYOUT.md](UI_LAYOUT.md) — gauge vs metric panel, captions, CSS overview
+- [ARCHITECTURE.md](ARCHITECTURE.md) — sequence and data flow

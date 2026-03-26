@@ -47,3 +47,18 @@ If you copied only this tree into a **standalone** repository, clone that repo i
 4. Commit with a clear message; open a PR against the target repo’s default branch.
 
 Do not commit `.sfdx/`, `node_modules/`, or org auth artifacts — they are listed in `.gitignore`.
+
+---
+
+## Documentation index (this project)
+
+| Doc | Topic |
+|-----|--------|
+| [README.md](../README.md) | Overview, install, features |
+| [artifacts.md](../artifacts.md) | Source files and dependencies |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Diagrams, rendering, errors |
+| [UI_LAYOUT.md](UI_LAYOUT.md) | Gauge vs metric panel, responsive UI |
+| [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) | App Builder properties |
+| [FLOW_GUIDE.md](FLOW_GUIDE.md) | Autolaunched flow contract |
+| [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) | Einstein prompt JSON |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common issues |

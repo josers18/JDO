@@ -12,7 +12,7 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 
 | Artifact | File(s) | Role |
 |----------|---------|------|
-| **ClassificationModelLwcController** | `classes/ClassificationModelLwcController.cls` (+ `-meta.xml`) | `runPredictionFlow`: starts an autolaunched `Flow.Interview` with a configurable record Id input and reads configurable output variables for prediction (Decimal/Integer/String coerced), factors, and recommendations (serialized to JSON strings). `generateAnalysisSummary`: builds a JSON payload and calls `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`. |
+| **ClassificationModelLwcController** | `classes/ClassificationModelLwcController.cls` (+ `-meta.xml`) | `runPredictionFlow`: starts an autolaunched `Flow.Interview` with a configurable record Id input and reads configurable output variables for prediction (Decimal/Integer/String coerced), factors, and recommendations (serialized to JSON strings). `generateAnalysisSummary`: builds JSON (`prediction`, `predictionOutputFormat`, `factors`, `recommendations`) and calls `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`. |
 | **ClassificationModelLwcControllerTest** | `classes/ClassificationModelLwcControllerTest.cls` (+ `-meta.xml`) | Minimal tests: null prompt returns null; missing/invalid flow throws. |
 
 **Sharing:** `with sharing` — respects sharing of the running user when combined with flow and object security.
@@ -23,9 +23,9 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 
 | File | Role |
 |------|------|
-| `lwc/classificationModelLwc/classificationModelLwc.js` | UI logic: wire `recordId`, invoke Apex, parse insight JSON, gauge color (HSL lerp), bar animation, optional summary. |
-| `lwc/classificationModelLwc/classificationModelLwc.html` | Markup: gauge SVG, sections, summary card. |
-| `lwc/classificationModelLwc/classificationModelLwc.css` | Layout and styling. |
+| `lwc/classificationModelLwc/classificationModelLwc.js` | UI logic: wire `recordId`, invoke Apex, parse insight JSON, **prediction output format** (percent vs integer/decimal/currency), gauge color (HSL lerp) when percent, bar animation, optional Einstein summary + `predictionOutputFormat` in payload. |
+| `lwc/classificationModelLwc/classificationModelLwc.html` | Markup: **percent** → `gauge-wrap` + SVG arc; **non-percent** → `value-hero-panel` + `lightning-formatted-number`; predictor/recommendation lists; summary card. |
+| `lwc/classificationModelLwc/classificationModelLwc.css` | Layout: gauge column (170px) vs **full-width metric panel**; container queries (`cqw`) for large numeric typography; section and bar styles. |
 | `lwc/classificationModelLwc/classificationModelLwc.js-meta.xml` | Exposure: Record / App / Home pages; all designer properties; **Account** object restriction for record pages. |
 
 ---
@@ -64,4 +64,4 @@ classificationModelLwc (LWC)
               └── ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for sequence diagrams and [docs/GIT.md](docs/GIT.md) for Git layout.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for sequence diagrams, [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for gauge vs metric panel, and [docs/GIT.md](docs/GIT.md) for Git layout.

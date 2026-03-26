@@ -14,17 +14,21 @@ Salesforce DX project **DC_Prediction_Model_LWC**: a Lightning bundle (**Predict
 | [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | How to build the Flow (inputs, outputs, JSON shape) |
 | [docs/PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md) | How to create the prompt template and match Apex inputs |
 | [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every App Builder property explained |
+| [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | **UI**: gauge vs full-width metric panel, responsive typography |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common failures and fixes |
 
 ---
 
 ## Features
 
-- **Gauge** — Score 0–100% with animated arc; solid color interpolated between configurable “bad” and “good” hex colors (HSL blend). Optional **reverse arc** mapping.
+- **Classification vs regression display** — App Builder **Prediction output format**: **`percent`** shows a 0–100 **semicircle gauge** with animated arc; **`integer`**, **`decimal`**, or **`currency`** shows a **full-width metric panel** with a large formatted value (`lightning-formatted-number`) and a prominent caption (the same “gauge subtitle” property labels both modes).
+- **Gauge styling (percent only)** — Arc color interpolated between configurable bad/good hex colors (HSL blend). Optional **reverse arc** mapping. Arc animation uses `stroke-dashoffset`; `renderedCallback` clears inline `stroke` so App Builder color changes apply reliably.
 - **Top predictors** — Sorted list with impact % and horizontal bars; supports Einstein-style `fields[]` payloads.
 - **Suggested improvements** — Same pattern, sorted by ascending impact.
-- **AI summary** — Optional; sends structured JSON to a Prompt Builder template via one flex text input.
+- **AI summary** — Optional; JSON payload includes `prediction` and `predictionOutputFormat` for the model; one flex text input on the template.
 - **Refresh** — Re-runs the flow (and auto-summary when enabled).
+
+See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for how the main prediction area is structured in the DOM for each format.
 
 ---
 
@@ -88,7 +92,7 @@ This repository does **not** ship Flow or Prompt Template XML. Create them in Se
 2. Edit the page → drag **Prediction Model** onto the layout.
 3. Set **Autolaunched flow API name** (required on record pages).
 4. Align **Flow output variable names** and **Flow input variable for record Id** with your flow.
-5. Optionally set colors, titles, gauge options, and prompt template Id / API name.
+5. Set **Prediction output format** (`percent`, `integer`, `decimal`, or `currency`) to match your flow’s prediction. Optionally set colors, titles, gauge options (percent only), currency/decimals, and prompt template Id / API name.
 
 **App Page / Home Page:** The component calls the flow only when both `flowApiName` and `recordId` are present. Standard **Home** pages do not provide a record Id; use a **record** context or expect the widget to stay idle until `recordId` is supplied by the host.
 
@@ -117,7 +121,7 @@ DC_Prediction_Model_LWC/          # Salesforce DX project root
 │   │   └── ClassificationModelLwcControllerTest.cls
 │   └── lwc/
 │       └── classificationModelLwc/                   # bundle folder (App Builder: Prediction Model)
-└── docs/
+└── docs/                         # ARCHITECTURE, FLOW_GUIDE, COMPONENT_REFERENCE, UI_LAYOUT, GIT, etc.
 ```
 
 In the **JDO** Git repo, the path from clone root is `JDO/DC_Prediction_Model_LWC/`.
@@ -129,7 +133,7 @@ In the **JDO** Git repo, the path from clone root is `JDO/DC_Prediction_Model_LW
 - **Extend to other objects:** Edit `classificationModelLwc.js-meta.xml` `<objects>` under `lightning__RecordPage`.
 - **Change defaults:** App Builder properties or edit `@api` defaults in `classificationModelLwc.js` (then redeploy).
 
-For behavior details and troubleshooting, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md).
+For behavior details, UI layout (gauge vs numeric panel), and troubleshooting, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md), [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md), and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 

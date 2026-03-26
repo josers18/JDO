@@ -8,7 +8,7 @@ High-level behavior of **Prediction Model** (`classificationModelLwc`) and **`Cl
 
 | Layer | Responsibility |
 |-------|------------------|
-| **LWC** | Renders gauge, driver/recommendation lists, summary; maps designer properties to Apex; parses JSON for lists; applies colors and animations. |
+| **LWC** | Renders **percent gauge** or **full-width numeric metric panel** (by `predictionOutputFormat`), driver/recommendation lists, summary; maps designer properties to Apex; parses JSON for lists; applies colors and animations. |
 | **Apex** | Runs flow with safe variable naming; serializes flow outputs to strings; invokes Einstein prompt API with a wrapped text parameter. |
 | **Flow** (org) | Encapsulates record-scoped prediction and shapes `factors` / `recommendations` for the UI. |
 | **Prompt template** (org) | Turns JSON context into user-facing narrative (optional). |
@@ -31,7 +31,7 @@ sequenceDiagram
     Apex->>Flow: createInterview and start
     Flow-->>Apex: prediction, factors, recommendations
     Apex-->>LWC: PredictionResult JSON plus prediction number
-    LWC->>LWC: Render gauge, lists, and bar animation
+    LWC->>LWC: Render main value (gauge if percent, else metric panel), lists, bar animation
 
     alt When prompt template set and auto summary on
         LWC->>Apex: generateAnalysisSummary
@@ -57,7 +57,7 @@ flowchart LR
     end
     F -->|outputs| A
     A -->|prediction, factorsJson, recommendationsJson| L
-    L -->|gauge + bars + labels| UI[Lightning UI]
+    L -->|gauge or formatted number, bars, labels| UI[Lightning UI]
 ```
 
 ---
@@ -84,21 +84,25 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 | Failure | User-visible behavior |
 |---------|------------------------|
 | Flow missing / runtime error | Toast: “Could not run prediction flow”; sticky message with detail. |
-| Summary / Einstein error | Toast: “AI summary failed”; main gauge/lists may still show if flow succeeded. |
+| Summary / Einstein error | Toast: “AI summary failed”; main prediction area and lists may still show if flow succeeded. |
 | No `recordId` | Flow is not called (silent skip). |
 | No `flowApiName` | Flow is not called. |
 
 ---
 
-## Gauge rendering note
+## Main prediction rendering
 
-Arc **color** comes from the LWC getter `gaugeArcSolidColor` (template-bound `stroke`). **Dash offset** is animated in JS. Inline `stroke` is cleared in `renderedCallback` so App Builder changes to reverse/bad/good colors apply reliably after refresh.
+- **Percent mode:** Arc **color** from getter `gaugeArcSolidColor` (template-bound `stroke`). **Dash offset** is animated in JS. `renderedCallback` removes inline `stroke` on `.gauge-arc` so App Builder color/reverse changes apply after refresh.
+- **Integer / decimal / currency:** No gauge. The value is shown in **`.value-hero-panel`** (full column width) with **`lightning-formatted-number`**; label uses **Gauge subtitle** on **`.value-hero__caption`**. Typography uses **container query** units on `.lwc-shell` for responsive size.
+
+Full DOM and CSS overview: [UI_LAYOUT.md](UI_LAYOUT.md).
 
 ---
 
 ## Related docs
 
 - [GIT.md](GIT.md) — Git layout, clone path, naming vs metadata
+- [UI_LAYOUT.md](UI_LAYOUT.md) — Gauge vs metric panel, captions, responsive rules
 - [FLOW_GUIDE.md](FLOW_GUIDE.md) — Flow contract
 - [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) — Template inputs
 - [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — All properties

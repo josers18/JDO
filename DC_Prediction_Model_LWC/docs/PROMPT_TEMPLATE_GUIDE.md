@@ -99,5 +99,6 @@ If one form fails, try the other from Setup → Prompt Builder → your template
 ## Related
 
 - [GIT.md](GIT.md) — repository path and naming
+- [UI_LAYOUT.md](UI_LAYOUT.md) — how the on-screen prediction relates to `predictionOutputFormat`
 - [FLOW_GUIDE.md](FLOW_GUIDE.md) — shape `factors` / `recommendations` consistently for both UI and prompt.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — sequence diagram including Einstein call.

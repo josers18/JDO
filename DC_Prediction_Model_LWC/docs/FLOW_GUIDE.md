@@ -48,8 +48,11 @@ and reads outputs with `interview.getVariableValue(predictionVariableName)` etc.
 ## Prediction output
 
 - The controller accepts **Decimal**, **Integer**, or coerces other types via string → Decimal.
-- The LWC displays **rounded percent** (`Math.round(prediction)`).
-- Keep values in a sensible **0–100** range for the gauge (values are clamped for arc length).
+- **How the LWC displays the number** depends on App Builder **Prediction output format** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) and [UI_LAYOUT.md](UI_LAYOUT.md)):
+  - **`percent`** (or alias `classification`): value is **rounded** to an integer and shown with a **%** on the **gauge**; arc length is **clamped 0–100**.
+  - **`integer`**: whole number, **no gauge**, **full-width metric panel**.
+  - **`decimal`** / **`currency`**: formatted with min/max fraction digits (and ISO currency code for currency), **no gauge**, **metric panel**.
+- For **percent** mode, keep model output in a sensible **0–100** range so the arc matches business meaning. For regression, use **integer** / **decimal** / **currency** and return the numeric outcome your flow produces (CSAT score, revenue, etc.).
 
 ---
 
@@ -113,7 +116,7 @@ Use **Flow** → **Run** (debug) with a sample record Id, or call the flow from 
 |---------|--------|
 | Blank widget, no error | `recordId` missing (wrong page type) or `flowApiName` empty. |
 | Toast “Could not run prediction flow” | Flow API name typo, flow inactive, missing Run Flow permission, or flow fault. |
-| Gauge works, lists empty | Output variable names mismatch; `factors`/`recommendations` not valid JSON array. |
+| Main value shows but lists empty | Output variable names mismatch; `factors`/`recommendations` not valid JSON array. |
 | Wrong record | Confirm input variable receives current page’s record Id. |
 
 ---
@@ -121,5 +124,6 @@ Use **Flow** → **Run** (debug) with a sample record Id, or call the flow from 
 ## Next steps
 
 - [GIT.md](GIT.md) — clone path and DX project root
+- [UI_LAYOUT.md](UI_LAYOUT.md) — how percent vs numeric modes look in the UI
 - [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) — wire the AI summary to the same prediction outputs.
 - [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — map every App Builder property.
