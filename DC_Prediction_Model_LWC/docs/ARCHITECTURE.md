@@ -1,6 +1,6 @@
 # Architecture
 
-High-level behavior of **Classification Model** (`classificationModelLwc`) and **ClassificationModelLwcController**.
+High-level behavior of **Prediction Model** (`classificationModelLwc`) and **ClassificationModelLwcController**.
 
 ---
 
@@ -69,12 +69,13 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 ```json
 {
   "prediction": 51.58,
+  "predictionOutputFormat": "decimal",
   "factors": "[...]",
   "recommendations": "[...]"
 }
 ```
 
-`factors` and `recommendations` are **strings** (often stringified JSON arrays). The prompt template should treat them as text or parse them inside the template instructions.
+`predictionOutputFormat` mirrors the LWC App Builder setting (`percent`, `integer`, `decimal`, `currency`). `factors` and `recommendations` are **strings** (often stringified JSON arrays). The prompt template should treat them as text or parse them inside the template instructions.
 
 ---
 

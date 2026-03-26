@@ -1,4 +1,4 @@
-# DC Classification Model LWC
+# DC Prediction Model LWC
 
 Lightning Web Component bundle that shows a **classification / prediction score** (gauge), **top drivers** and **recommendations** from JSON, and an optional **Einstein Prompt Builder** narrative summary. Data is loaded by calling an **autolaunched Flow** for the current record; the summary calls **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`.
 
@@ -46,7 +46,7 @@ Lightning Web Component bundle that shows a **classification / prediction score*
 
 ```bash
 git clone <your-repo-url>
-cd DC_Classification_Model_LWC
+cd DC_Prediction_Model_LWC
 sf org login web --alias my-target-org
 ```
 
@@ -79,7 +79,7 @@ This repository does **not** ship Flow or Prompt Template XML. Create them in Se
 ### 5. Add the component in App Builder
 
 1. Open an **Account** record page (or the object you added in metadata).
-2. Edit the page → drag **Classification Model** onto the layout.
+2. Edit the page → drag **Prediction Model** onto the layout.
 3. Set **Autolaunched flow API name** (required on record pages).
 4. Align **Flow output variable names** and **Flow input variable for record Id** with your flow.
 5. Optionally set colors, titles, gauge options, and prompt template Id / API name.

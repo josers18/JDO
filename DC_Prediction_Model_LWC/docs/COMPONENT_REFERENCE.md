@@ -1,6 +1,6 @@
-# Component reference — Classification Model
+# Component reference — Prediction Model
 
-All properties are configured in **Lightning App Builder** when you select the **Classification Model** component. Defaults below match `classificationModelLwc.js-meta.xml` / `classificationModelLwc.js`.
+All properties are configured in **Lightning App Builder** when you select the **Prediction Model** component. Defaults below match `classificationModelLwc.js-meta.xml` / `classificationModelLwc.js`.
 
 ---
 
@@ -28,6 +28,23 @@ All properties are configured in **Lightning App Builder** when you select the *
 
 ---
 
+## Prediction output (classification vs regression)
+
+The flow still returns a single numeric **`prediction`** variable. These properties control how that number is **shown** (and what is sent to the AI summary JSON as `predictionOutputFormat`).
+
+| Property | Type | Default | Meaning |
+|----------|------|---------|---------|
+| **Prediction output format** | String | `percent` | **`percent`** — 0–100 **gauge** + rounded integer + **%** (classification-style). **`integer`** — whole number, no gauge. **`decimal`** — fixed decimal digits, no gauge. **`currency`** — org-locale currency, no gauge. **Aliases:** `classification` → `percent`, `regression` → `decimal`. Unknown values fall back to `percent`. |
+| **Currency code (ISO 4217)** | String | `USD` | Used only when format is **`currency`** (e.g. `EUR`, `GBP`). |
+| **Min decimal places (decimal/currency)** | Integer | `0` | Clamped 0–8; ignored for `integer` and `percent`. |
+| **Max decimal places (decimal/currency)** | Integer | `2` | Clamped 0–8; for `integer` and `percent` the effective max is 0. |
+
+**Gauge colors** (bad/good arc, reverse) apply only when the format is **`percent`**. For other formats, the large value uses `lightning-formatted-number` (user’s locale).
+
+**Gauge subtitle (under score)** still labels the main value for all formats (e.g. “Probability”, “Predicted revenue”, “Est. units”).
+
+---
+
 ## Delta / bar semantics (lists)
 
 Model explanations often use signed **contribution** values (positive vs negative). These flags control which color is “good” vs “risk” for **bars** and **delta text**.
@@ -51,6 +68,8 @@ Model explanations often use signed **contribution** values (positive vs negativ
 ---
 
 ## Gauge (arc)
+
+Shown only when **Prediction output format** is **`percent`** (or alias `classification`). Otherwise the main prediction is a formatted number without a semicircle gauge.
 
 The arc is a **single stroke color** blended between two endpoints by score (0–100%) using **HSL** interpolation.
 

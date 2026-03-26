@@ -9,7 +9,8 @@ private class ClassificationModelLwcControllerTest {
                 'Input:Prediction_Context',
                 50.5,
                 '[]',
-                '[]'
+                '[]',
+                null
             )
         );
     }

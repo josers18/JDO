@@ -21,51 +21,84 @@
         <template lwc:elseif={hasData}>
             <div class="two-col">
                 <div class="gauge-wrap">
-                    <svg
-                        class="gauge-svg"
-                        width="170"
-                        height="170"
-                        viewBox="0 0 200 200"
-                        xmlns="http://www.w3.org/2000/svg"
-                        role="img"
-                        aria-label={gaugeAriaLabel}
-                    >
-                        <circle
-                            cx="100"
-                            cy="100"
-                            r="80"
-                            fill="none"
-                            stroke="#F0F0F0"
-                            stroke-width="14"
-                        ></circle>
-                        <circle
-                            class="gauge-arc"
-                            cx="100"
-                            cy="100"
-                            r="80"
-                            fill="none"
-                            stroke={gaugeArcSolidColor}
-                            stroke-width="14"
-                            stroke-linecap="round"
-                            transform="rotate(-90 100 100)"
-                            stroke-dasharray="502"
-                            stroke-dashoffset="502"
-                        ></circle>
-                    </svg>
-                    <div class="gauge-label">
-                        <template lwc:if={hasPredictionScore}>
-                            <div class="gauge-score-line">
-                                <span class="score-num">{scorePercentRounded}</span>
-                                <span class="score-pct">%</span>
-                            </div>
-                        </template>
-                        <template lwc:else>
-                            <div class="gauge-score-line">
-                                <span class="score-num score-num--empty">—</span>
-                            </div>
-                        </template>
-                        <span class="score-sub">{gaugeSubtitleDisplay}</span>
-                    </div>
+                    <template lwc:if={showPercentGauge}>
+                        <svg
+                            class="gauge-svg"
+                            width="170"
+                            height="170"
+                            viewBox="0 0 200 200"
+                            xmlns="http://www.w3.org/2000/svg"
+                            role="img"
+                            aria-label={gaugeAriaLabel}
+                        >
+                            <circle
+                                cx="100"
+                                cy="100"
+                                r="80"
+                                fill="none"
+                                stroke="#F0F0F0"
+                                stroke-width="14"
+                            ></circle>
+                            <circle
+                                class="gauge-arc"
+                                cx="100"
+                                cy="100"
+                                r="80"
+                                fill="none"
+                                stroke={gaugeArcSolidColor}
+                                stroke-width="14"
+                                stroke-linecap="round"
+                                transform="rotate(-90 100 100)"
+                                stroke-dasharray="502"
+                                stroke-dashoffset="502"
+                            ></circle>
+                        </svg>
+                        <div class="gauge-label">
+                            <template lwc:if={hasPredictionValue}>
+                                <div class="gauge-score-line">
+                                    <span class="score-num">{scorePercentRounded}</span>
+                                    <span class="score-pct">%</span>
+                                </div>
+                            </template>
+                            <template lwc:else>
+                                <div class="gauge-score-line">
+                                    <span class="score-num score-num--empty">—</span>
+                                </div>
+                            </template>
+                            <span class="score-sub">{gaugeSubtitleDisplay}</span>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <div class="value-hero" role="img" aria-label={numericAriaLabel}>
+                            <template lwc:if={hasPredictionValue}>
+                                <div class="value-hero__amount">
+                                    <template lwc:if={isCurrencyFormat}>
+                                        <lightning-formatted-number
+                                            value={predictionNumber}
+                                            format-style="currency"
+                                            currency-code={resolvedCurrencyCode}
+                                            minimum-fraction-digits={numericMinimumFractionDigits}
+                                            maximum-fraction-digits={numericMaximumFractionDigits}
+                                        ></lightning-formatted-number>
+                                    </template>
+                                    <template lwc:else>
+                                        <lightning-formatted-number
+                                            value={predictionNumber}
+                                            format-style="decimal"
+                                            minimum-fraction-digits={numericMinimumFractionDigits}
+                                            maximum-fraction-digits={numericMaximumFractionDigits}
+                                        ></lightning-formatted-number>
+                                    </template>
+                                </div>
+                            </template>
+                            <template lwc:else>
+                                <div class="value-hero__amount">
+                                    <span class="score-num score-num--empty">—</span>
+                                </div>
+                            </template>
+                            <span class="score-sub">{gaugeSubtitleDisplay}</span>
+                        </div>
+                    </template>
                 </div>
 
                 <div class="lwc-right-col">

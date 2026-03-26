@@ -102,7 +102,8 @@ public with sharing class ClassificationModelLwcController {
         String promptInputApiName,
         Decimal prediction,
         String factorsJson,
-        String recommendationsJson
+        String recommendationsJson,
+        String predictionOutputFormat
     ) {
         if (String.isBlank(promptTemplateId)) {
             return null;
@@ -115,6 +116,9 @@ public with sharing class ClassificationModelLwcController {
             'factors' => factorsJson,
             'recommendations' => recommendationsJson
         };
+        if (String.isNotBlank(predictionOutputFormat)) {
+            payload.put('predictionOutputFormat', predictionOutputFormat.trim());
+        }
         String contextJson = JSON.serialize(payload);
 
         try {

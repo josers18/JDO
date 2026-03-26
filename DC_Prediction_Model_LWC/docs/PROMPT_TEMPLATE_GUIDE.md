@@ -39,19 +39,22 @@ Apex builds:
 ```json
 {
   "prediction": 51.58,
+  "predictionOutputFormat": "percent",
   "factors": "[{\"fields\":[...],\"value\":2.8}, ...]",
   "recommendations": "[...]"
 }
 ```
 
+The `predictionOutputFormat` field is set from App Builder (`percent`, `integer`, `decimal`, or `currency`) so the model knows whether `prediction` is a probability-style score or a regression value.
+
 Notes:
 
-- `prediction` is a JSON number.
+- `prediction` is a JSON number (probability 0–100, a count, a currency amount in major units, etc., depending on your flow).
 - `factors` and `recommendations` are **strings** (often escaped JSON). In the prompt body, instruct the model to parse them or to treat them as opaque text for summarization.
 
 Example snippet you might put in the template instructions:
 
-> You are assisting a banker. You receive a JSON object with keys `prediction` (number 0–100), `factors` (string, JSON array of drivers), and `recommendations` (string, JSON array). Parse the string fields if needed. Summarize risk in 2–3 sentences and mention the top drivers without inventing data.
+> You are assisting a banker. You receive JSON with `prediction` (number), `predictionOutputFormat` (`percent` | `integer` | `decimal` | `currency`), `factors` and `recommendations` (stringified JSON arrays). If format is `percent`, treat prediction as 0–100% risk-style; otherwise describe the numeric outcome appropriately. Parse the string fields if needed. Summarize in 2–3 sentences without inventing data.
 
 ---
 

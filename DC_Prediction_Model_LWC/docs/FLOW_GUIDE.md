@@ -1,6 +1,6 @@
 # Flow guide
 
-The **Classification Model** LWC does not include a Flow in source. You create an **autolaunched** flow in your org that returns a numeric prediction and two JSON-compatible collections (or strings) for drivers and recommendations.
+The **Prediction Model** LWC does not include a Flow in source. You create an **autolaunched** flow in your org that returns a numeric prediction and two JSON-compatible collections (or strings) for drivers and recommendations.
 
 ---
 

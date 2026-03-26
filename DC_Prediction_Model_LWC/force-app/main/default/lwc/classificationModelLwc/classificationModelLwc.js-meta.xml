@@ -2,8 +2,8 @@
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>66.0</apiVersion>
     <isExposed>true</isExposed>
-    <masterLabel>Classification Model</masterLabel>
-    <description>Classification / prediction score from Flow, driver and recommendation JSON lists, optional Prompt Builder summary.</description>
+    <masterLabel>Prediction Model</masterLabel>
+    <description>Classification or regression prediction from Flow (percent gauge or formatted number), driver and recommendation JSON lists, optional Prompt Builder summary.</description>
     <targets>
         <target>lightning__RecordPage</target>
         <target>lightning__AppPage</target>
@@ -26,6 +26,14 @@
             <property name="predictionVariableName" type="String" label="Flow output: prediction variable" default="prediction" />
             <property name="factorsVariableName" type="String" label="Flow output: factors variable" default="factors" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="predictionOutputFormat" type="String" label="Prediction output format" default="percent"
+                description="How the main prediction is shown. percent = 0–100 gauge + % (classification). integer / decimal / currency = large number, no gauge (regression). Aliases: classification→percent, regression→decimal. Invalid values default to percent." />
+            <property name="currencyCode" type="String" label="Currency code (ISO 4217)" default="USD"
+                description="Used when Prediction output format is currency (e.g. USD, EUR, GBP)." />
+            <property name="predictionMinimumFractionDigits" type="Integer" label="Min decimal places (decimal/currency)" default="0"
+                description="Minimum fraction digits when format is decimal or currency (0–8)." />
+            <property name="predictionMaximumFractionDigits" type="Integer" label="Max decimal places (decimal/currency)" default="2"
+                description="Maximum fraction digits when format is decimal or currency (0–8). Integer format forces 0." />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false"
                 description="Unchecked (default): positive contribution uses risk color; negative uses good color. Checked: invert." />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false"
@@ -76,6 +84,10 @@
             <property name="predictionVariableName" type="String" label="Flow output: prediction variable" default="prediction" />
             <property name="factorsVariableName" type="String" label="Flow output: factors variable" default="factors" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="predictionOutputFormat" type="String" label="Prediction output format" default="percent" />
+            <property name="currencyCode" type="String" label="Currency code (ISO 4217)" default="USD" />
+            <property name="predictionMinimumFractionDigits" type="Integer" label="Min decimal places (decimal/currency)" default="0" />
+            <property name="predictionMaximumFractionDigits" type="Integer" label="Max decimal places (decimal/currency)" default="2" />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
             <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
@@ -106,6 +118,10 @@
             <property name="predictionVariableName" type="String" label="Flow output: prediction variable" default="prediction" />
             <property name="factorsVariableName" type="String" label="Flow output: factors variable" default="factors" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="predictionOutputFormat" type="String" label="Prediction output format" default="percent" />
+            <property name="currencyCode" type="String" label="Currency code (ISO 4217)" default="USD" />
+            <property name="predictionMinimumFractionDigits" type="Integer" label="Min decimal places (decimal/currency)" default="0" />
+            <property name="predictionMaximumFractionDigits" type="Integer" label="Max decimal places (decimal/currency)" default="2" />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
             <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />

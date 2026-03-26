@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Quick reference for **Classification Model** (`classificationModelLwc`) and **ClassificationModelLwcController**.
+Quick reference for **Prediction Model** (`classificationModelLwc`) and **ClassificationModelLwcController**.
 
 ---
 

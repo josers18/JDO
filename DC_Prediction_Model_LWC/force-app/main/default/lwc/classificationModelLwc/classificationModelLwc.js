@@ -39,6 +39,14 @@ export default class ClassificationModelLwc extends LightningElement {
     @api gaugeColorHigh = '';
     @api gaugeArcBadColor = '';
     @api gaugeArcGoodColor = '';
+    /** percent | integer | decimal | currency; aliases classification→percent, regression→decimal */
+    @api predictionOutputFormat = 'percent';
+    /** ISO 4217 (e.g. USD). Used when prediction output format is currency. */
+    @api currencyCode = 'USD';
+    /** Decimal places (max) when format is decimal or currency. 0–8. */
+    @api predictionMaximumFractionDigits = 2;
+    /** Minimum fraction digits when format is decimal or currency. 0–8. */
+    @api predictionMinimumFractionDigits = 0;
 
     loadingFlow = false;
     loadingSummary = false;
@@ -64,11 +72,31 @@ export default class ClassificationModelLwc extends LightningElement {
         }
     }
 
-    get scorePercentRounded() {
-        if (this.prediction == null || Number.isNaN(Number(this.prediction))) {
+    get predictionNumber() {
+        if (this.prediction == null) {
             return null;
         }
-        return Math.round(Number(this.prediction));
+        const n = Number(this.prediction);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    get predictionFormatKey() {
+        const raw = (this.predictionOutputFormat || 'percent').trim().toLowerCase();
+        const aliases = { classification: 'percent', regression: 'decimal' };
+        const key = aliases[raw] || raw;
+        const allowed = ['percent', 'integer', 'decimal', 'currency'];
+        return allowed.includes(key) ? key : 'percent';
+    }
+
+    get showPercentGauge() {
+        return this.predictionFormatKey === 'percent';
+    }
+
+    get scorePercentRounded() {
+        if (this.predictionNumber == null) {
+            return null;
+        }
+        return Math.round(this.predictionNumber);
     }
 
     get hasData() {
@@ -76,14 +104,69 @@ export default class ClassificationModelLwc extends LightningElement {
             return false;
         }
         return (
-            this.prediction != null ||
+            this.predictionNumber != null ||
             this.insightItemCount(this.factorsJson) > 0 ||
             this.insightItemCount(this.recommendationsJson) > 0
         );
     }
 
+    get hasPredictionValue() {
+        return this.predictionNumber != null;
+    }
+
     get hasPredictionScore() {
-        return this.scorePercentRounded != null;
+        return this.hasPredictionValue;
+    }
+
+    get resolvedCurrencyCode() {
+        const c = (this.currencyCode || 'USD').trim().toUpperCase();
+        return /^[A-Z]{3}$/.test(c) ? c : 'USD';
+    }
+
+    get clampedMinFractionDigits() {
+        return this.clampFractionDigits(this.predictionMinimumFractionDigits, 0);
+    }
+
+    get clampedMaxFractionDigits() {
+        return this.clampFractionDigits(this.predictionMaximumFractionDigits, 2);
+    }
+
+    get numericMinimumFractionDigits() {
+        if (this.predictionFormatKey === 'integer') {
+            return 0;
+        }
+        const min = this.clampedMinFractionDigits;
+        const max = Math.max(min, this.clampedMaxFractionDigits);
+        return min;
+    }
+
+    get numericMaximumFractionDigits() {
+        if (this.predictionFormatKey === 'integer') {
+            return 0;
+        }
+        const min = this.clampedMinFractionDigits;
+        const max = this.clampedMaxFractionDigits;
+        return Math.max(min, max);
+    }
+
+    get isCurrencyFormat() {
+        return this.predictionFormatKey === 'currency';
+    }
+
+    clampFractionDigits(raw, fallback) {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) {
+            return fallback;
+        }
+        return Math.min(8, Math.max(0, Math.round(n)));
+    }
+
+    get numericAriaLabel() {
+        const label = this.gaugeSubtitleDisplay;
+        if (this.predictionNumber == null) {
+            return `${label} not available`;
+        }
+        return `${label} ${this.predictionNumber}`;
     }
 
     get factorRows() {
@@ -122,6 +205,9 @@ export default class ClassificationModelLwc extends LightningElement {
 
     get gaugeAriaLabel() {
         const label = this.gaugeSubtitleDisplay;
+        if (!this.showPercentGauge) {
+            return this.numericAriaLabel;
+        }
         if (this.scorePercentRounded != null) {
             return `${label} ${this.scorePercentRounded} percent`;
         }
@@ -412,7 +498,8 @@ export default class ClassificationModelLwc extends LightningElement {
                 promptInputApiName: this.promptInputApiName,
                 prediction: this.prediction,
                 factorsJson: this.factorsJson || '[]',
-                recommendationsJson: this.recommendationsJson || '[]'
+                recommendationsJson: this.recommendationsJson || '[]',
+                predictionOutputFormat: this.predictionFormatKey
             });
             this.summaryText = text || 'The model returned an empty response.';
         } catch (e) {
@@ -431,6 +518,9 @@ export default class ClassificationModelLwc extends LightningElement {
     }
 
     animateGauge() {
+        if (!this.showPercentGauge) {
+            return;
+        }
         const arc = this.template.querySelector('.gauge-arc');
         if (!arc) {
             return;
