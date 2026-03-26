@@ -1,6 +1,10 @@
 # Artifacts inventory
 
+**Project:** `DC_Prediction_Model_LWC` (see `sfdx-project.json`). **Git:** often under `JDO/DC_Prediction_Model_LWC/` — see [docs/GIT.md](docs/GIT.md).
+
 Source of truth: `force-app/main/default/`. This file describes each deployable artifact and how it fits together.
+
+**Naming:** App Builder shows **Prediction Model**; the LWC bundle path is still `lwc/classificationModelLwc/` and Apex classes `ClassificationModelLwcController*` (historical API names, stable for orgs).
 
 ---
 
@@ -60,4 +64,4 @@ classificationModelLwc (LWC)
               └── ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for sequence diagrams.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for sequence diagrams and [docs/GIT.md](docs/GIT.md) for Git layout.

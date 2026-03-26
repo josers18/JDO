@@ -1,6 +1,8 @@
 # Component reference — Prediction Model
 
-All properties are configured in **Lightning App Builder** when you select the **Prediction Model** component. Defaults below match `classificationModelLwc.js-meta.xml` / `classificationModelLwc.js`.
+All properties are configured in **Lightning App Builder** when you select the **Prediction Model** component (bundle `classificationModelLwc`). Defaults below match `classificationModelLwc.js-meta.xml` / `classificationModelLwc.js`.
+
+**Repository:** DX project `DC_Prediction_Model_LWC` — see [GIT.md](GIT.md).
 
 ---
 
@@ -108,4 +110,4 @@ The arc is a **single stroke color** blended between two endpoints by score (0�
 - **flowApiName** must be set in App Builder for the flow to run.
 - **Refresh** (header button) clears errors/summary state, re-runs the flow, and—if a prompt template is configured and **Auto-generate AI summary** is not turned off—runs the summary again after a successful flow.
 
-See [FLOW_GUIDE.md](FLOW_GUIDE.md) and [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) for backend setup.
+See [FLOW_GUIDE.md](FLOW_GUIDE.md), [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md), and [GIT.md](GIT.md) for backend setup and repo layout.

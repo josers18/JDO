@@ -1,6 +1,6 @@
 # DC Prediction Model LWC
 
-Lightning Web Component bundle that shows a **classification / prediction score** (gauge), **top drivers** and **recommendations** from JSON, and an optional **Einstein Prompt Builder** narrative summary. Data is loaded by calling an **autolaunched Flow** for the current record; the summary calls **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`.
+Salesforce DX project **DC_Prediction_Model_LWC**: a Lightning bundle (**Prediction Model** in App Builder) that shows a **numeric prediction** — classification-style **percent + gauge** or regression-style **integer / decimal / currency** — plus **top drivers** and **recommendations** from JSON, and an optional **Einstein Prompt Builder** summary. Data loads from an **autolaunched Flow**; the summary uses **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`.
 
 ---
 
@@ -8,6 +8,7 @@ Lightning Web Component bundle that shows a **classification / prediction score*
 
 | Document | Purpose |
 |----------|---------|
+| [docs/GIT.md](docs/GIT.md) | **Git**: monorepo path, clone commands, naming vs metadata |
 | [artifacts.md](artifacts.md) | Everything in source control and what each piece does |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Data flow diagrams (Mermaid) |
 | [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | How to build the Flow (inputs, outputs, JSON shape) |
@@ -44,17 +45,22 @@ Lightning Web Component bundle that shows a **classification / prediction score*
 
 ### 1. Clone and authorize
 
+This project is usually cloned as part of the **[JDO](https://github.com/josers18/JDO)** repo:
+
 ```bash
-git clone <your-repo-url>
-cd DC_Prediction_Model_LWC
+git clone https://github.com/josers18/JDO.git
+cd JDO/DC_Prediction_Model_LWC
 sf org login web --alias my-target-org
 ```
 
+If your copy is a **standalone** repo whose root is this DX project (contains `sfdx-project.json`), clone that URL and `cd` into the repo root instead. See [docs/GIT.md](docs/GIT.md) for layout and naming.
+
 ### 2. Deploy metadata
 
-Deploy everything under `force-app`. If the org requires Apex tests, run only this project’s test class:
+Deploy everything under `force-app` from the DX project root (`DC_Prediction_Model_LWC`; in JDO use `JDO/DC_Prediction_Model_LWC`). If the org requires Apex tests, run only this project’s test class:
 
 ```bash
+cd JDO/DC_Prediction_Model_LWC   # or your standalone project root — see docs/GIT.md
 sf project deploy start --source-dir force-app \
   --test-level RunSpecifiedTests \
   --tests ClassificationModelLwcControllerTest \
@@ -103,13 +109,18 @@ Project API version: see `sfdx-project.json` / component `apiVersion` (currently
 ## Repository layout
 
 ```
-force-app/main/default/
-├── classes/
-│   ├── ClassificationModelLwcController.cls
-│   └── ClassificationModelLwcControllerTest.cls
-└── lwc/
-    └── classificationModelLwc/
+DC_Prediction_Model_LWC/          # Salesforce DX project root
+├── sfdx-project.json             # name: DC_Prediction_Model_LWC
+├── force-app/main/default/
+│   ├── classes/
+│   │   ├── ClassificationModelLwcController.cls      # Apex API name (unchanged)
+│   │   └── ClassificationModelLwcControllerTest.cls
+│   └── lwc/
+│       └── classificationModelLwc/                   # bundle folder (App Builder: Prediction Model)
+└── docs/
 ```
+
+In the **JDO** Git repo, the path from clone root is `JDO/DC_Prediction_Model_LWC/`.
 
 ---
 

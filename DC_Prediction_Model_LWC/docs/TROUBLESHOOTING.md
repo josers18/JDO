@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Quick reference for **Prediction Model** (`classificationModelLwc`) and **ClassificationModelLwcController**.
+Quick reference for **Prediction Model** (`classificationModelLwc`) and **`ClassificationModelLwcController`**. **Git / repo path:** [GIT.md](GIT.md).
 
 ---
 
@@ -48,9 +48,10 @@ Quick reference for **Prediction Model** (`classificationModelLwc`) and **Classi
 
 ## Deploy errors (Apex tests)
 
-If the org requires tests but you only deploy this project:
+If the org requires tests but you only deploy this project, run commands from the DX root **`DC_Prediction_Model_LWC`** (see [GIT.md](GIT.md)):
 
 ```bash
+cd JDO/DC_Prediction_Model_LWC   # or your standalone project root
 sf project deploy start --source-dir force-app \
   --test-level RunSpecifiedTests \
   --tests ClassificationModelLwcControllerTest \

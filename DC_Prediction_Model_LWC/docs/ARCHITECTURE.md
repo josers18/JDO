@@ -1,6 +1,6 @@
 # Architecture
 
-High-level behavior of **Prediction Model** (`classificationModelLwc`) and **ClassificationModelLwcController**.
+High-level behavior of **Prediction Model** (`classificationModelLwc`) and **`ClassificationModelLwcController`** (Apex class name unchanged; see [GIT.md](GIT.md)).
 
 ---
 
@@ -98,6 +98,7 @@ Arc **color** comes from the LWC getter `gaugeArcSolidColor` (template-bound `st
 
 ## Related docs
 
+- [GIT.md](GIT.md) — Git layout, clone path, naming vs metadata
 - [FLOW_GUIDE.md](FLOW_GUIDE.md) — Flow contract
 - [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) — Template inputs
 - [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — All properties

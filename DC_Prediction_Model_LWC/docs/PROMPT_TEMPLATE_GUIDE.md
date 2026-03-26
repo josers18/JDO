@@ -1,6 +1,6 @@
 # Prompt template guide (Einstein / Prompt Builder)
 
-The optional **AI summary** card calls Apex, which uses:
+For the **Prediction Model** Lightning component (`classificationModelLwc`), the optional **AI summary** card calls Apex, which uses:
 
 `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`
 
@@ -98,5 +98,6 @@ If one form fails, try the other from Setup → Prompt Builder → your template
 
 ## Related
 
+- [GIT.md](GIT.md) — repository path and naming
 - [FLOW_GUIDE.md](FLOW_GUIDE.md) — shape `factors` / `recommendations` consistently for both UI and prompt.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — sequence diagram including Einstein call.

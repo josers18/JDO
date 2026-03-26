@@ -9,7 +9,7 @@ The **Prediction Model** LWC does not include a Flow in source. You create an **
 | Direction | Name in UI (configurable) | Typical Flow type | Purpose |
 |-----------|---------------------------|-------------------|---------|
 | **Input** | Flow input variable for record Id (default: `recordId`) | `Text` or `Record` Id input | Current record the prediction is for. |
-| **Output** | Prediction variable (default: `prediction`) | `Number`, `Currency`, or assignable numeric | 0–100 style score shown on the gauge. |
+| **Output** | Prediction variable (default: `prediction`) | `Number`, `Currency`, or assignable numeric | Numeric outcome from your model. UI treatment depends on App Builder **Prediction output format** (`percent` = gauge 0–100, or `integer` / `decimal` / `currency`). |
 | **Output** | Factors variable (default: `factors`) | `Text` (JSON string) or collection Apex can serialize | Top predictors list. |
 | **Output** | Recommendations variable (default: `recommendations`) | Same | Suggested improvements list. |
 
@@ -120,5 +120,6 @@ Use **Flow** → **Run** (debug) with a sample record Id, or call the flow from 
 
 ## Next steps
 
+- [GIT.md](GIT.md) — clone path and DX project root
 - [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) — wire the AI summary to the same prediction outputs.
 - [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — map every App Builder property.
