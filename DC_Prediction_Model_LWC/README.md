@@ -1,5 +1,29 @@
 # DC Prediction Model LWC
 
+<div align="center">
+
+[![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
+[![LWC](https://img.shields.io/badge/Lightning-Web_Components-0176D3?style=for-the-badge)](https://developer.salesforce.com/docs/component-library/overview/components)
+[![Apex](https://img.shields.io/badge/Apex-04844B?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/)
+[![Metadata API](https://img.shields.io/badge/API-v66.0-032D60?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_intro.htm)
+[![Flow](https://img.shields.io/badge/Flow-Autolaunched-5865F2?style=for-the-badge)](https://help.salesforce.com/s/articleView?id=sf.flow.htm&type=5)
+[![Einstein](https://img.shields.io/badge/Einstein-Prompt_Builder-7F56D9?style=for-the-badge)](https://help.salesforce.com/s/articleView?id=sf.generative_ai_prompt_builder.htm&type=5)
+
+[![SF CLI](https://img.shields.io/badge/SF_CLI-v2-111111?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://developer.salesforce.com/tools/salesforcecli)
+[![Node.js](https://img.shields.io/badge/Node.js-tooling-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![ESLint](https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white)](https://eslint.org/)
+[![Prettier](https://img.shields.io/badge/Prettier-code_style-F7B93E?style=for-the-badge&logo=prettier&logoColor=black)](https://prettier.io/)
+[![Jest](https://img.shields.io/badge/Jest-LWC_unit_tests-C21325?style=for-the-badge&logo=jest&logoColor=white)](https://jestjs.io/)
+[![GitHub](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
+
+<br/>
+
+**Record-page prediction UI** · **Gauge or metric panel** · **Optional generative summary**
+
+</div>
+
+---
+
 Salesforce DX project **DC_Prediction_Model_LWC**: a Lightning bundle (**Prediction Model** in App Builder) that shows a **numeric prediction** — classification-style **percent + gauge** or regression-style **integer / decimal / currency** — plus **top drivers** and **recommendations** from JSON, and an optional **Einstein Prompt Builder** summary. Data loads from an **autolaunched Flow**; the summary uses **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`.
 
 ---
