@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Multiclass Prediction</masterLabel>
+    <description>Multiclass classification: text prediction label from Flow, recommendations JSON only, optional Einstein summary.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="cardTitle" type="String" label="Main card title" default="Model prediction"
+                description="Heading at the top of the card." />
+            <property name="summaryCardTitle" type="String" label="AI summary card title" default="Analysis summary"
+                description="Reserved for future use; summary block has no separate heading today." />
+            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Suggested improvements"
+                description="Heading above the recommendation rows." />
+            <property name="flowApiName" type="String" label="Autolaunched flow API name" required="true"
+                description="Flow must output text prediction and recommendations JSON (no factors)." />
+            <property name="recordIdInputName" type="String" label="Flow input variable for record Id" default="recordId" />
+            <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
+            <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class"
+                description="Caption below the label (e.g. Product line, Segment)." />
+            <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true"
+                description="When true, underscores become spaces and words are title-cased (Wealth_Management → Wealth Management). When false, show exact flow string." />
+            <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
+            <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
+            <property name="goodColor" type="String" label="Default good color" default="#1D9E75" />
+            <property name="recommendationsRiskColor" type="String" label="Recommendations: risk color override" />
+            <property name="recommendationsGoodColor" type="String" label="Recommendations: good color override" />
+            <property name="promptTemplateId" type="String" label="Prompt template Id or API name"
+                description="JSON payload includes prediction (string), predictionType multiclass_label, recommendations." />
+            <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
+            <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
+            <objects>
+                <object>Account</object>
+            </objects>
+        </targetConfig>
+        <targetConfig targets="lightning__AppPage">
+            <property name="cardTitle" type="String" label="Main card title" default="Model prediction" />
+            <property name="summaryCardTitle" type="String" label="AI summary card title" default="Analysis summary" />
+            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Suggested improvements" />
+            <property name="flowApiName" type="String" label="Autolaunched flow API name" required="true" />
+            <property name="recordIdInputName" type="String" label="Flow input variable for record Id" default="recordId" />
+            <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
+            <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class" />
+            <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true" />
+            <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
+            <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
+            <property name="goodColor" type="String" label="Default good color" default="#1D9E75" />
+            <property name="recommendationsRiskColor" type="String" label="Recommendations: risk color override" />
+            <property name="recommendationsGoodColor" type="String" label="Recommendations: good color override" />
+            <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
+            <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
+            <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
+        </targetConfig>
+        <targetConfig targets="lightning__HomePage">
+            <property name="cardTitle" type="String" label="Main card title" default="Model prediction" />
+            <property name="summaryCardTitle" type="String" label="AI summary card title" default="Analysis summary" />
+            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Suggested improvements" />
+            <property name="flowApiName" type="String" label="Autolaunched flow API name" default=""
+                description="Required at runtime; set in App Builder." />
+            <property name="recordIdInputName" type="String" label="Flow input variable for record Id" default="recordId" />
+            <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
+            <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class" />
+            <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true" />
+            <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
+            <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
+            <property name="goodColor" type="String" label="Default good color" default="#1D9E75" />
+            <property name="recommendationsRiskColor" type="String" label="Recommendations: risk color override" />
+            <property name="recommendationsGoodColor" type="String" label="Recommendations: good color override" />
+            <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
+            <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
+            <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

@@ -1,6 +1,6 @@
 # Git and repository layout
 
-This folder is **DC_Multiclass_Prediction_LWC** in the JDO monorepo — a sibling of **DC_Prediction_Model_LWC**, branched for multiclass features (metadata renames pending).
+This folder is **DC_Multiclass_Prediction_LWC** in the JDO monorepo — a sibling of **DC_Prediction_Model_LWC**, with its own LWC and Apex API names for **multiclass text prediction** + recommendations.
 
 ## Where this project lives
 
@@ -34,10 +34,10 @@ If you copied only this tree into a **standalone** repository, clone that repo i
 
 | What you see | Technical / API name | Notes |
 |--------------|----------------------|--------|
-| **Prediction Model** | — | Lightning App Builder **master label** (`classificationModelLwc.js-meta.xml`). |
-| LWC bundle folder | `lwc/classificationModelLwc/` | Bundle API name; unchanged so existing org deployments stay compatible. |
-| Apex controller | `ClassificationModelLwcController` | Class API name; unchanged for compatibility. |
-| Apex test | `ClassificationModelLwcControllerTest` | Run with `--tests ClassificationModelLwcControllerTest` when using `RunSpecifiedTests`. |
+| **Multiclass Prediction** | — | Lightning App Builder **master label** (`multiclassPredictionLwc.js-meta.xml`). |
+| LWC bundle folder | `lwc/multiclassPredictionLwc/` | Bundle folder and component name. |
+| Apex controller | `MulticlassPredictionLwcController` | Runs flow; builds multiclass prompt JSON. |
+| Apex test | `MulticlassPredictionLwcControllerTest` | Run with `--tests MulticlassPredictionLwcControllerTest` when using `RunSpecifiedTests`. |
 
 ---
 
@@ -59,7 +59,7 @@ Do not commit `.sfdx/`, `node_modules/`, or org auth artifacts — they are list
 | [README.md](../README.md) | Overview, install, features |
 | [artifacts.md](../artifacts.md) | Source files and dependencies |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Diagrams, rendering, errors |
-| [UI_LAYOUT.md](UI_LAYOUT.md) | Gauge vs metric panel, responsive UI |
+| [UI_LAYOUT.md](UI_LAYOUT.md) | Class hero, recommendations, responsive UI |
 | [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) | App Builder properties |
 | [FLOW_GUIDE.md](FLOW_GUIDE.md) | Autolaunched flow contract |
 | [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) | Einstein prompt JSON |

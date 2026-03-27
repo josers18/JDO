@@ -1,16 +1,14 @@
 @IsTest
-private class ClassificationModelLwcControllerTest {
+private class MulticlassPredictionLwcControllerTest {
     @IsTest
     static void generateAnalysisSummary_blankTemplate_returnsNull() {
         System.assertEquals(
             null,
-            ClassificationModelLwcController.generateAnalysisSummary(
+            MulticlassPredictionLwcController.generateAnalysisSummary(
                 null,
                 'Input:Prediction_Context',
-                50.5,
-                '[]',
-                '[]',
-                null
+                'Wealth_Management',
+                '[]'
             )
         );
     }
@@ -19,7 +17,7 @@ private class ClassificationModelLwcControllerTest {
     static void runPredictionFlow_missingParams_throws() {
         Boolean threw = false;
         try {
-            ClassificationModelLwcController.runPredictionFlow(null, UserInfo.getUserId(), null, null, null, null);
+            MulticlassPredictionLwcController.runPredictionFlow(null, UserInfo.getUserId(), null, null, null);
         } catch (AuraHandledException e) {
             threw = true;
         }
@@ -30,12 +28,11 @@ private class ClassificationModelLwcControllerTest {
     static void runPredictionFlow_invalidFlow_throws() {
         Boolean threw = false;
         try {
-            ClassificationModelLwcController.runPredictionFlow(
+            MulticlassPredictionLwcController.runPredictionFlow(
                 'Nonexistent_Flow_Invalid_ZZZ',
                 UserInfo.getUserId(),
                 'recordId',
                 'prediction',
-                'factors',
                 'recommendations'
             );
         } catch (Exception e) {

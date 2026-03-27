@@ -1,24 +1,21 @@
 /**
- * Runs an autolaunched flow for classification / prediction outputs and optionally invokes
- * Einstein Prompt Builder for a natural-language summary (LWC: classificationModelLwc).
+ * Multiclass classification: flow returns a text prediction label and recommendations JSON only.
+ * LWC: multiclassPredictionLwc
  */
-public with sharing class ClassificationModelLwcController {
-    public class PredictionResult {
+public with sharing class MulticlassPredictionLwcController {
+    public class MulticlassResult {
         @AuraEnabled
-        public Decimal prediction;
-        @AuraEnabled
-        public String factorsJson;
+        public String predictionLabel;
         @AuraEnabled
         public String recommendationsJson;
     }
 
     @AuraEnabled
-    public static PredictionResult runPredictionFlow(
+    public static MulticlassResult runPredictionFlow(
         String flowApiName,
         Id recordId,
         String recordIdVariableName,
         String predictionVariableName,
-        String factorsVariableName,
         String recommendationsVariableName
     ) {
         if (String.isBlank(flowApiName) || recordId == null) {
@@ -27,7 +24,6 @@ public with sharing class ClassificationModelLwcController {
 
         String recordVar = String.isBlank(recordIdVariableName) ? 'recordId' : recordIdVariableName;
         String predVar = String.isBlank(predictionVariableName) ? 'prediction' : predictionVariableName;
-        String factorsVar = String.isBlank(factorsVariableName) ? 'factors' : factorsVariableName;
         String recVar = String.isBlank(recommendationsVariableName)
             ? 'recommendations'
             : recommendationsVariableName;
@@ -38,17 +34,16 @@ public with sharing class ClassificationModelLwcController {
         Flow.Interview interview = Flow.Interview.createInterview(flowApiName, inputs);
         interview.start();
 
-        PredictionResult result = new PredictionResult();
+        MulticlassResult result = new MulticlassResult();
         Object pred = interview.getVariableValue(predVar);
-        if (pred instanceof Decimal) {
-            result.prediction = (Decimal) pred;
-        } else if (pred instanceof Integer) {
-            result.prediction = Decimal.valueOf(String.valueOf(pred));
-        } else if (pred != null) {
-            result.prediction = Decimal.valueOf(String.valueOf(pred));
+        if (pred == null) {
+            result.predictionLabel = null;
+        } else if (pred instanceof String) {
+            result.predictionLabel = ((String) pred).trim();
+        } else {
+            result.predictionLabel = String.valueOf(pred).trim();
         }
 
-        result.factorsJson = flowOutputToJsonString(resolveFlowOutput(interview, factorsVar));
         result.recommendationsJson = flowOutputToJsonString(resolveFlowOutput(interview, recVar));
 
         return result;
@@ -100,10 +95,8 @@ public with sharing class ClassificationModelLwcController {
     public static String generateAnalysisSummary(
         String promptTemplateId,
         String promptInputApiName,
-        Decimal prediction,
-        String factorsJson,
-        String recommendationsJson,
-        String predictionOutputFormat
+        String predictionLabel,
+        String recommendationsJson
     ) {
         if (String.isBlank(promptTemplateId)) {
             return null;
@@ -112,13 +105,10 @@ public with sharing class ClassificationModelLwcController {
         String inputName = String.isBlank(promptInputApiName) ? 'Input:Prediction_Context' : promptInputApiName;
 
         Map<String, Object> payload = new Map<String, Object>{
-            'prediction' => prediction,
-            'factors' => factorsJson,
-            'recommendations' => recommendationsJson
+            'prediction' => predictionLabel,
+            'predictionType' => 'multiclass_label',
+            'recommendations' => recommendationsJson != null ? recommendationsJson : '[]'
         };
-        if (String.isNotBlank(predictionOutputFormat)) {
-            payload.put('predictionOutputFormat', predictionOutputFormat.trim());
-        }
         String contextJson = JSON.serialize(payload);
 
         try {

@@ -1,6 +1,6 @@
 # Prompt template guide (Einstein / Prompt Builder)
 
-For the **Prediction Model** Lightning component (`classificationModelLwc`), the optional **AI summary** card calls Apex, which uses:
+For the **Multiclass Prediction** Lightning component (`multiclassPredictionLwc`), the optional **AI summary** block calls Apex, which uses:
 
 `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`
 
@@ -38,23 +38,22 @@ Apex builds:
 
 ```json
 {
-  "prediction": 51.58,
-  "predictionOutputFormat": "percent",
-  "factors": "[{\"fields\":[...],\"value\":2.8}, ...]",
-  "recommendations": "[...]"
+  "prediction": "Wealth_Management",
+  "predictionType": "multiclass_label",
+  "recommendations": "[{\"fields\":[{\"name\":\"risk_tolerance__c\",\"inputValue\":\"Aggressive\",\"prescribedValue\":\"\"}],\"value\":317.61}, ...]"
 }
 ```
 
-The `predictionOutputFormat` field is set from App Builder (`percent`, `integer`, `decimal`, or `currency`) so the model knows whether `prediction` is a probability-style score or a regression value.
-
 Notes:
 
-- `prediction` is a JSON number (probability 0–100, a count, a currency amount in major units, etc., depending on your flow).
-- `factors` and `recommendations` are **strings** (often escaped JSON). In the prompt body, instruct the model to parse them or to treat them as opaque text for summarization.
+- `prediction` is always a **JSON string**: the raw class label from the flow (not the humanized display string).
+- `predictionType` is always **`multiclass_label`** so one template family can distinguish this payload from numeric **DC_Prediction_Model_LWC** payloads if you reuse instructions.
+- `recommendations` is a **string** (often escaped JSON). In the prompt body, instruct the model to parse it or treat it as opaque text for summarization.
+- There is **no** `factors` or `predictionOutputFormat` in this project.
 
 Example snippet you might put in the template instructions:
 
-> You are assisting a banker. You receive JSON with `prediction` (number), `predictionOutputFormat` (`percent` | `integer` | `decimal` | `currency`), `factors` and `recommendations` (stringified JSON arrays). If format is `percent`, treat prediction as 0–100% risk-style; otherwise describe the numeric outcome appropriately. Parse the string fields if needed. Summarize in 2–3 sentences without inventing data.
+> You are assisting a relationship manager. You receive JSON with `prediction` (string — predicted class code or label), `predictionType` (`multiclass_label`), and `recommendations` (a stringified JSON array of fields and impact values). Explain the predicted class in plain language and summarize the top suggested improvements in 2–3 sentences. Do not invent data not present in the JSON.
 
 ---
 
@@ -75,13 +74,13 @@ If one form fails, try the other from Setup → Prompt Builder → your template
 |----------|----------------|
 | **Prompt template Id or API name** | Set to your production template. |
 | **Prompt template text input API name** | Must match the flex text input (e.g. `Input:Prediction_Context`). |
-| **Auto-generate AI summary** | On: runs after successful flow. Off: you could extend the LWC later to add a manual “Generate” only (currently summary runs when flow succeeds and template is set). |
+| **Auto-generate AI summary** | On: runs after successful flow. Off: summary is not requested automatically. |
 
 ---
 
 ## Security and data minimization
 
-- The entire payload is sent to the LLM. **Do not include PII** in factor labels/values if policy forbids it, or filter in the flow before outputting JSON.
+- The entire payload is sent to the LLM. **Do not include PII** in recommendation labels/values if policy forbids it, or filter in the flow before outputting JSON.
 - Review **Einstein Trust** and audit features for your org.
 
 ---
@@ -99,6 +98,6 @@ If one form fails, try the other from Setup → Prompt Builder → your template
 ## Related
 
 - [GIT.md](GIT.md) — repository path and naming
-- [UI_LAYOUT.md](UI_LAYOUT.md) — how the on-screen prediction relates to `predictionOutputFormat`
-- [FLOW_GUIDE.md](FLOW_GUIDE.md) — shape `factors` / `recommendations` consistently for both UI and prompt.
-- [ARCHITECTURE.md](ARCHITECTURE.md) — sequence diagram including Einstein call.
+- [UI_LAYOUT.md](UI_LAYOUT.md) — class hero and recommendation rows
+- [FLOW_GUIDE.md](FLOW_GUIDE.md) — shape `recommendations` consistently for both UI and prompt
+- [ARCHITECTURE.md](ARCHITECTURE.md) — sequence diagram including Einstein call

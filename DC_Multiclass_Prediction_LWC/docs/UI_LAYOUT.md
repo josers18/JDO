@@ -1,53 +1,36 @@
-# UI layout — Prediction Model
+# UI layout — Multiclass Prediction
 
-How the **Prediction Model** component (`classificationModelLwc`) lays out the **main prediction** area depends on **Prediction output format** in App Builder (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)).
-
----
-
-## Two presentation modes
-
-| Format (`predictionOutputFormat`) | Main prediction UI | Container |
-|-----------------------------------|--------------------|-----------|
-| **`percent`** (default) or alias `classification` | Semicircle **gauge** (SVG arc), rounded integer + **%**, subtitle under the value | `.gauge-wrap` (fixed **170×170** px, centered) |
-| **`integer`**, **`decimal`**, **`currency`** (aliases include `regression` → decimal) | **Metric panel**: large formatted number (`lightning-formatted-number`), prominent **caption** under the value | `.value-hero-panel` (**full width** of the component column, not limited to 170px) |
-
-**Why two layouts:** The gauge exists only for 0–100% semantics. Regression-style outputs use a **wide KPI-style panel** so the value is not squeezed into the gauge column (which would make the number look disproportionately small).
+How the **Multiclass Prediction** component (`multiclassPredictionLwc`) structures the card: **predicted class** (text) and **recommendations** only — no gauge, no numeric KPI panel, no top-drivers section.
 
 ---
 
-## Percent mode (gauge)
+## Main areas
 
-- **Markup:** `div.gauge-wrap` → SVG (track + `.gauge-arc`) + `div.gauge-label` with score line and `span.score-sub`.
-- **Behavior:** Arc length reflects clamped 0–100; color from `gaugeArcSolidColor` (HSL blend). Animation updates `stroke-dashoffset` only.
-- **Subtitle:** **Gauge subtitle (under score)** — shown as `.score-sub` (small, uppercase-style tracking).
-
----
-
-## Numeric mode (integer / decimal / currency)
-
-- **Markup:** `div.value-hero-panel` → `div.value-hero` → `div.value-hero__amount` → `lightning-formatted-number`, then `span.value-hero__caption` for the label.
-- **Panel:** Full-width card with light gradient background, border, radius, and subtle shadow so the prediction reads as the primary metric.
-- **Number:** `lightning-formatted-number` is styled via the parent bundle CSS on the **custom element host** (large `font-size` using `clamp()` and **container query width** `cqw`, **font-weight 700**, tight letter-spacing). Locale and currency symbols come from the user’s org/locale.
-- **Caption:** **Gauge subtitle (under score)** is reused as the metric label (e.g. “CSAT”, “Predicted revenue”) on `.value-hero__caption` — slightly larger and bolder than the old gauge-only subtitle for readability.
+| Region | Markup / CSS | Notes |
+|--------|----------------|-------|
+| **Shell** | `.lwc-shell`, header with title + Refresh | Same shell pattern as sibling projects. |
+| **Class hero** | `.class-hero-panel` → `.class-hero` → `.class-hero__label`, `.class-hero__caption` | Large **text** label (humanized or raw per App Builder). Empty state shows an em dash. Caption from **Subtitle under predicted class**. |
+| **Recommendations** | `.improve-section`, `.factor-row`, `.bar-track`, `.bar-fill` | Sorted rows with `+/-x.x%`, horizontal bar, ellipsis label (`Field: value`). |
+| **AI summary** | `.agent-summary` | Optional; shown when a prompt template Id/API name is set. |
 
 ---
 
-## Responsive behavior
+## Typography and responsiveness
 
-- The shell (`.lwc-shell`) uses **`container-type: inline-size`** so font sizes can scale with the card width (`cqw` units).
-- Narrow containers (`@container (max-width: 340px)`) reduce panel padding and slightly reduce the formatted-number size.
+- The shell (`.lwc-shell`) uses **`container-type: inline-size`** so the class label can scale with card width (`clamp` + `cqw`).
+- Narrow containers (`@container (max-width: 340px)`) reduce hero padding and slightly shrink the label and section labels.
 
 ---
 
-## Customizing appearance
+## Customization
 
-- **Colors / arc / reverse:** App Builder properties (percent mode only for the arc). See [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md).
-- **Structural or typographic tweaks:** Edit `classificationModelLwc.css` in this repo and redeploy. Avoid relying on shadow-DOM internals of `lightning-formatted-number` beyond host-level rules.
+- **Structural or typographic tweaks:** Edit `multiclassPredictionLwc.css` in this repo and redeploy.
+- **Colors:** Use App Builder **Default risk / good color** and optional recommendation overrides; or CSS host variables `--lwc-model-delta-risk` / `--lwc-model-delta-good` on `:host` if you extend the bundle.
 
 ---
 
 ## Related
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — data flow and rendering notes
-- [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — all properties
-- [FLOW_GUIDE.md](FLOW_GUIDE.md) — what the flow returns for `prediction`
+- [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — all App Builder properties
+- [ARCHITECTURE.md](ARCHITECTURE.md) — sequence and payload to Einstein
+- [FLOW_GUIDE.md](FLOW_GUIDE.md) — JSON shape for recommendations

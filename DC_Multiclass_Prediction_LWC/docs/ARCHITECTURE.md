@@ -1,16 +1,16 @@
 # Architecture
 
-High-level behavior of **Prediction Model** (`classificationModelLwc`) and **`ClassificationModelLwcController`** (Apex class name unchanged; see [GIT.md](GIT.md)).
+High-level behavior of **Multiclass Prediction** (`multiclassPredictionLwc`) and **`MulticlassPredictionLwcController`**. **Git / path:** [GIT.md](GIT.md).
 
 ---
 
 ## Component responsibilities
 
 | Layer | Responsibility |
-|-------|------------------|
-| **LWC** | Renders **percent gauge** or **full-width numeric metric panel** (by `predictionOutputFormat`), driver/recommendation lists, summary; maps designer properties to Apex; parses JSON for lists; applies colors and animations. |
-| **Apex** | Runs flow with safe variable naming; serializes flow outputs to strings; invokes Einstein prompt API with a wrapped text parameter. |
-| **Flow** (org) | Encapsulates record-scoped prediction and shapes `factors` / `recommendations` for the UI. |
+|-------|----------------|
+| **LWC** | Renders **predicted class** as large text (with optional humanize), **recommendations** list with bars, optional summary; maps designer properties to Apex; parses JSON for recommendations. |
+| **Apex** | Runs flow with safe variable naming; coerces prediction to text; serializes recommendations to a string; invokes Einstein prompt API with a wrapped text parameter. |
+| **Flow** (org) | Encapsulates record-scoped multiclass prediction and shapes `recommendations` for the UI. |
 | **Prompt template** (org) | Turns JSON context into user-facing narrative (optional). |
 
 ---
@@ -20,8 +20,8 @@ High-level behavior of **Prediction Model** (`classificationModelLwc`) and **`Cl
 ```mermaid
 sequenceDiagram
     participant User
-    participant LWC as classificationModelLwc
-    participant Apex as ClassificationModelLwcController
+    participant LWC as multiclassPredictionLwc
+    participant Apex as MulticlassPredictionLwcController
     participant Flow as Autolaunched Flow
     participant LLM as Einstein Prompt API
 
@@ -29,9 +29,9 @@ sequenceDiagram
     LWC->>LWC: recordId set by platform
     LWC->>Apex: runPredictionFlow (flow API name, record Id, output vars)
     Apex->>Flow: createInterview and start
-    Flow-->>Apex: prediction, factors, recommendations
-    Apex-->>LWC: PredictionResult JSON plus prediction number
-    LWC->>LWC: Render main value (gauge if percent, else metric panel), lists, bar animation
+    Flow-->>Apex: prediction (text), recommendations
+    Apex-->>LWC: predictionLabel, recommendationsJson
+    LWC->>LWC: Render class hero, recommendation rows, bar animation
 
     alt When prompt template set and auto summary on
         LWC->>Apex: generateAnalysisSummary
@@ -53,11 +53,11 @@ flowchart LR
     end
     subgraph Deployed
         A[runPredictionFlow]
-        L[classificationModelLwc]
+        L[multiclassPredictionLwc]
     end
     F -->|outputs| A
-    A -->|prediction, factorsJson, recommendationsJson| L
-    L -->|gauge or formatted number, bars, labels| UI[Lightning UI]
+    A -->|predictionLabel, recommendationsJson| L
+    L -->|label, bars, labels| UI[Lightning UI]
 ```
 
 ---
@@ -68,14 +68,15 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 
 ```json
 {
-  "prediction": 51.58,
-  "predictionOutputFormat": "decimal",
-  "factors": "[...]",
-  "recommendations": "[...]"
+  "prediction": "Wealth_Management",
+  "predictionType": "multiclass_label",
+  "recommendations": "[{\"fields\":[...],\"value\":317.61}, ...]"
 }
 ```
 
-`predictionOutputFormat` mirrors the LWC App Builder setting (`percent`, `integer`, `decimal`, `currency`). `factors` and `recommendations` are **strings** (often stringified JSON arrays). The prompt template should treat them as text or parse them inside the template instructions.
+- `prediction` is always a **JSON string** (the raw label from the flow before LWC humanize).
+- `predictionType` is always **`multiclass_label`** so the template can branch from regression/classification payloads.
+- `recommendations` is a **string** (often stringified JSON array). The prompt can parse it or treat it as opaque text.
 
 ---
 
@@ -84,7 +85,7 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 | Failure | User-visible behavior |
 |---------|------------------------|
 | Flow missing / runtime error | Toast: “Could not run prediction flow”; sticky message with detail. |
-| Summary / Einstein error | Toast: “AI summary failed”; main prediction area and lists may still show if flow succeeded. |
+| Summary / Einstein error | Toast: “AI summary failed”; class and recommendations may still show if flow succeeded. |
 | No `recordId` | Flow is not called (silent skip). |
 | No `flowApiName` | Flow is not called. |
 
@@ -92,8 +93,8 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 
 ## Main prediction rendering
 
-- **Percent mode:** Arc **color** from getter `gaugeArcSolidColor` (template-bound `stroke`). **Dash offset** is animated in JS. `renderedCallback` removes inline `stroke` on `.gauge-arc` so App Builder color/reverse changes apply after refresh.
-- **Integer / decimal / currency:** No gauge. The value is shown in **`.value-hero-panel`** (full column width) with **`lightning-formatted-number`**; label uses **Gauge subtitle** on **`.value-hero__caption`**. Typography uses **container query** units on `.lwc-shell` for responsive size.
+- **Class hero:** `.class-hero-panel` wraps `.class-hero` with `.class-hero__label` (large text, `word-break`) and `.class-hero__caption` (subtitle).
+- **Recommendations:** Same row pattern as the sibling project (delta %, bar, field detail); bars animate via `transform: scaleX` after load.
 
 Full DOM and CSS overview: [UI_LAYOUT.md](UI_LAYOUT.md).
 
@@ -101,8 +102,8 @@ Full DOM and CSS overview: [UI_LAYOUT.md](UI_LAYOUT.md).
 
 ## Related docs
 
-- [GIT.md](GIT.md) — Git layout, clone path, naming vs metadata
-- [UI_LAYOUT.md](UI_LAYOUT.md) — Gauge vs metric panel, captions, responsive rules
+- [GIT.md](GIT.md) — Git layout, clone path, naming
+- [UI_LAYOUT.md](UI_LAYOUT.md) — Class hero, captions, responsive rules
 - [FLOW_GUIDE.md](FLOW_GUIDE.md) — Flow contract
 - [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) — Template inputs
 - [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — All properties

@@ -1,6 +1,6 @@
 # DC Multiclass Prediction LWC
 
-> **Status:** New DX project folder cloned from **DC_Prediction_Model_LWC** for **multiclass** work. Lightning bundle and Apex **API names are unchanged** from the source (`classificationModelLwc`, `ClassificationModelLwcController`) — do not deploy both projects to the same org without renaming. Awaiting your instructions for behavior and metadata renames.
+> **Status:** Multiclass **text** prediction from Flow (`prediction` string, e.g. `Wealth_Management`), **recommendations** JSON only (no factors, no gauge). Bundle **`multiclassPredictionLwc`** and Apex **`MulticlassPredictionLwcController`** — distinct from **DC_Prediction_Model_LWC**, so both can deploy to the same org.
 
 <div align="center">
 
@@ -20,13 +20,13 @@
 
 <br/>
 
-**Multiclass prediction (WIP)** · **Based on Prediction Model stack** · **Gauge or metric panel** · **Optional generative summary**
+**Multiclass label** · **Recommendations + bars** · **Optional generative summary**
 
 </div>
 
 ---
 
-Salesforce DX project **DC_Multiclass_Prediction_LWC**: currently the same capability as **DC_Prediction_Model_LWC** — a Lightning bundle (**Prediction Model** in App Builder) that shows a **numeric prediction** — classification-style **percent + gauge** or regression-style **integer / decimal / currency** — plus **top drivers** and **recommendations** from JSON, and an optional **Einstein Prompt Builder** summary. Data loads from an **autolaunched Flow**; the summary uses **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`.
+Salesforce DX project **DC_Multiclass_Prediction_LWC**: a Lightning bundle (**Multiclass Prediction** in App Builder) that shows a **text predicted class** in a hero panel, **suggested improvements** from the same JSON array pattern as **DC_Prediction_Model_LWC**, and an optional **Einstein Prompt Builder** summary. Data loads from an **autolaunched Flow**. The summary uses **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` with JSON keys **`prediction`** (string), **`predictionType`**: `multiclass_label`, and **`recommendations`**.
 
 ---
 
@@ -40,21 +40,19 @@ Salesforce DX project **DC_Multiclass_Prediction_LWC**: currently the same capab
 | [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | How to build the Flow (inputs, outputs, JSON shape) |
 | [docs/PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md) | How to create the prompt template and match Apex inputs |
 | [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every App Builder property explained |
-| [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | **UI**: gauge vs full-width metric panel, responsive typography |
+| [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | **UI**: class hero, recommendation rows, responsive typography |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common failures and fixes |
 
 ---
 
 ## Features
 
-- **Classification vs regression display** — App Builder **Prediction output format**: **`percent`** shows a 0–100 **semicircle gauge** with animated arc; **`integer`**, **`decimal`**, or **`currency`** shows a **full-width metric panel** with a large formatted value (`lightning-formatted-number`) and a prominent caption (the same “gauge subtitle” property labels both modes).
-- **Gauge styling (percent only)** — Arc color interpolated between configurable bad/good hex colors (HSL blend). Optional **reverse arc** mapping. Arc animation uses `stroke-dashoffset`; `renderedCallback` clears inline `stroke` so App Builder color changes apply reliably.
-- **Top predictors** — Sorted list with impact % and horizontal bars; supports Einstein-style `fields[]` payloads.
-- **Suggested improvements** — Same pattern, sorted by ascending impact.
-- **AI summary** — Optional; JSON payload includes `prediction` and `predictionOutputFormat` for the model; one flex text input on the template.
+- **Predicted class (text)** — Large label with configurable subtitle; optional **humanize** (underscores → title-style words).
+- **Suggested improvements** — JSON array with `value` and Einstein-style `fields[]`; bars and `+/-x.x%` with configurable risk/good semantics.
+- **AI summary** — Optional; payload is multiclass-only (`prediction` string, `predictionType`, `recommendations` string).
 - **Refresh** — Re-runs the flow (and auto-summary when enabled).
 
-See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for how the main prediction area is structured in the DOM for each format.
+See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for DOM structure.
 
 ---
 
@@ -63,11 +61,11 @@ See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for how the main prediction area is s
 | Requirement | Notes |
 |-------------|--------|
 | Salesforce org with API access | Deploy with Salesforce CLI v2 (`sf`). |
-| **Autolaunched Flow** | Must expose the outputs this component reads (see [FLOW_GUIDE.md](docs/FLOW_GUIDE.md)). |
-| **Einstein Generative AI** (optional) | Needed only for the AI summary card. Enable and license per your org’s product docs. |
-| **Prompt template** (optional) | Created in Prompt Builder; must include a flex text input whose API name matches the LWC property (see [PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md)). |
+| **Autolaunched Flow** | Must output **text** `prediction` and `recommendations` (see [FLOW_GUIDE.md](docs/FLOW_GUIDE.md)). |
+| **Einstein Generative AI** (optional) | Needed only for the AI summary. |
+| **Prompt template** (optional) | Flex text input API name must match the LWC (see [PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md)). |
 
-**Record page object:** The bundle’s metadata currently allows **Account** record pages (`<object>Account</object>` in `classificationModelLwc.js-meta.xml`). To use another object, add `<object>YourObject__c</object>` (or standard object name) and redeploy.
+**Record page object:** The bundle’s metadata currently allows **Account** (`<object>Account</object>` in `multiclassPredictionLwc.js-meta.xml`). Add other objects and redeploy as needed.
 
 ---
 
@@ -93,7 +91,7 @@ Deploy everything under `force-app` from the DX project root (`DC_Multiclass_Pre
 cd JDO/DC_Multiclass_Prediction_LWC   # or your standalone project root — see docs/GIT.md
 sf project deploy start --source-dir force-app \
   --test-level RunSpecifiedTests \
-  --tests ClassificationModelLwcControllerTest \
+  --tests MulticlassPredictionLwcControllerTest \
   --wait 30
 ```
 
@@ -115,10 +113,10 @@ This repository does **not** ship Flow or Prompt Template XML. Create them in Se
 ### 5. Add the component in App Builder
 
 1. Open an **Account** record page (or the object you added in metadata).
-2. Edit the page → drag **Prediction Model** onto the layout.
+2. Edit the page → drag **Multiclass Prediction** onto the layout.
 3. Set **Autolaunched flow API name** (required on record pages).
-4. Align **Flow output variable names** and **Flow input variable for record Id** with your flow.
-5. Set **Prediction output format** (`percent`, `integer`, `decimal`, or `currency`) to match your flow’s prediction. Optionally set colors, titles, gauge options (percent only), currency/decimals, and prompt template Id / API name.
+4. Align **Flow output** names for **prediction** (text) and **recommendations** with your flow, plus **Flow input variable for record Id**.
+5. Optionally set subtitle, humanize flag, recommendation colors, and prompt template Id / API name.
 
 **App Page / Home Page:** The component calls the flow only when both `flowApiName` and `recordId` are present. Standard **Home** pages do not provide a record Id; use a **record** context or expect the widget to stay idle until `recordId` is supplied by the host.
 
@@ -143,10 +141,10 @@ DC_Multiclass_Prediction_LWC/          # Salesforce DX project root
 ├── sfdx-project.json             # name: DC_Multiclass_Prediction_LWC
 ├── force-app/main/default/
 │   ├── classes/
-│   │   ├── ClassificationModelLwcController.cls      # Apex API name (unchanged)
-│   │   └── ClassificationModelLwcControllerTest.cls
+│   │   ├── MulticlassPredictionLwcController.cls
+│   │   └── MulticlassPredictionLwcControllerTest.cls
 │   └── lwc/
-│       └── classificationModelLwc/                   # bundle folder (App Builder: Prediction Model)
+│       └── multiclassPredictionLwc/              # App Builder: Multiclass Prediction
 └── docs/                         # ARCHITECTURE, FLOW_GUIDE, COMPONENT_REFERENCE, UI_LAYOUT, GIT, etc.
 ```
 
@@ -156,10 +154,10 @@ In the **JDO** Git repo, the path from clone root is `JDO/DC_Multiclass_Predicti
 
 ## Support & customization
 
-- **Extend to other objects:** Edit `classificationModelLwc.js-meta.xml` `<objects>` under `lightning__RecordPage`.
-- **Change defaults:** App Builder properties or edit `@api` defaults in `classificationModelLwc.js` (then redeploy).
+- **Extend to other objects:** Edit `multiclassPredictionLwc.js-meta.xml` `<objects>` under `lightning__RecordPage`.
+- **Change defaults:** App Builder properties or edit `@api` defaults in `multiclassPredictionLwc.js` (then redeploy).
 
-For behavior details, UI layout (gauge vs numeric panel), and troubleshooting, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md), [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md), and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+For behavior details and troubleshooting, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md), [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md), and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
