@@ -51,7 +51,7 @@ and reads outputs with `interview.getVariableValue(...)`, with a small fallback 
 
 The LWC parses **JSON arrays** only for recommendations. Each element is usually an object with:
 
-- A numeric **`value`** (or `Value`) — impact used for sorting, bar length, and `+/-x.x%` display.
+- A numeric **`value`** (or `Value`) — SHAP-style **contribution** used for sorting (**largest absolute impact first**), diverging **bar length** (relative to max \|value\|), and on-screen **±x.x** labels (**not** percentages).
 - Optionally **`fields`** — array of field metadata (Einstein / model explanation style).
 
 ### Recommended pattern (Einstein-style)
@@ -72,7 +72,7 @@ The LWC parses **JSON arrays** only for recommendations. Each element is usually
 ]
 ```
 
-Recommendations are sorted by **ascending** `value` (same bar semantics as the sibling prediction component; **Recommendations: treat positive % as good** can invert risk/good colors).
+In the LWC, recommendations are sorted by **descending absolute `value`** so the strongest drivers appear first. **Recommendations: treat positive % as good** in App Builder controls which resolved color is used for **positive vs negative** contributions (and matches the **legend** dot colors).
 
 ### Simpler pattern (single name on item)
 

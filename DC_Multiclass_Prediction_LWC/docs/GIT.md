@@ -59,7 +59,7 @@ Do not commit `.sfdx/`, `node_modules/`, or org auth artifacts — they are list
 | [README.md](../README.md) | Overview, install, features |
 | [artifacts.md](../artifacts.md) | Source files and dependencies |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Diagrams, rendering, errors |
-| [UI_LAYOUT.md](UI_LAYOUT.md) | Class hero, recommendations, responsive UI |
+| [UI_LAYOUT.md](UI_LAYOUT.md) | Class hero, diverging chart, legend, responsive UI |
 | [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) | App Builder properties |
 | [FLOW_GUIDE.md](FLOW_GUIDE.md) | Autolaunched flow contract |
 | [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md) | Einstein prompt JSON |

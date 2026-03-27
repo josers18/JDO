@@ -31,13 +31,13 @@ There is **no** factors / top-drivers output in this component.
 
 ---
 
-## Delta / bar semantics (recommendations)
+## Diverging bar semantics (recommendations)
 
-Signed contribution values drive bar color and `+/-x.x%` text.
+Signed **contribution** values (for example SHAP scores) drive **diverging** bar direction (right vs left from center), **bar color**, and the **±x.x** value text (**no** percent sign). Rows sort by **largest \|value\|** first.
 
 | Property | Default | Meaning |
 |----------|---------|---------|
-| **Recommendations: treat positive % as good** | false | **Unchecked:** positive delta → risk color; negative → good color. **Checked:** invert. |
+| **Recommendations: treat positive % as good** | false | **Unchecked:** positive contribution → **risk** color; negative → **good** color. **Checked:** invert. Same mapping drives the **Supports prediction** / **Works against** **legend** dots. |
 
 **Section color overrides** (optional hex). If blank, **Default risk / good color** is used.
 

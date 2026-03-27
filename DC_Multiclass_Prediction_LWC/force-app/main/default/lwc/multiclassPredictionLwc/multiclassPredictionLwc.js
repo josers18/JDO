@@ -115,6 +115,26 @@ export default class MulticlassPredictionLwc extends LightningElement {
         return this.trimmedOr(this.recommendationsSectionTitle, 'Suggested improvements');
     }
 
+    /** Matches bar colors: positive (right) vs negative (left), same as applyProcessedRowColors. */
+    get legendSupportsDotStyle() {
+        const { supports } = this.getRecommendationDivergingLegendColors();
+        return `background-color: ${supports}`;
+    }
+
+    get legendAgainstDotStyle() {
+        const { against } = this.getRecommendationDivergingLegendColors();
+        return `background-color: ${against}`;
+    }
+
+    getRecommendationDivergingLegendColors() {
+        const { risk, good } = this.resolveColors(this.recommendationsRiskColor, this.recommendationsGoodColor);
+        const treatPositiveAsGood = this.recommendationsPositiveMeansGood === true;
+        return {
+            supports: treatPositiveAsGood ? good : risk,
+            against: treatPositiveAsGood ? risk : good
+        };
+    }
+
     trimmedOr(value, fallback) {
         if (typeof value === 'string' && value.trim().length > 0) {
             return value.trim();
@@ -401,11 +421,12 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 detail,
                 displayValue,
                 formattedPercent: this.formatPercent(displayValue),
-                barScale: 0
+                barScale: 0,
+                isPositive: Number.isFinite(value) ? value > 0 : false
             };
         });
 
-        rows.sort((a, b) => (a.displayValue || 0) - (b.displayValue || 0));
+        rows.sort((a, b) => Math.abs(b.displayValue || 0) - Math.abs(a.displayValue || 0));
         return this.applyBarScales(rows);
     }
 
@@ -433,8 +454,9 @@ export default class MulticlassPredictionLwc extends LightningElement {
         if (raw == null || Number.isNaN(raw)) {
             return '—';
         }
-        const sign = raw > 0 ? '+' : '';
-        return `${sign}${raw.toFixed(1)}%`;
+        const abs = Math.round(Math.abs(raw) * 10) / 10;
+        const sign = raw > 0 ? '+' : raw < 0 ? '−' : '';
+        return `${sign}${abs.toFixed(1)}`;
     }
 
     humanizeApiName(name) {

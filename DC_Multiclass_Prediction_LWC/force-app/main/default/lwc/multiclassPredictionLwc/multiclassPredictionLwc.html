@@ -37,18 +37,42 @@
                     <template lwc:if={processedRecommendations.length}>
                         <template for:each={processedRecommendations} for:item="item">
                             <div key={item.key} class="factor-row">
-                                <span class={item.deltaClass}>{item.formattedPercent}</span>
-                                <div class="bar-track">
-                                    <div
-                                        class="bar-fill"
-                                        style={item.barStyle}
-                                        data-color={item.activeColor}
-                                        data-scale={item.barScale}
-                                    ></div>
+                                <div class="factor-label-col">
+                                    <span class="factor-label-text" title={item.detail}>{item.detail}</span>
                                 </div>
-                                <span class="factor-label">{item.detail}</span>
+                                <div class="diverge-zone">
+                                    <div class="diverge-center"></div>
+                                    <template lwc:if={item.isPositive}>
+                                        <div
+                                            class="bar-fill bar-pos"
+                                            style={item.barStyle}
+                                            data-color={item.activeColor}
+                                            data-scale={item.barScale}
+                                        ></div>
+                                        <span class="bar-val val-pos">{item.formattedPercent}</span>
+                                    </template>
+                                    <template lwc:else>
+                                        <div
+                                            class="bar-fill bar-neg"
+                                            style={item.barStyle}
+                                            data-color={item.activeColor}
+                                            data-scale={item.barScale}
+                                        ></div>
+                                        <span class="bar-val val-neg">{item.formattedPercent}</span>
+                                    </template>
+                                </div>
                             </div>
                         </template>
+                        <div class="diverge-legend" role="presentation">
+                            <div class="legend-item">
+                                <span class="legend-dot" style={legendSupportsDotStyle}></span>
+                                <span>Supports prediction</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style={legendAgainstDotStyle}></span>
+                                <span>Works against</span>
+                            </div>
+                        </div>
                     </template>
                     <template lwc:else>
                         <p class="lwc-empty">No recommendations returned.</p>

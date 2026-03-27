@@ -23,9 +23,9 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 
 | File | Role |
 |------|------|
-| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.js` | UI logic: wire `recordId`, invoke Apex, parse recommendations JSON, **class label** display (optional humanize), bar animation, optional Einstein summary. |
-| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.html` | Markup: **class hero panel** (large text label + caption); **recommendations** list only; optional AI summary. |
-| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.css` | Layout: `.class-hero-panel`, bar rows, summary card; container queries for narrow slots. |
+| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.js` | UI logic: wire `recordId`, invoke Apex, parse recommendations JSON, **class label** (optional humanize), **diverging** row build (sort by \|value\| desc, bar scales, risk/good colors), **legend** inline styles tied to those colors, `animateBars`, optional Einstein summary. |
+| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.html` | Markup: **class hero panel**; **recommendations** as **factor-row** + **diverge-zone** (center line, **bar-pos** / **bar-neg**, value text); **diverge-legend**; optional AI summary. |
+| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.css` | Layout: hero, **diverging** chart, wrapping labels, **420px** container column stack, legend, summary; container queries. |
 | `lwc/multiclassPredictionLwc/multiclassPredictionLwc.js-meta.xml` | Exposure: Record / App / Home; multiclass-specific designer properties; **Account** on record pages. |
 
 ---
@@ -64,4 +64,4 @@ multiclassPredictionLwc (LWC)
               └── ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for sequence diagrams, [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for the class hero and lists, and [docs/GIT.md](docs/GIT.md) for Git layout.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for sequence and recommendation pipeline diagrams, [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for the diverging chart and responsive behavior, and [docs/GIT.md](docs/GIT.md) for Git layout.

@@ -53,7 +53,7 @@ Notes:
 
 Example snippet you might put in the template instructions:
 
-> You are assisting a relationship manager. You receive JSON with `prediction` (string — predicted class code or label), `predictionType` (`multiclass_label`), and `recommendations` (a stringified JSON array of fields and impact values). Explain the predicted class in plain language and summarize the top suggested improvements in 2–3 sentences. Do not invent data not present in the JSON.
+> You are assisting a relationship manager. You receive JSON with `prediction` (string — predicted class code or label), `predictionType` (`multiclass_label`), and `recommendations` (a stringified JSON array of fields and numeric contribution `value` fields — SHAP-style scores, not percentages). Explain the predicted class in plain language and summarize the strongest contributors and suggested improvements in 2–3 sentences. Do not invent data not present in the JSON.
 
 ---
 

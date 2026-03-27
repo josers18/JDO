@@ -36,6 +36,13 @@ Quick reference for **Multiclass Prediction** (`multiclassPredictionLwc`) and **
 
 ---
 
+## Recommendation labels cramped or chart too narrow
+
+- Widen the **Lightning page column** or place the component in a wider region; labels use up to **50%** / **22rem** before wrapping, and below **420px** container width the layout **stacks** label above the chart.
+- Full text still appears on **hover** via the `title` attribute on the label span.
+
+---
+
 ## Toast: “AI summary failed”
 
 - **Einstein Generative AI** not enabled or user lacks template access.

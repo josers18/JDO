@@ -20,13 +20,13 @@
 
 <br/>
 
-**Multiclass label** · **Recommendations + bars** · **Optional generative summary**
+**Multiclass label** · **Diverging contribution chart** · **Optional generative summary**
 
 </div>
 
 ---
 
-Salesforce DX project **DC_Multiclass_Prediction_LWC**: a Lightning bundle (**Multiclass Prediction** in App Builder) that shows a **text predicted class** in a hero panel, **suggested improvements** from the same JSON array pattern as **DC_Prediction_Model_LWC**, and an optional **Einstein Prompt Builder** summary. Data loads from an **autolaunched Flow**. The summary uses **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` with JSON keys **`prediction`** (string), **`predictionType`**: `multiclass_label`, and **`recommendations`**.
+Salesforce DX project **DC_Multiclass_Prediction_LWC**: a Lightning bundle (**Multiclass Prediction** in App Builder) that shows a **text predicted class** in a hero panel, **suggested improvements** as a **diverging bar chart** (contribution scores ±x.x, sorted by **\|value\|** descending), and an optional **Einstein Prompt Builder** summary. Legend colors **match** the configured risk/good bar colors. Data loads from an **autolaunched Flow**. The summary uses **Apex** → `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` with JSON keys **`prediction`** (string), **`predictionType`**: `multiclass_label`, and **`recommendations`**.
 
 ---
 
@@ -48,11 +48,11 @@ Salesforce DX project **DC_Multiclass_Prediction_LWC**: a Lightning bundle (**Mu
 ## Features
 
 - **Predicted class (text)** — Large label with configurable subtitle; optional **humanize** (underscores → title-style words).
-- **Suggested improvements** — JSON array with `value` and Einstein-style `fields[]`; bars and `+/-x.x%` with configurable risk/good semantics.
+- **Suggested improvements** — JSON array with numeric `value` and Einstein-style `fields[]`; **diverging** bars from center, **±x.x** contribution labels (not percentages), **wrapping** field labels, and a **legend** whose dots use the **same** risk/good mapping as the bars.
 - **AI summary** — Optional; payload is multiclass-only (`prediction` string, `predictionType`, `recommendations` string).
 - **Refresh** — Re-runs the flow (and auto-summary when enabled).
 
-See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for DOM structure.
+See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layout and processing diagrams.
 
 ---
 
