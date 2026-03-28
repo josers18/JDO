@@ -3,7 +3,7 @@
     <apiVersion>66.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>DC Query to Table</masterLabel>
-    <description>Runs Data Cloud ANSI SQL from App Builder via ConnectApi.CdpQuery (same org) and shows results in lightning-datatable. Custom header icon and title color; query runs automatically when the page loads (no on-page SQL or Run control).</description>
+    <description>Runs Data Cloud ANSI SQL from App Builder via ConnectApi.CdpQuery (same org) and shows results in lightning-datatable. Custom header icon and title color; optional on-page table configuration (SLDS data table options); query runs on page load.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__HomePage</target>
@@ -16,6 +16,8 @@
                 description="SLDS icon (namespace:name), e.g. utility:table, utility:graph, standard:account." />
             <property name="titleColorHex" type="String" label="Title color (hex)" default="#032d60"
                 description="Title text color: #RGB, #RRGGBB, or #RRGGBBAA (no spaces)." />
+            <property name="showTableConfiguration" type="Boolean" label="Show table configuration panel" default="true"
+                description="When true, shows checkboxes and numeric options for lightning-datatable (row selection, row numbers, column widths, resize, wrap, footer)." />
             <property name="defaultSql" type="String" label="Data Cloud SQL query" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
                 description="SQL executed when the page loads. Not shown on the page." />
             <property name="autoRunOnLoad" type="Boolean" label="Auto-run on load (legacy)" default="true"
@@ -44,6 +46,8 @@
                 description="SLDS icon (namespace:name), e.g. utility:table, utility:graph." />
             <property name="titleColorHex" type="String" label="Title color (hex)" default="#032d60"
                 description="#RGB, #RRGGBB, or #RRGGBBAA (no spaces)." />
+            <property name="showTableConfiguration" type="Boolean" label="Show table configuration panel" default="true"
+                description="When true, shows on-page checkboxes for datatable layout (selection, row numbers, widths, resize, wrap, footer)." />
             <property name="defaultSql" type="String" label="Data Cloud SQL query" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
                 description="SQL executed when the page loads. Not shown on the page." />
             <property name="autoRunOnLoad" type="Boolean" label="Auto-run on load (legacy)" default="true"

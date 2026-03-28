@@ -46,6 +46,49 @@
     min-width: 0;
 }
 
+.dcqt-config {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background: #fafaf9;
+}
+
+.dcqt-config__title {
+    margin: 0 0 0.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #032d60;
+}
+
+.dcqt-config__hint {
+    margin: 0 0 0.75rem;
+    font-size: 0.75rem;
+    color: #3e3e3c;
+    line-height: 1.4;
+}
+
+.dcqt-config__hint a {
+    color: #0176d3;
+}
+
+.dcqt-config__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.35rem 1.25rem;
+    align-items: start;
+}
+
+.dcqt-config__numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.dcqt-config__num {
+    max-width: 12rem;
+}
+
 .dcqt-shell__error {
     margin-bottom: 0.5rem;
     font-size: 0.875rem;

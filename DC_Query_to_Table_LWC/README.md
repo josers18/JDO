@@ -39,7 +39,7 @@ Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. 
 
 | Area | Details |
 |------|---------|
-| **UI** | **Icon** + **title** (styled with **Title color**) and **datatable** only. A **spinner** appears in the header row while the query runs. SQL is **not** shown at runtime. |
+| **UI** | **Icon** + **title** (styled with **Title color**), optional **Table configuration** panel ([SLDS data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table)–style options via `lightning-datatable`: selection column, row numbers, fixed widths, resize, header/cell wrap, footer, min width, wrap lines), then **datatable**. Hide the panel with **Show table configuration panel** = false in App Builder. SQL is **not** shown at runtime. |
 | **Load** | **`connectedCallback`** always schedules **one** query run when the page opens. The older **Auto-run on load (legacy)** designer property is **ignored** but kept so existing pages can deploy. |
 | **Query** | **SELECT** or **WITH … SELECT** only; mutating/DDL keywords rejected with spaces (heuristic). |
 | **LIMIT** | If the statement has **no `LIMIT n`**, Apex appends **`LIMIT`** using **Max rows (auto LIMIT)** (clamped to **2000**). |
