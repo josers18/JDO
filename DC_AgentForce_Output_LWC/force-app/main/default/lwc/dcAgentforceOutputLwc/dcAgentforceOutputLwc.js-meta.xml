@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>DC AgentForce Output</masterLabel>
+    <description>Runs an autolaunched Flow, shows prompt output (text/HTML/Markdown), copy, expand, print/PDF, and optional Models API thumbs feedback when the flow returns a generation Id.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="cardTitle" type="String" label="Card title" default="Generative output"
+                description="Heading shown at the top of the component." />
+            <property name="headerIconName" type="String" label="Header icon name" default="utility:agent_astro"
+                description="SLDS icon (namespace:name), e.g. utility:agent_astro, utility:einstein." />
+            <property name="titleColorHex" type="String" label="Title color (hex)" default="#032d60"
+                description="Title text color: #RGB, #RRGGBB, or #RRGGBBAA (no spaces)." />
+            <property name="flowApiName" type="String" label="Autolaunched Flow API name" default="DC_Agentforce_Output_Prompt"
+                description="API name of the autolaunched flow." />
+            <property name="recordIdVariableName" type="String" label="Flow input: record variable" default="recordID"
+                description="API name of the Flow Record (single) input variable. Must match your flow exactly (including case). The variable’s object type must match the Lightning page’s object." />
+            <property name="promptResponseVariableName" type="String" label="Flow output: response variable" default="promptResponse"
+                description="Text output variable to display. If the prompt action uses automatic output, add an Assignment that copies it into this variable." />
+            <property name="generationIdVariableName" type="String" label="Flow output: generation Id variable" default=""
+                description="Optional. Text output variable with the Models API generation Id from your Gen AI step. Assign the Id into this variable in the flow to enable thumbs up/down feedback." />
+            <property name="passRecordIdToFlow" type="Boolean" label="Pass record to flow" default="true"
+                description="When true, loads the current record and passes it into the Record input variable above." />
+            <property name="autoExecuteOnLoad" type="Boolean" label="Auto-run flow on load" default="false"
+                description="When true, runs the flow once when the page loads." />
+            <property name="heightMode" type="String" label="Output height" default="medium"
+                description="App Builder only. Values: auto, compact, medium, tall." />
+            <property name="outputFormat" type="String" label="Output format" default="auto"
+                description="How to render the flow text: auto (detect HTML vs Markdown vs plain), text, html (sanitized rich text), or markdown." />
+            <objects>
+                <object>Account</object>
+            </objects>
+        </targetConfig>
+        <targetConfig targets="lightning__AppPage">
+            <property name="cardTitle" type="String" label="Card title" default="Generative output" />
+            <property name="headerIconName" type="String" label="Header icon name" default="utility:agent_astro" />
+            <property name="titleColorHex" type="String" label="Title color (hex)" default="#032d60" />
+            <property name="flowApiName" type="String" label="Autolaunched Flow API name" default="DC_Agentforce_Output_Prompt" />
+            <property name="recordIdVariableName" type="String" label="Flow input: record variable" default="recordID" />
+            <property name="promptResponseVariableName" type="String" label="Flow output: response variable" default="promptResponse" />
+            <property name="generationIdVariableName" type="String" label="Flow output: generation Id variable" default="" />
+            <property name="passRecordIdToFlow" type="Boolean" label="Pass record to flow" default="false"
+                description="Usually false on app pages unless your flow expects a record." />
+            <property name="autoExecuteOnLoad" type="Boolean" label="Auto-run flow on load" default="false" />
+            <property name="heightMode" type="String" label="Output height" default="medium"
+                description="App Builder only. Values: auto, compact, medium, tall." />
+            <property name="outputFormat" type="String" label="Output format" default="auto"
+                description="How to render the flow text: auto (detect), text, html (sanitized rich text), or markdown." />
+        </targetConfig>
+        <targetConfig targets="lightning__HomePage">
+            <property name="cardTitle" type="String" label="Card title" default="Generative output" />
+            <property name="headerIconName" type="String" label="Header icon name" default="utility:agent_astro" />
+            <property name="titleColorHex" type="String" label="Title color (hex)" default="#032d60" />
+            <property name="flowApiName" type="String" label="Autolaunched Flow API name" default="DC_Agentforce_Output_Prompt" />
+            <property name="recordIdVariableName" type="String" label="Flow input: record variable" default="recordID" />
+            <property name="promptResponseVariableName" type="String" label="Flow output: response variable" default="promptResponse" />
+            <property name="generationIdVariableName" type="String" label="Flow output: generation Id variable" default="" />
+            <property name="passRecordIdToFlow" type="Boolean" label="Pass record to flow" default="false" />
+            <property name="autoExecuteOnLoad" type="Boolean" label="Auto-run flow on load" default="false" />
+            <property name="heightMode" type="String" label="Output height" default="medium"
+                description="App Builder only. Values: auto, compact, medium, tall." />
+            <property name="outputFormat" type="String" label="Output format" default="auto"
+                description="How to render the flow text: auto (detect), text, html (sanitized rich text), or markdown." />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

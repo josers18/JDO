@@ -1,0 +1,16 @@
+<template>
+    <lightning-modal-header label={headerLabel}></lightning-modal-header>
+    <lightning-modal-body>
+        <p class="slds-m-bottom_small slds-text-body_small copy-hint">
+            Press <kbd class="kbd">Ctrl+C</kbd> (Windows) or <kbd class="kbd">Cmd+C</kbd> (Mac) to copy.
+        </p>
+        <textarea
+            data-copy-fallback
+            class="copy-fallback-textarea slds-textarea"
+            readonly
+        ></textarea>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button label="Close" variant="brand" onclick={handleClose}></lightning-button>
+    </lightning-modal-footer>
+</template>

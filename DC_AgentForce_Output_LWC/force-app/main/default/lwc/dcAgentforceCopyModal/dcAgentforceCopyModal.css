@@ -1,0 +1,22 @@
+.copy-hint {
+    color: #3e3e3c;
+}
+
+.kbd {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.75rem;
+    font-family: inherit;
+    border: 1px solid #c9c9c9;
+    border-radius: 0.25rem;
+    background: #f3f3f3;
+}
+
+.copy-fallback-textarea {
+    min-height: min(50vh, 360px);
+    width: 100%;
+    resize: vertical;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+}

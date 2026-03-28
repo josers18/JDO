@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <description>Autolaunched flow for DC AgentForce Output LWC. Input recordID is Record (single) — sample uses Account; change objectType to match your Lightning page object. Add your Prompt action; assign output to promptResponse.</description>
+    <label>DC Agentforce Output Prompt</label>
+    <processType>AutoLaunchedFlow</processType>
+    <status>Active</status>
+    <variables>
+        <name>recordID</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Account</objectType>
+    </variables>
+    <variables>
+        <name>promptResponse</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Set_Placeholder_Prompt_Response</targetReference>
+        </connector>
+    </start>
+    <assignments>
+        <name>Set_Placeholder_Prompt_Response</name>
+        <label>Set Placeholder Prompt Response</label>
+        <locationX>50</locationX>
+        <locationY>200</locationY>
+        <assignmentItems>
+            <assignToReference>promptResponse</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Placeholder: Edit this flow and add an Einstein Prompt step (or subflow), then assign the model output to the promptResponse variable. Remove this assignment when wired.</stringValue>
+            </value>
+        </assignmentItems>
+    </assignments>
+</Flow>

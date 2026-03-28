@@ -1,0 +1,60 @@
+.copy-buffer {
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.print-frame {
+    position: fixed;
+    width: 0;
+    height: 0;
+    border: none;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-output {
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #1a1a1a;
+    max-height: min(70vh, 640px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.modal-output--rich {
+    white-space: normal;
+}
+
+.modal-copy-fallback__hint {
+    color: #3e3e3c;
+}
+
+.kbd {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.75rem;
+    font-family: inherit;
+    border: 1px solid #c9c9c9;
+    border-radius: 0.25rem;
+    background: #f3f3f3;
+}
+
+.modal-inline-copy {
+    width: 100%;
+    resize: vertical;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+}

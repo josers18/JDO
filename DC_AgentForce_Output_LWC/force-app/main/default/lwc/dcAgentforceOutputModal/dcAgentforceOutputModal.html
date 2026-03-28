@@ -1,0 +1,53 @@
+<template>
+    <lightning-modal-header label={modalTitle}></lightning-modal-header>
+    <lightning-modal-body>
+        <textarea
+            lwc:ref="copyBuffer"
+            class="copy-buffer"
+            readonly
+            tabindex="-1"
+            aria-hidden="true"
+        ></textarea>
+        <template lwc:if={showPlainOutput}>
+            <div class="modal-output">{outputText}</div>
+        </template>
+        <template lwc:if={showRichOutput}>
+            <div class="modal-output modal-output--rich">
+                <lightning-formatted-rich-text value={renderedRichHtml}></lightning-formatted-rich-text>
+            </div>
+        </template>
+        <template lwc:if={showInlineCopyFallback}>
+            <div class="modal-copy-fallback slds-m-top_medium">
+                <p class="slds-m-bottom_x-small slds-text-body_small modal-copy-fallback__hint">
+                    Clipboard is blocked here. Select all text below, then press
+                    <kbd class="kbd">Ctrl+C</kbd> (Windows) or <kbd class="kbd">Cmd+C</kbd> (Mac).
+                </p>
+                <textarea
+                    lwc:ref="inlineCopyFallback"
+                    class="modal-inline-copy slds-textarea"
+                    readonly
+                    rows="14"
+                ></textarea>
+            </div>
+        </template>
+        <iframe
+            class="print-frame"
+            data-print-frame
+            title="Print helper"
+            aria-hidden="true"
+        ></iframe>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button
+            label="Copy"
+            onclick={handleCopy}
+            class="slds-m-right_x-small"
+        ></lightning-button>
+        <lightning-button
+            label="Print / Save as PDF"
+            onclick={handlePrint}
+            class="slds-m-right_x-small"
+        ></lightning-button>
+        <lightning-button label="Close" variant="brand" onclick={handleClose}></lightning-button>
+    </lightning-modal-footer>
+</template>

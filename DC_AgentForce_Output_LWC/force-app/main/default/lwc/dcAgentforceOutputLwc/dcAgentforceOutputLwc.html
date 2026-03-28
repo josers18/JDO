@@ -1,0 +1,116 @@
+<template>
+    <article class="lwc-shell" style={shellStyleString}>
+        <div class="lwc-shell__header">
+            <div class="lwc-shell__title-group">
+                <span class="title-icon-badge" aria-hidden="true">
+                    <lightning-icon
+                        icon-name={resolvedHeaderIconName}
+                        size="small"
+                        alternative-text=""
+                        class="title-icon"
+                    ></lightning-icon>
+                </span>
+                <h2 class="lwc-shell__title">{resolvedTitle}</h2>
+            </div>
+            <lightning-button
+                variant="brand"
+                label="Run"
+                title="Run the configured autolaunched flow and show promptResponse"
+                onclick={handleExecute}
+                disabled={loading}
+            ></lightning-button>
+        </div>
+
+        <template lwc:if={loading}>
+            <div class="generating-wrap" role="status" aria-live="polite">
+                <span class="generating-label">Generating</span>
+                <span class="generating-sparkles" aria-hidden="true">
+                    <span class="sparkle"></span>
+                    <span class="sparkle"></span>
+                    <span class="sparkle"></span>
+                </span>
+            </div>
+        </template>
+        <template lwc:elseif={errorMessage}>
+            <p class="lwc-error">{errorMessage}</p>
+        </template>
+        <template lwc:elseif={hasOutput}>
+            <section class="output-section" aria-label="Generated output">
+                <div class={outputHeightClass}>
+                    <template lwc:if={showPlainOutput}>
+                        <div class="output-panel">{outputText}</div>
+                    </template>
+                    <template lwc:if={showRichOutput}>
+                        <div class="output-panel output-panel--rich">
+                            <lightning-formatted-rich-text
+                                value={renderedRichHtml}
+                            ></lightning-formatted-rich-text>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="toolbar no-print" role="toolbar" aria-label="Output actions">
+                    <lightning-button-icon
+                        icon-name="utility:copy"
+                        alternative-text="Copy output"
+                        title="Copy"
+                        variant="border-filled"
+                        onclick={handleCopy}
+                        disabled={loading}
+                    ></lightning-button-icon>
+                    <lightning-button-icon
+                        icon-name="utility:expand_alt"
+                        alternative-text="Expand in a popup"
+                        title="Expand"
+                        variant="border-filled"
+                        onclick={handleExpand}
+                        disabled={loading}
+                    ></lightning-button-icon>
+                    <lightning-button-icon
+                        icon-name="utility:print"
+                        alternative-text="Print or save as PDF"
+                        title="Print / PDF"
+                        variant="border-filled"
+                        onclick={handlePrintPdf}
+                        disabled={loading}
+                    ></lightning-button-icon>
+                    <span class="toolbar-divider" aria-hidden="true"></span>
+                    <span class="feedback-wrap" title={feedbackTitle}>
+                        <lightning-button-icon
+                            icon-name="utility:like"
+                            alternative-text="Thumbs up"
+                            title="Thumbs up"
+                            variant={thumbsUpVariant}
+                            onclick={handleThumbsUp}
+                            disabled={feedbackDisabled}
+                        ></lightning-button-icon>
+                        <lightning-button-icon
+                            icon-name="utility:dislike"
+                            alternative-text="Thumbs down"
+                            title="Thumbs down"
+                            variant={thumbsDownVariant}
+                            onclick={handleThumbsDown}
+                            disabled={feedbackDisabled}
+                        ></lightning-button-icon>
+                    </span>
+                </div>
+            </section>
+        </template>
+        <template lwc:else>
+            <p class="lwc-placeholder">Run to execute the autolaunched flow and show promptResponse here.</p>
+        </template>
+        <textarea
+            lwc:ref="copyBuffer"
+            class="copy-buffer"
+            readonly
+            tabindex="-1"
+            aria-hidden="true"
+        ></textarea>
+        <iframe
+            class="print-frame"
+            data-print-frame
+            title="Print helper"
+            aria-hidden="true"
+        ></iframe>
+    </article>
+</template>
