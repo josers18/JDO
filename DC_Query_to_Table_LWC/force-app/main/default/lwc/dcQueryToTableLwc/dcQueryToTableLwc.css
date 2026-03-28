@@ -1,7 +1,5 @@
-.dcqt-sql textarea {
-    min-height: 6rem;
-    font-family: Consolas, Menlo, Monaco, monospace;
-    font-size: 0.8125rem;
+.dcqt-toolbar {
+    margin-bottom: 0.5rem;
 }
 
 .dcqt-shell__table {

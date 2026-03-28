@@ -1,22 +1,30 @@
 <template>
     <lightning-card title={cardTitle} icon-name="utility:table">
         <div class="slds-p-horizontal_small slds-p-bottom_small">
-            <lightning-textarea
-                label="Data Cloud SQL"
-                value={sqlText}
-                onchange={handleSqlChange}
-                min-length="1"
-                class="dcqt-sql"
-            ></lightning-textarea>
-            <div class="slds-m-top_small slds-grid slds-grid_align-spread">
-                <lightning-button
-                    variant="brand"
-                    label="Run query"
-                    onclick={handleRun}
-                    disabled={loading}
-                ></lightning-button>
+            <div class="dcqt-toolbar slds-grid slds-grid_vertical-align-center slds-wrap slds-gutters_x-small">
+                <div class="slds-col slds-grow-none">
+                    <lightning-input
+                        type="checkbox"
+                        label="Run query when page loads"
+                        checked={runOnLoad}
+                        onchange={handleAutoRunToggle}
+                    ></lightning-input>
+                </div>
+                <template if:true={showRunButton}>
+                    <div class="slds-col slds-grow-none">
+                        <lightning-button
+                            variant="brand"
+                            label="Run query"
+                            title="Run the Data Cloud SQL configured in App Builder"
+                            onclick={handleRun}
+                            disabled={loading}
+                        ></lightning-button>
+                    </div>
+                </template>
                 <template if:true={loading}>
-                    <lightning-spinner alternative-text="Running query" size="small"></lightning-spinner>
+                    <div class="slds-col slds-grow-none">
+                        <lightning-spinner alternative-text="Running query" size="small"></lightning-spinner>
+                    </div>
                 </template>
             </div>
             <template if:true={errorMessage}>

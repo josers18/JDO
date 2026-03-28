@@ -3,7 +3,7 @@
     <apiVersion>66.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>DC Query to Table</masterLabel>
-    <description>Runs Data Cloud ANSI SQL via ConnectApi.CdpQuery (same org) and renders results in lightning-datatable (read-only). Configure table density, row numbers, column width mode, wrap, and sorting in App Builder.</description>
+    <description>Runs Data Cloud ANSI SQL from App Builder (not shown on the page) via ConnectApi.CdpQuery (same org) and renders results in lightning-datatable. Optional auto-run on page load checkbox; Run button when auto-run is off.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__HomePage</target>
@@ -12,7 +12,10 @@
     <targetConfigs>
         <targetConfig targets="lightning__RecordPage">
             <property name="cardTitle" type="String" label="Card title" default="Data Cloud SQL" />
-            <property name="defaultSql" type="String" label="Default SQL" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10" />
+            <property name="defaultSql" type="String" label="Data Cloud SQL query" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
+                description="SQL executed by this component. Not displayed on the page—set it here in App Builder." />
+            <property name="autoRunOnLoad" type="Boolean" label="Start with auto-run on" default="false"
+                description="When true, the on-page “Run query when page loads” checkbox starts checked and the query runs when the page opens." />
             <property name="maxRows" type="Integer" label="Max rows (auto LIMIT)" default="500" />
             <property name="defaultColumnWrap" type="Boolean" label="Wrap text in columns" default="false" />
             <property name="defaultColumnWidth" type="Integer" label="Default column width (px)"
@@ -33,8 +36,10 @@
         <targetConfig targets="lightning__AppPage,lightning__HomePage">
             <property name="cardTitle" type="String" label="Card title" default="Data Cloud SQL"
                 description="Lightning card heading." />
-            <property name="defaultSql" type="String" label="Default SQL" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
-                description="Initial SQL in the editor. Use Data Cloud SQL; quote identifiers with double quotes when needed." />
+            <property name="defaultSql" type="String" label="Data Cloud SQL query" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
+                description="SQL executed by this component. Not shown on the page—configure here. Use Data Cloud SQL; quote identifiers when needed." />
+            <property name="autoRunOnLoad" type="Boolean" label="Start with auto-run on" default="false"
+                description="When true, the on-page “Run query when page loads” checkbox starts checked and the query runs when the page opens." />
             <property name="maxRows" type="Integer" label="Max rows (auto LIMIT)" default="500"
                 description="When your SQL has no LIMIT, the server appends LIMIT up to this value (capped at 2000)." />
             <property name="defaultColumnWrap" type="Boolean" label="Wrap text in columns" default="false"

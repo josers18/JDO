@@ -1,6 +1,6 @@
 # DC Query to Table LWC
 
-> **Purpose:** Salesforce DX package with **`dcQueryToTableLwc`** (**DC Query to Table** in App Builder): enter **Data Cloud ANSI SQL**, execute it server-side with **`ConnectApi.CdpQuery.queryAnsiSqlV2`**, and render the first result batch in **`lightning-datatable`** as a **read-only (base) table**—no inline editing, with App Builder controls for density, row numbers, column width mode, header/cell wrap, resize, and client-side column sort.
+> **Purpose:** Salesforce DX package with **`dcQueryToTableLwc`** (**DC Query to Table** in App Builder): **Data Cloud ANSI SQL** is set **only in App Builder** (not on the page). The runtime UI shows the **card title**, an optional **“Run query when page loads”** checkbox, a **Run query** button when that box is unchecked, and the **`lightning-datatable`** result. Execution uses **`ConnectApi.CdpQuery.queryAnsiSqlV2`** (same org). Table options (density, row numbers, column widths, wrap, sort) remain App Builder properties.
 
 Visual and behavioral alignment with SLDS **data table** patterns is through the platform **`lightning-datatable`** base component, which implements the [Lightning Design System data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) guidance for tabular, scannable layouts.
 
@@ -20,7 +20,7 @@ If the UI runs in an org **without** in-process `CdpQuery`, use a **Named Creden
 
 ## Security
 
-The SQL editor is **powerful**. Only grant **`DcQueryToTableController`** to **trusted** admins or analysts. The Apex layer blocks obvious **DML/DDL** tokens but this is **not** a substitute for org policy, permission sets, and Data Cloud’s own access controls.
+Arbitrary SQL configured in App Builder is **powerful**. Only grant **`DcQueryToTableController`** to **trusted** admins or analysts. The Apex layer blocks obvious **DML/DDL** tokens but this is **not** a substitute for org policy, permission sets, and Data Cloud’s own access controls.
 
 ---
 
@@ -31,7 +31,7 @@ cd JDO/DC_Query_to_Table_LWC
 sf project deploy start --source-dir force-app --target-org <alias>
 ```
 
-Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. Adjust **Default SQL**, **max rows**, and table options in App Builder.
+Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. Set **Data Cloud SQL query**, **Start with auto-run on**, **max rows**, and table options in App Builder.
 
 ---
 
@@ -39,6 +39,7 @@ Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. 
 
 | Area | Details |
 |------|---------|
+| **UI** | **Title** + **Run query when page loads** checkbox. Checked → query runs on load (and again if the user re-checks after clearing). Unchecked → **Run query** button only. SQL is **not** shown at runtime. |
 | **Query** | **SELECT** or **WITH … SELECT** only; mutating/DDL keywords rejected with spaces (heuristic). |
 | **LIMIT** | If the statement has **no trailing `LIMIT n`**, Apex appends **`LIMIT`** using **Max rows (auto LIMIT)** (clamped to **2000**). |
 | **Results** | Columns and cells are built from **`queryAnsiSqlV2`** metadata + row data (serialized to maps for the LWC). |
@@ -51,7 +52,7 @@ Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. 
 
 | Path | Role |
 |------|------|
-| `force-app/.../lwc/dcQueryToTableLwc/` | Card, SQL textarea, Run, `lightning-datatable` |
+| `force-app/.../lwc/dcQueryToTableLwc/` | Card, auto-run checkbox, Run button, `lightning-datatable` |
 | `force-app/.../classes/DcQueryToTableController.cls` | `runDataCloudSql` → `ConnectApi.CdpQuery.queryAnsiSqlV2` |
 | `force-app/.../classes/DcQueryToTableControllerTest.cls` | Validation + mock result tests |
 

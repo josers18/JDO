@@ -4,7 +4,10 @@ import runDataCloudSql from '@salesforce/apex/DcQueryToTableController.runDataCl
 
 export default class DcQueryToTableLwc extends LightningElement {
     @api cardTitle = 'Data Cloud SQL';
+    /** Set in App Builder only; not shown on the page. */
     @api defaultSql = 'SELECT * FROM "ssot__Individual__dlm" LIMIT 10';
+    /** Initial state of the on-page “run when page loads” checkbox. */
+    @api autoRunOnLoad = false;
     @api maxRows = 500;
     @api defaultColumnWrap = false;
     @api defaultColumnWidth;
@@ -19,7 +22,7 @@ export default class DcQueryToTableLwc extends LightningElement {
     @api wrapTextMaxLines = 3;
     @api suppressBottomBar = false;
 
-    @track sqlText = '';
+    @track runOnLoad = false;
     @track tableColumns = [];
     @track tableRows = [];
     @track loading = false;
@@ -30,14 +33,34 @@ export default class DcQueryToTableLwc extends LightningElement {
     sortedDirection;
 
     connectedCallback() {
-        this.sqlText = this.defaultSql || '';
+        this.runOnLoad = this.autoRunOnLoad === true;
+        if (this.runOnLoad) {
+            Promise.resolve().then(() => this.handleRun());
+        }
     }
 
-    handleSqlChange(event) {
-        this.sqlText = event.target.value;
+    handleAutoRunToggle(event) {
+        const checked =
+            typeof event.detail?.checked === 'boolean' ? event.detail.checked : event.target.checked;
+        this.runOnLoad = checked === true;
+        if (this.runOnLoad) {
+            this.handleRun();
+        }
     }
 
     async handleRun() {
+        const sql = (this.defaultSql || '').trim();
+        if (!sql) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Configuration required',
+                    message: 'Set the Data Cloud SQL query in Lightning App Builder.',
+                    variant: 'warning'
+                })
+            );
+            return;
+        }
+
         this.errorMessage = '';
         this.metaWarning = '';
         this.loading = true;
@@ -49,7 +72,7 @@ export default class DcQueryToTableLwc extends LightningElement {
                     ? Number(this.defaultColumnWidth)
                     : null;
             const result = await runDataCloudSql({
-                sql: this.sqlText,
+                sql,
                 maxRows: Number(this.maxRows) || 500,
                 defaultColumnWrap: this.defaultColumnWrap === true,
                 defaultInitialWidth: Number.isFinite(width) && width > 0 ? width : null
@@ -163,6 +186,10 @@ export default class DcQueryToTableLwc extends LightningElement {
 
     get hasTable() {
         return this.tableColumns.length > 0 && this.tableRows.length > 0;
+    }
+
+    get showRunButton() {
+        return !this.runOnLoad;
     }
 
     /** Default read-only grid: hide checkboxes unless App Builder enables selection column. */
