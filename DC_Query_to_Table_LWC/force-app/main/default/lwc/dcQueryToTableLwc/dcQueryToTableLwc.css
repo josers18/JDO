@@ -1,13 +1,13 @@
 .dcqt-sql textarea {
     min-height: 6rem;
-    font-family: var(--lwc-fontFamilyMonospace, Consolas, Menlo, monospace);
+    font-family: Consolas, Menlo, Monaco, monospace;
     font-size: 0.8125rem;
 }
 
 .dcqt-shell__table {
-    margin-top: var(--lwc-spacingMedium, 1rem);
+    margin-top: 1rem;
     max-height: 28rem;
     overflow: auto;
-    border: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
-    border-radius: var(--lwc-borderRadiusMedium, 0.25rem);
+    border: 1px solid #e5e5e5;
+    border-radius: 0.25rem;
 }

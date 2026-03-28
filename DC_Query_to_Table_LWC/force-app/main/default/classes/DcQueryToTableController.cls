@@ -132,8 +132,8 @@ public with sharing class DcQueryToTableController {
             return out;
         }
 
-        String json = JSON.serialize(response);
-        Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(json);
+        String payloadJson = JSON.serialize(response);
+        Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(payloadJson);
         Map<String, Object> metaRoot = (Map<String, Object>) root.get('metadata');
 
         List<Map<String, Object>> orderedMeta = new List<Map<String, Object>>();
@@ -152,7 +152,7 @@ public with sharing class DcQueryToTableController {
             }
         }
 
-        orderedMeta.sort(new MetadataPlaceCmp());
+        orderedMeta = sortMetadataRows(orderedMeta);
 
         Integer colIndex = 0;
         Map<Integer, String> indexToField = new Map<Integer, String>();
@@ -210,31 +210,33 @@ public with sharing class DcQueryToTableController {
         return out;
     }
 
-    private class MetadataPlaceCmp implements Comparator {
-        public Integer compare(Object o1, Object o2) {
-            Map<String, Object> a = (Map<String, Object>) o1;
-            Map<String, Object> b = (Map<String, Object>) o2;
-            Integer pa = place(a);
-            Integer pb = place(b);
-            if (pa == pb) {
-                return 0;
+    private static List<Map<String, Object>> sortMetadataRows(List<Map<String, Object>> rows) {
+        List<Map<String, Object>> out = new List<Map<String, Object>>();
+        out.addAll(rows);
+        for (Integer i = 0; i < out.size(); i++) {
+            for (Integer j = i + 1; j < out.size(); j++) {
+                if (metadataPlace(out[j]) < metadataPlace(out[i])) {
+                    Map<String, Object> tmp = out[i];
+                    out[i] = out[j];
+                    out[j] = tmp;
+                }
             }
-            return pa < pb ? -1 : 1;
         }
+        return out;
+    }
 
-        private Integer place(Map<String, Object> m) {
-            Object p = m.get('placeInOrder');
-            if (p instanceof Integer) {
-                return (Integer) p;
-            }
-            if (p instanceof Decimal) {
-                return ((Decimal) p).intValue();
-            }
-            if (p instanceof Long) {
-                return ((Long) p).intValue();
-            }
-            return 0;
+    private static Integer metadataPlace(Map<String, Object> m) {
+        Object p = m.get('placeInOrder');
+        if (p instanceof Integer) {
+            return (Integer) p;
         }
+        if (p instanceof Decimal) {
+            return ((Decimal) p).intValue();
+        }
+        if (p instanceof Long) {
+            return ((Long) p).intValue();
+        }
+        return 0;
     }
 
     private static String toSafeFieldName(String raw, Integer idx) {

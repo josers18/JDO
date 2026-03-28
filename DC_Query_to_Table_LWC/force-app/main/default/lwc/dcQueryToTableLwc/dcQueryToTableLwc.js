@@ -10,7 +10,7 @@ export default class DcQueryToTableLwc extends LightningElement {
     @api defaultColumnWidth;
 
     /** lightning-datatable / SLDS-style table options (read-only / base table) */
-    @api hideCheckboxColumn = true;
+    @api showRowSelectionColumn = false;
     @api showRowNumberColumn = false;
     @api columnWidthsMode = 'auto';
     @api minColumnWidth = 120;
@@ -163,6 +163,11 @@ export default class DcQueryToTableLwc extends LightningElement {
 
     get hasTable() {
         return this.tableColumns.length > 0 && this.tableRows.length > 0;
+    }
+
+    /** Default read-only grid: hide checkboxes unless App Builder enables selection column. */
+    get hideSelectionColumn() {
+        return this.showRowSelectionColumn !== true;
     }
 
     get tableHeightClass() {

@@ -17,7 +17,8 @@
             <property name="defaultColumnWrap" type="Boolean" label="Wrap text in columns" default="false" />
             <property name="defaultColumnWidth" type="Integer" label="Default column width (px)"
                 description="Optional initial width for every column in the datatable (leave empty to use platform defaults)." />
-            <property name="hideCheckboxColumn" type="Boolean" label="Hide checkbox column" default="true" />
+            <property name="showRowSelectionColumn" type="Boolean" label="Show selection checkboxes" default="false"
+                description="When enabled, shows row checkboxes. Off by default for immutable Data Cloud results." />
             <property name="showRowNumberColumn" type="Boolean" label="Show row numbers" default="false" />
             <property name="columnWidthsMode" type="String" label="Column widths mode" default="auto" />
             <property name="minColumnWidth" type="Integer" label="Minimum column width (px)" default="120" />
@@ -40,8 +41,8 @@
                 description="Sets wrapText on each column definition for long cell values." />
             <property name="defaultColumnWidth" type="Integer" label="Default column width (px)"
                 description="Optional initial width for every column in the datatable (leave empty to use platform defaults)." />
-            <property name="hideCheckboxColumn" type="Boolean" label="Hide checkbox column" default="true"
-                description="Base/read-only table: hides row selection checkboxes (lightning-datatable)." />
+            <property name="showRowSelectionColumn" type="Boolean" label="Show selection checkboxes" default="false"
+                description="When enabled, shows row checkboxes. Off by default for immutable Data Cloud results." />
             <property name="showRowNumberColumn" type="Boolean" label="Show row numbers" default="false"
                 description="Shows the row index column per SLDS data table patterns." />
             <property name="columnWidthsMode" type="String" label="Column widths mode" default="auto"
