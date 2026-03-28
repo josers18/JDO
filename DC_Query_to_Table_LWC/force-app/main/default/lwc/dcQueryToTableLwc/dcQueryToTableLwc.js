@@ -6,8 +6,15 @@ export default class DcQueryToTableLwc extends LightningElement {
     @api cardTitle = 'Data Cloud SQL';
     /** Set in App Builder only; not shown on the page. */
     @api defaultSql = 'SELECT * FROM "ssot__Individual__dlm" LIMIT 10';
-    /** Initial state of the on-page “run when page loads” checkbox. */
-    @api autoRunOnLoad = false;
+
+    /** Kept for existing Lightning pages that reference this property; query always runs on load. */
+    @api autoRunOnLoad;
+
+    /** SLDS icon in namespace:name form (e.g. utility:table, utility:graph). */
+    @api headerIconName = 'utility:table';
+    /** Title text color: #RGB, #RRGGBB, or #RRGGBBAA (no spaces). */
+    @api titleColorHex = '#032d60';
+
     @api maxRows = 500;
     @api defaultColumnWrap = false;
     @api defaultColumnWidth;
@@ -22,7 +29,6 @@ export default class DcQueryToTableLwc extends LightningElement {
     @api wrapTextMaxLines = 3;
     @api suppressBottomBar = false;
 
-    @track runOnLoad = false;
     @track tableColumns = [];
     @track tableRows = [];
     @track loading = false;
@@ -33,19 +39,36 @@ export default class DcQueryToTableLwc extends LightningElement {
     sortedDirection;
 
     connectedCallback() {
-        this.runOnLoad = this.autoRunOnLoad === true;
-        if (this.runOnLoad) {
-            Promise.resolve().then(() => this.handleRun());
-        }
+        Promise.resolve().then(() => this.handleRun());
     }
 
-    handleAutoRunToggle(event) {
-        const checked =
-            typeof event.detail?.checked === 'boolean' ? event.detail.checked : event.target.checked;
-        this.runOnLoad = checked === true;
-        if (this.runOnLoad) {
-            this.handleRun();
+    get resolvedCardTitle() {
+        return (this.cardTitle || '').trim() || 'Data Cloud SQL';
+    }
+
+    get resolvedHeaderIconName() {
+        const raw = (this.headerIconName || '').trim();
+        if (/^[A-Za-z]+:[A-Za-z0-9_]+$/.test(raw)) {
+            return raw;
         }
+        return 'utility:table';
+    }
+
+    get resolvedTitleColorHex() {
+        const raw = (this.titleColorHex || '').trim();
+        if (
+            /^#[0-9A-Fa-f]{3}$/.test(raw) ||
+            /^#[0-9A-Fa-f]{6}$/.test(raw) ||
+            /^#[0-9A-Fa-f]{8}$/.test(raw)
+        ) {
+            return raw;
+        }
+        return '#032d60';
+    }
+
+    /** CSS variable for title color (reliable in LEX). */
+    get shellStyleString() {
+        return '--dcqt-title-color: ' + this.resolvedTitleColorHex + ';';
     }
 
     async handleRun() {
@@ -184,16 +207,10 @@ export default class DcQueryToTableLwc extends LightningElement {
         return 'Unknown error';
     }
 
-    /** Show grid when we have column definitions (empty row set still renders headers). */
     get hasGrid() {
         return this.tableColumns.length > 0;
     }
 
-    get showRunButton() {
-        return !this.runOnLoad;
-    }
-
-    /** Default read-only grid: hide checkboxes unless App Builder enables selection column. */
     get hideSelectionColumn() {
         return this.showRowSelectionColumn !== true;
     }

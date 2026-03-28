@@ -1,34 +1,23 @@
 <template>
-    <lightning-card title={cardTitle} icon-name="utility:table">
-        <div class="slds-p-horizontal_small slds-p-bottom_small">
-            <div class="dcqt-toolbar slds-grid slds-grid_vertical-align-center slds-wrap slds-gutters_x-small">
-                <div class="slds-col slds-grow-none">
-                    <lightning-input
-                        type="checkbox"
-                        label="Run query when page loads"
-                        checked={runOnLoad}
-                        onchange={handleAutoRunToggle}
-                    ></lightning-input>
-                </div>
-                <template if:true={showRunButton}>
-                    <div class="slds-col slds-grow-none">
-                        <lightning-button
-                            variant="brand"
-                            label="Run query"
-                            title="Run the Data Cloud SQL configured in App Builder"
-                            onclick={handleRun}
-                            disabled={loading}
-                        ></lightning-button>
-                    </div>
-                </template>
-                <template if:true={loading}>
-                    <div class="slds-col slds-grow-none">
-                        <lightning-spinner alternative-text="Running query" size="small"></lightning-spinner>
-                    </div>
-                </template>
+    <article class="dcqt-shell" style={shellStyleString}>
+        <div class="dcqt-shell__header">
+            <div class="dcqt-shell__title-group">
+                <lightning-icon
+                    icon-name={resolvedHeaderIconName}
+                    size="small"
+                    alternative-text=""
+                    class="dcqt-shell__icon"
+                ></lightning-icon>
+                <h2 class="dcqt-shell__title">{resolvedCardTitle}</h2>
             </div>
+            <template if:true={loading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+        </div>
+
+        <div class="dcqt-shell__body">
             <template if:true={errorMessage}>
-                <div class="slds-m-top_small slds-text-color_error" role="alert">{errorMessage}</div>
+                <div class="dcqt-shell__error slds-text-color_error" role="alert">{errorMessage}</div>
             </template>
             <template if:true={hasGrid}>
                 <div class={tableHeightClass}>
@@ -52,5 +41,5 @@
                 </div>
             </template>
         </div>
-    </lightning-card>
+    </article>
 </template>

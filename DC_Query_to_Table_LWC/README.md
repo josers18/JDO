@@ -1,6 +1,6 @@
 # DC Query to Table LWC
 
-> **Purpose:** Salesforce DX package with **`dcQueryToTableLwc`** (**DC Query to Table** in App Builder): **Data Cloud ANSI SQL** is set **only in App Builder** (not on the page). The runtime UI shows the **card title**, an optional **“Run query when page loads”** checkbox, a **Run query** button when that box is unchecked, and the **`lightning-datatable`** result. Execution uses **`ConnectApi.CdpQuery.queryAnsiSqlV2`** (same org). Table options (density, row numbers, column widths, wrap, sort) remain App Builder properties.
+> **Purpose:** Salesforce DX package with **`dcQueryToTableLwc`** (**DC Query to Table** in App Builder): **Data Cloud ANSI SQL** is set **only in App Builder** (not on the page). The runtime UI is a **custom header** (**configurable SLDS icon** + **title** with **hex title color**) and a **`lightning-datatable`**; the query **runs automatically when the page loads** (no on-page SQL editor, checkbox, or Run button). Execution uses **`ConnectApi.CdpQuery.queryAnsiSqlV2`** (same org). Table options remain App Builder properties.
 
 Visual and behavioral alignment with SLDS **data table** patterns is through the platform **`lightning-datatable`** base component, which implements the [Lightning Design System data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) guidance for tabular, scannable layouts.
 
@@ -31,7 +31,7 @@ cd JDO/DC_Query_to_Table_LWC
 sf project deploy start --source-dir force-app --target-org <alias>
 ```
 
-Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. Set **Data Cloud SQL query**, **Start with auto-run on**, **max rows**, and table options in App Builder.
+Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. Set **Card title**, **Header icon name**, **Title color (hex)**, **Data Cloud SQL query**, **max rows**, and table options in App Builder.
 
 ---
 
@@ -39,9 +39,10 @@ Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. 
 
 | Area | Details |
 |------|---------|
-| **UI** | **Title** + **Run query when page loads** checkbox. Checked → query runs on load (and again if the user re-checks after clearing). Unchecked → **Run query** button only. SQL is **not** shown at runtime. |
+| **UI** | **Icon** + **title** (styled with **Title color**) and **datatable** only. A **spinner** appears in the header row while the query runs. SQL is **not** shown at runtime. |
+| **Load** | **`connectedCallback`** always schedules **one** query run when the page opens. The older **Auto-run on load (legacy)** designer property is **ignored** but kept so existing pages can deploy. |
 | **Query** | **SELECT** or **WITH … SELECT** only; mutating/DDL keywords rejected with spaces (heuristic). |
-| **LIMIT** | If the statement has **no trailing `LIMIT n`**, Apex appends **`LIMIT`** using **Max rows (auto LIMIT)** (clamped to **2000**). |
+| **LIMIT** | If the statement has **no `LIMIT n`**, Apex appends **`LIMIT`** using **Max rows (auto LIMIT)** (clamped to **2000**). |
 | **Results** | Columns and cells are built from **`queryAnsiSqlV2`** metadata + row data (serialized to maps for the LWC). |
 | **Pagination** | If **`nextBatchId`** is returned, a **warning** toast explains that only the **first batch** is shown; use a tighter `LIMIT` or extend the controller for **`nextBatchAnsiSqlV2`** later. |
 | **Table** | **Immutable** display: default **hide checkboxes**; optional **row numbers**, **column width** mode, **min width**, **resize**, **header wrap**, **cell wrap** max lines, **suppress bottom bar**, **sort** (client-side on loaded rows). |
@@ -68,7 +69,7 @@ Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. 
 
 | Path | Role |
 |------|------|
-| `force-app/.../lwc/dcQueryToTableLwc/` | Card, auto-run checkbox, Run button, `lightning-datatable` |
+| `force-app/.../lwc/dcQueryToTableLwc/` | Shell header (icon + title color), auto-run on load, `lightning-datatable` |
 | `force-app/.../classes/DcQueryToTableController.cls` | `runDataCloudSql` → `ConnectApi.CdpQuery.queryAnsiSqlV2` |
 | `force-app/.../classes/DcQueryToTableControllerTest.cls` | Validation + mock result tests |
 

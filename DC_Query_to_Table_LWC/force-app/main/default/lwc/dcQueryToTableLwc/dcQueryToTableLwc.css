@@ -1,9 +1,57 @@
-.dcqt-toolbar {
+:host {
+    display: block;
+}
+
+.dcqt-shell {
+    box-sizing: border-box;
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.75rem;
+    padding: 1rem 1.125rem;
+    --dcqt-title-color: #032d60;
+}
+
+.dcqt-shell__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    min-height: 2rem;
+}
+
+.dcqt-shell__title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.dcqt-shell__icon {
+    flex-shrink: 0;
+}
+
+.dcqt-shell__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--dcqt-title-color, #032d60);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dcqt-shell__body {
+    min-width: 0;
+}
+
+.dcqt-shell__error {
     margin-bottom: 0.5rem;
+    font-size: 0.875rem;
 }
 
 .dcqt-shell__table {
-    margin-top: 1rem;
     max-height: 28rem;
     overflow: auto;
     border: 1px solid #e5e5e5;
