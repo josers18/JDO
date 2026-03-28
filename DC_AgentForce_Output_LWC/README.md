@@ -1,6 +1,8 @@
 # DC AgentForce Output LWC
 
-> **Purpose:** Salesforce DX package with **`dcAgentforceOutputLwc`** (**DC AgentForce Output** in App Builder): runs an **autolaunched Flow**, displays generative **text / HTML / Markdown** output with copy, expand, print/PDF, and optional **Models API** thumbs feedback when the flow returns a **generation Id**.
+## What is it?
+
+**DC AgentForce Output** is a Lightning Web Component that acts as a **read-only console for generative answers**. You wire it to an **autolaunched Flow** that calls your Agentforce, Prompt Builder, or other automation; when the flow finishes, the card shows the **text, HTML, or Markdown** the flow produced. Users can **copy** the answer, open it **full screen**, or **print** it (including a print-to-PDF style workflow from the browser). If your flow returns a **generation Id** from the platform’s models API, you can optionally show **thumbs up / down** so feedback is sent back for quality tracking. The component does not replace Flow or Agent Builder—it **displays** what the flow already generated and gives everyday actions around that content.
 
 <div align="center">
 

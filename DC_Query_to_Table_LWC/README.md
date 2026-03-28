@@ -1,6 +1,8 @@
 # DC Query to Table LWC
 
-> **Purpose:** Salesforce DX package with **`dcQueryToTableLwc`** (**DC Query to Table** in App Builder): **Data Cloud ANSI SQL** is set **only in App Builder** (not on the page). The runtime UI is a **custom header** (**configurable SLDS icon** + **title** with **hex title color**) and a **`lightning-datatable`**. By default the query **runs when the page loads**; if **Auto-run query on page load** is unchecked, a **Run query** button appears in the header. Execution uses **`ConnectApi.CdpQuery.queryAnsiSqlV2`** (same org). Table options remain App Builder properties.
+## What is it?
+
+**DC Query to Table** is a Lightning Web Component that turns a **Data Cloud SQL query** into a **sortable table** on a Lightning page. An admin defines the **SQL and table options in Lightning App Builder**; visitors see a simple **card** (optional icon and title) and the **rows and columns** returned from Data Cloud—similar to a read-only report snippet embedded on the page. By default the query **runs as soon as the page opens**; you can instead require a **Run query** button so the query executes only when someone asks. It is meant for **exploration and monitoring** of harmonized Data Cloud data inside Salesforce, not for arbitrary SQL editing by every end user.
 
 Visual and behavioral alignment with SLDS **data table** patterns is through the platform **`lightning-datatable`** base component, which implements the [Lightning Design System data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) guidance for tabular, scannable layouts.
 

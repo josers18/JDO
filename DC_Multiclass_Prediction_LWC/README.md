@@ -1,6 +1,10 @@
 # DC Multiclass Prediction LWC
 
-> **Status:** Multiclass **text** prediction from Flow (`prediction` string, e.g. `Wealth_Management`), **recommendations** JSON only (no factors, no gauge). Bundle **`multiclassPredictionLwc`** and Apex **`MulticlassPredictionLwcController`** — distinct from **DC_Prediction_Model_LWC**, so both can deploy to the same org.
+## What is it?
+
+**Multiclass Prediction** is a Lightning Web Component for outcomes that are **named categories** (for example a segment or product line code) rather than a single percentage or dollar figure. It shows the **predicted class** as a clear headline, then visualizes **recommended improvements** as a **diverging bar chart** so people can see what pushes the prediction up or down. Data still comes from your **autolaunched Flow**; an optional **AI summary** explains the result in natural language using **Prompt Builder**. It is a **separate package** from **Prediction Model** (different Apex and bundle names), so you can install both in the same org if you need both patterns.
+
+> **Note:** The Flow returns a **text** `prediction` (for example `Wealth_Management`) and **recommendations** JSON—not the factor list or gauge used by **Prediction Model**.
 
 <div align="center">
 

@@ -1,5 +1,9 @@
 # DC Prediction Model LWC
 
+## What is it?
+
+**Prediction Model** is a Lightning Web Component you add to a Lightning page (app, home, or record). It is a small **dashboard card** for **machine-learning style results**: it shows the model’s main score (either as a **semicircle gauge** when the outcome is a **percentage**, or as a **large number** when the outcome is a count, decimal, or currency amount). Alongside that, it lists **what drove the prediction** and **suggested next steps**, using structured data your **autolaunched Flow** returns. You can optionally turn on an **AI-written summary** in plain language, powered by a **Prompt Builder** template and Einstein. End users **refresh** the card to re-run the flow; they do not configure the model inside the component.
+
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
