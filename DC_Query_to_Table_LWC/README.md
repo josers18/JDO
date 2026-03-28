@@ -4,6 +4,25 @@
 
 **DC Query to Table** is a Lightning Web Component that turns a **Data Cloud SQL query** into a **sortable table** on a Lightning page. An admin defines the **SQL and table options in Lightning App Builder**; visitors see a simple **card** (optional icon and title) and the **rows and columns** returned from Data Cloud—similar to a read-only report snippet embedded on the page. By default the query **runs as soon as the page opens**; you can instead require a **Run query** button so the query executes only when someone asks. It is meant for **exploration and monitoring** of harmonized Data Cloud data inside Salesforce, not for arbitrary SQL editing by every end user.
 
+<div align="center">
+
+[![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
+[![LWC](https://img.shields.io/badge/Lightning-Web_Components-0176D3?style=for-the-badge)](https://developer.salesforce.com/docs/component-library/overview/components)
+[![Apex](https://img.shields.io/badge/Apex-04844B?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/)
+[![Metadata API](https://img.shields.io/badge/API-v66.0-032D60?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_intro.htm)
+[![Data Cloud](https://img.shields.io/badge/Data_Cloud-SQL-7F56D9?style=for-the-badge)](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/query-guide-get-started.html)
+
+[![SF CLI](https://img.shields.io/badge/SF_CLI-v2-111111?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://developer.salesforce.com/tools/salesforcecli)
+[![Monorepo](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
+
+<br/>
+
+**Data Cloud SQL** · **`lightning-datatable`** · **Connect API (`CdpQuery`)**
+
+</div>
+
+---
+
 Visual and behavioral alignment with SLDS **data table** patterns is through the platform **`lightning-datatable`** base component, which implements the [Lightning Design System data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) guidance for tabular, scannable layouts.
 
 ---
