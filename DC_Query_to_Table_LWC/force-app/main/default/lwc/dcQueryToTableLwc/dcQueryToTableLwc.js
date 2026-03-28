@@ -3,33 +3,26 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import runDataCloudSql from '@salesforce/apex/DcQueryToTableController.runDataCloudSql';
 
 /**
- * Runtime table options follow SLDS / lightning-datatable data-table patterns:
+ * Table layout follows SLDS / lightning-datatable data-table patterns; all options are App Builder only.
  * https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table
  */
 export default class DcQueryToTableLwc extends LightningElement {
     @api cardTitle = 'Data Cloud SQL';
-    /** Set in App Builder only; not shown on the page. */
     @api defaultSql = 'SELECT * FROM "ssot__Individual__dlm" LIMIT 10';
 
-    /** Kept for existing Lightning pages that reference this property; query always runs on load. */
     @api autoRunOnLoad;
 
-    /** SLDS icon in namespace:name form (e.g. utility:table, utility:graph). */
     @api headerIconName = 'utility:table';
-    /** Title text color: #RGB, #RRGGBB, or #RRGGBBAA (no spaces). */
     @api titleColorHex = '#032d60';
-
-    /** App Builder default for showing the header icon + title; overridable via configuration panel. */
     @api showTitle;
 
-    /** When not false, shows the on-page “Table configuration” panel (checkboxes + numeric options). */
+    /** Legacy FlexiPage property; not displayed—configure table via App Builder properties below. */
     @api showTableConfiguration;
 
     @api maxRows = 500;
     @api defaultColumnWrap = false;
     @api defaultColumnWidth;
 
-    /** App Builder defaults for table UI; runtime panel can override until reload. */
     @api showRowSelectionColumn = false;
     @api showRowNumberColumn = false;
     @api columnWidthsMode = 'auto';
@@ -45,49 +38,21 @@ export default class DcQueryToTableLwc extends LightningElement {
     @track errorMessage = '';
     @track metaWarning = '';
 
-    @track cfgShowSelection = false;
-    @track cfgShowRowNumbers = false;
-    @track cfgFixedColumnWidths = false;
-    @track cfgAllowColumnResize = true;
-    @track cfgWrapHeaders = false;
-    @track cfgWrapCells = false;
-    @track cfgSuppressFooter = false;
-    @track cfgMinColumnWidth = 120;
-    @track cfgWrapMaxLines = 3;
-    @track cfgShowTitle = true;
-
     sortedBy;
     sortedDirection;
 
     connectedCallback() {
-        this.syncTableOptionsFromApi();
         Promise.resolve().then(() => this.handleRun());
     }
 
-    syncTableOptionsFromApi() {
-        this.cfgShowSelection = this.showRowSelectionColumn === true;
-        this.cfgShowRowNumbers = this.showRowNumberColumn === true;
-        const mode = (this.columnWidthsMode || 'auto').toLowerCase();
-        this.cfgFixedColumnWidths = mode === 'fixed';
-        this.cfgAllowColumnResize = this.resizeColumnDisabled !== true;
-        this.cfgWrapHeaders = this.wrapTableHeader === true;
-        this.cfgWrapCells = this.defaultColumnWrap === true;
-        this.cfgSuppressFooter = this.suppressBottomBar === true;
-        const mw = Number(this.minColumnWidth);
-        this.cfgMinColumnWidth = Number.isFinite(mw) && mw >= 20 ? mw : 120;
-        const wl = Number(this.wrapTextMaxLines);
-        this.cfgWrapMaxLines = Number.isFinite(wl) && wl >= 1 ? wl : 3;
-        this.cfgShowTitle = this.showTitle !== false;
+    get titleVisible() {
+        return this.showTitle !== false;
     }
 
     get headerClassName() {
-        return this.cfgShowTitle === true
+        return this.titleVisible
             ? 'dcqt-shell__header'
             : 'dcqt-shell__header dcqt-shell__header--no-title';
-    }
-
-    get showConfigPanel() {
-        return this.showTableConfiguration !== false;
     }
 
     get resolvedCardTitle() {
@@ -118,16 +83,29 @@ export default class DcQueryToTableLwc extends LightningElement {
         return '--dcqt-title-color: ' + this.resolvedTitleColorHex + ';';
     }
 
-    get effectiveColumnWidthsMode() {
-        return this.cfgFixedColumnWidths ? 'fixed' : 'auto';
+    get resolvedColumnWidthsMode() {
+        const m = (this.columnWidthsMode || 'auto').toLowerCase();
+        return m === 'fixed' ? 'fixed' : 'auto';
     }
 
-    get effectiveHideSelectionColumn() {
-        return this.cfgShowSelection !== true;
+    get hideSelectionColumn() {
+        return this.showRowSelectionColumn !== true;
     }
 
-    get effectiveResizeColumnDisabled() {
-        return this.cfgAllowColumnResize !== true;
+    get resolvedMinColumnWidth() {
+        const mw = Number(this.minColumnWidth);
+        if (Number.isFinite(mw) && mw >= 20) {
+            return Math.min(1000, mw);
+        }
+        return 120;
+    }
+
+    get resolvedWrapTextMaxLines() {
+        const wl = Number(this.wrapTextMaxLines);
+        if (Number.isFinite(wl) && wl >= 1) {
+            return Math.min(50, wl);
+        }
+        return 3;
     }
 
     async handleRun() {
@@ -156,12 +134,10 @@ export default class DcQueryToTableLwc extends LightningElement {
             const result = await runDataCloudSql({
                 sql,
                 maxRows: Number(this.maxRows) || 500,
-                defaultColumnWrap: this.cfgWrapCells === true,
+                defaultColumnWrap: this.defaultColumnWrap === true,
                 defaultInitialWidth: Number.isFinite(width) && width > 0 ? width : null
             });
-            const cols = (result.columns || []).map((c) => this.normalizeColumn(c));
-            this.tableColumns = cols;
-            this.applyColumnWrapFromConfig();
+            this.tableColumns = (result.columns || []).map((c) => this.normalizeColumn(c));
             this.tableRows = this.cloneRows(result.rows || []);
             this.metaWarning = result.warning || '';
             if (this.metaWarning) {
@@ -205,7 +181,7 @@ export default class DcQueryToTableLwc extends LightningElement {
             fieldName: c.fieldName,
             label: c.label || c.fieldName,
             type: c.type || 'text',
-            wrapText: this.cfgWrapCells === true
+            wrapText: this.defaultColumnWrap === true
         };
         if (c.initialWidth) {
             col.initialWidth = c.initialWidth;
@@ -214,72 +190,6 @@ export default class DcQueryToTableLwc extends LightningElement {
             col.typeAttributes = c.typeAttributes;
         }
         return col;
-    }
-
-    applyColumnWrapFromConfig() {
-        if (!this.tableColumns || this.tableColumns.length === 0) {
-            return;
-        }
-        const wrap = this.cfgWrapCells === true;
-        this.tableColumns = this.tableColumns.map((col) => {
-            const next = { ...col, wrapText: wrap };
-            return next;
-        });
-    }
-
-    handleConfigCheckboxChange(event) {
-        const key = event.currentTarget.dataset.cfg;
-        const checked =
-            typeof event.detail?.checked === 'boolean' ? event.detail.checked : event.target.checked;
-        switch (key) {
-            case 'selection':
-                this.cfgShowSelection = checked === true;
-                break;
-            case 'rowNumbers':
-                this.cfgShowRowNumbers = checked === true;
-                break;
-            case 'fixedWidths':
-                this.cfgFixedColumnWidths = checked === true;
-                break;
-            case 'allowResize':
-                this.cfgAllowColumnResize = checked === true;
-                break;
-            case 'wrapHeaders':
-                this.cfgWrapHeaders = checked === true;
-                break;
-            case 'wrapCells':
-                this.cfgWrapCells = checked === true;
-                this.applyColumnWrapFromConfig();
-                break;
-            case 'suppressFooter':
-                this.cfgSuppressFooter = checked === true;
-                break;
-            case 'showTitle':
-                this.cfgShowTitle = checked === true;
-                break;
-            default:
-                break;
-        }
-    }
-
-    handleMinColumnWidthChange(event) {
-        const raw = event.detail?.value != null ? event.detail.value : event.target.value;
-        let v = parseInt(raw, 10);
-        if (!Number.isFinite(v)) {
-            v = 120;
-        }
-        v = Math.min(1000, Math.max(20, v));
-        this.cfgMinColumnWidth = v;
-    }
-
-    handleWrapMaxLinesChange(event) {
-        const raw = event.detail?.value != null ? event.detail.value : event.target.value;
-        let v = parseInt(raw, 10);
-        if (!Number.isFinite(v)) {
-            v = 3;
-        }
-        v = Math.min(50, Math.max(1, v));
-        this.cfgWrapMaxLines = v;
     }
 
     cloneRows(rows) {

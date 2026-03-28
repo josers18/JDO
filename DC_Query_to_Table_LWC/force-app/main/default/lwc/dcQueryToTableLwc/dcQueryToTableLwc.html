@@ -1,7 +1,7 @@
 <template>
     <article class="dcqt-shell" style={shellStyleString}>
         <div class={headerClassName}>
-            <template if:true={cfgShowTitle}>
+            <template if:true={titleVisible}>
                 <div class="dcqt-shell__title-group">
                     <lightning-icon
                         icon-name={resolvedHeaderIconName}
@@ -18,101 +18,6 @@
         </div>
 
         <div class="dcqt-shell__body">
-            <template if:true={showConfigPanel}>
-                <section class="dcqt-config" aria-labelledby="dcqt-config-heading">
-                    <h3 id="dcqt-config-heading" class="dcqt-config__title">Table configuration</h3>
-                    <p class="dcqt-config__hint">
-                        Options align with SLDS
-                        <a
-                            href="https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >data table</a>
-                        patterns (via lightning-datatable).
-                    </p>
-                    <div class="dcqt-config__grid">
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="showTitle"
-                            label="Show title (icon and heading)"
-                            checked={cfgShowTitle}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="selection"
-                            label="Show row selection column"
-                            checked={cfgShowSelection}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="rowNumbers"
-                            label="Show row numbers"
-                            checked={cfgShowRowNumbers}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="fixedWidths"
-                            label="Fixed column widths"
-                            checked={cfgFixedColumnWidths}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="allowResize"
-                            label="Allow column resize"
-                            checked={cfgAllowColumnResize}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="wrapHeaders"
-                            label="Wrap column headers"
-                            checked={cfgWrapHeaders}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="wrapCells"
-                            label="Wrap text in cells"
-                            checked={cfgWrapCells}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                        <lightning-input
-                            type="checkbox"
-                            data-cfg="suppressFooter"
-                            label="Suppress table footer / bottom bar"
-                            checked={cfgSuppressFooter}
-                            onchange={handleConfigCheckboxChange}
-                        ></lightning-input>
-                    </div>
-                    <div class="dcqt-config__numbers slds-m-top_small">
-                        <lightning-input
-                            type="number"
-                            label="Minimum column width (px)"
-                            value={cfgMinColumnWidth}
-                            min="20"
-                            max="1000"
-                            step="1"
-                            onchange={handleMinColumnWidthChange}
-                            class="dcqt-config__num"
-                        ></lightning-input>
-                        <lightning-input
-                            type="number"
-                            label="Max lines when wrapping cells"
-                            value={cfgWrapMaxLines}
-                            min="1"
-                            max="50"
-                            step="1"
-                            onchange={handleWrapMaxLinesChange}
-                            class="dcqt-config__num"
-                        ></lightning-input>
-                    </div>
-                </section>
-            </template>
-
             <template if:true={errorMessage}>
                 <div class="dcqt-shell__error slds-text-color_error" role="alert">{errorMessage}</div>
             </template>
@@ -122,14 +27,14 @@
                         key-field="_rowUid"
                         data={tableRows}
                         columns={tableColumns}
-                        hide-checkbox-column={effectiveHideSelectionColumn}
-                        show-row-number-column={cfgShowRowNumbers}
-                        column-widths-mode={effectiveColumnWidthsMode}
-                        min-column-width={cfgMinColumnWidth}
-                        resize-column-disabled={effectiveResizeColumnDisabled}
-                        wrap-table-header={cfgWrapHeaders}
-                        wrap-text-max-lines={cfgWrapMaxLines}
-                        suppress-bottom-bar={cfgSuppressFooter}
+                        hide-checkbox-column={hideSelectionColumn}
+                        show-row-number-column={showRowNumberColumn}
+                        column-widths-mode={resolvedColumnWidthsMode}
+                        min-column-width={resolvedMinColumnWidth}
+                        resize-column-disabled={resizeColumnDisabled}
+                        wrap-table-header={wrapTableHeader}
+                        wrap-text-max-lines={resolvedWrapTextMaxLines}
+                        suppress-bottom-bar={suppressBottomBar}
                         sorted-by={sortedBy}
                         sorted-direction={sortedDirection}
                         onsort={handleSort}
