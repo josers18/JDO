@@ -10,6 +10,9 @@ export default class DcQueryToTableLwc extends LightningElement {
     @api cardTitle = 'Data Cloud SQL';
     @api defaultSql = 'SELECT * FROM "ssot__Individual__dlm" LIMIT 10';
 
+    /**
+     * When true (default), runs the SQL when the page loads. When false, shows Run query until the user runs it.
+     */
     @api autoRunOnLoad;
 
     @api headerIconName = 'utility:table';
@@ -45,7 +48,14 @@ export default class DcQueryToTableLwc extends LightningElement {
     sortedDirection;
 
     connectedCallback() {
-        Promise.resolve().then(() => this.handleRun());
+        if (this.autoRunOnLoad !== false) {
+            Promise.resolve().then(() => this.handleRun());
+        }
+    }
+
+    /** Unchecked in App Builder → manual Run only. Undefined preserves previous default (auto-run). */
+    get showRunButton() {
+        return this.autoRunOnLoad === false;
     }
 
     get titleVisible() {

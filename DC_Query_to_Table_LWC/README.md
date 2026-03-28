@@ -40,7 +40,7 @@ Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. 
 | Area | Details |
 |------|---------|
 | **UI** | Optional **icon + title** ( **Title color** in App Builder); **datatable** only—no on-page configuration. All [SLDS-style data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) options (**selection column**, **row numbers**, **column widths mode**, **min width**, **resize**, **header/cell wrap**, **wrap lines**, **suppress footer**, **enable column sorting**, etc.) are **Lightning App Builder** properties only. SQL is **not** shown at runtime. |
-| **Load** | **`connectedCallback`** always schedules **one** query run when the page opens. The older **Auto-run on load (legacy)** designer property is **ignored** but kept so existing pages can deploy. |
+| **Load** | **Auto-run query on page load** (App Builder): when **checked**, the query runs once when the page opens. When **unchecked**, a **Run query** button appears in the header and the user runs the SQL manually. |
 | **Query** | **SELECT** or **WITH … SELECT** only; mutating/DDL keywords rejected with spaces (heuristic). |
 | **LIMIT** | If the statement has **no `LIMIT n`**, Apex appends **`LIMIT`** using **Max rows (auto LIMIT)** (clamped to **2000**). |
 | **Results** | Columns and cells are built from **`queryAnsiSqlV2`** metadata + row data (serialized to maps for the LWC). |

@@ -22,8 +22,8 @@
                 description="Unused at runtime; kept for existing Lightning pages. Configure the datatable using the properties below." />
             <property name="defaultSql" type="String" label="Data Cloud SQL query" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
                 description="SQL executed when the page loads. Not shown on the page." />
-            <property name="autoRunOnLoad" type="Boolean" label="Auto-run on load (legacy)" default="true"
-                description="Retained for existing Lightning pages. The component always runs the query once when the page loads; this flag is no longer used in the UI." />
+            <property name="autoRunOnLoad" type="Boolean" label="Auto-run query on page load" default="true"
+                description="When checked, runs the SQL when the page opens. When unchecked, a Run query button is shown instead." />
             <property name="maxRows" type="Integer" label="Max rows (auto LIMIT)" default="500" />
             <property name="defaultColumnWrap" type="Boolean" label="Wrap text in columns" default="false" />
             <property name="defaultColumnWidth" type="Integer" label="Default column width (px)"
@@ -56,8 +56,8 @@
                 description="Unused at runtime; kept for existing Lightning pages. Configure the datatable using the properties below." />
             <property name="defaultSql" type="String" label="Data Cloud SQL query" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
                 description="SQL executed when the page loads. Not shown on the page." />
-            <property name="autoRunOnLoad" type="Boolean" label="Auto-run on load (legacy)" default="true"
-                description="Retained for existing Lightning pages. The component always runs the query once when the page loads; this flag is no longer used in the UI." />
+            <property name="autoRunOnLoad" type="Boolean" label="Auto-run query on page load" default="true"
+                description="When checked, runs the SQL when the page opens. When unchecked, a Run query button is shown instead." />
             <property name="maxRows" type="Integer" label="Max rows (auto LIMIT)" default="500"
                 description="When your SQL has no LIMIT, Apex appends LIMIT up to this value (capped at 2000)." />
             <property name="defaultColumnWrap" type="Boolean" label="Wrap text in columns" default="false"

@@ -12,9 +12,20 @@
                     <h2 class="dcqt-shell__title">{resolvedCardTitle}</h2>
                 </div>
             </template>
-            <template if:true={loading}>
-                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
-            </template>
+            <div class="dcqt-shell__header-actions">
+                <template if:true={showRunButton}>
+                    <lightning-button
+                        variant="brand"
+                        label="Run query"
+                        title="Run the Data Cloud SQL from App Builder"
+                        onclick={handleRun}
+                        disabled={loading}
+                    ></lightning-button>
+                </template>
+                <template if:true={loading}>
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </template>
+            </div>
         </div>
 
         <div class="dcqt-shell__body">
