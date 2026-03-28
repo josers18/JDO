@@ -11,12 +11,14 @@ flowchart LR
         MC[Multiclass]
         AF[AgentForce Output]
         QT[Query to Table]
+        CR[DC Carousel]
     end
     ORG[(Salesforce org)]
     PM -->|Flow| ORG
     MC -->|Flow| ORG
     AF -->|Flow| ORG
     QT -->|CdpQuery Apex| ORG
+    CR -->|LWC slot / JSON| ORG
 ```
 
 ## Flow-driven components (pattern)

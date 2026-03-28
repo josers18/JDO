@@ -1,0 +1,79 @@
+:host {
+    display: block;
+}
+
+.dc-carousel__body {
+    min-width: 0;
+}
+
+.dc-carousel__viewport {
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+    min-height: 2rem;
+}
+
+.dc-carousel__rich-layer {
+    width: 100%;
+    overflow: hidden;
+}
+
+.dc-carousel__track {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    transition: transform 0.35s ease;
+    will-change: transform;
+}
+
+/* Slotted LWCs become flex items of the track (slot is display:contents). */
+.dc-carousel__track slot {
+    display: contents;
+}
+
+.dc-carousel__track ::slotted(*) {
+    box-sizing: border-box;
+    flex: 0 0 var(--dc-carousel-slide-basis, 100%);
+    min-width: var(--dc-carousel-slide-basis, 100%);
+    max-width: var(--dc-carousel-slide-basis, 100%);
+}
+
+.dc-carousel__panel_rich {
+    padding-right: var(--lwc-spacingSmall, 0.75rem);
+}
+
+.dc-carousel__empty {
+    border: 1px dashed var(--slds-g-color-border-base-1, #c9c9c9);
+    border-radius: 0.25rem;
+}
+
+.dc-carousel__indicators {
+    display: inline-flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dc-carousel__indicator {
+    width: 0.65rem;
+    height: 0.65rem;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--slds-g-color-border-base-4, #747474);
+    background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    cursor: pointer;
+}
+
+.dc-carousel__indicator:hover,
+.dc-carousel__indicator:focus {
+    background: var(--slds-g-color-neutral-base-80, #e5e5e5);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--slds-g-color-palette-blue-50, #0176d3);
+}
+
+.dc-carousel__indicator_active {
+    background: var(--slds-g-color-palette-blue-50, #0176d3);
+    border-color: var(--slds-g-color-palette-blue-50, #0176d3);
+}
