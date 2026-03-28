@@ -32,6 +32,9 @@ export default class DcQueryToTableLwc extends LightningElement {
     @api wrapTextMaxLines = 3;
     @api suppressBottomBar = false;
 
+    /** When not false, column headers are sortable (client-side sort on loaded rows). */
+    @api enableColumnSorting;
+
     @track tableColumns = [];
     @track tableRows = [];
     @track loading = false;
@@ -108,6 +111,10 @@ export default class DcQueryToTableLwc extends LightningElement {
         return 3;
     }
 
+    get columnSortingEnabled() {
+        return this.enableColumnSorting !== false;
+    }
+
     async handleRun() {
         const sql = (this.defaultSql || '').trim();
         if (!sql) {
@@ -181,7 +188,8 @@ export default class DcQueryToTableLwc extends LightningElement {
             fieldName: c.fieldName,
             label: c.label || c.fieldName,
             type: c.type || 'text',
-            wrapText: this.defaultColumnWrap === true
+            wrapText: this.defaultColumnWrap === true,
+            sortable: this.columnSortingEnabled === true
         };
         if (c.initialWidth) {
             col.initialWidth = c.initialWidth;
@@ -197,19 +205,26 @@ export default class DcQueryToTableLwc extends LightningElement {
     }
 
     handleSort(event) {
+        if (this.columnSortingEnabled !== true) {
+            return;
+        }
         const { fieldName, sortDirection } = event.detail;
         if (!fieldName || fieldName === '_rowUid') {
             return;
         }
         this.sortedBy = fieldName;
         this.sortedDirection = sortDirection;
+        const col = (this.tableColumns || []).find((c) => c.fieldName === fieldName);
+        const colType = col ? col.type : 'text';
         const copy = this.cloneRows(this.tableRows);
         const mult = sortDirection === 'asc' ? 1 : -1;
-        copy.sort((a, b) => this.compareCells(a[fieldName], b[fieldName], mult));
+        copy.sort((a, b) =>
+            this.compareCellsTyped(a[fieldName], b[fieldName], mult, colType)
+        );
         this.tableRows = copy;
     }
 
-    compareCells(a, b, mult) {
+    compareCellsTyped(a, b, mult, colType) {
         if (a == null && b == null) {
             return 0;
         }
@@ -219,8 +234,22 @@ export default class DcQueryToTableLwc extends LightningElement {
         if (b == null) {
             return 1 * mult;
         }
+        if (typeof a === 'boolean' && typeof b === 'boolean') {
+            if (a === b) {
+                return 0;
+            }
+            return (a ? 1 : -1) * mult;
+        }
         if (typeof a === 'number' && typeof b === 'number') {
             return (a - b) * mult;
+        }
+        const t = (colType || 'text').toLowerCase();
+        if (t === 'date' || t === 'datetime') {
+            const da = a instanceof Date ? a.getTime() : Date.parse(String(a));
+            const db = b instanceof Date ? b.getTime() : Date.parse(String(b));
+            if (!Number.isNaN(da) && !Number.isNaN(db)) {
+                return (da - db) * mult;
+            }
         }
         const sa = String(a);
         const sb = String(b);

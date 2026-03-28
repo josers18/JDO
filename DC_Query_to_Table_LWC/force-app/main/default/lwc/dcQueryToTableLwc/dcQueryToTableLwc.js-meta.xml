@@ -37,6 +37,8 @@
             <property name="wrapTableHeader" type="Boolean" label="Wrap table header" default="false" />
             <property name="wrapTextMaxLines" type="Integer" label="Wrap text max lines" default="3" />
             <property name="suppressBottomBar" type="Boolean" label="Suppress bottom bar" default="false" />
+            <property name="enableColumnSorting" type="Boolean" label="Enable column sorting" default="true"
+                description="When true, headers are sortable; sort applies to the rows already loaded (client-side)." />
             <objects>
                 <object>Account</object>
             </objects>
@@ -77,6 +79,8 @@
                 description="When wrapping, maximum lines per cell before truncation." />
             <property name="suppressBottomBar" type="Boolean" label="Suppress bottom bar" default="false"
                 description="Hides the table footer bar when supported by lightning-datatable." />
+            <property name="enableColumnSorting" type="Boolean" label="Enable column sorting" default="true"
+                description="Sortable column headers; client-side sort on loaded rows only." />
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>
