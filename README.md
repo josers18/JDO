@@ -1,6 +1,8 @@
 # JDO
 
-Git monorepo for Salesforce and related projects.
+**JDO** stands for **Jose’s Demo Org**. This repository is the home for **assets tied to that org**: Salesforce DX projects, Lightning Web Components, Apex, sample flows, documentation, and other demos or tooling used with or built for JDO.
+
+If you clone this monorepo, each subfolder under **Projects** is usually a standalone DX project (`sfdx-project.json` at that path) you can deploy with the Salesforce CLI.
 
 ## Projects
 
