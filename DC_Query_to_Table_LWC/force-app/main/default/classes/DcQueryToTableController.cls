@@ -109,9 +109,27 @@ public with sharing class DcQueryToTableController {
         }
     }
 
+    /** True if SQL already contains a LIMIT n anywhere (avoids appending a second LIMIT after OFFSET, etc.). */
     private static Boolean hasLimitClause(String s) {
-        Pattern p = Pattern.compile('(?i)\\blimit\\s+\\d+\\s*$');
-        return p.matcher(s.trim()).find();
+        return Pattern.compile('(?i)\\blimit\\s+\\d+').matcher(s).find();
+    }
+
+    /** JSON.serialize of ConnectApi types may emit camelCase or PascalCase keys. */
+    private static Object mapGetCi(Map<String, Object> m, List<String> candidates) {
+        if (m == null || m.isEmpty()) {
+            return null;
+        }
+        for (String key : m.keySet()) {
+            if (key == null) {
+                continue;
+            }
+            for (String want : candidates) {
+                if (key.equalsIgnoreCase(want)) {
+                    return m.get(key);
+                }
+            }
+        }
+        return null;
     }
 
     private static TableQueryResult buildResult(
@@ -134,7 +152,9 @@ public with sharing class DcQueryToTableController {
 
         String payloadJson = JSON.serialize(response);
         Map<String, Object> root = (Map<String, Object>) JSON.deserializeUntyped(payloadJson);
-        Map<String, Object> metaRoot = (Map<String, Object>) root.get('metadata');
+
+        Object metaObj = mapGetCi(root, new List<String>{ 'metadata', 'Metadata' });
+        Map<String, Object> metaRoot = metaObj instanceof Map<String, Object> ? (Map<String, Object>) metaObj : null;
 
         List<Map<String, Object>> orderedMeta = new List<Map<String, Object>>();
         if (metaRoot != null) {
@@ -146,8 +166,18 @@ public with sharing class DcQueryToTableController {
                 Map<String, Object> col = (Map<String, Object>) mo;
                 Map<String, Object> row = new Map<String, Object>();
                 row.put('name', fieldName);
-                row.put('placeInOrder', col.get('placeInOrder'));
-                row.put('sqlType', col.get('type'));
+                row.put(
+                    'placeInOrder',
+                    mapGetCi(col, new List<String>{ 'placeInOrder', 'PlaceInOrder', 'place_in_order' })
+                );
+                Object typeVal = mapGetCi(col, new List<String>{ 'type', 'Type', 'dataType', 'DataType' });
+                String sqlT = null;
+                if (typeVal instanceof String) {
+                    sqlT = (String) typeVal;
+                } else if (typeVal != null) {
+                    sqlT = String.valueOf(typeVal);
+                }
+                row.put('sqlType', sqlT);
                 orderedMeta.add(row);
             }
         }
@@ -175,39 +205,107 @@ public with sharing class DcQueryToTableController {
             colIndex++;
         }
 
-        List<Object> dataList = (List<Object>) root.get('data');
+        Object rawData = mapGetCi(root, new List<String>{ 'data', 'Data', 'rows', 'Rows' });
+        List<Object> dataList = rawData instanceof List<Object> ? (List<Object>) rawData : null;
+
         if (dataList == null) {
-            return out;
-        }
-
-        Integer r = 0;
-        for (Object rowObj : dataList) {
-            if (!(rowObj instanceof Map<String, Object>)) {
-                continue;
-            }
-            Map<String, Object> rowMap = (Map<String, Object>) rowObj;
-            List<Object> rowData = (List<Object>) rowMap.get('rowData');
-            Map<String, Object> lwcRow = new Map<String, Object>();
-            lwcRow.put('_rowUid', 'r' + String.valueOf(r));
-
-            if (rowData != null) {
-                for (Integer i = 0; i < rowData.size(); i++) {
-                    String fn = indexToField.get(i);
-                    if (fn == null) {
-                        fn = 'col_' + i;
+            appendWarning(
+                out,
+                'Could not read result rows from the Data Cloud response (unexpected JSON shape).'
+            );
+        } else if (orderedMeta.isEmpty() && !dataList.isEmpty()) {
+            List<Object> firstCells = extractRowDataList(dataList[0]);
+            if (firstCells != null) {
+                for (Integer i = 0; i < firstCells.size(); i++) {
+                    String fn = 'col_' + i;
+                    indexToField.put(i, fn);
+                    ColumnDef cd = new ColumnDef();
+                    cd.fieldName = fn;
+                    cd.label = 'Column ' + String.valueOf(i + 1);
+                    cd.type = 'text';
+                    cd.wrapText = defaultColumnWrap;
+                    if (defaultInitialWidth != null && defaultInitialWidth > 0) {
+                        cd.initialWidth = defaultInitialWidth;
                     }
-                    lwcRow.put(fn, rowData[i]);
+                    out.columns.add(cd);
                 }
             }
-            out.rows.add(lwcRow);
-            r++;
+            appendWarning(
+                out,
+                'Query returned rows but no column metadata; using generic column labels.'
+            );
+        }
+
+        if (dataList != null) {
+            Integer r = 0;
+            for (Object rowObj : dataList) {
+                List<Object> rowData = extractRowDataList(rowObj);
+                Map<String, Object> lwcRow = new Map<String, Object>();
+                lwcRow.put('_rowUid', 'r' + String.valueOf(r));
+
+                if (rowData != null) {
+                    for (Integer i = 0; i < rowData.size(); i++) {
+                        String fn = indexToField.get(i);
+                        if (fn == null) {
+                            fn = 'col_' + i;
+                        }
+                        lwcRow.put(fn, rowData[i]);
+                    }
+                }
+                out.rows.add(lwcRow);
+                r++;
+            }
+        }
+
+        if (out.rows.isEmpty() && out.rowCount != null && out.rowCount > 0) {
+            appendWarning(
+                out,
+                'API reported rowCount=' +
+                    out.rowCount +
+                    ' but no rows were parsed. Check Data Cloud permissions, dataspace, or query result shape.'
+            );
         }
 
         if (!String.isBlank(out.nextBatchId)) {
-            out.warning = 'More rows are available via nextBatchId; this component returns the first batch only.';
+            appendWarning(
+                out,
+                'More rows are available via nextBatchId; this component returns the first batch only.'
+            );
         }
 
         return out;
+    }
+
+    private static void appendWarning(TableQueryResult out, String msg) {
+        if (String.isBlank(msg)) {
+            return;
+        }
+        if (String.isBlank(out.warning)) {
+            out.warning = msg;
+        } else {
+            out.warning = out.warning + ' ' + msg;
+        }
+    }
+
+    private static List<Object> extractRowDataList(Object rowObj) {
+        if (rowObj == null) {
+            return null;
+        }
+        if (rowObj instanceof List<Object>) {
+            return (List<Object>) rowObj;
+        }
+        if (!(rowObj instanceof Map<String, Object>)) {
+            return null;
+        }
+        Map<String, Object> rowMap = (Map<String, Object>) rowObj;
+        Object cells = mapGetCi(
+            rowMap,
+            new List<String>{ 'rowData', 'RowData', 'row_data', 'values', 'Values', 'cells', 'Cells' }
+        );
+        if (cells instanceof List<Object>) {
+            return (List<Object>) cells;
+        }
+        return null;
     }
 
     private static List<Map<String, Object>> sortMetadataRows(List<Map<String, Object>> rows) {

@@ -48,6 +48,22 @@ Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. 
 
 ---
 
+## Troubleshooting: always empty or “no records”
+
+1. **Parser / UI (fixed in recent versions)** — Earlier builds read only camelCase JSON keys from `JSON.serialize(ConnectApi…)`, so **`metadata` / `data` / `rowData` were missed** when the platform emitted **PascalCase**. That produced **zero columns**, and the LWC hid the table entirely (it required both columns and rows). Current code uses **case-insensitive keys** and can **infer columns from the first row** if metadata is missing. Deploy the latest controller + LWC.
+
+2. **Real zero-row query** — Data Cloud objects may be empty in your dataspace, or filters may match nothing. Confirm in the **Data Cloud Query Editor** or `sf data360 query sql` with the **same SQL** and **same user context**.
+
+3. **Permissions** — The running user needs rights to execute Data Cloud SQL (your org’s **Data Cloud** / **Einstein** / **CDP query** permission sets). **`DcQueryToTableController`** must be allowed for that user’s profile or permission set.
+
+4. **Wrong object or quoting** — Use **Data Cloud SQL** table names (often `Something__dlm` / DMO names). Quote identifiers when case matters: `"ssot__Individual__dlm"`.
+
+5. **`LIMIT` / `OFFSET`** — If the query already had `LIMIT` not at the very end, the old logic could append a **second** `LIMIT` and break execution. Current logic treats any `LIMIT n` in the statement as sufficient.
+
+6. **Org shape** — `ConnectApi.CdpQuery` is intended for **Data Cloud–enabled** orgs. If you query **across orgs**, you need a **Named Credential** + HTTP Query API instead (not included in this package).
+
+---
+
 ## Project layout
 
 | Path | Role |

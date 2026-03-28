@@ -90,11 +90,11 @@ export default class DcQueryToTableLwc extends LightningElement {
                     })
                 );
             }
-            if (this.tableRows.length === 0) {
+            if (this.tableColumns.length > 0 && this.tableRows.length === 0) {
                 this.dispatchEvent(
                     new ShowToastEvent({
                         title: 'No rows',
-                        message: 'Query returned zero rows.',
+                        message: 'Query succeeded but returned no data rows.',
                         variant: 'info'
                     })
                 );
@@ -184,8 +184,9 @@ export default class DcQueryToTableLwc extends LightningElement {
         return 'Unknown error';
     }
 
-    get hasTable() {
-        return this.tableColumns.length > 0 && this.tableRows.length > 0;
+    /** Show grid when we have column definitions (empty row set still renders headers). */
+    get hasGrid() {
+        return this.tableColumns.length > 0;
     }
 
     get showRunButton() {

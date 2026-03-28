@@ -30,7 +30,7 @@
             <template if:true={errorMessage}>
                 <div class="slds-m-top_small slds-text-color_error" role="alert">{errorMessage}</div>
             </template>
-            <template if:true={hasTable}>
+            <template if:true={hasGrid}>
                 <div class={tableHeightClass}>
                     <lightning-datatable
                         key-field="_rowUid"
