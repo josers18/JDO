@@ -20,6 +20,10 @@
     min-height: 2rem;
 }
 
+.dcqt-shell__header--no-title {
+    justify-content: flex-end;
+}
+
 .dcqt-shell__title-group {
     display: flex;
     align-items: center;

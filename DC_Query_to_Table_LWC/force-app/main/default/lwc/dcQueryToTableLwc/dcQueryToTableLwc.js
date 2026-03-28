@@ -19,6 +19,9 @@ export default class DcQueryToTableLwc extends LightningElement {
     /** Title text color: #RGB, #RRGGBB, or #RRGGBBAA (no spaces). */
     @api titleColorHex = '#032d60';
 
+    /** App Builder default for showing the header icon + title; overridable via configuration panel. */
+    @api showTitle;
+
     /** When not false, shows the on-page “Table configuration” panel (checkboxes + numeric options). */
     @api showTableConfiguration;
 
@@ -51,6 +54,7 @@ export default class DcQueryToTableLwc extends LightningElement {
     @track cfgSuppressFooter = false;
     @track cfgMinColumnWidth = 120;
     @track cfgWrapMaxLines = 3;
+    @track cfgShowTitle = true;
 
     sortedBy;
     sortedDirection;
@@ -73,6 +77,13 @@ export default class DcQueryToTableLwc extends LightningElement {
         this.cfgMinColumnWidth = Number.isFinite(mw) && mw >= 20 ? mw : 120;
         const wl = Number(this.wrapTextMaxLines);
         this.cfgWrapMaxLines = Number.isFinite(wl) && wl >= 1 ? wl : 3;
+        this.cfgShowTitle = this.showTitle !== false;
+    }
+
+    get headerClassName() {
+        return this.cfgShowTitle === true
+            ? 'dcqt-shell__header'
+            : 'dcqt-shell__header dcqt-shell__header--no-title';
     }
 
     get showConfigPanel() {
@@ -242,6 +253,9 @@ export default class DcQueryToTableLwc extends LightningElement {
                 break;
             case 'suppressFooter':
                 this.cfgSuppressFooter = checked === true;
+                break;
+            case 'showTitle':
+                this.cfgShowTitle = checked === true;
                 break;
             default:
                 break;

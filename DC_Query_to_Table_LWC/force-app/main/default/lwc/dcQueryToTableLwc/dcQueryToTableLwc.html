@@ -1,15 +1,17 @@
 <template>
     <article class="dcqt-shell" style={shellStyleString}>
-        <div class="dcqt-shell__header">
-            <div class="dcqt-shell__title-group">
-                <lightning-icon
-                    icon-name={resolvedHeaderIconName}
-                    size="small"
-                    alternative-text=""
-                    class="dcqt-shell__icon"
-                ></lightning-icon>
-                <h2 class="dcqt-shell__title">{resolvedCardTitle}</h2>
-            </div>
+        <div class={headerClassName}>
+            <template if:true={cfgShowTitle}>
+                <div class="dcqt-shell__title-group">
+                    <lightning-icon
+                        icon-name={resolvedHeaderIconName}
+                        size="small"
+                        alternative-text=""
+                        class="dcqt-shell__icon"
+                    ></lightning-icon>
+                    <h2 class="dcqt-shell__title">{resolvedCardTitle}</h2>
+                </div>
+            </template>
             <template if:true={loading}>
                 <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
             </template>
@@ -29,6 +31,13 @@
                         patterns (via lightning-datatable).
                     </p>
                     <div class="dcqt-config__grid">
+                        <lightning-input
+                            type="checkbox"
+                            data-cfg="showTitle"
+                            label="Show title (icon and heading)"
+                            checked={cfgShowTitle}
+                            onchange={handleConfigCheckboxChange}
+                        ></lightning-input>
                         <lightning-input
                             type="checkbox"
                             data-cfg="selection"
