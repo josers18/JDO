@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>DC Query to Table</masterLabel>
+    <description>Runs Data Cloud ANSI SQL via ConnectApi.CdpQuery (same org) and renders results in lightning-datatable (read-only). Configure table density, row numbers, column width mode, wrap, and sorting in App Builder.</description>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="cardTitle" type="String" label="Card title" default="Data Cloud SQL" />
+            <property name="defaultSql" type="String" label="Default SQL" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10" />
+            <property name="maxRows" type="Integer" label="Max rows (auto LIMIT)" default="500" />
+            <property name="defaultColumnWrap" type="Boolean" label="Wrap text in columns" default="false" />
+            <property name="defaultColumnWidth" type="Integer" label="Default column width (px)"
+                description="Optional initial width for every column in the datatable (leave empty to use platform defaults)." />
+            <property name="hideCheckboxColumn" type="Boolean" label="Hide checkbox column" default="true" />
+            <property name="showRowNumberColumn" type="Boolean" label="Show row numbers" default="false" />
+            <property name="columnWidthsMode" type="String" label="Column widths mode" default="auto" />
+            <property name="minColumnWidth" type="Integer" label="Minimum column width (px)" default="120" />
+            <property name="resizeColumnDisabled" type="Boolean" label="Disable column resize" default="false" />
+            <property name="wrapTableHeader" type="Boolean" label="Wrap table header" default="false" />
+            <property name="wrapTextMaxLines" type="Integer" label="Wrap text max lines" default="3" />
+            <property name="suppressBottomBar" type="Boolean" label="Suppress bottom bar" default="false" />
+            <objects>
+                <object>Account</object>
+            </objects>
+        </targetConfig>
+        <targetConfig targets="lightning__AppPage,lightning__HomePage">
+            <property name="cardTitle" type="String" label="Card title" default="Data Cloud SQL"
+                description="Lightning card heading." />
+            <property name="defaultSql" type="String" label="Default SQL" default="SELECT * FROM &quot;ssot__Individual__dlm&quot; LIMIT 10"
+                description="Initial SQL in the editor. Use Data Cloud SQL; quote identifiers with double quotes when needed." />
+            <property name="maxRows" type="Integer" label="Max rows (auto LIMIT)" default="500"
+                description="When your SQL has no LIMIT, the server appends LIMIT up to this value (capped at 2000)." />
+            <property name="defaultColumnWrap" type="Boolean" label="Wrap text in columns" default="false"
+                description="Sets wrapText on each column definition for long cell values." />
+            <property name="defaultColumnWidth" type="Integer" label="Default column width (px)"
+                description="Optional initial width for every column in the datatable (leave empty to use platform defaults)." />
+            <property name="hideCheckboxColumn" type="Boolean" label="Hide checkbox column" default="true"
+                description="Base/read-only table: hides row selection checkboxes (lightning-datatable)." />
+            <property name="showRowNumberColumn" type="Boolean" label="Show row numbers" default="false"
+                description="Shows the row index column per SLDS data table patterns." />
+            <property name="columnWidthsMode" type="String" label="Column widths mode" default="auto"
+                description="lightning-datatable: auto or fixed." />
+            <property name="minColumnWidth" type="Integer" label="Minimum column width (px)" default="120"
+                description="Minimum width for resizable columns." />
+            <property name="resizeColumnDisabled" type="Boolean" label="Disable column resize" default="false" />
+            <property name="wrapTableHeader" type="Boolean" label="Wrap table header" default="false"
+                description="Wrap long column headers (SLDS / lightning-datatable)." />
+            <property name="wrapTextMaxLines" type="Integer" label="Wrap text max lines" default="3"
+                description="When wrapping, maximum lines per cell before truncation." />
+            <property name="suppressBottomBar" type="Boolean" label="Suppress bottom bar" default="false"
+                description="Hides the table footer bar when supported by lightning-datatable." />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

@@ -1,0 +1,48 @@
+<template>
+    <lightning-card title={cardTitle} icon-name="utility:table">
+        <div class="slds-p-horizontal_small slds-p-bottom_small">
+            <lightning-textarea
+                label="Data Cloud SQL"
+                value={sqlText}
+                onchange={handleSqlChange}
+                min-length="1"
+                class="dcqt-sql"
+            ></lightning-textarea>
+            <div class="slds-m-top_small slds-grid slds-grid_align-spread">
+                <lightning-button
+                    variant="brand"
+                    label="Run query"
+                    onclick={handleRun}
+                    disabled={loading}
+                ></lightning-button>
+                <template if:true={loading}>
+                    <lightning-spinner alternative-text="Running query" size="small"></lightning-spinner>
+                </template>
+            </div>
+            <template if:true={errorMessage}>
+                <div class="slds-m-top_small slds-text-color_error" role="alert">{errorMessage}</div>
+            </template>
+            <template if:true={hasTable}>
+                <div class={tableHeightClass}>
+                    <lightning-datatable
+                        key-field="_rowUid"
+                        data={tableRows}
+                        columns={tableColumns}
+                        hide-checkbox-column={hideCheckboxColumn}
+                        show-row-number-column={showRowNumberColumn}
+                        column-widths-mode={columnWidthsMode}
+                        min-column-width={minColumnWidth}
+                        resize-column-disabled={resizeColumnDisabled}
+                        wrap-table-header={wrapTableHeader}
+                        wrap-text-max-lines={wrapTextMaxLines}
+                        suppress-bottom-bar={suppressBottomBar}
+                        sorted-by={sortedBy}
+                        sorted-direction={sortedDirection}
+                        onsort={handleSort}
+                    >
+                    </lightning-datatable>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
