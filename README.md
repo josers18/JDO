@@ -1,14 +1,47 @@
 # JDO
 
-**JDO** stands for **Jose’s Demo Org**. This repository is the home for **assets tied to that org**: Salesforce DX projects, Lightning Web Components, Apex, sample flows, documentation, and other demos or tooling used with or built for JDO.
+**JDO** stands for **Jose’s Demo Org**. This repository holds **Salesforce DX projects**, Lightning Web Components, Apex, sample flows, and documentation used with or built for that org.
 
-If you clone this monorepo, each subfolder under **Projects** is usually a standalone DX project (`sfdx-project.json` at that path) you can deploy with the Salesforce CLI.
+Each subfolder that contains **`sfdx-project.json`** is a **standalone** package: clone the repo, `cd` into that folder, and run **`sf project deploy`** (see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)).
+
+---
+
+## Documentation hub
+
+| Resource | Description |
+|----------|-------------|
+| [docs/INDEX.md](docs/INDEX.md) | Central index of all guides |
+| [docs/COMPONENT_GUIDE.md](docs/COMPONENT_GUIDE.md) | **Component guide:** every exposed LWC, targets, links to property reference |
+| [docs/MONOREPO_OVERVIEW.md](docs/MONOREPO_OVERVIEW.md) | Repo layout, naming vs App Builder labels |
+| [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) | Deploy commands and post-deploy checklist |
+| [docs/MOBILE_AND_FORM_FACTORS.md](docs/MOBILE_AND_FORM_FACTORS.md) | Why **Home** does not appear on phone; app/record activation |
+| [docs/DIAGRAMS.md](docs/DIAGRAMS.md) | **Mermaid diagrams** (monorepo, Flow pattern, Data Cloud query, feedback) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | High-level architecture and links to per-project docs |
+| [docs/ARTIFACTS.md](docs/ARTIFACTS.md) | Index of per-project **`artifacts.md`** inventories |
+
+---
 
 ## Projects
 
 | Path | Description |
 |------|-------------|
-| [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | Salesforce DX project: **Prediction Model** LWC — Flow-driven prediction with **percent gauge** or **regression-style metric panel** (integer/decimal/currency), driver JSON lists, optional Einstein summary. Clone this repo and `cd DC_Prediction_Model_LWC` before `sf` / `npm`. Docs: [README](DC_Prediction_Model_LWC/README.md), [GIT](DC_Prediction_Model_LWC/docs/GIT.md), [UI layout](DC_Prediction_Model_LWC/docs/UI_LAYOUT.md). |
-| [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Work in progress:** copy of the Prediction Model DX project for **multiclass** scenarios. Same LWC/Apex API names as source until renamed — see [README](DC_Multiclass_Prediction_LWC/README.md). `cd DC_Multiclass_Prediction_LWC` for CLI from monorepo root. |
-| [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | Salesforce DX project: **DC AgentForce Output** LWC — autolaunched Flow-driven generative display (text / HTML / Markdown), copy, expand, print, optional **Models API** thumbs when the flow returns a **generation Id**. `cd DC_AgentForce_Output_LWC` before `sf project deploy`. Docs: [README](DC_AgentForce_Output_LWC/README.md), [artifacts](DC_AgentForce_Output_LWC/artifacts.md), [architecture](DC_AgentForce_Output_LWC/docs/ARCHITECTURE.md). |
-| [**DC_Query_to_Table_LWC**](DC_Query_to_Table_LWC/README.md) | Salesforce DX project: **DC Query to Table** LWC — Data Cloud ANSI SQL via **`ConnectApi.CdpQuery.queryAnsiSqlV2`**, results in read-only **`lightning-datatable`** (SLDS [data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) patterns). `cd DC_Query_to_Table_LWC` before `sf project deploy`. |
+| [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | **Prediction Model** LWC — Flow-driven prediction with **percent gauge** or **regression-style metric** (integer/decimal/currency), driver JSON, optional Einstein summary. [Artifacts](DC_Prediction_Model_LWC/artifacts.md) · [Architecture](DC_Prediction_Model_LWC/docs/ARCHITECTURE.md) |
+| [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass Prediction** — text class label, diverging contribution chart, optional summary. Distinct Apex/LWC names from Prediction Model. [Artifacts](DC_Multiclass_Prediction_LWC/artifacts.md) |
+| [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | **DC AgentForce Output** — autolaunched Flow-driven generative display (text / HTML / Markdown), copy, expand, print, optional Models API thumbs. [Artifacts](DC_AgentForce_Output_LWC/artifacts.md) · [Requirements](DC_AgentForce_Output_LWC/docs/REQUIREMENTS.md) |
+| [**DC_Query_to_Table_LWC**](DC_Query_to_Table_LWC/README.md) | **DC Query to Table** — Data Cloud ANSI SQL via **`ConnectApi.CdpQuery.queryAnsiSqlV2`**, **`lightning-datatable`**. [Artifacts](DC_Query_to_Table_LWC/artifacts.md) · [Component reference](DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md) |
+
+---
+
+## Quick clone and deploy (example)
+
+```bash
+git clone https://github.com/josers18/JDO.git
+cd JDO/DC_Query_to_Table_LWC
+sf project deploy start --source-dir force-app --target-org <your-alias>
+```
+
+---
+
+## License and contributions
+
+Content is provided as demo/educational source. Adjust licenses and contribution rules to match your team’s policy if you fork or republish.

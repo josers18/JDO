@@ -1,8 +1,23 @@
 # DC Query to Table LWC
 
-> **Purpose:** Salesforce DX package with **`dcQueryToTableLwc`** (**DC Query to Table** in App Builder): **Data Cloud ANSI SQL** is set **only in App Builder** (not on the page). The runtime UI is a **custom header** (**configurable SLDS icon** + **title** with **hex title color**) and a **`lightning-datatable`**; the query **runs automatically when the page loads** (no on-page SQL editor, checkbox, or Run button). Execution uses **`ConnectApi.CdpQuery.queryAnsiSqlV2`** (same org). Table options remain App Builder properties.
+> **Purpose:** Salesforce DX package with **`dcQueryToTableLwc`** (**DC Query to Table** in App Builder): **Data Cloud ANSI SQL** is set **only in App Builder** (not on the page). The runtime UI is a **custom header** (**configurable SLDS icon** + **title** with **hex title color**) and a **`lightning-datatable`**. By default the query **runs when the page loads**; if **Auto-run query on page load** is unchecked, a **Run query** button appears in the header. Execution uses **`ConnectApi.CdpQuery.queryAnsiSqlV2`** (same org). Table options remain App Builder properties.
 
 Visual and behavioral alignment with SLDS **data table** patterns is through the platform **`lightning-datatable`** base component, which implements the [Lightning Design System data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) guidance for tabular, scannable layouts.
+
+---
+
+## Documentation map
+
+| Document | Purpose |
+|----------|---------|
+| [artifacts.md](artifacts.md) | Deployable metadata inventory |
+| [docs/GIT.md](docs/GIT.md) | Monorepo path and naming |
+| [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Deploy, permissions, App Builder |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Sequence diagram (Mermaid) |
+| [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every App Builder property |
+| [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | Shell, header visibility, table wrapper |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Empty grid, SQL, permissions |
+| [../docs/MOBILE_AND_FORM_FACTORS.md](../docs/MOBILE_AND_FORM_FACTORS.md) | Home vs phone (repo-level) |
 
 ---
 

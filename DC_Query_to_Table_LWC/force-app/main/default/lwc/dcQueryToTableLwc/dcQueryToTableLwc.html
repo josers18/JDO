@@ -1,32 +1,34 @@
 <template>
-    <article class="dcqt-shell" style={shellStyleString}>
-        <div class={headerClassName}>
-            <template if:true={titleVisible}>
-                <div class="dcqt-shell__title-group">
-                    <lightning-icon
-                        icon-name={resolvedHeaderIconName}
-                        size="small"
-                        alternative-text=""
-                        class="dcqt-shell__icon"
-                    ></lightning-icon>
-                    <h2 class="dcqt-shell__title">{resolvedCardTitle}</h2>
+    <article class={shellClassName} style={shellStyleString}>
+        <template if:true={showHeaderRow}>
+            <div class={headerClassName}>
+                <template if:true={titleVisible}>
+                    <div class="dcqt-shell__title-group">
+                        <lightning-icon
+                            icon-name={resolvedHeaderIconName}
+                            size="small"
+                            alternative-text=""
+                            class="dcqt-shell__icon"
+                        ></lightning-icon>
+                        <h2 class="dcqt-shell__title">{resolvedCardTitle}</h2>
+                    </div>
+                </template>
+                <div class="dcqt-shell__header-actions">
+                    <template if:true={showRunButton}>
+                        <lightning-button
+                            variant="brand"
+                            label="Run query"
+                            title="Run the Data Cloud SQL from App Builder"
+                            onclick={handleRun}
+                            disabled={loading}
+                        ></lightning-button>
+                    </template>
+                    <template if:true={loading}>
+                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                    </template>
                 </div>
-            </template>
-            <div class="dcqt-shell__header-actions">
-                <template if:true={showRunButton}>
-                    <lightning-button
-                        variant="brand"
-                        label="Run query"
-                        title="Run the Data Cloud SQL from App Builder"
-                        onclick={handleRun}
-                        disabled={loading}
-                    ></lightning-button>
-                </template>
-                <template if:true={loading}>
-                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
-                </template>
             </div>
-        </div>
+        </template>
 
         <div class="dcqt-shell__body">
             <template if:true={errorMessage}>

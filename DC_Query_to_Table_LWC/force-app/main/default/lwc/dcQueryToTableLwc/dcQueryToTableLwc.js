@@ -62,6 +62,22 @@ export default class DcQueryToTableLwc extends LightningElement {
         return this.showTitle !== false;
     }
 
+    /** Header row only if title, Run button, or loading spinner is needed. */
+    get showHeaderRow() {
+        return this.titleVisible || this.showRunButton || this.loading === true;
+    }
+
+    get shellClassName() {
+        let c = 'dcqt-shell';
+        if (!this.titleVisible) {
+            c += ' dcqt-shell--no-title';
+        }
+        if (!this.showHeaderRow) {
+            c += ' dcqt-shell--no-header-row';
+        }
+        return c;
+    }
+
     get headerClassName() {
         return this.titleVisible
             ? 'dcqt-shell__header'

@@ -11,6 +11,17 @@
     --dcqt-title-color: #032d60;
 }
 
+/* Tighter chrome when App Builder hides icon + title */
+.dcqt-shell--no-title {
+    padding-top: 0.5rem;
+    padding-bottom: 0.75rem;
+}
+
+/* No header row (auto-run, not loading): pull table up — no empty header min-height */
+.dcqt-shell--no-header-row {
+    padding-top: 0.25rem;
+}
+
 .dcqt-shell__header {
     display: flex;
     align-items: center;
@@ -22,6 +33,8 @@
 
 .dcqt-shell__header--no-title {
     justify-content: flex-end;
+    margin-bottom: 0.5rem;
+    min-height: 0;
 }
 
 .dcqt-shell__header-actions {

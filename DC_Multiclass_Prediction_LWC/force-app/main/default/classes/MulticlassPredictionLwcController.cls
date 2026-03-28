@@ -43,6 +43,7 @@ public with sharing class MulticlassPredictionLwcController {
         } else {
             result.predictionLabel = String.valueOf(pred).trim();
         }
+        result.predictionLabel = LlmOutputSanitizer.stripClosingCourtesy(result.predictionLabel);
 
         result.recommendationsJson = flowOutputToJsonString(resolveFlowOutput(interview, recVar));
 
@@ -133,7 +134,7 @@ public with sharing class MulticlassPredictionLwcController {
 
             if (output != null && output.generations != null && !output.generations.isEmpty()) {
                 ConnectApi.EinsteinLLMGenerationItemOutput first = output.generations[0];
-                return first.text;
+                return LlmOutputSanitizer.stripClosingCourtesy(first.text);
             }
             return null;
         } catch (Exception e) {
