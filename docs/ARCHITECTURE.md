@@ -2,7 +2,7 @@
 
 ## Purpose
 
-JDO groups **demo-grade Salesforce packages** used with a single demo org: prediction UIs, generative output display, Data Cloud SQL tables, and an SLDS-style **carousel** for grouping LWCs. Each package is deployable on its own.
+JDO groups **demo-grade Salesforce packages** used with a single demo org: prediction UIs, generative output display, and Data Cloud SQL tables. Each package is deployable on its own.
 
 ## Technical themes
 
@@ -13,7 +13,6 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
 | **Data Cloud in-org query** | DC Query to Table (`ConnectApi.CdpQuery.queryAnsiSqlV2`) |
 | **Rich text / Markdown** | AgentForce Output (static **marked** + `lightning-formatted-rich-text`) |
 | **Tabular SLDS data table** | DC Query to Table (`lightning-datatable`) |
-| **Carousel / composition** | DC Carousel (`dcCarouselLwc`, default slot + JSON fallback) |
 
 ## Documentation map
 
@@ -23,7 +22,6 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
   - [DC_Multiclass_Prediction_LWC/docs/ARCHITECTURE.md](../DC_Multiclass_Prediction_LWC/docs/ARCHITECTURE.md)
   - [DC_AgentForce_Output_LWC/docs/ARCHITECTURE.md](../DC_AgentForce_Output_LWC/docs/ARCHITECTURE.md)
   - [DC_Query_to_Table_LWC/docs/ARCHITECTURE.md](../DC_Query_to_Table_LWC/docs/ARCHITECTURE.md)
-  - [DC_Carousel_LWC/docs/COMPOSITION.md](../DC_Carousel_LWC/docs/COMPOSITION.md)
 
 ## Security posture (high level)
 

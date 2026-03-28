@@ -10,8 +10,6 @@ Quick reference for **exposed** Lightning Web Components: where they run, what d
 | Multiclass Prediction | `c/multiclassPredictionLwc` | App, Home, Record | Autolaunched Flow + optional Prompt template | [DC_Multiclass_Prediction_LWC/docs/COMPONENT_REFERENCE.md](../DC_Multiclass_Prediction_LWC/docs/COMPONENT_REFERENCE.md) |
 | DC AgentForce Output | `c/dcAgentforceOutputLwc` | App, Home, Record | Autolaunched Flow (text / HTML / Markdown) | [DC_AgentForce_Output_LWC/docs/COMPONENT_REFERENCE.md](../DC_AgentForce_Output_LWC/docs/COMPONENT_REFERENCE.md) |
 | DC Query to Table | `c/dcQueryToTableLwc` | App, Home, Record (Account in meta) | Data Cloud SQL via Apex `ConnectApi.CdpQuery` | [DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md](../DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md) |
-| DC Carousel | `c/dcCarouselLwc` | App, Home, Record (Account in meta) | Nested LWCs via **slot** (when supported) or **slidesJson** fallback | [DC_Carousel_LWC/docs/COMPOSITION.md](../DC_Carousel_LWC/docs/COMPOSITION.md) |
-
 ## Non-exposed building blocks
 
 These are **not** placed directly on Lightning pages from the component palette:
@@ -25,7 +23,7 @@ These are **not** placed directly on Lightning pages from the component palette:
 
 `js-meta.xml` lists allowed objects for **record** targets. Today:
 
-- **Prediction Model**, **Multiclass**, **Query to Table**, **DC Carousel:** `Account` is listed as an example for record pages. Add more `<object>` entries and redeploy to support other objects.
+- **Prediction Model**, **Multiclass**, **Query to Table:** `Account` is listed as an example for record pages. Add more `<object>` entries and redeploy to support other objects.
 
 See each project’s `docs/GIT.md` for metadata naming notes.
 

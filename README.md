@@ -20,7 +20,7 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 
 <br/>
 
-**Monorepo** · **Five DX packages** · **LWCs + Apex + docs**
+**Monorepo** · **Four DX packages** · **LWCs + Apex + docs**
 
 </div>
 
@@ -49,7 +49,6 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 | [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass Prediction** — text class label, diverging contribution chart, optional summary. Distinct Apex/LWC names from Prediction Model. [Artifacts](DC_Multiclass_Prediction_LWC/artifacts.md) |
 | [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | **DC AgentForce Output** — autolaunched Flow-driven generative display (text / HTML / Markdown), copy, expand, print, optional Models API thumbs. [Artifacts](DC_AgentForce_Output_LWC/artifacts.md) · [Requirements](DC_AgentForce_Output_LWC/docs/REQUIREMENTS.md) |
 | [**DC_Query_to_Table_LWC**](DC_Query_to_Table_LWC/README.md) | **DC Query to Table** — Data Cloud ANSI SQL via **`ConnectApi.CdpQuery.queryAnsiSqlV2`**, **`lightning-datatable`**. [Artifacts](DC_Query_to_Table_LWC/artifacts.md) · [Component reference](DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md) |
-| [**DC_Carousel_LWC**](DC_Carousel_LWC/README.md) | **DC Carousel** — SLDS-style carousel with a **slot** for nested LWCs (or **JSON** slide fallback). [Artifacts](DC_Carousel_LWC/artifacts.md) · [Composition](DC_Carousel_LWC/docs/COMPOSITION.md) |
 
 ---
 

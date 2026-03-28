@@ -11,13 +11,11 @@ flowchart TB
         M[DC_Multiclass_Prediction_LWC]
         A[DC_AgentForce_Output_LWC]
         Q[DC_Query_to_Table_LWC]
-        C[DC_Carousel_LWC]
     end
     P --> |Flow + optional Prompt| SF[(Salesforce org)]
     M --> |Flow + optional Prompt| SF
     A --> |Autolaunched Flow| SF
     Q --> |ConnectApi.CdpQuery| SF
-    C --> |Slot / JSON slides| SF
 ```
 
 ## Naming vs App Builder labels
@@ -28,8 +26,6 @@ flowchart TB
 | `multiclassPredictionLwc` | Multiclass Prediction |
 | `dcAgentforceOutputLwc` | DC AgentForce Output |
 | `dcQueryToTableLwc` | DC Query to Table |
-| `dcCarouselLwc` | DC Carousel |
-
 Historical Apex class names (e.g. `ClassificationModelLwcController`) are kept for stable upgrades in orgs that already deployed earlier versions.
 
 ## Clone and work on one project
@@ -46,5 +42,5 @@ Repeat with a different subdirectory for other packages.
 ## Coexistence in one org
 
 - **Prediction Model** and **Multiclass Prediction** use **different** Apex classes and LWC bundle names; both can deploy to the same org.
-- **AgentForce Output**, **Query to Table**, and **DC Carousel** are independent packages as well.
+- **AgentForce Output** and **Query to Table** are independent packages as well.
 - Watch for overlapping **permission sets** or **flow API names** only if you name new org metadata identically to samples shipped in-repo.
