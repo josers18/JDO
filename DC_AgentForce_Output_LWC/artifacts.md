@@ -33,6 +33,14 @@ Source of truth: `force-app/main/default/`. This file lists deployable artifacts
 
 ---
 
+## Permission set
+
+| Artifact | File | Role |
+|----------|------|------|
+| **DC AgentForce Output User** | `permissionsets/DC_AgentForce_Output_User.permissionset-meta.xml` | Apex access: `DcAgentforceOutputController`, `LlmOutputSanitizer`. Assign to users who use the DC AgentForce Output component. |
+
+---
+
 ## Lightning Web Components
 
 | Bundle | Exposed | Role |

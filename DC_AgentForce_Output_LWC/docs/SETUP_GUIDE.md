@@ -28,10 +28,22 @@ Verify:
 - LWCs **dcAgentforceOutputLwc**, **dcAgentforceOutputModal**, **dcAgentforceCopyModal**.
 - Static resource **marked**.
 - Sample flow **DC_Agentforce_Output_Prompt** (optional; replace with your production flow).
+- Permission set **DC AgentForce Output User** (`DC_AgentForce_Output_User`) for Apex class access.
 
 ---
 
-## 3. Build or update the autolaunched flow
+## 3. Grant Apex access (standard users)
+
+Users who open pages with **DC AgentForce Output** need access to **`DcAgentforceOutputController`** and **`LlmOutputSanitizer`** (the controller calls the sanitizer).
+
+1. Deploy this project (includes permission set **DC AgentForce Output User**).
+2. **Setup → Permission Sets → DC AgentForce Output User → Manage Assignments** and add users or groups.
+
+Without this, users may see errors such as *You do not have access to the Apex class named 'DcAgentforceOutputController'*.
+
+---
+
+## 4. Build or update the autolaunched flow
 
 1. Open **Setup → Flows**.
 2. Create or edit an **Autolaunched** flow (no screens).
@@ -45,7 +57,7 @@ See [FLOW_GUIDE.md](FLOW_GUIDE.md) for the full contract.
 
 ---
 
-## 4. Add the component to a Lightning page
+## 5. Add the component to a Lightning page
 
 1. **Setup → Lightning App Builder** (or edit a page from the record).
 2. Drag **DC AgentForce Output** onto the layout.
@@ -65,13 +77,13 @@ See [FLOW_GUIDE.md](FLOW_GUIDE.md) for the full contract.
 
 ---
 
-## 5. Record page object coverage
+## 6. Record page object coverage
 
 `dcAgentforceOutputLwc.js-meta.xml` lists **Account** under record page objects. To use **Contact**, **Opportunity**, etc., add `<object>Contact</object>` (etc.) to `targetConfigs` for `lightning__RecordPage` and redeploy.
 
 ---
 
-## 6. Smoke test
+## 7. Smoke test
 
 1. Open a record page with the component.
 2. Click **Run** (or wait for auto-run).

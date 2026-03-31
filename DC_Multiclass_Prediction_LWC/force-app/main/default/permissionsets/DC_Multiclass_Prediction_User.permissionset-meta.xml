@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>LlmOutputSanitizer</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>MulticlassPredictionLwcController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Allows standard users to run the Multiclass Prediction Lightning component. Includes MulticlassPredictionLwcController and LlmOutputSanitizer (called by the controller). Also assign Run Flow and object access for your autolaunched flow.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>DC Multiclass Prediction User</label>
+</PermissionSet>

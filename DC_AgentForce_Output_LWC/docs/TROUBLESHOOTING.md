@@ -4,6 +4,12 @@ Common issues when using **DC AgentForce Output**.
 
 ---
 
+## Error: no access to Apex class (`DcAgentforceOutputController` or `LlmOutputSanitizer`)
+
+Assign permission set **DC AgentForce Output User** (`DC_AgentForce_Output_User`) or enable both classes on the user’s **profile** (**Apex Class Access**). See [SETUP_GUIDE.md](SETUP_GUIDE.md).
+
+---
+
 ## Flow does not run / “Flow not found”
 
 - Confirm the flow **API name** in App Builder matches an **active** autolaunched flow.

@@ -4,7 +4,7 @@
         <apexClass>ClassificationModelLwcController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>Allows users to run the Prediction Model Lightning component (ClassificationModelLwcController). Also assign Run Flow and data access for your autolaunched prediction flow.</description>
+    <description>Allows standard users to run the Prediction Model Lightning component (ClassificationModelLwcController). Also assign Run Flow and data access for your autolaunched prediction flow.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>DC Prediction Model User</label>
 </PermissionSet>

@@ -14,8 +14,18 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 |----------|---------|------|
 | **MulticlassPredictionLwcController** | `classes/MulticlassPredictionLwcController.cls` (+ `-meta.xml`) | `runPredictionFlow`: starts an autolaunched `Flow.Interview` with a configurable record Id input; reads **text** `prediction` (String or coerced) and **recommendations** (serialized to JSON string). No factors. `generateAnalysisSummary`: builds JSON (`prediction`, `predictionType`: `multiclass_label`, `recommendations` only) and calls `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`. |
 | **MulticlassPredictionLwcControllerTest** | `classes/MulticlassPredictionLwcControllerTest.cls` (+ `-meta.xml`) | Minimal tests: null prompt returns null; missing/invalid flow throws. |
+| **LlmOutputSanitizer** | `classes/LlmOutputSanitizer.cls` (+ `-meta.xml`) | Used by the controller to trim boilerplate from model strings. |
+| **LlmOutputSanitizerTest** | `classes/LlmOutputSanitizerTest.cls` (+ `-meta.xml`) | Unit tests for sanitizer. |
 
 **Sharing:** `with sharing` — respects sharing of the running user when combined with flow and object security.
+
+---
+
+## Permission set
+
+| Artifact | File | Role |
+|----------|------|------|
+| **DC Multiclass Prediction User** | `permissionsets/DC_Multiclass_Prediction_User.permissionset-meta.xml` | Apex access: `MulticlassPredictionLwcController`, `LlmOutputSanitizer`. Assign to users who use the Multiclass Prediction component. |
 
 ---
 

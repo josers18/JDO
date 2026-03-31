@@ -62,11 +62,15 @@ sf project deploy start --source-dir force-app --target-org my-org
 
 Add **DC AgentForce Output** to a **record**, **app**, or **home** page in Lightning App Builder. Set **Autolaunched Flow API name** and align **Flow input/output** variable names with your flow (see [FLOW_GUIDE.md](docs/FLOW_GUIDE.md)).
 
+Assign permission set **DC AgentForce Output User** (`DC_AgentForce_Output_User`) to anyone who should load the component so they have Apex access to **`DcAgentforceOutputController`** and **`LlmOutputSanitizer`**. Details: [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
+
 ---
 
 ## Prerequisites
 
 Summarized in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): Salesforce org with Flow, LWC deployment, and (for thumbs) **Einstein / Models API** where `aiplatform.ModelsAPI` is available.
+
+**Standard users** also need the **DC AgentForce Output User** permission set (or equivalent **Apex Class Access** on their profile) for the controller and sanitizer classes.
 
 ---
 

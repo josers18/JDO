@@ -33,6 +33,14 @@ Source of truth: `force-app/main/default/`.
 
 ---
 
+## Permission set
+
+| Artifact | File | Role |
+|----------|------|------|
+| **DC Query to Table User** | `permissionsets/DC_Query_to_Table_User.permissionset-meta.xml` | Apex access: `DcQueryToTableController`. Assign to users who use the component; Data Cloud permissions are separate. |
+
+---
+
 ## Lightning Web Component
 
 | File | Role |

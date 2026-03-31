@@ -27,7 +27,11 @@ These are **not** placed directly on Lightning pages from the component palette:
 
 See each project’s `docs/GIT.md` for metadata naming notes.
 
+## Apex access for standard users
+
+Each package includes a **permission set** so users are not blocked by missing Apex class access. Assign the sets that match deployed components: see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (section **After deploy**).
+
 ## Related reading
 
 - [MOBILE_AND_FORM_FACTORS.md](MOBILE_AND_FORM_FACTORS.md) — Home vs phone, activation.
-- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) — Deploy commands.
+- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) — Deploy commands and permission set table.

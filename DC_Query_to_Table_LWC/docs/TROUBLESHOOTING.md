@@ -1,5 +1,11 @@
 # Troubleshooting — DC Query to Table
 
+## Error: no access to Apex class `DcQueryToTableController`
+
+Assign permission set **DC Query to Table User** (`DC_Query_to_Table_User`) or enable the class on the user’s **profile**. Data Cloud query permissions are still required separately.
+
+---
+
 ## Table never appears or always empty
 
 1. **Parser / key casing (fixed in current source)**  
@@ -9,7 +15,7 @@
    Confirm the query in **Data Cloud Query Editor** (or equivalent) with the **same user** and dataspace.
 
 3. **Permissions**  
-   Running user needs Data Cloud SQL execution rights and **`DcQueryToTableController`** Apex access.
+   Running user needs Data Cloud SQL execution rights and **`DcQueryToTableController`** Apex access (use **DC Query to Table User** permission set or profile).
 
 4. **Wrong table or quoting**  
    Use Data Cloud object names (e.g. `__dlm`). Quote mixed-case identifiers.

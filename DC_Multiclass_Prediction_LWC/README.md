@@ -65,6 +65,7 @@ See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) and [docs/ARCHITECTURE.md](docs/ARCHI
 | Requirement | Notes |
 |-------------|--------|
 | Salesforce org with API access | Deploy with Salesforce CLI v2 (`sf`). |
+| **Apex class access** | Users need **`MulticlassPredictionLwcController`** and **`LlmOutputSanitizer`** (permission set **DC Multiclass Prediction User** in this package, or profile Apex access). |
 | **Autolaunched Flow** | Must output **text** `prediction` and `recommendations` (see [FLOW_GUIDE.md](docs/FLOW_GUIDE.md)). |
 | **Einstein Generative AI** (optional) | Needed only for the AI summary. |
 | **Prompt template** (optional) | Flex text input API name must match the LWC (see [PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md)). |
@@ -103,6 +104,7 @@ Sandboxes that allow it may use `--test-level NoTestRun` (depends on org policy)
 
 ### 3. Assign permissions
 
+- **Apex:** Assign permission set **DC Multiclass Prediction User** (`DC_Multiclass_Prediction_User`) so users can execute **`MulticlassPredictionLwcController`** and **`LlmOutputSanitizer`**. Without it, standard users may see “no access to the Apex class” errors.
 - Users need **Run Flow** access for your autolaunched flow (via profile or permission set).
 - Users need permission to the **objects** the flow and prediction logic use.
 - For **AI summary**: grant access to the prompt template and Einstein features per [Salesforce documentation](https://help.salesforce.com/) for your edition.

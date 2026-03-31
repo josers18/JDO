@@ -4,6 +4,12 @@ Quick reference for **Multiclass Prediction** (`multiclassPredictionLwc`) and **
 
 ---
 
+## Error: no access to Apex class (`MulticlassPredictionLwcController` or `LlmOutputSanitizer`)
+
+Assign permission set **DC Multiclass Prediction User** (`DC_Multiclass_Prediction_User`) or enable both classes on the user’s **profile** under **Apex Class Access**.
+
+---
+
 ## Widget is empty / never loads
 
 | Cause | Fix |

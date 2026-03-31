@@ -56,7 +56,7 @@ If the UI runs in an org **without** in-process `CdpQuery`, use a **Named Creden
 
 ## Security
 
-Arbitrary SQL configured in App Builder is **powerful**. Only grant **`DcQueryToTableController`** to **trusted** admins or analysts. The Apex layer blocks obvious **DML/DDL** tokens but this is **not** a substitute for org policy, permission sets, and Data Cloud’s own access controls.
+Arbitrary SQL configured in App Builder is **powerful**. Use permission set **DC Query to Table User** (or profile Apex access) only for users who are allowed to **run** the configured queries; tighten **who can edit** the Lightning page. The Apex layer blocks obvious **DML/DDL** tokens but this is **not** a substitute for org policy, Data Cloud permissions, and dataspace access for the running user.
 
 ---
 
@@ -68,6 +68,8 @@ sf project deploy start --source-dir force-app --target-org <alias>
 ```
 
 Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. Set **Card title**, **Header icon name**, **Title color (hex)**, **Data Cloud SQL query**, **max rows**, and table options in App Builder.
+
+Assign permission set **DC Query to Table User** to **standard users** who should load the component (Apex class **`DcQueryToTableController`**). They still need **Data Cloud query** rights for your org.
 
 ---
 

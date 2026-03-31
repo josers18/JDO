@@ -15,7 +15,7 @@ sf project deploy start --source-dir force-app --target-org <alias> --wait 10
 
 ## 3. Apex access
 
-Assign **`DcQueryToTableController`** to profiles or permission sets used by anyone who should run the component. Without class access, the LWC call fails.
+Deploy includes permission set **DC Query to Table User** (`DC_Query_to_Table_User`), which grants **`DcQueryToTableController`**. Assign it to **standard users** who should see the table (or enable the same class under **Profile → Apex Class Access**). Without class access, users see *You do not have access to the Apex class* errors.
 
 ## 4. Add to a Lightning page
 
