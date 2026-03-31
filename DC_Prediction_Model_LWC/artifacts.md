@@ -19,6 +19,14 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 
 ---
 
+## Permission set
+
+| Artifact | File | Role |
+|----------|------|------|
+| **DC Prediction Model User** | `permissionsets/DC_Prediction_Model_User.permissionset-meta.xml` | Grants **Apex class access** to `ClassificationModelLwcController` for users who use the Prediction Model component. Assign after deploy; does not replace Flow or object permissions. |
+
+---
+
 ## Lightning Web Component bundle
 
 | File | Role |

@@ -4,6 +4,19 @@ Quick reference for **Prediction Model** (`classificationModelLwc`) and **`Class
 
 ---
 
+## Error: You do not have access to the Apex class named 'ClassificationModelLwcController'
+
+The Lightning page calls Apex from `ClassificationModelLwcController`. Salesforce blocks that call unless the **running user** has **Apex class access**.
+
+| Fix | Steps |
+|-----|--------|
+| **Permission set (recommended)** | Deploy this project (includes **`DC_Prediction_Model_User`** — label **DC Prediction Model User**). In Setup → **Permission Sets** → open it → **Manage Assignments** → add users (or assign via **Permission Set Groups**). |
+| **Profile** | Setup → **Profiles** → *profile* → **Apex Class Access** → enable **`ClassificationModelLwcController`** → Save. |
+
+Still assign **Run Flow** and **object/field** access for your prediction flow separately; this permission set only covers the controller class.
+
+---
+
 ## Widget is empty / never loads
 
 | Cause | Fix |

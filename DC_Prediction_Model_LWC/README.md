@@ -65,6 +65,7 @@ See [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) for how the main prediction area is s
 | Requirement | Notes |
 |-------------|--------|
 | Salesforce org with API access | Deploy with Salesforce CLI v2 (`sf`). |
+| **Apex class access** | Every viewer needs **`ClassificationModelLwcController`** enabled (use permission set **DC Prediction Model User** from this package or profile Apex Class Access). See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) if users see “no access” errors. |
 | **Autolaunched Flow** | Must expose the outputs this component reads (see [FLOW_GUIDE.md](docs/FLOW_GUIDE.md)). |
 | **Einstein Generative AI** (optional) | Needed only for the AI summary card. Enable and license per your org’s product docs. |
 | **Prompt template** (optional) | Created in Prompt Builder; must include a flex text input whose API name matches the LWC property (see [PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md)). |
@@ -103,6 +104,7 @@ Sandboxes that allow it may use `--test-level NoTestRun` (depends on org policy)
 
 ### 3. Assign permissions
 
+- **Apex:** Every user who opens a page with **Prediction Model** needs access to **`ClassificationModelLwcController`**. This repo includes permission set **DC Prediction Model User** (`DC_Prediction_Model_User`) with that class enabled—assign it (or add the same **Apex Class Access** on profiles). Without it, users see: *You do not have access to the Apex class named 'ClassificationModelLwcController'.*
 - Users need **Run Flow** access for your autolaunched flow (via profile or permission set).
 - Users need permission to the **objects** the flow and prediction logic use.
 - For **AI summary**: grant access to the prompt template and Einstein features per [Salesforce documentation](https://help.salesforce.com/) for your edition.
