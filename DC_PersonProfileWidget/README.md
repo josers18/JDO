@@ -50,7 +50,7 @@ cd DC_PersonProfileWidget
 sf project deploy start --source-dir force-app --target-org <your-alias>
 ```
 
-After deploy, complete **[docs/SETUP.md](docs/SETUP.md)** (Named Credential **`DataCloud`**, Apex access, optional Flow and prompt template).
+After deploy, complete **[docs/SETUP.md](docs/SETUP.md)** (Named Credential **`DataCloud`**, assign permission sets **`Customer_Profile_Widget_User`** + **`Customer_Profile_Widget_DC_Callout`**, optional Flow and prompt template).
 
 ---
 
