@@ -2,6 +2,15 @@
 
 Inventory of versioned metadata under `force-app/main/default/`. No static resources, sample Flows, or permission sets are bundled; configure those in the org per [docs/SETUP.md](docs/SETUP.md).
 
+## External Credential & Named Credential (optional in repo)
+
+| Path | Notes |
+|------|--------|
+| `externalCredentials/D360.externalCredential-meta.xml` | **OAuth token URL** (`AuthProviderUrl`) must match the org My Domain (`…/services/oauth2/token`). Values in Git target the **finsdc3.demo** instance; retrieve and edit for other orgs. |
+| `namedCredentials/DataCloud.namedCredential-meta.xml` | **Callout base URL** must match the org you query for Data Graph. |
+
+These files were retrieved from a configured org for repeatability; **client secrets stay in the org** and are not in metadata.
+
 ## Permission sets (`permissionsets/`)
 
 | API name | Purpose |

@@ -12,6 +12,7 @@
 
 | Symptom | Cause | Fix |
 |---------|--------|-----|
+| `invalid_grant` / `request not supported on this domain` (OAuth token) | Token URL uses **`login.salesforce.com`** instead of **My Domain** | Set External Credential **D360** token URL to `https://<instanceUrl-host>/services/oauth2/token`; re-auth principal. See [SETUP.md §2a](SETUP.md). |
 | Toast: Data Graph / Named Credential | NC missing, wrong URL, or auth failure | Create **`DataCloud`** NC; test callout with a simple GET. |
 | HTTP 404 on graph path | API version or resource path changed | Compare with current **SSOT Data Graph** REST docs; update path in `fetchDataGraphRecord`. |
 | Empty graph fields but no error | Wrong **graph API name** or paths | Verify name; adjust **Path: …** properties to match JSON (use dot paths). |

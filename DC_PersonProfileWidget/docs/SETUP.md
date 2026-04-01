@@ -10,6 +10,17 @@ Follow these steps after deploying `force-app` to your org.
 - If you use **Insight summary**: **Einstein Generative AI** and a **Prompt template** with a text input whose API name matches the component (default `Input:Prediction_Context`).
 - If you use **Flow**: an **autolaunched** Flow that accepts the record Id and outputs prediction text plus recommendations (JSON string or serializable collection).
 
+## 2a. OAuth token URL on External Credential (avoid `invalid_grant`)
+
+If callouts fail with **`Unable to fetch the OAuth token`** / **`invalid_grant`** / **`request not supported on this domain`**, the External Credential’s **token endpoint** is almost certainly wrong.
+
+- Do **not** use `https://login.salesforce.com/services/oauth2/token` for many My Domain / demo orgs.
+- Set the token URL to **`https://<your-My-Domain-host>/services/oauth2/token`** — same host as **Setup → My Domain** or **`sf org display` → `instanceUrl`** for the org where the **Connected App** lives.
+
+In metadata, this is **`AuthProviderUrl`** on **External Credential** `D360` (see `force-app/main/default/externalCredentials/D360.externalCredential-meta.xml`). The committed file uses the **Cumulus Financial Services** demo host; **replace it** when you deploy to another org (retrieve your org’s `D360`, edit, redeploy).
+
+After changing the token URL, open **External Credential D360** in Setup and **re-authenticate** the **Named Principal** if the UI prompts you, then reload the record page.
+
 ## 2. Named Credential `DataCloud`
 
 The Apex controller calls:
