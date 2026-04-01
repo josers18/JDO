@@ -55,8 +55,10 @@ Adjust `--test-level` per your pipeline.
 | DC_Multiclass_Prediction_LWC | **DC Multiclass Prediction User** (`DC_Multiclass_Prediction_User`) | `MulticlassPredictionLwcController`, `LlmOutputSanitizer` |
 | DC_AgentForce_Output_LWC | **DC AgentForce Output User** (`DC_AgentForce_Output_User`) | `DcAgentforceOutputController`, `LlmOutputSanitizer` |
 | DC_Query_to_Table_LWC | **DC Query to Table User** (`DC_Query_to_Table_User`) | `DcQueryToTableController` |
+| DC_PersonProfileWidget | **Customer Profile Widget User** (`Customer_Profile_Widget_User`) | `CustomerProfileWidgetController` |
+| DC_PersonProfileWidget | **Customer Profile Widget DataCloud Callout** (`Customer_Profile_Widget_DC_Callout`) | External Credential principal `D360-DataCloud_Integration` |
 
-**DC_PersonProfileWidget** does not include a bundled permission set. Grant users **Apex Class Access** to `CustomerProfileWidgetController` (custom permission set or profile). Post-deploy setup: [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
+Assign **both** Person Profile sets when using Data Graph callouts; see [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
 
 **Setup → Permission Sets →** (open set) **→ Manage Assignments** for users or permission set groups. You still need **Run Flow**, **object/field** access, **Data Cloud** query rights, and **Einstein** features per component—see each project’s `docs/SETUP_GUIDE.md` or `docs/REQUIREMENTS.md`.
 

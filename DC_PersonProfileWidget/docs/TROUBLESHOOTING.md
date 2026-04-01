@@ -42,7 +42,9 @@
 
 | Symptom | Cause | Fix |
 |---------|--------|-----|
-| Insufficient privileges | No Apex class access | Permission set with `CustomerProfileWidgetController`; see [SETUP.md](SETUP.md). |
+| “Couldn’t access the credential(s)” / external credential **D360** | Running user lacks **External Credential Principal** access | Assign **`Customer_Profile_Widget_DC_Callout`** (or add **D360** / **DataCloud_Integration** principal to your perm set). |
+| Insufficient privileges (Apex) | No class access | Assign **`Customer_Profile_Widget_User`**. |
+| Principal deploy fails (`invalid cross reference`) | Org has no External Credential **D360** or different principal name | Deploy only **Customer_Profile_Widget_User**, or edit `Customer_Profile_Widget_DC_Callout.permissionset-meta.xml` to match your EC API name and principal parameter. |
 
 ## UI
 

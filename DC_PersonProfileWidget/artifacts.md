@@ -2,6 +2,13 @@
 
 Inventory of versioned metadata under `force-app/main/default/`. No static resources, sample Flows, or permission sets are bundled; configure those in the org per [docs/SETUP.md](docs/SETUP.md).
 
+## Permission sets (`permissionsets/`)
+
+| API name | Purpose |
+|----------|---------|
+| `Customer_Profile_Widget_User` | Apex: `CustomerProfileWidgetController`. |
+| `Customer_Profile_Widget_DC_Callout` | External Credential principal `D360-DataCloud_Integration` for Named Credential callouts. |
+
 ## Apex (`classes/`)
 
 | API name | Purpose |
@@ -31,7 +38,7 @@ Inventory of versioned metadata under `force-app/main/default/`. No static resou
 ## Not in source (org-specific)
 
 - **Named Credential** `DataCloud` (Data Cloud or CRM API base URL + auth).
-- **Permission Set** or profile **Apex class access** for `CustomerProfileWidgetController`.
+- Adjust **Customer_Profile_Widget_DC_Callout** if External Credential / principal names are not `D360` / `DataCloud_Integration`.
 - **Autolaunched Flow** (optional) for `prediction` / `recommendations`.
 - **Prompt template** (optional) for Einstein summary.
 - **FlexiPage** XML (optional) if you version Lightning pages in Git.

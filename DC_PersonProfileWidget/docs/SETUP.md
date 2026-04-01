@@ -31,20 +31,26 @@ The Apex controller calls:
 
 If **`graphApiName`** is left blank in App Builder, the component **does not** call the graph and relies on **SOQL** enrichment only (see [ARCHITECTURE.md](ARCHITECTURE.md)).
 
-## 3. Apex access
+## 3. Permission sets (Apex + Data Cloud callout)
 
-Users who open pages with this component need permission to run:
+The project includes two permission sets under `force-app/main/default/permissionsets/`:
 
-- `CustomerProfileWidgetController.getProfileData`
-- `CustomerProfileWidgetController.generateSummary` (if summaries are enabled)
+| API name | Purpose |
+|----------|---------|
+| **Customer_Profile_Widget_User** | **Apex class access** to `CustomerProfileWidgetController` (required for every org). |
+| **Customer_Profile_Widget_DC_Callout** | **External Credential Principal** access for `D360-DataCloud_Integration` (required when using Named Credential **DataCloud** with External Credential **D360** and principal **DataCloud_Integration**). |
 
-**Typical approach:**
+Deploy both and assign **both** to every user who should load the widget with graph callouts enabled.
 
-1. **Setup → Permission Sets → New** (e.g. `Customer_Profile_Widget`).
-2. **Apex Class Access:** add `CustomerProfileWidgetController`.
-3. Assign the permission set to personas who should see the widget.
+If your External Credential or principal **API names differ**, edit `Customer_Profile_Widget_DC_Callout.permissionset-meta.xml` and change the `externalCredentialPrincipal` value to `YourExternalCredential-YourPrincipalParameterName`, then redeploy.
 
-Admins with **View Setup** often already have broad Apex access; **standard users** do not until you assign this.
+**Orgs without** External Credential **D360**: deploy and assign only **Customer_Profile_Widget_User** (SOQL-only mode), or create **D360** first, then deploy the DataCloud Callout permission set.
+
+**CLI assign (example):**
+
+```bash
+sf org assign permset --name Customer_Profile_Widget_User --name Customer_Profile_Widget_DC_Callout --target-org <alias> --on-behalf-of user@company.com
+```
 
 ## 4. Add the component to a Lightning page
 

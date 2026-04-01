@@ -32,7 +32,7 @@ See each project’s `docs/GIT.md` for metadata naming notes.
 
 ## Apex access for standard users
 
-Most packages include a **permission set** for Apex class access. **Customer Profile Widget** does not bundle a permission set—grant **`CustomerProfileWidgetController`** via profile or a custom permission set (see [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md)). For other components, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (section **After deploy**).
+**Customer Profile Widget** bundles **`Customer_Profile_Widget_User`** (Apex) and **`Customer_Profile_Widget_DC_Callout`** (External Credential principal for **DataCloud** / **D360**). Assign both when using Data Graph callouts; see [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md). For other components, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (section **After deploy**).
 
 ## Related reading
 

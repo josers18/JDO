@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>External Credential principal for DataCloud callouts. Requires External Credential API name D360 and principal parameter DataCloud_Integration. Edit externalCredentialPrincipal if your names differ.</description>
+    <externalCredentialPrincipalAccesses>
+        <enabled>true</enabled>
+        <externalCredentialPrincipal>D360-DataCloud_Integration</externalCredentialPrincipal>
+    </externalCredentialPrincipalAccesses>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Customer Profile Widget DataCloud Callout</label>
+</PermissionSet>
