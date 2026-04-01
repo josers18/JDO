@@ -12,6 +12,7 @@
 
 | Symptom | Cause | Fix |
 |---------|--------|-----|
+| `invalid_request` / **`scope parameter not supported`** | **Scope** set on External Credential **D360** | Clear **Scope** on D360 (client-credentials to Salesforce must not send `scope` on the token request). Set **`api`** on the **Connected App** scopes instead. |
 | `invalid_grant` / `request not supported on this domain` (OAuth token) | Token URL uses **`login.salesforce.com`** instead of **My Domain** | Set External Credential **D360** token URL to `https://<instanceUrl-host>/services/oauth2/token`; re-auth principal. See [SETUP.md §2a](SETUP.md). |
 | Toast: Data Graph / Named Credential | NC missing, wrong URL, or auth failure | Create **`DataCloud`** NC; test callout with a simple GET. |
 | HTTP 404 on graph path | API version or resource path changed | Compare with current **SSOT Data Graph** REST docs; update path in `fetchDataGraphRecord`. |

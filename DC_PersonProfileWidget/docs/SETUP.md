@@ -21,6 +21,8 @@ In metadata, this is **`AuthProviderUrl`** on **External Credential** `D360` (se
 
 After changing the token URL, open **External Credential D360** in Setup and **re-authenticate** the **Named Principal** if the UI prompts you, then reload the record page.
 
+**Do not set Scope on D360** for **Client Credentials** to the Salesforce token URL: sending a `scope` parameter causes **`invalid_request` / `scope parameter not supported`**. Define API access in the **Connected App → Selected OAuth Scopes** instead; leave **Scope** blank on the External Credential.
+
 ## 2. Named Credential `DataCloud`
 
 The Apex controller calls:
