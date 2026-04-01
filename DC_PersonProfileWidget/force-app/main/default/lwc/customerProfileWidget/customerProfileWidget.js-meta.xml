@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Customer Profile Widget</masterLabel>
+    <description>Premium financial services profile widget with Data Cloud integration, AI signals, portfolio visualization, service enrollment status, and branch proximity.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Account</object>
+                <object>Contact</object>
+            </objects>
+            <property name="graphApiName" type="String" label="[Data source] Data graph API name"
+                description="Developer API name of the Data Cloud Data Graph. Leave blank to use SOQL fallback on Account/Contact." />
+            <property name="recordIdFieldName" type="String" label="[Data source] Record Id field hint" default="accountId__c"
+                description="Reserved for graph linking configuration; primary load uses the page record Id." />
+            <property name="flowApiName" type="String" label="[Data source] Autolaunched flow API name"
+                description="Optional flow to populate prediction and recommendations for the Insight tab." />
+            <property name="flowRecordIdVariable" type="String" label="[Data source] Flow input: record Id variable" default="recordId" />
+            <property name="flowPredictionVariable" type="String" label="[Data source] Flow output: prediction variable" default="prediction" />
+            <property name="flowRecommendationsVariable" type="String" label="[Data source] Flow output: recommendations variable" default="recommendations" />
+            <property name="promptTemplateId" type="String" label="[Data source] Einstein prompt template Id or API name"
+                description="Template with a text input matching prompt input API name; receives prediction and recommendations JSON." />
+            <property name="promptInputApiName" type="String" label="[Data source] Prompt template text input API name" default="Input:Prediction_Context" />
+            <property name="autoGenerateSummary" type="Boolean" label="[Data source] Auto-generate AI summary" default="true" />
+            <property name="cardTitle" type="String" label="[Card labels] Card title" default="Client profile" />
+            <property name="overviewTabLabel" type="String" label="[Card labels] Overview tab label" default="Overview" />
+            <property name="signalsTabLabel" type="String" label="[Card labels] AI Signals tab label" default="AI Signals" />
+            <property name="portfolioTabLabel" type="String" label="[Card labels] Portfolio tab label" default="Portfolio" />
+            <property name="servicesTabLabel" type="String" label="[Card labels] Services tab label" default="Services" />
+            <property name="locationTabLabel" type="String" label="[Card labels] Location tab label" default="Location" />
+            <property name="insightTabLabel" type="String" label="[Card labels] Insight tab label" default="Insight" />
+            <property name="showOverviewTab" type="Boolean" label="[Visible] Show Overview tab" default="true" />
+            <property name="showSignalsTab" type="Boolean" label="[Visible] Show AI Signals tab" default="true" />
+            <property name="showPortfolioTab" type="Boolean" label="[Visible] Show Portfolio tab" default="true" />
+            <property name="showServicesTab" type="Boolean" label="[Visible] Show Services tab" default="true" />
+            <property name="showLocationTab" type="Boolean" label="[Visible] Show Location tab" default="true" />
+            <property name="showInsightTab" type="Boolean" label="[Visible] Show Insight tab" default="true" />
+            <property name="showKpiStrip" type="Boolean" label="[Visible] Show KPI strip" default="true" />
+            <property name="showEnrollmentFlags" type="Boolean" label="[Visible] Show enrollment flags" default="true" />
+            <property name="showSparkline" type="Boolean" label="[Visible] Show portfolio sparkline" default="true" />
+            <property name="showBranchProximity" type="Boolean" label="[Visible] Show branch proximity" default="true" />
+            <property name="showAiActions" type="Boolean" label="[Visible] Show AI recommended actions" default="true" />
+            <property name="backgroundPrimary" type="String" label="[Theme] Background primary" default="#0b0c14" />
+            <property name="backgroundSecondary" type="String" label="[Theme] Background secondary" default="#0f1020" />
+            <property name="accentColor" type="String" label="[Theme] Accent" default="#d4b469" />
+            <property name="accentColorSecondary" type="String" label="[Theme] Accent secondary" default="#1d9e75" />
+            <property name="textPrimary" type="String" label="[Theme] Text primary" default="#f0ebe0" />
+            <property name="textSecondary" type="String" label="[Theme] Text secondary" default="rgba(240,235,224,0.4)" />
+            <property name="positiveColor" type="String" label="[Theme] Positive" default="#5dcaa5" />
+            <property name="negativeColor" type="String" label="[Theme] Negative" default="#d4537e" />
+            <property name="warningColor" type="String" label="[Theme] Warning" default="#e09840" />
+            <property name="headerGradientStyle" type="String" label="[Header] Gradient style" default="radial"
+                datasource="radial,linear,solid"
+                description="radial: dual radial layers; linear: diagonal blend; solid: flat background primary." />
+            <property name="headerGradientColor1" type="String" label="[Header] Gradient color 1" default="rgba(100,80,200,0.25)" />
+            <property name="headerGradientColor2" type="String" label="[Header] Gradient color 2" default="rgba(29,158,117,0.12)" />
+            <property name="avatarRingStyle" type="String" label="[Header] Avatar ring style" default="gold"
+                datasource="gold,silver,teal,custom" />
+            <property name="fieldFirstName" type="String" label="[Field path] First name" default="firstName" />
+            <property name="fieldLastName" type="String" label="[Field path] Last name" default="lastName" />
+            <property name="fieldCity" type="String" label="[Field path] City" default="mailingCity" />
+            <property name="fieldState" type="String" label="[Field path] State" default="mailingState" />
+            <property name="fieldIndustry" type="String" label="[Field path] Industry" default="industry" />
+            <property name="fieldEmployees" type="String" label="[Field path] Employees" default="numberOfEmployees" />
+            <property name="fieldPhone" type="String" label="[Field path] Phone" default="phone" />
+            <property name="fieldEmail" type="String" label="[Field path] Email" default="email" />
+            <property name="fieldWebsite" type="String" label="[Field path] Website" default="website" />
+            <property name="fieldRevenue" type="String" label="[Field path] Annual revenue" default="annualRevenue" />
+            <property name="fieldTierSegment" type="String" label="[Field path] Customer tier" default="customerTier" />
+            <property name="fieldPropensityScore" type="String" label="[Field path] Propensity score" default="propensityScore" />
+            <property name="fieldEngagementScore" type="String" label="[Field path] Engagement score" default="engagementScore" />
+            <property name="fieldChurnScore" type="String" label="[Field path] Churn score" default="churnScore" />
+            <property name="fieldLtvScore" type="String" label="[Field path] LTV score" default="lifetimeValueScore" />
+            <property name="fieldInvestmentBalance" type="String" label="[Field path] Investment balance" default="investmentBalance" />
+            <property name="fieldLoanBalance" type="String" label="[Field path] Loan balance" default="loanBalance" />
+            <property name="fieldDepositYtd" type="String" label="[Field path] Deposits YTD" default="depositYtd" />
+            <property name="fieldLoanLimit" type="String" label="[Field path] Loan limit" default="loanLimit" />
+            <property name="fieldRiskProfile" type="String" label="[Field path] Risk profile" default="riskProfile" />
+            <property name="fieldCustomerSince" type="String" label="[Field path] Customer since" default="customerSince" />
+            <property name="fieldLastInteraction" type="String" label="[Field path] Last interaction" default="lastInteractionDate" />
+            <property name="fieldMobileEnrolled" type="String" label="[Field path] Mobile enrolled" default="mobileEnrolled" />
+            <property name="fieldOnlineEnrolled" type="String" label="[Field path] Online enrolled" default="onlineEnrolled" />
+            <property name="fieldKycStatus" type="String" label="[Field path] KYC status" default="kycStatus" />
+            <property name="fieldTwoFaStatus" type="String" label="[Field path] 2FA status" default="twoFaStatus" />
+            <property name="fieldPaperlessEnrolled" type="String" label="[Field path] Paperless enrolled" default="paperlessEnrolled" />
+            <property name="fieldAlertsEnrolled" type="String" label="[Field path] Alerts enrolled" default="alertsEnrolled" />
+            <property name="fieldWireEnabled" type="String" label="[Field path] Wire enabled" default="wireTransferEnabled" />
+            <property name="fieldStreet" type="String" label="[Field path] Street" default="billingStreet" />
+            <property name="fieldZip" type="String" label="[Field path] Postal code" default="billingPostalCode" />
+            <property name="fieldAssignedBranch" type="String" label="[Field path] Assigned branch" default="assignedBranch" />
+            <property name="fieldBranchDistance" type="String" label="[Field path] Branch distance" default="assignedBranchDistance" />
+            <property name="fieldNearbyBranches" type="String" label="[Field path] Nearby branches array" default="nearbyBranches"
+                description="Dot path to a JSON array of branch objects: name, distance, address, hours, status, assigned." />
+        </targetConfig>
+        <targetConfig targets="lightning__AppPage">
+            <property name="graphApiName" type="String" label="[Data source] Data graph API name" />
+            <property name="recordIdFieldName" type="String" label="[Data source] Record Id field hint" default="accountId__c" />
+            <property name="flowApiName" type="String" label="[Data source] Autolaunched flow API name" />
+            <property name="flowRecordIdVariable" type="String" label="[Data source] Flow input: record Id variable" default="recordId" />
+            <property name="flowPredictionVariable" type="String" label="[Data source] Flow output: prediction variable" default="prediction" />
+            <property name="flowRecommendationsVariable" type="String" label="[Data source] Flow output: recommendations variable" default="recommendations" />
+            <property name="promptTemplateId" type="String" label="[Data source] Einstein prompt template Id or API name" />
+            <property name="promptInputApiName" type="String" label="[Data source] Prompt template text input API name" default="Input:Prediction_Context" />
+            <property name="autoGenerateSummary" type="Boolean" label="[Data source] Auto-generate AI summary" default="true" />
+            <property name="cardTitle" type="String" label="[Card labels] Card title" default="Client profile" />
+            <property name="overviewTabLabel" type="String" label="[Card labels] Overview tab label" default="Overview" />
+            <property name="signalsTabLabel" type="String" label="[Card labels] AI Signals tab label" default="AI Signals" />
+            <property name="portfolioTabLabel" type="String" label="[Card labels] Portfolio tab label" default="Portfolio" />
+            <property name="servicesTabLabel" type="String" label="[Card labels] Services tab label" default="Services" />
+            <property name="locationTabLabel" type="String" label="[Card labels] Location tab label" default="Location" />
+            <property name="insightTabLabel" type="String" label="[Card labels] Insight tab label" default="Insight" />
+        </targetConfig>
+        <targetConfig targets="lightning__HomePage">
+            <property name="graphApiName" type="String" label="[Data source] Data graph API name" />
+            <property name="recordIdFieldName" type="String" label="[Data source] Record Id field hint" default="accountId__c" />
+            <property name="flowApiName" type="String" label="[Data source] Autolaunched flow API name" />
+            <property name="flowRecordIdVariable" type="String" label="[Data source] Flow input: record Id variable" default="recordId" />
+            <property name="flowPredictionVariable" type="String" label="[Data source] Flow output: prediction variable" default="prediction" />
+            <property name="flowRecommendationsVariable" type="String" label="[Data source] Flow output: recommendations variable" default="recommendations" />
+            <property name="promptTemplateId" type="String" label="[Data source] Einstein prompt template Id or API name" />
+            <property name="promptInputApiName" type="String" label="[Data source] Prompt template text input API name" default="Input:Prediction_Context" />
+            <property name="autoGenerateSummary" type="Boolean" label="[Data source] Auto-generate AI summary" default="true" />
+            <property name="cardTitle" type="String" label="[Card labels] Card title" default="Client profile" />
+            <property name="overviewTabLabel" type="String" label="[Card labels] Overview tab label" default="Overview" />
+            <property name="signalsTabLabel" type="String" label="[Card labels] AI Signals tab label" default="AI Signals" />
+            <property name="portfolioTabLabel" type="String" label="[Card labels] Portfolio tab label" default="Portfolio" />
+            <property name="servicesTabLabel" type="String" label="[Card labels] Services tab label" default="Services" />
+            <property name="locationTabLabel" type="String" label="[Card labels] Location tab label" default="Location" />
+            <property name="insightTabLabel" type="String" label="[Card labels] Insight tab label" default="Insight" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

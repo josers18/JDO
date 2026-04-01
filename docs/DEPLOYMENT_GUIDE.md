@@ -18,6 +18,7 @@ Examples:
 ```bash
 cd DC_Prediction_Model_LWC && sf project deploy start --source-dir force-app --target-org JDO
 cd ../DC_Query_to_Table_LWC && sf project deploy start --source-dir force-app --target-org JDO
+cd ../DC_PersonProfileWidget && sf project deploy start --source-dir force-app --target-org JDO
 ```
 
 ## Default org (optional)
@@ -54,6 +55,8 @@ Adjust `--test-level` per your pipeline.
 | DC_Multiclass_Prediction_LWC | **DC Multiclass Prediction User** (`DC_Multiclass_Prediction_User`) | `MulticlassPredictionLwcController`, `LlmOutputSanitizer` |
 | DC_AgentForce_Output_LWC | **DC AgentForce Output User** (`DC_AgentForce_Output_User`) | `DcAgentforceOutputController`, `LlmOutputSanitizer` |
 | DC_Query_to_Table_LWC | **DC Query to Table User** (`DC_Query_to_Table_User`) | `DcQueryToTableController` |
+
+**DC_PersonProfileWidget** does not include a bundled permission set. Grant users **Apex Class Access** to `CustomerProfileWidgetController` (custom permission set or profile). Post-deploy setup: [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
 
 **Setup → Permission Sets →** (open set) **→ Manage Assignments** for users or permission set groups. You still need **Run Flow**, **object/field** access, **Data Cloud** query rights, and **Einstein** features per component—see each project’s `docs/SETUP_GUIDE.md` or `docs/REQUIREMENTS.md`.
 

@@ -13,6 +13,7 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
 | **Data Cloud in-org query** | DC Query to Table (`ConnectApi.CdpQuery.queryAnsiSqlV2`) |
 | **Rich text / Markdown** | AgentForce Output (static **marked** + `lightning-formatted-rich-text`) |
 | **Tabular SLDS data table** | DC Query to Table (`lightning-datatable`) |
+| **Data Graph + CRM merge + tabbed profile UI** | DC Person Profile Widget (HTTP Named Credential + SOQL + optional Flow/Einstein) |
 
 ## Documentation map
 
@@ -22,11 +23,13 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
   - [DC_Multiclass_Prediction_LWC/docs/ARCHITECTURE.md](../DC_Multiclass_Prediction_LWC/docs/ARCHITECTURE.md)
   - [DC_AgentForce_Output_LWC/docs/ARCHITECTURE.md](../DC_AgentForce_Output_LWC/docs/ARCHITECTURE.md)
   - [DC_Query_to_Table_LWC/docs/ARCHITECTURE.md](../DC_Query_to_Table_LWC/docs/ARCHITECTURE.md)
+  - [DC_PersonProfileWidget/docs/ARCHITECTURE.md](../DC_PersonProfileWidget/docs/ARCHITECTURE.md)
 
 ## Security posture (high level)
 
 - Controllers use **`with sharing`** where implemented.
 - **Query to Table** executes **admin-configured SQL**; restrict Apex class access and treat SQL as sensitive.
+- **Person Profile Widget** performs **callouts** to Data Graph using **Named Credential** identity; restrict NC auth and monitor graph exposure.
 - **AgentForce Output** renders flow-supplied HTML/Markdown through platform components; org should trust the Flow and connected features.
 
 ## Not in source control
