@@ -1,28 +1,23 @@
 # How-to guide — Customer Profile Widget
 
-Step-by-step recipes for admins and builders. For Flow variable details see [FLOW_GUIDE.md](FLOW_GUIDE.md); for every property see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md).
+Practical steps for **admins and business users**. You do **not** need to be a developer for most tasks. For Flow design details see **[FLOW_GUIDE.md](FLOW_GUIDE.md)**; for every App Builder field see **[COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)**.
 
 ---
 
-## How to deploy the package
+## Deploy the package
 
-1. Open a terminal in the project folder: `cd DC_PersonProfileWidget`.
-2. Authenticate if needed: `sf org login web --alias my-org --set-default`.
-3. Deploy: `sf project deploy start --source-dir force-app --target-org my-org --wait 10`.
-4. Confirm **Succeeded** in the CLI output.
+**If you use the command line:** See **[DEPLOY.md](DEPLOY.md)** (login, deploy, what gets installed).
 
-See [DEPLOY.md](DEPLOY.md) for scope, remote sites, and optional metadata.
+**If you do not use the command line:** Send **[DEPLOY.md](DEPLOY.md)** to your Salesforce admin or developer and ask them to deploy the `force-app` folder to your org (or use your company’s release process).
 
 ---
 
-## How to grant access
+## Give people access
 
-1. In **Setup**, open **Permission Sets**.
-2. Open **Customer_Profile_Widget_User**.
-3. **Manage Assignments** → add users or groups who should see the widget.
-4. Optional: assign **Customer_Profile_Widget_DC_Callout** only if you use the shipped **D360** / **DataCloud** Named Credential for other integrations (not required for SOQL + Flow).
+1. **Setup** → **Permission Sets** → **Customer_Profile_Widget_User**.  
+2. **Manage Assignments** → add users or a public group.
 
-CLI example:
+Optional CLI:
 
 ```bash
 sf org assign permset --name Customer_Profile_Widget_User --target-org my-org --on-behalf-of user@company.com
@@ -30,97 +25,90 @@ sf org assign permset --name Customer_Profile_Widget_User --target-org my-org --
 
 ---
 
-## How to add the widget to a record page
+## Add the card to an Account or Contact page
 
-1. **Setup** → **User Interface** → **Lightning App Builder** (or edit an app and open a record page).
-2. Open an **Account** or **Contact** record page.
-3. Drag **Customer Profile Widget** from the custom components list into a region.
-4. **Save**, then **Activate** (or assign the page to the app and profile as your org requires).
-5. Open a live Account or Contact record and confirm the card loads.
+1. **Lightning App Builder** → open the **Account** or **Contact** record page.  
+2. Drag **Customer Profile Widget** into a column or section.  
+3. **Save** → **Activate** (so users actually see the new page version).  
+4. Open a live record and confirm the card loads.
 
-`recordId` is injected automatically on record pages; no manual binding.
-
----
-
-## How to run SOQL-only (no Flow)
-
-1. Leave **Profile assembly flow API name** blank.
-2. Leave all **[Asm flow output]** fields blank.
-3. Optionally set **[Data source] Core custom fields (JSON object)** to map extra Account/Contact fields (see [samples/core-custom-fields.sample.json](samples/core-custom-fields.sample.json)).
-4. Save and reload the record.
+You do **not** manually connect “Record Id”—Salesforce does that on record pages.
 
 ---
 
-## How to wire a profile assembly Flow
+## Use Salesforce data only (no Flow)
 
-1. Build an **autolaunched** Flow with an input for the current record Id (API name e.g. `recordId`).
-2. Add **Assignments** (and Get Records, formulas, etc.) that set **output variables** for the slots you need.
-3. In App Builder, set **Profile assembly flow API name** to that Flow’s API name.
-4. For each slot, either:
-   - Fill the matching **[Asm flow output] …** field with the Flow output variable **API name**, or  
-   - Use **Profile output map JSON (advanced)** (see [samples/profile-output-map.sample.json](samples/profile-output-map.sample.json)).
-5. Save, activate the page, test with a record that satisfies the Flow’s logic.
-
-SOQL still **fills blank** fields the Flow does not set.
+1. Leave **Profile assembly flow API name** empty.  
+2. Leave all **[Asm flow output]** fields empty.  
+3. Optionally use **Core custom fields (JSON object)** to show extra Account/Contact fields (example: [samples/core-custom-fields.sample.json](samples/core-custom-fields.sample.json)).  
+4. Save the page and refresh the record.
 
 ---
 
-## How to add Insight predictions and recommendations
+## Use a Flow to supply profile fields
 
-1. Create an **autolaunched** Flow with `recordId` (or your chosen input name) and outputs for prediction text and recommendations (JSON string or serializable collection).
-2. Set **Autolaunched flow API name (predictions)** and the **Flow output** property names to match your variables (defaults `prediction` / `recommendations`).
-3. To run **one** Flow for both profile assembly and predictions, use the **same** API name for assembly and prediction and configure all outputs on that Flow.
+1. Create an **autolaunched** Flow (no screens) with an input for the current record Id (often `recordId`).  
+2. Set **output variables** for the data you want on the card.  
+3. In App Builder, set **Profile assembly flow API name** to that Flow’s API name.  
+4. For each value, fill the matching **[Asm flow output] …** field with the Flow variable’s **API name**, *or* use **Profile output map JSON (advanced)** ([example](samples/profile-output-map.sample.json)).  
+5. Save, activate, test.
 
----
-
-## How to enable Einstein summary on Insight
-
-1. Create a **Prompt template** with a text input whose API name matches **Prompt template text input API name** (default `Input:Prediction_Context`).
-2. Set **Prompt template Id or API name** on the component.
-3. Leave **Auto-generate AI summary** on unless you want to disable generation.
-
-Payload shape: [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md).
+Empty Flow outputs can still be filled from Salesforce **if** those fields exist on the record and you mapped them.
 
 ---
 
-## How to drive the three AI Signals rings from Flow
+## Add Insight predictions and recommendations
 
-1. For each ring (1–3), set **Inference flow API name** to an autolaunched Flow that outputs a **numeric** value.
-2. Match **Flow input: record Id** and **Flow output: prediction** to your Flow variables (defaults `recordId` / `prediction`).
-3. Choose **Output format**: `percent`, `integer`, `decimal`, or `currency`; optional **Ring scale max** for non-percent modes.
-4. Leave a gauge’s Flow blank to use **propensity / engagement / churn** from profile data (assembly or SOQL).
-
----
-
-## How to show accounts on the Portfolio tab
-
-1. Prefer a Flow output mapped to **`financialAccounts`** (Text JSON array). Shape: [samples/financial-accounts.sample.json](samples/financial-accounts.sample.json).
-2. If empty, the UI falls back to investment/loan placeholders from profile fields.
+1. Autolaunched Flow with record Id in, and outputs for **prediction** text and **recommendations** (often JSON as text).  
+2. Set **Autolaunched flow API name (predictions)** and the output names in the widget (defaults are often `prediction` and `recommendations`).  
+3. **Tip:** If the **same** Flow both builds the profile **and** sets prediction, use the **same** Flow API name in both places so Salesforce runs it once.
 
 ---
 
-## How to get a map pin (Location tab)
+## Turn on the AI summary (Einstein)
 
-1. **Option A:** Map **`mapLatitude`** / **`mapLongitude`** from the assembly Flow.
-2. **Option B:** Leave coordinates blank, keep **[Location] Geocode billing address for map** on, and ensure **Remote Site Settings** for Nominatim and Photon are deployed (see [DEPLOY.md](DEPLOY.md)).
-3. **Option B** calls external geocoders from Apex (skipped in tests).
+1. Create a **Prompt template**; the text input API name should match the widget (default **`Input:Prediction_Context`**).  
+2. Set **Prompt template Id or API name** on the widget.  
+3. Keep **Auto-generate AI summary** on.
 
----
-
-## How to change the visual theme
-
-1. On a **record** page instance, open the component properties.
-2. Set **Theme** (`themeMode`) to a preset (obsidian, ivory, glacier, etc.).
-3. Optionally override individual **[Theme]** hex fields; unchanged fields use preset defaults.
-4. **Save** and **Activate** the page, then hard-refresh the live record (App Builder preview and runtime can cache differently).
+What gets sent to the template: **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**.
 
 ---
 
-## How to use App / Home pages
+## Drive the three AI Signals rings with Flow
 
-1. Add the component to an **App** or **Home** page.
-2. Note: the target config exposes a **reduced** property set (data source, labels, theme, typography). There is no automatic `recordId`; supply context via a wrapper or accept placeholder state.
-3. For a full experience, use **Account** or **Contact** record pages.
+1. For ring 1, 2, or 3, set **Inference flow API name** to an autolaunched Flow that outputs a **number**.  
+2. Match **Flow input: record Id** and **Flow output: prediction** to your Flow (defaults `recordId` / `prediction`).  
+3. Pick **Output format** (percent, number, money, etc.).  
+4. Leave a ring’s Flow blank to use scores already on the profile (from Salesforce or your profile Flow).
+
+---
+
+## Show accounts on the Portfolio tab
+
+Best approach: map a Flow output to **financial accounts** as a JSON list ([example](samples/financial-accounts.sample.json)). If empty, the card falls back to simpler placeholders from balances on the profile.
+
+---
+
+## Fix the map (Location tab)
+
+- **Option A:** Your Flow sets **latitude** and **longitude** outputs mapped in the widget.  
+- **Option B:** Leave coordinates blank, keep **Geocode billing address for map** on, and ensure **remote sites** for address lookup deployed ([DEPLOY.md](DEPLOY.md)).
+
+---
+
+## Change colors or theme
+
+1. Open the widget on the **record** page in App Builder.  
+2. Set **Theme** to a preset (e.g. ivory, glacier).  
+3. Optionally change individual color fields.  
+4. **Save** and **Activate** the page, then do a **hard refresh** on a live record (browser preview can differ from what users see until activation).
+
+---
+
+## App or Home pages
+
+You can add the widget, but **fewer properties** appear, and there is **no automatic** customer record. For the full experience, use **Account** or **Contact** record pages.
 
 ---
 

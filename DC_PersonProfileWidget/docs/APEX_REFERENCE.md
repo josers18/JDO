@@ -1,92 +1,79 @@
-# Apex reference — `CustomerProfileWidgetController`
+# Apex reference — technical
+
+**For:** Developers and technical admins integrating or extending the widget.
 
 **Class:** `CustomerProfileWidgetController`  
-**Sharing:** `with sharing`  
-**Purpose:** Load `ProfileResult` for the LWC (SOQL + optional Flows + geocode), optional Einstein summary, optional per-gauge Flow inference.
+**Sharing:** `with sharing` (respects the running user’s record access)
+
+**Plain summary:** This class loads one **`ProfileResult`** object per request (Salesforce + optional Flows + optional address lookup), optionally calls **Einstein** for a summary string, and can run small **gauge** Flows for the three rings.
 
 ---
 
-## `@AuraEnabled` methods
+## Methods callable from the widget (`@AuraEnabled`)
 
 ### `getProfileData(...)`
 
-Returns a **`ProfileResult`** for the given record and configuration.
+Returns **`ProfileResult`** for the open record.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `recordId` | String | Account or Contact Id; blank returns an empty shell (no SOQL). |
-| `flowApiName` | String | Prediction Flow API name (Insight). |
-| `flowRecordIdVariable` | String | Input variable name for record Id on prediction Flow. |
-| `flowPredictionVariable` | String | Output variable for prediction text. |
-| `flowRecommendationsVariable` | String | Output for recommendations (JSON string or serializable). |
-| `coreCustomFieldsJson` | String | Map of logical keys → field API names for extra SOQL columns. |
-| `profileAssemblyFlowApiName` | String | Assembly Flow API name. |
-| `profileAssemblyFlowRecordIdVariable` | String | Assembly Flow input for record Id. |
-| `profileFlowOutputMapJson` | String | JSON map logical key → output variable API name (merged with LWC-built map from per-slot props). |
-| `geocodeBillingAddress` | Boolean | When null/true, Apex may geocode billing address if lat/long missing (no callouts in tests). |
+| Parameter | Purpose |
+|-----------|---------|
+| `recordId` | Account or Contact Id; blank → empty profile shell. |
+| `flowApiName` | Insight **prediction** Flow API name. |
+| `flowRecordIdVariable` | Prediction Flow input name for record Id. |
+| `flowPredictionVariable` | Prediction Flow output for headline text. |
+| `flowRecommendationsVariable` | Prediction Flow output for recommendations (text/JSON). |
+| `coreCustomFieldsJson` | Maps **logical keys** → **field API names** for extra SOQL columns. |
+| `profileAssemblyFlowApiName` | Profile assembly Flow API name. |
+| `profileAssemblyFlowRecordIdVariable` | Assembly Flow input for record Id. |
+| `profileFlowOutputMapJson` | JSON map: widget logical key → Flow **output variable** API name (merged with LWC slot properties). |
+| `geocodeBillingAddress` | If true/null and coordinates missing, may call external geocoders (not in unit tests). |
 
-**Assembly Flow runs** only when `recordId` is valid, assembly API name is set, and the **combined** output map is non-empty.
+**Assembly Flow** runs only when record Id is valid, assembly name is set, and the **combined** output map is non-empty.
 
 ### `generateSummary(...)`
 
-Calls **Einstein Prompt Template** via `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`.
+Runs **Einstein Prompt Template**; returns **text** or `null`; failures throw **`AuraHandledException`**.
 
-| Parameter | Description |
-|-----------|-------------|
+| Parameter | Role |
+|-----------|------|
 | `promptTemplateId` | Template Id or API name. |
-| `promptInputApiName` | Text input API name (default `Input:Prediction_Context`). |
-| `predictionLabel` | Serialized into JSON as `prediction`. |
-| `recommendationsJson` | Serialized as `recommendations` (default `[]` if null). |
-
-Returns generated **text** or `null`; failures throw `AuraHandledException`.
+| `promptInputApiName` | Template text input API name (default `Input:Prediction_Context`). |
+| `predictionLabel` | Becomes `prediction` in the JSON payload. |
+| `recommendationsJson` | Becomes `recommendations` in the payload (default `[]`). |
 
 ### `runSignalGaugeFlow(...)`
 
-Runs a separate autolaunched Flow for **one** AI Signals gauge.
+Runs one **autolaunched** Flow for a single gauge; returns **`SignalGaugeFlowResult`** with **`prediction`** (Decimal).
 
-| Parameter | Description |
-|-----------|-------------|
+| Parameter | Role |
+|-----------|------|
 | `flowApiName` | Flow API name. |
-| `recordId` | Current record Id. |
+| `recordId` | Record Id. |
 | `recordIdVariableName` | Flow input variable for Id. |
-| `predictionVariableName` | Flow output variable holding a numeric value. |
-
-Returns **`SignalGaugeFlowResult`** with `prediction` (Decimal).
+| `predictionVariableName` | Flow output variable (numeric). |
 
 ---
 
-## Inner types (selected)
+## Main data types (short)
 
-### `ProfileResult`
-
-Aura-enabled DTO bound to the LWC. Includes standard profile fields, billing address, `nearbyBranches`, `financialAccounts`, `mapLatitude` / `mapLongitude`, `profilePhotoUrl`, `predictionLabel`, `recommendationsJson`, and related score/balance/enrollment fields.
-
-### `BranchInfo`
-
-`name`, `distance`, `address`, `hours`, `status`, `assigned`.
-
-### `FinancialAccountInfo`
-
-`type`, `accountNumber`, `balance`, `delta`, `deltaPositive`.
-
-### `SignalGaugeFlowResult`
-
-`prediction` (Decimal).
+- **`ProfileResult`** — Full payload for the LWC (fields, branches, accounts, map coords, photo URL, prediction, recommendations, …).  
+- **`BranchInfo`**, **`FinancialAccountInfo`** — Rows for lists.  
+- **`SignalGaugeFlowResult`** — One number for a ring.
 
 ---
 
-## Assembly output logical keys
+## Allowed assembly map keys (logical keys)
 
-Keys allowed in `profileFlowOutputMapJson` / LWC assembly map (must match Apex `PROFILE_ASSEMBLY_OUTPUT_KEYS`):
+These strings may appear as keys in `profileFlowOutputMapJson` / LWC-built maps (must match Apex allowlist):
 
-`fullName`, `firstName`, `lastName`, `city`, `state`, `industry`, `employees`, `phone`, `email`, `website`, `revenue`, `tierSegment`, `propensityScore`, `engagementScore`, `churnScore`, `ltvScore`, `crossSellScore`, `savingsRate`, `investmentBalance`, `loanBalance`, `depositYtd`, `loanLimit`, `riskProfile`, `customerSince`, `lastInteraction`, enrollment flags, `kycStatus`, `twoFaStatus`, `street`, `zip`, branch fields, `nearbyBranches`, `financialAccounts`, `mapLatitude`, `mapLongitude`, `profilePhotoUrl`.
-
----
-
-## Core custom field logical keys
-
-Allowed keys in `coreCustomFieldsJson` for SOQL enrichment (see Apex `CORE_CUSTOM_LOGICAL_KEYS`): tier, balances, scores, risk, dates, enrollments, KYC/2FA, `profilePhotoUrl`, etc.
+`fullName`, `firstName`, `lastName`, `city`, `state`, `industry`, `employees`, `phone`, `email`, `website`, `revenue`, `tierSegment`, `propensityScore`, `engagementScore`, `churnScore`, `ltvScore`, `crossSellScore`, `savingsRate`, `investmentBalance`, `loanBalance`, `depositYtd`, `loanLimit`, `riskProfile`, `customerSince`, `lastInteraction`, mobile/online/paperless/alerts/wire flags, `kycStatus`, `twoFaStatus`, `street`, `zip`, branch-related keys, `nearbyBranches`, `financialAccounts`, `mapLatitude`, `mapLongitude`, `profilePhotoUrl`.
 
 ---
 
-[ARCHITECTURE.md](ARCHITECTURE.md) · [FLOW_GUIDE.md](FLOW_GUIDE.md)
+## Core custom field keys (for `coreCustomFieldsJson`)
+
+See Apex constant **`CORE_CUSTOM_LOGICAL_KEYS`** in `CustomerProfileWidgetController.cls` for the exact list (tier, balances, scores, enrollments, photo URL, etc.).
+
+---
+
+**Business-facing docs:** [FLOW_GUIDE.md](FLOW_GUIDE.md) · [ARCHITECTURE.md](ARCHITECTURE.md)

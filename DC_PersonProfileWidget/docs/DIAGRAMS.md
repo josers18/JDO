@@ -1,6 +1,8 @@
 # Diagrams — Customer Profile Widget
 
-Mermaid diagrams for reviews, Confluence, or GitHub rendering.
+**Who this is for:** Anyone who prefers **pictures** over long text—stakeholders, trainers, or technical reviewers.
+
+These are **Mermaid** diagrams (they render on GitHub and many wikis). You can paste them into Confluence Mermaid macros or export slides from the same ideas.
 
 ## 1. Data sourcing layers
 

@@ -1,35 +1,52 @@
 # Einstein prompt template — Insight summary
 
-When **`promptTemplateId`** is set and **`autoGenerateSummary`** is not `false`, the LWC calls **`CustomerProfileWidgetController.generateSummary`**, which mirrors the multiclass pattern used elsewhere in JDO (`ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`).
+**Audience:** Admins setting up **Einstein** / **Prompt Builder** for the short narrative on the **Insight** tab.
 
-## Payload (serialized JSON)
+**Prerequisites:** Generative AI features enabled per your Salesforce agreement; users can run the widget’s Apex; a **Prompt template** exists with the right input name.
 
-The Apex method builds one JSON string and passes it to the template’s **text** input (default API name **`Input:Prediction_Context`**):
+---
+
+## What happens in the product
+
+When **Prompt template Id or API name** is set and **Auto-generate AI summary** is left on, the widget asks the server to run **`generateSummary`**, which calls Salesforce’s **Einstein Prompt Template** API with a small JSON payload.
+
+---
+
+## JSON sent to your template (one text input)
+
+The template should expose a **text**-type input. By default its API name is **`Input:Prediction_Context`** (you can change the widget property **Prompt template text input API name** to match your template).
+
+The value is a **single JSON string** shaped like:
 
 ```json
 {
-  "prediction": "<string from ProfileResult.predictionLabel>",
+  "prediction": "<text from the Insight prediction line>",
   "predictionType": "person_profile",
-  "recommendations": "<string — JSON array or raw string; default []>"
+  "recommendations": "<string — often a JSON array; if empty, '[]'>"
 }
 ```
 
-- **`prediction`** — Usually from your **Flow** output; may be null/blank if Flow is not used.
-- **`predictionType`** — Fixed to **`person_profile`** so the template can branch logic if it also serves other components.
-- **`recommendations`** — Same string stored in `ProfileResult.recommendationsJson` (Flow output). If null, Apex sends `'[]'`.
+| Field | Meaning |
+|-------|---------|
+| **prediction** | Usually from your **Insight Flow**; may be empty if you do not use one. |
+| **predictionType** | Always **`person_profile`** so one template could support multiple use cases. |
+| **recommendations** | Same content as the widget’s recommendations string; if missing, the server sends **`[]`**. |
 
-## Template design tips
+---
 
-1. Create a **Prompt template** in Prompt Builder with a **text** input whose **API name** matches **`promptInputApiName`** (default above).
-2. In the template instructions, describe the JSON keys and ask for a **short** executive summary suitable for a sidebar (2–4 sentences unless you want longer copy).
-3. If **`recommendations`** is a JSON array of objects, instruct the model to use fields like `title`, `detail`, `description`, or `action` consistently so the UI list on the Insight tab aligns with parsed rows (the LWC parses JSON and shows `title` / `action` / `name` and `detail` / `description` / `body`).
+## Writing good template instructions
 
-## Permissions and licensing
+1. Tell the model it will receive **JSON** with `prediction`, `predictionType`, and `recommendations`.  
+2. Ask for a **short** summary suitable for a sidebar (for example **2–4 sentences**).  
+3. If **recommendations** is a list of objects, ask for consistent field names (`title`, `detail`, `action`, etc.) so the on-screen list stays readable (the UI maps several common field names).
 
-- Users need access to run the Apex class and org must have **Einstein Generative AI** features enabled where required.
-- Template **errors** surface as `AuraHandledException` messages; the LWC shows **`summaryError`** text on the Insight card.
+---
 
-## Related
+## If something fails
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — when summary runs in the sequence diagram.
-- Multiclass package [PROMPT_TEMPLATE_GUIDE.md](../../DC_Multiclass_Prediction_LWC/docs/PROMPT_TEMPLATE_GUIDE.md) — same `WrappedValue` / `inputParams` pattern with different `predictionType`.
+- **Wrong template Id** or **wrong input API name** → error text may appear on the Insight card.  
+- **Licensing / Einstein off** → work with your admin on entitlements.
+
+**Technical note for developers:** Implementation uses `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`, similar to other JDO components. See also [ARCHITECTURE.md](ARCHITECTURE.md).
+
+**Related:** [SETUP.md](SETUP.md) · Multiclass package [PROMPT_TEMPLATE_GUIDE.md](../../DC_Multiclass_Prediction_LWC/docs/PROMPT_TEMPLATE_GUIDE.md) (same pattern, different `predictionType`).

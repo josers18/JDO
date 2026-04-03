@@ -1,6 +1,10 @@
 # DC Person Profile Widget
 
-Premium **financial services customer profile** experience for **Account** and **Contact** record pages (also **App** and **Home** with a reduced property set). The Lightning bundle **`customerProfileWidget`** loads profile data from **CRM SOQL** (standard and optional custom fields), optionally from an **autolaunched profile assembly Flow** whose **output variables** map to card slots, optionally merges a **prediction Flow** for the Insight tab, and can call **Einstein Prompt Builder** for a short narrative.
+A **rich customer profile card** for Salesforce **Account** and **Contact** record pages. It shows a polished header, key metrics, and **six tabs** (Overview, AI Signals, Portfolio, Services, Location, Insight).
+
+**In everyday terms:** The card reads data from your Salesforce records (names, addresses, balances, and custom fields you map). Optionally, it can pull extra values from **Flows** (automations with no screens), show **AI-generated text** on the Insight tab, and use **Einstein Prompt Builder** for a short narrative—if your org has those features turned on.
+
+**App and Home pages:** You can place the same component there, but fewer settings are available, and there is no automatic link to a single customer record unless your team builds that.
 
 <div align="center">
 
@@ -12,62 +16,74 @@ Premium **financial services customer profile** experience for **Account** and *
 [![SF CLI](https://img.shields.io/badge/SF_CLI-v2-111111?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://developer.salesforce.com/tools/salesforcecli)
 [![Metadata API](https://img.shields.io/badge/Bundle_API-v62.0-032D60?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_intro.htm)
 
-**Six tabs** · **Theming via CSS variables** · **Flow output mapping**
+**Six tabs** · **Themes and colors** · **Optional Flows and AI**
 
 </div>
 
 ---
 
-## Documentation map
+## Where to start (recommended order)
 
-| Document | Purpose |
-|----------|---------|
-| [docs/INDEX.md](docs/INDEX.md) | **Master index** (all guides and references) |
-| [artifacts.md](artifacts.md) | Inventory of everything under `force-app/` |
-| [docs/DEPLOY.md](docs/DEPLOY.md) | CLI deploy, remote sites, optional metadata |
-| [docs/SETUP.md](docs/SETUP.md) | Permissions, Lightning App Builder, Flow, smoke test |
-| [docs/HOW_TO.md](docs/HOW_TO.md) | Step-by-step recipes (page, Flow, map, theme, Einstein) |
-| [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | Flow authoring: assembly, prediction, gauge flows |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | End-to-end behavior, merge order, sequence diagram |
-| [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Designer properties and `@api` names |
-| [docs/APEX_REFERENCE.md](docs/APEX_REFERENCE.md) | `CustomerProfileWidgetController` API and DTO keys |
-| [docs/PROMPT_TEMPLATE.md](docs/PROMPT_TEMPLATE.md) | Einstein payload (`person_profile`), template binding |
-| [docs/DIAGRAMS.md](docs/DIAGRAMS.md) | Mermaid diagrams (data flow, tabs, geocode, theme) |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common deploy and runtime errors |
-| [docs/samples/](docs/samples/README.md) | Sample JSON payloads for maps and Flow output |
-| [docs/GIT.md](docs/GIT.md) | Monorepo path and naming |
+1. **[docs/DEPLOY.md](docs/DEPLOY.md)** — Install the package into your org (or hand this to whoever runs deployments).  
+2. **[docs/SETUP.md](docs/SETUP.md)** — Turn on access, add the card to a page, quick checks.  
+3. **[docs/HOW_TO.md](docs/HOW_TO.md)** — Step-by-step tasks (map, theme, Flows, etc.).  
+4. **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** — If something does not look right.
+
+**Full index:** [docs/INDEX.md](docs/INDEX.md)
 
 ---
 
-## What you get
+## Documentation map (plain language)
 
-- **Header:** Gradient header, avatar ring (gold / silver / teal / custom), tier badge, optional enrollment flags, three-cell KPI strip.
-- **Tabs:** Overview, AI Signals (rings + bar rows), Portfolio (donut + account rows), Services (cards + suggested enrollments), Location (decorative map + address grid + branch list), Insight (prediction, optional AI summary, recommendation rows from JSON).
-- **Theming:** Presets (**Theme** / `themeMode`) plus optional hex overrides; applied as **`--wp-*`** CSS custom properties on the host and shell for consistent live vs App Builder rendering.
-- **No SLDS utility layout** in the template; visuals are custom CSS and SVG.
+| Document | What it is for |
+|----------|----------------|
+| [docs/INDEX.md](docs/INDEX.md) | Table of contents for all topics below |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | How to install; what is included; common deploy issues |
+| [docs/SETUP.md](docs/SETUP.md) | After install: permissions, Lightning page, optional AI |
+| [docs/HOW_TO.md](docs/HOW_TO.md) | Recipes: add to a page, use a Flow, fix the map, change theme |
+| [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | How the three Flow “hooks” work (profile, Insight, gauges) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How data moves from Salesforce → card (with diagrams) |
+| [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every setting in App Builder (technical names included) |
+| [docs/APEX_REFERENCE.md](docs/APEX_REFERENCE.md) | For builders/developers: server-side API details |
+| [docs/PROMPT_TEMPLATE.md](docs/PROMPT_TEMPLATE.md) | Einstein prompt template and JSON sent to AI |
+| [docs/DIAGRAMS.md](docs/DIAGRAMS.md) | Extra pictures (data flow, tabs, map, theme) |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Fixes for typical errors |
+| [docs/samples/](docs/samples/README.md) | Copy-paste examples for JSON fields |
+| [artifacts.md](artifacts.md) | List of files shipped in `force-app/` |
+| [docs/GIT.md](docs/GIT.md) | Where this folder lives in the Git repo |
 
 ---
 
-## Quick deploy
+## What you see on the page
+
+- **Header:** Photo or initials, name, location, tier, optional enrollment chips, optional KPI strip.  
+- **Tabs:** Overview (fields), AI Signals (gauges and bars), Portfolio (chart and account rows), Services (tiles and suggestions), Location (map and address), Insight (prediction text, optional AI summary, recommendation list).  
+- **Look and feel:** Choose a **Theme** preset in App Builder or fine-tune colors. The card is custom-styled (not the standard Salesforce “blueprint” layout).
+
+---
+
+## Quick install (for whoever runs Salesforce CLI)
 
 ```bash
 cd DC_PersonProfileWidget
-sf project deploy start --source-dir force-app --target-org <your-alias>
+sf project deploy start --source-dir force-app --target-org <your-org-alias> --wait 10
 ```
 
-After deploy, complete **[docs/SETUP.md](docs/SETUP.md)** (assign **`Customer_Profile_Widget_User`**, optional Flow and prompt template).
+Replace `<your-org-alias>` with the nickname you use for that org. After a successful deploy, follow **[docs/SETUP.md](docs/SETUP.md)** so users get the right permission set and the page is activated.
+
+**No command line?** Ask your Salesforce admin or a developer to deploy from this folder using the same command, a pipeline, or a change set built from the metadata here.
 
 ---
 
-## Flow outputs (no graph JSON)
+## Flows (simple explanation)
 
-Configure an **autolaunched** Flow with **output variables** and map each widget slot in **Profile output map (JSON object)**. Apex reads values with `Flow.Interview.getVariableValue`—use normal Flow data types (Text, Number, Checkbox, etc.). For **`nearbyBranches`**, use a **Text** output containing a JSON array of branch objects, or another serializable structure. See [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md).
+You **do not** need a special “graph JSON” format. If you use a Flow, it should be **autolaunched** (no screens). The Flow sets **output variables**; you tell the widget which output goes to which part of the card (in App Builder or in a small JSON map). Standard data types (text, number, yes/no) are fine. For branch lists or account rows, the Flow often stores a **text** value that contains JSON—see **[docs/samples/](docs/samples/README.md)**.
 
 ---
 
 ## Repository context
 
-This folder is a **standalone** Salesforce DX project inside the [JDO monorepo](../README.md). See the root [deployment guide](../docs/DEPLOYMENT_GUIDE.md) for org aliases and patterns.
+This folder is a **Salesforce DX project** inside the [JDO monorepo](../README.md). Your team may also use the root [deployment guide](../docs/DEPLOYMENT_GUIDE.md) for org aliases and shared patterns.
 
 ---
 

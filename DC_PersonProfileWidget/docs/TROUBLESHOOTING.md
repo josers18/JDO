@@ -1,54 +1,67 @@
 # Troubleshooting — Customer Profile Widget
 
-## Deploy / metadata
-
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| `propertyGroup` target not supported | Org or metadata type limitation | This repo **flattens** properties; use label prefixes in App Builder. |
-| Apex compile errors on deploy | API version mismatch | Project uses **62.0**; org can be higher—usually fine. |
-
-## Runtime — assembly / prediction Flow
-
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| Toast: Profile assembly flow failed | Wrong API name, missing input, or bad output map JSON | Confirm autolaunched flow, **record Id** input name, and **Profile output map** keys + output variable API names. |
-| Empty slot though Flow sets it | Output variable API name mismatch (case) | Apex tries common case variants; align names with the map. |
-| **`nearbyBranches`** not parsing | Output is not a JSON array string or list | Use a **Text** output with `[{ "name":"...", ... }]` or a serializable collection. |
-| No prediction on Insight | Prediction Flow not configured or failed silently | Set **`flowApiName`**; check **debug logs** (errors swallowed in Apex). |
-| Wrong variable names | Mismatch with component properties | Match **Flow input/output** names to designer fields. |
-
-## Runtime — CRM
-
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| Only partial data | SOQL only fills **blank** fields after assembly Flow | Expected when assembly Flow is set: Flow values win; SOQL fills gaps. |
-| Contact vs Account | Id type | Apex branches on `recordId` sObject type. |
-| Custom fields missing | Not in **Core custom fields JSON** or not accessible | Add logical key → field API name; check FLS. |
-
-## Runtime — Einstein
-
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| Summary error text | Template Id wrong or input API name mismatch | Match **`promptInputApiName`** to template; verify Einstein entitlements. |
-| No summary | **`promptTemplateId`** blank or **`autoGenerateSummary`** false | Set template Id; leave auto summary on. |
-
-## Runtime — permissions
-
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| Insufficient privileges (Apex) | No class access | Assign **`Customer_Profile_Widget_User`**. |
-| External credential errors (optional NC metadata) | Using shipped **D360** / **DataCloud** for other callouts | Assign **`Customer_Profile_Widget_DC_Callout`** or fix principal names in metadata. |
-| Principal deploy fails (`invalid cross reference`) | Org has no External Credential **D360** | Deploy only **Customer_Profile_Widget_User**, or edit `Customer_Profile_Widget_DC_Callout.permissionset-meta.xml` to match your org. |
-
-## UI
-
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| Bars don’t animate | No data or zero widths | Signal rows need scores; animation runs 400 ms after load. |
-| Tab missing | Visibility property false | Set **`show…Tab`** unset or true. |
-| Theme correct in App Builder preview, wrong on live record | Page not activated, browser cache, or old bundle | **Save** and **Activate** the Lightning page; hard-refresh or clear cache; redeploy the LWC. The component applies **`themeMode`** on a microtask and sets variables on **host + `.wp-shell`**—if live still mismatches, confirm the activated assignment is the page you edited. |
-| Map shows fallback | No coordinates + geocode off or remote sites missing | Set Flow **`mapLatitude`/`mapLongitude`**, or enable geocoding and deploy **Nominatim** / **Photon** remote sites. |
+**Start here:** Most “it works in App Builder but not for users” issues are fixed by **Save + Activate** on the Lightning page and a **browser refresh**. Next, confirm **Customer_Profile_Widget_User** is assigned.
 
 ---
 
-[SETUP.md](SETUP.md) · [ARCHITECTURE.md](ARCHITECTURE.md)
+## Deploy and packaging
+
+| What you see | Likely cause | What to try |
+|--------------|--------------|-------------|
+| Metadata errors about **property groups** | Older org limitations | Ignore; this project lists properties with label prefixes in App Builder. |
+| Apex compile errors | Rare version mismatch | Project targets API **62.0**; your org can be newer—usually still works. Ask a developer if deploy fails. |
+| Deploy error about **D360** / **External Credential** | Optional credential not in org | Deploy without **Customer_Profile_Widget_DC_Callout**, or adjust metadata to your org. See **[DEPLOY.md](DEPLOY.md)**. |
+
+---
+
+## Flows (profile or Insight)
+
+| What you see | Likely cause | What to try |
+|--------------|--------------|-------------|
+| Toast: **Profile assembly flow failed** | Wrong Flow API name, missing input, or bad JSON map | Flow must be **autolaunched**; record Id input name must match; output names must match App Builder. |
+| Field empty though Flow sets it | Output variable **API name** does not match the mapping | Check spelling/case; align with **[Asm flow output]** or JSON map. |
+| **Branches** list missing or broken | Output is not valid JSON list | Use **Text** with a JSON array, or a collection Apex can serialize. [Sample](samples/nearby-branches.sample.json). |
+| **Insight** has no prediction | Prediction Flow not set or Flow failed silently | Set **Autolaunched flow API name (predictions)**; developer checks **debug logs** (errors are not always shown to the user). |
+
+---
+
+## Salesforce data
+
+| What you see | Likely cause | What to try |
+|--------------|--------------|-------------|
+| Some fields empty after using a profile Flow | **Expected** when Flow leaves them blank | Salesforce fills **only empty** slots when assembly Flow is on. |
+| Wrong object type | Record is not Account/Contact | Widget is built for those objects. |
+| Custom field missing | Not mapped or user cannot see field | Add to **Core custom fields** JSON; check field-level security. |
+
+---
+
+## Einstein / AI summary
+
+| What you see | Likely cause | What to try |
+|--------------|--------------|-------------|
+| Error message on Insight | Template Id wrong or input name mismatch | Match **Prompt template text input API name** to the template. |
+| No summary | Template blank or auto-summary off | Set template Id; turn **Auto-generate AI summary** on. |
+
+---
+
+## Permissions
+
+| What you see | Likely cause | What to try |
+|--------------|--------------|-------------|
+| Insufficient privileges / Apex error | Missing permission set | Assign **Customer_Profile_Widget_User**. |
+| Issues only with optional Data Cloud callouts | Optional credential permission | Assign **Customer_Profile_Widget_DC_Callout** only if you use that integration. |
+
+---
+
+## Look and feel (UI)
+
+| What you see | Likely cause | What to try |
+|--------------|--------------|-------------|
+| Signal bars do not animate | No numeric data | Bars need scores; animation runs shortly after load. |
+| Tab hidden | Visibility toggled off | Set **Show … tab** to visible (or leave default). |
+| **Theme** right in preview, wrong on live page | Page not active or cache | **Save** and **Activate** the Lightning page; hard refresh; redeploy if users still see an old version. Confirm users open the **activated** page assignment. |
+| Map shows “unavailable” | No coordinates and geocode off, or remote sites missing | Pass lat/long from Flow, or turn geocoding on and deploy **Nominatim** / **Photon** remote sites. |
+
+---
+
+**Next:** [SETUP.md](SETUP.md) · [DEPLOY.md](DEPLOY.md) · [HOW_TO.md](HOW_TO.md)

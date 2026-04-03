@@ -1,65 +1,75 @@
-# Artifacts — DC Person Profile Widget
+# What ships in this package — DC Person Profile Widget
 
-Inventory of versioned metadata under `force-app/main/default/`. No static resources or sample Flows are bundled; configure optional Flow and Einstein pieces in the org per [docs/SETUP.md](docs/SETUP.md).
+This is a **plain-language inventory** of files under `force-app/main/default/`. Sample Flows are **not** in Git; you build those in your org (see **[docs/SETUP.md](docs/SETUP.md)**).
 
-## Connected App (optional template)
+**Quick takeaway:** The important pieces for most teams are the **widget**, **Apex controller**, **Customer_Profile_Widget_User** permission set, and (if you use address-based maps) **remote site** settings.
 
-| Path | Notes |
-|------|--------|
-| `connectedApps/DataCloud_Profile_Widget_NC.connectedApp-meta.xml` | **Client credentials**–ready Connected App (`Api` scope, placeholder callback). For teams using the shipped External Credential **D360** with Named Credential **DataCloud**. Not required for the widget’s Apex (SOQL + Flow only). |
+---
 
-## External Credential & Named Credential (optional in repo)
+## Optional: Data Cloud–style integration (many teams skip)
 
-| Path | Notes |
-|------|--------|
-| `externalCredentials/D360.externalCredential-meta.xml` | **OAuth token URL** (`AuthProviderUrl`) must match the org My Domain (`…/services/oauth2/token`). Values in Git may target a sample org; retrieve and edit for other orgs. |
-| `namedCredentials/DataCloud.namedCredential-meta.xml` | Optional callout base URL for integrations using **`callout:DataCloud`**. The profile widget controller does **not** reference this Named Credential. |
+These files help teams that already use a **Named Credential** called **DataCloud** with an **External Credential** **D360**. **The profile widget does not require them** for normal Account/Contact + Flow behavior.
 
-These files were retrieved from a configured org for repeatability; **client secrets stay in the org** and are not in metadata.
+| File / folder | In simple terms |
+|---------------|-----------------|
+| `connectedApps/DataCloud_Profile_Widget_NC.connectedApp-meta.xml` | A **Connected App** template for API access (your org stores secrets, not Git). |
+| `externalCredentials/D360.externalCredential-meta.xml` | Login/token settings for that integration; often **edited per org**. |
+| `namedCredentials/DataCloud.namedCredential-meta.xml` | A named “address” for callouts; **not** used by the profile widget’s main code path. |
 
-## Permission sets (`permissionsets/`)
+---
 
-| API name | Purpose |
-|----------|---------|
-| `Customer_Profile_Widget_User` | Apex: `CustomerProfileWidgetController`. |
-| `Customer_Profile_Widget_DC_Callout` | External Credential principal `D360-DataCloud_Integration` for optional Named Credential callouts. |
+## Permission sets
 
-## Remote Site Settings (`remoteSiteSettings/`)
+| API name | Assign to users? |
+|----------|------------------|
+| **Customer_Profile_Widget_User** | **Yes** — required so the widget can run. |
+| **Customer_Profile_Widget_DC_Callout** | Only if you use the optional D360/DataCloud credential above for other apps. |
 
-| API name | Purpose |
-|----------|---------|
-| `Nominatim_OpenStreetMap` | OpenStreetMap Nominatim geocoder (billing address → map coordinates). |
-| `Photon_Komoot_Geocoder` | Photon fallback when Nominatim fails or is blocked. |
+---
 
-## Apex (`classes/`)
+## Remote sites (for map address lookup)
 
-| API name | Purpose |
-|----------|---------|
-| `CustomerProfileWidgetController` | `getProfileData` (optional assembly Flow + SOQL merge + optional prediction Flow + optional geocode), `generateSummary` (Einstein prompt template), `runSignalGaugeFlow` (per–AI Signals ring). Inner types: `ProfileResult`, `BranchInfo`, `FinancialAccountInfo`, `SignalGaugeFlowResult`. |
-| `CustomerProfileWidgetControllerTest` | SOQL fallback, `generateSummary` null template, gauge/geocode coverage as implemented. |
+| Name | Purpose |
+|------|---------|
+| **Nominatim_OpenStreetMap** | Looks up coordinates from an address (primary service). |
+| **Photon_Komoot_Geocoder** | Backup if the primary lookup fails. |
 
-## Lightning Web Components (`lwc/`)
+If you turn **off** geocoding on the widget, these matter less.
 
-| Bundle folder | App Builder label | Targets |
-|---------------|-------------------|---------|
-| `customerProfileWidget` | Customer Profile Widget | `lightning__RecordPage` (Account, Contact), `lightning__AppPage`, `lightning__HomePage` |
+---
+
+## Apex (server code)
+
+| Class | Role |
+|-------|------|
+| **CustomerProfileWidgetController** | Loads profile data (Salesforce + optional Flows + optional address lookup), optional AI summary, optional Flow calls for gauge rings. |
+| **CustomerProfileWidgetControllerTest** | Automated tests for deployment pipelines. |
+
+---
+
+## Lightning Web Component (the card)
+
+| Item | Role |
+|------|------|
+| Folder **`customerProfileWidget`** | The **Customer Profile Widget** in App Builder. |
+| `customerProfileWidget.js` / `.html` / `.css` | Layout, styling, behavior. |
+| `customerProfileWidget.js-meta.xml` | Which pages the component can be placed on and which properties appear. |
+| `profileInsightRows.js` | Helper logic for the Insight tab list. |
+
+**Where it can be placed:** Account and Contact **record** pages (full settings), plus **App** and **Home** pages (reduced settings).
+
+---
+
+## Project file
 
 | File | Role |
 |------|------|
-| `customerProfileWidget.js` | `@api` configuration, `recordId`, `loadProfile` / `loadSummary`, `animateBars`, theming, gauge Flow calls, computed getters for UI. |
-| `profileInsightRows.js` | Helpers for Insight recommendation row parsing / display. |
-| `customerProfileWidget.html` | Six panels, SVG gauges/bars/donut/map, tab bar, states. |
-| `customerProfileWidget.css` | `:host` `--wp-*` defaults; layout; avatar ring variants; container query. |
-| `customerProfileWidget.js-meta.xml` | Exposed properties (flattened; label prefixes group related settings). |
+| `sfdx-project.json` | Tells Salesforce CLI where `force-app` lives; API version **62.0**. |
 
-## Project metadata
+---
 
-| File | Role |
-|------|------|
-| `sfdx-project.json` | Package directory `force-app`, `sourceApiVersion` **62.0**. |
+## Not stored in Git (you create in the org)
 
-## Not in source (org-specific)
-
-- **Autolaunched Flow(s)** (optional) for profile assembly outputs and/or `prediction` / `recommendations`.
-- **Prompt template** (optional) for Einstein summary.
-- **FlexiPage** XML (optional) if you version Lightning pages in Git.
+- Autolaunched **Flows** for profile, Insight, or gauges.  
+- **Prompt templates** for Einstein.  
+- **Lightning page** XML, unless your team versions pages in source control.

@@ -3,7 +3,9 @@
 **Bundle name:** `customerProfileWidget`  
 **App Builder label:** Customer Profile Widget  
 
-Properties are grouped below as in the designer. On **Record** pages, labels use prefixes like `[Data source]` because `propertyGroup` is not supported on all orgs (metadata is flattened).
+**Who should read this:** Admins configuring the card in **Lightning App Builder**. Step-by-step tasks are in **[HOW_TO.md](HOW_TO.md)**; this page is the **full field list** (including technical `@api` names for developers and support).
+
+**Note on labels:** On **record** pages, properties are grouped by **text prefixes** like `[Data source]` and `[Asm flow output]` because some orgs do not support grouped property panels in metadata.
 
 ## Targets
 
@@ -30,7 +32,7 @@ Properties are grouped below as in the designer. On **Record** pages, labels use
 | `flowRecommendationsVariable` | String | `recommendations` | Flow output (JSON string or serializable). |
 | `promptTemplateId` | String | `''` | Einstein prompt template Id or API name. |
 | `promptInputApiName` | String | `Input:Prediction_Context` | Template text input API name for the JSON payload. |
-| `autoGenerateSummary` | Boolean | *(meta default true)* | When false, skip `generateSummary`. Unset behaves as true (LWC1503 pattern). |
+| `autoGenerateSummary` | Boolean | *(default on)* | When **false**, the widget does **not** call Einstein for a summary. When unset, summary generation stays **on**. |
 
 `assemblyOut*` property names follow `assemblyOut` + camelCase logical key (e.g. `assemblyOutPropensityScore` for slot `propensityScore`). Slots include `fullName`, `firstName`, `lastName`, `city`, `state`, `industry`, `employees`, `phone`, `email`, `website`, `revenue`, `tierSegment`, scores, balances, `loanLimit`, `riskProfile`, `customerSince`, `lastInteraction`, enrollment flags, `kycStatus`, `twoFaStatus`, `street`, `zip`, branch fields, `nearbyBranches` (Flow **Text** JSON array of branch objects), **`financialAccounts`** (JSON array for Portfolio rows), **`mapLatitude`** / **`mapLongitude`**, **`profilePhotoUrl`**. Use the **same** `flowApiName` as the prediction flow to run one interview.
 
@@ -88,7 +90,7 @@ Per-service paragraph overrides: `servicesSuggestionCopyMobileBanking`, `…Onli
 
 | Property | Default | Notes |
 |----------|---------|--------|
-| `themeMode` | `obsidian` | Preset: obsidian, midnight, graphite, ivory, dusk, slate, parchment, onyx, fog, forest, ember, sage, copper, verdant, steel, mercury, arctic, indigo, glacier (see meta datasource). |
+| `themeMode` | `obsidian` | Color **preset** for the card. All options appear in the **Theme** dropdown in App Builder (e.g. obsidian, ivory, glacier, …). |
 | `showThemeSwitcher` | `false` | In-card buttons cycle a subset of presets (O/M/G/I). |
 
 ## Theme colors (String, hex or CSS color)
@@ -105,7 +107,7 @@ Per-service paragraph overrides: `servicesSuggestionCopyMobileBanking`, `…Onli
 | `negativeColor` | `#d4537e` |
 | `warningColor` | `#e09840` |
 
-Applied asynchronously to the **custom element host** and **`.wp-shell`** so `--wp-*` tokens match App Builder and live record pages: `--wp-bg-primary`, `--wp-bg-secondary`, `--wp-accent`, `--wp-accent-2`, `--wp-text-primary`, `--wp-text-secondary`, `--wp-positive`, `--wp-negative`, `--wp-warning`, `--wp-gradient-1`, `--wp-gradient-2`, plus extended shell tokens (`--wp-shell-bg`, etc.) from the preset map.
+Colors apply to the card so **App Builder preview** and **live records** match after you save and activate the page. Optional **Theme** presets set many colors at once; individual color fields below override the preset when you change them. (Internally this uses CSS variables such as `--wp-accent`, `--wp-shell-bg`, etc.)
 
 ## Header gradient
 
@@ -128,8 +130,8 @@ Applied asynchronously to the **custom element host** and **`.wp-shell`** so `--
 
 | Attribute | Source |
 |-----------|--------|
-| `recordId` | Injected on record pages; drives `loadProfile()`. |
+| `recordId` | **Automatic on record pages** — Salesforce passes the open Account or Contact Id; the widget loads data when this is set. |
 
 ---
 
-[SETUP.md](SETUP.md) · [ARCHITECTURE.md](ARCHITECTURE.md)
+[HOW_TO.md](HOW_TO.md) · [SETUP.md](SETUP.md) · [ARCHITECTURE.md](ARCHITECTURE.md)

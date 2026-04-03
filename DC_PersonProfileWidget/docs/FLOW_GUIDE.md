@@ -1,102 +1,88 @@
 # Flow guide — Customer Profile Widget
 
-This widget integrates with Salesforce Flow in **three independent ways**. They can share the same autolaunched Flow API name in some cases (see **Single interview optimization** below).
+This widget can talk to Salesforce **Flow** in **three separate ways**. All Flows must be **autolaunched** (no screens—nothing for the user to click inside the Flow while the page loads).
 
-## Flow types at a glance
+**Think of it as:** (1) a Flow that **fills the card**, (2) a Flow that **feeds the Insight tab**, (3) up to three small Flows that **feed the three rings** on AI Signals.
 
-| Integration | Designer fields | Purpose |
-|---------------|-----------------|---------|
-| **Profile assembly** | `profileAssemblyFlowApiName`, `profileAssemblyFlowRecordIdVariable`, `[Asm flow output] *`, optional `profileFlowOutputMapJson`, `profilePhotoFlowOutputVariable` | Populate `ProfileResult` slots from Flow **output variables**; SOQL fills blanks. |
-| **Prediction (Insight)** | `flowApiName`, `flowRecordIdVariable`, `flowPredictionVariable`, `flowRecommendationsVariable` | Insight tab headline + recommendations JSON/string; also feeds Einstein summary. |
-| **AI Signals gauges (×3)** | `signalGauge1FlowApiName` … `signalGauge3FlowApiName` (+ record var + output var each) | Client calls `runSignalGaugeFlow` per gauge; numeric **prediction** output drives rings. |
+---
 
-All Flows must be **autolaunched** (no screens). The LWC passes the **current record Id** using the variable name you configure (default `recordId`).
+## The three Flow roles (at a glance)
+
+| Role | What you set in App Builder | What it does |
+|------|----------------------------|--------------|
+| **Profile assembly** | Profile assembly flow + **[Asm flow output]** / JSON map | Puts values into the profile (name, scores, branches, map coordinates, etc.). Salesforce data can still fill gaps. |
+| **Insight / prediction** | Autolaunched flow API name (predictions) + output names | Supplies the **prediction** line and **recommendations** list (and optional AI context). |
+| **AI Signals gauges (×3)** | Inference flow API name on gauge 1 / 2 / 3 | Each ring can call its own Flow that returns a **number**. If left blank, the ring uses scores already on the profile. |
 
 ---
 
 ## 1. Profile assembly Flow
 
-### When it runs
+### When Salesforce runs it
 
-Apex runs the assembly Flow when **all** of the following are true:
+All of the following must be true:
 
-- Valid `recordId` (Account or Contact).
-- Non-blank **`profileAssemblyFlowApiName`**.
-- Non-empty **output map** built from `[Asm flow output] *` fields and/or **`profileFlowOutputMapJson`**.
+- There is a valid **Account or Contact** Id on the page.  
+- **Profile assembly flow API name** is filled in.  
+- At least one **output mapping** exists (from **[Asm flow output]** fields and/or **Profile output map JSON**).
 
-If the map is empty, Apex skips the assembly Flow and uses **SOQL only** (plus optional prediction Flow).
+If the map is empty, the assembly Flow is **skipped** and the card uses **Salesforce fields only** (plus optional Insight Flow).
 
 ### Inputs
 
-- Create a Flow input variable (typically **Text** or **String** holding the record Id) whose API name matches **`profileAssemblyFlowRecordIdVariable`** (default `recordId`).
-- Apex may pass a **second** record Id variable when assembly and prediction use the **same** Flow API name (see below).
+Create a Flow input that holds the **current record Id**. Its API name should match **Assembly flow input: record Id** (default `recordId`).
 
 ### Outputs
 
-Use **Assignments** (or formulas, Get Records, subflows) to set **output variables**. Map each widget **logical key** to the Flow variable’s API name:
+Use **Assignments** (or formulas, Get Records, subflows) to set **output variables**. Tell the widget which output goes to which slot:
 
-- Per-slot: fill `[Asm flow output] Full name` with `MyFullNameOut`, etc.
-- Advanced: **`profileFlowOutputMapJson`** as `{"fullName":"MyFullNameOut","email":"EmailOut"}`. Keys must be in the allowlist (see [APEX_REFERENCE.md](APEX_REFERENCE.md)). **Per-slot properties override** the same key in JSON.
+- **Simple:** type the Flow variable’s API name into each **[Asm flow output] …** field you need.  
+- **Advanced:** one JSON object in **Profile output map JSON** ([example](samples/profile-output-map.sample.json)). Per-slot fields **override** the same key in JSON.
 
-**Special JSON-backed slots**
+**Special cases (often stored as long text / JSON):**
 
-- **`nearbyBranches`**: Text (or collection serialized by Apex) containing a **JSON array** of objects. Supported keys include `name`, `distance`, `address`, `hours`, `status`, `assigned`. See [samples/nearby-branches.sample.json](samples/nearby-branches.sample.json).
-- **`financialAccounts`**: Text JSON array for Portfolio account rows. Keys: `type`, `accountNumber` (aliases `number`, `mask`, `lastFour`), `balance`, `delta`, `deltaPositive`. See [samples/financial-accounts.sample.json](samples/financial-accounts.sample.json).
-- **`mapLatitude` / `mapLongitude`**: Numbers (or text coerced to Decimal) for `lightning-map`. If missing and geocoding is on, Apex may geocode billing address.
+- **Nearby branches** — list of branch objects ([example](samples/nearby-branches.sample.json)).  
+- **Financial accounts** — list for the Portfolio tab ([example](samples/financial-accounts.sample.json)).  
+- **Map** — latitude and longitude numbers for the pin.  
+- **Photo** — image URL (`https://…` or org-relative path).
 
-**Photo**
+### After the Flow runs
 
-- Map **`profilePhotoUrl`** via `[Asm flow output] Profile photo URL`, **`profilePhotoFlowOutputVariable`**, or JSON key `profilePhotoUrl`. Value must be `https://…` or an org-relative path.
-
-### Merge after assembly
-
-Apex builds a SOQL baseline, runs the Flow, then **`mergeEnrichFull`**: Flow values win; **empty** assembly fields are filled from CRM.
+Flow values **win** when set. Anything still **empty** can be filled from the normal Salesforce query.
 
 ---
 
 ## 2. Prediction Flow (Insight tab)
 
-### Configuration
+**Settings:** prediction Flow API name, record Id input name, and the two **output** names (defaults often `prediction` and `recommendations`).
 
-- **`flowApiName`**: autolaunched Flow API name.
-- **`flowRecordIdVariable`**: input variable for record Id (default `recordId`).
-- **`flowPredictionVariable`**: output for headline text (default `prediction`).
-- **`flowRecommendationsVariable`**: output for JSON string or serializable list (default `recommendations`).
+**If something goes wrong:** errors are **hidden** so the rest of the card still shows—use **debug logs** if Insight is blank.
 
-### Error handling
+### One Flow instead of two
 
-Failures are **caught in Apex**; the rest of the profile still loads. Use **debug logs** if Insight is empty.
-
-### Single interview optimization
-
-If **`flowApiName`** equals **`profileAssemblyFlowApiName`** (case-insensitive), Apex starts **one** `Flow.Interview`, applies assembly outputs from the map, then reads prediction outputs from the **same** interview. Configure both sets of output variables on that Flow.
-
-If the API names differ, prediction uses a **separate** interview (started once in `getProfileData` when there is no assembly Flow, or a second interview when only prediction is needed).
+If the **prediction** Flow has the **same API name** as the **profile assembly** Flow, Salesforce runs that Flow **once** and reads **both** profile outputs and prediction outputs from the same run.
 
 ---
 
-## 3. Signal gauge Flows (AI Signals tab)
+## 3. Gauge Flows (AI Signals)
 
-Each gauge optionally calls its **own** autolaunched Flow via **`CustomerProfileWidgetController.runSignalGaugeFlow`** from the LWC (after `getProfileData` returns).
+Each of the three rings can call **`runSignalGaugeFlow`** after the main profile loads.
 
-| Property | Role |
-|----------|------|
-| `signalGaugeNFlowApiName` | Blank → gauge uses profile **`propensityScore` / `engagementScore` / `churnScore`** from assembly/SOQL. |
-| `signalGaugeNRecordIdVariable` | Flow input for record Id. |
-| `signalGaugeNPredictionVariable` | Flow output; must resolve to a **numeric** value for the ring/center display. |
-| `signalGaugeNOutputFormat` | `percent`, `integer`, `decimal`, `currency`. |
-| `signalGaugeNRingScaleMax` | For non-percent formats: max value for a full ring arc. |
+| Setting | Meaning |
+|---------|---------|
+| **Inference flow API name** empty | Ring uses **propensity / engagement / churn** from the profile (Flow or Salesforce). |
+| **Inference flow API name** set | Runs that Flow; the **prediction** output must be a **number** (percent, dollars, etc. depending on format). |
 
-Gauge Flow failures surface as an error state on the ring (tooltip); they do not block the page.
+Failures show as an error state on that ring (tooltip); they do **not** break the whole page.
 
 ---
 
-## Authoring checklist
+## Checklist before go-live
 
-1. **Autolaunched** only; no screens.
-2. Input variable name matches **Assembly** / **Prediction** / **Gauge** designer field.
-3. Output variable API names match what you typed in App Builder (case matters for `getVariableValue`; Apex tries common variants for some paths).
-4. For JSON slots, validate JSON in a text editor before pasting into Flow formulas.
-5. Test with a real Account/Contact Id in Flow Debug before wiring the page.
+1. Flow type = **autolaunched** only.  
+2. Record Id **input** name matches the widget.  
+3. **Output** API names match what you typed in App Builder (spelling and capitalization).  
+4. For JSON text outputs, validate JSON in a text editor first.  
+5. Test the Flow in **Flow Builder** with a real record Id before publishing the page.
 
 **Related:** [samples/](samples/README.md) · [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) · [ARCHITECTURE.md](ARCHITECTURE.md)

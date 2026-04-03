@@ -1,21 +1,58 @@
-# Architecture — Customer Profile Widget
+# How the widget works — Customer Profile Widget
 
-## High-level behavior
+This page explains **how data gets to the card** in terms a business reader can follow. Technical names are included where they match App Builder or code.
 
-1. The LWC receives **`recordId`** from the record page (or host).
-2. On `recordId` set (and in `connectedCallback` if already set), it calls **`CustomerProfileWidgetController.getProfileData`** with assembly Flow settings, prediction Flow settings, and optional **`coreCustomFieldsJson`**.
-3. Apex loads **CRM** data with **SOQL** (Account or Contact) into a baseline `ProfileResult`, including optional custom fields from `coreCustomFieldsJson`.
-4. If **profile assembly Flow** is configured (`profileAssemblyFlowApiName` + non-empty **`profileFlowOutputMapJson`**), Apex runs that autolaunched Flow and copies **Flow output variables** into `ProfileResult` using the map (logical widget key → output variable API name). Apex then **fills blanks** on that result from the SOQL layer (`mergeEnrichFull`).
-5. If **prediction Flow** is configured (`flowApiName`), Apex merges **prediction** and **recommendations** outputs. When the prediction Flow is the **same** API name as the assembly Flow, **one** `Flow.Interview` is reused.
-6. The LWC binds `ProfileResult` to the UI. After ~400 ms it runs **`animateBars()`** on signal bar fills (CSS transform).
-7. If **`promptTemplateId`** is set and **`autoGenerateSummary`** is not explicitly false, the LWC calls **`generateSummary`** (Einstein Prompt Template) for the **Insight** tab.
+---
 
-**Flow assignments:** You do not pass a graph JSON blob. Each mapped slot is a normal Flow **output** (Text, Number, Currency, Checkbox, etc.). Apex reads values with `Flow.Interview.getVariableValue`. For **`nearbyBranches`**, store a **Text** output containing a JSON array string, or another type Apex can `JSON.serialize` / deserialize.
+## Plain-language overview
+
+1. User opens an **Account** or **Contact** record. Salesforce tells the widget **which record** it is.  
+2. The widget asks the server (**CustomerProfileWidgetController**) for a **profile package** for that record.  
+3. The server **reads Salesforce** (standard and optional custom fields).  
+4. **If you configured a profile Flow**, the server runs that Flow and **overlays** Flow values on top; **empty** Flow slots can still be filled from Salesforce.  
+5. **If you configured an Insight Flow**, the server adds **prediction** and **recommendation** text to that package (or reuses the same Flow run when API names match).  
+6. The widget **draws the card**. Short delay, then small **animations** on signal bars.  
+7. **If you configured Einstein**, the widget may ask for a **short AI summary** for the Insight tab.
+
+You do **not** send a special “graph JSON” blob for the profile Flow. Each piece of data is a normal Flow **output variable** (text, number, etc.).
+
+---
+
+## Technical walkthrough (numbered)
+
+1. The Lightning component receives **`recordId`** from the record page.  
+2. It calls **`CustomerProfileWidgetController.getProfileData`** with your Flow and field settings.  
+3. Apex runs **SOQL** (a Salesforce query) for Account or Contact into a baseline **`ProfileResult`**.  
+4. If a **profile assembly Flow** is configured with a non-empty output map, Apex runs that **autolaunched** Flow and copies **output variables** into `ProfileResult`, then **fills remaining blanks** from the SOQL layer.  
+5. If a **prediction Flow** is configured, Apex merges **prediction** and **recommendations**. If its API name is the **same** as the assembly Flow, **one** Flow run serves both.  
+6. The widget renders. After about 400 ms it runs **`animateBars()`** on signal bars.  
+7. If **`promptTemplateId`** is set and auto-summary is not turned off, the widget calls **`generateSummary`** (Einstein).
+
+---
+
+## Where each part of the data comes from
+
+| Source | When it runs | What it provides |
+|--------|----------------|------------------|
+| **Profile assembly Flow** | You set the Flow API name **and** at least one output mapping | Values for mapped slots; Salesforce fills gaps |
+| **Salesforce only** | No assembly Flow | Standard + optional custom fields you mapped |
+| **Insight / prediction Flow** | You set **Autolaunched flow API name (predictions)** | Headline and recommendations on Insight |
+
+---
+
+## Security (short)
+
+- The controller runs with **user sharing rules** (`with sharing`).  
+- Users must have the **Customer_Profile_Widget_User** permission set (Apex access).
+
+---
+
+## Diagram: request sequence
 
 ```mermaid
 sequenceDiagram
     participant Page as Record page
-    participant LWC as customerProfileWidget
+    participant LWC as Customer Profile Widget
     participant Apex as CustomerProfileWidgetController
     participant DB as Salesforce DB
     participant Asm as Assembly Flow
@@ -45,20 +82,9 @@ sequenceDiagram
     end
 ```
 
-## Merge semantics
+---
 
-| Source | When | What it fills |
-|--------|------|----------------|
-| Assembly Flow | `profileAssemblyFlowApiName` + output map | Mapped outputs; SOQL fills **remaining blanks** |
-| SOQL only | No assembly Flow | Standard + optional custom CRM fields |
-| Prediction Flow | `flowApiName` set | **predictionLabel**, **recommendationsJson** when outputs exist |
-
-## Security
-
-- Controller is **`with sharing`**.
-- Users need **Apex authorization** for the controller class.
-
-## UI architecture
+## Diagram: screen layout
 
 ```mermaid
 flowchart TB
@@ -85,7 +111,6 @@ flowchart TB
     T6 --> F6[Prediction + summary + actions]
 ```
 
-## Related docs
+---
 
-- [DIAGRAMS.md](DIAGRAMS.md) — additional Mermaid figures.
-- [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — designer properties.
+**More diagrams:** [DIAGRAMS.md](DIAGRAMS.md) · **Properties:** [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)

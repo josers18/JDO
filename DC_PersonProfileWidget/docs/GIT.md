@@ -1,25 +1,31 @@
-# Git and monorepo path
+# Git and folder location
 
-## Clone path
+## Get the code
 
 ```bash
 git clone https://github.com/josers18/JDO.git
 cd JDO/DC_PersonProfileWidget
 ```
 
-## Deploy from this folder only
+## Deploy from this folder
 
 ```bash
-sf project deploy start --source-dir force-app --target-org <alias>
+sf project deploy start --source-dir force-app --target-org <your-alias>
 ```
 
-## Naming
+Full deploy instructions: **[DEPLOY.md](DEPLOY.md)**.
 
-| Concept | Value |
-|---------|--------|
-| DX project folder | `DC_PersonProfileWidget` |
-| LWC bundle directory | `customerProfileWidget` |
-| Apex class | `CustomerProfileWidgetController` |
-| App Builder label | Customer Profile Widget |
+## Names you might hear
 
-Documentation lives in **`README.md`**, **`artifacts.md`**, and **`docs/`** (start from **[docs/INDEX.md](INDEX.md)**). Root JDO hub: [../../README.md](../../README.md).
+| Name people use | What it is |
+|-----------------|------------|
+| Folder **DC_PersonProfileWidget** | This Salesforce project |
+| **Customer Profile Widget** | Name in Lightning App Builder |
+| **customerProfileWidget** | Technical folder name of the component |
+| **CustomerProfileWidgetController** | Apex class that loads data |
+
+## Where documentation lives
+
+- **[README.md](../README.md)** — Overview and doc map  
+- **[docs/INDEX.md](INDEX.md)** — Full table of contents  
+- **[../../README.md](../../README.md)** — Whole **JDO** monorepo (if you use other packages)
