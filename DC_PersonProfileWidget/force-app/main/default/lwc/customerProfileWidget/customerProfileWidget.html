@@ -1,10 +1,15 @@
 <template>
-    <div class="wp-shell">
+    <div class={shellClass} style={shellTypographyStyle}>
         <header class="wp-header" style={headerBgStyle}>
             <div class="wp-header-row">
                 <div class={avatarRingClass}>
                     <div class="wp-avatar-inner">
-                        <span>{initials}</span>
+                        <template lwc:if={showProfilePhoto}>
+                            <img class="wp-avatar-img" src={profilePhotoSrcResolved} alt={profilePhotoAlt} />
+                        </template>
+                        <template lwc:else>
+                            <span>{initials}</span>
+                        </template>
                     </div>
                     <span class="wp-tier-pip"></span>
                 </div>
@@ -17,16 +22,64 @@
                         <span class="wp-tier-text">{tierSegment}</span>
                     </div>
                 </div>
+                <template lwc:if={showThemeSwitcherResolved}>
+                    <div class="wp-theme-switcher">
+                        <span class="wp-theme-lbl">Theme</span>
+                        <div class="wp-theme-btns">
+                            <button
+                                type="button"
+                                class={themeBtnObsidian}
+                                data-theme="obsidian"
+                                title="Obsidian"
+                                onclick={handleThemeSwitch}
+                            >
+                                O
+                            </button>
+                            <button
+                                type="button"
+                                class={themeBtnMidnight}
+                                data-theme="midnight"
+                                title="Midnight"
+                                onclick={handleThemeSwitch}
+                            >
+                                M
+                            </button>
+                            <button
+                                type="button"
+                                class={themeBtnGraphite}
+                                data-theme="graphite"
+                                title="Graphite"
+                                onclick={handleThemeSwitch}
+                            >
+                                G
+                            </button>
+                            <button
+                                type="button"
+                                class={themeBtnIvory}
+                                data-theme="ivory"
+                                title="Ivory"
+                                onclick={handleThemeSwitch}
+                            >
+                                I
+                            </button>
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <template lwc:if={showEnrollmentFlagsResolved}>
                 <div class="wp-enroll-flags">
                     <template for:each={allEnrollmentFlags} for:item="flag">
-                        <span key={flag.label} class={flag.cssClass}>
+                        <span key={flag.flagKey} class={flag.cssClass}>
                             <span class={flag.dotClass}></span>
                             {flag.label}
                             <span class="wp-flag-sep">·</span>
-                            {flag.status}
+                            <template lwc:if={flag.preserveStatusCase}>
+                                <span class="wp-flag-val">{flag.status}</span>
+                            </template>
+                            <template lwc:else>
+                                {flag.status}
+                            </template>
                         </span>
                     </template>
                 </div>
@@ -82,8 +135,9 @@
         <template lwc:elseif={hasData}>
             <div class="wp-panel">
                 <template lwc:if={isTabOverview}>
-                    <span class="wp-section-lbl">Contact</span>
-                    <div class="wp-field-rows">
+                    <div class="wp-contact-card">
+                        <span class="wp-section-lbl">Contact</span>
+                        <div class="wp-field-rows">
                         <div class="wp-field-row">
                             <span class="wp-field-key">Industry</span>
                             <span class="wp-field-val">{d.industry}</span>
@@ -104,6 +158,7 @@
                             <span class="wp-field-key">Website</span>
                             <span class="wp-field-val wp-field-val--link">{d.website}</span>
                         </div>
+                        </div>
                     </div>
                     <span class="wp-section-lbl">Relationship</span>
                     <div class="wp-field-rows">
@@ -113,11 +168,11 @@
                         </div>
                         <div class="wp-field-row">
                             <span class="wp-field-key">Customer since</span>
-                            <span class="wp-field-val">{d.customerSince}</span>
+                            <span class="wp-field-val">{displayCustomerSince}</span>
                         </div>
                         <div class="wp-field-row">
                             <span class="wp-field-key">Last interaction</span>
-                            <span class="wp-field-val">{d.lastInteractionDate}</span>
+                            <span class="wp-field-val">{displayLastInteractionDate}</span>
                         </div>
                         <div class="wp-field-row">
                             <span class="wp-field-key">Deposits YTD</span>
@@ -128,99 +183,49 @@
                             <span class="wp-field-val">{kpiLoanLimit}</span>
                         </div>
                     </div>
-                    <template lwc:if={showSparklineResolved}>
-                        <span class="wp-section-lbl">Portfolio trend</span>
-                        <div class="wp-sparkline">
-                            <svg viewBox="0 0 320 64" preserveAspectRatio="none" class="wp-sparkline-svg">
-                                <defs>
-                                    <linearGradient id="wpSparkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" style="stop-color:var(--wp-accent);stop-opacity:0.9" />
-                                        <stop offset="100%" style="stop-color:var(--wp-accent-2);stop-opacity:0.7" />
-                                    </linearGradient>
-                                </defs>
-                                <polyline
-                                    fill="none"
-                                    stroke="url(#wpSparkGrad)"
-                                    stroke-width="2.5"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    points="0,48 40,42 80,44 120,30 160,34 200,22 240,28 280,18 320,24"
-                                />
-                            </svg>
-                        </div>
-                    </template>
                 </template>
 
                 <template lwc:if={isTabSignals}>
                     <div class="wp-rings-grid">
-                        <div class="wp-ring-wrap">
-                            <svg viewBox="0 0 72 72" class="wp-ring-svg">
-                                <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" />
-                                <circle
-                                    cx="36"
-                                    cy="36"
-                                    r="28"
-                                    fill="none"
-                                    stroke="var(--wp-positive)"
-                                    stroke-width="6"
-                                    stroke-dasharray="175.9 175.9"
-                                    stroke-dashoffset={propensityDash}
-                                    transform="rotate(-90 36 36)"
-                                    stroke-linecap="round"
-                                />
-                                <text x="36" y="40" text-anchor="middle" class="wp-ring-score">{propensityScore}</text>
-                            </svg>
-                            <span class="wp-ring-lbl">Propensity</span>
+                        <template for:each={signalGaugeSlots} for:item="g">
+                            <div key={g.gaugeKey} class="wp-ring-wrap" title={g.title}>
+                                <svg viewBox="0 0 72 72" class="wp-ring-svg" aria-hidden="true">
+                                    <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" />
+                                    <template lwc:if={g.showColoredArc}>
+                                        <circle
+                                            cx="36"
+                                            cy="36"
+                                            r="28"
+                                            fill="none"
+                                            stroke={g.stroke}
+                                            stroke-width="6"
+                                            stroke-dasharray="175.9 175.9"
+                                            stroke-dashoffset={g.dashOffset}
+                                            transform="rotate(-90 36 36)"
+                                            stroke-linecap="round"
+                                        />
+                                    </template>
+                                    <text x="36" y="40" text-anchor="middle" class={g.scoreClass}>{g.centerText}</text>
+                                </svg>
+                                <span class="wp-ring-lbl">{g.label}</span>
+                            </div>
+                        </template>
+                    </div>
+                    <span class="wp-section-lbl">{signalsDetailSectionLabelDisplay}</span>
+                    <div class="wp-signal-metrics">
+                        <div class="wp-signal-metric-row">
+                            <span class="wp-signal-metric-key">Cross-sell score</span>
+                            <span class="wp-signal-metric-val">{crossSellScoreDisplay}</span>
                         </div>
-                        <div class="wp-ring-wrap">
-                            <svg viewBox="0 0 72 72" class="wp-ring-svg">
-                                <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" />
-                                <circle
-                                    cx="36"
-                                    cy="36"
-                                    r="28"
-                                    fill="none"
-                                    stroke="var(--wp-accent)"
-                                    stroke-width="6"
-                                    stroke-dasharray="175.9 175.9"
-                                    stroke-dashoffset={engagementDash}
-                                    transform="rotate(-90 36 36)"
-                                    stroke-linecap="round"
-                                />
-                                <text x="36" y="40" text-anchor="middle" class="wp-ring-score">{engagementScore}</text>
-                            </svg>
-                            <span class="wp-ring-lbl">Engagement</span>
+                        <div class="wp-signal-metric-row">
+                            <span class="wp-signal-metric-key">Savings rate (%)</span>
+                            <span class="wp-signal-metric-val">{savingsRateDisplay}</span>
                         </div>
-                        <div class="wp-ring-wrap">
-                            <svg viewBox="0 0 72 72" class="wp-ring-svg">
-                                <circle cx="36" cy="36" r="28" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" />
-                                <circle
-                                    cx="36"
-                                    cy="36"
-                                    r="28"
-                                    fill="none"
-                                    stroke="var(--wp-negative)"
-                                    stroke-width="6"
-                                    stroke-dasharray="175.9 175.9"
-                                    stroke-dashoffset={churnDash}
-                                    transform="rotate(-90 36 36)"
-                                    stroke-linecap="round"
-                                />
-                                <text x="36" y="40" text-anchor="middle" class="wp-ring-score">{churnScore}</text>
-                            </svg>
-                            <span class="wp-ring-lbl">Churn risk</span>
+                        <div class="wp-signal-metric-row">
+                            <span class="wp-signal-metric-key">Days since last contact</span>
+                            <span class={daysSinceLastContactClass}>{daysSinceLastContactDisplay}</span>
                         </div>
                     </div>
-                    <span class="wp-section-lbl">Data Cloud signals</span>
-                    <template for:each={allSignalRows} for:item="row">
-                        <div key={row.key} class="wp-signal-row">
-                            <span class="wp-signal-key">{row.key}</span>
-                            <div class="wp-bar-track">
-                                <div class="wp-bar-fill" data-scale={row.scale} style={row.barStyle}></div>
-                            </div>
-                            <span class="wp-signal-val">{row.pct}%</span>
-                        </div>
-                    </template>
                 </template>
 
                 <template lwc:if={isTabPortfolio}>
@@ -228,19 +233,61 @@
                         <div class="wp-donut-wrap">
                             <svg viewBox="0 0 100 100" class="wp-donut-svg">
                                 <g transform="translate(50,50)">
-                                    <template for:each={donutSegments} for:item="seg">
-                                        <circle
-                                            key={seg.name}
-                                            r="36"
-                                            cx="0"
-                                            cy="0"
-                                            fill="none"
-                                            stroke={seg.color}
-                                            stroke-width="14"
-                                            stroke-dasharray={seg.dasharray}
-                                            transform={seg.transform}
-                                            stroke-linecap="butt"
-                                        />
+                                    <template lwc:if={donutSegSlot0}>
+                                        <g transform={donutSegSlot0.transform}>
+                                            <circle
+                                                r="36"
+                                                cx="0"
+                                                cy="0"
+                                                fill="none"
+                                                stroke={donutSegSlot0.color}
+                                                stroke-width="14"
+                                                stroke-dasharray={donutSegSlot0.dasharray}
+                                                stroke-linecap="butt"
+                                            />
+                                        </g>
+                                    </template>
+                                    <template lwc:if={donutSegSlot1}>
+                                        <g transform={donutSegSlot1.transform}>
+                                            <circle
+                                                r="36"
+                                                cx="0"
+                                                cy="0"
+                                                fill="none"
+                                                stroke={donutSegSlot1.color}
+                                                stroke-width="14"
+                                                stroke-dasharray={donutSegSlot1.dasharray}
+                                                stroke-linecap="butt"
+                                            />
+                                        </g>
+                                    </template>
+                                    <template lwc:if={donutSegSlot2}>
+                                        <g transform={donutSegSlot2.transform}>
+                                            <circle
+                                                r="36"
+                                                cx="0"
+                                                cy="0"
+                                                fill="none"
+                                                stroke={donutSegSlot2.color}
+                                                stroke-width="14"
+                                                stroke-dasharray={donutSegSlot2.dasharray}
+                                                stroke-linecap="butt"
+                                            />
+                                        </g>
+                                    </template>
+                                    <template lwc:if={donutSegSlot3}>
+                                        <g transform={donutSegSlot3.transform}>
+                                            <circle
+                                                r="36"
+                                                cx="0"
+                                                cy="0"
+                                                fill="none"
+                                                stroke={donutSegSlot3.color}
+                                                stroke-width="14"
+                                                stroke-dasharray={donutSegSlot3.dasharray}
+                                                stroke-linecap="butt"
+                                            />
+                                        </g>
                                     </template>
                                 </g>
                             </svg>
@@ -251,7 +298,7 @@
                         </div>
                         <div class="wp-alloc-list">
                             <template for:each={portfolioAllocations} for:item="a">
-                                <div key={a.name} class="wp-alloc-item">
+                                <div key={a.allocKey} class="wp-alloc-item">
                                     <span class="wp-alloc-dot" style={a.dotStyle}></span>
                                     <span class="wp-alloc-name">{a.name}</span>
                                     <span class="wp-alloc-pct">{a.pct}%</span>
@@ -262,7 +309,7 @@
                     <span class="wp-section-lbl">Accounts</span>
                     <div class="wp-account-cards">
                         <template for:each={accountCards} for:item="ac">
-                            <div key={ac.type} class="wp-account-card">
+                            <div key={ac.cardKey} class="wp-account-card">
                                 <div>
                                     <div class="wp-account-type">{ac.type}</div>
                                     <div class="wp-account-num">{ac.number}</div>
@@ -279,7 +326,7 @@
                 <template lwc:if={isTabServices}>
                     <div class="wp-svc-grid">
                         <template for:each={allServiceCards} for:item="svc">
-                            <div key={svc.name} class={svc.cardClass}>
+                            <div key={svc.svcKey} class={svc.cardClass}>
                                 <div class="wp-svc-head">
                                     <span class={svc.statusClass}>{svc.status}</span>
                                     <template lwc:if={svc.iconTypeMobile}>
@@ -338,13 +385,13 @@
                     </div>
                     <span class="wp-section-lbl">Suggested next steps</span>
                     <template for:each={serviceRecommendations} for:item="rec">
-                        <div key={rec.key} class="wp-ai-action">
+                        <div key={rec.recKey} class="wp-ai-action">
                             <div class="wp-ai-action-icon wp-ai-action-icon--gold">
                                 <span class="wp-ai-ico-plus">+</span>
                             </div>
-                            <div>
+                            <div class="wp-ai-action-text">
                                 <div class="wp-ai-action-title">{rec.title}</div>
-                                <div class="wp-ai-action-sub">{rec.sub}</div>
+                                <div class="wp-ai-action-sub wp-ai-action-sub--rich">{rec.sub}</div>
                             </div>
                         </div>
                     </template>
@@ -352,31 +399,24 @@
 
                 <template lwc:if={isTabLocation}>
                     <div class="wp-map-wrap">
-                        <svg viewBox="0 0 360 200" class="wp-map-svg" aria-hidden="true">
-                            <defs>
-                                <pattern id="wpGrid" width="24" height="24" patternUnits="userSpaceOnUse">
-                                    <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
-                                </pattern>
-                            </defs>
-                            <rect width="360" height="200" fill="url(#wpGrid)" />
-                            <rect x="40" y="120" width="50" height="60" fill="rgba(255,255,255,0.08)" rx="2" />
-                            <rect x="100" y="90" width="40" height="90" fill="rgba(255,255,255,0.06)" rx="2" />
-                            <rect x="160" y="110" width="70" height="70" fill="rgba(255,255,255,0.07)" rx="2" />
-                            <rect x="250" y="100" width="45" height="80" fill="rgba(255,255,255,0.05)" rx="2" />
-                            <line
-                                x1="180"
-                                y1="100"
-                                x2="240"
-                                y2="70"
-                                stroke="var(--wp-accent)"
-                                stroke-width="1"
-                                stroke-dasharray="4 3"
-                                opacity="0.5"
-                            />
-                            <circle cx="180" cy="100" r="16" fill="rgba(212,180,105,0.15)" />
-                            <circle cx="180" cy="100" r="8" fill="var(--wp-accent)" />
-                            <circle cx="240" cy="70" r="6" fill="var(--wp-accent-2)" stroke="var(--wp-bg-primary)" stroke-width="2" />
-                        </svg>
+                        <template lwc:if={hasMapMarkers}>
+                            <lightning-map
+                                map-markers={mapMarkers}
+                                zoom-level="14"
+                                class="wp-lightning-map"
+                            ></lightning-map>
+                        </template>
+                        <template lwc:else>
+                            <div class="wp-map-fallback" role="status">
+                                <p class="wp-map-fallback-title">Map unavailable</p>
+                                <p class="wp-map-fallback-body">
+                                    Geocoding tries OpenStreetMap Nominatim (<strong>nominatim.openstreetmap.org</strong>), then Photon
+                                    (<strong>photon.komoot.io</strong>) using billing/mailing address, city/state/ZIP, and branch address. Deploy both
+                                    Remote Site Settings, or set valid <strong>mapLatitude</strong> / <strong>mapLongitude</strong> from your assembly
+                                    Flow (not 0,0). Address fields below still show from profile data.
+                                </p>
+                            </div>
+                        </template>
                     </div>
                     <span class="wp-section-lbl">Address</span>
                     <div class="wp-addr-grid">
@@ -442,16 +482,28 @@
                         </template>
                     </div>
                     <template lwc:if={showAiActionsResolved}>
-                        <span class="wp-section-lbl">Recommended actions</span>
-                        <template for:each={aiActionRows} for:item="act">
-                            <div key={act.key} class="wp-ai-action">
-                                <div class={act.iconClass}></div>
-                                <div>
-                                    <div class="wp-ai-action-title">{act.title}</div>
-                                    <div class="wp-ai-action-sub">{act.sub}</div>
-                                </div>
-                            </div>
-                        </template>
+                        <section class="wp-improve-section" aria-labelledby="wp-insight-recs-heading">
+                            <span id="wp-insight-recs-heading" class="wp-section-lbl">{insightRecommendationsSectionTitleDisplay}</span>
+                            <template lwc:if={processedInsightRecommendations.length}>
+                                <template for:each={processedInsightRecommendations} for:item="item">
+                                    <div key={item.rowKey} class="wp-factor-row">
+                                        <span class={item.deltaClass}>{item.formattedPercent}</span>
+                                        <div class="wp-bar-track">
+                                            <div
+                                                class="wp-bar-fill wp-model-bar-fill"
+                                                style={item.barStyle}
+                                                data-color={item.activeColor}
+                                                data-scale={item.barScale}
+                                            ></div>
+                                        </div>
+                                        <span class="wp-factor-label">{item.detail}</span>
+                                    </div>
+                                </template>
+                            </template>
+                            <template lwc:else>
+                                <p class="wp-lwc-empty">No recommendations returned.</p>
+                            </template>
+                        </section>
                     </template>
                 </template>
             </div>

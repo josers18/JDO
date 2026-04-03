@@ -1,0 +1,16 @@
+[
+  {
+    "type": "Investment",
+    "accountNumber": "•••• 4821",
+    "balance": 72061,
+    "delta": "+4.2%",
+    "deltaPositive": true
+  },
+  {
+    "type": "Checking",
+    "number": "•••• 9910",
+    "balance": 12450.5,
+    "delta": "-0.1%",
+    "deltaPositive": false
+  }
+]

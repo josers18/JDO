@@ -1,0 +1,8 @@
+{
+  "tierSegment": "Customer_Tier__c",
+  "investmentBalance": "Total_Investments__c",
+  "loanBalance": "Outstanding_Loan__c",
+  "profilePhotoUrl": "Headshot_URL__c",
+  "propensityScore": "Propensity_Score__c",
+  "crossSellScore": "Cross_Sell_Score__c"
+}

@@ -16,7 +16,7 @@ The Apex method builds one JSON string and passes it to the template’s **text*
 
 - **`prediction`** — Usually from your **Flow** output; may be null/blank if Flow is not used.
 - **`predictionType`** — Fixed to **`person_profile`** so the template can branch logic if it also serves other components.
-- **`recommendations`** — Same string stored in `ProfileResult.recommendationsJson` (Flow output or graph). If null, Apex sends `'[]'`.
+- **`recommendations`** — Same string stored in `ProfileResult.recommendationsJson` (Flow output). If null, Apex sends `'[]'`.
 
 ## Template design tips
 

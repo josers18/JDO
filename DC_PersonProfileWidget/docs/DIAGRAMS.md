@@ -6,19 +6,17 @@ Mermaid diagrams for reviews, Confluence, or GitHub rendering.
 
 ```mermaid
 flowchart LR
-    subgraph Primary["Primary (optional)"]
-        G[Data Graph HTTP GET]
-    end
-    subgraph Enrich["Always merge when Id present"]
+    subgraph Base["Baseline CRM"]
         S[SOQL Account / Contact]
     end
     subgraph Optional["Optional"]
-        F[Autolaunched Flow]
+        A[Assembly Flow outputs]
+        P[Prediction Flow]
         E[Einstein summary]
     end
-    G --> M[ProfileResult]
-    S --> M
-    F --> M
+    S --> M[ProfileResult]
+    A --> M
+    P --> M
     M --> LWC[LWC render]
     E -.-> LWC
 ```
@@ -43,7 +41,7 @@ mindmap
       6 service cards
       Suggested enrollments
     Location
-      Decorative map SVG
+      lightning-map
       Address grid
       Branch list
     Insight
@@ -52,25 +50,76 @@ mindmap
       Parsed recommendations
 ```
 
-## 3. Field mapping concept
+## 3. Assembly output map
 
 ```mermaid
 flowchart TB
-    JSON[Graph JSON root]
-    P[fieldFirstName = party.a.fn]
-    JSON --> Dot[Dot path resolver]
-    Dot --> PR[ProfileResult.fullName etc.]
-    P -.-> Dot
+    F[Autolaunched Flow output variables]
+    Map[profileFlowOutputMapJson logical key to var name]
+    F --> Map
+    Map --> PR[ProfileResult fields]
 ```
 
 ## 4. Theming (CSS variables)
 
 ```mermaid
 flowchart LR
-    AB[App Builder hex strings]
-    JS[connectedCallback setProperty on host]
-    CSS[var--wp-accent in CSS rules]
-    AB --> JS --> CSS
+    AB[App Builder themeMode + hex props]
+    JS[Microtask applyTheme]
+    H[Host + .wp-shell setProperty]
+    CSS[var--wp-* in LWC CSS]
+    AB --> JS --> H --> CSS
+```
+
+## 5. Profile merge decision (Apex)
+
+```mermaid
+flowchart TD
+    R[recordId valid?]
+    A[assembly API + output map?]
+    S[SOQL baseline ProfileResult]
+    R -->|no| E[Empty / minimal result]
+    R -->|yes| S
+    S --> A
+    A -->|yes| F[Run assembly Flow + apply outputs]
+    F --> M[mergeEnrichFull with SOQL]
+    A -->|no| M2[Use SOQL only]
+    M --> P{Prediction flow set?}
+    M2 --> P
+    P -->|yes| I[Merge prediction + recommendations]
+    P -->|no| G[Geocode if enabled]
+    I --> G
+    G --> Out[Return ProfileResult]
+```
+
+## 6. Geocoding (Location tab)
+
+```mermaid
+flowchart LR
+    PR[ProfileResult lat/lng]
+    G{Geocode on?}
+    N[Nominatim API]
+    Ph[Photon fallback]
+    PR -->|missing| G
+    G -->|yes| N
+    N -->|no hit| Ph
+    N -->|hit| PR
+    Ph --> PR
+```
+
+## 7. AI Signals gauge Flow (client)
+
+```mermaid
+sequenceDiagram
+    participant LWC as customerProfileWidget
+    participant Apex as runSignalGaugeFlow
+    participant Fl as Autolaunched Flow
+
+    LWC->>Apex: flowApiName, recordId, vars
+    Apex->>Fl: Flow.Interview
+    Fl-->>Apex: prediction output
+    Apex-->>LWC: Decimal prediction
+    LWC->>LWC: Ring % + label format
 ```
 
 ---

@@ -1,0 +1,11 @@
+{
+  "fullName": "out_DisplayName",
+  "email": "out_ContactEmail",
+  "tierSegment": "out_Segment",
+  "propensityScore": "out_Propensity",
+  "nearbyBranches": "out_BranchesJson",
+  "financialAccounts": "out_AccountRowsJson",
+  "mapLatitude": "out_BillingLat",
+  "mapLongitude": "out_BillingLng",
+  "profilePhotoUrl": "out_PhotoUrl"
+}

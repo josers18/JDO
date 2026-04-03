@@ -4,7 +4,7 @@
         <apexClass>CustomerProfileWidgetController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <description>Customer Profile Widget: Apex class CustomerProfileWidgetController. Assign with Customer Profile Widget DataCloud Callout when using Named Credential DataCloud.</description>
+    <description>Customer Profile Widget: Apex class CustomerProfileWidgetController (required for the LWC).</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>Customer Profile Widget User</label>
 </PermissionSet>

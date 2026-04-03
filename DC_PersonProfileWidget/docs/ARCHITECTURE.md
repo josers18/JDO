@@ -3,42 +3,37 @@
 ## High-level behavior
 
 1. The LWC receives **`recordId`** from the record page (or host).
-2. On `recordId` set (and in `connectedCallback` if already set), it calls **`CustomerProfileWidgetController.getProfileData`** with:
-   - **`graphApiName`** — if blank, step 3 is skipped.
-   - **`recordId`**
-   - **`fieldMappingsJson`** — JSON map built from every `field*` `@api` property (logical key → dot path).
-   - **Flow** parameters — if **`flowApiName`** is blank, Flow merge is skipped.
-3. Apex optionally **GETs** the Data Graph record over HTTP (**Named Credential `DataCloud`**), parses JSON, and **maps** values into `ProfileResult` using dot notation paths.
-4. Apex always **merges** CRM **SOQL** data for the same `recordId` (Account or Contact) into **empty** profile slots (does not overwrite graph values already set).
-5. If **Flow** is configured, Apex runs it and sets **`predictionLabel`** and **`recommendationsJson`** on `ProfileResult` (overwriting any prior values for those two fields when Flow returns data).
+2. On `recordId` set (and in `connectedCallback` if already set), it calls **`CustomerProfileWidgetController.getProfileData`** with assembly Flow settings, prediction Flow settings, and optional **`coreCustomFieldsJson`**.
+3. Apex loads **CRM** data with **SOQL** (Account or Contact) into a baseline `ProfileResult`, including optional custom fields from `coreCustomFieldsJson`.
+4. If **profile assembly Flow** is configured (`profileAssemblyFlowApiName` + non-empty **`profileFlowOutputMapJson`**), Apex runs that autolaunched Flow and copies **Flow output variables** into `ProfileResult` using the map (logical widget key → output variable API name). Apex then **fills blanks** on that result from the SOQL layer (`mergeEnrichFull`).
+5. If **prediction Flow** is configured (`flowApiName`), Apex merges **prediction** and **recommendations** outputs. When the prediction Flow is the **same** API name as the assembly Flow, **one** `Flow.Interview` is reused.
 6. The LWC binds `ProfileResult` to the UI. After ~400 ms it runs **`animateBars()`** on signal bar fills (CSS transform).
-7. If **`promptTemplateId`** is set and **`autoGenerateSummary`** is not explicitly false, the LWC calls **`generateSummary`**, which sends a JSON payload to **Einstein Prompt Template** and displays the returned text on the **Insight** tab.
+7. If **`promptTemplateId`** is set and **`autoGenerateSummary`** is not explicitly false, the LWC calls **`generateSummary`** (Einstein Prompt Template) for the **Insight** tab.
+
+**Flow assignments:** You do not pass a graph JSON blob. Each mapped slot is a normal Flow **output** (Text, Number, Currency, Checkbox, etc.). Apex reads values with `Flow.Interview.getVariableValue`. For **`nearbyBranches`**, store a **Text** output containing a JSON array string, or another type Apex can `JSON.serialize` / deserialize.
 
 ```mermaid
 sequenceDiagram
     participant Page as Record page
     participant LWC as customerProfileWidget
     participant Apex as CustomerProfileWidgetController
-    participant NC as Named Credential DataCloud
-    participant DC as Data Graph API
     participant DB as Salesforce DB
-    participant Flow as Autolaunched Flow
+    participant Asm as Assembly Flow
+    participant Pred as Prediction Flow
     participant E as Einstein Prompt Template
 
     Page->>LWC: recordId set
-    LWC->>Apex: getProfileData(graphApiName, recordId, mappings, flow...)
-    alt graphApiName present
-        Apex->>NC: GET .../ssot/data-graph/{graph}/records/{id}
-        NC->>DC: HTTP
-        DC-->>Apex: JSON body
-        Apex->>Apex: unwrap + applyFieldMappings
-    end
+    LWC->>Apex: getProfileData(recordId, flows, maps...)
     Apex->>DB: SOQL Account or Contact by Id
     DB-->>Apex: row
-    Apex->>Apex: mergeEnrich (fill blanks)
-    alt flowApiName present
-        Apex->>Flow: Flow.Interview.start
-        Flow-->>Apex: prediction, recommendations
+    opt profile assembly configured
+        Apex->>Asm: Flow.Interview.start
+        Asm-->>Apex: output variables
+        Apex->>Apex: applyProfileOutputsFromFlow + mergeEnrichFull
+    end
+    opt flowApiName present
+        Apex->>Pred: Flow.Interview (or reuse Asm)
+        Pred-->>Apex: prediction, recommendations
     end
     Apex-->>LWC: ProfileResult
     LWC->>LWC: animateBars (timeout)
@@ -54,24 +49,13 @@ sequenceDiagram
 
 | Source | When | What it fills |
 |--------|------|----------------|
-| Data Graph | `graphApiName` + successful HTTP | All mapped fields present in JSON |
-| SOQL | Always when `recordId` is valid | Only **null/blank** fields on `ProfileResult` after graph step |
-| Flow | `flowApiName` set | **predictionLabel**, **recommendationsJson** when outputs exist |
-
-## JSON unwrapping (graph response)
-
-Apex **`unwrapGraphRoot`** treats the deserialized body as:
-
-- If top-level has **`record`** object → use that map as the mapping root.
-- Else if top-level has **`data`** object → use that.
-- Else → use the top-level map.
-
-Your Data Graph API response must either be a **flat** map of fields or a structure where the fields you care about live under **`record`** or **`data`**, or adjust paths to start at the correct prefix (e.g. `party.individual.firstName`).
+| Assembly Flow | `profileAssemblyFlowApiName` + output map | Mapped outputs; SOQL fills **remaining blanks** |
+| SOQL only | No assembly Flow | Standard + optional custom CRM fields |
+| Prediction Flow | `flowApiName` set | **predictionLabel**, **recommendationsJson** when outputs exist |
 
 ## Security
 
 - Controller is **`with sharing`**.
-- Graph access is only as strong as the **Named Credential** identity and Data Cloud permissions.
 - Users need **Apex authorization** for the controller class.
 
 ## UI architecture
@@ -93,7 +77,7 @@ flowchart TB
         T6[Insight]
     end
     Header --> Tabs
-    T1 --> F1[Field rows + sparkline]
+    T1 --> F1[Field rows]
     T2 --> F2[Rings + bar chart]
     T3 --> F3[Donut + account cards]
     T4 --> F4[Service cards + suggestions]
@@ -103,6 +87,5 @@ flowchart TB
 
 ## Related docs
 
-- [DATA_GRAPH.md](DATA_GRAPH.md) — how to shape graph JSON and mappings.
 - [DIAGRAMS.md](DIAGRAMS.md) — additional Mermaid figures.
 - [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — designer properties.

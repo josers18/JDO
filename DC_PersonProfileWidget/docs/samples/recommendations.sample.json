@@ -1,0 +1,12 @@
+[
+  {
+    "title": "Increase savings allocation",
+    "detail": "Client cash buffer exceeds policy; suggest moving 5% to money market.",
+    "impact": 72
+  },
+  {
+    "name": "Schedule wealth review",
+    "description": "Last review was 14 months ago; book 30-min advisor session.",
+    "impact": -15
+  }
+]

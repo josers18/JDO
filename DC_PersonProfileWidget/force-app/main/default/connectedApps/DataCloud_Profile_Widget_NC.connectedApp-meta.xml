@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ConnectedApp xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>admin@example.com</contactEmail>
+    <description>OAuth client for Named Credential DataCloud / External Credential D360 (Customer Profile Widget). After deploy: copy Consumer Key and Secret into External Credential principal DataCloud_Integration; set Client Credentials Run As under Edit Policies if not applied by metadata.</description>
+    <label>Data Cloud Profile Widget NC</label>
+    <oauthConfig>
+        <callbackUrl>https://localhost/services/oauth2/callback</callbackUrl>
+        <isClientCredentialEnabled>true</isClientCredentialEnabled>
+        <scopes>Api</scopes>
+    </oauthConfig>
+</ConnectedApp>

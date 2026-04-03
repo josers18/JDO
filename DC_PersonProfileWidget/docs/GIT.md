@@ -22,4 +22,4 @@ sf project deploy start --source-dir force-app --target-org <alias>
 | Apex class | `CustomerProfileWidgetController` |
 | App Builder label | Customer Profile Widget |
 
-Documentation lives in **`README.md`**, **`artifacts.md`**, and **`docs/`**. Root JDO hub: [../../README.md](../../README.md).
+Documentation lives in **`README.md`**, **`artifacts.md`**, and **`docs/`** (start from **[docs/INDEX.md](INDEX.md)**). Root JDO hub: [../../README.md](../../README.md).
