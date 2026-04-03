@@ -2,6 +2,8 @@
 
 Deploy **DC AgentForce Output** and place it on a Lightning page.
 
+**New here?** **[INDEX.md](INDEX.md)** · **[DEPLOY.md](DEPLOY.md)** · **[HOW_TO.md](HOW_TO.md)**
+
 ---
 
 ## 1. Prerequisites

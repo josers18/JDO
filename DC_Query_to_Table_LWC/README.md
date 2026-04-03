@@ -1,105 +1,90 @@
-# DC Query to Table LWC
+# DC Query to Table
 
-## What is it?
+## In everyday terms
 
-**DC Query to Table** is a Lightning Web Component that turns a **Data Cloud SQL query** into a **sortable table** on a Lightning page. An admin defines the **SQL and table options in Lightning App Builder**; visitors see a simple **card** (optional icon and title) and the **rows and columns** returned from Data Cloud—similar to a read-only report snippet embedded on the page. By default the query **runs as soon as the page opens**; you can instead require a **Run query** button so the query executes only when someone asks. It is meant for **exploration and monitoring** of harmonized Data Cloud data inside Salesforce, not for arbitrary SQL editing by every end user.
+**DC Query to Table** is a Lightning card that runs a **Data Cloud SQL** query you define in **Lightning App Builder** and shows the results in a **sortable table**—like a small, read-only report embedded on an app, home, or record page. End users do **not** edit SQL; they view rows and columns. You can run the query **when the page opens** or only when someone clicks **Run query**.
+
+**Who it is for:** Teams that already use **Salesforce Data Cloud** in the **same org** where this code is installed (in-process query API). Cross-org patterns are **not** included in this package.
 
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![LWC](https://img.shields.io/badge/Lightning-Web_Components-0176D3?style=for-the-badge)](https://developer.salesforce.com/docs/component-library/overview/components)
 [![Apex](https://img.shields.io/badge/Apex-04844B?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/)
-[![Metadata API](https://img.shields.io/badge/API-v66.0-032D60?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_intro.htm)
 [![Data Cloud](https://img.shields.io/badge/Data_Cloud-SQL-7F56D9?style=for-the-badge)](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/query-guide-get-started.html)
-
 [![SF CLI](https://img.shields.io/badge/SF_CLI-v2-111111?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://developer.salesforce.com/tools/salesforcecli)
 [![Monorepo](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
 
-<br/>
-
-**Data Cloud SQL** · **`lightning-datatable`** · **Connect API (`CdpQuery`)**
+**Data Cloud SQL** · **Sortable table** · **Auto-run or manual Run query**
 
 </div>
 
 ---
 
-Visual and behavioral alignment with SLDS **data table** patterns is through the platform **`lightning-datatable`** base component, which implements the [Lightning Design System data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) guidance for tabular, scannable layouts.
+## Where to start
+
+| Step | Document |
+|------|----------|
+| 1 | **[docs/INDEX.md](docs/INDEX.md)** — full table of contents |
+| 2 | **[docs/DEPLOY.md](docs/DEPLOY.md)** — install into your org |
+| 3 | **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)** — permissions, page, SQL tips |
+| 4 | **[docs/HOW_TO.md](docs/HOW_TO.md)** — quick recipes |
 
 ---
 
-## Documentation map
+## Documentation map (plain language)
 
-| Document | Purpose |
-|----------|---------|
-| [artifacts.md](artifacts.md) | Deployable metadata inventory |
-| [docs/GIT.md](docs/GIT.md) | Monorepo path and naming |
-| [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Deploy, permissions, App Builder |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Sequence diagram (Mermaid) |
-| [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every App Builder property |
-| [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | Shell, header visibility, table wrapper |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Empty grid, SQL, permissions |
-| [../docs/MOBILE_AND_FORM_FACTORS.md](../docs/MOBILE_AND_FORM_FACTORS.md) | Home vs phone (repo-level) |
-
----
-
-## Requirements
-
-- **Data Cloud** (or equivalent) in the **same org** where this code runs, with Apex access to **`ConnectApi.CdpQuery`**. This matches the pattern described for in-org access in Salesforce’s [Data Cloud + Apex overview](https://developer.salesforce.com/blogs/2023/07/unlocking-the-power-of-apex-in-salesforce-data-cloud-part-1).
-- Users need permission to run Data Cloud queries (your org’s **Data Cloud** / **Einstein** permission model).
-- **API 66.0** project (`sfdx-project.json`).
-
-### Cross-org (CRM → Data Cloud org)
-
-If the UI runs in an org **without** in-process `CdpQuery`, use a **Named Credential** and HTTP callout to the Data Cloud **Query API** instead (see [How to Query Data Cloud from Any Salesforce Org with Apex](https://developer.salesforce.com/blogs/2024/09/how-to-query-data-cloud-from-any-salesforce-org-with-apex)). That variant is **not** shipped in this package; this repo uses the same-org Connect API path only.
+| Document | What it is for |
+|----------|----------------|
+| [docs/INDEX.md](docs/INDEX.md) | Master index and reading order |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy commands and tests |
+| [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | After install: perm set, App Builder, security |
+| [docs/HOW_TO.md](docs/HOW_TO.md) | Short how-tos |
+| [artifacts.md](artifacts.md) | What is in `force-app/` |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Sequence diagram (technical) |
+| [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every property |
+| [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | Header and table shell |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Empty grid, permissions |
+| [docs/GIT.md](docs/GIT.md) | Monorepo path |
+| [../docs/MOBILE_AND_FORM_FACTORS.md](../docs/MOBILE_AND_FORM_FACTORS.md) | Home vs phone |
 
 ---
 
-## Security
+## Requirements (short)
 
-Arbitrary SQL configured in App Builder is **powerful**. Use permission set **DC Query to Table User** (or profile Apex access) only for users who are allowed to **run** the configured queries; tighten **who can edit** the Lightning page. The Apex layer blocks obvious **DML/DDL** tokens but this is **not** a substitute for org policy, Data Cloud permissions, and dataspace access for the running user.
+- **Data Cloud** in the **deployment org**, with Apex access to run Data Cloud queries.  
+- Users need **Data Cloud query** permissions for your org’s model **and** Apex access to **`DcQueryToTableController`** (permission set **DC Query to Table User**).  
+- **API 66.0** project — see `sfdx-project.json`.
+
+**Security:** SQL is powerful. Limit who can **edit** the Lightning page and who gets the permission set. The component blocks obvious **write** SQL patterns, but org policy and Data Cloud roles still matter.
 
 ---
 
-## Deploy
+## Quick deploy
 
 ```bash
-cd JDO/DC_Query_to_Table_LWC
-sf project deploy start --source-dir force-app --target-org <alias>
+cd DC_Query_to_Table_LWC
+sf project deploy start --source-dir force-app --target-org <alias> --wait 10
 ```
 
-Add **DC Query to Table** to a Lightning **app**, **home**, or **record** page. Set **Card title**, **Header icon name**, **Title color (hex)**, **Data Cloud SQL query**, **max rows**, and table options in App Builder.
-
-Assign permission set **DC Query to Table User** to **standard users** who should load the component (Apex class **`DcQueryToTableController`**). They still need **Data Cloud query** rights for your org.
+Then **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)**.
 
 ---
 
-## Behavior
+## Behavior (short)
 
-| Area | Details |
-|------|---------|
-| **UI** | Optional **icon + title** ( **Title color** in App Builder); **datatable** only—no on-page configuration. All [SLDS-style data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table) options (**selection column**, **row numbers**, **column widths mode**, **min width**, **resize**, **header/cell wrap**, **wrap lines**, **suppress footer**, **enable column sorting**, etc.) are **Lightning App Builder** properties only. SQL is **not** shown at runtime. |
-| **Load** | **Auto-run query on page load** (App Builder): when **checked**, the query runs once when the page opens. When **unchecked**, a **Run query** button appears in the header and the user runs the SQL manually. |
-| **Query** | **SELECT** or **WITH … SELECT** only; mutating/DDL keywords rejected with spaces (heuristic). |
-| **LIMIT** | If the statement has **no `LIMIT n`**, Apex appends **`LIMIT`** using **Max rows (auto LIMIT)** (clamped to **2000**). |
-| **Results** | Columns and cells are built from **`queryAnsiSqlV2`** metadata + row data (serialized to maps for the LWC). |
-| **Pagination** | If **`nextBatchId`** is returned, a **warning** toast explains that only the **first batch** is shown; use a tighter `LIMIT` or extend the controller for **`nextBatchAnsiSqlV2`** later. |
-| **Table** | **Immutable** display: default **hide checkboxes**; optional **row numbers**, **column width** mode, **min width**, **resize**, **header wrap**, **cell wrap** max lines, **suppress bottom bar**. **Enable column sorting** (default on) sets `sortable` on columns and sorts loaded rows client-side (`onsort`); date/datetime columns use parsed timestamps when possible. |
+| Topic | Summary |
+|-------|---------|
+| **Load** | Optional **auto-run** on page open, or **Run query** button. |
+| **SQL** | **SELECT** / **WITH … SELECT**; mutating keywords rejected. **LIMIT** added if missing (capped). |
+| **Table** | Platform **lightning-datatable**; sorting and layout options come from App Builder. |
+| **More rows** | If the platform returns a “next batch,” only the **first batch** is shown unless you extend the code. |
 
 ---
 
-## Troubleshooting: always empty or “no records”
+## Troubleshooting (very short)
 
-1. **Parser / UI (fixed in recent versions)** — Earlier builds read only camelCase JSON keys from `JSON.serialize(ConnectApi…)`, so **`metadata` / `data` / `rowData` were missed** when the platform emitted **PascalCase**. That produced **zero columns**, and the LWC hid the table entirely (it required both columns and rows). Current code uses **case-insensitive keys** and can **infer columns from the first row** if metadata is missing. Deploy the latest controller + LWC.
-
-2. **Real zero-row query** — Data Cloud objects may be empty in your dataspace, or filters may match nothing. Confirm in the **Data Cloud Query Editor** or `sf data360 query sql` with the **same SQL** and **same user context**.
-
-3. **Permissions** — The running user needs rights to execute Data Cloud SQL (your org’s **Data Cloud** / **Einstein** / **CDP query** permission sets). **`DcQueryToTableController`** must be allowed for that user’s profile or permission set.
-
-4. **Wrong object or quoting** — Use **Data Cloud SQL** table names (often `Something__dlm` / DMO names). Quote identifiers when case matters: `"ssot__Individual__dlm"`.
-
-5. **`LIMIT` / `OFFSET`** — If the query already had `LIMIT` not at the very end, the old logic could append a **second** `LIMIT` and break execution. Current logic treats any `LIMIT n` in the statement as sufficient.
-
-6. **Org shape** — `ConnectApi.CdpQuery` is intended for **Data Cloud–enabled** orgs. If you query **across orgs**, you need a **Named Credential** + HTTP Query API instead (not included in this package).
+Empty table → same SQL in Data Cloud Query Editor, check permissions, see **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 
 ---
 
@@ -107,15 +92,12 @@ Assign permission set **DC Query to Table User** to **standard users** who shoul
 
 | Path | Role |
 |------|------|
-| `force-app/.../lwc/dcQueryToTableLwc/` | Shell header (icon + title color), auto-run on load, `lightning-datatable` |
-| `force-app/.../classes/DcQueryToTableController.cls` | `runDataCloudSql` → `ConnectApi.CdpQuery.queryAnsiSqlV2` |
-| `force-app/.../classes/DcQueryToTableControllerTest.cls` | Validation + mock result tests |
+| `force-app/.../lwc/dcQueryToTableLwc/` | UI |
+| `force-app/.../classes/DcQueryToTableController.cls` | Runs `ConnectApi.CdpQuery.queryAnsiSqlV2` |
 
 ---
 
 ## References
 
-- [Data Cloud Query Guide](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/query-guide-get-started.html)
-- [Data Cloud SQL syntax](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/dc-sql-reference/syntax.html)
-- [lightning-datatable](https://developer.salesforce.com/docs/component-library/bundle/lightning-datatable/documentation) (SLDS-aligned table UI)
-- [LDS: Data table](https://www.lightningdesignsystem.com/2e1ef8501/p/86f13a-data-table)
+- [Data Cloud Query Guide](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/query-guide-get-started.html)  
+- [lightning-datatable](https://developer.salesforce.com/docs/component-library/bundle/lightning-datatable/documentation)

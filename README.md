@@ -43,13 +43,15 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 
 ## Projects
 
-| Path | Description |
-|------|-------------|
-| [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | **Prediction Model** LWC — Flow-driven prediction with **percent gauge** or **regression-style metric** (integer/decimal/currency), driver JSON, optional Einstein summary. [Artifacts](DC_Prediction_Model_LWC/artifacts.md) · [Architecture](DC_Prediction_Model_LWC/docs/ARCHITECTURE.md) |
-| [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass Prediction** — text class label, diverging contribution chart, optional summary. Distinct Apex/LWC names from Prediction Model. [Artifacts](DC_Multiclass_Prediction_LWC/artifacts.md) |
-| [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | **DC AgentForce Output** — autolaunched Flow-driven generative display (text / HTML / Markdown), copy, expand, print, optional Models API thumbs. [Artifacts](DC_AgentForce_Output_LWC/artifacts.md) · [Requirements](DC_AgentForce_Output_LWC/docs/REQUIREMENTS.md) |
-| [**DC_Query_to_Table_LWC**](DC_Query_to_Table_LWC/README.md) | **DC Query to Table** — Data Cloud ANSI SQL via **`ConnectApi.CdpQuery.queryAnsiSqlV2`**, **`lightning-datatable`**. [Artifacts](DC_Query_to_Table_LWC/artifacts.md) · [Component reference](DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md) |
-| [**DC_PersonProfileWidget**](DC_PersonProfileWidget/README.md) | **Customer Profile Widget** — Six-tab premium profile card: **Data Graph** (HTTP) + SOQL merge, optional **Flow** + **Einstein** summary, full theming. [Artifacts](DC_PersonProfileWidget/artifacts.md) · [Setup](DC_PersonProfileWidget/docs/SETUP.md) · [Data Graph](DC_PersonProfileWidget/docs/DATA_GRAPH.md) |
+Each folder with `sfdx-project.json` is its own package. For **easy onboarding**, open the project’s **`docs/INDEX.md`** (reading order, deploy, how-tos in plain language).
+
+| Path | In short | Doc index |
+|------|----------|-----------|
+| [**DC_PersonProfileWidget**](DC_PersonProfileWidget/README.md) | Six-tab **customer profile** card; Salesforce data + optional Flows + optional AI | [docs/INDEX](DC_PersonProfileWidget/docs/INDEX.md) |
+| [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | **Prediction Model** — percent **gauge** or big **number**, drivers, optional summary | [docs/INDEX](DC_Prediction_Model_LWC/docs/INDEX.md) |
+| [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass** — **text category** + diverging bars (not the same as Prediction Model) | [docs/INDEX](DC_Multiclass_Prediction_LWC/docs/INDEX.md) |
+| [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | **Agent output** card — shows Flow-generated text/HTML/Markdown; copy, print, optional thumbs | [docs/INDEX](DC_AgentForce_Output_LWC/docs/INDEX.md) |
+| [**DC_Query_to_Table_LWC**](DC_Query_to_Table_LWC/README.md) | **Data Cloud SQL** results as a **sortable table** on a Lightning page | [docs/INDEX](DC_Query_to_Table_LWC/docs/INDEX.md) |
 
 ---
 

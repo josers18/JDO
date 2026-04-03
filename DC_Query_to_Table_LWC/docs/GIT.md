@@ -1,5 +1,7 @@
 # Git and monorepo notes
 
+**Documentation:** Start from **[INDEX.md](INDEX.md)** for all guides (deploy, setup, how-tos).
+
 ## Path in the JDO repo
 
 ```text

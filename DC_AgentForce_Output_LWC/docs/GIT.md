@@ -56,12 +56,16 @@ Do not commit `.sfdx/`, auth files, or secrets.
 
 ## Documentation index
 
+**Start here:** [INDEX.md](INDEX.md) (reading order, plain-language map).
+
 | Doc | Topic |
 |-----|--------|
-| [README.md](../README.md) | Overview and quick start |
+| [README.md](../README.md) | Overview |
+| [DEPLOY.md](DEPLOY.md) | Install |
+| [HOW_TO.md](HOW_TO.md) | Short recipes |
 | [artifacts.md](../artifacts.md) | File inventory |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Org requirements |
-| [SETUP_GUIDE.md](SETUP_GUIDE.md) | Deploy and configure |
+| [SETUP_GUIDE.md](SETUP_GUIDE.md) | Configure Flow + page |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Diagrams |
 | [FLOW_GUIDE.md](FLOW_GUIDE.md) | Flow contract |
 | [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) | Designer properties |

@@ -1,5 +1,9 @@
 # Setup guide — DC Query to Table
 
+**New here?** Open **[INDEX.md](INDEX.md)** for the full doc list, **[DEPLOY.md](DEPLOY.md)** to install, and **[HOW_TO.md](HOW_TO.md)** for quick tasks.
+
+---
+
 ## 1. Prerequisites
 
 - **Salesforce org** with **Data Cloud** (or equivalent) in the **same** org as the deployment target.

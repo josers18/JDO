@@ -52,9 +52,13 @@ Do not commit `.sfdx/`, `node_modules/`, or org auth artifacts — they are list
 
 ## Documentation index (this project)
 
+**Start here:** [INDEX.md](INDEX.md) (reading order).
+
 | Doc | Topic |
 |-----|--------|
 | [README.md](../README.md) | Overview, install, features |
+| [DEPLOY.md](DEPLOY.md) | Install commands |
+| [HOW_TO.md](HOW_TO.md) | Short recipes |
 | [artifacts.md](../artifacts.md) | Source files and dependencies |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Diagrams, rendering, errors |
 | [UI_LAYOUT.md](UI_LAYOUT.md) | Gauge vs metric panel, responsive UI |

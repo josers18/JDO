@@ -2,6 +2,8 @@
 
 What the org and users need for **DC AgentForce Output** to work.
 
+**Reading order:** [INDEX.md](INDEX.md) → [DEPLOY.md](DEPLOY.md) → this page → [SETUP_GUIDE.md](SETUP_GUIDE.md).
+
 ---
 
 ## Salesforce edition and features
