@@ -23,6 +23,7 @@
 | Project | Doc index (start here) | README | Artifacts |
 |---------|------------------------|--------|-----------|
 | DC_PersonProfileWidget | [INDEX](../DC_PersonProfileWidget/docs/INDEX.md) | [README](../DC_PersonProfileWidget/README.md) | [artifacts](../DC_PersonProfileWidget/artifacts.md) |
+| DC_BusinessProfileWidget | [INDEX](../DC_BusinessProfileWidget/docs/INDEX.md) | [README](../DC_BusinessProfileWidget/README.md) | [artifacts](../DC_BusinessProfileWidget/artifacts.md) |
 | DC_Prediction_Model_LWC | [INDEX](../DC_Prediction_Model_LWC/docs/INDEX.md) | [README](../DC_Prediction_Model_LWC/README.md) | [artifacts](../DC_Prediction_Model_LWC/artifacts.md) |
 | DC_Multiclass_Prediction_LWC | [INDEX](../DC_Multiclass_Prediction_LWC/docs/INDEX.md) | [README](../DC_Multiclass_Prediction_LWC/README.md) | [artifacts](../DC_Multiclass_Prediction_LWC/artifacts.md) |
 | DC_AgentForce_Output_LWC | [INDEX](../DC_AgentForce_Output_LWC/docs/INDEX.md) | [README](../DC_AgentForce_Output_LWC/README.md) | [artifacts](../DC_AgentForce_Output_LWC/artifacts.md) |
@@ -33,7 +34,7 @@
 ## Guides inside projects
 
 - **Deploy / how-tos:** `docs/DEPLOY.md` and `docs/HOW_TO.md` (all projects above except optional extras).
-- **Flows:** `docs/FLOW_GUIDE.md` (Prediction, Multiclass, AgentForce Output). Query-to-Table has no Flow dependency.
+- **Flows:** `docs/FLOW_GUIDE.md` (Prediction, Multiclass, AgentForce Output). Person and Business profile widgets each have `docs/FLOW_GUIDE.md`. Query-to-Table has no Flow dependency.
 - **Prompt Builder:** `docs/PROMPT_TEMPLATE_GUIDE.md` (Prediction, Multiclass).
 - **Setup / requirements:** `docs/SETUP_GUIDE.md`, `docs/REQUIREMENTS.md` (AgentForce Output); `docs/SETUP_GUIDE.md` (Query to Table); `docs/SETUP.md` (Person Profile Widget).
 - **Git / naming:** `docs/GIT.md` in each project.

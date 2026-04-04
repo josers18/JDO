@@ -1,6 +1,6 @@
 # DC Person Profile Widget
 
-A **rich customer profile card** for Salesforce **Account** and **Contact** record pages. It shows a polished header, key metrics, and **six tabs** (Overview, AI Signals, Portfolio, Services, Location, Insight).
+A **rich customer profile card** for Salesforce **Account** and **Contact** record pages. It shows a polished header, key metrics, and **seven tabs** by default (Overview, AI Signals, Portfolio, Services, **Structure**, Location, Insight). The **Structure** tab shows related accounts, an org-style chart, and key contacts (Financial Services–friendly).
 
 **In everyday terms:** The card reads data from your Salesforce records (names, addresses, balances, and custom fields you map). Optionally, it can pull extra values from **Flows** (automations with no screens), show **AI-generated text** on the Insight tab, and use **Einstein Prompt Builder** for a short narrative—if your org has those features turned on.
 
@@ -16,7 +16,7 @@ A **rich customer profile card** for Salesforce **Account** and **Contact** reco
 [![SF CLI](https://img.shields.io/badge/SF_CLI-v2-111111?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://developer.salesforce.com/tools/salesforcecli)
 [![Metadata API](https://img.shields.io/badge/Bundle_API-v62.0-032D60?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_intro.htm)
 
-**Six tabs** · **Themes and colors** · **Optional Flows and AI**
+**Seven tabs (incl. Structure)** · **Themes and colors** · **Optional Flows and AI** · **SOQL or `flow:` / `flows:` field sources**
 
 </div>
 
@@ -75,9 +75,16 @@ Replace `<your-org-alias>` with the nickname you use for that org. After a succe
 
 ---
 
-## Flows (simple explanation)
+## Flows and field sources (simple explanation)
 
-You **do not** need a special “graph JSON” format. If you use a Flow, it should be **autolaunched** (no screens). The Flow sets **output variables**; you tell the widget which output goes to which part of the card (in App Builder or in a small JSON map). Standard data types (text, number, yes/no) are fine. For branch lists or account rows, the Flow often stores a **text** value that contains JSON—see **[docs/samples/](docs/samples/README.md)**.
+You **do not** need a special “graph JSON” format for the profile. If you use a Flow, it should be **autolaunched** (no screens). The Flow sets **output variables**; you map each widget slot to either a **Flow output** or a **CRM field path**, the same idea as the **Business Profile Widget**:
+
+- Prefix **`flow:`** or **`flows:`** plus the Flow variable API name (for example `flow:Tier_Out`).  
+- Or use an **Account** or **Contact** field path for that slot (for example `MailingCity`, `Account.Industry` on Contact).  
+
+**Core custom fields** JSON supports the same pattern. If **every** assembly slot is satisfied from SOQL only, the **profile assembly Flow does not need to run** for those mappings (Insight/prediction Flow may still run separately). See **[docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md)** and **[docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md)**.
+
+For branch lists or portfolio rows, the Flow often stores **text** containing JSON—see **[docs/samples/](docs/samples/README.md)**.
 
 ---
 

@@ -18,8 +18,9 @@
 
 | What you see | Likely cause | What to try |
 |--------------|--------------|-------------|
-| Toast: **Profile assembly flow failed** | Wrong Flow API name, missing input, or bad JSON map | Flow must be **autolaunched**; record Id input name must match; output names must match App Builder. |
-| Field empty though Flow sets it | Output variable **API name** does not match the mapping | Check spelling/case; align with **[Asm flow output]** or JSON map. |
+| Toast: **Profile assembly flow failed** | Wrong Flow API name, missing input, or bad JSON map | Flow must be **autolaunched**; record Id input name must match; **`flow:`/`flows:`** variables must exist on the Flow. |
+| Field empty though Flow sets it | Output variable **API name** does not match the mapping | For Flow-backed slots use **`flow:VarName`**; check spelling/case. For SOQL slots, use a valid **field path** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)). |
+| Assembly Flow runs when you expected SOQL only | A mapping string is not a valid field path | Apex treats invalid paths as **legacy Flow** names. Fix the path or prefix Flow outputs with **`flow:`**. |
 | **Branches** list missing or broken | Output is not valid JSON list | Use **Text** with a JSON array, or a collection Apex can serialize. [Sample](samples/nearby-branches.sample.json). |
 | **Insight** has no prediction | Prediction Flow not set or Flow failed silently | Set **Autolaunched flow API name (predictions)**; developer checks **debug logs** (errors are not always shown to the user). |
 

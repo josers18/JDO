@@ -1,4 +1,5 @@
 import { LightningElement, api } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getProfileData from '@salesforce/apex/CustomerProfileWidgetController.getProfileData';
 import generateSummary from '@salesforce/apex/CustomerProfileWidgetController.generateSummary';
@@ -6,8 +7,6 @@ import runSignalGaugeFlow from '@salesforce/apex/CustomerProfileWidgetController
 import { buildProcessedRecommendationRows } from './profileInsightRows';
 
 const THEMES = {
-
-  /* ── ORIGINAL 4 ── */
 
   obsidian: {
     '--wp-shell-bg':       '#0c0a0f',
@@ -29,7 +28,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(100,120,180,0.07)',
     '--wp-insight-bg':     'rgba(184,149,106,0.04)',
   },
-
   midnight: {
     '--wp-shell-bg':       '#060a14',
     '--wp-shell-border':   'rgba(184,149,106,0.08)',
@@ -50,7 +48,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(40,60,120,0.12)',
     '--wp-insight-bg':     'rgba(184,149,106,0.05)',
   },
-
   graphite: {
     '--wp-shell-bg':       '#242424',
     '--wp-shell-border':   'rgba(184,149,106,0.15)',
@@ -71,7 +68,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(60,60,60,0.30)',
     '--wp-insight-bg':     'rgba(184,149,106,0.06)',
   },
-
   ivory: {
     '--wp-shell-bg':       '#f7f4ee',
     '--wp-shell-border':   'rgba(184,149,106,0.20)',
@@ -92,9 +88,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(100,80,40,0.04)',
     '--wp-insight-bg':     'rgba(184,149,106,0.06)',
   },
-
-  /* ── BATCH 2 — ELEGANT NEUTRALS ── */
-
   dusk: {
     '--wp-shell-bg':       '#1e1528',
     '--wp-shell-border':   'rgba(184,149,106,0.07)',
@@ -115,7 +108,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(120,80,160,0.15)',
     '--wp-insight-bg':     'rgba(184,149,106,0.04)',
   },
-
   slate: {
     '--wp-shell-bg':       '#141e2a',
     '--wp-shell-border':   'rgba(184,149,106,0.07)',
@@ -136,7 +128,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(60,90,140,0.15)',
     '--wp-insight-bg':     'rgba(184,149,106,0.04)',
   },
-
   parchment: {
     '--wp-shell-bg':       '#f5edd8',
     '--wp-shell-border':   'rgba(160,120,60,0.20)',
@@ -157,7 +148,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(140,100,50,0.06)',
     '--wp-insight-bg':     'rgba(184,149,106,0.07)',
   },
-
   onyx: {
     '--wp-shell-bg':       '#0f0f0f',
     '--wp-shell-border':   'rgba(184,149,106,0.06)',
@@ -178,7 +168,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(0,0,0,0)',
     '--wp-insight-bg':     'rgba(184,149,106,0.03)',
   },
-
   fog: {
     '--wp-shell-bg':       '#eceef2',
     '--wp-shell-border':   'rgba(184,149,106,0.18)',
@@ -199,9 +188,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(80,100,130,0.05)',
     '--wp-insight-bg':     'rgba(184,149,106,0.06)',
   },
-
-  /* ── BATCH 3 — GREENS & ORANGES ── */
-
   forest: {
     '--wp-shell-bg':       '#0c1810',
     '--wp-shell-border':   'rgba(100,180,120,0.08)',
@@ -222,7 +208,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(30,100,50,0.20)',
     '--wp-insight-bg':     'rgba(184,149,106,0.04)',
   },
-
   ember: {
     '--wp-shell-bg':       '#18100a',
     '--wp-shell-border':   'rgba(220,120,40,0.08)',
@@ -243,7 +228,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(160,60,20,0.15)',
     '--wp-insight-bg':     'rgba(220,120,40,0.05)',
   },
-
   sage: {
     '--wp-shell-bg':       '#e4ede6',
     '--wp-shell-border':   'rgba(80,120,80,0.18)',
@@ -264,7 +248,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(60,100,60,0.06)',
     '--wp-insight-bg':     'rgba(184,149,106,0.07)',
   },
-
   copper: {
     '--wp-shell-bg':       '#160e08',
     '--wp-shell-border':   'rgba(200,130,50,0.08)',
@@ -285,7 +268,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(120,60,20,0.18)',
     '--wp-insight-bg':     'rgba(200,130,50,0.05)',
   },
-
   verdant: {
     '--wp-shell-bg':       '#e8f2e8',
     '--wp-shell-border':   'rgba(60,120,70,0.18)',
@@ -306,9 +288,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(40,100,50,0.07)',
     '--wp-insight-bg':     'rgba(184,149,106,0.07)',
   },
-
-  /* ── BATCH 4 — BLUES & GREYS ── */
-
   steel: {
     '--wp-shell-bg':       '#101826',
     '--wp-shell-border':   'rgba(184,149,106,0.07)',
@@ -329,7 +308,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(30,70,130,0.18)',
     '--wp-insight-bg':     'rgba(184,149,106,0.04)',
   },
-
   mercury: {
     '--wp-shell-bg':       '#181c22',
     '--wp-shell-border':   'rgba(184,149,106,0.07)',
@@ -350,7 +328,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(80,90,110,0.20)',
     '--wp-insight-bg':     'rgba(184,149,106,0.04)',
   },
-
   arctic: {
     '--wp-shell-bg':       '#dde8f4',
     '--wp-shell-border':   'rgba(80,130,180,0.18)',
@@ -371,7 +348,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(60,110,160,0.08)',
     '--wp-insight-bg':     'rgba(184,149,106,0.07)',
   },
-
   indigo: {
     '--wp-shell-bg':       '#10101e',
     '--wp-shell-border':   'rgba(184,149,106,0.07)',
@@ -392,7 +368,6 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(80,60,180,0.18)',
     '--wp-insight-bg':     'rgba(184,149,106,0.04)',
   },
-
   glacier: {
     '--wp-shell-bg':       '#e8eff5',
     '--wp-shell-border':   'rgba(100,130,160,0.18)',
@@ -413,9 +388,468 @@ const THEMES = {
     '--wp-hdr-glow2':      'rgba(80,110,140,0.07)',
     '--wp-insight-bg':     'rgba(184,149,106,0.07)',
   },
+  bordeaux: {
+    '--wp-shell-bg':       '#362030',
+    '--wp-shell-border':   'rgba(184,149,106,0.12)',
+    '--wp-panel-bg':       '#422838',
+    '--wp-surface':        '#4e3040',
+    '--wp-border-soft':    'rgba(255,255,255,0.07)',
+    '--wp-border-med':     'rgba(255,255,255,0.11)',
+    '--wp-text-primary':   '#f5e8f0',
+    '--wp-text-secondary': 'rgba(245,232,240,0.42)',
+    '--wp-text-tertiary':  'rgba(245,232,240,0.26)',
+    '--wp-kpi-bg':         '#422838',
+    '--wp-track-bg':       'rgba(255,255,255,0.08)',
+    '--wp-tab-border':     'rgba(184,149,106,0.14)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.05)',
+    '--wp-org-bg':         'rgba(255,255,255,0.03)',
+    '--wp-body-bg':        '#2a1622',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.18)',
+    '--wp-hdr-glow2':      'rgba(180,50,80,0.15)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.06)',
+  },
+  pewter: {
+    '--wp-shell-bg':       '#383a44',
+    '--wp-shell-border':   'rgba(184,149,106,0.10)',
+    '--wp-panel-bg':       '#424550',
+    '--wp-surface':        '#4c4f5c',
+    '--wp-border-soft':    'rgba(255,255,255,0.07)',
+    '--wp-border-med':     'rgba(255,255,255,0.11)',
+    '--wp-text-primary':   '#f0eef4',
+    '--wp-text-secondary': 'rgba(240,238,244,0.42)',
+    '--wp-text-tertiary':  'rgba(240,238,244,0.26)',
+    '--wp-kpi-bg':         '#424550',
+    '--wp-track-bg':       'rgba(255,255,255,0.08)',
+    '--wp-tab-border':     'rgba(184,149,106,0.12)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.05)',
+    '--wp-org-bg':         'rgba(255,255,255,0.03)',
+    '--wp-body-bg':        '#2c2e36',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.14)',
+    '--wp-hdr-glow2':      'rgba(100,105,130,0.20)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.06)',
+  },
+  walnut: {
+    '--wp-shell-bg':       '#3a2a1e',
+    '--wp-shell-border':   'rgba(184,149,106,0.14)',
+    '--wp-panel-bg':       '#463424',
+    '--wp-surface':        '#523e2e',
+    '--wp-border-soft':    'rgba(255,255,255,0.06)',
+    '--wp-border-med':     'rgba(255,255,255,0.10)',
+    '--wp-text-primary':   '#f8f0e4',
+    '--wp-text-secondary': 'rgba(248,240,228,0.42)',
+    '--wp-text-tertiary':  'rgba(248,240,228,0.26)',
+    '--wp-kpi-bg':         '#463424',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(184,149,106,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.04)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#2c2018',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.20)',
+    '--wp-hdr-glow2':      'rgba(140,90,40,0.18)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.07)',
+  },
+  denim: {
+    '--wp-shell-bg':       '#263650',
+    '--wp-shell-border':   'rgba(184,149,106,0.10)',
+    '--wp-panel-bg':       '#2e4060',
+    '--wp-surface':        '#364a6c',
+    '--wp-border-soft':    'rgba(255,255,255,0.07)',
+    '--wp-border-med':     'rgba(255,255,255,0.11)',
+    '--wp-text-primary':   '#eaf0f8',
+    '--wp-text-secondary': 'rgba(234,240,248,0.40)',
+    '--wp-text-tertiary':  'rgba(234,240,248,0.24)',
+    '--wp-kpi-bg':         '#2e4060',
+    '--wp-track-bg':       'rgba(255,255,255,0.08)',
+    '--wp-tab-border':     'rgba(184,149,106,0.12)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.05)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#1e2c40',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.16)',
+    '--wp-hdr-glow2':      'rgba(40,80,150,0.20)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.06)',
+  },
+  moss: {
+    '--wp-shell-bg':       '#283428',
+    '--wp-shell-border':   'rgba(184,149,106,0.10)',
+    '--wp-panel-bg':       '#323e32',
+    '--wp-surface':        '#3c4a3c',
+    '--wp-border-soft':    'rgba(255,255,255,0.07)',
+    '--wp-border-med':     'rgba(255,255,255,0.11)',
+    '--wp-text-primary':   '#eaf4ec',
+    '--wp-text-secondary': 'rgba(234,244,236,0.40)',
+    '--wp-text-tertiary':  'rgba(234,244,236,0.24)',
+    '--wp-kpi-bg':         '#323e32',
+    '--wp-track-bg':       'rgba(255,255,255,0.08)',
+    '--wp-tab-border':     'rgba(184,149,106,0.12)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.05)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#1e2a20',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.16)',
+    '--wp-hdr-glow2':      'rgba(40,100,50,0.20)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.06)',
+  },
+  birch: {
+    '--wp-shell-bg':       '#e8e0d0',
+    '--wp-shell-border':   'rgba(100,70,30,0.18)',
+    '--wp-panel-bg':       '#ddd6c4',
+    '--wp-surface':        '#e8e0d0',
+    '--wp-border-soft':    'rgba(40,32,14,0.08)',
+    '--wp-border-med':     'rgba(40,32,14,0.14)',
+    '--wp-text-primary':   '#1e1608',
+    '--wp-text-secondary': 'rgba(30,22,8,0.50)',
+    '--wp-text-tertiary':  'rgba(30,22,8,0.34)',
+    '--wp-kpi-bg':         '#ddd6c4',
+    '--wp-track-bg':       'rgba(30,22,8,0.12)',
+    '--wp-tab-border':     'rgba(120,80,30,0.20)',
+    '--wp-contact-bg':     'rgba(30,22,8,0.05)',
+    '--wp-org-bg':         'rgba(30,22,8,0.02)',
+    '--wp-body-bg':        '#b8aea0',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.14)',
+    '--wp-hdr-glow2':      'rgba(120,90,50,0.08)',
+    '--wp-insight-bg':     'rgba(120,80,30,0.07)',
+  },
+  mist: {
+    '--wp-shell-bg':       '#dde6ee',
+    '--wp-shell-border':   'rgba(60,100,140,0.16)',
+    '--wp-panel-bg':       '#cfd9e4',
+    '--wp-surface':        '#dde6ee',
+    '--wp-border-soft':    'rgba(14,30,46,0.08)',
+    '--wp-border-med':     'rgba(14,30,46,0.14)',
+    '--wp-text-primary':   '#0e1e2e',
+    '--wp-text-secondary': 'rgba(14,30,46,0.50)',
+    '--wp-text-tertiary':  'rgba(14,30,46,0.34)',
+    '--wp-kpi-bg':         '#cfd9e4',
+    '--wp-track-bg':       'rgba(14,30,46,0.10)',
+    '--wp-tab-border':     'rgba(184,149,106,0.20)',
+    '--wp-contact-bg':     'rgba(14,30,46,0.04)',
+    '--wp-org-bg':         'rgba(14,30,46,0.02)',
+    '--wp-body-bg':        '#c8d8e8',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.14)',
+    '--wp-hdr-glow2':      'rgba(60,100,160,0.08)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.10)',
+  },
+  cashew: {
+    '--wp-shell-bg':       '#e4d4b8',
+    '--wp-shell-border':   'rgba(100,70,20,0.18)',
+    '--wp-panel-bg':       '#d9c8a8',
+    '--wp-surface':        '#e4d4b8',
+    '--wp-border-soft':    'rgba(28,18,4,0.08)',
+    '--wp-border-med':     'rgba(28,18,4,0.14)',
+    '--wp-text-primary':   '#1c1204',
+    '--wp-text-secondary': 'rgba(28,18,4,0.50)',
+    '--wp-text-tertiary':  'rgba(28,18,4,0.34)',
+    '--wp-kpi-bg':         '#d9c8a8',
+    '--wp-track-bg':       'rgba(28,18,4,0.10)',
+    '--wp-tab-border':     'rgba(140,100,30,0.20)',
+    '--wp-contact-bg':     'rgba(28,18,4,0.05)',
+    '--wp-org-bg':         'rgba(28,18,4,0.02)',
+    '--wp-body-bg':        '#a88870',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.20)',
+    '--wp-hdr-glow2':      'rgba(0,0,0,0)',
+    '--wp-insight-bg':     'rgba(140,100,30,0.08)',
+  },
+  mineral: {
+    '--wp-shell-bg':       '#d0d8dc',
+    '--wp-shell-border':   'rgba(60,90,110,0.18)',
+    '--wp-panel-bg':       '#c2ccd2',
+    '--wp-surface':        '#d0d8dc',
+    '--wp-border-soft':    'rgba(12,28,40,0.08)',
+    '--wp-border-med':     'rgba(12,28,40,0.14)',
+    '--wp-text-primary':   '#0c1c28',
+    '--wp-text-secondary': 'rgba(12,28,40,0.50)',
+    '--wp-text-tertiary':  'rgba(12,28,40,0.34)',
+    '--wp-kpi-bg':         '#c2ccd2',
+    '--wp-track-bg':       'rgba(12,28,40,0.10)',
+    '--wp-tab-border':     'rgba(184,149,106,0.20)',
+    '--wp-contact-bg':     'rgba(12,28,40,0.04)',
+    '--wp-org-bg':         'rgba(12,28,40,0.02)',
+    '--wp-body-bg':        '#bcc8d0',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.16)',
+    '--wp-hdr-glow2':      'rgba(50,80,100,0.08)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.10)',
+  },
+  blush: {
+    '--wp-shell-bg':       '#e8d8d4',
+    '--wp-shell-border':   'rgba(100,60,50,0.16)',
+    '--wp-panel-bg':       '#dccac6',
+    '--wp-surface':        '#e8d8d4',
+    '--wp-border-soft':    'rgba(30,16,12,0.08)',
+    '--wp-border-med':     'rgba(30,16,12,0.14)',
+    '--wp-text-primary':   '#1e100c',
+    '--wp-text-secondary': 'rgba(30,16,12,0.50)',
+    '--wp-text-tertiary':  'rgba(30,16,12,0.34)',
+    '--wp-kpi-bg':         '#dccac6',
+    '--wp-track-bg':       'rgba(30,16,12,0.10)',
+    '--wp-tab-border':     'rgba(140,80,60,0.20)',
+    '--wp-contact-bg':     'rgba(30,16,12,0.05)',
+    '--wp-org-bg':         'rgba(30,16,12,0.02)',
+    '--wp-body-bg':        '#d0c0bc',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.16)',
+    '--wp-hdr-glow2':      'rgba(160,90,70,0.08)',
+    '--wp-insight-bg':     'rgba(140,80,60,0.08)',
+  },
+  chamois: {
+    '--wp-shell-bg':       '#d8ccb4',
+    '--wp-shell-border':   'rgba(90,65,20,0.18)',
+    '--wp-panel-bg':       '#cdbfa4',
+    '--wp-surface':        '#d8ccb4',
+    '--wp-border-soft':    'rgba(26,20,4,0.08)',
+    '--wp-border-med':     'rgba(26,20,4,0.14)',
+    '--wp-text-primary':   '#1a1404',
+    '--wp-text-secondary': 'rgba(26,20,4,0.52)',
+    '--wp-text-tertiary':  'rgba(26,20,4,0.36)',
+    '--wp-kpi-bg':         '#cdbfa4',
+    '--wp-track-bg':       'rgba(26,20,4,0.10)',
+    '--wp-tab-border':     'rgba(120,85,30,0.22)',
+    '--wp-contact-bg':     'rgba(26,20,4,0.05)',
+    '--wp-org-bg':         'rgba(26,20,4,0.02)',
+    '--wp-body-bg':        '#b0a080',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.20)',
+    '--wp-hdr-glow2':      'rgba(0,0,0,0)',
+    '--wp-insight-bg':     'rgba(120,85,30,0.09)',
+  },
+  bullion: {
+    '--wp-shell-bg':       '#12100a',
+    '--wp-shell-border':   'rgba(212,168,32,0.18)',
+    '--wp-panel-bg':       '#1c180c',
+    '--wp-surface':        '#262010',
+    '--wp-border-soft':    'rgba(212,168,32,0.08)',
+    '--wp-border-med':     'rgba(212,168,32,0.14)',
+    '--wp-text-primary':   '#f8f4e0',
+    '--wp-text-secondary': 'rgba(248,244,224,0.42)',
+    '--wp-text-tertiary':  'rgba(248,244,224,0.26)',
+    '--wp-kpi-bg':         '#1c180c',
+    '--wp-track-bg':       'rgba(255,255,255,0.06)',
+    '--wp-tab-border':     'rgba(212,168,32,0.14)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.02)',
+    '--wp-body-bg':        '#0c0c08',
+    '--wp-hdr-glow1':      'rgba(212,168,32,0.18)',
+    '--wp-hdr-glow2':      'rgba(160,120,20,0.12)',
+    '--wp-insight-bg':     'rgba(212,168,32,0.05)',
+  },
+  prussian: {
+    '--wp-shell-bg':       '#12243a',
+    '--wp-shell-border':   'rgba(184,149,106,0.14)',
+    '--wp-panel-bg':       '#1a3050',
+    '--wp-surface':        '#223c60',
+    '--wp-border-soft':    'rgba(255,255,255,0.06)',
+    '--wp-border-med':     'rgba(255,255,255,0.10)',
+    '--wp-text-primary':   '#e8f0fa',
+    '--wp-text-secondary': 'rgba(232,240,250,0.40)',
+    '--wp-text-tertiary':  'rgba(232,240,250,0.24)',
+    '--wp-kpi-bg':         '#1a3050',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(184,149,106,0.14)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#0c1828',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.18)',
+    '--wp-hdr-glow2':      'rgba(20,60,120,0.25)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.05)',
+  },
+  coutts: {
+    '--wp-shell-bg':       '#0a1e12',
+    '--wp-shell-border':   'rgba(184,149,106,0.14)',
+    '--wp-panel-bg':       '#102818',
+    '--wp-surface':        '#183420',
+    '--wp-border-soft':    'rgba(255,255,255,0.05)',
+    '--wp-border-med':     'rgba(255,255,255,0.09)',
+    '--wp-text-primary':   '#e4f2ea',
+    '--wp-text-secondary': 'rgba(228,242,234,0.40)',
+    '--wp-text-tertiary':  'rgba(228,242,234,0.24)',
+    '--wp-kpi-bg':         '#102818',
+    '--wp-track-bg':       'rgba(255,255,255,0.06)',
+    '--wp-tab-border':     'rgba(184,149,106,0.14)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.02)',
+    '--wp-body-bg':        '#061410',
+    '--wp-hdr-glow1':      'rgba(184,149,106,0.16)',
+    '--wp-hdr-glow2':      'rgba(20,80,40,0.22)',
+    '--wp-insight-bg':     'rgba(184,149,106,0.05)',
+  },
+  vault: {
+    '--wp-shell-bg':       '#18191e',
+    '--wp-shell-border':   'rgba(168,180,196,0.16)',
+    '--wp-panel-bg':       '#202228',
+    '--wp-surface':        '#28292e',
+    '--wp-border-soft':    'rgba(168,180,196,0.08)',
+    '--wp-border-med':     'rgba(168,180,196,0.14)',
+    '--wp-text-primary':   '#eceef2',
+    '--wp-text-secondary': 'rgba(236,238,242,0.40)',
+    '--wp-text-tertiary':  'rgba(236,238,242,0.24)',
+    '--wp-kpi-bg':         '#202228',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(168,180,196,0.14)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.02)',
+    '--wp-body-bg':        '#101014',
+    '--wp-hdr-glow1':      'rgba(168,180,196,0.12)',
+    '--wp-hdr-glow2':      'rgba(80,90,110,0.18)',
+    '--wp-insight-bg':     'rgba(168,180,196,0.06)',
+  },
+  endowment: {
+    '--wp-shell-bg':       '#121c0e',
+    '--wp-shell-border':   'rgba(184,164,80,0.16)',
+    '--wp-panel-bg':       '#1a2814',
+    '--wp-surface':        '#22341c',
+    '--wp-border-soft':    'rgba(184,164,80,0.08)',
+    '--wp-border-med':     'rgba(184,164,80,0.14)',
+    '--wp-text-primary':   '#e8f0e0',
+    '--wp-text-secondary': 'rgba(232,240,224,0.40)',
+    '--wp-text-tertiary':  'rgba(232,240,224,0.24)',
+    '--wp-kpi-bg':         '#1a2814',
+    '--wp-track-bg':       'rgba(255,255,255,0.06)',
+    '--wp-tab-border':     'rgba(184,164,80,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.02)',
+    '--wp-body-bg':        '#0c1208',
+    '--wp-hdr-glow1':      'rgba(184,164,80,0.18)',
+    '--wp-hdr-glow2':      'rgba(30,80,30,0.22)',
+    '--wp-insight-bg':     'rgba(184,164,80,0.06)',
+  },
+  trust: {
+    '--wp-shell-bg':       '#0e1e36',
+    '--wp-shell-border':   'rgba(220,196,130,0.16)',
+    '--wp-panel-bg':       '#142848',
+    '--wp-surface':        '#1c3458',
+    '--wp-border-soft':    'rgba(220,196,130,0.08)',
+    '--wp-border-med':     'rgba(220,196,130,0.14)',
+    '--wp-text-primary':   '#f0ece0',
+    '--wp-text-secondary': 'rgba(240,236,224,0.40)',
+    '--wp-text-tertiary':  'rgba(240,236,224,0.24)',
+    '--wp-kpi-bg':         '#142848',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(220,196,130,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#081428',
+    '--wp-hdr-glow1':      'rgba(220,196,130,0.20)',
+    '--wp-hdr-glow2':      'rgba(20,50,100,0.25)',
+    '--wp-insight-bg':     'rgba(220,196,130,0.06)',
+  },
+  cobalt: {
+    '--wp-shell-bg':       '#0c1a30',
+    '--wp-shell-border':   'rgba(40,100,200,0.22)',
+    '--wp-panel-bg':       '#102040',
+    '--wp-surface':        '#183050',
+    '--wp-border-soft':    'rgba(40,100,200,0.10)',
+    '--wp-border-med':     'rgba(40,100,200,0.18)',
+    '--wp-text-primary':   '#e4eefa',
+    '--wp-text-secondary': 'rgba(228,238,250,0.40)',
+    '--wp-text-tertiary':  'rgba(228,238,250,0.24)',
+    '--wp-kpi-bg':         '#102040',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(40,120,220,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#081220',
+    '--wp-hdr-glow1':      'rgba(40,120,220,0.20)',
+    '--wp-hdr-glow2':      'rgba(20,60,140,0.20)',
+    '--wp-insight-bg':     'rgba(40,120,220,0.07)',
+  },
+  heritage: {
+    '--wp-shell-bg':       '#1e1008',
+    '--wp-shell-border':   'rgba(200,110,30,0.20)',
+    '--wp-panel-bg':       '#281808',
+    '--wp-surface':        '#32220e',
+    '--wp-border-soft':    'rgba(200,110,30,0.08)',
+    '--wp-border-med':     'rgba(200,110,30,0.16)',
+    '--wp-text-primary':   '#f8ede0',
+    '--wp-text-secondary': 'rgba(248,237,224,0.40)',
+    '--wp-text-tertiary':  'rgba(248,237,224,0.24)',
+    '--wp-kpi-bg':         '#281808',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(200,110,30,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.02)',
+    '--wp-body-bg':        '#140a04',
+    '--wp-hdr-glow1':      'rgba(200,110,30,0.20)',
+    '--wp-hdr-glow2':      'rgba(160,60,20,0.18)',
+    '--wp-insight-bg':     'rgba(200,110,30,0.06)',
+  },
+  civic: {
+    '--wp-shell-bg':       '#0a1e22',
+    '--wp-shell-border':   'rgba(20,140,150,0.20)',
+    '--wp-panel-bg':       '#10282e',
+    '--wp-surface':        '#18343c',
+    '--wp-border-soft':    'rgba(20,140,150,0.08)',
+    '--wp-border-med':     'rgba(20,140,150,0.16)',
+    '--wp-text-primary':   '#e0f0f2',
+    '--wp-text-secondary': 'rgba(224,240,242,0.40)',
+    '--wp-text-tertiary':  'rgba(224,240,242,0.24)',
+    '--wp-kpi-bg':         '#10282e',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(20,160,170,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#051418',
+    '--wp-hdr-glow1':      'rgba(20,160,170,0.18)',
+    '--wp-hdr-glow2':      'rgba(10,80,90,0.22)',
+    '--wp-insight-bg':     'rgba(20,160,170,0.06)',
+  },
+  cardinal: {
+    '--wp-shell-bg':       '#200c0c',
+    '--wp-shell-border':   'rgba(200,50,50,0.20)',
+    '--wp-panel-bg':       '#2c1010',
+    '--wp-surface':        '#381818',
+    '--wp-border-soft':    'rgba(200,50,50,0.08)',
+    '--wp-border-med':     'rgba(200,50,50,0.16)',
+    '--wp-text-primary':   '#f8eaea',
+    '--wp-text-secondary': 'rgba(248,234,234,0.40)',
+    '--wp-text-tertiary':  'rgba(248,234,234,0.24)',
+    '--wp-kpi-bg':         '#2c1010',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(200,60,50,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.02)',
+    '--wp-body-bg':        '#180606',
+    '--wp-hdr-glow1':      'rgba(200,60,50,0.20)',
+    '--wp-hdr-glow2':      'rgba(140,30,30,0.18)',
+    '--wp-insight-bg':     'rgba(200,60,50,0.06)',
+  },
+  meridian: {
+    '--wp-shell-bg':       '#101828',
+    '--wp-shell-border':   'rgba(60,120,200,0.20)',
+    '--wp-panel-bg':       '#182234',
+    '--wp-surface':        '#202c42',
+    '--wp-border-soft':    'rgba(60,120,200,0.08)',
+    '--wp-border-med':     'rgba(60,120,200,0.16)',
+    '--wp-text-primary':   '#e4ecf8',
+    '--wp-text-secondary': 'rgba(228,236,248,0.40)',
+    '--wp-text-tertiary':  'rgba(228,236,248,0.24)',
+    '--wp-kpi-bg':         '#182234',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(60,130,210,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#0a1018',
+    '--wp-hdr-glow1':      'rgba(60,130,210,0.18)',
+    '--wp-hdr-glow2':      'rgba(20,60,130,0.20)',
+    '--wp-insight-bg':     'rgba(60,130,210,0.06)',
+  },
+  union: {
+    '--wp-shell-bg':       '#1a1408',
+    '--wp-shell-border':   'rgba(200,130,40,0.20)',
+    '--wp-panel-bg':       '#221a0c',
+    '--wp-surface':        '#2c2210',
+    '--wp-border-soft':    'rgba(200,130,40,0.08)',
+    '--wp-border-med':     'rgba(200,130,40,0.16)',
+    '--wp-text-primary':   '#f8f0e0',
+    '--wp-text-secondary': 'rgba(248,240,224,0.40)',
+    '--wp-text-tertiary':  'rgba(248,240,224,0.24)',
+    '--wp-kpi-bg':         '#221a0c',
+    '--wp-track-bg':       'rgba(255,255,255,0.07)',
+    '--wp-tab-border':     'rgba(200,130,40,0.16)',
+    '--wp-contact-bg':     'rgba(255,255,255,0.03)',
+    '--wp-org-bg':         'rgba(255,255,255,0.025)',
+    '--wp-body-bg':        '#100e06',
+    '--wp-hdr-glow1':      'rgba(200,140,40,0.20)',
+    '--wp-hdr-glow2':      'rgba(140,80,20,0.18)',
+    '--wp-insight-bg':     'rgba(200,130,40,0.06)',
+  },
 
 };
-
 const THEME_API_DEFAULTS = {
     backgroundPrimary: '#0b0c14',
     backgroundSecondary: '#0f1020',
@@ -435,6 +869,54 @@ function normColor(v) {
         .trim()
         .replace(/\s+/g, '')
         .toLowerCase();
+}
+
+/** Safe color for --wp-field-key-color (#hex, rgb/rgba only). */
+function sanitizeFieldKeyColor(raw) {
+    const s = String(raw == null ? '' : raw).trim();
+    if (!s || s.length > 120) {
+        return null;
+    }
+    if (/[;}<>]|url\s*\(|expression\s*\(/i.test(s)) {
+        return null;
+    }
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) {
+        return s;
+    }
+    if (/^rgba?\(/i.test(s)) {
+        return s;
+    }
+    return null;
+}
+
+/** Solid hex from theme chrome (--wp-tab-border rgba) when accentColor is still the designer default. */
+function accentHexFromThemeTokens(tokens) {
+    if (!tokens) {
+        return null;
+    }
+    const raw = tokens['--wp-tab-border'];
+    if (!raw || typeof raw !== 'string') {
+        return null;
+    }
+    const m = raw.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,|[)])/i);
+    if (!m) {
+        return null;
+    }
+    const r = Math.max(0, Math.min(255, parseInt(m[1], 10)));
+    const g = Math.max(0, Math.min(255, parseInt(m[2], 10)));
+    const b = Math.max(0, Math.min(255, parseInt(m[3], 10)));
+    return `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function resolveEffectiveAccentHex(accentColorProp, themeMode, designerDefaultAccent) {
+    const def = designerDefaultAccent || THEME_API_DEFAULTS.accentColor;
+    if (normColor(accentColorProp) !== normColor(def)) {
+        const t = String(accentColorProp == null ? '' : accentColorProp).trim();
+        return t || def;
+    }
+    const mode = (themeMode || 'obsidian').toLowerCase();
+    const tok = THEMES[mode] || THEMES.obsidian;
+    return accentHexFromThemeTokens(tok) || def;
 }
 
 /** Allow https/http and same-origin paths only (blocks javascript:, data:, etc.). */
@@ -536,6 +1018,7 @@ const ASSEMBLY_FLOW_LOGICAL_KEYS = [
     'phone',
     'email',
     'website',
+    'lastUsedChannel',
     'revenue',
     'tierSegment',
     'propensityScore',
@@ -638,7 +1121,55 @@ function utcMidnightMsFromProfileDate(raw) {
     return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
-export default class CustomerProfileWidget extends LightningElement {
+/** Lower sorts first: CRM primary flag, then executive titles, then other contacts. */
+function contactSortRank(c) {
+    if (!c) {
+        return 99;
+    }
+    if (String(c.isPrimary || c.IsPrimary || '').toLowerCase() === 'true') {
+        return 0;
+    }
+    const hay = `${c.title || c.Title || ''} ${c.acrRole || ''}`.toLowerCase();
+    if (hay.includes('ceo') || hay.includes('president') || hay.includes('chief executive')) {
+        return 1;
+    }
+    if (hay.includes('cfo') || hay.includes('finance') || hay.includes('financial officer')) {
+        return 2;
+    }
+    if (hay.includes('counsel') || hay.includes('legal')) {
+        return 3;
+    }
+    if (hay.includes('coo') || hay.includes('oper')) {
+        return 4;
+    }
+    return 5;
+}
+
+/** Icon beside Last used channel for known picklist labels (Mobile, Web, Branch, Call Center, Other). */
+function lastUsedChannelIconMeta(displayLabel) {
+    const s = displayLabel == null ? '' : String(displayLabel).trim();
+    if (!s) {
+        return null;
+    }
+    const norm = s.replace(/\s+/g, ' ').toLowerCase();
+    if (norm === '--none--' || norm === 'none') {
+        return null;
+    }
+    const byNorm = {
+        mobile: { iconName: 'utility:phone', alt: 'Mobile' },
+        web: { iconName: 'utility:world', alt: 'Web' },
+        branch: { iconName: 'utility:location', alt: 'Branch' },
+        'call center': { iconName: 'utility:headset', alt: 'Call center' },
+        other: { iconName: 'utility:custom', alt: 'Other' },
+    };
+    const hit = byNorm[norm];
+    if (hit) {
+        return hit;
+    }
+    return { iconName: 'utility:custom', alt: s };
+}
+
+export default class CustomerProfileWidget extends NavigationMixin(LightningElement) {
     // Group 1 — Data source
     @api coreCustomFieldsJson = '';
     @api profileAssemblyFlowApiName = '';
@@ -660,6 +1191,7 @@ export default class CustomerProfileWidget extends LightningElement {
     @api assemblyOutPhone = '';
     @api assemblyOutEmail = '';
     @api assemblyOutWebsite = '';
+    @api assemblyOutLastUsedChannel = '';
     @api assemblyOutRevenue = '';
     @api assemblyOutTierSegment = '';
     @api assemblyOutPropensityScore = '';
@@ -754,6 +1286,7 @@ export default class CustomerProfileWidget extends LightningElement {
      */
     @api servicesSuggestionValueAddJson = '';
     @api locationTabLabel = 'Location';
+    @api structureTabLabel = 'Structure';
     @api insightTabLabel = 'Insight';
 
     // Group 3 — Section visibility (LWC1503: no @api Boolean = true)
@@ -762,6 +1295,9 @@ export default class CustomerProfileWidget extends LightningElement {
     @api showPortfolioTab;
     @api showServicesTab;
     @api showLocationTab;
+    @api showStructureTab;
+    @api showOrgChart;
+    @api showKeyContacts;
     @api showInsightTab;
     @api showKpiStrip;
     @api showEnrollmentFlags;
@@ -776,6 +1312,8 @@ export default class CustomerProfileWidget extends LightningElement {
     @api accentColorSecondary = '#1d9e75';
     @api textPrimary = '#f0ebe0';
     @api textSecondary = 'rgba(240,235,224,0.4)';
+    /** Optional. Row label color (Overview inset cards, other .wp-field-key, AI Signals metric keys). Blank = theme text secondary / tertiary. */
+    @api fieldKeyColor = '';
     @api positiveColor = '#5dcaa5';
     @api negativeColor = '#d4537e';
     @api warningColor = '#e09840';
@@ -896,12 +1434,15 @@ export default class CustomerProfileWidget extends LightningElement {
         const d = THEME_API_DEFAULTS;
 
         const applyTo = (el) => {
+            const effectiveAccent = resolveEffectiveAccentHex(this.accentColor, mode, d.accentColor);
+
             Object.entries(tokens).forEach(([prop, value]) => {
                 el.style.setProperty(prop, value);
             });
             el.style.setProperty('--wp-border', tokens['--wp-border-med']);
             el.style.setProperty('--wp-bg-primary', tokens['--wp-shell-bg']);
             el.style.setProperty('--wp-bg-secondary', tokens['--wp-panel-bg']);
+            el.style.setProperty('--wp-accent', effectiveAccent);
 
             if (normColor(this.headerGradientColor1) === normColor(d.headerGradientColor1)) {
                 el.style.setProperty('--wp-gradient-1', tokens['--wp-hdr-glow1']);
@@ -920,9 +1461,6 @@ export default class CustomerProfileWidget extends LightningElement {
             if (normColor(this.backgroundSecondary) !== normColor(d.backgroundSecondary)) {
                 el.style.setProperty('--wp-bg-secondary', this.backgroundSecondary);
             }
-            if (normColor(this.accentColor) !== normColor(d.accentColor)) {
-                el.style.setProperty('--wp-accent', this.accentColor);
-            }
             if (normColor(this.accentColorSecondary) !== normColor(d.accentColorSecondary)) {
                 el.style.setProperty('--wp-accent-2', this.accentColorSecondary);
             }
@@ -940,6 +1478,20 @@ export default class CustomerProfileWidget extends LightningElement {
             }
             if (normColor(this.warningColor) !== normColor(d.warningColor)) {
                 el.style.setProperty('--wp-warning', this.warningColor);
+            }
+
+            const accForDeriv = String(effectiveAccent).trim();
+            if (accForDeriv.startsWith('#') && accForDeriv.length === 7) {
+                el.style.setProperty('--wp-accent-bg', accForDeriv + '14');
+                el.style.setProperty('--wp-accent-border', accForDeriv + '40');
+                el.style.setProperty('--wp-accent-dim', accForDeriv + '99');
+            }
+
+            const fk = sanitizeFieldKeyColor(this.fieldKeyColor);
+            if (fk) {
+                el.style.setProperty('--wp-field-key-color', fk);
+            } else {
+                el.style.removeProperty('--wp-field-key-color');
             }
         };
 
@@ -1243,6 +1795,7 @@ export default class CustomerProfileWidget extends LightningElement {
             { id: 'portfolio', label: this.portfolioTabLabel, on: this.showPortfolioTab },
             { id: 'services', label: this.servicesTabLabel, on: this.showServicesTab },
             { id: 'location', label: this.locationTabLabel, on: this.showLocationTab },
+            { id: 'structure', label: this.structureTabLabel, on: this.showStructureTab },
             { id: 'insight', label: this.insightTabLabel, on: this.showInsightTab }
         ];
         return defs
@@ -1257,6 +1810,29 @@ export default class CustomerProfileWidget extends LightningElement {
 
     get d() {
         return this.profileData;
+    }
+
+    get lastUsedChannelDisplay() {
+        const raw = this.profileData?.lastUsedChannel;
+        if (raw == null || String(raw).trim() === '') {
+            return '';
+        }
+        return String(raw).trim();
+    }
+
+    get lastUsedChannelIconName() {
+        const meta = lastUsedChannelIconMeta(this.lastUsedChannelDisplay);
+        return meta ? meta.iconName : '';
+    }
+
+    get lastUsedChannelIconAlt() {
+        const meta = lastUsedChannelIconMeta(this.lastUsedChannelDisplay);
+        return meta ? meta.alt : '';
+    }
+
+    get lastUsedChannelValClass() {
+        const base = 'wp-field-val';
+        return this.lastUsedChannelIconName ? `${base} wp-field-val--channel` : base;
     }
 
     /**
@@ -1958,8 +2534,147 @@ export default class CustomerProfileWidget extends LightningElement {
         return this.activeTab === 'location';
     }
 
+    get isTab_structure() {
+        return this.activeTab === 'structure';
+    }
+
     get isTabInsight() {
         return this.activeTab === 'insight';
+    }
+
+    get orgChartRootSublabel() {
+        const sr = (this.profileData?.structureRootSublabel || '').trim();
+        if (sr) {
+            return sr;
+        }
+        const t = (this.profileData?.accountType || '').trim();
+        return t || 'Relationship context';
+    }
+
+    get orgChartChildrenRows() {
+        return (this.profileData?.orgChartChildren || []).map((n, i) => {
+            const kind = (n.kind || '').toLowerCase();
+            const nodeClass =
+                kind === 'contact'
+                    ? 'wp-org-node wp-org-node--contact'
+                    : 'wp-org-node wp-org-node--account';
+            const accountId = (n.accountId || '').trim();
+            const contactId = (n.contactId || '').trim();
+            return {
+                key: 'org-' + i,
+                name: n.name || '',
+                sublabel: n.sublabel || '',
+                nodeClass,
+                accountId,
+                contactId,
+                showAccountLink: kind === 'account' && accountId.length > 0,
+                showContactLink: kind === 'contact' && contactId.length > 0
+            };
+        });
+    }
+
+    get orgChartShowConnectors() {
+        return this.orgChartChildrenRows.length > 0;
+    }
+
+    get structureLinkedAccountsDisplay() {
+        const n = this.profileData?.structureLinkedAccountCount;
+        if (n != null && Number.isFinite(Number(n))) {
+            return String(Number(n));
+        }
+        return '—';
+    }
+
+    get structureLinkedContactsDisplay() {
+        const s = (this.profileData?.structureLinkedContactsText || '').trim();
+        return s || '—';
+    }
+
+    get keyContacts() {
+        const raw = [...(this.profileData?.keyContacts || [])];
+        raw.sort((a, b) => {
+            const ra = contactSortRank(a);
+            const rb = contactSortRank(b);
+            if (ra !== rb) {
+                return ra - rb;
+            }
+            const la = (a.lastName || a.LastName || '').toLowerCase();
+            const lb = (b.lastName || b.LastName || '').toLowerCase();
+            const cmp = la.localeCompare(lb);
+            if (cmp !== 0) {
+                return cmp;
+            }
+            return (a.firstName || a.FirstName || '').localeCompare(b.firstName || b.FirstName || '');
+        });
+        return raw.map((c, i) => {
+            const fn = c.firstName || c.FirstName || '';
+            const ln = c.lastName || c.LastName || '';
+            const initials = ((fn[0] || '') + (ln[0] || '')).toUpperCase();
+            const title = (c.title || c.Title || '').trim();
+            const acr = (c.acrRole || '').trim();
+            const subline = title && acr ? `${title} · ${acr}` : title || acr;
+            const hay = `${title} ${acr}`.toLowerCase();
+            let badge;
+            if (hay.includes('ceo') || hay.includes('president') || hay.includes('chief executive')) {
+                badge = {
+                    label: 'Primary',
+                    cls: 'wp-contact-badge wp-cb-primary',
+                    avatarCls: 'wp-contact-av wp-contact-av--primary'
+                };
+            } else if (hay.includes('cfo') || hay.includes('finance') || hay.includes('financial officer')) {
+                badge = {
+                    label: 'Finance',
+                    cls: 'wp-contact-badge wp-cb-finance',
+                    avatarCls: 'wp-contact-av wp-contact-av--finance'
+                };
+            } else if (hay.includes('coo') || hay.includes('oper')) {
+                badge = {
+                    label: 'Ops',
+                    cls: 'wp-contact-badge wp-cb-ops',
+                    avatarCls: 'wp-contact-av wp-contact-av--ops'
+                };
+            } else if (hay.includes('counsel') || hay.includes('legal')) {
+                badge = {
+                    label: 'Legal',
+                    cls: 'wp-contact-badge wp-cb-legal',
+                    avatarCls: 'wp-contact-av wp-contact-av--legal'
+                };
+            } else {
+                badge = {
+                    label: 'Contact',
+                    cls: 'wp-contact-badge wp-cb-ops',
+                    avatarCls: 'wp-contact-av wp-contact-av--ops'
+                };
+            }
+            const contactId = (c.contactId || c.ContactId || '').trim();
+            return {
+                key: 'kc-' + i,
+                initials: initials || '—',
+                fullName: `${fn} ${ln}`.trim(),
+                title: subline,
+                avatarClass: badge.avatarCls,
+                label: badge.label,
+                cls: badge.cls,
+                contactId,
+                showNameLink: contactId.length > 0
+            };
+        });
+    }
+
+    handleNavigateToRecord(event) {
+        const id = event.currentTarget?.dataset?.id;
+        const objectApiName = event.currentTarget?.dataset?.object;
+        if (!id || !objectApiName) {
+            return;
+        }
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: id,
+                objectApiName,
+                actionName: 'view'
+            }
+        });
     }
 
     get resolvedTextScaleFactor() {
@@ -1988,7 +2703,9 @@ export default class CustomerProfileWidget extends LightningElement {
     }
 
     get accentColorStyle() {
-        return `color:${this.accentColor}`;
+        const mode = (this._themeMode || 'obsidian').toLowerCase();
+        const hex = resolveEffectiveAccentHex(this.accentColor, mode, THEME_API_DEFAULTS.accentColor);
+        return `color:${hex}`;
     }
 
     get headerBgStyle() {
@@ -2034,27 +2751,31 @@ export default class CustomerProfileWidget extends LightningElement {
         return this.showKpiStrip !== false;
     }
 
+    get showOrgChartResolved() {
+        return this.showOrgChart !== false;
+    }
+
+    get showKeyContactsResolved() {
+        return this.showKeyContacts !== false;
+    }
+
     get showEnrollmentFlagsResolved() {
         return this.showEnrollmentFlags !== false;
     }
 
-    get showThemeSwitcherResolved() {
-        return this.showThemeSwitcher === true;
-    }
-
-    get themeBtnObsidian() {
+    get themeBtn_obsidian() {
         return 'wp-theme-btn wp-tb-obsidian' + (this._themeMode === 'obsidian' ? ' wp-tb-active' : '');
     }
 
-    get themeBtnMidnight() {
+    get themeBtn_midnight() {
         return 'wp-theme-btn wp-tb-midnight' + (this._themeMode === 'midnight' ? ' wp-tb-active' : '');
     }
 
-    get themeBtnGraphite() {
+    get themeBtn_graphite() {
         return 'wp-theme-btn wp-tb-graphite' + (this._themeMode === 'graphite' ? ' wp-tb-active' : '');
     }
 
-    get themeBtnIvory() {
+    get themeBtn_ivory() {
         return 'wp-theme-btn wp-tb-ivory' + (this._themeMode === 'ivory' ? ' wp-tb-active' : '');
     }
 

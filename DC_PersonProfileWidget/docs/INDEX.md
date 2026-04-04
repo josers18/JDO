@@ -34,3 +34,9 @@ This page lists every guide in **plain language**. The main project overview is 
 | [samples/](samples/README.md) | You need example JSON for Flow or App Builder |
 | [artifacts.md](../artifacts.md) | You want a checklist of what is in `force-app/` |
 | [GIT.md](GIT.md) | You are cloning the repo or naming components |
+
+## Related package (business accounts)
+
+| Package | Role |
+|---------|------|
+| [DC_BusinessProfileWidget](../DC_BusinessProfileWidget/README.md) | **Business Profile Widget** — Account-only card; field mappings use **`flow:`** or Account paths ([index](../DC_BusinessProfileWidget/docs/INDEX.md)). |

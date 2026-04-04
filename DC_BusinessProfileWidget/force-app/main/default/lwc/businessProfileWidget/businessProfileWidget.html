@@ -1,0 +1,581 @@
+<template>
+    <article class={shellClass} style={shellTypographyStyle}>
+        <div class="wp-hdr" style={headerBgStyle}>
+            <div class="wp-hdr-inner">
+                <div class="wp-card-title">{cardTitle}</div>
+                <div class="wp-hdr-top">
+                    <div class="wp-co-av">
+                        <template lwc:if={showCompanyLogo}>
+                            <img
+                                class="wp-co-av-img"
+                                src={profilePhotoSrcResolved}
+                                alt={profilePhotoAlt}
+                                onerror={handleCompanyLogoError}
+                            />
+                        </template>
+                        <template lwc:else>
+                            <span class="wp-co-av-txt">{initials}</span>
+                        </template>
+                    </div>
+
+                    <div class="wp-hdr-identity">
+                        <div class="wp-co-name">{companyName}</div>
+                        <div class="wp-co-meta">{location} · {industry} · {employees} employees</div>
+
+                        <div class="wp-co-tier">
+                            <div class="wp-co-tier-bar"></div>
+                            <span class="wp-co-tier-txt">{tierSegment}</span>
+                        </div>
+
+                        <template lwc:if={showComplianceFlags}>
+                            <div class="wp-flags">
+                                <template for:each={complianceFlags} for:item="flag">
+                                    <span key={flag.key} class={flag.cssClass}>
+                                        <div class={flag.dotClass}></div>
+                                        {flag.label}
+                                        <span class="wp-flag-sep">·</span>
+                                        <template lwc:if={flag.preserveStatusCase}>
+                                            <span class="wp-flag-val">{flag.status}</span>
+                                        </template>
+                                        <template lwc:else>
+                                            {flag.status}
+                                        </template>
+                                    </span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <template lwc:if={showThemeSwitcher}>
+                        <div class="wp-theme-switcher">
+                            <span class="wp-theme-lbl">Theme</span>
+                            <div class="wp-theme-btns">
+                                <button
+                                    type="button"
+                                    class={themeBtn_obsidian}
+                                    data-theme="obsidian"
+                                    onclick={handleThemeSwitch}
+                                    title="Obsidian"
+                                >
+                                    ◑
+                                </button>
+                                <button
+                                    type="button"
+                                    class={themeBtn_midnight}
+                                    data-theme="midnight"
+                                    onclick={handleThemeSwitch}
+                                    title="Midnight"
+                                >
+                                    ●
+                                </button>
+                                <button
+                                    type="button"
+                                    class={themeBtn_graphite}
+                                    data-theme="graphite"
+                                    onclick={handleThemeSwitch}
+                                    title="Graphite"
+                                >
+                                    ◐
+                                </button>
+                                <button
+                                    type="button"
+                                    class={themeBtn_ivory}
+                                    data-theme="ivory"
+                                    onclick={handleThemeSwitch}
+                                    title="Ivory"
+                                >
+                                    ○
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <template lwc:if={showKpiStrip}>
+                    <div class="wp-kpi-strip">
+                        <div class="wp-kpi">
+                            <div class="wp-kpi-val">{kpiRevenue}</div>
+                            <div class="wp-kpi-lbl">Revenue</div>
+                            <div class="wp-kpi-delta wp-kd-up">{kpiRevenueDelta}</div>
+                        </div>
+                        <div class="wp-kpi">
+                            <div class="wp-kpi-val">{kpiLoan}</div>
+                            <div class="wp-kpi-lbl">Loan bal.</div>
+                            <div class="wp-kpi-delta wp-kd-warn">{kpiLoanUtil}</div>
+                        </div>
+                        <div class="wp-kpi">
+                            <div class="wp-kpi-val">{kpiCreditRating}</div>
+                            <div class="wp-kpi-lbl">Credit</div>
+                            <div class="wp-kpi-delta wp-kd-muted">{creditOutlook}</div>
+                        </div>
+                        <div class="wp-kpi">
+                            <div class="wp-kpi-val">{kpiTenure}</div>
+                            <div class="wp-kpi-lbl">Tenure</div>
+                            <div class="wp-kpi-delta wp-kd-up">Loyal</div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div class="wp-tab-bar">
+            <template for:each={visibleTabs} for:item="tab">
+                <div key={tab.id} class={tab.tabClass} data-tab={tab.id} onclick={handleTabClick} role="presentation">
+                    {tab.label}
+                </div>
+            </template>
+        </div>
+
+        <template lwc:if={isLoading}>
+            <div class="wp-loading">
+                <lightning-spinner size="small"></lightning-spinner>
+            </div>
+        </template>
+        <template lwc:elseif={hasError}>
+            <div class="wp-error">
+                <p>{errorMessage}</p>
+            </div>
+        </template>
+        <template lwc:elseif={hasData}>
+            <div class="wp-panel">
+                <template lwc:if={isTab_overview}>
+                    <div class="wp-slbl">Company</div>
+                    <div class="wp-inset-card">
+                        <table class="wp-ftbl wp-ftbl--inset">
+                            <template for:each={companyFields} for:item="row">
+                                <tr key={row.key}>
+                                    <td>{row.label}</td>
+                                    <td class={row.cls}>{row.val}</td>
+                                </tr>
+                            </template>
+                        </table>
+                    </div>
+                    <div class="wp-slbl">Relationship</div>
+                    <div class="wp-inset-card">
+                        <table class="wp-ftbl wp-ftbl--inset">
+                            <template for:each={relationshipFields} for:item="row">
+                                <tr key={row.key}>
+                                    <td>{row.label}</td>
+                                    <td class={row.cls}>
+                                        <template lwc:if={row.channelIconName}>
+                                            <span class="wp-channel-inline">
+                                                <lightning-icon
+                                                    icon-name={row.channelIconName}
+                                                    alternative-text={row.channelIconAlt}
+                                                    size="xx-small"
+                                                    variant="bare"
+                                                    class="wp-channel-icon"
+                                                ></lightning-icon>
+                                                <span>{row.val}</span>
+                                            </span>
+                                        </template>
+                                        <template lwc:else>{row.val}</template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </table>
+                    </div>
+                </template>
+
+                <template lwc:if={isTab_health}>
+                    <div class="wp-slbl">Health scores</div>
+                    <div class="wp-inset-card">
+                        <div class="wp-score-block">
+                            <template for:each={healthScores} for:item="item">
+                                <div key={item.key} class="wp-score-item">
+                                    <div class="wp-score-top">
+                                        <span class="wp-score-name">{item.name}</span>
+                                        <span class="wp-score-pct">
+                                            <span class={item.pctClass}>{item.pctLabel}</span>
+                                        </span>
+                                    </div>
+                                    <div class="wp-bar-track">
+                                        <div
+                                            class="wp-bar-fill"
+                                            data-scale={item.barScale}
+                                            style={item.barStyle}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <template lwc:if={showWaterfallChart}>
+                        <div class="wp-slbl">Liquidity waterfall</div>
+                        <div class="wp-inset-card">
+                            <div class="wp-wf-block">
+                                <template for:each={waterfallRows} for:item="item">
+                                    <div key={item.key} class="wp-wf-row">
+                                        <div class="wp-wf-lbl">{item.label}</div>
+                                        <div class="wp-wf-track">
+                                            <div class="wp-wf-fill" style={item.fillStyle}>
+                                                <span class="wp-wf-num">{item.formattedVal}</span>
+                                            </div>
+                                        </div>
+                                        <span class="wp-wf-delta">
+                                            <span class={item.deltaClass}>{item.delta}</span>
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template lwc:if={showRiskMatrix}>
+                        <div class="wp-slbl">Risk matrix</div>
+                        <div class="wp-inset-card wp-inset-card--matrix">
+                            <div class="wp-risk-matrix">
+                            <div class="wp-rm-cell" style="background: rgba(184,149,106,0.12); color: var(--wp-text-primary)">
+                                HIGH
+                            </div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.04)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.05)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.04)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.03)"></div>
+
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.03)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(212,144,10,0.15); color: var(--wp-warning)">
+                                CREDIT
+                            </div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.04)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(184,149,106,0.14); color: var(--wp-accent)">
+                                EXPAND
+                            </div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.03)"></div>
+
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.04)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(120,152,200,0.12); color: #7898cc">
+                                WALLET
+                            </div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.05)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.03)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.04)"></div>
+
+                            <div class="wp-rm-cell" style="background: rgba(184,149,106,0.06); color: var(--wp-text-secondary)">
+                                LOW
+                            </div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.03)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.04)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(255,255,255,0.03)"></div>
+                            <div class="wp-rm-cell" style="background: rgba(184,149,106,0.08); color: var(--wp-text-secondary)">
+                                HIGH
+                            </div>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+
+                <template lwc:if={isTab_credit}>
+                    <div class="wp-credit-hero">
+                        <div class="wp-credit-meta">
+                            <div class="wp-credit-grade">{creditRating}</div>
+                            <div class="wp-credit-agency">{creditAgency}</div>
+                            <div class="wp-credit-outlook">{creditOutlook}</div>
+                            <template lwc:if={moodysRating}>
+                                <div class="wp-credit-moodys">Moody’s {moodysRating}</div>
+                            </template>
+                            <template lwc:if={creditHeroMoodysCategory}>
+                                <div class="wp-credit-moodys wp-credit-moodys--sub">{creditHeroMoodysCategory}</div>
+                            </template>
+                        </div>
+                        <svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true">
+                            <circle
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                fill="none"
+                                stroke="var(--wp-track-bg)"
+                                stroke-width="10"
+                            ></circle>
+                            <circle
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                fill="none"
+                                stroke="var(--wp-accent)"
+                                stroke-width="10"
+                                stroke-linecap="round"
+                                stroke-dasharray="251.2"
+                                stroke-dashoffset={creditScoreDash}
+                                transform="rotate(-90 50 50)"
+                            ></circle>
+                            <text
+                                x="50"
+                                y="46"
+                                text-anchor="middle"
+                                font-size="10"
+                                font-weight="600"
+                                fill="var(--wp-accent)"
+                            >
+                                {creditScoreText}
+                            </text>
+                            <text
+                                x="50"
+                                y="58"
+                                text-anchor="middle"
+                                font-size="7"
+                                fill="var(--wp-text-tertiary)"
+                            >
+                                {creditDialCaption}
+                            </text>
+                        </svg>
+                    </div>
+
+                    <span class="wp-section-lbl wp-credit-bureaus-lbl">Bureau &amp; agency data</span>
+                    <p class="wp-credit-bureaus-intro">
+                        Scores and ratings from configured Account fields. Map each property to your org’s API names in App Builder.
+                    </p>
+                    <div class="wp-bureau-grid">
+                        <template for:each={creditBureauSections} for:item="sec">
+                            <section key={sec.key} class={sec.cardClass}>
+                                <header class="wp-bureau-hdr">
+                                    <div class="wp-bureau-hdr-text">
+                                        <h3 class="wp-bureau-title">{sec.title}</h3>
+                                        <p class="wp-bureau-hint">{sec.hint}</p>
+                                    </div>
+                                </header>
+                                <dl class="wp-bureau-dl">
+                                    <template for:each={sec.rows} for:item="row">
+                                        <div key={row.key} class="wp-bureau-row">
+                                            <dt class="wp-bureau-dt">{row.label}</dt>
+                                            <dd class="wp-bureau-dd">{row.value}</dd>
+                                        </div>
+                                    </template>
+                                </dl>
+                            </section>
+                        </template>
+                    </div>
+
+                    <div class="wp-slbl">Facilities</div>
+                    <table class="wp-ftbl">
+                        <template for:each={creditFacilityRows} for:item="row">
+                            <tr key={row.key}>
+                                <td>{row.label}</td>
+                                <td class={row.cls}>{row.val}</td>
+                            </tr>
+                        </template>
+                    </table>
+                </template>
+
+                <template lwc:if={isTab_structure}>
+                    <template lwc:if={showOrgChart}>
+                        <div class="wp-slbl">Organization</div>
+                        <div class="wp-org-wrap">
+                            <div class="wp-org-chart" role="img" aria-label="Organization diagram">
+                                <div class="wp-org-tier wp-org-tier--root">
+                                    <div class="wp-org-node wp-org-node--root">
+                                        <div class="wp-org-node-title">{companyName}</div>
+                                        <div class="wp-org-node-sub">{orgChartRootSublabel}</div>
+                                    </div>
+                                </div>
+                                <template lwc:if={orgChartShowConnectors}>
+                                    <div class="wp-org-bridge" aria-hidden="true">
+                                        <span class="wp-org-bridge-v"></span>
+                                        <span class="wp-org-bridge-h"></span>
+                                    </div>
+                                    <div class="wp-org-tier wp-org-tier--children">
+                                        <template for:each={orgChartChildrenRows} for:item="node">
+                                            <div key={node.key} class={node.nodeClass}>
+                                                <template lwc:if={node.showContactLink}>
+                                                    <button
+                                                        type="button"
+                                                        class="wp-org-node-title wp-record-link"
+                                                        data-object="Contact"
+                                                        data-id={node.contactId}
+                                                        onclick={handleNavigateToRecord}
+                                                    >
+                                                        {node.name}
+                                                    </button>
+                                                </template>
+                                                <template lwc:elseif={node.showAccountLink}>
+                                                    <button
+                                                        type="button"
+                                                        class="wp-org-node-title wp-record-link"
+                                                        data-object="Account"
+                                                        data-id={node.accountId}
+                                                        onclick={handleNavigateToRecord}
+                                                    >
+                                                        {node.name}
+                                                    </button>
+                                                </template>
+                                                <template lwc:else>
+                                                    <div class="wp-org-node-title">{node.name}</div>
+                                                </template>
+                                                <div class="wp-org-node-sub">{node.sublabel}</div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template lwc:if={showKeyContacts}>
+                        <div class="wp-slbl">Key contacts</div>
+                        <div class="wp-contact-list">
+                            <template for:each={keyContacts} for:item="item">
+                                <div key={item.key} class="wp-contact-card">
+                                    <div class={item.avatarClass}>{item.initials}</div>
+                                    <div>
+                                        <template lwc:if={item.showNameLink}>
+                                            <button
+                                                type="button"
+                                                class="wp-contact-name wp-record-link"
+                                                data-object="Contact"
+                                                data-id={item.contactId}
+                                                onclick={handleNavigateToRecord}
+                                            >
+                                                {item.fullName}
+                                            </button>
+                                        </template>
+                                        <template lwc:else>
+                                            <div class="wp-contact-name">{item.fullName}</div>
+                                        </template>
+                                        <div class="wp-contact-role">{item.title}</div>
+                                    </div>
+                                    <span class={item.cls}>{item.label}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <div class="wp-slbl">Unified relationships</div>
+                    <table class="wp-ftbl">
+                        <tr>
+                            <td>Linked accounts</td>
+                            <td class="wp-td-accent">{structureLinkedAccountsDisplay}</td>
+                        </tr>
+                        <tr>
+                            <td>Linked contacts</td>
+                            <td>{structureLinkedContactsDisplay}</td>
+                        </tr>
+                        <tr>
+                            <td>Subsidiaries</td>
+                            <td>{subsidiariesDisplay}</td>
+                        </tr>
+                        <tr>
+                            <td>Referral network</td>
+                            <td class="wp-td-muted">{structureReferralNetworkDisplay}</td>
+                        </tr>
+                    </table>
+                </template>
+
+                <template lwc:if={isTab_location}>
+                    <div class="wp-map-wrap">
+                        <template lwc:if={hasMapMarkers}>
+                            <lightning-map
+                                map-markers={mapMarkers}
+                                zoom-level="14"
+                                class="wp-lightning-map"
+                            ></lightning-map>
+                        </template>
+                        <template lwc:else>
+                            <div class="wp-map-fallback" role="status">
+                                <p class="wp-map-fallback-title">Map unavailable</p>
+                                <p class="wp-map-fallback-body">
+                                    Geocoding tries OpenStreetMap Nominatim (<strong>nominatim.openstreetmap.org</strong>), then Photon
+                                    (<strong>photon.komoot.io</strong>) using billing address, city/state/ZIP, and branch address. Deploy both
+                                    Remote Site Settings, use Account <strong>BillingLatitude</strong> / <strong>BillingLongitude</strong>, or set
+                                    <strong>mapLatitude</strong> / <strong>mapLongitude</strong> from your assembly Flow (not 0,0). Address fields
+                                    below still show from profile data.
+                                </p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <span class="wp-section-lbl">Address</span>
+                    <div class="wp-addr-grid">
+                        <template for:each={addressCells} for:item="cell">
+                            <div key={cell.key} class="wp-addr-cell">
+                                <div class="wp-addr-lbl">{cell.label}</div>
+                                <div class="wp-addr-val">{cell.val}</div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <template lwc:if={showBranchProximity}>
+                        <div class="wp-slbl">Branch proximity</div>
+                        <div class="wp-branch-list">
+                            <template for:each={branchCards} for:item="item">
+                                <div
+                                    key={item.key}
+                                    class={item.cardClass}
+                                >
+                                    <div class="wp-branch-col">
+                                        <template lwc:if={item.isAssigned}>
+                                            <span class="wp-assigned-pill">Assigned</span>
+                                        </template>
+                                        <div class={item.nameClass}>{item.displayName}</div>
+                                        <div class="wp-branch-detail">{item.address}</div>
+                                    </div>
+                                    <div class="wp-branch-side">
+                                        <div class={item.distClass}>{item.distance}</div>
+                                        <template lwc:if={item.isOpen}>
+                                            <div class="wp-branch-open">Open now</div>
+                                        </template>
+                                        <template lwc:else>
+                                            <div class="wp-branch-closed">{item.statusLine}</div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+
+                <template lwc:if={isTab_insight}>
+                    <div class="wp-ai-header">
+                        <span class="wp-ai-pulse"></span>
+                        <span class="wp-ai-header-txt">Agentforce insight</span>
+                    </div>
+                    <div class="wp-insight-card">
+                        <div class="wp-pred-label">Predicted focus</div>
+                        <div class="wp-pred-value">{predictionLabel}</div>
+                        <template lwc:if={summaryLoading}>
+                            <lightning-spinner alternative-text="Generating summary" size="small"></lightning-spinner>
+                        </template>
+                        <template lwc:elseif={summaryError}>
+                            <p class="wp-ai-summary wp-ai-summary--err">{summaryError}</p>
+                        </template>
+                        <template lwc:elseif={summaryText}>
+                            <p class="wp-ai-summary">{summaryText}</p>
+                        </template>
+                        <template lwc:else>
+                            <p class="wp-ai-summary">Configure a prompt template to generate a narrative summary.</p>
+                        </template>
+                    </div>
+                    <template lwc:if={showAiActionsResolved}>
+                        <section class="wp-improve-section" aria-labelledby="wp-insight-recs-heading">
+                            <span id="wp-insight-recs-heading" class="wp-section-lbl">{insightRecommendationsSectionTitleDisplay}</span>
+                            <template lwc:if={processedInsightRecommendations.length}>
+                                <template for:each={processedInsightRecommendations} for:item="item">
+                                    <div key={item.rowKey} class="wp-factor-row">
+                                        <span class={item.deltaClass}>{item.formattedPercent}</span>
+                                        <div class="wp-bar-track">
+                                            <div
+                                                class="wp-bar-fill wp-model-bar-fill"
+                                                style={item.barStyle}
+                                                data-color={item.activeColor}
+                                                data-scale={item.barScale}
+                                            ></div>
+                                        </div>
+                                        <span class="wp-factor-label">{item.detail}</span>
+                                    </div>
+                                </template>
+                            </template>
+                            <template lwc:else>
+                                <p class="wp-lwc-empty">No recommendations returned.</p>
+                            </template>
+                        </section>
+                    </template>
+                </template>
+            </div>
+        </template>
+        <template lwc:else>
+            <div class="wp-placeholder">
+                <p>Add this component to an Account record page with a valid record Id to load the profile.</p>
+            </div>
+        </template>
+    </article>
+</template>

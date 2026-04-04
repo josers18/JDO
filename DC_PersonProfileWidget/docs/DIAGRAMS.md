@@ -12,11 +12,13 @@ flowchart LR
         S[SOQL Account / Contact]
     end
     subgraph Optional["Optional"]
-        A[Assembly Flow outputs]
+        A[Assembly Flow outputs flow:/flows: slots]
+        Q[SOQL-only assembly slots]
         P[Prediction Flow]
         E[Einstein summary]
     end
     S --> M[ProfileResult]
+    Q --> M
     A --> M
     P --> M
     M --> LWC[LWC render]
@@ -42,6 +44,10 @@ mindmap
     Services
       6 service cards
       Suggested enrollments
+    Structure
+      Org chart
+      Key contacts
+      Linked accounts summary
     Location
       lightning-map
       Address grid

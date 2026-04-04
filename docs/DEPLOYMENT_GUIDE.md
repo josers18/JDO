@@ -19,6 +19,7 @@ Examples:
 cd DC_Prediction_Model_LWC && sf project deploy start --source-dir force-app --target-org JDO
 cd ../DC_Query_to_Table_LWC && sf project deploy start --source-dir force-app --target-org JDO
 cd ../DC_PersonProfileWidget && sf project deploy start --source-dir force-app --target-org JDO
+cd ../DC_BusinessProfileWidget && sf project deploy start --source-dir force-app --target-org JDO
 ```
 
 ## Default org (optional)
@@ -57,8 +58,11 @@ Adjust `--test-level` per your pipeline.
 | DC_Query_to_Table_LWC | **DC Query to Table User** (`DC_Query_to_Table_User`) | `DcQueryToTableController` |
 | DC_PersonProfileWidget | **Customer Profile Widget User** (`Customer_Profile_Widget_User`) | `CustomerProfileWidgetController` |
 | DC_PersonProfileWidget | **Customer Profile Widget DataCloud Callout** (`Customer_Profile_Widget_DC_Callout`) | External Credential principal `D360-DataCloud_Integration` |
+| DC_BusinessProfileWidget | *(none shipped)* | Enable **`BusinessProfileWidgetController`** on a profile or custom permission set |
 
-Assign **both** Person Profile sets when using Data Graph callouts; see [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
+Assign **Customer_Profile_Widget_User** for the Person Profile Widget; optional **Customer_Profile_Widget_DC_Callout** only if you use the shipped Named Credential for other callouts. See [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
+
+For **Business Profile Widget**, assign **Apex class access** as in [DC_BusinessProfileWidget/docs/SETUP.md](../DC_BusinessProfileWidget/docs/SETUP.md).
 
 **Setup → Permission Sets →** (open set) **→ Manage Assignments** for users or permission set groups. You still need **Run Flow**, **object/field** access, **Data Cloud** query rights, and **Einstein** features per component—see each project’s `docs/SETUP_GUIDE.md` or `docs/REQUIREMENTS.md`.
 

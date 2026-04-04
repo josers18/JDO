@@ -20,24 +20,29 @@ This widget can talk to Salesforce **Flow** in **three separate ways**. All Flow
 
 ### When Salesforce runs it
 
-All of the following must be true:
+The assembly Flow runs when **Profile assembly flow API name** is set **and** any of the following is true:
 
-- There is a valid **Account or Contact** Id on the page.  
-- **Profile assembly flow API name** is filled in.  
-- At least one **output mapping** exists (from **[Asm flow output]** fields and/or **Profile output map JSON**).
+- At least one **[Asm flow output]**, **Profile output map JSON**, or **`coreCustomFieldsJson`** value uses **`flow:`** or **`flows:`** (explicit Flow binding).  
+- At least one mapping is a **legacy** bare Flow variable name (not a valid field path).  
+- The **prediction** Flow has the **same API name** as the assembly Flow (one interview reads both profile and Insight outputs).
 
-If the map is empty, the assembly Flow is **skipped** and the card uses **Salesforce fields only** (plus optional Insight Flow).
+It does **not** need to run when **every** mapped slot is satisfied from **SOQL only** (valid Account or Contact field path) **and** the prediction Flow is different or absent. In that case, CRM data and **`applyProfileAssemblyFromSoql`** fill those slots.
 
 ### Inputs
 
 Create a Flow input that holds the **current record Id**. Its API name should match **Assembly flow input: record Id** (default `recordId`).
 
-### Outputs
+### Mapping each slot (SOQL vs Flow)
 
-Use **Assignments** (or formulas, Get Records, subflows) to set **output variables**. Tell the widget which output goes to which slot:
+For each widget slot you can set:
 
-- **Simple:** type the Flow variable’s API name into each **[Asm flow output] …** field you need.  
-- **Advanced:** one JSON object in **Profile output map JSON** ([example](samples/profile-output-map.sample.json)). Per-slot fields **override** the same key in JSON.
+- **Field path** — e.g. on Contact: `MailingCity`, `Account.BillingCity`; on Account: `BillingCity`, `Owner.Name`. Paths are validated in Apex.  
+- **`flow:Variable_Api_Name`** or **`flows:Variable_Api_Name`** — value is read from the assembly Flow after `start()`.
+
+**Simple:** type the path or `flow:` value into **[Asm flow output] …**.  
+**Advanced:** **Profile output map JSON** ([Flow-only sample](samples/profile-output-map.sample.json), [mixed sample](samples/profile-output-map-mixed.sample.json)). Per-slot properties **override** the same key in JSON.
+
+**Core custom fields** JSON uses the same rules for allowed logical keys ([APEX_REFERENCE.md](APEX_REFERENCE.md)).
 
 **Special cases (often stored as long text / JSON):**
 

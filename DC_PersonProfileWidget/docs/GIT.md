@@ -29,3 +29,7 @@ Full deploy instructions: **[DEPLOY.md](DEPLOY.md)**.
 - **[README.md](../README.md)** — Overview and doc map  
 - **[docs/INDEX.md](INDEX.md)** — Full table of contents  
 - **[../../README.md](../../README.md)** — Whole **JDO** monorepo (if you use other packages)
+
+## Sibling project
+
+- **[DC_BusinessProfileWidget](../../DC_BusinessProfileWidget/README.md)** — **Business Profile Widget** (Account record pages; `fieldMappingsJson` with **`flow:`** or SOQL paths).

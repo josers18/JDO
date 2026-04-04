@@ -11,11 +11,15 @@ flowchart TB
         M[DC_Multiclass_Prediction_LWC]
         A[DC_AgentForce_Output_LWC]
         Q[DC_Query_to_Table_LWC]
+        C[DC_PersonProfileWidget]
+        B[DC_BusinessProfileWidget]
     end
     P --> |Flow + optional Prompt| SF[(Salesforce org)]
     M --> |Flow + optional Prompt| SF
     A --> |Autolaunched Flow| SF
     Q --> |ConnectApi.CdpQuery| SF
+    C --> |SOQL + Flow profile| SF
+    B --> |Account field map + Flow| SF
 ```
 
 ## Naming vs App Builder labels
@@ -26,6 +30,9 @@ flowchart TB
 | `multiclassPredictionLwc` | Multiclass Prediction |
 | `dcAgentforceOutputLwc` | DC AgentForce Output |
 | `dcQueryToTableLwc` | DC Query to Table |
+| `customerProfileWidget` | Customer Profile Widget |
+| `businessProfileWidget` | Business Profile Widget |
+
 Historical Apex class names (e.g. `ClassificationModelLwcController`) are kept for stable upgrades in orgs that already deployed earlier versions.
 
 ## Clone and work on one project

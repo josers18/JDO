@@ -1,0 +1,6 @@
+{
+  "city": "MailingCity",
+  "state": "MailingState",
+  "tierSegment": "flow:Tier_Output_Variable",
+  "email": "flows:Primary_Email_Out"
+}

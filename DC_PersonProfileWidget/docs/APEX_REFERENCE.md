@@ -22,13 +22,13 @@ Returns **`ProfileResult`** for the open record.
 | `flowRecordIdVariable` | Prediction Flow input name for record Id. |
 | `flowPredictionVariable` | Prediction Flow output for headline text. |
 | `flowRecommendationsVariable` | Prediction Flow output for recommendations (text/JSON). |
-| `coreCustomFieldsJson` | Maps **logical keys** → **field API names** for extra SOQL columns. |
+| `coreCustomFieldsJson` | Maps **logical keys** → **field API name** or **`flow:`/`flows:`** + variable name (Flow values merged after assembly interview). |
 | `profileAssemblyFlowApiName` | Profile assembly Flow API name. |
 | `profileAssemblyFlowRecordIdVariable` | Assembly Flow input for record Id. |
-| `profileFlowOutputMapJson` | JSON map: widget logical key → Flow **output variable** API name (merged with LWC slot properties). |
+| `profileFlowOutputMapJson` | JSON map merged with LWC **[Asm flow output]** props: each value is a **field path**, **`flow:`/`flows:`** variable, or legacy bare Flow name. |
 | `geocodeBillingAddress` | If true/null and coordinates missing, may call external geocoders (not in unit tests). |
 
-**Assembly Flow** runs only when record Id is valid, assembly name is set, and the **combined** output map is non-empty.
+**Assembly Flow** runs when the name is set **and** there is at least one mapping that **requires** Flow (**`flow:`/`flows:`**, core custom flow token, or non-validating legacy name), **or** the prediction Flow shares the same API name. **SOQL-only** assembly maps skip the assembly interview otherwise. SOQL-bound slots are loaded in **`buildFallbackFromSoql`** via **`applyProfileAssemblyFromSoql`**.
 
 ### `generateSummary(...)`
 

@@ -16,14 +16,14 @@
                 <object>Contact</object>
             </objects>
             <property name="coreCustomFieldsJson" type="String" label="[Data source] Core custom fields (JSON object)"
-                description="Map widget logical keys to Account/Contact field API names, e.g. {&quot;tierSegment&quot;:&quot;Customer_Tier__c&quot;,&quot;profilePhotoUrl&quot;:&quot;Headshot_URL__c&quot;}. Allowed keys: tierSegment, investmentBalance, loanBalance, loanLimit, depositYtd, scores (propensityScore, engagementScore, churnScore, ltvScore, crossSellScore, savingsRate), riskProfile, customerSince, lastInteractionDate, enrollments (mobileEnrolled, onlineEnrolled, paperlessEnrolled, alertsEnrolled, wireEnabled), kycStatus, twoFaStatus, profilePhotoUrl (image URL text/URL field)." />
+                description="Map widget logical keys to Account/Contact field API names OR flow:VariableName / flows:VariableName (same pattern as Business Profile Widget). Examples: {&quot;tierSegment&quot;:&quot;Customer_Tier__c&quot;}, {&quot;tierSegment&quot;:&quot;flow:Tier_Out&quot;}. Flow values require profile assembly flow API name and a run that sets those output variables. Allowed keys: tierSegment, investmentBalance, loanBalance, loanLimit, depositYtd, scores, riskProfile, customerSince, lastInteractionDate, lastUsedChannel, enrollments, kycStatus, twoFaStatus, profilePhotoUrl." />
             <property name="profileAssemblyFlowApiName" type="String" label="[Data source] Profile assembly flow API name"
                 description="Autolaunched flow that sets profile via output variables (assignments, Get Records, subflows). Requires at least one output mapping (use [Asm flow output] fields and/or optional JSON below). SOQL still fills gaps." />
             <property name="profileAssemblyFlowRecordIdVariable" type="String" label="[Data source] Assembly flow input: record Id" default="recordId" />
             <property name="profilePhotoFlowOutputVariable" type="String" label="[Profile assembly Flow] Profile photo output variable"
                 description="API name of a Text (or Text Area) output variable on the profile assembly flow; its value at run time must be the image URL (https or org-relative path). Use this OR [Asm flow output] Profile photo URL (same logical mapping). If all photo mappings are blank, the widget uses [Header] Profile photo URL, core custom field profilePhotoUrl, Contact PhotoUrl, then initials." />
             <property name="assemblyOutFullName" type="String" label="[Asm flow output] Full name"
-                description="Flow output variable API name for widget slot &quot;fullName&quot;. Leave blank to skip." />
+                description="Flow output variable API name (e.g. outFullName), or flow:Var / flows:Var, OR a SOQL field path on Account/Contact (e.g. Name, Account.Name on Contact). Leave blank to skip." />
             <property name="assemblyOutFirstName" type="String" label="[Asm flow output] First name"
                 description="Flow output variable API name for widget slot &quot;firstName&quot;. Leave blank to skip." />
             <property name="assemblyOutLastName" type="String" label="[Asm flow output] Last name"
@@ -42,6 +42,8 @@
                 description="Flow output variable API name for widget slot &quot;email&quot;. Leave blank to skip." />
             <property name="assemblyOutWebsite" type="String" label="[Asm flow output] Website"
                 description="Flow output variable API name for widget slot &quot;website&quot;. Leave blank to skip." />
+            <property name="assemblyOutLastUsedChannel" type="String" label="[Asm flow output] Last used channel"
+                description="Flow output variable API name for widget slot &quot;lastUsedChannel&quot; (text or picklist label string). SOQL still fills from Account when blank." />
             <property name="assemblyOutRevenue" type="String" label="[Asm flow output] Annual revenue"
                 description="Flow output variable API name for widget slot &quot;revenue&quot;. Leave blank to skip." />
             <property name="assemblyOutTierSegment" type="String" label="[Asm flow output] Tier / segment"
@@ -115,7 +117,7 @@
             <property name="geocodeBillingAddress" type="Boolean" label="[Location] Geocode billing address for map" default="true"
                 description="When true and lat/long are not set from Flow, Apex calls OpenStreetMap Nominatim (deploy Remote Site Setting in package). Set false to rely only on Flow coordinates or show fallback." />
             <property name="profileFlowOutputMapJson" type="String" label="[Data source] Profile output map JSON (advanced)"
-                description="Optional. Full JSON map merged with [Asm flow output] fields; per-slot fields override the same key. Example: {&quot;fullName&quot;:&quot;outName&quot;}. Leave blank if you only use per-slot fields." />
+                description="Optional. Full JSON map merged with [Asm flow output] fields; per-slot fields override the same key. Each value can be a Flow variable API name, flow:Var / flows:Var, or a SOQL field path (Account: dotted paths; Contact: MailingCity, Account.Industry, etc.). Example: {&quot;city&quot;:&quot;MailingCity&quot;,&quot;tierSegment&quot;:&quot;flow:Tier_Output&quot;}. SOQL-only maps do not require running the assembly flow." />
             <property name="flowApiName" type="String" label="[Data source] Autolaunched flow API name (predictions)"
                 description="Optional flow for prediction and recommendations on the Insight tab." />
             <property name="flowRecordIdVariable" type="String" label="[Data source] Flow input: record Id variable" default="recordId" />
@@ -182,12 +184,17 @@
             <property name="portfolioTabLabel" type="String" label="[Card labels] Portfolio tab label" default="Portfolio" />
             <property name="servicesTabLabel" type="String" label="[Card labels] Services tab label" default="Services" />
             <property name="locationTabLabel" type="String" label="[Card labels] Location tab label" default="Location" />
+            <property name="structureTabLabel" type="String" label="[Card labels] Structure tab label" default="Structure" />
             <property name="insightTabLabel" type="String" label="[Card labels] Insight tab label" default="Insight" />
             <property name="showOverviewTab" type="Boolean" label="[Visible] Show Overview tab" default="true" />
             <property name="showSignalsTab" type="Boolean" label="[Visible] Show AI Signals tab" default="true" />
             <property name="showPortfolioTab" type="Boolean" label="[Visible] Show Portfolio tab" default="true" />
             <property name="showServicesTab" type="Boolean" label="[Visible] Show Services tab" default="true" />
             <property name="showLocationTab" type="Boolean" label="[Visible] Show Location tab" default="true" />
+            <property name="showStructureTab" type="Boolean" label="[Visible] Show Structure tab" default="true"
+                description="Org chart and key contacts: on Account, same related-account logic as Business Profile; on Contact, linked accounts via AccountContactRelation and colleagues on primary Account." />
+            <property name="showOrgChart" type="Boolean" label="[Structure] Show organization chart" default="true" />
+            <property name="showKeyContacts" type="Boolean" label="[Structure] Show key contacts list" default="true" />
             <property name="showInsightTab" type="Boolean" label="[Visible] Show Insight tab" default="true" />
             <property name="showKpiStrip" type="Boolean" label="[Visible] Show KPI strip" default="true" />
             <property name="showEnrollmentFlags" type="Boolean" label="[Visible] Show enrollment flags" default="true" />
@@ -196,15 +203,18 @@
             <property name="showBranchProximity" type="Boolean" label="[Visible] Show branch proximity" default="true" />
             <property name="showAiActions" type="Boolean" label="[Visible] Show AI recommended actions" default="true" />
             <property name="themeMode" type="String" label="Theme" default="obsidian"
-                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier"
-                description="Visual theme preset. Dark themes: obsidian (default), midnight, graphite, onyx, dusk, slate, steel, mercury, forest, ember, copper, indigo. Light themes: ivory, fog, parchment, sage, verdant, arctic, glacier. Individual [Theme] color properties below override when changed from defaults." />
-            <property name="showThemeSwitcher" type="Boolean" label="[Theme] Show in-card theme switcher" default="false" />
+                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="42 themes across 8 families. ORIGINAL: obsidian (default), midnight, graphite, ivory. NEUTRALS: dusk, slate, parchment, onyx, fog. GREENS/ORANGES: forest, ember, sage, copper, verdant. BLUES/GREYS: steel, mercury, arctic, indigo, glacier. MID-TONES: bordeaux, pewter, walnut, denim, moss. SF LIGHT: birch, mist, cashew, mineral, blush, chamois. WEALTH MGMT: bullion, prussian, coutts, vault, endowment, trust. BANKING: cobalt, heritage, civic, cardinal, meridian, union. Wealth and banking themes require a matching accentColor override — see documentation. Individual [Theme] color properties below override when changed from defaults." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, shows 4 theme toggle buttons in the widget header for live switching during demos. Keep false in production." />
             <property name="backgroundPrimary" type="String" label="[Theme] Background primary" default="#0b0c14" />
             <property name="backgroundSecondary" type="String" label="[Theme] Background secondary" default="#0f1020" />
             <property name="accentColor" type="String" label="[Theme] Accent" default="#d4b469" />
             <property name="accentColorSecondary" type="String" label="[Theme] Accent secondary" default="#1d9e75" />
             <property name="textPrimary" type="String" label="[Theme] Text primary" default="#f0ebe0" />
             <property name="textSecondary" type="String" label="[Theme] Text secondary" default="rgba(240,235,224,0.4)" />
+            <property name="fieldKeyColor" type="String" label="[Theme] Field label color (optional)"
+                description="Color for row labels (Industry, Employees, AI Signals keys, etc.). Use #rrggbb, #rgb, or rgb()/rgba(). Leave blank for theme default." />
             <property name="positiveColor" type="String" label="[Theme] Positive" default="#5dcaa5" />
             <property name="negativeColor" type="String" label="[Theme] Negative" default="#d4537e" />
             <property name="warningColor" type="String" label="[Theme] Warning" default="#e09840" />
@@ -224,7 +234,8 @@
                 description="medium: bolder name/KPIs and clearer title. strong: also heavier tabs and brighter meta." />
         </targetConfig>
         <targetConfig targets="lightning__AppPage">
-            <property name="coreCustomFieldsJson" type="String" label="[Data source] Core custom fields (JSON object)" />
+            <property name="coreCustomFieldsJson" type="String" label="[Data source] Core custom fields (JSON object)"
+                description="Logical key to field API name, or flow:Var / flows:Var (requires profile assembly flow). Same pattern as Business Profile Widget." />
             <property name="profileAssemblyFlowApiName" type="String" label="[Data source] Profile assembly flow API name" />
             <property name="profileAssemblyFlowRecordIdVariable" type="String" label="[Data source] Assembly flow input: record Id" default="recordId" />
             <property name="profilePhotoFlowOutputVariable" type="String" label="[Profile assembly Flow] Profile photo output variable"
@@ -239,6 +250,7 @@
             <property name="assemblyOutPhone" type="String" label="[Asm flow output] Phone" />
             <property name="assemblyOutEmail" type="String" label="[Asm flow output] Email" />
             <property name="assemblyOutWebsite" type="String" label="[Asm flow output] Website" />
+            <property name="assemblyOutLastUsedChannel" type="String" label="[Asm flow output] Last used channel" />
             <property name="assemblyOutRevenue" type="String" label="[Asm flow output] Annual revenue" />
             <property name="assemblyOutTierSegment" type="String" label="[Asm flow output] Tier / segment" />
             <property name="assemblyOutPropensityScore" type="String" label="[Asm flow output] Propensity score" />
@@ -326,20 +338,25 @@
             <property name="portfolioTabLabel" type="String" label="[Card labels] Portfolio tab label" default="Portfolio" />
             <property name="servicesTabLabel" type="String" label="[Card labels] Services tab label" default="Services" />
             <property name="locationTabLabel" type="String" label="[Card labels] Location tab label" default="Location" />
+            <property name="structureTabLabel" type="String" label="[Card labels] Structure tab label" default="Structure" />
             <property name="insightTabLabel" type="String" label="[Card labels] Insight tab label" default="Insight" />
             <property name="themeMode" type="String" label="Theme" default="obsidian"
-                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier"
-                description="Visual theme preset. Dark themes: obsidian (default), midnight, graphite, onyx, dusk, slate, steel, mercury, forest, ember, copper, indigo. Light themes: ivory, fog, parchment, sage, verdant, arctic, glacier." />
-            <property name="showThemeSwitcher" type="Boolean" label="[Theme] Show in-card theme switcher" default="false" />
+                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="42 themes across 8 families. ORIGINAL: obsidian (default), midnight, graphite, ivory. NEUTRALS: dusk, slate, parchment, onyx, fog. GREENS/ORANGES: forest, ember, sage, copper, verdant. BLUES/GREYS: steel, mercury, arctic, indigo, glacier. MID-TONES: bordeaux, pewter, walnut, denim, moss. SF LIGHT: birch, mist, cashew, mineral, blush, chamois. WEALTH MGMT: bullion, prussian, coutts, vault, endowment, trust. BANKING: cobalt, heritage, civic, cardinal, meridian, union. Wealth and banking themes require a matching accentColor override — see documentation." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, shows 4 theme toggle buttons in the widget header for live switching during demos. Keep false in production." />
             <property name="profilePhotoUrl" type="String" label="[Header] Profile photo URL (optional)"
                 description="HTTPS URL for avatar; overrides Flow/Contact when set." />
             <property name="textScalePercent" type="Integer" label="[Typography] Text size (%)" default="100"
                 description="Scales widget text (85–160); 100 = default." />
             <property name="textEmphasis" type="String" label="[Typography] Emphasis" default="default"
                 datasource="default,medium,strong" />
+            <property name="fieldKeyColor" type="String" label="[Theme] Field label color (optional)"
+                description="Row label color (#hex or rgb/rgba). Blank = theme default." />
         </targetConfig>
         <targetConfig targets="lightning__HomePage">
-            <property name="coreCustomFieldsJson" type="String" label="[Data source] Core custom fields (JSON object)" />
+            <property name="coreCustomFieldsJson" type="String" label="[Data source] Core custom fields (JSON object)"
+                description="Logical key to field API name, or flow:Var / flows:Var (requires profile assembly flow). Same pattern as Business Profile Widget." />
             <property name="profileAssemblyFlowApiName" type="String" label="[Data source] Profile assembly flow API name" />
             <property name="profileAssemblyFlowRecordIdVariable" type="String" label="[Data source] Assembly flow input: record Id" default="recordId" />
             <property name="profilePhotoFlowOutputVariable" type="String" label="[Profile assembly Flow] Profile photo output variable"
@@ -354,6 +371,7 @@
             <property name="assemblyOutPhone" type="String" label="[Asm flow output] Phone" />
             <property name="assemblyOutEmail" type="String" label="[Asm flow output] Email" />
             <property name="assemblyOutWebsite" type="String" label="[Asm flow output] Website" />
+            <property name="assemblyOutLastUsedChannel" type="String" label="[Asm flow output] Last used channel" />
             <property name="assemblyOutRevenue" type="String" label="[Asm flow output] Annual revenue" />
             <property name="assemblyOutTierSegment" type="String" label="[Asm flow output] Tier / segment" />
             <property name="assemblyOutPropensityScore" type="String" label="[Asm flow output] Propensity score" />
@@ -441,17 +459,21 @@
             <property name="portfolioTabLabel" type="String" label="[Card labels] Portfolio tab label" default="Portfolio" />
             <property name="servicesTabLabel" type="String" label="[Card labels] Services tab label" default="Services" />
             <property name="locationTabLabel" type="String" label="[Card labels] Location tab label" default="Location" />
+            <property name="structureTabLabel" type="String" label="[Card labels] Structure tab label" default="Structure" />
             <property name="insightTabLabel" type="String" label="[Card labels] Insight tab label" default="Insight" />
             <property name="themeMode" type="String" label="Theme" default="obsidian"
-                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier"
-                description="Visual theme preset. Dark themes: obsidian (default), midnight, graphite, onyx, dusk, slate, steel, mercury, forest, ember, copper, indigo. Light themes: ivory, fog, parchment, sage, verdant, arctic, glacier." />
-            <property name="showThemeSwitcher" type="Boolean" label="[Theme] Show in-card theme switcher" default="false" />
+                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="42 themes across 8 families. ORIGINAL: obsidian (default), midnight, graphite, ivory. NEUTRALS: dusk, slate, parchment, onyx, fog. GREENS/ORANGES: forest, ember, sage, copper, verdant. BLUES/GREYS: steel, mercury, arctic, indigo, glacier. MID-TONES: bordeaux, pewter, walnut, denim, moss. SF LIGHT: birch, mist, cashew, mineral, blush, chamois. WEALTH MGMT: bullion, prussian, coutts, vault, endowment, trust. BANKING: cobalt, heritage, civic, cardinal, meridian, union. Wealth and banking themes require a matching accentColor override — see documentation." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, shows 4 theme toggle buttons in the widget header for live switching during demos. Keep false in production." />
             <property name="profilePhotoUrl" type="String" label="[Header] Profile photo URL (optional)"
                 description="HTTPS URL for avatar; overrides Flow/Contact when set." />
             <property name="textScalePercent" type="Integer" label="[Typography] Text size (%)" default="100"
                 description="Scales widget text (85–160); 100 = default." />
             <property name="textEmphasis" type="String" label="[Typography] Emphasis" default="default"
                 datasource="default,medium,strong" />
+            <property name="fieldKeyColor" type="String" label="[Theme] Field label color (optional)"
+                description="Row label color (#hex or rgb/rgba). Blank = theme default." />
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

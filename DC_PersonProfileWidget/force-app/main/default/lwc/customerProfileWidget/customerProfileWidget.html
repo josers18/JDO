@@ -22,45 +22,45 @@
                         <span class="wp-tier-text">{tierSegment}</span>
                     </div>
                 </div>
-                <template lwc:if={showThemeSwitcherResolved}>
+                <template lwc:if={showThemeSwitcher}>
                     <div class="wp-theme-switcher">
                         <span class="wp-theme-lbl">Theme</span>
                         <div class="wp-theme-btns">
                             <button
                                 type="button"
-                                class={themeBtnObsidian}
+                                class={themeBtn_obsidian}
                                 data-theme="obsidian"
                                 title="Obsidian"
                                 onclick={handleThemeSwitch}
                             >
-                                O
+                                ◑
                             </button>
                             <button
                                 type="button"
-                                class={themeBtnMidnight}
+                                class={themeBtn_midnight}
                                 data-theme="midnight"
                                 title="Midnight"
                                 onclick={handleThemeSwitch}
                             >
-                                M
+                                ●
                             </button>
                             <button
                                 type="button"
-                                class={themeBtnGraphite}
+                                class={themeBtn_graphite}
                                 data-theme="graphite"
                                 title="Graphite"
                                 onclick={handleThemeSwitch}
                             >
-                                G
+                                ◐
                             </button>
                             <button
                                 type="button"
-                                class={themeBtnIvory}
+                                class={themeBtn_ivory}
                                 data-theme="ivory"
                                 title="Ivory"
                                 onclick={handleThemeSwitch}
                             >
-                                I
+                                ○
                             </button>
                         </div>
                     </div>
@@ -135,52 +135,72 @@
         <template lwc:elseif={hasData}>
             <div class="wp-panel">
                 <template lwc:if={isTabOverview}>
-                    <div class="wp-contact-card">
-                        <span class="wp-section-lbl">Contact</span>
-                        <div class="wp-field-rows">
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Industry</span>
-                            <span class="wp-field-val">{d.industry}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Employees</span>
-                            <span class="wp-field-val">{d.employees}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Phone</span>
-                            <span class="wp-field-val">{d.phone}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Email</span>
-                            <span class="wp-field-val wp-field-val--link">{d.email}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Website</span>
-                            <span class="wp-field-val wp-field-val--link">{d.website}</span>
-                        </div>
+                    <div class="wp-slbl">Contact</div>
+                    <div class="wp-inset-card">
+                        <div class="wp-field-rows wp-field-rows--inset">
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Industry</span>
+                                <span class="wp-field-val">{d.industry}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Employees</span>
+                                <span class="wp-field-val">{d.employees}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Phone</span>
+                                <span class="wp-field-val">{d.phone}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Email</span>
+                                <span class="wp-field-val wp-field-val--link">{d.email}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Website</span>
+                                <span class="wp-field-val wp-field-val--link">{d.website}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Last used channel</span>
+                                <span class={lastUsedChannelValClass}>
+                                    <template lwc:if={lastUsedChannelIconName}>
+                                        <span class="wp-channel-inline">
+                                            <lightning-icon
+                                                icon-name={lastUsedChannelIconName}
+                                                alternative-text={lastUsedChannelIconAlt}
+                                                size="xx-small"
+                                                variant="bare"
+                                                class="wp-channel-icon"
+                                            ></lightning-icon>
+                                            <span>{lastUsedChannelDisplay}</span>
+                                        </span>
+                                    </template>
+                                    <template lwc:else>{lastUsedChannelDisplay}</template>
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <span class="wp-section-lbl">Relationship</span>
-                    <div class="wp-field-rows">
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Risk profile</span>
-                            <span class="wp-field-val wp-field-val--accent">{d.riskProfile}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Customer since</span>
-                            <span class="wp-field-val">{displayCustomerSince}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Last interaction</span>
-                            <span class="wp-field-val">{displayLastInteractionDate}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Deposits YTD</span>
-                            <span class="wp-field-val">{kpiDepositYtd}</span>
-                        </div>
-                        <div class="wp-field-row">
-                            <span class="wp-field-key">Loan limit</span>
-                            <span class="wp-field-val">{kpiLoanLimit}</span>
+                    <div class="wp-slbl">Relationship</div>
+                    <div class="wp-inset-card">
+                        <div class="wp-field-rows wp-field-rows--inset">
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Risk profile</span>
+                                <span class="wp-field-val wp-field-val--accent">{d.riskProfile}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Customer since</span>
+                                <span class="wp-field-val">{displayCustomerSince}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Last interaction</span>
+                                <span class="wp-field-val">{displayLastInteractionDate}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Deposits YTD</span>
+                                <span class="wp-field-val">{kpiDepositYtd}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key">Loan limit</span>
+                                <span class="wp-field-val">{kpiLoanLimit}</span>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -458,6 +478,101 @@
                             </template>
                         </div>
                     </template>
+                </template>
+
+                <template lwc:if={isTab_structure}>
+                    <template lwc:if={showOrgChartResolved}>
+                        <span class="wp-section-lbl">Organization</span>
+                        <div class="wp-org-wrap">
+                            <div class="wp-org-chart" role="img" aria-label="Organization diagram">
+                                <div class="wp-org-tier wp-org-tier--root">
+                                    <div class="wp-org-node wp-org-node--root">
+                                        <div class="wp-org-node-title">{d.fullName}</div>
+                                        <div class="wp-org-node-sub">{orgChartRootSublabel}</div>
+                                    </div>
+                                </div>
+                                <template lwc:if={orgChartShowConnectors}>
+                                    <div class="wp-org-bridge" aria-hidden="true">
+                                        <span class="wp-org-bridge-v"></span>
+                                        <span class="wp-org-bridge-h"></span>
+                                    </div>
+                                    <div class="wp-org-tier wp-org-tier--children">
+                                        <template for:each={orgChartChildrenRows} for:item="node">
+                                            <div key={node.key} class={node.nodeClass}>
+                                                <template lwc:if={node.showContactLink}>
+                                                    <button
+                                                        type="button"
+                                                        class="wp-org-node-title wp-record-link"
+                                                        data-object="Contact"
+                                                        data-id={node.contactId}
+                                                        onclick={handleNavigateToRecord}
+                                                    >
+                                                        {node.name}
+                                                    </button>
+                                                </template>
+                                                <template lwc:elseif={node.showAccountLink}>
+                                                    <button
+                                                        type="button"
+                                                        class="wp-org-node-title wp-record-link"
+                                                        data-object="Account"
+                                                        data-id={node.accountId}
+                                                        onclick={handleNavigateToRecord}
+                                                    >
+                                                        {node.name}
+                                                    </button>
+                                                </template>
+                                                <template lwc:else>
+                                                    <div class="wp-org-node-title">{node.name}</div>
+                                                </template>
+                                                <div class="wp-org-node-sub">{node.sublabel}</div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template lwc:if={showKeyContactsResolved}>
+                        <span class="wp-section-lbl">Key contacts</span>
+                        <div class="wp-contact-list">
+                            <template for:each={keyContacts} for:item="item">
+                                <div key={item.key} class="wp-contact-card">
+                                    <div class={item.avatarClass}>{item.initials}</div>
+                                    <div>
+                                        <template lwc:if={item.showNameLink}>
+                                            <button
+                                                type="button"
+                                                class="wp-contact-name wp-record-link"
+                                                data-object="Contact"
+                                                data-id={item.contactId}
+                                                onclick={handleNavigateToRecord}
+                                            >
+                                                {item.fullName}
+                                            </button>
+                                        </template>
+                                        <template lwc:else>
+                                            <div class="wp-contact-name">{item.fullName}</div>
+                                        </template>
+                                        <div class="wp-contact-role">{item.title}</div>
+                                    </div>
+                                    <span class={item.cls}>{item.label}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <span class="wp-section-lbl">Relationships</span>
+                    <table class="wp-ftbl">
+                        <tr>
+                            <td>Linked accounts</td>
+                            <td class="wp-td-accent">{structureLinkedAccountsDisplay}</td>
+                        </tr>
+                        <tr>
+                            <td>Linked contacts</td>
+                            <td>{structureLinkedContactsDisplay}</td>
+                        </tr>
+                    </table>
                 </template>
 
                 <template lwc:if={isTabInsight}>

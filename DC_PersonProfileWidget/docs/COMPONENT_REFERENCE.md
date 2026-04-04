@@ -17,14 +17,22 @@
 
 ## Data source
 
+Each **[Asm flow output] …** slot, **Profile output map JSON** value, and **`coreCustomFieldsJson`** value can be either:
+
+1. **CRM field path** — validated on **Account** (record is Account) or **Contact** (record is Contact), including dotted paths on Contact such as **`Account.Industry`**.  
+2. **`flow:VariableApiName`** or **`flows:VariableApiName`** — read from the **profile assembly Flow** after it runs.  
+3. **Legacy:** a string that is **not** a valid field path is still treated as a **Flow output variable API name** (backward compatible with pages configured before SOQL paths were supported).
+
+The **assembly Flow runs** when its API name is set **and** at least one mapping needs Flow (**`flow:`/`flows:`**, core custom flow token, or legacy bare name), **or** the **prediction** Flow uses the **same** API name (one interview for both). **SOQL-only** assembly maps do **not** require the assembly Flow. See **[FLOW_GUIDE.md](FLOW_GUIDE.md)** and **[APEX_REFERENCE.md](APEX_REFERENCE.md)**.
+
 | Property (`@api`) | Type | Default | Description |
 |-------------------|------|---------|-------------|
-| `coreCustomFieldsJson` | String | `''` | JSON object mapping widget logical keys to Account/Contact field API names for extra CRM fields, e.g. `{"tierSegment":"Customer_Tier__c"}`. |
-| `profileAssemblyFlowApiName` | String | `''` | Autolaunched flow that populates **output variables** (assignments, Get Records, subflows). Requires **at least one** output mapping via **[Asm flow output] …** fields and/or **Profile output map JSON (advanced)**. |
+| `coreCustomFieldsJson` | String | `''` | JSON map: logical key → **field API name** or **`flow:`/`flows:`** + variable name, e.g. `{"tierSegment":"Customer_Tier__c","riskProfile":"flow:Risk_Out"}`. |
+| `profileAssemblyFlowApiName` | String | `''` | Autolaunched flow for **`flow:`/`flows:`** (and legacy bare) slot mappings and optional reuse with prediction Flow. |
 | `profileAssemblyFlowRecordIdVariable` | String | `recordId` | Flow input variable for the current record Id. |
-| `assemblyOut*` | String | `''` | One property per widget slot, e.g. **`assemblyOutEmail`**, **`assemblyOutFullName`**. Value = Flow **output variable API name** only (not JSON). Leave blank to skip that slot. Labels in App Builder are **[Asm flow output] …**. |
-| `profilePhotoFlowOutputVariable` | String | `''` | Assembly Flow **Text** output API name for avatar URL (same logical mapping as `assemblyOutProfilePhotoUrl` / JSON `profilePhotoUrl`). |
-| `profileFlowOutputMapJson` | String | `''` | **Advanced.** Optional full JSON map (`{"email":"EmailVar"}`). Merged with `assemblyOut*` fields; **per-slot fields override** the same logical key. Leave blank if you only use `assemblyOut*`. |
+| `assemblyOut*` | String | `''` | Per-slot mapping: **field path**, **`flow:Var`**, **`flows:Var`**, or legacy Flow variable name. Labels: **[Asm flow output] …**. |
+| `profilePhotoFlowOutputVariable` | String | `''` | Assembly Flow **Text** output for avatar URL (same slot as `assemblyOutProfilePhotoUrl` / JSON `profilePhotoUrl`). Prefer **`flow:`** in **`assemblyOutProfilePhotoUrl`** or core JSON for consistency. |
+| `profileFlowOutputMapJson` | String | `''` | **Advanced.** JSON map merged with `assemblyOut*`; per-slot properties **override** keys. Values: SOQL path or **`flow:`/`flows:`** (see [mixed sample](samples/profile-output-map-mixed.sample.json)). |
 | `geocodeBillingAddress` | Boolean | `true` (meta) | When true and map coordinates are unset, Apex geocodes billing address (Remote Sites required). |
 | `flowApiName` | String | `''` | Autolaunched Flow API name for **prediction** and **recommendations** (Insight tab). |
 | `flowRecordIdVariable` | String | `recordId` | Flow input variable for the current record Id. |
@@ -54,8 +62,13 @@ Unset = visible. Set **false** to hide.
 
 | Property |
 |----------|
-| `showOverviewTab`, `showSignalsTab`, `showPortfolioTab`, `showServicesTab`, `showLocationTab`, `showInsightTab` |
+| `showOverviewTab`, `showSignalsTab`, `showPortfolioTab`, `showServicesTab`, `showStructureTab`, `showLocationTab`, `showInsightTab` |
 | `showKpiStrip`, `showEnrollmentFlags`, `showBranchProximity`, `showAiActions` |
+
+| Property | Default (meta) | Notes |
+|----------|----------------|--------|
+| `structureTabLabel` | Structure | Structure tab title. |
+| `showStructureTab` | `true` | Org chart, key contacts, linked-account summary (person + related accounts). |
 
 Legacy pages may still list `showSparkline` and `[Asm flow output] Portfolio trend`; they are ignored (portfolio sparkline removed).
 

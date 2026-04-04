@@ -28,7 +28,8 @@ public with sharing class CustomerProfileWidgetController {
         'paperlessEnrolled',
         'alertsEnrolled',
         'wireEnabled',
-        'profilePhotoUrl'
+        'profilePhotoUrl',
+        'lastUsedChannel'
     };
 
     /** Logical keys allowed in profileFlowOutputMapJson (widget slot → Flow output variable API name). */
@@ -43,6 +44,7 @@ public with sharing class CustomerProfileWidgetController {
         'phone',
         'email',
         'website',
+        'lastUsedChannel',
         'revenue',
         'tierSegment',
         'propensityScore',
@@ -125,6 +127,9 @@ public with sharing class CustomerProfileWidgetController {
         public String email;
         @AuraEnabled
         public String website;
+        /** Account discovery + optional assembly / core custom; picklist values as labels. */
+        @AuraEnabled
+        public String lastUsedChannel;
         @AuraEnabled
         public String tierSegment;
         @AuraEnabled
@@ -204,6 +209,24 @@ public with sharing class CustomerProfileWidgetController {
         public String predictionLabel;
         @AuraEnabled
         public String recommendationsJson;
+
+        /** Structure tab: org chart sibling row (related accounts ± center contact on Account pages). */
+        @AuraEnabled
+        public List<Map<String, String>> orgChartChildren;
+        @AuraEnabled
+        public List<Map<String, String>> keyContacts;
+        @AuraEnabled
+        public String structureLinkedAccountsText;
+        /** Count of related accounts (Structure tab Relationships row). */
+        @AuraEnabled
+        public Integer structureLinkedAccountCount;
+        @AuraEnabled
+        public String structureLinkedContactsText;
+        /** Set for Account root (Type); Contact root uses structureRootSublabel. */
+        @AuraEnabled
+        public String accountType;
+        @AuraEnabled
+        public String structureRootSublabel;
     }
 
     @AuraEnabled
@@ -232,19 +255,45 @@ public with sharing class CustomerProfileWidgetController {
             }
         }
 
-        Boolean assemblyFlow =
-            recordIdVal != null && String.isNotBlank(profileAssemblyFlowApiName) && !profileFlowOutMap.isEmpty();
-
         Boolean predFromFlow = recordIdVal != null && String.isNotBlank(flowApiName);
+        Boolean runProfileAsmNamed = recordIdVal != null && String.isNotBlank(profileAssemblyFlowApiName);
+
+        Map<String, String> assemblyFlowVars = new Map<String, String>();
+        Map<String, String> assemblySoqlPaths = new Map<String, String>();
+        if (recordIdVal != null && !profileFlowOutMap.isEmpty()) {
+            partitionAssemblyMapping(profileFlowOutMap, recordIdVal, assemblyFlowVars, assemblySoqlPaths);
+        }
+
+        Map<String, String> rawCore = parseCoreCustomMap(coreCustomFieldsJson);
+        Map<String, String> coreFlowVars = new Map<String, String>();
+        Map<String, String> coreSoqlMap = new Map<String, String>();
+        for (String lk : rawCore.keySet()) {
+            if (!CORE_CUSTOM_LOGICAL_KEYS.contains(lk)) {
+                continue;
+            }
+            String cv = rawCore.get(lk);
+            if (String.isBlank(cv)) {
+                continue;
+            }
+            if (isFlowSourceToken(cv)) {
+                coreFlowVars.put(lk, flowVariableApiNameFromToken(cv));
+            } else {
+                coreSoqlMap.put(lk, cv);
+            }
+        }
 
         Boolean sameAssemblyAndPredFlow =
-            assemblyFlow &&
+            runProfileAsmNamed &&
             predFromFlow &&
             profileAssemblyFlowApiName != null &&
             flowApiName != null &&
             profileAssemblyFlowApiName.equalsIgnoreCase(flowApiName);
 
-        if (!assemblyFlow && predFromFlow) {
+        Boolean startAssemblyInterview =
+            runProfileAsmNamed &&
+            (!assemblyFlowVars.isEmpty() || !coreFlowVars.isEmpty() || (predFromFlow && sameAssemblyAndPredFlow));
+
+        if (!startAssemblyInterview && predFromFlow) {
             try {
                 Map<String, Object> predIn = flowInputsWithRecordIds(recordIdVal, flowRecordIdVariable, null);
                 interviewForPredictions = Flow.Interview.createInterview(flowApiName, predIn);
@@ -254,11 +303,11 @@ public with sharing class CustomerProfileWidgetController {
         }
 
         ProfileResult core = String.isNotBlank(recordId)
-            ? buildFallbackFromSoql(recordId, coreCustomFieldsJson)
+            ? buildFallbackFromSoql(recordId, coreSoqlMap, assemblySoqlPaths)
             : newEmptyProfileResult();
 
         ProfileResult result;
-        if (assemblyFlow) {
+        if (startAssemblyInterview) {
             result = newEmptyProfileResult();
             try {
                 String asmRecVar = String.isBlank(profileAssemblyFlowRecordIdVariable)
@@ -271,7 +320,8 @@ public with sharing class CustomerProfileWidgetController {
                 );
                 assemblyInterview = Flow.Interview.createInterview(profileAssemblyFlowApiName, asmInputs);
                 assemblyInterview.start();
-                applyProfileOutputsFromFlow(result, assemblyInterview, profileFlowOutMap);
+                applyCoreCustomFlowTokenMappings(result, assemblyInterview, coreFlowVars);
+                applyProfileOutputsFromFlow(result, assemblyInterview, assemblyFlowVars);
             } catch (AuraHandledException e) {
                 throw e;
             } catch (Exception e) {
@@ -311,6 +361,14 @@ public with sharing class CustomerProfileWidgetController {
             applyGeocodeIfNeeded(result);
         }
 
+        if (recordIdVal != null) {
+            try {
+                enrichStructureTabForCustomer(result, recordIdVal);
+            } catch (Exception e) {
+                System.debug(LoggingLevel.WARN, 'CustomerProfileWidget structure enrich failed: ' + e.getMessage());
+            }
+        }
+
         return result;
     }
 
@@ -318,6 +376,8 @@ public with sharing class CustomerProfileWidgetController {
         ProfileResult r = new ProfileResult();
         r.nearbyBranches = new List<BranchInfo>();
         r.financialAccounts = new List<FinancialAccountInfo>();
+        r.orgChartChildren = new List<Map<String, String>>();
+        r.keyContacts = new List<Map<String, String>>();
         return r;
     }
 
@@ -369,6 +429,8 @@ public with sharing class CustomerProfileWidgetController {
             r.email = v;
         } else if (profileField == 'website') {
             r.website = v;
+        } else if (profileField == 'lastUsedChannel') {
+            r.lastUsedChannel = v;
         } else if (profileField == 'tierSegment') {
             r.tierSegment = v;
         } else if (profileField == 'riskProfile') {
@@ -509,6 +571,7 @@ public with sharing class CustomerProfileWidgetController {
         putStringIfMapped(r, interview, logicalToFlowVar, 'phone', 'phone');
         putStringIfMapped(r, interview, logicalToFlowVar, 'email', 'email');
         putStringIfMapped(r, interview, logicalToFlowVar, 'website', 'website');
+        putStringIfMapped(r, interview, logicalToFlowVar, 'lastUsedChannel', 'lastUsedChannel');
         putDecIfMapped(r, interview, logicalToFlowVar, 'revenue', 'revenue');
         putStringIfMapped(r, interview, logicalToFlowVar, 'tierSegment', 'tierSegment');
         putDecIfMapped(r, interview, logicalToFlowVar, 'propensityScore', 'propensityScore');
@@ -971,8 +1034,465 @@ public with sharing class CustomerProfileWidgetController {
         return out;
     }
 
+    private static final List<String> LAST_USED_CHANNEL_FIELD_CANDIDATES = new List<String>{
+        'Last_Used_Channel__c',
+        'lastUsedChannel__c',
+        'LastUsedChannel__c',
+        'FinServ__LastUsedChannel__c',
+        'Preferred_Channel__c',
+        'Last_Channel__c'
+    };
+
+    private static List<String> resolvedLastUsedChannelCandidatePaths() {
+        List<String> paths = new List<String>();
+        Set<String> seen = new Set<String>();
+        for (String cand : LAST_USED_CHANNEL_FIELD_CANDIDATES) {
+            String canon = validateAccountFieldPath(cand);
+            if (String.isBlank(canon) || seen.contains(canon)) {
+                continue;
+            }
+            seen.add(canon);
+            paths.add(canon);
+        }
+        Map<String, Schema.SObjectField> fm = Account.SObjectType.getDescribe().fields.getMap();
+        for (Schema.SObjectField sf : fm.values()) {
+            Schema.DescribeFieldResult d = sf.getDescribe();
+            if (!d.isAccessible()) {
+                continue;
+            }
+            Schema.DisplayType t = d.getType();
+            if (
+                t != Schema.DisplayType.STRING &&
+                t != Schema.DisplayType.PICKLIST &&
+                t != Schema.DisplayType.TEXTAREA &&
+                t != Schema.DisplayType.URL &&
+                t != Schema.DisplayType.PHONE &&
+                t != Schema.DisplayType.EMAIL
+            ) {
+                continue;
+            }
+            String lbl = d.getLabel();
+            if (String.isBlank(lbl)) {
+                continue;
+            }
+            String l = lbl.toLowerCase();
+            Boolean match =
+                l.replaceAll('\\s+', '').equals('lastusedchannel') ||
+                (l.contains('last') && l.contains('used') && l.contains('channel'));
+            if (!match) {
+                continue;
+            }
+            String canon = d.getName();
+            if (String.isBlank(canon) || seen.contains(canon)) {
+                continue;
+            }
+            seen.add(canon);
+            paths.add(canon);
+        }
+        return paths;
+    }
+
+    private static void mergeLastUsedChannelAccountFieldsIntoSelect(Set<String> selectNames) {
+        if (selectNames == null) {
+            return;
+        }
+        for (String canon : resolvedLastUsedChannelCandidatePaths()) {
+            if (String.isNotBlank(canon)) {
+                selectNames.add(canon);
+            }
+        }
+    }
+
+    private static void mergeLastUsedChannelContactAccountFieldsIntoSelect(Set<String> selectNames) {
+        if (selectNames == null) {
+            return;
+        }
+        for (String canon : resolvedLastUsedChannelCandidatePaths()) {
+            if (String.isNotBlank(canon)) {
+                selectNames.add('Account.' + canon);
+            }
+        }
+    }
+
+    /** Same pattern as Business Profile Widget: value is a Flow variable (prefix optional in assembly map legacy mode). */
+    private static Boolean isFlowSourceToken(String mappingValue) {
+        if (String.isBlank(mappingValue)) {
+            return false;
+        }
+        String t = mappingValue.trim().toLowerCase();
+        return t.startsWith('flow:') || t.startsWith('flows:');
+    }
+
+    private static String flowVariableApiNameFromToken(String mappingValue) {
+        String t = mappingValue.trim();
+        if (t.toLowerCase().startsWith('flows:')) {
+            return t.substring(6).trim();
+        }
+        return t.substring(5).trim();
+    }
+
+    private static String canonicalProfileSoqlPath(String path, String objName) {
+        if (String.isBlank(path) || isFlowSourceToken(path)) {
+            return null;
+        }
+        if ('Account'.equals(objName)) {
+            return validateAccountFieldPath(path.trim());
+        }
+        if ('Contact'.equals(objName)) {
+            return validateContactFieldPath(path.trim());
+        }
+        return null;
+    }
+
+    /**
+     * Splits assembly output map: SOQL field paths (Contact/Account, dotted) vs Flow variable names.
+     * Legacy: value with no prefix that fails SOQL validation is treated as a Flow variable API name.
+     */
+    private static void partitionAssemblyMapping(
+        Map<String, String> src,
+        Id recordId,
+        Map<String, String> outFlowVarByLogical,
+        Map<String, String> outSoqlPathByLogical
+    ) {
+        if (src == null || recordId == null || outFlowVarByLogical == null || outSoqlPathByLogical == null) {
+            return;
+        }
+        String objName = recordId.getSObjectType().getDescribe().getName();
+        for (String lk : src.keySet()) {
+            if (!PROFILE_ASSEMBLY_OUTPUT_KEYS.contains(lk)) {
+                continue;
+            }
+            String v = src.get(lk);
+            if (String.isBlank(v)) {
+                continue;
+            }
+            if (isFlowSourceToken(v)) {
+                outFlowVarByLogical.put(lk, flowVariableApiNameFromToken(v));
+                continue;
+            }
+            String canon = canonicalProfileSoqlPath(v, objName);
+            if (String.isNotBlank(canon)) {
+                outSoqlPathByLogical.put(lk, canon);
+            } else {
+                outFlowVarByLogical.put(lk, v.trim());
+            }
+        }
+    }
+
+    /**
+     * Canonical Contact SELECT path (e.g. MailingCity, Account.Industry). Null if invalid.
+     */
+    private static String validateContactFieldPath(String path) {
+        if (String.isBlank(path) || isFlowSourceToken(path)) {
+            return null;
+        }
+        List<String> parts = path.trim().split('\\.', 0);
+        if (parts.size() == 1 && parts[0].trim().equalsIgnoreCase('CreatedDate')) {
+            return 'CreatedDate';
+        }
+        Schema.SObjectType curType = Contact.SObjectType;
+        List<String> out = new List<String>();
+        for (Integer i = 0; i < parts.size(); i++) {
+            String seg = parts[i].trim();
+            if (String.isBlank(seg)) {
+                return null;
+            }
+            Map<String, Schema.SObjectField> fmap = curType.getDescribe().fields.getMap();
+            Schema.SObjectField f = findAccountFieldByToken(fmap, seg);
+            if (f == null) {
+                return null;
+            }
+            Schema.DescribeFieldResult fr = f.getDescribe();
+            Boolean isLast = (i == parts.size() - 1);
+            if (isLast) {
+                out.add(fr.getName());
+                break;
+            }
+            if (fr.getType() != Schema.DisplayType.REFERENCE || fr.getReferenceTo().isEmpty()) {
+                return null;
+            }
+            String rel = fr.getRelationshipName();
+            if (String.isBlank(rel)) {
+                return null;
+            }
+            out.add(rel);
+            List<Schema.SObjectType> refs = fr.getReferenceTo();
+            if (refs == null || refs.isEmpty()) {
+                return null;
+            }
+            curType = refs[0];
+        }
+        if (out.isEmpty()) {
+            return null;
+        }
+        return String.join(out, '.');
+    }
+
+    /**
+     * Canonical Account SELECT path (e.g. Name, Owner.Name). Null if invalid.
+     */
+    private static String validateAccountFieldPath(String path) {
+        if (String.isBlank(path)) {
+            return null;
+        }
+        String t = path.trim();
+        if (isFlowSourceToken(t)) {
+            return null;
+        }
+        List<String> parts = t.split('\\.', 0);
+        if (parts.size() == 1 && parts[0].trim().equalsIgnoreCase('CreatedDate')) {
+            return 'CreatedDate';
+        }
+        Schema.SObjectType curType = Account.SObjectType;
+        List<String> out = new List<String>();
+        for (Integer i = 0; i < parts.size(); i++) {
+            String seg = parts[i].trim();
+            if (String.isBlank(seg)) {
+                return null;
+            }
+            Map<String, Schema.SObjectField> fmap = curType.getDescribe().fields.getMap();
+            Schema.SObjectField f = findAccountFieldByToken(fmap, seg);
+            if (f == null) {
+                return null;
+            }
+            Schema.DescribeFieldResult fr = f.getDescribe();
+            Boolean isLast = (i == parts.size() - 1);
+            if (isLast) {
+                out.add(fr.getName());
+                break;
+            }
+            if (fr.getType() != Schema.DisplayType.REFERENCE || fr.getReferenceTo().isEmpty()) {
+                return null;
+            }
+            String rel = fr.getRelationshipName();
+            if (String.isBlank(rel)) {
+                return null;
+            }
+            out.add(rel);
+            List<Schema.SObjectType> refs = fr.getReferenceTo();
+            if (refs == null || refs.isEmpty()) {
+                return null;
+            }
+            curType = refs[0];
+        }
+        if (out.isEmpty()) {
+            return null;
+        }
+        return String.join(out, '.');
+    }
+
+    private static Schema.SObjectField findAccountFieldByToken(Map<String, Schema.SObjectField> fm, String seg) {
+        for (String k : fm.keySet()) {
+            if (k.equalsIgnoreCase(seg)) {
+                return fm.get(k);
+            }
+        }
+        for (Schema.SObjectField f : fm.values()) {
+            String rn = f.getDescribe().getRelationshipName();
+            if (rn != null && rn.equalsIgnoreCase(seg)) {
+                return f;
+            }
+        }
+        return null;
+    }
+
+    private static Object getFieldValueByPath(SObject row, String canonicalPath) {
+        List<String> parts = canonicalPath.split('\\.', 0);
+        if (parts.isEmpty()) {
+            return null;
+        }
+        SObject cur = row;
+        for (Integer i = 0; i < parts.size(); i++) {
+            if (i == parts.size() - 1) {
+                return cur.get(parts[i]);
+            }
+            cur = cur.getSObject(parts[i]);
+            if (cur == null) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static String displayValueForAccountField(SObject row, String canonicalPath) {
+        if (row == null || String.isBlank(canonicalPath)) {
+            return null;
+        }
+        Object o = getFieldValueByPath(row, canonicalPath);
+        if (o == null) {
+            return null;
+        }
+        List<String> parts = canonicalPath.split('\\.', 0);
+        if (parts.isEmpty()) {
+            return stringVal(o);
+        }
+        Schema.SObjectType curType = Account.SObjectType;
+        SObject curRow = row;
+        Schema.DescribeFieldResult leaf = null;
+        for (Integer i = 0; i < parts.size(); i++) {
+            String p = parts[i];
+            Map<String, Schema.SObjectField> fmap = curType.getDescribe().fields.getMap();
+            Schema.SObjectField f = findAccountFieldByToken(fmap, p);
+            if (f == null) {
+                return stringVal(o);
+            }
+            Schema.DescribeFieldResult d = f.getDescribe();
+            if (i == parts.size() - 1) {
+                leaf = d;
+                break;
+            }
+            if (d.getType() != Schema.DisplayType.REFERENCE || d.getReferenceTo().isEmpty()) {
+                return stringVal(o);
+            }
+            String rel = d.getRelationshipName();
+            if (String.isBlank(rel)) {
+                return stringVal(o);
+            }
+            curRow = curRow.getSObject(rel);
+            if (curRow == null) {
+                return null;
+            }
+            List<Schema.SObjectType> rts = d.getReferenceTo();
+            if (rts == null || rts.isEmpty()) {
+                return stringVal(o);
+            }
+            curType = rts[0];
+        }
+        if (leaf == null) {
+            return stringVal(o);
+        }
+        Schema.DisplayType t = leaf.getType();
+        if (t == Schema.DisplayType.PICKLIST) {
+            String raw = stringVal(o);
+            if (String.isBlank(raw)) {
+                return null;
+            }
+            for (Schema.PicklistEntry pe : leaf.getPicklistValues()) {
+                if (pe.getValue() != null && pe.getValue().equals(raw)) {
+                    String lbl = pe.getLabel();
+                    return String.isNotBlank(lbl) ? lbl : raw;
+                }
+            }
+            return raw;
+        }
+        if (t == Schema.DisplayType.MULTIPICKLIST) {
+            String raw = stringVal(o);
+            if (String.isBlank(raw)) {
+                return null;
+            }
+            Map<String, String> valToLabel = new Map<String, String>();
+            for (Schema.PicklistEntry pe : leaf.getPicklistValues()) {
+                if (pe.getValue() != null) {
+                    valToLabel.put(pe.getValue(), String.isNotBlank(pe.getLabel()) ? pe.getLabel() : pe.getValue());
+                }
+            }
+            List<String> bits = new List<String>();
+            for (String tok : raw.split(';')) {
+                String k = tok.trim();
+                if (String.isBlank(k)) {
+                    continue;
+                }
+                bits.add(valToLabel.containsKey(k) ? valToLabel.get(k) : k);
+            }
+            return bits.isEmpty() ? null : String.join(bits, '; ');
+        }
+        return stringVal(o);
+    }
+
+    private static void applyLastUsedChannelFromAccount(ProfileResult r, Account acc) {
+        if (r == null || acc == null || String.isNotBlank(r.lastUsedChannel)) {
+            return;
+        }
+        for (String path : resolvedLastUsedChannelCandidatePaths()) {
+            if (String.isBlank(path)) {
+                continue;
+            }
+            String disp = displayValueForAccountField(acc, path);
+            if (String.isNotBlank(disp)) {
+                r.lastUsedChannel = disp.trim();
+                return;
+            }
+        }
+    }
+
+    /** Picklist label (or string) for a single field on Account or Contact — core custom lastUsedChannel. */
+    private static String displayValueForLeafField(SObject row, String fieldApiName) {
+        if (row == null || String.isBlank(fieldApiName)) {
+            return null;
+        }
+        Map<String, Schema.SObjectField> fm = row.getSObjectType().getDescribe().fields.getMap();
+        Schema.SObjectField f = fm.get(fieldApiName.trim().toLowerCase());
+        if (f == null) {
+            return null;
+        }
+        Schema.DescribeFieldResult leaf = f.getDescribe();
+        if (!leaf.isAccessible()) {
+            return null;
+        }
+        Object o = row.get(leaf.getName());
+        if (o == null) {
+            return null;
+        }
+        Schema.DisplayType t = leaf.getType();
+        if (t == Schema.DisplayType.PICKLIST) {
+            String raw = stringVal(o);
+            if (String.isBlank(raw)) {
+                return null;
+            }
+            for (Schema.PicklistEntry pe : leaf.getPicklistValues()) {
+                if (pe.getValue() != null && pe.getValue().equals(raw)) {
+                    String lbl = pe.getLabel();
+                    return String.isNotBlank(lbl) ? lbl : raw;
+                }
+            }
+            return raw;
+        }
+        if (t == Schema.DisplayType.MULTIPICKLIST) {
+            String raw = stringVal(o);
+            if (String.isBlank(raw)) {
+                return null;
+            }
+            Map<String, String> valToLabel = new Map<String, String>();
+            for (Schema.PicklistEntry pe : leaf.getPicklistValues()) {
+                if (pe.getValue() != null) {
+                    valToLabel.put(pe.getValue(), String.isNotBlank(pe.getLabel()) ? pe.getLabel() : pe.getValue());
+                }
+            }
+            List<String> bits = new List<String>();
+            for (String tok : raw.split(';')) {
+                String k = tok.trim();
+                if (String.isBlank(k)) {
+                    continue;
+                }
+                bits.add(valToLabel.containsKey(k) ? valToLabel.get(k) : k);
+            }
+            return bits.isEmpty() ? null : String.join(bits, '; ');
+        }
+        return stringVal(o);
+    }
+
     @TestVisible
     static ProfileResult buildFallbackFromSoql(String recordId, String coreCustomFieldsJson) {
+        Map<String, String> raw = parseCoreCustomMap(coreCustomFieldsJson);
+        Map<String, String> coreSoql = new Map<String, String>();
+        for (String lk : raw.keySet()) {
+            if (!CORE_CUSTOM_LOGICAL_KEYS.contains(lk)) {
+                continue;
+            }
+            String v = raw.get(lk);
+            if (String.isBlank(v) || isFlowSourceToken(v)) {
+                continue;
+            }
+            coreSoql.put(lk, v);
+        }
+        return buildFallbackFromSoql(recordId, coreSoql, new Map<String, String>());
+    }
+
+    private static ProfileResult buildFallbackFromSoql(
+        String recordId,
+        Map<String, String> coreCustomMap,
+        Map<String, String> assemblySoqlPaths
+    ) {
         ProfileResult r = newEmptyProfileResult();
         Id rid;
         try {
@@ -980,8 +1500,7 @@ public with sharing class CustomerProfileWidgetController {
         } catch (Exception e) {
             return r;
         }
-
-        Map<String, String> coreCustom = parseCoreCustomMap(coreCustomFieldsJson);
+        Map<String, String> asmPaths = assemblySoqlPaths == null ? new Map<String, String>() : assemblySoqlPaths;
         String obj = rid.getSObjectType().getDescribe().getName();
 
         if (obj == 'Account') {
@@ -998,12 +1517,14 @@ public with sharing class CustomerProfileWidgetController {
                 'AnnualRevenue',
                 'Website'
             };
+            mergeLastUsedChannelAccountFieldsIntoSelect(selectNames);
+            mergeAssemblySoqlPathsIntoSelect(selectNames, asmPaths);
             Map<String, Schema.SObjectField> accMap = Account.SObjectType.getDescribe().fields.getMap();
-            for (String lk : coreCustom.keySet()) {
+            for (String lk : coreCustomMap.keySet()) {
                 if (!CORE_CUSTOM_LOGICAL_KEYS.contains(lk)) {
                     continue;
                 }
-                String api = coreCustom.get(lk);
+                String api = coreCustomMap.get(lk);
                 if (String.isBlank(api)) {
                     continue;
                 }
@@ -1018,7 +1539,9 @@ public with sharing class CustomerProfileWidgetController {
                 selectNames.add(df.getName());
                 logicalToField.put(lk, df.getName());
             }
-            String soql = 'SELECT ' + String.join(new List<String>(selectNames), ',') + ' FROM Account WHERE Id = :rid LIMIT 1';
+            List<String> orderedSel = new List<String>(selectNames);
+            orderedSel.sort();
+            String soql = 'SELECT ' + String.join(orderedSel, ',') + ' FROM Account WHERE Id = :rid LIMIT 1';
             List<SObject> rows = Database.query(soql);
             if (!rows.isEmpty()) {
                 Account a = (Account) rows[0];
@@ -1035,6 +1558,8 @@ public with sharing class CustomerProfileWidgetController {
                 r.revenue = a.AnnualRevenue;
                 r.website = a.Website == null ? null : String.valueOf(a.Website);
                 applyCoreCustomFromRow(a, r, logicalToField);
+                applyProfileAssemblyFromSoql(r, a, asmPaths);
+                applyLastUsedChannelFromAccount(r, a);
             }
         } else if (obj == 'Contact') {
             Map<String, String> logicalToField = new Map<String, String>();
@@ -1047,14 +1572,17 @@ public with sharing class CustomerProfileWidgetController {
                 'MailingPostalCode',
                 'Phone',
                 'Email',
-                'PhotoUrl'
+                'PhotoUrl',
+                'AccountId'
             };
+            mergeLastUsedChannelContactAccountFieldsIntoSelect(selectNames);
+            mergeAssemblySoqlPathsIntoSelect(selectNames, asmPaths);
             Map<String, Schema.SObjectField> conMap = Contact.SObjectType.getDescribe().fields.getMap();
-            for (String lk : coreCustom.keySet()) {
+            for (String lk : coreCustomMap.keySet()) {
                 if (!CORE_CUSTOM_LOGICAL_KEYS.contains(lk)) {
                     continue;
                 }
-                String api = coreCustom.get(lk);
+                String api = coreCustomMap.get(lk);
                 if (String.isBlank(api)) {
                     continue;
                 }
@@ -1069,7 +1597,9 @@ public with sharing class CustomerProfileWidgetController {
                 selectNames.add(df.getName());
                 logicalToField.put(lk, df.getName());
             }
-            String soql = 'SELECT ' + String.join(new List<String>(selectNames), ',') + ' FROM Contact WHERE Id = :rid LIMIT 1';
+            List<String> orderedSelC = new List<String>(selectNames);
+            orderedSelC.sort();
+            String soql = 'SELECT ' + String.join(orderedSelC, ',') + ' FROM Contact WHERE Id = :rid LIMIT 1';
             List<SObject> rows = Database.query(soql);
             if (!rows.isEmpty()) {
                 Contact c = (Contact) rows[0];
@@ -1084,6 +1614,9 @@ public with sharing class CustomerProfileWidgetController {
                 r.email = c.Email;
                 r.profilePhotoUrl = c.PhotoUrl;
                 applyCoreCustomFromRow(c, r, logicalToField);
+                applyProfileAssemblyFromSoql(r, c, asmPaths);
+                Account acc = (Account) c.getSObject('Account');
+                applyLastUsedChannelFromAccount(r, acc);
             }
         }
         return r;
@@ -1158,7 +1691,259 @@ public with sharing class CustomerProfileWidgetController {
                 r.wireEnabled = boolVal(v);
             } else if (lk == 'profilePhotoUrl') {
                 r.profilePhotoUrl = stringVal(v);
+            } else if (lk == 'lastUsedChannel') {
+                r.lastUsedChannel = displayValueForLeafField(row, fn);
             }
+        }
+    }
+
+    private static void applyCoreCustomFlowTokenMappings(
+        ProfileResult r,
+        Flow.Interview iv,
+        Map<String, String> logicalToVar
+    ) {
+        if (r == null || iv == null || logicalToVar == null || logicalToVar.isEmpty()) {
+            return;
+        }
+        for (String lk : logicalToVar.keySet()) {
+            Object v = resolveFlowOutput(iv, logicalToVar.get(lk));
+            if (lk == 'tierSegment') {
+                r.tierSegment = stringVal(v);
+            } else if (lk == 'investmentBalance') {
+                r.investmentBalance = decVal(v);
+            } else if (lk == 'loanBalance') {
+                r.loanBalance = decVal(v);
+            } else if (lk == 'loanLimit') {
+                r.loanLimit = decVal(v);
+            } else if (lk == 'depositYtd') {
+                r.depositYtd = decVal(v);
+            } else if (lk == 'propensityScore') {
+                r.propensityScore = decVal(v);
+            } else if (lk == 'engagementScore') {
+                r.engagementScore = decVal(v);
+            } else if (lk == 'churnScore') {
+                r.churnScore = decVal(v);
+            } else if (lk == 'ltvScore') {
+                r.ltvScore = decVal(v);
+            } else if (lk == 'crossSellScore') {
+                r.crossSellScore = decVal(v);
+            } else if (lk == 'savingsRate') {
+                r.savingsRate = decVal(v);
+            } else if (lk == 'riskProfile') {
+                r.riskProfile = stringVal(v);
+            } else if (lk == 'customerSince') {
+                r.customerSince = stringVal(v);
+            } else if (lk == 'lastInteractionDate') {
+                r.lastInteractionDate = stringVal(v);
+            } else if (lk == 'mobileEnrolled') {
+                r.mobileEnrolled = boolVal(v);
+            } else if (lk == 'onlineEnrolled') {
+                r.onlineEnrolled = boolVal(v);
+            } else if (lk == 'kycStatus') {
+                r.kycStatus = stringVal(v);
+            } else if (lk == 'twoFaStatus') {
+                r.twoFaStatus = stringVal(v);
+            } else if (lk == 'paperlessEnrolled') {
+                r.paperlessEnrolled = boolVal(v);
+            } else if (lk == 'alertsEnrolled') {
+                r.alertsEnrolled = boolVal(v);
+            } else if (lk == 'wireEnabled') {
+                r.wireEnabled = boolVal(v);
+            } else if (lk == 'profilePhotoUrl') {
+                r.profilePhotoUrl = stringVal(v);
+            } else if (lk == 'lastUsedChannel') {
+                r.lastUsedChannel = stringVal(v);
+            }
+        }
+    }
+
+    private static void mergeAssemblySoqlPathsIntoSelect(Set<String> selectNames, Map<String, String> assemblySoqlPaths) {
+        if (selectNames == null || assemblySoqlPaths == null || assemblySoqlPaths.isEmpty()) {
+            return;
+        }
+        for (String canon : assemblySoqlPaths.values()) {
+            if (String.isNotBlank(canon)) {
+                selectNames.add(canon);
+            }
+        }
+    }
+
+    /** Applies [Asm flow output] / JSON slots that were resolved to SOQL paths (same shapes as Flow). */
+    private static void applyProfileAssemblyFromSoql(ProfileResult r, SObject row, Map<String, String> paths) {
+        if (r == null || row == null || paths == null || paths.isEmpty()) {
+            return;
+        }
+        if (paths.containsKey('firstName') || paths.containsKey('lastName')) {
+            String fn = paths.containsKey('firstName')
+                ? stringVal(getFieldValueByPath(row, paths.get('firstName')))
+                : null;
+            String ln = paths.containsKey('lastName')
+                ? stringVal(getFieldValueByPath(row, paths.get('lastName')))
+                : null;
+            if (String.isNotBlank(fn) || String.isNotBlank(ln)) {
+                r.fullName = trimJoin(new List<String>{ fn, ln });
+            }
+        }
+        if (paths.containsKey('fullName')) {
+            String v = stringVal(getFieldValueByPath(row, paths.get('fullName')));
+            if (String.isNotBlank(v)) {
+                r.fullName = v;
+            }
+        }
+        if (paths.containsKey('city')) {
+            r.city = stringVal(getFieldValueByPath(row, paths.get('city')));
+        }
+        if (paths.containsKey('state')) {
+            r.state = stringVal(getFieldValueByPath(row, paths.get('state')));
+        }
+        r.billingCity = coalesce(r.billingCity, r.city);
+        r.billingState = coalesce(r.billingState, r.state);
+        if (paths.containsKey('industry')) {
+            r.industry = stringVal(getFieldValueByPath(row, paths.get('industry')));
+        }
+        if (paths.containsKey('employees')) {
+            r.employees = intVal(getFieldValueByPath(row, paths.get('employees')));
+        }
+        if (paths.containsKey('phone')) {
+            r.phone = stringVal(getFieldValueByPath(row, paths.get('phone')));
+        }
+        if (paths.containsKey('email')) {
+            r.email = stringVal(getFieldValueByPath(row, paths.get('email')));
+        }
+        if (paths.containsKey('website')) {
+            r.website = stringVal(getFieldValueByPath(row, paths.get('website')));
+        }
+        if (paths.containsKey('lastUsedChannel')) {
+            r.lastUsedChannel = stringVal(getFieldValueByPath(row, paths.get('lastUsedChannel')));
+        }
+        if (paths.containsKey('revenue')) {
+            r.revenue = decVal(getFieldValueByPath(row, paths.get('revenue')));
+        }
+        if (paths.containsKey('tierSegment')) {
+            r.tierSegment = stringVal(getFieldValueByPath(row, paths.get('tierSegment')));
+        }
+        if (paths.containsKey('propensityScore')) {
+            r.propensityScore = decVal(getFieldValueByPath(row, paths.get('propensityScore')));
+        }
+        if (paths.containsKey('engagementScore')) {
+            r.engagementScore = decVal(getFieldValueByPath(row, paths.get('engagementScore')));
+        }
+        if (paths.containsKey('churnScore')) {
+            r.churnScore = decVal(getFieldValueByPath(row, paths.get('churnScore')));
+        }
+        if (paths.containsKey('ltvScore')) {
+            r.ltvScore = decVal(getFieldValueByPath(row, paths.get('ltvScore')));
+        }
+        if (paths.containsKey('crossSellScore')) {
+            r.crossSellScore = decVal(getFieldValueByPath(row, paths.get('crossSellScore')));
+        }
+        if (paths.containsKey('savingsRate')) {
+            r.savingsRate = decVal(getFieldValueByPath(row, paths.get('savingsRate')));
+        }
+        if (paths.containsKey('investmentBalance')) {
+            r.investmentBalance = decVal(getFieldValueByPath(row, paths.get('investmentBalance')));
+        }
+        if (paths.containsKey('loanBalance')) {
+            r.loanBalance = decVal(getFieldValueByPath(row, paths.get('loanBalance')));
+        }
+        if (paths.containsKey('depositYtd')) {
+            r.depositYtd = decVal(getFieldValueByPath(row, paths.get('depositYtd')));
+        }
+        if (paths.containsKey('loanLimit')) {
+            r.loanLimit = decVal(getFieldValueByPath(row, paths.get('loanLimit')));
+        }
+        if (paths.containsKey('riskProfile')) {
+            r.riskProfile = stringVal(getFieldValueByPath(row, paths.get('riskProfile')));
+        }
+        if (paths.containsKey('customerSince')) {
+            r.customerSince = stringVal(getFieldValueByPath(row, paths.get('customerSince')));
+        }
+        if (paths.containsKey('lastInteraction')) {
+            r.lastInteractionDate = stringVal(getFieldValueByPath(row, paths.get('lastInteraction')));
+        }
+        if (paths.containsKey('mobileEnrolled')) {
+            r.mobileEnrolled = boolVal(getFieldValueByPath(row, paths.get('mobileEnrolled')));
+        }
+        if (paths.containsKey('onlineEnrolled')) {
+            r.onlineEnrolled = boolVal(getFieldValueByPath(row, paths.get('onlineEnrolled')));
+        }
+        if (paths.containsKey('kycStatus')) {
+            r.kycStatus = stringVal(getFieldValueByPath(row, paths.get('kycStatus')));
+        }
+        if (paths.containsKey('twoFaStatus')) {
+            r.twoFaStatus = stringVal(getFieldValueByPath(row, paths.get('twoFaStatus')));
+        }
+        if (paths.containsKey('paperlessEnrolled')) {
+            r.paperlessEnrolled = boolVal(getFieldValueByPath(row, paths.get('paperlessEnrolled')));
+        }
+        if (paths.containsKey('alertsEnrolled')) {
+            r.alertsEnrolled = boolVal(getFieldValueByPath(row, paths.get('alertsEnrolled')));
+        }
+        if (paths.containsKey('wireEnabled')) {
+            r.wireEnabled = boolVal(getFieldValueByPath(row, paths.get('wireEnabled')));
+        }
+        if (paths.containsKey('street')) {
+            r.billingStreet = stringVal(getFieldValueByPath(row, paths.get('street')));
+        }
+        if (paths.containsKey('zip')) {
+            r.billingPostalCode = stringVal(getFieldValueByPath(row, paths.get('zip')));
+        }
+        if (paths.containsKey('assignedBranch')) {
+            r.assignedBranch = stringVal(getFieldValueByPath(row, paths.get('assignedBranch')));
+        }
+        if (paths.containsKey('branchDistance')) {
+            r.assignedBranchDistance = stringVal(getFieldValueByPath(row, paths.get('branchDistance')));
+        }
+        if (paths.containsKey('assignedBranchAddress')) {
+            r.assignedBranchAddress = stringVal(getFieldValueByPath(row, paths.get('assignedBranchAddress')));
+        }
+        if (paths.containsKey('assignedBranchHours')) {
+            r.assignedBranchHours = stringVal(getFieldValueByPath(row, paths.get('assignedBranchHours')));
+        }
+        if (paths.containsKey('assignedBranchStatus')) {
+            r.assignedBranchStatus = stringVal(getFieldValueByPath(row, paths.get('assignedBranchStatus')));
+        }
+        if (paths.containsKey('profilePhotoUrl')) {
+            r.profilePhotoUrl = stringVal(getFieldValueByPath(row, paths.get('profilePhotoUrl')));
+        }
+        if (paths.containsKey('nearbyBranches')) {
+            Object raw = getFieldValueByPath(row, paths.get('nearbyBranches'));
+            String jsonList = raw instanceof String ? (String) raw : JSON.serialize(raw);
+            if (String.isNotBlank(jsonList)) {
+                try {
+                    Object parsed = JSON.deserializeUntyped(jsonList.trim());
+                    if (parsed instanceof List<Object>) {
+                        r.nearbyBranches = new List<BranchInfo>();
+                        for (Object o : (List<Object>) parsed) {
+                            if (o instanceof Map<String, Object>) {
+                                Map<String, Object> b = (Map<String, Object>) o;
+                                BranchInfo bi = new BranchInfo();
+                                bi.name = stringVal(b.get('name'));
+                                bi.distance = stringVal(b.get('distance'));
+                                bi.address = stringVal(b.get('address'));
+                                bi.hours = stringVal(b.get('hours'));
+                                bi.status = stringVal(b.get('status'));
+                                bi.assigned = boolVal(b.get('assigned'));
+                                r.nearbyBranches.add(bi);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                }
+            }
+        }
+        if (paths.containsKey('financialAccounts')) {
+            Object raw = getFieldValueByPath(row, paths.get('financialAccounts'));
+            List<FinancialAccountInfo> facc = parseFinancialAccountsList(raw);
+            if (facc != null && !facc.isEmpty()) {
+                r.financialAccounts = facc;
+            }
+        }
+        if (paths.containsKey('mapLatitude')) {
+            r.mapLatitude = decVal(getFieldValueByPath(row, paths.get('mapLatitude')));
+        }
+        if (paths.containsKey('mapLongitude')) {
+            r.mapLongitude = decVal(getFieldValueByPath(row, paths.get('mapLongitude')));
         }
     }
 
@@ -1232,6 +2017,9 @@ public with sharing class CustomerProfileWidgetController {
         }
         if (String.isBlank(p.website)) {
             p.website = s.website;
+        }
+        if (String.isBlank(p.lastUsedChannel)) {
+            p.lastUsedChannel = s.lastUsedChannel;
         }
         if (p.revenue == null) {
             p.revenue = s.revenue;
@@ -1535,6 +2323,854 @@ public with sharing class CustomerProfileWidgetController {
             }
         }
         return String.join(out, ' ');
+    }
+
+    // --- Structure tab (aligned with Business Profile widget: related accounts + key contacts) ---
+
+    private static void enrichStructureTabForCustomer(ProfileResult r, Id recordIdVal) {
+        if (r == null || recordIdVal == null) {
+            return;
+        }
+        r.keyContacts = new List<Map<String, String>>();
+        r.orgChartChildren = new List<Map<String, String>>();
+        r.structureLinkedAccountsText = '';
+        r.structureLinkedAccountCount = 0;
+        r.structureLinkedContactsText = '';
+        String prefix = String.valueOf(recordIdVal).substring(0, 3);
+        if ('003'.equals(prefix)) {
+            enrichStructureTabDataContact(r, recordIdVal);
+        } else if ('001'.equals(prefix)) {
+            // Person Account record pages pass Account Id (001). FSC households / entities are on the
+            // person's Contact via ACR — same pivot as the Contact record page.
+            Id personContactId = resolvePersonContactIdForStructureTab(recordIdVal);
+            if (personContactId != null) {
+                enrichStructureTabDataContact(r, personContactId);
+            } else {
+                enrichStructureTabDataAccount(r, recordIdVal);
+            }
+        }
+    }
+
+    /** Person Account → primary Contact Id for structure (ACR + related accounts). Null for business accounts. */
+    private static Id resolvePersonContactIdForStructureTab(Id accountId) {
+        if (accountId == null) {
+            return null;
+        }
+        try {
+            Schema.DescribeFieldResult pcDesc = Account.PersonContactId.getDescribe();
+            if (!pcDesc.isAccessible()) {
+                return null;
+            }
+            List<Account> rows = [
+                SELECT PersonContactId
+                FROM Account
+                WHERE Id = :accountId
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (rows.isEmpty() || rows[0].PersonContactId == null) {
+                return null;
+            }
+            return rows[0].PersonContactId;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** True when two Id strings refer to the same record (handles 15- vs 18-char forms). */
+    private static Boolean sameSalesforceContactId(String a, String b) {
+        if (String.isBlank(a) || String.isBlank(b)) {
+            return false;
+        }
+        try {
+            return Id.valueOf(a.trim()) == Id.valueOf(b.trim());
+        } catch (Exception e) {
+            return a.trim().equals(b.trim());
+        }
+    }
+
+    private static void enrichStructureTabDataAccount(ProfileResult r, Id accountId) {
+        if (r == null || accountId == null) {
+            return;
+        }
+        try {
+            List<Account> thinRows = [
+                SELECT Type
+                FROM Account
+                WHERE Id = :accountId
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (!thinRows.isEmpty() && String.isNotBlank(thinRows[0].Type)) {
+                r.accountType = thinRows[0].Type;
+            }
+        } catch (Exception e) {
+        }
+
+        List<Map<String, String>> contacts = loadKeyContactsForAccount(accountId);
+        r.keyContacts = contacts;
+
+        List<Map<String, String>> accountNodes = loadOrgChartRelatedAccountNodes(accountId);
+        r.structureLinkedAccountCount = accountNodes.size();
+        r.structureLinkedAccountsText = '';
+        try {
+            buildOrgChartChildren(r, accountNodes, contacts);
+        } catch (Exception e) {
+            r.orgChartChildren = new List<Map<String, String>>();
+            for (Map<String, String> an : accountNodes) {
+                r.orgChartChildren.add(new Map<String, String>(an));
+            }
+        }
+
+        r.structureLinkedContactsText = buildLinkedContactsSummaryText(contacts);
+    }
+
+    private static void enrichStructureTabDataContact(ProfileResult r, Id contactId) {
+        if (r == null || contactId == null) {
+            return;
+        }
+        try {
+            List<Contact> cRows = [
+                SELECT Id, AccountId, Title, FirstName, LastName
+                FROM Contact
+                WHERE Id = :contactId
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (cRows.isEmpty()) {
+                return;
+            }
+            Contact c = cRows[0];
+            r.structureRootSublabel = String.isNotBlank(c.Title) ? c.Title : 'Contact';
+
+            List<Map<String, String>> accountNodesRaw = loadOrgChartAccountsFromContactAcr(contactId);
+            ensureContactDirectAccountOnOrgChart(c.AccountId, accountNodesRaw);
+            appendAccountAccountJunctionsForContactAnchors(accountNodesRaw);
+            List<Map<String, String>> accountNodes = mergeOrgChartAccountNodesForContact(accountNodesRaw);
+            r.keyContacts = loadKeyContactsAcrossRelatedAccounts(accountNodes, contactId, 200);
+
+            r.structureLinkedAccountCount = accountNodes.size();
+            r.structureLinkedAccountsText = '';
+
+            r.orgChartChildren = new List<Map<String, String>>();
+            for (Map<String, String> an : accountNodes) {
+                r.orgChartChildren.add(new Map<String, String>(an));
+            }
+            r.structureLinkedContactsText = buildLinkedContactsSummaryText(r.keyContacts);
+        } catch (Exception e) {
+        }
+    }
+
+    /**
+     * Key contacts from every related account on the org chart (ACR + primary), deduped by Contact Id.
+     * Excludes the current contact. Roles from multiple accounts are merged.
+     */
+    private static List<Map<String, String>> loadKeyContactsAcrossRelatedAccounts(
+        List<Map<String, String>> accountNodesInOrder,
+        Id excludeContactId,
+        Integer maxUniqueContacts
+    ) {
+        List<Map<String, String>> out = new List<Map<String, String>>();
+        if (accountNodesInOrder == null || accountNodesInOrder.isEmpty()) {
+            return out;
+        }
+        Integer cap = maxUniqueContacts != null && maxUniqueContacts > 0 ? maxUniqueContacts : 200;
+        Map<String, Map<String, String>> byCid = new Map<String, Map<String, String>>();
+        String ex = excludeContactId != null ? String.valueOf(excludeContactId) : '';
+
+        for (Map<String, String> an : accountNodesInOrder) {
+            if (byCid.size() >= cap) {
+                break;
+            }
+            String sid = an.get('accountId');
+            if (String.isBlank(sid)) {
+                continue;
+            }
+            Id aid;
+            try {
+                aid = Id.valueOf(sid.trim());
+            } catch (Exception badId) {
+                continue;
+            }
+            List<Map<String, String>> batch = loadKeyContactsForAccount(aid);
+            for (Map<String, String> row : batch) {
+                if (byCid.size() >= cap) {
+                    break;
+                }
+                String cid = row.get('contactId');
+                if (String.isBlank(cid)) {
+                    continue;
+                }
+                if (String.isNotBlank(ex) && sameSalesforceContactId(cid, ex)) {
+                    continue;
+                }
+                if (!byCid.containsKey(cid)) {
+                    byCid.put(cid, new Map<String, String>(row));
+                } else {
+                    mergeKeyContactRowAcrossAccounts(byCid.get(cid), row);
+                }
+            }
+        }
+        out.addAll(byCid.values());
+        return out;
+    }
+
+    private static void mergeKeyContactRowAcrossAccounts(Map<String, String> targetRow, Map<String, String> fromRow) {
+        if (targetRow == null || fromRow == null) {
+            return;
+        }
+        Set<String> tok = new Set<String>();
+        mergeSublabelTokensIntoSet(tok, targetRow.get('acrRole'));
+        mergeSublabelTokensIntoSet(tok, fromRow.get('acrRole'));
+        List<String> tl = new List<String>(tok);
+        tl.sort();
+        if (!tl.isEmpty()) {
+            targetRow.put('acrRole', String.join(tl, '; '));
+        }
+        if ('true'.equalsIgnoreCase(fromRow.get('isPrimary'))) {
+            targetRow.put('isPrimary', 'true');
+        }
+        if (String.isBlank(targetRow.get('title')) && String.isNotBlank(fromRow.get('title'))) {
+            targetRow.put('title', fromRow.get('title'));
+        }
+    }
+
+    private class JunctionPairStruct {
+        String anchorLookup;
+        String otherLookup;
+    }
+
+    private static JunctionPairStruct resolveAccountJunctionPairStruct(Schema.DescribeSObjectResult od) {
+        List<String> refs = new List<String>();
+        for (Schema.SObjectField sf : od.fields.getMap().values()) {
+            Schema.DescribeFieldResult fr = sf.getDescribe();
+            if (!fr.isAccessible()) {
+                continue;
+            }
+            if (fr.getType() != Schema.DisplayType.REFERENCE || fr.getReferenceTo().isEmpty()) {
+                continue;
+            }
+            if (fr.getReferenceTo()[0] != Account.SObjectType) {
+                continue;
+            }
+            refs.add(fr.getName());
+        }
+        if (refs.size() < 2) {
+            return null;
+        }
+        JunctionPairStruct j = new JunctionPairStruct();
+        String anchor = null;
+        for (String name : refs) {
+            if (name.equalsIgnoreCase('AccountId')) {
+                anchor = name;
+            }
+        }
+        j.anchorLookup = anchor != null ? anchor : refs[0];
+        j.otherLookup = null;
+        for (String name : refs) {
+            if (name != j.anchorLookup) {
+                j.otherLookup = name;
+                break;
+            }
+        }
+        return j.otherLookup == null ? null : j;
+    }
+
+    private static String resolveJunctionRoleFieldStruct(Schema.DescribeSObjectResult od) {
+        List<String> tryNames = new List<String>{
+            'FinServ__RelationshipType__c',
+            'RelationshipType__c',
+            'RelationshipType',
+            'FinServ__Role__c',
+            'Role__c',
+            'Role'
+        };
+        Map<String, Schema.SObjectField> fm = od.fields.getMap();
+        for (String name : tryNames) {
+            if (!fm.containsKey(name)) {
+                continue;
+            }
+            Schema.DescribeFieldResult fr = fm.get(name).getDescribe();
+            if (!fr.isAccessible()) {
+                continue;
+            }
+            Schema.DisplayType t = fr.getType();
+            if (t == Schema.DisplayType.STRING ||
+                t == Schema.DisplayType.PICKLIST ||
+                t == Schema.DisplayType.TEXTAREA) {
+                return name;
+            }
+        }
+        return null;
+    }
+
+    private static void appendNodesFromJunctionRowsStruct(
+        List<SObject> rows,
+        Id accountId,
+        JunctionPairStruct jp,
+        Boolean anchorMatchesCurrent,
+        String roleField,
+        List<Map<String, String>> nodes
+    ) {
+        Set<Id> relIds = new Set<Id>();
+        for (SObject row : rows) {
+            Id rel = anchorMatchesCurrent ? (Id) row.get(jp.otherLookup) : (Id) row.get(jp.anchorLookup);
+            if (rel != null && rel != accountId) {
+                relIds.add(rel);
+            }
+        }
+        Map<Id, Account> amap = new Map<Id, Account>();
+        if (!relIds.isEmpty()) {
+            try {
+                amap.putAll([SELECT Id, Name, Type FROM Account WHERE Id IN :relIds WITH USER_MODE]);
+            } catch (Exception e) {
+            }
+        }
+        for (SObject row : rows) {
+            Id rel = anchorMatchesCurrent ? (Id) row.get(jp.otherLookup) : (Id) row.get(jp.anchorLookup);
+            if (rel == null || rel == accountId) {
+                continue;
+            }
+            Account a = amap.get(rel);
+            if (a == null) {
+                continue;
+            }
+            String roleVal = null;
+            if (String.isNotBlank(roleField)) {
+                Object rv = row.get(roleField);
+                roleVal = rv == null ? null : String.valueOf(rv);
+            }
+            String sub = String.isNotBlank(roleVal) ? roleVal : (String.isNotBlank(a.Type) ? a.Type : 'Related account');
+            Map<String, String> m = new Map<String, String>();
+            m.put('kind', 'account');
+            m.put('name', a.Name != null ? a.Name : 'Account');
+            m.put('sublabel', sub);
+            m.put('accountId', String.valueOf(rel));
+            nodes.add(m);
+        }
+    }
+
+    /**
+     * Contact org chart: ACR lists accounts the contact is on, but FSC "related accounts" (trusts,
+     * entities, etc.) are Account–Account junction rows from those anchors. Expand each anchor
+     * the same way as loadOrgChartRelatedAccountNodes does for a single account view.
+     */
+    private static void appendAccountAccountJunctionsForContactAnchors(List<Map<String, String>> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return;
+        }
+        Set<Id> anchors = new Set<Id>();
+        for (Map<String, String> n : nodes) {
+            if (n == null || !'account'.equalsIgnoreCase(n.get('kind'))) {
+                continue;
+            }
+            String sid = n.get('accountId');
+            if (String.isBlank(sid)) {
+                continue;
+            }
+            try {
+                anchors.add(Id.valueOf(sid.trim()));
+            } catch (Exception e) {
+            }
+        }
+        if (anchors.isEmpty()) {
+            return;
+        }
+        List<String> ordered = new List<String>();
+        for (Id aid : anchors) {
+            ordered.add(String.valueOf(aid));
+        }
+        ordered.sort();
+        Integer maxAnchors = 40;
+        Integer processed = 0;
+        for (String sk : ordered) {
+            if (processed >= maxAnchors) {
+                break;
+            }
+            processed++;
+            try {
+                appendAccountAccountJunctionNodesStruct(Id.valueOf(sk), nodes);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    private static void appendAccountAccountJunctionNodesStruct(Id accountId, List<Map<String, String>> nodes) {
+        List<String> cands = new List<String>{ 'AccountAccountRelation', 'FinServ__AccountAccountRelation__c' };
+        for (String objApi : cands) {
+            if (!Schema.getGlobalDescribe().containsKey(objApi)) {
+                continue;
+            }
+            Schema.DescribeSObjectResult od = Schema.getGlobalDescribe().get(objApi).getDescribe();
+            if (!od.isAccessible()) {
+                continue;
+            }
+            JunctionPairStruct jp = resolveAccountJunctionPairStruct(od);
+            if (jp == null) {
+                continue;
+            }
+            String roleF = resolveJunctionRoleFieldStruct(od);
+            String selBase = 'SELECT ' + jp.anchorLookup + ', ' + jp.otherLookup;
+            if (String.isNotBlank(roleF)) {
+                selBase += ', ' + roleF;
+            }
+            try {
+                String q1 = selBase + ' FROM ' + objApi + ' WHERE ' + jp.anchorLookup + ' = :accountId LIMIT 200';
+                List<SObject> rows1 = Database.queryWithBinds(
+                    q1,
+                    new Map<String, Object>{ 'accountId' => accountId },
+                    AccessLevel.USER_MODE
+                );
+                appendNodesFromJunctionRowsStruct(rows1, accountId, jp, true, roleF, nodes);
+            } catch (Exception e) {
+            }
+            try {
+                String q2 = selBase + ' FROM ' + objApi + ' WHERE ' + jp.otherLookup + ' = :accountId LIMIT 200';
+                List<SObject> rows2 = Database.queryWithBinds(
+                    q2,
+                    new Map<String, Object>{ 'accountId' => accountId },
+                    AccessLevel.USER_MODE
+                );
+                appendNodesFromJunctionRowsStruct(rows2, accountId, jp, false, roleF, nodes);
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    private static List<Map<String, String>> loadOrgChartRelatedAccountNodes(Id accountId) {
+        List<Map<String, String>> nodes = new List<Map<String, String>>();
+        Set<Id> junctionAccountIds = new Set<Id>();
+        appendAccountAccountJunctionNodesStruct(accountId, nodes);
+        for (Map<String, String> n : nodes) {
+            String aid = n.get('accountId');
+            if (String.isNotBlank(aid)) {
+                try {
+                    junctionAccountIds.add(Id.valueOf(aid.trim()));
+                } catch (Exception e) {
+                }
+            }
+        }
+        try {
+            for (Account c : [
+                SELECT Id, Name, Type
+                FROM Account
+                WHERE ParentId = :accountId
+                WITH USER_MODE
+                ORDER BY Name
+                LIMIT 100
+            ]) {
+                if (junctionAccountIds.contains(c.Id)) {
+                    continue;
+                }
+                Map<String, String> m = new Map<String, String>();
+                m.put('kind', 'account');
+                m.put('name', c.Name != null ? c.Name : 'Account');
+                m.put('sublabel', String.isNotBlank(c.Type) ? c.Type : 'Subsidiary');
+                m.put('accountId', String.valueOf(c.Id));
+                nodes.add(m);
+            }
+        } catch (Exception e) {
+        }
+        return nodes;
+    }
+
+    /**
+     * When ACR is empty or omits Contact.AccountId, still show the direct account on the org chart.
+     */
+    private static void ensureContactDirectAccountOnOrgChart(Id accountId, List<Map<String, String>> nodes) {
+        if (accountId == null || nodes == null) {
+            return;
+        }
+        String sid = String.valueOf(accountId);
+        for (Map<String, String> n : nodes) {
+            if (n != null && sid.equals(n.get('accountId'))) {
+                return;
+            }
+        }
+        try {
+            List<Account> accs = [
+                SELECT Id, Name, Type
+                FROM Account
+                WHERE Id = :accountId
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (accs.isEmpty()) {
+                return;
+            }
+            Map<String, String> m = new Map<String, String>();
+            m.put('kind', 'account');
+            m.put('name', accs[0].Name != null ? accs[0].Name : 'Account');
+            m.put('sublabel', String.isNotBlank(accs[0].Type) ? accs[0].Type : 'Primary account');
+            m.put('accountId', sid);
+            m.put('isPrimary', 'true');
+            nodes.add(m);
+        } catch (Exception ex) {
+        }
+    }
+
+    private static void mergeSublabelTokensIntoSet(Set<String> tokens, String raw) {
+        if (tokens == null || String.isBlank(raw)) {
+            return;
+        }
+        for (String part : raw.split(';')) {
+            String p = part.trim();
+            if (String.isBlank(p)) {
+                continue;
+            }
+            for (String part2 : p.split(',')) {
+                String t = part2.trim();
+                if (String.isNotBlank(t)) {
+                    tokens.add(t);
+                }
+            }
+        }
+    }
+
+    private class OrgChartAcctMerge implements Comparable {
+        public String accountId;
+        public String name;
+        public Set<String> roles;
+        public Boolean isPrimary;
+
+        OrgChartAcctMerge() {
+            this.roles = new Set<String>();
+            this.isPrimary = false;
+        }
+
+        public Integer compareTo(Object o) {
+            OrgChartAcctMerge other = (OrgChartAcctMerge) o;
+            Boolean p1 = this.isPrimary == true;
+            Boolean p2 = other.isPrimary == true;
+            if (p1 && !p2) {
+                return -1;
+            }
+            if (!p1 && p2) {
+                return 1;
+            }
+            String n1 = this.name != null ? this.name.toLowerCase() : '';
+            String n2 = other.name != null ? other.name.toLowerCase() : '';
+            return n1.compareTo(n2);
+        }
+    }
+
+    /**
+     * One org-chart row per Account: merges duplicate ACR rows (multi-role / multi-select) into a single sublabel.
+     */
+    private static List<Map<String, String>> mergeOrgChartAccountNodesForContact(List<Map<String, String>> raw) {
+        List<Map<String, String>> out = new List<Map<String, String>>();
+        if (raw == null || raw.isEmpty()) {
+            return out;
+        }
+        Map<String, OrgChartAcctMerge> byId = new Map<String, OrgChartAcctMerge>();
+        for (Map<String, String> n : raw) {
+            if (n == null || !'account'.equalsIgnoreCase(n.get('kind'))) {
+                continue;
+            }
+            String aid = n.get('accountId');
+            if (String.isBlank(aid)) {
+                continue;
+            }
+            String key = aid.trim();
+            OrgChartAcctMerge b = byId.get(key);
+            if (b == null) {
+                b = new OrgChartAcctMerge();
+                b.accountId = key;
+                byId.put(key, b);
+            }
+            String nm = n.get('name');
+            if (String.isNotBlank(nm)) {
+                b.name = nm;
+            }
+            mergeSublabelTokensIntoSet(b.roles, n.get('sublabel'));
+            if ('true'.equalsIgnoreCase(n.get('isPrimary'))) {
+                b.isPrimary = true;
+            }
+        }
+        List<OrgChartAcctMerge> sortList = byId.values();
+        sortList.sort();
+        for (OrgChartAcctMerge b : sortList) {
+            Map<String, String> m = new Map<String, String>();
+            m.put('kind', 'account');
+            m.put('accountId', b.accountId);
+            m.put('name', String.isNotBlank(b.name) ? b.name : 'Account');
+            List<String> rl = new List<String>(b.roles);
+            rl.sort();
+            m.put('sublabel', rl.isEmpty() ? 'Related account' : String.join(rl, ', '));
+            out.add(m);
+        }
+        return out;
+    }
+
+    private static List<Map<String, String>> loadOrgChartAccountsFromContactAcr(Id contactId) {
+        List<Map<String, String>> nodes = new List<Map<String, String>>();
+        if (!Schema.getGlobalDescribe().containsKey('AccountContactRelation')) {
+            return nodes;
+        }
+        Schema.SObjectType acrT = Schema.getGlobalDescribe().get('AccountContactRelation');
+        if (!acrT.getDescribe().isAccessible()) {
+            return nodes;
+        }
+        try {
+            Map<String, Schema.SObjectField> acrFm = acrT.getDescribe().fields.getMap();
+            Boolean hasIsPrimary = acrFm.containsKey('IsPrimary') && acrFm.get('IsPrimary').getDescribe().isAccessible();
+            Boolean hasIsActive = acrFm.containsKey('IsActive') && acrFm.get('IsActive').getDescribe().isAccessible();
+            String soql =
+                'SELECT AccountId, Roles' +
+                (hasIsPrimary ? ', IsPrimary' : '') +
+                ' FROM AccountContactRelation WHERE ContactId = :contactId ';
+            if (hasIsActive) {
+                soql += 'AND IsActive = true ';
+            }
+            soql += 'ORDER BY AccountId LIMIT 500';
+            List<SObject> acrRows = Database.queryWithBinds(
+                soql,
+                new Map<String, Object>{ 'contactId' => contactId },
+                AccessLevel.USER_MODE
+            );
+            Set<Id> accIds = new Set<Id>();
+            for (SObject row : acrRows) {
+                Id aid = (Id) row.get('AccountId');
+                if (aid != null) {
+                    accIds.add(aid);
+                }
+            }
+            if (accIds.isEmpty()) {
+                return nodes;
+            }
+            Map<Id, Account> accMap = new Map<Id, Account>(
+                [
+                    SELECT Id, Name, Type
+                    FROM Account
+                    WHERE Id IN :accIds
+                    WITH USER_MODE
+                ]
+            );
+            for (SObject row : acrRows) {
+                Id aid = (Id) row.get('AccountId');
+                if (aid == null || !accMap.containsKey(aid)) {
+                    continue;
+                }
+                Account acc = accMap.get(aid);
+                String aname = acc.Name != null ? acc.Name : 'Account';
+                String atype = acc.Type;
+                String roles = (String) row.get('Roles');
+                String sub = String.isNotBlank(roles) ? roles : (String.isNotBlank(atype) ? atype : 'Related account');
+                Map<String, String> m = new Map<String, String>();
+                m.put('kind', 'account');
+                m.put('name', aname);
+                m.put('sublabel', sub);
+                m.put('accountId', String.valueOf(aid));
+                if (hasIsPrimary) {
+                    Object ip = row.get('IsPrimary');
+                    m.put('isPrimary', ip == true ? 'true' : 'false');
+                }
+                nodes.add(m);
+            }
+        } catch (Exception e) {
+        }
+        return nodes;
+    }
+
+    private static List<Map<String, String>> loadKeyContactsForAccount(Id accountId) {
+        List<Map<String, String>> rows = new List<Map<String, String>>();
+        Set<Id> seen = new Set<Id>();
+
+        if (Schema.getGlobalDescribe().containsKey('AccountContactRelation')) {
+            Schema.SObjectType acrT = Schema.getGlobalDescribe().get('AccountContactRelation');
+            if (acrT.getDescribe().isAccessible()) {
+                try {
+                    Map<String, Schema.SObjectField> acrFm = acrT.getDescribe().fields.getMap();
+                    Boolean hasIsPrimary = acrFm.containsKey('IsPrimary') && acrFm.get('IsPrimary').getDescribe().isAccessible();
+                    Boolean hasIsActive = acrFm.containsKey('IsActive') && acrFm.get('IsActive').getDescribe().isAccessible();
+                    String soql =
+                        'SELECT ContactId, Roles' +
+                        (hasIsPrimary ? ', IsPrimary' : '') +
+                        ' FROM AccountContactRelation WHERE AccountId = :accountId ';
+                    if (hasIsActive) {
+                        soql += 'AND IsActive = true ';
+                    }
+                    soql += 'ORDER BY ContactId LIMIT 80';
+                    List<SObject> acrRows = Database.queryWithBinds(
+                        soql,
+                        new Map<String, Object>{ 'accountId' => accountId },
+                        AccessLevel.USER_MODE
+                    );
+                    Set<Id> cIds = new Set<Id>();
+                    for (SObject row : acrRows) {
+                        Id cid = (Id) row.get('ContactId');
+                        if (cid != null) {
+                            cIds.add(cid);
+                        }
+                    }
+                    Map<Id, Contact> cmap = cIds.isEmpty()
+                        ? new Map<Id, Contact>()
+                        : new Map<Id, Contact>(
+                              [
+                                  SELECT Id, FirstName, LastName, Title
+                                  FROM Contact
+                                  WHERE Id IN :cIds
+                                  WITH USER_MODE
+                              ]
+                          );
+                    Integer cap = 40;
+                    for (SObject row : acrRows) {
+                        if (rows.size() >= cap) {
+                            break;
+                        }
+                        Id cid = (Id) row.get('ContactId');
+                        if (cid == null || seen.contains(cid)) {
+                            continue;
+                        }
+                        Contact con = cmap.get(cid);
+                        if (con == null) {
+                            continue;
+                        }
+                        seen.add(cid);
+                        Map<String, String> m = new Map<String, String>();
+                        m.put('contactId', String.valueOf(cid));
+                        m.put('firstName', con.FirstName);
+                        m.put('lastName', con.LastName);
+                        m.put('title', con.Title);
+                        m.put('acrRole', (String) row.get('Roles'));
+                        if (hasIsPrimary) {
+                            Object ip = row.get('IsPrimary');
+                            m.put('isPrimary', ip == true ? 'true' : 'false');
+                        } else {
+                            m.put('isPrimary', 'false');
+                        }
+                        rows.add(m);
+                    }
+                } catch (Exception e) {
+                    rows.clear();
+                    seen.clear();
+                }
+            }
+        }
+
+        if (rows.isEmpty()) {
+            try {
+                for (Contact c : [
+                    SELECT Id, FirstName, LastName, Title
+                    FROM Contact
+                    WHERE AccountId = :accountId
+                    WITH USER_MODE
+                    ORDER BY LastName, FirstName
+                    LIMIT 40
+                ]) {
+                    Map<String, String> m = new Map<String, String>();
+                    m.put('contactId', String.valueOf(c.Id));
+                    m.put('firstName', c.FirstName);
+                    m.put('lastName', c.LastName);
+                    m.put('title', c.Title);
+                    m.put('acrRole', '');
+                    m.put('isPrimary', 'false');
+                    rows.add(m);
+                }
+            } catch (Exception e) {
+            }
+        }
+        return rows;
+    }
+
+    private static Map<String, String> contactOrgNodeFromRow(Map<String, String> c) {
+        Map<String, String> n = new Map<String, String>();
+        n.put('kind', 'contact');
+        String fn = c.get('firstName');
+        String ln = c.get('lastName');
+        String name = ((fn != null ? fn : '') + ' ' + (ln != null ? ln : '')).trim();
+        n.put('name', String.isNotBlank(name) ? name : 'Contact');
+        String t = c.get('title');
+        String ar = c.get('acrRole');
+        String sub = String.isNotBlank(t) ? t : (String.isNotBlank(ar) ? ar : 'Key contact');
+        n.put('sublabel', sub);
+        String cid = c.get('contactId');
+        if (String.isNotBlank(cid)) {
+            n.put('contactId', cid);
+        }
+        return n;
+    }
+
+    private static void buildOrgChartChildren(
+        ProfileResult r,
+        List<Map<String, String>> accountNodes,
+        List<Map<String, String>> contacts
+    ) {
+        if (contacts == null) {
+            contacts = new List<Map<String, String>>();
+        }
+        if (accountNodes == null) {
+            accountNodes = new List<Map<String, String>>();
+        }
+        Map<String, String> center = null;
+        for (Map<String, String> c : contacts) {
+            if ('true'.equalsIgnoreCase(c.get('isPrimary'))) {
+                center = contactOrgNodeFromRow(c);
+                break;
+            }
+        }
+        if (center == null) {
+            for (Map<String, String> c : contacts) {
+                String title = c.get('title');
+                String ar = c.get('acrRole');
+                String hay = ((title != null ? title : '') + ' ' + (ar != null ? ar : '')).toLowerCase();
+                if (hay.contains('ceo') || hay.contains('president') || hay.contains('chief executive')) {
+                    center = contactOrgNodeFromRow(c);
+                    break;
+                }
+            }
+        }
+        if (center == null && !contacts.isEmpty()) {
+            center = contactOrgNodeFromRow(contacts[0]);
+        }
+
+        List<Map<String, String>> row = new List<Map<String, String>>();
+        for (Map<String, String> an : accountNodes) {
+            row.add(new Map<String, String>(an));
+        }
+        if (center != null) {
+            Integer n = row.size();
+            Integer ins = n == 0 ? 0 : n / 2;
+            List<Map<String, String>> merged = new List<Map<String, String>>();
+            for (Integer j = 0; j < n; j++) {
+                if (j == ins) {
+                    merged.add(center);
+                }
+                merged.add(row[j]);
+            }
+            if (ins >= n) {
+                merged.add(center);
+            }
+            r.orgChartChildren = merged;
+        } else {
+            r.orgChartChildren = row;
+        }
+    }
+
+    private static String buildLinkedContactsSummaryText(List<Map<String, String>> contacts) {
+        if (contacts == null || contacts.isEmpty()) {
+            return '';
+        }
+        Set<String> roles = new Set<String>();
+        for (Map<String, String> m : contacts) {
+            String ar = m.get('acrRole');
+            if (String.isNotBlank(ar)) {
+                roles.add(ar.trim());
+            }
+        }
+        Integer n = contacts.size();
+        String base = n + ' contact' + (n == 1 ? '' : 's');
+        if (!roles.isEmpty()) {
+            List<String> rl = new List<String>(roles);
+            rl.sort();
+            List<String> top = new List<String>();
+            Integer max = Math.min(3, rl.size());
+            for (Integer i = 0; i < max; i++) {
+                top.add(rl[i]);
+            }
+            return base + ' · ' + String.join(top, ', ');
+        }
+        return base + ' · RM coverage + executives';
     }
 
     private static String stripClosingCourtesy(String input) {

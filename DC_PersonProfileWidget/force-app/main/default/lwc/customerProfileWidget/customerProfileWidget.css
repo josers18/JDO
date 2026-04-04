@@ -316,9 +316,59 @@
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--wp-text-tertiary);
+    color: var(--wp-accent);
     margin-bottom: 10px;
     display: block;
+}
+
+/* Section title + hairline (matches Business Profile overview) */
+.wp-slbl {
+    font-size: calc(8px * var(--wp-text-scale, 1));
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--wp-accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wp-slbl::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--wp-border-soft);
+}
+
+/* Bordered inset panels — surface sits above wp-panel fill for clear card edges */
+.wp-inset-card {
+    padding: 12px 14px;
+    background: var(--wp-surface);
+    border-radius: 12px;
+    border: 1px solid var(--wp-accent-border);
+    margin-bottom: 16px;
+}
+
+.wp-field-rows--inset {
+    margin-bottom: 0;
+}
+
+.wp-inset-card .wp-field-row {
+    border-bottom-color: var(--wp-border-med);
+}
+
+.wp-inset-card .wp-field-key {
+    font-size: calc(10px * var(--wp-text-scale, 1));
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--wp-field-key-color, var(--wp-text-tertiary));
+    max-width: 46%;
+}
+
+.wp-inset-card .wp-field-val {
+    opacity: 1;
 }
 
 .wp-field-rows {
@@ -331,6 +381,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 8px 0;
     border-bottom: 1px solid var(--wp-border-soft);
 }
@@ -341,7 +392,9 @@
 
 .wp-field-key {
     font-size: calc(11px * var(--wp-text-scale, 1));
-    color: var(--wp-text-secondary);
+    color: var(--wp-field-key-color, var(--wp-text-secondary));
+    flex-shrink: 0;
+    max-width: 42%;
 }
 
 .wp-field-val {
@@ -350,17 +403,17 @@
     font-weight: 500;
     text-align: right;
     opacity: 0.88;
+    min-width: 0;
+    flex: 1;
+    word-break: break-word;
 }
 
 .wp-contact-card {
+    display: block;
     padding: 10px 12px 12px;
     border-radius: 10px;
     background: var(--wp-contact-bg);
     margin-bottom: 18px;
-}
-
-.wp-contact-card .wp-field-rows {
-    margin-bottom: 0;
 }
 
 .wp-field-val--alert {
@@ -373,6 +426,24 @@
 
 .wp-field-val--link {
     color: #7fb3e8;
+}
+
+.wp-field-val--channel {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.wp-channel-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    max-width: 100%;
+}
+
+.wp-channel-icon {
+    flex-shrink: 0;
+    opacity: 0.88;
 }
 
 .wp-rings-grid {
@@ -436,7 +507,7 @@
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--wp-text-tertiary);
+    color: var(--wp-field-key-color, var(--wp-text-tertiary));
     flex-shrink: 0;
 }
 
@@ -955,7 +1026,7 @@
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(240, 235, 224, 0.45);
+    color: var(--wp-accent);
 }
 
 .wp-ai-pulse {
@@ -991,7 +1062,7 @@
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(212, 180, 105, 0.6);
+    color: var(--wp-accent);
     margin-bottom: 6px;
 }
 
@@ -1156,6 +1227,7 @@
         transform 0.15s,
         border-color 0.15s;
     background: transparent;
+    line-height: 1;
 }
 
 .wp-theme-btn:hover {
@@ -1216,6 +1288,282 @@
     font-weight: 500;
     color: var(--wp-text-primary);
     opacity: 0.88;
+}
+
+/* Structure tab (aligned with Business Profile widget) */
+.wp-ftbl {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+}
+
+.wp-ftbl td {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--wp-border-soft);
+    font-size: calc(12px * var(--wp-text-scale, 1));
+    vertical-align: middle;
+}
+
+.wp-ftbl td:first-child {
+    color: var(--wp-field-key-color, var(--wp-text-tertiary));
+    font-size: calc(10px * var(--wp-text-scale, 1));
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    width: 130px;
+}
+
+.wp-ftbl td:last-child {
+    color: var(--wp-text-primary);
+    font-weight: 500;
+    text-align: right;
+}
+
+.wp-ftbl tr:last-child td {
+    border-bottom: none;
+}
+
+.wp-td-accent {
+    color: var(--wp-accent) !important;
+}
+
+.wp-td-muted {
+    color: var(--wp-text-secondary) !important;
+}
+
+.wp-org-wrap {
+    background: var(--wp-org-bg);
+    border: 1px solid var(--wp-border-soft);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 14px;
+}
+
+.wp-org-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.wp-org-tier--root {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.wp-org-node--root {
+    max-width: 240px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-align: center;
+    background: var(--wp-accent-bg);
+    border: 1.5px solid var(--wp-accent-border);
+}
+
+.wp-org-node-title {
+    font-size: calc(11px * var(--wp-text-scale, 1));
+    font-weight: 600;
+    color: var(--wp-text-primary);
+    line-height: 1.25;
+}
+
+button.wp-record-link {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--wp-text-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+button.wp-record-link:hover {
+    color: var(--wp-accent);
+}
+
+.wp-contact-name.wp-record-link {
+    display: inline;
+    width: auto;
+    text-align: left;
+    opacity: 0.95;
+}
+
+.wp-org-node-sub {
+    font-size: calc(9px * var(--wp-text-scale, 1));
+    color: var(--wp-text-secondary);
+    margin-top: 4px;
+    line-height: 1.25;
+}
+
+.wp-org-bridge {
+    position: relative;
+    width: 100%;
+    height: 26px;
+    margin: 8px 0 6px;
+}
+
+.wp-org-bridge-v {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1px dashed var(--wp-accent-border);
+    transform: translateX(-50%);
+}
+
+.wp-org-bridge-h {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    top: 0;
+    height: 0;
+    border-top: 1px dashed var(--wp-accent-border);
+}
+
+.wp-org-tier--children {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 8px 10px;
+    width: 100%;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-bottom: 2px;
+}
+
+.wp-org-node {
+    flex: 1 1 72px;
+    min-width: 72px;
+    max-width: 140px;
+    padding: 8px 6px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid var(--wp-border-med);
+    background: var(--wp-org-bg);
+}
+
+.wp-org-node--account {
+    background: var(--wp-accent-bg);
+    border-color: var(--wp-accent-border);
+}
+
+.wp-org-node--contact {
+    background: var(--wp-org-bg);
+    border-color: var(--wp-border-med);
+}
+
+.wp-contact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 14px;
+}
+
+/* Horizontal row card — Structure tab list only (not Overview Contact section). */
+.wp-contact-list .wp-contact-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 11px;
+    background: var(--wp-contact-bg);
+    border-radius: 9px;
+    border: 1px solid var(--wp-border-soft);
+}
+
+.wp-contact-av {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px * var(--wp-text-scale, 1));
+    font-weight: 700;
+    flex-shrink: 0;
+    background: var(--wp-accent-bg);
+    border: 1px solid var(--wp-accent-border);
+    color: var(--wp-accent);
+}
+
+.wp-contact-av--primary {
+    background: var(--wp-accent-bg);
+    border-color: var(--wp-accent-border);
+    color: var(--wp-accent);
+}
+
+.wp-contact-av--finance {
+    background: rgba(91, 164, 245, 0.1);
+    border-color: rgba(91, 164, 245, 0.25);
+    color: #5ba4f5;
+}
+
+.wp-contact-av--legal {
+    background: rgba(186, 117, 23, 0.1);
+    border-color: rgba(186, 117, 23, 0.22);
+    color: var(--wp-warning);
+}
+
+.wp-contact-av--ops {
+    background: var(--wp-border-soft);
+    border-color: var(--wp-border-med);
+    color: var(--wp-text-secondary);
+}
+
+.wp-contact-name {
+    font-size: calc(12px * var(--wp-text-scale, 1));
+    font-weight: 600;
+    color: var(--wp-text-primary);
+    opacity: 0.85;
+    margin-bottom: 2px;
+}
+
+.wp-contact-role {
+    font-size: calc(10px * var(--wp-text-scale, 1));
+    color: var(--wp-text-secondary);
+}
+
+.wp-contact-badge {
+    margin-left: auto;
+    font-size: calc(8px * var(--wp-text-scale, 1));
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.wp-cb-primary {
+    background: var(--wp-accent-bg);
+    color: var(--wp-accent);
+    border: 1px solid var(--wp-accent-border);
+}
+
+.wp-cb-finance {
+    background: rgba(91, 164, 245, 0.08);
+    color: #5ba4f5;
+    border: 1px solid rgba(91, 164, 245, 0.2);
+}
+
+.wp-cb-ops {
+    background: var(--wp-border-soft);
+    color: var(--wp-text-secondary);
+    border: 1px solid var(--wp-border-med);
+}
+
+.wp-cb-legal {
+    background: rgba(186, 117, 23, 0.08);
+    color: var(--wp-warning);
+    border: 1px solid rgba(186, 117, 23, 0.2);
 }
 
 @container (max-width: 340px) {

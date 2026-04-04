@@ -49,4 +49,4 @@ The value is a **single JSON string** shaped like:
 
 **Technical note for developers:** Implementation uses `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`, similar to other JDO components. See also [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Related:** [SETUP.md](SETUP.md) · Multiclass package [PROMPT_TEMPLATE_GUIDE.md](../../DC_Multiclass_Prediction_LWC/docs/PROMPT_TEMPLATE_GUIDE.md) (same pattern, different `predictionType`).
+**Related:** [SETUP.md](SETUP.md) · [Business Profile Widget prompt payload](../../DC_BusinessProfileWidget/docs/PROMPT_TEMPLATE.md) (`predictionType: business_profile`) · Multiclass [PROMPT_TEMPLATE_GUIDE.md](../../DC_Multiclass_Prediction_LWC/docs/PROMPT_TEMPLATE_GUIDE.md).

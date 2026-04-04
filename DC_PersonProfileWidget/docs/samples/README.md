@@ -7,8 +7,9 @@ These files are **examples only**. They are **not** loaded by Salesforce automat
 
 | File | Use it for |
 |------|------------|
-| [core-custom-fields.sample.json](core-custom-fields.sample.json) | **Core custom fields** — map widget slots to Account/Contact **field API names**. |
-| [profile-output-map.sample.json](profile-output-map.sample.json) | **Profile output map (advanced)** — map widget slot → Flow **output variable** API name. |
+| [core-custom-fields.sample.json](core-custom-fields.sample.json) | **Core custom fields** — map widget slots to **field API names** or **`flow:`/`flows:`** + variable name. |
+| [profile-output-map.sample.json](profile-output-map.sample.json) | **Profile output map** — slot → Flow variable API name (legacy style; bare names still work). |
+| [profile-output-map-mixed.sample.json](profile-output-map-mixed.sample.json) | **Mixed** — some slots from **SOQL paths**, some from **`flow:`/`flows:`**. |
 | [nearby-branches.sample.json](nearby-branches.sample.json) | **Nearby branches** — shape of each branch in the list. |
 | [financial-accounts.sample.json](financial-accounts.sample.json) | **Financial accounts** — rows on the Portfolio tab. |
 | [recommendations.sample.json](recommendations.sample.json) | **Recommendations** for Insight (and AI context). |

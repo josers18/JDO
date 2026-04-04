@@ -20,7 +20,7 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 
 <br/>
 
-**Monorepo** · **Five DX packages** · **LWCs + Apex + docs**
+**Monorepo** · **Six DX packages** · **LWCs + Apex + docs**
 
 </div>
 
@@ -47,7 +47,8 @@ Each folder with `sfdx-project.json` is its own package. For **easy onboarding**
 
 | Path | In short | Doc index |
 |------|----------|-----------|
-| [**DC_PersonProfileWidget**](DC_PersonProfileWidget/README.md) | Six-tab **customer profile** card; Salesforce data + optional Flows + optional AI | [docs/INDEX](DC_PersonProfileWidget/docs/INDEX.md) |
+| [**DC_PersonProfileWidget**](DC_PersonProfileWidget/README.md) | **Customer profile** card (Account + Contact); seven tabs incl. Structure; SOQL + **`flow:`/`flows:`** + optional AI | [docs/INDEX](DC_PersonProfileWidget/docs/INDEX.md) |
+| [**DC_BusinessProfileWidget**](DC_BusinessProfileWidget/README.md) | **Business profile** card (Account only); field maps = SOQL path or **`flow:`**; 42 themes | [docs/INDEX](DC_BusinessProfileWidget/docs/INDEX.md) |
 | [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | **Prediction Model** — percent **gauge** or big **number**, drivers, optional summary | [docs/INDEX](DC_Prediction_Model_LWC/docs/INDEX.md) |
 | [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass** — **text category** + diverging bars (not the same as Prediction Model) | [docs/INDEX](DC_Multiclass_Prediction_LWC/docs/INDEX.md) |
 | [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | **Agent output** card — shows Flow-generated text/HTML/Markdown; copy, print, optional thumbs | [docs/INDEX](DC_AgentForce_Output_LWC/docs/INDEX.md) |

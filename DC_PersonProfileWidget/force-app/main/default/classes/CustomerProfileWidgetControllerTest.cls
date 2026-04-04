@@ -36,6 +36,8 @@ private class CustomerProfileWidgetControllerTest {
         System.assertEquals('CA', res.state);
         System.assertEquals(Integer.valueOf(120), res.employees);
         System.assertEquals('4155550100', res.phone);
+        System.assertNotEquals(null, res.orgChartChildren, 'Structure tab payload should be initialized');
+        System.assertNotEquals(null, res.keyContacts);
     }
 
     @IsTest
@@ -60,6 +62,65 @@ private class CustomerProfileWidgetControllerTest {
 
         System.assertEquals('Pat Lee', res.fullName);
         System.assertEquals('pat@example.com', res.email);
+        System.assertNotEquals(null, res.orgChartChildren);
+        System.assertNotEquals(null, res.keyContacts);
+    }
+
+    @IsTest
+    static void testAssemblyOutputMap_soqlPathWithoutAssemblyFlow() {
+        Contact c = new Contact(
+            FirstName = 'Ann',
+            LastName = 'Smith',
+            Email = 'ann@example.com',
+            MailingCity = 'Denver',
+            MailingState = 'CO'
+        );
+        insert c;
+        Test.startTest();
+        CustomerProfileWidgetController.ProfileResult res = CustomerProfileWidgetController.getProfileData(
+            c.Id,
+            null,
+            null,
+            null,
+            null,
+            '',
+            '',
+            'recordId',
+            '{"city":"MailingCity"}',
+            false
+        );
+        Test.stopTest();
+        System.assertEquals('Denver', res.city);
+    }
+
+    @IsTest
+    static void testLastUsedChannel_coreCustomPicklistLabelOnAccount() {
+        String industryVal = null;
+        for (Schema.PicklistEntry pe : Account.Industry.getDescribe().getPicklistValues()) {
+            if (pe.isActive() && String.isNotBlank(pe.getValue())) {
+                industryVal = pe.getValue();
+                break;
+            }
+        }
+        System.assertNotEquals(null, industryVal, 'Org should expose at least one active Industry picklist value');
+        Account acc = new Account(Name = 'LUC Co', Industry = industryVal);
+        insert acc;
+        acc = [SELECT Id, Industry FROM Account WHERE Id = :acc.Id];
+        System.assertNotEquals(null, acc.Industry, 'Industry should be set for picklist label test');
+        String coreJson = '{"lastUsedChannel":"Industry"}';
+        Test.startTest();
+        CustomerProfileWidgetController.ProfileResult res = CustomerProfileWidgetController.buildFallbackFromSoql(acc.Id, coreJson);
+        Test.stopTest();
+        String expectedLabel;
+        expectedLabel = null;
+        for (Schema.PicklistEntry pe : Account.Industry.getDescribe().getPicklistValues()) {
+            if (acc.Industry != null && acc.Industry.equals(pe.getValue())) {
+                expectedLabel = pe.getLabel();
+                break;
+            }
+        }
+        System.assertNotEquals(null, expectedLabel, 'Industry value should resolve to a picklist label');
+        System.assertEquals(expectedLabel, res.lastUsedChannel, 'lastUsedChannel should show picklist label like the record detail UI');
     }
 
     @IsTest

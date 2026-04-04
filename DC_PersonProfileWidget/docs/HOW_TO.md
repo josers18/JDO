@@ -50,7 +50,7 @@ You do **not** manually connect “Record Id”—Salesforce does that on record
 1. Create an **autolaunched** Flow (no screens) with an input for the current record Id (often `recordId`).  
 2. Set **output variables** for the data you want on the card.  
 3. In App Builder, set **Profile assembly flow API name** to that Flow’s API name.  
-4. For each value, fill the matching **[Asm flow output] …** field with the Flow variable’s **API name**, *or* use **Profile output map JSON (advanced)** ([example](samples/profile-output-map.sample.json)).  
+4. For each slot, fill **[Asm flow output] …** with either **`flow:Variable_Api_Name`** (or **`flows:…`**) **or** a **Contact/Account field path** (e.g. `MailingCity`, `Account.Industry`). *Or* use **Profile output map JSON (advanced)** ([Flow sample](samples/profile-output-map.sample.json), [mixed SOQL + Flow](samples/profile-output-map-mixed.sample.json)).  
 5. Save, activate, test.
 
 Empty Flow outputs can still be filled from Salesforce **if** those fields exist on the record and you mapped them.

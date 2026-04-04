@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>62.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Business Profile Widget</masterLabel>
+    <description>Premium business account profile: Account SOQL, optional assembly Flow (flow:VarName), Insight prediction Flow, Einstein summary, Nominatim/Photon geocoding and lightning-map (same patterns as Customer Profile widget), 42 themes.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Account</object>
+            </objects>
+
+            <property name="flowApiName" type="String" label="Profile assembly Flow API name"
+                description="Optional autolaunched flow. Must accept the Account Id on the variable named in Flow record Id variable (default recordId). In each field mapping below, use flow:OutputVariableApiName for a flow output, or an Account field path for SOQL (e.g. Name, BillingCity, Custom__c, Owner.Name); paths are validated against the Account schema."
+            />
+            <property name="flowRecordIdVariable" type="String" label="Flow record Id variable" default="recordId"
+                description="Input variable API name on the assembly flow that receives the current Account Id." />
+            <property name="insightFlowApiName" type="String" label="Autolaunched flow API name (predictions)"
+                description="Optional. Same pattern as Customer Profile: flow outputs prediction (text) and recommendations (JSON). If this matches Profile assembly Flow API name and that flow runs for field mappings, outputs are read from the same run." />
+            <property name="insightFlowRecordIdVariable" type="String" label="Insight flow input: record Id" default="recordId" />
+            <property name="flowPredictionVariable" type="String" label="Flow output: prediction variable" default="prediction" />
+            <property name="flowRecommendationsVariable" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="geocodeBillingAddress" type="Boolean" label="Geocode billing address for map" default="true"
+                description="When true, Apex calls Nominatim then Photon if map coordinates are missing (Remote Site Settings required). Skipped in Apex tests." />
+            <property name="fieldMapLatitude" type="String" label="Field: map latitude" default="BillingLatitude"
+                description="Account field API name (e.g. BillingLatitude) or flow:Var for lightning-map marker." />
+            <property name="fieldMapLongitude" type="String" label="Field: map longitude" default="BillingLongitude"
+                description="Account field API name (e.g. BillingLongitude) or flow:Var for lightning-map marker." />
+            <property name="promptTemplateId" type="String" label="Prompt template ID"
+                description="Einstein prompt template ID or API name for Insight tab narrative." />
+            <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context"
+                description="Must match a text input on the template; payload includes prediction, predictionType business_profile, and recommendations JSON (same shape as Customer Profile)." />
+            <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
+            <property name="insightRecommendationsPositiveMeansGood" type="Boolean" label="Insight: treat positive % as good" default="false"
+                description="When true, positive recommendation bar uses good color (match classification model LWC)." />
+            <property name="insightRecommendationsRiskColor" type="String" label="Insight: recommendations risk bar color (hex)" />
+            <property name="insightRecommendationsGoodColor" type="String" label="Insight: recommendations good bar color (hex)" />
+            <property name="insightRecommendationsSectionTitle" type="String" label="Insight: recommendations section title" default="Recommended actions" />
+            <property name="showAiActions" type="Boolean" label="Show AI recommended actions (bars)" default="true" />
+            <property name="recordIdFieldName" type="String" label="Record ID field name" default="accountId__c"
+                description="Reserved for Flow output binding." />
+
+            <property name="cardTitle" type="String" label="Card title" default="Business profile" />
+            <property name="overviewTabLabel" type="String" label="Overview tab label" default="Overview" />
+            <property name="healthTabLabel" type="String" label="Health tab label" default="Health" />
+            <property name="creditTabLabel" type="String" label="Credit tab label" default="Credit" />
+            <property name="structureTabLabel" type="String" label="Structure tab label" default="Structure" />
+            <property name="locationTabLabel" type="String" label="Location tab label" default="Location" />
+            <property name="insightTabLabel" type="String" label="Insight tab label" default="Insight" />
+
+            <property name="showOverviewTab" type="Boolean" label="Show Overview tab" default="true" />
+            <property name="showHealthTab" type="Boolean" label="Show Health tab" default="true" />
+            <property name="showCreditTab" type="Boolean" label="Show Credit tab" default="true" />
+            <property name="showStructureTab" type="Boolean" label="Show Structure tab" default="true" />
+            <property name="showLocationTab" type="Boolean" label="Show Location tab" default="true" />
+            <property name="showInsightTab" type="Boolean" label="Show Insight tab" default="true" />
+            <property name="showKpiStrip" type="Boolean" label="Show KPI strip" default="true" />
+            <property name="showComplianceFlags" type="Boolean" label="Show compliance flags" default="true" />
+            <property name="showRiskMatrix" type="Boolean" label="Show risk matrix" default="true" />
+            <property name="showWaterfallChart" type="Boolean" label="Show waterfall chart" default="true" />
+            <property name="showOrgChart" type="Boolean" label="Show org chart" default="true" />
+            <property name="showKeyContacts" type="Boolean" label="Show key contacts" default="true" />
+            <property name="showBranchProximity" type="Boolean" label="Show branch proximity" default="true" />
+
+            <property name="themeMode" type="String" label="Theme" default="obsidian"
+                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="42 themes across 8 families. ORIGINAL: obsidian (default), midnight, graphite, ivory. NEUTRALS: dusk, slate, parchment, onyx, fog. GREENS/ORANGES: forest, ember, sage, copper, verdant. BLUES/GREYS: steel, mercury, arctic, indigo, glacier. MID-TONES: bordeaux, pewter, walnut, denim, moss. SF LIGHT: birch, mist, cashew, mineral, blush, chamois. WEALTH MGMT: bullion, prussian, coutts, vault, endowment, trust. BANKING: cobalt, heritage, civic, cardinal, meridian, union. Wealth and banking themes require a matching accentColor override — see documentation." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, shows 4 theme toggle buttons in the widget header for live switching during demos. Keep false in production." />
+
+            <property name="accentColor" type="String" label="Accent color (hex)" default="#b8956a"
+                description="Primary highlight color. Overrides theme default." />
+            <property name="warningColor" type="String" label="Warning color (hex)" default="#d4900a" />
+            <property name="negativeColor" type="String" label="Negative color (hex)" default="#c05070" />
+            <property name="positiveColor" type="String" label="Positive color (hex)" default="#5a9e7a"
+                description="Used for insight recommendation bars and positive accents." />
+            <property name="textScalePercent" type="Integer" label="[Typography] Text size (%)" default="100"
+                description="Scales all widget text (85–160). 100 = default design size (same as Customer Profile)." />
+            <property name="textEmphasis" type="String" label="[Typography] Emphasis" default="default"
+                datasource="default,medium,strong"
+                description="medium: bolder company name/KPIs. strong: also heavier tabs and brighter meta line." />
+            <property name="backgroundLightenPercent" type="Integer" label="[Theme] Lighten backgrounds (%)" default="0"
+                description="0 = use theme as designed. 1–50 mixes that percentage of white into the main solid backgrounds (shell, panels, surfaces, KPI strip, body) so dark themes read less heavy. Does not change text colors." />
+            <property name="textColorPrimaryOverride" type="String" label="[Theme] Text color — primary" default=""
+                description="Optional. Main titles and values. Hex (#f5f2ea) or rgba(245,242,234,0.95). Empty = use the selected theme." />
+            <property name="textColorSecondaryOverride" type="String" label="[Theme] Text color — secondary" default=""
+                description="Optional. Subtitles and secondary lines. Hex or rgba with lower alpha for softer contrast." />
+            <property name="textColorTertiaryOverride" type="String" label="[Theme] Text color — muted" default=""
+                description="Optional. Captions and tab labels. Hex or rgba." />
+            <property name="profilePhotoUrl" type="String" label="[Deprecated] Static logo URL" default=""
+                description="Deprecated: use Field: header logo (field or flow:Var). If set, overrides mapped logo and website favicon." />
+            <property name="profilePhotoFlowOutputVariable" type="String" label="[Deprecated] Flow logo output variable" default=""
+                description="Deprecated: use Field: header logo with value flow:VariableApiName instead." />
+            <property name="assemblyOutProfilePhotoUrl" type="String" label="[Deprecated] Flow logo variable (alt)" default=""
+                description="Deprecated: use Field: header logo only." />
+
+            <property name="fieldCompanyName" type="String" label="Field: company name" default="Name"
+                description="Account field API name for SOQL (case-insensitive), e.g. Name. Or flow:OutputVariableApiName when Profile assembly Flow API name is set." />
+            <property name="fieldLegalName" type="String" label="Field: legal name" default="legalName" />
+            <property name="fieldCity" type="String" label="Field: billing city" default="billingCity" />
+            <property name="fieldState" type="String" label="Field: billing state" default="billingState" />
+            <property name="fieldStreet" type="String" label="Field: billing street" default="billingStreet" />
+            <property name="fieldZip" type="String" label="Field: billing ZIP" default="billingPostalCode" />
+            <property name="fieldIndustry" type="String" label="Field: industry" default="industry" />
+            <property name="fieldEmployees" type="String" label="Field: employees" default="numberOfEmployees" />
+            <property name="fieldWebsite" type="String" label="Field: website" default="website" />
+            <property name="fieldProfilePhotoUrl" type="String" label="Field: header logo (image URL)" default=""
+                description="Account field API name (text/url) or flow:VariableApiName when Profile assembly Flow is set — same pattern as Field: website. Leave blank to show initials unless Use website logo is enabled." />
+            <property name="useWebsiteFavicon" type="Boolean" label="Use website for logo (favicon)" default="false"
+                description="When Field: header logo is blank, derive a logo from Field: website: tries a direct https image URL, then that site’s /favicon.ico and apple-touch-icon, then DuckDuckGo and Google icon URLs until one loads." />
+            <property name="fieldFounded" type="String" label="Field: year founded" default="CreatedDate"
+                description="Date, DateTime, number, or text Account field API name, or flow:Var. Default CreatedDate uses the year of the Account’s Created Date in Salesforce. Set blank to use auto-discovery (custom founded fields first, then CreatedDate last)." />
+            <property name="fieldSicCode" type="String" label="Field: SIC code" default="sicCode" />
+            <property name="fieldSicDescription" type="String" label="Field: SIC description" default="sicDescription" />
+            <property name="fieldTaxId" type="String" label="Field: tax ID / EIN" default="taxId" />
+            <property name="fieldTierSegment" type="String" label="Field: customer tier" default="customerTier" />
+            <property name="fieldRevenue" type="String" label="Field: annual revenue" default="annualRevenue" />
+            <property name="fieldRevenueGrowth" type="String" label="Field: revenue growth pct" default="revenueGrowthPct" />
+            <property name="fieldLoanBalance" type="String" label="Field: loan balance" default="loanBalance" />
+            <property name="fieldLoanLimit" type="String" label="Field: credit limit" default="creditLimit" />
+            <property name="fieldLoanUtilization" type="String" label="Field: loan utilization" default="loanUtilizationPct" />
+            <property name="fieldDepositYtd" type="String" label="Field: deposits YTD" default="depositYtd" />
+            <property name="fieldInvestmentBalance" type="String" label="Field: investment balance" default="investmentBalance" />
+            <property name="fieldInterestExpense" type="String" label="Field: interest expense" default="interestExpense" />
+            <property name="fieldCustomerSince" type="String" label="Field: customer since" default="customerSince" />
+            <property name="fieldPrimaryRm" type="String" label="Field: primary RM" default="primaryRelationshipManager"
+                description="Use Owner.Name for the relationship owner, or map OwnerId / a User Id (005…); Apex resolves User Id to the user’s display name." />
+            <property name="fieldActiveProducts" type="String" label="Field: active product count" default="activeProductCount" />
+            <property name="fieldSubsidiaries" type="String" label="Field: subsidiary count (legacy)" default="subsidiaryCount"
+                description="Unused: Subsidiaries on Overview is the count of related accounts (same as Structure). This property remains for existing Lightning page bindings." />
+            <property name="fieldLastInteraction" type="String" label="Field: last interaction date" default="lastInteractionDate" />
+            <property name="fieldWalletCapture" type="String" label="Field: last used channel" default=""
+                description="Account field API name for Overview (text or picklist). If blank, Apex tries common names and any field whose label matches “Last used channel”. Picklist values are shown as labels (same as the record page)." />
+            <property name="fieldCreditRating" type="String" label="Field: credit rating" default="creditRating" />
+            <property name="fieldCreditRatingAgency" type="String" label="Field: credit rating agency" default="creditRatingAgency" />
+            <property name="fieldCreditOutlook" type="String" label="Field: credit outlook" default="creditOutlook" />
+            <property name="fieldCreditScore" type="String" label="Field: internal credit score" default="internalCreditScore" />
+            <property name="fieldMoodysRating" type="String" label="Field: Moody's rating (legacy slot)" default="moodysRating"
+                description="Optional legacy text slot. Bureau tab also uses Field: Moody's agency rating / category below." />
+            <property name="fieldDnbPaydexScore" type="String" label="Field: D&amp;B PAYDEX score" default="DNB_PAYDEX_Score__c" />
+            <property name="fieldDnbDelinquencyScore" type="String" label="Field: D&amp;B delinquency score" default="DNB_Delinquency_Score__c" />
+            <property name="fieldDnbFailureScore" type="String" label="Field: D&amp;B failure score" default="DNB_Failure_Score__c" />
+            <property name="fieldDnbRating" type="String" label="Field: D&amp;B rating" default="DNB_Rating__c" />
+            <property name="fieldExperianIntelliscore" type="String" label="Field: Experian Intelliscore" default="Experian_Intelliscore__c" />
+            <property name="fieldExperianRiskBand" type="String" label="Field: Experian risk band" default="Experian_Risk_Band__c" />
+            <property name="fieldEquifaxCreditRiskScore" type="String" label="Field: Equifax credit risk score" default="Equifax_Credit_Risk_Score__c" />
+            <property name="fieldEquifaxFailureScoreCr" type="String" label="Field: Equifax failure score (CR)" default="Equifax_Failure_Score_CR__c" />
+            <property name="fieldEquifaxPaymentIndex" type="String" label="Field: Equifax payment index" default="Equifax_Payment_Index__c" />
+            <property name="fieldSpRating" type="String" label="Field: S&amp;P rating" default="SP_Rating__c" />
+            <property name="fieldSpCategory" type="String" label="Field: S&amp;P category" default="SP_Category__c" />
+            <property name="fieldMoodysAgencyRating" type="String" label="Field: Moody's agency rating" default="Moodys_Rating__c" />
+            <property name="fieldMoodysAgencyCategory" type="String" label="Field: Moody's category" default="Moodys_Category__c" />
+            <property name="fieldFitchRating" type="String" label="Field: Fitch rating" default="Fitch_Rating__c" />
+            <property name="fieldFitchCategory" type="String" label="Field: Fitch category" default="Fitch_Category__c" />
+            <property name="fieldRelationshipScore" type="String" label="Field: relationship score" default="relationshipScore" />
+            <property name="fieldPropensityToExpand" type="String" label="Field: propensity to expand" default="propensityToExpand" />
+            <property name="fieldAttritionRisk" type="String" label="Field: attrition risk" default="attritionRisk" />
+            <property name="fieldWalletShare" type="String" label="Field: wallet share" default="walletSharePct" />
+            <property name="fieldNps" type="String" label="Field: NPS score" default="npsScore" />
+            <property name="fieldKycStatus" type="String" label="Field: KYC status" default="kycStatus" />
+            <property name="fieldAmlStatus" type="String" label="Field: AML status" default="amlStatus" />
+            <property name="fieldTwoFaStatus" type="String" label="Field: 2FA status" default="twoFaStatus" />
+            <property name="fieldPaperlessEnrolled" type="String" label="Field: paperless enrolled" default="paperlessEnrolled" />
+            <property name="fieldWireEnabled" type="String" label="Field: wire transfers enabled" default="wireTransferEnabled" />
+            <property name="fieldAssignedBranch" type="String" label="Field: assigned branch" default="assignedBranch" />
+            <property name="fieldBranchDistance" type="String" label="Field: branch distance" default="assignedBranchDistance" />
+            <property name="fieldBranchAddress" type="String" label="Field: branch address" default="assignedBranchAddress" />
+            <property name="fieldBranchHours" type="String" label="Field: branch hours" default="assignedBranchHours" />
+            <property name="fieldBranchStatus" type="String" label="Field: branch open status" default="assignedBranchOpenStatus" />
+        </targetConfig>
+
+        <targetConfig targets="lightning__AppPage">
+            <property name="cardTitle" type="String" label="Card title" default="Business profile" />
+            <property name="themeMode" type="String" label="Theme" default="obsidian"
+                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="42 themes across 8 families; wealth and banking presets pair best with a matching accentColor — see component documentation." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, shows 4 theme toggle buttons in the widget header for live switching during demos. Keep false in production." />
+            <property name="textScalePercent" type="Integer" label="[Typography] Text size (%)" default="100"
+                description="Scales widget text (85–160); 100 = default." />
+            <property name="textEmphasis" type="String" label="[Typography] Emphasis" default="default"
+                datasource="default,medium,strong" />
+            <property name="backgroundLightenPercent" type="Integer" label="[Theme] Lighten backgrounds (%)" default="0" />
+            <property name="textColorPrimaryOverride" type="String" label="[Theme] Text color — primary" default=""
+                description="Optional hex (#f5f2ea) or rgba(...). Empty = theme default." />
+            <property name="textColorSecondaryOverride" type="String" label="[Theme] Text color — secondary" default="" />
+            <property name="textColorTertiaryOverride" type="String" label="[Theme] Text color — muted" default="" />
+            <property name="profilePhotoUrl" type="String" label="[Deprecated] Static logo URL" default="" />
+            <property name="fieldProfilePhotoUrl" type="String" label="Field: header logo (image URL)" default="" />
+            <property name="useWebsiteFavicon" type="Boolean" label="Use website for logo (favicon)" default="false" />
+        </targetConfig>
+
+        <targetConfig targets="lightning__HomePage">
+            <property name="cardTitle" type="String" label="Card title" default="Business profile" />
+            <property name="themeMode" type="String" label="Theme" default="obsidian"
+                datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="42 themes across 8 families; wealth and banking presets pair best with a matching accentColor — see component documentation." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, shows 4 theme toggle buttons in the widget header for live switching during demos. Keep false in production." />
+            <property name="textScalePercent" type="Integer" label="[Typography] Text size (%)" default="100" />
+            <property name="textEmphasis" type="String" label="[Typography] Emphasis" default="default"
+                datasource="default,medium,strong" />
+            <property name="backgroundLightenPercent" type="Integer" label="[Theme] Lighten backgrounds (%)" default="0" />
+            <property name="textColorPrimaryOverride" type="String" label="[Theme] Text color — primary" default=""
+                description="Optional hex (#f5f2ea) or rgba(...). Empty = theme default." />
+            <property name="textColorSecondaryOverride" type="String" label="[Theme] Text color — secondary" default="" />
+            <property name="textColorTertiaryOverride" type="String" label="[Theme] Text color — muted" default="" />
+            <property name="profilePhotoUrl" type="String" label="[Deprecated] Static logo URL" default="" />
+            <property name="fieldProfilePhotoUrl" type="String" label="Field: header logo (image URL)" default="" />
+            <property name="useWebsiteFavicon" type="Boolean" label="Use website for logo (favicon)" default="false" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

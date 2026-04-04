@@ -10,7 +10,8 @@ Quick reference for **exposed** Lightning Web Components: where they run, what d
 | Multiclass Prediction | `c/multiclassPredictionLwc` | App, Home, Record | Autolaunched Flow + optional Prompt template | [DC_Multiclass_Prediction_LWC/docs/COMPONENT_REFERENCE.md](../DC_Multiclass_Prediction_LWC/docs/COMPONENT_REFERENCE.md) |
 | DC AgentForce Output | `c/dcAgentforceOutputLwc` | App, Home, Record | Autolaunched Flow (text / HTML / Markdown) | [DC_AgentForce_Output_LWC/docs/COMPONENT_REFERENCE.md](../DC_AgentForce_Output_LWC/docs/COMPONENT_REFERENCE.md) |
 | DC Query to Table | `c/dcQueryToTableLwc` | App, Home, Record (Account in meta) | Data Cloud SQL via Apex `ConnectApi.CdpQuery` | [DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md](../DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md) |
-| Customer Profile Widget | `c/customerProfileWidget` | App, Home, Record (Account, Contact) | Data Graph HTTP + SOQL merge; optional Flow + Einstein | [DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md](../DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md) |
+| Customer Profile Widget | `c/customerProfileWidget` | App, Home, Record (Account, Contact) | SOQL + **`flow:`/`flows:`** or field paths per slot; optional assembly/prediction Flows + Einstein | [DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md](../DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md) |
+| Business Profile Widget | `c/businessProfileWidget` | App, Home, Record (Account) | `fieldMappingsJson`: Account path or **`flow:`**; optional assembly + insight Flows + Einstein | [DC_BusinessProfileWidget/docs/COMPONENT_REFERENCE.md](../DC_BusinessProfileWidget/docs/COMPONENT_REFERENCE.md) |
 
 ## Non-exposed building blocks
 
@@ -27,12 +28,17 @@ These are **not** placed directly on Lightning pages from the component palette:
 
 - **Prediction Model**, **Multiclass**, **Query to Table:** `Account` is listed as an example for record pages. Add more `<object>` entries and redeploy to support other objects.
 - **Customer Profile Widget:** `Account` and `Contact` are listed in meta.
+- **Business Profile Widget:** `Account` only.
 
 See each project’s `docs/GIT.md` for metadata naming notes.
 
 ## Apex access for standard users
 
-**Customer Profile Widget** bundles **`Customer_Profile_Widget_User`** (Apex) and **`Customer_Profile_Widget_DC_Callout`** (External Credential principal for **DataCloud** / **D360**). Assign both when using Data Graph callouts; see [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md). For other components, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (section **After deploy**).
+**Customer Profile Widget** requires **`Customer_Profile_Widget_User`** (Apex). **`Customer_Profile_Widget_DC_Callout`** is optional (shipped External Credential / Named Credential for other integrations). See [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
+
+**Business Profile Widget** does **not** ship a permission set: grant **Apex class access** to **`BusinessProfileWidgetController`** on profiles or permission sets. See [DC_BusinessProfileWidget/docs/SETUP.md](../DC_BusinessProfileWidget/docs/SETUP.md).
+
+For other components, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (section **After deploy**).
 
 ## Related reading
 
