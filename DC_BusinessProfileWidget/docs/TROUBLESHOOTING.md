@@ -47,4 +47,14 @@
 
 ---
 
+## Pipeline tab
+
+| Symptom | Likely cause | Try |
+|---------|--------------|-----|
+| Fewer rows than expected | **Pipeline: max open opportunities** set to a small number | Set **0** for the server maximum (**2000**) or raise the cap. |
+| Pipeline empty | No open **Opportunity** on Account, or no **read** on Opportunity | Confirm related opps are **Open** and the user has **Read** on **Opportunity** and needed fields (`StageName`, `Amount`, etc.). |
+| List feels heavy | Many hundreds of opps | Lower **Pipeline: max open opportunities** to a smaller **1–2000** value. |
+
+---
+
 [SETUP.md](SETUP.md) · [FLOW_GUIDE.md](FLOW_GUIDE.md)

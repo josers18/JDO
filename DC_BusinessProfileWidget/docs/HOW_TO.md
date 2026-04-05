@@ -41,6 +41,17 @@ Use the **Show … tab** and **Show …** Boolean properties (org chart, key con
 
 ---
 
+## Control the Pipeline opportunity list length
+
+1. On the **Account** record page, select the **Business Profile Widget** in App Builder.  
+2. Find **Pipeline: max open opportunities** (integer).  
+3. Leave **0** (default) to load up to **2000** open opportunities for that Account (server hard cap).  
+4. Set **1–2000** to cap how many rows Apex queries and the Pipeline tab displays (useful for very large books or lighter payloads).  
+
+The Pipeline panel uses a **scrollable** area so long lists do not stretch the whole page.
+
+---
+
 ## Turn off geocoding
 
 Set **Geocode billing address for map** to **false**. Supply **Field: map latitude** / **longitude** from Account fields or `flow:` outputs.

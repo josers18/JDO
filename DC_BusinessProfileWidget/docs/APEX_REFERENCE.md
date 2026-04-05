@@ -20,6 +20,7 @@ Returns a **JSON string** representing **`BusinessProfileResult`** (the LWC pars
 | `flowPredictionVariable` | Flow output for prediction text (default `prediction`). |
 | `flowRecommendationsVariable` | Flow output for recommendations (default `recommendations`). |
 | `geocodeBillingAddress` | If true/null, may call Nominatim/Photon when lat/lng missing (skipped in tests). |
+| `pipelineOpportunityLimit` | **Null** or **≤ 0** → load up to **2000** open **Opportunity** rows for the Pipeline tab. **1–2000** → that `LIMIT` (capped at 2000). |
 
 **Flow token detection:** `isFlowToken` — values whose trimmed lower case starts with **`flow:`** (see class implementation).
 
@@ -50,7 +51,7 @@ Throws **`AuraHandledException`** on failure.
 
 | Member | Notes |
 |--------|--------|
-| **`pipelineOpenOpportunities`** | `List<PipelineOpportunityRow>` — open **Opportunity** rows for this Account (`id`, `name`, `stageName`, `amount`). Populated in **`enrichActiveFinancialAccountsAndPipeline`** when Opportunity fields are accessible. |
+| **`pipelineOpenOpportunities`** | `List<PipelineOpportunityRow>` — open **Opportunity** rows for this Account (`id`, `name`, `stageName`, `amount`). Populated in **`enrichActiveFinancialAccountsAndPipeline`** when Opportunity fields are accessible. Row count follows **`pipelineOpportunityLimit`** on **`getProfileData`** (see parameter table above). |
 | **`activeProducts`** | May be set from **`COUNT()`** of active **`FinServ__FinancialAccount__c`** rows for the Account when that object and an Account lookup field resolve; otherwise from field mapping as before. |
 | **`activeProductsReflectsFinancialAccounts`** | `true` when **`activeProducts`** came from the live Financial Account query (not field-mapping only). |
 

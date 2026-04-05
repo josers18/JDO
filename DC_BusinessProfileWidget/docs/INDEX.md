@@ -8,7 +8,7 @@ Overview: **[README.md](../README.md)**
 |-------|----------|----------|----------|
 | 1 | [DEPLOY.md](DEPLOY.md) | Admin / developer | Deploy command, what ships |
 | 2 | [SETUP.md](SETUP.md) | Admin | Apex access, remote sites, Lightning page |
-| 3 | [HOW_TO.md](HOW_TO.md) | Admin / analyst | Field maps, Flows, themes |
+| 3 | [HOW_TO.md](HOW_TO.md) | Admin / analyst | Field maps, Flows, themes, Pipeline opportunity cap |
 
 ## Deeper topics
 

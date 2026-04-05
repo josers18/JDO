@@ -444,6 +444,8 @@
 
 .wp-inset-card--pipeline {
     padding: 10px 14px 12px;
+    max-height: min(62vh, 520px);
+    overflow-y: auto;
 }
 
 .wp-pipeline-list {

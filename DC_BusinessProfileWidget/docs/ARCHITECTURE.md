@@ -7,12 +7,12 @@ Plain-language view of how data reaches the card.
 ## Overview
 
 1. User opens an **Account** record; the platform sets **`recordId`** on the LWC.  
-2. **`businessProfileWidget`** calls **`BusinessProfileWidgetController.getProfileData`** with **`fieldMappingsJson`** (built from every **Field: …** `@api` property), assembly Flow name, and optional Insight Flow names.  
+2. **`businessProfileWidget`** calls **`BusinessProfileWidgetController.getProfileData`** with **`fieldMappingsJson`** (built from every **Field: …** `@api` property), assembly Flow name, optional Insight Flow names, **`geocodeBillingAddress`**, and **`pipelineOpportunityLimit`** (from the **Pipeline: max open opportunities** property: **0** or omitted → server uses up to **2000** open Opportunities).  
 3. Apex **`buildFromSoql`** queries **Account** with columns inferred from non-`flow:` mappings.  
 4. **`mergeFlowIntoProfile`** runs the assembly Flow when needed and copies **`flow:`** outputs into **`BusinessProfileResult`**.  
 5. **`mergeInsightFromFlow`** adds prediction and recommendations (reusing the assembly interview when API names match).  
 6. **`enrichStructureTabData`** loads key contacts and related-account org chart data.  
-7. **`enrichActiveFinancialAccountsAndPipeline`** (best effort) sets **`activeProducts`** from active **FinServ Financial Accounts** when available, **`activeProductsReflectsFinancialAccounts`**, and **`pipelineOpenOpportunities`** for open **Opportunities** on the Account.  
+7. **`enrichActiveFinancialAccountsAndPipeline`** (best effort) sets **`activeProducts`** from active **FinServ Financial Accounts** when available, **`activeProductsReflectsFinancialAccounts`**, and **`pipelineOpenOpportunities`** for open **Opportunities** on the Account (SOQL **`LIMIT`** from **`pipelineOpportunityLimit`**, max **2000**, ordered by amount descending then name).  
 8. Optional **geocode** runs if coordinates are missing and geocoding is enabled.  
 9. **`primaryRm`** may resolve from User Id to display name.  
 10. The controller returns **JSON**; the LWC **`JSON.parse`**s it and renders.
@@ -38,7 +38,7 @@ sequenceDiagram
     participant Pred as Insight Flow
 
     Page->>LWC: recordId set
-    LWC->>Apex: getProfileData(fieldMappingsJson, ...)
+    LWC->>Apex: getProfileData(fieldMappingsJson, flows, geocode, pipelineLimit)
     Apex->>DB: SOQL Account (mapped paths)
     DB-->>Apex: Account row
     opt assembly Flow needed

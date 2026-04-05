@@ -31,8 +31,9 @@ If geocoding is **off**, external callouts are skipped; coordinates must come fr
 1. Open **Lightning App Builder** on an **Account** record page (or create one).  
 2. Drag **Business Profile Widget** onto the layout.  
 3. Set **Profile assembly Flow API name** if you use Flow-backed mappings; map each **Field: …** property to either an Account path or `flow:VariableName`.  
-4. Optionally set **Autolaunched flow API name (predictions)** for the Insight tab.  
-5. **Save** and **Activate** the page.
+4. Optionally adjust **Pipeline: max open opportunities** (**0** = up to **2000** open opps; **1–2000** = explicit cap).  
+5. Optionally set **Autolaunched flow API name (predictions)** for the Insight tab.  
+6. **Save** and **Activate** the page.
 
 ---
 

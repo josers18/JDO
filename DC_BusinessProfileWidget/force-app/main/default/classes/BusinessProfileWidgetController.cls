@@ -266,7 +266,8 @@ public with sharing class BusinessProfileWidgetController {
         String insightFlowRecordIdVariable,
         String flowPredictionVariable,
         String flowRecommendationsVariable,
-        Boolean geocodeBillingAddress
+        Boolean geocodeBillingAddress,
+        Integer pipelineOpportunityLimit
     ) {
         if (String.isBlank(recordId)) {
             throw new AuraHandledException('Record Id is required.');
@@ -301,7 +302,7 @@ public with sharing class BusinessProfileWidgetController {
             applySubsidiariesCountFromRelatedAccounts(accId, profile);
         }
         try {
-            enrichActiveFinancialAccountsAndPipeline(accId, profile);
+            enrichActiveFinancialAccountsAndPipeline(accId, profile, pipelineOpportunityLimit);
         } catch (Exception e) {
             System.debug(LoggingLevel.WARN, 'BusinessProfileWidget live rollups failed: ' + e.getMessage());
         }
@@ -1818,11 +1819,23 @@ public with sharing class BusinessProfileWidgetController {
         public Decimal amount;
     }
 
+    /** Default rows when LWC passes null/0 (show “all” practical). */
+    private static final Integer PIPELINE_OPPORTUNITY_DEFAULT_LIMIT = 2000;
+    /** Governor-friendly ceiling for one query + JSON payload. */
+    private static final Integer PIPELINE_OPPORTUNITY_HARD_CAP = 2000;
+
+    private static Integer effectivePipelineOpportunityLimit(Integer requested) {
+        if (requested == null || requested <= 0) {
+            return PIPELINE_OPPORTUNITY_DEFAULT_LIMIT;
+        }
+        return Math.min(requested, PIPELINE_OPPORTUNITY_HARD_CAP);
+    }
+
     /**
      * Live rollups: when Financial Services Cloud Financial Account exists, Active products shows count of active rows
      * for this Account; always loads open Opportunities for the Pipeline list.
      */
-    private static void enrichActiveFinancialAccountsAndPipeline(Id accountId, BusinessProfileResult r) {
+    private static void enrichActiveFinancialAccountsAndPipeline(Id accountId, BusinessProfileResult r, Integer pipelineLimit) {
         if (r == null || accountId == null) {
             return;
         }
@@ -1843,6 +1856,7 @@ public with sharing class BusinessProfileWidgetController {
             return;
         }
         Boolean canAmount = Opportunity.Amount.getDescribe().isAccessible();
+        Integer lim = effectivePipelineOpportunityLimit(pipelineLimit);
         try {
             String amtSel = canAmount ? ', Amount' : '';
             String orderBy = canAmount ? ' ORDER BY Amount DESC NULLS LAST, Name ASC ' : ' ORDER BY Name ASC ';
@@ -1851,7 +1865,7 @@ public with sharing class BusinessProfileWidgetController {
                 amtSel +
                 ' FROM Opportunity WHERE AccountId = :accountId AND IsClosed = false' +
                 orderBy +
-                ' LIMIT 200';
+                ' LIMIT :lim';
             for (Opportunity o : (List<Opportunity>) Database.query(soql)) {
                 PipelineOpportunityRow row = new PipelineOpportunityRow();
                 row.id = o.Id;

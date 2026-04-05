@@ -8,7 +8,7 @@ Inventory of **`force-app/main/default/`**.
 
 | File | Role |
 |------|------|
-| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, **`enrichActiveFinancialAccountsAndPipeline`** (open Opps + FinServ Financial Account count when available), geocode, JSON result. |
+| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, **`enrichActiveFinancialAccountsAndPipeline`** (open Opps with configurable **`LIMIT`** up to 2000 + FinServ Financial Account count when available), geocode, JSON result. |
 | `classes/BusinessProfileWidgetControllerTest.cls` | Unit tests. |
 
 ---

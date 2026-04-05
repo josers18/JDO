@@ -89,7 +89,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 
 | JSON field | Meaning |
 |------------|---------|
-| **`pipelineOpenOpportunities`** | List of open **Opportunity** rows on the Account: `id`, `name`, `stageName`, `amount` (up to 200, ordered by amount). Drives the **Pipeline** tab list. |
+| **`pipelineOpenOpportunities`** | List of open **Opportunity** rows on the Account: `id`, `name`, `stageName`, `amount` (see **Pipeline: max open opportunities** below; default server cap **2000**, ordered by amount desc then name). Drives the **Pipeline** tab list. |
 | **`activeProducts`** | When **`FinServ__FinancialAccount__c`** is queryable and an Account lookup is resolved, set to **COUNT** of active financial accounts (`FinServ__IsActive__c = true`, or `FinServ__Status__c = 'Open'` when IsActive is unavailable). Otherwise unchanged from field mapping. |
 | **`activeProductsReflectsFinancialAccounts`** | `true` only when **`activeProducts`** was set from the live Financial Account count (so the LWC can show **“N active financial account(s)”** instead of **“N facilities”**). |
 
@@ -102,6 +102,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 | `cardTitle` | Business profile | |
 | `overviewTabLabel` … `insightTabLabel` | Overview, **Pipeline**, Credit, Structure, Location, Insight | **`healthTabLabel`** defaults to **Pipeline** (tab id in code remains `health` for backward compatibility). |
 | `showOverviewTab`, `showHealthTab`, `showCreditTab`, `showStructureTab`, `showLocationTab`, `showInsightTab` | `true` | **`showHealthTab`** controls visibility of the **Pipeline** tab. |
+| `pipelineOpportunityLimit` | `0` | **`0`** (default) → load up to **2000** open opportunities (practical “all” on the Account). **1–2000** → SOQL `LIMIT` for the Pipeline list. Hard cap **2000** for payload and governor safety. |
 | `showKpiStrip`, `showComplianceFlags`, `showRiskMatrix`, `showWaterfallChart` | `true` | |
 | `showOrgChart`, `showKeyContacts` | `true` | Structure tab |
 | `showBranchProximity` | `true` | Location |
@@ -114,7 +115,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 | Area | Behavior |
 |------|----------|
 | **Overview — Company / Relationship** | **Field rows** with **`lightning-icon`** + label (utility / standard icons), matching Customer Profile styling (`wp-field-rows`, `wp-field-key--iconrow`). |
-| **Pipeline** | Three columns per row: **stage** (left) · **opportunity name** (center, link to record) · **amount** (right). |
+| **Pipeline** | Three columns per row: **stage** (left) · **opportunity name** (center, link to record) · **amount** (right). The Pipeline inset card is **scrollable** (`max-height` + overflow) when there are many rows. |
 | **Credit — Facilities** | Same **icon + field row** pattern inside an inset card (not a plain two-column table). |
 | **Structure — Unified relationships** | Same **icon + field row** pattern for linked accounts, contacts, subsidiaries, referral network. |
 

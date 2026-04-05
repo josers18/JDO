@@ -28,7 +28,7 @@ private class BusinessProfileWidgetControllerTest {
         );
 
         Test.startTest();
-        String result = BusinessProfileWidgetController.getProfileData(acc.Id, fieldMappingsJson, '', '', '', '', '', '', true);
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, fieldMappingsJson, '', '', '', '', '', '', true, null);
         Test.stopTest();
 
         System.assertNotEquals(null, result);
@@ -47,7 +47,7 @@ private class BusinessProfileWidgetControllerTest {
         );
 
         Test.startTest();
-        String result = BusinessProfileWidgetController.getProfileData(acc.Id, fieldMappingsJson, '', '', '', '', '', '', true);
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, fieldMappingsJson, '', '', '', '', '', '', true, null);
         Test.stopTest();
 
         Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(result);
@@ -60,7 +60,7 @@ private class BusinessProfileWidgetControllerTest {
         Account acc = [SELECT Id FROM Account LIMIT 1];
 
         Test.startTest();
-        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', true);
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', true, null);
         Test.stopTest();
 
         System.assertNotEquals(null, result);
@@ -82,7 +82,7 @@ private class BusinessProfileWidgetControllerTest {
         insert c;
 
         Test.startTest();
-        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', false);
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', false, null);
         Test.stopTest();
 
         Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(result);
@@ -107,7 +107,7 @@ private class BusinessProfileWidgetControllerTest {
             }
         );
         Test.startTest();
-        String result = BusinessProfileWidgetController.getProfileData(acc.Id, fieldMappingsJson, '', '', '', '', '', '', true);
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, fieldMappingsJson, '', '', '', '', '', '', true, null);
         Test.stopTest();
         Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(result);
         Object luc = parsed.get('lastUsedChannel');
@@ -145,7 +145,7 @@ private class BusinessProfileWidgetControllerTest {
         insert opp;
 
         Test.startTest();
-        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', false);
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', false, null);
         Test.stopTest();
 
         Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(result);
@@ -156,5 +156,40 @@ private class BusinessProfileWidgetControllerTest {
         System.assertEquals(String.valueOf(opp.Id), String.valueOf(row.get('id')));
         System.assertEquals('Strategic Expansion Q1', row.get('name'));
         System.assertEquals(stageVal, row.get('stageName'));
+    }
+
+    @IsTest
+    static void testPipelineOpenOpportunitiesRespectsLimit() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        String stageVal;
+        for (Schema.PicklistEntry pe : Opportunity.StageName.getDescribe().getPicklistValues()) {
+            if (pe.isActive()) {
+                stageVal = pe.getValue();
+                break;
+            }
+        }
+        System.assertNotEquals(null, stageVal);
+        List<Opportunity> opps = new List<Opportunity>();
+        for (Integer i = 0; i < 3; i++) {
+            opps.add(
+                new Opportunity(
+                    Name = 'Limit Test Opp ' + i,
+                    AccountId = acc.Id,
+                    StageName = stageVal,
+                    Amount = 1000 * (i + 1),
+                    CloseDate = Date.today().addDays(30 + i)
+                )
+            );
+        }
+        insert opps;
+
+        Test.startTest();
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', false, 2);
+        Test.stopTest();
+
+        Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(result);
+        List<Object> pipe = (List<Object>) parsed.get('pipelineOpenOpportunities');
+        System.assertNotEquals(null, pipe);
+        System.assertEquals(2, pipe.size(), 'Pipeline limit=2 should return at most two rows');
     }
 }

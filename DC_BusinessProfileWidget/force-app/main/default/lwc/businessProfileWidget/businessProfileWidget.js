@@ -1459,6 +1459,12 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         this._showHealthTab = value !== false && value !== 'false';
     }
 
+    /**
+     * 0 / unset → Apex loads up to 2000 open opportunities (practical “all”).
+     * 1–2000 → cap the SOQL limit for the Pipeline tab.
+     */
+    @api pipelineOpportunityLimit = 0;
+
     _showCreditTab = true;
     @api
     get showCreditTab() {
@@ -1884,6 +1890,18 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             .map((t) => t.id);
     }
 
+    get pipelineOpportunityLimitForApex() {
+        const n = this.pipelineOpportunityLimit;
+        if (n == null || n === '') {
+            return null;
+        }
+        const v = Math.floor(Number(n));
+        if (!Number.isFinite(v) || v <= 0) {
+            return null;
+        }
+        return Math.min(v, 2000);
+    }
+
     async loadProfile() {
         this.loading = true;
         this.errorMessage = null;
@@ -1899,7 +1917,8 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 insightFlowRecordIdVariable: this.insightFlowRecordIdVariable || 'recordId',
                 flowPredictionVariable: this.flowPredictionVariable || 'prediction',
                 flowRecommendationsVariable: this.flowRecommendationsVariable || 'recommendations',
-                geocodeBillingAddress: this.geocodeBillingAddress !== false
+                geocodeBillingAddress: this.geocodeBillingAddress !== false,
+                pipelineOpportunityLimit: this.pipelineOpportunityLimitForApex
             });
             this.profileData = JSON.parse(result);
             this.logoLoadFailed = false;

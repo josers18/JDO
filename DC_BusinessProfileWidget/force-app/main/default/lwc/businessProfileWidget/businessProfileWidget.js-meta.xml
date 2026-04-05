@@ -55,6 +55,8 @@
 
             <property name="showOverviewTab" type="Boolean" label="Show Overview tab" default="true" />
             <property name="showHealthTab" type="Boolean" label="Show Pipeline tab" default="true" />
+            <property name="pipelineOpportunityLimit" type="Integer" label="Pipeline: max open opportunities" default="0"
+                description="0 uses the server maximum (2000 rows): list essentially all open opportunities on this Account (ordered by amount desc, then name). Set 1–2000 to cap how many rows load and display." />
             <property name="showCreditTab" type="Boolean" label="Show Credit tab" default="true" />
             <property name="showStructureTab" type="Boolean" label="Show Structure tab" default="true" />
             <property name="showLocationTab" type="Boolean" label="Show Location tab" default="true" />
