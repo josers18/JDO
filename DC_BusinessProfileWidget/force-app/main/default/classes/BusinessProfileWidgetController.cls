@@ -300,6 +300,11 @@ public with sharing class BusinessProfileWidgetController {
             }
             applySubsidiariesCountFromRelatedAccounts(accId, profile);
         }
+        try {
+            enrichActiveFinancialAccountsAndPipeline(accId, profile);
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'BusinessProfileWidget live rollups failed: ' + e.getMessage());
+        }
         Boolean allowGeocode = geocodeBillingAddress == null || geocodeBillingAddress == true;
         if (allowGeocode && !Test.isRunningTest()) {
             applyGeocodeIfNeeded(profile);
@@ -1801,6 +1806,140 @@ public with sharing class BusinessProfileWidgetController {
         return base + ' · RM coverage + executives';
     }
 
+    /** Open pipeline rows for the Health tab (Account-scoped CRM). */
+    public class PipelineOpportunityRow {
+        @AuraEnabled
+        public String id;
+        @AuraEnabled
+        public String name;
+        @AuraEnabled
+        public String stageName;
+        @AuraEnabled
+        public Decimal amount;
+    }
+
+    /**
+     * Live rollups: when Financial Services Cloud Financial Account exists, Active products shows count of active rows
+     * for this Account; always loads open Opportunities for the Pipeline list.
+     */
+    private static void enrichActiveFinancialAccountsAndPipeline(Id accountId, BusinessProfileResult r) {
+        if (r == null || accountId == null) {
+            return;
+        }
+        r.pipelineOpenOpportunities = new List<PipelineOpportunityRow>();
+        r.activeProductsReflectsFinancialAccounts = false;
+        Integer faCount = countActiveFinancialAccountsForAccount(accountId);
+        if (faCount != null) {
+            r.activeProducts = faCount;
+            r.activeProductsReflectsFinancialAccounts = true;
+        }
+        if (!Opportunity.SObjectType.getDescribe().isAccessible()) {
+            return;
+        }
+        if (!Opportunity.IsClosed.getDescribe().isAccessible() ||
+            !Opportunity.AccountId.getDescribe().isAccessible() ||
+            !Opportunity.Name.getDescribe().isAccessible() ||
+            !Opportunity.StageName.getDescribe().isAccessible()) {
+            return;
+        }
+        Boolean canAmount = Opportunity.Amount.getDescribe().isAccessible();
+        try {
+            String amtSel = canAmount ? ', Amount' : '';
+            String orderBy = canAmount ? ' ORDER BY Amount DESC NULLS LAST, Name ASC ' : ' ORDER BY Name ASC ';
+            String soql =
+                'SELECT Id, Name, StageName' +
+                amtSel +
+                ' FROM Opportunity WHERE AccountId = :accountId AND IsClosed = false' +
+                orderBy +
+                ' LIMIT 200';
+            for (Opportunity o : (List<Opportunity>) Database.query(soql)) {
+                PipelineOpportunityRow row = new PipelineOpportunityRow();
+                row.id = o.Id;
+                row.name = o.Name;
+                row.stageName = o.StageName;
+                row.amount = canAmount ? o.Amount : null;
+                r.pipelineOpenOpportunities.add(row);
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'enrichActiveFinancialAccountsAndPipeline opportunities: ' + e.getMessage());
+        }
+    }
+
+    private static Integer countActiveFinancialAccountsForAccount(Id accountId) {
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        String apiName = 'FinServ__FinancialAccount__c';
+        if (!gd.containsKey(apiName)) {
+            return null;
+        }
+        Schema.DescribeSObjectResult od = gd.get(apiName).getDescribe();
+        if (!od.isAccessible() || !od.isQueryable()) {
+            return null;
+        }
+        Map<String, Schema.SObjectField> fm = od.fields.getMap();
+        String accFld = resolveFinancialAccountAccountLookupField(fm);
+        if (String.isBlank(accFld)) {
+            return null;
+        }
+        Schema.DescribeFieldResult accFr = fm.get(accFld).getDescribe();
+        if (!accFr.isAccessible() || !accFr.isFilterable()) {
+            return null;
+        }
+        String activeClause = buildFinancialAccountActiveFilterClause(fm);
+        String soql = 'SELECT COUNT() FROM ' + apiName + ' WHERE ' + accFld + ' = :accountId' + activeClause;
+        try {
+            return Database.countQuery(soql);
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'countActiveFinancialAccountsForAccount: ' + e.getMessage());
+            return null;
+        }
+    }
+
+    private static String resolveFinancialAccountAccountLookupField(Map<String, Schema.SObjectField> fm) {
+        if (fm == null || fm.isEmpty()) {
+            return null;
+        }
+        List<String> prefer = new List<String>{ 'FinServ__PrimaryOwner__c', 'FinServ__Account__c', 'AccountId' };
+        for (String name : prefer) {
+            if (!fm.containsKey(name)) {
+                continue;
+            }
+            Schema.DescribeFieldResult fr = fm.get(name).getDescribe();
+            if (!fr.isAccessible() || fr.getType() != Schema.DisplayType.REFERENCE || fr.getReferenceTo().isEmpty()) {
+                continue;
+            }
+            if (fr.getReferenceTo()[0] == Account.SObjectType) {
+                return name;
+            }
+        }
+        for (Schema.SObjectField sf : fm.values()) {
+            Schema.DescribeFieldResult fr = sf.getDescribe();
+            if (!fr.isAccessible() || fr.getType() != Schema.DisplayType.REFERENCE || fr.getReferenceTo().isEmpty()) {
+                continue;
+            }
+            if (fr.getReferenceTo()[0] == Account.SObjectType) {
+                return fr.getName();
+            }
+        }
+        return null;
+    }
+
+    /** Prefer IsActive, else Status = Open (FSC defaults); orgs with different picklist API values may need adjustment. */
+    private static String buildFinancialAccountActiveFilterClause(Map<String, Schema.SObjectField> fm) {
+        if (fm.containsKey('FinServ__IsActive__c')) {
+            Schema.DescribeFieldResult fr = fm.get('FinServ__IsActive__c').getDescribe();
+            if (fr.isAccessible() && fr.getType() == Schema.DisplayType.BOOLEAN && fr.isFilterable()) {
+                return ' AND FinServ__IsActive__c = true ';
+            }
+        }
+        if (fm.containsKey('FinServ__Status__c')) {
+            Schema.DescribeFieldResult fr = fm.get('FinServ__Status__c').getDescribe();
+            if (fr.isAccessible() && fr.isFilterable()) {
+                return ' AND FinServ__Status__c = \'Open\' ';
+            }
+        }
+        return '';
+    }
+
     public class BusinessProfileResult {
         @AuraEnabled
         public String companyName;
@@ -1851,6 +1990,12 @@ public with sharing class BusinessProfileWidgetController {
         public String foundedDateRaw;
         @AuraEnabled
         public Integer activeProducts;
+        /** True when activeProducts was set from live FinServ Financial Account count (not field mapping only). */
+        @AuraEnabled
+        public Boolean activeProductsReflectsFinancialAccounts;
+        /** Open opportunities on this Account for the Health tab Pipeline (CRM). */
+        @AuraEnabled
+        public List<PipelineOpportunityRow> pipelineOpenOpportunities;
         /** Count of related Account nodes (FSC junction + ParentId children); set in enrichStructureTabData, not from field mapping. */
         @AuraEnabled
         public Integer subsidiaries;

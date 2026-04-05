@@ -4,6 +4,8 @@
 
 **Prediction Model** is a Lightning card for **machine-learning style scores**: either a **semicircle gauge** (when the outcome is a **percent**) or a **large number** (count, decimal, or **currency**). It lists **what drove the prediction** and **suggested next steps** from JSON your **autolaunched Flow** returns. You can add an **AI summary** in plain language via **Prompt Builder**. Users **refresh** the card; they do not configure the model inside the component.
 
+**Themes:** App Builder **Theme** and optional in-card switcher use **`predictionThemes.js`** (same CSS variable presets as the Customer / Business profile widgets). See [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) (Theme section).
+
 **Different package from [Multiclass Prediction](../DC_Multiclass_Prediction_LWC/README.md):** That one shows a **text category** and a **diverging bar** chart. This one shows a **gauge or numeric hero** + drivers.
 
 <div align="center">

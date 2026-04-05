@@ -35,6 +35,12 @@ This page lists every guide in **plain language**. The main project overview is 
 | [artifacts.md](../artifacts.md) | You want a checklist of what is in `force-app/` |
 | [GIT.md](GIT.md) | You are cloning the repo or naming components |
 
+## Theme reference (PDF)
+
+| Resource | Use it when |
+|----------|-------------|
+| [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) | **Visual guide** to all **42 themes** (names match App Builder). Summary page: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |
+
 ## Related package (business accounts)
 
 | Package | Role |

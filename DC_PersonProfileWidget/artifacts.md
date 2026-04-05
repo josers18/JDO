@@ -42,7 +42,7 @@ If you turn **off** geocoding on the widget, these matter less.
 
 | Class | Role |
 |-------|------|
-| **CustomerProfileWidgetController** | Loads profile data (Salesforce + optional Flows + optional address lookup), optional AI summary, optional Flow calls for gauge rings. |
+| **CustomerProfileWidgetController** | Loads profile data (Salesforce + optional Flows + optional address lookup), optional AI summary, optional Flow calls for gauge rings; **Account** enrichment may set **`openCasesCount`** and **`openOpportunitiesAmount`**. |
 | **CustomerProfileWidgetControllerTest** | Automated tests for deployment pipelines. |
 
 ---
@@ -52,7 +52,7 @@ If you turn **off** geocoding on the widget, these matter less.
 | Item | Role |
 |------|------|
 | Folder **`customerProfileWidget`** | The **Customer Profile Widget** in App Builder. |
-| `customerProfileWidget.js` / `.html` / `.css` | Layout, styling, behavior. |
+| `customerProfileWidget.js` / `.html` / `.css` | Layout, styling, behavior; **icon + label** field rows on key tabs. |
 | `customerProfileWidget.js-meta.xml` | Which pages the component can be placed on and which properties appear. |
 | `profileInsightRows.js` | Helper logic for the Insight tab list. |
 

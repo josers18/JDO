@@ -8,7 +8,7 @@ High-level behavior of **Prediction Model** (`classificationModelLwc`) and **`Cl
 
 | Layer | Responsibility |
 |-------|------------------|
-| **LWC** | Renders **percent gauge** or **full-width numeric metric panel** (by `predictionOutputFormat`), driver/recommendation lists, summary; maps designer properties to Apex; parses JSON for lists; applies colors and animations. |
+| **LWC** | Renders **percent gauge** or **full-width numeric metric panel** (by `predictionOutputFormat`), driver/recommendation lists, summary; maps designer properties to Apex; parses JSON for lists; applies colors and animations; applies **`THEMES`** from **`predictionThemes.js`** (profile-aligned CSS variables, optional header theme switcher). |
 | **Apex** | Runs flow with safe variable naming; serializes flow outputs to strings; invokes Einstein prompt API with a wrapped text parameter. |
 | **Flow** (org) | Encapsulates record-scoped prediction and shapes `factors` / `recommendations` for the UI. |
 | **Prompt template** (org) | Turns JSON context into user-facing narrative (optional). |

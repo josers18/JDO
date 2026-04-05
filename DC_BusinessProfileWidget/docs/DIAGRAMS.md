@@ -6,7 +6,7 @@
 flowchart LR
     subgraph Tabs
         O[Overview]
-        H[Health]
+        H[Pipeline]
         C[Credit]
         S[Structure]
         L[Location]

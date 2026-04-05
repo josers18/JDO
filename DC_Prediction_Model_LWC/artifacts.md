@@ -31,7 +31,8 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 
 | File | Role |
 |------|------|
-| `lwc/classificationModelLwc/classificationModelLwc.js` | UI logic: wire `recordId`, invoke Apex, parse insight JSON, **prediction output format** (percent vs integer/decimal/currency), gauge color (HSL lerp) when percent, bar animation, optional Einstein summary + `predictionOutputFormat` in payload. |
+| `lwc/classificationModelLwc/predictionThemes.js` | **Shared theme tokens** (`THEMES` export): CSS custom properties aligned with profile widgets; keep in sync with **Multiclass** `predictionThemes.js`. |
+| `lwc/classificationModelLwc/classificationModelLwc.js` | UI logic: wire `recordId`, invoke Apex, parse insight JSON, **prediction output format** (percent vs integer/decimal/currency), gauge color (HSL lerp) when percent, bar animation, optional Einstein summary + `predictionOutputFormat` in payload; **themeMode** / switcher via `predictionThemes.js`. |
 | `lwc/classificationModelLwc/classificationModelLwc.html` | Markup: **percent** → `gauge-wrap` + SVG arc; **non-percent** → `value-hero-panel` + `lightning-formatted-number`; predictor/recommendation lists; summary card. |
 | `lwc/classificationModelLwc/classificationModelLwc.css` | Layout: gauge column (170px) vs **full-width metric panel**; container queries (`cqw`) for large numeric typography; section and bar styles. |
 | `lwc/classificationModelLwc/classificationModelLwc.js-meta.xml` | Exposure: Record / App / Home pages; all designer properties; **Account** object restriction for record pages. |

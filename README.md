@@ -38,6 +38,7 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 | [docs/DIAGRAMS.md](docs/DIAGRAMS.md) | **Mermaid diagrams** (monorepo, Flow pattern, Data Cloud query, feedback) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | High-level architecture and links to per-project docs |
 | [docs/ARTIFACTS.md](docs/ARTIFACTS.md) | Index of per-project **`artifacts.md`** inventories |
+| [docs/THEME_CATALOG.md](docs/THEME_CATALOG.md) | **Theme catalog (PDF)** for profile + prediction widgets (GitHub Pages–friendly) |
 
 ---
 
@@ -47,10 +48,10 @@ Each folder with `sfdx-project.json` is its own package. For **easy onboarding**
 
 | Path | In short | Doc index |
 |------|----------|-----------|
-| [**DC_PersonProfileWidget**](DC_PersonProfileWidget/README.md) | **Customer profile** card (Account + Contact); seven tabs incl. Structure; SOQL + **`flow:`/`flows:`** + optional AI | [docs/INDEX](DC_PersonProfileWidget/docs/INDEX.md) |
-| [**DC_BusinessProfileWidget**](DC_BusinessProfileWidget/README.md) | **Business profile** card (Account only); field maps = SOQL path or **`flow:`**; 42 themes | [docs/INDEX](DC_BusinessProfileWidget/docs/INDEX.md) |
-| [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | **Prediction Model** — percent **gauge** or big **number**, drivers, optional summary | [docs/INDEX](DC_Prediction_Model_LWC/docs/INDEX.md) |
-| [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass** — **text category** + diverging bars (not the same as Prediction Model) | [docs/INDEX](DC_Multiclass_Prediction_LWC/docs/INDEX.md) |
+| [**DC_PersonProfileWidget**](DC_PersonProfileWidget/README.md) | **Customer profile** card (Account + Contact); seven tabs incl. Structure; SOQL + **`flow:`/`flows:`** + optional AI; icon field rows; Account rollups (e.g. open cases / open opp amount) | [docs/INDEX](DC_PersonProfileWidget/docs/INDEX.md) |
+| [**DC_BusinessProfileWidget**](DC_BusinessProfileWidget/README.md) | **Business profile** card (Account only); **Pipeline** tab (open Opps); FinServ **active financial accounts** count; field maps = SOQL path or **`flow:`**; 42 themes; icon rows | [docs/INDEX](DC_BusinessProfileWidget/docs/INDEX.md) |
+| [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | **Prediction Model** — percent **gauge** or big **number**, drivers, optional summary; **profile-aligned themes** (`predictionThemes.js`) | [docs/INDEX](DC_Prediction_Model_LWC/docs/INDEX.md) |
+| [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass** — **text category** + diverging bars; same **theme tokens** as Prediction Model / profile widgets | [docs/INDEX](DC_Multiclass_Prediction_LWC/docs/INDEX.md) |
 | [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | **Agent output** card — shows Flow-generated text/HTML/Markdown; copy, print, optional thumbs | [docs/INDEX](DC_AgentForce_Output_LWC/docs/INDEX.md) |
 | [**DC_Query_to_Table_LWC**](DC_Query_to_Table_LWC/README.md) | **Data Cloud SQL** results as a **sortable table** on a Lightning page | [docs/INDEX](DC_Query_to_Table_LWC/docs/INDEX.md) |
 

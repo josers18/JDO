@@ -13,7 +13,8 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
 | **Data Cloud in-org query** | DC Query to Table (`ConnectApi.CdpQuery.queryAnsiSqlV2`) |
 | **Rich text / Markdown** | AgentForce Output (static **marked** + `lightning-formatted-rich-text`) |
 | **Tabular SLDS data table** | DC Query to Table (`lightning-datatable`) |
-| **CRM + Flow-assembled tabbed profile UI** | DC Person Profile Widget (Account + Contact; SOQL + **`flow:`/`flows:`** slots + optional Flows + Einstein); DC Business Profile Widget (Account; `fieldMappingsJson` SOQL or **`flow:`**) |
+| **CRM + Flow-assembled tabbed profile UI** | DC Person Profile Widget (Account + Contact; SOQL + **`flow:`/`flows:`** slots + optional Flows + Einstein; **icon + label** field rows on key tabs; optional live rollups such as open case count and summed open opportunity amounts on Account); DC Business Profile Widget (Account; `fieldMappingsJson` SOQL or **`flow:`**; **Pipeline** tab lists open Opportunities; **Active products** can reflect **FinServ Financial Account** count when that object exists; icon rows on Overview, Credit facilities, Structure) |
+| **Shared theme tokens (profile-aligned)** | DC Prediction Model + DC Multiclass Prediction import **`predictionThemes.js`** (same CSS variable keys as profile widgets; App Builder **Theme** / optional header switcher) |
 
 ## Documentation map
 

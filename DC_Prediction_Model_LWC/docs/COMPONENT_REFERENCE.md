@@ -78,6 +78,25 @@ Model explanations often use signed **contribution** values (positive vs negativ
 
 ---
 
+## Theme (profile-aligned)
+
+The card can use the same **CSS variable tokens** as the Customer / Business profile widgets so prediction tiles match adjacent profile chrome on FSI demos.
+
+**Visual reference (preset names):** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| **Theme** (`themeMode`) | `default` | **`default`** — original light card. **Other values** — same named presets as profile widgets (see App Builder picklist: obsidian, midnight, graphite, ivory, and extended presets through **union**, etc.). |
+| **Show theme switcher in header** | false | When true, four quick buttons (**obsidian / midnight / graphite / ivory**) appear next to **Refresh**. Prefer **false** in production. |
+| **Theme accent (optional)** | (empty) | Optional hex accent mixed into themed shells (useful with dark presets). |
+| **Theme warning override** / **Theme negative / error tint** | defaults in meta | Override semantic tokens used with themes. |
+| **Summary & label text color (optional)** | (empty) | Maps to **`summaryAndLabelTextColor`** — GenAI summary body, section titles, driver/recommendation row labels; blank uses theme default. |
+| **GenAI summary text size (%)** | `100` | **`summaryTextSizePercent`** (80–200); section titles and labels are not scaled. |
+
+**Source module:** `lwc/classificationModelLwc/predictionThemes.js` — **`THEMES`** map of preset name → CSS custom properties (`--wp-shell-bg`, `--wp-accent`, …). **Keep this file identical** to `multiclassPredictionLwc/predictionThemes.js` when changing tokens so both LWCs stay aligned.
+
+---
+
 ## Gauge (arc)
 
 Shown only when **Prediction output format** is **`percent`** (or alias `classification`). Otherwise the main prediction uses the **metric panel** (no semicircle); see [UI_LAYOUT.md](UI_LAYOUT.md).

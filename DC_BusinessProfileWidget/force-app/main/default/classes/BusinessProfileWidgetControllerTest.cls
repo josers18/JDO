@@ -123,4 +123,38 @@ private class BusinessProfileWidgetControllerTest {
         System.assertNotEquals(null, expectedLabel, 'Industry value from setup should resolve to a picklist label');
         System.assertEquals(expectedLabel, luc, 'Last used channel should show picklist label like the record detail UI');
     }
+
+    @IsTest
+    static void testPipelineOpenOpportunitiesOnAccount() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        String stageVal;
+        for (Schema.PicklistEntry pe : Opportunity.StageName.getDescribe().getPicklistValues()) {
+            if (pe.isActive()) {
+                stageVal = pe.getValue();
+                break;
+            }
+        }
+        System.assertNotEquals(null, stageVal, 'Org should expose at least one active Opportunity stage');
+        Opportunity opp = new Opportunity(
+            Name = 'Strategic Expansion Q1',
+            AccountId = acc.Id,
+            StageName = stageVal,
+            Amount = 25000,
+            CloseDate = Date.today().addDays(45)
+        );
+        insert opp;
+
+        Test.startTest();
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, '{}', '', '', '', '', '', '', false);
+        Test.stopTest();
+
+        Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(result);
+        List<Object> pipe = (List<Object>) parsed.get('pipelineOpenOpportunities');
+        System.assertNotEquals(null, pipe, 'Pipeline list should be present');
+        System.assertEquals(1, pipe.size(), 'One open opportunity should appear');
+        Map<String, Object> row = (Map<String, Object>) pipe[0];
+        System.assertEquals(String.valueOf(opp.Id), String.valueOf(row.get('id')));
+        System.assertEquals('Strategic Expansion Q1', row.get('name'));
+        System.assertEquals(stageVal, row.get('stageName'));
+    }
 }

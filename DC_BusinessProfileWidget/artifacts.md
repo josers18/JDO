@@ -8,7 +8,7 @@ Inventory of **`force-app/main/default/`**.
 
 | File | Role |
 |------|------|
-| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, geocode, JSON result. |
+| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, **`enrichActiveFinancialAccountsAndPipeline`** (open Opps + FinServ Financial Account count when available), geocode, JSON result. |
 | `classes/BusinessProfileWidgetControllerTest.cls` | Unit tests. |
 
 ---
@@ -17,7 +17,7 @@ Inventory of **`force-app/main/default/`**.
 
 | Path | Role |
 |------|------|
-| `lwc/businessProfileWidget/` | **Business Profile Widget** bundle (JS, HTML, CSS, meta). |
+| `lwc/businessProfileWidget/` | **Business Profile Widget** bundle: **Pipeline** tab, icon field rows (Overview, Credit facilities, Structure), themes, Flow + field maps. |
 | `lwc/businessProfileWidget/profileInsightRows.js` | Insight tab row helpers. |
 
 ---

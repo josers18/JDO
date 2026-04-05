@@ -19,7 +19,7 @@ flowchart TB
     A --> |Autolaunched Flow| SF
     Q --> |ConnectApi.CdpQuery| SF
     C --> |SOQL + Flow profile| SF
-    B --> |Account field map + Flow| SF
+        B --> |Account field map + Flow + CRM enrich| SF
 ```
 
 ## Naming vs App Builder labels

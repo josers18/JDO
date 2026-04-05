@@ -141,22 +141,40 @@
                 <template lwc:if={isTab_overview}>
                     <div class="wp-slbl">Company</div>
                     <div class="wp-inset-card">
-                        <table class="wp-ftbl wp-ftbl--inset">
+                        <div class="wp-field-rows wp-field-rows--inset">
                             <template for:each={companyFields} for:item="row">
-                                <tr key={row.key}>
-                                    <td>{row.label}</td>
-                                    <td class={row.cls}>{row.val}</td>
-                                </tr>
+                                <div key={row.key} class="wp-field-row">
+                                    <span class="wp-field-key wp-field-key--iconrow">
+                                        <lightning-icon
+                                            icon-name={row.iconName}
+                                            alternative-text=""
+                                            size="xx-small"
+                                            variant="bare"
+                                            class="wp-field-key-icon"
+                                        ></lightning-icon>
+                                        <span>{row.label}</span>
+                                    </span>
+                                    <span class={row.valClass}>{row.val}</span>
+                                </div>
                             </template>
-                        </table>
+                        </div>
                     </div>
                     <div class="wp-slbl">Relationship</div>
                     <div class="wp-inset-card">
-                        <table class="wp-ftbl wp-ftbl--inset">
+                        <div class="wp-field-rows wp-field-rows--inset">
                             <template for:each={relationshipFields} for:item="row">
-                                <tr key={row.key}>
-                                    <td>{row.label}</td>
-                                    <td class={row.cls}>
+                                <div key={row.key} class="wp-field-row">
+                                    <span class="wp-field-key wp-field-key--iconrow">
+                                        <lightning-icon
+                                            icon-name={row.iconName}
+                                            alternative-text=""
+                                            size="xx-small"
+                                            variant="bare"
+                                            class="wp-field-key-icon"
+                                        ></lightning-icon>
+                                        <span>{row.label}</span>
+                                    </span>
+                                    <span class={row.valClass}>
                                         <template lwc:if={row.channelIconName}>
                                             <span class="wp-channel-inline">
                                                 <lightning-icon
@@ -170,35 +188,40 @@
                                             </span>
                                         </template>
                                         <template lwc:else>{row.val}</template>
-                                    </td>
-                                </tr>
+                                    </span>
+                                </div>
                             </template>
-                        </table>
+                        </div>
                     </div>
                 </template>
 
                 <template lwc:if={isTab_health}>
-                    <div class="wp-slbl">Health scores</div>
-                    <div class="wp-inset-card">
-                        <div class="wp-score-block">
-                            <template for:each={healthScores} for:item="item">
-                                <div key={item.key} class="wp-score-item">
-                                    <div class="wp-score-top">
-                                        <span class="wp-score-name">{item.name}</span>
-                                        <span class="wp-score-pct">
-                                            <span class={item.pctClass}>{item.pctLabel}</span>
-                                        </span>
-                                    </div>
-                                    <div class="wp-bar-track">
-                                        <div
-                                            class="wp-bar-fill"
-                                            data-scale={item.barScale}
-                                            style={item.barStyle}
-                                        ></div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
+                    <div class="wp-slbl">Pipeline</div>
+                    <div class="wp-inset-card wp-inset-card--pipeline">
+                        <template lwc:if={hasPipelineOpportunities}>
+                            <ul class="wp-pipeline-list">
+                                <template for:each={pipelineOpportunityRows} for:item="row">
+                                    <li key={row.key} class="wp-pipeline-item">
+                                        <div class="wp-pipeline-stage-col">{row.stageName}</div>
+                                        <div class="wp-pipeline-name-col">
+                                            <button
+                                                type="button"
+                                                class="wp-pipeline-name wp-record-link"
+                                                data-object="Opportunity"
+                                                data-id={row.id}
+                                                onclick={handleNavigateToRecord}
+                                            >
+                                                {row.name}
+                                            </button>
+                                        </div>
+                                        <div class="wp-pipeline-amt">{row.amountDisplay}</div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template lwc:else>
+                            <p class="wp-pipeline-empty">No open opportunities on this account.</p>
+                        </template>
                     </div>
 
                     <template lwc:if={showWaterfallChart}>
@@ -348,14 +371,25 @@
                     </div>
 
                     <div class="wp-slbl">Facilities</div>
-                    <table class="wp-ftbl">
-                        <template for:each={creditFacilityRows} for:item="row">
-                            <tr key={row.key}>
-                                <td>{row.label}</td>
-                                <td class={row.cls}>{row.val}</td>
-                            </tr>
-                        </template>
-                    </table>
+                    <div class="wp-inset-card">
+                        <div class="wp-field-rows wp-field-rows--inset">
+                            <template for:each={creditFacilityRows} for:item="row">
+                                <div key={row.key} class="wp-field-row">
+                                    <span class="wp-field-key wp-field-key--iconrow">
+                                        <lightning-icon
+                                            icon-name={row.iconName}
+                                            alternative-text=""
+                                            size="xx-small"
+                                            variant="bare"
+                                            class="wp-field-key-icon"
+                                        ></lightning-icon>
+                                        <span>{row.label}</span>
+                                    </span>
+                                    <span class={row.valClass}>{row.val}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </template>
 
                 <template lwc:if={isTab_structure}>
@@ -441,24 +475,25 @@
                     </template>
 
                     <div class="wp-slbl">Unified relationships</div>
-                    <table class="wp-ftbl">
-                        <tr>
-                            <td>Linked accounts</td>
-                            <td class="wp-td-accent">{structureLinkedAccountsDisplay}</td>
-                        </tr>
-                        <tr>
-                            <td>Linked contacts</td>
-                            <td>{structureLinkedContactsDisplay}</td>
-                        </tr>
-                        <tr>
-                            <td>Subsidiaries</td>
-                            <td>{subsidiariesDisplay}</td>
-                        </tr>
-                        <tr>
-                            <td>Referral network</td>
-                            <td class="wp-td-muted">{structureReferralNetworkDisplay}</td>
-                        </tr>
-                    </table>
+                    <div class="wp-inset-card">
+                        <div class="wp-field-rows wp-field-rows--inset">
+                            <template for:each={structureUnifiedRelationshipFields} for:item="row">
+                                <div key={row.key} class="wp-field-row">
+                                    <span class="wp-field-key wp-field-key--iconrow">
+                                        <lightning-icon
+                                            icon-name={row.iconName}
+                                            alternative-text=""
+                                            size="xx-small"
+                                            variant="bare"
+                                            class="wp-field-key-icon"
+                                        ></lightning-icon>
+                                        <span>{row.label}</span>
+                                    </span>
+                                    <span class={row.valClass}>{row.val}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </template>
 
                 <template lwc:if={isTab_location}>

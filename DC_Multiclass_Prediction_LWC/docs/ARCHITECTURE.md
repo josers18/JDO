@@ -8,7 +8,7 @@ High-level behavior of **Multiclass Prediction** (`multiclassPredictionLwc`) and
 
 | Layer | Responsibility |
 |-------|----------------|
-| **LWC** | Renders **predicted class** as large text (with optional humanize), **recommendations** as a **diverging bar chart** (SHAP-style scores, legend tied to bar colors), optional summary; maps designer properties to Apex; parses JSON for recommendations. |
+| **LWC** | Renders **predicted class** as large text (with optional humanize), **recommendations** as a **diverging bar chart** (SHAP-style scores, legend tied to bar colors), optional summary; maps designer properties to Apex; parses JSON for recommendations; applies **`THEMES`** from **`predictionThemes.js`** (profile-aligned CSS variables, optional header theme switcher). |
 | **Apex** | Runs flow with safe variable naming; coerces prediction to text; serializes recommendations to a string; invokes Einstein prompt API with a wrapped text parameter. |
 | **Flow** (org) | Encapsulates record-scoped multiclass prediction and shapes `recommendations` for the UI. |
 | **Prompt template** (org) | Turns JSON context into user-facing narrative (optional). |

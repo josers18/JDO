@@ -195,4 +195,94 @@ private class CustomerProfileWidgetControllerTest {
         System.assert(threw, 'expected AuraHandledException');
     }
 
+    private static String firstActiveOpportunityStageName() {
+        for (Schema.PicklistEntry pe : Opportunity.StageName.getDescribe().getPicklistValues()) {
+            if (pe.isActive()) {
+                return pe.getValue();
+            }
+        }
+        return null;
+    }
+
+    @IsTest
+    static void testOpenOppCaseRollups_account() {
+        String stage = firstActiveOpportunityStageName();
+        System.assertNotEquals(null, stage, 'Org should expose at least one active Opportunity StageName');
+        Account a = new Account(Name = 'Rollup Account');
+        insert a;
+        insert new Opportunity(
+            Name = 'Open Opp A',
+            StageName = stage,
+            CloseDate = Date.today().addDays(30),
+            AccountId = a.Id,
+            Amount = 2500.50
+        );
+        insert new Case(Subject = 'Open Case A', AccountId = a.Id, Status = 'New');
+
+        Test.startTest();
+        CustomerProfileWidgetController.ProfileResult res = CustomerProfileWidgetController.getProfileData(
+            a.Id,
+            null,
+            null,
+            null,
+            null,
+            '',
+            null,
+            null,
+            null,
+            null
+        );
+        Test.stopTest();
+
+        System.assertEquals(Integer.valueOf(1), res.openCasesCount);
+        System.assertEquals(2500.50, res.openOpportunitiesAmount);
+    }
+
+    @IsTest
+    static void testOpenOppCaseRollups_contact_viaAccountAndOcr() {
+        String stage = firstActiveOpportunityStageName();
+        System.assertNotEquals(null, stage);
+        Account a = new Account(Name = 'Rollup Account B');
+        insert a;
+        Contact c = new Contact(FirstName = 'Roll', LastName = 'Up', AccountId = a.Id);
+        insert c;
+        insert new Opportunity(
+            Name = 'Open Opp B',
+            StageName = stage,
+            CloseDate = Date.today().addDays(45),
+            AccountId = a.Id,
+            Amount = 100
+        );
+        Account side = new Account(Name = 'Side Account');
+        insert side;
+        Opportunity ocrOpp = new Opportunity(
+            Name = 'OCR Opp',
+            StageName = stage,
+            CloseDate = Date.today().addDays(60),
+            AccountId = side.Id,
+            Amount = 400
+        );
+        insert ocrOpp;
+        insert new OpportunityContactRole(OpportunityId = ocrOpp.Id, ContactId = c.Id);
+        insert new Case(Subject = 'Open Case B', ContactId = c.Id, Status = 'New');
+
+        Test.startTest();
+        CustomerProfileWidgetController.ProfileResult res = CustomerProfileWidgetController.getProfileData(
+            c.Id,
+            null,
+            null,
+            null,
+            null,
+            '',
+            null,
+            null,
+            null,
+            null
+        );
+        Test.stopTest();
+
+        System.assertEquals(Integer.valueOf(1), res.openCasesCount);
+        System.assertEquals(500, res.openOpportunitiesAmount);
+    }
+
 }

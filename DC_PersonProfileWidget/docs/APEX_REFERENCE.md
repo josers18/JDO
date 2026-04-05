@@ -56,7 +56,7 @@ Runs one **autolaunched** Flow for a single gauge; returns **`SignalGaugeFlowRes
 
 ## Main data types (short)
 
-- **`ProfileResult`** — Full payload for the LWC (fields, branches, accounts, map coords, photo URL, prediction, recommendations, …).  
+- **`ProfileResult`** — Full payload for the LWC (fields, branches, accounts, map coords, photo URL, prediction, recommendations, …). For **Account** records, **`enrichOpenOppAndCaseRollups`** may set **`openCasesCount`** and **`openOpportunitiesAmount`** (open opportunities on the Account, including via **Opportunity Contact Role**, subject to object and field access).  
 - **`BranchInfo`**, **`FinancialAccountInfo`** — Rows for lists.  
 - **`SignalGaugeFlowResult`** — One number for a ring.
 

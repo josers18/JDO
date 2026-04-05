@@ -1,6 +1,6 @@
 # Documentation index — Prediction Model
 
-**What this project does:** A Lightning **dashboard card** for **numeric** predictions: a **percent semicircle gauge** (classification-style) or a **large number** (integer, decimal, or currency). It also shows **top drivers** and **recommendations** from JSON your Flow returns, plus an optional **AI summary**.
+**What this project does:** A Lightning **dashboard card** for **numeric** predictions: a **percent semicircle gauge** (classification-style) or a **large number** (integer, decimal, or currency). It also shows **top drivers** and **recommendations** from JSON your Flow returns, plus an optional **AI summary**. **Themes** match the profile widgets via **`predictionThemes.js`** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)). **Visual catalog:** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
 
 **Not the same as** **[Multiclass Prediction](../DC_Multiclass_Prediction_LWC/README.md)** (text category + diverging chart).
 

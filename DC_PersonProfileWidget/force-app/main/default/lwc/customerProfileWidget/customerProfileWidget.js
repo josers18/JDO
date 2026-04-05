@@ -2747,6 +2747,37 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
     }
 
+    /** Open opportunities rollup (USD); from live SOQL on Contact/Account. */
+    get displayOpenOpportunitiesAmount() {
+        const v = this.profileData?.openOpportunitiesAmount;
+        if (v === null || v === undefined) {
+            return '—';
+        }
+        const n = Number(v);
+        if (!Number.isFinite(n)) {
+            return '—';
+        }
+        return new Intl.NumberFormat(undefined, {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(n);
+    }
+
+    /** Open cases count for this person or account. */
+    get displayOpenCasesCount() {
+        const v = this.profileData?.openCasesCount;
+        if (v === null || v === undefined) {
+            return '—';
+        }
+        const n = Number(v);
+        if (!Number.isFinite(n)) {
+            return '—';
+        }
+        return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
+    }
+
     get showKpiStripResolved() {
         return this.showKpiStrip !== false;
     }

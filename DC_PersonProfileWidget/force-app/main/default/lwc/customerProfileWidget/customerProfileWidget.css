@@ -446,6 +446,45 @@
     opacity: 0.88;
 }
 
+.wp-field-key--iconrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+}
+
+.wp-inset-card .wp-field-key--iconrow {
+    max-width: 52%;
+}
+
+.wp-field-key-icon {
+    flex-shrink: 0;
+    opacity: 0.88;
+}
+
+.wp-signal-metric-key--row {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.wp-ftbl-lbl-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wp-ftbl-lbl-icon {
+    flex-shrink: 0;
+    opacity: 0.88;
+}
+
+.wp-pred-label--row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .wp-rings-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -1310,7 +1349,7 @@
     font-weight: 500;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    width: 130px;
+    width: 152px;
 }
 
 .wp-ftbl td:last-child {

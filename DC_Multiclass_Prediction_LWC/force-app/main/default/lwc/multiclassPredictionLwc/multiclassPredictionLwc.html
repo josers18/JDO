@@ -2,12 +2,57 @@
     <article class="lwc-shell">
         <div class="lwc-shell__header">
             <h2 class="lwc-shell__title">{mainCardTitleDisplay}</h2>
-            <lightning-button
-                variant="neutral"
-                label="Refresh"
-                onclick={refreshData}
-                disabled={loadingFlow}
-            ></lightning-button>
+            <div class="lwc-shell__actions">
+                <template lwc:if={showThemeSwitcher}>
+                    <div class="pm-theme-switcher">
+                        <span class="pm-theme-lbl">Theme</span>
+                        <div class="pm-theme-btns">
+                            <button
+                                type="button"
+                                class={themeBtn_obsidian}
+                                data-theme="obsidian"
+                                onclick={handleThemeSwitch}
+                                title="Obsidian"
+                            >
+                                ◑
+                            </button>
+                            <button
+                                type="button"
+                                class={themeBtn_midnight}
+                                data-theme="midnight"
+                                onclick={handleThemeSwitch}
+                                title="Midnight"
+                            >
+                                ●
+                            </button>
+                            <button
+                                type="button"
+                                class={themeBtn_graphite}
+                                data-theme="graphite"
+                                onclick={handleThemeSwitch}
+                                title="Graphite"
+                            >
+                                ◐
+                            </button>
+                            <button
+                                type="button"
+                                class={themeBtn_ivory}
+                                data-theme="ivory"
+                                onclick={handleThemeSwitch}
+                                title="Ivory"
+                            >
+                                ○
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                <lightning-button
+                    variant="neutral"
+                    label="Refresh"
+                    onclick={refreshData}
+                    disabled={loadingFlow}
+                ></lightning-button>
+            </div>
         </div>
 
         <template lwc:if={loadingFlow}>

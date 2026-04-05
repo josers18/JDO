@@ -227,6 +227,13 @@ public with sharing class CustomerProfileWidgetController {
         public String accountType;
         @AuraEnabled
         public String structureRootSublabel;
+
+        /** Sum of Amount for open opportunities (Contact: household account + OCR; Account: on account). */
+        @AuraEnabled
+        public Decimal openOpportunitiesAmount;
+        /** Count of open cases (Contact: ContactId; Account: AccountId). */
+        @AuraEnabled
+        public Integer openCasesCount;
     }
 
     @AuraEnabled
@@ -366,6 +373,11 @@ public with sharing class CustomerProfileWidgetController {
                 enrichStructureTabForCustomer(result, recordIdVal);
             } catch (Exception e) {
                 System.debug(LoggingLevel.WARN, 'CustomerProfileWidget structure enrich failed: ' + e.getMessage());
+            }
+            try {
+                enrichOpenOppAndCaseRollups(result, recordIdVal);
+            } catch (Exception e) {
+                System.debug(LoggingLevel.WARN, 'CustomerProfileWidget opp/case rollups failed: ' + e.getMessage());
             }
         }
 
@@ -2323,6 +2335,84 @@ public with sharing class CustomerProfileWidgetController {
             }
         }
         return String.join(out, ' ');
+    }
+
+    /**
+     * Live CRM rollups for the Overview Relationship section: open Opportunity amounts and open Case counts.
+     * Contact: cases on ContactId; opps on primary Account or OpportunityContactRole. Account: account-scoped.
+     */
+    private static void enrichOpenOppAndCaseRollups(ProfileResult r, Id recordIdVal) {
+        if (r == null || recordIdVal == null) {
+            return;
+        }
+        String obj = recordIdVal.getSObjectType().getDescribe().getName();
+        if (obj != 'Contact' && obj != 'Account') {
+            return;
+        }
+        if (!Opportunity.SObjectType.getDescribe().isAccessible() || !Case.SObjectType.getDescribe().isAccessible()) {
+            return;
+        }
+        if (!Opportunity.Amount.getDescribe().isAccessible()) {
+            return;
+        }
+        try {
+            if (obj == 'Contact') {
+                Id cid = recordIdVal;
+                Id accId = null;
+                for (Contact ct : [SELECT AccountId FROM Contact WHERE Id = :cid LIMIT 1]) {
+                    accId = ct.AccountId;
+                }
+                r.openCasesCount = Database.countQuery(
+                    'SELECT COUNT() FROM Case WHERE IsClosed = false AND ContactId = :cid'
+                );
+                Set<Id> openOppIds = new Set<Id>();
+                if (accId != null) {
+                    for (Opportunity oo : [
+                        SELECT Id
+                        FROM Opportunity
+                        WHERE IsClosed = FALSE AND AccountId = :accId
+                    ]) {
+                        openOppIds.add(oo.Id);
+                    }
+                }
+                for (Opportunity oc : [
+                    SELECT Id
+                    FROM Opportunity
+                    WHERE
+                        IsClosed = FALSE
+                        AND Id IN (SELECT OpportunityId FROM OpportunityContactRole WHERE ContactId = :cid)
+                ]) {
+                    openOppIds.add(oc.Id);
+                }
+                if (openOppIds.isEmpty()) {
+                    r.openOpportunitiesAmount = 0;
+                } else {
+                    List<AggregateResult> oar = [
+                        SELECT SUM(Amount) amt
+                        FROM Opportunity
+                        WHERE Id IN :openOppIds
+                    ];
+                    r.openOpportunitiesAmount = (oar.isEmpty() || oar[0].get('amt') == null)
+                        ? 0
+                        : (Decimal) oar[0].get('amt');
+                }
+            } else {
+                Id aid = recordIdVal;
+                r.openCasesCount = Database.countQuery(
+                    'SELECT COUNT() FROM Case WHERE IsClosed = false AND AccountId = :aid'
+                );
+                List<AggregateResult> oar = [
+                    SELECT SUM(Amount) amt
+                    FROM Opportunity
+                    WHERE IsClosed = FALSE AND AccountId = :aid
+                ];
+                r.openOpportunitiesAmount = (oar.isEmpty() || oar[0].get('amt') == null)
+                    ? 0
+                    : (Decimal) oar[0].get('amt');
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'enrichOpenOppAndCaseRollups: ' + e.getMessage());
+        }
     }
 
     // --- Structure tab (aligned with Business Profile widget: related accounts + key contacts) ---

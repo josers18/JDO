@@ -4,6 +4,8 @@
 
 **Multiclass Prediction** is a Lightning card for outcomes that are **named categories** (for example a segment or product code)—shown as a clear **headline**—not a single percentage on a dial. **Suggested improvements** appear as a **diverging bar chart**. Data comes from an **autolaunched Flow**; you can add an **AI-written summary** with **Prompt Builder**.
 
+**Themes:** Same **`predictionThemes.js`** token map as **Prediction Model** and the profile widgets (see [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md)).
+
 **Different package from [Prediction Model](../DC_Prediction_Model_LWC/README.md):** That one uses a **gauge or big number** for numeric scores. This one uses **text class + contribution bars**. You can deploy **both** in the same org.
 
 > The Flow returns **text** `prediction` and **recommendations** JSON—not the same shape as the Prediction Model gauge card.

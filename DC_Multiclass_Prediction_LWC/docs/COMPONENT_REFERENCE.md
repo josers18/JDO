@@ -50,6 +50,24 @@ Signed **contribution** values (for example SHAP scores) drive **diverging** bar
 
 ---
 
+## Theme (profile-aligned)
+
+Same **preset names** and **CSS variables** as the profile widgets and **Prediction Model** (`--wp-shell-bg`, `--wp-accent`, etc.).
+
+**Visual reference:** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| **Theme** (`themeMode`) | `default` | **`default`** — original light card; other values match profile-widget theme picklist (obsidian … union). |
+| **Show theme switcher in header** | false | Quick **O / M / G / I** preset buttons next to **Refresh** when true. |
+| **Theme accent (optional)** | (empty) | Optional hex accent for dark presets. |
+| **Theme warning / negative overrides** | meta defaults | Semantic token overrides. |
+| **Summary & label text color (optional)** | (empty) | **`summaryAndLabelTextColor`** — GenAI summary, section title, recommendation row labels, legend text; blank uses theme default. |
+
+**Source module:** `lwc/multiclassPredictionLwc/predictionThemes.js` — export **`THEMES`**. Maintain **parity** with `classificationModelLwc/predictionThemes.js` when editing tokens.
+
+---
+
 ## Einstein / Prompt Builder
 
 | Property | Default | Meaning |

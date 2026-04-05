@@ -35,6 +35,21 @@
                 description="JSON payload includes prediction (string), predictionType multiclass_label, recommendations." />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
             <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
+            <property name="themeMode" type="String" label="Theme" default="default"
+                datasource="default,obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="default preserves the original light card. The other 42 values match profile-widget themes (obsidian through union). For FSI demos, pair dark themes with accentColor — see profile widget documentation." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, shows four quick theme buttons next to Refresh (obsidian, midnight, graphite, ivory). Keep false in production." />
+            <property name="accentColor" type="String" label="Theme accent (optional)" default=""
+                description="Optional #hex accent; when blank, a bronze default is applied for accent-derived chrome." />
+            <property name="warningColor" type="String" label="Theme warning override" default="#d4900a"
+                description="Change from default only to override the semantic warning token applied with themes." />
+            <property name="negativeColor" type="String" label="Theme negative / error tint" default="#c05070"
+                description="Change from default only to override error text tint (--wp-negative)." />
+            <property name="summaryAndLabelTextColor" type="String" label="Summary &amp; label text color (optional)" default=""
+                description="Optional #hex or rgb()/rgba(). Applies to GenAI summary, section title, recommendation row labels, and legend text. Leave blank for theme default." />
+            <property name="summaryTextSizePercent" type="Integer" label="GenAI summary text size (%)" default="100"
+                description="Percentage of default summary font size (80–200). 100 = default. Section titles and labels are not scaled." />
             <objects>
                 <object>Account</object>
             </objects>
@@ -57,6 +72,15 @@
             <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
             <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
+            <property name="themeMode" type="String" label="Theme" default="default"
+                datasource="default,obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="default = original light card; 42 additional themes aligned with profile widgets." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false" />
+            <property name="accentColor" type="String" label="Theme accent (optional)" default="" />
+            <property name="warningColor" type="String" label="Theme warning override" default="#d4900a" />
+            <property name="negativeColor" type="String" label="Theme negative / error tint" default="#c05070" />
+            <property name="summaryAndLabelTextColor" type="String" label="Summary &amp; label text color (optional)" default="" />
+            <property name="summaryTextSizePercent" type="Integer" label="GenAI summary text size (%)" default="100" />
         </targetConfig>
         <targetConfig targets="lightning__HomePage">
             <property name="cardTitle" type="String" label="Main card title" default="Model prediction" />
@@ -77,6 +101,15 @@
             <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
             <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
+            <property name="themeMode" type="String" label="Theme" default="default"
+                datasource="default,obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="default = original light card; 42 additional themes aligned with profile widgets." />
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false" />
+            <property name="accentColor" type="String" label="Theme accent (optional)" default="" />
+            <property name="warningColor" type="String" label="Theme warning override" default="#d4900a" />
+            <property name="negativeColor" type="String" label="Theme negative / error tint" default="#c05070" />
+            <property name="summaryAndLabelTextColor" type="String" label="Summary &amp; label text color (optional)" default="" />
+            <property name="summaryTextSizePercent" type="Integer" label="GenAI summary text size (%)" default="100" />
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

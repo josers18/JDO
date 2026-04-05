@@ -10,8 +10,8 @@ Quick reference for **exposed** Lightning Web Components: where they run, what d
 | Multiclass Prediction | `c/multiclassPredictionLwc` | App, Home, Record | Autolaunched Flow + optional Prompt template | [DC_Multiclass_Prediction_LWC/docs/COMPONENT_REFERENCE.md](../DC_Multiclass_Prediction_LWC/docs/COMPONENT_REFERENCE.md) |
 | DC AgentForce Output | `c/dcAgentforceOutputLwc` | App, Home, Record | Autolaunched Flow (text / HTML / Markdown) | [DC_AgentForce_Output_LWC/docs/COMPONENT_REFERENCE.md](../DC_AgentForce_Output_LWC/docs/COMPONENT_REFERENCE.md) |
 | DC Query to Table | `c/dcQueryToTableLwc` | App, Home, Record (Account in meta) | Data Cloud SQL via Apex `ConnectApi.CdpQuery` | [DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md](../DC_Query_to_Table_LWC/docs/COMPONENT_REFERENCE.md) |
-| Customer Profile Widget | `c/customerProfileWidget` | App, Home, Record (Account, Contact) | SOQL + **`flow:`/`flows:`** or field paths per slot; optional assembly/prediction Flows + Einstein | [DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md](../DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md) |
-| Business Profile Widget | `c/businessProfileWidget` | App, Home, Record (Account) | `fieldMappingsJson`: Account path or **`flow:`**; optional assembly + insight Flows + Einstein | [DC_BusinessProfileWidget/docs/COMPONENT_REFERENCE.md](../DC_BusinessProfileWidget/docs/COMPONENT_REFERENCE.md) |
+| Customer Profile Widget | `c/customerProfileWidget` | App, Home, Record (Account, Contact) | SOQL + **`flow:`/`flows:`** or field paths per slot; optional assembly/prediction Flows + Einstein; **icon + label** field rows; optional **Account** rollups (`openCasesCount`, `openOpportunitiesAmount`) | [DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md](../DC_PersonProfileWidget/docs/COMPONENT_REFERENCE.md) |
+| Business Profile Widget | `c/businessProfileWidget` | App, Home, Record (Account) | `fieldMappingsJson`: Account path or **`flow:`**; optional assembly + insight Flows + Einstein; **Pipeline** tab (open **Opportunity** rows); live **Financial Account** count for **Active products** when FinServ is present | [DC_BusinessProfileWidget/docs/COMPONENT_REFERENCE.md](../DC_BusinessProfileWidget/docs/COMPONENT_REFERENCE.md) |
 
 ## Non-exposed building blocks
 
@@ -42,5 +42,6 @@ For other components, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (section **
 
 ## Related reading
 
+- [THEME_CATALOG.md](THEME_CATALOG.md) — **42 shared themes** (PDF) for Customer Profile, Business Profile, Prediction Model, and Multiclass Prediction.
 - [MOBILE_AND_FORM_FACTORS.md](MOBILE_AND_FORM_FACTORS.md) — Home vs phone, activation.
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) — Deploy commands and permission set table.

@@ -139,27 +139,81 @@
                     <div class="wp-inset-card">
                         <div class="wp-field-rows wp-field-rows--inset">
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Industry</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:company"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Industry</span>
+                                </span>
                                 <span class="wp-field-val">{d.industry}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Employees</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:people"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Employees</span>
+                                </span>
                                 <span class="wp-field-val">{d.employees}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Phone</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:call"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Phone</span>
+                                </span>
                                 <span class="wp-field-val">{d.phone}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Email</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:email"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Email</span>
+                                </span>
                                 <span class="wp-field-val wp-field-val--link">{d.email}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Website</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:link"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Website</span>
+                                </span>
                                 <span class="wp-field-val wp-field-val--link">{d.website}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Last used channel</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:connected_apps"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Last used channel</span>
+                                </span>
                                 <span class={lastUsedChannelValClass}>
                                     <template lwc:if={lastUsedChannelIconName}>
                                         <span class="wp-channel-inline">
@@ -182,24 +236,95 @@
                     <div class="wp-inset-card">
                         <div class="wp-field-rows wp-field-rows--inset">
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Risk profile</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:shield"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Risk profile</span>
+                                </span>
                                 <span class="wp-field-val wp-field-val--accent">{d.riskProfile}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Customer since</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:date_input"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Customer since</span>
+                                </span>
                                 <span class="wp-field-val">{displayCustomerSince}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Last interaction</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:event"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Last interaction</span>
+                                </span>
                                 <span class="wp-field-val">{displayLastInteractionDate}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Deposits YTD</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:currency"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Deposits YTD</span>
+                                </span>
                                 <span class="wp-field-val">{kpiDepositYtd}</span>
                             </div>
                             <div class="wp-field-row">
-                                <span class="wp-field-key">Loan limit</span>
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:lock"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Loan limit</span>
+                                </span>
                                 <span class="wp-field-val">{kpiLoanLimit}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:opportunity"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Opportunities</span>
+                                </span>
+                                <span class="wp-field-val">{displayOpenOpportunitiesAmount}</span>
+                            </div>
+                            <div class="wp-field-row">
+                                <span class="wp-field-key wp-field-key--iconrow">
+                                    <lightning-icon
+                                        icon-name="utility:case"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-field-key-icon"
+                                    ></lightning-icon>
+                                    <span>Cases</span>
+                                </span>
+                                <span class="wp-field-val">{displayOpenCasesCount}</span>
                             </div>
                         </div>
                     </div>
@@ -234,15 +359,42 @@
                     <span class="wp-section-lbl">{signalsDetailSectionLabelDisplay}</span>
                     <div class="wp-signal-metrics">
                         <div class="wp-signal-metric-row">
-                            <span class="wp-signal-metric-key">Cross-sell score</span>
+                            <span class="wp-signal-metric-key wp-signal-metric-key--row">
+                                <lightning-icon
+                                    icon-name="utility:product"
+                                    alternative-text=""
+                                    size="xx-small"
+                                    variant="bare"
+                                    class="wp-field-key-icon"
+                                ></lightning-icon>
+                                <span>Cross-sell score</span>
+                            </span>
                             <span class="wp-signal-metric-val">{crossSellScoreDisplay}</span>
                         </div>
                         <div class="wp-signal-metric-row">
-                            <span class="wp-signal-metric-key">Savings rate (%)</span>
+                            <span class="wp-signal-metric-key wp-signal-metric-key--row">
+                                <lightning-icon
+                                    icon-name="utility:percent"
+                                    alternative-text=""
+                                    size="xx-small"
+                                    variant="bare"
+                                    class="wp-field-key-icon"
+                                ></lightning-icon>
+                                <span>Savings rate (%)</span>
+                            </span>
                             <span class="wp-signal-metric-val">{savingsRateDisplay}</span>
                         </div>
                         <div class="wp-signal-metric-row">
-                            <span class="wp-signal-metric-key">Days since last contact</span>
+                            <span class="wp-signal-metric-key wp-signal-metric-key--row">
+                                <lightning-icon
+                                    icon-name="utility:clock"
+                                    alternative-text=""
+                                    size="xx-small"
+                                    variant="bare"
+                                    class="wp-field-key-icon"
+                                ></lightning-icon>
+                                <span>Days since last contact</span>
+                            </span>
                             <span class={daysSinceLastContactClass}>{daysSinceLastContactDisplay}</span>
                         </div>
                     </div>
@@ -565,11 +717,33 @@
                     <span class="wp-section-lbl">Relationships</span>
                     <table class="wp-ftbl">
                         <tr>
-                            <td>Linked accounts</td>
+                            <td>
+                                <span class="wp-ftbl-lbl-row">
+                                    <lightning-icon
+                                        icon-name="utility:hierarchy"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-ftbl-lbl-icon"
+                                    ></lightning-icon>
+                                    <span>Linked accounts</span>
+                                </span>
+                            </td>
                             <td class="wp-td-accent">{structureLinkedAccountsDisplay}</td>
                         </tr>
                         <tr>
-                            <td>Linked contacts</td>
+                            <td>
+                                <span class="wp-ftbl-lbl-row">
+                                    <lightning-icon
+                                        icon-name="utility:groups"
+                                        alternative-text=""
+                                        size="xx-small"
+                                        variant="bare"
+                                        class="wp-ftbl-lbl-icon"
+                                    ></lightning-icon>
+                                    <span>Linked contacts</span>
+                                </span>
+                            </td>
                             <td>{structureLinkedContactsDisplay}</td>
                         </tr>
                     </table>
@@ -581,7 +755,16 @@
                         <span class="wp-ai-header-txt">Agentforce insight</span>
                     </div>
                     <div class="wp-insight-card">
-                        <div class="wp-pred-label">Predicted focus</div>
+                        <div class="wp-pred-label wp-pred-label--row">
+                            <lightning-icon
+                                icon-name="utility:insights"
+                                alternative-text=""
+                                size="xx-small"
+                                variant="bare"
+                                class="wp-field-key-icon"
+                            ></lightning-icon>
+                            <span>Predicted focus</span>
+                        </div>
                         <div class="wp-pred-value">{predictionLabel}</div>
                         <template lwc:if={summaryLoading}>
                             <lightning-spinner alternative-text="Generating summary" size="small"></lightning-spinner>

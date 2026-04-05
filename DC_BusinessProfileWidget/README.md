@@ -1,6 +1,8 @@
 # DC Business Profile Widget
 
-A **rich business account profile card** for Salesforce **Account** record pages. It shows header (company name, logo, KPIs), **six tabs** (Overview, Health, Credit, Structure, Location, Insight), optional **autolaunched Flow** field assembly using the same **`flow:`** pattern as SOQL paths, **Insight** prediction Flow, **Einstein** summary, and **OpenStreetMap-backed geocoding** for the map.
+A **rich business account profile card** for Salesforce **Account** record pages. It shows header (company name, logo, KPIs), **six tabs** (Overview, **Pipeline**, Credit, Structure, Location, Insight), optional **autolaunched Flow** field assembly using the same **`flow:`** pattern as SOQL paths, **Insight** prediction Flow, **Einstein** summary, and **OpenStreetMap-backed geocoding** for the map.
+
+**Pipeline tab:** Lists **open Opportunities** on the Account (name link, stage, amount). **Active products** on Overview can show a **live count of active FinServ Financial Accounts** when `FinServ__FinancialAccount__c` exists; otherwise the mapped **Active products** field is shown as before (**N facilities**). **Overview**, **Credit → Facilities**, and **Structure → Unified relationships** use **SLDS icons** next to labels (same visual language as the Customer Profile Widget).
 
 **In everyday terms:** Each **field mapping** in App Builder can be either an **Account field path** (for example `BillingCity`, `Owner.Name`, `Custom__c`) or **`flow:OutputVariableApiName`** so a Flow fills that slot. The server validates Account paths and runs the assembly Flow only when at least one mapping needs Flow output.
 

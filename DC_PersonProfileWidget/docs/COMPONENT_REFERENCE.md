@@ -72,6 +72,10 @@ Unset = visible. Set **false** to hide.
 
 Legacy pages may still list `showSparkline` and `[Asm flow output] Portfolio trend`; they are ignored (portfolio sparkline removed).
 
+## Field rows and icons (record page)
+
+Several tabs use **label + value rows** with optional **`lightning-icon`** next to the label (**`utility:*`** and **`standard:*`**) for faster scanning—Overview contact/relationship blocks, Signals detail rows, Structure summaries, and similar. Icons follow SLDS; if an icon is missing in your org’s release, swap the name in the LWC or open an issue.
+
 ## AI Signals gauges (record page; partial on App/Home)
 
 | Property | Default | Notes |
@@ -100,6 +104,8 @@ Legacy pages may still list `showSparkline` and `[Asm flow output] Portfolio tre
 Per-service paragraph overrides: `servicesSuggestionCopyMobileBanking`, `…OnlineBanking`, `…WireTransfers`, `…Paperless`, `…AccountAlerts`, `…KycCompliance`. Advanced: **`servicesSuggestionValueAddJson`** (map service name → body).
 
 ## Theme preset and colors
+
+**Visual reference (all preset names):** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
 
 | Property | Default | Notes |
 |----------|---------|--------|

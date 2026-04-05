@@ -50,7 +50,7 @@ Each **`field*`** property is sent in **`fieldMappingsJson`** as a logical key (
 | `fieldSicCode`, `fieldSicDescription`, `fieldTaxId` | demo API names |
 | `fieldTierSegment`, `fieldRevenue`, `fieldRevenueGrowth` | demo API names |
 | `fieldLoanBalance`, `fieldLoanLimit`, `fieldLoanUtilization`, `fieldDepositYtd`, `fieldInvestmentBalance`, `fieldInterestExpense` | demo API names |
-| `fieldCustomerSince`, `fieldPrimaryRm`, `fieldActiveProducts` | demo API names |
+| `fieldCustomerSince`, `fieldPrimaryRm`, `fieldActiveProducts` | demo API names; **`activeProducts`** may be **overwritten** by a live **Financial Account** count when FinServ is present (see **Live CRM enrichments**) |
 | `fieldSubsidiaries` | legacy binding; Overview subsidiary count comes from related-account graph |
 | `fieldLastInteraction` | `lastInteractionDate` |
 | `fieldWalletCapture` | `''` (blank → Apex tries common “last used channel” fields + label match) |
@@ -59,7 +59,9 @@ Each **`field*`** property is sent in **`fieldMappingsJson`** as a logical key (
 
 `fieldCreditRating`, `fieldCreditRatingAgency`, `fieldCreditOutlook`, `fieldCreditScore`, `fieldMoodysRating`, D&B, Experian, Equifax, S&P, Moody’s agency, Fitch, etc. Defaults point at common `__c` demo names—change to your org’s API names or `flow:` outputs.
 
-**Health / relationship signals**
+**Health / relationship signals (mapped fields; UI)**
+
+These slots still populate **`BusinessProfileResult`** from SOQL or **`flow:`** for integrations, formulas, or future UI. The **Pipeline** tab does **not** render the old health-score bars; it shows **open Opportunities** from Apex (see **Live CRM enrichments** below).
 
 `fieldRelationshipScore`, `fieldPropensityToExpand`, `fieldAttritionRisk`, `fieldWalletShare`, `fieldNps`.
 
@@ -81,13 +83,25 @@ Each **`field*`** property is sent in **`fieldMappingsJson`** as a logical key (
 
 ---
 
+## Live CRM enrichments (record page; no extra App Builder wiring)
+
+Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichment (best effort; failures are logged, not thrown to the user):
+
+| JSON field | Meaning |
+|------------|---------|
+| **`pipelineOpenOpportunities`** | List of open **Opportunity** rows on the Account: `id`, `name`, `stageName`, `amount` (up to 200, ordered by amount). Drives the **Pipeline** tab list. |
+| **`activeProducts`** | When **`FinServ__FinancialAccount__c`** is queryable and an Account lookup is resolved, set to **COUNT** of active financial accounts (`FinServ__IsActive__c = true`, or `FinServ__Status__c = 'Open'` when IsActive is unavailable). Otherwise unchanged from field mapping. |
+| **`activeProductsReflectsFinancialAccounts`** | `true` only when **`activeProducts`** was set from the live Financial Account count (so the LWC can show **“N active financial account(s)”** instead of **“N facilities”**). |
+
+---
+
 ## Tabs and visibility (record page)
 
 | Property | Default | Description |
 |----------|---------|-------------|
 | `cardTitle` | Business profile | |
-| `overviewTabLabel` … `insightTabLabel` | Overview, Health, Credit, Structure, Location, Insight | |
-| `showOverviewTab`, `showHealthTab`, `showCreditTab`, `showStructureTab`, `showLocationTab`, `showInsightTab` | `true` | |
+| `overviewTabLabel` … `insightTabLabel` | Overview, **Pipeline**, Credit, Structure, Location, Insight | **`healthTabLabel`** defaults to **Pipeline** (tab id in code remains `health` for backward compatibility). |
+| `showOverviewTab`, `showHealthTab`, `showCreditTab`, `showStructureTab`, `showLocationTab`, `showInsightTab` | `true` | **`showHealthTab`** controls visibility of the **Pipeline** tab. |
 | `showKpiStrip`, `showComplianceFlags`, `showRiskMatrix`, `showWaterfallChart` | `true` | |
 | `showOrgChart`, `showKeyContacts` | `true` | Structure tab |
 | `showBranchProximity` | `true` | Location |
@@ -95,7 +109,20 @@ Each **`field*`** property is sent in **`fieldMappingsJson`** as a logical key (
 
 ---
 
+## UI layout notes (record page)
+
+| Area | Behavior |
+|------|----------|
+| **Overview — Company / Relationship** | **Field rows** with **`lightning-icon`** + label (utility / standard icons), matching Customer Profile styling (`wp-field-rows`, `wp-field-key--iconrow`). |
+| **Pipeline** | Three columns per row: **stage** (left) · **opportunity name** (center, link to record) · **amount** (right). |
+| **Credit — Facilities** | Same **icon + field row** pattern inside an inset card (not a plain two-column table). |
+| **Structure — Unified relationships** | Same **icon + field row** pattern for linked accounts, contacts, subsidiaries, referral network. |
+
+---
+
 ## Theme (record page; subset on App/Home)
+
+**Visual reference:** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
 
 | Property | Notes |
 |----------|--------|

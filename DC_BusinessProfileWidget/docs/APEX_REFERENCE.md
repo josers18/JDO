@@ -46,7 +46,15 @@ Throws **`AuraHandledException`** on failure.
 
 ## Main result type
 
-**`BusinessProfileResult`** — serialized to JSON for the LWC. Includes company overview fields, credit/health metrics, structure (key contacts, org chart children), map coordinates, `predictionLabel`, `recommendationsJson`, subsidiaries count, etc. See the inner class definitions in `BusinessProfileWidgetController.cls`.
+**`BusinessProfileResult`** — serialized to JSON for the LWC. Includes company overview fields, credit/bureau-style metrics, structure (key contacts, org chart children), map coordinates, `predictionLabel`, `recommendationsJson`, subsidiaries count, and:
+
+| Member | Notes |
+|--------|--------|
+| **`pipelineOpenOpportunities`** | `List<PipelineOpportunityRow>` — open **Opportunity** rows for this Account (`id`, `name`, `stageName`, `amount`). Populated in **`enrichActiveFinancialAccountsAndPipeline`** when Opportunity fields are accessible. |
+| **`activeProducts`** | May be set from **`COUNT()`** of active **`FinServ__FinancialAccount__c`** rows for the Account when that object and an Account lookup field resolve; otherwise from field mapping as before. |
+| **`activeProductsReflectsFinancialAccounts`** | `true` when **`activeProducts`** came from the live Financial Account query (not field-mapping only). |
+
+See inner classes **`PipelineOpportunityRow`** and **`BusinessProfileResult`** in `BusinessProfileWidgetController.cls`.
 
 ---
 

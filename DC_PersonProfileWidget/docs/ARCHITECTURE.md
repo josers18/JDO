@@ -12,8 +12,9 @@ This page explains **how data gets to the card** in terms a business reader can 
 4. **If a profile assembly Flow is required** (mappings use **`flow:`/`flows:`**, core custom flow tokens, legacy bare Flow names, or the prediction Flow shares the same API name), the server runs that autolaunched Flow and merges outputs; **empty** slots are still filled from the SOQL layer. **SOQL-only** assembly mappings skip the assembly Flow when prediction uses a different Flow.  
 5. **If you configured an Insight Flow**, the server adds **prediction** and **recommendation** text to that package (or reuses the same Flow run when API names match).  
 6. Apex **enriches the Structure tab** (related accounts, org chart nodes, key contacts) using **AccountContactRelation**, **Person Account** pivot when the page is an Account, and account–account junctions where available (`with sharing`).  
-7. The widget **draws the card**. Short delay, then small **animations** on signal bars.  
-8. **If you configured Einstein**, the widget may ask for a **short AI summary** for the Insight tab.
+7. On **Account**, Apex may run **`enrichOpenOppAndCaseRollups`** to populate **`openCasesCount`** and **`openOpportunitiesAmount`** (open opportunities and cases, subject to sharing and field access).  
+8. The widget **draws the card**. Short delay, then small **animations** on signal bars.  
+9. **If you configured Einstein**, the widget may ask for a **short AI summary** for the Insight tab.
 
 You do **not** send a special “graph JSON” blob for the profile Flow. Each piece of data is a normal Flow **output variable** (text, number, etc.).
 
@@ -27,8 +28,9 @@ You do **not** send a special “graph JSON” blob for the profile Flow. Each p
 4. If the **assembly Flow** must run (see [FLOW_GUIDE.md](FLOW_GUIDE.md)), Apex starts it and copies **`flow:`/`flows:`** (and legacy) outputs into `ProfileResult`, then **`mergeEnrichFull`** fills remaining blanks from the SOQL layer. Slots bound only to SOQL are applied in the same query (`applyProfileAssemblyFromSoql`).  
 5. If a **prediction Flow** is configured, Apex merges **prediction** and **recommendations**. If its API name is the **same** as the assembly Flow, **one** Flow run serves both.  
 6. **Structure tab** data is merged on the server (`enrichStructureTabForCustomer`).  
-7. The widget renders. After about 400 ms it runs **`animateBars()`** on signal bars.  
-8. If **`promptTemplateId`** is set and auto-summary is not turned off, the widget calls **`generateSummary`** (Einstein).
+7. **`enrichOpenOppAndCaseRollups`** runs for **Account** Ids when enrichment is enabled in the controller path.  
+8. The widget renders. After about 400 ms it runs **`animateBars()`** on signal bars.  
+9. If **`promptTemplateId`** is set and auto-summary is not turned off, the widget calls **`generateSummary`** (Einstein).
 
 ---
 

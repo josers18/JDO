@@ -2,8 +2,35 @@ import { LightningElement, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import runPredictionFlow from '@salesforce/apex/MulticlassPredictionLwcController.runPredictionFlow';
 import generateAnalysisSummary from '@salesforce/apex/MulticlassPredictionLwcController.generateAnalysisSummary';
+import { THEMES } from './predictionThemes.js';
 
 const BAR_TRANSITION = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
+
+function sanitizePmTextColor(raw) {
+    const s = String(raw == null ? '' : raw).trim();
+    if (!s || s.length > 120) {
+        return null;
+    }
+    if (/[;}<>]|url\s*\(|expression\s*\(/i.test(s)) {
+        return null;
+    }
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) {
+        return s;
+    }
+    if (/^rgba?\(/i.test(s)) {
+        return s;
+    }
+    return null;
+}
+
+function clampSummaryFontScale(raw) {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) {
+        return 1;
+    }
+    const p = Math.min(200, Math.max(80, Math.round(n)));
+    return p / 100;
+}
 
 export default class MulticlassPredictionLwc extends LightningElement {
     @api cardTitle;
@@ -25,6 +52,31 @@ export default class MulticlassPredictionLwc extends LightningElement {
     @api classSubtitle;
     /** When true (default), show title-style text (underscores → spaces, capitalized words). When false, show raw flow string. */
     @api humanizeClassName;
+
+    _themeMode = 'default';
+    _themeScheduleToken = 0;
+
+    @api
+    get themeMode() {
+        return this._themeMode;
+    }
+    set themeMode(value) {
+        const raw = (value && String(value).trim()) || 'default';
+        const m = raw.toLowerCase();
+        this._themeMode = THEMES[m] ? m : 'default';
+        this.scheduleApplyTheme();
+    }
+
+    @api accentColor = '';
+    @api showThemeSwitcher = false;
+    @api warningColor = '#d4900a';
+    @api negativeColor = '#c05070';
+
+    /** Optional #hex or rgb()/rgba(). GenAI summary, section title, row labels, legend. Blank = theme default. */
+    @api summaryAndLabelTextColor = '';
+
+    /** 80–200. 100 = default GenAI summary size; larger = bigger summary text only. */
+    @api summaryTextSizePercent = 100;
 
     loadingFlow = false;
     loadingSummary = false;
@@ -143,11 +195,105 @@ export default class MulticlassPredictionLwc extends LightningElement {
     }
 
     connectedCallback() {
+        this.applyTheme();
+        /* eslint-disable @lwc/lwc/no-async-operation -- re-apply theme after flexipage / first paint */
+        requestAnimationFrame(() => {
+            this.applyTheme();
+            requestAnimationFrame(() => this.applyTheme());
+        });
+        /* eslint-enable @lwc/lwc/no-async-operation */
         if (this._recordId) {
             this.refreshData();
         }
         // eslint-disable-next-line @lwc/lwc/no-async-operation -- defer until after DOM paint for bar widths
         setTimeout(() => this.animateBars(), 200);
+    }
+
+    renderedCallback() {
+        this.scheduleApplyTheme();
+    }
+
+    scheduleApplyTheme() {
+        this._themeScheduleToken += 1;
+        const token = this._themeScheduleToken;
+        Promise.resolve().then(() => {
+            if (token !== this._themeScheduleToken) {
+                return;
+            }
+            this.applyTheme();
+        });
+    }
+
+    applyTheme() {
+        const host = this.template?.host;
+        const shell = this.template?.querySelector('.lwc-shell');
+        const targets = [];
+        if (host?.style) {
+            targets.push(host);
+        }
+        if (shell?.style && shell !== host) {
+            targets.push(shell);
+        }
+        if (!targets.length) {
+            return;
+        }
+        const mode = (this._themeMode || 'default').toLowerCase();
+        const tokens = THEMES[mode] || THEMES.default;
+        const applyTo = (node) => {
+            Object.entries(tokens).forEach(([prop, value]) => {
+                node.style.setProperty(prop, value);
+            });
+            const accent =
+                typeof this.accentColor === 'string' && this.accentColor.trim().length > 0
+                    ? this.accentColor.trim()
+                    : '#b8956a';
+            node.style.setProperty('--wp-accent', accent);
+            if (accent.startsWith('#') && accent.length === 7) {
+                node.style.setProperty('--wp-accent-bg', accent + '14');
+                node.style.setProperty('--wp-accent-border', accent + '40');
+                node.style.setProperty('--wp-accent-dim', accent + '99');
+            }
+            if (this.warningColor && this.warningColor !== '#d4900a') {
+                node.style.setProperty('--wp-warning', this.warningColor);
+            }
+            if (this.negativeColor && this.negativeColor !== '#c05070') {
+                node.style.setProperty('--wp-negative', this.negativeColor);
+            }
+            const labelColor = sanitizePmTextColor(this.summaryAndLabelTextColor);
+            if (labelColor) {
+                node.style.setProperty('--lwc-pm-summary-label-color', labelColor);
+            } else {
+                node.style.removeProperty('--lwc-pm-summary-label-color');
+            }
+            const sumScale = clampSummaryFontScale(this.summaryTextSizePercent);
+            if (sumScale !== 1) {
+                node.style.setProperty('--lwc-pm-summary-font-scale', String(sumScale));
+            } else {
+                node.style.removeProperty('--lwc-pm-summary-font-scale');
+            }
+        };
+        targets.forEach(applyTo);
+    }
+
+    handleThemeSwitch(event) {
+        const theme = event.currentTarget.dataset.theme;
+        if (theme && THEMES[theme]) {
+            this._themeMode = theme;
+            this.applyTheme();
+        }
+    }
+
+    get themeBtn_obsidian() {
+        return 'pm-theme-btn pm-tb-obsidian' + (this._themeMode === 'obsidian' ? ' pm-tb-active' : '');
+    }
+    get themeBtn_midnight() {
+        return 'pm-theme-btn pm-tb-midnight' + (this._themeMode === 'midnight' ? ' pm-tb-active' : '');
+    }
+    get themeBtn_graphite() {
+        return 'pm-theme-btn pm-tb-graphite' + (this._themeMode === 'graphite' ? ' pm-tb-active' : '');
+    }
+    get themeBtn_ivory() {
+        return 'pm-theme-btn pm-tb-ivory' + (this._themeMode === 'ivory' ? ' pm-tb-active' : '');
     }
 
     schedulePostRenderAnimations() {

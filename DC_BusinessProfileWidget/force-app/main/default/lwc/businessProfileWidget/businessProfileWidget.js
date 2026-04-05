@@ -1435,7 +1435,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
 
     @api cardTitle = 'Business profile';
     @api overviewTabLabel = 'Overview';
-    @api healthTabLabel = 'Health';
+    @api healthTabLabel = 'Pipeline';
     @api creditTabLabel = 'Credit';
     @api structureTabLabel = 'Structure';
     @api locationTabLabel = 'Location';
@@ -2242,24 +2242,6 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         return rows;
     }
 
-    get healthScores() {
-        const d = this.profileData || {};
-        return [
-            { name: 'Relationship score', pct: Number(d.relationshipScore) || 0, barColor: 'var(--wp-accent)', opacity: '1' },
-            { name: 'Propensity to expand', pct: Number(d.propensityToExpand) || 0, barColor: 'var(--wp-accent)', opacity: '0.75' },
-            { name: 'Attrition risk', pct: Number(d.attritionRisk) || 0, barColor: 'var(--wp-accent)', opacity: '0.6' },
-            { name: 'Wallet share capture', pct: Number(d.walletShare) || 0, barColor: 'var(--wp-warning)', opacity: '1' },
-            { name: 'NPS / satisfaction', pct: Number(d.npsScore) || 0, barColor: 'var(--wp-accent)', opacity: '0.65' }
-        ].map((r, i) => ({
-            ...r,
-            key: 'hs-' + i,
-            barScale: (r.pct / 100).toFixed(3),
-            barStyle: `background:${r.barColor};opacity:${r.opacity}`,
-            pctLabel: String(r.pct) + (r.name.includes('NPS') ? '' : '%'),
-            pctClass: r.barColor.includes('warning') ? 'wp-kd-warn' : ''
-        }));
-    }
-
     get waterfallRows() {
         const d = this.profileData || {};
         const max = Number(d.revenue) || 1;
@@ -2397,17 +2379,22 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         const d = this.profileData || {};
         const avail = (Number(d.loanLimit) || 0) - (Number(d.loanBalance) || 0);
         return [
-            { label: 'Total limit', val: this.formatCurrency(d.loanLimit), cls: '' },
+            { label: 'Total limit', val: this.formatCurrency(d.loanLimit), cls: '', iconName: 'utility:currency' },
             {
                 label: 'Utilized',
                 val: `${this.formatCurrency(d.loanBalance)} (${d.loanUtilization || 0}%)`,
-                cls: 'wp-td-warn'
+                cls: 'wp-td-warn',
+                iconName: 'utility:metrics'
             },
-            { label: 'Available', val: this.formatCurrency(avail), cls: 'wp-td-accent' },
-            { label: 'Rate', val: d.interestRate || 'Prime + 1.25%', cls: '' },
-            { label: 'Next review', val: d.creditReviewDate || '', cls: '' },
-            { label: 'Collateral', val: d.collateralType || '', cls: '' }
-        ].map((r, i) => ({ ...r, key: 'cr-' + i }));
+            { label: 'Available', val: this.formatCurrency(avail), cls: 'wp-td-accent', iconName: 'utility:success' },
+            { label: 'Rate', val: d.interestRate || 'Prime + 1.25%', cls: '', iconName: 'utility:percent' },
+            { label: 'Next review', val: d.creditReviewDate || '', cls: '', iconName: 'utility:date_input' },
+            { label: 'Collateral', val: d.collateralType || '', cls: '', iconName: 'utility:product' }
+        ].map((r, i) => ({
+            ...r,
+            key: 'cr-' + i,
+            valClass: ['wp-field-val', r.cls].filter(Boolean).join(' ')
+        }));
     }
 
     get companyFields() {
@@ -2417,19 +2404,24 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 ? Number(d.employees).toLocaleString() + ' full-time'
                 : '';
         return [
-            { label: 'Legal name', val: d.legalName || '', cls: '' },
-            { label: 'Industry', val: d.industry || '', cls: '' },
-            { label: 'Employees', val: emp, cls: '' },
-            { label: 'HQ address', val: [d.street, d.city].filter(Boolean).join(', '), cls: '' },
+            { label: 'Legal name', val: d.legalName || '', cls: '', iconName: 'utility:company' },
+            { label: 'Industry', val: d.industry || '', cls: '', iconName: 'utility:company' },
+            { label: 'Employees', val: emp, cls: '', iconName: 'utility:people' },
+            { label: 'HQ address', val: [d.street, d.city].filter(Boolean).join(', '), cls: '', iconName: 'utility:location' },
             {
                 label: 'Founded',
                 val: this.displayFoundedSummary,
-                cls: ''
+                cls: '',
+                iconName: 'utility:date_time'
             },
-            { label: 'Website', val: d.website || '', cls: 'wp-td-link' },
-            { label: 'Tax / EIN', val: d.taxId ? '····' + String(d.taxId).slice(-4) : '', cls: 'wp-td-muted' },
-            { label: 'SIC code', val: [d.sicCode, d.sicDescription].filter(Boolean).join(' · '), cls: '' }
-        ].map((r, i) => ({ ...r, key: 'co-' + i }));
+            { label: 'Website', val: d.website || '', cls: 'wp-td-link', iconName: 'utility:link' },
+            { label: 'Tax / EIN', val: d.taxId ? '····' + String(d.taxId).slice(-4) : '', cls: 'wp-td-muted', iconName: 'utility:lock' },
+            { label: 'SIC code', val: [d.sicCode, d.sicDescription].filter(Boolean).join(' · '), cls: '', iconName: 'utility:number_input' }
+        ].map((r, i) => ({
+            ...r,
+            key: 'co-' + i,
+            valClass: ['wp-field-val', r.cls].filter(Boolean).join(' ')
+        }));
     }
 
     get displayFoundedSummary() {
@@ -2505,14 +2497,28 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
 
     get relationshipFields() {
         const d = this.profileData || {};
+        const activeProductsVal = (() => {
+            if (d.activeProducts == null || d.activeProducts === '') {
+                return '';
+            }
+            const n = Number(d.activeProducts);
+            if (!Number.isFinite(n)) {
+                return String(d.activeProducts);
+            }
+            if (d.activeProductsReflectsFinancialAccounts === true) {
+                return `${n} active financial account${n === 1 ? '' : 's'}`;
+            }
+            return `${n} facilities`;
+        })();
         return [
-            { label: 'Customer since', val: this.displayCustomerSinceRelationship, cls: '' },
-            { label: 'Segment', val: d.tierSegment || '', cls: 'wp-td-accent' },
-            { label: 'Primary RM', val: d.primaryRm || '', cls: '' },
+            { label: 'Customer since', val: this.displayCustomerSinceRelationship, cls: '', iconName: 'utility:date_input' },
+            { label: 'Segment', val: d.tierSegment || '', cls: 'wp-td-accent', iconName: 'utility:chart' },
+            { label: 'Primary RM', val: d.primaryRm || '', cls: '', iconName: 'utility:user' },
             {
                 label: 'Active products',
-                val: d.activeProducts != null && d.activeProducts !== '' ? d.activeProducts + ' facilities' : '',
-                cls: 'wp-td-accent'
+                val: activeProductsVal,
+                cls: 'wp-td-accent',
+                iconName: 'utility:product'
             },
             {
                 label: 'Subsidiaries',
@@ -2520,9 +2526,15 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                     d.subsidiaries != null && d.subsidiaries !== ''
                         ? `${d.subsidiaries} related account${Number(d.subsidiaries) === 1 ? '' : 's'}`
                         : '',
-                cls: ''
+                cls: '',
+                iconName: 'utility:hierarchy'
             },
-            { label: 'Last interaction', val: this.displayLastInteractionRelationship, cls: this.lastInteractionRelationshipClass },
+            {
+                label: 'Last interaction',
+                val: this.displayLastInteractionRelationship,
+                cls: this.lastInteractionRelationshipClass,
+                iconName: 'utility:event'
+            },
             (() => {
                 const chVal =
                     d.lastUsedChannel != null && String(d.lastUsedChannel).trim() !== ''
@@ -2532,12 +2544,39 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 return {
                     label: 'Last used channel',
                     val: chVal,
-                    cls: chMeta ? 'wp-channel-cell' : '',
+                    cls: chMeta ? 'wp-field-val--channel' : '',
                     channelIconName: chMeta ? chMeta.iconName : '',
                     channelIconAlt: chMeta ? chMeta.alt : '',
+                    iconName: 'utility:connected_apps'
                 };
             })()
-        ].map((r, i) => ({ ...r, key: 'rf-' + i }));
+        ].map((r, i) => ({
+            ...r,
+            key: 'rf-' + i,
+            valClass: ['wp-field-val', r.cls].filter(Boolean).join(' ')
+        }));
+    }
+
+    get pipelineOpportunityRows() {
+        const rows = this.profileData?.pipelineOpenOpportunities;
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return [];
+        }
+        return rows.map((o, i) => {
+            const amt = o.amount;
+            const hasAmt = amt != null && amt !== '' && Number.isFinite(Number(amt));
+            return {
+                key: 'pipe-' + i,
+                id: o.id,
+                name: o.name || 'Opportunity',
+                stageName: o.stageName || '—',
+                amountDisplay: hasAmt ? this.formatCurrency(amt) : '—'
+            };
+        });
+    }
+
+    get hasPipelineOpportunities() {
+        return this.pipelineOpportunityRows.length > 0;
     }
 
     get orgChartRootSublabel() {
@@ -2733,6 +2772,39 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         }
         const num = Number(n);
         return `${num} related account${num === 1 ? '' : 's'}`;
+    }
+
+    get structureUnifiedRelationshipFields() {
+        return [
+            {
+                label: 'Linked accounts',
+                val: this.structureLinkedAccountsDisplay,
+                cls: 'wp-td-accent',
+                iconName: 'standard:account'
+            },
+            {
+                label: 'Linked contacts',
+                val: this.structureLinkedContactsDisplay,
+                cls: '',
+                iconName: 'utility:people'
+            },
+            {
+                label: 'Subsidiaries',
+                val: this.subsidiariesDisplay,
+                cls: '',
+                iconName: 'utility:hierarchy'
+            },
+            {
+                label: 'Referral network',
+                val: this.structureReferralNetworkDisplay,
+                cls: 'wp-td-muted',
+                iconName: 'utility:groups'
+            }
+        ].map((r, i) => ({
+            ...r,
+            key: 'sr-' + i,
+            valClass: ['wp-field-val', r.cls].filter(Boolean).join(' ')
+        }));
     }
 
     get cityLabel() {

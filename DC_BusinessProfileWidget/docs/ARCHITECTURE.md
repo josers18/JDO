@@ -12,9 +12,10 @@ Plain-language view of how data reaches the card.
 4. **`mergeFlowIntoProfile`** runs the assembly Flow when needed and copies **`flow:`** outputs into **`BusinessProfileResult`**.  
 5. **`mergeInsightFromFlow`** adds prediction and recommendations (reusing the assembly interview when API names match).  
 6. **`enrichStructureTabData`** loads key contacts and related-account org chart data.  
-7. Optional **geocode** runs if coordinates are missing and geocoding is enabled.  
-8. **`primaryRm`** may resolve from User Id to display name.  
-9. The controller returns **JSON**; the LWC **`JSON.parse`**s it and renders.
+7. **`enrichActiveFinancialAccountsAndPipeline`** (best effort) sets **`activeProducts`** from active **FinServ Financial Accounts** when available, **`activeProductsReflectsFinancialAccounts`**, and **`pipelineOpenOpportunities`** for open **Opportunities** on the Account.  
+8. Optional **geocode** runs if coordinates are missing and geocoding is enabled.  
+9. **`primaryRm`** may resolve from User Id to display name.  
+10. The controller returns **JSON**; the LWC **`JSON.parse`**s it and renders.
 
 ---
 
@@ -49,7 +50,7 @@ sequenceDiagram
         Apex->>Pred: same or new interview
         Pred-->>Apex: prediction, recommendations
     end
-    Apex->>Apex: enrichStructureTabData, geocode, resolvePrimaryRm
+    Apex->>Apex: enrichStructureTabData, enrichActiveFinancialAccountsAndPipeline, geocode, resolvePrimaryRm
     Apex-->>LWC: JSON string
     LWC->>LWC: render tabs
 ```

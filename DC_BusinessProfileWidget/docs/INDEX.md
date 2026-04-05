@@ -33,3 +33,9 @@ Overview: **[README.md](../README.md)**
 |----------|----------|
 | [artifacts.md](../artifacts.md) | Checklist of metadata |
 | [GIT.md](GIT.md) | Monorepo path |
+
+## Theme reference (PDF)
+
+| Resource | Use it when |
+|----------|-------------|
+| [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) | **Visual catalog** of **42 themes** (same names as **Theme mode** in App Builder). Also linked from the monorepo hub: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |

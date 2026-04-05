@@ -47,14 +47,14 @@
 
             <property name="cardTitle" type="String" label="Card title" default="Business profile" />
             <property name="overviewTabLabel" type="String" label="Overview tab label" default="Overview" />
-            <property name="healthTabLabel" type="String" label="Health tab label" default="Health" />
+            <property name="healthTabLabel" type="String" label="Pipeline tab label" default="Pipeline" />
             <property name="creditTabLabel" type="String" label="Credit tab label" default="Credit" />
             <property name="structureTabLabel" type="String" label="Structure tab label" default="Structure" />
             <property name="locationTabLabel" type="String" label="Location tab label" default="Location" />
             <property name="insightTabLabel" type="String" label="Insight tab label" default="Insight" />
 
             <property name="showOverviewTab" type="Boolean" label="Show Overview tab" default="true" />
-            <property name="showHealthTab" type="Boolean" label="Show Health tab" default="true" />
+            <property name="showHealthTab" type="Boolean" label="Show Pipeline tab" default="true" />
             <property name="showCreditTab" type="Boolean" label="Show Credit tab" default="true" />
             <property name="showStructureTab" type="Boolean" label="Show Structure tab" default="true" />
             <property name="showLocationTab" type="Boolean" label="Show Location tab" default="true" />

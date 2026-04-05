@@ -33,7 +33,8 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 
 | File | Role |
 |------|------|
-| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.js` | UI logic: wire `recordId`, invoke Apex, parse recommendations JSON, **class label** (optional humanize), **diverging** row build (sort by \|value\| desc, bar scales, risk/good colors), **legend** inline styles tied to those colors, `animateBars`, optional Einstein summary. |
+| `lwc/multiclassPredictionLwc/predictionThemes.js` | **Shared theme tokens** (`THEMES` export); maintain **parity** with **Prediction Model** `classificationModelLwc/predictionThemes.js`. |
+| `lwc/multiclassPredictionLwc/multiclassPredictionLwc.js` | UI logic: wire `recordId`, invoke Apex, parse recommendations JSON, **class label** (optional humanize), **diverging** row build (sort by \|value\| desc, bar scales, risk/good colors), **legend** inline styles tied to those colors, `animateBars`, optional Einstein summary; **themeMode** / switcher via `predictionThemes.js`. |
 | `lwc/multiclassPredictionLwc/multiclassPredictionLwc.html` | Markup: **class hero panel**; **recommendations** as **factor-row** + **diverge-zone** (center line, **bar-pos** / **bar-neg**, value text); **diverge-legend**; optional AI summary. |
 | `lwc/multiclassPredictionLwc/multiclassPredictionLwc.css` | Layout: hero, **diverging** chart, wrapping labels, **420px** container column stack, legend, summary; container queries. |
 | `lwc/multiclassPredictionLwc/multiclassPredictionLwc.js-meta.xml` | Exposure: Record / App / Home; multiclass-specific designer properties; **Account** on record pages. |
