@@ -44,6 +44,7 @@ A **rich customer profile card** for Salesforce **Account** and **Contact** reco
 | [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | How the three Flow “hooks” work (profile, Insight, gauges) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How data moves from Salesforce → card (with diagrams) |
 | [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every setting in App Builder (technical names included) |
+| [docs/assets/widget_theme_catalog.pdf](docs/assets/widget_theme_catalog.pdf) | **Theme catalog (PDF)** — visual guide to all **42 themes** ([monorepo hub](../docs/THEME_CATALOG.md)) |
 | [docs/APEX_REFERENCE.md](docs/APEX_REFERENCE.md) | For builders/developers: server-side API details |
 | [docs/PROMPT_TEMPLATE.md](docs/PROMPT_TEMPLATE.md) | Einstein prompt template and JSON sent to AI |
 | [docs/DIAGRAMS.md](docs/DIAGRAMS.md) | Extra pictures (data flow, tabs, map, theme) |

@@ -38,4 +38,4 @@ Overview: **[README.md](../README.md)**
 
 | Resource | Use it when |
 |----------|-------------|
-| [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) | **Visual catalog** of **42 themes** (same names as **Theme mode** in App Builder). Also linked from the monorepo hub: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |
+| [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) | **Visual catalog** of **42 themes** (same names as **Theme mode** in App Builder). Monorepo hub: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |

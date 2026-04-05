@@ -54,7 +54,7 @@ Signed **contribution** values (for example SHAP scores) drive **diverging** bar
 
 Same **preset names** and **CSS variables** as the profile widgets and **Prediction Model** (`--wp-shell-bg`, `--wp-accent`, etc.).
 
-**Visual reference:** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+**Visual reference:** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
 
 | Property | Default | Meaning |
 |----------|---------|---------|

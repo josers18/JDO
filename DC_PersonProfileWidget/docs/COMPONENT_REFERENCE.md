@@ -105,7 +105,7 @@ Per-service paragraph overrides: `servicesSuggestionCopyMobileBanking`, `…Onli
 
 ## Theme preset and colors
 
-**Visual reference (all preset names):** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+**Visual reference (all preset names):** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
 
 | Property | Default | Notes |
 |----------|---------|--------|

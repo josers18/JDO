@@ -4,7 +4,7 @@
 
 **Multiclass Prediction** is a Lightning card for outcomes that are **named categories** (for example a segment or product code)—shown as a clear **headline**—not a single percentage on a dial. **Suggested improvements** appear as a **diverging bar chart**. Data comes from an **autolaunched Flow**; you can add an **AI-written summary** with **Prompt Builder**.
 
-**Themes:** Same **`predictionThemes.js`** token map as **Prediction Model** and the profile widgets (see [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md)).
+**Themes:** Same **`predictionThemes.js`** token map as **Prediction Model** and the profile widgets. **Visual catalog:** [docs/assets/widget_theme_catalog.pdf](docs/assets/widget_theme_catalog.pdf) · [monorepo hub](../docs/THEME_CATALOG.md) · [COMPONENT_REFERENCE](docs/COMPONENT_REFERENCE.md).
 
 **Different package from [Prediction Model](../DC_Prediction_Model_LWC/README.md):** That one uses a **gauge or big number** for numeric scores. This one uses **text class + contribution bars**. You can deploy **both** in the same org.
 
@@ -49,6 +49,7 @@
 | [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | Flow inputs/outputs |
 | [docs/PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md) | Einstein JSON |
 | [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every property |
+| [docs/assets/widget_theme_catalog.pdf](docs/assets/widget_theme_catalog.pdf) | **Theme catalog (PDF)** — **42 themes** ([hub](../docs/THEME_CATALOG.md)) |
 | [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | Screen layout |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Fixes |
 | [docs/GIT.md](docs/GIT.md) | Clone path and names |

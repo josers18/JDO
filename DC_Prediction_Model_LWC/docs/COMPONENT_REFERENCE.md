@@ -82,7 +82,7 @@ Model explanations often use signed **contribution** values (positive vs negativ
 
 The card can use the same **CSS variable tokens** as the Customer / Business profile widgets so prediction tiles match adjacent profile chrome on FSI demos.
 
-**Visual reference (preset names):** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+**Visual reference (preset names):** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
 
 | Property | Default | Meaning |
 |----------|---------|---------|

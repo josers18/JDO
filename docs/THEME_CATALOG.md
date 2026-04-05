@@ -4,6 +4,10 @@ Visual reference for **42 themes** (eight families) shared by the profile and pr
 
 **[Open or download: widget_theme_catalog.pdf](assets/widget_theme_catalog.pdf)**
 
+The same PDF is also copied into each themed package so it appears next to that widget’s docs on GitHub:
+
+`DC_PersonProfileWidget/docs/assets/` · `DC_BusinessProfileWidget/docs/assets/` · `DC_Prediction_Model_LWC/docs/assets/` · `DC_Multiclass_Prediction_LWC/docs/assets/`
+
 ## Which components use these presets
 
 | Package | LWC bundle | Notes |

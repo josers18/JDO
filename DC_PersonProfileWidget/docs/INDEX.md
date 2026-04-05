@@ -39,7 +39,7 @@ This page lists every guide in **plain language**. The main project overview is 
 
 | Resource | Use it when |
 |----------|-------------|
-| [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) | **Visual guide** to all **42 themes** (names match App Builder). Summary page: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |
+| [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) | **Visual guide** to all **42 themes** (names match App Builder). Monorepo hub: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |
 
 ## Related package (business accounts)
 

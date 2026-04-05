@@ -122,7 +122,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 
 ## Theme (record page; subset on App/Home)
 
-**Visual reference:** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+**Visual reference:** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
 
 | Property | Notes |
 |----------|--------|

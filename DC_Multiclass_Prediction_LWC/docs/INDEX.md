@@ -1,6 +1,6 @@
 # Documentation index — Multiclass Prediction
 
-**What this project does:** A Lightning card for predictions that are **named categories** (text labels), not a single percentage. It shows the **predicted class**, a **diverging bar chart** for recommended improvements, and an optional **AI summary** from Prompt Builder. **Themes** align with profile widgets through **`predictionThemes.js`** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)). **Visual catalog:** [Widget theme catalog (PDF)](../../docs/assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+**What this project does:** A Lightning card for predictions that are **named categories** (text labels), not a single percentage. It shows the **predicted class**, a **diverging bar chart** for recommended improvements, and an optional **AI summary** from Prompt Builder. **Themes** use the same preset names as the profile widgets through **`predictionThemes.js`** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — Theme).
 
 **Not the same as** **[Prediction Model](../DC_Prediction_Model_LWC/README.md)** (gauge / percent vs number)—different Apex and LWC; you can install both.
 
@@ -12,6 +12,12 @@
 | 2 | [README.md](../README.md) | Features and prerequisites (short) |
 | 3 | [FLOW_GUIDE.md](FLOW_GUIDE.md) | Build the autolaunched Flow |
 | 4 | [HOW_TO.md](HOW_TO.md) | Page setup, Account record, optional AI |
+
+## Theme reference (PDF)
+
+| Resource | Use it when |
+|----------|-------------|
+| [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) | **Visual guide** to all **42 themes** (names match App Builder **Theme**). Monorepo hub: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |
 
 ## Reference
 

@@ -40,6 +40,7 @@ A **rich business account profile card** for Salesforce **Account** record pages
 | [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | Assembly Flow + Insight Flow |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Data flow (LWC → Apex → SOQL/Flow) |
 | [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Property reference |
+| [docs/assets/widget_theme_catalog.pdf](docs/assets/widget_theme_catalog.pdf) | **Theme catalog (PDF)** — **42 themes** visual reference ([monorepo hub](../docs/THEME_CATALOG.md)) |
 | [docs/APEX_REFERENCE.md](docs/APEX_REFERENCE.md) | Controller API |
 | [docs/PROMPT_TEMPLATE.md](docs/PROMPT_TEMPLATE.md) | Einstein payload (`predictionType: business_profile`) |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common fixes |

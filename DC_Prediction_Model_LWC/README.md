@@ -4,7 +4,7 @@
 
 **Prediction Model** is a Lightning card for **machine-learning style scores**: either a **semicircle gauge** (when the outcome is a **percent**) or a **large number** (count, decimal, or **currency**). It lists **what drove the prediction** and **suggested next steps** from JSON your **autolaunched Flow** returns. You can add an **AI summary** in plain language via **Prompt Builder**. Users **refresh** the card; they do not configure the model inside the component.
 
-**Themes:** App Builder **Theme** and optional in-card switcher use **`predictionThemes.js`** (same CSS variable presets as the Customer / Business profile widgets). See [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) (Theme section).
+**Themes:** App Builder **Theme** and optional in-card switcher use **`predictionThemes.js`** (same CSS variable presets as the Customer / Business profile widgets). **Visual catalog:** [docs/assets/widget_theme_catalog.pdf](docs/assets/widget_theme_catalog.pdf) · [monorepo hub](../docs/THEME_CATALOG.md) · [COMPONENT_REFERENCE](docs/COMPONENT_REFERENCE.md) (Theme section).
 
 **Different package from [Multiclass Prediction](../DC_Multiclass_Prediction_LWC/README.md):** That one shows a **text category** and a **diverging bar** chart. This one shows a **gauge or numeric hero** + drivers.
 
@@ -47,6 +47,7 @@
 | [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md) | Flow contract |
 | [docs/PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md) | Einstein template |
 | [docs/COMPONENT_REFERENCE.md](docs/COMPONENT_REFERENCE.md) | Every property |
+| [docs/assets/widget_theme_catalog.pdf](docs/assets/widget_theme_catalog.pdf) | **Theme catalog (PDF)** — **42 themes** ([hub](../docs/THEME_CATALOG.md)) |
 | [docs/UI_LAYOUT.md](docs/UI_LAYOUT.md) | Gauge vs number layout |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Fixes |
 | [docs/GIT.md](docs/GIT.md) | Clone path |
