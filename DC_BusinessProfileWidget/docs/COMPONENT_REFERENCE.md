@@ -17,6 +17,9 @@
 | `insightFlowRecordIdVariable` | String | `recordId` | Insight Flow record Id input. |
 | `flowPredictionVariable` | String | `prediction` | Flow output for prediction text. |
 | `flowRecommendationsVariable` | String | `recommendations` | Flow output for recommendations (JSON/text). |
+| `agentforceSummaryPromptTemplateId` | String | `''` | Optional **Einstein prompt template** for Overview **Agentforce summary** only (separate from Insight). When set and **Auto-generate** is true, the LWC calls **`getAgentforceOverviewSummary`** after **`getProfileData`** (separate Apex transaction). Apex invokes Connect with **`Input:Account.Id`** + **`Input:Account`**; it also tries a fixed **anonymous-parity** payload first so a mis-set input API name here does not break standard Account Record Snapshot templates. |
+| `agentforceSummaryPromptInputApiName` | String | `Input:Account.Id` | Prompt Builder input for the **Account Id** string (default **`Input:Account.Id`**). You may use **`Input:Account`**; Apex still supplies both **`.Id`** and object slots. Template developer name / Id is sanitized (BOM and zero-width characters stripped). |
+| `autoGenerateAgentforceSummary` | Boolean | `true` | When false, skips **`getAgentforceOverviewSummary`** on load even if **Agentforce summary: prompt template ID** is set. |
 | `geocodeBillingAddress` | Boolean | `true` | When true, Nominatim then Photon if map lat/lng missing (remote sites required). |
 
 ---
@@ -50,6 +53,7 @@ Each **`field*`** property is sent in **`fieldMappingsJson`** as a logical key (
 | `fieldSicCode`, `fieldSicDescription`, `fieldTaxId` | demo API names |
 | `fieldTierSegment`, `fieldRevenue`, `fieldRevenueGrowth` | demo API names |
 | `fieldLoanBalance`, `fieldLoanLimit`, `fieldLoanUtilization`, `fieldDepositYtd`, `fieldInvestmentBalance`, `fieldInterestExpense` | Account path or **`flow:Var`** (same pattern); liquidity waterfall **Int. expense** reads `interestExpense` from the result. **`flow:` requires Profile assembly Flow API name** on the component; Flow variables must be **Available for output** (see [FLOW_GUIDE.md](FLOW_GUIDE.md) troubleshooting). An orange hint may appear under the waterfall when configuration blocks Apex from reading Flow outputs. Default for **Field: interest expense** is blank (falls back to demo `interestExpense` SOQL). **`[Deprecated] Interest expense (legacy)`** is still honored when the primary field is blank **or** still the demo token `interestExpense` while legacy holds **`flow:Var`**. |
+| `fieldAgentforceSummary` | `''` — Overview **Agentforce summary** (above **Company**): Account long text or **`flow:Var`** from **assembly** Flow when **Agentforce summary: prompt template ID** is blank. When the prompt template is set and generation succeeds, that text **replaces** this mapping. Blank **field** still shows the section when the prompt template is configured. |
 | `fieldCustomerSince`, `fieldPrimaryRm`, `fieldActiveProducts` | demo API names; **`activeProducts`** may be **overwritten** by a live **Financial Account** count when FinServ is present (see **Live CRM enrichments**) |
 | `fieldSubsidiaries` | legacy binding; Overview subsidiary count comes from related-account graph |
 | `fieldLastInteraction` | `lastInteractionDate` |
@@ -103,7 +107,8 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 | `overviewTabLabel` … `insightTabLabel` | Overview, **Pipeline**, Credit, Structure, Location, Insight | **`healthTabLabel`** defaults to **Pipeline** (tab id in code remains `health` for backward compatibility). |
 | `showOverviewTab`, `showHealthTab`, `showCreditTab`, `showStructureTab`, `showLocationTab`, `showInsightTab` | `true` | **`showHealthTab`** controls visibility of the **Pipeline** tab. |
 | `pipelineOpportunityLimit` | `0` | **`0`** (default) → load up to **2000** open opportunities (practical “all” on the Account). **1–2000** → SOQL `LIMIT` for the Pipeline list. Hard cap **2000** for payload and governor safety. |
-| `showKpiStrip`, `showComplianceFlags`, `showRiskMatrix`, `showWaterfallChart` | `true` | |
+| `showKpiStrip`, `showComplianceFlags`, `showAgentforceSummary`, `showRiskMatrix`, `showWaterfallChart` | `true` | **`showAgentforceSummary`** when **Field: Agentforce summary** is non-blank **or** **Agentforce summary: prompt template ID** is set. |
+| `agentforceSummarySectionLabel` | Agentforce summary | Overview section title above **Company**. |
 | `showOrgChart`, `showKeyContacts` | `true` | Structure tab |
 | `showBranchProximity` | `true` | Location |
 | `showAiActions` | `true` | Insight recommendation bars |
@@ -114,6 +119,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 
 | Area | Behavior |
 |------|----------|
+| **Overview — Agentforce summary** | Optional inset card **above Company**: narrative text from **`agentforceSummary`** (SOQL, assembly **`flow:`**, or Einstein via **`getAgentforceOverviewSummary`**). Uses class **`wp-ai-summary`**; optional **`aiSummaryTextColor`** overrides the default secondary text color for generated body text (not empty-state hints). |
 | **Overview — Company / Relationship** | **Field rows** with **`lightning-icon`** + label (utility / standard icons), matching Customer Profile styling (`wp-field-rows`, `wp-field-key--iconrow`). |
 | **Pipeline** | Three columns per row: **stage** (left) · **opportunity name** (center, link to record) · **amount** (right). The Pipeline inset card is **scrollable** (`max-height` + overflow) when there are many rows. |
 | **Credit — Facilities** | Same **icon + field row** pattern inside an inset card (not a plain two-column table). |
@@ -132,6 +138,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 | `accentColor`, `warningColor`, `negativeColor`, `positiveColor` | Hex overrides. **`accentColor`:** any value you set (including the default gold) is used for tabs, links, tier chip, KPI “up” deltas, etc. **Clear** the property in App Builder to derive accent from the theme’s tab chrome (e.g. banking blues). |
 | `backgroundLightenPercent` | 0–50 mixes white into solid backgrounds. |
 | `textColorPrimaryOverride`, `Secondary`, `Tertiary` | Optional hex/rgba. |
+| `aiSummaryTextColor` | Optional hex/rgba. Font color for **generated** AI narrative: Overview Agentforce summary body and Insight tab AI summary. Empty = theme **secondary** text. Does not recolor error lines (`.wp-ai-summary--err`) or the Agentforce empty/hint styling. **Record, App, and Home** targets. |
 | `textScalePercent` | 85–160. |
 | `textEmphasis` | `default`, `medium`, `strong`. |
 

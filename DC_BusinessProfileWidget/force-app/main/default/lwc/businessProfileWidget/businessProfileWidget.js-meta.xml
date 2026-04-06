@@ -25,6 +25,18 @@
             <property name="insightFlowRecordIdVariable" type="String" label="Insight flow input: record Id" default="recordId" />
             <property name="flowPredictionVariable" type="String" label="Flow output: prediction variable" default="prediction" />
             <property name="flowRecommendationsVariable" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="agentforceSummaryFlowApiName" type="String" label="[Deprecated] Agentforce summary Flow API name" default=""
+                description="Deprecated — not used. Use Agentforce summary: prompt template ID. Kept only so Lightning pages that still reference this property can accept deployments." />
+            <property name="agentforceSummaryFlowRecordIdVariable" type="String" label="[Deprecated] Agentforce summary Flow: record Id variable" default="recordId"
+                description="Deprecated — not used. Kept for page metadata compatibility." />
+            <property name="agentforceSummaryFlowOutputVariable" type="String" label="[Deprecated] Agentforce summary Flow: output variable" default=""
+                description="Deprecated — not used. Kept for page metadata compatibility." />
+            <property name="agentforceSummaryPromptTemplateId" type="String" label="Agentforce summary: prompt template ID" default=""
+                description="Optional Einstein prompt template Id or API name for the Overview narrative summary only (separate from Insight Prompt template ID). When set, Apex passes the current Account Id into the input named below; your template uses Record Snapshot or merge fields to build the summary. Overwrites Field: Agentforce summary when generation returns text." />
+            <property name="agentforceSummaryPromptInputApiName" type="String" label="Agentforce summary: prompt text input API name" default="Input:Account.Id"
+                description="Use Input:Account.Id (default) or Input:Account — Apex always sends both Id string and record reference in one Einstein call. Match the name you use in Prompt Builder when unsure." />
+            <property name="autoGenerateAgentforceSummary" type="Boolean" label="Auto-generate Agentforce summary (Overview)" default="true"
+                description="When false, skips the Einstein call on load even if Agentforce summary prompt template ID is set (Field: Agentforce summary / flow: still apply from assembly)." />
             <property name="geocodeBillingAddress" type="Boolean" label="Geocode billing address for map" default="true"
                 description="When true, Apex calls Nominatim then Photon if map coordinates are missing (Remote Site Settings required). Skipped in Apex tests." />
             <property name="fieldMapLatitude" type="String" label="Field: map latitude" default="BillingLatitude"
@@ -63,6 +75,10 @@
             <property name="showInsightTab" type="Boolean" label="Show Insight tab" default="true" />
             <property name="showKpiStrip" type="Boolean" label="Show KPI strip" default="true" />
             <property name="showComplianceFlags" type="Boolean" label="Show compliance flags" default="true" />
+            <property name="showAgentforceSummary" type="Boolean" label="Show Agentforce summary (Overview)" default="true"
+                description="Renders the Agentforce summary block above Company when Field: Agentforce summary is set (SOQL or flow:)." />
+            <property name="agentforceSummarySectionLabel" type="String" label="Agentforce summary section title" default="Agentforce summary"
+                description="Overview tab section heading above Company." />
             <property name="showRiskMatrix" type="Boolean" label="Show risk matrix" default="true" />
             <property name="showWaterfallChart" type="Boolean" label="Show waterfall chart" default="true" />
             <property name="showOrgChart" type="Boolean" label="Show org chart" default="true" />
@@ -94,6 +110,8 @@
                 description="Optional. Subtitles and secondary lines. Hex or rgba with lower alpha for softer contrast." />
             <property name="textColorTertiaryOverride" type="String" label="[Theme] Text color — muted" default=""
                 description="Optional. Captions and tab labels. Hex or rgba." />
+            <property name="aiSummaryTextColor" type="String" label="[Typography] AI summary text color" default=""
+                description="Optional. Font color for generated narrative: Overview Agentforce summary and Insight tab AI summary. Hex (#e8e0d4) or rgba(...). Empty = theme secondary text." />
             <property name="profilePhotoUrl" type="String" label="[Deprecated] Static logo URL" default=""
                 description="Deprecated: use Field: header logo (field or flow:Var). If set, overrides mapped logo and website favicon." />
             <property name="profilePhotoFlowOutputVariable" type="String" label="[Deprecated] Flow logo output variable" default=""
@@ -132,6 +150,8 @@
                 description="Account field API path for SOQL (e.g. interestExpense__c) or flow:VariableApiName for the assembly Flow — same pattern as deposits / investments. Leave blank to fall back to the legacy interest property (if set) or demo default interestExpense." />
             <property name="assemblyOutInterestExpense" type="String" label="[Deprecated] Interest expense (legacy)" default=""
                 description="Deprecated. Use Field: interest expense only. Left in metadata because existing Lightning pages may still reference this property; it is used only when Field: interest expense is blank." />
+            <property name="fieldAgentforceSummary" type="String" label="Field: Agentforce summary" default=""
+                description="Account long text or flow:Var from the Profile assembly Flow when you do not use Agentforce summary prompt template ID. When the prompt template ID is set and generation succeeds, that text overwrites this mapping." />
             <property name="fieldCustomerSince" type="String" label="Field: customer since" default="customerSince" />
             <property name="fieldPrimaryRm" type="String" label="Field: primary RM" default="primaryRelationshipManager"
                 description="Use Owner.Name for the relationship owner, or map OwnerId / a User Id (005…); Apex resolves User Id to the user’s display name." />
@@ -195,6 +215,8 @@
                 description="Optional hex (#f5f2ea) or rgba(...). Empty = theme default." />
             <property name="textColorSecondaryOverride" type="String" label="[Theme] Text color — secondary" default="" />
             <property name="textColorTertiaryOverride" type="String" label="[Theme] Text color — muted" default="" />
+            <property name="aiSummaryTextColor" type="String" label="[Typography] AI summary text color" default=""
+                description="Optional hex or rgba for Overview Agentforce + Insight AI summary body." />
             <property name="profilePhotoUrl" type="String" label="[Deprecated] Static logo URL" default="" />
             <property name="fieldProfilePhotoUrl" type="String" label="Field: header logo (image URL)" default="" />
             <property name="useWebsiteFavicon" type="Boolean" label="Use website for logo (favicon)" default="false" />
@@ -215,6 +237,8 @@
                 description="Optional hex (#f5f2ea) or rgba(...). Empty = theme default." />
             <property name="textColorSecondaryOverride" type="String" label="[Theme] Text color — secondary" default="" />
             <property name="textColorTertiaryOverride" type="String" label="[Theme] Text color — muted" default="" />
+            <property name="aiSummaryTextColor" type="String" label="[Typography] AI summary text color" default=""
+                description="Optional hex or rgba for Overview Agentforce + Insight AI summary body." />
             <property name="profilePhotoUrl" type="String" label="[Deprecated] Static logo URL" default="" />
             <property name="fieldProfilePhotoUrl" type="String" label="Field: header logo (image URL)" default="" />
             <property name="useWebsiteFavicon" type="Boolean" label="Use website for logo (favicon)" default="false" />

@@ -2,6 +2,9 @@ public with sharing class BusinessProfileWidgetController {
 
     private static final String CLOSING_PHRASE = 'Thank you for your attention to this comprehensive review';
 
+    /** Filled during {@link #mergeAgentforceSummaryFromPromptTemplate} when Einstein returns no text (cleared each merge). */
+    private static String overviewAgentforceEinsteinDiagnostic;
+
     /**
      * When fieldFounded is not mapped (blank), try these Account API names in order so the widget still shows a year
      * if the org stores it under a common custom field (demo / FSC-style names).
@@ -334,6 +337,55 @@ public with sharing class BusinessProfileWidgetController {
         return JSON.serialize(profile);
     }
 
+    /**
+     * Overview Agentforce summary in a separate Apex request from {@link #getProfileData}. Matches Execute Anonymous
+     * isolation: the heavy profile transaction (flows, rollups, geocoding) is not mixed with Einstein Connect in the
+     * same execution, which can otherwise return empty generations for the same user and template.
+     */
+    @AuraEnabled(cacheable = false)
+    public static String getAgentforceOverviewSummary(
+        String recordId,
+        String agentforceSummaryPromptTemplateId,
+        String agentforceSummaryPromptInputApiName
+    ) {
+        if (String.isBlank(recordId)) {
+            throw new AuraHandledException('Record Id is required.');
+        }
+        String tmpl = sanitizeEinsteinTemplateRef(agentforceSummaryPromptTemplateId);
+        if (String.isBlank(tmpl)) {
+            return JSON.serialize(
+                new Map<String, Object>{ 'agentforceSummary' => null, 'agentforceSummaryPromptHint' => '' }
+            );
+        }
+        Id accId;
+        try {
+            accId = (Id) recordId;
+        } catch (Exception badId) {
+            throw new AuraHandledException('Invalid record Id.');
+        }
+        if (accId.getSobjectType() != Account.SObjectType) {
+            return JSON.serialize(
+                new Map<String, Object>{
+                    'agentforceSummary' => null,
+                    'agentforceSummaryPromptHint' =>
+                        'Overview Agentforce summary expects an Account record (Id prefix 001). This page record is '
+                        + accId.getSobjectType().getDescribe().getName()
+                        + '. Use an Account record page or a template wired to that object.'
+                }
+            );
+        }
+        BusinessProfileResult shell = new BusinessProfileResult();
+        mergeAgentforceSummaryFromPromptTemplate(shell, accId, tmpl, agentforceSummaryPromptInputApiName);
+        return JSON.serialize(
+            new Map<String, Object>{
+                'agentforceSummary' => shell.agentforceSummary,
+                'agentforceSummaryPromptHint' => shell.agentforceSummaryPromptHint == null
+                    ? ''
+                    : shell.agentforceSummaryPromptHint
+            }
+        );
+    }
+
     private static void resolvePrimaryRmIfUserId(BusinessProfileResult r) {
         if (r == null || String.isBlank(r.primaryRm)) {
             return;
@@ -431,10 +483,269 @@ public with sharing class BusinessProfileWidgetController {
         return null;
     }
 
+    /** Strip BOM / zero-width characters from a Prompt Template developer name or Id pasted from the UI. */
+    private static String sanitizeEinsteinTemplateRef(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String s = raw.trim().replaceFirst('^\\uFEFF', '');
+        s = s.replaceAll('[\\u200B-\\u200D\\uFEFF]', '');
+        return s.trim();
+    }
+
     /**
-     * When interest expense is mapped with flow: and the interview ran but the slot is still empty, surface a Flow Builder fix
-     * (Available for output, subflow → parent assignment).
+     * Overview Agentforce summary: invokes the configured Einstein prompt template with the Account Id.
+     * <p>Templates such as {@code DC_AccountSummary_widget} require <strong>one Connect call</strong> with
+     * <strong>both</strong> {@code Input:Account.Id} (Id string) and {@code Input:Account} (record map/stub).
+     * If App Builder lists only {@code Input:Account}, Apex pairs it with {@code Input:Account.Id}. It never sends
+     * object-only {@code Input:Account} (that produces "null for item Input:Account").</p>
+     * On failure or empty completion, sets {@link BusinessProfileResult#agentforceSummaryPromptHint} for the LWC.
      */
+    private static void mergeAgentforceSummaryFromPromptTemplate(
+        BusinessProfileResult profile,
+        Id accountId,
+        String promptTemplateId,
+        String promptInputApiName
+    ) {
+        String cleanedTemplate = sanitizeEinsteinTemplateRef(promptTemplateId);
+        if (profile == null || String.isBlank(cleanedTemplate) || accountId == null) {
+            return;
+        }
+        String configured = String.isBlank(promptInputApiName) ? 'Input:Account.Id' : promptInputApiName.trim();
+        String idKey;
+        String objKey;
+        if (einsteinPromptInputLooksLikeRecordIdField(configured)) {
+            idKey = configured;
+            objKey = einsteinRecordInputParamKeyForPrompt(configured);
+        } else {
+            objKey = configured;
+            idKey = configured + '.Id';
+        }
+        overviewAgentforceEinsteinDiagnostic = null;
+        try {
+            // Same inputs as scripts/anon_test_prompt.apex — runs first so a wrong App Builder "input API name"
+            // does not prevent Record Snapshot templates that expect Input:Account.Id + Input:Account.
+            String text = tryEinsteinOverviewAnonParity(cleanedTemplate, accountId);
+            if (String.isNotBlank(text)) {
+                profile.agentforceSummary = text;
+                return;
+            }
+            text = tryEinsteinAccountSummaryDualInputCombinations(
+                cleanedTemplate,
+                idKey,
+                objKey,
+                accountId
+            );
+            if (String.isNotBlank(text)) {
+                profile.agentforceSummary = text;
+                return;
+            }
+            // Do not call Connect with Id string only (Input:Account.Id without Input:Account) — templates with
+            // Record Snapshot throw "null for item Input:Account" and overwrite useful dual-attempt diagnostics.
+            profile.agentforceSummaryPromptHint =
+                'Einstein returned no summary text. Confirm the template is active, a model is assigned, and the running user has Einstein / Prompt Template access. '
+                + 'App Builder: Input:Account.Id or Input:Account both work.';
+            if (!String.isBlank(overviewAgentforceEinsteinDiagnostic)) {
+                profile.agentforceSummaryPromptHint +=
+                    ' Detail: ' + overviewAgentforceEinsteinDiagnostic;
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'Business profile Agentforce summary prompt failed: ' + e.getMessage());
+            profile.agentforceSummaryPromptHint =
+                'Prompt invocation failed: ' + truncateForUiHint(e.getMessage(), 220);
+        }
+    }
+
+    /**
+     * Mirrors {@code scripts/anon_test_prompt.apex}: fixed {@code Input:Account.Id} + {@code Input:Account} map and
+     * {@code PromptTemplateGenerationsInvocable} only.
+     */
+    private static String tryEinsteinOverviewAnonParity(String promptTemplateId, Id accountId) {
+        String idStr = String.valueOf(accountId);
+        ConnectApi.WrappedValue wId = new ConnectApi.WrappedValue();
+        wId.value = idStr;
+        ConnectApi.WrappedValue wObj = new ConnectApi.WrappedValue();
+        wObj.value = new Map<String, Object>{ 'Id' => accountId };
+        Map<String, ConnectApi.WrappedValue> vm = new Map<String, ConnectApi.WrappedValue>();
+        vm.put('Input:Account.Id', wId);
+        vm.put('Input:Account', wObj);
+        return invokeEinsteinPromptTemplateMultiParam(
+            promptTemplateId,
+            vm,
+            'PromptTemplateGenerationsInvocable',
+            true
+        );
+    }
+
+    /**
+     * Record Snapshot templates often need <strong>both</strong> the field Id ({@code Input:Account.Id} string) and the
+     * object slot ({@code Input:Account} map/stub) in one {@code generateMessagesForPromptTemplate} call; supplying only
+     * one can surface "Invalid input value: null for item Input:Account".
+     */
+    private static String tryEinsteinAccountSummaryDualInputCombinations(
+        String promptTemplateId,
+        String idInputApiName,
+        String objectInputApiName,
+        Id accountId
+    ) {
+        String idStr = String.valueOf(accountId);
+        List<Object> objectPayloads = einsteinRecordWrappedPayloadCandidates(accountId);
+        List<String> applicationNames = new List<String>{
+            'PromptTemplateGenerationsInvocable',
+            'PromptBuilderPreview'
+        };
+        for (String appName : applicationNames) {
+            for (Object objPayload : objectPayloads) {
+                try {
+                    Map<String, ConnectApi.WrappedValue> vm = new Map<String, ConnectApi.WrappedValue>();
+                    vm.put(idInputApiName, einsteinWrapValue(idStr));
+                    vm.put(objectInputApiName, einsteinWrapValue(objPayload));
+                    String t = invokeEinsteinPromptTemplateMultiParam(promptTemplateId, vm, appName, true);
+                    if (String.isNotBlank(t)) {
+                        return t;
+                    }
+                } catch (Exception e) {
+                    overviewAgentforceEinsteinDiagnostic = truncateForUiHint(e.getMessage(), 220);
+                    System.debug(LoggingLevel.FINE, 'Einstein dual prompt attempt skipped: ' + e.getMessage());
+                }
+            }
+        }
+        return null;
+    }
+
+    private static ConnectApi.WrappedValue einsteinWrapValue(Object value) {
+        ConnectApi.WrappedValue w = new ConnectApi.WrappedValue();
+        w.value = value;
+        return w;
+    }
+
+    private static String invokeEinsteinPromptTemplateMultiParam(
+        String promptTemplateId,
+        Map<String, ConnectApi.WrappedValue> valueMap
+    ) {
+        return invokeEinsteinPromptTemplateMultiParam(
+            promptTemplateId,
+            valueMap,
+            'PromptTemplateGenerationsInvocable',
+            false
+        );
+    }
+
+    private static String invokeEinsteinPromptTemplateMultiParam(
+        String promptTemplateId,
+        Map<String, ConnectApi.WrappedValue> valueMap,
+        String applicationName
+    ) {
+        return invokeEinsteinPromptTemplateMultiParam(promptTemplateId, valueMap, applicationName, false);
+    }
+
+    private static String invokeEinsteinPromptTemplateMultiParam(
+        String promptTemplateId,
+        Map<String, ConnectApi.WrappedValue> valueMap,
+        String applicationName,
+        Boolean recordOverviewDiagnostic
+    ) {
+        ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput = new ConnectApi.EinsteinPromptTemplateGenerationsInput();
+        promptInput.isPreview = false;
+
+        ConnectApi.EinsteinLlmAdditionalConfigInput extra = new ConnectApi.EinsteinLlmAdditionalConfigInput();
+        extra.numGenerations = 1;
+        extra.applicationName = applicationName;
+        // Do not set enablePiiMasking here: scripts/anon_test_prompt.apex does not, and turning it on has been
+        // observed to yield empty generations while the same template + user succeeds anonymously.
+        promptInput.additionalConfig = extra;
+        promptInput.inputParams = valueMap;
+
+        ConnectApi.EinsteinPromptTemplateGenerationsRepresentation output = new EinsteinOverviewConnectBridge()
+            .generate(promptTemplateId, promptInput);
+
+        if (output == null) {
+            if (recordOverviewDiagnostic == true) {
+                overviewAgentforceEinsteinDiagnostic = 'Einstein Connect returned no output object.';
+            }
+            return null;
+        }
+        if (output.generations == null || output.generations.isEmpty()) {
+            if (recordOverviewDiagnostic == true) {
+                String payloadSnippet = '';
+                try {
+                    payloadSnippet = truncateForUiHint(JSON.serialize(output), 420);
+                } catch (Exception serEx) {
+                    payloadSnippet = truncateForUiHint(String.valueOf(output), 220);
+                }
+                overviewAgentforceEinsteinDiagnostic =
+                    'Zero generations. Compare template id/API name to Execute Anonymous; Connect response: '
+                    + (String.isBlank(payloadSnippet) ? '(unserializable)' : payloadSnippet);
+            }
+            return null;
+        }
+        ConnectApi.EinsteinLLMGenerationItemOutput first = output.generations[0];
+        String raw = first != null ? first.text : null;
+        if (String.isBlank(raw)) {
+            if (recordOverviewDiagnostic == true) {
+                overviewAgentforceEinsteinDiagnostic = 'Generation text was blank (trust layer or model refusal).';
+            }
+            return null;
+        }
+        return stripClosingCourtesy(raw);
+    }
+
+    /** True when App Builder / template uses a merge field style name ending in {@code .Id} (scalar Id string to Connect). */
+    private static Boolean einsteinPromptInputLooksLikeRecordIdField(String configuredInputApiName) {
+        if (String.isBlank(configuredInputApiName)) {
+            return false;
+        }
+        String t = configuredInputApiName.trim();
+        return t.length() > 4 && t.substring(t.length() - 4).equalsIgnoreCase('.Id');
+    }
+
+    /**
+     * Object-style input key (e.g. {@code Input:Account}). When the configured name is {@code Input:Account.Id},
+     * Prompt Builder often still registers a separate object slot {@code Input:Account} for Record Snapshot — but
+     * some templates only have the {@code .Id} field input; {@link #mergeAgentforceSummaryFromPromptTemplate} tries that first.
+     */
+    private static String einsteinRecordInputParamKeyForPrompt(String configuredInputApiName) {
+        if (String.isBlank(configuredInputApiName)) {
+            return 'Input:Account';
+        }
+        String t = configuredInputApiName.trim();
+        if (t.length() > 4 && t.substring(t.length() - 4).equalsIgnoreCase('.Id')) {
+            return t.substring(0, t.length() - 4);
+        }
+        return t;
+    }
+
+    private static String truncateForUiHint(String message, Integer maxLen) {
+        if (String.isBlank(message)) {
+            return '';
+        }
+        String m = message.trim().replaceAll('\\s+', ' ');
+        if (m.length() <= maxLen) {
+            return m;
+        }
+        return m.substring(0, maxLen - 1) + '\u2026';
+    }
+
+    private static List<Object> einsteinRecordWrappedPayloadCandidates(Id accountId) {
+        List<Object> out = new List<Object>();
+        out.add((Object) new Map<String, Object>{ 'Id' => accountId });
+        out.add((Object) new Account(Id = accountId));
+        out.add((Object) new Map<String, String>{ 'id' => String.valueOf(accountId) });
+        return out;
+    }
+
+    /** Einstein text input (e.g. Insight JSON) — value is a string assigned to {@link ConnectApi.WrappedValue#value}. */
+    private static String invokeEinsteinPromptTemplateForContext(
+        String promptTemplateId,
+        String promptInputApiName,
+        String inputParamValue
+    ) {
+        return invokeEinsteinPromptTemplateMultiParam(
+            promptTemplateId,
+            new Map<String, ConnectApi.WrappedValue>{ promptInputApiName => einsteinWrapValue(inputParamValue) }
+        );
+    }
+
     private static void applyInterestExpenseFlowHintIfNeeded(
         BusinessProfileResult profile,
         Map<String, String> fieldMappings,
@@ -1099,6 +1410,10 @@ public with sharing class BusinessProfileWidgetController {
             when 'fieldMapLongitude' {
                 r.mapLongitude = decVal(o);
             }
+            when 'fieldAgentforceSummary' {
+                String raw = o instanceof String ? ((String) o).trim() : String.valueOf(o).trim();
+                r.agentforceSummary = String.isBlank(raw) ? '' : stripClosingCourtesy(raw);
+            }
             when else {
             }
         }
@@ -1453,30 +1768,7 @@ public with sharing class BusinessProfileWidgetController {
         String contextJson = JSON.serialize(payload);
 
         try {
-            ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput = new ConnectApi.EinsteinPromptTemplateGenerationsInput();
-            promptInput.isPreview = false;
-
-            ConnectApi.EinsteinLlmAdditionalConfigInput extra = new ConnectApi.EinsteinLlmAdditionalConfigInput();
-            extra.numGenerations = 1;
-            extra.applicationName = 'PromptTemplateGenerationsInvocable';
-            promptInput.additionalConfig = extra;
-
-            Map<String, ConnectApi.WrappedValue> valueMap = new Map<String, ConnectApi.WrappedValue>();
-            ConnectApi.WrappedValue wrapped = new ConnectApi.WrappedValue();
-            wrapped.value = contextJson;
-            valueMap.put(inputName, wrapped);
-            promptInput.inputParams = valueMap;
-
-            ConnectApi.EinsteinPromptTemplateGenerationsRepresentation output = ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate(
-                promptTemplateId,
-                promptInput
-            );
-
-            if (output != null && output.generations != null && !output.generations.isEmpty()) {
-                ConnectApi.EinsteinLLMGenerationItemOutput first = output.generations[0];
-                return stripClosingCourtesy(first.text);
-            }
-            return null;
+            return invokeEinsteinPromptTemplateForContext(promptTemplateId, inputName, contextJson);
         } catch (Exception e) {
             throw new AuraHandledException(
                 'Summary generation failed. Confirm Einstein Generative AI, prompt access, and template input API name. Details: ' +
@@ -2072,6 +2364,19 @@ public with sharing class BusinessProfileWidgetController {
         return '';
     }
 
+    /**
+     * Isolated Connect invocation (without sharing) so sharing on the controller cannot interact oddly with the
+     * Einstein gateway for record-grounded templates.
+     */
+    private without sharing class EinsteinOverviewConnectBridge {
+        ConnectApi.EinsteinPromptTemplateGenerationsRepresentation generate(
+            String promptTemplateId,
+            ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput
+        ) {
+            return ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate(promptTemplateId, promptInput);
+        }
+    }
+
     public class BusinessProfileResult {
         @AuraEnabled
         public String companyName;
@@ -2240,6 +2545,15 @@ public with sharing class BusinessProfileWidgetController {
         public String recommendationsJson;
         @AuraEnabled
         public String summaryText;
+        /**
+         * Overview Agentforce summary: long text from Account field (SOQL) or assembly Flow output (flow:Var).
+         * Typical use: Flow runs a Prompt or Agent action and assigns the response to a Text variable Available for output.
+         */
+        @AuraEnabled
+        public String agentforceSummary;
+        /** When Overview Einstein summary fails or returns blank, short reason for admins (not end-user polished). */
+        @AuraEnabled
+        public String agentforceSummaryPromptHint;
         @AuraEnabled
         public List<Map<String, String>> nearbyBranches;
         /** Account.Type for org chart root sublabel when available. */

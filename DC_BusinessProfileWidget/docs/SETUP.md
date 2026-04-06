@@ -40,8 +40,8 @@ If geocoding is **off**, external callouts are skipped; coordinates must come fr
 ## 4. Optional: Einstein summary
 
 - Enable **Einstein Generative AI** per your org policy.  
-- Create or choose a **prompt template** whose text input matches **Prompt template text input API name** (default `Input:Prediction_Context`).  
-- The payload includes `predictionType: business_profile` (see [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)).
+- **Insight tab:** Create or choose a **prompt template** whose text input matches **Prompt template text input API name** (default `Input:Prediction_Context`). The payload includes `predictionType: business_profile` (see [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)).  
+- **Overview Agentforce summary:** Set **Agentforce summary: prompt template ID** on the component. The same **`BusinessProfileWidgetController`** Apex access covers **`getAgentforceOverviewSummary`** (invoked automatically after **`getProfileData`** when auto-generate is on). Use an Account Record Snapshot–style template or equivalent with **Account** context; see [FLOW_GUIDE.md](FLOW_GUIDE.md) and [TROUBLESHOOTING.md](TROUBLESHOOTING.md) if the summary is blank.
 
 ---
 

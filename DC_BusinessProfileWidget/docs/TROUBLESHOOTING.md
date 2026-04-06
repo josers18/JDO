@@ -28,6 +28,8 @@
 |---------|--------------|-----|
 | No prediction | Insight Flow blank or failed silently | Set **Autolaunched flow API name (predictions)**; check debug logs. |
 | Summary error | Template Id or input name wrong | Match **Prompt template text input API name**; confirm Einstein enabled. |
+| Overview **Agentforce summary** empty; hint mentions **Zero generations** or shows a **Connect payload** snippet | Template inactive, no model, permissions, wrong **template Id** vs org, or **record is not Account** | Confirm template is **active**, a model is assigned, and the page user has Einstein / prompt access. Run **`scripts/anon_test_prompt.apex`** in the **same org** with the same template name and an Account Id. Ensure the widget is on an **Account** record page (prefix **001**). Read the **Detail** line: serialized Connect output often explains the failure. |
+| Anonymous Apex works but the widget used to fail with the same user | Einstein mixed into the large **`getProfileData`** transaction | Current builds call **`getAgentforceOverviewSummary`** separately; redeploy **`businessProfileWidget`** + **`BusinessProfileWidgetController`** and hard-refresh the page. |
 
 ---
 

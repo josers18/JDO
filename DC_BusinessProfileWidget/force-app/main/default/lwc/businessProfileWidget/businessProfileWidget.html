@@ -139,6 +139,22 @@
         <template lwc:elseif={hasData}>
             <div class="wp-panel">
                 <template lwc:if={isTab_overview}>
+                    <template lwc:if={showAgentforceSummaryBlock}>
+                        <div class="wp-slbl">{agentforceSummarySectionTitle}</div>
+                        <div class="wp-inset-card">
+                            <template lwc:if={hasAgentforceSummaryText}>
+                                <p class="wp-ai-summary wp-agentforce-summary">{agentforceSummaryDisplay}</p>
+                            </template>
+                            <template lwc:else>
+                                <p class="wp-ai-summary wp-agentforce-summary wp-agentforce-summary--empty">
+                                    {agentforceSummaryEmptyMessage}
+                                </p>
+                                <template lwc:if={agentforceSummaryPromptHint}>
+                                    <p class="wp-agentforce-summary-hint">{agentforceSummaryPromptHint}</p>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
                     <div class="wp-slbl">Company</div>
                     <div class="wp-inset-card">
                         <div class="wp-field-rows wp-field-rows--inset">

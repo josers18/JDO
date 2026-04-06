@@ -17,7 +17,7 @@ Overview: **[README.md](../README.md)**
 | [FLOW_GUIDE.md](FLOW_GUIDE.md) | Flow builders | `flow:` tokens, assembly vs Insight |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical readers | Sequence and merge order |
 | [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) | App Builder admins | All `@api` properties |
-| [APEX_REFERENCE.md](APEX_REFERENCE.md) | Developers | `getProfileData`, `generateSummary` |
+| [APEX_REFERENCE.md](APEX_REFERENCE.md) | Developers | `getProfileData`, `getAgentforceOverviewSummary`, `generateSummary` |
 | [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md) | Einstein admins | JSON sent to prompt template |
 | [DIAGRAMS.md](DIAGRAMS.md) | Reviews | Mermaid diagrams |
 

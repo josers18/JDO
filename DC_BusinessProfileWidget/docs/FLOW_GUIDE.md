@@ -23,6 +23,13 @@ The LWC sends a JSON object **`fieldMappingsJson`** to Apex. Each logical key (f
 
 The assembly Flow runs only when there is at least one mapping that **requires** Flow (a `flow:` token or a non-validating legacy name). If every mapped value is valid SOQL-only, the Flow is **not** started for field assembly (Insight may still use a separate prediction Flow).
 
+**Agentforce summary (Overview)** — two options:
+
+1. **Einstein prompt template (Account summary):** Set **Agentforce summary: prompt template ID** and **Agentforce summary: prompt text input API name** (default **`Input:Account.Id`**). The LWC calls **`getAgentforceOverviewSummary`** after **`getProfileData`** so Einstein runs in its own Apex request (same isolation as Execute Anonymous). On success, the returned text **overwrites** `agentforceSummary`. Turn off **Auto-generate Agentforce summary (Overview)** to skip the call on load.
+2. **Flow or SOQL only:** Leave the prompt template ID blank and map **Field: Agentforce summary** to **`flow:YourTextVariable`** on the assembly Flow, or to an Account long-text field.
+
+For **`flow:`** mappings, mark output text variables **Available for output**. The card appears above **Company** (separate from the Insight tab Einstein summary).
+
 ---
 
 ## Assembly Flow inputs
@@ -41,7 +48,8 @@ The assembly Flow runs only when there is at least one mapping that **requires**
 
 ## Einstein summary
 
-Optional **generateSummary** uses the same prompt input pattern as the Customer Profile Widget but sets **`predictionType`** to **`business_profile`** in the JSON payload. See [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md).
+- **Insight tab:** Optional **`generateSummary`** uses the same prompt input pattern as the Customer Profile Widget but sets **`predictionType`** to **`business_profile`** in the JSON payload. See [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md).  
+- **Overview Agentforce summary:** Optional **Agentforce summary: prompt template ID** passes the **Account Id** only (default input **`Input:Account.Id`**). Use a dedicated summary template, not the Insight prediction JSON template unless you redesign it for Id-only input.
 
 ---
 

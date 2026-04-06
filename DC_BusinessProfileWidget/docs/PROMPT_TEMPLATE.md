@@ -1,6 +1,8 @@
 # Prompt template — Business Profile Widget
 
-The widget calls **`BusinessProfileWidgetController.generateSummary`**, which builds a **single JSON string** and passes it to the Einstein prompt template’s **text** input (default API name **`Input:Prediction_Context`**).
+**Insight tab:** The widget calls **`BusinessProfileWidgetController.generateSummary`**, which builds a **single JSON string** and passes it to the Einstein prompt template’s **text** input (default API name **`Input:Prediction_Context`**).
+
+**Overview — Agentforce summary:** Separate from this document. Configure **Agentforce summary: prompt template ID**; the LWC calls **`getAgentforceOverviewSummary`**, which passes **Account** context via **`Input:Account.Id`** and **`Input:Account`** (Record Snapshot–style). See [APEX_REFERENCE.md](APEX_REFERENCE.md) and [FLOW_GUIDE.md](FLOW_GUIDE.md).
 
 ---
 

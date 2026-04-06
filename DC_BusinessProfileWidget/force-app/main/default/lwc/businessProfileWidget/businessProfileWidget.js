@@ -2,6 +2,7 @@ import { LightningElement, api, track } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getProfileData from '@salesforce/apex/BusinessProfileWidgetController.getProfileData';
+import getAgentforceOverviewSummary from '@salesforce/apex/BusinessProfileWidgetController.getAgentforceOverviewSummary';
 import generateSummary from '@salesforce/apex/BusinessProfileWidgetController.generateSummary';
 import { buildProcessedRecommendationRows } from './profileInsightRows';
 
@@ -1398,6 +1399,17 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     @api insightFlowRecordIdVariable = 'recordId';
     @api flowPredictionVariable = 'prediction';
     @api flowRecommendationsVariable = 'recommendations';
+    /**
+     * Deprecated: ignored at runtime (Overview summary uses Einstein prompt template properties).
+     * Retained so Lightning pages that still persist these App Builder values accept metadata deploys.
+     */
+    @api agentforceSummaryFlowApiName = '';
+    @api agentforceSummaryFlowRecordIdVariable = 'recordId';
+    @api agentforceSummaryFlowOutputVariable = '';
+    /** Einstein prompt template Id or API name for Overview Agentforce summary (same pattern as Insight). */
+    @api agentforceSummaryPromptTemplateId = '';
+    /** Text input API name on that template (JSON payload matches Insight: prediction, predictionType, recommendations). */
+    @api agentforceSummaryPromptInputApiName = 'Input:Account.Id';
 
     _geocodeBillingAddress = true;
     @api
@@ -1418,6 +1430,15 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     }
     set autoGenerateSummary(value) {
         this._autoGenerateSummary = value !== false && value !== 'false';
+    }
+
+    _autoGenerateAgentforceSummary = true;
+    @api
+    get autoGenerateAgentforceSummary() {
+        return this._autoGenerateAgentforceSummary;
+    }
+    set autoGenerateAgentforceSummary(value) {
+        this._autoGenerateAgentforceSummary = value !== false && value !== 'false';
     }
 
     /** When true, positive recommendation % uses good bar color (match classification model LWC). */
@@ -1521,6 +1542,15 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         this._showComplianceFlags = value !== false && value !== 'false';
     }
 
+    _showAgentforceSummary = true;
+    @api
+    get showAgentforceSummary() {
+        return this._showAgentforceSummary;
+    }
+    set showAgentforceSummary(value) {
+        this._showAgentforceSummary = value !== false && value !== 'false';
+    }
+
     _showRiskMatrix = true;
     @api
     get showRiskMatrix() {
@@ -1585,6 +1615,12 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     @api textColorSecondaryOverride = '';
     /** Optional. Sets --wp-text-tertiary (muted captions). */
     @api textColorTertiaryOverride = '';
+
+    /**
+     * Optional. Font color for AI-generated narrative: Overview Agentforce summary body and Insight tab generated summary.
+     * Hex (#e8e0d4) or rgba(...). Empty = use theme secondary text (default).
+     */
+    @api aiSummaryTextColor = '';
 
     /**
      * Preferred: Account field API name (logo image URL) or flow:VariableApiName — same pattern as Field: website.
@@ -1652,6 +1688,10 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
      * Still honored when Field: interest expense is blank or left as the demo token interestExpense (see effectiveInterestExpenseMappingForApex).
      */
     @api assemblyOutInterestExpense = '';
+    /** Account long-text path or flow:VariableApiName — assembly Flow should set this after Prompt / Agent (Available for output). */
+    @api fieldAgentforceSummary = '';
+    /** Overview section label above Company (default Agentforce summary). */
+    @api agentforceSummarySectionLabel = 'Agentforce summary';
     @api fieldCustomerSince = 'customerSince';
     @api fieldPrimaryRm = 'primaryRelationshipManager';
     @api fieldActiveProducts = 'activeProductCount';
@@ -1839,6 +1879,12 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             if (tt) {
                 el.style.setProperty('--wp-text-tertiary', tt);
             }
+            const aiCol = normalizeOptionalCssColor(this.aiSummaryTextColor);
+            if (aiCol) {
+                el.style.setProperty('--wp-ai-summary-text', aiCol);
+            } else {
+                el.style.removeProperty('--wp-ai-summary-text');
+            }
             el.style.setProperty('--wp-text-scale', String(this.resolvedTextScaleFactor));
         };
 
@@ -1929,6 +1975,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 pipelineOpportunityLimit: this.pipelineOpportunityLimitForApex
             });
             this.profileData = JSON.parse(result);
+            await this.loadAgentforceOverviewEinsteinIfNeeded();
             this.logoLoadFailed = false;
             this._websiteLogoAttempt = 0;
             this.refreshWebsiteLogoCandidates();
@@ -1948,6 +1995,44 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             );
         } finally {
             this.loading = false;
+        }
+    }
+
+    /**
+     * Separate Apex request from getProfileData so Einstein Connect runs like Execute Anonymous (minimal transaction).
+     */
+    async loadAgentforceOverviewEinsteinIfNeeded() {
+        if (!this.showAgentforceSummary || !this.profileData || !this._recordId) {
+            return;
+        }
+        const tmpl = String(this.agentforceSummaryPromptTemplateId || '').trim();
+        if (!tmpl) {
+            return;
+        }
+        if (this.autoGenerateAgentforceSummary === false) {
+            return;
+        }
+        try {
+            const payload = await getAgentforceOverviewSummary({
+                recordId: this._recordId,
+                agentforceSummaryPromptTemplateId: tmpl,
+                agentforceSummaryPromptInputApiName:
+                    this.agentforceSummaryPromptInputApiName || 'Input:Account.Id'
+            });
+            const ein = JSON.parse(payload);
+            const summary = String(ein.agentforceSummary ?? '').trim();
+            const hint = String(ein.agentforceSummaryPromptHint ?? '').trim();
+            this.profileData = {
+                ...this.profileData,
+                ...(summary ? { agentforceSummary: ein.agentforceSummary } : {}),
+                agentforceSummaryPromptHint: hint
+            };
+        } catch (e) {
+            const msg = this.reduceError(e);
+            this.profileData = {
+                ...this.profileData,
+                agentforceSummaryPromptHint: msg
+            };
         }
     }
 
@@ -2007,6 +2092,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             fieldDepositYtd: this.fieldDepositYtd,
             fieldInvestmentBalance: this.fieldInvestmentBalance,
             fieldInterestExpense: this.effectiveInterestExpenseMappingForApex(),
+            fieldAgentforceSummary: this.fieldAgentforceSummary,
             fieldCustomerSince: this.fieldCustomerSince,
             fieldPrimaryRm: this.fieldPrimaryRm,
             fieldActiveProducts: this.fieldActiveProducts,
@@ -2466,6 +2552,43 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             key: 'cr-' + i,
             valClass: ['wp-field-val', r.cls].filter(Boolean).join(' ')
         }));
+    }
+
+    get showAgentforceSummaryBlock() {
+        if (!this.showOverviewTab || !this.showAgentforceSummary) {
+            return false;
+        }
+        const map = String(this.fieldAgentforceSummary || '').trim();
+        const tmpl = String(this.agentforceSummaryPromptTemplateId || '').trim();
+        if (tmpl) {
+            return true;
+        }
+        return map !== '';
+    }
+
+    get agentforceSummarySectionTitle() {
+        const t = (this.agentforceSummarySectionLabel || '').trim();
+        return t || 'Agentforce summary';
+    }
+
+    get agentforceSummaryDisplay() {
+        return String(this.profileData?.agentforceSummary ?? '').trim();
+    }
+
+    get hasAgentforceSummaryText() {
+        return this.agentforceSummaryDisplay.length > 0;
+    }
+
+    get agentforceSummaryEmptyMessage() {
+        const tmpl = String(this.agentforceSummaryPromptTemplateId || '').trim();
+        if (tmpl) {
+            return 'No summary returned yet. Confirm Einstein Generative AI and prompt template access. Apex calls the template with both Input:Account.Id (Id string) and Input:Account (record) in one request; App Builder can be set to either API name.';
+        }
+        return 'No summary returned yet. Confirm your assembly Flow assigns the mapped variable and marks it Available for output.';
+    }
+
+    get agentforceSummaryPromptHint() {
+        return String(this.profileData?.agentforceSummaryPromptHint ?? '').trim();
     }
 
     get companyFields() {

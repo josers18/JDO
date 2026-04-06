@@ -17,7 +17,10 @@ Short recipes for common configuration tasks. Full property list: [COMPONENT_REF
 1. Set **Profile assembly Flow API name** to an **autolaunched** Flow.  
 2. Add a Flow input for the **Account Id**; its API name must match **Flow record Id variable** (default `recordId`).  
 3. In the **Field: …** property, enter **`flow:Your_Output_Variable_Api_Name`** (prefix `flow:` is required for Flow-sourced slots in the field map).  
-4. Ensure that variable is assigned before the Flow finishes.
+4. Ensure that variable is assigned before the Flow finishes and marked **Available for output** so Apex can read it after `start()`.  
+5. **Agentforce summary (Overview):**  
+   - **Einstein on load:** Set **Agentforce summary: prompt template ID** (and optional input API name; default **`Input:Account.Id`**). The LWC calls **`getAgentforceOverviewSummary`** after the main profile load so Einstein runs in its own Apex request. Apex sends **`Input:Account.Id`** and **`Input:Account`** together. Clear **Auto-generate Agentforce summary (Overview)** to skip.  
+   - **Or** set **Field: Agentforce summary** to **`flow:YourSummaryVariable`** on the **assembly** Flow (or an Account long-text field). The card appears **above Company**.
 
 ---
 
@@ -30,7 +33,8 @@ If **Profile assembly Flow API name** and **Autolaunched flow API name (predicti
 ## Change themes and typography
 
 - **Theme** lists **42** presets (obsidian default, banking/wealth families, etc.).  
-- Override **Accent color** and optional text color overrides as needed.  
+- Override **Accent color** and optional **Text color — primary / secondary / muted** as needed.  
+- **AI summary text color** (optional): sets the font color for **generated** Overview Agentforce summary text and the Insight tab AI summary body; leave blank to use the theme’s secondary text color.  
 - **Text size (%)** and **Emphasis** match the Customer Profile Widget behavior.
 
 ---

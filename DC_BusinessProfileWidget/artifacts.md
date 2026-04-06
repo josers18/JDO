@@ -8,7 +8,7 @@ Inventory of **`force-app/main/default/`**.
 
 | File | Role |
 |------|------|
-| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, **`enrichActiveFinancialAccountsAndPipeline`** (open Opps with configurable **`LIMIT`** up to 2000 + FinServ Financial Account count when available), geocode, JSON result. |
+| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, **`enrichActiveFinancialAccountsAndPipeline`** (open Opps with configurable **`LIMIT`** up to 2000 + FinServ Financial Account count when available), geocode, JSON result. **`getAgentforceOverviewSummary`** — separate Aura method for Overview Einstein (**Connect** dual **`Input:Account.Id`** + **`Input:Account`**, anonymous-parity path, `without sharing` Connect bridge). |
 | `classes/BusinessProfileWidgetControllerTest.cls` | Unit tests. |
 
 ---

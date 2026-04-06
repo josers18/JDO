@@ -1403,13 +1403,30 @@ button.wp-record-link:hover {
 
 .wp-ai-summary {
     font-size: calc(12px * var(--wp-text-scale, 1));
-    color: var(--wp-text-secondary);
+    color: var(--wp-ai-summary-text, var(--wp-text-secondary));
     line-height: 1.65;
     margin: 0;
 }
 
 .wp-ai-summary--err {
     color: var(--wp-negative);
+}
+
+.wp-agentforce-summary {
+    white-space: pre-wrap;
+}
+
+.wp-agentforce-summary--empty {
+    color: var(--wp-text-tertiary);
+    font-style: italic;
+}
+
+.wp-agentforce-summary-hint {
+    margin-top: 8px;
+    font-size: calc(11px * var(--wp-text-scale, 1));
+    line-height: 1.35;
+    color: var(--wp-warning, #d4900a);
+    white-space: pre-wrap;
 }
 
 .wp-improve-section {
