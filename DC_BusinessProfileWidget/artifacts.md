@@ -31,9 +31,15 @@ Inventory of **`force-app/main/default/`**.
 
 ---
 
+## Profiles
+
+| File | Role |
+|------|------|
+| `profiles/Standard.profile-meta.xml` | Grants **Apex class access** on the **Standard** profile for **BusinessProfileWidgetController** and the other JDO LWC controllers (Customer Profile, Prediction Model, Multiclass, AgentForce Output, Query to Table, **LlmOutputSanitizer**). Deploy with this package. |
+
 ## Permission sets
 
-None shipped. Grant **Apex class access** to **`BusinessProfileWidgetController`** in your org.
+No dedicated permission set for this widget; use the Standard profile patch above or grant **Apex class access** manually.
 
 ---
 

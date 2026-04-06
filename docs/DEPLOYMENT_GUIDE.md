@@ -58,11 +58,15 @@ Adjust `--test-level` per your pipeline.
 | DC_Query_to_Table_LWC | **DC Query to Table User** (`DC_Query_to_Table_User`) | `DcQueryToTableController` |
 | DC_PersonProfileWidget | **Customer Profile Widget User** (`Customer_Profile_Widget_User`) | `CustomerProfileWidgetController` |
 | DC_PersonProfileWidget | **Customer Profile Widget DataCloud Callout** (`Customer_Profile_Widget_DC_Callout`) | External Credential principal `D360-DataCloud_Integration` |
-| DC_BusinessProfileWidget | *(none shipped)* | Enable **`BusinessProfileWidgetController`** on a profile or custom permission set |
+| DC_BusinessProfileWidget | **Standard profile patch** (see below) | `profiles/Standard.profile-meta.xml` enables all JDO LWC Apex classes on the **Standard** profile when deployed from this package |
 
 Assign **Customer_Profile_Widget_User** for the Person Profile Widget; optional **Customer_Profile_Widget_DC_Callout** only if you use the shipped Named Credential for other callouts. See [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
 
-For **Business Profile Widget**, assign **Apex class access** as in [DC_BusinessProfileWidget/docs/SETUP.md](../DC_BusinessProfileWidget/docs/SETUP.md).
+### Standard profile — JDO Apex (Business Profile package)
+
+The **DC_BusinessProfileWidget** project includes **`profiles/Standard.profile-meta.xml`**, which grants **Apex class access** on the org’s **Standard** profile for every JDO widget controller: **`BusinessProfileWidgetController`**, **`CustomerProfileWidgetController`**, **`ClassificationModelLwcController`**, **`MulticlassPredictionLwcController`**, **`DcAgentforceOutputController`**, **`DcQueryToTableController`**, and **`LlmOutputSanitizer`**. Deploy that file (or the whole `force-app` from **DC_BusinessProfileWidget**) so **Standard** users can run the LWCs without separate permission sets for those classes. You still need object/field access, **Run Flow**, Data Cloud rights, etc., per component docs.
+
+For orgs that use a different primary profile (e.g. **Minimum Access**), enable the same classes on that profile in Setup or clone the pattern into another profile metadata file.
 
 **Setup → Permission Sets →** (open set) **→ Manage Assignments** for users or permission set groups. You still need **Run Flow**, **object/field** access, **Data Cloud** query rights, and **Einstein** features per component—see each project’s `docs/SETUP_GUIDE.md` or `docs/REQUIREMENTS.md`.
 

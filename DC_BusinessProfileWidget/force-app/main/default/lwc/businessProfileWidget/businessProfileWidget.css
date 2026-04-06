@@ -495,7 +495,7 @@
     font: inherit;
     font-weight: 600;
     font-size: calc(12px * var(--wp-text-scale, 1));
-    color: #7898cc;
+    color: var(--wp-accent);
     cursor: pointer;
     text-align: center;
     text-decoration: underline;
@@ -506,7 +506,7 @@
 }
 
 .wp-pipeline-name:hover {
-    color: var(--wp-accent);
+    filter: brightness(1.12);
 }
 
 .wp-pipeline-amt {
@@ -543,7 +543,7 @@
 }
 
 .wp-td-link {
-    color: #7898cc !important;
+    color: var(--wp-accent) !important;
 }
 
 .wp-td-muted {
@@ -679,6 +679,13 @@
     flex-shrink: 0;
 }
 
+.wp-wf-hint {
+    margin: 4px 0 0;
+    color: var(--wp-warning);
+    line-height: 1.35;
+    max-width: 42em;
+}
+
 .wp-risk-matrix {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -696,6 +703,11 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     color: var(--wp-text-tertiary);
+}
+
+.wp-rm-cell--wallet {
+    background: var(--wp-accent-bg);
+    color: var(--wp-accent-dim);
 }
 
 .wp-credit-hero {

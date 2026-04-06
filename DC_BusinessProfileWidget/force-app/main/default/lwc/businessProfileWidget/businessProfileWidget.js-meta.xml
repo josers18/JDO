@@ -16,7 +16,7 @@
             </objects>
 
             <property name="flowApiName" type="String" label="Profile assembly Flow API name"
-                description="Optional autolaunched flow. Must accept the Account Id on the variable named in Flow record Id variable (default recordId). In each field mapping below, use flow:OutputVariableApiName for a flow output, or an Account field path for SOQL (e.g. Name, BillingCity, Custom__c, Owner.Name); paths are validated against the Account schema."
+                description="Required whenever any Field uses flow:VariableApiName (including interest expense). Autolaunched flow only; must accept the Account Id on the variable named in Flow record Id variable (default recordId). Flow variables must be Available for output or Apex cannot read them. Otherwise use Account field paths for SOQL (e.g. Name, BillingCity, Custom__c)."
             />
             <property name="flowRecordIdVariable" type="String" label="Flow record Id variable" default="recordId"
                 description="Input variable API name on the assembly flow that receives the current Account Id." />
@@ -71,12 +71,12 @@
 
             <property name="themeMode" type="String" label="Theme" default="obsidian"
                 datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
-                description="42 themes across 8 families. ORIGINAL: obsidian (default), midnight, graphite, ivory. NEUTRALS: dusk, slate, parchment, onyx, fog. GREENS/ORANGES: forest, ember, sage, copper, verdant. BLUES/GREYS: steel, mercury, arctic, indigo, glacier. MID-TONES: bordeaux, pewter, walnut, denim, moss. SF LIGHT: birch, mist, cashew, mineral, blush, chamois. WEALTH MGMT: bullion, prussian, coutts, vault, endowment, trust. BANKING: cobalt, heritage, civic, cardinal, meridian, union. Wealth and banking themes require a matching accentColor override — see documentation." />
+                description="42 themes across 8 families. ORIGINAL: obsidian (default), midnight, graphite, ivory. NEUTRALS: dusk, slate, parchment, onyx, fog. GREENS/ORANGES: forest, ember, sage, copper, verdant. BLUES/GREYS: steel, mercury, arctic, indigo, glacier. MID-TONES: bordeaux, pewter, walnut, denim, moss. SF LIGHT: birch, mist, cashew, mineral, blush, chamois. WEALTH MGMT: bullion, prussian, coutts, vault, endowment, trust. BANKING: cobalt, heritage, civic, cardinal, meridian, union. For banking blues, either set Accent color to a blue hex or clear Accent color to use theme-derived tab chrome — see documentation." />
             <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
                 description="When true, shows 4 theme toggle buttons in the widget header for live switching during demos. Keep false in production." />
 
             <property name="accentColor" type="String" label="Accent color (hex)" default="#b8956a"
-                description="Primary highlight color. Overrides theme default." />
+                description="Primary highlight (#rgb or #rrggbb). Default gold is applied as-is. Clear the field to derive accent from the selected theme tab chrome (e.g. blue on cobalt)." />
             <property name="warningColor" type="String" label="Warning color (hex)" default="#d4900a" />
             <property name="negativeColor" type="String" label="Negative color (hex)" default="#c05070" />
             <property name="positiveColor" type="String" label="Positive color (hex)" default="#5a9e7a"
@@ -128,7 +128,10 @@
             <property name="fieldLoanUtilization" type="String" label="Field: loan utilization" default="loanUtilizationPct" />
             <property name="fieldDepositYtd" type="String" label="Field: deposits YTD" default="depositYtd" />
             <property name="fieldInvestmentBalance" type="String" label="Field: investment balance" default="investmentBalance" />
-            <property name="fieldInterestExpense" type="String" label="Field: interest expense" default="interestExpense" />
+            <property name="fieldInterestExpense" type="String" label="Field: interest expense" default=""
+                description="Account field API path for SOQL (e.g. interestExpense__c) or flow:VariableApiName for the assembly Flow — same pattern as deposits / investments. Leave blank to fall back to the legacy interest property (if set) or demo default interestExpense." />
+            <property name="assemblyOutInterestExpense" type="String" label="[Deprecated] Interest expense (legacy)" default=""
+                description="Deprecated. Use Field: interest expense only. Left in metadata because existing Lightning pages may still reference this property; it is used only when Field: interest expense is blank." />
             <property name="fieldCustomerSince" type="String" label="Field: customer since" default="customerSince" />
             <property name="fieldPrimaryRm" type="String" label="Field: primary RM" default="primaryRelationshipManager"
                 description="Use Owner.Name for the relationship owner, or map OwnerId / a User Id (005…); Apex resolves User Id to the user’s display name." />

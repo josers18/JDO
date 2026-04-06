@@ -852,14 +852,7 @@ const THEMES = {
 
 const BUSINESS_DEFAULT_ACCENT = '#b8956a';
 
-function normColor(v) {
-    return String(v == null ? '' : v)
-        .trim()
-        .replace(/\s+/g, '')
-        .toLowerCase();
-}
-
-/** Solid hex from theme chrome (--wp-tab-border rgba) when accentColor is still the designer default. */
+/** Solid hex from theme chrome (--wp-tab-border rgba) when accentColor is left blank (pair with banking/blue themes). */
 function accentHexFromThemeTokens(tokens) {
     if (!tokens) {
         return null;
@@ -878,14 +871,23 @@ function accentHexFromThemeTokens(tokens) {
     return `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
 }
 
+/**
+ * Accent for --wp-accent. Any non-empty App Builder value wins (including the default gold hex).
+ * Empty string → derive from theme tab chrome, else BUSINESS_DEFAULT_ACCENT.
+ * (Previously, default gold matched BUSINESS_DEFAULT_ACCENT and was wrongly replaced by theme blue.)
+ */
 function resolveBusinessAccentHex(accentColorProp, themeMode) {
-    if (normColor(accentColorProp) !== normColor(BUSINESS_DEFAULT_ACCENT)) {
-        const t = String(accentColorProp == null ? '' : accentColorProp).trim();
-        return t || BUSINESS_DEFAULT_ACCENT;
+    const t = String(accentColorProp == null ? '' : accentColorProp).trim();
+    if (!t) {
+        const mode = (themeMode || 'obsidian').toLowerCase();
+        const tok = THEMES[mode] || THEMES.obsidian;
+        return accentHexFromThemeTokens(tok) || BUSINESS_DEFAULT_ACCENT;
     }
-    const mode = (themeMode || 'obsidian').toLowerCase();
-    const tok = THEMES[mode] || THEMES.obsidian;
-    return accentHexFromThemeTokens(tok) || BUSINESS_DEFAULT_ACCENT;
+    const hex = normalizeOptionalCssColor(t);
+    if (hex && /^#[0-9a-f]{6}$/i.test(hex)) {
+        return hex;
+    }
+    return BUSINESS_DEFAULT_ACCENT;
 }
 
 /** Solid #hex tokens blended toward white when backgroundLightenPercent is greater than 0. */
@@ -1643,7 +1645,13 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     @api fieldLoanUtilization = 'loanUtilizationPct';
     @api fieldDepositYtd = 'depositYtd';
     @api fieldInvestmentBalance = 'investmentBalance';
-    @api fieldInterestExpense = 'interestExpense';
+    @api fieldInterestExpense = '';
+
+    /**
+     * @deprecated Kept for Lightning pages that still store this attribute; not shown as a primary control.
+     * Still honored when Field: interest expense is blank or left as the demo token interestExpense (see effectiveInterestExpenseMappingForApex).
+     */
+    @api assemblyOutInterestExpense = '';
     @api fieldCustomerSince = 'customerSince';
     @api fieldPrimaryRm = 'primaryRelationshipManager';
     @api fieldActiveProducts = 'activeProductCount';
@@ -1998,7 +2006,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             fieldLoanUtilization: this.fieldLoanUtilization,
             fieldDepositYtd: this.fieldDepositYtd,
             fieldInvestmentBalance: this.fieldInvestmentBalance,
-            fieldInterestExpense: this.fieldInterestExpense,
+            fieldInterestExpense: this.effectiveInterestExpenseMappingForApex(),
             fieldCustomerSince: this.fieldCustomerSince,
             fieldPrimaryRm: this.fieldPrimaryRm,
             fieldActiveProducts: this.fieldActiveProducts,
@@ -2042,6 +2050,40 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             fieldMapLatitude: this.fieldMapLatitude,
             fieldMapLongitude: this.fieldMapLongitude
         });
+    }
+
+    /**
+     * Interest expense for fieldMappingsJson. Order:
+     * 1) Primary starts with flow: → use it (trimmed).
+     * 2) Legacy flow (deprecated prop) if primary is blank OR still the old demo token "interestExpense" — otherwise
+     *    a flow value in legacy was ignored when primary kept the default SOQL name (common bug → waterfall $0).
+     * 3) Non-flow primary (SOQL path).
+     * 4) Legacy non-flow.
+     * 5) Demo default interestExpense.
+     */
+    effectiveInterestExpenseMappingForApex() {
+        const primary = this.fieldInterestExpense != null ? String(this.fieldInterestExpense).trim() : '';
+        const legacyRaw = this.assemblyOutInterestExpense != null ? String(this.assemblyOutInterestExpense).trim() : '';
+        const legacyFlow = legacyRaw
+            ? legacyRaw.toLowerCase().startsWith('flow:')
+                ? legacyRaw
+                : `flow:${legacyRaw}`
+            : '';
+
+        if (primary.toLowerCase().startsWith('flow:')) {
+            return primary;
+        }
+        const primaryIsDefaultSoqlToken = !primary || primary.toLowerCase() === 'interestexpense';
+        if (legacyFlow && primaryIsDefaultSoqlToken) {
+            return legacyFlow;
+        }
+        if (primary) {
+            return primary;
+        }
+        if (legacyFlow) {
+            return legacyFlow;
+        }
+        return 'interestExpense';
     }
 
     /** Single mapping line: field path or flow:Var; legacy assembly props only if field is blank. */
@@ -2277,6 +2319,16 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             fillStyle: `width:${pct(r.value)}%;background:${r.color}`,
             formattedVal: this.formatCurrency(r.value)
         }));
+    }
+
+    /** Apex sets this when flow: mappings cannot run or interest expense Flow output was not readable. */
+    get assemblyFlowHintMessage() {
+        const h = this.profileData?.assemblyFlowHint;
+        if (h == null) {
+            return '';
+        }
+        const t = String(h).trim();
+        return t;
     }
 
     formatBureauValue(v) {

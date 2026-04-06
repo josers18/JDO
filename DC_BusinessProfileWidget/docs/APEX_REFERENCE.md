@@ -13,7 +13,7 @@ Returns a **JSON string** representing **`BusinessProfileResult`** (the LWC pars
 |-----------|---------|
 | `recordId` | **Account** Id (required; Aura throws if blank). |
 | `fieldMappingsJson` | JSON object: logical keys → Account field path or `flow:VarName`. Built by the LWC from **Field: …** properties. |
-| `flowApiName` | Profile **assembly** Flow API name. |
+| `flowApiName` | Profile **assembly** Flow API name. **Required** whenever any entry in `fieldMappingsJson` uses a **`flow:`** token; otherwise those slots are not filled from Flow. |
 | `flowRecordIdVariable` | Assembly Flow input for Account Id (default `recordId`). |
 | `insightFlowApiName` | Optional Insight/prediction Flow API name. |
 | `insightFlowRecordIdVariable` | Insight Flow record Id input (default `recordId`). |
@@ -54,6 +54,9 @@ Throws **`AuraHandledException`** on failure.
 | **`pipelineOpenOpportunities`** | `List<PipelineOpportunityRow>` — open **Opportunity** rows for this Account (`id`, `name`, `stageName`, `amount`). Populated in **`enrichActiveFinancialAccountsAndPipeline`** when Opportunity fields are accessible. Row count follows **`pipelineOpportunityLimit`** on **`getProfileData`** (see parameter table above). |
 | **`activeProducts`** | May be set from **`COUNT()`** of active **`FinServ__FinancialAccount__c`** rows for the Account when that object and an Account lookup field resolve; otherwise from field mapping as before. |
 | **`activeProductsReflectsFinancialAccounts`** | `true` when **`activeProducts`** came from the live Financial Account query (not field-mapping only). |
+| **`assemblyFlowHint`** | Optional **String**. Set when **`flow:`** mappings cannot be applied or **interest expense** could not be read from the assembly interview after `start()` (missing assembly Flow API name, flow fault, variable not **Available for output**, subflow-only assignment, etc.). The LWC surfaces this under **Liquidity waterfall**. |
+
+Numeric Flow outputs use **`decVal`**, including plain **Decimal** / **Double** / **Integer** values and some **map-shaped** currency payloads (keys such as `amount` / `value`).
 
 See inner classes **`PipelineOpportunityRow`** and **`BusinessProfileResult`** in `BusinessProfileWidgetController.cls`.
 

@@ -9,13 +9,14 @@ Plain-language view of how data reaches the card.
 1. User opens an **Account** record; the platform sets **`recordId`** on the LWC.  
 2. **`businessProfileWidget`** calls **`BusinessProfileWidgetController.getProfileData`** with **`fieldMappingsJson`** (built from every **Field: …** `@api` property), assembly Flow name, optional Insight Flow names, **`geocodeBillingAddress`**, and **`pipelineOpportunityLimit`** (from the **Pipeline: max open opportunities** property: **0** or omitted → server uses up to **2000** open Opportunities).  
 3. Apex **`buildFromSoql`** queries **Account** with columns inferred from non-`flow:` mappings.  
-4. **`mergeFlowIntoProfile`** runs the assembly Flow when needed and copies **`flow:`** outputs into **`BusinessProfileResult`**.  
-5. **`mergeInsightFromFlow`** adds prediction and recommendations (reusing the assembly interview when API names match).  
-6. **`enrichStructureTabData`** loads key contacts and related-account org chart data.  
-7. **`enrichActiveFinancialAccountsAndPipeline`** (best effort) sets **`activeProducts`** from active **FinServ Financial Accounts** when available, **`activeProductsReflectsFinancialAccounts`**, and **`pipelineOpenOpportunities`** for open **Opportunities** on the Account (SOQL **`LIMIT`** from **`pipelineOpportunityLimit`**, max **2000**, ordered by amount descending then name).  
-8. Optional **geocode** runs if coordinates are missing and geocoding is enabled.  
-9. **`primaryRm`** may resolve from User Id to display name.  
-10. The controller returns **JSON**; the LWC **`JSON.parse`**s it and renders.
+4. **`mergeFlowIntoProfile`** runs the assembly Flow when needed and copies **`flow:`** outputs into **`BusinessProfileResult`** (via `getVariableValue` with tolerant name matching).  
+5. When configuration blocks Flow assembly (for example any `flow:` mapping but a blank assembly API name), the flow faults, or **interest expense** is `flow:`-mapped but Apex still has no numeric value after a successful interview, Apex sets **`assemblyFlowHint`** on the result; the LWC shows it as an orange note under **Liquidity waterfall**.  
+6. **`mergeInsightFromFlow`** adds prediction and recommendations (reusing the assembly interview when API names match).  
+7. **`enrichStructureTabData`** loads key contacts and related-account org chart data.  
+8. **`enrichActiveFinancialAccountsAndPipeline`** (best effort) sets **`activeProducts`** from active **FinServ Financial Accounts** when available, **`activeProductsReflectsFinancialAccounts`**, and **`pipelineOpenOpportunities`** for open **Opportunities** on the Account (SOQL **`LIMIT`** from **`pipelineOpportunityLimit`**, max **2000**, ordered by amount descending then name).  
+9. Optional **geocode** runs if coordinates are missing and geocoding is enabled.  
+10. **`primaryRm`** may resolve from User Id to display name.  
+11. The controller returns **JSON**; the LWC **`JSON.parse`**s it and renders.
 
 ---
 

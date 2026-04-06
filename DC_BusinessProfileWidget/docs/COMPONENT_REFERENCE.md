@@ -49,7 +49,7 @@ Each **`field*`** property is sent in **`fieldMappingsJson`** as a logical key (
 | `fieldFounded` | `CreatedDate` (year from Created Date; blank → auto-discovery) |
 | `fieldSicCode`, `fieldSicDescription`, `fieldTaxId` | demo API names |
 | `fieldTierSegment`, `fieldRevenue`, `fieldRevenueGrowth` | demo API names |
-| `fieldLoanBalance`, `fieldLoanLimit`, `fieldLoanUtilization`, `fieldDepositYtd`, `fieldInvestmentBalance`, `fieldInterestExpense` | demo API names |
+| `fieldLoanBalance`, `fieldLoanLimit`, `fieldLoanUtilization`, `fieldDepositYtd`, `fieldInvestmentBalance`, `fieldInterestExpense` | Account path or **`flow:Var`** (same pattern); liquidity waterfall **Int. expense** reads `interestExpense` from the result. **`flow:` requires Profile assembly Flow API name** on the component; Flow variables must be **Available for output** (see [FLOW_GUIDE.md](FLOW_GUIDE.md) troubleshooting). An orange hint may appear under the waterfall when configuration blocks Apex from reading Flow outputs. Default for **Field: interest expense** is blank (falls back to demo `interestExpense` SOQL). **`[Deprecated] Interest expense (legacy)`** is still honored when the primary field is blank **or** still the demo token `interestExpense` while legacy holds **`flow:Var`**. |
 | `fieldCustomerSince`, `fieldPrimaryRm`, `fieldActiveProducts` | demo API names; **`activeProducts`** may be **overwritten** by a live **Financial Account** count when FinServ is present (see **Live CRM enrichments**) |
 | `fieldSubsidiaries` | legacy binding; Overview subsidiary count comes from related-account graph |
 | `fieldLastInteraction` | `lastInteractionDate` |
@@ -129,7 +129,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 |----------|--------|
 | `themeMode` | 42 presets (see meta `datasource`). |
 | `showThemeSwitcher` | Demo-only four-button switcher. |
-| `accentColor`, `warningColor`, `negativeColor`, `positiveColor` | Hex overrides. |
+| `accentColor`, `warningColor`, `negativeColor`, `positiveColor` | Hex overrides. **`accentColor`:** any value you set (including the default gold) is used for tabs, links, tier chip, KPI “up” deltas, etc. **Clear** the property in App Builder to derive accent from the theme’s tab chrome (e.g. banking blues). |
 | `backgroundLightenPercent` | 0–50 mixes white into solid backgrounds. |
 | `textColorPrimaryOverride`, `Secondary`, `Tertiary` | Optional hex/rgba. |
 | `textScalePercent` | 85–160. |

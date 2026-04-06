@@ -69,6 +69,28 @@ private class BusinessProfileWidgetControllerTest {
     }
 
     @IsTest
+    static void testAssemblyFlowHintWhenFlowMappingWithoutFlowApiName() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        String fieldMappingsJson = JSON.serialize(
+            new Map<String, String>{
+                'fieldCompanyName' => 'Name',
+                'fieldInterestExpense' => 'flow:InterestExpenseVar'
+            }
+        );
+
+        Test.startTest();
+        String result = BusinessProfileWidgetController.getProfileData(acc.Id, fieldMappingsJson, '', '', '', '', '', '', true, null);
+        Test.stopTest();
+
+        Map<String, Object> parsed = (Map<String, Object>) JSON.deserializeUntyped(result);
+        System.assertNotEquals(null, parsed.get('assemblyFlowHint'));
+        System.assert(
+            String.valueOf(parsed.get('assemblyFlowHint')).contains('assembly'),
+            'Hint should mention assembly flow configuration'
+        );
+    }
+
+    @IsTest
     static void testStructureTabKeyContactsAndOrgChartFromCrm() {
         Account acc = [SELECT Id FROM Account LIMIT 1];
         Account child = new Account(Name = 'Child Sub Inc', ParentId = acc.Id, Type = 'Customer');

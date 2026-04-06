@@ -242,6 +242,9 @@
                                     </div>
                                 </template>
                             </div>
+                            <template lwc:if={assemblyFlowHintMessage}>
+                                <p class="wp-wf-hint slds-text-body_small">{assemblyFlowHintMessage}</p>
+                            </template>
                         </div>
                     </template>
 
@@ -268,7 +271,7 @@
                             <div class="wp-rm-cell" style="background: rgba(255,255,255,0.03)"></div>
 
                             <div class="wp-rm-cell" style="background: rgba(255,255,255,0.04)"></div>
-                            <div class="wp-rm-cell" style="background: rgba(120,152,200,0.12); color: #7898cc">
+                            <div class="wp-rm-cell wp-rm-cell--wallet">
                                 WALLET
                             </div>
                             <div class="wp-rm-cell" style="background: rgba(255,255,255,0.05)"></div>

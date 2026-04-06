@@ -4,7 +4,7 @@ A **rich business account profile card** for Salesforce **Account** record pages
 
 **Pipeline tab:** Lists **open Opportunities** on the Account (name link, stage, amount). In **Lightning App Builder**, **Pipeline: max open opportunities** defaults to **0**, which loads up to **2000** rows (server cap; practical “all” for one Account). Set **1–2000** to cap the list. The Pipeline card scrolls when the list is long. **Active products** on Overview can show a **live count of active FinServ Financial Accounts** when `FinServ__FinancialAccount__c` exists; otherwise the mapped **Active products** field is shown as before (**N facilities**). **Overview**, **Credit → Facilities**, and **Structure → Unified relationships** use **SLDS icons** next to labels (same visual language as the Customer Profile Widget).
 
-**In everyday terms:** Each **field mapping** in App Builder can be either an **Account field path** (for example `BillingCity`, `Owner.Name`, `Custom__c`) or **`flow:OutputVariableApiName`** so a Flow fills that slot. The server validates Account paths and runs the assembly Flow only when at least one mapping needs Flow output.
+**In everyday terms:** Each **field mapping** in App Builder can be either an **Account field path** (for example `BillingCity`, `Owner.Name`, `Custom__c`) or **`flow:OutputVariableApiName`** so a Flow fills that slot. The server validates Account paths and runs the assembly Flow only when at least one mapping needs Flow output. Any **`flow:`** mapping requires **Profile assembly Flow API name** on the component and Flow variables marked **Available for output**; if something is misconfigured, an **orange hint** may appear under **Liquidity waterfall** (see [docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md)).
 
 <div align="center">
 

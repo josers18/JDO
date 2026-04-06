@@ -278,8 +278,28 @@ public with sharing class BusinessProfileWidgetController {
         }
         Id accId = (Id) recordId;
 
+        Boolean anyFlowMapping = false;
+        for (String mapVal : fieldMappings.values()) {
+            if (isFlowToken(mapVal)) {
+                anyFlowMapping = true;
+                break;
+            }
+        }
+
         BusinessProfileResult profile = buildFromSoql(recordId, fieldMappings);
+        if (anyFlowMapping && String.isBlank(flowApiName)) {
+            profile.assemblyFlowHint =
+                'Set Profile assembly Flow API name on this component. Without it, flow: field mappings (including interest expense) are not applied.';
+        }
+
         Flow.Interview fieldInterview = mergeFlowIntoProfile(profile, fieldMappings, flowApiName, accId, flowRecordIdVariable);
+
+        if (anyFlowMapping && String.isNotBlank(flowApiName) && fieldInterview == null && profile.assemblyFlowHint == null) {
+            profile.assemblyFlowHint =
+                'Assembly flow did not complete successfully; flow: values may be missing. Check Flow fault emails and Apex debug logs.';
+        }
+
+        applyInterestExpenseFlowHintIfNeeded(profile, fieldMappings, fieldInterview);
         mergeInsightFromFlow(
             profile,
             accId,
@@ -411,6 +431,29 @@ public with sharing class BusinessProfileWidgetController {
         return null;
     }
 
+    /**
+     * When interest expense is mapped with flow: and the interview ran but the slot is still empty, surface a Flow Builder fix
+     * (Available for output, subflow → parent assignment).
+     */
+    private static void applyInterestExpenseFlowHintIfNeeded(
+        BusinessProfileResult profile,
+        Map<String, String> fieldMappings,
+        Flow.Interview interview
+    ) {
+        if (profile == null || fieldMappings == null || profile.assemblyFlowHint != null) {
+            return;
+        }
+        String m = fieldMappings.get('fieldInterestExpense');
+        if (!isFlowToken(m) || interview == null) {
+            return;
+        }
+        if (profile.interestExpense != null) {
+            return;
+        }
+        profile.assemblyFlowHint =
+            'Interest expense is flow:-mapped but Apex did not read a number. In Flow Builder, mark that variable Available for output. If the value is set in a subflow, assign it to a variable on the assembly flow this widget runs.';
+    }
+
     /** Mapping value starts with flow: — filled from autolaunched Flow output variable (API name after prefix). */
     private static Boolean isFlowToken(String mappingValue) {
         if (String.isBlank(mappingValue)) {
@@ -420,7 +463,12 @@ public with sharing class BusinessProfileWidgetController {
     }
 
     private static String flowVariableApiName(String mappingValue) {
-        return mappingValue.trim().substring(5).trim();
+        String t = mappingValue.trim().replaceFirst('^\\uFEFF', '');
+        Integer idx = t.toLowerCase().indexOf('flow:');
+        if (idx >= 0) {
+            return t.substring(idx + 'flow:'.length()).trim().replaceFirst('^\\uFEFF', '').trim();
+        }
+        return t.length() > 5 ? t.substring(5).trim() : t;
     }
 
     private static void mergeFoundedCandidatesIntoSelect(Set<String> selectParts) {
@@ -688,7 +736,7 @@ public with sharing class BusinessProfileWidgetController {
                 if (!isFlowToken(v)) {
                     continue;
                 }
-                Object ov = interview.getVariableValue(flowVariableApiName(v));
+                Object ov = resolveFlowOutput(interview, flowVariableApiName(v));
                 applyMappingObjectToResult(mapKey, ov, r);
             }
             return interview;
@@ -754,36 +802,76 @@ public with sharing class BusinessProfileWidgetController {
         r.recommendationsJson = flowOutputToJsonString(resolveFlowOutput(interview, recVar));
     }
 
-    private static Object resolveFlowOutput(Flow.Interview interview, String apiName) {
-        if (String.isBlank(apiName)) {
+    /** Insert underscores between lowercase-then-uppercase boundaries (InterestExpenseVar → Interest_Expense_Var). */
+    private static String insertLowerUpperUnderscores(String s) {
+        if (String.isBlank(s)) {
+            return s;
+        }
+        return s.replaceAll('([a-z])([A-Z])', '$1_$2');
+    }
+
+    /**
+     * If name ends with Var (any case), return the base without that suffix for alternate getVariableValue lookups.
+     */
+    private static String stripTrailingVarSuffix(String s) {
+        if (String.isBlank(s) || s.length() < 5) {
             return null;
         }
-        String trimmed = apiName.trim();
-        Object value = interview.getVariableValue(trimmed);
-        if (value != null) {
-            return value;
+        if (s.toLowerCase().endsWith('var')) {
+            return s.substring(0, s.length() - 3);
         }
-        String spacedToUnderscore = trimmed.replaceAll('\\s+', '_');
-        if (!spacedToUnderscore.equals(trimmed)) {
-            value = interview.getVariableValue(spacedToUnderscore);
+        return null;
+    }
+
+    private static void addFlowLookupCandidate(Set<String> seen, List<String> order, String candidate) {
+        if (String.isBlank(candidate) || seen.contains(candidate)) {
+            return;
+        }
+        seen.add(candidate);
+        order.add(candidate);
+    }
+
+    /**
+     * Ordered unique names to try with Flow.Interview.getVariableValue — Flow runtimes differ on PascalCase vs camelCase,
+     * underscores, and trailing Var suffixes.
+     */
+    private static List<String> flowVariableLookupCandidates(String raw) {
+        Set<String> seen = new Set<String>();
+        List<String> order = new List<String>();
+        if (String.isBlank(raw)) {
+            return order;
+        }
+        String trimmed = raw.trim().replaceFirst('^\\uFEFF', '');
+        addFlowLookupCandidate(seen, order, trimmed);
+        addFlowLookupCandidate(seen, order, trimmed.replaceAll('\\s+', '_'));
+        addFlowLookupCandidate(seen, order, trimmed.toLowerCase());
+        if (trimmed.length() > 0) {
+            addFlowLookupCandidate(seen, order, trimmed.substring(0, 1).toUpperCase() + trimmed.substring(1));
+        }
+        if (trimmed.length() > 1) {
+            addFlowLookupCandidate(seen, order, trimmed.substring(0, 1).toLowerCase() + trimmed.substring(1));
+        }
+        addFlowLookupCandidate(seen, order, insertLowerUpperUnderscores(trimmed));
+        String noVar = stripTrailingVarSuffix(trimmed);
+        if (String.isNotBlank(noVar)) {
+            addFlowLookupCandidate(seen, order, noVar);
+            addFlowLookupCandidate(seen, order, noVar.toLowerCase());
+            if (noVar.length() > 1) {
+                addFlowLookupCandidate(seen, order, noVar.substring(0, 1).toLowerCase() + noVar.substring(1));
+            }
+            addFlowLookupCandidate(seen, order, insertLowerUpperUnderscores(noVar));
+        }
+        return order;
+    }
+
+    private static Object resolveFlowOutput(Flow.Interview interview, String apiName) {
+        if (interview == null || String.isBlank(apiName)) {
+            return null;
+        }
+        for (String cand : flowVariableLookupCandidates(apiName)) {
+            Object value = interview.getVariableValue(cand);
             if (value != null) {
                 return value;
-            }
-        }
-        if (trimmed.length() > 0) {
-            String firstUpper = trimmed.substring(0, 1).toUpperCase() + trimmed.substring(1);
-            if (!firstUpper.equals(trimmed)) {
-                value = interview.getVariableValue(firstUpper);
-                if (value != null) {
-                    return value;
-                }
-            }
-            String lower = trimmed.toLowerCase();
-            if (!lower.equals(trimmed)) {
-                value = interview.getVariableValue(lower);
-                if (value != null) {
-                    return value;
-                }
             }
         }
         return null;
@@ -958,46 +1046,46 @@ public with sharing class BusinessProfileWidgetController {
                 r.creditScore = toInteger(stringVal(o));
             }
             when 'fieldRevenue' {
-                r.revenue = toDecimal(stringVal(o));
+                r.revenue = decVal(o);
             }
             when 'fieldRevenueGrowth' {
-                r.revenueGrowth = toDecimal(stringVal(o));
+                r.revenueGrowth = decVal(o);
             }
             when 'fieldLoanBalance' {
-                r.loanBalance = toDecimal(stringVal(o));
+                r.loanBalance = decVal(o);
             }
             when 'fieldLoanLimit' {
-                r.loanLimit = toDecimal(stringVal(o));
+                r.loanLimit = decVal(o);
             }
             when 'fieldLoanUtilization' {
-                r.loanUtilization = toDecimal(stringVal(o));
+                r.loanUtilization = decVal(o);
             }
             when 'fieldDepositYtd' {
-                r.depositYtd = toDecimal(stringVal(o));
+                r.depositYtd = decVal(o);
             }
             when 'fieldInvestmentBalance' {
-                r.investmentBalance = toDecimal(stringVal(o));
+                r.investmentBalance = decVal(o);
             }
             when 'fieldInterestExpense' {
-                r.interestExpense = toDecimal(stringVal(o));
+                r.interestExpense = decVal(o);
             }
             when 'fieldRelationshipScore' {
-                r.relationshipScore = toDecimal(stringVal(o));
+                r.relationshipScore = decVal(o);
             }
             when 'fieldPropensityToExpand' {
-                r.propensityToExpand = toDecimal(stringVal(o));
+                r.propensityToExpand = decVal(o);
             }
             when 'fieldAttritionRisk' {
-                r.attritionRisk = toDecimal(stringVal(o));
+                r.attritionRisk = decVal(o);
             }
             when 'fieldWalletShare' {
-                r.walletShare = toDecimal(stringVal(o));
+                r.walletShare = decVal(o);
             }
             when 'fieldWalletCapture' {
                 r.lastUsedChannel = stringVal(o);
             }
             when 'fieldNps' {
-                r.npsScore = toDecimal(stringVal(o));
+                r.npsScore = decVal(o);
             }
             when 'fieldPaperlessEnrolled' {
                 r.paperlessEnrolled = objectToBoolean(o);
@@ -1042,27 +1130,53 @@ public with sharing class BusinessProfileWidgetController {
         }
     }
 
-    private static Decimal toDecimal(String s) {
-        if (String.isBlank(s)) {
-            return null;
-        }
-        try {
-            return Decimal.valueOf(s.trim());
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     private static Decimal decValFromNumericText(String raw) {
         if (String.isBlank(raw)) {
             return null;
         }
-        String s = raw.trim().replace('$', '').replace('\u00a0', '').replaceAll('\\s+', '').replace(',', '');
+        String s0 = raw.trim();
+        if (s0.startsWith('"') && s0.endsWith('"') && s0.length() > 1) {
+            s0 = s0.substring(1, s0.length() - 1).trim();
+        }
+        String s = s0
+            .replace('$', '')
+            .replace('\u00a0', '')
+            .replace('\u202f', '')
+            .replace('\u2009', '')
+            .replace('\u201c', '')
+            .replace('\u201d', '')
+            .replaceAll('\\s+', '')
+            .replace(',', '')
+            .replace('\uFF0C', '');
         try {
             return Decimal.valueOf(s);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Flow Currency / structured values sometimes deserialize as a map with amount-like keys. */
+    private static Decimal decValFromStructuredNumber(Object o) {
+        if (o == null) {
+            return null;
+        }
+        try {
+            Object untyped = JSON.deserializeUntyped(JSON.serialize(o));
+            if (!(untyped instanceof Map<String, Object>)) {
+                return null;
+            }
+            Map<String, Object> m = (Map<String, Object>) untyped;
+            for (String k : new List<String>{ 'amount', 'value', 'amountValue', 'Amount', 'Value' }) {
+                if (m.containsKey(k)) {
+                    Decimal nested = decVal(m.get(k));
+                    if (nested != null) {
+                        return nested;
+                    }
+                }
+            }
+        } catch (Exception e) {
+        }
+        return null;
     }
 
     private static Decimal decVal(Object o) {
@@ -1080,6 +1194,10 @@ public with sharing class BusinessProfileWidgetController {
         }
         if (o instanceof Double) {
             return Decimal.valueOf((Double) o);
+        }
+        Decimal structured = decValFromStructuredNumber(o);
+        if (structured != null) {
+            return structured;
         }
         if (o instanceof String) {
             return decValFromNumericText((String) o);
@@ -2140,5 +2258,11 @@ public with sharing class BusinessProfileWidgetController {
         public List<Map<String, String>> keyContacts;
         @AuraEnabled
         public List<Map<String, String>> recommendedActions;
+        /**
+         * Non-blocking configuration hint when flow: mappings cannot be applied (e.g. missing assembly Flow API name,
+         * flow fault, or variable not exposed for output). Shown under the liquidity waterfall in the LWC.
+         */
+        @AuraEnabled
+        public String assemblyFlowHint;
     }
 }

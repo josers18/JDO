@@ -6,12 +6,12 @@ After [DEPLOY.md](DEPLOY.md), complete these steps so the card loads for users.
 
 ## 1. Apex class access
 
-The widget calls **`BusinessProfileWidgetController`**. This repo does **not** include a permission set.
+The widget calls **`BusinessProfileWidgetController`**.
 
-- Edit a **permission set** or **profile** used by the page viewers.  
-- Under **Apex Class Access**, enable **`BusinessProfileWidgetController`**.
+- **Option A — Standard profile (monorepo):** Deploy **`profiles/Standard.profile-meta.xml`** from this package (or deploy the whole `force-app`). It enables **`BusinessProfileWidgetController`** and the other JDO LWC controllers on the **Standard** profile.  
+- **Option B:** Edit a **permission set** or **profile** used by the page viewers and under **Apex Class Access** enable **`BusinessProfileWidgetController`**.
 
-Without this, the Lightning page may show an error when loading the component.
+Without Apex access, the Lightning page may show an error when loading the component.
 
 ---
 
@@ -30,7 +30,7 @@ If geocoding is **off**, external callouts are skipped; coordinates must come fr
 
 1. Open **Lightning App Builder** on an **Account** record page (or create one).  
 2. Drag **Business Profile Widget** onto the layout.  
-3. Set **Profile assembly Flow API name** if you use Flow-backed mappings; map each **Field: …** property to either an Account path or `flow:VariableName`.  
+3. Set **Profile assembly Flow API name** whenever any **Field: …** value uses **`flow:VariableApiName`** (required for Flow-backed slots; omit only if every mapping is a valid Account SOQL path). Map each property to either an Account path or `flow:…`. In Flow Builder, mark output variables **Available for output** so Apex can read them after `start()`.  
 4. Optionally adjust **Pipeline: max open opportunities** (**0** = up to **2000** open opps; **1–2000** = explicit cap).  
 5. Optionally set **Autolaunched flow API name (predictions)** for the Insight tab.  
 6. **Save** and **Activate** the page.
