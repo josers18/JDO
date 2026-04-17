@@ -1,5 +1,23 @@
 # Financial Trades Generation System
 
+<div align="center">
+
+[![Snowflake](https://img.shields.io/badge/Snowflake-Native-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)](https://www.snowflake.com/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Snowpark](https://img.shields.io/badge/Snowpark-Stored_Procedures-29B5E8?style=for-the-badge)](https://docs.snowflake.com/en/developer-guide/snowpark/python/index)
+[![Data Cloud](https://img.shields.io/badge/Data_Cloud-Account_Sync-7F56D9?style=for-the-badge)](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/query-guide-get-started.html)
+
+[![Scheduled Tasks](https://img.shields.io/badge/Tasks-CRON_Scheduled-5865F2?style=for-the-badge)](https://docs.snowflake.com/en/user-guide/tasks-intro)
+[![Trades](https://img.shields.io/badge/Trades-1.5M+-04844B?style=for-the-badge)](schemas/financial_trades.sql)
+[![Accounts](https://img.shields.io/badge/Accounts-645-032D60?style=for-the-badge)](schemas/trade_generation_config.sql)
+[![Instruments](https://img.shields.io/badge/Instruments-2%2C004-111111?style=for-the-badge)](schemas/instrument_universe.sql)
+
+[![GitHub](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
+
+**Snowflake-native** · **Automated pipeline** · **Synthetic trade data**
+
+</div>
+
 A Snowflake-native automated trade generation pipeline that produces realistic synthetic financial trade data for 645 accounts across 2,004 instruments, with configurable frequency, risk profiles, and volume controls.
 
 ## Data at a Glance
