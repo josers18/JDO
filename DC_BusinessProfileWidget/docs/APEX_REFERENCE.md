@@ -22,7 +22,7 @@ Returns a **JSON string** representing **`BusinessProfileResult`** (the LWC pars
 | `geocodeBillingAddress` | If true/null, may call Nominatim/Photon when lat/lng missing (skipped in tests). |
 | `pipelineOpportunityLimit` | **Null** or **≤ 0** → load up to **2000** open **Opportunity** rows for the Pipeline tab. **1–2000** → that `LIMIT` (capped at 2000). |
 
-Overview **Agentforce summary** Einstein calls are **not** part of `getProfileData`; the LWC invokes **`getAgentforceOverviewSummary`** in a separate request (minimal transaction, same pattern as Execute Anonymous).
+Overview **Agentforce summary** Einstein calls are **not** part of `getProfileData`; the LWC invokes **`getAgentforceOverviewSummary`** in a separate request (minimal transaction, same pattern as Execute Anonymous). Optional **Overview Unified relationships** use **`getUnifiedRelationshipsQueryJson`** in another separate request (**`Invocable.Action`**).
 
 **Flow token detection:** `isFlowToken` — values whose trimmed lower case starts with **`flow:`** (see class implementation).
 
@@ -48,6 +48,23 @@ Returns a **JSON string** with **`agentforceSummary`** and **`agentforceSummaryP
 | `recordId` | **Account** Id. |
 | `agentforceSummaryPromptTemplateId` | Template Id or developer name (sanitized). |
 | `agentforceSummaryPromptInputApiName` | Prompt Builder input (default `Input:Account.Id`); `Input:Account` is also supported — Apex still sends both **`.Id`** and object keys derived from this setting. |
+
+Overview **Unified relationships** (scrollable table on **Overview**, below **Relationship**) uses a **separate** method, same pattern as **Customer Profile Widget**:
+
+---
+
+## `getUnifiedRelationshipsQueryJson` (`@AuraEnabled`)
+
+Invokes a **custom Apex invocable** (type **`apex`**, **class API name only**, e.g. **`DC_UnifiedAccounts`**) via **`Invocable.Action`**. Passes the **Account** record Id into the invocable input variable (default **`id`**) and reads the output variable (default **`queryResultJSON`**) as a **String** for the LWC table. Runs **after** **`getProfileData`** and **after** optional **`getAgentforceOverviewSummary`**.
+
+| Parameter | Purpose |
+|-----------|---------|
+| `recordId` | CRM record Id (validated; blank or invalid Id throws **`AuraHandledException`**). |
+| `invocableApexClassApiName` | **Blank** → returns **`UnifiedRelationshipsApexResult`** with **`queryResultJson`** null (no invocation). Otherwise validated with **`isSafeInvocableConfigurationToken`** (letters, digits, underscore; must start with a letter — allows **`Ns__Class`**). |
+| `invocableRecordIdInputApiName` | **`@InvocableVariable`** API name on the request type (default **`id`**). |
+| `invocableJsonOutputApiName` | Output variable API name (default **`queryResultJSON`**). Non-**String** outputs are **`JSON.serialize`**’d. |
+
+**Returns** **`UnifiedRelationshipsApexResult`** with **`queryResultJson`**.
 
 ---
 

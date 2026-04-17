@@ -12,8 +12,8 @@ The same PDF is also copied into each themed package so it appears next to that 
 
 | Package | LWC bundle | Notes |
 |---------|------------|--------|
-| DC_PersonProfileWidget | `customerProfileWidget` | **Theme** dropdown + optional in-card switcher |
-| DC_BusinessProfileWidget | `businessProfileWidget` | **Theme mode** + optional switcher (42 presets in meta) |
+| DC_PersonProfileWidget | `customerProfileWidget` | **Theme** dropdown + optional in-card switcher; optional **`aiSummaryTextColor`** sets **`--wp-ai-summary-text`** for **Overview Agentforce** + **Insight** generated body |
+| DC_BusinessProfileWidget | `businessProfileWidget` | **Theme mode** + optional switcher (42 presets in meta); same **`aiSummaryTextColor`** pattern for **Overview Agentforce** + **Insight** |
 | DC_Prediction_Model_LWC | `classificationModelLwc` | **`predictionThemes.js`** — same CSS variable tokens |
 | DC_Multiclass_Prediction_LWC | `multiclassPredictionLwc` | **`predictionThemes.js`** — keep in sync with Prediction Model |
 

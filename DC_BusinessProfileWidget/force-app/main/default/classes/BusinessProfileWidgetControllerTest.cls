@@ -214,4 +214,73 @@ private class BusinessProfileWidgetControllerTest {
         System.assertNotEquals(null, pipe);
         System.assertEquals(2, pipe.size(), 'Pipeline limit=2 should return at most two rows');
     }
+
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_blankRecordId_throws() {
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            BusinessProfileWidgetController.getUnifiedRelationshipsQueryJson(
+                null,
+                'DC_UnifiedAccounts',
+                'id',
+                'queryResultJSON'
+            );
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected AuraHandledException');
+    }
+
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_invalidRecordId_throws() {
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            BusinessProfileWidgetController.getUnifiedRelationshipsQueryJson(
+                'not-a-valid-id',
+                'DC_UnifiedAccounts',
+                'id',
+                'queryResultJSON'
+            );
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected AuraHandledException');
+    }
+
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_blankClass_returnsNull() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Test.startTest();
+        BusinessProfileWidgetController.UnifiedRelationshipsApexResult res = BusinessProfileWidgetController.getUnifiedRelationshipsQueryJson(
+            acc.Id,
+            '',
+            'id',
+            'queryResultJSON'
+        );
+        Test.stopTest();
+        System.assertEquals(null, res.queryResultJson);
+    }
+
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_badClassName_throws() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            BusinessProfileWidgetController.getUnifiedRelationshipsQueryJson(
+                acc.Id,
+                '9Invalid',
+                'id',
+                'queryResultJSON'
+            );
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected AuraHandledException for unsafe class token');
+    }
 }

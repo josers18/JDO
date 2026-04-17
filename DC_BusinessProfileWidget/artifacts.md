@@ -8,7 +8,7 @@ Inventory of **`force-app/main/default/`**.
 
 | File | Role |
 |------|------|
-| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, **`enrichActiveFinancialAccountsAndPipeline`** (open Opps with configurable **`LIMIT`** up to 2000 + FinServ Financial Account count when available), geocode, JSON result. **`getAgentforceOverviewSummary`** — separate Aura method for Overview Einstein (**Connect** dual **`Input:Account.Id`** + **`Input:Account`**, anonymous-parity path, `without sharing` Connect bridge). |
+| `classes/BusinessProfileWidgetController.cls` | Account profile load: SOQL + optional assembly/insight Flows, structure enrich, **`enrichActiveFinancialAccountsAndPipeline`** (open Opps with configurable **`LIMIT`** up to 2000 + FinServ Financial Account count when available), geocode, JSON result. **`getAgentforceOverviewSummary`** — separate Aura method for Overview Einstein (**Connect** dual **`Input:Account.Id`** + **`Input:Account`**, anonymous-parity path, `without sharing` Connect bridge). **`getUnifiedRelationshipsQueryJson`** — optional Overview **Unified relationships** table via **`Invocable.Action`** on **`@InvocableMethod`** Apex (same pattern as Customer Profile Widget). |
 | `classes/BusinessProfileWidgetControllerTest.cls` | Unit tests. |
 
 ---
@@ -35,7 +35,7 @@ Inventory of **`force-app/main/default/`**.
 
 | File | Role |
 |------|------|
-| `profiles/Standard.profile-meta.xml` | Grants **Apex class access** on the **Standard** profile for **BusinessProfileWidgetController** and the other JDO LWC controllers (Customer Profile, Prediction Model, Multiclass, AgentForce Output, Query to Table, **LlmOutputSanitizer**). Deploy with this package. |
+| `profiles/Standard.profile-meta.xml` | Grants **Apex class access** on the **Standard** profile for **all** JDO Apex classes in this monorepo: six widget **`…Controller`** classes, **`LlmOutputSanitizer`**, and every matching **`*Test`** class (so **Standard** users can run those tests from the UI when needed). Deploy with this package. |
 
 ## Permission sets
 

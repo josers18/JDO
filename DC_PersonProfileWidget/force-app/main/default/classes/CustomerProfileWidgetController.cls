@@ -5,6 +5,9 @@
 public with sharing class CustomerProfileWidgetController {
     private static final String CLOSING_PHRASE = 'Thank you for your attention to this comprehensive review';
 
+    /** Filled during {@link #mergeAgentforceSummaryFromPromptTemplate} when Einstein returns no text (cleared each merge). */
+    private static String overviewAgentforceEinsteinDiagnostic;
+
     /** Logical keys allowed in coreCustomFieldsJson (maps widget slot → Account/Contact field API name). */
     private static final Set<String> CORE_CUSTOM_LOGICAL_KEYS = new Set<String>{
         'tierSegment',
@@ -234,6 +237,13 @@ public with sharing class CustomerProfileWidgetController {
         /** Count of open cases (Contact: ContactId; Account: AccountId). */
         @AuraEnabled
         public Integer openCasesCount;
+
+        /** Overview Agentforce / Einstein narrative (Connect); set by {@link #getAgentforceOverviewSummary}. */
+        @AuraEnabled
+        public String agentforceSummary;
+        /** Admin hint when Overview Einstein returns empty or throws. */
+        @AuraEnabled
+        public String agentforceSummaryPromptHint;
     }
 
     @AuraEnabled
@@ -951,6 +961,271 @@ public with sharing class CustomerProfileWidgetController {
         return parts.isEmpty() ? null : String.join(parts, ', ');
     }
 
+    /**
+     * Overview Agentforce summary in a separate Apex request from {@link #getProfileData}. Contact pages use
+     * {@code Input:Contact.Id} + {@code Input:Contact}; Account pages use {@code Input:Account.Id} + {@code Input:Account}.
+     */
+    @AuraEnabled(cacheable = false)
+    public static String getAgentforceOverviewSummary(
+        String recordId,
+        String agentforceSummaryPromptTemplateId,
+        String agentforceSummaryPromptInputApiName
+    ) {
+        if (String.isBlank(recordId)) {
+            throw new AuraHandledException('Record Id is required.');
+        }
+        String tmpl = sanitizeEinsteinTemplateRef(agentforceSummaryPromptTemplateId);
+        if (String.isBlank(tmpl)) {
+            return JSON.serialize(
+                new Map<String, Object>{ 'agentforceSummary' => null, 'agentforceSummaryPromptHint' => '' }
+            );
+        }
+        Id rid;
+        try {
+            rid = (Id) recordId;
+        } catch (Exception badId) {
+            throw new AuraHandledException('Invalid record Id.');
+        }
+        if (rid.getSobjectType() != Account.SObjectType && rid.getSobjectType() != Contact.SObjectType) {
+            return JSON.serialize(
+                new Map<String, Object>{
+                    'agentforceSummary' => null,
+                    'agentforceSummaryPromptHint' =>
+                        'Overview Agentforce summary expects an Account (001…) or Contact (003…) record. This page record is '
+                        + rid.getSobjectType().getDescribe().getName()
+                        + '.'
+                }
+            );
+        }
+        ProfileResult shell = newEmptyProfileResult();
+        mergeAgentforceSummaryFromPromptTemplate(shell, rid, tmpl, agentforceSummaryPromptInputApiName);
+        return JSON.serialize(
+            new Map<String, Object>{
+                'agentforceSummary' => shell.agentforceSummary,
+                'agentforceSummaryPromptHint' => shell.agentforceSummaryPromptHint == null
+                    ? ''
+                    : shell.agentforceSummaryPromptHint
+            }
+        );
+    }
+
+    private static String sanitizeEinsteinTemplateRef(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String s = raw.trim().replaceFirst('^\\uFEFF', '');
+        s = s.replaceAll('[\\u200B-\\u200D\\uFEFF]', '');
+        return s.trim();
+    }
+
+    private static void mergeAgentforceSummaryFromPromptTemplate(
+        ProfileResult profile,
+        Id recordId,
+        String promptTemplateId,
+        String promptInputApiName
+    ) {
+        String cleanedTemplate = sanitizeEinsteinTemplateRef(promptTemplateId);
+        if (profile == null || String.isBlank(cleanedTemplate) || recordId == null) {
+            return;
+        }
+        if (recordId.getSobjectType() != Contact.SObjectType && recordId.getSobjectType() != Account.SObjectType) {
+            return;
+        }
+        String configured = String.isBlank(promptInputApiName)
+            ? (recordId.getSobjectType() == Contact.SObjectType ? 'Input:Contact.Id' : 'Input:Account.Id')
+            : promptInputApiName.trim();
+        String idKey;
+        String objKey;
+        if (einsteinPromptInputLooksLikeRecordIdField(configured)) {
+            idKey = configured;
+            objKey = einsteinRecordInputParamKeyForPrompt(configured);
+        } else {
+            objKey = configured;
+            idKey = configured + '.Id';
+        }
+        overviewAgentforceEinsteinDiagnostic = null;
+        try {
+            String text = tryEinsteinRecordOverviewAnonParity(cleanedTemplate, recordId);
+            if (String.isNotBlank(text)) {
+                profile.agentforceSummary = text;
+                return;
+            }
+            text = tryEinsteinRecordSummaryDualInputCombinations(cleanedTemplate, idKey, objKey, recordId);
+            if (String.isNotBlank(text)) {
+                profile.agentforceSummary = text;
+                return;
+            }
+            profile.agentforceSummaryPromptHint =
+                'Einstein returned no summary text. Confirm the template is active, a model is assigned, and the running user has Einstein / Prompt Template access. '
+                + 'Contact pages: Input:Contact.Id or Input:Contact. Account pages: Input:Account.Id or Input:Account.';
+            if (!String.isBlank(overviewAgentforceEinsteinDiagnostic)) {
+                profile.agentforceSummaryPromptHint += ' Detail: ' + overviewAgentforceEinsteinDiagnostic;
+            }
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'Customer profile Agentforce summary prompt failed: ' + e.getMessage());
+            profile.agentforceSummaryPromptHint = 'Prompt invocation failed: ' + truncateForUiHint(e.getMessage(), 220);
+        }
+    }
+
+    private static String tryEinsteinRecordOverviewAnonParity(String promptTemplateId, Id recordId) {
+        String idStr = String.valueOf(recordId);
+        ConnectApi.WrappedValue wId = new ConnectApi.WrappedValue();
+        wId.value = idStr;
+        ConnectApi.WrappedValue wObj = new ConnectApi.WrappedValue();
+        wObj.value = new Map<String, Object>{ 'Id' => recordId };
+        Map<String, ConnectApi.WrappedValue> vm = new Map<String, ConnectApi.WrappedValue>();
+        if (recordId.getSobjectType() == Contact.SObjectType) {
+            vm.put('Input:Contact.Id', wId);
+            vm.put('Input:Contact', wObj);
+        } else {
+            vm.put('Input:Account.Id', wId);
+            vm.put('Input:Account', wObj);
+        }
+        return invokeEinsteinPromptTemplateMultiParam(
+            promptTemplateId,
+            vm,
+            'PromptTemplateGenerationsInvocable',
+            true
+        );
+    }
+
+    private static String tryEinsteinRecordSummaryDualInputCombinations(
+        String promptTemplateId,
+        String idInputApiName,
+        String objectInputApiName,
+        Id recordId
+    ) {
+        String idStr = String.valueOf(recordId);
+        List<Object> objectPayloads = einsteinRecordWrappedPayloadCandidates(recordId);
+        List<String> applicationNames = new List<String>{
+            'PromptTemplateGenerationsInvocable',
+            'PromptBuilderPreview'
+        };
+        for (String appName : applicationNames) {
+            for (Object objPayload : objectPayloads) {
+                try {
+                    Map<String, ConnectApi.WrappedValue> vm = new Map<String, ConnectApi.WrappedValue>();
+                    vm.put(idInputApiName, einsteinWrapValue(idStr));
+                    vm.put(objectInputApiName, einsteinWrapValue(objPayload));
+                    String t = invokeEinsteinPromptTemplateMultiParam(promptTemplateId, vm, appName, true);
+                    if (String.isNotBlank(t)) {
+                        return t;
+                    }
+                } catch (Exception e) {
+                    overviewAgentforceEinsteinDiagnostic = truncateForUiHint(e.getMessage(), 220);
+                    System.debug(LoggingLevel.FINE, 'Einstein dual prompt attempt skipped: ' + e.getMessage());
+                }
+            }
+        }
+        return null;
+    }
+
+    private static ConnectApi.WrappedValue einsteinWrapValue(Object value) {
+        ConnectApi.WrappedValue w = new ConnectApi.WrappedValue();
+        w.value = value;
+        return w;
+    }
+
+    private static String invokeEinsteinPromptTemplateMultiParam(
+        String promptTemplateId,
+        Map<String, ConnectApi.WrappedValue> valueMap,
+        String applicationName,
+        Boolean recordOverviewDiagnostic
+    ) {
+        ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput = new ConnectApi.EinsteinPromptTemplateGenerationsInput();
+        promptInput.isPreview = false;
+
+        ConnectApi.EinsteinLlmAdditionalConfigInput extra = new ConnectApi.EinsteinLlmAdditionalConfigInput();
+        extra.numGenerations = 1;
+        extra.applicationName = applicationName;
+        promptInput.additionalConfig = extra;
+        promptInput.inputParams = valueMap;
+
+        ConnectApi.EinsteinPromptTemplateGenerationsRepresentation output = new EinsteinOverviewConnectBridge()
+            .generate(promptTemplateId, promptInput);
+
+        if (output == null) {
+            if (recordOverviewDiagnostic == true) {
+                overviewAgentforceEinsteinDiagnostic = 'Einstein Connect returned no output object.';
+            }
+            return null;
+        }
+        if (output.generations == null || output.generations.isEmpty()) {
+            if (recordOverviewDiagnostic == true) {
+                String payloadSnippet = '';
+                try {
+                    payloadSnippet = truncateForUiHint(JSON.serialize(output), 420);
+                } catch (Exception serEx) {
+                    payloadSnippet = truncateForUiHint(String.valueOf(output), 220);
+                }
+                overviewAgentforceEinsteinDiagnostic =
+                    'Zero generations. Compare template id/API name to Execute Anonymous; Connect response: '
+                    + (String.isBlank(payloadSnippet) ? '(unserializable)' : payloadSnippet);
+            }
+            return null;
+        }
+        ConnectApi.EinsteinLLMGenerationItemOutput first = output.generations[0];
+        String raw = first != null ? first.text : null;
+        if (String.isBlank(raw)) {
+            if (recordOverviewDiagnostic == true) {
+                overviewAgentforceEinsteinDiagnostic = 'Generation text was blank (trust layer or model refusal).';
+            }
+            return null;
+        }
+        return stripClosingCourtesy(raw);
+    }
+
+    private static Boolean einsteinPromptInputLooksLikeRecordIdField(String configuredInputApiName) {
+        if (String.isBlank(configuredInputApiName)) {
+            return false;
+        }
+        String t = configuredInputApiName.trim();
+        return t.length() > 4 && t.substring(t.length() - 4).equalsIgnoreCase('.Id');
+    }
+
+    private static String einsteinRecordInputParamKeyForPrompt(String configuredInputApiName) {
+        if (String.isBlank(configuredInputApiName)) {
+            return 'Input:Account';
+        }
+        String t = configuredInputApiName.trim();
+        if (t.length() > 4 && t.substring(t.length() - 4).equalsIgnoreCase('.Id')) {
+            return t.substring(0, t.length() - 4);
+        }
+        return t;
+    }
+
+    private static String truncateForUiHint(String message, Integer maxLen) {
+        if (String.isBlank(message)) {
+            return '';
+        }
+        String m = message.trim().replaceAll('\\s+', ' ');
+        if (m.length() <= maxLen) {
+            return m;
+        }
+        return m.substring(0, maxLen - 1) + '\u2026';
+    }
+
+    private static List<Object> einsteinRecordWrappedPayloadCandidates(Id recordId) {
+        List<Object> out = new List<Object>();
+        out.add((Object) new Map<String, Object>{ 'Id' => recordId });
+        if (recordId.getSobjectType() == Contact.SObjectType) {
+            out.add((Object) new Contact(Id = recordId));
+        } else {
+            out.add((Object) new Account(Id = recordId));
+        }
+        out.add((Object) new Map<String, String>{ 'id' => String.valueOf(recordId) });
+        return out;
+    }
+
+    private without sharing class EinsteinOverviewConnectBridge {
+        ConnectApi.EinsteinPromptTemplateGenerationsRepresentation generate(
+            String promptTemplateId,
+            ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput
+        ) {
+            return ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate(promptTemplateId, promptInput);
+        }
+    }
+
     @AuraEnabled
     public static String generateSummary(
         String promptTemplateId,
@@ -1044,6 +1319,116 @@ public with sharing class CustomerProfileWidgetController {
             throw new AuraHandledException('Signal gauge flow failed: ' + e.getMessage());
         }
         return out;
+    }
+
+    /** JSON text (or serialized rows) from an {@code @InvocableMethod} for unified relationships. */
+    public class UnifiedRelationshipsApexResult {
+        @AuraEnabled
+        public String queryResultJson;
+    }
+
+    /**
+     * Invokes an {@code @InvocableMethod} Apex action (type {@code apex}, class API name only, e.g. {@code DC_UnifiedAccounts})
+     * via {@link Invocable.Action}. Passes the current record Id into the invocable input variable (default {@code id}).
+     * Reads the JSON output variable (default {@code queryResultJSON}) and returns it as text for the Overview table.
+     */
+    @AuraEnabled
+    public static UnifiedRelationshipsApexResult getUnifiedRelationshipsQueryJson(
+        String recordId,
+        String invocableApexClassApiName,
+        String invocableRecordIdInputApiName,
+        String invocableJsonOutputApiName
+    ) {
+        if (String.isBlank(recordId)) {
+            throw new AuraHandledException('Record Id is required.');
+        }
+        try {
+            Id ridCheck = (Id) recordId;
+            if (ridCheck == null) {
+                throw new AuraHandledException('Invalid record Id.');
+            }
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception badId) {
+            throw new AuraHandledException('Invalid record Id.');
+        }
+        String cls = String.isBlank(invocableApexClassApiName) ? '' : invocableApexClassApiName.trim();
+        if (String.isBlank(cls)) {
+            UnifiedRelationshipsApexResult empty = new UnifiedRelationshipsApexResult();
+            empty.queryResultJson = null;
+            return empty;
+        }
+        if (!isSafeInvocableConfigurationToken(cls)) {
+            throw new AuraHandledException('Invalid Apex class API name for unified relationships.');
+        }
+        String inName = String.isBlank(invocableRecordIdInputApiName) ? 'id' : invocableRecordIdInputApiName.trim();
+        String outName = String.isBlank(invocableJsonOutputApiName) ? 'queryResultJSON' : invocableJsonOutputApiName.trim();
+        if (!isSafeInvocableConfigurationToken(inName) || !isSafeInvocableConfigurationToken(outName)) {
+            throw new AuraHandledException('Invalid invocable variable API name for unified relationships.');
+        }
+        UnifiedRelationshipsApexResult out = new UnifiedRelationshipsApexResult();
+        try {
+            Invocable.Action action = Invocable.Action.createCustomAction('apex', cls);
+            action.setInvocationParameter(inName, recordId);
+            List<Invocable.Action.Result> results = action.invoke();
+            if (results == null || results.isEmpty()) {
+                out.queryResultJson = null;
+                return out;
+            }
+            Invocable.Action.Result first = results[0];
+            if (!first.isSuccess()) {
+                String detail = 'Invocable Apex action failed.';
+                List<Invocable.Action.Error> errs = first.getErrors();
+                if (errs != null && !errs.isEmpty() && String.isNotBlank(errs[0].getMessage())) {
+                    detail += ' ' + errs[0].getMessage();
+                }
+                throw new AuraHandledException(detail);
+            }
+            Map<String, Object> outs = first.getOutputParameters();
+            Object raw = null;
+            if (outs != null) {
+                if (outs.containsKey(outName)) {
+                    raw = outs.get(outName);
+                } else {
+                    for (String k : outs.keySet()) {
+                        if (k != null && k.equalsIgnoreCase(outName)) {
+                            raw = outs.get(k);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (raw == null) {
+                out.queryResultJson = null;
+            } else if (raw instanceof String) {
+                out.queryResultJson = (String) raw;
+            } else {
+                out.queryResultJson = JSON.serialize(raw);
+            }
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AuraHandledException('Unified relationships Apex action failed: ' + e.getMessage());
+        }
+        return out;
+    }
+
+    /** Letters, digits, underscore; must start with a letter (allows {@code MyNs__MyClass}). */
+    private static Boolean isSafeInvocableConfigurationToken(String s) {
+        if (String.isBlank(s) || s.length() > 120) {
+            return false;
+        }
+        Integer first = s.charAt(0);
+        if (!((first >= 65 && first <= 90) || (first >= 97 && first <= 122))) {
+            return false;
+        }
+        for (Integer i = 1; i < s.length(); i++) {
+            Integer cp = s.charAt(i);
+            if (!((cp >= 65 && cp <= 90) || (cp >= 97 && cp <= 122) || (cp >= 48 && cp <= 57) || cp == 95)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static final List<String> LAST_USED_CHANNEL_FIELD_CANDIDATES = new List<String>{

@@ -17,8 +17,8 @@ This page lists every guide in **plain language**. The main project overview is 
 | [FLOW_GUIDE.md](FLOW_GUIDE.md) | Whoever builds or reviews Flows | The three ways this widget uses Flow (profile data, Insight, gauge rings) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Anyone who wants the full picture | How data is loaded and merged; sequence diagram |
 | [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) | Admin in App Builder | Every property name and what it does |
-| [APEX_REFERENCE.md](APEX_REFERENCE.md) | Developer or technical admin | Server methods and allowed field keys |
-| [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md) | Admin setting up Einstein | What JSON is sent to the prompt template |
+| [APEX_REFERENCE.md](APEX_REFERENCE.md) | Developer or technical admin | Server methods (`getProfileData`, **`getAgentforceOverviewSummary`**, **`getUnifiedRelationshipsQueryJson`** (`Invocable.Action`), `generateSummary`, gauges) and allowed field keys |
+| [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md) | Admin setting up Einstein | Insight **`generateSummary`** JSON vs **Overview Agentforce** record-context templates |
 | [DIAGRAMS.md](DIAGRAMS.md) | Presentations or reviews | Extra diagrams (tabs, map, theme) |
 
 ## When things go wrong
@@ -45,4 +45,4 @@ This page lists every guide in **plain language**. The main project overview is 
 
 | Package | Role |
 |---------|------|
-| [DC_BusinessProfileWidget](../DC_BusinessProfileWidget/README.md) | **Business Profile Widget** — Account-only card; field mappings use **`flow:`** or Account paths ([index](../DC_BusinessProfileWidget/docs/INDEX.md)). |
+| [DC_BusinessProfileWidget](../DC_BusinessProfileWidget/README.md) | **Business Profile Widget** — Account-only card; field mappings use **`flow:`** or Account paths; **Overview Agentforce** uses **`getAgentforceOverviewSummary`** with **`Input:Account.Id`** + **`Input:Account`** ([index](../DC_BusinessProfileWidget/docs/INDEX.md)). Same **separate Apex request** pattern as this widget’s Overview Einstein call. |

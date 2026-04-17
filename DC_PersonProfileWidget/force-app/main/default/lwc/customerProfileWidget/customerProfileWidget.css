@@ -1115,13 +1115,30 @@
 
 .wp-ai-summary {
     font-size: calc(12px * var(--wp-text-scale, 1));
-    color: rgba(240, 235, 224, 0.6);
+    color: var(--wp-ai-summary-text, var(--wp-text-secondary));
     line-height: 1.65;
     margin: 0;
 }
 
 .wp-ai-summary--err {
     color: var(--wp-negative);
+}
+
+.wp-agentforce-summary {
+    white-space: pre-wrap;
+}
+
+.wp-agentforce-summary--empty {
+    color: var(--wp-text-tertiary);
+    font-style: italic;
+}
+
+.wp-agentforce-summary-hint {
+    margin-top: 8px;
+    font-size: calc(11px * var(--wp-text-scale, 1));
+    line-height: 1.35;
+    color: var(--wp-warning, #e09840);
+    white-space: pre-wrap;
 }
 
 .wp-ai-action {
@@ -1360,6 +1377,105 @@
 
 .wp-ftbl tr:last-child td {
     border-bottom: none;
+}
+
+/* Overview — unified relationships (JSON table from Flow / Apex action output) */
+.wp-inset-card--unified-rel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.wp-unified-rel-status,
+.wp-unified-rel-empty {
+    margin: 0;
+    padding: 12px 14px;
+    font-size: calc(12px * var(--wp-text-scale, 1));
+    color: var(--wp-text-secondary);
+    font-style: italic;
+}
+
+.wp-unified-rel-err {
+    margin: 0;
+    padding: 12px 14px;
+    font-size: calc(12px * var(--wp-text-scale, 1));
+    line-height: 1.45;
+    color: var(--wp-warning, #e09840);
+    white-space: pre-wrap;
+}
+
+.wp-unified-rel-plain {
+    margin: 0;
+    padding: 12px 14px;
+    font-size: calc(12px * var(--wp-text-scale, 1));
+    line-height: 1.5;
+    color: var(--wp-text-secondary);
+    white-space: pre-wrap;
+}
+
+.wp-unified-rel-plain--warn {
+    color: var(--wp-warning, #e09840);
+}
+
+.wp-unified-rel-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.wp-unified-rel-table {
+    width: 100%;
+    min-width: 480px;
+    border-collapse: collapse;
+    font-size: calc(11px * var(--wp-text-scale, 1));
+}
+
+.wp-unified-rel-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: calc(10px * var(--wp-text-scale, 1));
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--wp-field-key-color, var(--wp-text-tertiary));
+    background: var(--wp-surface);
+    border-bottom: 1px solid var(--wp-border-med);
+    white-space: nowrap;
+}
+
+.wp-unified-rel-table tbody td {
+    padding: 9px 12px;
+    vertical-align: top;
+    border-bottom: 1px solid var(--wp-border-soft);
+    color: var(--wp-text-primary);
+    font-weight: 450;
+    max-width: 220px;
+}
+
+.wp-unified-rel-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.wp-unified-rel-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.wp-unified-rel-cell {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 28ch;
+}
+
+.wp-unified-rel-truncate {
+    margin: 0;
+    padding: 8px 14px 10px;
+    font-size: calc(10px * var(--wp-text-scale, 1));
+    color: var(--wp-text-tertiary);
+    border-top: 1px solid var(--wp-border-soft);
 }
 
 .wp-td-accent {

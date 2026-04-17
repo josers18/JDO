@@ -24,6 +24,19 @@ Short recipes for common configuration tasks. Full property list: [COMPONENT_REF
 
 ---
 
+## Overview Unified relationships table (invocable Apex)
+
+Same pattern as **Customer Profile Widget**: optional **scrollable table** on **Overview**, **below Relationship**, driven by **`@InvocableMethod`** Apex—**no Flow**.
+
+1. Deploy an **`@InvocableMethod`** class (e.g. **`DC_UnifiedAccounts`**) that accepts the **Account Id** on a request variable (default **`id`**) and sets a text output (default **`queryResultJSON`**).  
+2. Set **[Overview] Unified relationships: Apex class API name** to that class (**class only**, not `Class.method`).  
+3. Match **invocable input** / **JSON output** API names to your class if they differ from the defaults.  
+4. The LWC calls **`getUnifiedRelationshipsQueryJson`** after **`getProfileData`** and optional **`getAgentforceOverviewSummary`**.  
+
+The **Structure** tab **Unified relationships** block (icon field rows) is **unchanged** and unrelated to this setting—see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md).
+
+---
+
 ## Use one Flow for assembly and Insight
 
 If **Profile assembly Flow API name** and **Autolaunched flow API name (predictions)** are the **same** API name, Salesforce runs the Flow **once** and reads both field-mapping outputs and prediction/recommendation outputs from that interview.

@@ -195,6 +195,77 @@ private class CustomerProfileWidgetControllerTest {
         System.assert(threw, 'expected AuraHandledException');
     }
 
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_blankRecordId_throws() {
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            CustomerProfileWidgetController.getUnifiedRelationshipsQueryJson(
+                null,
+                'DC_UnifiedAccounts',
+                'id',
+                'queryResultJSON'
+            );
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected AuraHandledException');
+    }
+
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_invalidRecordId_throws() {
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            CustomerProfileWidgetController.getUnifiedRelationshipsQueryJson(
+                'not-a-valid-id',
+                'DC_UnifiedAccounts',
+                'id',
+                'queryResultJSON'
+            );
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected AuraHandledException');
+    }
+
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_blankClass_returnsNull() {
+        Account a = new Account(Name = 'Unified Rel Co');
+        insert a;
+        Test.startTest();
+        CustomerProfileWidgetController.UnifiedRelationshipsApexResult res = CustomerProfileWidgetController.getUnifiedRelationshipsQueryJson(
+            a.Id,
+            '',
+            'id',
+            'queryResultJSON'
+        );
+        Test.stopTest();
+        System.assertEquals(null, res.queryResultJson);
+    }
+
+    @IsTest
+    static void testGetUnifiedRelationshipsQueryJson_badClassName_throws() {
+        Account a = new Account(Name = 'Unified Rel Co 2');
+        insert a;
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            CustomerProfileWidgetController.getUnifiedRelationshipsQueryJson(
+                a.Id,
+                '9Invalid',
+                'id',
+                'queryResultJSON'
+            );
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected AuraHandledException for unsafe class token');
+    }
+
     private static String firstActiveOpportunityStageName() {
         for (Schema.PicklistEntry pe : Opportunity.StageName.getDescribe().getPicklistValues()) {
             if (pe.isActive()) {
@@ -283,6 +354,56 @@ private class CustomerProfileWidgetControllerTest {
 
         System.assertEquals(Integer.valueOf(1), res.openCasesCount);
         System.assertEquals(500, res.openOpportunitiesAmount);
+    }
+
+    @IsTest
+    static void testGetAgentforceOverviewSummary_blankTemplate_returnsEmptyPayload() {
+        Contact c = new Contact(FirstName = 'Sum', LastName = 'Mary');
+        insert c;
+        Test.startTest();
+        String out = CustomerProfileWidgetController.getAgentforceOverviewSummary(c.Id, '', '');
+        Test.stopTest();
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(out);
+        System.assertEquals(null, m.get('agentforceSummary'));
+        System.assertEquals('', m.get('agentforceSummaryPromptHint'));
+    }
+
+    @IsTest
+    static void testGetAgentforceOverviewSummary_nonPerson_returnsHint() {
+        String stage = firstActiveOpportunityStageName();
+        System.assertNotEquals(null, stage);
+        Account acc = new Account(Name = 'Opp Parent');
+        insert acc;
+        Opportunity o = new Opportunity(
+            Name = 'Non Person Opp',
+            StageName = stage,
+            CloseDate = Date.today().addDays(30),
+            AccountId = acc.Id
+        );
+        insert o;
+        Test.startTest();
+        String out = CustomerProfileWidgetController.getAgentforceOverviewSummary(o.Id, 'any_template_ref', '');
+        Test.stopTest();
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(out);
+        String overviewHint = (String) m.get('agentforceSummaryPromptHint');
+        System.assertNotEquals(null, overviewHint);
+        System.assert(
+            overviewHint.contains('Opportunity'),
+            'hint should name the page object type: ' + overviewHint
+        );
+    }
+
+    @IsTest
+    static void testGetAgentforceOverviewSummary_blankRecordId_throws() {
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            CustomerProfileWidgetController.getAgentforceOverviewSummary(null, 'x', '');
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        Test.stopTest();
+        System.assert(threw, 'expected AuraHandledException for blank record Id');
     }
 
 }

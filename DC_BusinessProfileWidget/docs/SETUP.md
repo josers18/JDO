@@ -8,7 +8,7 @@ After [DEPLOY.md](DEPLOY.md), complete these steps so the card loads for users.
 
 The widget calls **`BusinessProfileWidgetController`**.
 
-- **Option A — Standard profile (monorepo):** Deploy **`profiles/Standard.profile-meta.xml`** from this package (or deploy the whole `force-app`). It enables **`BusinessProfileWidgetController`** and the other JDO LWC controllers on the **Standard** profile.  
+- **Option A — Standard profile (monorepo):** Deploy **`profiles/Standard.profile-meta.xml`** from this package (or deploy the whole `force-app`). It enables **all** JDO Apex classes used by these widgets—including **`*Test`** classes—on the **Standard** profile.  
 - **Option B:** Edit a **permission set** or **profile** used by the page viewers and under **Apex Class Access** enable **`BusinessProfileWidgetController`**.
 
 Without Apex access, the Lightning page may show an error when loading the component.

@@ -40,7 +40,20 @@ The **assembly Flow runs** when its API name is set **and** at least one mapping
 | `flowRecommendationsVariable` | String | `recommendations` | Flow output (JSON string or serializable). |
 | `promptTemplateId` | String | `''` | Einstein prompt template Id or API name. |
 | `promptInputApiName` | String | `Input:Prediction_Context` | Template text input API name for the JSON payload. |
-| `autoGenerateSummary` | Boolean | *(default on)* | When **false**, the widget does **not** call Einstein for a summary. When unset, summary generation stays **on**. |
+| `autoGenerateSummary` | Boolean | *(default on)* | When **false**, the widget does **not** call Einstein for the **Insight** tab summary (`generateSummary`). When unset, summary generation stays **on**. |
+| `agentforceSummaryPromptTemplateId` | String | `''` | Optional **Einstein prompt template** for the **Overview** **Agentforce summary** inset (**above Contact**). When set and **Auto-generate Agentforce summary** is not false, the LWC calls **`getAgentforceOverviewSummary`** after **`getProfileData`** in a **separate** Apex request (same isolation pattern as the Business Profile Widget). **Contact** records: Apex sends **`Input:Contact.Id`** (string) and **`Input:Contact`** (record-style map). **Account** records: **`Input:Account.Id`** + **`Input:Account`**. Tries an **anonymous-parity** payload first so common Record Snapshot templates work even if the input API name is mis-set. |
+| `agentforceSummaryPromptInputApiName` | String | `''` | Prompt Builder input for the **Id** string. **Blank** → **`Input:Contact.Id`** when the page record is **Contact** (prefix **003**), else **`Input:Account.Id`** for **Account** (**001**). You may set **`Input:Contact`** or **`Input:Account`**; Apex still supplies **`.Id`** and object keys derived from that choice. Template Id / developer name is sanitized (BOM and zero-width characters stripped). |
+| `autoGenerateAgentforceSummary` | Boolean | `true` | When **false**, skips **`getAgentforceOverviewSummary`** on load even if **Agentforce summary: prompt template ID** is set. |
+| `showAgentforceSummary` | Boolean | `true` | When **false**, hides the Overview Agentforce block (Overview tab must still be visible). |
+| `agentforceSummarySectionLabel` | String | `Agentforce summary` | Section title for the Overview inset above **Contact**. |
+| `unifiedRelationshipsInvocableApexClass` | String | `''` | **Overview — Unified relationships:** Apex class API name for an **`@InvocableMethod`** action (e.g. **`DC_UnifiedAccounts`**). Use the **class name only** (not `Class.method`). **Blank** hides the Unified relationships block. After **`getProfileData`** (+ optional Overview Einstein), the LWC calls **`getUnifiedRelationshipsQueryJson`**, which uses **`Invocable.Action`** to pass the page **`recordId`** into the invocable input variable below. |
+| `unifiedRelationshipsInvocableIdInput` | String | `id` | **`@InvocableVariable`** API name on the action’s request type that receives the **CRM record Id** string (matches **`DC_UnifiedAccounts.Request.id`**). |
+| `unifiedRelationshipsInvocableJsonOutput` | String | `queryResultJSON` | **`@InvocableVariable`** API name for the JSON (or text) payload shown in the table. Non-string values are **`JSON.serialize`**’d server-side. |
+| `showUnifiedRelationships` | Boolean | `true` | When **false**, hides the Unified relationships section even if the Apex class is set. |
+| `unifiedRelationshipsSectionLabel` | String | `Unified relationships` | Section title (**below Relationship** on Overview). |
+| `unifiedRelationshipsFlowApiName` | String | `''` | **Deprecated.** Retained in metadata so existing Lightning pages do not fail deploy; **ignored** at runtime. Use **`unifiedRelationshipsInvocableApexClass`**. |
+| `unifiedRelationshipsFlowRecordIdVariable` | String | `recordId` | **Deprecated.** Ignored. |
+| `unifiedRelationshipsFlowOutputVariable` | String | `queryResultJSON` | **Deprecated.** Ignored. |
 
 `assemblyOut*` property names follow `assemblyOut` + camelCase logical key (e.g. `assemblyOutPropensityScore` for slot `propensityScore`). Slots include `fullName`, `firstName`, `lastName`, `city`, `state`, `industry`, `employees`, `phone`, `email`, `website`, `revenue`, `tierSegment`, scores, balances, `loanLimit`, `riskProfile`, `customerSince`, `lastInteraction`, enrollment flags, `kycStatus`, `twoFaStatus`, `street`, `zip`, branch fields, `nearbyBranches` (Flow **Text** JSON array of branch objects), **`financialAccounts`** (JSON array for Portfolio rows), **`mapLatitude`** / **`mapLongitude`**, **`profilePhotoUrl`**. Use the **same** `flowApiName` as the prediction flow to run one interview.
 
@@ -63,7 +76,7 @@ Unset = visible. Set **false** to hide.
 | Property |
 |----------|
 | `showOverviewTab`, `showSignalsTab`, `showPortfolioTab`, `showServicesTab`, `showStructureTab`, `showLocationTab`, `showInsightTab` |
-| `showKpiStrip`, `showEnrollmentFlags`, `showBranchProximity`, `showAiActions` |
+| `showKpiStrip`, `showEnrollmentFlags`, `showBranchProximity`, `showAiActions`, `showUnifiedRelationships` |
 
 | Property | Default (meta) | Notes |
 |----------|----------------|--------|
@@ -75,6 +88,14 @@ Legacy pages may still list `showSparkline` and `[Asm flow output] Portfolio tre
 ## Field rows and icons (record page)
 
 Several tabs use **label + value rows** with optional **`lightning-icon`** next to the label (**`utility:*`** and **`standard:*`**) for faster scanning—Overview contact/relationship blocks, Signals detail rows, Structure summaries, and similar. Icons follow SLDS; if an icon is missing in your org’s release, swap the name in the LWC or open an issue.
+
+## Overview — Agentforce summary (record page)
+
+When **Agentforce summary: prompt template ID** is non-blank (and **Show Agentforce summary** is not false), an inset appears **directly above** the **Contact** section on the **Overview** tab. Body text uses **`wp-ai-summary`** / **`wp-agentforce-summary`**; optional **orange** **`wp-agentforce-summary-hint`** lines surface admin-oriented diagnostics when generation returns empty text (may include a truncated Connect payload snippet). This feature is **independent** of the **Insight** tab’s **`promptTemplateId`** / **`generateSummary`** (prediction JSON template).
+
+## Overview — Unified relationships table (record page)
+
+When **Unified relationships: Apex class API name** is non-blank and **Show Unified relationships** is not false, a **scrollable table** appears **under** the **Relationship** inset on **Overview**. The LWC parses JSON from your invocable output into columns and rows (array of objects, or wrapped **`rows`** / **`data`** / **`records`**, etc.; see [HOW_TO.md](HOW_TO.md)). Plain-text outputs (e.g. **`No records found.`** or **`Error: …`** from your action) render as body copy, not as a parse error. Styling: **`wp-unified-rel-table`**, **`wp-unified-rel-plain`** / **`--warn`** for messages.
 
 ## AI Signals gauges (record page; partial on App/Home)
 
@@ -144,6 +165,7 @@ Colors apply to the card so **App Builder preview** and **live records** match a
 |----------|---------|--------|
 | `textScalePercent` | `100` | 85–160 (%); scales `--wp-text-scale`. |
 | `textEmphasis` | `default` | `default`, `medium`, `strong` — heading/tab weight. |
+| `aiSummaryTextColor` | `''` | Optional hex or **`rgb()`** / **`rgba()`** for **generated** narrative text: **Overview Agentforce** body and **Insight** tab AI summary. Sets CSS variable **`--wp-ai-summary-text`** on the card shell. Empty → theme **secondary** text. **App** and **Home** targets expose this property for Insight-only pages (Overview Agentforce properties are record-page only). |
 
 ## Platform-injected
 

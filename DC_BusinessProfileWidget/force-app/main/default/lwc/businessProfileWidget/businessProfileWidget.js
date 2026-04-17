@@ -3,6 +3,7 @@ import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getProfileData from '@salesforce/apex/BusinessProfileWidgetController.getProfileData';
 import getAgentforceOverviewSummary from '@salesforce/apex/BusinessProfileWidgetController.getAgentforceOverviewSummary';
+import getUnifiedRelationshipsQueryJson from '@salesforce/apex/BusinessProfileWidgetController.getUnifiedRelationshipsQueryJson';
 import generateSummary from '@salesforce/apex/BusinessProfileWidgetController.generateSummary';
 import { buildProcessedRecommendationRows } from './profileInsightRows';
 
@@ -1390,6 +1391,228 @@ function lastUsedChannelIconMeta(displayLabel) {
     return { iconName: 'utility:custom', alt: s };
 }
 
+const UNIFIED_REL_MAX_COLS = 28;
+const UNIFIED_REL_MAX_ROWS = 250;
+
+function humanizeUnifiedFieldKey(k) {
+    if (k == null || k === '') {
+        return '';
+    }
+    let s = String(k)
+        .replace(/__r$/i, '')
+        .replace(/__c$/i, '')
+        .replace(/_/g, ' ')
+        .trim();
+    if (!s) {
+        return String(k);
+    }
+    return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatUnifiedCell(val) {
+    if (val == null || val === '') {
+        return '—';
+    }
+    if (typeof val === 'boolean') {
+        return val ? 'Yes' : 'No';
+    }
+    if (typeof val === 'object') {
+        try {
+            return JSON.stringify(val);
+        } catch (e) {
+            return String(val);
+        }
+    }
+    return String(val);
+}
+
+function matrixToRowObjects(colDefs, rows) {
+    if (!Array.isArray(colDefs) || !Array.isArray(rows)) {
+        return [];
+    }
+    return rows.map((arr) => {
+        const obj = {};
+        if (!Array.isArray(arr)) {
+            return obj;
+        }
+        colDefs.forEach((col, i) => {
+            const name =
+                typeof col === 'string'
+                    ? col
+                    : col.fieldName || col.name || col.apiName || col.field || `col_${i}`;
+            obj[String(name)] = arr[i];
+        });
+        return obj;
+    });
+}
+
+function extractUnifiedRowPayload(root) {
+    const meta = { columnDefs: null };
+    if (root != null && typeof root === 'object' && !Array.isArray(root) && Array.isArray(root.columns)) {
+        meta.columnDefs = root.columns;
+    }
+    if (root == null) {
+        return { rowObjects: [], meta };
+    }
+    if (Array.isArray(root)) {
+        if (root.length === 0) {
+            return { rowObjects: [], meta };
+        }
+        const el0 = root[0];
+        if (typeof el0 === 'object' && el0 !== null && !Array.isArray(el0)) {
+            return { rowObjects: root, meta };
+        }
+        return { rowObjects: [], meta };
+    }
+    if (typeof root === 'object') {
+        const nestedKeys = ['rows', 'data', 'records', 'items', 'results'];
+        for (let i = 0; i < nestedKeys.length; i++) {
+            const v = root[nestedKeys[i]];
+            if (!Array.isArray(v) || v.length === 0) {
+                continue;
+            }
+            const v0 = v[0];
+            if (typeof v0 === 'object' && v0 !== null && !Array.isArray(v0)) {
+                return { rowObjects: v, meta };
+            }
+            if (Array.isArray(v0) && Array.isArray(root.columns)) {
+                return { rowObjects: matrixToRowObjects(root.columns, v), meta };
+            }
+        }
+    }
+    return { rowObjects: [], meta };
+}
+
+function orderedKeysFromRowObjects(rowObjects, preferredKeys) {
+    const seen = new Set();
+    const keys = [];
+    const add = (k) => {
+        if (k == null || k === '') {
+            return;
+        }
+        const s = String(k);
+        if (seen.has(s)) {
+            return;
+        }
+        seen.add(s);
+        keys.push(s);
+    };
+    if (Array.isArray(preferredKeys)) {
+        preferredKeys.forEach(add);
+    }
+    rowObjects.forEach((row) => {
+        if (row && typeof row === 'object') {
+            Object.keys(row).forEach(add);
+        }
+    });
+    return keys;
+}
+
+function buildUnifiedColumns(rowObjects, columnDefs) {
+    if (Array.isArray(columnDefs) && columnDefs.length) {
+        const first = columnDefs[0];
+        if (typeof first === 'string') {
+            const keys = columnDefs
+                .map((c) => String(c).trim())
+                .filter(Boolean)
+                .slice(0, UNIFIED_REL_MAX_COLS);
+            if (keys.length) {
+                return keys.map((key) => ({ key, label: humanizeUnifiedFieldKey(key) }));
+            }
+        }
+        if (typeof first === 'object' && first !== null) {
+            const out = [];
+            for (let i = 0; i < columnDefs.length && out.length < UNIFIED_REL_MAX_COLS; i++) {
+                const d = columnDefs[i];
+                const k = d.fieldName || d.name || d.apiName || d.field;
+                if (!k) {
+                    continue;
+                }
+                const key = String(k);
+                const label =
+                    (d.label || d.title || humanizeUnifiedFieldKey(key)).trim() || humanizeUnifiedFieldKey(key);
+                out.push({ key, label });
+            }
+            if (out.length) {
+                return out;
+            }
+        }
+    }
+    const keys = orderedKeysFromRowObjects(rowObjects, null).slice(0, UNIFIED_REL_MAX_COLS);
+    return keys.map((key) => ({ key, label: humanizeUnifiedFieldKey(key) }));
+}
+
+function buildUnifiedRelationshipsViewModel(rawJsonString) {
+    const trimmedRaw = String(rawJsonString == null ? '' : rawJsonString).trim();
+    if (trimmedRaw === '') {
+        return {
+            columns: [],
+            bodyRows: [],
+            truncatedNote: '',
+            parseError: null,
+            plainMessage: null,
+            isEmpty: true
+        };
+    }
+    let root;
+    try {
+        root = JSON.parse(trimmedRaw);
+    } catch (e) {
+        const looksLikeJson = trimmedRaw.startsWith('{') || trimmedRaw.startsWith('[');
+        if (!looksLikeJson) {
+            return {
+                columns: [],
+                bodyRows: [],
+                truncatedNote: '',
+                parseError: null,
+                plainMessage: trimmedRaw,
+                isEmpty: false
+            };
+        }
+        return {
+            columns: [],
+            bodyRows: [],
+            truncatedNote: '',
+            parseError: 'Could not parse JSON from invocable output.',
+            plainMessage: null,
+            isEmpty: false
+        };
+    }
+    const { rowObjects, meta } = extractUnifiedRowPayload(root);
+    if (!rowObjects.length) {
+        return {
+            columns: [],
+            bodyRows: [],
+            truncatedNote: '',
+            parseError: null,
+            plainMessage: null,
+            isEmpty: true
+        };
+    }
+    const truncatedTotal = rowObjects.length;
+    const sliced = rowObjects.slice(0, UNIFIED_REL_MAX_ROWS);
+    const columns = buildUnifiedColumns(sliced, meta.columnDefs);
+    const bodyRows = sliced.map((row, ri) => ({
+        key: `ur-row-${ri}`,
+        cells: columns.map((col) => ({
+            key: `ur-cell-${ri}-${col.key}`,
+            display: formatUnifiedCell(row != null ? row[col.key] : undefined)
+        }))
+    }));
+    let truncatedNote = '';
+    if (truncatedTotal > UNIFIED_REL_MAX_ROWS) {
+        truncatedNote = `Showing first ${UNIFIED_REL_MAX_ROWS} of ${truncatedTotal} rows.`;
+    }
+    return {
+        columns,
+        bodyRows,
+        truncatedNote,
+        parseError: null,
+        plainMessage: null,
+        isEmpty: false
+    };
+}
+
 export default class BusinessProfileWidget extends NavigationMixin(LightningElement) {
     @api recordIdFieldName = 'accountId__c';
     @api flowApiName = '';
@@ -1550,6 +1773,25 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     set showAgentforceSummary(value) {
         this._showAgentforceSummary = value !== false && value !== 'false';
     }
+
+    /**
+     * {@code @InvocableMethod} Apex class API name only (e.g. {@code DC_UnifiedAccounts}), not {@code Class.method}.
+     * The widget passes the page {@code recordId} into the invocable input variable below and reads the JSON output variable.
+     */
+    @api unifiedRelationshipsInvocableApexClass = '';
+    /** Invocable input variable on the action’s request type (default {@code id}). */
+    @api unifiedRelationshipsInvocableIdInput = 'id';
+    /** Invocable output variable API name (default {@code queryResultJSON}). */
+    @api unifiedRelationshipsInvocableJsonOutput = 'queryResultJSON';
+    _showUnifiedRelationships = true;
+    @api
+    get showUnifiedRelationships() {
+        return this._showUnifiedRelationships;
+    }
+    set showUnifiedRelationships(value) {
+        this._showUnifiedRelationships = value !== false && value !== 'false';
+    }
+    @api unifiedRelationshipsSectionLabel = 'Unified relationships';
 
     _showRiskMatrix = true;
     @api
@@ -1739,6 +1981,10 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     @api fieldMapLongitude = 'BillingLongitude';
 
     profileData = null;
+    /** JSON string from unified relationships invocable (parsed client-side into a table). */
+    unifiedRelationshipsRawJson = null;
+    unifiedRelationshipsLoading = false;
+    unifiedRelationshipsLoadError = null;
     loading = false;
     errorMessage = null;
     summaryText = null;
@@ -1961,6 +2207,9 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         this.errorMessage = null;
         this.summaryText = null;
         this.summaryError = null;
+        this.unifiedRelationshipsRawJson = null;
+        this.unifiedRelationshipsLoading = false;
+        this.unifiedRelationshipsLoadError = null;
         try {
             const result = await getProfileData({
                 recordId: this._recordId,
@@ -1976,6 +2225,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             });
             this.profileData = JSON.parse(result);
             await this.loadAgentforceOverviewEinsteinIfNeeded();
+            await this.loadUnifiedRelationshipsIfNeeded();
             this.logoLoadFailed = false;
             this._websiteLogoAttempt = 0;
             this.refreshWebsiteLogoCandidates();
@@ -1986,6 +2236,9 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         } catch (error) {
             this.errorMessage = error.body?.message || 'Failed to load profile data.';
             this.profileData = null;
+            this.unifiedRelationshipsRawJson = null;
+            this.unifiedRelationshipsLoading = false;
+            this.unifiedRelationshipsLoadError = null;
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'Error loading profile',
@@ -2033,6 +2286,38 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 ...this.profileData,
                 agentforceSummaryPromptHint: msg
             };
+        }
+    }
+
+    async loadUnifiedRelationshipsIfNeeded() {
+        this.unifiedRelationshipsLoadError = null;
+        this.unifiedRelationshipsRawJson = null;
+        const cls = (this.unifiedRelationshipsInvocableApexClass || '').trim();
+        if (
+            !this._recordId ||
+            !this.showOverviewTab ||
+            !this.showUnifiedRelationships ||
+            !cls
+        ) {
+            this.unifiedRelationshipsLoading = false;
+            return;
+        }
+        this.unifiedRelationshipsLoading = true;
+        try {
+            const res = await getUnifiedRelationshipsQueryJson({
+                recordId: this._recordId,
+                invocableApexClassApiName: cls,
+                invocableRecordIdInputApiName: (this.unifiedRelationshipsInvocableIdInput || 'id').trim(),
+                invocableJsonOutputApiName: (this.unifiedRelationshipsInvocableJsonOutput || 'queryResultJSON').trim()
+            });
+            const json = res?.queryResultJson;
+            this.unifiedRelationshipsRawJson =
+                json != null && String(json).trim() !== '' ? String(json) : null;
+        } catch (e) {
+            this.unifiedRelationshipsLoadError = this.reduceError(e);
+            this.unifiedRelationshipsRawJson = null;
+        } finally {
+            this.unifiedRelationshipsLoading = false;
         }
     }
 
@@ -2589,6 +2874,68 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
 
     get agentforceSummaryPromptHint() {
         return String(this.profileData?.agentforceSummaryPromptHint ?? '').trim();
+    }
+
+    get showUnifiedRelationshipsBlock() {
+        if (!this.showOverviewTab || !this.showUnifiedRelationships) {
+            return false;
+        }
+        return (this.unifiedRelationshipsInvocableApexClass || '').trim().length > 0;
+    }
+
+    get unifiedRelationshipsSectionTitleDisplay() {
+        const t = (this.unifiedRelationshipsSectionLabel || '').trim();
+        return t || 'Unified relationships';
+    }
+
+    get unifiedRelationshipsView() {
+        return buildUnifiedRelationshipsViewModel(this.unifiedRelationshipsRawJson);
+    }
+
+    get unifiedRelationshipsHasTable() {
+        const v = this.unifiedRelationshipsView;
+        return Boolean(
+            v &&
+                !v.parseError &&
+                !v.plainMessage &&
+                !v.isEmpty &&
+                v.columns?.length > 0 &&
+                v.bodyRows?.length > 0
+        );
+    }
+
+    get unifiedRelationshipsPlainMessage() {
+        const v = this.unifiedRelationshipsView;
+        const m = v?.plainMessage;
+        return m != null && String(m).trim() !== '' ? String(m).trim() : null;
+    }
+
+    get unifiedRelationshipsHasPlainMessage() {
+        return this.unifiedRelationshipsPlainMessage != null;
+    }
+
+    get unifiedRelationshipsPlainMessageClass() {
+        const m = (this.unifiedRelationshipsPlainMessage || '').trim();
+        if (/^error\s*:/i.test(m)) {
+            return 'wp-unified-rel-plain wp-unified-rel-plain--warn';
+        }
+        return 'wp-unified-rel-plain';
+    }
+
+    get unifiedRelationshipsColumns() {
+        return this.unifiedRelationshipsView?.columns || [];
+    }
+
+    get unifiedRelationshipsBodyRows() {
+        return this.unifiedRelationshipsView?.bodyRows || [];
+    }
+
+    get unifiedRelationshipsTruncatedNote() {
+        return this.unifiedRelationshipsView?.truncatedNote || '';
+    }
+
+    get unifiedRelationshipsParseError() {
+        return this.unifiedRelationshipsView?.parseError || null;
     }
 
     get companyFields() {

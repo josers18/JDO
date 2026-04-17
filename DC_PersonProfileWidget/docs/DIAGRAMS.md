@@ -15,14 +15,18 @@ flowchart LR
         A[Assembly Flow outputs flow:/flows: slots]
         Q[SOQL-only assembly slots]
         P[Prediction Flow]
-        E[Einstein summary]
+        E1[Einstein Insight generateSummary]
+        E2[Einstein Overview getAgentforceOverviewSummary]
+        E3[Overview Unified rel. getUnifiedRelationshipsQueryJson Invocable.Action]
     end
     S --> M[ProfileResult]
     Q --> M
     A --> M
     P --> M
     M --> LWC[LWC render]
-    E -.-> LWC
+    E1 -.-> LWC
+    E2 -.-> LWC
+    E3 -.-> LWC
 ```
 
 ## 2. Tab content map
@@ -31,9 +35,10 @@ flowchart LR
 mindmap
   root((Customer Profile Widget))
     Overview
+      Optional Agentforce summary above Contact
+      Optional Unified relationships table invocable Apex
       Contact fields
       Relationship fields
-      Sparkline SVG
     AI Signals
       3 ring gauges
       Bar rows

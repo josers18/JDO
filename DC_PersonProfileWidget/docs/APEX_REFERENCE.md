@@ -5,7 +5,7 @@
 **Class:** `CustomerProfileWidgetController`  
 **Sharing:** `with sharing` (respects the running user’s record access)
 
-**Plain summary:** This class loads one **`ProfileResult`** object per request (Salesforce + optional Flows + optional address lookup), optionally calls **Einstein** for a summary string, and can run small **gauge** Flows for the three rings.
+**Plain summary:** This class loads one **`ProfileResult`** object per request (Salesforce + optional Flows + optional address lookup), optionally calls **Einstein** for the **Insight** tab summary (`generateSummary`), optionally merges an **Overview Agentforce** narrative via **`getAgentforceOverviewSummary`** (separate transaction), optionally invokes an **Overview Unified relationships** **`@InvocableMethod`** via **`getUnifiedRelationshipsQueryJson`** (separate transaction, **`Invocable.Action`**), and can run small **gauge** Flows for the three rings.
 
 ---
 
@@ -52,13 +52,45 @@ Runs one **autolaunched** Flow for a single gauge; returns **`SignalGaugeFlowRes
 | `recordIdVariableName` | Flow input variable for Id. |
 | `predictionVariableName` | Flow output variable (numeric). |
 
+### `getAgentforceOverviewSummary(...)` (`@AuraEnabled`)
+
+Returns a **JSON string** with **`agentforceSummary`** and **`agentforceSummaryPromptHint`**. Used only for the **Overview** tab inset (above **Contact**); **not** mixed into **`getProfileData`** (same pattern as **Business Profile Widget** — keeps Connect / Einstein out of the heavy profile transaction).
+
+| Parameter | Role |
+|-----------|------|
+| `recordId` | **Account** or **Contact** Id. Blank → **`AuraHandledException`**. Invalid Id → **`AuraHandledException`**. |
+| `agentforceSummaryPromptTemplateId` | Template Id or developer name (sanitized). **Blank** → returns JSON with both fields empty / null (no Connect call). |
+| `agentforceSummaryPromptInputApiName` | Prompt input API name for the Id and related payload; blank defaults by record type (**`Input:Contact.Id`** vs **`Input:Account.Id`**). See [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md). |
+
+**Object guard:** If **`recordId`** is not **Account** or **Contact**, the method returns JSON with **`agentforceSummary`** null and a **`agentforceSummaryPromptHint`** explaining that only **001** / **003** pages are supported (no exception).
+
+**Implementation notes:** **`mergeAgentforceSummaryFromPromptTemplate`** builds dual **Id + object** inputs, tries **anonymous-parity** combinations first, then **`PromptBuilderPreview`** / Connect **`generateMessagesForPromptTemplate`**. An inner **`EinsteinOverviewConnectBridge`** class runs **`without sharing`** for the Connect call only (bridge pattern). When **`generations`** is empty, **`agentforceSummaryPromptHint`** may include **truncated** serialized Connect output for admin diagnosis.
+
+The LWC merges the returned strings into in-memory **`profileData`** after **`getProfileData`** completes.
+
+### `getUnifiedRelationshipsQueryJson(...)` (`@AuraEnabled`)
+
+Invokes a **custom Apex invocable** (type **`apex`**, **class API name only**) for the **Overview — Unified relationships** table. Runs in its **own** request after profile load (and after optional **`getAgentforceOverviewSummary`**).
+
+| Parameter | Role |
+|-----------|------|
+| `recordId` | **Account** or **Contact** Id. Blank → **`AuraHandledException`**. Invalid Id → **`AuraHandledException`**. |
+| `invocableApexClassApiName` | e.g. **`DC_UnifiedAccounts`**. **Blank** → returns **`UnifiedRelationshipsApexResult`** with **`queryResultJson`** null (no invocation). Validated with **`isSafeInvocableConfigurationToken`** (letters, digits, underscore; must start with a letter — allows managed-style **`Ns__Class`**). |
+| `invocableRecordIdInputApiName` | Invocable input variable API name; default **`id`**. Same validation as class name. |
+| `invocableJsonOutputApiName` | Invocable output variable API name; default **`queryResultJSON`**. Matched case-insensitively if the platform returns different casing. |
+
+**Returns** **`UnifiedRelationshipsApexResult`** with **`queryResultJson`** as **String** when the action returns **`String`**, otherwise **`JSON.serialize`** of the output object (e.g. **List** rows from Data Cloud connectors).
+
+**Errors:** Failed **`Invocable.Action`** invocations throw **`AuraHandledException`** with the platform error message when available.
+
 ---
 
 ## Main data types (short)
 
-- **`ProfileResult`** — Full payload for the LWC (fields, branches, accounts, map coords, photo URL, prediction, recommendations, …). For **Account** records, **`enrichOpenOppAndCaseRollups`** may set **`openCasesCount`** and **`openOpportunitiesAmount`** (open opportunities on the Account, including via **Opportunity Contact Role**, subject to object and field access).  
+- **`ProfileResult`** — Full payload for the LWC (fields, branches, accounts, map coords, photo URL, prediction, recommendations, **`agentforceSummary`**, **`agentforceSummaryPromptHint`**, …). Overview Einstein fields are normally filled by the **second** LWC call; they may be null when the template Id is blank. For **Account** records, **`enrichOpenOppAndCaseRollups`** may set **`openCasesCount`** and **`openOpportunitiesAmount`** (open opportunities on the Account, including via **Opportunity Contact Role**, subject to object and field access).  
 - **`BranchInfo`**, **`FinancialAccountInfo`** — Rows for lists.  
-- **`SignalGaugeFlowResult`** — One number for a ring.
+- **`SignalGaugeFlowResult`** — One number for a ring.  
+- **`UnifiedRelationshipsApexResult`** — Wrapper for **`queryResultJson`** string from **`getUnifiedRelationshipsQueryJson`**.
 
 ---
 

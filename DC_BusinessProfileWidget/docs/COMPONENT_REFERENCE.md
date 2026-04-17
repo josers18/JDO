@@ -20,6 +20,9 @@
 | `agentforceSummaryPromptTemplateId` | String | `''` | Optional **Einstein prompt template** for Overview **Agentforce summary** only (separate from Insight). When set and **Auto-generate** is true, the LWC calls **`getAgentforceOverviewSummary`** after **`getProfileData`** (separate Apex transaction). Apex invokes Connect with **`Input:Account.Id`** + **`Input:Account`**; it also tries a fixed **anonymous-parity** payload first so a mis-set input API name here does not break standard Account Record Snapshot templates. |
 | `agentforceSummaryPromptInputApiName` | String | `Input:Account.Id` | Prompt Builder input for the **Account Id** string (default **`Input:Account.Id`**). You may use **`Input:Account`**; Apex still supplies both **`.Id`** and object slots. Template developer name / Id is sanitized (BOM and zero-width characters stripped). |
 | `autoGenerateAgentforceSummary` | Boolean | `true` | When false, skips **`getAgentforceOverviewSummary`** on load even if **Agentforce summary: prompt template ID** is set. |
+| `unifiedRelationshipsInvocableApexClass` | String | `''` | **Overview — Unified relationships (table):** Apex class API name for an **`@InvocableMethod`** (e.g. **`DC_UnifiedAccounts`**). **Class only**, not `Class.method`. **Blank** hides the **Overview** table. After **`getProfileData`** (+ optional Agentforce), the LWC calls **`getUnifiedRelationshipsQueryJson`** (**`Invocable.Action`**) with the page **`recordId`**. |
+| `unifiedRelationshipsInvocableIdInput` | String | `id` | Invocable request variable that receives the **Account Id** string. |
+| `unifiedRelationshipsInvocableJsonOutput` | String | `queryResultJSON` | Invocable output variable for JSON or plain text (non-strings serialized in Apex). |
 | `geocodeBillingAddress` | Boolean | `true` | When true, Nominatim then Photon if map lat/lng missing (remote sites required). |
 
 ---
@@ -108,7 +111,9 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 | `showOverviewTab`, `showHealthTab`, `showCreditTab`, `showStructureTab`, `showLocationTab`, `showInsightTab` | `true` | **`showHealthTab`** controls visibility of the **Pipeline** tab. |
 | `pipelineOpportunityLimit` | `0` | **`0`** (default) → load up to **2000** open opportunities (practical “all” on the Account). **1–2000** → SOQL `LIMIT` for the Pipeline list. Hard cap **2000** for payload and governor safety. |
 | `showKpiStrip`, `showComplianceFlags`, `showAgentforceSummary`, `showRiskMatrix`, `showWaterfallChart` | `true` | **`showAgentforceSummary`** when **Field: Agentforce summary** is non-blank **or** **Agentforce summary: prompt template ID** is set. |
+| `showUnifiedRelationships` | `true` | When **false**, hides the **Overview** invocable **Unified relationships** **table** even if **Unified relationships: Apex class API name** is set. Does **not** affect the **Structure** tab block also titled **Unified relationships** (static field rows). |
 | `agentforceSummarySectionLabel` | Agentforce summary | Overview section title above **Company**. |
+| `unifiedRelationshipsSectionLabel` | Unified relationships | Section title for the **Overview** **scrollable table** (below **Relationship**). |
 | `showOrgChart`, `showKeyContacts` | `true` | Structure tab |
 | `showBranchProximity` | `true` | Location |
 | `showAiActions` | `true` | Insight recommendation bars |
@@ -121,6 +126,7 @@ Apex **`enrichActiveFinancialAccountsAndPipeline`** runs after structure enrichm
 |------|----------|
 | **Overview — Agentforce summary** | Optional inset card **above Company**: narrative text from **`agentforceSummary`** (SOQL, assembly **`flow:`**, or Einstein via **`getAgentforceOverviewSummary`**). Uses class **`wp-ai-summary`**; optional **`aiSummaryTextColor`** overrides the default secondary text color for generated body text (not empty-state hints). |
 | **Overview — Company / Relationship** | **Field rows** with **`lightning-icon`** + label (utility / standard icons), matching Customer Profile styling (`wp-field-rows`, `wp-field-key--iconrow`). |
+| **Overview — Unified relationships (table)** | Optional **below Relationship** when **Unified relationships: Apex class API name** is set: JSON (or plain text) from **`getUnifiedRelationshipsQueryJson`** / **`Invocable.Action`**, same parsing rules as Customer Profile (`wp-unified-rel-*` classes). Distinct from **Structure → Unified relationships** (CRM field rows). |
 | **Pipeline** | Three columns per row: **stage** (left) · **opportunity name** (center, link to record) · **amount** (right). The Pipeline inset card is **scrollable** (`max-height` + overflow) when there are many rows. |
 | **Credit — Facilities** | Same **icon + field row** pattern inside an inset card (not a plain two-column table). |
 | **Structure — Unified relationships** | Same **icon + field row** pattern for linked accounts, contacts, subsidiaries, referral network. |

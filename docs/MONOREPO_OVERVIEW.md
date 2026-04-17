@@ -18,8 +18,8 @@ flowchart TB
     M --> |Flow + optional Prompt| SF
     A --> |Autolaunched Flow| SF
     Q --> |ConnectApi.CdpQuery| SF
-    C --> |SOQL + Flow profile| SF
-        B --> |Account field map + Flow + CRM enrich| SF
+    C --> |SOQL + Flow + optional Einstein Overview + Insight| SF
+    B --> |Account field map + Flow + optional Overview Agentforce + Insight| SF
 ```
 
 ## Naming vs App Builder labels

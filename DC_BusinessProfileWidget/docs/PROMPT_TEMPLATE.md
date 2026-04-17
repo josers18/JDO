@@ -16,7 +16,7 @@
 }
 ```
 
-The **Customer Profile Widget** uses **`predictionType: customer`** (or equivalent) in its controller. Templates can branch on **`predictionType`** if you reuse one template across both widgets.
+The **Customer Profile Widget** **`generateSummary`** payload uses **`predictionType: person_profile`**. Templates can branch on **`predictionType`** if you reuse one template across both widgets. The **Customer** widget’s **Overview Agentforce** inset uses a **separate** method (**`getAgentforceOverviewSummary`**) with **Contact** / **Account** record inputs — see [DC_PersonProfileWidget/docs/PROMPT_TEMPLATE.md](../../DC_PersonProfileWidget/docs/PROMPT_TEMPLATE.md).
 
 ---
 

@@ -14,7 +14,9 @@ This page explains **how data gets to the card** in terms a business reader can 
 6. Apex **enriches the Structure tab** (related accounts, org chart nodes, key contacts) using **AccountContactRelation**, **Person Account** pivot when the page is an Account, and account–account junctions where available (`with sharing`).  
 7. On **Account**, Apex may run **`enrichOpenOppAndCaseRollups`** to populate **`openCasesCount`** and **`openOpportunitiesAmount`** (open opportunities and cases, subject to sharing and field access).  
 8. The widget **draws the card**. Short delay, then small **animations** on signal bars.  
-9. **If you configured Einstein**, the widget may ask for a **short AI summary** for the Insight tab.
+9. **If you configured the Insight prompt template**, the widget may call **`generateSummary`** for the **Insight** tab narrative.  
+10. **If you configured Overview Agentforce** (template Id set, auto-generate on), the widget calls **`getAgentforceOverviewSummary`** in a **second** Apex request and merges **`agentforceSummary`** / hint into the displayed profile.  
+11. **If you configured Unified relationships** (invocable Apex class set, show flag on), the widget calls **`getUnifiedRelationshipsQueryJson`** ( **`Invocable.Action`** ) and parses the returned JSON (or plain text) into the **Overview** table under **Relationship**.
 
 You do **not** send a special “graph JSON” blob for the profile Flow. Each piece of data is a normal Flow **output variable** (text, number, etc.).
 
@@ -30,7 +32,9 @@ You do **not** send a special “graph JSON” blob for the profile Flow. Each p
 6. **Structure tab** data is merged on the server (`enrichStructureTabForCustomer`).  
 7. **`enrichOpenOppAndCaseRollups`** runs for **Account** Ids when enrichment is enabled in the controller path.  
 8. The widget renders. After about 400 ms it runs **`animateBars()`** on signal bars.  
-9. If **`promptTemplateId`** is set and auto-summary is not turned off, the widget calls **`generateSummary`** (Einstein).
+9. If **`promptTemplateId`** is set and **Auto-generate AI summary** is not turned off, the widget calls **`generateSummary`** (Einstein) for **Insight**.  
+10. If **`agentforceSummaryPromptTemplateId`** is set, **Overview** tab is shown, **Show Agentforce summary** is not false, and **Auto-generate Agentforce summary** is not false, the widget calls **`getAgentforceOverviewSummary`** and merges the JSON result into **`profileData`**.  
+11. If **`unifiedRelationshipsInvocableApexClass`** is non-blank, **Overview** is shown, and **Show Unified relationships** is not false, the widget calls **`getUnifiedRelationshipsQueryJson`** and stores the JSON string client-side for the Unified relationships table.
 
 ---
 
@@ -41,6 +45,8 @@ You do **not** send a special “graph JSON” blob for the profile Flow. Each p
 | **Profile assembly Flow** | Flow API name set **and** at least one mapping needs Flow, **or** same API as prediction Flow | Values for **`flow:`/`flows:`** / legacy slots; SOQL fills gaps |
 | **Salesforce only** | No Flow tokens and no shared prediction/assembly run | Standard + custom + assembly slots mapped as field paths only |
 | **Insight / prediction Flow** | You set **Autolaunched flow API name (predictions)** | Headline and recommendations on Insight |
+| **Overview Einstein (Agentforce)** | **Agentforce summary: prompt template ID** (+ optional input name) | Narrative inset above **Contact**; second Apex method **`getAgentforceOverviewSummary`** |
+| **Overview Unified relationships** | **Unified relationships: Apex class API name** (+ optional input/output variable names) | Table under **Relationship**; **`getUnifiedRelationshipsQueryJson`** + **`Invocable.Action`** |
 
 ---
 
@@ -79,11 +85,22 @@ sequenceDiagram
     end
     Apex-->>LWC: ProfileResult
     LWC->>LWC: animateBars (timeout)
-    opt promptTemplateId + auto summary
+    opt Insight promptTemplateId + auto summary
         LWC->>Apex: generateSummary(...)
         Apex->>E: generateMessagesForPromptTemplate
         E-->>Apex: text
         Apex-->>LWC: summary string
+    end
+    opt Overview agentforce template + auto-generate
+        LWC->>Apex: getAgentforceOverviewSummary(recordId, templateId, inputApiName)
+        Apex->>E: Connect prompt template (dual Id + object inputs)
+        E-->>Apex: generations / diagnostics
+        Apex-->>LWC: JSON agentforceSummary + hint
+    end
+    opt Overview unified rel. Apex class configured
+        LWC->>Apex: getUnifiedRelationshipsQueryJson(recordId, class, inVar, outVar)
+        Apex->>Apex: Invocable.Action (custom Apex invocable)
+        Apex-->>LWC: queryResultJson string
     end
 ```
 

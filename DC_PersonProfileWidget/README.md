@@ -2,7 +2,7 @@
 
 A **rich customer profile card** for Salesforce **Account** and **Contact** record pages. It shows a polished header, key metrics, and **seven tabs** by default (Overview, AI Signals, Portfolio, Services, **Structure**, Location, Insight). The **Structure** tab shows related accounts, an org-style chart, and key contacts (Financial Services–friendly).
 
-**In everyday terms:** The card reads data from your Salesforce records (names, addresses, balances, and custom fields you map). Optionally, it can pull extra values from **Flows** (automations with no screens), show **AI-generated text** on the Insight tab, and use **Einstein Prompt Builder** for a short narrative—if your org has those features turned on.
+**In everyday terms:** The card reads data from your Salesforce records (names, addresses, balances, and custom fields you map). Optionally, it can pull extra values from **Flows** (automations with no screens), show **AI-generated text** on the **Insight** tab (`generateSummary` + prediction JSON), and—on **Account** or **Contact** record pages—run optional **Overview** extras: an **Agentforce** narrative inset **above Contact** (`getAgentforceOverviewSummary`, **Contact** → **`Input:Contact.Id`** + **`Input:Contact`**, **Account** → **`Input:Account.Id`** + **`Input:Account`**, mirroring the **Business Profile Widget** pattern), and a **Unified relationships** table **below Relationship** driven by your **`@InvocableMethod`** Apex (`getUnifiedRelationshipsQueryJson` via **`Invocable.Action`**—no Flow required). All of that requires the right licenses, templates, and Apex where your contract allows.
 
 **App and Home pages:** You can place the same component there, but fewer settings are available, and there is no automatic link to a single customer record unless your team builds that.
 
@@ -58,7 +58,7 @@ A **rich customer profile card** for Salesforce **Account** and **Contact** reco
 ## What you see on the page
 
 - **Header:** Photo or initials, name, location, tier, optional enrollment chips, optional KPI strip.  
-- **Tabs:** Overview (fields), AI Signals (gauges and bars), Portfolio (chart and account rows), Services (tiles and suggestions), Location (map and address), Insight (prediction text, optional AI summary, recommendation list).  
+- **Tabs:** Overview (fields, optional **Agentforce** narrative above **Contact**, optional **Unified relationships** table below **Relationship** from invocable Apex), AI Signals (gauges and bars), Portfolio (chart and account rows), Services (tiles and suggestions), Location (map and address), Insight (prediction text, optional AI summary, recommendation list).  
 - **Look and feel:** Choose a **Theme** preset in App Builder or fine-tune colors. The card is custom-styled (not the standard Salesforce “blueprint” layout).
 
 ---

@@ -39,3 +39,9 @@ Overview: **[README.md](../README.md)**
 | Resource | Use it when |
 |----------|-------------|
 | [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) | **Visual catalog** of **42 themes** (same names as **Theme mode** in App Builder). Monorepo hub: [THEME_CATALOG.md](../../docs/THEME_CATALOG.md). |
+
+## Related package (person / household)
+
+| Package | Role |
+|---------|------|
+| [DC_PersonProfileWidget](../DC_PersonProfileWidget/README.md) | **Customer Profile Widget** — **Account** + **Contact**; **Overview Agentforce** via **`getAgentforceOverviewSummary`** (**`Input:Contact` / `Input:Account`** dual inputs), same separate-request pattern as this widget’s **`getAgentforceOverviewSummary`**. |

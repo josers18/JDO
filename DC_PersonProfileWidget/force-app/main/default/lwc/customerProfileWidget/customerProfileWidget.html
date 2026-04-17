@@ -135,6 +135,22 @@
         <template lwc:elseif={hasData}>
             <div class="wp-panel">
                 <template lwc:if={isTabOverview}>
+                    <template lwc:if={showAgentforceSummaryBlock}>
+                        <div class="wp-slbl">{agentforceSummarySectionTitle}</div>
+                        <div class="wp-inset-card">
+                            <template lwc:if={hasAgentforceSummaryText}>
+                                <p class="wp-ai-summary wp-agentforce-summary">{agentforceSummaryDisplay}</p>
+                            </template>
+                            <template lwc:else>
+                                <p class="wp-ai-summary wp-agentforce-summary wp-agentforce-summary--empty">
+                                    {agentforceSummaryEmptyMessage}
+                                </p>
+                                <template lwc:if={agentforceSummaryPromptHint}>
+                                    <p class="wp-agentforce-summary-hint">{agentforceSummaryPromptHint}</p>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
                     <div class="wp-slbl">Contact</div>
                     <div class="wp-inset-card">
                         <div class="wp-field-rows wp-field-rows--inset">
@@ -328,6 +344,53 @@
                             </div>
                         </div>
                     </div>
+                    <template lwc:if={showUnifiedRelationshipsBlock}>
+                        <div class="wp-slbl">{unifiedRelationshipsSectionTitleDisplay}</div>
+                        <div class="wp-inset-card wp-inset-card--unified-rel">
+                            <template lwc:if={unifiedRelationshipsLoading}>
+                                <p class="wp-unified-rel-status">Loading unified records…</p>
+                            </template>
+                            <template lwc:elseif={unifiedRelationshipsLoadError}>
+                                <p class="wp-unified-rel-err">{unifiedRelationshipsLoadError}</p>
+                            </template>
+                            <template lwc:elseif={unifiedRelationshipsParseError}>
+                                <p class="wp-unified-rel-err">{unifiedRelationshipsParseError}</p>
+                            </template>
+                            <template lwc:elseif={unifiedRelationshipsHasPlainMessage}>
+                                <p class={unifiedRelationshipsPlainMessageClass}>{unifiedRelationshipsPlainMessage}</p>
+                            </template>
+                            <template lwc:elseif={unifiedRelationshipsHasTable}>
+                                <div class="wp-unified-rel-scroll">
+                                    <table class="wp-unified-rel-table">
+                                        <thead>
+                                            <tr>
+                                                <template for:each={unifiedRelationshipsColumns} for:item="col">
+                                                    <th key={col.key} scope="col">{col.label}</th>
+                                                </template>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={unifiedRelationshipsBodyRows} for:item="row">
+                                                <tr key={row.key}>
+                                                    <template for:each={row.cells} for:item="cell">
+                                                        <td key={cell.key}>
+                                                            <span class="wp-unified-rel-cell">{cell.display}</span>
+                                                        </td>
+                                                    </template>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <template lwc:if={unifiedRelationshipsTruncatedNote}>
+                                    <p class="wp-unified-rel-truncate">{unifiedRelationshipsTruncatedNote}</p>
+                                </template>
+                            </template>
+                            <template lwc:else>
+                                <p class="wp-unified-rel-empty">No unified records returned.</p>
+                            </template>
+                        </div>
+                    </template>
                 </template>
 
                 <template lwc:if={isTabSignals}>

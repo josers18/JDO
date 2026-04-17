@@ -42,8 +42,8 @@ If you turn **off** geocoding on the widget, these matter less.
 
 | Class | Role |
 |-------|------|
-| **CustomerProfileWidgetController** | Loads profile data (Salesforce + optional Flows + optional address lookup), optional AI summary, optional Flow calls for gauge rings; **Account** enrichment may set **`openCasesCount`** and **`openOpportunitiesAmount`**. |
-| **CustomerProfileWidgetControllerTest** | Automated tests for deployment pipelines. |
+| **CustomerProfileWidgetController** | Loads profile data (Salesforce + optional Flows + optional address lookup), optional **Insight** Einstein summary (`generateSummary`), optional **Overview** Einstein narrative via **`getAgentforceOverviewSummary`** (separate request; **Contact** / **Account** dual **Id + object** Connect inputs, anonymous-parity path, `without sharing` Connect bridge), optional **Overview Unified relationships** via **`getUnifiedRelationshipsQueryJson`** (**`Invocable.Action`** on an **`@InvocableMethod`** class), optional Flow calls for gauge rings; **Account** enrichment may set **`openCasesCount`** and **`openOpportunitiesAmount`**. |
+| **CustomerProfileWidgetControllerTest** | Automated tests for deployment pipelines (includes **`getAgentforceOverviewSummary`** blank template, non–person record hint, blank record Id). |
 
 ---
 

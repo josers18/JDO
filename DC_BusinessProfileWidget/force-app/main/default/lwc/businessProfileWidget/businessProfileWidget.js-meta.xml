@@ -84,6 +84,16 @@
             <property name="showOrgChart" type="Boolean" label="Show org chart" default="true" />
             <property name="showKeyContacts" type="Boolean" label="Show key contacts" default="true" />
             <property name="showBranchProximity" type="Boolean" label="Show branch proximity" default="true" />
+            <property name="unifiedRelationshipsInvocableApexClass" type="String" label="[Overview] Unified relationships: Apex class API name" default=""
+                description="Optional. Class API name only for an @InvocableMethod (e.g. DC_UnifiedAccounts). Blank hides the Overview unified-relationships table below Relationship. After getProfileData and optional Agentforce summary, the LWC calls getUnifiedRelationshipsQueryJson (Invocable.Action) with the Account record Id in the invocable input variable below." />
+            <property name="unifiedRelationshipsInvocableIdInput" type="String" label="[Overview] Unified rel.: invocable input API name" default="id"
+                description="@InvocableVariable on the action request type that receives the CRM record Id string." />
+            <property name="unifiedRelationshipsInvocableJsonOutput" type="String" label="[Overview] Unified rel.: JSON output API name" default="queryResultJSON"
+                description="@InvocableVariable for the JSON or text payload. Non-string values are JSON.serialize'd in Apex." />
+            <property name="showUnifiedRelationships" type="Boolean" label="Show Unified relationships (Overview table)" default="true"
+                description="When false, hides the invocable Apex table even if the class API name is set. Structure tab field rows labeled Unified relationships are unchanged." />
+            <property name="unifiedRelationshipsSectionLabel" type="String" label="Unified relationships (Overview) section title" default="Unified relationships"
+                description="Heading for the scrollable table on Overview (below Relationship). Distinct from the Structure tab Unified relationships field block." />
 
             <property name="themeMode" type="String" label="Theme" default="obsidian"
                 datasource="obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"

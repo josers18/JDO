@@ -49,7 +49,7 @@ For **`flow:`** mappings, mark output text variables **Available for output**. T
 ## Einstein summary
 
 - **Insight tab:** Optional **`generateSummary`** uses the same prompt input pattern as the Customer Profile Widget but sets **`predictionType`** to **`business_profile`** in the JSON payload. See [PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md).  
-- **Overview Agentforce summary:** Optional **Agentforce summary: prompt template ID** passes the **Account Id** only (default input **`Input:Account.Id`**). Use a dedicated summary template, not the Insight prediction JSON template unless you redesign it for Id-only input.
+- **Overview Agentforce summary:** Optional **Agentforce summary: prompt template ID** invokes **`getAgentforceOverviewSummary`**, which sends **`Input:Account.Id`** (string) **and** **`Input:Account`** (record-style map) together (plus anonymous-parity attempts). Default prompt input property is **`Input:Account.Id`**. Use a dedicated **record-context** summary template, not the Insight prediction JSON template unless you redesign it.
 
 ---
 

@@ -9,6 +9,8 @@ Follow these steps **after** the package is deployed to your org. If you have no
 - **Lightning Experience** (not Classic).  
 - A **Lightning record page** for **Account** and/or **Contact** where you want the card (recommended).  
 - **Optional — AI summary on Insight:** Einstein Generative AI enabled where your contract allows, plus a **Prompt template** (see **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**).  
+- **Optional — Overview Agentforce summary:** A second **Prompt template** (record context) and the **Agentforce summary** properties on the component; uses **`getAgentforceOverviewSummary`** (see **§6b** below and **[HOW_TO.md](HOW_TO.md)**).  
+- **Optional — Overview Unified relationships:** An **`@InvocableMethod`** Apex class in the org (e.g. **`DC_UnifiedAccounts`**) that returns JSON or plain text; set **Unified relationships: Apex class API name** on the component (see **§6c**). **Not** a Flow—deprecated **flow** properties on older pages are ignored.  
 - **Optional — Flow-driven data:** One or more **autolaunched** Flows (no screens). “Autolaunched” means the Flow runs in the background and can pass values **out** to the widget through **output variables**.
 
 ---
@@ -72,7 +74,9 @@ If this Flow **fails**, the rest of the card still tries to load; empty Insight 
 
 ---
 
-## 6. Optional — Einstein summary
+## 6. Optional — Einstein (two independent features)
+
+### 6a. Insight tab AI summary
 
 1. Create a **Prompt template** with a text input whose API name matches the widget (default **`Input:Prediction_Context`**).  
 2. Set **Prompt template Id or API name** on the widget.  
@@ -80,13 +84,31 @@ If this Flow **fails**, the rest of the card still tries to load; empty Insight 
 
 Details: **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**.
 
+### 6b. Overview Agentforce summary (above Contact)
+
+1. Set **Agentforce summary: prompt template ID** (record page only).  
+2. Optionally set **Agentforce summary: prompt input API name**; blank defaults by **Contact** vs **Account** (see **[COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)**).  
+3. Leave **Auto-generate Agentforce summary** on unless you want to skip the extra Apex call.  
+4. The same **Customer_Profile_Widget_User** Apex access covers **`getAgentforceOverviewSummary`**.
+
+Use a template meant for **CRM record** context, not necessarily the same template as Insight. If the section is blank, read the **orange hint** under the card and **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
+
+### 6c. Overview Unified relationships table (invocable Apex)
+
+1. Deploy or install an Apex class with an **`@InvocableMethod`** that accepts the page record Id (default request variable **`id`**) and writes a **String** output (default **`queryResultJSON`**) with JSON rows or a plain message.  
+2. Grant users **Apex class access** if your org restricts it (the same **`Customer_Profile_Widget_User`** permission set typically covers **`CustomerProfileWidgetController`**; ensure the **invocable** class is executable by the profile or a permission set).  
+3. In App Builder, set **[Overview] Unified relationships: Apex class API name** and, if needed, the **invocable input** / **JSON output** API names to match your class.  
+4. The widget calls **`getUnifiedRelationshipsQueryJson`** after profile load (and after optional Overview Agentforce). See **[HOW_TO.md](HOW_TO.md)** and **[APEX_REFERENCE.md](APEX_REFERENCE.md)**.
+
 ---
 
 ## 7. Quick checklist after setup
 
 - [ ] Open a real **Account** or **Contact** — Overview shows expected name and fields.  
 - [ ] If you use a profile Flow — custom values appear where mapped.  
-- [ ] If you use Insight Flow — prediction text appears; if you use a prompt template — summary appears.  
+- [ ] If you use Insight Flow — prediction text appears; if you use the Insight prompt template — summary appears on **Insight**.  
+- [ ] If you use **Overview Agentforce** — narrative appears **above Contact** when the template is active.  
+- [ ] If you use **Unified relationships** — table or message appears **below Relationship**; if blank, confirm the **Apex class API name** and invocable permissions.  
 - [ ] Change **Theme** or accent color — save and activate the page, then refresh the live record (preview and live can differ until you activate).
 
 ---

@@ -41,7 +41,13 @@
 | What you see | Likely cause | What to try |
 |--------------|--------------|-------------|
 | Error message on Insight | Template Id wrong or input name mismatch | Match **Prompt template text input API name** to the template. |
-| No summary | Template blank or auto-summary off | Set template Id; turn **Auto-generate AI summary** on. |
+| No summary on **Insight** | Template blank or auto-summary off | Set **Prompt template Id or API name**; turn **Auto-generate AI summary** on. |
+| Overview **Agentforce** empty; **orange hint** under the card | Template inactive, licensing, wrong template Id, wrong object, or Connect returned **zero generations** | Confirm template is **active**, user has Einstein / prompt access, and the widget is on **Account** or **Contact** (not Opportunity, etc.). Match **Agentforce summary: prompt template ID**. Read the hint text; a truncated **Connect** payload may explain permissions or input binding. Compare with **Execute Anonymous** in the same org (see **Business Profile** [TROUBLESHOOTING.md](../../DC_BusinessProfileWidget/docs/TROUBLESHOOTING.md)). |
+| Overview section missing entirely | Template Id blank or **Show Agentforce summary** false | Set **Agentforce summary: prompt template ID**; ensure **Show Agentforce summary** is on and **Overview** tab is visible. |
+| Blank record on non–Account/Contact page | **By design** | **`getAgentforceOverviewSummary`** only supports **001** / **003**; hint explains other object types. |
+| **Unified relationships** section missing | **Apex class** property blank or **Show Unified relationships** false | Set **[Overview] Unified relationships: Apex class API name** (e.g. **`DC_UnifiedAccounts`**). Deprecated **flow** properties on the component are ignored. |
+| Unified table shows **Invocable Apex action failed** | Wrong class name, action not exposed, missing Data Cloud permission, or bad SQL inside the action | Confirm the class exists, method is **`@InvocableMethod`**, and the running user can execute the action. Read the error text; test the invocable in **Execute Anonymous** or Flow debugger. |
+| **Could not parse JSON** under Unified relationships | Output starts with `{` or `[` but is not valid JSON | Fix the action to return valid JSON or plain text (plain text is shown as a message when it does **not** look like JSON). |
 
 ---
 

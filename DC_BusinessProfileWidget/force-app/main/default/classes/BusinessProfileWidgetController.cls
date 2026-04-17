@@ -386,6 +386,116 @@ public with sharing class BusinessProfileWidgetController {
         );
     }
 
+    /** JSON text (or serialized rows) from an {@code @InvocableMethod} for unified relationships. */
+    public class UnifiedRelationshipsApexResult {
+        @AuraEnabled
+        public String queryResultJson;
+    }
+
+    /**
+     * Invokes an {@code @InvocableMethod} Apex action (type {@code apex}, class API name only, e.g. {@code DC_UnifiedAccounts})
+     * via {@link Invocable.Action}. Passes the current record Id into the invocable input variable (default {@code id}).
+     * Reads the JSON output variable (default {@code queryResultJSON}) and returns it as text for the Overview table.
+     */
+    @AuraEnabled
+    public static UnifiedRelationshipsApexResult getUnifiedRelationshipsQueryJson(
+        String recordId,
+        String invocableApexClassApiName,
+        String invocableRecordIdInputApiName,
+        String invocableJsonOutputApiName
+    ) {
+        if (String.isBlank(recordId)) {
+            throw new AuraHandledException('Record Id is required.');
+        }
+        try {
+            Id ridCheck = (Id) recordId;
+            if (ridCheck == null) {
+                throw new AuraHandledException('Invalid record Id.');
+            }
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception badId) {
+            throw new AuraHandledException('Invalid record Id.');
+        }
+        String cls = String.isBlank(invocableApexClassApiName) ? '' : invocableApexClassApiName.trim();
+        if (String.isBlank(cls)) {
+            UnifiedRelationshipsApexResult empty = new UnifiedRelationshipsApexResult();
+            empty.queryResultJson = null;
+            return empty;
+        }
+        if (!isSafeInvocableConfigurationToken(cls)) {
+            throw new AuraHandledException('Invalid Apex class API name for unified relationships.');
+        }
+        String inName = String.isBlank(invocableRecordIdInputApiName) ? 'id' : invocableRecordIdInputApiName.trim();
+        String outName = String.isBlank(invocableJsonOutputApiName) ? 'queryResultJSON' : invocableJsonOutputApiName.trim();
+        if (!isSafeInvocableConfigurationToken(inName) || !isSafeInvocableConfigurationToken(outName)) {
+            throw new AuraHandledException('Invalid invocable variable API name for unified relationships.');
+        }
+        UnifiedRelationshipsApexResult out = new UnifiedRelationshipsApexResult();
+        try {
+            Invocable.Action action = Invocable.Action.createCustomAction('apex', cls);
+            action.setInvocationParameter(inName, recordId);
+            List<Invocable.Action.Result> results = action.invoke();
+            if (results == null || results.isEmpty()) {
+                out.queryResultJson = null;
+                return out;
+            }
+            Invocable.Action.Result first = results[0];
+            if (!first.isSuccess()) {
+                String detail = 'Invocable Apex action failed.';
+                List<Invocable.Action.Error> errs = first.getErrors();
+                if (errs != null && !errs.isEmpty() && String.isNotBlank(errs[0].getMessage())) {
+                    detail += ' ' + errs[0].getMessage();
+                }
+                throw new AuraHandledException(detail);
+            }
+            Map<String, Object> outs = first.getOutputParameters();
+            Object raw = null;
+            if (outs != null) {
+                if (outs.containsKey(outName)) {
+                    raw = outs.get(outName);
+                } else {
+                    for (String k : outs.keySet()) {
+                        if (k != null && k.equalsIgnoreCase(outName)) {
+                            raw = outs.get(k);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (raw == null) {
+                out.queryResultJson = null;
+            } else if (raw instanceof String) {
+                out.queryResultJson = (String) raw;
+            } else {
+                out.queryResultJson = JSON.serialize(raw);
+            }
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AuraHandledException('Unified relationships Apex action failed: ' + e.getMessage());
+        }
+        return out;
+    }
+
+    /** Letters, digits, underscore; must start with a letter (allows {@code MyNs__MyClass}). */
+    private static Boolean isSafeInvocableConfigurationToken(String s) {
+        if (String.isBlank(s) || s.length() > 120) {
+            return false;
+        }
+        Integer first = s.charAt(0);
+        if (!((first >= 65 && first <= 90) || (first >= 97 && first <= 122))) {
+            return false;
+        }
+        for (Integer i = 1; i < s.length(); i++) {
+            Integer cp = s.charAt(i);
+            if (!((cp >= 65 && cp <= 90) || (cp >= 97 && cp <= 122) || (cp >= 48 && cp <= 57) || cp == 95)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static void resolvePrimaryRmIfUserId(BusinessProfileResult r) {
         if (r == null || String.isBlank(r.primaryRm)) {
             return;

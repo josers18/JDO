@@ -2,7 +2,7 @@
 
 This widget can talk to Salesforce **Flow** in **three separate ways**. All Flows must be **autolaunched** (no screens—nothing for the user to click inside the Flow while the page loads).
 
-**Think of it as:** (1) a Flow that **fills the card**, (2) a Flow that **feeds the Insight tab**, (3) up to three small Flows that **feed the three rings** on AI Signals.
+**Think of it as:** (1) a Flow that **fills the card**, (2) a Flow that **feeds the Insight tab**, (3) up to three small Flows that **feed the three rings** on AI Signals, plus (4) an optional **Einstein prompt template** for the **Overview** inset (not a Flow — see below).
 
 ---
 
@@ -13,6 +13,10 @@ This widget can talk to Salesforce **Flow** in **three separate ways**. All Flow
 | **Profile assembly** | Profile assembly flow + **[Asm flow output]** / JSON map | Puts values into the profile (name, scores, branches, map coordinates, etc.). Salesforce data can still fill gaps. |
 | **Insight / prediction** | Autolaunched flow API name (predictions) + output names | Supplies the **prediction** line and **recommendations** list (and optional AI context). |
 | **AI Signals gauges (×3)** | Inference flow API name on gauge 1 / 2 / 3 | Each ring can call its own Flow that returns a **number**. If left blank, the ring uses scores already on the profile. |
+
+**Overview Agentforce summary** is **not** a Flow: set **Agentforce summary: prompt template ID** (and optional input API name). The LWC calls **`getAgentforceOverviewSummary`** after profile load. See [HOW_TO.md](HOW_TO.md) and [APEX_REFERENCE.md](APEX_REFERENCE.md).
+
+**Overview Unified relationships** is also **not** a Flow: set **Unified relationships: Apex class API name** for an **`@InvocableMethod`**. The LWC calls **`getUnifiedRelationshipsQueryJson`** ( **`Invocable.Action`** ). Older **flow**-named properties on the component are **deprecated and ignored**. See [HOW_TO.md — Overview Unified relationships table](HOW_TO.md#overview-unified-relationships-table-invocable-apex).
 
 ---
 

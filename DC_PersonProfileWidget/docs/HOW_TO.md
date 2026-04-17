@@ -75,6 +75,37 @@ What gets sent to the template: **[PROMPT_TEMPLATE.md](PROMPT_TEMPLATE.md)**.
 
 ---
 
+## Overview Agentforce summary (Einstein, above Contact)
+
+This is **separate** from the Insight tab summary. It appears on the **Overview** tab only (record pages).
+
+1. Create or pick a **Prompt template** designed for **record context** (Id + record snapshot style), not the Insight **prediction JSON** template unless you intentionally redesign it.  
+2. Set **Agentforce summary: prompt template ID** on the component.  
+3. Optionally set **Agentforce summary: prompt input API name** — leave blank to default **`Input:Contact.Id`** on **Contact** or **`Input:Account.Id`** on **Account**; Apex still sends the matching **object** input (**`Input:Contact`** / **`Input:Account`**) for dual-parameter templates.  
+4. Keep **Auto-generate Agentforce summary** on unless you want to skip the second Apex call on load.  
+5. Optionally set **[Typography] AI summary text color** so Overview and Insight generated bodies share a custom color (see **[COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)**).
+
+**Server method:** **`getAgentforceOverviewSummary`**. **Troubleshooting:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md) · **Business Profile parity:** [DC_BusinessProfileWidget/docs/HOW_TO.md](../../DC_BusinessProfileWidget/docs/HOW_TO.md).
+
+---
+
+## Overview Unified relationships table (invocable Apex)
+
+The widget calls your **`@InvocableMethod`** directly—**no Flow** is required for this section.
+
+1. Ensure an Apex class exists with an invocable that accepts the **page record Id** (e.g. **`DC_UnifiedAccounts`** with **`Request.id`**) and sets a **text / JSON** output (e.g. **`queryResultJSON`**).  
+2. In App Builder, set **[Overview] Unified relationships: Apex class API name** to that class (**class only**, not `Class.method`).  
+3. Match **[Overview] Unified rel.: invocable input API name** to your **`@InvocableVariable`** on the request object (default **`id`**).  
+4. Match **[Overview] Unified rel.: JSON output API name** to your result variable (default **`queryResultJSON`**).  
+5. **JSON shape:** an **array of row objects** works out of the box; you can also return an object with **`rows`**, **`data`**, **`records`**, etc., or **`columns`** + row arrays—see table styling in [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md).  
+6. If your action returns **plain text** (e.g. **`No records found.`**), the card shows that text instead of a table.
+
+**Server method:** **`getUnifiedRelationshipsQueryJson`**. **Apex details:** [APEX_REFERENCE.md](APEX_REFERENCE.md).
+
+**Migrating from older builds:** If your Lightning page still lists **Unified relationships flow API name**, those properties are **deprecated and ignored**—set the **Apex class API name** instead.
+
+---
+
 ## Drive the three AI Signals rings with Flow
 
 1. For ring 1, 2, or 3, set **Inference flow API name** to an autolaunched Flow that outputs a **number**.  
