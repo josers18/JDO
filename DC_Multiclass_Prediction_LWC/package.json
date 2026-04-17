@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "description": "Salesforce App",
+  "overrides": {
+    "@tootallnate/once": "3.0.1"
+  },
   "scripts": {
     "lint": "eslint **/{aura,lwc}/**/*.js",
     "test": "npm run test:unit",
