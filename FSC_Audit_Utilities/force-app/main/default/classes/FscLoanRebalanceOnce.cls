@@ -5,8 +5,10 @@
  * (101 legacy loan FAs with avg $337M, max $9.7B — data-quality bug from
  * a prior bulk import). Implements decision §6.1 D3.
  *
- * Idempotency:  OriginalSnapshot__c IS NULL is the eligibility gate.
- *               Once a record has been rebalanced, re-runs skip it.
+ * Idempotency:  IsRebalanced__c = FALSE is the queryable eligibility gate.
+ *               OriginalSnapshot__c holds the JSON payload of original
+ *               values; the boolean is the SOQL-filterable marker because
+ *               LongTextArea fields cannot appear in WHERE clauses.
  *
  * Determinism: records are ordered by CreatedDate ASC, Id ASC and
  *              assigned to tiers by index modulo 100, mapped to the
@@ -45,10 +47,11 @@ public with sharing class FscLoanRebalanceOnce
         return Database.getQueryLocator([
             SELECT Id, CreatedDate,
                    FinServ__Balance__c, FinServ__LoanAmount__c,
-                   FinServ__FinancialAccountType__c, OriginalSnapshot__c
+                   FinServ__FinancialAccountType__c,
+                   IsRebalanced__c
             FROM   FinServ__FinancialAccount__c
             WHERE  FinServ__FinancialAccountType__c IN :LOAN_TYPES
-            AND    OriginalSnapshot__c = NULL
+            AND    IsRebalanced__c = FALSE
             ORDER BY CreatedDate ASC, Id ASC
         ]);
     }
@@ -85,6 +88,7 @@ public with sharing class FscLoanRebalanceOnce
             fa.FinServ__Balance__c     = newBalance;
             fa.FinServ__LoanAmount__c  = newLoan;
             fa.OriginalSnapshot__c     = snapshotJson;
+            fa.IsRebalanced__c         = true;
             faToUpdate.add(fa);
 
             logsToInsert.add(new RebalanceLog__c(

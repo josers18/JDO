@@ -8,5 +8,5 @@
   "name": "FSC_Audit_Utilities",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "62.0"
+  "sourceApiVersion": "66.0"
 }
