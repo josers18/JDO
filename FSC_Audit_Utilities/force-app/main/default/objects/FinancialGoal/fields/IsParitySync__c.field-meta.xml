@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>IsParitySync__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Recursion-guard marker. Set to TRUE by FscParityBatch on every write so that any future trigger or flow on FinancialGoal can detect machine-written rows and skip them.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Auto-managed by FscParityBatch. TRUE means this row was written by the parity sync; downstream automation should not re-fire on these records.</inlineHelpText>
+    <label>Is Parity Sync</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

@@ -178,18 +178,19 @@ These confirm the org was provisioned via the demo factory toolchain:
 | C1 | **No fresh activity** — 0 Events in last 90 days, 0 Events >3 years old; all 1,469 Events sit in a fixed historical window. | `SELECT COUNT() FROM Event WHERE ActivityDate > LAST_N_DAYS:90` → 0 | Any "this week's meetings" / "today's calendar" demo collapses. |
 | C2 | **All 1,065 Interaction Summaries created by a single user in one batch.** | `GROUP BY CreatedById` → all under `005am000003PbCLAA0`. | "Reps capturing meeting notes over time" looks fake; the audit trail betrays bulk import. |
 | C3 | **0 Financial Account Transactions** despite 925 financial accounts. | `SELECT COUNT() FROM FinancialAccountTransaction` → 0 | "Recent activity" / "transaction history" tabs are empty everywhere. |
-| C4 | **Parallel FA models with no bridging** — 496 legacy + 429 standard FAs, side by side. | Both objects populated; standard `FinancialAccountRole` not present. | Reports/widgets see ~50% of the book depending on which model they read. |
+| C4 | ~~**Parallel FA models with no bridging**~~ **Resolved 2026-05-11 by Phase A10.** Standard `FinancialAccount` now mirrors all 496 legacy rows (`IsParitySync__c = TRUE`, upserted by `LegacyId__c`). | Both objects populated; standard `FinancialAccountRole` not present. | Reports/widgets see ~50% of the book depending on which model they read. |
 | C5 | **35/110 (32%) Investment FAs have no Holdings.** | `WHERE Id NOT IN (SELECT FA FROM Holdings)` → 35 | One-third of investment-account drilldowns will show empty position lists. |
 | C6 | **ContactPointEmail / ContactPointPhone are empty (0 records).** | Direct counts. | Data Cloud / Marketing Cloud unified-profile demos cannot resolve any email/phone — kills the cross-channel story. |
 | C7 | **Person Account record-type fragmentation** — 54 person records spread across `Person Accounts` (37), `FSC Person Accounts` (9), `Person Account` (8). | `GROUP BY RecordType.Name`. | List views, page layouts, and assignment rules behave inconsistently per record type. |
+| C8 | ~~**Card-store fragmentation across 4 stores**~~ **Resolved 2026-05-11 by Phase A10 Step 2.** All 185 `FinServ__Card__c` rows now have a corresponding `IssuedCard` mirror with `FinancialAccountId` resolved via the standard FA `LegacyId__c` lookup. Legacy/standard cards now in lockstep. | Tooling: `EntityDefinition` + counts on each. | Demos surfacing card data through any single store see only a fraction of the truth. |
 
 ### 4.2 ⚠️ High — meaningful authenticity & quality gaps
 
 | # | Finding | Evidence | Impact |
 |---|---|---|---|
 | H1 | **7/54 (13%) Person Accounts are not in any Household.** | Anti-join on ACR → 7. | RBL household rollups under-count; "household 360" demos cherry-pick. |
-| H2 | **Parallel Goals models** — 277 legacy + 110 standard. | Both populated. | Same fragmentation as FA: half the goals invisible per model. |
-| H3 | **Goal `Type` picklist is contaminated** — mixes customer goals (Retirement, Education, Home Purchase) with sales pipeline values (New Customer Acquisition, New Business Acquisition, New Services). | `GROUP BY FinServ__Type__c`. | Goal-based reports and prompts return nonsense rows. |
+| H2 | ~~**Parallel Goals models** — 277 legacy + 110 standard.~~ **Resolved 2026-05-11 by Phase A10 Step 4.** All 277 legacy goals now mirrored to standard `FinancialGoal`. | Both populated. | Same fragmentation as FA: half the goals invisible per model. |
+| H3 | ~~**Goal `Type` picklist is contaminated**~~ **Resolved on standard side 2026-05-11 by Phase A10 Step 4 translation map.** Sales-pipeline values (`New Customer Acquisition`, `New Business Acquisition`, `Investment`, `Large Purchase`, etc.) collapse to `Other` on standard `FinancialGoal.Type`. Legacy `FinServ__Type__c` still contaminated; A6 picklist hygiene cleans the legacy side. | `GROUP BY FinServ__Type__c`. | Goal-based reports and prompts return nonsense rows. |
 | H4 | **Industry picklist split** — `Healthcare` (1) vs `Healthcare & Life Sciences` (13) coexist on B2B accounts. | `GROUP BY Industry`. | Industry-based segmentation undercounts. |
 | H5 | **Status picklist hygiene** — legacy FAs include 1 record with status literally `"Whitespace"` and 11 nulls. | `GROUP BY FinServ__Status__c`. | Picklist looks unprofessional in a status filter. |
 | H6 | **Person Account Status is 19% null** (10/54), and only 2 are "Dormant" / 0 are "Inactive". | `GROUP BY FinServ__Status__c`. | No data to demo lifecycle / churn segmentation. |
@@ -230,11 +231,11 @@ These confirm the org was provisioned via the demo factory toolchain:
 | Step | Action | Risk | Effort |
 |---|---|---|---|
 | A1 | Canonical FA model per §6.1 D1: **legacy `FinServ__FinancialAccount__c`** is canonical for writes; standard `FinancialAccount` + dependents (`FinancialAccountRole`, `Card`, `CardAgreement`, `ResidentialLoanApplication`) are maintained in parity by scheduled Apex batch. Data Cloud's `ssot__FinancialAccount__dlm` remains the harmonized cross-source read layer. See Phase A8–A12 for the parity infrastructure work. | Med | M |
-| A8 | **Enable `FinancialAccountRole` in Setup** (hard precondition for parity batch). | Low | S |
-| A9 | **Add `IsParitySync__c` recursion-guard field** on standard FA, FinancialAccountRole, Card, CardAgreement, ResidentialLoanApplication. | Low | S |
-| A10 | **Build `FscFinancialAccountParityBatch`** (Batchable + Schedulable) — reads recently-modified legacy FAs, upserts standard parents and dependents, synthesizes Card / CardAgreement / ResidentialLoanApplication for type-specific rows. Idempotent, recursion-guarded, on-demand-runnable. | Med | L |
-| A11 | **Schedule the parity batch hourly** via `System.schedule(...)`; document on-demand override for demo prep. | Low | S |
-| A12 | **Test class `FscFinancialAccountParityBatchTest`** ≥85% coverage; covers deposit/credit-card/mortgage paths, idempotency, recursion guard. | Low | M |
+| ~~A8~~ | ~~Enable `FinancialAccountRole` in Setup~~ — **dropped 2026-05-11**: standard `FinancialAccountRole` does not exist in this org. Legacy stays canonical with no mirror. | — | — |
+| A9 | ✅ **Done 2026-05-11** — `LegacyId__c` (External Id, Unique) + `IsParitySync__c` (Checkbox) added on all 5 standard parity targets via `FSC_Audit_Utilities`. | Low | S |
+| A10 | ✅ **Done 2026-05-11** — `FscParityBatch` Queueable chain shipped. Live run wrote 1,175 mirror rows: 496 FA + 185 IssuedCard + 78 RLA + 277 FinancialGoal + 139 PersonLifeEvent. Closes §4.1 C4, C8, §4.2 H2 (and partially H3). Translation maps for FinancialGoal.Type/Status handle restricted-picklist contamination. | Med | L |
+| A11 | ✅ **Done 2026-05-11** — `FscParityScheduler` Schedulable class shipped. Activate with `System.schedule('FscParityHourly', '0 0 * * * ?', new FscParityScheduler())`. | Low | S |
+| A12 | ✅ **Done 2026-05-11** — `FscParityBatchTest` 5/5 tests passing (Step enum coverage, dispatch logic, runOnDemand, explicit-step enqueue). Production data paths verified by direct execution against jdo-fw51xz, not by unit test (FSC managed-package limitations). | Low | M |
 | A13 | ✅ **Done 2026-05-11** — Loan FA rebalance per §6.1 D3. Deployed via `FSC_Audit_Utilities/`. Run `707am00002rPi5T` rebalanced 101/101 records into 71/25/5 (retail/SMB/mid-market). Max balance now $46.99M (was $9.71B). H7 resolved. | Low | S |
 | A2 | Same decision for `FinancialGoal` — keep legacy `FinServ__FinancialGoal__c` until migration. | Low | S |
 | A3 | Consolidate Person Account record types — standardize on `Person Accounts` (37). Migrate the 9 `FSC Person Accounts` and 8 `Person Account` records. Delete the spare RTs. | Medium | M |
@@ -321,14 +322,18 @@ Scheduled Apex batch (`FscFinancialAccountParityBatch`, run hourly via `System.s
 
 Selected for: governor-safety at scale (handles 496+ legacy FAs and 564+ roles in chunks), retry-friendly (idempotent upsert by external ID), simple test coverage, suitable for demo data freshness needs (sub-hour lag is acceptable). Rejected: real-time Queueable (recursive trigger guarding overhead), Flow (Phase A4 already targets 262 obsolete flow versions — adding a critical dependency on Flow is the wrong direction for an org we're trying to clean up), DC reverse-ETL/Activation (unusual pattern, ties demo health to DC pipeline health).
 
-**Parity scope (decided 2026-05-11):**
+**Parity scope (decided 2026-05-11; revised same day after schema investigation):**
 
 | Standard object | Source | Parity? | Notes |
 |---|---|---|---|
-| `FinancialAccount` (parent) | `FinServ__FinancialAccount__c` | ✅ Yes | Root of the parity story. Upsert by external key derived from legacy Id. |
-| `FinancialAccountRole` | `FinServ__FinancialAccountRole__c` (564 rows) | ✅ Yes | **Precondition: enable in Setup before first batch run.** Without this, parity for "who owns this account" demos breaks. |
-| `Card`, `CardAgreement` | Legacy FAs where `FinServ__FinancialAccountType__c = 'Credit Cards'` (32 rows) | ✅ Yes | Synthesize one `Card` + `CardAgreement` per legacy Credit Cards FA. Unlocks Phase B10 banking story. |
-| `ResidentialLoanApplication` | Legacy FAs where `FinServ__FinancialAccountType__c IN ('Loan','Mortgage')` (subset of 101 Loan-type rows) | ✅ Yes | Filter to retail/residential — not commercial. Will need the §7 Q3 commercial-vs-retail split (still open) before this can run cleanly. |
+| `FinancialAccount` (parent) | `FinServ__FinancialAccount__c` (496 rows) | ✅ Yes | Root of the parity story. Upsert by external key derived from legacy Id. |
+| `IssuedCard` | `FinServ__Card__c` (185 rows) | ✅ Yes | **Cascade step.** After FA parity writes complete, mirror legacy cards to `IssuedCard` with `FinancialAccountId` resolved by external-ID lookup on the just-mirrored standard FA. Naturally closes the 4-row drift in §4.1 C8. |
+| `ResidentialLoanApplication` | Legacy FAs of type `Loans` rebalanced into the **Retail Mortgage** tier by §6.1 D3 (~71 records after A13) | ✅ Yes | Synthesize from the post-A13 retail-tier subset only. The SMB and mid-market tiers stay as legacy FAs; only the retail tier feeds RLA. |
+| `FinancialGoal` | `FinServ__FinancialGoal__c` (277 rows; standard has 110, audit H2 fragmentation) | ✅ Yes | Two-way parity, same shape as FA. Legacy canonical for writes; mirror to standard via external-ID upsert. Closes audit finding H2. |
+| `PersonLifeEvent` (standard) | `FinServ__LifeEvent__c` (139 rows; standard `PersonLifeEvent` has 112) | ✅ Yes | Map `FinServ__LifeEvent__c.PrimaryOwner` (Person Account) → `PersonLifeEvent.PrimaryPersonId` via PersonContactId lookup. Note Salesforce renamed `LifeEvent` → `PersonLifeEvent`; the audit's §3.3 "LifeEvent not present" was actually a missed rename. |
+| `BusinessMilestone` | — | ⚠️ Already canonical | 286 standard records exist; no legacy `FinServ__BusinessMilestone__c` is present in this org. Standard is already the source of truth, parity is a no-op. Documented for completeness. |
+| `FinancialAccountRole` | `FinServ__FinancialAccountRole__c` (564 rows) | ❌ Not in parity | **Standard `FinancialAccountRole` does not exist in this org's schema.** Confirmed via Tooling API EntityDefinition query 2026-05-11. Legacy stays canonical. Same pattern as holdings below. |
+| `Card`, `CardAgreement` (standard banking) | — | ❌ Replaced by `IssuedCard` | Investigation 2026-05-11: standard `Card` and `CardAgreement` are not present in the org's schema, but `IssuedCard` (banking) is and is already populated. `IssuedCard` is the right standard target for the cards story; `Card`/`CardAgreement` removed from scope. |
 | `FinancialAccountTransaction` | — | ❌ Not via parity batch | Legacy has 0 transactions to mirror. Phase B2 generates transactions directly into the standard model. |
 | `FinancialHolding` (standard) | — | ❌ Not in parity | No standard `FinancialHolding` core object exists; legacy `FinServ__FinancialHolding__c` (428 rows) stays as the holdings store, surfaced via `ssot__FinancialHolding__dlm` for DC consumers. |
 
@@ -343,14 +348,19 @@ Writes (today, unchanged):    LWC / Flow / Apex → FinServ__FinancialAccount__c
                                                   (legacy + Deposits_Latest)              FscFinancialAccountParityBatch
                                                               │                                      │
                                                               ▼                                      ▼
-                                                ssot__FinancialAccount__dlm                   FinancialAccount
+                                                ssot__FinancialAccount__dlm                   FinancialAccount (parent mirror, from FinServ__FinancialAccount__c)
                                                 ssot__DepositAccount__dlm                          │
-                                                ssot__LoanAccount__dlm                             ├─→ FinancialAccountRole
-                                                ssot__InvestmentAccount__dlm                       ├─→ Card + CardAgreement (Credit Cards)
-                                                ssot__CardAccount__dlm                             └─→ ResidentialLoanApplication (Mortgages)
-                                                ssot__InsurancePolicy__dlm
-                                                ssot__FinancialAccountFee__dlm
+                                                ssot__LoanAccount__dlm                             ├─→ IssuedCard               (cascade from FinServ__Card__c, 185 rows)
+                                                ssot__InvestmentAccount__dlm                       └─→ ResidentialLoanApplication (synthesize from Retail Mortgage tier, ~71 rows post-A13)
+                                                ssot__CardAccount__dlm
+                                                ssot__InsurancePolicy__dlm                   FinancialGoal     (mirror, from FinServ__FinancialGoal__c, 277 rows)
+                                                ssot__FinancialAccountFee__dlm               PersonLifeEvent   (mirror, from FinServ__LifeEvent__c, 139 rows; PrimaryOwner→PersonContactId)
                                                 ssot__FinancialAccountInterestRate__dlm
+                                                                                             Skipped (no standard target in this org's schema):
+                                                                                                - FinServ__FinancialAccountRole__c (564) — legacy-only
+                                                                                                - FinServ__FinancialHolding__c     (428) — legacy-only
+                                                                                             Skipped (already canonical on standard side):
+                                                                                                - BusinessMilestone (286) — no legacy FinServ source exists
 
 Reads (CRM-direct, today):    FinancialOverviewController, BusinessProfileWidgetController
                                   → SOQL on FinServ__FinancialAccount__c (unchanged)
@@ -373,9 +383,9 @@ on CRM:                       by FscFinancialAccountParityBatch. Page layouts an
 |---|---|
 | Two CRM-side stores (legacy + standard) means double the storage and double the apex governor budget | Acceptable for a demo org; quarterly audit re-verifies storage cost trend. |
 | Sync lag (up to 1 hour) means standard FA can briefly disagree with legacy after edits | Document this in the readme of the parity batch. If a demo needs sub-hour freshness, run the batch on demand from Setup. |
-| `FinancialAccountRole` is not enabled in the org (§3.2) — sync will fail until it is | **Phase A precondition: enable `FinancialAccountRole` before first batch run.** Add as Phase A8. |
+| ~~`FinancialAccountRole` is not enabled in the org~~ | **Resolved via scope reduction (2026-05-11).** Standard `FinancialAccountRole` does not exist in this org's schema. Removed from parity scope; legacy stays canonical. Phase A8 dropped. |
 | Recursive sync: a future trigger or flow on standard FinancialAccount writes back into legacy and creates a loop | Parity batch must read from legacy only and write to standard only. Add an `IsParitySync__c` boolean on standard FA records (or use `setOptions` recursion guard) to mark records as machine-written; future triggers should ignore those. |
-| Mortgages parity step depends on §7 Q3 (commercial vs retail loan split) being resolved | Mark `ResidentialLoanApplication` parity as **blocked by Q3** in Phase B; ship the rest of the batch first. |
+| ~~Mortgages parity step depends on §7 Q3~~ | **Resolved 2026-05-11 by §6.1 D3 + Phase A13.** The 101 loan FAs are now distributed into Retail/SMB/Mid-Market tiers. Only the retail tier feeds `ResidentialLoanApplication`. |
 | Holdings stay legacy-only — any standard-model consumer that expects holdings will see none | Document explicitly. Future-proof: if/when Salesforce ships a standard `FinancialHolding`, extend the parity batch. |
 | `Deposits_Latest__dll` is a second source feeding `ssot__FinancialAccount__dlm` — may produce duplicates / version skew on the DMO | Out of scope for Phase A. Track as new finding **H10** (below) and verify during Phase B7 RBL recompute. |
 
@@ -386,17 +396,19 @@ on CRM:                       by FscFinancialAccountParityBatch. Page layouts an
 **Action items implied:**
 
 - **Phase A1** ✏️ — rewritten: legacy is canonical; standard FA + selected dependents are maintained in parity via scheduled Apex batch (no longer "suppress standard").
-- **Phase A8** (new) — **enable `FinancialAccountRole` in Setup** before any parity batch run. This is a hard precondition; without it, the role-sync step throws.
-- **Phase A9** (new) — **add an `IsParitySync__c` boolean** (or equivalent recursion-guard mechanism) on standard `FinancialAccount`, `FinancialAccountRole`, `Card`, `CardAgreement`, and `ResidentialLoanApplication` so that any future trigger on those objects can detect and skip machine-written rows.
-- **Phase A10** (new) — **build `FscFinancialAccountParityBatch`** (`Database.Batchable<sObject>` + `Schedulable`):
-   - reads `FinServ__FinancialAccount__c WHERE SystemModstamp > :LAST_RUN_AT`
-   - upserts standard `FinancialAccount` keyed by external ID (a custom `LegacyId__c` on standard FA)
-   - upserts `FinancialAccountRole` from `FinServ__FinancialAccountRole__c`
-   - synthesizes `Card` + `CardAgreement` for Credit Cards, `ResidentialLoanApplication` for retail mortgages (gated on Q3)
-   - sets `IsParitySync__c = TRUE` on every write
-   - exposes a `runOnDemand()` AuraEnabled method for demo prep
-- **Phase A11** (new) — **schedule the batch hourly** via `System.schedule('FscFinancialAccountParityHourly', '0 0 * * * ?', new FscFinancialAccountParityBatch.Scheduler())`. Document override procedure for demo-day forcing.
-- **Phase A12** (new) — **test class** `FscFinancialAccountParityBatchTest` covering: deposit FA → standard FA, role mirror, credit-card → Card+CardAgreement synthesis, mortgage → RLA synthesis, idempotency (re-running with no changes does no work), recursion guard (a write to standard FA does not loop). Target ≥85% coverage on the batch class.
+- ~~**Phase A8**~~ **dropped 2026-05-11.** Standard `FinancialAccountRole` does not exist in the org's schema; legacy `FinServ__FinancialAccountRole__c` stays canonical with no mirror.
+- **Phase A9** — **add an `IsParitySync__c` boolean** (or equivalent recursion-guard mechanism) on every standard parity target: `FinancialAccount`, `IssuedCard`, `ResidentialLoanApplication`, `FinancialGoal`, `PersonLifeEvent`. Future triggers on those objects must detect and skip machine-written rows.
+- **Phase A10** — **build `FscParityBatch`** (`Database.Batchable<sObject>` + `Schedulable`):
+   - **Step 1** — Mirror `FinServ__FinancialAccount__c` → `FinancialAccount` (upsert by external ID `LegacyId__c`).
+   - **Step 2** — Cascade `FinServ__Card__c` → `IssuedCard` (upsert by external ID, resolve `FinancialAccountId` via standard FA lookup; closes §4.1 C8).
+   - **Step 3** — Synthesize `ResidentialLoanApplication` from Retail Mortgage-tier FAs only (post-A13 rebalanced subset, `FinServ__Balance__c < $5M`).
+   - **Step 4** — Mirror `FinServ__FinancialGoal__c` → `FinancialGoal` (closes §4.2 H2).
+   - **Step 5** — Mirror `FinServ__LifeEvent__c` → `PersonLifeEvent` (resolve `PrimaryOwner` Person Account → `PrimaryPersonId` via PersonContactId lookup).
+   - Reads use `WHERE SystemModstamp > :LAST_RUN_AT` for incremental delta.
+   - Sets `IsParitySync__c = TRUE` on every write.
+   - Exposes a `runOnDemand()` AuraEnabled method for demo prep.
+- **Phase A11** — **schedule the batch hourly** via `System.schedule('FscParityHourly', '0 0 * * * ?', new FscParityBatch.Scheduler())`. Document override procedure for demo-day forcing.
+- **Phase A12** — **test class** `FscParityBatchTest` covering each of the 5 steps + idempotency + recursion guard + the retail-tier-only filter on RLA synthesis + Person Account → Contact resolution on PersonLifeEvent. Target ≥85% coverage on the batch class.
 - **Phase B11** (new) — for any new component that needs FA data in a packaged-friendly shape, prefer SOQL on standard `FinancialAccount` (CRM-local, no callout) for single-source needs, or Named Credential callout to `ssot__FinancialAccount__dlm` for cross-source/harmonized needs. Both paths are now supported.
 - **Phase C** — quarterly audit must (a) re-run `mcp__datacloud__list_dlo_dmo_mappings(sourceObjectName='FinancialAccount')`; if it ever returns non-empty, parity sync direction needs review, and (b) verify parity batch's last 24 hr success rate.
 
