@@ -26,9 +26,11 @@
 public with sharing class FscLoanRebalanceOnce
     implements Database.Batchable<SObject>, Database.Stateful {
 
-    private static final Set<String> LOAN_TYPES = new Set<String>{
-        'Loan', 'Mortgage', 'Line of Credit', 'Auto Loan'
-    };
+    // Matches the Cumulus org's FinServ__FinancialAccountType__c picklist
+    // value for loan accounts. The org uses a single "Loans" value rather
+    // than separate Mortgage/HELOC/Auto/etc — granularity comes from the
+    // assigned Tier__c on the resulting RebalanceLog__c row.
+    private static final Set<String> LOAN_TYPES = new Set<String>{ 'Loans' };
 
     @TestVisible
     private Integer rebalancedCount = 0;
@@ -115,7 +117,25 @@ public with sharing class FscLoanRebalanceOnce
             }
         }
 
-        insert logsToInsert;
+        // allOrNone=false so a partial-failure mode (e.g. FLS missing on a
+        // single field) is surfaced as per-row errors rather than failing
+        // the whole batch silently. We only have audit-trail rows here, so
+        // never let log-insert failures be invisible.
+        Database.SaveResult[] logResults = Database.insert(logsToInsert, false);
+        Integer logFailureCount = 0;
+        for (Database.SaveResult r : logResults) {
+            if (!r.isSuccess()) {
+                logFailureCount++;
+                System.debug(LoggingLevel.ERROR,
+                    'RebalanceLog insert failed: ' + r.getErrors()[0].getMessage());
+            }
+        }
+        if (logFailureCount > 0) {
+            System.debug(LoggingLevel.ERROR,
+                'FscLoanRebalanceOnce: ' + logFailureCount + ' of '
+                + logsToInsert.size() + ' audit-log rows failed to insert. '
+                + 'FA balance writes already committed; audit trail is incomplete.');
+        }
     }
 
     /**

@@ -193,7 +193,7 @@ These confirm the org was provisioned via the demo factory toolchain:
 | H4 | **Industry picklist split** — `Healthcare` (1) vs `Healthcare & Life Sciences` (13) coexist on B2B accounts. | `GROUP BY Industry`. | Industry-based segmentation undercounts. |
 | H5 | **Status picklist hygiene** — legacy FAs include 1 record with status literally `"Whitespace"` and 11 nulls. | `GROUP BY FinServ__Status__c`. | Picklist looks unprofessional in a status filter. |
 | H6 | **Person Account Status is 19% null** (10/54), and only 2 are "Dormant" / 0 are "Inactive". | `GROUP BY FinServ__Status__c`. | No data to demo lifecycle / churn segmentation. |
-| H7 | **Loans average $337M, max $9.7B on `FinServ__FinancialAccount__c`.** | Aggregate stats. | Either commercial-banking data is conflated with retail wealth, or values were mis-imported. Distorts every household total chart. |
+| H7 | ~~**Loans average $337M, max $9.7B on `FinServ__FinancialAccount__c`.**~~ **Resolved 2026-05-11 by Phase A13.** Pre: 101 records, total $34.1B, avg $337.6M, **max $9.71B**. Post: 101 records, total $251M, avg $2.49M, **max $46.99M** (under $50M cap). Distribution: 71 Retail Mortgage / 25 Small Business / 5 Mid-Market Commercial. Audit trail in `RebalanceLog__c`. Run `707am00002rPi5T`. | Aggregate stats. | Either commercial-banking data is conflated with retail wealth, or values were mis-imported. Distorts every household total chart. |
 | H8 | **51/54 Person Accounts have null `PersonHomePhone`.** | Direct count. | Phone column on customer cards is mostly empty. |
 | H9 | **`InteractionSummary` and `Interaction` record types not profiled** — likely all share one type/source pattern. | (Schema check pending.) | "Multi-channel" interaction story may be single-channel. |
 
@@ -235,7 +235,7 @@ These confirm the org was provisioned via the demo factory toolchain:
 | A10 | **Build `FscFinancialAccountParityBatch`** (Batchable + Schedulable) — reads recently-modified legacy FAs, upserts standard parents and dependents, synthesizes Card / CardAgreement / ResidentialLoanApplication for type-specific rows. Idempotent, recursion-guarded, on-demand-runnable. | Med | L |
 | A11 | **Schedule the parity batch hourly** via `System.schedule(...)`; document on-demand override for demo prep. | Low | S |
 | A12 | **Test class `FscFinancialAccountParityBatchTest`** ≥85% coverage; covers deposit/credit-card/mortgage paths, idempotency, recursion guard. | Low | M |
-| A13 | **Loan FA rebalance** (per §6.1 D3) — `FscLoanRebalanceOnce.cls` snapshots and re-distributes the 101 loan FAs into retail/SMB/mid-market ranges. Run **before** A10 mortgage parity and **before** Phase B7 RBL recompute. Resolves §4.2 H7. | Low | S |
+| A13 | ✅ **Done 2026-05-11** — Loan FA rebalance per §6.1 D3. Deployed via `FSC_Audit_Utilities/`. Run `707am00002rPi5T` rebalanced 101/101 records into 71/25/5 (retail/SMB/mid-market). Max balance now $46.99M (was $9.71B). H7 resolved. | Low | S |
 | A2 | Same decision for `FinancialGoal` — keep legacy `FinServ__FinancialGoal__c` until migration. | Low | S |
 | A3 | Consolidate Person Account record types — standardize on `Person Accounts` (37). Migrate the 9 `FSC Person Accounts` and 8 `Person Account` records. Delete the spare RTs. | Medium | M |
 | A4 | Clean up Flow surface — delete the 262 Obsolete versions; investigate & fix-or-delete the 7 Invalid Draft flows. | Low | S |
