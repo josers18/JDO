@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Tier__c</fullName>
+    <description>The target tier the source FA was assigned to during rebalance. Reflects the D3 distribution table (retail/SMB/mid-market).</description>
+    <externalId>false</externalId>
+    <inlineHelpText>One of: Retail Mortgage, Small Business, Mid-Market Commercial. Set by the rebalance utility based on the deterministic distribution rule.</inlineHelpText>
+    <label>Loan Tier Assigned</label>
+    <required>true</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Retail Mortgage</fullName>
+                <default>false</default>
+                <label>Retail Mortgage</label>
+            </value>
+            <value>
+                <fullName>Small Business</fullName>
+                <default>false</default>
+                <label>Small Business</label>
+            </value>
+            <value>
+                <fullName>Mid-Market Commercial</fullName>
+                <default>false</default>
+                <label>Mid-Market Commercial</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

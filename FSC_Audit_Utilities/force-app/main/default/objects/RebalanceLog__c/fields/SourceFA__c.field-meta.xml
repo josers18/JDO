@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SourceFA__c</fullName>
+    <description>Lookup to the FSC legacy Financial Account record that was rebalanced.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>The FSC Financial Account whose Balance / LoanAmount values were re-distributed by the rebalance utility.</inlineHelpText>
+    <label>Source Financial Account</label>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <referenceTo>FinServ__FinancialAccount__c</referenceTo>
+    <relationshipLabel>Rebalance Log Entries</relationshipLabel>
+    <relationshipName>RebalanceLogEntries</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

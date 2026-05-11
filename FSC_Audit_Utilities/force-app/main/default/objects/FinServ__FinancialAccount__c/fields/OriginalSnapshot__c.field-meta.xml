@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>OriginalSnapshot__c</fullName>
+    <description>JSON snapshot of pre-rebalance Balance and LoanAmount values, written by FscLoanRebalanceOnce. Presence of a non-null value also acts as the idempotency marker for re-runs.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Set automatically by the FSC audit rebalance utility. Contains the pre-rebalance Balance and LoanAmount as JSON. A non-null value means this record has already been rebalanced; do not edit.</inlineHelpText>
+    <label>Original Snapshot (JSON)</label>
+    <length>2048</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>5</visibleLines>
+</CustomField>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>NewLoanAmount__c</fullName>
+    <description>The FinServ__LoanAmount__c value written to the source FA by the rebalance utility.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Post-rebalance LoanAmount. Falls inside the range defined by the assigned tier in audits/fsc-master-org-audit.md §6.1 D3.</inlineHelpText>
+    <label>New Loan Amount</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackTrending>false</trackTrending>
+    <type>Currency</type>
+</CustomField>
