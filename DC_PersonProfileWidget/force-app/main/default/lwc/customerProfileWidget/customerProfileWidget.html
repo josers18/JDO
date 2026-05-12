@@ -88,8 +88,8 @@
             <template lwc:if={showKpiStripResolved}>
                 <div class="wp-kpi-strip">
                     <div class="wp-kpi">
-                        <div class="wp-kpi-val">{kpiRevenue}</div>
-                        <div class="wp-kpi-lbl">Annual revenue</div>
+                        <div class="wp-kpi-val">{kpiDepositYtd}</div>
+                        <div class="wp-kpi-lbl">Deposits</div>
                         <div class="wp-kpi-delta wp-delta-up">+12% YoY</div>
                     </div>
                     <div class="wp-kpi">
@@ -299,9 +299,9 @@
                                         variant="bare"
                                         class="wp-field-key-icon"
                                     ></lightning-icon>
-                                    <span>Deposits YTD</span>
+                                    <span>Annual revenue</span>
                                 </span>
-                                <span class="wp-field-val">{kpiDepositYtd}</span>
+                                <span class="wp-field-val">{kpiRevenue}</span>
                             </div>
                             <div class="wp-field-row">
                                 <span class="wp-field-key wp-field-key--iconrow">
