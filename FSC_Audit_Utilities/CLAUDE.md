@@ -136,6 +136,31 @@ Checkbox to gate.
 - **`BusinessMilestone` description field is `MilestoneDescription`,
   not `EventDescription`** (despite the type-similarity to Event).
   Standard, not custom; verify with describe before writing.
+- **`FinServ__FinancialAccount__c.FinServ__Household__c` cannot be
+  written programmatically** (C9). The packaged `FinancialAccountTrigger`
+  silently reverts the field in `before update`; `Database.update`
+  returns `isSuccess=true` with 0 errors but a same-transaction
+  re-query shows null. None of these worked: direct DML, ACR-touch,
+  `FinServ.GroupAssignmentBatchable`, `FinServ.HouseholdAssignmentBatchable`,
+  flipping `FinServ__Record_Rollup_Configuration__c.FinServ__Skip_Record_Rollup_Triggers__c`
+  to false. The 48 already-linked FAs were apparently set at insert
+  time before the trigger logic activated. The FSC-blessed path
+  is the UI "Update Household" action; no public Apex equivalent
+  exists. **Don't try to backfill this field programmatically.**
+- **`Account.FinServ__Household__c` does NOT exist as a field on
+  the member side** — household membership is ACR-driven (find ACRs
+  whose `Account.RecordType.Name='Household'`). Don't search for a
+  member-side household lookup.
+- **FSC public Apex constructor discovery pattern.** When the docs
+  are missing for a `FinServ.*` global class, brute-force probe the
+  constructor signature space — common types (`String`, `Id`,
+  `List<Id>`, `Set<Id>`, `Account`, etc.) — against `new FinServ.X(...)`
+  in anonymous Apex. Compile errors say "Constructor not defined";
+  runtime errors mean you found a real signature. If `runJob` is the
+  expected entry, the class will tell you in the runtime exception
+  message. Used during C9 to discover that
+  `FinServ.HouseholdAssignmentBatchable.runJob(String)` is the
+  invocation but Record Rollup Optimization (Beta) gates it.
 
 ### FLS gotcha for newly-deployed custom fields
 
@@ -177,12 +202,6 @@ Permission set `FSC_Audit_Utilities_User` — extends with class access
 
 ## Open items (the next session can pick up)
 
-- **C9** — programmatic `FinServ__Household__c` backfill blocked by
-  FSC trigger. `FscHouseholdLookupBackfill` is deployed and ready;
-  unblock requires investigating FSC `HouseholdServices` namespace,
-  setting `Account.FinServ__Household__c` on the PA first, or using
-  the UI's "Update Household" packaged action. Without this, ~90%
-  of household RBL rollups stay $0.
 - **H11** — 36 stuck Flow orchestrations holding paused FlowInterviews
   hostage, blocking the last 11 obsolete-flow-version deletes from A4.
 - **A7 actual uninstalls** — inventory complete in
