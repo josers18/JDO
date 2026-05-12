@@ -202,8 +202,6 @@ Permission set `FSC_Audit_Utilities_User` — extends with class access
 
 ## Open items (the next session can pick up)
 
-- **H11** — 36 stuck Flow orchestrations holding paused FlowInterviews
-  hostage, blocking the last 11 obsolete-flow-version deletes from A4.
 - **A7 actual uninstalls** — inventory complete in
   `audits/cumulus-package-inventory.md`; 13 high-confidence
   candidates; per-package dependency review needed.
