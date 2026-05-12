@@ -16,6 +16,10 @@
         <apexClass>FscEngagementShifter</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>FscHoldingsBackfill</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
@@ -140,6 +144,12 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>InteractionSummary.IsSeededEngagement__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- B3 holdings-backfill marker field -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>FinServ__FinancialHolding__c.IsSeededHolding__c</field>
         <readable>true</readable>
     </fieldPermissions>
 </PermissionSet>
