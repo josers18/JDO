@@ -24,6 +24,10 @@
         <apexClass>FscIsEnrichAndExpand</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>FscContactPointSeed</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
@@ -154,6 +158,17 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>FinServ__FinancialHolding__c.IsSeededHolding__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- B6 contact-point seed marker fields -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>ContactPointEmail.IsSeededContactPoint__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>ContactPointPhone.IsSeededContactPoint__c</field>
         <readable>true</readable>
     </fieldPermissions>
 </PermissionSet>
