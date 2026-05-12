@@ -78,6 +78,7 @@ re-runs. Convention:
 | `FscHoldingsBackfill` (B3) | `FinServ__FinancialHolding__c.IsSeededHolding__c` |
 | `FscIsEnrichAndExpand` (B5) | uses B1's marker + `AccountId IS NULL` as an enrichment gate |
 | `FscContactPointSeed` (B6) | `IsSeededContactPoint__c` on ContactPointEmail + ContactPointPhone |
+| `FscGoalMigrate` (B13) | `IsSeededMigration__c` Checkbox + `OriginalLegacyGoalId__c` external-id-unique Text on ActionPlan + BusinessMilestone + Opportunity |
 | `FscInsuranceSeed` (B12) | `IsSeededInsurance__c` on InsurancePolicy + Producer |
 
 **Rule for new utilities:** add a Checkbox marker (or use an existing
@@ -119,6 +120,22 @@ Checkbox to gate.
 - **Apex bulk DML returns `isSuccess()=true` per row even when an
   org-level trigger silently reverts the change.** Always re-query
   after a bulk update to verify persistence on a sample.
+- **`ActionPlanTemplate.TargetEntityType` is a whitelist that the
+  template version inherits.** `ActionPlan.TargetId` must point to
+  a record of that whitelisted type or the insert fails with
+  *"The X template isn't available for a Y target record."* Common
+  templates target `FinancialGoal` (standard) or `Account`, NOT
+  the namespaced legacy `FinServ__FinancialGoal__c`. Confirmed via
+  `SELECT TargetEntityType FROM ActionPlanTemplate`.
+- **ActionPlan inserts are CPU-heavy under sync Apex.** Each insert
+  materializes the full template hierarchy (steps, assignments).
+  ~30 inserts can exhaust the sync 10s CPU budget. Pattern: chunk
+  at ≤10 records, check `Limits.getCpuTime()` against an 85% floor,
+  bail and rely on idempotency to resume on the next run. Used in
+  `FscGoalMigrate.runOnDemand`.
+- **`BusinessMilestone` description field is `MilestoneDescription`,
+  not `EventDescription`** (despite the type-similarity to Event).
+  Standard, not custom; verify with describe before writing.
 
 ### FLS gotcha for newly-deployed custom fields
 
@@ -150,6 +167,7 @@ Apex classes (`force-app/main/default/classes/`):
 | `FscContactPointSeed` + Test | B6 | Generate 714 ContactPointEmail/Phone records |
 | `FscHouseholdLookupBackfill` + Test | B7 | (Deployed but blocked by FSC trigger; see C9) |
 | `FscInsuranceSeed` + Test | B12 | Seed 2 Producers + 8 InsurancePolicies |
+| `FscGoalMigrate` + Test | B13 | Forward-create 184 records (56 ActionPlans + 94 BusinessMilestones + 34 Opportunities) from 213 `Type='Other'` legacy goals; source preserved |
 
 Custom objects + fields under `force-app/main/default/objects/` —
 each marker field has its own subdir.
@@ -169,12 +187,6 @@ Permission set `FSC_Audit_Utilities_User` — extends with class access
   hostage, blocking the last 11 obsolete-flow-version deletes from A4.
 - **H12** — `GCP_Transactions__dlm` federated source unreachable in
   Data Cloud.
-- **B13** — non-personal goal migration. 148 `FinServ__FinancialGoal__c`
-  records currently classified as `Other` are really wealth-advisor
-  goals (~80) → `ActionPlan`, commercial-banking goals (~40) →
-  `BusinessMilestone`, sales-pipeline records (~20) → `Opportunity`.
-  Half-day project; pattern follows A6c heuristic + per-target
-  insert + delete-from-source.
 - **A4 part 2** — 7 Invalid Draft flows deferred for per-flow triage.
 - **A7 actual uninstalls** — inventory complete in
   `audits/cumulus-package-inventory.md`; 13 high-confidence

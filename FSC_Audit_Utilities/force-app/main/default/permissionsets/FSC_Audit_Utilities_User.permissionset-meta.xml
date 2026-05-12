@@ -36,6 +36,10 @@
         <apexClass>FscInsuranceSeed</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>FscGoalMigrate</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
@@ -188,6 +192,37 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Producer.IsSeededInsurance__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- B13 goal-migration marker + traceback fields -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>ActionPlan.IsSeededMigration__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>ActionPlan.OriginalLegacyGoalId__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>BusinessMilestone.IsSeededMigration__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>BusinessMilestone.OriginalLegacyGoalId__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity.IsSeededMigration__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity.OriginalLegacyGoalId__c</field>
         <readable>true</readable>
     </fieldPermissions>
 </PermissionSet>
