@@ -1,0 +1,139 @@
+<template>
+    <div class="pfo-wrap">
+
+        <template lwc:if={headline}>
+            <div class="pfo-headline">{headline}</div>
+        </template>
+
+        <template lwc:if={isLoading}>
+            <div class="pfo-grid">
+                <div class="pfo-card pfo-skeleton"></div>
+                <div class="pfo-card pfo-skeleton"></div>
+                <div class="pfo-card pfo-skeleton"></div>
+            </div>
+        </template>
+
+        <template lwc:elseif={errorMessage}>
+            <div class="pfo-error">
+                <lightning-icon icon-name="utility:warning" size="x-small" variant="error"></lightning-icon>
+                <span>{errorMessage}</span>
+            </div>
+        </template>
+
+        <template lwc:else>
+            <div class="pfo-grid">
+
+                <!-- DEPOSITS -->
+                <article class="pfo-card pfo-card--deposits">
+                    <div class="pfo-card__glow"></div>
+                    <header class="pfo-card__head">
+                        <div class="pfo-card__label-row">
+                            <span class="pfo-dot pfo-dot--deposits"></span>
+                            <span class="pfo-card__label">Deposits</span>
+                        </div>
+                        <div class="pfo-card__icon pfo-card__icon--deposits">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"></path>
+                            </svg>
+                        </div>
+                    </header>
+                    <div class="pfo-hero"><span class="pfo-hero__value">{depositsDisplay}</span></div>
+                    <div class="pfo-subtitle">Total amount</div>
+                    <svg class="pfo-spark" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="grad-deposits" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#5eead4" stop-opacity="0.45"></stop>
+                                <stop offset="100%" stop-color="#5eead4" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                        <path d={depositsSpark.area} fill="url(#grad-deposits)"></path>
+                        <path d={depositsSpark.line} stroke="#5eead4" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <footer class="pfo-foot">
+                        <span class="pfo-foot__muted">{trendLabel}</span>
+                        <span class={depositsTrendClass}>{depositsTrendArrow} {depositsTrendPct}</span>
+                    </footer>
+                </article>
+
+                <!-- LOANS -->
+                <article class="pfo-card pfo-card--loans">
+                    <div class="pfo-card__glow"></div>
+                    <header class="pfo-card__head">
+                        <div class="pfo-card__label-row">
+                            <span class="pfo-dot pfo-dot--loans"></span>
+                            <span class="pfo-card__label">Loans</span>
+                        </div>
+                        <div class="pfo-card__icon pfo-card__icon--loans">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="7" width="18" height="12" rx="1"></rect>
+                                <path d="M3 11h18M7 15h4"></path>
+                            </svg>
+                        </div>
+                    </header>
+                    <div class="pfo-hero"><span class="pfo-hero__value">{loansAmountDisplay}</span></div>
+                    <div class="pfo-subtitle">Principal amount</div>
+                    <svg class="pfo-spark" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="grad-loans" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.4"></stop>
+                                <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                        <path d={loansSpark.area} fill="url(#grad-loans)"></path>
+                        <path d={loansSpark.line} stroke="#fbbf24" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <footer class="pfo-foot pfo-foot--split">
+                        <div class="pfo-metric">
+                            <div class="pfo-metric__label">Balance</div>
+                            <div class="pfo-metric__value">{loansBalanceDisplay}</div>
+                        </div>
+                        <div class="pfo-metric">
+                            <div class="pfo-metric__label">Interest</div>
+                            <div class="pfo-metric__value pfo-metric__value--accent-loans">{loansInterestDisplay}</div>
+                        </div>
+                    </footer>
+                </article>
+
+                <!-- INVESTMENTS -->
+                <article class="pfo-card pfo-card--investments">
+                    <div class="pfo-card__glow"></div>
+                    <header class="pfo-card__head">
+                        <div class="pfo-card__label-row">
+                            <span class="pfo-dot pfo-dot--investments"></span>
+                            <span class="pfo-card__label">Investments</span>
+                        </div>
+                        <div class="pfo-card__icon pfo-card__icon--investments">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 17l6-6 4 4 8-8M15 7h6v6"></path>
+                            </svg>
+                        </div>
+                    </header>
+                    <div class="pfo-hero"><span class="pfo-hero__value">{investmentsBalanceDisplay}</span></div>
+                    <div class="pfo-subtitle">Current balance</div>
+                    <svg class="pfo-spark" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="grad-investments" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.4"></stop>
+                                <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                        <path d={investmentsSpark.area} fill="url(#grad-investments)"></path>
+                        <path d={investmentsSpark.line} stroke="#a78bfa" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <footer class="pfo-foot pfo-foot--split">
+                        <div class="pfo-metric">
+                            <div class="pfo-metric__label">Deposited</div>
+                            <div class="pfo-metric__value">{investmentsAmountDisplay}</div>
+                        </div>
+                        <div class="pfo-metric">
+                            <div class="pfo-metric__label">Avg ROI</div>
+                            <div class="pfo-metric__value pfo-metric__value--accent-investments">{investmentsRoiDisplay}</div>
+                        </div>
+                    </footer>
+                </article>
+
+            </div>
+        </template>
+
+    </div>
+</template>
