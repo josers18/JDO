@@ -32,6 +32,10 @@
         <apexClass>FscHouseholdLookupBackfill</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>FscInsuranceSeed</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
@@ -173,6 +177,17 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>ContactPointPhone.IsSeededContactPoint__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- B12 insurance seed marker fields -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>InsurancePolicy.IsSeededInsurance__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Producer.IsSeededInsurance__c</field>
         <readable>true</readable>
     </fieldPermissions>
 </PermissionSet>
