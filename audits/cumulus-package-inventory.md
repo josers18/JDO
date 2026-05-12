@@ -92,32 +92,44 @@ workflows.
 | XDO Automation | `xdo` | Demo Boost Tabs Renamed | Demo experience automation |
 | qbrix-devops-tools-v2 | `qbrix_devops` | ver 0.1 | qbrix CI/CD tooling |
 
-### SUNSET (4) — High uninstall confidence
+### SUNSET (5) — High uninstall confidence; UI uninstall required (2026-05-12)
+
+All 5 are first-generation managed packages (1GP). The CLI's
+`sf package uninstall` rejects 1GP packages with the message *"You can
+uninstall this package type only in the Salesforce user interface"* —
+verified 2026-05-12. These should still be uninstalled; switch to
+**Setup → Installed Packages → Uninstall** (one click each, ~2 min per
+package, ~10 min total).
 
 | Package | Namespace | Reason |
 |---|---|---|
 | Quip | `Quip` | Salesforce sunsetting Quip 2025–2026 |
-| Quip Connected App | `QuipConnected` | Same as above |
+| Quip Connected App | `QuipConnected` | Same as above; uninstall before Quip |
 | SalesforceIQ Cloud | `SIQCloud` | SalesforceIQ shut down 2018 |
 | SalesforceIQ Inbox | `relateiq` | SalesforceIQ shut down 2018 |
+| Sales Insights | `OIQ` | Legacy SalesforceIQ insights component (reclassified from CORE 2026-05-11) |
 
-**Plus from CORE bucket (misclassified):**
-- Sales Insights (`OIQ`, ver 1.0) — legacy SalesforceIQ insights component
+### OLD_DEMO (1 uninstalled, 4 reclassified to KEEP, 1 deferred to UI) — UPDATED 2026-05-12
 
-### OLD_DEMO (6) — High uninstall confidence
+The original "high uninstall confidence" rating was correct for 1 of 6 but
+wrong for 4. The 2026-05-12 uninstall pass surfaced live dependencies that
+the inventory check missed:
 
-These are 2020-era B2B Lightning Experience commerce demo accelerators. The
-current B2B Commerce demo tooling is in the SDO Commerce / D2C Commerce
-profiles surface, not these standalone packages.
+| Package | Namespace | Status (2026-05-12) | Why |
+|---|---|---|---|
+| B2B LE Mood Board | (none) | ✅ **Uninstalled** | No live references |
+| B2B LE Bundle Item | (none) | ⚠️ **KEEP** (blocked) | Referenced by 3 active flows: `B2B_Bundle_Items_Create_Unique_Junction_Flow_2_0`, `Subflow_Activate_Order_with_Bundle_Items_2_0`, `B2B_LE_Checkout_with_Bundle` |
+| B2B LE Cart Upload | (none) | ⚠️ **KEEP** | In use by `SDO - B2B Commerce Enhanced` site (current demo) |
+| B2B LE Cross-Sell | (none) | ⚠️ **KEEP** | In use by `SDO - B2B Commerce Enhanced` and `SDO - Commerce for B2B2C` sites |
+| B2B LE Video Player | (none) | ⚠️ **KEEP** | In use by `SDO - Commerce for B2B2C` site (YouTube_iframe_api / YouTube_widget_api components) |
+| b2bmaIntegration | `pi3` | 🔧 **UI uninstall pending** | 1GP managed package; CLI rejected with *"You can uninstall this package type only in the Salesforce user interface"* |
 
-| Package | Namespace | Version |
-|---|---|---|
-| B2B LE Bundle Item | (none) | Guest Browsing |
-| B2B LE Cart Upload | (none) | Initial version |
-| B2B LE Cross-Sell | (none) | Initial version |
-| B2B LE Mood Board | (none) | v2 |
-| B2B LE Video Player | (none) | Initial version |
-| b2bmaIntegration | `pi3` | Major Release |
+**Lesson:** the 4 "KEEP" packages were repurposed by newer SDO Commerce
+demo profiles rather than retired with the original B2B LE Commerce arc.
+A namespace-only inventory check missed those references. **For future
+package-uninstall passes, always run the `sf package uninstall` first
+(it's safe — Salesforce refuses with a clear error if anything depends
+on the package), and treat the dependency message as authoritative.**
 
 ### MKTG_LEGACY (3) — Medium uninstall confidence
 
