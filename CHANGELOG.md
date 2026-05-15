@@ -7,8 +7,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-May_14_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
-[![Packages](https://img.shields.io/badge/DX_Packages-13-0176D3?style=for-the-badge)](README.md#projects)
+[![Updated](https://img.shields.io/badge/Updated-May_15_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
 [![Commits](https://img.shields.io/badge/Commits-60%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
 
 </div>
@@ -17,17 +17,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## What's new this month
 
-> **May 2026** — Shipped the **FSC Audit Utilities** project (13 phases of automated demo-org cleanup and seed data), added the **JDO_Login_Portal** design spec for self-service org provisioning + telemetry, the **sf-tableau-next** skill for Tableau Next REST APIs, and a new **Financial_KPI_Widget** DX project. Customer Profile widget now leads with **Deposits** as the prominent KPI tile.
+> **May 2026** — Shipped the **FSC Audit Utilities** project (13 phases of automated demo-org cleanup and seed data), added the **JDO_Login_Portal** design spec for self-service org provisioning + telemetry, the **sf-tableau-next** skill for Tableau Next REST APIs, a new **Financial_KPI_Widget** DX project, and the **Web_Engagements_RT_Timeline** project (LWC + Apex) that renders Data Cloud `RT_Web_Engagementsv2` Data Graph results live on Account/Contact record pages. Customer Profile widget now leads with **Deposits** as the prominent KPI tile.
 
 Jump to: [May 2026](#may-2026) · [April 2026](#april-2026) · [March 2026](#march-2026)
 
 ---
 
-## [May 2026] — 2026-05-11 → 2026-05-14
+## [May 2026] — 2026-05-11 → 2026-05-15
 
 **Theme:** FSC master demo org audit and remediation. Thirteen phases (A–H, B1–B13) of automated parity, backfill, and seed work delivered as one unified `FSC_Audit_Utilities` DX project. Plus new packages and skills.
 
 ### Added
+- **`Web_Engagements_RT_Timeline/`** — New DX project: `webEngagementData` LWC + `DataCloudWebEngagementController` Apex. Renders the `RT_Web_Engagementsv2` Data Graph as an SLDS expandable timeline on Account/Contact record pages; resolves Salesforce ID → Data Cloud Unified ID via `UnifiedLinkssotAccountAcc__dlm` and live-fetches the graph through `callout:Data_Cloud_API`.
 - **`JDO_Login_Portal/`** — Design spec for a self-service login portal with provisioning + telemetry. ([`94ad8a9`](https://github.com/josers18/JDO/commit/94ad8a9))
 - **`sf-tableau-next/`** — Skill for Tableau Next + Tableau Semantics REST APIs. ([`069e9d1`](https://github.com/josers18/JDO/commit/069e9d1))
 - **`Financial_KPI_Widget/`** — New DX project. ([`e0cea1f`](https://github.com/josers18/JDO/commit/e0cea1f))

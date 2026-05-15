@@ -1,0 +1,97 @@
+<template>
+    <lightning-card icon-name="standard:data_cloud">
+    
+        <h3 slot="title">
+            <a href="https://cumulusbank-620df6d1b36b.herokuapp.com/login" target="_blank" class="slds-card__header-link slds-truncate">
+                Real Time Engagements
+            </a>
+        </h3>
+    
+        <div slot="actions">
+            <lightning-button-icon icon-name="utility:refresh" onclick={handleRefresh} alternative-text="Refresh"></lightning-button-icon>
+        </div>
+        
+        <div class="slds-p-around_medium engagement-feed">
+            
+            <template if:true={isLoading}>
+                <div class="slds-p-around_large slds-is-relative">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:true={hasError}>
+                <div class="slds-notify slds-notify_alert slds-alert_error">
+                    {errorMessage}
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasInteractions}>
+                    <ul class="slds-timeline">
+                        <template for:each={webInteractions} for:item="item">
+                            <li key={item.id} class={item.timelineClass}>
+                                <div class="slds-media">
+                                    <div class="slds-media__figure">
+                                        <button class="slds-button slds-button_icon" 
+                                                title="Toggle details" 
+                                                data-id={item.id} 
+                                                onclick={handleToggle}>
+                                            <lightning-icon icon-name="utility:switch" 
+                                                            size="x-small" 
+                                                            class="slds-button__icon slds-timeline__details-action-icon">
+                                            </lightning-icon>
+                                        </button>
+                                        
+                                        <lightning-icon icon-name={item.icon} size="small"></lightning-icon>
+                                    </div>
+                                    
+                                    <div class="slds-media__body">
+                                        <div class="slds-grid slds-grid_align-spread slds-timeline__trigger">
+                                            <div class="slds-grid slds-grid_vertical-align-center slds-no-space">
+                                                <h3 class="slds-text-wrap" title={item.title}>
+                                                    <strong>{item.title}</strong>
+                                                </h3>
+                                            </div>
+                                            <div class="slds-timeline__actions slds-timeline__actions_inline">
+                                                <p class="slds-timeline__date">
+                                                    <lightning-formatted-date-time value={item.date} year="numeric" month="numeric" day="numeric" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <p class="slds-m-horizontal_xx-small">
+                                            {item.subtitle}
+                                        </p>
+                                        
+                                        <template if:true={item.expanded}>
+                                            <article class="slds-box slds-timeline__item_details slds-theme_shade slds-m-top_x-small slds-m-horizontal_xx-small engagement-details-box">
+                                                <ul class="slds-list_horizontal slds-wrap">
+                                                    <template for:each={item.details} for:item="detail">
+                                                        <li key={detail.label} class="slds-grid slds-grid_vertical slds-size_1-of-2 slds-p-bottom_small">
+                                                            <span class="slds-text-title slds-p-bottom_x-small">{detail.label}</span>
+                                                            <span class="slds-text-body_medium">{detail.value}</span>
+                                                        </li>
+                                                    </template>
+                                                    
+                                                    <li class="slds-grid slds-grid_vertical slds-size_1-of-1 slds-p-top_small slds-border_top">
+                                                        <span class="slds-text-title slds-p-bottom_x-small">System ID</span>
+                                                        <span class="slds-text-body_small slds-text-color_weak">{item.id}</span>
+                                                    </li>
+                                                </ul>
+                                            </article>
+                                        </template>
+                                    </div>
+                                </div>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+                
+                <template if:false={hasInteractions}>
+                    <div class="slds-text-align_center slds-text-color_weak slds-p-top_medium">
+                        No recent engagements found.
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

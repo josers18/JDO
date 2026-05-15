@@ -20,7 +20,7 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 
 <br/>
 
-**Monorepo** · **Six DX packages** · **LWCs + Apex + docs**
+**Monorepo** · **Nine DX packages** · **LWCs + Apex + docs**
 
 </div>
 
@@ -55,6 +55,7 @@ Each folder with `sfdx-project.json` is its own package. For **easy onboarding**
 | [**DC_Multiclass_Prediction_LWC**](DC_Multiclass_Prediction_LWC/README.md) | **Multiclass** — **text category** + diverging bars; same **theme tokens** as Prediction Model / profile widgets | [docs/INDEX](DC_Multiclass_Prediction_LWC/docs/INDEX.md) |
 | [**DC_AgentForce_Output_LWC**](DC_AgentForce_Output_LWC/README.md) | **Agent output** card — shows Flow-generated text/HTML/Markdown; copy, print, optional thumbs | [docs/INDEX](DC_AgentForce_Output_LWC/docs/INDEX.md) |
 | [**DC_Query_to_Table_LWC**](DC_Query_to_Table_LWC/README.md) | **Data Cloud SQL** results as a **sortable table** on a Lightning page | [docs/INDEX](DC_Query_to_Table_LWC/docs/INDEX.md) |
+| [**Web_Engagements_RT_Timeline**](Web_Engagements_RT_Timeline/README.md) | **Real-time web engagements** card (Account/Contact); resolves Unified ID via `UnifiedLinkssotAccountAcc__dlm` and live-fetches Data Graph **`RT_Web_Engagementsv2`** through `callout:Data_Cloud_API`; SLDS expandable timeline with dynamic title/subtitle/icon | [README](Web_Engagements_RT_Timeline/README.md) · [artifacts](Web_Engagements_RT_Timeline/artifacts.md) |
 
 ---
 
