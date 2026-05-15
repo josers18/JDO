@@ -39,6 +39,7 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | High-level architecture and links to per-project docs |
 | [docs/ARTIFACTS.md](docs/ARTIFACTS.md) | Index of per-project **`artifacts.md`** inventories |
 | [docs/THEME_CATALOG.md](docs/THEME_CATALOG.md) | **Theme catalog (PDF)** for profile + prediction widgets (GitHub Pages–friendly) |
+| [CHANGELOG.md](CHANGELOG.md) | **Changelog** — month-by-month log of additions, changes, fixes (Slack-friendly) |
 
 ---
 
