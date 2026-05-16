@@ -5,6 +5,8 @@ import generateAnalysisSummary from '@salesforce/apex/MulticlassPredictionLwcCon
 import { THEMES } from './predictionThemes.js';
 
 const BAR_TRANSITION = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
+const PROB_OPACITY_FLOOR = 0.35;
+const PROB_OPACITY_RANGE = 0.65;
 
 function sanitizePmTextColor(raw) {
     const s = String(raw == null ? '' : raw).trim();
@@ -130,7 +132,11 @@ export default class MulticlassPredictionLwc extends LightningElement {
         if (this.loadingFlow) {
             return false;
         }
-        return this.hasPredictionLabel || this.insightItemCount(this.recommendationsJson) > 0;
+        return (
+            this.hasPredictionLabel ||
+            this.insightItemCount(this.recommendationsJson) > 0 ||
+            (Array.isArray(this.classProbabilities) && this.classProbabilities.length > 0)
+        );
     }
 
     get classSubtitleDisplay() {
@@ -152,6 +158,58 @@ export default class MulticlassPredictionLwc extends LightningElement {
         const colors = this.resolveColors(this.recommendationsRiskColor, this.recommendationsGoodColor);
         const treatPositiveAsGood = this.recommendationsPositiveMeansGood === true;
         return this.applyProcessedRowColors(rows, colors, treatPositiveAsGood);
+    }
+
+    get processedClassProbabilities() {
+        const arr = Array.isArray(this.classProbabilities) ? this.classProbabilities : [];
+        if (arr.length === 0) {
+            return [];
+        }
+        const winnerKey = typeof this.predictionLabelRaw === 'string'
+            ? this.predictionLabelRaw.trim()
+            : '';
+        const rows = arr
+            .map((entry, originalIndex) => {
+                const apiName = (entry && entry.apiName) || '';
+                const rawValue = entry ? entry.value : null;
+                const numeric = Number(rawValue);
+                const value = Number.isFinite(numeric) ? numeric : 0;
+                const clamped = Math.min(1, Math.max(0, value));
+                const labelDisplay = this.humanizeClassName === false
+                    ? apiName
+                    : this.humanizeApiName(apiName);
+                const opacity = PROB_OPACITY_FLOOR + PROB_OPACITY_RANGE * clamped;
+                const isWinner = apiName === winnerKey && winnerKey.length > 0;
+                return {
+                    key: `prob-${originalIndex}-${apiName}`,
+                    apiName,
+                    labelDisplay,
+                    barScale: clamped,
+                    percentDisplay: `${(clamped * 100).toFixed(1)}%`,
+                    barStyle: `opacity: ${opacity.toFixed(3)};`,
+                    rowClass: isWinner ? 'prob-row prob-row--winner' : 'prob-row',
+                    sortValue: clamped,
+                    originalIndex
+                };
+            })
+            .sort((a, b) => {
+                if (b.sortValue !== a.sortValue) {
+                    return b.sortValue - a.sortValue;
+                }
+                return a.originalIndex - b.originalIndex;
+            });
+        return rows;
+    }
+
+    get showClassProbChart() {
+        if (this.showClassProbabilities === false) {
+            return false;
+        }
+        return this.processedClassProbabilities.length > 0;
+    }
+
+    get classProbSectionTitleDisplay() {
+        return 'Class probabilities';
     }
 
     get showSummaryCard() {
@@ -379,7 +437,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     }
 
     animateBars() {
-        const fills = this.template.querySelectorAll('.bar-fill');
+        const fills = this.template.querySelectorAll('.bar-fill, .prob-bar');
         fills.forEach((el) => {
             const raw = el.getAttribute('data-scale');
             const scale = raw != null && raw !== '' ? Number(raw) : 0;
