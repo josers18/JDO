@@ -44,6 +44,8 @@ export default class MulticlassPredictionLwc extends LightningElement {
     @api recommendationsVariableName = 'recommendations';
     @api classProbabilityVariableNames = '';
     @api hideClassProbabilities = false;
+    @api enableTopNClasses = false;
+    @api topNClassCount = 5;
     @api promptTemplateId;
     @api promptInputApiName = 'Input:Prediction_Context';
     @api autoGenerateSummary;
@@ -216,6 +218,12 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 }
                 return a.originalIndex - b.originalIndex;
             });
+        if (this.enableTopNClasses === true) {
+            const n = Math.floor(Number(this.topNClassCount));
+            if (Number.isFinite(n) && n > 0) {
+                return rows.slice(0, n);
+            }
+        }
         return rows;
     }
 
