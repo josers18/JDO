@@ -84,12 +84,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(
-        180deg,
-        var(--wp-surface, #f7f9fb) 0%,
-        var(--wp-panel-bg, #f0f4f8) 100%
-    );
-    border: 1px solid var(--wp-border-med, #e1e5ea);
+    background: var(--wp-accent-bg, rgba(184, 149, 106, 0.08));
+    border: 1px solid var(--wp-accent-border, rgba(184, 149, 106, 0.25));
+    border-left: 3px solid var(--wp-accent, #b8956a);
     border-radius: 12px;
     box-shadow: 0 1px 2px var(--wp-org-bg, rgba(0, 0, 0, 0.04));
 }
