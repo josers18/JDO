@@ -94,8 +94,8 @@ export default class WebEngagementData extends LightningElement {
                     // --- 1. Dynamic Title Logic ---
                     const baseTitle = e.webInteractions_pageTitle__c;
                     // Rule: "if webInteractions_applicationStatus__c is NOT NULL, then the title should be..."
-                    const finalTitle = e.webInteractions_applicationStatus__c 
-                        ? `${baseTitle} - ${e.webInteractions_applicationStatus__c}` 
+                    let finalTitle = e.webInteractions_applicationStatus__c
+                        ? `${baseTitle} - ${e.webInteractions_applicationStatus__c}`
                         : baseTitle;
 
                     // Rule: "if webInteractions_productType__c = 'Your Dashboard' then finalTitle is Login - Home"
@@ -164,7 +164,7 @@ export default class WebEngagementData extends LightningElement {
                         type: e.webInteractions_productType__c, 
                         icon: icon,
                         date: e.dateTime__c,
-                        title: baseTitle,
+                        title: finalTitle,
                         subtitle: finalSubtitle, // Use the new dynamic subtitle
                         expanded: false,
                         timelineClass: 'slds-timeline__item_expandable slds-timeline__item_task',

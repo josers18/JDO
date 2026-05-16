@@ -107,12 +107,11 @@ After deploy:
 
 ## Known issues in this snapshot
 
-These are present in the retrieved source and worth flagging before deploying to a new org:
+1. **Missing semicolon in icon switch (cosmetic)** — In `webEngagementData.js`, the `cancel_app` case in the icon switch is missing the trailing semicolon on `icon = 'standard:cancel_checkout'` before `break`. Parses fine (ASI handles it) but inconsistent with the rest of the file.
 
-1. **`const` reassignment in `webEngagementData.js`** — Around line 104 the mapper does `const finalTitle = ...` then reassigns `finalTitle = 'Login - Home'` when `productType === 'Your Dashboard'`. This will throw `TypeError: Assignment to constant variable.` on that branch. Change `const` → `let`.
-2. **Missing semicolon in icon switch** — In the `cancel_app` case the line `icon = 'standard:cancel_checkout'` is missing its trailing semicolon before `break`. Currently parses (ASI), but inconsistent with the rest of the file.
-
-Neither blocks the happy path (visited pages and contact-us rows), but the first one will error for engagements where `productType === 'Your Dashboard'`.
+> **Fixed since retrieve:**
+> - **`const` reassignment** in `webEngagementData.js` — `finalTitle` was declared `const` then reassigned for the `'Your Dashboard'` branch (would throw `TypeError`). Now `let`.
+> - **Title used `baseTitle` instead of `finalTitle`** in the mapper return — all the title-derivation logic (status suffix, "Login - Home" override) was effectively dead code. Now wired through to the rendered title.
 
 ---
 
