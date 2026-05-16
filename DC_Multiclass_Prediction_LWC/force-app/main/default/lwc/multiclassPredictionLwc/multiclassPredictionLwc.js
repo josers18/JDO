@@ -43,7 +43,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     @api predictionVariableName = 'prediction';
     @api recommendationsVariableName = 'recommendations';
     @api classProbabilityVariableNames = '';
-    @api showClassProbabilities = true;
+    @api hideClassProbabilities = false;
     @api promptTemplateId;
     @api promptInputApiName = 'Input:Prediction_Context';
     @api autoGenerateSummary;
@@ -203,7 +203,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     }
 
     get showClassProbChart() {
-        if (this.showClassProbabilities === false) {
+        if (this.hideClassProbabilities === true) {
             return false;
         }
         return this.processedClassProbabilities.length > 0;

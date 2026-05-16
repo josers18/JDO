@@ -72,14 +72,14 @@ private class MulticlassPredictionLwcControllerTest {
 
     @IsTest
     static void coerceToDecimal_handlesDecimal() {
-        Decimal in = 0.99;
-        System.assertEquals(in, MulticlassPredictionLwcController.coerceToDecimal(in));
+        Decimal inVal = 0.99;
+        System.assertEquals(inVal, MulticlassPredictionLwcController.coerceToDecimal(inVal));
     }
 
     @IsTest
     static void coerceToDecimal_handlesDoubleWithoutBinaryNoise() {
-        Double in = 0.7;
-        Decimal out = MulticlassPredictionLwcController.coerceToDecimal(in);
+        Double inVal = 0.7;
+        Decimal out = MulticlassPredictionLwcController.coerceToDecimal(inVal);
         System.assertEquals(Decimal.valueOf('0.7'), out, 'Double 0.7 must coerce to Decimal 0.7 without binary float noise');
     }
 
@@ -90,8 +90,8 @@ private class MulticlassPredictionLwcControllerTest {
 
     @IsTest
     static void coerceToDecimal_handlesLong() {
-        Long in = 9999999999L;
-        System.assertEquals(Decimal.valueOf(in), MulticlassPredictionLwcController.coerceToDecimal(in));
+        Long inVal = 9999999999L;
+        System.assertEquals(Decimal.valueOf(inVal), MulticlassPredictionLwcController.coerceToDecimal(inVal));
     }
 
     @IsTest

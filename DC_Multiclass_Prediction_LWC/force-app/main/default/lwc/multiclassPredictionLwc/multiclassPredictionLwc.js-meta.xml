@@ -24,8 +24,8 @@
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
             <property name="classProbabilityVariableNames" type="String" label="Flow output: class probability variables (comma-separated)" default=""
                 description="Optional. Comma-separated list of Flow scalar variable names, one per class (e.g. Auto_Loans,Brokerage_Advisory,Wealth_Management). Each variable must hold a numeric probability between 0 and 1. Leave blank to hide the chart." />
-            <property name="showClassProbabilities" type="Boolean" label="Show class probability chart" default="true"
-                description="Master toggle. When true and class variables are configured, the probability chart renders between the predicted class and feature contributions." />
+            <property name="hideClassProbabilities" type="Boolean" label="Hide class probability chart" default="false"
+                description="Master toggle. Check to hide the probability chart even when class variables are configured. Unchecked (default) shows the chart between the predicted class and feature contributions." />
             <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class"
                 description="Caption below the label (e.g. Product line, Segment)." />
             <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true"
@@ -67,7 +67,7 @@
             <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
             <property name="classProbabilityVariableNames" type="String" label="Flow output: class probability variables (comma-separated)" default="" />
-            <property name="showClassProbabilities" type="Boolean" label="Show class probability chart" default="true" />
+            <property name="hideClassProbabilities" type="Boolean" label="Hide class probability chart" default="false" />
             <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class" />
             <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
@@ -98,7 +98,7 @@
             <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
             <property name="classProbabilityVariableNames" type="String" label="Flow output: class probability variables (comma-separated)" default="" />
-            <property name="showClassProbabilities" type="Boolean" label="Show class probability chart" default="true" />
+            <property name="hideClassProbabilities" type="Boolean" label="Hide class probability chart" default="false" />
             <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class" />
             <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
