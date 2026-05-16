@@ -166,7 +166,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
             return [];
         }
         const winnerKey = typeof this.predictionLabelRaw === 'string'
-            ? this.predictionLabelRaw.trim()
+            ? this.predictionLabelRaw.trim().toLowerCase()
             : '';
         const rows = arr
             .map((entry, originalIndex) => {
@@ -179,7 +179,8 @@ export default class MulticlassPredictionLwc extends LightningElement {
                     ? apiName
                     : this.humanizeApiName(apiName);
                 const opacity = PROB_OPACITY_FLOOR + PROB_OPACITY_RANGE * clamped;
-                const isWinner = apiName === winnerKey && winnerKey.length > 0;
+                const apiNameKey = (apiName || '').trim().toLowerCase();
+                const isWinner = apiNameKey === winnerKey && winnerKey.length > 0;
                 return {
                     key: `prob-${originalIndex}-${apiName}`,
                     apiName,
