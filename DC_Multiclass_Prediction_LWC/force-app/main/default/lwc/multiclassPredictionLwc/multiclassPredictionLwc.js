@@ -40,6 +40,8 @@ export default class MulticlassPredictionLwc extends LightningElement {
     @api recordIdInputName = 'recordId';
     @api predictionVariableName = 'prediction';
     @api recommendationsVariableName = 'recommendations';
+    @api classProbabilityVariableNames = '';
+    @api showClassProbabilities = true;
     @api promptTemplateId;
     @api promptInputApiName = 'Input:Prediction_Context';
     @api autoGenerateSummary;
@@ -83,6 +85,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     errorMessage;
     predictionLabelRaw;
     recommendationsJson;
+    classProbabilities = [];
     summaryText;
     summaryError;
 
@@ -305,6 +308,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
         this.errorMessage = undefined;
         this.summaryText = undefined;
         this.summaryError = undefined;
+        this.classProbabilities = [];
         this.runFlow();
     }
 
@@ -319,10 +323,12 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 recordId: this._recordId,
                 recordIdVariableName: this.recordIdInputName,
                 predictionVariableName: this.predictionVariableName,
-                recommendationsVariableName: this.recommendationsVariableName
+                recommendationsVariableName: this.recommendationsVariableName,
+                classVariableNamesCsv: this.classProbabilityVariableNames || ''
             });
             this.predictionLabelRaw = result.predictionLabel;
             this.recommendationsJson = result.recommendationsJson;
+            this.classProbabilities = Array.isArray(result.classProbabilities) ? result.classProbabilities : [];
         } catch (e) {
             this.errorMessage = this.reduceError(e);
             this.dispatchEvent(
