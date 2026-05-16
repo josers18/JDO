@@ -512,3 +512,10 @@
         min-width: 0;
     }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .prob-bar {
+        transform: scaleX(1);
+        transition: none;
+    }
+}
