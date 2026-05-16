@@ -161,6 +161,7 @@ public with sharing class MulticlassPredictionLwcController {
         }
     }
 
+    @TestVisible
     private static List<ClassProbability> parseClassProbabilities(Flow.Interview interview, String csv) {
         List<ClassProbability> out = new List<ClassProbability>();
         if (String.isBlank(csv)) {
@@ -178,6 +179,7 @@ public with sharing class MulticlassPredictionLwcController {
         return out;
     }
 
+    @TestVisible
     private static Decimal coerceToDecimal(Object value) {
         if (value == null) {
             return null;
@@ -186,7 +188,7 @@ public with sharing class MulticlassPredictionLwcController {
             return (Decimal) value;
         }
         if (value instanceof Double) {
-            return Decimal.valueOf((Double) value);
+            return Decimal.valueOf(String.valueOf((Double) value));
         }
         if (value instanceof Integer) {
             return Decimal.valueOf((Integer) value);
@@ -201,7 +203,7 @@ public with sharing class MulticlassPredictionLwcController {
             }
             try {
                 return Decimal.valueOf(s);
-            } catch (Exception e) {
+            } catch (TypeException e) {
                 return null;
             }
         }

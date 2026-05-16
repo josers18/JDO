@@ -64,4 +64,54 @@ private class MulticlassPredictionLwcControllerTest {
             System.assertEquals(0, result.classProbabilities.size(), 'Blank CSV → empty list');
         }
     }
+
+    @IsTest
+    static void coerceToDecimal_handlesNull() {
+        System.assertEquals(null, MulticlassPredictionLwcController.coerceToDecimal(null));
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesDecimal() {
+        Decimal in = 0.99;
+        System.assertEquals(in, MulticlassPredictionLwcController.coerceToDecimal(in));
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesDoubleWithoutBinaryNoise() {
+        Double in = 0.7;
+        Decimal out = MulticlassPredictionLwcController.coerceToDecimal(in);
+        System.assertEquals(Decimal.valueOf('0.7'), out, 'Double 0.7 must coerce to Decimal 0.7 without binary float noise');
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesInteger() {
+        System.assertEquals(Decimal.valueOf(42), MulticlassPredictionLwcController.coerceToDecimal(42));
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesLong() {
+        Long in = 9999999999L;
+        System.assertEquals(Decimal.valueOf(in), MulticlassPredictionLwcController.coerceToDecimal(in));
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesValidNumericString() {
+        System.assertEquals(Decimal.valueOf('0.01'), MulticlassPredictionLwcController.coerceToDecimal('0.01'));
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesBlankString() {
+        System.assertEquals(null, MulticlassPredictionLwcController.coerceToDecimal('   '));
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesGarbageString() {
+        System.assertEquals(null, MulticlassPredictionLwcController.coerceToDecimal('not-a-number'));
+    }
+
+    @IsTest
+    static void coerceToDecimal_handlesUnsupportedType() {
+        // Non-numeric, non-string types (e.g. Date) return null — never throw.
+        System.assertEquals(null, MulticlassPredictionLwcController.coerceToDecimal(Date.today()));
+    }
 }
