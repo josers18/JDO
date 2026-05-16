@@ -8,6 +8,20 @@ public with sharing class MulticlassPredictionLwcController {
         public String predictionLabel;
         @AuraEnabled
         public String recommendationsJson;
+        @AuraEnabled
+        public List<ClassProbability> classProbabilities;
+    }
+
+    public class ClassProbability {
+        @AuraEnabled
+        public String apiName;
+        @AuraEnabled
+        public Decimal value;
+
+        public ClassProbability(String apiName, Decimal value) {
+            this.apiName = apiName;
+            this.value = value;
+        }
     }
 
     @AuraEnabled
@@ -16,7 +30,8 @@ public with sharing class MulticlassPredictionLwcController {
         Id recordId,
         String recordIdVariableName,
         String predictionVariableName,
-        String recommendationsVariableName
+        String recommendationsVariableName,
+        String classVariableNamesCsv
     ) {
         if (String.isBlank(flowApiName) || recordId == null) {
             throw new AuraHandledException('Flow API name and record Id are required.');
@@ -47,6 +62,7 @@ public with sharing class MulticlassPredictionLwcController {
 
         result.recommendationsJson = flowOutputToJsonString(resolveFlowOutput(interview, recVar));
 
+        result.classProbabilities = parseClassProbabilities(interview, classVariableNamesCsv);
         return result;
     }
 
@@ -143,5 +159,52 @@ public with sharing class MulticlassPredictionLwcController {
                 e.getMessage()
             );
         }
+    }
+
+    private static List<ClassProbability> parseClassProbabilities(Flow.Interview interview, String csv) {
+        List<ClassProbability> out = new List<ClassProbability>();
+        if (String.isBlank(csv)) {
+            return out;
+        }
+        for (String raw : csv.split(',')) {
+            String name = raw == null ? '' : raw.trim();
+            if (String.isBlank(name)) {
+                continue;
+            }
+            Object rawValue = resolveFlowOutput(interview, name);
+            Decimal coerced = coerceToDecimal(rawValue);
+            out.add(new ClassProbability(name, coerced));
+        }
+        return out;
+    }
+
+    private static Decimal coerceToDecimal(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Decimal) {
+            return (Decimal) value;
+        }
+        if (value instanceof Double) {
+            return Decimal.valueOf((Double) value);
+        }
+        if (value instanceof Integer) {
+            return Decimal.valueOf((Integer) value);
+        }
+        if (value instanceof Long) {
+            return Decimal.valueOf((Long) value);
+        }
+        if (value instanceof String) {
+            String s = ((String) value).trim();
+            if (String.isBlank(s)) {
+                return null;
+            }
+            try {
+                return Decimal.valueOf(s);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
     }
 }
