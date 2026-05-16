@@ -133,10 +133,10 @@
 }
 
 .section-label {
-    font-size: 11px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     letter-spacing: 0.08em;
-    color: var(--lwc-pm-summary-label-color, var(--wp-text-tertiary, #999999));
+    color: var(--lwc-pm-summary-label-color, var(--wp-text-primary, #1a1a1a));
     text-transform: uppercase;
     margin-bottom: 8px;
     display: block;

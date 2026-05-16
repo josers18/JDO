@@ -105,15 +105,34 @@ export default class MulticlassPredictionLwc extends LightningElement {
         }
     }
 
+    get resolvedWinnerApiName() {
+        if (typeof this.predictionLabelRaw === 'string' && this.predictionLabelRaw.trim().length > 0) {
+            return this.predictionLabelRaw.trim();
+        }
+        const arr = Array.isArray(this.classProbabilities) ? this.classProbabilities : [];
+        let topName = '';
+        let topValue = -Infinity;
+        for (const entry of arr) {
+            const name = (entry && entry.apiName) || '';
+            const numeric = Number(entry ? entry.value : NaN);
+            const value = Number.isFinite(numeric) ? numeric : -Infinity;
+            if (name && value > topValue) {
+                topValue = value;
+                topName = name;
+            }
+        }
+        return topName;
+    }
+
     get hasPredictionLabel() {
-        return typeof this.predictionLabelRaw === 'string' && this.predictionLabelRaw.trim().length > 0;
+        return this.resolvedWinnerApiName.length > 0;
     }
 
     get predictionLabelDisplay() {
-        if (!this.hasPredictionLabel) {
+        const raw = this.resolvedWinnerApiName;
+        if (!raw) {
             return '';
         }
-        const raw = this.predictionLabelRaw.trim();
         if (this.humanizeClassName === false) {
             return raw;
         }
@@ -165,9 +184,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
         if (arr.length === 0) {
             return [];
         }
-        const winnerKey = typeof this.predictionLabelRaw === 'string'
-            ? this.predictionLabelRaw.trim().toLowerCase()
-            : '';
+        const winnerKey = this.resolvedWinnerApiName.toLowerCase();
         const rows = arr
             .map((entry, originalIndex) => {
                 const apiName = (entry && entry.apiName) || '';
