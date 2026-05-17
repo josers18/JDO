@@ -131,5 +131,112 @@ private class DataCloudWebEngagementControllerTest {
         System.assert(threw, 'Expected AuraHandledException to bubble up.');
     }
 
+    // ─── extractUnifiedIdFromQueryOutput parser tests ────────────────────
+    // These test the helper directly via the @TestVisible seam, since
+    // ConnectApi.CdpQuery.querySql is not mockable in API 65.0.
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_dataRowsAndRowData_returnsValue() {
+        Map<String, Object> result = new Map<String, Object>{
+            'dataRows' => new List<Object>{
+                new Map<String, Object>{ 'rowData' => new List<Object>{ 'unified-A' } }
+            }
+        };
+        String id = DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result);
+        System.assertEquals('unified-A', id, 'dataRows + rowData shape should yield first value.');
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_dataRowsAndRow_returnsValue() {
+        Map<String, Object> result = new Map<String, Object>{
+            'dataRows' => new List<Object>{
+                new Map<String, Object>{ 'row' => new List<Object>{ 'unified-B' } }
+            }
+        };
+        String id = DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result);
+        System.assertEquals('unified-B', id, 'dataRows + row shape should yield first value.');
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_dataAndRowData_returnsValue() {
+        Map<String, Object> result = new Map<String, Object>{
+            'data' => new List<Object>{
+                new Map<String, Object>{ 'rowData' => new List<Object>{ 'unified-C' } }
+            }
+        };
+        String id = DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result);
+        System.assertEquals('unified-C', id, 'data + rowData shape should yield first value.');
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_dataAndRow_returnsValue() {
+        Map<String, Object> result = new Map<String, Object>{
+            'data' => new List<Object>{
+                new Map<String, Object>{ 'row' => new List<Object>{ 'unified-D' } }
+            }
+        };
+        String id = DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result);
+        System.assertEquals('unified-D', id, 'data + row shape should yield first value.');
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_nullResult_returnsNull() {
+        System.assertEquals(
+            null,
+            DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(null),
+            'null input should yield null.'
+        );
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_missingRowsKey_returnsNull() {
+        Map<String, Object> result = new Map<String, Object>{ 'unrelated' => 'noise' };
+        System.assertEquals(
+            null,
+            DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result),
+            'Map with neither dataRows nor data should yield null.'
+        );
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_emptyRows_returnsNull() {
+        Map<String, Object> result = new Map<String, Object>{
+            'dataRows' => new List<Object>()
+        };
+        System.assertEquals(
+            null,
+            DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result),
+            'Empty dataRows list should yield null.'
+        );
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_rowMissingValuesKey_returnsNull() {
+        Map<String, Object> result = new Map<String, Object>{
+            'data' => new List<Object>{
+                new Map<String, Object>{ 'unrelated' => 'noise' }
+            }
+        };
+        System.assertEquals(
+            null,
+            DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result),
+            'Row map with neither rowData nor row should yield null.'
+        );
+    }
+
+    @IsTest
+    static void extractUnifiedIdFromQueryOutput_emptyValues_returnsNull() {
+        Map<String, Object> result = new Map<String, Object>{
+            'dataRows' => new List<Object>{
+                new Map<String, Object>{ 'rowData' => new List<Object>() }
+            }
+        };
+        System.assertEquals(
+            null,
+            DataCloudWebEngagementController.extractUnifiedIdFromQueryOutput(result),
+            'Empty rowData list should yield null.'
+        );
+    }
+
     // Tests follow in subsequent tasks.
 }
