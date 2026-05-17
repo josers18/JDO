@@ -1,0 +1,12 @@
+{
+  "name": "web-engagements-rt-timeline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Salesforce DX project: real-time Data Cloud web engagement timeline LWC + Apex.",
+  "scripts": {
+    "test": "sfdx-lwc-jest"
+  },
+  "devDependencies": {
+    "@salesforce/sfdx-lwc-jest": "^7.0.0"
+  }
+}
