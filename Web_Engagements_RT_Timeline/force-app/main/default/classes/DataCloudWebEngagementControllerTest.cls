@@ -26,9 +26,9 @@ private class DataCloudWebEngagementControllerTest {
     @IsTest
     static void getWebEngagementData_blankAccountId_returnsEmptyArray() {
         Test.startTest();
-        String resultNull  = DataCloudWebEngagementController.getWebEngagementData(null);
-        String resultEmpty = DataCloudWebEngagementController.getWebEngagementData('');
-        String resultBlank = DataCloudWebEngagementController.getWebEngagementData('   ');
+        String resultNull  = DataCloudWebEngagementController.getWebEngagementData(null, null);
+        String resultEmpty = DataCloudWebEngagementController.getWebEngagementData('', null);
+        String resultBlank = DataCloudWebEngagementController.getWebEngagementData('   ', null);
         Test.stopTest();
 
         System.assertEquals('[]', resultNull,  'null accountId should return []');
@@ -47,7 +47,7 @@ private class DataCloudWebEngagementControllerTest {
 
         // Act
         Test.startTest();
-        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000001AAA');
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000001AAA', null);
         Test.stopTest();
 
         // Assert
@@ -60,7 +60,7 @@ private class DataCloudWebEngagementControllerTest {
         Test.setMock(HttpCalloutMock.class, new DataGraphMock(500, '{"error":"upstream timeout"}'));
 
         Test.startTest();
-        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000002AAA');
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000002AAA', null);
         Test.stopTest();
 
         // Controller's else branch on non-200 returns '[]' (see DataCloudWebEngagementController.cls:45-47).
@@ -73,7 +73,7 @@ private class DataCloudWebEngagementControllerTest {
         Test.setMock(HttpCalloutMock.class, new DataGraphMock(404, '{"error":"data graph not found"}'));
 
         Test.startTest();
-        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000003AAA');
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000003AAA', null);
         Test.stopTest();
 
         System.assertEquals('[]', result, '404 should also yield "[]".');
@@ -91,7 +91,7 @@ private class DataCloudWebEngagementControllerTest {
         Test.setMock(HttpCalloutMock.class, new DataGraphMock(500, 'should not be called'));
 
         Test.startTest();
-        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000004AAA');
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000004AAA', null);
         Test.stopTest();
 
         System.assertEquals('[]', result, 'Empty unified ID should short-circuit to "[]" without HTTP.');
@@ -116,7 +116,7 @@ private class DataCloudWebEngagementControllerTest {
         Boolean threw = false;
         Test.startTest();
         try {
-            DataCloudWebEngagementController.getWebEngagementData('001000000000005AAA');
+            DataCloudWebEngagementController.getWebEngagementData('001000000000005AAA', null);
         } catch (AuraHandledException e) {
             threw = true;
             // Note: AuraHandledException.getMessage() returns the *configured* message,
