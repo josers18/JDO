@@ -2,6 +2,23 @@
 private class DataCloudWebEngagementControllerTest {
 
     /**
+     * HttpCalloutMock that captures the inbound request endpoint URL,
+     * exposing it via a public `capturedEndpoint` field. Used to assert
+     * that the controller built the expected URL from its parameters.
+     */
+    private class CapturingMock implements HttpCalloutMock {
+        public String capturedEndpoint;
+        public HttpResponse respond(HttpRequest req) {
+            this.capturedEndpoint = req.getEndpoint();
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'application/json');
+            res.setBody('{"data":[]}');
+            return res;
+        }
+    }
+
+    /**
      * Reusable HttpCalloutMock for the Data Graph endpoint.
      * Caller sets statusCode + body; respond() echoes them back.
      */
@@ -129,6 +146,54 @@ private class DataCloudWebEngagementControllerTest {
         Test.stopTest();
 
         System.assert(threw, 'Expected AuraHandledException to bubble up.');
+    }
+
+    @IsTest
+    static void getWebEngagementData_customDataGraphName_buildsEndpointWithIt() {
+        DataCloudWebEngagementController.testMockUnifiedId = 'unified-custom';
+        CapturingMock mock = new CapturingMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        DataCloudWebEngagementController.getWebEngagementData(
+            '001000000000099AAA',
+            'My_Custom_DataGraph'
+        );
+        Test.stopTest();
+
+        // The endpoint should contain the custom data graph name segment, NOT
+        // the default RT_Web_Engagementsv2.
+        System.assert(
+            mock.capturedEndpoint != null,
+            'Mock should have captured an endpoint.'
+        );
+        System.assert(
+            mock.capturedEndpoint.contains('/data/My_Custom_DataGraph/'),
+            'Endpoint should embed the custom dataGraphName: ' + mock.capturedEndpoint
+        );
+        System.assert(
+            !mock.capturedEndpoint.contains('RT_Web_Engagementsv2'),
+            'Endpoint should NOT contain the default when a custom name is passed: ' + mock.capturedEndpoint
+        );
+    }
+
+    @IsTest
+    static void getWebEngagementData_blankDataGraphName_fallsBackToDefault() {
+        DataCloudWebEngagementController.testMockUnifiedId = 'unified-default';
+        CapturingMock mock = new CapturingMock();
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        DataCloudWebEngagementController.getWebEngagementData(
+            '001000000000098AAA',
+            ''
+        );
+        Test.stopTest();
+
+        System.assert(
+            mock.capturedEndpoint != null && mock.capturedEndpoint.contains('/data/RT_Web_Engagementsv2/'),
+            'Blank dataGraphName should fall back to the default constant: ' + mock.capturedEndpoint
+        );
     }
 
     // ─── extractUnifiedIdFromQueryOutput parser tests ────────────────────
