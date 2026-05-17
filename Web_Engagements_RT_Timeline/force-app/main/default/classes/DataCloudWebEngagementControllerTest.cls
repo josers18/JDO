@@ -79,5 +79,23 @@ private class DataCloudWebEngagementControllerTest {
         System.assertEquals('[]', result, '404 should also yield "[]".');
     }
 
+    @IsTest
+    static void getWebEngagementData_noUnifiedId_returnsEmptyArray() {
+        // Empty string from the seam means "no unified ID found" — controller's
+        // String.isBlank(unifiedId) check at line 19-22 short-circuits to '[]'
+        // without firing the HTTP callout.
+        DataCloudWebEngagementController.testMockUnifiedId = '';
+
+        // Mock the HTTP layer too, just so a stray callout (regression) would
+        // fail loudly with a TestException rather than a real network attempt.
+        Test.setMock(HttpCalloutMock.class, new DataGraphMock(500, 'should not be called'));
+
+        Test.startTest();
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000004AAA');
+        Test.stopTest();
+
+        System.assertEquals('[]', result, 'Empty unified ID should short-circuit to "[]" without HTTP.');
+    }
+
     // Tests follow in subsequent tasks.
 }
