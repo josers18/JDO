@@ -63,17 +63,35 @@ public with sharing class DataCloudWebEngagementController {
         if (Test.isRunningTest() && testMockUnifiedId != null) {
             return testMockUnifiedId;
         }
-        String query = 'SELECT UnifiedRecordId__c FROM ' + LINK_OBJECT_NAME + 
+        String query = 'SELECT UnifiedRecordId__c FROM ' + LINK_OBJECT_NAME +
                        ' WHERE SourceRecordId__c = \'' + String.escapeSingleQuotes(accountId) + '\' LIMIT 1';
 
         ConnectApi.QuerySqlInput input = new ConnectApi.QuerySqlInput();
         input.sql = query;
 
         ConnectApi.QuerySqlOutput output = ConnectApi.CdpQuery.querySql(input);
-        
+
         // WORKAROUND: Serialize/Deserialize to inspect the raw JSON structure
         String safeJson = JSON.serialize(output);
         Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(safeJson);
+
+        return extractUnifiedIdFromQueryOutput(result);
+    }
+
+    /**
+     * Walks the parsed ConnectApi.CdpQuery.querySql response Map and returns
+     * the unified ID, or null if the response shape doesn't contain one.
+     *
+     * Defensive against two response shapes seen in API 65.0:
+     *   - Outer: 'dataRows' (newer) OR 'data' (older)
+     *   - Inner row: 'rowData' OR 'row'
+     *
+     * @TestVisible so unit tests can verify branch behavior with crafted Maps,
+     * since ConnectApi.CdpQuery.querySql itself is not mockable via Test.setMock.
+     */
+    @TestVisible
+    private static String extractUnifiedIdFromQueryOutput(Map<String, Object> result) {
+        if (result == null) return null;
 
         List<Object> rows = null;
         if (result.containsKey('dataRows')) {
@@ -82,21 +100,18 @@ public with sharing class DataCloudWebEngagementController {
             rows = (List<Object>) result.get('data');
         }
 
-        if (rows != null && !rows.isEmpty()) {
-            Map<String, Object> firstRow = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(rows[0]));
-            
-            // FIX: Check for 'rowData' OR 'row'
-            List<Object> values = null;
-            if (firstRow.containsKey('rowData')) {
-                values = (List<Object>) firstRow.get('rowData');
-            } else if (firstRow.containsKey('row')) {
-                values = (List<Object>) firstRow.get('row');
-            }
-            
-            if (values != null && !values.isEmpty()) {
-                return (String) values[0];
-            }
+        if (rows == null || rows.isEmpty()) return null;
+
+        Map<String, Object> firstRow = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(rows[0]));
+
+        List<Object> values = null;
+        if (firstRow.containsKey('rowData')) {
+            values = (List<Object>) firstRow.get('rowData');
+        } else if (firstRow.containsKey('row')) {
+            values = (List<Object>) firstRow.get('row');
         }
-        return null;
+
+        if (values == null || values.isEmpty()) return null;
+        return (String) values[0];
     }
 }
