@@ -143,3 +143,53 @@ function mapWebEngagement(e) {
         details: details.filter(d => d.value !== null && d.value !== undefined)
     };
 }
+
+export function mergeAndSort(webEvents, crmEvents) {
+    const all = [...(webEvents || []), ...(crmEvents || [])];
+    const byId = new Map();
+    for (const evt of all) {
+        if (evt && evt.id) byId.set(evt.id, evt);
+    }
+    return [...byId.values()]
+        .sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt))
+        .map(evt => ({
+            ...evt,
+            cssClass: `stream-card stream-card-${evt.source}`,
+            leftRailStyle: `border-left-color: ${evt.iconColor};`,
+            expanded: false
+        }));
+}
+
+export function groupByDay(events, locale = 'en-US') {
+    if (!events || events.length === 0) return [];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const buckets = new Map();
+    for (const evt of events) {
+        const d = new Date(evt.occurredAt);
+        if (Number.isNaN(d.getTime())) continue;
+        const dayKey = d.toISOString().slice(0, 10);
+        if (!buckets.has(dayKey)) {
+            buckets.set(dayKey, { dayKey, dayLabel: formatDayLabel(d, today, yesterday, locale), events: [] });
+        }
+        buckets.get(dayKey).events.push(evt);
+    }
+    return [...buckets.values()];
+}
+
+function formatDayLabel(d, today, yesterday, locale) {
+    const dayStart = new Date(d);
+    dayStart.setHours(0, 0, 0, 0);
+
+    if (dayStart.getTime() === today.getTime()) {
+        return `Today · ${d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}`;
+    }
+    if (dayStart.getTime() === yesterday.getTime()) {
+        return `Yesterday · ${d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })}`;
+    }
+    return d.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
+}
