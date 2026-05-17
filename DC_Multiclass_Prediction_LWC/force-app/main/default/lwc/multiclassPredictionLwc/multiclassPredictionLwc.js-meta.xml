@@ -15,13 +15,21 @@
                 description="Heading at the top of the card." />
             <property name="summaryCardTitle" type="String" label="AI summary card title" default="Analysis summary"
                 description="Reserved for future use; summary block has no separate heading today." />
-            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Suggested improvements"
-                description="Heading above the recommendation rows." />
+            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Feature contributions"
+                description="Heading above the Shapley feature-contribution rows." />
             <property name="flowApiName" type="String" label="Autolaunched flow API name" required="true"
                 description="Flow must output text prediction and recommendations JSON (no factors)." />
             <property name="recordIdInputName" type="String" label="Flow input variable for record Id" default="recordId" />
             <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="classProbabilityVariableNames" type="String" label="Flow output: class probability variables (comma-separated)" default=""
+                description="Optional. Comma-separated list of Flow scalar variable names, one per class (e.g. Auto_Loans,Brokerage_Advisory,Wealth_Management). Each variable must hold a numeric probability between 0 and 1. Leave blank to hide the chart." />
+            <property name="hideClassProbabilities" type="Boolean" label="Hide class probability chart" default="false"
+                description="Master toggle. Check to hide the probability chart even when class variables are configured. Unchecked (default) shows the chart between the predicted class and feature contributions." />
+            <property name="enableTopNClasses" type="Boolean" label="Limit chart to top N classes" default="false"
+                description="When checked, the chart shows only the highest-probability N classes (set below). When unchecked, all configured classes are rendered." />
+            <property name="topNClassCount" type="Integer" label="Top N: number of classes to show" default="5"
+                description="Used only when 'Limit chart to top N classes' is checked. Must be a positive integer; values ≤ 0 fall back to showing all classes." />
             <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class"
                 description="Caption below the label (e.g. Product line, Segment)." />
             <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true"
@@ -57,11 +65,15 @@
         <targetConfig targets="lightning__AppPage">
             <property name="cardTitle" type="String" label="Main card title" default="Model prediction" />
             <property name="summaryCardTitle" type="String" label="AI summary card title" default="Analysis summary" />
-            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Suggested improvements" />
+            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Feature contributions" />
             <property name="flowApiName" type="String" label="Autolaunched flow API name" required="true" />
             <property name="recordIdInputName" type="String" label="Flow input variable for record Id" default="recordId" />
             <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="classProbabilityVariableNames" type="String" label="Flow output: class probability variables (comma-separated)" default="" />
+            <property name="hideClassProbabilities" type="Boolean" label="Hide class probability chart" default="false" />
+            <property name="enableTopNClasses" type="Boolean" label="Limit chart to top N classes" default="false" />
+            <property name="topNClassCount" type="Integer" label="Top N: number of classes to show" default="5" />
             <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class" />
             <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
@@ -85,12 +97,16 @@
         <targetConfig targets="lightning__HomePage">
             <property name="cardTitle" type="String" label="Main card title" default="Model prediction" />
             <property name="summaryCardTitle" type="String" label="AI summary card title" default="Analysis summary" />
-            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Suggested improvements" />
+            <property name="recommendationsSectionTitle" type="String" label="Recommendations section title" default="Feature contributions" />
             <property name="flowApiName" type="String" label="Autolaunched flow API name" default=""
                 description="Required at runtime; set in App Builder." />
             <property name="recordIdInputName" type="String" label="Flow input variable for record Id" default="recordId" />
             <property name="predictionVariableName" type="String" label="Flow output: prediction (text label)" default="prediction" />
             <property name="recommendationsVariableName" type="String" label="Flow output: recommendations variable" default="recommendations" />
+            <property name="classProbabilityVariableNames" type="String" label="Flow output: class probability variables (comma-separated)" default="" />
+            <property name="hideClassProbabilities" type="Boolean" label="Hide class probability chart" default="false" />
+            <property name="enableTopNClasses" type="Boolean" label="Limit chart to top N classes" default="false" />
+            <property name="topNClassCount" type="Integer" label="Top N: number of classes to show" default="5" />
             <property name="classSubtitle" type="String" label="Subtitle under predicted class" default="Predicted class" />
             <property name="humanizeClassName" type="Boolean" label="Humanize class label for display" default="true" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />

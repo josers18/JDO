@@ -46,3 +46,6 @@ $RECYCLE.BIN/
 **/__pycache__/
 **/.venv/
 **/venv/
+
+# Local design specs (brainstorming artifacts, not part of public docs)
+docs/superpowers/

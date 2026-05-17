@@ -5,6 +5,8 @@ import generateAnalysisSummary from '@salesforce/apex/MulticlassPredictionLwcCon
 import { THEMES } from './predictionThemes.js';
 
 const BAR_TRANSITION = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
+const PROB_OPACITY_FLOOR = 0.35;
+const PROB_OPACITY_RANGE = 0.65;
 
 function sanitizePmTextColor(raw) {
     const s = String(raw == null ? '' : raw).trim();
@@ -40,6 +42,10 @@ export default class MulticlassPredictionLwc extends LightningElement {
     @api recordIdInputName = 'recordId';
     @api predictionVariableName = 'prediction';
     @api recommendationsVariableName = 'recommendations';
+    @api classProbabilityVariableNames = '';
+    @api hideClassProbabilities = false;
+    @api enableTopNClasses = false;
+    @api topNClassCount = 5;
     @api promptTemplateId;
     @api promptInputApiName = 'Input:Prediction_Context';
     @api autoGenerateSummary;
@@ -83,6 +89,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     errorMessage;
     predictionLabelRaw;
     recommendationsJson;
+    classProbabilities = [];
     summaryText;
     summaryError;
 
@@ -100,15 +107,34 @@ export default class MulticlassPredictionLwc extends LightningElement {
         }
     }
 
+    get resolvedWinnerApiName() {
+        if (typeof this.predictionLabelRaw === 'string' && this.predictionLabelRaw.trim().length > 0) {
+            return this.predictionLabelRaw.trim();
+        }
+        const arr = Array.isArray(this.classProbabilities) ? this.classProbabilities : [];
+        let topName = '';
+        let topValue = -Infinity;
+        for (const entry of arr) {
+            const name = (entry && entry.apiName) || '';
+            const numeric = Number(entry ? entry.value : NaN);
+            const value = Number.isFinite(numeric) ? numeric : -Infinity;
+            if (name && value > topValue) {
+                topValue = value;
+                topName = name;
+            }
+        }
+        return topName;
+    }
+
     get hasPredictionLabel() {
-        return typeof this.predictionLabelRaw === 'string' && this.predictionLabelRaw.trim().length > 0;
+        return this.resolvedWinnerApiName.length > 0;
     }
 
     get predictionLabelDisplay() {
-        if (!this.hasPredictionLabel) {
+        const raw = this.resolvedWinnerApiName;
+        if (!raw) {
             return '';
         }
-        const raw = this.predictionLabelRaw.trim();
         if (this.humanizeClassName === false) {
             return raw;
         }
@@ -127,7 +153,11 @@ export default class MulticlassPredictionLwc extends LightningElement {
         if (this.loadingFlow) {
             return false;
         }
-        return this.hasPredictionLabel || this.insightItemCount(this.recommendationsJson) > 0;
+        return (
+            this.hasPredictionLabel ||
+            this.insightItemCount(this.recommendationsJson) > 0 ||
+            (Array.isArray(this.classProbabilities) && this.classProbabilities.length > 0)
+        );
     }
 
     get classSubtitleDisplay() {
@@ -149,6 +179,63 @@ export default class MulticlassPredictionLwc extends LightningElement {
         const colors = this.resolveColors(this.recommendationsRiskColor, this.recommendationsGoodColor);
         const treatPositiveAsGood = this.recommendationsPositiveMeansGood === true;
         return this.applyProcessedRowColors(rows, colors, treatPositiveAsGood);
+    }
+
+    get processedClassProbabilities() {
+        const arr = Array.isArray(this.classProbabilities) ? this.classProbabilities : [];
+        if (arr.length === 0) {
+            return [];
+        }
+        const winnerKey = this.resolvedWinnerApiName.toLowerCase();
+        const rows = arr
+            .map((entry, originalIndex) => {
+                const apiName = (entry && entry.apiName) || '';
+                const rawValue = entry ? entry.value : null;
+                const numeric = Number(rawValue);
+                const value = Number.isFinite(numeric) ? numeric : 0;
+                const clamped = Math.min(1, Math.max(0, value));
+                const labelDisplay = this.humanizeClassName === false
+                    ? apiName
+                    : this.humanizeApiName(apiName);
+                const opacity = PROB_OPACITY_FLOOR + PROB_OPACITY_RANGE * clamped;
+                const apiNameKey = (apiName || '').trim().toLowerCase();
+                const isWinner = apiNameKey === winnerKey && winnerKey.length > 0;
+                return {
+                    key: `prob-${originalIndex}-${apiName}`,
+                    apiName,
+                    labelDisplay,
+                    barScale: clamped,
+                    percentDisplay: `${(clamped * 100).toFixed(1)}%`,
+                    barStyle: `opacity: ${opacity.toFixed(3)};`,
+                    rowClass: isWinner ? 'prob-row prob-row--winner' : 'prob-row',
+                    sortValue: clamped,
+                    originalIndex
+                };
+            })
+            .sort((a, b) => {
+                if (b.sortValue !== a.sortValue) {
+                    return b.sortValue - a.sortValue;
+                }
+                return a.originalIndex - b.originalIndex;
+            });
+        if (this.enableTopNClasses === true) {
+            const n = Math.floor(Number(this.topNClassCount));
+            if (Number.isFinite(n) && n > 0) {
+                return rows.slice(0, n);
+            }
+        }
+        return rows;
+    }
+
+    get showClassProbChart() {
+        if (this.hideClassProbabilities === true) {
+            return false;
+        }
+        return this.processedClassProbabilities.length > 0;
+    }
+
+    get classProbSectionTitleDisplay() {
+        return 'Class probabilities';
     }
 
     get showSummaryCard() {
@@ -305,6 +392,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
         this.errorMessage = undefined;
         this.summaryText = undefined;
         this.summaryError = undefined;
+        this.classProbabilities = [];
         this.runFlow();
     }
 
@@ -319,10 +407,12 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 recordId: this._recordId,
                 recordIdVariableName: this.recordIdInputName,
                 predictionVariableName: this.predictionVariableName,
-                recommendationsVariableName: this.recommendationsVariableName
+                recommendationsVariableName: this.recommendationsVariableName,
+                classVariableNamesCsv: this.classProbabilityVariableNames || ''
             });
             this.predictionLabelRaw = result.predictionLabel;
             this.recommendationsJson = result.recommendationsJson;
+            this.classProbabilities = Array.isArray(result.classProbabilities) ? result.classProbabilities : [];
         } catch (e) {
             this.errorMessage = this.reduceError(e);
             this.dispatchEvent(
@@ -373,7 +463,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     }
 
     animateBars() {
-        const fills = this.template.querySelectorAll('.bar-fill');
+        const fills = this.template.querySelectorAll('.bar-fill, .prob-bar');
         fills.forEach((el) => {
             const raw = el.getAttribute('data-scale');
             const scale = raw != null && raw !== '' ? Number(raw) : 0;

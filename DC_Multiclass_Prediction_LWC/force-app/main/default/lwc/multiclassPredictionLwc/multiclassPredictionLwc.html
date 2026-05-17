@@ -77,6 +77,27 @@
                     </div>
                 </div>
 
+                <template lwc:if={showClassProbChart}>
+                    <section class="class-prob-section" aria-labelledby="prob-heading">
+                        <span id="prob-heading" class="section-label">{classProbSectionTitleDisplay}</span>
+                        <template for:each={processedClassProbabilities} for:item="prob">
+                            <div key={prob.key} class={prob.rowClass}>
+                                <div class="prob-label-col">
+                                    <span class="prob-label-text" title={prob.labelDisplay}>{prob.labelDisplay}</span>
+                                </div>
+                                <div class="prob-track">
+                                    <div
+                                        class="bar-fill prob-bar"
+                                        style={prob.barStyle}
+                                        data-scale={prob.barScale}
+                                    ></div>
+                                </div>
+                                <span class="prob-pct">{prob.percentDisplay}</span>
+                            </div>
+                        </template>
+                    </section>
+                </template>
+
                 <section class="improve-section" aria-labelledby="recs-heading">
                     <span id="recs-heading" class="section-label">{recommendationsSectionTitleDisplay}</span>
                     <template lwc:if={processedRecommendations.length}>
