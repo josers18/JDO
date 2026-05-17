@@ -102,7 +102,7 @@ Once deployed, the **Real Time Digital Engagements** component exposes 5 propert
 | **Feed height (px)** | `600` | Maximum height of the feed before scrolling. Ignored when Auto-size is on. |
 | **Auto-size feed** | _off_ | When on, feed grows up to 90% of viewport height. Overrides Feed height. |
 
-Defaults preserve the component's pre-Plan-2 behavior — existing record pages see no change after deploy.
+Defaults preserve the component's pre-Plan-2 behavior for 4 of 5 properties (Data Graph name, card title, feed height, auto-size). The exception is **Card title link URL**: pre-Plan-2 instances had a hardcoded link to a Cumulus Bank demo URL in the title; the new default is blank (plain text). Demo-org admins who want the original behavior should paste their landing-page URL into the Card title link URL property after deploy.
 
 ---
 
@@ -121,9 +121,8 @@ Defaults preserve the component's pre-Plan-2 behavior — existing record pages 
 
 ## Known issues in this snapshot
 
-1. **Missing semicolon in icon switch (cosmetic)** — In `webEngagementData.js`, the `cancel_app` case in the icon switch is missing the trailing semicolon on `icon = 'standard:cancel_checkout'` before `break`. Parses fine (ASI handles it) but inconsistent with the rest of the file.
-
 > **Fixed since retrieve:**
+> - **Missing semicolon in icon switch** — In `webEngagementData.js`, the `cancel_app` case was missing the trailing semicolon on `icon = 'standard:cancel_checkout'` before `break`. Now consistent with the rest of the file.
 > - **`const` reassignment** in `webEngagementData.js` — `finalTitle` was declared `const` then reassigned for the `'Your Dashboard'` branch (would throw `TypeError`). Now `let`.
 > - **Title used `baseTitle` instead of `finalTitle`** in the mapper return — all the title-derivation logic (status suffix, "Login - Home" override) was effectively dead code. Now wired through to the rendered title.
 

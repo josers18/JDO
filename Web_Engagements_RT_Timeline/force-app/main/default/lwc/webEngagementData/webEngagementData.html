@@ -3,6 +3,8 @@
     
         <h3 slot="title">
             <template lwc:if={headerTitleIsLink}>
+                <!-- Lightning sanitizes href bindings in API 53+ to block javascript:/data: URL schemes.
+                     Admins should still only paste trusted URLs into the Card title link URL property. -->
                 <a href={cardTitleLink} target="_blank" class="slds-card__header-link slds-truncate">
                     {cardTitle}
                 </a>

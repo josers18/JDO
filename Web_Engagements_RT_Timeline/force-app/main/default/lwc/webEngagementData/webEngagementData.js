@@ -134,7 +134,7 @@ export default class WebEngagementData extends LightningElement {
                                 finalSubtitle = 'Application Saved';
                                 break;
                             case 'cancel_app':
-                                icon = 'standard:cancel_checkout' // abandoned cart
+                                icon = 'standard:cancel_checkout'; // abandoned cart
                                 finalSubtitle = 'Application Cancelled';
                                 break;
                             default:
