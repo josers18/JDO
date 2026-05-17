@@ -15,7 +15,11 @@ public with sharing class DataCloudWebEngagementController {
     private static String testMockUnifiedId;
 
     @AuraEnabled
-    public static String getWebEngagementData(String accountId) { // Using accountId because this will be deployed on Person Account record page.
+    public static String getWebEngagementData(String accountId, String dataGraphName) {
+        // Using accountId because this will be deployed on Person Account record page.
+        // dataGraphName falls back to the default constant when blank, so existing
+        // single-arg callers (none in this repo, but possible future) still work.
+        if (String.isBlank(dataGraphName)) dataGraphName = DATA_GRAPH_NAME;
         if (String.isBlank(accountId)) return '[]';
 
         try {
@@ -30,7 +34,7 @@ public with sharing class DataCloudWebEngagementController {
             // 2. TRUE Real-Time Lookup via Named Credential
             // We use "callout:Data_Cloud_API" to match your Named Credential's API Name.
             HttpRequest req = new HttpRequest();
-            String endpoint = 'callout:Data_Cloud_API/services/data/v65.0/ssot/data-graphs/data/' + DATA_GRAPH_NAME + '/' + unifiedId;
+            String endpoint = 'callout:Data_Cloud_API/services/data/v65.0/ssot/data-graphs/data/' + dataGraphName + '/' + unifiedId;
             
             req.setEndpoint(endpoint);
             req.setMethod('GET');
