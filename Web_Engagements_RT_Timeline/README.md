@@ -115,6 +115,39 @@ After deploy:
 
 ---
 
+## API version posture
+
+| Asset | Version | Why |
+|---|---|---|
+| `sfdx-project.json` `sourceApiVersion` | **62.0** | Matches sibling DX projects (`DC_BusinessProfileWidget`, `DC_PersonProfileWidget`, etc.) for monorepo consistency. Bump only when a feature requires it. |
+| Component / class `-meta.xml` `apiVersion` | **65.0** | What was retrieved from the org. Untouched. |
+| Org runtime API | **66.0** | Salesforce platform release running on the target org. |
+
+These three numbers can legally differ. `sourceApiVersion` only governs *new* metadata authored in this DX project — not retrieval, deploy, or runtime behavior of components already at 65.0.
+
+---
+
+## Test coverage
+
+`DataCloudWebEngagementController` is covered by `DataCloudWebEngagementControllerTest` at **~83% lines** (15 test methods). Run locally:
+
+```bash
+sf apex run test --class-names DataCloudWebEngagementControllerTest --result-format human --code-coverage --wait 10 --synchronous
+```
+
+The test class uses three patterns:
+- `@TestVisible static String testMockUnifiedId` on the controller — bypasses `ConnectApi.CdpQuery.querySql`, which is not mockable via `Test.setMock` in API 65.0.
+- `Test.setMock(HttpCalloutMock.class, ...)` — fakes the live Data Graph callout to `callout:Data_Cloud_API`.
+- `@TestVisible static String extractUnifiedIdFromQueryOutput(Map<String, Object>)` on the controller — direct unit tests of the JSON-parsing branches with crafted Maps.
+
+### Coverage ceiling
+
+The seam means `getUnifiedId`'s body (SOQL build + `ConnectApi.QuerySqlInput` + `ConnectApi.CdpQuery.querySql` + serialize/deserialize-to-Map — about 11 lines) is structurally uncoverable by unit tests. After Task 9a's refactor, the JSON-parsing logic that follows was extracted into the `extractUnifiedIdFromQueryOutput` helper and is covered directly. The remaining ~17% gap is the un-mockable `ConnectApi` integration path itself.
+
+Salesforce's org-wide deployment threshold is 75%. The class deploys cleanly. The plan's spec target was lowered from 85% to 80% to acknowledge this honest ceiling.
+
+---
+
 ## Repository context
 
 This folder is a **Salesforce DX project** inside the [JDO monorepo](../README.md). See the root [deployment guide](../docs/DEPLOYMENT_GUIDE.md) for org aliases and shared patterns.
