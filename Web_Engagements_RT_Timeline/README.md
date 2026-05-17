@@ -90,18 +90,32 @@ After deploy:
 
 ---
 
+## App Builder properties
+
+Once deployed, the **Real Time Digital Engagements** component exposes 5 properties in App Builder. Configure per-instance — no code changes needed for common admin tasks.
+
+| Property | Default | Description |
+|---|---|---|
+| **Data Graph API name** | `RT_Web_Engagementsv2` | API name of the Data Cloud Data Graph this card pulls from. Change to point at any other Data Graph in the same org. |
+| **Card title** | `Real Time Engagements` | Header text shown on the card. |
+| **Card title link URL** | _(blank)_ | Optional URL the card title links to. Leave blank for plain text. |
+| **Feed height (px)** | `600` | Maximum height of the feed before scrolling. Ignored when Auto-size is on. |
+| **Auto-size feed** | _off_ | When on, feed grows up to 90% of viewport height. Overrides Feed height. |
+
+Defaults preserve the component's pre-Plan-2 behavior — existing record pages see no change after deploy.
+
+---
+
 ## Customizing for your data
 
 | Change | Where |
 |--------|-------|
-| Data Graph API name | `DataCloudWebEngagementController.cls` → `DATA_GRAPH_NAME` |
+| Data Graph name, card title/link, feed height/auto-size | **App Builder property** — see "App Builder properties" section above |
 | Link Object DLO API name | `DataCloudWebEngagementController.cls` → `LINK_OBJECT_NAME` |
 | Named Credential alias | `DataCloudWebEngagementController.cls` → endpoint string `callout:Data_Cloud_API` |
 | Engagement DMO name | `webEngagementData.js` → `node.CumulusWeb_Engagements__dlm` checks |
 | Title / subtitle / icon rules | `webEngagementData.js` → `findAndProcessEngagements` mapper |
 | Detail rows | `webEngagementData.js` → `details` array in the mapper |
-| Card title link | `webEngagementData.html` → `<a href="...">Real Time Engagements</a>` |
-| Feed max height / scroll | `webEngagementData.css` → `.engagement-feed { max-height: 600px }` |
 
 ---
 
