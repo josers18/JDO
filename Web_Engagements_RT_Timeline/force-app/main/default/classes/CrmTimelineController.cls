@@ -62,7 +62,8 @@ public with sharing class CrmTimelineController {
 
         List<TimelineEvent> events = new List<TimelineEvent>();
         if (sources.contains('case')) events.addAll(queryCases(recordId, sot, since));
-        // task / event / voice added in Tasks 9-10.
+        if (sources.contains('task')) events.addAll(queryTasks(recordId, sot, since));
+        // event / voice added in subsequent tasks.
 
         TimelineEvent[] arr = events.clone();
         arr.sort(new TimelineEventComparator());
@@ -100,6 +101,50 @@ public with sharing class CrmTimelineController {
                 new DetailField('Status', c.Status),
                 new DetailField('Owner', ownerName)
             };
+            out.add(t);
+        }
+        return out;
+    }
+
+    private static List<TimelineEvent> queryTasks(Id recordId, Schema.SObjectType sot, Datetime since) {
+        // Task.WhatId points to Account/Opportunity/etc.; Task.WhoId points to Contact/Lead.
+        // For the Account record page we query WhatId = recordId; for Contact, WhoId = recordId.
+        // Activities use ActivityDate (Date), not Datetime — fall back to CreatedDate when null.
+        List<Task> rows = (sot == Account.SObjectType)
+            ? [SELECT Id, Subject, Type, CallType, ActivityDate, CreatedDate, Owner.Name
+               FROM Task
+               WHERE WhatId = :recordId AND CreatedDate >= :since
+               ORDER BY CreatedDate DESC
+               LIMIT :PER_SOURCE_LIMIT]
+            : [SELECT Id, Subject, Type, CallType, ActivityDate, CreatedDate, Owner.Name
+               FROM Task
+               WHERE WhoId = :recordId AND CreatedDate >= :since
+               ORDER BY CreatedDate DESC
+               LIMIT :PER_SOURCE_LIMIT];
+
+        List<TimelineEvent> out = new List<TimelineEvent>();
+        for (Task task : rows) {
+            TimelineEvent t = new TimelineEvent();
+            t.id          = task.Id;
+            t.source      = 'task';
+            t.sourceLabel = 'Task';
+            t.iconName    = String.isNotBlank(task.CallType) ? 'standard:log_a_call' : 'standard:task';
+            t.iconColor   = '#04844b';
+            t.occurredAt  = (task.ActivityDate != null)
+                ? Datetime.newInstanceGmt(task.ActivityDate, Time.newInstance(0, 0, 0, 0))
+                : task.CreatedDate;
+            t.title       = String.isBlank(task.Subject) ? '(no subject)' : task.Subject;
+            String sub    = String.isBlank(task.Type) ? 'Task' : task.Type;
+            if (String.isNotBlank(task.CallType)) sub += ' on ' + task.CallType;
+            t.subtitle    = sub;
+            t.recordUrl   = '/lightning/r/Task/' + task.Id + '/view';
+            t.details     = new List<DetailField>{
+                new DetailField('Type', task.Type),
+                new DetailField('Owner', (task.Owner != null) ? task.Owner.Name : 'Unassigned')
+            };
+            if (String.isNotBlank(task.CallType)) {
+                t.details.add(new DetailField('Call Type', task.CallType));
+            }
             out.add(t);
         }
         return out;

@@ -104,4 +104,49 @@ private class CrmTimelineControllerTest {
         System.assertEquals(1, result.size());
         System.assertEquals('Contact-page Case', result[0].title);
     }
+
+    @IsTest
+    static void tasksHappyPathReturnsBothTaskAndLoggedCall() {
+        Account a = [SELECT Id FROM Account LIMIT 1];
+
+        Task plain = new Task(
+            Subject = 'Follow up email',
+            Type = 'Email',
+            ActivityDate = Date.today(),
+            WhatId = a.Id
+        );
+        Task call = new Task(
+            Subject = 'Outbound to Jane',
+            Type = 'Call',
+            CallType = 'Outbound',
+            ActivityDate = Date.today(),
+            WhatId = a.Id
+        );
+        insert new List<Task>{ plain, call };
+
+        Test.startTest();
+        List<CrmTimelineController.TimelineEvent> result =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'task' }, 90);
+        Test.stopTest();
+
+        System.assertEquals(2, result.size());
+
+        Map<String, CrmTimelineController.TimelineEvent> bySubject = new Map<String, CrmTimelineController.TimelineEvent>();
+        for (CrmTimelineController.TimelineEvent t : result) bySubject.put(t.title, t);
+
+        CrmTimelineController.TimelineEvent emailEvt = bySubject.get('Follow up email');
+        System.assertEquals('standard:task', emailEvt.iconName,
+            'Plain task should use the task icon (CallType blank).');
+        System.assertEquals('Email', emailEvt.subtitle);
+
+        CrmTimelineController.TimelineEvent callEvt = bySubject.get('Outbound to Jane');
+        System.assertEquals('standard:log_a_call', callEvt.iconName,
+            'Logged call (CallType populated) should use the call icon.');
+        System.assertEquals('Call on Outbound', callEvt.subtitle);
+        Boolean hasCallTypeDetail = false;
+        for (CrmTimelineController.DetailField d : callEvt.details) {
+            if (d.label == 'Call Type') hasCallTypeDetail = true;
+        }
+        System.assert(hasCallTypeDetail, 'Logged call should include a Call Type detail row.');
+    }
 }
