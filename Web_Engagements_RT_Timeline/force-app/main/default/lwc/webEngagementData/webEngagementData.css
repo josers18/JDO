@@ -4,8 +4,9 @@
     border: 1px solid var(--slds-g-color-border-base-4, #dddbda);
     border-radius: 4px;
     padding: 10px;
-    max-height: 600px; 
-    overflow-y: auto;  /* Enables the scrollbar */
+    /* max-height + overflow-y now come from the inline style={feedStyle}
+       computed by the LWC class — that lets feedHeight + autoSize control
+       both at runtime. */
 }
 
 /* Style for the expanded details box */
