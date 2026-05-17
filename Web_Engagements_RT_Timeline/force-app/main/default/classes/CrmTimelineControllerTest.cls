@@ -149,4 +149,87 @@ private class CrmTimelineControllerTest {
         }
         System.assert(hasCallTypeDetail, 'Logged call should include a Call Type detail row.');
     }
+
+    @IsTest
+    static void eventsHappyPathReturnsTimelineEvents() {
+        Account a = [SELECT Id FROM Account LIMIT 1];
+
+        Event meeting = new Event(
+            Subject = 'Quarterly review',
+            StartDateTime = Datetime.now().addDays(-1),
+            DurationInMinutes = 30,
+            Location = 'HQ Conference Room',
+            WhatId = a.Id
+        );
+        insert meeting;
+
+        Test.startTest();
+        List<CrmTimelineController.TimelineEvent> result =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'event' }, 90);
+        Test.stopTest();
+
+        System.assertEquals(1, result.size());
+        CrmTimelineController.TimelineEvent t = result[0];
+        System.assertEquals('event', t.source);
+        System.assertEquals('standard:event', t.iconName);
+        System.assertEquals('Quarterly review', t.title);
+        System.assertEquals('HQ Conference Room', t.subtitle,
+            'Location should be the subtitle when present.');
+        System.assert(t.recordUrl.startsWith('/lightning/r/Event/'));
+    }
+
+    @IsTest
+    static void voiceCallSourceDoesNotThrowEvenWhenAbsent() {
+        Account a = [SELECT Id FROM Account LIMIT 1];
+
+        Test.startTest();
+        List<CrmTimelineController.TimelineEvent> result =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'voice' }, 90);
+        Test.stopTest();
+
+        // Either Voice isn't provisioned (Schema.getGlobalDescribe lookup fails)
+        // and we get [] silently, or it is provisioned and there are no calls
+        // for this fresh Test Account. Both paths return empty without throwing.
+        System.assertNotEquals(null, result);
+        System.assertEquals(0, result.size(),
+            'Fresh Test Account should have no VoiceCall records (or Voice is absent).');
+    }
+
+    @IsTest
+    static void multiSourceMergedAndSortedDesc() {
+        Account a = [SELECT Id FROM Account LIMIT 1];
+
+        // Insert a Case (CreatedDate is now), a Task with ActivityDate -5d,
+        // and an Event -2d. Result sorted DESC: case, event, task.
+        Case c = new Case(Subject = 'Newest', Status = 'New', AccountId = a.Id);
+        insert c;
+        Task task = new Task(
+            Subject = 'Older Task',
+            Type = 'Email',
+            ActivityDate = Date.today().addDays(-5),
+            WhatId = a.Id
+        );
+        insert task;
+        Event evt = new Event(
+            Subject = 'Middle Event',
+            StartDateTime = Datetime.now().addDays(-2),
+            DurationInMinutes = 30,
+            WhatId = a.Id
+        );
+        insert evt;
+
+        Test.startTest();
+        List<CrmTimelineController.TimelineEvent> result =
+            CrmTimelineController.getCrmTimelineEvents(
+                a.Id,
+                new List<String>{ 'case', 'task', 'event' },
+                90
+            );
+        Test.stopTest();
+
+        System.assertEquals(3, result.size());
+        System.assertEquals('case',  result[0].source);
+        System.assertEquals('event', result[1].source);
+        System.assertEquals('task',  result[2].source);
+    }
 }

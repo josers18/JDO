@@ -61,9 +61,10 @@ public with sharing class CrmTimelineController {
         Datetime since = Datetime.now().addDays(-days);
 
         List<TimelineEvent> events = new List<TimelineEvent>();
-        if (sources.contains('case')) events.addAll(queryCases(recordId, sot, since));
-        if (sources.contains('task')) events.addAll(queryTasks(recordId, sot, since));
-        // event / voice added in subsequent tasks.
+        if (sources.contains('case'))  events.addAll(queryCases(recordId, sot, since));
+        if (sources.contains('task'))  events.addAll(queryTasks(recordId, sot, since));
+        if (sources.contains('event')) events.addAll(queryEvents(recordId, sot, since));
+        if (sources.contains('voice')) events.addAll(queryVoiceCalls(recordId, sot, since));
 
         TimelineEvent[] arr = events.clone();
         arr.sort(new TimelineEventComparator());
@@ -145,6 +146,99 @@ public with sharing class CrmTimelineController {
             if (String.isNotBlank(task.CallType)) {
                 t.details.add(new DetailField('Call Type', task.CallType));
             }
+            out.add(t);
+        }
+        return out;
+    }
+
+    private static List<TimelineEvent> queryEvents(Id recordId, Schema.SObjectType sot, Datetime since) {
+        List<Event> rows = (sot == Account.SObjectType)
+            ? [SELECT Id, Subject, Description, StartDateTime, Location, Owner.Name
+               FROM Event
+               WHERE WhatId = :recordId AND StartDateTime >= :since
+               ORDER BY StartDateTime DESC
+               LIMIT :PER_SOURCE_LIMIT]
+            : [SELECT Id, Subject, Description, StartDateTime, Location, Owner.Name
+               FROM Event
+               WHERE WhoId = :recordId AND StartDateTime >= :since
+               ORDER BY StartDateTime DESC
+               LIMIT :PER_SOURCE_LIMIT];
+
+        List<TimelineEvent> out = new List<TimelineEvent>();
+        for (Event evt : rows) {
+            TimelineEvent t = new TimelineEvent();
+            t.id          = evt.Id;
+            t.source      = 'event';
+            t.sourceLabel = 'Event';
+            t.iconName    = 'standard:event';
+            t.iconColor   = '#c97a00';
+            t.occurredAt  = evt.StartDateTime;
+            t.title       = String.isBlank(evt.Subject) ? '(no subject)' : evt.Subject;
+            String subtitle = 'Event';
+            if (String.isNotBlank(evt.Location)) {
+                subtitle = evt.Location;
+            } else if (String.isNotBlank(evt.Description)) {
+                subtitle = evt.Description.length() > 80
+                    ? evt.Description.substring(0, 80) + '...'
+                    : evt.Description;
+            }
+            t.subtitle    = subtitle;
+            t.recordUrl   = '/lightning/r/Event/' + evt.Id + '/view';
+            t.details     = new List<DetailField>{
+                new DetailField('Owner', (evt.Owner != null) ? evt.Owner.Name : 'Unassigned')
+            };
+            if (String.isNotBlank(evt.Location)) {
+                t.details.add(new DetailField('Location', evt.Location));
+            }
+            out.add(t);
+        }
+        return out;
+    }
+
+    private static List<TimelineEvent> queryVoiceCalls(Id recordId, Schema.SObjectType sot, Datetime since) {
+        // VoiceCall only exists in orgs with Service Cloud Voice provisioned.
+        // Silently return empty if absent so admins can leave 'Show Voice' on
+        // without breaking the timeline.
+        if (!Schema.getGlobalDescribe().containsKey('VoiceCall')) {
+            return new List<TimelineEvent>();
+        }
+
+        // Use Database.query so this method compiles in orgs without VoiceCall
+        // (a static SOQL would fail Apex compilation there).
+        String soql =
+            'SELECT Id, CallStartDateTime, CallType, CallDisposition, ' +
+                'CallDurationInSeconds, RelatedRecordId ' +
+            'FROM VoiceCall ' +
+            'WHERE RelatedRecordId = :recordId AND CallStartDateTime >= :since ' +
+            'ORDER BY CallStartDateTime DESC ' +
+            'LIMIT ' + PER_SOURCE_LIMIT;
+        List<SObject> rows = Database.query(soql);
+
+        List<TimelineEvent> out = new List<TimelineEvent>();
+        for (SObject row : rows) {
+            TimelineEvent t = new TimelineEvent();
+            t.id          = (String) row.get('Id');
+            t.source      = 'voice';
+            t.sourceLabel = 'Voice';
+            t.iconName    = 'standard:live_chat';
+            t.iconColor   = '#0176d3';
+            t.occurredAt  = (Datetime) row.get('CallStartDateTime');
+            String direction = (String) row.get('CallType');
+            Integer durationSec = (Integer) row.get('CallDurationInSeconds');
+            String durationLabel = (durationSec == null)
+                ? '?'
+                : (durationSec / 60) + 'm ' + Math.mod(durationSec, 60) + 's';
+            t.title       = (String.isBlank(direction) ? 'Call' : direction) + ' on ' + durationLabel;
+            String dispo = (String) row.get('CallDisposition');
+            t.subtitle    = String.isBlank(dispo)
+                ? 'Agentforce Voice'
+                : 'Agentforce Voice on ' + dispo;
+            t.recordUrl   = '/lightning/r/VoiceCall/' + t.id + '/view';
+            t.details     = new List<DetailField>{
+                new DetailField('Direction', direction),
+                new DetailField('Duration', durationLabel),
+                new DetailField('Disposition', dispo)
+            };
             out.add(t);
         }
         return out;
