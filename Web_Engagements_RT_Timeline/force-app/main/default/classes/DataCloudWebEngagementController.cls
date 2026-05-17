@@ -6,7 +6,13 @@ public with sharing class DataCloudWebEngagementController {
     
     // 2. The Link Object Name
     // We use the Link Object because it bridges Source IDs (Account) to Unified IDs.
-    private static final String LINK_OBJECT_NAME = 'UnifiedLinkssotAccountAcc__dlm'; 
+    private static final String LINK_OBJECT_NAME = 'UnifiedLinkssotAccountAcc__dlm';
+
+    // Test seam: when running under Test.isRunningTest(), if this is non-null,
+    // getUnifiedId() returns this value without calling ConnectApi.CdpQuery.
+    // ConnectApi.CdpQuery.querySql is not mockable via Test.setMock in API 65.0.
+    @TestVisible
+    private static String testMockUnifiedId;
 
     @AuraEnabled
     public static String getWebEngagementData(String accountId) { // Using accountId because this will be deployed on Person Account record page.
@@ -54,6 +60,9 @@ public with sharing class DataCloudWebEngagementController {
      */
 
      private static String getUnifiedId(String accountId) {
+        if (Test.isRunningTest() && testMockUnifiedId != null) {
+            return testMockUnifiedId;
+        }
         String query = 'SELECT UnifiedRecordId__c FROM ' + LINK_OBJECT_NAME + 
                        ' WHERE SourceRecordId__c = \'' + String.escapeSingleQuotes(accountId) + '\' LIMIT 1';
 
