@@ -59,4 +59,49 @@ private class CrmTimelineControllerTest {
         System.assertEquals(0, result.size(),
             'Sources not in ALLOWED_SOURCES whitelist should be silently dropped.');
     }
+
+    @IsTest
+    static void casesHappyPathReturnsTimelineEvents() {
+        Account a = [SELECT Id FROM Account LIMIT 1];
+
+        Case c1 = new Case(Subject = 'Statement discrepancy', Status = 'New', AccountId = a.Id);
+        Case c2 = new Case(Subject = 'Loan question',         Status = 'Working', AccountId = a.Id);
+        insert new List<Case>{ c1, c2 };
+
+        Test.startTest();
+        List<CrmTimelineController.TimelineEvent> result =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'case' }, 90);
+        Test.stopTest();
+
+        System.assertEquals(2, result.size(), 'Both Cases should be returned.');
+        Set<String> titles = new Set<String>();
+        for (CrmTimelineController.TimelineEvent t : result) {
+            titles.add(t.title);
+            System.assertEquals('case', t.source, 'Source should be case.');
+            System.assertEquals('Case', t.sourceLabel);
+            System.assertEquals('standard:case', t.iconName);
+            System.assertEquals('#c23934', t.iconColor);
+            System.assertNotEquals(null, t.occurredAt, 'occurredAt should be populated from CreatedDate.');
+            System.assert(t.recordUrl.startsWith('/lightning/r/Case/'), 'recordUrl should be a Case path.');
+            System.assert(t.subtitle.contains('owner '), 'Subtitle should mention owner.');
+            System.assertEquals(3, t.details.size());
+        }
+        System.assert(titles.contains('Statement discrepancy'));
+        System.assert(titles.contains('Loan question'));
+    }
+
+    @IsTest
+    static void casesContactPagePath() {
+        Contact c = [SELECT Id FROM Contact LIMIT 1];
+        Case caseRecord = new Case(Subject = 'Contact-page Case', Status = 'New', ContactId = c.Id);
+        insert caseRecord;
+
+        Test.startTest();
+        List<CrmTimelineController.TimelineEvent> result =
+            CrmTimelineController.getCrmTimelineEvents(c.Id, new List<String>{ 'case' }, 90);
+        Test.stopTest();
+
+        System.assertEquals(1, result.size());
+        System.assertEquals('Contact-page Case', result[0].title);
+    }
 }
