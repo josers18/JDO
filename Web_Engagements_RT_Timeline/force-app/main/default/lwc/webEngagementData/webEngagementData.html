@@ -2,16 +2,21 @@
     <lightning-card icon-name="standard:data_cloud">
     
         <h3 slot="title">
-            <a href="https://cumulusbank-620df6d1b36b.herokuapp.com/login" target="_blank" class="slds-card__header-link slds-truncate">
-                Real Time Engagements
-            </a>
+            <template lwc:if={headerTitleIsLink}>
+                <a href={cardTitleLink} target="_blank" class="slds-card__header-link slds-truncate">
+                    {cardTitle}
+                </a>
+            </template>
+            <template lwc:else>
+                <span class="slds-truncate">{cardTitle}</span>
+            </template>
         </h3>
     
         <div slot="actions">
             <lightning-button-icon icon-name="utility:refresh" onclick={handleRefresh} alternative-text="Refresh"></lightning-button-icon>
         </div>
         
-        <div class="slds-p-around_medium engagement-feed">
+        <div class="slds-p-around_medium engagement-feed" style={feedStyle}>
             
             <template if:true={isLoading}>
                 <div class="slds-p-around_large slds-is-relative">
