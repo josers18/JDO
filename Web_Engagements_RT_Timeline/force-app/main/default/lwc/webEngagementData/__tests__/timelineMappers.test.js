@@ -1,4 +1,4 @@
-import { parseDataGraphResponse } from '../timelineMappers';
+import { parseDataGraphResponse, mergeAndSort, groupByDay } from '../timelineMappers';
 
 describe('parseDataGraphResponse', () => {
     it('returns empty array for empty input', () => {
@@ -164,5 +164,100 @@ describe('parseDataGraphResponse', () => {
 
         const labels = result[0].details.map(d => d.label);
         expect(labels).toEqual(['Device Id']);
+    });
+});
+
+describe('mergeAndSort', () => {
+    function evt(id, occurredAt, source = 'web', iconColor = '#000000') {
+        return { id, source, occurredAt, iconColor, title: id };
+    }
+
+    it('returns empty array when both inputs are empty', () => {
+        expect(mergeAndSort([], [])).toEqual([]);
+    });
+
+    it('handles undefined / null inputs', () => {
+        expect(mergeAndSort(undefined, null)).toEqual([]);
+        expect(mergeAndSort(null, [evt('x', '2026-05-01T00:00:00Z')])).toHaveLength(1);
+    });
+
+    it('sorts merged events DESC by occurredAt', () => {
+        const web = [evt('w1', '2026-05-01T00:00:00Z')];
+        const crm = [
+            evt('c1', '2026-05-03T00:00:00Z', 'case'),
+            evt('c2', '2026-05-02T00:00:00Z', 'case')
+        ];
+
+        const result = mergeAndSort(web, crm);
+
+        expect(result.map(r => r.id)).toEqual(['c1', 'c2', 'w1']);
+    });
+
+    it('dedupes by id (last one wins via Map insertion order)', () => {
+        const web = [evt('shared', '2026-05-01T00:00:00Z', 'web', '#7f56d9')];
+        const crm = [evt('shared', '2026-05-02T00:00:00Z', 'case', '#c23934')];
+
+        const result = mergeAndSort(web, crm);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].source).toBe('case');
+    });
+
+    it('attaches cssClass and leftRailStyle to each event', () => {
+        const result = mergeAndSort([evt('w', '2026-05-01T00:00:00Z', 'web', '#7f56d9')], []);
+
+        expect(result[0].cssClass).toBe('stream-card stream-card-web');
+        expect(result[0].leftRailStyle).toBe('border-left-color: #7f56d9;');
+        expect(result[0].expanded).toBe(false);
+    });
+});
+
+describe('groupByDay', () => {
+    function evt(id, occurredAt) {
+        return { id, occurredAt, source: 'web', iconColor: '#000', title: id };
+    }
+
+    it('returns empty array for empty input', () => {
+        expect(groupByDay([])).toEqual([]);
+        expect(groupByDay(null)).toEqual([]);
+    });
+
+    it('skips events with invalid occurredAt', () => {
+        const events = [
+            evt('a', 'not-a-date'),
+            evt('b', '2026-05-01T00:00:00Z')
+        ];
+        const result = groupByDay(events);
+        expect(result).toHaveLength(1);
+        expect(result[0].events.map(e => e.id)).toEqual(['b']);
+    });
+
+    it('buckets events by ISO day key', () => {
+        const events = [
+            evt('a', '2026-05-03T15:00:00Z'),
+            evt('b', '2026-05-03T09:00:00Z'),
+            evt('c', '2026-05-02T11:00:00Z')
+        ];
+
+        const result = groupByDay(events);
+
+        expect(result).toHaveLength(2);
+        expect(result[0].dayKey).toBe('2026-05-03');
+        expect(result[0].events.map(e => e.id)).toEqual(['a', 'b']);
+        expect(result[1].dayKey).toBe('2026-05-02');
+        expect(result[1].events.map(e => e.id)).toEqual(['c']);
+    });
+
+    it('preserves DESC sort order across day boundaries', () => {
+        const events = [
+            evt('a', '2026-05-04T00:00:00Z'),
+            evt('b', '2026-05-03T23:00:00Z'),
+            evt('c', '2026-05-03T01:00:00Z'),
+            evt('d', '2026-05-02T12:00:00Z')
+        ];
+
+        const result = groupByDay(events);
+
+        expect(result.map(g => g.dayKey)).toEqual(['2026-05-04', '2026-05-03', '2026-05-02']);
     });
 });
