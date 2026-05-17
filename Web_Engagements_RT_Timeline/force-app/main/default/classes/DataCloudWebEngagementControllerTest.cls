@@ -36,5 +36,23 @@ private class DataCloudWebEngagementControllerTest {
         System.assertEquals('[]', resultBlank, 'whitespace accountId should return []');
     }
 
+    @IsTest
+    static void getWebEngagementData_happyPath_returnsMockedDataGraphBody() {
+        // Arrange: seam fakes the unified ID; HttpCalloutMock fakes the Data Graph response.
+        String fakeUnifiedId = 'unified-12345';
+        String fakeBody = '{"data":[{"json_blob__c":"{\\"CumulusWeb_Engagements__dlm\\":[]}"}]}';
+
+        DataCloudWebEngagementController.testMockUnifiedId = fakeUnifiedId;
+        Test.setMock(HttpCalloutMock.class, new DataGraphMock(200, fakeBody));
+
+        // Act
+        Test.startTest();
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000001AAA');
+        Test.stopTest();
+
+        // Assert
+        System.assertEquals(fakeBody, result, 'Controller should return the HTTP response body verbatim on 200.');
+    }
+
     // Tests follow in subsequent tasks.
 }
