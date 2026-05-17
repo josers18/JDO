@@ -3,6 +3,11 @@ import getWebEngagementData from '@salesforce/apex/DataCloudWebEngagementControl
 
 export default class WebEngagementData extends LightningElement {
     @api recordId;
+    @api graphApiName;
+    @api cardTitle;
+    @api cardTitleLink;
+    @api feedHeight;
+    @api autoSize;
     webInteractions = [];
     
     isLoading = false;

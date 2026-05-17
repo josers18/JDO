@@ -13,6 +13,36 @@
                 <object>Account</object>
                 <object>Contact</object>
             </objects>
+            <property
+                name="graphApiName"
+                label="Data Graph API name"
+                type="String"
+                default="RT_Web_Engagementsv2"
+                description="API name of the Data Cloud Data Graph this card pulls from."/>
+            <property
+                name="cardTitle"
+                label="Card title"
+                type="String"
+                default="Real Time Engagements"
+                description="Header text shown on the card."/>
+            <property
+                name="cardTitleLink"
+                label="Card title link URL"
+                type="String"
+                default=""
+                description="Optional URL the card title links to. Leave blank for plain text."/>
+            <property
+                name="feedHeight"
+                label="Feed height (px)"
+                type="Integer"
+                default="600"
+                description="Maximum height of the feed before scrolling. Ignored when Auto-size is on."/>
+            <property
+                name="autoSize"
+                label="Auto-size feed"
+                type="Boolean"
+                default="false"
+                description="When on, feed grows up to 90% of viewport height. Overrides Feed height (px)."/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>
