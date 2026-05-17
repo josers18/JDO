@@ -1,6 +1,6 @@
 # Flow guide
 
-The **Multiclass Prediction** LWC does not include a Flow in source. You create an **autolaunched** flow in your org that returns a **text** class label and **recommendations** as JSON (no separate “factors” output).
+The **Multiclass Prediction** LWC does not include a Flow in source. You create an **autolaunched** flow in your org that returns a **text** class label, **recommendations** as JSON (SHAP-style feature contributions), and optionally **per-class probability scalars** (one Flow variable per class).
 
 ---
 
@@ -9,14 +9,16 @@ The **Multiclass Prediction** LWC does not include a Flow in source. You create 
 | Direction | Name in UI (configurable) | Typical Flow type | Purpose |
 |-----------|---------------------------|-------------------|---------|
 | **Input** | Flow input variable for record Id (default: `recordId`) | `Text` or `Record` Id input | Current record the prediction is for. |
-| **Output** | Prediction variable (default: `prediction`) | **Text** (or assignable to text) | **Predicted class label** (e.g. `Wealth_Management`). Apex coerces non-string values with `String.valueOf`. |
-| **Output** | Recommendations variable (default: `recommendations`) | `Text` (JSON string) or collection Apex can serialize | Suggested improvements list (same JSON array shape as the regression/classification sibling project). |
+| **Output** | Prediction variable (default: `prediction`) | **Text** (or assignable to text) | **Predicted class label** (e.g. `Wealth_Management`). Apex coerces non-string values with `String.valueOf`. **Optional** — if blank, the LWC's hero falls back to the highest-probability class from the per-class outputs. |
+| **Output** | Recommendations variable (default: `recommendations`) | `Text` (JSON string) or collection Apex can serialize | SHAP-style feature contributions list (renamed in UI from "Suggested improvements" to "Feature contributions"). |
+| **Output (N×)** | Per-class probability variables (CSV in App Builder) | **Number / Decimal** Flow scalar, one per class | Each variable holds a numeric probability between 0 and 1 for one class. The LWC reads each by name from the comma-separated list configured in App Builder. |
 
 In **Lightning App Builder**, set:
 
-- **Autolaunched flow API name** → your flow’s API name.
+- **Autolaunched flow API name** → your flow's API name.
 - **Flow input variable for record Id** → must **exactly match** the flow input variable name (e.g. `recordId`).
 - **Flow output: prediction (text label)** and **Flow output: recommendations variable** → must match the **output** variable API names your flow assigns.
+- **Flow output: class probability variables (comma-separated)** → optional. List your per-class Flow variable names separated by commas, e.g. `Auto_Loans,Brokerage_Advisory,CDs,Credit_Cards,Wealth_Management`. Leave blank to hide the chart.
 
 The Apex controller passes:
 
@@ -44,6 +46,60 @@ and reads outputs with `interview.getVariableValue(...)`, with a small fallback 
 
 - The controller treats the prediction as a **label string**: `String` is trimmed; other types use `String.valueOf` then trim.
 - The LWC can **humanize** the label for display (underscores and spaces split, words title-cased) unless **Humanize class label for display** is turned off in App Builder — then the exact flow string is shown.
+- **Fallback:** when this output is blank or missing, the hero (and the chart's winner border) automatically use the highest-probability class from the per-class scalars.
+
+---
+
+## Per-class probability outputs (optional)
+
+If your model emits a probability score per class (typical multiclass softmax output), expose each one as its own Flow scalar output variable, then list those variable names in App Builder under **Flow output: class probability variables (comma-separated)**.
+
+### Example Flow setup
+
+```
+Flow output variables (Decimal):
+  Auto_Loans            = 0.00
+  Brokerage_Advisory    = 0.01
+  CDs                   = 0.00
+  Credit_Cards          = 0.00
+  Deposits              = 0.00
+  HELOC                 = 0.01
+  Money_Market          = 0.00
+  Personal_Loans        = 0.00
+  Residential_Loans     = 0.00
+  Savings               = 0.00
+  Wealth_Management     = 0.99
+```
+
+### App Builder configuration
+
+```
+Flow output: class probability variables (comma-separated):
+  Auto_Loans,Brokerage_Advisory,CDs,Credit_Cards,Deposits,HELOC,Money_Market,Personal_Loans,Residential_Loans,Savings,Wealth_Management
+```
+
+### What Apex does with these
+
+The controller's `parseClassProbabilities` helper splits the CSV (trims tokens, drops blanks), reads each named variable from the Flow interview via the same case-tolerant `resolveFlowOutput` lookup used elsewhere, and coerces each value to `Decimal` through `coerceToDecimal`:
+
+| Input type | Coercion |
+|---|---|
+| `null` | `null` (row still appears, sorts as 0) |
+| `Decimal` | passthrough |
+| `Double` | `Decimal.valueOf(String.valueOf(d))` — the `String` round-trip prevents binary-float artifacts (e.g. 0.7 staying 0.7, not 0.6999…) |
+| `Integer` / `Long` | `Decimal.valueOf` |
+| numeric `String` | `Decimal.valueOf(s)` (catches `TypeException`) |
+| anything else | `null` |
+
+Non-numeric / null values do **not** raise an error — that row simply renders with a 0% bar.
+
+### Rendering rules
+
+- Rows are **sorted descending** by probability; the admin-configured CSV order is the tiebreaker.
+- Bar length is `scaleX(probability)` — absolute, scaled to 1.0 (a 0.99 bar fills 99%, not relative to the max).
+- Bar color is `--wp-accent` from the active theme; opacity is `0.35 + 0.65 × probability`.
+- The **predicted-class winner** row gets a 3px accent left border and a tinted background.
+- Optional **top-N** toggle slices the sorted chart to the highest-N rows.
 
 ---
 

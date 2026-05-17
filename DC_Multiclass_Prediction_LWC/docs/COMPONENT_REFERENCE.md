@@ -11,7 +11,7 @@ All properties are configured in **Lightning App Builder** when you select the *
 | Property | Type | Default | Meaning |
 |----------|------|---------|---------|
 | **Main card title** | String | `Model prediction` | Heading at the top of the card. |
-| **Recommendations section title** | String | `Suggested improvements` | Heading above the recommendation rows. |
+| **Recommendations section title** | String | `Feature contributions` | Heading above the SHAP-style contribution rows. (Renamed from "Suggested improvements" on 2026-05-16; existing placements that override this title keep their custom value.) |
 | **AI summary card title** | String | `Analysis summary` | Reserved; the summary block has no separate heading in the current markup. |
 | **Subtitle under predicted class** | String | `Predicted class` | Caption under the large class label (e.g. “Product line”, “Segment”). |
 | **Humanize class label for display** | Boolean | true | When true, underscores/spaces split and words are title-cased (`Wealth_Management` → `Wealth Management`). When false, show the exact string from the flow. |
@@ -24,14 +24,27 @@ All properties are configured in **Lightning App Builder** when you select the *
 |----------|------|----------|---------|
 | **Autolaunched flow API name** | String | Yes (record page) | API name of the **active** autolaunched flow. |
 | **Flow input variable for record Id** | String | No | Name of the flow input that receives the current record Id. Default: `recordId`. |
-| **Flow output: prediction (text label)** | String | No | Flow output variable for the **text** class label. Default: `prediction`. |
-| **Flow output: recommendations variable** | String | No | Flow output for recommendations JSON. Default: `recommendations`. |
-
-There is **no** factors / top-drivers output in this component.
+| **Flow output: prediction (text label)** | String | No | Flow output variable for the **text** class label. Default: `prediction`. When blank, the LWC falls back to the highest-probability class from the chart. |
+| **Flow output: recommendations variable** | String | No | Flow output for SHAP-style feature contributions JSON. Default: `recommendations`. |
+| **Flow output: class probability variables (comma-separated)** | String | No | Optional CSV of Flow scalar variable names (one per class), e.g. `Auto_Loans,Brokerage_Advisory,Wealth_Management`. Each variable holds a numeric probability between 0 and 1. Leave blank to hide the chart. |
 
 ---
 
-## Diverging bar semantics (recommendations)
+## Class probabilities chart
+
+Renders below the predicted-class hero and above the feature contributions. Bars are theme-accent colored (`--wp-accent`) with an opacity gradient — top class is fully solid, lower-probability classes fade toward an opacity floor of 0.35. The winning row gets a 3px accent left border and a tinted background; the hero panel uses the same accent tint so the visual story stays anchored.
+
+| Property | Type | Default | Meaning |
+|----------|------|---------|---------|
+| **Hide class probability chart** (`hideClassProbabilities`) | Boolean | false | Master toggle. Check to hide the chart even when class variables are configured. Inverted from a "show" toggle because LWC1503 forbids Boolean `@api` defaults of `true`. |
+| **Limit chart to top N classes** (`enableTopNClasses`) | Boolean | false | When checked, the sorted chart is sliced to the top N highest-probability rows. The winner is always the first row, so it's always visible in any positive N. |
+| **Top N: number of classes to show** (`topNClassCount`) | Integer | 5 | Used only when the toggle above is checked. Non-positive or non-numeric values fall back to showing all classes — the chart never goes blank from a misconfig. |
+
+**Sort order:** descending by probability, with the admin-configured CSV order as a tiebreaker between equal values. Null/non-numeric values sort as 0 (cluster at bottom). **Bar length:** scales relative to 1.0 (a 0.99 bar fills 99% of the row, not 100% relative to the max). **Percent format:** one decimal (e.g. `99.0%`, `1.0%`, `0.0%`). **Winner detection:** case-insensitive match between `predictionLabelRaw` (or the highest-probability fallback) and each row's `apiName` — matches the Apex `resolveFlowOutput` casing tolerance.
+
+---
+
+## Diverging bar semantics (feature contributions)
 
 Signed **contribution** values (for example SHAP scores) drive **diverging** bar direction (right vs left from center), **bar color**, and the **±x.x** value text (**no** percent sign). Rows sort by **largest \|value\|** first.
 

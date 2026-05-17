@@ -8,10 +8,10 @@ Use **[DEPLOY.md](DEPLOY.md)** or your release process with the `force-app` fold
 
 ## Put the card on an Account page
 
-1. Build an **autolaunched** Flow that outputs **text** `prediction` (e.g. segment code) and **recommendations** (JSON string).  
-2. Deploy this package; assign **DC Multiclass Prediction User**.  
-3. **Lightning App Builder** → **Account** record page → drag **Multiclass Prediction**.  
-4. Set **Autolaunched flow API name** and matching **input/output** names.  
+1. Build an **autolaunched** Flow that outputs **text** `prediction` (e.g. segment code), **recommendations** (JSON string), and optionally **N per-class probability scalars** (one Flow variable per class).
+2. Deploy this package; assign **DC Multiclass Prediction User**.
+3. **Lightning App Builder** → **Account** record page → drag **Multiclass Prediction**.
+4. Set **Autolaunched flow API name** and matching **input/output** names. To enable the class probabilities chart, paste your per-class variable names into **Flow output: class probability variables (comma-separated)** (see [FLOW_GUIDE.md](FLOW_GUIDE.md)). Optionally check **Limit chart to top N classes** and set the count.
 5. **Save** and **Activate**.
 
 ## Add the AI summary
@@ -28,8 +28,8 @@ Standard **Home** does not pass a **record Id**; the card stays idle unless some
 
 | Multiclass Prediction | Prediction Model |
 |----------------------|------------------|
-| Text **class** label | **Percent gauge** or big **number** |
-| Diverging **bars** for improvements | Driver list + gauge layout |
+| Text **class** label + **class probabilities chart** | **Percent gauge** or big **number** |
+| Diverging **bars** for feature contributions | Driver list + gauge layout |
 
 Both use Flows but **different** outputs and packages.
 

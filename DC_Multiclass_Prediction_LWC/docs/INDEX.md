@@ -1,6 +1,6 @@
 # Documentation index — Multiclass Prediction
 
-**What this project does:** A Lightning card for predictions that are **named categories** (text labels), not a single percentage. It shows the **predicted class**, a **diverging bar chart** for recommended improvements, and an optional **AI summary** from Prompt Builder. **Themes** use the same preset names as the profile widgets through **`predictionThemes.js`** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — Theme).
+**What this project does:** A Lightning card for predictions that are **named categories** (text labels), not a single percentage. It shows the **predicted class hero**, a **class probabilities chart** (sorted descending, theme-accent bars, winner row highlighted, optional top-N), a **feature contributions** diverging bar chart (SHAP-style scores), and an optional **AI summary** from Prompt Builder. **Themes** use the same preset names as the profile widgets through **`predictionThemes.js`** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md) — Theme).
 
 **Not the same as** **[Prediction Model](../DC_Prediction_Model_LWC/README.md)** (gauge / percent vs number)—different Apex and LWC; you can install both.
 

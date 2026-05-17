@@ -7,7 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-May_15_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-May_17_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
 [![Commits](https://img.shields.io/badge/Commits-60%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
 
@@ -17,13 +17,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## What's new this month
 
-> **May 2026** — Shipped the **FSC Audit Utilities** project (13 phases of automated demo-org cleanup and seed data), added the **JDO_Login_Portal** design spec for self-service org provisioning + telemetry, the **sf-tableau-next** skill for Tableau Next REST APIs, a new **Financial_KPI_Widget** DX project, and the **Web_Engagements_RT_Timeline** project (LWC + Apex) that renders Data Cloud `RT_Web_Engagementsv2` Data Graph results live on Account/Contact record pages. Customer Profile widget now leads with **Deposits** as the prominent KPI tile.
+> **May 2026** — Shipped the **FSC Audit Utilities** project (13 phases of automated demo-org cleanup and seed data), added the **JDO_Login_Portal** design spec for self-service org provisioning + telemetry, the **sf-tableau-next** skill for Tableau Next REST APIs, a new **Financial_KPI_Widget** DX project, the **Web_Engagements_RT_Timeline** project (LWC + Apex) that renders Data Cloud `RT_Web_Engagementsv2` Data Graph results live on Account/Contact record pages, and a **per-class probability chart** for the Multiclass Prediction LWC. Customer Profile widget now leads with **Deposits** as the prominent KPI tile.
 
 Jump to: [May 2026](#may-2026) · [April 2026](#april-2026) · [March 2026](#march-2026)
 
 ---
 
-## [May 2026] — 2026-05-11 → 2026-05-15
+## [May 2026] — 2026-05-11 → 2026-05-17
+
+### 2026-05-16 → 2026-05-17 — DC_Multiclass_Prediction_LWC: class probabilities chart
+- **`DC_Multiclass_Prediction_LWC/`** — Added per-class probability chart (sorted descending, theme-accent bars with opacity gradient, winner highlight, optional top-N slice) between the predicted-class hero and the feature-contributions section. Apex `MulticlassPredictionLwcController` gained a `ClassProbability` inner class and CSV-driven Flow variable reading; LWC gained `processedClassProbabilities` getter, hero accent tinting, and a `prefers-reduced-motion` safety net. Renamed `recommendationsSectionTitle` default from "Suggested improvements" to "Feature contributions". 13 Apex tests (was 3). See the [project-level CHANGELOG](DC_Multiclass_Prediction_LWC/CHANGELOG.md). ([`9e57b69`](https://github.com/josers18/JDO/commit/9e57b69))
+
+---
 
 **Theme:** FSC master demo org audit and remediation. Thirteen phases (A–H, B1–B13) of automated parity, backfill, and seed work delivered as one unified `FSC_Audit_Utilities` DX project. Plus new packages and skills.
 

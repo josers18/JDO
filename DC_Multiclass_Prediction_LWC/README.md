@@ -2,7 +2,7 @@
 
 ## In everyday terms
 
-**Multiclass Prediction** is a Lightning card for outcomes that are **named categories** (for example a segment or product code)—shown as a clear **headline**—not a single percentage on a dial. **Suggested improvements** appear as a **diverging bar chart**. Data comes from an **autolaunched Flow**; you can add an **AI-written summary** with **Prompt Builder**.
+**Multiclass Prediction** is a Lightning card for outcomes that are **named categories** (for example a product line or segment)—shown as a clear **headline**—not a single percentage on a dial. Below the hero, a **class probabilities chart** ranks every class the model considered with **theme-accent bars** (and the winning row highlighted), then **feature contributions** (SHAP-style scores) appear as a **diverging bar chart**. Data comes from an **autolaunched Flow**; you can add an **AI-written summary** with **Prompt Builder**.
 
 **Themes:** Same **`predictionThemes.js`** token map as **Prediction Model** and the profile widgets. **Visual catalog:** [docs/assets/widget_theme_catalog.pdf](docs/assets/widget_theme_catalog.pdf) · [monorepo hub](../docs/THEME_CATALOG.md) · [COMPONENT_REFERENCE](docs/COMPONENT_REFERENCE.md).
 
@@ -19,8 +19,9 @@
 [![Einstein](https://img.shields.io/badge/Einstein-Prompt_Builder-7F56D9?style=for-the-badge)](https://help.salesforce.com/s/articleView?id=sf.generative_ai_prompt_builder.htm&type=5)
 [![SF CLI](https://img.shields.io/badge/SF_CLI-v2-111111?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://developer.salesforce.com/tools/salesforcecli)
 [![Monorepo](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
+[![Updated](https://img.shields.io/badge/Updated-May_17_2026-2EA44F?style=for-the-badge)](CHANGELOG.md)
 
-**Text predicted class** · **Diverging chart** · **Optional AI summary**
+**Text predicted class** · **Class probabilities chart** · **Feature contributions** · **Optional AI summary**
 
 </div>
 
@@ -82,9 +83,12 @@ With tests: see **[docs/DEPLOY.md](docs/DEPLOY.md)**. Then assign the permission
 
 ## Features (short)
 
-- **Predicted class** with optional “humanize” (underscores → words).  
-- **Improvements** as diverging bars; legend matches risk/good colors.  
-- **Refresh** reruns Flow and summary.  
+- **Predicted class hero** with optional “humanize” (underscores → words). Tinted with the same theme accent as the winning probability row so the hero, the winner row, and the bronze winning bar all anchor visually.
+- **Class probabilities chart** — sorted descending, theme-accent bars with opacity gradient (top class fully solid, low-probability tail faded), winner row outlined. Optional **top-N** toggle limits the chart to the highest-N classes.
+- **Hero falls back** to the highest-probability class when the Flow's `prediction` variable is blank — chart and hero stay in sync via a single `resolvedWinnerApiName` getter.
+- **Feature contributions** (renamed from "Suggested improvements") as diverging bars; legend matches risk/good colors.
+- **Refresh** reruns Flow and summary.
+- **Reduced-motion safe** — bars render fully visible when `prefers-reduced-motion: reduce` is set.
 - Detail: **[docs/UI_LAYOUT.md](docs/UI_LAYOUT.md)**.
 
 ---

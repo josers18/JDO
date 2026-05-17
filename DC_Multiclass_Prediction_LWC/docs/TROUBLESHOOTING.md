@@ -36,6 +36,22 @@ Assign permission set **DC Multiclass Prediction User** (`DC_Multiclass_Predicti
 
 ---
 
+## Class probability chart not showing
+
+- Verify **Flow output: class probability variables** is filled in App Builder with a comma-separated list of Flow output variable names that **exactly match** the variables your Flow assigns. Whitespace and trailing commas are tolerated.
+- Confirm **Hide class probability chart** is unchecked.
+- Each Flow variable must hold a **numeric** value (Decimal/Double/Integer/Long, or a numeric string). Non-numeric values render as 0% bars but the row still appears.
+- If `enableTopNClasses` is checked, ensure `topNClassCount` is a positive integer. Non-positive or non-numeric values fall back to "show all" — they don't blank the chart.
+- The chart hides automatically when zero rows are returned (e.g. all variables missing).
+
+---
+
+## Hero shows em dash but the chart has data
+
+- The hero now **falls back** to the highest-probability class when the Flow's `prediction` output is blank. If you still see `—`, both the `prediction` Flow variable AND the class probability CSV are missing — configure at least one.
+
+---
+
 ## Class label looks wrong (underscores, codes)
 
 - Turn on **Humanize class label for display** in App Builder, or change the flow to output a display-friendly string and set humanize to **false** to show it verbatim.

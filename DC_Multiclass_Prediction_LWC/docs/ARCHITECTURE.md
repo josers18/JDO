@@ -8,8 +8,8 @@ High-level behavior of **Multiclass Prediction** (`multiclassPredictionLwc`) and
 
 | Layer | Responsibility |
 |-------|----------------|
-| **LWC** | Renders **predicted class** as large text (with optional humanize), **recommendations** as a **diverging bar chart** (SHAP-style scores, legend tied to bar colors), optional summary; maps designer properties to Apex; parses JSON for recommendations; applies **`THEMES`** from **`predictionThemes.js`** (profile-aligned CSS variables, optional header theme switcher). |
-| **Apex** | Runs flow with safe variable naming; coerces prediction to text; serializes recommendations to a string; invokes Einstein prompt API with a wrapped text parameter. |
+| **LWC** | Renders **predicted class** as large text (with optional humanize, accent-tinted hero), **class probabilities** as a sorted theme-accent bar chart with opacity gradient + winner highlight + optional top-N slice, **feature contributions** as a **diverging bar chart** (SHAP-style scores, legend tied to bar colors), optional summary; maps designer properties to Apex; parses JSON for recommendations; coerces per-class numeric values; applies **`THEMES`** from **`predictionThemes.js`** (profile-aligned CSS variables, optional header theme switcher). |
+| **Apex** | Runs flow with safe variable naming; coerces prediction to text; serializes recommendations to a string; **parses class-variable CSV and reads each scalar Flow output**, coercing to `Decimal` (Double routes through `String.valueOf` to avoid binary float artifacts); invokes Einstein prompt API with a wrapped text parameter. |
 | **Flow** (org) | Encapsulates record-scoped multiclass prediction and shapes `recommendations` for the UI. |
 | **Prompt template** (org) | Turns JSON context into user-facing narrative (optional). |
 
@@ -27,11 +27,11 @@ sequenceDiagram
 
     User->>LWC: Opens record page
     LWC->>LWC: recordId set by platform
-    LWC->>Apex: runPredictionFlow (flow API name, record Id, output vars)
+    LWC->>Apex: runPredictionFlow (flow API name, record Id, output vars, class CSV)
     Apex->>Flow: createInterview and start
-    Flow-->>Apex: prediction (text), recommendations
-    Apex-->>LWC: predictionLabel, recommendationsJson
-    LWC->>LWC: Render class hero, diverging rows, bar animation, legend colors
+    Flow-->>Apex: prediction (text), recommendations, N class probability scalars
+    Apex-->>LWC: predictionLabel, recommendationsJson, classProbabilities[]
+    LWC->>LWC: Render hero (or fallback to top class), class probability chart, diverging rows, bar animation, legend colors
 
     alt When prompt template set and auto summary on
         LWC->>Apex: generateAnalysisSummary
@@ -56,8 +56,8 @@ flowchart LR
         L[multiclassPredictionLwc]
     end
     F -->|outputs| A
-    A -->|predictionLabel, recommendationsJson| L
-    L -->|hero label, diverging bars, legend, summary| UI[Lightning UI]
+    A -->|predictionLabel, recommendationsJson, classProbabilities[]| L
+    L -->|hero label, class probability chart, diverging bars, legend, summary| UI[Lightning UI]
 ```
 
 ---
@@ -84,6 +84,32 @@ flowchart TD
 
 ---
 
+## Class probabilities: client-side pipeline (UI)
+
+Per-class scalars from Apex are sorted, decorated for rendering, and optionally sliced to top-N:
+
+```mermaid
+flowchart TD
+    CP[classProbabilities array of name+value]
+    M[map: clamp 0..1, humanize label, compute opacity, flag winner]
+    S[Sort descending by clamped value, originalIndex tiebreak]
+    TN{enableTopNClasses?}
+    SL[slice 0..topNClassCount]
+    R[Template: prob-row + prob-track + prob-bar + prob-pct]
+    A[animateBars scaleX on .prob-bar]
+    CP --> M --> S --> TN
+    TN -->|yes, N>0| SL --> R
+    TN -->|no, or invalid N| R
+    R --> A
+```
+
+- **Bar length:** `scaleX(probability)` — a 0.99 row fills 99% of the track (absolute, not relative to max).
+- **Opacity gradient:** `0.35 + 0.65 × probability` so zero-probability rows stay faintly visible while the top class is fully solid.
+- **Winner detection:** `apiName.toLowerCase() === resolvedWinnerApiName.toLowerCase()` — case-insensitive to match the Apex `resolveFlowOutput` casing tolerance. The hero label and the highlighted row both read from `resolvedWinnerApiName`, so they cannot disagree.
+- **Reduced motion:** `@media (prefers-reduced-motion: reduce)` forces `.prob-bar` to `scaleX(1)` so bars are visible even if the JS animation is suppressed.
+
+---
+
 ## Summary payload (Apex → prompt)
 
 Apex builds **one JSON string** and passes it to the flex text input (API name from LWC, default `Input:Prediction_Context`):
@@ -99,6 +125,7 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 - `prediction` is always a **JSON string** (the raw label from the flow before LWC humanize).
 - `predictionType` is always **`multiclass_label`** so the template can branch from regression/classification payloads.
 - `recommendations` is a **string** (often stringified JSON array). The prompt can parse it or treat it as opaque text.
+- **Class probabilities are NOT currently included in the prompt payload.** They render in the UI but the LLM summary only sees the predicted label and feature contributions. Add them to the payload here if you want narrative explanations of confidence levels.
 
 ---
 
@@ -115,8 +142,9 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 
 ## Main prediction rendering
 
-- **Class hero:** `.class-hero-panel` wraps `.class-hero` with `.class-hero__label` (large text, `word-break`) and `.class-hero__caption` (subtitle).
-- **Recommendations:** **Diverging** bars (`.bar-pos` / `.bar-neg` with `.bar-fill` for animation), center line, value overlays, wrapping labels, responsive column stack on narrow containers. See [UI_LAYOUT.md](UI_LAYOUT.md).
+- **Class hero:** `.class-hero-panel` wraps `.class-hero` with `.class-hero__label` (large text, `word-break`) and `.class-hero__caption` (subtitle). Background uses `--wp-accent-bg` and a 3px `--wp-accent` left border so the hero matches the winning probability row.
+- **Class probabilities:** `.class-prob-section` with one `.prob-row` per class (label col / track / pct), winner row uses `.prob-row--winner`. Bars (`.prob-bar`) animate via `scaleX` and inherit accent color from the active theme.
+- **Feature contributions:** **Diverging** bars (`.bar-pos` / `.bar-neg` with `.bar-fill` for animation), center line, value overlays, wrapping labels, responsive column stack on narrow containers. See [UI_LAYOUT.md](UI_LAYOUT.md).
 
 ---
 
