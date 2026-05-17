@@ -54,5 +54,18 @@ private class DataCloudWebEngagementControllerTest {
         System.assertEquals(fakeBody, result, 'Controller should return the HTTP response body verbatim on 200.');
     }
 
+    @IsTest
+    static void getWebEngagementData_http500_returnsEmptyArray() {
+        DataCloudWebEngagementController.testMockUnifiedId = 'unified-9';
+        Test.setMock(HttpCalloutMock.class, new DataGraphMock(500, '{"error":"upstream timeout"}'));
+
+        Test.startTest();
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000002AAA');
+        Test.stopTest();
+
+        // Controller's catch block on non-200 returns '[]' (see DataCloudWebEngagementController.cls:42).
+        System.assertEquals('[]', result, 'Non-200 response should yield "[]" sentinel.');
+    }
+
     // Tests follow in subsequent tasks.
 }
