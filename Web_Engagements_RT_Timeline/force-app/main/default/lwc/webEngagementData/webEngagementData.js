@@ -25,7 +25,7 @@ export default class WebEngagementData extends LightningElement {
         this.hasError = false;
         this.webInteractions = [];
 
-        getWebEngagementData({ accountId: this.recordId })
+        getWebEngagementData({ accountId: this.recordId, dataGraphName: this.dcDataGraphName })
             .then(rawResponse => {
                 console.log('Raw Response from Apex:', rawResponse);
                 
@@ -229,5 +229,24 @@ export default class WebEngagementData extends LightningElement {
 
     get hasInteractions() {
         return this.webInteractions.length > 0;
+    }
+
+    /**
+     * Inline style string for the .engagement-feed container.
+     * - autoSize on  -> cap at 90% of viewport height
+     * - autoSize off -> cap at the numeric feedHeight (px)
+     * Always sets `overflow-y: auto` so scrolling kicks in once the cap is hit.
+     */
+    get feedStyle() {
+        const cap = this.autoSize ? '90vh' : `${this.feedHeight}px`;
+        return `max-height: ${cap}; overflow-y: auto;`;
+    }
+
+    /**
+     * True when an explicit cardTitleLink was provided in App Builder.
+     * Used by the template to choose between an <a> and plain text.
+     */
+    get headerTitleIsLink() {
+        return Boolean(this.cardTitleLink);
     }
 }
