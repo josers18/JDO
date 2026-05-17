@@ -14,7 +14,7 @@
                 <object>Contact</object>
             </objects>
             <property
-                name="graphApiName"
+                name="dcDataGraphName"
                 label="Data Graph API name"
                 type="String"
                 default="RT_Web_Engagementsv2"
