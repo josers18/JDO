@@ -97,5 +97,39 @@ private class DataCloudWebEngagementControllerTest {
         System.assertEquals('[]', result, 'Empty unified ID should short-circuit to "[]" without HTTP.');
     }
 
+    /**
+     * HttpCalloutMock that always throws — simulates network-level failure
+     * (DNS, TLS, certificate). Controller's outer try/catch wraps any
+     * Exception into AuraHandledException at lines 50-55.
+     */
+    private class ThrowingMock implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            throw new CalloutException('simulated DNS failure');
+        }
+    }
+
+    @IsTest
+    static void getWebEngagementData_calloutException_throwsAuraHandledException() {
+        DataCloudWebEngagementController.testMockUnifiedId = 'unified-throw';
+        Test.setMock(HttpCalloutMock.class, new ThrowingMock());
+
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            DataCloudWebEngagementController.getWebEngagementData('001000000000005AAA');
+        } catch (AuraHandledException e) {
+            threw = true;
+            // Note: AuraHandledException.getMessage() returns the *configured* message,
+            // which the controller sets via ahe.setMessage(e.getMessage()).
+            System.assert(
+                String.isNotBlank(e.getMessage()),
+                'AuraHandledException should carry a non-blank message.'
+            );
+        }
+        Test.stopTest();
+
+        System.assert(threw, 'Expected AuraHandledException to bubble up.');
+    }
+
     // Tests follow in subsequent tasks.
 }
