@@ -23,5 +23,18 @@ private class DataCloudWebEngagementControllerTest {
         }
     }
 
+    @IsTest
+    static void getWebEngagementData_blankAccountId_returnsEmptyArray() {
+        Test.startTest();
+        String resultNull  = DataCloudWebEngagementController.getWebEngagementData(null);
+        String resultEmpty = DataCloudWebEngagementController.getWebEngagementData('');
+        String resultBlank = DataCloudWebEngagementController.getWebEngagementData('   ');
+        Test.stopTest();
+
+        System.assertEquals('[]', resultNull,  'null accountId should return []');
+        System.assertEquals('[]', resultEmpty, 'empty accountId should return []');
+        System.assertEquals('[]', resultBlank, 'whitespace accountId should return []');
+    }
+
     // Tests follow in subsequent tasks.
 }
