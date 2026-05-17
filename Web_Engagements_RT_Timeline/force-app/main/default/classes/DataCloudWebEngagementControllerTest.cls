@@ -67,5 +67,17 @@ private class DataCloudWebEngagementControllerTest {
         System.assertEquals('[]', result, 'Non-200 response should yield "[]" sentinel.');
     }
 
+    @IsTest
+    static void getWebEngagementData_http404_returnsEmptyArray() {
+        DataCloudWebEngagementController.testMockUnifiedId = 'unified-404';
+        Test.setMock(HttpCalloutMock.class, new DataGraphMock(404, '{"error":"data graph not found"}'));
+
+        Test.startTest();
+        String result = DataCloudWebEngagementController.getWebEngagementData('001000000000003AAA');
+        Test.stopTest();
+
+        System.assertEquals('[]', result, '404 should also yield "[]".');
+    }
+
     // Tests follow in subsequent tasks.
 }
