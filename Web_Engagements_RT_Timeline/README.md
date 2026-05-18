@@ -192,6 +192,10 @@ The DataCloudWebEngagementController coverage ceiling (~83%) is by design: the `
 
 CrmTimelineController's ~78% sits above Salesforce's 75% deployment floor. Uncovered lines are minor error-handling and fall-through branches (e.g. blank-Subject defaults, Description-truncation branches, Owner-is-null paths) — exercised at runtime but not asserted in unit tests.
 
+### Dependabot alerts on `package-lock.json`
+
+GitHub Dependabot flags 1 low-severity alert on this project's `package-lock.json` (transitive dep of `@salesforce/sfdx-lwc-jest`). The dep is dev-only (Jest test runner) and never deployed to the org — `.forceignore` excludes `node_modules/` from `sf project deploy`. No production exposure; the alert is acceptable to leave open.
+
 ---
 
 ## Repository context
