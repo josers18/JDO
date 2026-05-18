@@ -232,4 +232,39 @@ private class CrmTimelineControllerTest {
         System.assertEquals('event', result[1].source);
         System.assertEquals('task',  result[2].source);
     }
+
+    @IsTest
+    static void lookbackDaysClampingBehavior() {
+        Account a = [SELECT Id FROM Account LIMIT 1];
+        // Insert a Case 200 days ago (within MAX_LOOKBACK_DAYS=365 but outside
+        // any caller's request below 200).
+        Case c = new Case(Subject = 'Old', Status = 'New', AccountId = a.Id);
+        insert c;
+        // Backdate CreatedDate via Test.setCreatedDate for assertion accuracy.
+        Test.setCreatedDate(c.Id, Datetime.now().addDays(-200));
+
+        Test.startTest();
+        // Within window: 250 days lookback should include the 200-day-old case.
+        List<CrmTimelineController.TimelineEvent> within =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'case' }, 250);
+        // Outside window: 100 days lookback should exclude it.
+        List<CrmTimelineController.TimelineEvent> outside =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'case' }, 100);
+        // Null defaults to 90 days, also excluded.
+        List<CrmTimelineController.TimelineEvent> nullDays =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'case' }, null);
+        // Negative also defaults to 90, excluded.
+        List<CrmTimelineController.TimelineEvent> negativeDays =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'case' }, -5);
+        // Wildly large clamps to MAX_LOOKBACK_DAYS=365, still includes 200-day case.
+        List<CrmTimelineController.TimelineEvent> huge =
+            CrmTimelineController.getCrmTimelineEvents(a.Id, new List<String>{ 'case' }, 99999);
+        Test.stopTest();
+
+        System.assertEquals(1, within.size(),       '250-day lookback should include 200-day-old case.');
+        System.assertEquals(0, outside.size(),      '100-day lookback should exclude 200-day-old case.');
+        System.assertEquals(0, nullDays.size(),     'null lookbackDays should default to 90 (excluded).');
+        System.assertEquals(0, negativeDays.size(), 'negative lookbackDays should default to 90 (excluded).');
+        System.assertEquals(1, huge.size(),         'huge lookbackDays should clamp to 365 (included).');
+    }
 }
