@@ -101,8 +101,40 @@ Once deployed, the **Real Time Digital Engagements** component exposes 5 propert
 | **Card title link URL** | _(blank)_ | Optional URL the card title links to. Leave blank for plain text. |
 | **Feed height (px)** | `600` | Maximum height of the feed before scrolling. Ignored when Auto-size is on. |
 | **Auto-size feed** | _off_ | When on, feed grows up to 90% of viewport height. Overrides Feed height. |
+| **Show Case events** | _off_ | Include Case records (created in the lookback window) on the timeline. |
+| **Show Task events (incl. logged calls)** | _off_ | Include Task records on the timeline. Logged calls (Task with CallType set) get a distinct icon. |
+| **Show Event records (calendar)** | _off_ | Include Salesforce Calendar Event records on the timeline. |
+| **Show Agentforce Voice calls** | _off_ | Include VoiceCall records (Service Cloud Voice). Silently skipped if Voice isn't provisioned. |
+| **CRM lookback (days)** | `90` | How far back to query CRM events. Max 365; values out of range fall back to 90. |
 
-Defaults preserve the component's pre-Plan-2 behavior for 4 of 5 properties (Data Graph name, card title, feed height, auto-size). The exception is **Card title link URL**: pre-Plan-2 instances had a hardcoded link to a Cumulus Bank demo URL in the title; the new default is blank (plain text). Demo-org admins who want the original behavior should paste their landing-page URL into the Card title link URL property after deploy.
+Defaults preserve pre-revamp behavior except for **Card title link URL** (was hardcoded to a Cumulus Bank demo URL; now blank — paste a URL to restore the link) and the four **Show … events** toggles (default off, so no CRM events appear until an admin opts in).
+
+---
+
+## Multi-source timeline
+
+When any of the four CRM source toggles are on, the component fires two Apex calls in parallel:
+
+| Call | Apex method | Returns |
+|---|---|---|
+| **A — Web** (always) | `DataCloudWebEngagementController.getWebEngagementData` | Data Cloud Data Graph events |
+| **B — CRM** (only when one or more sources on) | `CrmTimelineController.getCrmTimelineEvents` | Cases / Tasks / Events / VoiceCalls |
+
+The Data Graph rows render the moment Call A resolves. CRM events stream in below when Call B finishes. Filter chips operate on already-loaded events with no Apex round-trip.
+
+**Source colors / icons:**
+
+| Source | Color | Default icon |
+|---|---|---|
+| Web | `#7f56d9` | `custom:custom68` |
+| Case | `#c23934` | `standard:case` |
+| Task | `#04844b` | `standard:task` (or `standard:log_a_call` for logged calls) |
+| Event | `#c97a00` | `standard:event` |
+| Voice | `#0176d3` | `standard:live_chat` |
+
+**Partial-failure UX:** if Call A or Call B fails, the other still renders. An inline warning banner with a Retry button appears for the failed side; the working side keeps showing.
+
+**Lookback:** all CRM sources share the `CRM lookback (days)` window (default 90). Per-source `LIMIT 200` keeps the SOQL inside governor headroom.
 
 ---
 
@@ -142,22 +174,23 @@ These three numbers can legally differ. `sourceApiVersion` only governs *new* me
 
 ## Test coverage
 
-`DataCloudWebEngagementController` is covered by `DataCloudWebEngagementControllerTest` at **~83% lines** (15 test methods). Run locally:
+| Class / spec | Tests | Coverage achieved |
+|---|---|---|
+| `DataCloudWebEngagementController` | 17 Apex (Plan 1+2) | ~83% |
+| `CrmTimelineController` | 10 Apex (Plan 3) | ~78% |
+| `timelineMappers.js` | 18 Jest (parseDataGraphResponse + mergeAndSort + groupByDay) | full branch coverage |
+| `webEngagementData` LWC | 10 Jest (DOM-level) | smoke + regression |
+
+Run all locally:
 
 ```bash
-sf apex run test --class-names DataCloudWebEngagementControllerTest --result-format human --code-coverage --wait 10 --synchronous
+sf apex run test --class-names DataCloudWebEngagementControllerTest --class-names CrmTimelineControllerTest --result-format human --code-coverage --wait 15 --synchronous
+npm test
 ```
 
-The test class uses three patterns:
-- `@TestVisible static String testMockUnifiedId` on the controller — bypasses `ConnectApi.CdpQuery.querySql`, which is not mockable via `Test.setMock` in API 65.0.
-- `Test.setMock(HttpCalloutMock.class, ...)` — fakes the live Data Graph callout to `callout:Data_Cloud_API`.
-- `@TestVisible static String extractUnifiedIdFromQueryOutput(Map<String, Object>)` on the controller — direct unit tests of the JSON-parsing branches with crafted Maps.
+The DataCloudWebEngagementController coverage ceiling (~83%) is by design: the `@TestVisible static String testMockUnifiedId` seam intentionally bypasses `getUnifiedId`'s body, leaving the SOQL build + `ConnectApi.QuerySqlInput` + `ConnectApi.CdpQuery.querySql` call structurally uncoverable in API 65.0. The JSON-parsing logic that follows is extracted into `extractUnifiedIdFromQueryOutput` and tested directly.
 
-### Coverage ceiling
-
-The seam means `getUnifiedId`'s body (SOQL build + `ConnectApi.QuerySqlInput` + `ConnectApi.CdpQuery.querySql` + serialize/deserialize-to-Map — about 11 lines) is structurally uncoverable by unit tests. After Task 9a's refactor, the JSON-parsing logic that follows was extracted into the `extractUnifiedIdFromQueryOutput` helper and is covered directly. The remaining ~17% gap is the un-mockable `ConnectApi` integration path itself.
-
-Salesforce's org-wide deployment threshold is 75%. The class deploys cleanly. The plan's spec target was lowered from 85% to 80% to acknowledge this honest ceiling.
+CrmTimelineController's ~78% sits above Salesforce's 75% deployment floor. Uncovered lines are minor error-handling and fall-through branches (e.g. blank-Subject defaults, Description-truncation branches, Owner-is-null paths) — exercised at runtime but not asserted in unit tests.
 
 ---
 
