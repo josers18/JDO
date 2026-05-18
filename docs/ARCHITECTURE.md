@@ -15,6 +15,7 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
 | **Tabular SLDS data table** | DC Query to Table (`lightning-datatable`) |
 | **CRM + Flow-assembled tabbed profile UI** | DC Person Profile Widget (Account + Contact; SOQL + **`flow:`/`flows:`** slots + optional Flows + Einstein; **icon + label** field rows on key tabs; optional live rollups such as open case count and summed open opportunity amounts on Account); DC Business Profile Widget (Account; `fieldMappingsJson` SOQL or **`flow:`**; **Pipeline** tab lists open Opportunities with configurable row cap via **`pipelineOpportunityLimit`** / App Builder **Pipeline: max open opportunities** (default **0** → up to **2000**); **Active products** can reflect **FinServ Financial Account** count when that object exists; icon rows on Overview, Credit facilities, Structure) |
 | **Shared theme tokens (profile-aligned)** | DC Prediction Model + DC Multiclass Prediction import **`predictionThemes.js`** (same CSS variable keys as profile widgets; App Builder **Theme** / optional header switcher) |
+| **Hybrid two-call multi-source timeline** | Web_Engagements_RT_Timeline fires **Promise A** (Data Cloud Data Graph via `DataCloudWebEngagementController` + `callout:Data_Cloud_API`) and **Promise B** (CRM SOQL aggregator `CrmTimelineController` across Case/Task/Event/VoiceCall) **in parallel**. Data Graph rows render the moment Promise A resolves; CRM events stream in below when Promise B finishes. Filter chips operate on already-loaded data with no Apex round-trip. Helper LWC modules (`sourceConfig.js` + `timelineMappers.js`) keep the component class thin and Jest-testable. |
 
 ## Documentation map
 
@@ -26,6 +27,7 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
   - [DC_Query_to_Table_LWC/docs/ARCHITECTURE.md](../DC_Query_to_Table_LWC/docs/ARCHITECTURE.md)
   - [DC_PersonProfileWidget/docs/ARCHITECTURE.md](../DC_PersonProfileWidget/docs/ARCHITECTURE.md)
   - [DC_BusinessProfileWidget/docs/ARCHITECTURE.md](../DC_BusinessProfileWidget/docs/ARCHITECTURE.md)
+  - [Web_Engagements_RT_Timeline/README.md](../Web_Engagements_RT_Timeline/README.md) and the [revamp design spec](../Web_Engagements_RT_Timeline/docs/superpowers/specs/2026-05-17-revamp-design.md)
 
 ## Security posture (high level)
 

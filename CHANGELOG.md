@@ -7,7 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-May_17_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-May_18_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
 [![Commits](https://img.shields.io/badge/Commits-60%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
 
@@ -17,13 +17,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## What's new this month
 
-> **May 2026** — Shipped the **FSC Audit Utilities** project (13 phases of automated demo-org cleanup and seed data), added the **JDO_Login_Portal** design spec for self-service org provisioning + telemetry, the **sf-tableau-next** skill for Tableau Next REST APIs, a new **Financial_KPI_Widget** DX project, the **Web_Engagements_RT_Timeline** project (LWC + Apex) that renders Data Cloud `RT_Web_Engagementsv2` Data Graph results live on Account/Contact record pages, and a **per-class probability chart** for the Multiclass Prediction LWC. Customer Profile widget now leads with **Deposits** as the prominent KPI tile.
+> **May 2026** — Shipped the **FSC Audit Utilities** project (13 phases of automated demo-org cleanup and seed data), added the **JDO_Login_Portal** design spec for self-service org provisioning + telemetry, the **sf-tableau-next** skill for Tableau Next REST APIs, a new **Financial_KPI_Widget** DX project, and the **Web_Engagements_RT_Timeline** project — initially retrieved as a Data Cloud Data Graph timeline, then revamped through three sequential plans (Hardening / Configurability / Multi-source) into a **multi-source real-time timeline** that interleaves Data Graph events with Cases / Tasks / Calendar Events / Agentforce VoiceCalls. Plus a **per-class probability chart** for the Multiclass Prediction LWC. Customer Profile widget now leads with **Deposits** as the prominent KPI tile.
 
 Jump to: [May 2026](#may-2026) · [April 2026](#april-2026) · [March 2026](#march-2026)
 
 ---
 
-## [May 2026] — 2026-05-11 → 2026-05-17
+## [May 2026] — 2026-05-11 → 2026-05-18
+
+### 2026-05-17 → 2026-05-18 — Web_Engagements_RT_Timeline: full revamp (Plans 1+2+3) + merge to main
+- **`Web_Engagements_RT_Timeline/`** — Three-plan revamp of the retrieved Data Graph component shipped as ~45 commits and merged to `main` via fast-forward.
+  - **Plan 1 — Hardening** ([`5e1a25d`](https://github.com/josers18/JDO/commit/5e1a25d) → [`7bce524`](https://github.com/josers18/JDO/commit/7bce524)) — Added `DataCloudWebEngagementControllerTest` (17 Apex tests), introduced a `@TestVisible static String testMockUnifiedId` seam to bypass un-mockable `ConnectApi.CdpQuery.querySql`, refactored `getUnifiedId` to extract a `@TestVisible extractUnifiedIdFromQueryOutput(Map<String,Object>)` parser. Coverage achieved ~83%; spec target adjusted from 85% → 80% with a documented coverage ceiling. Documented API version posture (sfdx-project 62.0 / meta-XML 65.0 / org runtime 66.0).
+  - **Plan 2 — Configurability** ([`3f4ed8c`](https://github.com/josers18/JDO/commit/3f4ed8c) → [`d0c8849`](https://github.com/josers18/JDO/commit/d0c8849)) — Added 5 App Builder properties: `dcDataGraphName` (LWC1107 escape from `dataGraphName`), `cardTitle`, `cardTitleLink`, `feedHeight`, `autoSize`. Apex `getWebEngagementData` gained a `dataGraphName` parameter with `String.isBlank` fallback to the existing `RT_Web_Engagementsv2` constant. Removed the hardcoded Cumulus Bank demo URL from the title. Scaffolded `@salesforce/sfdx-lwc-jest` (first Jest setup in the repo); 6 DOM-level tests for `feedStyle` + `headerTitleIsLink` getters. Added `.forceignore` to exclude `__tests__/` from deploys.
+  - **Plan 3 — Multi-source timeline** ([`ac7bea3`](https://github.com/josers18/JDO/commit/ac7bea3) → [`6758ca9`](https://github.com/josers18/JDO/commit/6758ca9)) — New `CrmTimelineController` with whitelisted sources, bound SOQL, per-source `LIMIT 200`, `Comparator<TimelineEvent>` sort, and Schema-gated VoiceCall query (10 Apex tests, ~78% coverage). Two helper LWC modules: `sourceConfig.js` (registry) + `timelineMappers.js` (`parseDataGraphResponse` + `mergeAndSort` + `groupByDay`, 18 Jest tests). 5 more App Builder properties: `showCases` / `showTasks` / `showEvents` / `showVoiceCalls` / `lookbackDays`. Replaced the SLDS-timeline UI with **Style B** card stream: chip-bar filters, day-group headers, source-colored left rails, expand-on-click detail panels, partial-failure retry banners. Promise A (Data Graph) and Promise B (CRM) fire in parallel; Data Graph never blocks on CRM.
+  - **Final state on `main` ([`ed3d69f`](https://github.com/josers18/JDO/commit/ed3d69f)):** 28 Apex tests + 28 Jest tests, all passing; live-deployed to `admin@finsdc3.demo`. README documents the multi-source architecture, source colors, partial-failure UX, and Dependabot disposition. Spec at `Web_Engagements_RT_Timeline/docs/superpowers/specs/2026-05-17-revamp-design.md`; three plan files at `docs/superpowers/plans/`.
 
 ### 2026-05-16 → 2026-05-17 — DC_Multiclass_Prediction_LWC: class probabilities chart
 - **`DC_Multiclass_Prediction_LWC/`** — Added per-class probability chart (sorted descending, theme-accent bars with opacity gradient, winner highlight, optional top-N slice) between the predicted-class hero and the feature-contributions section. Apex `MulticlassPredictionLwcController` gained a `ClassProbability` inner class and CSV-driven Flow variable reading; LWC gained `processedClassProbabilities` getter, hero accent tinting, and a `prefers-reduced-motion` safety net. Renamed `recommendationsSectionTitle` default from "Suggested improvements" to "Feature contributions". 13 Apex tests (was 3). See the [project-level CHANGELOG](DC_Multiclass_Prediction_LWC/CHANGELOG.md). ([`9e57b69`](https://github.com/josers18/JDO/commit/9e57b69))

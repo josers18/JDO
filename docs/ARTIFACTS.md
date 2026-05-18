@@ -10,5 +10,6 @@ Each Salesforce DX project maintains its own **`artifacts.md`** at the project r
 | DC_Query_to_Table_LWC | [../DC_Query_to_Table_LWC/artifacts.md](../DC_Query_to_Table_LWC/artifacts.md) |
 | DC_PersonProfileWidget | [../DC_PersonProfileWidget/artifacts.md](../DC_PersonProfileWidget/artifacts.md) |
 | DC_BusinessProfileWidget | [../DC_BusinessProfileWidget/artifacts.md](../DC_BusinessProfileWidget/artifacts.md) |
+| Web_Engagements_RT_Timeline | [../Web_Engagements_RT_Timeline/artifacts.md](../Web_Engagements_RT_Timeline/artifacts.md) |
 
 For a narrative overview of how packages relate, see [ARCHITECTURE.md](ARCHITECTURE.md) and [DIAGRAMS.md](DIAGRAMS.md).

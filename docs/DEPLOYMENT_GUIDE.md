@@ -59,6 +59,7 @@ Adjust `--test-level` per your pipeline.
 | DC_PersonProfileWidget | **Customer Profile Widget User** (`Customer_Profile_Widget_User`) | `CustomerProfileWidgetController` |
 | DC_PersonProfileWidget | **Customer Profile Widget DataCloud Callout** (`Customer_Profile_Widget_DC_Callout`) | External Credential principal `D360-DataCloud_Integration` |
 | DC_BusinessProfileWidget | **Standard profile patch** (see below) | `profiles/Standard.profile-meta.xml` enables all JDO LWC Apex classes on the **Standard** profile when deployed from this package |
+| Web_Engagements_RT_Timeline | _(no permission set ships)_ | Grant **Apex class access** to `DataCloudWebEngagementController` and `CrmTimelineController` via permission sets or profiles. The Standard profile patch shipped by `DC_BusinessProfileWidget` does NOT include these new classes — extend it manually if you use that pattern. |
 
 Assign **Customer_Profile_Widget_User** for the Person Profile Widget; optional **Customer_Profile_Widget_DC_Callout** only if you use the shipped Named Credential for other callouts. See [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
 

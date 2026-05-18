@@ -12,6 +12,8 @@ flowchart LR
         AF[AgentForce Output]
         QT[Query to Table]
         PP[Person Profile Widget]
+        BP[Business Profile Widget]
+        WE[Web Engagements RT Timeline]
     end
     ORG[(Salesforce org)]
     PM -->|Flow| ORG
@@ -19,6 +21,8 @@ flowchart LR
     AF -->|Flow| ORG
     QT -->|CdpQuery Apex| ORG
     PP -->|HTTP NC + SOQL + Flow| ORG
+    BP -->|SOQL + Flow + optional Einstein| ORG
+    WE -->|Data Graph callout + parallel CRM SOQL| ORG
 ```
 
 ## Flow-driven components (pattern)
@@ -78,3 +82,25 @@ flowchart TB
 ```
 
 For more sequence detail, see [DC_AgentForce_Output_LWC/docs/ARCHITECTURE.md](../DC_AgentForce_Output_LWC/docs/ARCHITECTURE.md).
+
+## Web Engagements RT Timeline (multi-source, parallel)
+
+```mermaid
+sequenceDiagram
+    participant LWC as webEngagementData
+    participant DCC as DataCloudWebEngagementController
+    participant CRM as CrmTimelineController
+    participant DG as Data Cloud Data Graph
+    participant Org as Salesforce SOQL
+    LWC->>DCC: Promise A — getWebEngagementData(accountId, dataGraphName)
+    LWC->>CRM: Promise B — getCrmTimelineEvents(recordId, sources, lookbackDays)
+    DCC->>DG: callout:Data_Cloud_API + Unified ID lookup
+    DG-->>DCC: Data Graph JSON
+    DCC-->>LWC: TimelineEvent[] (source: 'web')
+    CRM->>Org: per-source SOQL fan-out (Case / Task / Event / VoiceCall)
+    Org-->>CRM: rows
+    CRM-->>LWC: TimelineEvent[] (sorted DESC, LIMIT 200 per source)
+    Note over LWC: A renders immediately; B streams in below.<br/>Chip filters operate client-side, no re-fetch.
+```
+
+Promise A is never blocked on Promise B. Filter chips re-render visible events without firing Apex. Partial-failure UX surfaces inline retry banners for whichever side failed; the working side keeps showing.

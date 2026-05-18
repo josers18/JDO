@@ -13,6 +13,7 @@ flowchart TB
         Q[DC_Query_to_Table_LWC]
         C[DC_PersonProfileWidget]
         B[DC_BusinessProfileWidget]
+        W[Web_Engagements_RT_Timeline]
     end
     P --> |Flow + optional Prompt| SF[(Salesforce org)]
     M --> |Flow + optional Prompt| SF
@@ -20,6 +21,7 @@ flowchart TB
     Q --> |ConnectApi.CdpQuery| SF
     C --> |SOQL + Flow + optional Einstein Overview + Insight| SF
     B --> |Account field map + Flow + optional Overview Agentforce + Insight| SF
+    W --> |Data Graph callout + parallel CRM SOQL| SF
 ```
 
 ## Naming vs App Builder labels
@@ -32,6 +34,7 @@ flowchart TB
 | `dcQueryToTableLwc` | DC Query to Table |
 | `customerProfileWidget` | Customer Profile Widget |
 | `businessProfileWidget` | Business Profile Widget |
+| `webEngagementData` | Real Time Digital Engagements |
 
 Historical Apex class names (e.g. `ClassificationModelLwcController`) are kept for stable upgrades in orgs that already deployed earlier versions.
 
