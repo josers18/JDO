@@ -83,7 +83,7 @@ public class DetailField {
 | `case`  | `Case.AccountId` (or `ContactId`) | `CreatedDate` | `Case.Subject` | `'Case ' + CaseNumber + ' · ' + Status + ' · Owner ' + Owner.Name` | `standard:case` / `#c23934` |
 | `task`  | `Task.WhatId` + `Task.WhoId` | `Task.ActivityDate` (fallback `CreatedDate`) | `Task.Subject` | `Task.Type` + (CallType if present) | `standard:task` / `#04844b` (`standard:log_a_call` if `Task.CallType` populated) |
 | `event` | `Event.WhatId` + `Event.WhoId` | `Event.StartDateTime` | `Event.Subject` | `Event.Description` (truncated) or `Event.Location` | `standard:event` / `#c97a00` |
-| `voice` | `VoiceCall.RelatedRecordId` + caller/callee Contact | `VoiceCall.CallStartDateTime` | `'Inbound · ' + duration` (or `'Outbound · '`) | `'Agentforce Voice · ' + endingDispositionName` | `standard:live_chat` / `#0176d3` |
+| `voice` | `VoiceCall.RelatedRecordId` + caller/callee Contact | `VoiceCall.CallStartDateTime` | `'Inbound · ' + duration` (or `'Outbound · '`) | `'Agentforce Voice · ' + CallDisposition` | `standard:live_chat` / `#0176d3` |
 | `web`   | n/a (parsed in LWC) | `CumulusWeb_Engagements__dlm.dateTime__c` | dynamic (today's logic) | dynamic (today's logic) | dynamic / `#7f56d9` |
 
 ### `CrmTimelineController` public surface

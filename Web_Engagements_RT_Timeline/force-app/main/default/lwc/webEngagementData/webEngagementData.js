@@ -48,6 +48,7 @@ export default class WebEngagementData extends LightningElement {
                 dataGraphName: this.dcDataGraphName
             });
             this.webEvents = parseDataGraphResponse(raw);
+            this.maybeAutoEnableChips();
         } catch (e) {
             console.error('Web engagements load failed:', e);
             this.webError = "Couldn't load web engagements.";
@@ -71,6 +72,7 @@ export default class WebEngagementData extends LightningElement {
                 lookbackDays: this.lookbackDays
             });
             this.crmEvents = events || [];
+            this.maybeAutoEnableChips();
         } catch (e) {
             console.error('CRM events load failed:', e);
             this.crmError = "Couldn't load CRM activity.";
@@ -162,11 +164,6 @@ export default class WebEngagementData extends LightningElement {
     }
 
     get groupedByDay() {
-        if (this.activeSourceFilters.size === 0 && this.mergedEvents.length > 0) {
-            for (const s of SOURCE_ORDER) {
-                if (this.sourceCounts[s]) this.activeSourceFilters.add(s);
-            }
-        }
         const filtered = this.mergedEvents.filter(e =>
             this.activeSourceFilters.size === 0 || this.activeSourceFilters.has(e.source)
         );
@@ -187,6 +184,36 @@ export default class WebEngagementData extends LightningElement {
 
     get isFullyLoadedAndEmpty() {
         return !this.loadingWeb && !this.loadingCrm && !this.hasAnyEvents;
+    }
+
+    // After data loads, auto-enable all source chips so the chip bar starts
+    // with 'All' active. Idempotent: adds any new sources that have events
+    // but aren't yet in the filter set. Called from both loadWebEngagements
+    // and loadCrmEvents so it works on whichever Promise resolves first.
+    maybeAutoEnableChips() {
+        if (this.mergedEvents.length === 0) return;
+
+        const counts = this.sourceCounts;
+        const availableSources = SOURCE_ORDER.filter(s => counts[s]);
+
+        // If filters are empty, enable all available sources
+        if (this.activeSourceFilters.size === 0) {
+            this.activeSourceFilters = new Set(availableSources);
+            return;
+        }
+
+        // Otherwise, add any new sources that aren't already enabled
+        const updated = new Set(this.activeSourceFilters);
+        let changed = false;
+        for (const s of availableSources) {
+            if (!updated.has(s)) {
+                updated.add(s);
+                changed = true;
+            }
+        }
+        if (changed) {
+            this.activeSourceFilters = updated;
+        }
     }
 
     handleChipToggle(event) {
