@@ -43,6 +43,36 @@
                 type="Boolean"
                 default="false"
                 description="When on, feed grows up to 90% of viewport height. Overrides Feed height (px)."/>
+            <property
+                name="showCases"
+                label="Show Case events"
+                type="Boolean"
+                default="false"
+                description="Include Case records (created in the lookback window) on the timeline."/>
+            <property
+                name="showTasks"
+                label="Show Task events (incl. logged calls)"
+                type="Boolean"
+                default="false"
+                description="Include Task records on the timeline. Logged calls (Task with CallType set) get a distinct icon."/>
+            <property
+                name="showEvents"
+                label="Show Event records (calendar)"
+                type="Boolean"
+                default="false"
+                description="Include Salesforce Calendar Event records on the timeline."/>
+            <property
+                name="showVoiceCalls"
+                label="Show Agentforce Voice calls"
+                type="Boolean"
+                default="false"
+                description="Include VoiceCall records (Service Cloud Voice). Silently skipped if Voice isn't provisioned."/>
+            <property
+                name="lookbackDays"
+                label="CRM lookback (days)"
+                type="Integer"
+                default="90"
+                description="How far back to query CRM events. Max 365; values out of range fall back to 90."/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>
