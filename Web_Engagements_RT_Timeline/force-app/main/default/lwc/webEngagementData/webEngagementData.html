@@ -18,86 +18,127 @@
             <lightning-button-icon icon-name="utility:refresh" onclick={handleRefresh} alternative-text="Refresh"></lightning-button-icon>
         </div>
         
+        <!-- Chip bar — only renders when at least one source has events -->
+        <template lwc:if={hasAnyEvents}>
+            <div class="slds-p-horizontal_medium slds-p-top_x-small chip-bar">
+                <template for:each={availableChips} for:item="chip">
+                    <button key={chip.source}
+                            class={chip.cssClass}
+                            data-source={chip.source}
+                            type="button"
+                            onclick={handleChipToggle}>
+                        {chip.label}
+                        <span class="chip-count">{chip.count}</span>
+                    </button>
+                </template>
+            </div>
+        </template>
+
+        <!-- Partial-failure: web failed -->
+        <template lwc:if={webError}>
+            <div class="slds-p-horizontal_medium slds-p-top_x-small">
+                <div class="slds-notify slds-notify_alert slds-alert_warning" role="alert">
+                    <span class="slds-text-body_small">{webError}</span>
+                    <button class="slds-button slds-button_neutral slds-m-left_small"
+                            type="button"
+                            onclick={handleRetryWeb}>Retry</button>
+                </div>
+            </div>
+        </template>
+
+        <!-- Partial-failure: CRM failed -->
+        <template lwc:if={crmError}>
+            <div class="slds-p-horizontal_medium slds-p-top_x-small">
+                <div class="slds-notify slds-notify_alert slds-alert_warning" role="alert">
+                    <span class="slds-text-body_small">{crmError}</span>
+                    <button class="slds-button slds-button_neutral slds-m-left_small"
+                            type="button"
+                            onclick={handleRetryCrm}>Retry</button>
+                </div>
+            </div>
+        </template>
+
+        <!-- Day-grouped card stream -->
         <div class="slds-p-around_medium engagement-feed" style={feedStyle}>
-            
-            <template if:true={isLoading}>
-                <div class="slds-p-around_large slds-is-relative">
+
+            <!-- Initial-load spinner: only when web hasn't returned yet AND no events visible -->
+            <template lwc:if={isInitialLoading}>
+                <div class="slds-p-around_large slds-is-relative" style="min-height: 4rem;">
                     <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
                 </div>
             </template>
 
-            <template if:true={hasError}>
-                <div class="slds-notify slds-notify_alert slds-alert_error">
-                    {errorMessage}
+            <template lwc:if={hasAnyEvents}>
+                <template for:each={groupedByDay} for:item="day">
+                    <div key={day.dayKey} class="day-group">
+                        <div class="day-header">{day.dayLabel}</div>
+                        <template for:each={day.events} for:item="event">
+                            <article key={event.id}
+                                     class={event.cssClass}
+                                     style={event.leftRailStyle}>
+                                <div class="stream-head">
+                                    <div class="stream-title">
+                                        <lightning-icon icon-name={event.iconName}
+                                                        size="x-small"
+                                                        class="stream-icon">
+                                        </lightning-icon>
+                                        <span class="stream-title-text">{event.title}</span>
+                                        <span class="stream-source-tag">{event.sourceLabel}</span>
+                                    </div>
+                                    <div class="stream-meta">
+                                        <lightning-formatted-date-time
+                                            value={event.occurredAt}
+                                            year="numeric"
+                                            month="numeric"
+                                            day="numeric"
+                                            hour="2-digit"
+                                            minute="2-digit">
+                                        </lightning-formatted-date-time>
+                                    </div>
+                                </div>
+                                <p class="stream-sub">{event.subtitle}</p>
+                                <div class="stream-actions">
+                                    <button class="slds-button slds-button_neutral slds-button_small"
+                                            type="button"
+                                            data-id={event.id}
+                                            onclick={handleToggle}>Details</button>
+                                    <template lwc:if={event.recordUrl}>
+                                        <a class="slds-button slds-button_neutral slds-button_small slds-m-left_x-small"
+                                           href={event.recordUrl}>Open</a>
+                                    </template>
+                                </div>
+                                <template lwc:if={event.isExpanded}>
+                                    <div class="stream-details">
+                                        <template for:each={event.details} for:item="detail">
+                                            <div key={detail.label} class="stream-detail-row">
+                                                <span class="stream-detail-label">{detail.label}</span>
+                                                <span class="stream-detail-value">{detail.value}</span>
+                                            </div>
+                                        </template>
+                                        <div class="stream-detail-row stream-detail-id">
+                                            <span class="stream-detail-label">System ID</span>
+                                            <span class="stream-detail-value">{event.id}</span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </article>
+                        </template>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Empty state: web finished, CRM either disabled or finished, no events -->
+            <template lwc:if={isFullyLoadedAndEmpty}>
+                <div class="slds-text-align_center slds-text-color_weak slds-p-top_medium">
+                    No recent engagements found.
                 </div>
             </template>
 
-            <template if:false={isLoading}>
-                <template if:true={hasInteractions}>
-                    <ul class="slds-timeline">
-                        <template for:each={webInteractions} for:item="item">
-                            <li key={item.id} class={item.timelineClass}>
-                                <div class="slds-media">
-                                    <div class="slds-media__figure">
-                                        <button class="slds-button slds-button_icon" 
-                                                title="Toggle details" 
-                                                data-id={item.id} 
-                                                onclick={handleToggle}>
-                                            <lightning-icon icon-name="utility:switch" 
-                                                            size="x-small" 
-                                                            class="slds-button__icon slds-timeline__details-action-icon">
-                                            </lightning-icon>
-                                        </button>
-                                        
-                                        <lightning-icon icon-name={item.icon} size="small"></lightning-icon>
-                                    </div>
-                                    
-                                    <div class="slds-media__body">
-                                        <div class="slds-grid slds-grid_align-spread slds-timeline__trigger">
-                                            <div class="slds-grid slds-grid_vertical-align-center slds-no-space">
-                                                <h3 class="slds-text-wrap" title={item.title}>
-                                                    <strong>{item.title}</strong>
-                                                </h3>
-                                            </div>
-                                            <div class="slds-timeline__actions slds-timeline__actions_inline">
-                                                <p class="slds-timeline__date">
-                                                    <lightning-formatted-date-time value={item.date} year="numeric" month="numeric" day="numeric" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <p class="slds-m-horizontal_xx-small">
-                                            {item.subtitle}
-                                        </p>
-                                        
-                                        <template if:true={item.expanded}>
-                                            <article class="slds-box slds-timeline__item_details slds-theme_shade slds-m-top_x-small slds-m-horizontal_xx-small engagement-details-box">
-                                                <ul class="slds-list_horizontal slds-wrap">
-                                                    <template for:each={item.details} for:item="detail">
-                                                        <li key={detail.label} class="slds-grid slds-grid_vertical slds-size_1-of-2 slds-p-bottom_small">
-                                                            <span class="slds-text-title slds-p-bottom_x-small">{detail.label}</span>
-                                                            <span class="slds-text-body_medium">{detail.value}</span>
-                                                        </li>
-                                                    </template>
-                                                    
-                                                    <li class="slds-grid slds-grid_vertical slds-size_1-of-1 slds-p-top_small slds-border_top">
-                                                        <span class="slds-text-title slds-p-bottom_x-small">System ID</span>
-                                                        <span class="slds-text-body_small slds-text-color_weak">{item.id}</span>
-                                                    </li>
-                                                </ul>
-                                            </article>
-                                        </template>
-                                    </div>
-                                </div>
-                            </li>
-                        </template>
-                    </ul>
-                </template>
-                
-                <template if:false={hasInteractions}>
-                    <div class="slds-text-align_center slds-text-color_weak slds-p-top_medium">
-                        No recent engagements found.
-                    </div>
-                </template>
+            <!-- CRM loading chip: web rendered, CRM still pending -->
+            <template lwc:if={isCrmLoadingChip}>
+                <div class="slds-text-align_center slds-text-color_weak slds-p-vertical_x-small crm-loading-chip">
+                    Loading CRM activity...
+                </div>
             </template>
         </div>
     </lightning-card>
