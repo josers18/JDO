@@ -15,7 +15,151 @@
     border: 1px solid var(--slds-g-color-border-base-4, #dddbda);
 }
 
-/* Optional: Add a subtle hover effect to the timeline items */
-.slds-timeline__item_expandable:hover {
-    background-color: var(--slds-g-color-neutral-base-95, #f3f2f2);
+
+/* ---------- Style B card stream ---------- */
+
+.chip-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.chip {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    color: var(--slds-g-color-neutral-base-30, #444);
+    border: 1px solid var(--slds-g-color-border-base-4, #e0e0e0);
+    cursor: pointer;
+    transition: background 120ms ease;
+}
+
+.chip:hover {
+    background: var(--slds-g-color-neutral-base-90, #ebebeb);
+}
+
+.chip.chip-on {
+    background: var(--slds-g-color-accent-1, #0176d3);
+    color: var(--slds-g-color-neutral-base-100, #fff);
+    border-color: var(--slds-g-color-accent-1, #0176d3);
+}
+
+.chip-count {
+    margin-left: 4px;
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+.day-group {
+    margin-top: 12px;
+}
+
+.day-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--slds-g-color-brand-base-50, #032d60);
+    font-weight: 600;
+    padding: 4px 0 6px 0;
+    border-bottom: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
+    margin-bottom: 6px;
+}
+
+.stream-card {
+    background: var(--slds-g-color-neutral-base-100, #fafafa);
+    border-left: 3px solid var(--slds-g-color-border-base-4, #ddd);
+    border-radius: 0 4px 4px 0;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+}
+
+.stream-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.stream-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.stream-icon {
+    flex-shrink: 0;
+}
+
+.stream-title-text {
+    font-weight: 600;
+    color: var(--slds-g-color-neutral-base-15, #181818);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stream-source-tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--slds-g-color-neutral-base-50, #747474);
+    flex-shrink: 0;
+}
+
+.stream-meta {
+    color: var(--slds-g-color-neutral-base-50, #747474);
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.stream-sub {
+    color: var(--slds-g-color-neutral-base-30, #444);
+    font-size: 12px;
+    margin: 4px 0 0 0;
+}
+
+.stream-actions {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.crm-loading-chip {
+    font-size: 11px;
+    font-style: italic;
+}
+
+.stream-details {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
+    display: grid;
+    grid-template-columns: minmax(120px, max-content) 1fr;
+    gap: 4px 12px;
+    font-size: 12px;
+}
+
+.stream-detail-row {
+    display: contents;
+}
+
+.stream-detail-label {
+    color: var(--slds-g-color-neutral-base-50, #747474);
+    font-weight: 500;
+}
+
+.stream-detail-value {
+    color: var(--slds-g-color-neutral-base-30, #181818);
+    word-break: break-word;
+}
+
+.stream-detail-id .stream-detail-value {
+    color: var(--slds-g-color-neutral-base-50, #747474);
+    font-family: monospace;
+    font-size: 11px;
 }
