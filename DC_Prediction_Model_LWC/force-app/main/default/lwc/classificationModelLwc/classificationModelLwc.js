@@ -118,6 +118,7 @@ export default class ClassificationModelLwc extends LightningElement {
     _gaugeRafId;
     _animationPending = false;
     _isConnected = false;
+    _lastAppliedThemeKey = '';
 
     @api
     get recordId() {
@@ -228,6 +229,14 @@ export default class ClassificationModelLwc extends LightningElement {
             return `${label} not available`;
         }
         return `${label} ${this.predictionNumber}`;
+    }
+
+    get hasFactorRows() {
+        return this.processedFactors.length > 0;
+    }
+
+    get hasRecommendationRows() {
+        return this.processedRecommendations.length > 0;
     }
 
     get processedFactors() {
@@ -539,6 +548,21 @@ export default class ClassificationModelLwc extends LightningElement {
             return;
         }
         const mode = (this._themeMode || 'default').toLowerCase();
+        // Cache key includes target count so we re-apply once when the .lwc-shell node
+        // first appears in the DOM (initial render after connectedCallback).
+        const key = [
+            mode,
+            this.accentColor || '',
+            this.warningColor || '',
+            this.negativeColor || '',
+            this.summaryAndLabelTextColor || '',
+            String(this.summaryTextSizePercent ?? ''),
+            String(targets.length)
+        ].join('|');
+        if (key === this._lastAppliedThemeKey) {
+            return;
+        }
+        this._lastAppliedThemeKey = key;
         const tokens = THEMES[mode] || THEMES.default;
         const applyTo = (node) => {
             Object.entries(tokens).forEach(([prop, value]) => {
@@ -584,17 +608,23 @@ export default class ClassificationModelLwc extends LightningElement {
         }
     }
 
-    get themeBtn_obsidian() {
-        return 'pm-theme-btn pm-tb-obsidian' + (this._themeMode === 'obsidian' ? ' pm-tb-active' : '');
-    }
-    get themeBtn_midnight() {
-        return 'pm-theme-btn pm-tb-midnight' + (this._themeMode === 'midnight' ? ' pm-tb-active' : '');
-    }
-    get themeBtn_graphite() {
-        return 'pm-theme-btn pm-tb-graphite' + (this._themeMode === 'graphite' ? ' pm-tb-active' : '');
-    }
-    get themeBtn_ivory() {
-        return 'pm-theme-btn pm-tb-ivory' + (this._themeMode === 'ivory' ? ' pm-tb-active' : '');
+    get themeButtons() {
+        const presets = [
+            { name: 'obsidian', glyph: '◑' },
+            { name: 'midnight', glyph: '●' },
+            { name: 'graphite', glyph: '◐' },
+            { name: 'ivory', glyph: '○' }
+        ];
+        return presets.map((p) => {
+            const active = this._themeMode === p.name;
+            return {
+                key: p.name,
+                name: p.name,
+                glyph: p.glyph,
+                title: p.name.charAt(0).toUpperCase() + p.name.slice(1),
+                class: 'pm-theme-btn pm-tb-' + p.name + (active ? ' pm-tb-active' : '')
+            };
+        });
     }
 
     refreshData() {
@@ -979,6 +1009,9 @@ export default class ClassificationModelLwc extends LightningElement {
         let n = String(name).trim();
         n = this.stripCustomFieldSuffixes(n);
         n = n.replace(/_/g, ' ');
+        // Split camelCase / PascalCase: "customerLifetimeValue" → "customer Lifetime Value",
+        // "ARRGrowth" → "ARR Growth". Two passes handle adjacent acronym + word.
+        n = n.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
         return n.replace(/\s+/g, ' ').trim();
     }
 

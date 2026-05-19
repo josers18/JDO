@@ -7,42 +7,18 @@
                     <div class="pm-theme-switcher">
                         <span class="pm-theme-lbl">Theme</span>
                         <div class="pm-theme-btns">
-                            <button
-                                type="button"
-                                class={themeBtn_obsidian}
-                                data-theme="obsidian"
-                                onclick={handleThemeSwitch}
-                                title="Obsidian"
-                            >
-                                ◑
-                            </button>
-                            <button
-                                type="button"
-                                class={themeBtn_midnight}
-                                data-theme="midnight"
-                                onclick={handleThemeSwitch}
-                                title="Midnight"
-                            >
-                                ●
-                            </button>
-                            <button
-                                type="button"
-                                class={themeBtn_graphite}
-                                data-theme="graphite"
-                                onclick={handleThemeSwitch}
-                                title="Graphite"
-                            >
-                                ◐
-                            </button>
-                            <button
-                                type="button"
-                                class={themeBtn_ivory}
-                                data-theme="ivory"
-                                onclick={handleThemeSwitch}
-                                title="Ivory"
-                            >
-                                ○
-                            </button>
+                            <template for:each={themeButtons} for:item="btn">
+                                <button
+                                    key={btn.key}
+                                    type="button"
+                                    class={btn.class}
+                                    data-theme={btn.name}
+                                    onclick={handleThemeSwitch}
+                                    title={btn.title}
+                                >
+                                    {btn.glyph}
+                                </button>
+                            </template>
                         </div>
                     </div>
                 </template>
@@ -151,7 +127,7 @@
                 <div class="lwc-right-col">
                     <section class="predict-section" aria-labelledby="factors-heading">
                         <span id="factors-heading" class="section-label">{factorsSectionTitleDisplay}</span>
-                        <template lwc:if={processedFactors.length}>
+                        <template lwc:if={hasFactorRows}>
                             <template for:each={processedFactors} for:item="item">
                                 <div key={item.key} class="factor-row">
                                     <span class={item.deltaClass}>{item.formattedPercent}</span>
@@ -176,7 +152,7 @@
 
                     <section class="improve-section" aria-labelledby="recs-heading">
                         <span id="recs-heading" class="section-label">{recommendationsSectionTitleDisplay}</span>
-                        <template lwc:if={processedRecommendations.length}>
+                        <template lwc:if={hasRecommendationRows}>
                             <template for:each={processedRecommendations} for:item="item">
                                 <div key={item.key} class="factor-row">
                                     <span class={item.deltaClass}>{item.formattedPercent}</span>
