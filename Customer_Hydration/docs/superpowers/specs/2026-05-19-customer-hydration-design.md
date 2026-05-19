@@ -479,7 +479,7 @@ Estimated wall-clock: ~50 min. Estimated storage: ~1.7 GB. **This will exceed De
 
 ## §4 Data flow, load order, and post-load wireup
 
-### Six-phase pipeline
+### Seven-phase pipeline
 
 | Phase | Purpose |
 |---|---|
@@ -489,6 +489,7 @@ Estimated wall-clock: ~50 min. Estimated storage: ~1.7 GB. **This will exceed De
 | 3 | Resolve native-lineage parent Ids via `SELECT Id, LegacyId__c` query-back |
 | 4 | Bulk load native lineage (Waves F–G) |
 | 5 | Apex post-load wireup (rollups, Group Builder, denormalized flags) |
+| 5.5 | **Data Cloud stream refresh** — discover Data Streams whose source object matches a hydrated object, trigger run on each, log run Ids (fire-and-forget) |
 | 6 | Verify + write manifest + regenerate banker briefs |
 
 ### Wave dependency
@@ -573,6 +574,92 @@ Resume rules:
 
 All SOQL uses `WITH USER_MODE`. The script is idempotent — re-running completes rollups for any new accounts.
 
+### Phase 5.5 — Data Cloud stream refresh (fire-and-forget)
+
+After Phase 5 settles, kick the org's existing Data Cloud Data Streams that ingest from any object Phase 1 hydrated, so the rows propagate to DLOs without anyone clicking around in Setup. Phase 1 does **not** wait for streams to complete — it logs the run Ids and exits, keeping wall-clock time predictable. A separate `dc-status` subcommand polls the run state on demand.
+
+**Object → stream discovery rule.** The orchestrator queries the org's existing Data Streams via the Data Cloud REST API (`/services/data/vXX.0/ssot/data-streams` or the equivalent `sf data360` introspection), reads each stream's source object name, and triggers a refresh on any stream whose source matches one of:
+
+```
+Account
+Contact
+Opportunity
+Case
+Task
+Event
+Campaign
+CampaignMember
+AccountContactRelation
+FinServ__FinancialAccount__c
+FinServ__FinancialAccountRole__c
+FinServ__Card__c
+FinServ__FinancialHolding__c
+FinServ__FinancialGoal__c
+FinServ__LifeEvent__c
+FinServ__BusinessMilestone__c
+FinancialAccount                  (native)
+FinancialAccountParty             (native)
+FinancialGoal                     (native)
+BusinessMilestone                 (native)
+PartyRelationshipGroup            (native)
+PartyProfile                      (native)
+ContactPointAddress               (native)
+ContactPointEmail                 (native)
+ContactPointPhone                 (native)
+```
+
+Streams sourced from objects NOT in this list are left alone (e.g., a stream sourced from `User` or some unrelated custom object).
+
+**Trigger mechanism.** For each matching stream, POST to the stream's "run now" REST endpoint. Capture the returned run Id. If a stream is already running when we POST, that's logged as a benign no-op (don't fail the hydration over it).
+
+**Authentication.** Uses the same `sf` CLI session (`sf org open --target-org $TARGET_ORG --json` or `sf org display --json --verbose` to grab the session token). No additional credentials.
+
+**Production guard.** Phase 5.5 honors `--allow-production` — without it, refuses to trigger streams in a non-sandbox org.
+
+**Resilience.** A single stream-trigger failure (HTTP 4xx/5xx, stream disabled, etc.) is logged and skipped — Phase 1 still exits 0 if hydration itself succeeded. Phase 5.5 failures are listed in the manifest under `data_cloud_stream_failures`.
+
+**Skip flags.**
+- `--skip-data-cloud` — skip Phase 5.5 entirely (useful in scratch orgs without Data Cloud configured, or for fast iteration)
+- `--data-cloud-only` — skip Phases 0–5, run Phase 5.5 only (useful for "data is loaded but I forgot to refresh")
+
+**Manifest output.** Phase 5.5 appends to `output/run-{ts}/manifest.json`:
+
+```json
+{
+  "data_cloud_stream_refresh": {
+    "started_at": "2026-05-19T15:18:42Z",
+    "streams_discovered": 14,
+    "streams_matched_to_hydrated_objects": 11,
+    "streams_triggered": 11,
+    "stream_runs": [
+      {"stream_api_name": "Account_DataStream", "source_object": "Account",
+       "run_id": "0lN...", "status": "InProgress", "triggered_at": "..."},
+      ...
+    ],
+    "stream_trigger_failures": []
+  }
+}
+```
+
+**`dc-status` subcommand.** A new top-level subcommand reads `output/run-{ts}/manifest.json` (latest, or `--run-id` flag), polls each stream-run via the Data Cloud REST API, and prints:
+
+```
+Customer_Hydration  ·  Data Cloud stream status
+Run: run-2026-05-19T1430  ·  triggered 22 min ago
+─────────────────────────────────────────────────────────────────────────
+Stream                              Source                  Status      Rows
+Account_DataStream                  Account                 Success    14,012
+Contact_DataStream                  Contact                 Success    10,387
+FinancialAccount_DataStream         FinServ__FinancialAcc.. Success    50,114
+Case_DataStream                     Case                    InProgress 60,000 / 80,142
+Task_DataStream                     Task                    Success   120,000
+...
+─────────────────────────────────────────────────────────────────────────
+9 of 11 streams complete · 2 in progress · 0 failed
+```
+
+The plan that builds this phase will pick the exact REST endpoints (Data Cloud has historically had two API surfaces: the `ssot` namespace and the newer `data-streams` namespace; the implementation will probe both and lock in the one that works in the target org), but the contract is fixed: discover, trigger, log, exit; status visible via `dc-status`.
+
 ### Error reporting
 
 End-of-run terminal summary:
@@ -588,12 +675,15 @@ Wave D  FA + Card + Goal + ...        loaded 122,910 ·  failed 0    ·  9m 04s
 Wave E  Holding + Role + Case + Task  loaded 437,118 ·  failed 12   ·  18m 33s
 Wave F  Native FA + Goal + Milestone  loaded 89,000  ·  failed 0    ·  6m 12s
 Wave G  Party + ContactPoint          loaded 100,000 ·  failed 0    ·  4m 47s
+Phase 5.5  Data Cloud streams        triggered 11   ·  failed 0    ·  0m 14s
 --------------------------------------------------------------------------
-TOTAL   880,442 records loaded · 12 failures · 49m 17s wall-clock
+TOTAL   880,442 records loaded · 11 DC streams triggered · 12 failures · 49m 31s wall-clock
 ==========================================================================
+
+Stream completion is asynchronous. Run `python hydrate.py dc-status` to check.
 ```
 
-Failures cause exit code 2. Zero failures, exit 0.
+Failures cause exit code 2. Zero failures, exit 0. Phase 5.5 stream-trigger failures do NOT cause non-zero exit (they're logged in manifest); only hydration-load failures do.
 
 ---
 
@@ -609,6 +699,7 @@ Subcommands:
   briefs                     Regenerate banker brief MD files from current org state
   reset                      Wipe HYDRATE-* records (with --confirm)
   status                     Show what's in the org under the HYDRATE-* namespace
+  dc-status                  Poll Data Cloud stream-run state from the latest manifest
   validate-config            Lint config/*.yaml without touching the org
   resume                     Continue an interrupted run from its checkpoint
 ```
@@ -638,6 +729,8 @@ Subcommands:
   --parallel N               Concurrent bulk-load jobs per wave (default 4)
   --skip-natives             Legacy lineage only — skip native FSC mirrors
   --skip-apex-wireup         Skip Phase 5
+  --skip-data-cloud          Skip Phase 5.5 (stream refresh)
+  --data-cloud-only          Skip Phases 0–5; run Phase 5.5 only
   --personas LIST            "retail,wealth" — limit to subset
   --waves LIST               "A,B,C,D,E" — limit to specific waves (debug)
   --persona-density LEVEL    light|medium|heavy (default heavy)
@@ -648,6 +741,14 @@ Subcommands:
 ```
   --output PATH              Default: ../docs/briefs/
   --rm "Name"                Generate brief for a single banker only
+```
+
+### `dc-status` subcommand options
+
+```
+  --run-id ID                Manifest to read (default: latest run in output/)
+  --json                     Machine-readable output for scripting
+  --watch                    Poll every 30s until all streams complete or fail
 ```
 
 ### `reset` subcommand options
@@ -704,9 +805,9 @@ Subcommands:
 
 ### Deliverables checklist
 
-**Code:** `hydrate.py`, `generators/*.py`, `config/{personas,product_catalog,rm_pool,holding_universe}.yaml`, `apex/post_load_wireup.apex`, `force-app/` for new `External_ID__c` field on legacy BusinessMilestone, `requirements.txt`.
+**Code:** `hydrate.py`, `generators/*.py`, `config/{personas,product_catalog,rm_pool,holding_universe}.yaml`, `apex/post_load_wireup.apex`, `force-app/` for new `External_ID__c` field on legacy BusinessMilestone, `data_cloud/` (Phase 5.5 stream-trigger client), `requirements.txt`.
 
-**Tests:** `test_generators.py`, `test_internal_consistency.py`, `test_idempotency.py`, `test_reset.py`, frozen CSV fixtures.
+**Tests:** `test_generators.py`, `test_internal_consistency.py`, `test_idempotency.py`, `test_reset.py`, `test_data_cloud_trigger.py` (mocked REST client), frozen CSV fixtures.
 
 **Documentation:** `README.md`, `AGENTS.md`, `CLAUDE.md` shim, `artifacts.md`, `docs/INDEX.md`, `docs/ARCHITECTURE.md`, `docs/PERSONA_PROFILES.md`, `docs/DATA_MODEL.md`, `docs/HOW_TO.md`, `docs/BANKER_BRIEFS.md`, `docs/briefs/{6 banker briefs}.md`, `docs/IDEMPOTENCY.md`, `docs/TROUBLESHOOTING.md`.
 
@@ -757,11 +858,15 @@ Any Apex SOQL we ship MUST use WITH USER_MODE. The hydration runner is
 admin-context.
 
 ### Phase 1 vs Phase 2 boundary
-Phase 1 covers customers + related CRM data + CRM campaigns. Phase 2
-(separate spec) covers Data Cloud DLO/DMO mapping, Identity Resolution,
-Calculated Insights, segments, activations, and FinancialAccountTransaction
-ingestion. If a request mentions Data Cloud segmentation, transaction
-streams, or activations, that's Phase 2.
+Phase 1 covers customers + related CRM data + CRM campaigns + triggering
+the org's existing Data Cloud Data Streams that ingest from hydrated
+objects (Phase 5.5 — fire-and-forget). Phase 2 (separate spec) covers
+Data Cloud DLO/DMO MAPPING (i.e., creating new streams + DMO definitions),
+Identity Resolution rulesets, Calculated Insights, segments, activations,
+and FinancialAccountTransaction ingestion. If a request mentions creating
+new streams/DMOs, segmentation, calculated insights, transaction shaping,
+or activations, that's Phase 2. If a request is "the streams already exist
+and I want to refresh them," that's Phase 1 §5.5.
 
 ## Banker briefs
 
@@ -836,7 +941,8 @@ The hydration is "done" when:
 7. Web_Engagements_RT_Timeline shows realistic activity for any HYDRATE-* customer (calendar-aware shape)
 8. DC_PersonProfileWidget and DC_BusinessProfileWidget show realistic rollups for HYDRATE-* customers
 9. All generator unit tests pass + all internal-consistency tests pass
-10. AGENTS.md is reviewed and a fresh AI agent can re-invoke the artifact correctly using only that file as context
+10. Phase 5.5 discovers and triggers all CRM-sourced Data Cloud streams in the target org; their run Ids are written to `manifest.json`; `python hydrate.py dc-status` reads the manifest and reports per-stream status
+11. AGENTS.md is reviewed and a fresh AI agent can re-invoke the artifact correctly using only that file as context
 
 ### Phase 2 explicit non-goals
 
