@@ -146,11 +146,21 @@ public with sharing class ClassificationModelLwcController {
                 return first.text;
             }
             return null;
+        } catch (ConnectApi.ConnectApiException e) {
+            // ConnectApi exception messages from EinsteinLLM are intended for the caller
+            // (e.g. "Prompt template not found", "Generation timed out") — safe to surface.
+            System.debug(LoggingLevel.ERROR, 'generateAnalysisSummary ConnectApiException: ' + e);
+            AuraHandledException ahe = new AuraHandledException(e.getMessage());
+            ahe.setMessage(e.getMessage());
+            throw ahe;
         } catch (Exception e) {
-            throw new AuraHandledException(
-                'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches. Details: ' +
-                e.getMessage()
-            );
+            // Anything else (TypeException, NoAccessException, internal platform errors)
+            // gets a sanitized message; full detail goes to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'generateAnalysisSummary unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            String safeMsg = 'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.';
+            AuraHandledException ahe = new AuraHandledException(safeMsg);
+            ahe.setMessage(safeMsg);
+            throw ahe;
         }
     }
 }

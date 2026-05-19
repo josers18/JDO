@@ -63,6 +63,7 @@ export default class ClassificationModelLwc extends LightningElement {
     @api gaugeSubtitle;
     @api gaugeGradientReverse;
     @api gaugeColorLow = '';
+    /** Reserved for a future 3-stop gradient mode. Solid arc only blends low → high (lerpColorHex). */
     @api gaugeColorMid = '';
     @api gaugeColorHigh = '';
     @api gaugeArcBadColor = '';
@@ -573,10 +574,15 @@ export default class ClassificationModelLwc extends LightningElement {
                     ? this.accentColor.trim()
                     : '#b8956a';
             node.style.setProperty('--wp-accent', accent);
-            if (accent.startsWith('#') && accent.length === 7) {
-                node.style.setProperty('--wp-accent-bg', accent + '14');
-                node.style.setProperty('--wp-accent-border', accent + '40');
-                node.style.setProperty('--wp-accent-dim', accent + '99');
+            // Strip alpha from #RRGGBBAA so the derived bg/border/dim tokens still apply.
+            const accentRgb =
+                accent.startsWith('#') && (accent.length === 7 || accent.length === 9)
+                    ? accent.slice(0, 7)
+                    : null;
+            if (accentRgb) {
+                node.style.setProperty('--wp-accent-bg', accentRgb + '14');
+                node.style.setProperty('--wp-accent-border', accentRgb + '40');
+                node.style.setProperty('--wp-accent-dim', accentRgb + '99');
             }
             if (this.warningColor && this.warningColor !== '#d4900a') {
                 node.style.setProperty('--wp-warning', this.warningColor);
@@ -761,10 +767,6 @@ export default class ClassificationModelLwc extends LightningElement {
             const safe = Number.isFinite(scale) ? Math.min(1, Math.max(0, scale)) : 0;
             el.style.transition = reduced ? 'none' : BAR_TRANSITION;
             el.style.transform = 'scaleX(' + safe + ')';
-            const color = el.dataset.color;
-            if (color) {
-                el.style.background = color;
-            }
         });
     }
 
@@ -859,10 +861,9 @@ export default class ClassificationModelLwc extends LightningElement {
             }
             const activeKey = this.normalizeHexColorForCompare(activeColor);
             const deltaClass = activeKey === riskKey ? 'delta-risk' : 'delta-good';
-            const barStyle = 'background: ' + activeColor;
+            const barStyle = '--row-color:' + activeColor;
             return {
                 ...row,
-                activeColor,
                 barStyle,
                 deltaClass
             };
@@ -1018,7 +1019,10 @@ export default class ClassificationModelLwc extends LightningElement {
     stripCustomFieldSuffixes(apiName) {
         let n = apiName;
         const suffixes = ['_c__c', '__c', '__r', '_c'];
-        for (let pass = 0; pass < 6; pass++) {
+        // Two passes covers every real Salesforce field name:
+        // pass 1 strips the outer suffix (e.g. "__r" from a relationship), pass 2
+        // strips an underlying "__c" if the relationship target was custom.
+        for (let pass = 0; pass < 2; pass++) {
             let stripped = false;
             const lower = n.toLowerCase();
             for (const suf of suffixes) {

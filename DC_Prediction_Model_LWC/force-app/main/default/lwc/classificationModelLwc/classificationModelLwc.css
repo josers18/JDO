@@ -274,6 +274,7 @@
     transform: scaleX(0);
     transform-origin: left center;
     will-change: transform;
+    background: var(--row-color, var(--lwc-model-delta-good, #1d9e75));
 }
 
 .factor-label {
