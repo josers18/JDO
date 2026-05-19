@@ -116,15 +116,25 @@ export default class ClassificationModelLwc extends LightningElement {
 
     _recordId;
     _gaugeRafId;
+    _animationPending = false;
+    _isConnected = false;
 
     @api
     get recordId() {
         return this._recordId;
     }
 
+    /**
+     * LWC may fire @api setters before connectedCallback and may re-fire with the same
+     * value during reactive updates. Defer the initial refresh to connectedCallback and
+     * skip no-op re-sets so we don't double-invoke the Flow.
+     */
     set recordId(value) {
+        if (this._recordId === value) {
+            return;
+        }
         this._recordId = value;
-        if (value) {
+        if (value && this._isConnected) {
             this.refreshData();
         }
     }
@@ -171,10 +181,6 @@ export default class ClassificationModelLwc extends LightningElement {
         return this.predictionNumber != null;
     }
 
-    get hasPredictionScore() {
-        return this.hasPredictionValue;
-    }
-
     get resolvedCurrencyCode() {
         const c = (this.currencyCode || 'USD').trim().toUpperCase();
         return /^[A-Z]{3}$/.test(c) ? c : 'USD';
@@ -192,9 +198,7 @@ export default class ClassificationModelLwc extends LightningElement {
         if (this.predictionFormatKey === 'integer') {
             return 0;
         }
-        const min = this.clampedMinFractionDigits;
-        const max = Math.max(min, this.clampedMaxFractionDigits);
-        return min;
+        return this.clampedMinFractionDigits;
     }
 
     get numericMaximumFractionDigits() {
@@ -224,18 +228,6 @@ export default class ClassificationModelLwc extends LightningElement {
             return `${label} not available`;
         }
         return `${label} ${this.predictionNumber}`;
-    }
-
-    get factorRows() {
-        return this.parseInsightRows(this.factorsJson, 'factor', this.factorsPositiveMeansGood === true);
-    }
-
-    get recommendationRows() {
-        return this.parseInsightRows(
-            this.recommendationsJson,
-            'recommendation',
-            this.recommendationsPositiveMeansGood === true
-        );
     }
 
     get processedFactors() {
@@ -480,18 +472,23 @@ export default class ClassificationModelLwc extends LightningElement {
     }
 
     connectedCallback() {
+        this._isConnected = true;
         this.applyTheme();
-        /* eslint-disable @lwc/lwc/no-async-operation -- re-apply theme after flexipage / first paint */
         requestAnimationFrame(() => {
             this.applyTheme();
             requestAnimationFrame(() => this.applyTheme());
         });
-        /* eslint-enable @lwc/lwc/no-async-operation */
         if (this._recordId) {
             this.refreshData();
         }
-        setTimeout(() => this.animateGauge(), 50);
-        setTimeout(() => this.animateBars(), 200);
+    }
+
+    disconnectedCallback() {
+        this._isConnected = false;
+        if (this._gaugeRafId != null) {
+            cancelAnimationFrame(this._gaugeRafId);
+            this._gaugeRafId = null;
+        }
     }
 
     renderedCallback() {
@@ -500,6 +497,21 @@ export default class ClassificationModelLwc extends LightningElement {
         if (arc) {
             arc.style.removeProperty('stroke');
         }
+        if (this._animationPending && this.hasData) {
+            this._animationPending = false;
+            requestAnimationFrame(() => {
+                this.animateGauge();
+                this.animateBars();
+            });
+        }
+    }
+
+    prefersReducedMotion() {
+        return (
+            typeof window !== 'undefined' &&
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        );
     }
 
     scheduleApplyTheme() {
@@ -585,11 +597,6 @@ export default class ClassificationModelLwc extends LightningElement {
         return 'pm-theme-btn pm-tb-ivory' + (this._themeMode === 'ivory' ? ' pm-tb-active' : '');
     }
 
-    schedulePostRenderAnimations() {
-        setTimeout(() => this.animateGauge(), 50);
-        setTimeout(() => this.animateBars(), 200);
-    }
-
     refreshData() {
         this.errorMessage = undefined;
         this.summaryText = undefined;
@@ -626,7 +633,7 @@ export default class ClassificationModelLwc extends LightningElement {
             );
         } finally {
             this.loadingFlow = false;
-            Promise.resolve().then(() => this.schedulePostRenderAnimations());
+            this._animationPending = true;
         }
 
         if (!this.errorMessage && this.hasPromptTemplate && this.autoGenerateSummary !== false) {
@@ -683,6 +690,13 @@ export default class ClassificationModelLwc extends LightningElement {
                 ? Math.min(100, Math.max(0, this.scorePercentRounded))
                 : 0;
         const targetOffset = GAUGE_CIRC - (score / 100) * GAUGE_CIRC;
+
+        if (this.prefersReducedMotion()) {
+            arc.style.strokeDasharray = String(GAUGE_CIRC);
+            arc.style.strokeDashoffset = String(targetOffset);
+            return;
+        }
+
         const startOffset = GAUGE_CIRC;
         let startTime = null;
 
@@ -710,11 +724,12 @@ export default class ClassificationModelLwc extends LightningElement {
 
     animateBars() {
         const fills = this.template.querySelectorAll('.bar-fill');
+        const reduced = this.prefersReducedMotion();
         fills.forEach((el) => {
             const raw = el.getAttribute('data-scale');
             const scale = raw != null && raw !== '' ? Number(raw) : 0;
             const safe = Number.isFinite(scale) ? Math.min(1, Math.max(0, scale)) : 0;
-            el.style.transition = BAR_TRANSITION;
+            el.style.transition = reduced ? 'none' : BAR_TRANSITION;
             el.style.transform = 'scaleX(' + safe + ')';
             const color = el.dataset.color;
             if (color) {
@@ -890,10 +905,6 @@ export default class ClassificationModelLwc extends LightningElement {
             r.barScale = maxAbs > 0 ? abs / maxAbs : 0;
         });
         return rows;
-    }
-
-    parseInsightRows(jsonString, kind, _positiveMeansGood) {
-        return this.buildInsightRowsFromArray(this.parseJsonToInsightArray(jsonString), kind);
     }
 
     buildInsightRowsFromArray(arr, kind) {
