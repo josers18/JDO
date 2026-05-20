@@ -75,15 +75,19 @@
 }
 
 .stream-head {
+    /* Title and metadata stack vertically: title can wrap freely; metadata strip
+       (source tag · timestamp) sits underneath without competing for horizontal space. */
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .stream-title {
     display: flex;
-    align-items: center;
+    /* flex-start keeps the icon top-aligned with the first line of a wrapped title rather
+       than drifting to the visual center of a 2-3 line block. lightning-icon has no
+       meaningful text-baseline since it's an SVG, so flex-start is the predictable choice. */
+    align-items: flex-start;
     gap: 6px;
     flex: 1;
     min-width: 0;
@@ -96,9 +100,12 @@
 .stream-title-text {
     font-weight: 600;
     color: var(--slds-g-color-neutral-base-15, #181818);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    /* Wrap long page titles instead of truncating with an ellipsis. overflow-wrap: anywhere
+       lets very long single tokens (e.g. an unbroken URL fragment) break inside the word
+       so they can't push the row wider than its container. */
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.3;
 }
 
 .stream-source-tag {
@@ -110,10 +117,20 @@
 }
 
 .stream-meta {
+    /* Sub-row below the title containing source tag · date. flex-wrap allows the date to
+       drop to its own line on extremely narrow cards rather than overflowing. */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
     color: var(--slds-g-color-neutral-base-50, #747474);
     font-size: 11px;
-    white-space: nowrap;
-    flex-shrink: 0;
+}
+
+.stream-meta-sep {
+    color: var(--slds-g-color-neutral-base-50, #747474);
+    /* Decorative middot — aria-hidden in the template so screen readers skip it. */
+    user-select: none;
 }
 
 .stream-sub {

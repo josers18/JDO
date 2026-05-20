@@ -83,9 +83,10 @@
                                                         class="stream-icon">
                                         </lightning-icon>
                                         <span class="stream-title-text">{event.title}</span>
-                                        <span class="stream-source-tag">{event.sourceLabel}</span>
                                     </div>
                                     <div class="stream-meta">
+                                        <span class="stream-source-tag">{event.sourceLabel}</span>
+                                        <span class="stream-meta-sep" aria-hidden="true">·</span>
                                         <lightning-formatted-date-time
                                             value={event.occurredAt}
                                             year="numeric"
