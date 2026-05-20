@@ -48,6 +48,8 @@
     flex-shrink: 0;
 }
 
+/* Documented SLDS styling hooks for lightning-icon — these are the public
+   --slds-c-* namespace, not the internal --lwc-* tokens (which would compile-fail). */
 .title-icon {
     --slds-c-icon-color-foreground: #ffffff;
     --slds-c-icon-color-foreground-default: #ffffff;

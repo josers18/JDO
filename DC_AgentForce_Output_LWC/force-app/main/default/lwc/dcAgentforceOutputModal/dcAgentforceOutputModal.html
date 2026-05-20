@@ -11,7 +11,7 @@
         <template lwc:if={showPlainOutput}>
             <div class="modal-output">{outputText}</div>
         </template>
-        <template lwc:if={showRichOutput}>
+        <template lwc:elseif={showRichOutput}>
             <div class="modal-output modal-output--rich">
                 <lightning-formatted-rich-text value={renderedRichHtml}></lightning-formatted-rich-text>
             </div>

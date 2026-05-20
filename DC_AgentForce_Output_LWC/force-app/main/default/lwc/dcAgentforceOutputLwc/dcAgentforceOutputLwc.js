@@ -6,6 +6,12 @@ import submitGenerationFeedback from '@salesforce/apex/DcAgentforceOutputControl
 import markedUrl from '@salesforce/resourceUrl/marked';
 import DcAgentforceOutputModal from 'c/dcAgentforceOutputModal';
 import DcAgentforceCopyModal from 'c/dcAgentforceCopyModal';
+import {
+    writeClipboard,
+    buildPrintHtml,
+    tryPrintWithIframe,
+    tryPrintWithBlobUrl
+} from 'c/dcAgentforceClipboardPrint';
 
 export default class DcAgentforceOutputLwc extends LightningElement {
     @api cardTitle = 'Generative output';
@@ -201,6 +207,10 @@ export default class DcAgentforceOutputLwc extends LightningElement {
         if (fmt === 'markdown') {
             try {
                 await this.ensureMarked();
+                // marked.parse output is rendered through lightning-formatted-rich-text,
+                // which applies the SLDS-documented HTML allowlist (same as the rich-text
+                // editor toolbar). Do NOT switch this to lwc:dom="manual" without first
+                // adding DOMPurify — bare marked.parse has no built-in sanitizer.
                 this.renderedRichHtml =
                     typeof window.marked !== 'undefined' && typeof window.marked.parse === 'function'
                         ? window.marked.parse(raw, { breaks: true, headerIds: false, mangle: false })
@@ -289,35 +299,6 @@ export default class DcAgentforceOutputLwc extends LightningElement {
         }
     }
 
-    escapeForHtml(s) {
-        return String(s)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    buildPrintHtml(title, body, effectiveFormat, richHtml) {
-        const t = this.escapeForHtml(title);
-        const fmt = effectiveFormat || 'text';
-        const rich = richHtml || '';
-        let bodyBlock;
-        if (fmt === 'text') {
-            bodyBlock = '<pre>' + this.escapeForHtml(body) + '</pre>';
-        } else {
-            bodyBlock = '<div class="rich">' + rich + '</div>';
-        }
-        return (
-            '<!DOCTYPE html><html><head><meta charset="utf-8"/><title>' +
-            t +
-            '</title><style>body{font-family:system-ui,-apple-system,sans-serif;padding:24px;line-height:1.5;}h1{font-size:18px;margin-bottom:16px;}pre{white-space:pre-wrap;word-break:break-word;font-size:14px;}.rich{font-size:14px;line-height:1.55;}</style></head><body><h1>' +
-            t +
-            '</h1>' +
-            bodyBlock +
-            '</body></html>'
-        );
-    }
-
     openCopyFallbackModal(text, headerLabel) {
         DcAgentforceCopyModal.open({
             headerLabel: headerLabel || 'Copy text',
@@ -326,75 +307,13 @@ export default class DcAgentforceOutputLwc extends LightningElement {
         });
     }
 
-    copyWithTemplateTextarea(value) {
-        const ta = this.refs.copyBuffer;
-        if (!ta) {
-            return false;
-        }
-        try {
-            ta.removeAttribute('readonly');
-            ta.value = value;
-            ta.focus();
-            ta.select();
-            if (value.length > 0) {
-                ta.setSelectionRange(0, value.length);
-            }
-            const ok = document.execCommand('copy');
-            ta.value = '';
-            ta.setAttribute('readonly', '');
-            return !!ok;
-        } catch (ignore) {
-            try {
-                ta.value = '';
-                ta.setAttribute('readonly', '');
-            } catch (e2) {
-                // ignore
-            }
-            return false;
-        }
-    }
-
-    /**
-     * Clipboard API is often blocked in Lightning; use a declared textarea + execCommand before a dynamic node.
-     */
-    async writeClipboard(text) {
-        const value = text == null ? '' : String(text);
-        if (value.length === 0) {
-            throw new Error('Nothing to copy');
-        }
-        if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-            try {
-                await navigator.clipboard.writeText(value);
-                return;
-            } catch (ignore) {
-                // Lightning / iframe policies — try fallback
-            }
-        }
-        if (this.copyWithTemplateTextarea(value)) {
-            return;
-        }
-        const ta = document.createElement('textarea');
-        ta.value = value;
-        ta.setAttribute('readonly', '');
-        ta.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';
-        this.template.appendChild(ta);
-        ta.focus();
-        ta.select();
-        ta.setSelectionRange(0, value.length);
-        const ok = document.execCommand('copy');
-        this.template.removeChild(ta);
-        if (!ok) {
-            throw new Error('Copy command was rejected');
-        }
-    }
-
     async handleCopy() {
         const text = this.outputText || '';
         if (!text) {
             return;
         }
         try {
-            await this.writeClipboard(text);
+            await writeClipboard(this.template, this.refs.copyBuffer, text);
             this.dispatchEvent(
                 new ShowToastEvent({
                     title: 'Copied',
@@ -415,18 +334,18 @@ export default class DcAgentforceOutputLwc extends LightningElement {
         }
     }
 
-    handlePrintPdf() {
+    async handlePrintPdf() {
         const title = this.resolvedTitle;
         const body = this.outputText || '';
         if (!body) {
             return;
         }
-        const html = this.buildPrintHtml(title, body, this.effectiveOutputFormat, this.renderedRichHtml);
-        // Prefer iframe first — no pop-up; works more reliably in Lightning than about:blank + document.write.
-        if (this.tryPrintWithIframe(html)) {
+        const html = buildPrintHtml(title, body, this.effectiveOutputFormat, this.renderedRichHtml);
+        // Prefer iframe first — no pop-up; works more reliably in Lightning than a popup window.
+        if (await tryPrintWithIframe(this.template, html)) {
             return;
         }
-        if (this.tryPrintWithBlobUrl(html)) {
+        if (tryPrintWithBlobUrl(html)) {
             return;
         }
         this.dispatchEvent(
@@ -436,65 +355,6 @@ export default class DcAgentforceOutputLwc extends LightningElement {
                 variant: 'warning'
             })
         );
-    }
-
-    tryPrintWithBlobUrl(html) {
-        let url;
-        try {
-            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-            url = URL.createObjectURL(blob);
-            // Do not use noopener — it prevents a usable reference to call print() in some browsers.
-            const w = window.open(url, '_blank');
-            if (!w) {
-                URL.revokeObjectURL(url);
-                return false;
-            }
-            const cleanup = () => {
-                try {
-                    URL.revokeObjectURL(url);
-                } catch (ignore) {
-                    // ignore
-                }
-            };
-            const runPrint = () => {
-                try {
-                    w.focus();
-                    w.print();
-                } catch (ignore) {
-                    // ignore
-                }
-                window.setTimeout(cleanup, 120000);
-            };
-            window.setTimeout(runPrint, 300);
-            return true;
-        } catch (ignore) {
-            if (url) {
-                try {
-                    URL.revokeObjectURL(url);
-                } catch (e2) {
-                    // ignore
-                }
-            }
-            return false;
-        }
-    }
-
-    tryPrintWithIframe(html) {
-        const iframe = this.template.querySelector('[data-print-frame]');
-        if (!iframe || !iframe.contentWindow) {
-            return false;
-        }
-        try {
-            const doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write(html);
-            doc.close();
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            return true;
-        } catch (ignore) {
-            return false;
-        }
     }
 
     handleExpand() {

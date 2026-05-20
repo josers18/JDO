@@ -20,7 +20,7 @@
             <property name="flowApiName" type="String" label="Autolaunched Flow API name" default="DC_Agentforce_Output_Prompt"
                 description="API name of the autolaunched flow." />
             <property name="recordIdVariableName" type="String" label="Flow input: record variable" default="recordID"
-                description="API name of the Flow Record (single) input variable. Must match your flow exactly (including case). The variable’s object type must match the Lightning page’s object." />
+                description="API name of the Flow Record (single) input variable. Apex resolves it case-insensitively (tries exact → first-upper → all-lower), so 'recordId', 'RecordId', and 'recordID' all work. The variable’s object type must match the Lightning page’s object." />
             <property name="promptResponseVariableName" type="String" label="Flow output: response variable" default="promptResponse"
                 description="Text output variable to display. If the prompt action uses automatic output, add an Assignment that copies it into this variable." />
             <property name="generationIdVariableName" type="String" label="Flow output: generation Id variable" default=""

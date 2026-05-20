@@ -40,7 +40,7 @@
                     <template lwc:if={showPlainOutput}>
                         <div class="output-panel">{outputText}</div>
                     </template>
-                    <template lwc:if={showRichOutput}>
+                    <template lwc:elseif={showRichOutput}>
                         <div class="output-panel output-panel--rich">
                             <lightning-formatted-rich-text
                                 value={renderedRichHtml}

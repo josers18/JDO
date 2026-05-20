@@ -124,6 +124,12 @@ public with sharing class DcAgentforceOutputController {
         return null;
     }
 
+    /**
+     * Flow promptResponse should be Text. If a flow author wires the variable to a
+     * non-String (Number, Date, SObject), return null instead of a JSON-shaped string —
+     * the caller's "blank promptResponse" path produces a more accurate user message
+     * than dumping serialized JSON into the output panel.
+     */
     private static String flowOutputToDisplayString(Object value) {
         if (value == null) {
             return null;
@@ -131,11 +137,13 @@ public with sharing class DcAgentforceOutputController {
         if (value instanceof String) {
             return (String) value;
         }
-        try {
-            return JSON.serialize(value);
-        } catch (Exception e) {
-            return String.valueOf(value);
-        }
+        System.debug(
+            LoggingLevel.WARN,
+            'flowOutputToDisplayString: promptResponse variable is not a String (got '
+                + (value == null ? 'null' : String.valueOf(value).left(40)) + '...). '
+                + 'Wire the flow variable to a Text output.'
+        );
+        return null;
     }
 
     /**
@@ -154,6 +162,12 @@ public with sharing class DcAgentforceOutputController {
         return String.isBlank(s) ? null : s;
     }
 
+    /**
+     * Submits Models API thumbs feedback for a generation Id.
+     * `feedbackText` is hard-capped at 1024 chars — the LWC currently sends '' so this
+     * is dead-but-defensive. If a future caller passes a longer string, we throw rather
+     * than silently truncate (silent truncation surprised reviewers in design).
+     */
     @AuraEnabled
     public static void submitGenerationFeedback(String generationId, Boolean thumbsUp, String feedbackText) {
         if (String.isBlank(generationId)) {
@@ -162,7 +176,7 @@ public with sharing class DcAgentforceOutputController {
 
         String trimmed = feedbackText != null ? feedbackText.trim() : '';
         if (trimmed.length() > 1024) {
-            trimmed = trimmed.substring(0, 1024);
+            throw buildAuraException('Feedback text exceeds 1024 characters; please shorten and try again.');
         }
 
         String feedbackId = UUID.randomUUID().toString();
