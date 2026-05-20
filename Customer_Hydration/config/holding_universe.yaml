@@ -1,0 +1,49 @@
+# ~40 tickers spanning equities, ETFs, bonds. Plan 2 wealth holdings draw
+# from this universe deterministically based on seed + holding_idx.
+# Keep the file small (~40 entries) for now; Plan 3+ may expand.
+
+equities:
+  - {symbol: AAPL, name: Apple Inc.,                 asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Tech}
+  - {symbol: MSFT, name: Microsoft Corp.,            asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Tech}
+  - {symbol: GOOGL,name: Alphabet Inc.,              asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Tech}
+  - {symbol: AMZN, name: Amazon.com Inc.,            asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Consumer}
+  - {symbol: NVDA, name: NVIDIA Corp.,               asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Tech}
+  - {symbol: META, name: Meta Platforms Inc.,        asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Tech}
+  - {symbol: TSLA, name: Tesla Inc.,                 asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Consumer}
+  - {symbol: BRK.B,name: Berkshire Hathaway Class B, asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Financials}
+  - {symbol: JPM,  name: JPMorgan Chase & Co.,       asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Financials}
+  - {symbol: V,    name: Visa Inc.,                  asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Financials}
+  - {symbol: JNJ,  name: Johnson & Johnson,          asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Healthcare}
+  - {symbol: UNH,  name: UnitedHealth Group,         asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Healthcare}
+  - {symbol: PG,   name: Procter & Gamble,           asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Staples}
+  - {symbol: HD,   name: Home Depot Inc.,            asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Consumer}
+  - {symbol: XOM,  name: Exxon Mobil Corp.,          asset_class: Equity,    asset_category: Large Cap,        category_name: US Large Cap Energy}
+
+etfs:
+  - {symbol: SPY,  name: SPDR S&P 500 ETF Trust,                  asset_class: ETF,       asset_category: US Equity Index,        category_name: S&P 500}
+  - {symbol: VOO,  name: Vanguard S&P 500 ETF,                    asset_class: ETF,       asset_category: US Equity Index,        category_name: S&P 500}
+  - {symbol: VTI,  name: Vanguard Total Stock Market ETF,         asset_class: ETF,       asset_category: US Equity Total,        category_name: Total US Market}
+  - {symbol: QQQ,  name: Invesco QQQ Trust,                       asset_class: ETF,       asset_category: US Tech Index,          category_name: NASDAQ 100}
+  - {symbol: IWM,  name: iShares Russell 2000 ETF,                asset_class: ETF,       asset_category: US Small Cap,           category_name: Small Cap}
+  - {symbol: VEA,  name: Vanguard FTSE Developed Markets ETF,     asset_class: ETF,       asset_category: International Equity,   category_name: Developed Markets ex-US}
+  - {symbol: VWO,  name: Vanguard FTSE Emerging Markets ETF,      asset_class: ETF,       asset_category: Emerging Markets,       category_name: Emerging Markets}
+  - {symbol: BND,  name: Vanguard Total Bond Market ETF,          asset_class: ETF,       asset_category: US Aggregate Bond,      category_name: US Bonds}
+  - {symbol: TLT,  name: iShares 20+ Year Treasury Bond ETF,      asset_class: ETF,       asset_category: US Treasury Bond,       category_name: Long Term Treasuries}
+  - {symbol: AGG,  name: iShares Core US Aggregate Bond ETF,      asset_class: ETF,       asset_category: US Aggregate Bond,      category_name: US Bonds}
+  - {symbol: VGK,  name: Vanguard FTSE Europe ETF,                asset_class: ETF,       asset_category: International Equity,   category_name: Europe}
+  - {symbol: VNQ,  name: Vanguard Real Estate ETF,                asset_class: ETF,       asset_category: REIT,                   category_name: US Real Estate}
+  - {symbol: GLD,  name: SPDR Gold Shares,                        asset_class: ETF,       asset_category: Commodity,              category_name: Gold}
+
+mutual_funds:
+  - {symbol: VTSAX,name: Vanguard Total Stock Market Index Admiral, asset_class: Mutual Fund, asset_category: US Equity Total,    category_name: Total US Market}
+  - {symbol: VBTLX,name: Vanguard Total Bond Market Index Admiral,  asset_class: Mutual Fund, asset_category: US Aggregate Bond,  category_name: US Bonds}
+  - {symbol: FXAIX,name: Fidelity 500 Index,                        asset_class: Mutual Fund, asset_category: US Equity Index,    category_name: S&P 500}
+  - {symbol: FZROX,name: Fidelity Zero Total Market Index,          asset_class: Mutual Fund, asset_category: US Equity Total,    category_name: Total US Market}
+  - {symbol: VWELX,name: Vanguard Wellington,                       asset_class: Mutual Fund, asset_category: Balanced,           category_name: 60/40 Balanced}
+
+bonds:
+  - {symbol: T_5YR,  name: US Treasury 5-Year Note,    asset_class: Bond, asset_category: US Treasury,        category_name: Treasury Notes}
+  - {symbol: T_10YR, name: US Treasury 10-Year Note,   asset_class: Bond, asset_category: US Treasury,        category_name: Treasury Notes}
+  - {symbol: T_30YR, name: US Treasury 30-Year Bond,   asset_class: Bond, asset_category: US Treasury,        category_name: Treasury Bonds}
+  - {symbol: MUNI_CA,name: California Municipal Bond,  asset_class: Bond, asset_category: Muni,               category_name: State Munis}
+  - {symbol: MUNI_NY,name: New York Municipal Bond,    asset_class: Bond, asset_category: Muni,               category_name: State Munis}
