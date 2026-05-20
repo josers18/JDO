@@ -1633,19 +1633,29 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
     summaryError = null;
     activeTab = 'overview';
     _recordId;
+    _isConnected = false;
 
     @api
     get recordId() {
         return this._recordId;
     }
+    /**
+     * LWC may fire @api setters before connectedCallback and may re-fire with the same
+     * value during reactive updates. Identity-guard the no-op re-set, and defer the
+     * initial loadProfile() to connectedCallback so we don't double-invoke the Apex.
+     */
     set recordId(value) {
+        if (this._recordId === value) {
+            return;
+        }
         this._recordId = value;
-        if (value) {
+        if (value && this._isConnected) {
             this.loadProfile();
         }
     }
 
     connectedCallback() {
+        this._isConnected = true;
         this.applyTheme();
         // .wp-shell may not exist until after first paint; rAF re-applies after DOM is ready (live record pages).
         requestAnimationFrame(() => {
@@ -1656,6 +1666,11 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         if (this._recordId) {
             this.loadProfile();
         }
+    }
+
+    disconnectedCallback() {
+        // Lock out late @api setter calls firing after teardown.
+        this._isConnected = false;
     }
 
     renderedCallback() {

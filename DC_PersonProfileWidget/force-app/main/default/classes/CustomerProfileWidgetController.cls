@@ -342,8 +342,10 @@ public with sharing class CustomerProfileWidgetController {
             } catch (AuraHandledException e) {
                 throw e;
             } catch (Exception e) {
-                throw new AuraHandledException(
-                    'Profile assembly flow failed. Confirm autolaunched flow API name, inputs, and output map. ' + e.getMessage()
+                // Sanitize the user-facing message; full detail goes to debug logs only.
+                System.debug(LoggingLevel.ERROR, 'Profile assembly flow failed: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+                throw buildAuraException(
+                    'Profile assembly flow failed. Confirm autolaunched flow API name, inputs, and output map.'
                 );
             }
             result = mergeEnrichFull(result, core);
@@ -972,7 +974,7 @@ public with sharing class CustomerProfileWidgetController {
         String agentforceSummaryPromptInputApiName
     ) {
         if (String.isBlank(recordId)) {
-            throw new AuraHandledException('Record Id is required.');
+            throw buildAuraException('Record Id is required.');
         }
         String tmpl = sanitizeEinsteinTemplateRef(agentforceSummaryPromptTemplateId);
         if (String.isBlank(tmpl)) {
@@ -984,7 +986,7 @@ public with sharing class CustomerProfileWidgetController {
         try {
             rid = (Id) recordId;
         } catch (Exception badId) {
-            throw new AuraHandledException('Invalid record Id.');
+            throw buildAuraException('Invalid record Id.');
         }
         if (rid.getSobjectType() != Account.SObjectType && rid.getSobjectType() != Contact.SObjectType) {
             return JSON.serialize(
@@ -1217,6 +1219,21 @@ public with sharing class CustomerProfileWidgetController {
         return out;
     }
 
+    /**
+     * AuraHandledException surfaces a custom message to the LWC layer only when both
+     * the constructor argument AND setMessage() are populated; without setMessage()
+     * the JS toast falls back to a generic "Script-thrown exception" string.
+     * Mirror of the helper in DC_BusinessProfileWidget, DC_Prediction_Model_LWC,
+     * DC_Multiclass_Prediction_LWC, DC_Query_to_Table_LWC, DC_AgentForce_Output_LWC,
+     * and CrmTimelineController.
+     */
+    private static AuraHandledException buildAuraException(String msg) {
+        String safe = String.isBlank(msg) ? 'Operation failed.' : msg;
+        AuraHandledException ahe = new AuraHandledException(safe);
+        ahe.setMessage(safe);
+        return ahe;
+    }
+
     private without sharing class EinsteinOverviewConnectBridge {
         ConnectApi.EinsteinPromptTemplateGenerationsRepresentation generate(
             String promptTemplateId,
@@ -1271,10 +1288,16 @@ public with sharing class CustomerProfileWidgetController {
                 return stripClosingCourtesy(first.text);
             }
             return null;
+        } catch (ConnectApi.ConnectApiException e) {
+            // ConnectApi exception messages from EinsteinLLM are intended for the caller
+            // (e.g. "Prompt template not found", "Generation timed out") — safe to surface.
+            System.debug(LoggingLevel.ERROR, 'AI summary ConnectApiException: ' + e);
+            throw buildAuraException(e.getMessage());
         } catch (Exception e) {
-            throw new AuraHandledException(
-                'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches. Details: ' +
-                e.getMessage()
+            // Sanitize for the user; full detail goes to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'AI summary unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException(
+                'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.'
             );
         }
     }
@@ -1296,13 +1319,13 @@ public with sharing class CustomerProfileWidgetController {
         String predictionVariableName
     ) {
         if (String.isBlank(flowApiName) || String.isBlank(recordId)) {
-            throw new AuraHandledException('Signal gauge flow API name and record Id are required.');
+            throw buildAuraException('Signal gauge flow API name and record Id are required.');
         }
         Id rid;
         try {
             rid = (Id) recordId;
         } catch (Exception e) {
-            throw new AuraHandledException('Invalid record Id for signal gauge flow.');
+            throw buildAuraException('Invalid record Id for signal gauge flow.');
         }
         String recVar = String.isBlank(recordIdVariableName) ? 'recordId' : recordIdVariableName.trim();
         String predVar = String.isBlank(predictionVariableName) ? 'prediction' : predictionVariableName.trim();
@@ -1316,7 +1339,9 @@ public with sharing class CustomerProfileWidgetController {
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception e) {
-            throw new AuraHandledException('Signal gauge flow failed: ' + e.getMessage());
+            // Sanitize for the user; full detail goes to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'Signal gauge flow failed: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('Signal gauge flow failed. Check the configured flow API name and inputs; see debug logs for details.');
         }
         return out;
     }
@@ -1340,17 +1365,17 @@ public with sharing class CustomerProfileWidgetController {
         String invocableJsonOutputApiName
     ) {
         if (String.isBlank(recordId)) {
-            throw new AuraHandledException('Record Id is required.');
+            throw buildAuraException('Record Id is required.');
         }
         try {
             Id ridCheck = (Id) recordId;
             if (ridCheck == null) {
-                throw new AuraHandledException('Invalid record Id.');
+                throw buildAuraException('Invalid record Id.');
             }
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception badId) {
-            throw new AuraHandledException('Invalid record Id.');
+            throw buildAuraException('Invalid record Id.');
         }
         String cls = String.isBlank(invocableApexClassApiName) ? '' : invocableApexClassApiName.trim();
         if (String.isBlank(cls)) {
@@ -1359,12 +1384,12 @@ public with sharing class CustomerProfileWidgetController {
             return empty;
         }
         if (!isSafeInvocableConfigurationToken(cls)) {
-            throw new AuraHandledException('Invalid Apex class API name for unified relationships.');
+            throw buildAuraException('Invalid Apex class API name for unified relationships.');
         }
         String inName = String.isBlank(invocableRecordIdInputApiName) ? 'id' : invocableRecordIdInputApiName.trim();
         String outName = String.isBlank(invocableJsonOutputApiName) ? 'queryResultJSON' : invocableJsonOutputApiName.trim();
         if (!isSafeInvocableConfigurationToken(inName) || !isSafeInvocableConfigurationToken(outName)) {
-            throw new AuraHandledException('Invalid invocable variable API name for unified relationships.');
+            throw buildAuraException('Invalid invocable variable API name for unified relationships.');
         }
         UnifiedRelationshipsApexResult out = new UnifiedRelationshipsApexResult();
         try {
@@ -1382,7 +1407,7 @@ public with sharing class CustomerProfileWidgetController {
                 if (errs != null && !errs.isEmpty() && String.isNotBlank(errs[0].getMessage())) {
                     detail += ' ' + errs[0].getMessage();
                 }
-                throw new AuraHandledException(detail);
+                throw buildAuraException(detail);
             }
             Map<String, Object> outs = first.getOutputParameters();
             Object raw = null;
@@ -1408,7 +1433,9 @@ public with sharing class CustomerProfileWidgetController {
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception e) {
-            throw new AuraHandledException('Unified relationships Apex action failed: ' + e.getMessage());
+            // Sanitize for the user; full detail goes to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'Unified relationships Apex action failed: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('Unified relationships Apex action failed. Check the configured Apex class and invocable variable names; see debug logs for details.');
         }
         return out;
     }
@@ -2679,7 +2706,9 @@ public with sharing class CustomerProfileWidgetController {
             return Decimal.valueOf((Long) o);
         }
         if (o instanceof Double) {
-            return Decimal.valueOf((Double) o);
+            // Decimal.valueOf((Double) o) produces binary-float noise (e.g. 0.7 -> 0.6999...).
+            // Route through String.valueOf so the decimal representation survives intact.
+            return Decimal.valueOf(String.valueOf((Double) o));
         }
         if (o instanceof String) {
             return decValFromNumericText((String) o);
