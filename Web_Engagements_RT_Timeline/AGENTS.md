@@ -19,17 +19,16 @@ This component lives in the **JDO monorepo**. Sibling `DC_*_LWC` widgets exist b
 - **Jest** — `__tests__/` directory with `webEngagementData.test.js` (DOM-level coverage for chips, day groups, left-rail color) and `timelineMappers.test.js`
 - **CLI:** `sf` v2 only — never `sfdx` (deprecated; the JDO repo's PreToolUse hook will warn)
 
-## API version pinning (deliberate)
+## API version pinning
 
-Three different API version numbers appear in this project. **Don't normalize them without understanding why.**
+Two different API version numbers appear in this project. **Don't conflate them.**
 
 | Location | Value | Reason |
 |---|---|---|
-| `sfdx-project.json` `sourceApiVersion` | **62.0** | The default project pin; LWC engine features beyond 62.0 may not be available in templates. |
-| `webEngagementData.js-meta.xml` `apiVersion` | **65.0** | LWC bundle is bumped past project default to access engine features the bundle uses. |
-| `DataCloudWebEngagementController.cls` Data Graph callout URL | **v65.0** (`/services/data/v65.0/ssot/data-graphs/...`) | Pinned because the Data Graph endpoint shape changed between v65 and v66; bumping requires re-validating the response shape. |
+| `sfdx-project.json` `sourceApiVersion` AND every `*.cls-meta.xml` / `*.js-meta.xml` `apiVersion` | **66.0** | Aligned to the org (`jdo-fw51xz` runs 66.0). Bumped from 62.0 (project default) and 65.0 (per-artifact) on 2026-05-20 in commit `<TBD>` after a clean test pass (28/28 Jest, 39/39 Apex). |
+| `DataCloudWebEngagementController.cls` Data Graph callout URL | **v65.0** (`/services/data/v65.0/ssot/data-graphs/...`) | Pinned to v65 because the Data Graph endpoint shape changed between v65 and v66; bumping requires re-validating the response shape against `extractUnifiedIdFromQueryOutput`. **Different concern** from Apex/LWC source API version — this is a REST API route version, not a metadata version. |
 
-A future bump should: (1) re-test the `extractUnifiedIdFromQueryOutput` defensive-shape parser against the new API, (2) re-run the Jest suite, (3) re-test in a sandbox before promoting.
+The Data Graph URL bump is a separate, future change. It needs: (1) review of v66 Data Graph endpoint response schema, (2) update of `extractUnifiedIdFromQueryOutput` parser if the shape changed, (3) live-org integration test (the Jest tests mock the callout result so they won't catch shape changes).
 
 # Project structure
 
