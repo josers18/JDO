@@ -1634,6 +1634,8 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
     activeTab = 'overview';
     _recordId;
     _isConnected = false;
+    _animationPending = false;
+    _lastAppliedThemeKey = '';
 
     @api
     get recordId() {
@@ -1675,6 +1677,20 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
 
     renderedCallback() {
         this.scheduleApplyTheme();
+        if (this._animationPending) {
+            this._animationPending = false;
+            // RAF guarantees the new tab body is committed to the DOM before we
+            // query for .bar-fill nodes. No setTimeout needed.
+            requestAnimationFrame(() => this.animateBars());
+        }
+    }
+
+    prefersReducedMotion() {
+        return (
+            typeof window !== 'undefined' &&
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        );
     }
 
     ensureActiveTab() {
@@ -1714,6 +1730,34 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         }
 
         const mode = (this._themeMode || 'obsidian').toLowerCase();
+        // Cache key includes target count so the second-pass apply (after the .wp-shell
+        // node first appears in the DOM) is allowed through. Subsequent re-renders with
+        // unchanged inputs short-circuit, removing the per-render setProperty churn.
+        const key = [
+            mode,
+            this.accentColor || '',
+            this.accentColorSecondary || '',
+            this.warningColor || '',
+            this.negativeColor || '',
+            this.positiveColor || '',
+            this.headerGradientColor1 || '',
+            this.headerGradientColor2 || '',
+            this.backgroundPrimary || '',
+            this.backgroundSecondary || '',
+            this.textPrimary || '',
+            this.textSecondary || '',
+            this.textTertiary || '',
+            this.textColorPrimaryOverride || '',
+            this.textColorSecondaryOverride || '',
+            this.textColorTertiaryOverride || '',
+            String(this.textScalePercent ?? ''),
+            String(this.backgroundLightenPercent ?? ''),
+            String(targets.length)
+        ].join('|');
+        if (key === this._lastAppliedThemeKey) {
+            return;
+        }
+        this._lastAppliedThemeKey = key;
         const tokens = THEMES[mode] || THEMES.obsidian;
         const d = THEME_API_DEFAULTS;
 
@@ -1764,8 +1808,15 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 el.style.setProperty('--wp-warning', this.warningColor);
             }
 
-            const accForDeriv = String(effectiveAccent).trim();
-            if (accForDeriv.startsWith('#') && accForDeriv.length === 7) {
+            // Strip alpha from #RRGGBBAA so the derived bg/border/dim tokens still apply
+            // when designers paste 8-char hex from a color picker. Without this strip,
+            // the 8-char branch silently skipped the derivation.
+            const accForDerivRaw = String(effectiveAccent).trim();
+            const accForDeriv =
+                accForDerivRaw.startsWith('#') && (accForDerivRaw.length === 7 || accForDerivRaw.length === 9)
+                    ? accForDerivRaw.slice(0, 7)
+                    : null;
+            if (accForDeriv) {
                 el.style.setProperty('--wp-accent-bg', accForDeriv + '14');
                 el.style.setProperty('--wp-accent-border', accForDeriv + '40');
                 el.style.setProperty('--wp-accent-dim', accForDeriv + '99');
@@ -1861,10 +1912,10 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
             await this.loadAgentforceOverviewEinsteinIfNeeded();
             await this.loadUnifiedRelationshipsIfNeeded();
             void this.refreshSignalGaugeFlows();
-            // eslint-disable-next-line @lwc/lwc/no-async-operation
-            setTimeout(() => {
-                this.animateBars();
-            }, 400);
+            // Defer animation to renderedCallback once the new tab body is mounted —
+            // avoids @lwc/lwc/no-async-operation lint hit and the timing race against
+            // the LWC engine's batched re-render after profileData is reassigned.
+            this._animationPending = true;
             if (this.promptTemplateId && this.autoGenerateSummary !== false) {
                 this.loadSummary();
             }
@@ -2153,17 +2204,21 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         if (tab) {
             this.activeTab = tab;
             if (tab === 'insight' || tab === 'signals') {
-                // eslint-disable-next-line @lwc/lwc/no-async-operation
-                setTimeout(() => this.animateBars(), 80);
+                // The tab body re-renders with this.activeTab; renderedCallback fires the
+                // animation once the new template branch (with .bar-fill nodes) is mounted.
+                this._animationPending = true;
             }
         }
     }
 
     animateBars() {
+        const reduced = this.prefersReducedMotion();
         const fills = this.template.querySelectorAll('.wp-bar-fill, .wp-model-bar-fill');
         fills.forEach((el) => {
             const scale = el.dataset.scale || '0';
-            el.style.transition = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
+            // Honor OS-level reduced-motion preference (Accessibility > Display > Reduce Motion).
+            // Snap to final scale immediately rather than animating.
+            el.style.transition = reduced ? 'none' : 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
             el.style.transform = `scaleX(${scale})`;
         });
     }
