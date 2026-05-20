@@ -45,6 +45,33 @@
     border-color: var(--slds-g-color-accent-1, #0176d3);
 }
 
+/* Source-specific chips (Web/Case/Task/Event/Voice) inherit their color from
+   --chip-color, set inline by the JS getter. The `color-mix` call keeps the
+   off-state subtle: an 88%-white tint of the source color, with the source
+   color reserved for the border and text so the user can read the source at
+   a glance even when the chip is OFF. The active state inverts to a solid
+   fill, which is the conventional "selected" affordance. */
+.chip.chip--colored {
+    background: color-mix(in srgb, var(--chip-color) 12%, white);
+    color: var(--chip-color);
+    border-color: color-mix(in srgb, var(--chip-color) 35%, white);
+}
+
+.chip.chip--colored:hover {
+    background: color-mix(in srgb, var(--chip-color) 20%, white);
+}
+
+.chip.chip--colored.chip-on {
+    background: var(--chip-color);
+    color: var(--slds-g-color-neutral-base-100, #fff);
+    border-color: var(--chip-color);
+}
+
+.chip.chip--colored.chip-on:hover {
+    /* Slight darken on hover when active so the click affordance is felt. */
+    background: color-mix(in srgb, var(--chip-color) 88%, black);
+}
+
 .chip-count {
     margin-left: 4px;
     font-weight: 500;
@@ -69,9 +96,19 @@
 .stream-card {
     background: var(--slds-g-color-neutral-base-100, #fafafa);
     border-left: 3px solid var(--slds-g-color-border-base-4, #ddd);
+    /* Faint hairline divider between adjacent events in the same day group so the
+       stream reads as discrete cards rather than a single run-on block. SLDS's
+       border-base-4 token is the lightest semantic gray; the hex fallback matches. */
+    border-bottom: 1px solid var(--slds-g-color-border-base-4, #e5e5e5);
     border-radius: 0 4px 4px 0;
     padding: 8px 10px;
     margin-bottom: 6px;
+}
+
+/* The last card in a day group doesn't need a divider below it — the day-group
+   header (or the bottom of the feed) already provides separation. */
+.stream-card:last-child {
+    border-bottom: none;
 }
 
 .stream-head {

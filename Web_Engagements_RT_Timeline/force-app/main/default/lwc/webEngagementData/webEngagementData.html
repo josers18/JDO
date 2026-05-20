@@ -24,6 +24,7 @@
                 <template for:each={availableChips} for:item="chip">
                     <button key={chip.source}
                             class={chip.cssClass}
+                            style={chip.style}
                             data-source={chip.source}
                             type="button"
                             onclick={handleChipToggle}>

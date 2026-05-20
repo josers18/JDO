@@ -152,7 +152,10 @@ export default class WebEngagementData extends LightningElement {
             source: '__all__',
             label: 'All',
             count: total,
-            cssClass: 'chip ' + (allActive ? 'chip-on' : '')
+            cssClass: 'chip ' + (allActive ? 'chip-on' : ''),
+            // The "All" chip is intentionally neutral — it has no single source color,
+            // so its CSS falls back to the default chip styling without --chip-color.
+            style: ''
         });
 
         for (const s of SOURCE_ORDER) {
@@ -162,7 +165,12 @@ export default class WebEngagementData extends LightningElement {
                 source: s,
                 label: cfg.chipLabel,
                 count: counts[s],
-                cssClass: 'chip ' + (this.activeSourceFilters.has(s) ? 'chip-on' : '')
+                cssClass: 'chip chip--colored ' + (this.activeSourceFilters.has(s) ? 'chip-on' : ''),
+                // Inject the source color as a CSS custom property so the chip's CSS
+                // can use the same hex for tint, border, and active fill.
+                // SOURCE_CONFIG is the single source of truth for these colors —
+                // matches iconColor on each event, so chip ↔ left-rail ↔ icon agree.
+                style: `--chip-color: ${cfg.color};`
             });
         }
         return chips;
