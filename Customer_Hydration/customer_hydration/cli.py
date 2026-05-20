@@ -129,6 +129,6 @@ def _run_validate_config(args: argparse.Namespace) -> int:
 
 
 def _run_hydrate(args: argparse.Namespace) -> int:
-    """Plan 1: retail-only, single-RM-pool, no natives, no DC, no Apex wireup."""
-    from customer_hydration.runner_p1 import run_retail_only
-    return run_retail_only(args)
+    """Plan 2: all 4 personas, full child fanout, sequential bulk upsert."""
+    from customer_hydration.runner_p2 import run_all
+    return run_all(args)
