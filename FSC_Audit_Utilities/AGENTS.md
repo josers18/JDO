@@ -7,7 +7,7 @@ Everything here was built to resolve audit findings in `../audits/fsc-master-org
 # Tech stack
 
 - **Apex** — `with sharing` on every controller. Mostly `Database.Batchable` and `Schedulable` classes; one-time `runOnDemand()` entry points; partial-success DML with explicit failure logging.
-- **Salesforce DX** — `sourceApiVersion: 66.0` (intentionally newer than the `62.0` pin used by widget projects — FSC managed-package APIs benefit from the newer version). `sf` CLI v2.
+- **Salesforce DX** — `sourceApiVersion: 66.0`, aligned with the rest of the JDO LWC family (all bumped to 66.0 on 2026-05-20 in commits `b077f85` + `35517ed`). `sf` CLI v2.
 - **No LWC** — Apex-only. Custom objects, fields, and a permission set under `force-app/main/default/objects/` and `force-app/main/default/permissionsets/`.
 
 # Project structure

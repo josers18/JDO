@@ -25,7 +25,7 @@ Two different API version numbers appear in this project. **Don't conflate them.
 
 | Location | Value | Reason |
 |---|---|---|
-| `sfdx-project.json` `sourceApiVersion` AND every `*.cls-meta.xml` / `*.js-meta.xml` `apiVersion` | **66.0** | Aligned to the org (`jdo-fw51xz` runs 66.0). Bumped from 62.0 (project default) and 65.0 (per-artifact) on 2026-05-20 in commit `<TBD>` after a clean test pass (28/28 Jest, 39/39 Apex). |
+| `sfdx-project.json` `sourceApiVersion` AND every `*.cls-meta.xml` / `*.js-meta.xml` `apiVersion` | **66.0** | Aligned to the org (`jdo-fw51xz` runs 66.0). Bumped from 62.0 (project default) and 65.0 (per-artifact) on 2026-05-20 in commit `b077f85` after a clean test pass (28/28 Jest, 39/39 Apex). |
 | `DataCloudWebEngagementController.cls` Data Graph callout URL | **v65.0** (`/services/data/v65.0/ssot/data-graphs/...`) | Pinned to v65 because the Data Graph endpoint shape changed between v65 and v66; bumping requires re-validating the response shape against `extractUnifiedIdFromQueryOutput`. **Different concern** from Apex/LWC source API version — this is a REST API route version, not a metadata version. |
 
 The Data Graph URL bump is a separate, future change. It needs: (1) review of v66 Data Graph endpoint response schema, (2) update of `extractUnifiedIdFromQueryOutput` parser if the shape changed, (3) live-org integration test (the Jest tests mock the callout result so they won't catch shape changes).
