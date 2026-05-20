@@ -25,7 +25,7 @@ public with sharing class DcAgentforceOutputController {
         String generationIdVariableName
     ) {
         if (String.isBlank(flowApiName)) {
-            throw new AuraHandledException('Autolaunched Flow API name is required.');
+            throw buildAuraException('Autolaunched Flow API name is required.');
         }
 
         String recordVar = String.isBlank(recordIdVariableName) ? 'recordID' : recordIdVariableName.trim();
@@ -36,7 +36,7 @@ public with sharing class DcAgentforceOutputController {
         if (doPass && recordId != null) {
             SObject row = queryRecordShellForFlow(recordId);
             if (row == null) {
-                throw new AuraHandledException(
+                throw buildAuraException(
                     'Record could not be loaded for the flow (check Id and your access). Id: ' + String.valueOf(recordId)
                 );
             }
@@ -58,11 +58,24 @@ public with sharing class DcAgentforceOutputController {
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception e) {
-            throw new AuraHandledException(
-                'Flow could not run. Confirm the Flow API name, that it is autolaunched and active, and output variable name. Details: ' +
-                e.getMessage()
+            // Sanitized message to the user; full detail to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'runPromptFlow unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException(
+                'Flow could not run. Confirm the Flow API name, that it is autolaunched and active, and output variable name.'
             );
         }
+    }
+
+    /**
+     * AuraHandledException surfaces a custom message to the LWC layer only when both
+     * the constructor argument AND setMessage() are populated; without setMessage()
+     * the JS toast falls back to a generic "Script-thrown exception" string.
+     */
+    private static AuraHandledException buildAuraException(String msg) {
+        String safe = String.isBlank(msg) ? 'Operation failed.' : msg;
+        AuraHandledException ahe = new AuraHandledException(safe);
+        ahe.setMessage(safe);
+        return ahe;
     }
 
     /**
@@ -72,7 +85,12 @@ public with sharing class DcAgentforceOutputController {
         if (recordId == null) {
             return null;
         }
-        String objectApiName = recordId.getSObjectType().getDescribe().getName();
+        // objectApiName is platform-derived (from Id.getSObjectType().getDescribe().getName())
+        // and cannot be user-tainted — but escapeSingleQuotes is cheap defense-in-depth in
+        // case a future maintainer adds a second concatenation here.
+        String objectApiName = String.escapeSingleQuotes(
+            recordId.getSObjectType().getDescribe().getName()
+        );
         String soql = 'SELECT Id FROM ' + objectApiName + ' WHERE Id = :recordId LIMIT 1';
         List<SObject> rows = Database.query(soql);
         return rows.isEmpty() ? null : rows[0];
@@ -139,7 +157,7 @@ public with sharing class DcAgentforceOutputController {
     @AuraEnabled
     public static void submitGenerationFeedback(String generationId, Boolean thumbsUp, String feedbackText) {
         if (String.isBlank(generationId)) {
-            throw new AuraHandledException('Generation Id is required to submit feedback.');
+            throw buildAuraException('Generation Id is required to submit feedback.');
         }
 
         String trimmed = feedbackText != null ? feedbackText.trim() : '';
@@ -163,11 +181,13 @@ public with sharing class DcAgentforceOutputController {
             aiplatform.ModelsAPI modelsAPI = new aiplatform.ModelsAPI();
             modelsAPI.submitFeedback(request);
         } catch (aiplatform.ModelsAPI.submitFeedback_ResponseException e) {
-            throw new AuraHandledException(
-                'Feedback could not be submitted. Confirm Models API is enabled in the org. Details: ' + e.getMessage()
-            );
+            // Models API responses are Salesforce-curated — safe to surface verbatim.
+            System.debug(LoggingLevel.ERROR, 'submitFeedback ModelsAPI ResponseException: ' + e);
+            throw buildAuraException(e.getMessage());
         } catch (Exception e) {
-            throw new AuraHandledException('Feedback could not be submitted. Details: ' + e.getMessage());
+            // Anything else gets a sanitized message; full detail to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'submitFeedback unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('Feedback could not be submitted. Confirm Models API is enabled in the org.');
         }
     }
 }

@@ -53,10 +53,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
 
     connectedCallback() {
         if (this.autoExecuteOnLoad && this.resolvedFlowApiName) {
-            /* eslint-disable-next-line @lwc/lwc/no-async-operation */
-            setTimeout(() => {
-                this.handleExecute();
-            }, 0);
+            this.handleExecute();
         }
     }
 
