@@ -69,14 +69,29 @@ tests assert that derived records honor anchors.
 1. FinServ__FinancialAccountNumber__c (legacy) and FinancialAccountNumber
    (native) are both required + indexed. Keep them IDENTICAL across the
    lineage so demos can join via either.
-2. Person Account __pc shadow fields — write to non-__pc only. Platform
-   copies them.
+2. Person Account __pc shadow fields — STANDARD person fields (FirstName,
+   LastName, PersonBirthdate, etc.) work without __pc; the platform copies.
+   But FSC __c custom person fields (FinServ__AnnualIncome__c,
+   FinServ__Occupation__c, FinServ__MaritalStatus__c, FinServ__CurrentEmployer__c,
+   FinServ__NumberOfDependents__c, FinServ__EmployedSince__c) DO NOT exist
+   on Account in this org's FSC version — only the __pc shadow does. Always
+   consult `customer_hydration/fieldmap.py` for the real per-field name in
+   this org. The fieldmap gets it right; the spec didn't.
 3. FinServ__BusinessMilestone__c.External_ID__c is a NEW field this
    package adds via force-app/. Other orgs may not have it yet — hydrate.py
    checks via describe and surfaces a clear error if missing.
 4. Bulk API 2.0 line endings: --line-ending LF is required.
 5. FSC Group Builder API surface has shifted between FSC versions. Phase 5
    wireup tries documented call first, falls back to FscGroupRollupBatch.
+6. FSC picklists are RESTRICTIVE in this org. The spec invented
+   FinServ__FinancialAccountType__c values like "Checking" — the actual
+   picklist has 6 values: Deposits, Loans, Credit Cards, Investments,
+   Merchant Services, Treasury Management. Plan 2's `fieldmap.py` maps
+   logical types ("Checking", "Mortgage") to the real picklist. Same for
+   FinServ__Status__c (canonical "live" value is "Open", not "Active"),
+   FinServ__Ownership__c (Individual / Joint / Trust only),
+   Opportunity.StageName (15 values, not the spec's 7), Case.Type (4 values),
+   FinServ__LifeEvent__c.FinServ__EventType__c (only 6 values).
 
 ## When extending personas
 
