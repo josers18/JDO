@@ -1,7 +1,11 @@
-"""Bulk API 2.0 wrapper around `sf data import bulk`.
+"""Bulk API 2.0 wrapper around `sf data upsert bulk`.
 
 For Plan 1: one job per CSV, synchronous wait, raise on non-zero exit.
 Plan 3 adds parallelism, retry policy, and checkpoint integration.
+
+Note: `sf data import bulk` is INSERT-only and rejects `--external-id`. We use
+`sf data upsert bulk` so duplicate runs (same External_ID__c values) update
+in place rather than creating duplicates.
 """
 from __future__ import annotations
 
@@ -25,9 +29,9 @@ def bulk_upsert(
     *,
     wait_minutes: int = 30,
 ) -> BulkLoadResult:
-    """Run `sf data import bulk` against a single CSV and parse the result."""
+    """Run `sf data upsert bulk` against a single CSV and parse the result."""
     cmd = [
-        "sf", "data", "import", "bulk",
+        "sf", "data", "upsert", "bulk",
         "--file", str(csv_path),
         "--sobject", sobject,
         "--external-id", external_id_field,
@@ -39,14 +43,14 @@ def bulk_upsert(
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         raise RuntimeError(
-            f"sf data import bulk failed (exit {proc.returncode}): "
+            f"sf data upsert bulk failed (exit {proc.returncode}): "
             f"{proc.stderr.strip() or proc.stdout.strip()}"
         )
 
     try:
         payload = json.loads(proc.stdout)
     except json.JSONDecodeError:
-        # `sf data import bulk` sometimes emits non-JSON status lines before the JSON;
+        # `sf data upsert bulk` sometimes emits non-JSON status lines before the JSON;
         # take the last `{...}` block.
         idx = proc.stdout.rfind("{")
         payload = json.loads(proc.stdout[idx:])

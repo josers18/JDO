@@ -61,6 +61,11 @@ def generate_retail(
         seq = starting_seq + i
         ext_id = f"HYDRATE-RT-{seq:06d}"
         fa_ext_id = f"HYDRATE-FA-{seq:06d}"
+        # FA Role External_ID__c. The original Plan 1 spec assumed FA Role had
+        # NO External_ID__c, but jdo-fw51xz does have it (unique=True), so we
+        # populate it for true upsert idempotency. HYDRATE-FAR- = retail FA
+        # Role; one role per FA in Plan 1 so no per-FA suffix needed.
+        far_ext_id = f"HYDRATE-FAR-{seq:06d}"
 
         age = int(rng.triangular(22, 80, 42))
         birthdate = anchor_date - timedelta(days=age * 365 + rng.randint(0, 364))
@@ -136,6 +141,7 @@ def generate_retail(
             "FinServ__Role__c": "Primary Owner",
             "FinServ__Active__c": True,
             "FinServ__StartDate__c": opened.isoformat(),
+            "External_ID__c": far_ext_id,
         }
         bundle.financial_account_roles.append(role)
 

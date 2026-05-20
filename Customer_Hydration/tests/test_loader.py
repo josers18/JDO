@@ -25,7 +25,7 @@ def _completed_proc(returncode=0, stdout="", stderr=""):
 
 
 @patch("customer_hydration.loader.subprocess.run")
-def test_invokes_sf_data_import_bulk_with_correct_args(mock_run, csv_path):
+def test_invokes_sf_data_upsert_bulk_with_correct_args(mock_run, csv_path):
     mock_run.return_value = _completed_proc(0, '{"result": {"jobInfo": {"numberRecordsProcessed": 1, "numberRecordsFailed": 0}}}')
     result = bulk_upsert(
         csv_path, "Account", "External_ID__c", "jdo-fw51xz",
@@ -33,7 +33,10 @@ def test_invokes_sf_data_import_bulk_with_correct_args(mock_run, csv_path):
     assert mock_run.called
     cmd = mock_run.call_args[0][0]
     assert cmd[0] == "sf"
-    assert "data" in cmd and "import" in cmd and "bulk" in cmd
+    # `sf data import bulk` is insert-only; we MUST use `upsert bulk` so
+    # `--external-id` is honored and same-key reruns update in place.
+    assert "data" in cmd and "upsert" in cmd and "bulk" in cmd
+    assert "import" not in cmd
     assert "--file" in cmd
     assert str(csv_path) in cmd
     assert "--sobject" in cmd

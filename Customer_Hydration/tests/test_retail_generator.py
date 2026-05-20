@@ -83,8 +83,8 @@ class TestGenerateRetail:
         assert fa_ids[-1] == "HYDRATE-FA-000050"
 
     def test_fa_links_to_account_via_external_id_reference(self, gen_kwargs):
-        """The FA CSV column must use the sf-CLI external-id reference syntax
-        FinServ__PrimaryOwner__c:Account:External_ID__c — but the generator
+        """The FA CSV column must use the Bulk API 2.0 external-id reference
+        syntax FinServ__PrimaryOwner__r.External_ID__c — but the generator
         emits the raw HYDRATE-RT-* external id; the loader rewrites the
         column header to the reference syntax. Here we just confirm the
         pairing is consistent."""
