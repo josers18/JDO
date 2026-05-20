@@ -94,15 +94,25 @@ export default class MulticlassPredictionLwc extends LightningElement {
     summaryError;
 
     _recordId;
+    _animationPending = false;
+    _isConnected = false;
 
     @api
     get recordId() {
         return this._recordId;
     }
 
+    /**
+     * LWC may fire @api setters before connectedCallback and may re-fire with the same
+     * value during reactive updates. Defer the initial refresh to connectedCallback and
+     * skip no-op re-sets so we don't double-invoke the Flow.
+     */
     set recordId(value) {
+        if (this._recordId === value) {
+            return;
+        }
         this._recordId = value;
-        if (value) {
+        if (value && this._isConnected) {
             this.refreshData();
         }
     }
@@ -170,6 +180,10 @@ export default class MulticlassPredictionLwc extends LightningElement {
             return `${sub} not available`;
         }
         return `${sub} ${this.predictionLabelDisplay}`;
+    }
+
+    get hasRecommendationRows() {
+        return this.processedRecommendations.length > 0;
     }
 
     get processedRecommendations() {
@@ -282,22 +296,27 @@ export default class MulticlassPredictionLwc extends LightningElement {
     }
 
     connectedCallback() {
+        this._isConnected = true;
         this.applyTheme();
-        /* eslint-disable @lwc/lwc/no-async-operation -- re-apply theme after flexipage / first paint */
         requestAnimationFrame(() => {
             this.applyTheme();
             requestAnimationFrame(() => this.applyTheme());
         });
-        /* eslint-enable @lwc/lwc/no-async-operation */
         if (this._recordId) {
             this.refreshData();
         }
-        // eslint-disable-next-line @lwc/lwc/no-async-operation -- defer until after DOM paint for bar widths
-        setTimeout(() => this.animateBars(), 200);
+    }
+
+    disconnectedCallback() {
+        this._isConnected = false;
     }
 
     renderedCallback() {
         this.scheduleApplyTheme();
+        if (this._animationPending && this.hasData) {
+            this._animationPending = false;
+            requestAnimationFrame(() => this.animateBars());
+        }
     }
 
     scheduleApplyTheme() {
@@ -383,11 +402,6 @@ export default class MulticlassPredictionLwc extends LightningElement {
         return 'pm-theme-btn pm-tb-ivory' + (this._themeMode === 'ivory' ? ' pm-tb-active' : '');
     }
 
-    schedulePostRenderAnimations() {
-        // eslint-disable-next-line @lwc/lwc/no-async-operation -- defer until after DOM paint for bar widths
-        setTimeout(() => this.animateBars(), 200);
-    }
-
     refreshData() {
         this.errorMessage = undefined;
         this.summaryText = undefined;
@@ -425,7 +439,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
             );
         } finally {
             this.loadingFlow = false;
-            Promise.resolve().then(() => this.schedulePostRenderAnimations());
+            this._animationPending = true;
         }
 
         if (!this.errorMessage && this.hasPromptTemplate && this.autoGenerateSummary !== false) {

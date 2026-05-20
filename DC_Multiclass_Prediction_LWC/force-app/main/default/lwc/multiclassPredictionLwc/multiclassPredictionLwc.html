@@ -100,7 +100,7 @@
 
                 <section class="improve-section" aria-labelledby="recs-heading">
                     <span id="recs-heading" class="section-label">{recommendationsSectionTitleDisplay}</span>
-                    <template lwc:if={processedRecommendations.length}>
+                    <template lwc:if={hasRecommendationRows}>
                         <template for:each={processedRecommendations} for:item="item">
                             <div key={item.key} class="factor-row">
                                 <div class="factor-label-col">
