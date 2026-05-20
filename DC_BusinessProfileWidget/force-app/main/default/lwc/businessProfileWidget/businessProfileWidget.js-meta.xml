@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>62.0</apiVersion>
+    <apiVersion>66.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Business Profile Widget</masterLabel>
     <description>Premium business account profile: Account SOQL, optional assembly Flow (flow:VarName), Insight prediction Flow, Einstein summary, Nominatim/Photon geocoding and lightning-map (same patterns as Customer Profile widget), 42 themes.</description>

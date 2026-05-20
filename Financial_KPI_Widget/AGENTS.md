@@ -13,7 +13,7 @@ This is a **smaller, self-contained** project than the `DC_*_LWC` family — one
 - **Apex** — `with sharing` controller; two `@AuraEnabled(cacheable=true)` reads. DTO inner classes (`FinancialMetrics`, `TrendData`) with every field `@AuraEnabled`. No throw sites — `cacheable=true` errors are surfaced via the wire `error` callback and reduced client-side.
 - **LWC** — single bundle `premiumFinancialOverview`. Uses `@wire` (not imperative Apex) — different pattern from the `DC_*_LWC` family which is mostly imperative. Plain class fields for reactivity (no `@track`). RAF-driven count-up animation with `disconnectedCallback` cleanup.
 - **No theming system.** Three CSS custom properties at `:host` (`--pfo-deposits`, `--pfo-loans`, `--pfo-investments`) drive the entire palette. No `--wp-*` token import; no inline THEMES map.
-- **Salesforce DX** — `sourceApiVersion: 62.0`, `sf` CLI v2.
+- **Salesforce DX** — `sourceApiVersion: 66.0`, `sf` CLI v2.
 
 # Project structure
 

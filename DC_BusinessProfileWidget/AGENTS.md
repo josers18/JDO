@@ -13,7 +13,7 @@ Sibling project `DC_PersonProfileWidget` covers the **person/contact** side usin
 - **Apex** — `with sharing` controller; `Flow.Interview` for prompt execution; `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` for the AI summary; an isolated `private without sharing class EinsteinOverviewConnectBridge` (deliberately) for one specific Connect invocation
 - **LWC** — single bundle `businessProfileWidget` with one helper module `profileInsightRows.js`. Inline `THEMES` map (~42 entries; intentionally inline rather than extracted, see CSS conventions)
 - **`NavigationMixin`** for record-page navigation
-- **Salesforce DX** — `sourceApiVersion: 62.0`, `sf` CLI v2 (NOT `sfdx`)
+- **Salesforce DX** — `sourceApiVersion: 66.0`, `sf` CLI v2 (NOT `sfdx`)
 - **Tooling** — Jest via `sfdx-lwc-jest`, Prettier with the XML plugin, `prettier-plugin-apex`
 
 # Project structure
