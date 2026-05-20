@@ -1,0 +1,69 @@
+# Persona anchor distributions. Plan 1 only implements `retail`.
+# Plans 2+ add wealth, smb, commercial.
+
+retail:
+  external_id_prefix: HYDRATE-RT
+  client_category: Retail
+  account_record_type_developer_name: FSC_Person_Accounts
+  default_volume: 7000
+
+  anchors:
+    age:
+      distribution: triangular
+      min: 22
+      max: 80
+      mode: 42
+
+    life_stage:
+      derived_from: age
+      bins:
+        - {max_age: 32, value: young_pro}
+        - {max_age: 45, value: family_building}
+        - {max_age: 60, value: established}
+        - {max_age: 999, value: retiree}
+
+    household_income:
+      distribution: lognormal
+      mean_log: 11.0
+      sigma_log: 0.5
+      min: 35000
+      max: 180000
+      correlated_with: age
+
+    credit_tier:
+      distribution: lognormal
+      maps_to_fico:
+        min: 580
+        max: 820
+        median: 720
+
+    state:
+      distribution: weighted_choice
+      weights:
+        CA: 12
+        TX: 10
+        FL: 10
+        NY: 8
+        IL: 5
+        PA: 4
+        OH: 4
+        GA: 4
+        NC: 4
+        MI: 3
+        VA: 3
+        NJ: 3
+        WA: 3
+        AZ: 3
+        MA: 3
+
+    marital_status:
+      derived_from: [age, life_stage]
+
+  child_records:
+    fa_checking:
+      probability: 1.0
+      product_code: PD-CHK-EVD-2026.04
+
+    # Plan 1 stops here. Plans 2+ add Savings/HYSA/MM, CDs, Mortgage, HELOC,
+    # Auto/Personal loans, Cards, Goals, LifeEvents, Cases, Tasks, Events,
+    # Opportunities, Households, Campaigns.
