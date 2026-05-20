@@ -1995,6 +1995,8 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     _themeScheduleToken = 0;
     _recordId;
     _isConnected = false;
+    _animationPending = false;
+    _lastAppliedThemeKey = '';
 
     @api
     get recordId() {
@@ -2093,6 +2095,28 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         }
 
         const mode = (this._themeMode || 'obsidian').toLowerCase();
+        // Cache key includes target count so the second-pass apply (after the .wp-shell
+        // node first appears in the DOM) is allowed through. Subsequent re-renders with
+        // unchanged inputs short-circuit, removing 10-15 redundant setProperty calls per
+        // render cycle.
+        const key = [
+            mode,
+            this.accentColor || '',
+            this.warningColor || '',
+            this.negativeColor || '',
+            this.positiveColor || '',
+            this.textColorPrimaryOverride || '',
+            this.textColorSecondaryOverride || '',
+            this.textColorTertiaryOverride || '',
+            String(this.textScalePercent ?? ''),
+            String(this.backgroundLightenPercent ?? ''),
+            String(targets.length)
+        ].join('|');
+        if (key === this._lastAppliedThemeKey) {
+            return;
+        }
+        this._lastAppliedThemeKey = key;
+
         const tokens = THEMES[mode] || THEMES.obsidian;
 
         const lighten = this.resolvedBackgroundLightenPercent;
@@ -2108,10 +2132,17 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 el.style.setProperty(prop, v);
             });
             el.style.setProperty('--wp-accent', effectiveAccent);
-            if (effectiveAccent.startsWith('#') && effectiveAccent.length === 7) {
-                el.style.setProperty('--wp-accent-bg', effectiveAccent + '14');
-                el.style.setProperty('--wp-accent-border', effectiveAccent + '40');
-                el.style.setProperty('--wp-accent-dim', effectiveAccent + '99');
+            // Strip alpha from #RRGGBBAA so the derived bg/border/dim tokens still apply
+            // when designers paste 8-char hex from a color picker. Without this strip,
+            // the 8-char branch silently skipped the derivation.
+            const accentRgb =
+                effectiveAccent.startsWith('#') && (effectiveAccent.length === 7 || effectiveAccent.length === 9)
+                    ? effectiveAccent.slice(0, 7)
+                    : null;
+            if (accentRgb) {
+                el.style.setProperty('--wp-accent-bg', accentRgb + '14');
+                el.style.setProperty('--wp-accent-border', accentRgb + '40');
+                el.style.setProperty('--wp-accent-dim', accentRgb + '99');
             }
             if (this.warningColor !== '#d4900a') {
                 el.style.setProperty('--wp-warning', this.warningColor);
@@ -2190,6 +2221,20 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         if (ids.length && !ids.includes(this.activeTab)) {
             this.activeTab = ids[0];
         }
+        if (this._animationPending) {
+            this._animationPending = false;
+            // RAF guarantees the new tab body is committed to the DOM before we
+            // query for .bar-fill nodes. No setTimeout needed.
+            requestAnimationFrame(() => this.animateBars());
+        }
+    }
+
+    prefersReducedMotion() {
+        return (
+            typeof window !== 'undefined' &&
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        );
     }
 
     get visibleTabIds() {
@@ -2244,7 +2289,10 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             this.logoLoadFailed = false;
             this._websiteLogoAttempt = 0;
             this.refreshWebsiteLogoCandidates();
-            setTimeout(() => this.animateBars(), 400);
+            // Defer animation to renderedCallback once the new tab body is mounted —
+            // avoids @lwc/lwc/no-async-operation lint hit and the timing race against
+            // the LWC engine's batched re-render after profileData is reassigned.
+            this._animationPending = true;
             if (this.promptTemplateId && this.autoGenerateSummary) {
                 this.loadSummary();
             }
@@ -2503,16 +2551,21 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     }
 
     animateBars() {
+        const reduced = this.prefersReducedMotion();
         this.template.querySelectorAll('.wp-bar-fill[data-scale], .wp-model-bar-fill[data-scale]').forEach((el) => {
             const scale = parseFloat(el.dataset.scale);
-            el.style.transition = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
+            // Honor OS-level reduced-motion preference (Accessibility > Display > Reduce Motion).
+            // Snap to final scale immediately rather than animating.
+            el.style.transition = reduced ? 'none' : 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
             el.style.transform = `scaleX(${scale})`;
         });
     }
 
     handleTabClick(event) {
         this.activeTab = event.currentTarget.dataset.tab;
-        setTimeout(() => this.animateBars(), 150);
+        // The tab body re-renders with this.activeTab; renderedCallback fires the
+        // animation once the new template branch (with .bar-fill nodes) is mounted.
+        this._animationPending = true;
     }
 
     get visibleTabs() {
