@@ -34,7 +34,7 @@ public with sharing class MulticlassPredictionLwcController {
         String classVariableNamesCsv
     ) {
         if (String.isBlank(flowApiName) || recordId == null) {
-            throw new AuraHandledException('Flow API name and record Id are required.');
+            throw buildAuraException('Flow API name and record Id are required.');
         }
 
         String recordVar = String.isBlank(recordIdVariableName) ? 'recordId' : recordIdVariableName;
@@ -160,18 +160,27 @@ public with sharing class MulticlassPredictionLwcController {
             // ConnectApi exception messages from EinsteinLLM are intended for the caller
             // (e.g. "Prompt template not found", "Generation timed out") — safe to surface.
             System.debug(LoggingLevel.ERROR, 'generateAnalysisSummary ConnectApiException: ' + e);
-            AuraHandledException ahe = new AuraHandledException(e.getMessage());
-            ahe.setMessage(e.getMessage());
-            throw ahe;
+            throw buildAuraException(e.getMessage());
         } catch (Exception e) {
             // Anything else (TypeException, NoAccessException, internal platform errors)
             // gets a sanitized message; full detail goes to debug logs only.
             System.debug(LoggingLevel.ERROR, 'generateAnalysisSummary unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
-            String safeMsg = 'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.';
-            AuraHandledException ahe = new AuraHandledException(safeMsg);
-            ahe.setMessage(safeMsg);
-            throw ahe;
+            throw buildAuraException(
+                'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.'
+            );
         }
+    }
+
+    /**
+     * AuraHandledException surfaces a custom message to the LWC layer only when both
+     * the constructor argument AND setMessage() are populated; without setMessage()
+     * the JS toast falls back to a generic "Script-thrown exception" string.
+     */
+    private static AuraHandledException buildAuraException(String msg) {
+        String safe = String.isBlank(msg) ? 'Operation failed.' : msg;
+        AuraHandledException ahe = new AuraHandledException(safe);
+        ahe.setMessage(safe);
+        return ahe;
     }
 
     @TestVisible
