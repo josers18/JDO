@@ -1,9 +1,9 @@
 import { createElement } from 'lwc';
 import WebEngagementData from 'c/webEngagementData';
-import getWebEngagementData from '@salesforce/apex/DataCloudWebEngagementController.getWebEngagementData';
+import getWebEngagementsWithBackfill from '@salesforce/apex/DataCloudWebEngagementController.getWebEngagementsWithBackfill';
 import getCrmTimelineEvents from '@salesforce/apex/CrmTimelineController.getCrmTimelineEvents';
 
-jest.mock('@salesforce/apex/DataCloudWebEngagementController.getWebEngagementData', () => {
+jest.mock('@salesforce/apex/DataCloudWebEngagementController.getWebEngagementsWithBackfill', () => {
     return { default: jest.fn() };
 }, { virtual: true });
 
@@ -87,12 +87,12 @@ describe('c-web-engagement-data', () => {
 
     describe('chip bar (rendered via availableChips getter)', () => {
         beforeEach(() => {
-            getWebEngagementData.mockClear();
+            getWebEngagementsWithBackfill.mockClear();
             getCrmTimelineEvents.mockClear();
         });
 
         async function buildElementWithEvents(webEventsRaw = '[]', crmEvents = [], crmSettings = {}) {
-            getWebEngagementData.mockResolvedValue(webEventsRaw);
+            getWebEngagementsWithBackfill.mockResolvedValue(webEventsRaw);
             getCrmTimelineEvents.mockResolvedValue(crmEvents);
 
             const el = createElement('c-web-engagement-data', { is: WebEngagementData });
