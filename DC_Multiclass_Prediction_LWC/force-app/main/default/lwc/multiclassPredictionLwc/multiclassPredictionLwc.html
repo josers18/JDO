@@ -7,42 +7,18 @@
                     <div class="pm-theme-switcher">
                         <span class="pm-theme-lbl">Theme</span>
                         <div class="pm-theme-btns">
-                            <button
-                                type="button"
-                                class={themeBtn_obsidian}
-                                data-theme="obsidian"
-                                onclick={handleThemeSwitch}
-                                title="Obsidian"
-                            >
-                                ◑
-                            </button>
-                            <button
-                                type="button"
-                                class={themeBtn_midnight}
-                                data-theme="midnight"
-                                onclick={handleThemeSwitch}
-                                title="Midnight"
-                            >
-                                ●
-                            </button>
-                            <button
-                                type="button"
-                                class={themeBtn_graphite}
-                                data-theme="graphite"
-                                onclick={handleThemeSwitch}
-                                title="Graphite"
-                            >
-                                ◐
-                            </button>
-                            <button
-                                type="button"
-                                class={themeBtn_ivory}
-                                data-theme="ivory"
-                                onclick={handleThemeSwitch}
-                                title="Ivory"
-                            >
-                                ○
-                            </button>
+                            <template for:each={themeButtons} for:item="btn">
+                                <button
+                                    key={btn.key}
+                                    type="button"
+                                    class={btn.class}
+                                    data-theme={btn.name}
+                                    onclick={handleThemeSwitch}
+                                    title={btn.title}
+                                >
+                                    {btn.glyph}
+                                </button>
+                            </template>
                         </div>
                     </div>
                 </template>
@@ -112,7 +88,6 @@
                                         <div
                                             class="bar-fill bar-pos"
                                             style={item.barStyle}
-                                            data-color={item.activeColor}
                                             data-scale={item.barScale}
                                         ></div>
                                         <span class="bar-val val-pos">{item.formattedPercent}</span>
@@ -121,7 +96,6 @@
                                         <div
                                             class="bar-fill bar-neg"
                                             style={item.barStyle}
-                                            data-color={item.activeColor}
                                             data-scale={item.barScale}
                                         ></div>
                                         <span class="bar-val val-neg">{item.formattedPercent}</span>

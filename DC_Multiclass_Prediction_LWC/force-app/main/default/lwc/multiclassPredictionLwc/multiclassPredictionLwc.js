@@ -38,6 +38,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     @api cardTitle;
     @api summaryCardTitle;
     @api recommendationsSectionTitle;
+    @api classProbSectionTitle;
     @api flowApiName;
     @api recordIdInputName = 'recordId';
     @api predictionVariableName = 'prediction';
@@ -96,6 +97,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     _recordId;
     _animationPending = false;
     _isConnected = false;
+    _lastAppliedThemeKey = '';
 
     @api
     get recordId() {
@@ -249,7 +251,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     }
 
     get classProbSectionTitleDisplay() {
-        return 'Class probabilities';
+        return this.trimmedOr(this.classProbSectionTitle, 'Class probabilities');
     }
 
     get showSummaryCard() {
@@ -271,12 +273,12 @@ export default class MulticlassPredictionLwc extends LightningElement {
     /** Matches bar colors: positive (right) vs negative (left), same as applyProcessedRowColors. */
     get legendSupportsDotStyle() {
         const { supports } = this.getRecommendationDivergingLegendColors();
-        return `background-color: ${supports}`;
+        return `--row-color:${supports}`;
     }
 
     get legendAgainstDotStyle() {
         const { against } = this.getRecommendationDivergingLegendColors();
-        return `background-color: ${against}`;
+        return `--row-color:${against}`;
     }
 
     getRecommendationDivergingLegendColors() {
@@ -319,6 +321,14 @@ export default class MulticlassPredictionLwc extends LightningElement {
         }
     }
 
+    prefersReducedMotion() {
+        return (
+            typeof window !== 'undefined' &&
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        );
+    }
+
     scheduleApplyTheme() {
         this._themeScheduleToken += 1;
         const token = this._themeScheduleToken;
@@ -344,6 +354,21 @@ export default class MulticlassPredictionLwc extends LightningElement {
             return;
         }
         const mode = (this._themeMode || 'default').toLowerCase();
+        // Cache key includes target count so we re-apply once when the .lwc-shell node
+        // first appears in the DOM (initial render after connectedCallback).
+        const key = [
+            mode,
+            this.accentColor || '',
+            this.warningColor || '',
+            this.negativeColor || '',
+            this.summaryAndLabelTextColor || '',
+            String(this.summaryTextSizePercent ?? ''),
+            String(targets.length)
+        ].join('|');
+        if (key === this._lastAppliedThemeKey) {
+            return;
+        }
+        this._lastAppliedThemeKey = key;
         const tokens = THEMES[mode] || THEMES.default;
         const applyTo = (node) => {
             Object.entries(tokens).forEach(([prop, value]) => {
@@ -354,10 +379,15 @@ export default class MulticlassPredictionLwc extends LightningElement {
                     ? this.accentColor.trim()
                     : '#b8956a';
             node.style.setProperty('--wp-accent', accent);
-            if (accent.startsWith('#') && accent.length === 7) {
-                node.style.setProperty('--wp-accent-bg', accent + '14');
-                node.style.setProperty('--wp-accent-border', accent + '40');
-                node.style.setProperty('--wp-accent-dim', accent + '99');
+            // Strip alpha from #RRGGBBAA so the derived bg/border/dim tokens still apply.
+            const accentRgb =
+                accent.startsWith('#') && (accent.length === 7 || accent.length === 9)
+                    ? accent.slice(0, 7)
+                    : null;
+            if (accentRgb) {
+                node.style.setProperty('--wp-accent-bg', accentRgb + '14');
+                node.style.setProperty('--wp-accent-border', accentRgb + '40');
+                node.style.setProperty('--wp-accent-dim', accentRgb + '99');
             }
             if (this.warningColor && this.warningColor !== '#d4900a') {
                 node.style.setProperty('--wp-warning', this.warningColor);
@@ -389,17 +419,23 @@ export default class MulticlassPredictionLwc extends LightningElement {
         }
     }
 
-    get themeBtn_obsidian() {
-        return 'pm-theme-btn pm-tb-obsidian' + (this._themeMode === 'obsidian' ? ' pm-tb-active' : '');
-    }
-    get themeBtn_midnight() {
-        return 'pm-theme-btn pm-tb-midnight' + (this._themeMode === 'midnight' ? ' pm-tb-active' : '');
-    }
-    get themeBtn_graphite() {
-        return 'pm-theme-btn pm-tb-graphite' + (this._themeMode === 'graphite' ? ' pm-tb-active' : '');
-    }
-    get themeBtn_ivory() {
-        return 'pm-theme-btn pm-tb-ivory' + (this._themeMode === 'ivory' ? ' pm-tb-active' : '');
+    get themeButtons() {
+        const presets = [
+            { name: 'obsidian', glyph: '◑' },
+            { name: 'midnight', glyph: '●' },
+            { name: 'graphite', glyph: '◐' },
+            { name: 'ivory', glyph: '○' }
+        ];
+        return presets.map((p) => {
+            const active = this._themeMode === p.name;
+            return {
+                key: p.name,
+                name: p.name,
+                glyph: p.glyph,
+                title: p.name.charAt(0).toUpperCase() + p.name.slice(1),
+                class: 'pm-theme-btn pm-tb-' + p.name + (active ? ' pm-tb-active' : '')
+            };
+        });
     }
 
     refreshData() {
@@ -478,16 +514,13 @@ export default class MulticlassPredictionLwc extends LightningElement {
 
     animateBars() {
         const fills = this.template.querySelectorAll('.bar-fill, .prob-bar');
+        const reduced = this.prefersReducedMotion();
         fills.forEach((el) => {
             const raw = el.getAttribute('data-scale');
             const scale = raw != null && raw !== '' ? Number(raw) : 0;
             const safe = Number.isFinite(scale) ? Math.min(1, Math.max(0, scale)) : 0;
-            el.style.transition = BAR_TRANSITION;
+            el.style.transition = reduced ? 'none' : BAR_TRANSITION;
             el.style.transform = 'scaleX(' + safe + ')';
-            const color = el.dataset.color;
-            if (color) {
-                el.style.background = color;
-            }
         });
     }
 
@@ -582,10 +615,9 @@ export default class MulticlassPredictionLwc extends LightningElement {
             }
             const activeKey = this.normalizeHexColorForCompare(activeColor);
             const deltaClass = activeKey === riskKey ? 'delta-risk' : 'delta-good';
-            const barStyle = 'background: ' + activeColor;
+            const barStyle = '--row-color:' + activeColor;
             return {
                 ...row,
-                activeColor,
                 barStyle,
                 deltaClass
             };
@@ -716,13 +748,19 @@ export default class MulticlassPredictionLwc extends LightningElement {
         let n = String(name).trim();
         n = this.stripCustomFieldSuffixes(n);
         n = n.replace(/_/g, ' ');
+        // Split camelCase / PascalCase: "customerLifetimeValue" → "customer Lifetime Value",
+        // "ARRGrowth" → "ARR Growth". Two passes handle adjacent acronym + word.
+        n = n.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
         return n.replace(/\s+/g, ' ').trim();
     }
 
     stripCustomFieldSuffixes(apiName) {
         let n = apiName;
         const suffixes = ['_c__c', '__c', '__r', '_c'];
-        for (let pass = 0; pass < 6; pass++) {
+        // Two passes covers every real Salesforce field name:
+        // pass 1 strips the outer suffix (e.g. "__r" from a relationship), pass 2
+        // strips an underlying "__c" if the relationship target was custom.
+        for (let pass = 0; pass < 2; pass++) {
             let stripped = false;
             const lower = n.toLowerCase();
             for (const suf of suffixes) {

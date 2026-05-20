@@ -104,6 +104,9 @@ public with sharing class MulticlassPredictionLwcController {
         try {
             return JSON.serialize(value);
         } catch (Exception e) {
+            // Falling back to String.valueOf — log so future maintainers can diagnose
+            // shapes that JSON.serialize can't handle (circular refs, unsupported types).
+            System.debug(LoggingLevel.WARN, 'flowOutputToJsonString JSON.serialize failed: ' + e.getTypeName() + ': ' + e.getMessage());
             return String.valueOf(value);
         }
     }
@@ -153,11 +156,21 @@ public with sharing class MulticlassPredictionLwcController {
                 return LlmOutputSanitizer.stripClosingCourtesy(first.text);
             }
             return null;
+        } catch (ConnectApi.ConnectApiException e) {
+            // ConnectApi exception messages from EinsteinLLM are intended for the caller
+            // (e.g. "Prompt template not found", "Generation timed out") — safe to surface.
+            System.debug(LoggingLevel.ERROR, 'generateAnalysisSummary ConnectApiException: ' + e);
+            AuraHandledException ahe = new AuraHandledException(e.getMessage());
+            ahe.setMessage(e.getMessage());
+            throw ahe;
         } catch (Exception e) {
-            throw new AuraHandledException(
-                'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches. Details: ' +
-                e.getMessage()
-            );
+            // Anything else (TypeException, NoAccessException, internal platform errors)
+            // gets a sanitized message; full detail goes to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'generateAnalysisSummary unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            String safeMsg = 'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.';
+            AuraHandledException ahe = new AuraHandledException(safeMsg);
+            ahe.setMessage(safeMsg);
+            throw ahe;
         }
     }
 
