@@ -193,7 +193,7 @@ def _rewrite_fa_role_headers(csv_path: Path) -> None:
         "FinServ__FinancialAccount__c:FinServ__FinancialAccount__c:External_ID__c",
     )
     header = header.replace(
-        "FinServ__Account__c",
-        "FinServ__Account__c:Account:External_ID__c",
+        "FinServ__RelatedAccount__c",
+        "FinServ__RelatedAccount__c:Account:External_ID__c",
     )
     csv_path.write_text("\n".join([header, *lines[1:]]) + "\n", encoding="utf-8")

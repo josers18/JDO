@@ -109,7 +109,7 @@ class TestGenerateRetail:
             bundle.accounts, bundle.financial_accounts, bundle.financial_account_roles
         ):
             assert role["FinServ__FinancialAccount__c"] == fa["External_ID__c"]
-            assert role["FinServ__Account__c"] == acct["External_ID__c"]
+            assert role["FinServ__RelatedAccount__c"] == acct["External_ID__c"]
             assert role["FinServ__Role__c"] == "Primary Owner"
             assert role["FinServ__Active__c"] is True
 

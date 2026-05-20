@@ -132,7 +132,7 @@ def generate_retail(
 
         role = {
             "FinServ__FinancialAccount__c": fa_ext_id,
-            "FinServ__Account__c": ext_id,
+            "FinServ__RelatedAccount__c": ext_id,
             "FinServ__Role__c": "Primary Owner",
             "FinServ__Active__c": True,
             "FinServ__StartDate__c": opened.isoformat(),
