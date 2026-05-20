@@ -53,6 +53,9 @@ def run_retail_only(args: argparse.Namespace) -> int:
     config_dir = Path(args.config_dir)
     rm_pool = yaml.safe_load((config_dir / "rm_pool.yaml").read_text())
     catalog = yaml.safe_load((config_dir / "product_catalog.yaml").read_text())
+    personas = yaml.safe_load((config_dir / "personas.yaml").read_text())
+    retail_prefix = personas["retail"]["external_id_prefix"]
+    fa_prefix = "HYDRATE-FA"  # FA prefix not yet in personas.yaml; Plan 2 moves it.
 
     # Pick the retail RM pool (Plan 1 uses Justin Chen + Standard User)
     retail_rm_ids = [
@@ -76,15 +79,15 @@ def run_retail_only(args: argparse.Namespace) -> int:
     person_rt_id = rt_rows[0]["Id"]
 
     # Compute External-ID seek pointers
-    starting_seq_account = compute_next_seq(runner, "HYDRATE-RT", "Account")
-    starting_seq_fa = compute_next_seq(runner, "HYDRATE-FA", "FinServ__FinancialAccount__c")
+    starting_seq_account = compute_next_seq(runner, retail_prefix, "Account")
+    starting_seq_fa = compute_next_seq(runner, fa_prefix, "FinServ__FinancialAccount__c")
     if starting_seq_account != starting_seq_fa:
         # Plan 1 invariant: retail generator emits one FA per Account, so the
         # sequences should advance together. If they're out of sync, an earlier
         # partial load left orphans — refuse.
         print(
-            f"Sequence drift: HYDRATE-RT next={starting_seq_account}, "
-            f"HYDRATE-FA next={starting_seq_fa}. Investigate before re-running.",
+            f"Sequence drift: {retail_prefix} next={starting_seq_account}, "
+            f"{fa_prefix} next={starting_seq_fa}. Investigate before re-running.",
             file=sys.stderr,
         )
         return 2
@@ -138,9 +141,9 @@ def run_retail_only(args: argparse.Namespace) -> int:
     # Bulk load in dependency order. Account first (no parent), then FA (refs
     # Account via External_ID__c), then FA Role (refs both).
     # Note: the generator emits raw HYDRATE-RT-* values in FinServ__PrimaryOwner__c.
-    # The sf-CLI external-id-reference syntax requires the column header itself
-    # to be `FinServ__PrimaryOwner__c:Account:External_ID__c`. For Plan 1 we
-    # post-process the CSV header in-place before loading the FA CSV.
+    # Bulk API 2.0 external-id-reference syntax requires the column header to be
+    # `FinServ__PrimaryOwner__r.External_ID__c` (dot-notation, relationship name).
+    # For Plan 1 we post-process the CSV header in-place before loading the FA CSV.
     _rewrite_fa_header(run_dir / "financial_accounts.csv")
     _rewrite_fa_role_headers(run_dir / "fa_roles.csv")
 
@@ -160,18 +163,23 @@ def run_retail_only(args: argparse.Namespace) -> int:
 
 
 def _rewrite_fa_header(csv_path: Path) -> None:
-    """Replace the FinServ__PrimaryOwner__c column with the external-id-reference form."""
+    """Replace the FinServ__PrimaryOwner__c column with the external-id-reference form.
+
+    Bulk API 2.0 (used by `sf data upsert bulk`) requires the dot-notation
+    `RelationshipName.ExternalIdField` syntax — NOT the legacy colon form
+    `FieldName:Object:ExternalIdField` (which is Bulk API 1.0 / Data Loader).
+    """
     text = csv_path.read_text(encoding="utf-8")
     lines = text.splitlines()
     if not lines:
         return
     header = lines[0]
     # Idempotency guard — bail if already rewritten.
-    if ":Account:External_ID__c" in header:
+    if "FinServ__PrimaryOwner__r.External_ID__c" in header:
         return
     new_header = header.replace(
         "FinServ__PrimaryOwner__c",
-        "FinServ__PrimaryOwner__c:Account:External_ID__c",
+        "FinServ__PrimaryOwner__r.External_ID__c",
     )
     if new_header == header:
         return
@@ -179,21 +187,24 @@ def _rewrite_fa_header(csv_path: Path) -> None:
 
 
 def _rewrite_fa_role_headers(csv_path: Path) -> None:
-    """Replace the two parent reference columns with external-id-reference forms."""
+    """Replace the two parent reference columns with external-id-reference forms.
+
+    Bulk API 2.0 dot-notation: RelationshipName.ExternalIdField.
+    """
     text = csv_path.read_text(encoding="utf-8")
     lines = text.splitlines()
     if not lines:
         return
     header = lines[0]
     # Idempotency guard — bail if already rewritten.
-    if ":External_ID__c" in header:
+    if "FinServ__FinancialAccount__r.External_ID__c" in header:
         return
     header = header.replace(
         "FinServ__FinancialAccount__c",
-        "FinServ__FinancialAccount__c:FinServ__FinancialAccount__c:External_ID__c",
+        "FinServ__FinancialAccount__r.External_ID__c",
     )
     header = header.replace(
         "FinServ__RelatedAccount__c",
-        "FinServ__RelatedAccount__c:Account:External_ID__c",
+        "FinServ__RelatedAccount__r.External_ID__c",
     )
     csv_path.write_text("\n".join([header, *lines[1:]]) + "\n", encoding="utf-8")
