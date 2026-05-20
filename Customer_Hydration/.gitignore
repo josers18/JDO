@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.python-version
+*.egg-info/
+
+# Run artifacts (CSVs, manifests, logs)
+output/run-*/
+output/*.json
+output/*.csv
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
