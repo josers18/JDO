@@ -42,7 +42,7 @@ Web_Engagements_RT_Timeline/
 │   │   ├── DataCloudWebEngagementController.cls   ← Data Graph callout + Unified ID lookup
 │   │   └── DataCloudWebEngagementControllerTest.cls   ← HTTP mock + happy/empty/500 paths
 │   └── lwc/webEngagementData/
-│       ├── webEngagementData.js              ← main bundle (~240 lines)
+│       ├── webEngagementData.js              ← main bundle (~250 lines)
 │       ├── webEngagementData.html            ← chip bar + day groups + retry UI
 │       ├── webEngagementData.css             ← Style B card-stream layout
 │       ├── webEngagementData.js-meta.xml     ← single targetConfig (RecordPage, Account + Contact)
@@ -167,6 +167,13 @@ Web engagement events follow the same shape; the LWC merges both lists and group
 ## CSS
 - This project does **NOT** use the `--wp-*` theme catalog from the `DC_*_LWC` family. It has its own Style B card-stream layout (`webEngagementData.css`). Don't retrofit the prediction theme system without a product-level decision.
 - Source colors are hardcoded as Apex hex strings (`#c23934` for Cases, `#04844b` for Tasks, etc. in `CrmTimelineController.cls`). The LWC reads them from the DTO's `iconColor` field. This means the widget can't theme-switch — but centralizing them is out of scope.
+
+## UI conventions (post-revamp polish)
+- **Per-source colored chips.** The chip-bar's filter pills inherit their source color from `SOURCE_CONFIG[s].color` via a `--chip-color` CSS custom property set inline by the `availableChips` getter. Off-state uses `color-mix(in srgb, var(--chip-color) 12%, white)` for a tinted background; on-state fills solid with white text. The `All` chip is intentionally neutral (no `--chip-color` set), so its existing accent-blue look stays. If you change a source's hex in `sourceConfig.js`, the chip, the icon, and the event card's left rail all update in lockstep.
+- **Title wrapping, no truncation.** `.stream-title-text` uses `overflow-wrap: anywhere` + `word-break: break-word` so long page titles like `Cumulus Point-of-Sale Systems - Cumulus Bank` flow onto a second line rather than getting clipped with an ellipsis. The icon stays top-aligned with the first line via `align-items: flex-start` on `.stream-title`. Don't reintroduce `text-overflow: ellipsis` without verifying the typical title length on a real Account.
+- **Metadata sub-row.** `.stream-head` is `flex-direction: column` so the source tag (`WEB`) and the timestamp live on a tight strip below the title, separated by an aria-hidden middot. The metadata strip uses `flex-wrap: wrap` so the date can drop to its own line on extremely narrow cards rather than overflowing.
+- **Inter-card divider.** Adjacent `.stream-card` elements within a day group have a 1-px hairline `border-bottom` using `--slds-g-color-border-base-4` (the lightest semantic gray token used elsewhere in this CSS). The `:last-child` rule strips the divider from the final card in each day group — the day-header below provides the visual break.
+- **`color-mix(in srgb, ...)`** is the modern CSS API for tinting. Supported in Chrome 111+ / Safari 16.2+ / Firefox 113+, all available in current Lightning Experience. Don't replace with hardcoded RGBA fallbacks unless we have evidence of a browser regression.
 
 ## Testing
 - 11+ Apex test methods in `CrmTimelineControllerTest` covering each source happy path + multi-source merge + lookback clamping + unsupported-record-id throw.

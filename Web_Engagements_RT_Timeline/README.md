@@ -1,6 +1,6 @@
 # Web Engagements RT Timeline
 
-A **multi-source real-time timeline** card for Salesforce **Account / Contact** record pages. The LWC (`webEngagementData`) fires two Apex calls **in parallel**: `DataCloudWebEngagementController.getWebEngagementData` (live Data Cloud Data Graph fetch via the `Data_Cloud_API` Named Credential, default graph `RT_Web_Engagementsv2`) and — when admins opt in — `CrmTimelineController.getCrmTimelineEvents` (parallel SOQL across **Cases / Tasks (incl. logged calls) / Calendar Events / Agentforce VoiceCalls**). Events merge into a **Style B card stream** with chip filters, day-group headers, source-colored left rails, and expand-on-click detail panels. The Data Graph render path is never blocked on CRM.
+A **multi-source real-time timeline** card for Salesforce **Account / Contact** record pages. The LWC (`webEngagementData`) fires two Apex calls **in parallel**: `DataCloudWebEngagementController.getWebEngagementsWithBackfill` (live Data Cloud Data Graph hot-cache fetch via the `Data_Cloud_API` Named Credential, plus a cold-store backfill from the `CumulusWeb_Engagements__dlm` DMO so the timeline stays populated after the real-time cache window expires) and — when admins opt in — `CrmTimelineController.getCrmTimelineEvents` (parallel SOQL across **Cases / Tasks (incl. logged calls) / Calendar Events / Agentforce VoiceCalls**). Events merge into a **Style B card stream** with chip filters, day-group headers, per-source colored chips, source-colored left rails, and expand-on-click detail panels. The Data Graph render path is never blocked on CRM.
 
 <div align="center">
 
@@ -9,7 +9,7 @@ A **multi-source real-time timeline** card for Salesforce **Account / Contact** 
 [![Apex](https://img.shields.io/badge/Apex-04844B?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/)
 [![Data Cloud](https://img.shields.io/badge/Data_Cloud-Data_Graph-7F56D9?style=for-the-badge)](https://developer.salesforce.com/docs/atlas.en-us.c360a_api.meta/c360a_api/c360a_api_data_graphs.htm)
 
-**Account + Contact** · **Data Graph + 4 CRM sources** · **Style B card stream** · **28 Apex + 28 Jest tests**
+**Account + Contact** · **Hot cache + cold-store backfill** · **4 CRM sources** · **39 Apex + 28 Jest tests**
 
 </div>
 
@@ -48,9 +48,24 @@ A **Real Time Engagements** card on the record page rendering events from up to 
 Record Page (Account | Contact)
         │  recordId  +  10 App Builder properties
         ▼
-LWC webEngagementData ┬─ Promise A ──▶ DataCloudWebEngagementController.getWebEngagementData(accountId, dataGraphName)
-                      │                       │ resolve Unified ID via UnifiedLinkssotAccountAcc__dlm
-                      │                       │ callout:Data_Cloud_API → Data Graph
+LWC webEngagementData ┬─ Promise A ──▶ DataCloudWebEngagementController.getWebEngagementsWithBackfill(accountId, dataGraphName, lookbackDays)
+                      │                       │
+                      │                       ├─ HOT:  getWebEngagementData(accountId, dataGraphName)  ← still callable directly for diagnostics
+                      │                       │         ├─ resolve Unified ID via getUnifiedId (UnifiedLinkssotAccountAcc__dlm)
+                      │                       │         └─ callout:Data_Cloud_API → /services/data/v65.0/ssot/data-graphs/data/{graph}/{unifiedId}
+                      │                       │
+                      │                       ├─ COLD: queryWebEngagementsFromDmo(unifiedId, lookbackDays)
+                      │                       │         └─ ConnectApi.CdpQuery.querySql:
+                      │                       │             SELECT e.* FROM CumulusWeb_Engagements__dlm e
+                      │                       │             INNER JOIN UnifiedLinkssotAccountAcc__dlm l
+                      │                       │               ON e.deviceId__c = l.SourceRecordId__c
+                      │                       │             WHERE l.UnifiedRecordId__c = :unifiedId
+                      │                       │               AND e.dateTime__c >= :since
+                      │                       │
+                      │                       └─ MERGE: dedupe by eventId__c (hot wins), wrap into the same
+                      │                                  data[0].json_blob__c envelope shape so the LWC's
+                      │                                  parseDataGraphResponse consumes hot-only and
+                      │                                  hot+cold responses identically.
                       │                       ▼
                       │                 timelineMappers.parseDataGraphResponse → TimelineEvent[] (source: 'web')
                       │
@@ -72,7 +87,17 @@ LWC merge pipeline:
 
 **Data Graph parsing** in `parseDataGraphResponse` supports both **wrapped-blob** responses (`data[0].json_blob__c`, HTML-entity-encoded inner JSON; decoded via a regex helper) and **direct-JSON** Data Graph responses.
 
-For full architecture rationale, source-by-source query contracts, partial-failure render matrix, and the three-plan implementation history, see the [revamp design spec](docs/superpowers/specs/2026-05-17-revamp-design.md).
+### Hot cache + cold-store backfill
+
+The Data Graph hot cache is real-time and expires after a configurable window (typically minutes-to-hours in demo orgs). When the cache rolls past a user's recent events, the inner `CumulusWeb_Engagements__dlm` array in the response is empty — the timeline would otherwise render as blank with no error. The cold-store backfill closes this gap by querying the same `CumulusWeb_Engagements__dlm` DMO directly via `ConnectApi.CdpQuery.querySql`, scoped to the same unified individual through Identity Resolution's Account link table.
+
+**Demo-cadence latency:** the hot callout (200-800ms) and the cold ConnectApi.CdpQuery (100-200ms) are issued sequentially inside one Apex round-trip; the merge wrapper adds ~10ms. Net round-trip is bounded by `hot + cold + ~10ms`. Cold-side failures are non-fatal — caught and logged via `System.debug(WARN)`, with the response degrading gracefully to hot-only so a transient DMO unavailability never blocks the demo flow.
+
+**Dedupe rule:** events sharing the same `eventId__c` are kept from the hot side; cold-store rows fill gaps where the hot cache has no counterpart. Hot wins because it's the canonical source for events still inside the real-time window.
+
+**Identity contract:** the JOIN works because `CumulusWeb_Engagements__dlm.deviceId__c` is the same value as `UnifiedLinkssotAccountAcc__dlm.SourceRecordId__c` for events that originated from a Salesforce Account record. Anonymous traffic (events with a device fingerprint not in the link table) is intentionally excluded — those events have no path back to a unified individual and therefore no path back to this Account record page.
+
+For full architecture rationale, source-by-source query contracts, partial-failure render matrix, and the three-plan implementation history, see the [revamp design spec](docs/superpowers/specs/2026-05-17-revamp-design.md). The hot+cold backfill landed after the spec — see the AGENTS.md "Hot+cold backfill identity contract" section for current details.
 
 ---
 
@@ -105,7 +130,7 @@ After deploy:
 
 ## App Builder properties
 
-Once deployed, the **Real Time Digital Engagements** component exposes 5 properties in App Builder. Configure per-instance — no code changes needed for common admin tasks.
+Once deployed, the **Real Time Digital Engagements** component exposes 10 properties in App Builder. Configure per-instance — no code changes needed for common admin tasks.
 
 | Property | Default | Description |
 |---|---|---|
@@ -130,7 +155,7 @@ When any of the four CRM source toggles are on, the component fires two Apex cal
 
 | Call | Apex method | Returns |
 |---|---|---|
-| **A — Web** (always) | `DataCloudWebEngagementController.getWebEngagementData` | Data Cloud Data Graph events |
+| **A — Web** (always) | `DataCloudWebEngagementController.getWebEngagementsWithBackfill` | Data Cloud Data Graph events (hot cache) merged with `CumulusWeb_Engagements__dlm` cold-store backfill |
 | **B — CRM** (only when one or more sources on) | `CrmTimelineController.getCrmTimelineEvents` | Cases / Tasks / Events / VoiceCalls |
 
 The Data Graph rows render the moment Call A resolves. CRM events stream in below when Call B finishes. Filter chips operate on already-loaded events with no Apex round-trip.
@@ -147,7 +172,18 @@ The Data Graph rows render the moment Call A resolves. CRM events stream in belo
 
 **Partial-failure UX:** if Call A or Call B fails, the other still renders. An inline warning banner with a Retry button appears for the failed side; the working side keeps showing.
 
-**Lookback:** all CRM sources share the `CRM lookback (days)` window (default 90). Per-source `LIMIT 200` keeps the SOQL inside governor headroom.
+**Lookback:** all CRM sources share the `CRM lookback (days)` window (default 90; cold-store backfill uses the same value capped at 365 server-side). Per-source `LIMIT 200` keeps the SOQL inside governor headroom.
+
+---
+
+## Visual design
+
+Each event card and filter chip uses the same source color so the user can scan the timeline at a glance:
+
+- **Filter chips** are tinted in their source color when off (12% tint background, full color text + 35% tint border) and filled solid in their source color when on. The `All` chip stays neutral / accent-blue since it has no single source. The `--chip-color` CSS custom property is set inline by `availableChips`, sourced from `SOURCE_CONFIG[s].color` — so changing a source color updates the chip, the icon, and the card's left rail in lockstep.
+- **Event card titles wrap** rather than truncate. `overflow-wrap: anywhere` + `word-break: break-word` handles long unbroken tokens (e.g. raw URLs) without overflowing the row.
+- **Card metadata** (`WEB · 5/20/2026, 01:01 AM`) lives on its own line below the title rather than competing for horizontal space. The middot separator is rendered as a non-semantic `<span aria-hidden="true">·</span>`.
+- **Inter-card divider** — a 1-px `--slds-g-color-border-base-4` hairline separates adjacent cards in the same day group, dropped from the last card so the day-header provides the natural visual break.
 
 ---
 
@@ -157,12 +193,15 @@ The Data Graph rows render the moment Call A resolves. CRM events stream in belo
 |--------|-------|
 | Data Graph name, card title/link, feed height/auto-size | **App Builder property** — see "App Builder properties" section above |
 | Link Object DLO API name | `DataCloudWebEngagementController.cls` → `LINK_OBJECT_NAME` |
+| Engagement DMO name (hot path) | `lwc/webEngagementData/timelineMappers.js` → `node.CumulusWeb_Engagements__dlm` checks in `parseDataGraphResponse` |
+| Engagement DMO name (cold-store backfill) | `DataCloudWebEngagementController.cls` → `ENGAGEMENTS_DMO_NAME` constant |
+| Cold-store JOIN columns | `DataCloudWebEngagementController.cls` → `queryWebEngagementsFromDmo` SQL string (deviceId__c / SourceRecordId__c / UnifiedRecordId__c / dateTime__c) |
+| Cold-store lookback bounds | `DataCloudWebEngagementController.cls` → `COLD_DEFAULT_LOOKBACK_DAYS` (90), `COLD_MAX_LOOKBACK_DAYS` (365), `COLD_PER_QUERY_LIMIT` (200) |
 | Named Credential alias | `DataCloudWebEngagementController.cls` → endpoint string `callout:Data_Cloud_API` |
-| Engagement DMO name | `webEngagementData.js` → `node.CumulusWeb_Engagements__dlm` checks |
 | Title / subtitle / icon rules (web events) | `lwc/webEngagementData/timelineMappers.js` → `mapWebEngagement` (private) |
 | Detail rows (web events) | `lwc/webEngagementData/timelineMappers.js` → `details` array inside `mapWebEngagement` |
 | Title / subtitle / icon rules (CRM events) | `force-app/main/default/classes/CrmTimelineController.cls` → `queryCases` / `queryTasks` / `queryEvents` / `queryVoiceCalls` |
-| Source colors / labels / chip labels / default icons | `lwc/webEngagementData/sourceConfig.js` → `SOURCE_CONFIG` map (one-line change per source) |
+| Source colors / labels / chip labels / default icons | `lwc/webEngagementData/sourceConfig.js` → `SOURCE_CONFIG` map (one-line change per source; the `color` field automatically drives the chip background, the colored chip border in the off state, and the event card's left rail — single source of truth) |
 | Add a 6th source (e.g. `email`) | (1) extend `ALLOWED_SOURCES` + add a `query…` method in `CrmTimelineController.cls`; (2) extend `SOURCE_CONFIG` + `SOURCE_ORDER` in `sourceConfig.js`; (3) add an App Builder property in `webEngagementData.js-meta.xml`; (4) wire the toggle into `enabledCrmSources` in `webEngagementData.js`. |
 
 ---
@@ -192,8 +231,8 @@ These three numbers can legally differ. `sourceApiVersion` only governs *new* me
 
 | Class / spec | Tests | Coverage achieved |
 |---|---|---|
-| `DataCloudWebEngagementController` | 17 Apex (Plan 1+2) | ~83% |
-| `CrmTimelineController` | 10 Apex (Plan 3) | ~78% |
+| `DataCloudWebEngagementController` | 28 Apex (Plan 1+2 + hot/cold backfill merge) | ~85% |
+| `CrmTimelineController` | 11 Apex (Plan 3) | ~78% |
 | `timelineMappers.js` | 18 Jest (parseDataGraphResponse + mergeAndSort + groupByDay) | full branch coverage |
 | `webEngagementData` LWC | 10 Jest (DOM-level) | smoke + regression |
 
@@ -204,7 +243,7 @@ sf apex run test --class-names DataCloudWebEngagementControllerTest --class-name
 npm test
 ```
 
-The DataCloudWebEngagementController coverage ceiling (~83%) is by design: the `@TestVisible static String testMockUnifiedId` seam intentionally bypasses `getUnifiedId`'s body, leaving the SOQL build + `ConnectApi.QuerySqlInput` + `ConnectApi.CdpQuery.querySql` call structurally uncoverable in API 65.0. The JSON-parsing logic that follows is extracted into `extractUnifiedIdFromQueryOutput` and tested directly.
+The DataCloudWebEngagementController coverage ceiling (~85%) is by design: the `@TestVisible static String testMockUnifiedId` and `@TestVisible static List<Map<String, Object>> testMockColdEvents` and `@TestVisible static String testMockHotResponse` seams intentionally bypass the un-mockable `ConnectApi.CdpQuery.querySql` calls, leaving the SOQL string build itself structurally uncoverable in API 65.0. The JSON-parsing logic that follows is extracted into `extractUnifiedIdFromQueryOutput`, `extractColumnNamesFromMetadata`, `extractInnerBlob`, and `mergeHotAndColdEvents` and all tested directly via `@TestVisible` seams.
 
 CrmTimelineController's ~78% sits above Salesforce's 75% deployment floor. Uncovered lines are minor error-handling and fall-through branches (e.g. blank-Subject defaults, Description-truncation branches, Owner-is-null paths) — exercised at runtime but not asserted in unit tests.
 
