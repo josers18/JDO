@@ -166,6 +166,9 @@ def _rewrite_fa_header(csv_path: Path) -> None:
     if not lines:
         return
     header = lines[0]
+    # Idempotency guard — bail if already rewritten.
+    if ":Account:External_ID__c" in header:
+        return
     new_header = header.replace(
         "FinServ__PrimaryOwner__c",
         "FinServ__PrimaryOwner__c:Account:External_ID__c",
@@ -182,6 +185,9 @@ def _rewrite_fa_role_headers(csv_path: Path) -> None:
     if not lines:
         return
     header = lines[0]
+    # Idempotency guard — bail if already rewritten.
+    if ":External_ID__c" in header:
+        return
     header = header.replace(
         "FinServ__FinancialAccount__c",
         "FinServ__FinancialAccount__c:FinServ__FinancialAccount__c:External_ID__c",
