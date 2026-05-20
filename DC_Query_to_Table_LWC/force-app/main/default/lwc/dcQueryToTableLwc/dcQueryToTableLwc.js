@@ -1,4 +1,4 @@
-import { LightningElement, api, track } from 'lwc';
+import { LightningElement, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import runDataCloudSql from '@salesforce/apex/DcQueryToTableController.runDataCloudSql';
 
@@ -38,18 +38,18 @@ export default class DcQueryToTableLwc extends LightningElement {
     /** When not false, column headers are sortable (client-side sort on loaded rows). */
     @api enableColumnSorting;
 
-    @track tableColumns = [];
-    @track tableRows = [];
-    @track loading = false;
-    @track errorMessage = '';
-    @track metaWarning = '';
+    tableColumns = [];
+    tableRows = [];
+    loading = false;
+    errorMessage = '';
+    metaWarning = '';
 
     sortedBy;
     sortedDirection;
 
     connectedCallback() {
         if (this.autoRunOnLoad !== false) {
-            Promise.resolve().then(() => this.handleRun());
+            this.handleRun();
         }
     }
 
@@ -97,6 +97,9 @@ export default class DcQueryToTableLwc extends LightningElement {
     }
 
     get resolvedTitleColorHex() {
+        // Accepts #RGB, #RRGGBB, and #RRGGBBAA. Alpha is passed through to the CSS
+        // var --dcqt-title-color and rendered as text color; against light theme
+        // backgrounds an alpha < 1.0 will look muted — by design.
         const raw = (this.titleColorHex || '').trim();
         if (
             /^#[0-9A-Fa-f]{3}$/.test(raw) ||
@@ -160,15 +163,21 @@ export default class DcQueryToTableLwc extends LightningElement {
         this.sortedBy = undefined;
         this.sortedDirection = undefined;
         try {
-            const width =
+            const rawWidth =
                 this.defaultColumnWidth != null && this.defaultColumnWidth !== ''
                     ? Number(this.defaultColumnWidth)
+                    : null;
+            // Match resolvedMinColumnWidth bounds (20-2000) so the platform never receives
+            // a negative or off-screen-width value if App Builder ever leaks one through.
+            const width =
+                Number.isFinite(rawWidth) && rawWidth > 0
+                    ? Math.min(2000, Math.max(20, Math.round(rawWidth)))
                     : null;
             const result = await runDataCloudSql({
                 sql,
                 maxRows: Number(this.maxRows) || 500,
                 defaultColumnWrap: this.defaultColumnWrap === true,
-                defaultInitialWidth: Number.isFinite(width) && width > 0 ? width : null
+                defaultInitialWidth: width
             });
             this.tableColumns = (result.columns || []).map((c) => this.normalizeColumn(c));
             this.tableRows = this.cloneRows(result.rows || []);
@@ -227,6 +236,8 @@ export default class DcQueryToTableLwc extends LightningElement {
     }
 
     cloneRows(rows) {
+        // Shallow clone — sufficient because cells are primitives. If you add inline
+        // editing later, switch to a deep clone (cells could become nested objects).
         return rows.map((r) => ({ ...r }));
     }
 
@@ -300,9 +311,5 @@ export default class DcQueryToTableLwc extends LightningElement {
 
     get hasGrid() {
         return this.tableColumns.length > 0;
-    }
-
-    get tableHeightClass() {
-        return 'dcqt-shell__table';
     }
 }

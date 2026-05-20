@@ -56,7 +56,7 @@ public with sharing class DcQueryToTableController {
         }
 
         if (String.isBlank(sql)) {
-            throw new AuraHandledException('Enter a Data Cloud SQL statement.');
+            throw buildAuraException('Enter a Data Cloud SQL statement.');
         }
 
         String trimmed = sql.trim();
@@ -82,18 +82,34 @@ public with sharing class DcQueryToTableController {
         try {
             ConnectApi.CdpQueryOutputV2 response = ConnectApi.CdpQuery.queryAnsiSqlV2(input);
             return buildResult(response, defaultColumnWrap == true, defaultInitialWidth);
+        } catch (ConnectApi.ConnectApiException e) {
+            // ConnectApi messages from CdpQuery are Salesforce-curated (e.g. "Query
+            // failed: invalid column", "Permission denied") — safe to surface verbatim.
+            System.debug(LoggingLevel.ERROR, 'runDataCloudSql ConnectApiException: ' + e);
+            throw buildAuraException(e.getMessage());
         } catch (Exception e) {
-            String msg = e.getMessage();
-            throw new AuraHandledException(
-                String.isBlank(msg) ? 'Data Cloud query failed.' : msg
-            );
+            // Anything else gets a sanitized message; full detail goes to debug logs only.
+            System.debug(LoggingLevel.ERROR, 'runDataCloudSql unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('Data Cloud query failed.');
         }
+    }
+
+    /**
+     * AuraHandledException surfaces a custom message to the LWC layer only when both
+     * the constructor argument AND setMessage() are populated; without setMessage()
+     * the JS toast falls back to a generic "Script-thrown exception" string.
+     */
+    private static AuraHandledException buildAuraException(String msg) {
+        String safe = String.isBlank(msg) ? 'Data Cloud query failed.' : msg;
+        AuraHandledException ahe = new AuraHandledException(safe);
+        ahe.setMessage(safe);
+        return ahe;
     }
 
     private static void validateReadOnlySql(String s) {
         String lower = s.toLowerCase().replaceAll('\\s+', ' ').trim();
         if (!Pattern.compile('^(select|with)\\s').matcher(lower).find()) {
-            throw new AuraHandledException('Only SELECT queries (optionally starting with WITH) are allowed.');
+            throw buildAuraException('Only SELECT queries (optionally starting with WITH) are allowed.');
         }
         if (
             lower.contains(' insert ') ||
@@ -103,9 +119,12 @@ public with sharing class DcQueryToTableController {
             lower.contains(' drop ') ||
             lower.contains(' truncate ') ||
             lower.contains(' alter ') ||
-            lower.contains(' create ')
+            lower.contains(' create ') ||
+            lower.contains(' exec ') ||
+            lower.contains(' execute ') ||
+            lower.contains(' call ')
         ) {
-            throw new AuraHandledException('Mutating or DDL keywords are not allowed in the SQL editor.');
+            throw buildAuraException('Mutating or DDL keywords are not allowed in the SQL editor.');
         }
     }
 
@@ -308,17 +327,29 @@ public with sharing class DcQueryToTableController {
         return null;
     }
 
+    /**
+     * Sort metadata rows by placeInOrder ascending. Uses Map<Integer, List> bucketing
+     * so the cost stays O(n log n) on key sort + O(n) row copy — well-behaved against
+     * a wide SELECT * (some Data Cloud DMOs expose 100+ fields).
+     */
     private static List<Map<String, Object>> sortMetadataRows(List<Map<String, Object>> rows) {
-        List<Map<String, Object>> out = new List<Map<String, Object>>();
-        out.addAll(rows);
-        for (Integer i = 0; i < out.size(); i++) {
-            for (Integer j = i + 1; j < out.size(); j++) {
-                if (metadataPlace(out[j]) < metadataPlace(out[i])) {
-                    Map<String, Object> tmp = out[i];
-                    out[i] = out[j];
-                    out[j] = tmp;
-                }
+        Map<Integer, List<Map<String, Object>>> buckets = new Map<Integer, List<Map<String, Object>>>();
+        Integer fallback = 0;
+        for (Map<String, Object> row : rows) {
+            Integer place = metadataPlace(row);
+            if (!buckets.containsKey(place)) {
+                buckets.put(place, new List<Map<String, Object>>());
             }
+            buckets.get(place).add(row);
+            if (place > fallback) {
+                fallback = place;
+            }
+        }
+        List<Integer> keys = new List<Integer>(buckets.keySet());
+        keys.sort();
+        List<Map<String, Object>> out = new List<Map<String, Object>>();
+        for (Integer key : keys) {
+            out.addAll(buckets.get(key));
         }
         return out;
     }
@@ -348,6 +379,11 @@ public with sharing class DcQueryToTableController {
         return s;
     }
 
+    /**
+     * SQL → datatable type. Order matters: timestamp must be checked before date, and
+     * date must exclude timestamp, because types like TIMESTAMP_NTZ contain both
+     * substrings. Don't reorder without re-reading these guards.
+     */
     private static String mapSqlTypeToDatatableType(String sqlType) {
         if (String.isBlank(sqlType)) {
             return 'text';

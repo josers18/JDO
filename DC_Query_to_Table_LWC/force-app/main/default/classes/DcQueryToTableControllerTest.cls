@@ -35,6 +35,50 @@ private class DcQueryToTableControllerTest {
     }
 
     @IsTest
+    static void runSql_disallowsDeleteWithNewline() {
+        Boolean threw = false;
+        try {
+            DcQueryToTableController.runDataCloudSql('SELECT 1\nDELETE FROM t', 10, false, null);
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        System.assert(threw, 'Newline-separated DELETE must still be rejected');
+    }
+
+    @IsTest
+    static void runSql_disallowsDropWithTab() {
+        Boolean threw = false;
+        try {
+            DcQueryToTableController.runDataCloudSql('SELECT 1\tDROP TABLE x', 10, false, null);
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        System.assert(threw, 'Tab-separated DROP must still be rejected');
+    }
+
+    @IsTest
+    static void runSql_disallowsExec() {
+        Boolean threw = false;
+        try {
+            DcQueryToTableController.runDataCloudSql('SELECT 1; EXEC sp_evil', 10, false, null);
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        System.assert(threw, 'EXEC keyword must be rejected');
+    }
+
+    @IsTest
+    static void runSql_disallowsCall() {
+        Boolean threw = false;
+        try {
+            DcQueryToTableController.runDataCloudSql('SELECT 1; CALL foo()', 10, false, null);
+        } catch (AuraHandledException e) {
+            threw = true;
+        }
+        System.assert(threw, 'CALL keyword must be rejected');
+    }
+
+    @IsTest
     static void runSql_mocked_returnsRows() {
         DcQueryToTableController.ColumnDef c1 = new DcQueryToTableController.ColumnDef();
         c1.fieldName = 'a';
