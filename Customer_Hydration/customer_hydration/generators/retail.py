@@ -13,6 +13,8 @@ from typing import Iterable
 
 from faker import Faker
 
+from customer_hydration.fieldmap import JDO_FIELDMAP
+
 
 _LIFE_STAGE_BINS = [
     (32, "young_pro"),
@@ -83,7 +85,8 @@ def generate_retail(
         last = faker.last_name()
         marital = _marital_for(age, life_stage, rng)
 
-        account = {
+        # Build the logical row (using spec field names), then translate via fieldmap.
+        logical_account = {
             "RecordTypeId": person_account_rt_id,
             "FirstName": first,
             "LastName": last,
@@ -99,40 +102,45 @@ def generate_retail(
             "PersonMailingCountry": "US",
             "Industry": "Personal",
             "FinServ__ClientCategory__c": "Retail",
-            "FinServ__ClientStatus__c": "Active",
-            "FinServ__MaritalStatus__c": marital,
-            "FinServ__Occupation__c": faker.job(),
-            "FinServ__Employer__c": faker.company(),
-            "FinServ__YearsWithEmployer__c": min(age - 22, rng.randint(1, 25)),
-            "FinServ__TotalAnnualIncome__c": income,
-            "FinServ__NumberOfDependents__c": _dependents_for(life_stage, rng),
-            "FinServ__BankingPreference__c": rng.choice(["Mobile", "Online", "In-Branch"]),
+            "FinServ__ClientStatus__c": "Active",  # dropped by fieldmap
+            "FinServ__MaritalStatus__c": marital,  # → __pc
+            "FinServ__Occupation__c": faker.job(),  # → __pc
+            "FinServ__Employer__c": faker.company(),  # → CurrentEmployer__pc
+            "FinServ__YearsWithEmployer__c": min(age - 22, rng.randint(1, 25)),  # dropped
+            "FinServ__TotalAnnualIncome__c": income,  # → AnnualIncome__pc
+            "FinServ__NumberOfDependents__c": _dependents_for(life_stage, rng),  # → __pc
+            "FinServ__BankingPreference__c": rng.choice(["Mobile", "Online", "In-Branch"]),  # dropped
             "OwnerId": rng.choice(rm_user_ids),
-            "LeadSource": "Hydration",
+            "LeadSource": "Hydration",  # dropped (not on Account in this org)
             "External_ID__c": ext_id,
             "FinServ__SourceSystemId__c": ext_id,
             "Description": _description_for(life_stage, age, marital),
         }
+        account = JDO_FIELDMAP.apply("Account", logical_account)
         bundle.accounts.append(account)
 
         balance = round(rng.uniform(500, 8000), 2)
         opened = anchor_date - timedelta(days=rng.randint(30, 365 * 5))
 
-        fa = {
+        logical_fa = {
             "Name": f"Cumulus Everyday Checking - {rng.randint(1000, 9999)}",
-            "FinServ__FinancialAccountType__c": "Checking",
-            "FinServ__FinancialAccountSource__c": "Hydration",
-            "FinServ__Status__c": "Active",
-            "FinServ__OpenedDate__c": opened.isoformat(),
+            "FinServ__FinancialAccountType__c": JDO_FIELDMAP.picklist_value(
+                "FinServ__FinancialAccount__c", "FinServ__FinancialAccountType__c", "Checking"),
+            "FinServ__FinancialAccountSource__c": f"Cumulus:{checking_product_code}",
+            "FinServ__Status__c": JDO_FIELDMAP.picklist_value(
+                "FinServ__FinancialAccount__c", "FinServ__Status__c", "Active"),
+            "FinServ__OpenedDate__c": opened.isoformat(),  # → OpenDate__c
             "FinServ__Balance__c": balance,
             "FinServ__InterestRate__c": 0.0001,
-            "FinServ__OwnershipType__c": "Individual",
-            "FinServ__PrimaryOwner__c": ext_id,  # external-id reference; loader rewrites the column header
+            "FinServ__APY__c": 0.0001,
+            "FinServ__OwnershipType__c": "Individual",  # → Ownership__c
+            "FinServ__PrimaryOwner__c": ext_id,
             "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
-            "FinServ__ProductCode__c": checking_product_code,
+            "FinServ__ProductCode__c": checking_product_code,  # dropped
             "External_ID__c": fa_ext_id,
             "FinServ__SourceSystemId__c": fa_ext_id,
         }
+        fa = JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_fa)
         bundle.financial_accounts.append(fa)
 
         role = {
@@ -144,6 +152,39 @@ def generate_retail(
             "External_ID__c": far_ext_id,
         }
         bundle.financial_account_roles.append(role)
+
+        # Savings child record at probability 0.6 (per personas.yaml; spec §2 retail)
+        if rng.random() < 0.6:
+            sav_ext_id = f"HYDRATE-FA-{starting_seq + n + i:06d}"  # offset by n past checking
+            sav_balance = round(rng.uniform(500, 25000), 2)
+            sav_apy = 0.0025  # Statement Savings APY
+            logical_sav = {
+                "Name": f"Cumulus Statement Savings - {rng.randint(1000, 9999)}",
+                "FinServ__FinancialAccountType__c": JDO_FIELDMAP.picklist_value(
+                    "FinServ__FinancialAccount__c", "FinServ__FinancialAccountType__c", "Savings"),
+                "FinServ__FinancialAccountSource__c": "Cumulus:PD-SAV-STM-2026.04",
+                "FinServ__Status__c": "Open",
+                "FinServ__OpenedDate__c": opened.isoformat(),
+                "FinServ__Balance__c": sav_balance,
+                "FinServ__APY__c": sav_apy,
+                "FinServ__OwnershipType__c": "Individual",
+                "FinServ__PrimaryOwner__c": ext_id,
+                "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
+                "External_ID__c": sav_ext_id,
+                "FinServ__SourceSystemId__c": sav_ext_id,
+            }
+            bundle.financial_accounts.append(JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_sav))
+
+            sav_far_ext_id = f"HYDRATE-FAR-{starting_seq + n + i:06d}"
+            sav_role = {
+                "FinServ__FinancialAccount__c": sav_ext_id,
+                "FinServ__RelatedAccount__c": ext_id,
+                "FinServ__Role__c": "Primary Owner",
+                "FinServ__Active__c": True,
+                "FinServ__StartDate__c": opened.isoformat(),
+                "External_ID__c": sav_far_ext_id,
+            }
+            bundle.financial_account_roles.append(sav_role)
 
     return bundle
 
