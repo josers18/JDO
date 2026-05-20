@@ -5,7 +5,7 @@
 .superpowers/
 .worktrees/
 .claude/
-CLAUDE.md
+**/CLAUDE.md
 
 # Local tooling logs (DBT, SQL run logs, ad-hoc deploy logs)
 **/logs/
