@@ -36,6 +36,15 @@ public with sharing class CrmTimelineController {
     private static final Integer DEFAULT_LOOKBACK_DAYS = 90;
     private static final Integer PER_SOURCE_LIMIT = 200;
 
+    /**
+     * @description Returns merged CRM activity (Cases, Tasks, Events, VoiceCalls) for an
+     *              Account or Contact record page, sorted by occurredAt descending.
+     * @param recordId        Account.Id or Contact.Id; throws if any other SObject type.
+     * @param enabledSources  Subset of {'case','task','event','voice'}; unknown values are
+     *                        silently dropped. Returns [] when the resulting set is empty.
+     * @param lookbackDays    Clamped to [1..365]; null or <1 falls back to 90.
+     * @return List<TimelineEvent>, capped at PER_SOURCE_LIMIT (200) per source.
+     */
     @AuraEnabled(cacheable=false)
     public static List<TimelineEvent> getCrmTimelineEvents(
         Id recordId,
@@ -44,7 +53,7 @@ public with sharing class CrmTimelineController {
     ) {
         Schema.SObjectType sot = recordId.getSObjectType();
         if (sot != Account.SObjectType && sot != Contact.SObjectType) {
-            throw new AuraHandledException(
+            throw buildAuraException(
                 'Web Engagements timeline only supports Account and Contact record pages.'
             );
         }
@@ -69,6 +78,20 @@ public with sharing class CrmTimelineController {
         TimelineEvent[] arr = events.clone();
         arr.sort(new TimelineEventComparator());
         return arr;
+    }
+
+    /**
+     * AuraHandledException surfaces a custom message to the LWC layer only when both
+     * the constructor argument AND setMessage() are populated; without setMessage()
+     * the JS toast falls back to a generic "Script-thrown exception" string.
+     * Mirror of the helper in DC_Prediction_Model_LWC, DC_Multiclass_Prediction_LWC,
+     * DC_Query_to_Table_LWC, and DC_AgentForce_Output_LWC.
+     */
+    private static AuraHandledException buildAuraException(String msg) {
+        String safe = String.isBlank(msg) ? 'Operation failed.' : msg;
+        AuraHandledException ahe = new AuraHandledException(safe);
+        ahe.setMessage(safe);
+        return ahe;
     }
 
     private static List<TimelineEvent> queryCases(Id recordId, Schema.SObjectType sot, Datetime since) {
