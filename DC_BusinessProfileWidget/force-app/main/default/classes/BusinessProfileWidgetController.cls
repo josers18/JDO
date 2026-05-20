@@ -273,7 +273,7 @@ public with sharing class BusinessProfileWidgetController {
         Integer pipelineOpportunityLimit
     ) {
         if (String.isBlank(recordId)) {
-            throw new AuraHandledException('Record Id is required.');
+            throw buildAuraException('Record Id is required.');
         }
         Map<String, String> fieldMappings = new Map<String, String>();
         if (!String.isBlank(fieldMappingsJson)) {
@@ -349,7 +349,7 @@ public with sharing class BusinessProfileWidgetController {
         String agentforceSummaryPromptInputApiName
     ) {
         if (String.isBlank(recordId)) {
-            throw new AuraHandledException('Record Id is required.');
+            throw buildAuraException('Record Id is required.');
         }
         String tmpl = sanitizeEinsteinTemplateRef(agentforceSummaryPromptTemplateId);
         if (String.isBlank(tmpl)) {
@@ -361,7 +361,7 @@ public with sharing class BusinessProfileWidgetController {
         try {
             accId = (Id) recordId;
         } catch (Exception badId) {
-            throw new AuraHandledException('Invalid record Id.');
+            throw buildAuraException('Invalid record Id.');
         }
         if (accId.getSobjectType() != Account.SObjectType) {
             return JSON.serialize(
@@ -405,17 +405,17 @@ public with sharing class BusinessProfileWidgetController {
         String invocableJsonOutputApiName
     ) {
         if (String.isBlank(recordId)) {
-            throw new AuraHandledException('Record Id is required.');
+            throw buildAuraException('Record Id is required.');
         }
         try {
             Id ridCheck = (Id) recordId;
             if (ridCheck == null) {
-                throw new AuraHandledException('Invalid record Id.');
+                throw buildAuraException('Invalid record Id.');
             }
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception badId) {
-            throw new AuraHandledException('Invalid record Id.');
+            throw buildAuraException('Invalid record Id.');
         }
         String cls = String.isBlank(invocableApexClassApiName) ? '' : invocableApexClassApiName.trim();
         if (String.isBlank(cls)) {
@@ -424,12 +424,12 @@ public with sharing class BusinessProfileWidgetController {
             return empty;
         }
         if (!isSafeInvocableConfigurationToken(cls)) {
-            throw new AuraHandledException('Invalid Apex class API name for unified relationships.');
+            throw buildAuraException('Invalid Apex class API name for unified relationships.');
         }
         String inName = String.isBlank(invocableRecordIdInputApiName) ? 'id' : invocableRecordIdInputApiName.trim();
         String outName = String.isBlank(invocableJsonOutputApiName) ? 'queryResultJSON' : invocableJsonOutputApiName.trim();
         if (!isSafeInvocableConfigurationToken(inName) || !isSafeInvocableConfigurationToken(outName)) {
-            throw new AuraHandledException('Invalid invocable variable API name for unified relationships.');
+            throw buildAuraException('Invalid invocable variable API name for unified relationships.');
         }
         UnifiedRelationshipsApexResult out = new UnifiedRelationshipsApexResult();
         try {
@@ -447,7 +447,7 @@ public with sharing class BusinessProfileWidgetController {
                 if (errs != null && !errs.isEmpty() && String.isNotBlank(errs[0].getMessage())) {
                     detail += ' ' + errs[0].getMessage();
                 }
-                throw new AuraHandledException(detail);
+                throw buildAuraException(detail);
             }
             Map<String, Object> outs = first.getOutputParameters();
             Object raw = null;
@@ -473,7 +473,9 @@ public with sharing class BusinessProfileWidgetController {
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception e) {
-            throw new AuraHandledException('Unified relationships Apex action failed: ' + e.getMessage());
+            // Sanitize the user-facing message; full detail goes to the debug log only.
+            System.debug(LoggingLevel.ERROR, 'Unified relationships Apex action failed: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('Unified relationships Apex action failed. Check the configured Apex class and invocable variable names; see debug logs for details.');
         }
         return out;
     }
@@ -1618,7 +1620,9 @@ public with sharing class BusinessProfileWidgetController {
             return Decimal.valueOf((Long) o);
         }
         if (o instanceof Double) {
-            return Decimal.valueOf((Double) o);
+            // Decimal.valueOf((Double) o) produces binary-float noise (e.g. 0.7 -> 0.6999...).
+            // Route through String.valueOf so the decimal representation survives intact.
+            return Decimal.valueOf(String.valueOf((Double) o));
         }
         Decimal structured = decValFromStructuredNumber(o);
         if (structured != null) {
@@ -1879,11 +1883,14 @@ public with sharing class BusinessProfileWidgetController {
 
         try {
             return invokeEinsteinPromptTemplateForContext(promptTemplateId, inputName, contextJson);
+        } catch (ConnectApi.ConnectApiException e) {
+            // Salesforce-curated message — safe to surface verbatim.
+            System.debug(LoggingLevel.ERROR, 'generateSummary ConnectApiException: ' + e);
+            throw buildAuraException(e.getMessage());
         } catch (Exception e) {
-            throw new AuraHandledException(
-                'Summary generation failed. Confirm Einstein Generative AI, prompt access, and template input API name. Details: ' +
-                e.getMessage()
-            );
+            // Sanitize for the user; full detail goes to the debug log only.
+            System.debug(LoggingLevel.ERROR, 'generateSummary unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('Summary generation failed. Confirm Einstein Generative AI, prompt access, and template input API name.');
         }
     }
 
@@ -2472,6 +2479,20 @@ public with sharing class BusinessProfileWidgetController {
             }
         }
         return '';
+    }
+
+    /**
+     * AuraHandledException surfaces a custom message to the LWC layer only when both
+     * the constructor argument AND setMessage() are populated; without setMessage()
+     * the JS toast falls back to a generic "Script-thrown exception" string.
+     * Mirror of the helper in DC_Prediction_Model_LWC, DC_Multiclass_Prediction_LWC,
+     * DC_Query_to_Table_LWC, DC_AgentForce_Output_LWC, and CrmTimelineController.
+     */
+    private static AuraHandledException buildAuraException(String msg) {
+        String safe = String.isBlank(msg) ? 'Operation failed.' : msg;
+        AuraHandledException ahe = new AuraHandledException(safe);
+        ahe.setMessage(safe);
+        return ahe;
     }
 
     /**
