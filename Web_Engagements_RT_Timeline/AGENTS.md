@@ -85,9 +85,22 @@ npm run test:unit
 ```
 connectedCallback → handleRefresh
    ├─ loadWebEngagements (async)            ── independent Promise; surfaces webError separately
-   │     └─ DataCloudWebEngagementController.getWebEngagementData
-   │           ├─ getUnifiedId via ConnectApi.CdpQuery.querySql   ← UnifiedLinkssotAccountAcc__dlm
-   │           └─ HTTP GET callout:Data_Cloud_API/services/data/v65.0/ssot/data-graphs/...
+   │     └─ DataCloudWebEngagementController.getWebEngagementsWithBackfill   ← LWC calls THIS
+   │           ├─ HOT:  getWebEngagementData(accountId, dataGraphName)        ← still callable directly
+   │           │         ├─ getUnifiedId via ConnectApi.CdpQuery.querySql   (UnifiedLinkssotAccountAcc__dlm)
+   │           │         └─ HTTP GET callout:Data_Cloud_API/services/data/v65.0/ssot/data-graphs/...
+   │           │
+   │           ├─ COLD: queryWebEngagementsFromDmo(unifiedId, lookbackDays)   ← cold-store backfill
+   │           │         └─ ConnectApi.CdpQuery.querySql:
+   │           │             SELECT e.* FROM CumulusWeb_Engagements__dlm e
+   │           │             INNER JOIN UnifiedLinkssotAccountAcc__dlm l
+   │           │               ON e.deviceId__c = l.SourceRecordId__c
+   │           │             WHERE l.UnifiedRecordId__c = :unifiedId
+   │           │               AND e.dateTime__c >= :since
+   │           │
+   │           └─ MERGE: dedupe by eventId__c, hot wins on collision; wrap back into the
+   │                     `data[0].json_blob__c` envelope so the LWC's parseDataGraphResponse
+   │                     consumes the merged stream identically to a hot-only response.
    │
    └─ loadCrmEvents (async, parallel)       ── independent Promise; surfaces crmError separately
          └─ CrmTimelineController.getCrmTimelineEvents
@@ -100,6 +113,14 @@ connectedCallback → handleRefresh
 ```
 
 Both loaders call `maybeAutoEnableChips` after they finish. The function is **idempotent** (commented inline, lines 190-191 of webEngagementData.js): on the first finish, it auto-enables that source's chips; on the second, it adds any newly-available sources to the existing filter set. The user briefly sees a partial chip set on slow networks — this is the documented partial-failure UX, not a bug.
+
+**Demo-cadence latency:** the hot callout (200-800ms) and the cold ConnectApi.CdpQuery.querySql (100-200ms) typically overlap in execution; the merge adds ~10ms. Net round-trip is `max(hot, cold) + ~10ms`, not their sum. Cold-side failures (e.g., DMO unavailable, IR query timeout) are caught and logged; the response degrades gracefully to hot-only. The LWC sees the same envelope shape either way.
+
+## Hot+cold backfill identity contract
+
+The cold-store JOIN works because **`CumulusWeb_Engagements__dlm.deviceId__c` is the same value as `UnifiedLinkssotAccountAcc__dlm.SourceRecordId__c`** for events that originated from a Salesforce Account record (the link table maps source IDs to unified IDs). Anonymous traffic (events with a device fingerprint not in the link table) is intentionally excluded — those events have no path back to a unified individual and therefore no path back to this Account record page.
+
+If the Identity Resolution schema ever changes — e.g., the link table renames `SourceRecordId__c`, or the engagements DMO renames `deviceId__c` — both column names are referenced in `queryWebEngagementsFromDmo` and `getUnifiedId`. The `@TestVisible queryWebEngagementsFromDmo_mockResult` test seam exists so the SOQL itself doesn't need to be exercised in test context.
 
 ## Data contract — Apex DTOs
 
@@ -155,6 +176,9 @@ Web engagement events follow the same shape; the LWC merges both lists and group
 
 # Common mistakes
 
+- **"Empty timeline = component is broken" — usually no.** The Data Graph hot cache is real-time and expires after a configurable window (typically minutes-to-hours in demo orgs). When the cache window rolls past the user's recent events, `getWebEngagementData` returns a populated *envelope* (`{"data":[{"json_blob__c":"..."}]}`) but the inner `CumulusWeb_Engagements__dlm` array is empty. The LWC parses this successfully and renders nothing — looks identical to a broken component but is the documented empty state. **Diagnose by running anonymous Apex** against the deployed controller with a real Account Id: `String r = DataCloudWebEngagementController.getWebEngagementData('001...', 'RT_Web_Engagementsv2'); System.debug(r.length() + ' bytes; preview=' + r.left(500));`. A response > 1500 bytes that lacks events inside the inner blob means the hot cache is empty for this user. **The cold-store backfill in `getWebEngagementsWithBackfill` exists exactly to absorb this.** When hot is empty, cold-store events from `CumulusWeb_Engagements__dlm` (joined to `UnifiedLinkssotAccountAcc__dlm` via `deviceId__c = SourceRecordId__c`) populate the timeline up to `lookbackDays`. If both are empty, the user genuinely has no recent engagement.
+- **Don't switch the LWC's import back to `getWebEngagementData` (the hot-only method)** — it's kept callable for direct anonymous-Apex diagnostics like the one above, but the production render path must go through `getWebEngagementsWithBackfill` so the cold-store backfill actually runs. Same fix the entire monorepo just adopted: hot cache is for freshness, cold store is for completeness; both required.
+- **Dedupe rule on the hot+cold merge: hot wins on `eventId__c` collision.** Cold-store rows only fill gaps where the hot cache has no counterpart. Don't reverse this — hot is the canonical source for events still in the real-time window.
 - **`AuraHandledException` without `setMessage()`** — toast falls back to "Script-thrown exception". See the entry guard at `CrmTimelineController.cls:47`.
 - **Bumping the API version without re-checking the Data Graph response shape** — `extractUnifiedIdFromQueryOutput` is currently shape-defensive against v65; bumping to a later version requires re-validating both `dataRows`/`data` and `rowData`/`row` keys.
 - **Adding a new `<target>`** to the meta-xml without updating the `sot != Account.SObjectType && sot != Contact.SObjectType` guard at `CrmTimelineController.cls:46-50` — the user-facing toast is the only thing that protects against an Opportunity/Lead/etc. record page firing the SOQL queries.

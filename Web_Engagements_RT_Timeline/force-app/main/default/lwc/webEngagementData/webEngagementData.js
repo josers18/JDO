@@ -1,5 +1,5 @@
 import { LightningElement, api } from 'lwc';
-import getWebEngagementData from '@salesforce/apex/DataCloudWebEngagementController.getWebEngagementData';
+import getWebEngagementsWithBackfill from '@salesforce/apex/DataCloudWebEngagementController.getWebEngagementsWithBackfill';
 import getCrmTimelineEvents from '@salesforce/apex/CrmTimelineController.getCrmTimelineEvents';
 import { parseDataGraphResponse, mergeAndSort, groupByDay } from './timelineMappers';
 import { SOURCE_CONFIG, SOURCE_ORDER } from './sourceConfig';
@@ -43,9 +43,14 @@ export default class WebEngagementData extends LightningElement {
         this.loadingWeb = true;
         this.webError = null;
         try {
-            const raw = await getWebEngagementData({
+            // Hot Data Graph cache + cold-store DMO backfill, merged Apex-side. The LWC
+            // sees the same envelope shape regardless of whether one or both sources had
+            // events, so parseDataGraphResponse stays unchanged. lookbackDays bounds the
+            // cold backfill window; it has no effect on the hot cache.
+            const raw = await getWebEngagementsWithBackfill({
                 accountId: this.recordId,
-                dataGraphName: this.dcDataGraphName
+                dataGraphName: this.dcDataGraphName,
+                lookbackDays: this.lookbackDays
             });
             this.webEvents = parseDataGraphResponse(raw);
             this.maybeAutoEnableChips();
