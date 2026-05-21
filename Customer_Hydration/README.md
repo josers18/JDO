@@ -194,3 +194,29 @@ Plan 4 is **complete** when:
 2. **Native FA uses `LegacyId__c` not `External_ID__c`.** jdo-fw51xz's `FinancialAccount` has only `LegacyId__c` as externalId. runner_p4 upserts via `LegacyId__c` and resolves Wave G's `RESOLVE-NFA:` markers via a 3-hop chain (HYDRATE-NFA-NNN → HYDRATE-FA-NNN → legacy FA Id → native FA Id). The synthesized External_ID__c column is silently dropped at preflight.
 
 3. **No live-org load yet.** Dry-run produces correct CSVs, but Plan 4 doesn't push records to the org because Plan 3's stderr-misclassification bug blocks the legacy waves from completing. Plan 5 fixes the bug, then Plans 4+5 can both land in a single subsequent live load.
+
+## Plan 5 status — Apex post-load wireup + Phase 5.5 Data Cloud stream refresh
+
+Plan 5 is **complete** when:
+
+- [x] `customer_hydration/loader/_legacy.py` `bulk_upsert` no longer misclassifies SF CLI's "update available" stderr warning as failure (uses JSON payload as authoritative success signal)
+- [x] `apex/post_load_wireup.apex` — anonymous Apex script that kicks FSC Group Builder + escalates aged Cases. Compiles + executes cleanly against `jdo-fw51xz`.
+- [x] `force-app/main/default/classes/FscGroupRollupBatch.cls` + matching test class (≥75% coverage). `sf project deploy validate` succeeded against `jdo-fw51xz`.
+- [x] `customer_hydration/phase5/apex_wireup.py` — Python wrapper that deploys `force-app/` and runs `sf apex run --file`
+- [x] `customer_hydration/phase5/data_cloud.py` — REST client for Data Cloud stream discovery + trigger (fire-and-forget) + status polling
+- [x] `runner_p5.py` orchestrates Phase 5 (Apex) and Phase 5.5 (DC stream refresh) after Wave G
+- [x] `--skip-apex-wireup` and `--skip-data-cloud` flags actually skip those phases (were no-ops since Plan 1)
+- [x] `--data-cloud-only` flag short-circuits to Phase 5.5 only
+- [x] `dc-status` subcommand reads the latest manifest's DC section, polls each stream-run via REST, prints summary
+- [x] All 384+ unit tests pass (Plans 1-4's 360 + 24 new across `test_loader`, `test_apex_wireup`, `test_data_cloud`, `test_cli`)
+- [x] Phase 5 live test: deploy succeeded (deploy id `0Afam00002UonXtCAJ`); Apex compiled + executed against `jdo-fw51xz`
+- [x] Phase 5.5 live test: `--data-cloud-only` discovered 0 streams in `jdo-fw51xz` (org has none configured) — code path runs cleanly
+
+### Known Plan 5 warts (deferred to Plan 6)
+
+1. **Direct household roll-up write was removed.** This org's FSC version makes `FinServ__AUM__c`, `FinServ__TotalBankDeposits__c`, `FinServ__TotalInvestments__c`, `FinServ__TotalLiabilities__c` read-only / declaratively-rolled-up. The Apex post-load script comments out the manual write and relies on the Group Builder kickoff to trigger the FSC standard logic that populates them. If you fork this for an org with WRITABLE roll-up fields, restore the manual write loop (see git history at `7602756^`).
+
+2. **0 Data Cloud streams discovered in `jdo-fw51xz`.** Phase 5.5 successfully connected to Data Cloud REST and queried the data-streams endpoint, but the org has no streams configured matching CRM-source objects. Once streams exist, re-run with `--data-cloud-only` and `dc-status` will populate.
+
+3. **`--watch` flag is a no-op in v1.** Single-shot poll only. Plan 6 polish to add the 30s polling loop.
+
