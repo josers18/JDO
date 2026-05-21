@@ -66,6 +66,12 @@ def build_parser() -> argparse.ArgumentParser:
                           help="Machine-readable output")
     p_dc = sub.add_parser("dc-status", help="Poll DC stream-run state (Plan 5)")
     _add_global_args(p_dc)
+    p_dc.add_argument("--run-id", default=None,
+                      help="Manifest to read (default: latest with DC section)")
+    p_dc.add_argument("--json", action="store_true",
+                      help="Machine-readable output")
+    p_dc.add_argument("--watch", action="store_true",
+                      help="Poll every 30s until done (v1: single-shot poll)")
     p_resume = sub.add_parser("resume", help="Continue an interrupted run (Plan 3)")
     _add_global_args(p_resume)
     _add_hydrate_args(p_resume)
@@ -114,6 +120,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_resume(args)
     if args.subcommand == "status":
         return _run_status(args)
+    if args.subcommand == "dc-status":
+        return _run_dc_status(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)
     return 2
 
@@ -140,8 +148,8 @@ def _run_validate_config(args: argparse.Namespace) -> int:
 
 
 def _run_hydrate(args: argparse.Namespace) -> int:
-    """Plan 4: legacy + native lineages with checkpoint/resume."""
-    from customer_hydration.runner_p4 import run_all
+    """Plan 5: legacy + native lineages + Apex wireup + DC stream refresh."""
+    from customer_hydration.runner_p5 import run_all
     return run_all(args)
 
 
@@ -280,9 +288,9 @@ def _run_resume(args: argparse.Namespace) -> int:
         f"Resuming run {checkpoint.run_id} "
         f"from wave {checkpoint.in_progress_wave}…"
     )
-    # Stash the run_id on args so runner_p4 picks up the resume.
+    # Stash the run_id on args so runner_p5 picks up the resume.
     args.resume_run_id = checkpoint.run_id
-    from customer_hydration.runner_p4 import run_all
+    from customer_hydration.runner_p5 import run_all
     return run_all(args)
 
 
@@ -303,3 +311,122 @@ def _run_status(args: argparse.Namespace) -> int:
         for sobject in sorted(counts.keys()):
             print(f"  {sobject:50s} {counts[sobject]:>8}")
     return 0
+
+
+# ---------------------------------------------------------------------------
+# Plan 5 / Task 6 — dc-status subcommand
+# ---------------------------------------------------------------------------
+
+
+def _run_dc_status(args: argparse.Namespace) -> int:
+    """Poll Data Cloud stream-run state from the latest manifest."""
+    import json as _json
+
+    from customer_hydration.phase5.data_cloud import (
+        get_org_session,
+        poll_stream_run_status,
+    )
+    output_dir = Path(args.output_dir)
+
+    # Find the manifest
+    if getattr(args, "run_id", None):
+        manifest_path = output_dir / args.run_id / "manifest.json"
+    else:
+        # Latest run with a DataCloud_Stream_Refresh section
+        candidates = sorted(output_dir.glob("run-*/manifest.json"), reverse=True)
+        manifest_path = None
+        for p in candidates:
+            try:
+                m = _json.loads(p.read_text(encoding="utf-8"))
+                if "DataCloud_Stream_Refresh" in m.get("object_status", {}):
+                    manifest_path = p
+                    break
+            except Exception:
+                continue
+        if manifest_path is None:
+            print(
+                f"No run with Data Cloud stream refresh found in {output_dir}",
+                file=sys.stderr,
+            )
+            return 2
+
+    manifest = _json.loads(manifest_path.read_text(encoding="utf-8"))
+    dc_section = manifest.get("object_status", {}).get(
+        "DataCloud_Stream_Refresh", {}
+    )
+    stream_runs = dc_section.get("stream_runs", [])
+    if not stream_runs:
+        print(f"No stream runs in {manifest_path}")
+        return 0
+
+    if args.target_org is None:
+        print("--target-org required for live polling", file=sys.stderr)
+        return 2
+
+    instance_url, access_token = get_org_session(args.target_org)
+
+    rows = []
+    complete = 0
+    in_progress = 0
+    failed = 0
+    for sr in stream_runs:
+        run_id = sr.get("run_id")
+        if not run_id:
+            rows.append((
+                sr.get("stream_api_name"), sr.get("source_object"), "NoRunId", 0,
+            ))
+            failed += 1
+            continue
+        try:
+            state = poll_stream_run_status(instance_url, access_token, run_id)
+            status = state.get("status") or state.get("runStatus") or "Unknown"
+            rows_processed = (
+                state.get("rowsProcessed")
+                or state.get("recordsProcessed")
+                or 0
+            )
+            rows.append((
+                sr.get("stream_api_name"),
+                sr.get("source_object"),
+                status,
+                rows_processed,
+            ))
+            if status in ("Success", "Completed"):
+                complete += 1
+            elif status in ("Failed", "Error"):
+                failed += 1
+            else:
+                in_progress += 1
+        except Exception as exc:  # noqa: BLE001 — surfaced in row, not raised
+            rows.append((
+                sr.get("stream_api_name"),
+                sr.get("source_object"),
+                f"Err: {exc}",
+                0,
+            ))
+            failed += 1
+
+    if args.json:
+        print(_json.dumps(
+            {
+                "rows": rows,
+                "complete": complete,
+                "in_progress": in_progress,
+                "failed": failed,
+            },
+            indent=2,
+        ))
+    else:
+        print(f"\nCustomer_Hydration  ·  Data Cloud stream status")
+        print(f"Run: {manifest_path.parent.name}")
+        print(f"---")
+        print(f"{'Stream':35s} {'Source':30s} {'Status':12s} {'Rows':>10s}")
+        print(f"---")
+        for stream, source, status, rows_processed in rows:
+            print(
+                f"{stream:35s} {source:30s} {status:12s} {rows_processed:>10}"
+            )
+        print(f"---")
+        print(f"{complete} complete · {in_progress} in progress · {failed} failed")
+
+    return 0 if failed == 0 else 2

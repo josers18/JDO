@@ -95,3 +95,44 @@ class TestPlan3Subcommands:
         # construction — no subprocess interaction.
         rc = main(["status"])
         assert rc == 2
+
+
+class TestDcStatusSubcommand:
+    """Plan 5 / Task 6 — argparse + dispatch for dc-status."""
+
+    def test_dc_status_subcommand_parses(self):
+        parser = build_parser()
+        args = parser.parse_args(["dc-status", "--target-org", "alias"])
+        assert args.subcommand == "dc-status"
+        assert args.target_org == "alias"
+        # New flags default cleanly
+        assert args.run_id is None
+        assert args.json is False
+        assert args.watch is False
+
+    def test_dc_status_with_json_flag(self):
+        parser = build_parser()
+        args = parser.parse_args([
+            "dc-status", "--target-org", "alias", "--json",
+        ])
+        assert args.subcommand == "dc-status"
+        assert args.json is True
+
+    def test_dc_status_with_run_id_flag(self):
+        parser = build_parser()
+        args = parser.parse_args([
+            "dc-status", "--target-org", "alias",
+            "--run-id", "run-2026-05-21T1234",
+        ])
+        assert args.run_id == "run-2026-05-21T1234"
+
+    def test_dc_status_no_runs_returns_2(self, tmp_path: Path):
+        # Empty output dir — no run-*/manifest.json files. The function
+        # should print "No run with Data Cloud stream refresh found" and
+        # return exit code 2.
+        rc = main([
+            "dc-status",
+            "--target-org", "alias",
+            "--output-dir", str(tmp_path),
+        ])
+        assert rc == 2
