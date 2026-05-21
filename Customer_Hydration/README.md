@@ -5,9 +5,10 @@ Bank customer data — Retail, Wealth, Small Business, and Commercial — across
 role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 (legacy `FinServ__*` + native FSC standard objects).
 
-> **Status:** Plan 1 (skeleton + Phase 0 + retail-only smoke). Plans 2–6 add
-> the remaining personas, native FSC mirrors, Apex post-load wireup, Data
-> Cloud stream refresh, and banker briefs.
+> **Status:** Plans 1 + 2 complete (skeleton, Phase 0, fieldmap, all 4
+> personas, full retail child fanout, sequential bulk loader). Plans 3–6
+> add multi-wave parallelism + reset/resume, native FSC mirrors, Apex
+> post-load wireup + Data Cloud stream refresh, and banker briefs.
 
 ## Quick start
 
@@ -16,7 +17,7 @@ cd Customer_Hydration
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python hydrate.py hydrate --target-org jdo-fw51xz \
-    --retail 50 --personas retail \
+    --retail 100 --wealth 80 --smb 50 --commercial 20 \
     --skip-natives --skip-apex-wireup --skip-data-cloud \
     --allow-production
 ```
@@ -81,13 +82,75 @@ sf data query --target-org jdo-fw51xz \
    `python hydrate.py hydrate --retail 50 ...`. The README's Quick Start snippet
    in this file is correct.
 
-**Out of scope (Plans 2–6):**
-- Wealth, SMB, Commercial personas
-- All other retail child records (Savings, Mortgage, HELOC, Cards, Goals, LifeEvents,
-  Cases, Tasks, Events, Opportunities, Households, Campaigns)
-- Native FSC mirror objects (FinancialAccount, FinancialAccountParty, etc.)
-- Apex post-load wireup (Group Builder rollups)
-- Data Cloud stream refresh (Phase 5.5)
-- `reset` / `dc-status` / `briefs` subcommands
-- AGENTS.md + per-banker briefs (Plan 6)
-- Top-level repo README / CHANGELOG / docs/INDEX updates (Task 25 below; Plan 6 expands)
+**Out of scope for Plan 1 (handled by later plans):**
+- Wealth, SMB, Commercial personas (Plan 2 — DONE)
+- Other retail child records — Savings, Cards, Goals, LifeEvents, Cases, Tasks, Events, Opportunities, Households, Campaigns (Plan 2 — DONE)
+- Native FSC mirror objects (Plan 4)
+- Multi-wave parallel bulk loader + reset + resume (Plan 3)
+- Apex post-load wireup + Data Cloud stream refresh (Plan 5)
+- `reset` / `dc-status` / `briefs` subcommands functional (Plans 3 + 6)
+- Banker briefs + final docs (Plan 6)
+
+## Plan 2 status — Personas + activity + fieldmap correction
+
+Plan 2 is **complete** when:
+
+- [x] `customer_hydration/fieldmap.py` translates spec field names + picklist values to the org's actual FSC schema (30+ field renames, 27 picklist value remappings)
+- [x] `retail.py` extended to consume fieldmap + emit Savings child FA at 60% probability (corrected `__pc` shadow demographics)
+- [x] `wealth.py`, `smb.py`, `commercial.py` produce persona-shaped Accounts + child FAs
+- [x] Cross-cutting generators: `cards.py` (custom Card model), `holdings.py` (~40-ticker universe), `goals.py`, `lifecycle.py` (LifeEvents), `households.py` (Household Accounts; ACR deferred to Plan 3), `activity.py` (Cases/Tasks/Events/Opps), `campaigns.py` (10 campaigns; CampaignMember deferred to Plan 3)
+- [x] `runner_p2.py` orchestrates 4 personas + 7 child generators, writes 12 CSVs, sequential bulk-upsert
+- [x] AGENTS.md updated to call out `__pc` shadow + restrictive picklist gotchas
+- [x] All 200 unit tests pass (Plan 1's 46 + 154 new across 11 generator + fieldmap test files)
+- [x] Dry-run smoke produces 12 CSVs with 3,742 rows in ~83 seconds, no surprise field drops beyond expected `Account.YearStarted`
+- [x] Live load against `jdo-fw51xz` lands ~830 customers (350 retail / 240 wealth / 100 SMB / 40 commercial / 108 households) + 422 FAs + 394 FA Roles
+- [ ] Full child-record fanout in the org — see "Known Plan 2 warts" below; deferred to Plan 3
+
+### How to run the Plan 2 smoke
+
+```bash
+cd Customer_Hydration
+source .venv/bin/activate
+
+python hydrate.py hydrate --target-org jdo-fw51xz \
+    --retail 100 --wealth 80 --smb 50 --commercial 20 \
+    --skip-natives --skip-apex-wireup --skip-data-cloud \
+    --allow-production
+```
+
+Verify Account distribution:
+```bash
+sf data query --target-org jdo-fw51xz \
+    --query "SELECT FinServ__ClientCategory__c, COUNT(Id) FROM Account WHERE External_ID__c LIKE 'HYDRATE-%' GROUP BY FinServ__ClientCategory__c"
+```
+
+### Known Plan 2 warts (deferred to Plan 3)
+
+1. **FA Role write-once validation rule blocks re-runs.** This org has a custom rule:
+   `"This record cannot be edited. To update role information, you can deactivate
+   this record and create a new one."` Re-running Plan 2's loader against an org
+   that already has HYDRATE-FAR-* rows fails 140+ records. **Plan 3** adds a pre-load
+   "query existing External_IDs and skip those rows" step (natural-key dedupe).
+
+2. **runner_p2.py crashes on first wave failure.** When any single CSV fails to
+   upsert, the runner raises `RuntimeError` and exits, leaving subsequent CSVs
+   un-loaded. After the FA Role failure on the live smoke, no Cards / Goals / Holdings /
+   LifeEvents / Cases / Tasks / Events / Opps / Campaigns / Campaign Members loaded.
+   **Plan 3** replaces with parallel-within-wave loader that fails-fast per CSV but
+   continues other CSVs, plus checkpoint/resume.
+
+3. **No CampaignMember rows.** `campaigns.py` emits Campaigns + a `plan_campaign_members()`
+   request list, but no actual CampaignMember rows. **Plan 3** wires these via post-Wave-A
+   ID resolver (CampaignMember requires real ContactId, which only exists post-load).
+
+4. **No AccountContactRelation rows.** `households.py` emits Household Accounts but
+   no ACR membership rows. **Plan 3** adds ACR via the same post-Wave-A resolver pattern.
+
+5. **Tasks/Events have no `WhatId`.** `activity.py` strips `WhatId` to avoid polymorphic-FK
+   resolution complications. **Plan 3** re-adds WhatId via `RESOLVE:` placeholder pattern
+   that the resolver fills in post-Wave-A.
+
+6. **`Account.YearStarted` silently dropped on Business Accounts.** Phase 0 describe
+   marks the field as something the generator's emitted value can't satisfy
+   (likely a date/year format mismatch). Cosmetic; non-blocking. **Plan 3** corrects the
+   value format in the fieldmap.
