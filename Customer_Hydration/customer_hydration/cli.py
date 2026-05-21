@@ -140,8 +140,8 @@ def _run_validate_config(args: argparse.Namespace) -> int:
 
 
 def _run_hydrate(args: argparse.Namespace) -> int:
-    """Plan 3: multi-wave parallel load with checkpoint/resume."""
-    from customer_hydration.runner_p3 import run_all
+    """Plan 4: legacy + native lineages with checkpoint/resume."""
+    from customer_hydration.runner_p4 import run_all
     return run_all(args)
 
 
@@ -280,9 +280,9 @@ def _run_resume(args: argparse.Namespace) -> int:
         f"Resuming run {checkpoint.run_id} "
         f"from wave {checkpoint.in_progress_wave}…"
     )
-    # Stash the run_id on args so runner_p3 picks up the resume.
+    # Stash the run_id on args so runner_p4 picks up the resume.
     args.resume_run_id = checkpoint.run_id
-    from customer_hydration.runner_p3 import run_all
+    from customer_hydration.runner_p4 import run_all
     return run_all(args)
 
 
