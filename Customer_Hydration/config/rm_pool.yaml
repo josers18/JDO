@@ -1,0 +1,67 @@
+# RM pool for Customer_Hydration. User Ids verified in jdo-fw51xz on 2026-05-19.
+# Excludes Acme Partners users (Sarah Phillips, Paul Partner) and demo person
+# accounts (Julie Morris) — they should not own customer books.
+
+rms:
+  vince_west:
+    user_id: 005am000003PYssAAG
+    name: Vince West
+    title: Relationship Manager (Wealth)
+    role_family: wealth
+    seniority: senior
+    target_personas:
+      wealth: 700
+
+  kim_johnson:
+    user_id: 005am000003PbFAAA0
+    name: Kim Johnson
+    title: Wealth Advisor
+    role_family: wealth
+    seniority: mid
+    target_personas:
+      wealth: 350
+      retail: 50  # cross-sold
+
+  adam_watson:
+    user_id: 005am000003PbFGAA0
+    name: Adam Watson
+    title: Financial Advisor Associate
+    role_family: wealth
+    seniority: junior
+    target_personas:
+      wealth: 150
+      retail: 50  # cross-sold
+
+  justin_chen:
+    user_id: 005am000003PbFBAA0
+    name: Justin Chen
+    title: Relationship Banker
+    role_family: retail
+    seniority: mid
+    target_personas:
+      retail: 3400
+      smb: 50  # cross-sold to SMBs whose owner is in their book
+
+  standard_user:
+    user_id: 005am000006ffBpAAI
+    name: Standard User
+    title: Relationship Banker
+    role_family: retail
+    seniority: mid
+    target_personas:
+      retail: 3400
+      smb: 50
+
+  allen_carter:
+    user_id: 005am000003PbFDAA0
+    name: Allen Carter
+    title: Relationship Manager - Commercial Banking
+    role_family: commercial
+    seniority: senior
+    target_personas:
+      smb: 1400
+      commercial: 300
+
+# Slack: ±5% of customers in each role family are randomly redistributed to
+# another RM in the same family, to keep dashboards from being too clean.
+slack_pct: 0.05

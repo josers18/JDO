@@ -1,0 +1,9 @@
+{
+    "packageDirectories": [
+        { "path": "force-app", "default": true }
+    ],
+    "name": "Customer_Hydration",
+    "namespace": "",
+    "sfdcLoginUrl": "https://login.salesforce.com",
+    "sourceApiVersion": "62.0"
+}

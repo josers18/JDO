@@ -1,0 +1,24 @@
+# Frozen mirror of select fields from Cumulus_Products/docs/PRODUCT_SPECS.md.
+# Plan 1 contains the single product needed for the retail-only smoke.
+# Plans 2+ extend this catalog.
+
+products:
+  pd_chk_evd:
+    code: PD-CHK-EVD-2026.04
+    display_name: Cumulus Everyday Checking
+    segment: retail
+    fsc_type: Checking
+    native_type: Checking
+    min_open_balance: 25
+    typical_balance_range_usd: [500, 8000]
+    monthly_service_fee: 12
+    apy: 0.0001  # 0.01%
+    daily_limits:
+      atm: 500
+      debit: 3000
+      mobile_deposit_per_day: 5000
+      mobile_deposit_per_month: 10000
+      zelle_per_day: 1000
+      zelle_per_month: 5000
+      ach_per_day: 5000
+      ach_per_month: 25000
