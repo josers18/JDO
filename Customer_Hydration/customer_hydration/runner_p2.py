@@ -215,10 +215,16 @@ def run_all(args: argparse.Namespace) -> int:
     # candidates active simultaneously (Business_Account, IndustriesBusiness);
     # we prefer Business_Account since FSC's standard install uses it for
     # the FinServ business-banking page layouts.
+    # Order matters: prefer FSC-native IndustriesBusiness because some orgs
+    # ship Business_Account RT active org-wide but unassigned to user
+    # profiles (causing INVALID_CROSS_REFERENCE_KEY on bulk upsert). The
+    # IndustriesBusiness RT is the FSC-native one used by FinServ business
+    # banking page layouts and is what real Account records in the org
+    # use (verified against jdo-fw51xz on 2026-05-20).
     business_rt_id = None
     for dev_name in (
-        "Business_Account",
         "IndustriesBusiness",
+        "Business_Account",
         "FSC_Business",
         "FSC_Business_Account",
     ):
