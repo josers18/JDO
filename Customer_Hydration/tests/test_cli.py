@@ -55,3 +55,43 @@ class TestValidateConfig:
     def test_validate_config_fails_on_missing_dir(self, tmp_path: Path):
         rc = main(["validate-config", "--config-dir", str(tmp_path / "missing")])
         assert rc == 1
+
+
+class TestPlan3Subcommands:
+    """Plan 3 / Task 11 — argparse + dispatch for reset / resume / status."""
+
+    def test_reset_subcommand_parses(self):
+        parser = build_parser()
+        args = parser.parse_args(["reset", "--confirm", "--target-org", "alias"])
+        assert args.subcommand == "reset"
+        assert args.confirm is True
+        assert args.target_org == "alias"
+
+    def test_resume_subcommand_parses(self):
+        parser = build_parser()
+        args = parser.parse_args(["resume", "--target-org", "alias"])
+        assert args.subcommand == "resume"
+        assert args.target_org == "alias"
+
+    def test_status_subcommand_parses(self):
+        parser = build_parser()
+        args = parser.parse_args(["status", "--target-org", "alias"])
+        assert args.subcommand == "status"
+        assert args.target_org == "alias"
+
+    def test_status_json_flag(self):
+        parser = build_parser()
+        args = parser.parse_args(["status", "--target-org", "alias", "--json"])
+        assert args.json is True
+
+    def test_reset_without_confirm_fails(self):
+        # SfRunner is only constructed AFTER the --confirm gate, so no
+        # subprocess patching is needed for this branch.
+        rc = main(["reset", "--target-org", "alias"])
+        assert rc == 2
+
+    def test_status_no_target_org_fails(self):
+        # Hits the "--target-org is required" branch before SfRunner
+        # construction — no subprocess interaction.
+        rc = main(["status"])
+        assert rc == 2

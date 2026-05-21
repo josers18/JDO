@@ -57,13 +57,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_reset.add_argument("--confirm", action="store_true")
     p_reset.add_argument("--persona", default=None)
     p_reset.add_argument("--keep-campaigns", action="store_true")
+    p_reset.add_argument("--allow-production", action="store_true",
+                         help="Required to reset a non-sandbox org")
 
-    p_status = sub.add_parser("status", help="Show what's in the org under HYDRATE-* (Plan 6)")
+    p_status = sub.add_parser("status", help="Show what's in the org under HYDRATE-* (Plan 3)")
     _add_global_args(p_status)
+    p_status.add_argument("--json", action="store_true",
+                          help="Machine-readable output")
     p_dc = sub.add_parser("dc-status", help="Poll DC stream-run state (Plan 5)")
     _add_global_args(p_dc)
     p_resume = sub.add_parser("resume", help="Continue an interrupted run (Plan 3)")
     _add_global_args(p_resume)
+    _add_hydrate_args(p_resume)
 
     p_validate = sub.add_parser("validate-config", help="Lint config/*.yaml")
     _add_global_args(p_validate)
@@ -103,6 +108,12 @@ def main(argv: list[str] | None = None) -> int:
         return _run_hydrate(args)
     if args.subcommand == "validate-config":
         return _run_validate_config(args)
+    if args.subcommand == "reset":
+        return _run_reset(args)
+    if args.subcommand == "resume":
+        return _run_resume(args)
+    if args.subcommand == "status":
+        return _run_status(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)
     return 2
 
@@ -132,3 +143,163 @@ def _run_hydrate(args: argparse.Namespace) -> int:
     """Plan 3: multi-wave parallel load with checkpoint/resume."""
     from customer_hydration.runner_p3 import run_all
     return run_all(args)
+
+
+# ---------------------------------------------------------------------------
+# Plan 3 / Task 11 — reset / resume / status subcommands
+# ---------------------------------------------------------------------------
+
+
+# Per-sObject idempotency field — kept in sync with loader/reset.py's _IDEM_FIELD.
+_HYDRATE_SOBJECTS: list[tuple[str, str]] = [
+    ("Account", "External_ID__c"),
+    ("Contact", "External_Id__c"),
+    ("AccountContactRelation", "External_ID__c"),
+    ("FinServ__FinancialAccount__c", "External_ID__c"),
+    ("FinServ__FinancialAccountRole__c", "External_ID__c"),
+    ("FinServ__Card__c", "External_ID__c"),
+    ("FinServ__FinancialGoal__c", "External_ID__c"),
+    ("FinServ__LifeEvent__c", "FinServ__SourceSystemId__c"),
+    ("FinServ__FinancialHolding__c", "FinServ__SourceSystemId__c"),
+    ("Campaign", "External_ID__c"),
+    ("Opportunity", "External_ID__c"),
+    ("Case", "External_ID__c"),
+    ("Task", "External_ID__c"),
+    ("Event", "External_ID__c"),
+    ("CampaignMember", "External_ID__c"),
+]
+
+
+def _query_hydrate_counts(runner) -> dict[str, int]:
+    """Per-sObject HYDRATE-* count dict.
+
+    Errors per sObject collapse to a -1 sentinel so a missing custom field
+    on one object doesn't black-hole the whole status snapshot.
+    """
+    import json as _json
+    import subprocess
+
+    counts: dict[str, int] = {}
+    for sobject, idem in _HYDRATE_SOBJECTS:
+        try:
+            soql = f"SELECT COUNT() FROM {sobject} WHERE {idem} LIKE 'HYDRATE-%'"
+            cmd = [
+                "sf", "data", "query",
+                "--query", soql,
+                "--target-org", runner.target_org,
+                "--json",
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if proc.returncode != 0:
+                counts[sobject] = -1
+                continue
+            payload = _json.loads(proc.stdout)
+            counts[sobject] = int(payload.get("result", {}).get("totalSize", 0))
+        except Exception:
+            counts[sobject] = -1
+    return counts
+
+
+def _count_hydrate_records(runner) -> int:
+    """Total HYDRATE-* records in the org. Negative sentinels are ignored."""
+    return sum(c for c in _query_hydrate_counts(runner).values() if c >= 0)
+
+
+def _run_reset(args: argparse.Namespace) -> int:
+    """Wipe HYDRATE-* records from the org in reverse-wave order.
+
+    Requires --confirm + typing the org alias as confirmation. Honors the
+    same --allow-production guard as `hydrate`.
+    """
+    from customer_hydration.sf_runner import SfRunner
+
+    if args.target_org is None:
+        print("--target-org is required", file=sys.stderr)
+        return 2
+    if not args.confirm:
+        print("reset requires --confirm flag", file=sys.stderr)
+        return 2
+
+    runner = SfRunner(args.target_org)
+    org_info = runner._run([  # noqa: SLF001 — same pattern as runner_p3
+        "sf", "org", "display", "--target-org", args.target_org, "--json",
+    ])
+    is_sandbox = bool(org_info.get("result", {}).get("isSandbox", False))
+    if not is_sandbox and not getattr(args, "allow_production", False):
+        print(
+            f"Refusing to reset non-sandbox org {args.target_org}. "
+            f"Pass --allow-production to override.",
+            file=sys.stderr,
+        )
+        return 2
+
+    pre_count = _count_hydrate_records(runner)
+    if pre_count == 0:
+        print("No HYDRATE-* records found in target org. Nothing to reset.")
+        return 0
+
+    print(f"This will delete approximately {pre_count} HYDRATE-* records.")
+    print("Existing non-HYDRATE accounts will NOT be touched.")
+    print(f"Type the org alias to confirm: {args.target_org}")
+    typed = input(f"{args.target_org}: ").strip()
+
+    try:
+        from customer_hydration.loader.reset import reset_hydrate
+        reports = reset_hydrate(
+            runner=runner,
+            target_org=args.target_org,
+            output_dir=Path(args.output_dir) / "reset",
+            confirm_alias=args.target_org,
+            user_typed_alias=typed,
+            dry_run=False,
+            progress=lambda msg: print(msg),
+        )
+    except ValueError as exc:
+        print(f"Confirmation mismatch: {exc}", file=sys.stderr)
+        return 2
+
+    total_deleted = sum(r.deleted for r in reports)
+    total_failed = sum(r.failed for r in reports)
+    print(f"Reset complete: {total_deleted} deleted, {total_failed} failed.")
+    return 0 if total_failed == 0 else 2
+
+
+def _run_resume(args: argparse.Namespace) -> int:
+    """Continue an interrupted run from its checkpoint."""
+    from customer_hydration.loader.checkpoint import find_latest_resumable
+
+    if args.target_org is None:
+        print("--target-org is required", file=sys.stderr)
+        return 2
+    output_dir = Path(args.output_dir)
+    checkpoint = find_latest_resumable(output_dir)
+    if checkpoint is None:
+        print(f"No resumable run found in {output_dir}.", file=sys.stderr)
+        return 2
+    print(
+        f"Resuming run {checkpoint.run_id} "
+        f"from wave {checkpoint.in_progress_wave}…"
+    )
+    # Stash the run_id on args so runner_p3 picks up the resume.
+    args.resume_run_id = checkpoint.run_id
+    from customer_hydration.runner_p3 import run_all
+    return run_all(args)
+
+
+def _run_status(args: argparse.Namespace) -> int:
+    """Print current HYDRATE-* counts per object in the target org."""
+    from customer_hydration.sf_runner import SfRunner
+
+    if args.target_org is None:
+        print("--target-org is required", file=sys.stderr)
+        return 2
+    runner = SfRunner(args.target_org)
+    counts = _query_hydrate_counts(runner)
+    if args.json:
+        import json as _json
+        print(_json.dumps(counts, indent=2))
+    else:
+        print(f"HYDRATE-* counts in {args.target_org}:")
+        for sobject in sorted(counts.keys()):
+            print(f"  {sobject:50s} {counts[sobject]:>8}")
+    return 0
