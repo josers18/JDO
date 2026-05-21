@@ -136,3 +136,33 @@ class TestDcStatusSubcommand:
             "--output-dir", str(tmp_path),
         ])
         assert rc == 2
+
+
+class TestPlan6Briefs:
+    """Plan 6 / Task 2 — argparse + dispatch for briefs subcommand."""
+
+    def test_briefs_subcommand_parses(self):
+        parser = build_parser()
+        args = parser.parse_args(["briefs", "--target-org", "jdo-fw51xz"])
+        assert args.subcommand == "briefs"
+        assert args.target_org == "jdo-fw51xz"
+        # --output defaults to ../docs/briefs/
+        assert args.output == "../docs/briefs/"
+        # --rm defaults to None
+        assert args.rm is None
+
+    def test_briefs_with_rm_flag(self):
+        parser = build_parser()
+        args = parser.parse_args([
+            "briefs", "--target-org", "jdo-fw51xz",
+            "--rm", "vince_west",
+            "--output", "/tmp/briefs",
+        ])
+        assert args.rm == "vince_west"
+        assert args.output == "/tmp/briefs"
+
+    def test_briefs_no_target_org_returns_2(self):
+        # The --target-org guard fires before any SfRunner construction
+        # so no subprocess patching is needed.
+        rc = main(["briefs"])
+        assert rc == 2

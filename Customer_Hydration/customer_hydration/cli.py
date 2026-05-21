@@ -122,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_status(args)
     if args.subcommand == "dc-status":
         return _run_dc_status(args)
+    if args.subcommand == "briefs":
+        return _run_briefs(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)
     return 2
 
@@ -430,3 +432,56 @@ def _run_dc_status(args: argparse.Namespace) -> int:
         print(f"{complete} complete · {in_progress} in progress · {failed} failed")
 
     return 0 if failed == 0 else 2
+
+
+# ---------------------------------------------------------------------------
+# Plan 6 / Task 2 — briefs subcommand
+# ---------------------------------------------------------------------------
+
+
+def _run_briefs(args: argparse.Namespace) -> int:
+    """Generate per-banker brief MD files from live org data."""
+    if args.target_org is None:
+        print("--target-org is required", file=sys.stderr)
+        return 2
+
+    from customer_hydration.briefs import generate_brief, generate_index
+    from customer_hydration.sf_runner import SfRunner
+
+    rm_pool_path = Path(args.config_dir) / "rm_pool.yaml"
+    rm_pool = yaml.safe_load(rm_pool_path.read_text())
+
+    rms = rm_pool["rms"]
+    if args.rm:
+        rms = {
+            k: v for k, v in rms.items()
+            if args.rm in (v["name"], v["user_id"], k)
+        }
+        if not rms:
+            print(f"No banker matches --rm {args.rm!r}", file=sys.stderr)
+            return 2
+
+    output_dir = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    runner = SfRunner(args.target_org)
+
+    summary_rows = []
+    for slug, banker in rms.items():
+        try:
+            brief = generate_brief(runner=runner, slug=slug, banker=banker)
+            path = output_dir / f"{slug.replace('_', '-')}.md"
+            path.write_text(brief.markdown, encoding="utf-8")
+            summary_rows.append(brief.summary_row)
+            print(f"  Generated {path}")
+        except Exception as exc:  # noqa: BLE001 — surfaced per banker, run continues
+            print(f"  FAILED for {slug}: {exc}", file=sys.stderr)
+
+    if summary_rows:
+        index_path = output_dir.parent / "BANKER_BRIEFS.md"
+        index_md = generate_index(summary_rows)
+        index_path.write_text(index_md, encoding="utf-8")
+        print(f"  Generated {index_path}")
+
+    print(f"Generated {len(summary_rows)} briefs in {output_dir}/")
+    return 0
