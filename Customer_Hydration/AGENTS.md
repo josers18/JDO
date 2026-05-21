@@ -93,6 +93,66 @@ tests assert that derived records honor anchors.
    Opportunity.StageName (15 values, not the spec's 7), Case.Type (4 values),
    FinServ__LifeEvent__c.FinServ__EventType__c (only 6 values).
 
+7. FSC FA Role records are write-once via custom validation rule
+   ("This record cannot be edited..."). Plan 3 retroactively added
+   `External_ID__c` (HYDRATE-FAR-*) to FA Role rows so re-runs are
+   idempotent via upsert rather than running into the validation rule.
+   Don't bypass — the rule enforces governance.
+
+8. RecordType resolution order matters. The org has both `Business_Account`
+   and `IndustriesBusiness` RTs active for Account, but `Business_Account`
+   is unassigned to standard user profiles in jdo-fw51xz. Prefer
+   `IndustriesBusiness` first (verified). Same pattern: `FSC_Person_Accounts`
+   has duplicate active RTs.
+
+9. CampaignMember and AccountContactRelation require resolved ContactIds.
+   Plan 3's IdResolver queries Person Account auto-Contacts post-Wave-A
+   and rewrites RESOLVE: markers in CSV columns via `want="contact"`.
+   Don't try to populate ContactId client-side at generation time.
+
+10. Phase 5.5 fires Data Cloud streams asynchronously. The hydrate command
+    exits 0 once streams are triggered (run Ids logged to manifest).
+    Use `python hydrate.py dc-status --target-org X` to poll completion.
+
+11. SF CLI emits `"Warning: @salesforce/cli update available"` to stderr
+    even on successful jobs. `loader/_legacy.py` uses the JSON payload as
+    the authoritative success signal — never re-introduce non-zero-exit-as-failure
+    logic. The fix is at commit `cb1d0c1`.
+
+12. Account roll-up fields (`FinServ__AUM__c`, `FinServ__TotalLiabilities__c`,
+    `FinServ__TotalBankDeposits__c`) are read-only / declaratively-rolled-up
+    in this org's FSC version. Apex post-load doesn't write them — relies on
+    the Group Builder kickoff to trigger the FSC standard logic.
+
+## Plans 1–6 history
+
+Phase 1 of the customer-hydration spec ships across 6 implementation plans.
+Each lands as a stack of TDD-pair commits on `feat/customer-hydration-plan-1`.
+
+- **Plan 1** (Skeleton + Phase 0 + retail-only smoke) — package scaffolding,
+  External-ID seek, Phase 0 describe-and-drop, retail Person Account generator,
+  bulk loader, CLI dispatch. 50 customers in jdo-fw51xz. ~46 unit tests.
+  Spec: `docs/superpowers/specs/2026-05-19-customer-hydration-design.md`.
+- **Plan 2** (4 personas + activity + fieldmap correction) — fieldmap.py
+  (spec → physical field names + picklist values), all 4 persona generators,
+  7 cross-cutting child generators (cards/holdings/goals/lifecycle/
+  households/activity/campaigns), runner_p2.py sequential loader. 200 unit tests.
+- **Plan 3** (Multi-wave parallel loader + reset + resume) — `loader/`
+  sub-package (wave/parallel/checkpoint/id_resolver/reset), runner_p3.py,
+  resolver disambiguates Account-vs-Contact id via `want=` kwarg (commit `3f5b0af`).
+  309 unit tests. Live load: 21K customers across all 4 personas.
+- **Plan 4** (Native FSC mirror lineage) — `native/` sub-package with 7
+  generators, Wave F+G in WAVE_DEFS, runner_p4.py adds Phase 3 query-back.
+  357 tests.
+- **Plan 5** (Apex post-load + Data Cloud stream refresh) — `phase5/`
+  sub-package (apex_wireup + data_cloud), `force-app/` for FscGroupRollupBatch,
+  runner_p5.py. dc-status subcommand. 384 tests. Critical fix: bulk_upsert
+  uses JSON payload as success signal (`cb1d0c1`).
+- **Plan 6** (Verification + briefs + docs) — briefs.py with live-SOQL
+  banker brief generator, 7 hand-written docs (INDEX/ARCHITECTURE/
+  PERSONA_PROFILES/DATA_MODEL/HOW_TO/IDEMPOTENCY/TROUBLESHOOTING),
+  AGENTS.md final pass, top-level repo registration. ~399+ tests.
+
 ## When extending personas
 
 To add a 5th persona:

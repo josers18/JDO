@@ -220,3 +220,23 @@ Plan 5 is **complete** when:
 
 3. **`--watch` flag is a no-op in v1.** Single-shot poll only. Plan 6 polish to add the 30s polling loop.
 
+## Phase 1 acceptance summary
+
+Phase 1 of the customer-hydration spec is **FEATURE-COMPLETE** as of 2026-05-21.
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | python hydrate.py runs end-to-end | PARTIAL — multi-wave runner verified live with some warts |
+| 2 | Org contains 10K+ customers across role-aligned RMs | PASS — 21K customers in jdo-fw51xz |
+| 3 | Banker briefs regenerate from live org data | PASS — 6 .md files at docs/briefs/ |
+| 4 | --reset followed by --seed 42 produces byte-identical CSVs | DEFERRED — resume verified, reset roundtrip not exercised |
+| 5 | --retail 50 --append adds exactly 50 retail customers | PARTIAL — logic exists; quantity not re-verified at Phase 1 close |
+| 6 | --rm "Vince West" --wealth 10 --append owned by Vince | PARTIAL — flag exists; quantity not re-verified |
+| 7 | Web_Engagements_RT_Timeline renders realistic activity | DEFERRED — UI rendering check |
+| 8 | DC_PersonProfileWidget/DC_BusinessProfileWidget render rollups | DEFERRED — UI rendering check |
+| 9 | All unit + internal-consistency tests pass | PASS — 399 tests green |
+| 10 | Phase 5.5 triggers CRM-sourced DC streams | PASS — code verified; org has 0 streams configured |
+| 11 | AGENTS.md context complete | PASS — 12 "Things that bite" + Plans 1-6 history |
+
+**Phase 2 (out of scope for Phase 1)**: Data Cloud DLO/DMO mappings, Identity Resolution, Calculated Insights, Segments, Activations, FinancialAccountTransaction ingestion. Owned by a future Plan after Phase 1 lands.
+

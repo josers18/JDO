@@ -14,6 +14,7 @@ flowchart TB
         C[DC_PersonProfileWidget]
         B[DC_BusinessProfileWidget]
         W[Web_Engagements_RT_Timeline]
+        H[Customer_Hydration]
     end
     P --> |Flow + optional Prompt| SF[(Salesforce org)]
     M --> |Flow + optional Prompt| SF
@@ -22,6 +23,7 @@ flowchart TB
     C --> |SOQL + Flow + optional Einstein Overview + Insight| SF
     B --> |Account field map + Flow + optional Overview Agentforce + Insight| SF
     W --> |Data Graph callout + parallel CRM SOQL| SF
+    H --> |Bulk API 2.0 + Apex post-load + Data Cloud REST| SF
 ```
 
 ## Naming vs App Builder labels
@@ -35,6 +37,7 @@ flowchart TB
 | `customerProfileWidget` | Customer Profile Widget |
 | `businessProfileWidget` | Business Profile Widget |
 | `webEngagementData` | Real Time Digital Engagements |
+| `customer_hydration` (Python) | Customer Hydration CLI |
 
 Historical Apex class names (e.g. `ClassificationModelLwcController`) are kept for stable upgrades in orgs that already deployed earlier versions.
 
