@@ -154,3 +154,43 @@ sf data query --target-org jdo-fw51xz \
    marks the field as something the generator's emitted value can't satisfy
    (likely a date/year format mismatch). Cosmetic; non-blocking. **Plan 3** corrects the
    value format in the fieldmap.
+
+## Plan 3 status — Multi-wave parallel loader + reset + resume
+
+Plan 3 is **complete** when:
+
+- [x] `customer_hydration/loader/` sub-package with `wave.py` (WAVE_DEFS A–E), `parallel.py` (ThreadPoolExecutor wrapper with retry/backoff), `checkpoint.py` (RunCheckpoint persistence), `id_resolver.py` (post-wave query-back maps + CSV rewriter), `reset.py` (reverse-wave HYDRATE-* deletion)
+- [x] Generators emit `RESOLVE:` markers for parent references that need post-wave resolution: ACR ContactId, CampaignMember ContactId, Task/Event WhatId
+- [x] `runner_p3.py` orchestrates 5 waves with parallel-within-wave loading, checkpoints between waves, ID resolver populated post-Wave-A and post-Wave-B
+- [x] `reset` / `resume` / `status` / `dc-status` (stub) CLI subcommands functional
+- [x] FA Role re-run idempotency — `External_ID__c` upsert (added retroactively to Plan 1, kept in Plan 3)
+- [x] Resolver disambiguates Account-id vs Contact-id via `want=` kwarg (commit `3f5b0af` — fixed during Task 12 smoke)
+- [x] Live smoke at full Phase 1 volume (10K customers): Wave A loaded 11,640 Accounts (+1.6K Households), Wave B skipped (no business contacts), Wave C 8,200 ACRs, Wave D ~80% complete (FA + Goal + Opp + Campaign loaded; Cards + LifeEvents failed due to sf CLI stderr-as-failure misclassification — Plan 5 fixes)
+
+### Known Plan 3 warts (deferred to Plan 5)
+
+1. **`bulk_upsert` interprets sf CLI's "@salesforce/cli update available" stderr warning as failure.** The bulk job actually succeeds (records_failed=0) but `loader/_legacy.py` raises RuntimeError on any non-zero exit code, even when the only stderr content is the version-check warning. Plan 5 polish task: parse the stderr more carefully.
+
+2. **Resume re-runs already-completed waves on restart.** Plan 3's resume detects `in_progress_wave` from checkpoint, but if the runner died mid-wave, ALL prior waves get re-attempted (External_ID__c upsert makes them no-ops, but it's wasted RTT). Future enhancement: skip waves whose `completed_waves` list already contains them.
+
+## Plan 4 status — Native FSC mirror objects (Wave F + G)
+
+Plan 4 is **complete** when:
+
+- [x] `customer_hydration/native/` sub-package with 7 generator modules (financial_account, financial_goal, business_milestone, party_relationship_group, party_profile, contact_points, financial_account_party)
+- [x] `loader/wave.py` extended with WAVE_DEFS["F"] and ["G"]
+- [x] `loader/reset.py` extended to handle native sObjects (External_ID__c-based for FA/Goal/Milestone; None-idem ones logged + skipped)
+- [x] `runner_p4.py` adds Phase 3 query-back (post-Wave-D legacy FA + Goal Id resolution), Wave F generation + load, post-Wave-F native FA query-back, Wave G load
+- [x] `--skip-natives` CLI flag actually skips Wave F + Wave G (was a no-op since Plan 1)
+- [x] CLI's `_run_hydrate` swung to runner_p4
+- [x] 357/357 unit tests pass + 38 new native generator tests
+- [x] Dry-run smoke produces 24 CSVs (15 legacy + 9 native: FA + Goal + Milestone + PRG + PartyProfile + 3 ContactPoints + FA Party)
+- [ ] Live smoke against jdo-fw51xz — deferred until Plan 5 fixes the stderr-misclassification wart so Wave D completes cleanly first
+
+### Known Plan 4 warts (deferred to Plans 5+6)
+
+1. **5 native objects have no External_ID__c.** PartyRelationshipGroup, PartyProfile, ContactPointAddress/Email/Phone, FinancialAccountParty all generate CSVs but bulk_upsert can't load them via `--external-id`. Plan 4 filters them out of the load step and logs them as "INSERT-only deferred to Plan 5+". CSVs are still produced for review.
+
+2. **Native FA uses `LegacyId__c` not `External_ID__c`.** jdo-fw51xz's `FinancialAccount` has only `LegacyId__c` as externalId. runner_p4 upserts via `LegacyId__c` and resolves Wave G's `RESOLVE-NFA:` markers via a 3-hop chain (HYDRATE-NFA-NNN → HYDRATE-FA-NNN → legacy FA Id → native FA Id). The synthesized External_ID__c column is silently dropped at preflight.
+
+3. **No live-org load yet.** Dry-run produces correct CSVs, but Plan 4 doesn't push records to the org because Plan 3's stderr-misclassification bug blocks the legacy waves from completing. Plan 5 fixes the bug, then Plans 4+5 can both land in a single subsequent live load.
