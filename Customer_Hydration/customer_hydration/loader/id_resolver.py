@@ -93,24 +93,44 @@ class IdResolver:
             if account_ext_id and contact_id:
                 self.contact_id_by_account_external_id[account_ext_id] = contact_id
 
-    def resolve(self, marker: str) -> str | None:
+    def resolve(self, marker: str, *, want: str = "id") -> str | None:
         """Resolve a ``RESOLVE:HYDRATE-*`` marker to a record Id.
 
-        Returns ``None`` for empty input, ``None`` for unknown markers, and
-        passes non-marker strings through unchanged for caller convenience.
+        Args:
+            marker: e.g. ``"RESOLVE:HYDRATE-RT-000001"``.
+            want: which kind of Id to return.
+
+                - ``"id"`` (default): consult ``by_external_id`` and
+                  ``by_source_system_id``; falls back to
+                  ``contact_id_by_account_external_id`` only if the ext-id
+                  exists nowhere else. Used for Account / FA references
+                  (``FinServ__Client__c``, ``WhatId``, ``WhoId``, …).
+                - ``"contact"``: consult ``contact_id_by_account_external_id``
+                  only. Used for ``AccountContactRelation.ContactId`` and
+                  ``CampaignMember.ContactId`` where Salesforce demands a
+                  ``003*`` (Contact) Id and would reject a ``001*`` (Account)
+                  Id with FIELD_INTEGRITY_EXCEPTION.
+
+        Returns:
+            The resolved record Id, ``None`` for empty input or unknown
+            markers, and the original string for non-marker values
+            (caller convenience).
         """
         if not marker:
             return None
         if not marker.startswith(_RESOLVE_PREFIX):
             return marker
         ext = marker[len(_RESOLVE_PREFIX):]
+        if want == "contact":
+            return self.contact_id_by_account_external_id.get(ext)
+        # default: account/fa/etc — prefer account-typed maps first.
         if ext in self.by_external_id:
             return self.by_external_id[ext]
         if ext in self.by_source_system_id:
             return self.by_source_system_id[ext]
-        if ext in self.contact_id_by_account_external_id:
-            return self.contact_id_by_account_external_id[ext]
-        return None
+        # last resort: caller may have passed a Person-Account ext_id whose
+        # only mapping is the implicit Contact (legacy behavior preserved).
+        return self.contact_id_by_account_external_id.get(ext)
 
     def save(self, path: Path) -> None:
         """Persist the maps to JSON for resume support."""
@@ -147,10 +167,19 @@ class IdResolver:
 
 def rewrite_csv_resolve_markers(
     csv_path: Path,
-    columns: list[str],
+    columns: list[str] | dict[str, str],
     resolver: IdResolver,
 ) -> tuple[int, int]:
     """In-place rewrite a CSV: replace ``RESOLVE:*`` markers with record Ids.
+
+    ``columns`` may be either:
+
+    * a ``list[str]`` of column names — every column resolves with the
+      default ``want="id"`` kind (Account / FA Ids). Backward compatible.
+    * a ``dict[str, str]`` mapping each column name to its ``want`` kind
+      (``"id"`` or ``"contact"``). Use this when a CSV mixes Account-typed
+      and Contact-typed columns (e.g. AccountContactRelation: AccountId is
+      ``"id"``, ContactId is ``"contact"``).
 
     Drops rows where any named column fails to resolve. Returns
     ``(rows_kept, rows_dropped)``.
@@ -159,6 +188,12 @@ def rewrite_csv_resolve_markers(
     Output uses LF line endings to satisfy Bulk API 2.0's ``--line-ending LF``
     requirement (see AGENTS.md).
     """
+    # Normalize columns to {col_name: want_kind}.
+    if isinstance(columns, dict):
+        col_kinds: dict[str, str] = dict(columns)
+    else:
+        col_kinds = {col: "id" for col in columns}
+
     text = csv_path.read_text(encoding="utf-8")
     lines = text.splitlines()
     if len(lines) < 2:
@@ -171,12 +206,12 @@ def rewrite_csv_resolve_markers(
 
     for row in reader:
         all_resolved = True
-        for col in columns:
+        for col, want in col_kinds.items():
             if col not in row:
                 continue  # column not in CSV; skip silently
             marker = row[col]
             if marker and marker.startswith(_RESOLVE_PREFIX):
-                resolved = resolver.resolve(marker)
+                resolved = resolver.resolve(marker, want=want)
                 if resolved is None:
                     all_resolved = False
                     break

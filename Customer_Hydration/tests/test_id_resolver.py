@@ -309,3 +309,104 @@ class TestRewriteCsv:
         )
         result = rewrite_csv_resolve_markers(csv_path, ["ContactId"], resolver)
         assert result == (1, 1)
+
+
+# ---------------------------------------------------------------------------
+# TestResolverWantDisambiguation
+#
+# Regression coverage for the FIELD_INTEGRITY_EXCEPTION bug seen at Wave C
+# during Plan 3 / Task 12 live load: the resolver's account-first lookup
+# returned a ``001*`` Account Id for ``ACR.ContactId`` because the same
+# external id (HYDRATE-RT-XXXXXX) keys both the Account map and the
+# implicit Person-Account Contact map. ``want="contact"`` forces the
+# Contact-typed (``003*``) lookup; ``want="id"`` (default) keeps legacy
+# behavior for Account / FA references.
+# ---------------------------------------------------------------------------
+
+
+class TestResolverWantDisambiguation:
+    def test_resolve_with_want_contact_returns_contact_id(self) -> None:
+        # Both maps are populated with the SAME external id — the bug case.
+        resolver = IdResolver(
+            by_external_id={"HYDRATE-RT-000001": "001AA00000A"},
+            contact_id_by_account_external_id={
+                "HYDRATE-RT-000001": "003AA00000P",
+            },
+        )
+        assert (
+            resolver.resolve("RESOLVE:HYDRATE-RT-000001", want="contact")
+            == "003AA00000P"
+        )
+
+    def test_resolve_with_want_id_returns_account_id(self) -> None:
+        resolver = IdResolver(
+            by_external_id={"HYDRATE-RT-000001": "001AA00000A"},
+            contact_id_by_account_external_id={
+                "HYDRATE-RT-000001": "003AA00000P",
+            },
+        )
+        # Default and explicit "id" should both return the Account id.
+        assert resolver.resolve("RESOLVE:HYDRATE-RT-000001") == "001AA00000A"
+        assert (
+            resolver.resolve("RESOLVE:HYDRATE-RT-000001", want="id")
+            == "001AA00000A"
+        )
+
+    def test_rewrite_csv_with_dict_columns_uses_per_column_kind(
+        self, tmp_path: Path,
+    ) -> None:
+        # Mixed CSV: AccountId (001) + ContactId (003) sharing the same
+        # external id key. Per-column ``want`` must produce different ids.
+        csv_path = tmp_path / "acr_mixed.csv"
+        _write_csv(
+            csv_path,
+            ["AccountId", "ContactId", "Roles"],
+            [
+                [
+                    "RESOLVE:HYDRATE-RT-000001",
+                    "RESOLVE:HYDRATE-RT-000001",
+                    "Owner",
+                ],
+            ],
+        )
+        resolver = IdResolver(
+            by_external_id={"HYDRATE-RT-000001": "001AA00000A"},
+            contact_id_by_account_external_id={
+                "HYDRATE-RT-000001": "003AA00000P",
+            },
+        )
+        kept, dropped = rewrite_csv_resolve_markers(
+            csv_path,
+            {"AccountId": "id", "ContactId": "contact"},
+            resolver,
+        )
+        assert (kept, dropped) == (1, 0)
+        text = csv_path.read_text(encoding="utf-8")
+        assert "001AA00000A" in text  # Account got the 001 id
+        assert "003AA00000P" in text  # Contact got the 003 id
+        assert "RESOLVE:" not in text
+
+    def test_rewrite_csv_with_list_columns_defaults_to_id(
+        self, tmp_path: Path,
+    ) -> None:
+        # Backward compat: passing a list still works and applies want="id".
+        csv_path = tmp_path / "task_list.csv"
+        _write_csv(
+            csv_path,
+            ["Subject", "WhatId"],
+            [["Call", "RESOLVE:HYDRATE-RT-000001"]],
+        )
+        resolver = IdResolver(
+            by_external_id={"HYDRATE-RT-000001": "001AA00000A"},
+            contact_id_by_account_external_id={
+                "HYDRATE-RT-000001": "003AA00000P",
+            },
+        )
+        kept, dropped = rewrite_csv_resolve_markers(
+            csv_path, ["WhatId"], resolver,
+        )
+        assert (kept, dropped) == (1, 0)
+        text = csv_path.read_text(encoding="utf-8")
+        # List form must default to "id" — Account id, NOT Contact id.
+        assert "001AA00000A" in text
+        assert "003AA00000P" not in text

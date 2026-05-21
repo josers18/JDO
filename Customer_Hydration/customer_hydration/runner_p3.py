@@ -793,8 +793,11 @@ def run_all(args: argparse.Namespace) -> int:
         if wave.name == "C":
             acr_csv = csv_by_sobject.get("AccountContactRelation")
             if acr_csv is not None and acr_csv.exists():
+                # ContactId must resolve to the Person Account auto-Contact
+                # (003*) — NOT the Account itself (001*). Salesforce rejects
+                # 001 ids in a Contact-typed field with FIELD_INTEGRITY_EXCEPTION.
                 kept, dropped = rewrite_csv_resolve_markers(
-                    acr_csv, ["ContactId"], resolver,
+                    acr_csv, {"ContactId": "contact"}, resolver,
                 )
                 checkpoint.update_csv_status(
                     "AccountContactRelation",
@@ -809,8 +812,9 @@ def run_all(args: argparse.Namespace) -> int:
         elif wave.name == "E":
             tasks_csv = csv_by_sobject.get("Task")
             if tasks_csv is not None and tasks_csv.exists():
+                # WhatId points at Account (or other parent) — Account-typed.
                 kept, dropped = rewrite_csv_resolve_markers(
-                    tasks_csv, ["WhatId"], resolver,
+                    tasks_csv, {"WhatId": "id"}, resolver,
                 )
                 checkpoint.update_csv_status(
                     "Task", rows_written=kept, rows_dropped_unresolved=dropped,
@@ -818,15 +822,17 @@ def run_all(args: argparse.Namespace) -> int:
             events_csv = csv_by_sobject.get("Event")
             if events_csv is not None and events_csv.exists():
                 kept, dropped = rewrite_csv_resolve_markers(
-                    events_csv, ["WhatId"], resolver,
+                    events_csv, {"WhatId": "id"}, resolver,
                 )
                 checkpoint.update_csv_status(
                     "Event", rows_written=kept, rows_dropped_unresolved=dropped,
                 )
             cm_csv = csv_by_sobject.get("CampaignMember")
             if cm_csv is not None and cm_csv.exists():
+                # CampaignMember.ContactId is Contact-typed (003*) — same
+                # disambiguation as AccountContactRelation.ContactId above.
                 kept, dropped = rewrite_csv_resolve_markers(
-                    cm_csv, ["ContactId"], resolver,
+                    cm_csv, {"ContactId": "contact"}, resolver,
                 )
                 checkpoint.update_csv_status(
                     "CampaignMember",
