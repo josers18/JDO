@@ -172,6 +172,32 @@ class CampaignMemberRequest:
     customer_persona: str
 
 
+@dataclass
+class CampaignMemberBundle:
+    """Output bundle for the Plan 3 CampaignMember row generator.
+
+    A row dict here is NOT yet loadable as-is: ``ContactId`` carries a
+    ``RESOLVE:HYDRATE-RT-NNN`` marker that ``rewrite_csv_resolve_markers``
+    swaps in pre-Wave-E (after Wave-A loads the parent Person Accounts
+    and the platform auto-creates their Contact rows).
+    """
+
+    members: list[dict] = field(default_factory=list)
+
+
+# Status picklist for CampaignMember (standard 4-value set the Cumulus
+# org uses). Weights are intentional: most members were sent to but never
+# responded; "Attended" is the rarest because only event-style campaigns
+# warrant it.
+_STATUS_VALUES: tuple[str, ...] = ("Sent", "Responded", "Registered", "Attended")
+_STATUS_WEIGHTS: tuple[int, ...] = (40, 25, 20, 15)
+# Statuses that imply HasResponded=True. "Sent" is the only "no response"
+# state — Responded/Registered/Attended all indicate the member engaged.
+_RESPONDED_STATUSES: frozenset[str] = frozenset(
+    {"Responded", "Registered", "Attended"}
+)
+
+
 def generate_campaigns(*, seed: int) -> CampaignBundle:
     """Emit the 10 hardcoded Campaign rows.
 
@@ -288,3 +314,58 @@ def plan_campaign_members(
             )
 
     return plan
+
+
+def generate_campaign_members(
+    *,
+    seed: int,
+    starting_seq: int,
+    requests: list[CampaignMemberRequest],
+) -> CampaignMemberBundle:
+    """Materialize CampaignMember row dicts from a request plan.
+
+    Plan 2's ``plan_campaign_members`` returns the persona-targeted
+    request list; this function turns each request into a CSV-ready row.
+    The runner consumes the bundle in Wave-E:
+      - ``CampaignId`` is the Campaign's ``External_ID__c`` — the runner
+        rewrites the column header to ``Campaign.External_ID__c`` so the
+        platform resolves the reference at insert time.
+      - ``ContactId`` carries a ``RESOLVE:HYDRATE-RT-NNN`` marker (the
+        customer External_Id__c). ``IdResolver.contact_id_by_account_external_id``
+        + ``rewrite_csv_resolve_markers`` swap it for the auto-created
+        Contact's 18-char Id between Wave-A (Person Account load) and
+        Wave-E (CampaignMember load).
+
+    Status is drawn from the standard 4-value picklist with
+    ``_STATUS_WEIGHTS``; ``HasResponded`` is derived (True iff Status
+    is Responded/Registered/Attended).
+
+    Args:
+      seed: RNG seed. Same seed + same requests => byte-identical rows.
+      starting_seq: first sequence number for the
+        ``HYDRATE-CMPMEM-{NNNNNN}`` External_ID__c. Caller (runner)
+        passes ``1`` for the first hydration wave; later refresh waves
+        can resume the sequence to keep idempotency keys monotonic.
+      requests: the list returned by ``plan_campaign_members``.
+
+    Returns:
+      CampaignMemberBundle with one row dict per request, in the same
+      order as ``requests``.
+    """
+    rng = random.Random(seed)
+    bundle = CampaignMemberBundle()
+
+    for i, req in enumerate(requests):
+        status = rng.choices(_STATUS_VALUES, weights=_STATUS_WEIGHTS, k=1)[0]
+        seq = starting_seq + i
+        bundle.members.append(
+            {
+                "CampaignId": req.campaign_external_id,
+                "ContactId": f"RESOLVE:{req.customer_external_id}",
+                "Status": status,
+                "HasResponded": status in _RESPONDED_STATUSES,
+                "External_ID__c": f"HYDRATE-CMPMEM-{seq:06d}",
+            }
+        )
+
+    return bundle

@@ -28,7 +28,9 @@ import pytest
 
 from customer_hydration.generators.campaigns import (
     CampaignBundle,
+    CampaignMemberBundle,
     CampaignMemberRequest,
+    generate_campaign_members,
     generate_campaigns,
     plan_campaign_members,
 )
@@ -292,3 +294,149 @@ class TestPlanCampaignMembers:
             seed=fixed_seed, customer_personas=personas
         )
         assert plan1 == plan2
+
+
+class TestGenerateCampaignMembers:
+    """Plan 3 CampaignMember row generator.
+
+    Exercises ``generate_campaign_members`` — the function that turns
+    the Plan 2 ``plan_campaign_members`` request list into CampaignMember
+    row dicts. The platform requires resolved ContactId/LeadId, so rows
+    here carry a ``RESOLVE:HYDRATE-RT-NNN`` marker on ContactId; the
+    runner rewrites those markers between Wave-A (Person Account load)
+    and Wave-E (CampaignMember load).
+    """
+
+    # Standard Status picklist values for CampaignMember.
+    VALID_STATUS_VALUES = {"Sent", "Responded", "Registered", "Attended"}
+    RESPONDED_VALUES = {"Responded", "Registered", "Attended"}
+
+    def _sample_requests(self, n: int = 25) -> list[CampaignMemberRequest]:
+        """Build a stable list of requests covering retail customers.
+
+        Plan 3's ContactId resolution path is the retail (Person Account)
+        case, so the row generator's marker behavior is exercised on
+        retail customer external ids.
+        """
+        return [
+            CampaignMemberRequest(
+                campaign_external_id=f"HYDRATE-CMP-{(i % 10) + 1:03d}",
+                customer_external_id=f"HYDRATE-RT-{i + 1:06d}",
+                customer_persona="retail",
+            )
+            for i in range(n)
+        ]
+
+    def test_generates_one_member_per_request(self, fixed_seed):
+        requests = self._sample_requests(25)
+        bundle = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        assert isinstance(bundle, CampaignMemberBundle)
+        assert len(bundle.members) == len(requests)
+
+    def test_external_ids_sequential_with_cmpmem_prefix(self, fixed_seed):
+        requests = self._sample_requests(7)
+        bundle = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        ext_ids = [m["External_ID__c"] for m in bundle.members]
+        assert ext_ids == [
+            "HYDRATE-CMPMEM-000001",
+            "HYDRATE-CMPMEM-000002",
+            "HYDRATE-CMPMEM-000003",
+            "HYDRATE-CMPMEM-000004",
+            "HYDRATE-CMPMEM-000005",
+            "HYDRATE-CMPMEM-000006",
+            "HYDRATE-CMPMEM-000007",
+        ]
+        # Honors a non-1 starting_seq too.
+        bundle2 = generate_campaign_members(
+            seed=fixed_seed, starting_seq=42, requests=requests[:3]
+        )
+        assert [m["External_ID__c"] for m in bundle2.members] == [
+            "HYDRATE-CMPMEM-000042",
+            "HYDRATE-CMPMEM-000043",
+            "HYDRATE-CMPMEM-000044",
+        ]
+
+    def test_campaign_id_passes_through_external_id(self, fixed_seed):
+        requests = self._sample_requests(15)
+        bundle = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        for req, member in zip(requests, bundle.members):
+            assert member["CampaignId"] == req.campaign_external_id, (
+                f"CampaignId should pass through Campaign External_ID__c "
+                f"untouched (runner rewrites the column header)."
+            )
+
+    def test_contact_id_uses_resolve_marker(self, fixed_seed):
+        requests = self._sample_requests(10)
+        bundle = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        for req, member in zip(requests, bundle.members):
+            assert member["ContactId"].startswith("RESOLVE:HYDRATE-RT-"), (
+                f"ContactId for retail customer must carry a "
+                f"RESOLVE:HYDRATE-RT- marker; got {member['ContactId']!r}"
+            )
+            # Marker payload is the customer external id verbatim.
+            assert member["ContactId"] == f"RESOLVE:{req.customer_external_id}"
+
+    def test_status_in_4_value_set(self, fixed_seed):
+        # Use a large request list so the weighted draw exercises the
+        # picklist broadly.
+        requests = self._sample_requests(200)
+        bundle = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        for member in bundle.members:
+            assert member["Status"] in self.VALID_STATUS_VALUES, (
+                f"Unexpected Status {member['Status']!r}"
+            )
+
+    def test_has_responded_true_when_status_indicates_response(self, fixed_seed):
+        requests = self._sample_requests(200)
+        bundle = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        responded = [
+            m for m in bundle.members if m["Status"] in self.RESPONDED_VALUES
+        ]
+        # With weights (40/25/20/15) and 200 draws, we should always see
+        # at least a few responded entries.
+        assert responded, (
+            "Expected at least one Responded/Registered/Attended row "
+            "across 200 draws — weights drift?"
+        )
+        for m in responded:
+            assert m["HasResponded"] is True, (
+                f"HasResponded must be True when Status="
+                f"{m['Status']!r}; got {m['HasResponded']!r}"
+            )
+
+    def test_has_responded_false_when_status_is_sent(self, fixed_seed):
+        requests = self._sample_requests(200)
+        bundle = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        sent = [m for m in bundle.members if m["Status"] == "Sent"]
+        assert sent, (
+            "Expected at least one Sent row across 200 draws — weights drift?"
+        )
+        for m in sent:
+            assert m["HasResponded"] is False, (
+                f"HasResponded must be False when Status='Sent'; "
+                f"got {m['HasResponded']!r}"
+            )
+
+    def test_same_seed_produces_identical_output(self, fixed_seed):
+        requests = self._sample_requests(40)
+        bundle1 = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        bundle2 = generate_campaign_members(
+            seed=fixed_seed, starting_seq=1, requests=requests
+        )
+        assert bundle1.members == bundle2.members
