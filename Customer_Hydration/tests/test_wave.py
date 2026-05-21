@@ -15,8 +15,9 @@ from customer_hydration.loader.wave import (
 
 
 class TestWaveDefs:
-    def test_all_5_waves_defined(self):
-        assert set(WAVE_DEFS.keys()) == {"A", "B", "C", "D", "E"}
+    def test_waves_f_and_g_defined(self):
+        # Plan 4 added native FSC waves F + G on top of legacy A-E.
+        assert set(WAVE_DEFS.keys()) == {"A", "B", "C", "D", "E", "F", "G"}
 
     def test_wave_a_has_no_dependencies(self):
         assert WAVE_DEFS["A"].depends_on == ()
@@ -50,15 +51,37 @@ class TestWaveDefs:
         assert "FinServ__FinancialAccountRole__c" in WAVE_DEFS["E"].sobjects
         assert "FinServ__FinancialHolding__c" in WAVE_DEFS["E"].sobjects
 
+    def test_wave_f_includes_native_financial_account(self):
+        # The whole point of Wave F is the native FSC mirror set, headed
+        # by FinancialAccount.
+        assert "FinancialAccount" in WAVE_DEFS["F"].sobjects
+        # Spot-check the rest of the native FSC bundle.
+        for sobj in (
+            "FinancialGoal",
+            "BusinessMilestone",
+            "PartyRelationshipGroup",
+            "PartyProfile",
+            "ContactPointAddress",
+            "ContactPointEmail",
+            "ContactPointPhone",
+        ):
+            assert sobj in WAVE_DEFS["F"].sobjects
+
+    def test_wave_g_depends_on_f(self):
+        # G holds FinancialAccountParty, which can only resolve native FA
+        # Ids after Wave F's queryback.
+        assert WAVE_DEFS["G"].depends_on == ("F",)
+        assert "FinancialAccountParty" in WAVE_DEFS["G"].sobjects
+
 
 class TestWaveTraversal:
-    def test_forward_order_is_a_b_c_d_e(self):
+    def test_forward_order_now_a_through_g(self):
         names = [w.name for w in waves_in_forward_order()]
-        assert names == ["A", "B", "C", "D", "E"]
+        assert names == ["A", "B", "C", "D", "E", "F", "G"]
 
-    def test_reverse_order_is_e_d_c_b_a(self):
+    def test_reverse_order_now_g_through_a(self):
         names = [w.name for w in waves_in_reverse_order()]
-        assert names == ["E", "D", "C", "B", "A"]
+        assert names == ["G", "F", "E", "D", "C", "B", "A"]
 
     def test_no_sobject_appears_in_two_waves(self):
         seen: set[str] = set()

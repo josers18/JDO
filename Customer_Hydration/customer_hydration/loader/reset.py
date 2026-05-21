@@ -53,7 +53,17 @@ class ResetReport:
 
 
 # Per-sObject idempotency field — same map runner_p2 uses.
-_IDEM_FIELD: dict[str, str] = {
+#
+# Plan 4 adds Wave F + G native FSC sObjects. Several of those objects
+# (PartyRelationshipGroup, PartyProfile, ContactPoint*, FinancialAccountParty)
+# do NOT carry an External_ID__c field — they're idempotency-keyed by
+# natural keys at insert time. The reset path can't enumerate
+# HYDRATE-* rows without a marker field, so those entries are mapped to
+# ``None`` and the reset loop skips them with a logged warning. Plan 5+
+# will add the natural-key reset logic (e.g. JOIN through the parent
+# Account's External_ID__c).
+_IDEM_FIELD: dict[str, str | None] = {
+    # ---- Wave A-E (legacy lineage) ---------------------------------------
     "Account": "External_ID__c",
     "Contact": "External_Id__c",  # lowercase d — case matters
     "AccountContactRelation": "External_ID__c",
@@ -69,6 +79,18 @@ _IDEM_FIELD: dict[str, str] = {
     "Task": "External_ID__c",
     "Event": "External_ID__c",
     "CampaignMember": "External_ID__c",
+    # ---- Wave F + G (native FSC lineage) ---------------------------------
+    "FinancialAccount": "External_ID__c",
+    "FinancialGoal": "External_ID__c",
+    "BusinessMilestone": "External_ID__c",
+    # Natural-key idempotency only — None tells the reset loop to skip.
+    # See Plan 5 for query-by-parent-External_ID logic.
+    "PartyRelationshipGroup": None,
+    "PartyProfile": None,
+    "ContactPointAddress": None,
+    "ContactPointEmail": None,
+    "ContactPointPhone": None,
+    "FinancialAccountParty": None,
 }
 
 
@@ -117,6 +139,18 @@ def reset_hydrate(
             if sobject not in _IDEM_FIELD:
                 # Wave registers an sObject we don't know how to delete —
                 # skip silently rather than blow up the whole reset run.
+                continue
+            if _IDEM_FIELD[sobject] is None:
+                # Natural-key idempotency only (Plan 4 native FSC objects
+                # without External_ID__c). Plan 5 will extend reset with
+                # parent-External_ID query-back; for now, skip with a
+                # logged warning and surface the skip in the report.
+                if progress:
+                    progress(
+                        f"  {sobject}: skipped — no External_ID__c, "
+                        f"natural-key reset deferred to Plan 5"
+                    )
+                reports.append(ResetReport(sobject=sobject, skipped=True))
                 continue
             report = _delete_one_sobject(
                 runner=runner,

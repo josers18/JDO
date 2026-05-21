@@ -10,8 +10,13 @@ Wave C: AccountContactRelation
 Wave D: FA, Card, Goal, LifeEvent, Campaign, Opportunity (parallel-safe)
 Wave E: FA Role, Holding, Case, Task, Event, CampaignMember
         (parallel-safe; depend on D)
-
-Plan 4 will extend with Wave F + G for native FSC mirrors.
+Wave F: Native FSC mirrors — FinancialAccount, FinancialGoal,
+        BusinessMilestone, PartyRelationshipGroup, PartyProfile,
+        ContactPointAddress/Email/Phone (parallel-safe; depend on A-E
+        because each native row carries RESOLVE markers for legacy parents).
+Wave G: FinancialAccountParty — depends on Wave F because its
+        FinancialAccountId column points at native FAs whose Salesforce
+        Ids are only known after Wave F's queryback.
 """
 from __future__ import annotations
 
@@ -87,11 +92,42 @@ WAVE_DEFS: dict[str, Wave] = {
         parallel=True,
         description="FA Role, Holding, Case, Task, Event, CampaignMember (depend on D)",
     ),
+    "F": Wave(
+        name="F",
+        sobjects=(
+            "FinancialAccount",
+            "FinancialGoal",
+            "BusinessMilestone",
+            "PartyRelationshipGroup",
+            "PartyProfile",
+            "ContactPointAddress",
+            "ContactPointEmail",
+            "ContactPointPhone",
+        ),
+        depends_on=("A", "B", "C", "D", "E"),
+        parallel=True,
+        description=(
+            "Native FSC: FinancialAccount + Goal + Milestone + groups + "
+            "ContactPoints (parallel)"
+        ),
+    ),
+    "G": Wave(
+        name="G",
+        sobjects=(
+            "FinancialAccountParty",
+        ),
+        depends_on=("F",),
+        parallel=False,
+        description=(
+            "Native FSC: FinancialAccountParty "
+            "(depends on native FA Ids resolved post-F)"
+        ),
+    ),
 }
 
 
 def waves_in_forward_order() -> list[Wave]:
-    """Return waves topologically sorted (A -> B -> C -> D -> E).
+    """Return waves topologically sorted (A -> ... -> G).
 
     Insertion order in WAVE_DEFS already reflects topological order, so we
     just return its values as a list.
@@ -100,7 +136,7 @@ def waves_in_forward_order() -> list[Wave]:
 
 
 def waves_in_reverse_order() -> list[Wave]:
-    """Return waves in reverse topological order for reset (E -> D -> C -> B -> A)."""
+    """Return waves in reverse topological order for reset (G -> ... -> A)."""
     return list(reversed(WAVE_DEFS.values()))
 
 

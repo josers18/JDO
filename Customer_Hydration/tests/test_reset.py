@@ -165,11 +165,14 @@ class TestSkipsEmptySObjects:
 class TestReverseWaveOrder:
     def test_deletes_in_reverse_wave_order(self, tmp_path: Path) -> None:
         runner = _make_runner([{"Id": "001AA00000A"}])
-        # Build the expected order from the wave registry itself.
+        # Build the expected order from the wave registry itself. Plan 4
+        # adds None-idem natives (PartyRelationshipGroup, ContactPoint*,
+        # FinancialAccountParty, etc.) which the reset loop skips, so they
+        # never reach the bulk-delete subprocess we're observing here.
         expected_order: list[str] = []
         for wave in waves_in_reverse_order():
             for sobj in wave.sobjects:
-                if sobj in _IDEM_FIELD:
+                if sobj in _IDEM_FIELD and _IDEM_FIELD[sobj] is not None:
                     expected_order.append(sobj)
 
         observed_order: list[str] = []
@@ -193,14 +196,14 @@ class TestReverseWaveOrder:
             )
 
         assert observed_order == expected_order
-        # And the very first sObject must come from the LAST wave (E).
+        # The first DELETED sObject comes from the latest wave that has
+        # any non-None-idem sobjects. Wave G's only entry
+        # (FinancialAccountParty) is None-idem, so the first delete lands
+        # on a Wave-F native FSC object with External_ID__c.
         assert observed_order[0] in {
-            "FinServ__FinancialAccountRole__c",
-            "FinServ__FinancialHolding__c",
-            "Case",
-            "Task",
-            "Event",
-            "CampaignMember",
+            "FinancialAccount",
+            "FinancialGoal",
+            "BusinessMilestone",
         }
         # And the very last sObject must be Account (Wave A).
         assert observed_order[-1] == "Account"
@@ -265,6 +268,66 @@ class TestSubprocessFailure:
             assert "auth expired" in r.error
             assert r.failed == r.queried
             assert r.queried == 2
+
+
+# ---------------------------------------------------------------------------
+# TestNoneIdemSkip (Plan 4 / Task 9)
+# ---------------------------------------------------------------------------
+
+
+class TestNoneIdemSkip:
+    def test_skips_natives_with_none_idem_field(self, tmp_path: Path) -> None:
+        # Plan 4 native FSC objects without External_ID__c are mapped to
+        # None in _IDEM_FIELD. The reset path must:
+        #   1. NOT issue a SOQL query for them (no marker field to filter on)
+        #   2. NOT shell out to `sf data delete bulk`
+        #   3. Surface them as skipped reports
+        none_idem_sobjects = {
+            sobj for sobj, idem in _IDEM_FIELD.items() if idem is None
+        }
+        assert none_idem_sobjects, (
+            "test premise: at least one None-idem object is registered"
+        )
+
+        runner = _make_runner([{"Id": "001AA00000A"}])  # any non-None query
+        seen_soql: list[str] = []
+
+        def _capture(soql: str):  # noqa: ANN001
+            seen_soql.append(soql)
+            return [{"Id": "001AA00000A"}]
+
+        runner.query.side_effect = _capture
+
+        with patch(
+            "customer_hydration.loader.reset.subprocess.run",
+            return_value=_ok_proc(),
+        ) as mock_run:
+            reports = reset_hydrate(
+                runner=runner,
+                target_org="jdo-fw51xz",
+                output_dir=tmp_path,
+                confirm_alias="jdo-fw51xz",
+                user_typed_alias="jdo-fw51xz",
+            )
+
+        # Each None-idem sobject should appear as a skipped report.
+        skipped = {r.sobject for r in reports if r.skipped}
+        for sobj in none_idem_sobjects:
+            assert sobj in skipped, f"{sobj} should be skipped (None idem)"
+
+        # And no SOQL or bulk-delete should have referenced any None-idem object.
+        joined_soql = " ".join(seen_soql)
+        for sobj in none_idem_sobjects:
+            assert sobj not in joined_soql, (
+                f"unexpected SOQL touched None-idem sobject {sobj}"
+            )
+        for call in mock_run.call_args_list:
+            args = call.args[0] if call.args else call.kwargs.get("args", [])
+            if "--sobject" in args:
+                touched = args[args.index("--sobject") + 1]
+                assert touched not in none_idem_sobjects, (
+                    f"unexpected bulk-delete on None-idem sobject {touched}"
+                )
 
 
 # ---------------------------------------------------------------------------
