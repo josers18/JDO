@@ -13,6 +13,11 @@ output/run-*/
 output/*.json
 output/*.csv
 
+# sf data bulk results files (sf CLI dumps these into the cwd on failure)
+750a*-records.csv
+750a*-success-records.csv
+750a*-failed-records.csv
+
 # Editor
 .vscode/
 .idea/
