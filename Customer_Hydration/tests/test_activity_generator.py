@@ -231,9 +231,21 @@ class TestGenerateTasks:
         assert 0.50 <= historical / n <= 0.70, f"historical ratio {historical / n}"
 
     def test_task_links_to_account_via_what_id(self, task_kwargs):
+        # Plan 3: Task.WhatId is polymorphic and Bulk API 2.0 cannot resolve
+        # polymorphic FKs via External-Id reference syntax. The generator
+        # emits a "RESOLVE:{HYDRATE-…}" marker; runner_p3.IdResolver fills
+        # in the real Account Id post-Wave-A.
         bundle = generate_tasks(**task_kwargs)
         for t, req in zip(bundle.tasks, task_kwargs["requests"]):
-            assert t["WhatId"] == req.account_external_id
+            assert t["WhatId"] == f"RESOLVE:{req.account_external_id}"
+
+    def test_task_what_id_resolve_marker(self, task_kwargs):
+        bundle = generate_tasks(**task_kwargs)
+        assert len(bundle.tasks) > 0
+        for t, req in zip(bundle.tasks, task_kwargs["requests"]):
+            assert "WhatId" in t
+            assert t["WhatId"] == f"RESOLVE:{req.account_external_id}"
+            assert t["WhatId"].startswith("RESOLVE:HYDRATE-")
 
     def test_task_owner_set_from_rm(self, task_kwargs):
         bundle = generate_tasks(**task_kwargs)
@@ -330,9 +342,21 @@ class TestGenerateEvents:
             )
 
     def test_event_links_to_account(self, event_kwargs):
+        # Plan 3: Event.WhatId is polymorphic and Bulk API 2.0 cannot resolve
+        # polymorphic FKs via External-Id reference syntax. The generator
+        # emits a "RESOLVE:{HYDRATE-…}" marker; runner_p3.IdResolver fills
+        # in the real Account Id post-Wave-A.
         bundle = generate_events(**event_kwargs)
         for e, req in zip(bundle.events, event_kwargs["requests"]):
-            assert e["WhatId"] == req.account_external_id
+            assert e["WhatId"] == f"RESOLVE:{req.account_external_id}"
+
+    def test_event_what_id_resolve_marker(self, event_kwargs):
+        bundle = generate_events(**event_kwargs)
+        assert len(bundle.events) > 0
+        for e, req in zip(bundle.events, event_kwargs["requests"]):
+            assert "WhatId" in e
+            assert e["WhatId"] == f"RESOLVE:{req.account_external_id}"
+            assert e["WhatId"].startswith("RESOLVE:HYDRATE-")
 
 
 # ---------- Opportunities --------------------------------------------------

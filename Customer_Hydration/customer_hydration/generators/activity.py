@@ -457,6 +457,11 @@ def generate_tasks(
     aware: ~30% in the next 14 days, ~10% overdue, ~60% historical.
     Historical tasks are always Status="Completed"; future/overdue tasks
     pick from the not-Completed Status values.
+
+    WhatId is emitted as a "RESOLVE:{HYDRATE-…}" marker because Task.WhatId
+    is a polymorphic FK and Bulk API 2.0 cannot resolve polymorphic FKs via
+    External-Id reference syntax. The runner's IdResolver fills in the real
+    Account Id post-Wave-A before bulk-upsert.
     """
     rng = random.Random(seed)
     bundle = ActivityBundle()
@@ -489,7 +494,8 @@ def generate_tasks(
             "Priority": priority,
             "Type": task_type,
             "ActivityDate": activity_date.isoformat(),
-            "WhatId": req.account_external_id,
+            # WhatId resolved post-Wave-A by runner_p3.IdResolver
+            "WhatId": f"RESOLVE:{req.account_external_id}",
             "OwnerId": req.rm_user_id,
             "External_ID__c": ext_id,
         }
@@ -508,6 +514,11 @@ def generate_events(
 
     External_ID__c = HYDRATE-EVT-{seq:06d}. Start/End fall during
     business hours (08:00–17:00) on weekdays.
+
+    WhatId is emitted as a "RESOLVE:{HYDRATE-…}" marker because Event.WhatId
+    is a polymorphic FK and Bulk API 2.0 cannot resolve polymorphic FKs via
+    External-Id reference syntax. The runner's IdResolver fills in the real
+    Account Id post-Wave-A before bulk-upsert.
     """
     rng = random.Random(seed)
     bundle = ActivityBundle()
@@ -533,7 +544,8 @@ def generate_events(
             "EndDateTime": end.isoformat(),
             "ActivityDate": start.date().isoformat(),
             "DurationInMinutes": int((end - start).total_seconds() // 60),
-            "WhatId": req.account_external_id,
+            # WhatId resolved post-Wave-A by runner_p3.IdResolver
+            "WhatId": f"RESOLVE:{req.account_external_id}",
             "OwnerId": req.rm_user_id,
             "External_ID__c": ext_id,
         }
