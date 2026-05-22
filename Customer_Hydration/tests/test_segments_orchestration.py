@@ -73,16 +73,18 @@ class TestInjectHydrateClause:
             "type": "TextComparison",
             "subject": {"objectApiName": "Account_demo__dlm",
                         "fieldApiName": "FinServ_ClientCategory_c__c"},
-            "operator": "equals",
+            "operator": "matches",
             "values": ["Retail"],
         }
         out = inject_hydrate_clause(user)
         assert out["type"] == "LogicalComparison"
         assert out["operator"] == "and"
-        # Two filters: HYDRATE first, user second
+        # Two filters: HYDRATE first, user second — flat (NOT wrapped
+        # in {"filter": ...}). Live API rejects the wrapped form with
+        # "missing discriminator field: <type>".
         assert len(out["filters"]) == 2
-        assert out["filters"][0]["filter"] == HYDRATE_CLAUSE
-        assert out["filters"][1]["filter"] == user
+        assert out["filters"][0] == HYDRATE_CLAUSE
+        assert out["filters"][1] == user
 
     def test_hydrate_clause_targets_external_id_c_field(self):
         assert HYDRATE_CLAUSE["type"] == "TextComparison"
@@ -98,20 +100,20 @@ class TestInjectHydrateClause:
             "type": "LogicalComparison",
             "operator": "and",
             "filters": [
-                {"filter": {"type": "TextComparison",
-                            "subject": {"objectApiName": "Account_demo__dlm",
-                                        "fieldApiName": "FinServ_ClientCategory_c__c"},
-                            "operator": "equals", "values": ["Wealth"]}},
-                {"filter": {"type": "DateTimeComparison",
-                            "subject": {"objectApiName": "Account_demo__dlm",
-                                        "fieldApiName": "PersonBirthdate__c"},
-                            "operator": "before", "values": ["1971-01-01"]}},
+                {"type": "TextComparison",
+                 "subject": {"objectApiName": "Account_demo__dlm",
+                             "fieldApiName": "FinServ_ClientCategory_c__c"},
+                 "operator": "matches", "values": ["Wealth"]},
+                {"type": "DateTimeComparison",
+                 "subject": {"objectApiName": "Account_demo__dlm",
+                             "fieldApiName": "PersonBirthdate__c"},
+                 "operator": "before", "values": ["1971-01-01"]},
             ],
         }
         out = inject_hydrate_clause(user_compound)
         assert out["type"] == "LogicalComparison"
-        assert out["filters"][0]["filter"] == HYDRATE_CLAUSE
-        assert out["filters"][1]["filter"] == user_compound
+        assert out["filters"][0] == HYDRATE_CLAUSE
+        assert out["filters"][1] == user_compound
 
 
 # ---- load_segment_definitions: DSL translation ----
@@ -141,9 +143,10 @@ segments:
         d = defs[0]
         # Hydrate-injected wrapper
         assert d.include_criteria["type"] == "LogicalComparison"
-        user = d.include_criteria["filters"][1]["filter"]
+        user = d.include_criteria["filters"][1]
         assert user["type"] == "TextComparison"
-        assert user["operator"] == "equals"
+        # Live DC API expects "matches" (NOT "equals") for text equality.
+        assert user["operator"] == "matches"
         assert user["values"] == ["Retail"]
         assert user["subject"] == {
             "objectApiName": "Account_demo__dlm",
@@ -165,7 +168,7 @@ segments:
       value: "HYDRATE-"
 """)
         defs = load_segment_definitions(yaml_path)
-        user = defs[0].include_criteria["filters"][1]["filter"]
+        user = defs[0].include_criteria["filters"][1]
         assert user["operator"] == "contains"
         assert user["values"] == ["HYDRATE-"]
 
@@ -184,7 +187,7 @@ segments:
       values: ["Retail", "Wealth"]
 """)
         defs = load_segment_definitions(yaml_path)
-        user = defs[0].include_criteria["filters"][1]["filter"]
+        user = defs[0].include_criteria["filters"][1]
         assert user["operator"] == "in"
         assert user["values"] == ["Retail", "Wealth"]
 
@@ -202,7 +205,7 @@ segments:
       field: External_ID_c__c
 """)
         defs = load_segment_definitions(yaml_path)
-        user = defs[0].include_criteria["filters"][1]["filter"]
+        user = defs[0].include_criteria["filters"][1]
         assert user["operator"] == "has value"
         assert "values" not in user
 
@@ -221,7 +224,7 @@ segments:
       value: 700
 """)
         defs = load_segment_definitions(yaml_path)
-        user = defs[0].include_criteria["filters"][1]["filter"]
+        user = defs[0].include_criteria["filters"][1]
         assert user["type"] == "NumberComparison"
         assert user["operator"] == "greater than"
         assert user["values"] == [700]
@@ -242,10 +245,10 @@ segments:
       lte: 250000
 """)
         defs = load_segment_definitions(yaml_path)
-        user = defs[0].include_criteria["filters"][1]["filter"]
+        user = defs[0].include_criteria["filters"][1]
         assert user["type"] == "LogicalComparison"
         assert user["operator"] == "and"
-        operators = {f["filter"]["operator"] for f in user["filters"]}
+        operators = {f["operator"] for f in user["filters"]}
         assert operators == {"greater than or equal", "less than or equal"}
 
     def test_date_before_translates(self, tmp_path: Path):
@@ -263,7 +266,7 @@ segments:
       value: "1971-01-01"
 """)
         defs = load_segment_definitions(yaml_path)
-        user = defs[0].include_criteria["filters"][1]["filter"]
+        user = defs[0].include_criteria["filters"][1]
         assert user["type"] == "DateTimeComparison"
         assert user["operator"] == "before"
         assert user["values"] == ["1971-01-01"]
@@ -284,10 +287,10 @@ segments:
       before: "1971-01-01"
 """)
         defs = load_segment_definitions(yaml_path)
-        user = defs[0].include_criteria["filters"][1]["filter"]
+        user = defs[0].include_criteria["filters"][1]
         assert user["type"] == "LogicalComparison"
         assert user["operator"] == "and"
-        ops = {f["filter"]["operator"] for f in user["filters"]}
+        ops = {f["operator"] for f in user["filters"]}
         assert ops == {"after", "before"}
 
     def test_unknown_rule_type_raises(self, tmp_path: Path):
@@ -335,7 +338,7 @@ segments:
         assert d.target_dmo == "Account_demo__dlm"
         # Hydrate clause must be embedded in the criteria tree.
         assert d.include_criteria["type"] == "LogicalComparison"
-        assert d.include_criteria["filters"][0]["filter"]["values"] == ["HYDRATE-"]
+        assert d.include_criteria["filters"][0]["values"] == ["HYDRATE-"]
 
     def test_raises_on_missing_required_field(self, tmp_path: Path):
         yaml_path = tmp_path / "bad.yaml"
@@ -452,11 +455,16 @@ segments:
         assert kwargs["developer_name"] == "RetailAll"
         assert kwargs["display_name"] == "Retail Customers"
         assert kwargs["segment_on_api_name"] == "Account_demo__dlm"
-        assert kwargs["publish_schedule"] == "One"  # hourly -> One
+        # Live API rejects non-NoRefresh values for Dynamic segments
+        # ("Parameters related to publish aren't supported for a dynamic
+        # segments"), so orchestration ALWAYS sends NoRefresh regardless
+        # of YAML publish_schedule (which is informational only).
+        assert kwargs["publish_schedule"] == "NoRefresh"
         criteria = kwargs["include_criteria"]
         assert criteria["type"] == "LogicalComparison"
-        # HYDRATE clause is the first filter
-        assert criteria["filters"][0]["filter"]["values"] == ["HYDRATE-"]
+        # HYDRATE clause is the first filter — flat (no {"filter": ...}
+        # wrapper), matching the live API's create-shape.
+        assert criteria["filters"][0]["values"] == ["HYDRATE-"]
 
     @patch("customer_hydration.phase5.segments.get_org_session")
     @patch("customer_hydration.phase5.segments.list_segments")

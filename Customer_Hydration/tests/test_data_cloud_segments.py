@@ -118,10 +118,10 @@ class TestCreateSegment:
                     "objectApiName": "Account_demo__dlm",
                     "fieldApiName": "FinServ_ClientCategory_c__c",
                 },
-                "operator": "equals",
+                "operator": "matches",
                 "values": ["Retail"],
             },
-            publish_schedule="One",
+            publish_schedule="NoRefresh",
         )
         assert ok is True
         # Returned identifier should be the apiName when present

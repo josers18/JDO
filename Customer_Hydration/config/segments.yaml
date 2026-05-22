@@ -22,18 +22,18 @@
 #
 # Hard live constraints (Task 10 smoke discoveries):
 #   * segmentType MUST be Dynamic for new segments.
-#   * publishSchedule must be one of: NoRefresh|One|Two|Four|Six|Twelve|TwentyFour
-#       Mapping at call time:
-#         manual  -> NoRefresh
-#         hourly  -> One
-#         daily   -> TwentyFour
-#         weekly  -> TwentyFour  (no native weekly slot; closest available)
+#   * publishSchedule on Dynamic segments must be "NoRefresh". The live
+#     API returns "Parameters related to publish aren't supported for
+#     a dynamic segments. Remove the parameters and try again." for any
+#     other value, so orchestration always sends "NoRefresh" regardless
+#     of the publish_schedule field below — that field is INFORMATIONAL
+#     ONLY for human readers.
 #   * PATCH of Dynamic segments returns ENTITY_SAVE_ERROR. If a segment
 #     with the same developerName already exists, we treat it as
 #     idempotent success (skip).
 #
 # Supported rule.type DSL values (translated to DC JSON include criteria):
-#   text_equals      -> TextComparison operator "equals"
+#   text_equals      -> TextComparison operator "matches" (live equality op)
 #   text_contains    -> TextComparison operator "contains"
 #   text_in          -> TextComparison operator "in" (values is list)
 #   text_has_value   -> TextComparison operator "has value" (no values)

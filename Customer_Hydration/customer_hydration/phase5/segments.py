@@ -135,14 +135,17 @@ def inject_hydrate_clause(user_criteria: dict[str, Any]) -> dict[str, Any]:
     The wrapping is intentional even when ``user_criteria`` is itself a
     LogicalComparison.and (we don't try to flatten / merge filters,
     keeping the injection logic simple and predictable).
+
+    Filter array shape note: the live DC create endpoint expects a FLAT
+    array of comparison objects — a wrapped {"filter": {...}} shape
+    triggers "missing discriminator field: <type>". (Quirky asymmetry:
+    when read back via SOQL, IncludeCriteria stores filters WITH the
+    wrapper, but POST/PATCH does NOT accept that form.)
     """
     return {
         "type": "LogicalComparison",
         "operator": "and",
-        "filters": [
-            {"filter": HYDRATE_CLAUSE},
-            {"filter": user_criteria},
-        ],
+        "filters": [HYDRATE_CLAUSE, user_criteria],
     }
 
 
@@ -189,10 +192,12 @@ def _datetime_comparison(
 
 
 def _and(*filters: dict[str, Any]) -> dict[str, Any]:
+    # Live DC create endpoint expects a flat filter array — see
+    # inject_hydrate_clause docstring for the asymmetry note.
     return {
         "type": "LogicalComparison",
         "operator": "and",
-        "filters": [{"filter": f} for f in filters],
+        "filters": list(filters),
     }
 
 
@@ -207,7 +212,11 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
         raise ValueError(f"Segment {config_key!r}.rule.field is required for type {rule_type!r}")
 
     if rule_type == "text_equals":
-        return _text_comparison(target_dmo, field, "equals", [rule["value"]])
+        # Live DC API uses "matches" for text equality on Dynamic
+        # segments. Sending "equals" returns "Unexpected value 'equals'"
+        # from the create endpoint. The DSL key text_equals stays for
+        # the YAML-side abstraction; only the emitted operator changes.
+        return _text_comparison(target_dmo, field, "matches", [rule["value"]])
     if rule_type == "text_contains":
         return _text_comparison(target_dmo, field, "contains", [rule["value"]])
     if rule_type == "text_in":
@@ -355,6 +364,10 @@ def execute_create_segments(
             result.results.append(r)
             continue
 
+        # Dynamic segments only support NoRefresh; YAML publish_schedule
+        # is informational. See ENTITY_SAVE_ERROR from API for non-NoRefresh
+        # values ("Parameters related to publish aren't supported for a
+        # dynamic segments. Remove the parameters and try again.").
         ok, info = create_segment(
             instance_url, access_token,
             developer_name=d.developer_name,
@@ -362,7 +375,7 @@ def execute_create_segments(
             description=d.description,
             segment_on_api_name=d.target_dmo,
             include_criteria=d.include_criteria,
-            publish_schedule=map_publish_schedule(d.publish_schedule),
+            publish_schedule="NoRefresh",
         )
         if ok:
             r.created = True
