@@ -1,0 +1,316 @@
+# Phase 2 segment definitions for Customer_Hydration.
+# Each entry creates one Data Cloud Segment via the REST API.
+# Segment API names are deterministic: <ConfigKeyInPascalCase>__seg
+# Members are filtered by External_ID_c__c LIKE 'HYDRATE-%' to avoid leaking
+# non-hydrate accounts into the demo segments. The HYDRATE-* clause is
+# automatically appended to every rule.filter at load time, so no need to
+# repeat it in the YAML.
+#
+# Verified against jdo-uqj0jr on 2026-05-22:
+#   target DMO: Account_demo__dlm (custom demo DMO with FSC fields preserved)
+#   field convention: __c → _c__c, __pc → _pc__c, __ → _ on namespace separator
+#     FinServ__ClientCategory__c → FinServ_ClientCategory_c__c
+#     External_ID__c → External_ID_c__c
+#     PersonBirthdate → PersonBirthdate__c
+
+segments:
+
+  # ----- 4 persona base segments -----
+
+  retail_all:
+    name: "Retail Customers"
+    description: "All hydrated retail Person Account customers"
+    persona: retail
+    publish_schedule: hourly
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: "FinServ_ClientCategory_c__c = 'Retail'"
+
+  wealth_all:
+    name: "Wealth Management Clients"
+    description: "All hydrated wealth Person Account customers"
+    persona: wealth
+    publish_schedule: hourly
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: "FinServ_ClientCategory_c__c = 'Wealth Management'"
+
+  smb_all:
+    name: "Small Business Clients"
+    description: "All hydrated SMB business Account customers"
+    persona: smb
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: "FinServ_ClientCategory_c__c = 'Small Business'"
+
+  commercial_all:
+    name: "Commercial Banking Clients"
+    description: "All hydrated commercial business Account customers"
+    persona: commercial
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: "FinServ_ClientCategory_c__c = 'Commercial Banking'"
+
+  # ----- 6 lifecycle / sub-segments -----
+
+  wealth_pre_retiree:
+    name: "Wealth Pre-Retirees (55-65)"
+    description: "Wealth Management clients in pre-retirement window"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Wealth Management'
+        AND DATE_DIFF(CURRENT_DATE(), PersonBirthdate__c, YEAR) BETWEEN 55 AND 65
+
+  retail_family_with_mortgage:
+    name: "Retail Family-Building with Mortgage"
+    description: "Family-building retail customers (33-45) with active mortgage FA"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Retail'
+        AND DATE_DIFF(CURRENT_DATE(), PersonBirthdate__c, YEAR) BETWEEN 33 AND 45
+        AND EXISTS (
+          SELECT 1 FROM FinServ__FinancialAccount__c
+          WHERE FinServ__PrimaryOwner__c = Account.Id
+            AND (Name LIKE '%Mortgage%' OR Name LIKE '%HELOC%')
+        )
+
+  retail_heloc_drawn:
+    name: "Retail HELOC Drawn 50%+"
+    description: "Retail customers with active HELOC drawn to 50%+ of credit limit"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Retail'
+        AND EXISTS (
+          SELECT 1 FROM FinServ__FinancialAccount__c
+          WHERE FinServ__PrimaryOwner__c = Account.Id
+            AND Name LIKE '%HELOC%'
+            AND FinServ__Balance__c >= 0.5 * FinServ__LoanAmount__c
+        )
+    linked_campaign: HYDRATE-CMP-001
+
+  smb_with_sba:
+    name: "SMB Owners with SBA Loan"
+    description: "Small Business owners with active SBA loan FA"
+    persona: smb
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Small Business'
+        AND EXISTS (
+          SELECT 1 FROM FinServ__FinancialAccount__c
+          WHERE FinServ__PrimaryOwner__c = Account.Id
+            AND Name LIKE '%SBA%'
+        )
+
+  commercial_with_treasury:
+    name: "Commercial with Treasury Services"
+    description: "Commercial Banking clients with active Treasury Management FA"
+    persona: commercial
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Commercial Banking'
+        AND EXISTS (
+          SELECT 1 FROM FinServ__FinancialAccount__c
+          WHERE FinServ__PrimaryOwner__c = Account.Id
+            AND FinServ__FinancialAccountType__c = 'Treasury Management'
+        )
+
+  wealth_recent_life_event:
+    name: "Wealth with Recent Life Event (90d)"
+    description: "Wealth Management clients with a LifeEvent in the last 90 days"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Wealth Management'
+        AND EXISTS (
+          SELECT 1 FROM FinServ__LifeEvent__c
+          WHERE FinServ__Client__c = Account.Id
+            AND FinServ__EventDate__c >= DATE_ADD(CURRENT_DATE(), -90, 'DAY')
+        )
+
+  # ----- 10 campaign-aligned segments -----
+
+  cmp_heloc_refi_outreach:
+    name: "HELOC Refi Outreach Q2 audience"
+    description: "Retail customers wired to Campaign HYDRATE-CMP-001"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-001
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Retail'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-001'
+        )
+
+  cmp_auto_loan_rate_drop:
+    name: "Auto Loan Rate Drop Promo audience"
+    description: "Retail customers wired to Campaign HYDRATE-CMP-002"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-002
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Retail'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-002'
+        )
+
+  cmp_premier_checking_onboarding:
+    name: "Premier Checking Onboarding cohort"
+    description: "Retail customers wired to Campaign HYDRATE-CMP-003"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-003
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Retail'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-003'
+        )
+
+  cmp_wealth_tax_strategy_webinar:
+    name: "Wealth Tax Strategy Webinar 2026 audience"
+    description: "Wealth clients wired to Campaign HYDRATE-CMP-004"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-004
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Wealth Management'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-004'
+        )
+
+  cmp_wealth_estate_planning_roundtable:
+    name: "Wealth Estate Planning Roundtable audience"
+    description: "Wealth clients wired to Campaign HYDRATE-CMP-005"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-005
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Wealth Management'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-005'
+        )
+
+  cmp_sba_awareness:
+    name: "SBA Awareness Q1 2026 audience"
+    description: "Small Business clients wired to Campaign HYDRATE-CMP-006"
+    persona: smb
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-006
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Small Business'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-006'
+        )
+
+  cmp_treasury_modernization_brief:
+    name: "Treasury Modernization Brief audience"
+    description: "Commercial clients wired to Campaign HYDRATE-CMP-007"
+    persona: commercial
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-007
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Commercial Banking'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-007'
+        )
+
+  cmp_commercial_rm_roundtable:
+    name: "Commercial RM Roundtable audience"
+    description: "Commercial clients wired to Campaign HYDRATE-CMP-008"
+    persona: commercial
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-008
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Commercial Banking'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-008'
+        )
+
+  cmp_multi_persona_spring_newsletter:
+    name: "Multi-Persona Spring Newsletter audience"
+    description: "All-persona audience wired to Campaign HYDRATE-CMP-009"
+    persona: mixed
+    publish_schedule: weekly
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-009
+    rule:
+      type: sql
+      filter: |
+        Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-009'
+        )
+
+  cmp_mobile_banking_adoption:
+    name: "Mobile Banking Adoption audience"
+    description: "Retail customers wired to Campaign HYDRATE-CMP-010"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    linked_campaign: HYDRATE-CMP-010
+    rule:
+      type: sql
+      filter: |
+        FinServ_ClientCategory_c__c = 'Retail'
+        AND Id IN (
+          SELECT AccountId FROM CampaignMember
+          WHERE Campaign.External_ID__c = 'HYDRATE-CMP-010'
+        )
