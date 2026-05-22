@@ -547,6 +547,12 @@ def _run_dc_status(args: argparse.Namespace) -> int:
                 segment_section_ok = True
             except Exception as exc:
                 print(f"Segment polling failed: {exc}", file=sys.stderr)
+    else:
+        if yaml_path.exists():
+            print(
+                "(Segments not polled — pass --target-org to enable segment view)",
+                file=sys.stderr,
+            )
 
     # If neither section produced output, surface a non-zero rc so callers
     # (and the existing "no runs" smoke test) can tell dc-status had nothing

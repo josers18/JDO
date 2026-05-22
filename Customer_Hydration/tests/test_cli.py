@@ -134,6 +134,7 @@ class TestDcStatusSubcommand:
             "dc-status",
             "--target-org", "alias",
             "--output-dir", str(tmp_path),
+            "--config-dir", str(tmp_path),
         ])
         assert rc == 2
 

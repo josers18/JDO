@@ -1,6 +1,7 @@
 """Tests for Phase 2 CLI subcommands: refresh-streams + create-segments."""
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -215,3 +216,39 @@ segments:
         # (return code may be 0 or 2 depending on whether mock_segment_status
         # returns success — we just verify it ran the segment view)
         assert mock_get_status.call_count == 2
+
+    def test_no_target_org_with_empty_runs_and_segments_yaml_exits_2_with_hint(
+        self, tmp_path, capsys,
+    ):
+        """Manifest with empty stream_runs + segments.yaml present + no --target-org
+        → rc=2 with a stderr hint explaining segments weren't polled."""
+        cfg = tmp_path / "config"
+        cfg.mkdir()
+        (cfg / "segments.yaml").write_text("""\
+segments:
+  retail_all:
+    name: "Retail Customers"
+    description: "x"
+    persona: retail
+    publish_schedule: hourly
+    target_dmo: Account
+    rule:
+      type: sql
+      filter: "X = 'Y'"
+""")
+        out = tmp_path / "output"
+        out.mkdir()
+        run_dir = out / "run-2026-05-22T1200"
+        run_dir.mkdir()
+        (run_dir / "manifest.json").write_text(json.dumps({
+            "stream_runs": [],
+        }))
+
+        rc = main([
+            "dc-status",
+            "--config-dir", str(cfg),
+            "--output-dir", str(out),
+        ])
+        captured = capsys.readouterr()
+        assert rc == 2
+        assert "Segments not polled" in captured.err
