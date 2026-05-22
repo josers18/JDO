@@ -78,7 +78,7 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Wealth"
+      value: "Wealth Management"
 
   smb_all:
     name: "Small Business Clients"
@@ -100,7 +100,18 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Commercial"
+      value: "Commercial Banking"
+
+  household_all:
+    name: "Household Customers"
+    description: "All hydrated household-tier Person Account customers"
+    persona: household
+    publish_schedule: hourly
+    target_dmo: Account_demo__dlm
+    rule:
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Household"
 
   # ----- 6 lifecycle / sub-segments -----
   #
@@ -164,7 +175,7 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Commercial"
+      value: "Commercial Banking"
 
   wealth_recent_life_event:
     name: "Wealth with Recent Life Event (90d)"
@@ -175,7 +186,7 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Wealth"
+      value: "Wealth Management"
 
   # ----- 10 campaign-aligned segments -----
   #
@@ -231,7 +242,7 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Wealth"
+      value: "Wealth Management"
 
   cmp_wealth_estate_planning_roundtable:
     name: "Wealth Estate Planning Roundtable audience"
@@ -243,7 +254,7 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Wealth"
+      value: "Wealth Management"
 
   cmp_sba_awareness:
     name: "SBA Awareness Q1 2026 audience"
@@ -267,7 +278,7 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Commercial"
+      value: "Commercial Banking"
 
   cmp_commercial_rm_roundtable:
     name: "Commercial RM Roundtable audience"
@@ -279,7 +290,7 @@ segments:
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
-      value: "Commercial"
+      value: "Commercial Banking"
 
   cmp_multi_persona_spring_newsletter:
     name: "Multi-Persona Spring Newsletter audience"

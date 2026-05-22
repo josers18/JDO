@@ -1,6 +1,8 @@
 # Phase 2 Segment Briefs — Cumulus Bank Demo Audiences
 
-20 Data Cloud segments published to `jdo-uqj0jr` against `Account_demo__dlm` on 2026-05-22. Every segment is filtered to `External_ID_c__c contains "HYDRATE-"` (auto-injected at load time) so it never matches the org's pre-existing seed accounts — only Phase 1-hydrated demo customers.
+21 Data Cloud segments published to `jdo-uqj0jr` against `Account_demo__dlm`. Every segment is filtered to `External_ID_c__c contains "HYDRATE-"` (auto-injected at load time) so it never matches the org's pre-existing seed accounts — only Phase 1-hydrated demo customers.
+
+> **Phase 2.1 hot-fix (2026-05-22):** Persona-tier filter values were corrected to match the live `FinServ_ClientCategory_c__c` strings: `"Wealth"` → `"Wealth Management"`, `"Commercial"` → `"Commercial Banking"`. A new `HouseholdAll__seg` was added for the Household tier (3,424 hydrated rows that were uncaptured). Pre-fix, `WealthAll__seg` and `CommercialAll__seg` were matching 0 rows.
 
 For per-segment **live member counts and last-publish timestamps**, run:
 ```bash
@@ -10,7 +12,7 @@ The Segments section of that output is the source of truth. The briefs below des
 
 ## How segments are organized
 
-- **Persona base (4)** — broad audience pools, one per Cumulus client tier. The foundation for any Cumulus campaign.
+- **Persona base (5)** — broad audience pools, one per Cumulus client tier (Retail, Wealth Management, Small Business, Commercial Banking, Household). The foundation for any Cumulus campaign.
 - **Lifecycle / sub-segments (6)** — narrower behavioral or stage-of-life cuts. Some are scoped tighter than the persona base; others are placeholders that will tighten as we hydrate Mortgage / HELOC / LifeEvent / etc. DMOs.
 - **Campaign-aligned (10)** — pre-built audiences for ten in-flight Cumulus marketing programs. Each links to a `HYDRATE-CMP-NNN` Campaign record and currently scopes to its target persona; will tighten to CampaignMember-driven once that DMO is hydrated.
 
@@ -31,7 +33,7 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 
 ---
 
-## Persona Base (4)
+## Persona Base (5)
 
 ### `RetailAll__seg` — Retail Customers
 
@@ -60,7 +62,7 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 
 **Technical implementation**
 - `apiName`: `WealthAll__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"`
 
 ---
 
@@ -84,13 +86,28 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 **Marketing brief**
 - **Persona:** Commercial / Mid-market (RM-managed, complex banking)
 - **Use case:** Foundation audience for commercial banking outreach — treasury services, capital markets, ABL, syndicated lending.
-- **Target:** Every Account flagged `FinServ__ClientCategory__c = "Commercial"`.
+- **Target:** Every Account flagged `FinServ__ClientCategory__c = "Commercial Banking"`.
 - **Suggested channels:** RM-curated outreach, conference invites, executive briefings, gated thought-leadership content.
 - **Refresh cadence:** Daily (intended).
 
 **Technical implementation**
 - `apiName`: `CommercialAll__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"`
+
+---
+
+### `HouseholdAll__seg` — Household Customers
+
+**Marketing brief**
+- **Persona:** Household (multi-product retail relationships — joint accounts, shared mortgages, family-tier banking)
+- **Use case:** Foundation audience for household-tier programs that target the relationship rather than the individual — joint financial planning, family bundles, household-level retention.
+- **Target:** Every Person Account flagged `FinServ__ClientCategory__c = "Household"`.
+- **Suggested channels:** Email, mobile in-app, RM cadence for top-tier households, direct mail with household-relevant offers.
+- **Refresh cadence:** Hourly (intended).
+
+**Technical implementation**
+- `apiName`: `HouseholdAll__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Household"`
 
 ---
 
@@ -173,7 +190,7 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 
 **Technical implementation**
 - `apiName`: `CommercialWithTreasury__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"` *(placeholder)*
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"` *(placeholder)*
 - **Placeholder note:** Will tighten once Treasury Services product DMO is hydrated.
 
 ---
@@ -189,7 +206,7 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 
 **Technical implementation**
 - `apiName`: `WealthRecentLifeEvent__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"` *(placeholder)*
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"` *(placeholder)*
 - **Placeholder note:** Will tighten once `PersonLifeEvent_Home` stream + DMO are hydrated. Anticipated criteria: `LifeEventDate within last 90 days` joined via party model.
 
 ---
@@ -254,7 +271,7 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpWealthTaxStrategyWebinar__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"`
 - `linked_campaign`: `HYDRATE-CMP-004`
 
 ---
@@ -269,7 +286,7 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpWealthEstatePlanningRoundtable__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"`
 - `linked_campaign`: `HYDRATE-CMP-005`
 
 ---
@@ -299,7 +316,7 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpTreasuryModernizationBrief__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"`
 - `linked_campaign`: `HYDRATE-CMP-007`
 
 ---
@@ -314,7 +331,7 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpCommercialRmRoundtable__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"`
 - `linked_campaign`: `HYDRATE-CMP-008`
 
 ---
