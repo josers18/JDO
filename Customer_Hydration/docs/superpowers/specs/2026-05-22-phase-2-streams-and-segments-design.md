@@ -65,7 +65,7 @@ Customer_Hydration/
 ```yaml
 # Phase 2 segment definitions for Customer_Hydration.
 # Each entry creates one Data Cloud Segment via the REST API.
-# Segment API names are deterministic: HYDRATE_<config_key>__seg
+# Segment API names are deterministic: <ConfigKeyInPascalCase>__seg
 # Members are filtered by External_ID__c LIKE 'HYDRATE-%' to avoid leaking
 # non-hydrate accounts into the demo segments.
 
@@ -140,7 +140,7 @@ cmp_heloc_refi_outreach:
 
 ### Target DMO
 
-For Plan 2, all segments target `UnifiedIndividual__dlm` (the standard FSC unified-individual DMO that Person Accounts + business Contacts unify into). The `target_dmo` field in YAML allows override per-segment if a different DMO is more appropriate. The implementation plan's first task confirms the actual DMO API name in the user's org and updates the spec if it differs.
+All segments target the **`Account` DMO**. This org is FSC + Person Accounts: a customer is one Account record (Person Accounts merge Account + Contact into a single sObject), and the Data Cloud Account DMO mirrors that — every persona (Retail / Wealth / SMB / Commercial / Household) lives in the same DMO, distinguished by the mapped `FinServ__ClientCategory__c` field. The `target_dmo` field in YAML still allows per-segment override if some specific segment ever needs to target a child DMO (FA, Goal, etc.), but the default everywhere is `Account`. The implementation plan's first task validates the exact DMO API name in the user's org (likely `Account__dlm` or similar — depends on how the user named the mapped DMO).
 
 ---
 
@@ -218,7 +218,7 @@ Top-level entry points for the new CLI subcommands.
 class SegmentDefinition:
     """Parsed entry from segments.yaml."""
     config_key: str
-    api_name: str          # f"HYDRATE_{config_key}__seg" (PascalCase the parts as needed)
+    api_name: str          # f"{config_key in PascalCase}__seg" (no prefix)
     display_name: str
     description: str
     persona: str
@@ -264,8 +264,9 @@ def execute_create_segments(
 ) -> CreateSegmentsResult:
     """Create + publish segments. Idempotent: existing segments are PATCHed.
 
-    Idempotency: list_segments() first to find existing HYDRATE_*__seg names,
-    then for each YAML entry decide create vs patch. Publish is always called
+    Idempotency: list_segments() first to find existing segment api_names that
+    match any of the YAML config keys' computed PascalCase__seg names, then
+    for each YAML entry decide create vs patch. Publish is always called
     (no-op if no changes since last publish; otherwise triggers a new run).
 
     `dry_run`: parse YAML + list existing segments, print plan, don't make any
@@ -444,14 +445,14 @@ def _run_dc_status(args) -> int:
 
 ### Segment API names
 
-Deterministic format: `HYDRATE_{ConfigKeyInPascalCase}__seg`
+Deterministic format: `{ConfigKeyInPascalCase}__seg`
 
 Examples:
-- `retail_all` → `HYDRATE_RetailAll__seg`
-- `wealth_pre_retiree` → `HYDRATE_WealthPreRetiree__seg`
-- `cmp_heloc_refi_outreach` → `HYDRATE_CmpHelocRefiOutreach__seg`
+- `retail_all` → `RetailAll__seg`
+- `wealth_pre_retiree` → `WealthPreRetiree__seg`
+- `cmp_heloc_refi_outreach` → `CmpHelocRefiOutreach__seg`
 
-The `HYDRATE_` prefix mirrors the Phase 1 `HYDRATE-` External-Id namespace and serves the same purpose: makes Phase 2 segments distinguishable from any other segments in the org. Reset semantics (a future task, not Phase 2 scope) can wipe `HYDRATE_*__seg` cleanly.
+No `HYDRATE_` prefix — segments live alongside any other segments the org has, and the deterministic mapping from config key to API name keeps re-runs idempotent without namespacing. Filter clauses still scope membership to `External_ID__c LIKE 'HYDRATE-%'` so segments won't accidentally pick up the org's pre-existing 178 non-hydrate accounts. If a future need arises to clean up just the Phase 2 segments programmatically, the `segments.yaml` config file is the canonical inventory — `python hydrate.py reset --segments` (a hypothetical future task) would iterate that file rather than relying on a name prefix.
 
 ### Re-run behavior
 
@@ -471,7 +472,7 @@ Already idempotent in Phase 5.5: triggering a stream that's already running is a
 
 ### Reset path
 
-**Out of scope for Phase 2.** A future Phase 3 (or Phase 2.5) could add `python hydrate.py reset --segments` that wipes all `HYDRATE_*__seg` segments via the REST DELETE endpoint. Phase 2 doesn't ship reset for segments — they accumulate as the user iterates on YAML.
+**Out of scope for Phase 2.** A future Phase 3 (or Phase 2.5) could add `python hydrate.py reset --segments` that iterates `config/segments.yaml`, computes each segment's api_name, and DELETEs each via the REST endpoint. Phase 2 doesn't ship reset for segments — they accumulate as the user iterates on YAML.
 
 ---
 
