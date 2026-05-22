@@ -177,9 +177,19 @@ def test_list_streams_extracts_connector_type_from_connectorInfo():
 # --------------------------------------------------------------------------
 
 def test_trigger_stream_refresh_returns_run_id():
-    payload = {"runId": "0d3000000ABCDEAA1", "status": "Queued"}
+    """v62.0 actions/run endpoint (per Connect API spec); response shape is
+    DataStreamActionResponseRepresentation — extract dataStreamRunId
+    preferentially."""
+    payload = {"dataStreamRunId": "0d3000000ABCDEAA1", "status": "Queued"}
     resp = _fake_urlopen_response(payload)
-    with patch("urllib.request.urlopen", return_value=resp):
+    captured: dict = {}
+
+    def _capture(req, timeout=30):  # noqa: ARG001
+        captured["url"] = req.full_url
+        captured["method"] = req.get_method()
+        return resp
+
+    with patch("urllib.request.urlopen", side_effect=_capture):
         ok, run_id, err = trigger_stream_refresh(
             "https://example.my.salesforce.com",
             "tok",
@@ -188,15 +198,22 @@ def test_trigger_stream_refresh_returns_run_id():
     assert ok is True
     assert run_id == "0d3000000ABCDEAA1"
     assert err is None
+    assert captured["method"] == "POST"
+    assert (
+        captured["url"]
+        == "https://example.my.salesforce.com/services/data/v62.0"
+        "/ssot/data-streams/Stream_Account__dlm/actions/run?interactive=true"
+    )
 
 
 def test_trigger_stream_refresh_handles_http_error():
+    """Non-policy HTTP errors (e.g. 5xx) are surfaced as 'HTTP <code>: <body>'."""
     err = HTTPError(
         url="https://example.my.salesforce.com/...",
-        code=404,
-        msg="Not Found",
+        code=500,
+        msg="Server Error",
         hdrs=None,  # type: ignore[arg-type]
-        fp=io.BytesIO(b"{}"),
+        fp=io.BytesIO(b'{"errorCode":"INTERNAL"}'),
     )
     with patch("urllib.request.urlopen", side_effect=err):
         ok, run_id, err_str = trigger_stream_refresh(
@@ -207,7 +224,65 @@ def test_trigger_stream_refresh_handles_http_error():
     assert ok is False
     assert run_id is None
     assert err_str is not None
-    assert "404" in err_str or "Not Found" in err_str
+    assert err_str.startswith("HTTP 500")
+    assert not err_str.startswith("policy:")
+
+
+def test_trigger_stream_refresh_returns_policy_message_on_400_non_interactive():
+    """Org-policy rejection: SalesforceDotCom connectors require interactive mode.
+    Live response observed against jdo-fw51xz (2026-05-22)."""
+    body = (
+        b'[{"errorCode":"DATACLOUD_API_CLIENT_EXCEPTION",'
+        b'"message":"Connector type SalesforceDotCom is not allowed to run in '
+        b'non-interactive mode"}]'
+    )
+    err = HTTPError(
+        url="https://example.my.salesforce.com/...",
+        code=400,
+        msg="Bad Request",
+        hdrs=None,  # type: ignore[arg-type]
+        fp=io.BytesIO(body),
+    )
+    with patch("urllib.request.urlopen", side_effect=err):
+        ok, run_id, err_str = trigger_stream_refresh(
+            "https://example.my.salesforce.com",
+            "tok",
+            "Stream_Account__dlm",
+        )
+    assert ok is False
+    assert run_id is None
+    assert err_str is not None
+    assert err_str.startswith("policy:")
+    assert "non-interactive" in err_str
+
+
+def test_trigger_stream_refresh_returns_policy_message_on_412_full_refresh():
+    """Org-policy rejection: only FULL_REFRESH-mode streams may be manually
+    triggered in interactive mode. Live response observed against
+    jdo-fw51xz (2026-05-22)."""
+    body = (
+        b'[{"errorCode":"DATACLOUD_API_CLIENT_EXCEPTION",'
+        b'"message":"Data Stream id 0xS000000ABCDE is not allowed to run in '
+        b'interactive mode if refresh mode is not FULL_REFRESH"}]'
+    )
+    err = HTTPError(
+        url="https://example.my.salesforce.com/...",
+        code=412,
+        msg="Precondition Failed",
+        hdrs=None,  # type: ignore[arg-type]
+        fp=io.BytesIO(body),
+    )
+    with patch("urllib.request.urlopen", side_effect=err):
+        ok, run_id, err_str = trigger_stream_refresh(
+            "https://example.my.salesforce.com",
+            "tok",
+            "Stream_Account__dlm",
+        )
+    assert ok is False
+    assert run_id is None
+    assert err_str is not None
+    assert err_str.startswith("policy:")
+    assert "FULL_REFRESH" in err_str
 
 
 # --------------------------------------------------------------------------
@@ -324,7 +399,8 @@ def test_execute_phase5_5_matches_only_own_source_dotcom_home_connector():
 
 
 def test_execute_phase5_5_records_failures_does_not_raise():
-    """A trigger failure is logged on the result, never raised."""
+    """A non-policy trigger failure (e.g. HTTP 500) is logged on the result,
+    counted as a real failure, and never raised."""
     org_payload = {
         "result": {
             "instanceUrl": "https://example.my.salesforce.com",
@@ -357,11 +433,61 @@ def test_execute_phase5_5_records_failures_does_not_raise():
     assert result.streams_discovered == 1
     assert result.streams_matched == 1
     assert result.streams_triggered == 0
+    assert result.streams_policy_skipped == 0
     assert len(result.stream_runs) == 1
     assert result.stream_runs[0].status == "Failed"
     assert result.stream_runs[0].run_id is None
     assert len(result.stream_trigger_failures) == 1
     assert "Stream_Account__dlm" in result.stream_trigger_failures[0]
+
+
+def test_execute_phase5_5_counts_policy_skips_separately():
+    """Org-policy rejections (e.g. non-interactive on SalesforceDotCom) are
+    counted in ``streams_policy_skipped`` and recorded with status
+    ``PolicySkipped`` — they MUST NOT inflate ``stream_trigger_failures``."""
+    org_payload = {
+        "result": {
+            "instanceUrl": "https://example.my.salesforce.com",
+            "accessToken": "tok",
+        }
+    }
+    streams_payload = {
+        "dataStreams": [
+            {"apiName": "Stream_Account__dlm", "sourceObject": "Account"},
+        ]
+    }
+    sf_proc = _proc(returncode=0, stdout=json.dumps(org_payload))
+    list_resp = _fake_urlopen_response(streams_payload)
+    body = (
+        b'[{"errorCode":"DATACLOUD_API_CLIENT_EXCEPTION",'
+        b'"message":"Connector type SalesforceDotCom is not allowed to run in '
+        b'non-interactive mode"}]'
+    )
+    policy_err = HTTPError(
+        url="https://example.my.salesforce.com/...",
+        code=400,
+        msg="Bad Request",
+        hdrs=None,  # type: ignore[arg-type]
+        fp=io.BytesIO(body),
+    )
+
+    with patch.object(data_cloud.subprocess, "run", return_value=sf_proc):
+        with patch(
+            "urllib.request.urlopen",
+            side_effect=[list_resp, policy_err],
+        ):
+            result = execute_phase5_5(target_org="my-org")
+
+    assert result.streams_discovered == 1
+    assert result.streams_matched == 1
+    assert result.streams_triggered == 0
+    assert result.streams_policy_skipped == 1
+    assert result.stream_trigger_failures == []
+    assert len(result.stream_runs) == 1
+    assert result.stream_runs[0].status == "PolicySkipped"
+    assert result.stream_runs[0].run_id is None
+    assert result.stream_runs[0].error is not None
+    assert result.stream_runs[0].error.startswith("policy:")
 
 
 def test_execute_phase5_5_returns_zero_counts_when_org_session_fails():

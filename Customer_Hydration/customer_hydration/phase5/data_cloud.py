@@ -14,6 +14,10 @@ from dataclasses import dataclass, field
 from typing import Iterable
 
 
+# Available Version: 62.0 per Connect API spec; v60/v61 return 404.
+STREAM_TRIGGER_API_VERSION = "v62.0"
+
+
 # Source objects the hydrate pipeline writes to. A Data Cloud stream is
 # considered "match-eligible" iff its sourceObject (or alt API field) is
 # in this set. Includes both managed-package FSC objects (FinServ__*) and
@@ -50,7 +54,12 @@ class StreamRunResult:
     source_object: str
     run_id: str | None
     triggered_at: str
-    status: str  # "Triggered" | "AlreadyRunning" | "Failed"
+    # "Triggered" | "AlreadyRunning" | "Failed" | "PolicySkipped".
+    # PolicySkipped covers org-policy rejections from the v62 actions/run
+    # endpoint (e.g. SalesforceDotCom non-interactive 400, non-FULL_REFRESH
+    # interactive 412) — distinct from a real failure because the API
+    # accepted the request and just refused based on stream config.
+    status: str
     error: str | None = None
 
 
@@ -61,6 +70,11 @@ class DataCloudStreamRefreshResult:
     streams_discovered: int = 0
     streams_matched: int = 0
     streams_triggered: int = 0
+    # Streams the v62 actions/run endpoint refused on org-policy grounds
+    # (e.g. SalesforceDotCom non-interactive, non-FULL_REFRESH interactive).
+    # Distinct from ``stream_trigger_failures`` so the manifest captures
+    # "no-op-by-design" outcomes without inflating the failure counter.
+    streams_policy_skipped: int = 0
     stream_runs: list[StreamRunResult] = field(default_factory=list)
     stream_trigger_failures: list[str] = field(default_factory=list)
 
@@ -183,14 +197,40 @@ def trigger_stream_refresh(
     instance_url: str,
     access_token: str,
     stream_api_name: str,
-    api_version: str = "v60.0",
+    api_version: str = STREAM_TRIGGER_API_VERSION,
 ) -> tuple[bool, str | None, str | None]:
-    """POST to stream's run-now endpoint. Returns ``(success, run_id, error)``."""
+    """POST to a stream's actions/run endpoint. Returns ``(success, run_id, error)``.
+
+    Endpoint per Connect API spec
+    (``/services/data/connectapi/spec/cdp-connect-api-Swagger.yaml``):
+
+        POST /services/data/v62.0/ssot/data-streams/{name}/actions/run
+             ?interactive=true
+
+    Available Version: 62.0 — v60/v61 return 404. ``interactive=true`` is
+    required for SalesforceDotCom-typed connectors; the API rejects
+    ``interactive=false`` with HTTP 400 ``"Connector type SalesforceDotCom
+    is not allowed to run in non-interactive mode"`` (live-verified
+    against jdo-fw51xz, 2026-05-22).
+
+    The org enforces a separate policy: only streams whose
+    ``refreshMode == FULL_REFRESH`` may be triggered manually. Streams
+    configured for UPSERT yield HTTP 412 ``"not allowed to run in
+    interactive mode if refresh mode is not FULL_REFRESH"``.
+
+    Both of those are returned as ``(False, None, "policy: <message>")``
+    so the caller can record them as ``PolicySkipped`` rather than as
+    real failures. Other HTTP errors return ``(False, None,
+    "HTTP <code>: <body>")``. Phase 5.5 fire-and-forget contract is
+    preserved — this function never raises.
+    """
     import urllib.request
+    from urllib.error import HTTPError
 
     url = (
         f"{instance_url}/services/data/{api_version}"
-        f"/ssot/data-streams/{stream_api_name}/refresh"
+        f"/ssot/data-streams/{stream_api_name}/actions/run"
+        f"?interactive=true"
     )
     req = urllib.request.Request(url, method="POST", headers={
         "Authorization": f"Bearer {access_token}",
@@ -200,14 +240,65 @@ def trigger_stream_refresh(
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             body = json.loads(resp.read())
+        # Spec: DataStreamActionResponseRepresentation. Empirically the
+        # field name has drifted across versions, so try the spec'd key
+        # first then fall back.
         run_id = (
-            body.get("runId")
+            body.get("dataStreamRunId")
+            or body.get("runId")
             or body.get("id")
-            or body.get("dataStreamRunId")
+            or body.get("actionId")
         )
         return (True, run_id, None)
+    except HTTPError as exc:
+        try:
+            err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
+        except Exception:  # noqa: BLE001 - body is best-effort
+            err_body = ""
+        # Detect org-policy rejections — both the 400 non-interactive and
+        # the 412 non-FULL_REFRESH responses come back as JSON arrays of
+        # ``{errorCode, message}`` objects.
+        policy_msg = _extract_policy_message(exc.code, err_body)
+        if policy_msg is not None:
+            return (False, None, f"policy: {policy_msg}")
+        snippet = err_body[:200] if err_body else exc.reason
+        return (False, None, f"HTTP {exc.code}: {snippet}")
     except Exception as exc:  # noqa: BLE001 - surfaced in result, not raised
         return (False, None, str(exc))
+
+
+def _extract_policy_message(http_code: int, body: str) -> str | None:
+    """Return the policy message if ``body`` matches a known org-policy
+    rejection from the v62 actions/run endpoint, else ``None``.
+
+    Recognised cases (live-verified 2026-05-22):
+      - HTTP 400 + "not allowed to run in non-interactive mode"
+      - HTTP 412 + "not allowed to run in interactive mode if refresh mode
+        is not FULL_REFRESH"
+    """
+    if http_code not in (400, 412) or not body:
+        return None
+    # The API returns a JSON array; tolerate single-object shape too.
+    message = ""
+    try:
+        parsed = json.loads(body)
+    except (json.JSONDecodeError, ValueError):
+        message = body
+    else:
+        if isinstance(parsed, list) and parsed and isinstance(parsed[0], dict):
+            message = str(parsed[0].get("message") or "")
+        elif isinstance(parsed, dict):
+            message = str(parsed.get("message") or "")
+    if not message:
+        message = body
+    lowered = message.lower()
+    if (
+        "not allowed to run in non-interactive mode" in lowered
+        or "not allowed to run in interactive mode if refresh mode is not full_refresh"
+        in lowered
+    ):
+        return message
+    return None
 
 
 def execute_phase5_5(
@@ -265,6 +356,20 @@ def execute_phase5_5(
                 status="Triggered",
             ))
             result.streams_triggered += 1
+        elif err is not None and err.startswith("policy:"):
+            # Org-policy rejection — recorded as a distinct outcome and
+            # NOT counted as a trigger failure (the API accepted the
+            # request and refused based on the stream's refreshMode /
+            # connector configuration).
+            result.stream_runs.append(StreamRunResult(
+                stream_api_name=stream.api_name,
+                source_object=stream.source_object,
+                run_id=None,
+                triggered_at=triggered_at,
+                status="PolicySkipped",
+                error=err,
+            ))
+            result.streams_policy_skipped += 1
         else:
             result.stream_runs.append(StreamRunResult(
                 stream_api_name=stream.api_name,

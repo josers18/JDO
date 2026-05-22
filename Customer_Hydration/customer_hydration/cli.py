@@ -598,6 +598,7 @@ def _run_refresh_streams(args: argparse.Namespace) -> int:
         "streams_discovered": result.streams_discovered,
         "streams_matched": result.streams_matched,
         "streams_triggered": result.streams_triggered,
+        "streams_policy_skipped": result.streams_policy_skipped,
         "stream_runs": [
             {
                 "stream_api_name": sr.stream_api_name,
@@ -614,7 +615,8 @@ def _run_refresh_streams(args: argparse.Namespace) -> int:
 
     print(
         f"Refreshed {result.streams_triggered} of "
-        f"{result.streams_matched} matched streams"
+        f"{result.streams_matched} matched streams "
+        f"({result.streams_policy_skipped} skipped by org policy)"
     )
     print(f"Manifest: {manifest_path}")
     # Phase 5.5 fire-and-forget: even with trigger failures, exit 0
