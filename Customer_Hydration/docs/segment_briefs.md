@@ -1,0 +1,386 @@
+# Phase 2 Segment Briefs — Cumulus Bank Demo Audiences
+
+20 Data Cloud segments published to `jdo-uqj0jr` against `Account_demo__dlm` on 2026-05-22. Every segment is filtered to `External_ID_c__c contains "HYDRATE-"` (auto-injected at load time) so it never matches the org's pre-existing seed accounts — only Phase 1-hydrated demo customers.
+
+For per-segment **live member counts and last-publish timestamps**, run:
+```bash
+python hydrate.py dc-status --target-org jdo-uqj0jr
+```
+The Segments section of that output is the source of truth. The briefs below describe *intent and shape*; the org tells you the current state.
+
+## How segments are organized
+
+- **Persona base (4)** — broad audience pools, one per Cumulus client tier. The foundation for any Cumulus campaign.
+- **Lifecycle / sub-segments (6)** — narrower behavioral or stage-of-life cuts. Some are scoped tighter than the persona base; others are placeholders that will tighten as we hydrate Mortgage / HELOC / LifeEvent / etc. DMOs.
+- **Campaign-aligned (10)** — pre-built audiences for ten in-flight Cumulus marketing programs. Each links to a `HYDRATE-CMP-NNN` Campaign record and currently scopes to its target persona; will tighten to CampaignMember-driven once that DMO is hydrated.
+
+## Reading a brief
+
+Each brief has two parts:
+
+- **Marketing brief** — Persona, use case, target audience, suggested activation channels, refresh cadence.
+- **Technical implementation** — `apiName`, target DMO, parsed filter expression, `linked_campaign` (where set), and notes on placeholders or join paths still to come.
+
+Two universal facts apply to all 20:
+
+- **Target DMO:** `Account_demo__dlm` (FSC + Person Accounts org — a single Account row represents each customer)
+- **`segmentType`:** `Dynamic`
+- **`publishSchedule`:** `NoRefresh` (Dynamic segments don't accept other values via REST; the YAML's `publish_schedule` field is informational only)
+
+Filter expressions below are **rendered for humans** — the live-API DSL uses `LogicalComparison.and` wrapping the HYDRATE clause and the user clause(s).
+
+---
+
+## Persona Base (4)
+
+### `RetailAll__seg` — Retail Customers
+
+**Marketing brief**
+- **Persona:** Retail (consumer banking)
+- **Use case:** The "all hydrated retail customers" foundation. Use as a parent audience for any retail-only campaign, or as a denominator for retail-share metrics.
+- **Target:** Every Person Account customer flagged `FinServ__ClientCategory__c = "Retail"` in CRM.
+- **Suggested channels:** Email, SMS, Mobile push, Marketing Cloud journeys, Paid social via activation targets.
+- **Refresh cadence:** Hourly (intended; technically NoRefresh on Dynamic segments — see "How to refresh" below).
+
+**Technical implementation**
+- `apiName`: `RetailAll__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
+- DSL operator: `text_equals` → `TextComparison "matches"`
+
+---
+
+### `WealthAll__seg` — Wealth Management Clients
+
+**Marketing brief**
+- **Persona:** Wealth (private banking, advised investing)
+- **Use case:** Foundation audience for all wealth-segment messaging — RM-led outreach, advisor newsletters, white-glove digital experiences.
+- **Target:** Every Person Account customer flagged `FinServ__ClientCategory__c = "Wealth"` in CRM.
+- **Suggested channels:** RM-curated email, LinkedIn, in-app messaging, white-glove direct mail.
+- **Refresh cadence:** Hourly (intended).
+
+**Technical implementation**
+- `apiName`: `WealthAll__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"`
+
+---
+
+### `SmbAll__seg` — Small Business Clients
+
+**Marketing brief**
+- **Persona:** Small / Medium Business (owner-operator banking)
+- **Use case:** Reach all hydrated SMB business Accounts for products like SBA loans, business checking, merchant services, payroll.
+- **Target:** Every Account flagged `FinServ__ClientCategory__c = "Small Business"`.
+- **Suggested channels:** Email, LinkedIn, paid search retargeting, branch outreach via account team.
+- **Refresh cadence:** Daily (intended).
+
+**Technical implementation**
+- `apiName`: `SmbAll__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Small Business"`
+
+---
+
+### `CommercialAll__seg` — Commercial Banking Clients
+
+**Marketing brief**
+- **Persona:** Commercial / Mid-market (RM-managed, complex banking)
+- **Use case:** Foundation audience for commercial banking outreach — treasury services, capital markets, ABL, syndicated lending.
+- **Target:** Every Account flagged `FinServ__ClientCategory__c = "Commercial"`.
+- **Suggested channels:** RM-curated outreach, conference invites, executive briefings, gated thought-leadership content.
+- **Refresh cadence:** Daily (intended).
+
+**Technical implementation**
+- `apiName`: `CommercialAll__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"`
+
+---
+
+## Lifecycle / Sub-segments (6)
+
+### `WealthPreRetiree__seg` — Wealth Pre-Retirees (55-65)
+
+**Marketing brief**
+- **Persona:** Wealth — narrowed to clients in the pre-retirement window
+- **Use case:** Retirement readiness conversations — Social Security optimization, distribution planning, rollover consolidation, healthcare cost modeling. The highest-engagement segment for Wealth retention and AUM growth.
+- **Target:** Wealth Person Accounts whose `PersonBirthdate` falls between 1961-01-01 and 1971-01-01 (ages roughly 55-65 in 2026).
+- **Suggested channels:** Personalized RM outreach, retirement-planning webinars, in-branch consultation invitations, premium content.
+- **Refresh cadence:** Daily (intended). Note: birthdate window is fixed; revisit annually.
+
+**Technical implementation**
+- `apiName`: `WealthPreRetiree__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND (`PersonBirthdate__c after "1961-01-01"` AND `PersonBirthdate__c before "1971-01-01"`)
+- DSL: `date_in_range` → `LogicalComparison.and` of two `DateComparison` clauses (`value` is a list per live API)
+- Maintenance note: hard-coded date anchors instead of `CURRENT_DATE() - 65y` since the DC DSL doesn't support inline date functions. Update annually or move to a Calculated Insight.
+
+---
+
+### `RetailFamilyWithMortgage__seg` — Retail Family-Building with Mortgage
+
+**Marketing brief**
+- **Persona:** Retail — life-stage cut for family-formation households with active mortgages
+- **Use case:** Cross-sell opportunities — HELOC pre-approval, life insurance, 529 college savings, refinance offers. High intent for life-event-tied financial products.
+- **Target:** *Intended:* Retail customers with an active mortgage on `FinServ__FinancialAccount__c`. *Currently:* All Retail customers (placeholder).
+- **Suggested channels:** Email, mobile in-app, direct mail with personalized offer.
+- **Refresh cadence:** Daily (intended).
+
+**Technical implementation**
+- `apiName`: `RetailFamilyWithMortgage__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` *(placeholder — see below)*
+- **Placeholder note:** Will tighten once the Mortgage / FinancialAccount DMO is hydrated and joinable. Anticipated criteria: `FinancialAccount.Type = "Mortgage"` AND `Status = "Active"` joined via party model. Until then, all Retail accounts match.
+
+---
+
+### `RetailHelocDrawn__seg` — Retail HELOC Drawn 50%+
+
+**Marketing brief**
+- **Persona:** Retail — high-intent refi prospects with HELOC utilization above 50%
+- **Use case:** Refinance / consolidation campaigns. High-utilization HELOC customers are prime targets for term-loan conversion or rate-lock products.
+- **Target:** *Intended:* Retail customers whose HELOC balance / limit ratio ≥ 0.5. *Currently:* All Retail customers (placeholder).
+- **Suggested channels:** Email, RM-led phone outreach, in-app banner offer.
+- **Refresh cadence:** Daily (intended). Linked to Campaign `HYDRATE-CMP-001` (HELOC Refi Outreach Q2).
+
+**Technical implementation**
+- `apiName`: `RetailHelocDrawn__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` *(placeholder)*
+- `linked_campaign`: `HYDRATE-CMP-001`
+- **Placeholder note:** Will tighten once HELOC `FinancialAccount` DMO is hydrated with balance + limit fields. Anticipated criteria: a Calculated Insight `HelocUtilization >= 0.5`.
+
+---
+
+### `SmbWithSba__seg` — SMB Owners with SBA Loan
+
+**Marketing brief**
+- **Persona:** Small Business — narrowed to existing SBA-loan customers
+- **Use case:** Cross-sell merchant services, payroll, business credit cards, treasury sweeps to a captive small-business population.
+- **Target:** *Intended:* SMB clients with a `FinancialAccount` of subtype "SBA Loan". *Currently:* All SMB clients (placeholder).
+- **Suggested channels:** Email, LinkedIn, RM cadence, branch invitations.
+- **Refresh cadence:** Daily (intended).
+
+**Technical implementation**
+- `apiName`: `SmbWithSba__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Small Business"` *(placeholder)*
+- **Placeholder note:** Will tighten once SBA-flagged FinancialAccount DMO is hydrated.
+
+---
+
+### `CommercialWithTreasury__seg` — Commercial with Treasury Services
+
+**Marketing brief**
+- **Persona:** Commercial — already-engaged customers using Treasury Services
+- **Use case:** Upsell to international payments, FX hedging, working capital optimization, or RM-led syndicated lending conversations. Lowest CAC commercial cross-sell.
+- **Target:** *Intended:* Commercial clients with a Treasury Services product flag. *Currently:* All Commercial clients (placeholder).
+- **Suggested channels:** Direct RM, executive briefings, conference invites.
+- **Refresh cadence:** Daily (intended).
+
+**Technical implementation**
+- `apiName`: `CommercialWithTreasury__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"` *(placeholder)*
+- **Placeholder note:** Will tighten once Treasury Services product DMO is hydrated.
+
+---
+
+### `WealthRecentLifeEvent__seg` — Wealth with Recent Life Event (90d)
+
+**Marketing brief**
+- **Persona:** Wealth — clients who triggered a major life event in the last 90 days
+- **Use case:** Highest-intent Wealth audience — life events (marriage, birth, inheritance, retirement, divorce) drive the largest near-term planning conversations and AUM movements.
+- **Target:** *Intended:* Wealth clients with a `PersonLifeEvent` record dated within the last 90 days. *Currently:* All Wealth clients (placeholder).
+- **Suggested channels:** Personalized RM outreach (highest priority), life-event-themed content, white-glove follow-up.
+- **Refresh cadence:** Daily (intended) — life-event freshness is the whole point of this segment.
+
+**Technical implementation**
+- `apiName`: `WealthRecentLifeEvent__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"` *(placeholder)*
+- **Placeholder note:** Will tighten once `PersonLifeEvent_Home` stream + DMO are hydrated. Anticipated criteria: `LifeEventDate within last 90 days` joined via party model.
+
+---
+
+## Campaign-Aligned (10)
+
+Each segment below scopes to the persona of its target audience and links to a `HYDRATE-CMP-NNN` campaign in CRM. Once the `CampaignMember` DMO is hydrated and joinable, these will tighten to "members of campaign X" rather than "all customers in persona Y." Until then, the persona filter is the operative scope.
+
+### `CmpHelocRefiOutreach__seg` — HELOC Refi Outreach Q2
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-001` — Q2 HELOC refinance outreach
+- **Persona:** Retail
+- **Use case:** Q2 refi drive — targeted HELOC customers offered fixed-rate term loan at promotional spread. Companion to `RetailHelocDrawn__seg`.
+- **Suggested channels:** Email (primary), in-app banner, mobile push.
+- **Refresh cadence:** Daily (intended).
+
+**Technical implementation**
+- `apiName`: `CmpHelocRefiOutreach__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
+- `linked_campaign`: `HYDRATE-CMP-001`
+
+---
+
+### `CmpAutoLoanRateDrop__seg` — Auto Loan Rate Drop Promo
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-002` — Auto-loan rate drop promotion
+- **Persona:** Retail
+- **Use case:** Refinance auto-loan campaign tied to Fed rate-cut cycle. Time-sensitive offer with promo APR for qualifying customers.
+- **Suggested channels:** Email, mobile push, paid search retargeting.
+
+**Technical implementation**
+- `apiName`: `CmpAutoLoanRateDrop__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
+- `linked_campaign`: `HYDRATE-CMP-002`
+
+---
+
+### `CmpPremierCheckingOnboarding__seg` — Premier Checking Onboarding
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-003` — Premier Checking onboarding cohort
+- **Persona:** Retail
+- **Use case:** Welcome / activation journey for newly-opened Premier Checking customers — drive direct deposit setup, mobile app install, debit card activation, first deposit.
+- **Suggested channels:** Email drip (4-touch journey), in-app prompts, optional welcome call.
+
+**Technical implementation**
+- `apiName`: `CmpPremierCheckingOnboarding__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
+- `linked_campaign`: `HYDRATE-CMP-003`
+
+---
+
+### `CmpWealthTaxStrategyWebinar__seg` — Wealth Tax Strategy Webinar 2026
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-004` — 2026 tax strategy webinar invitation
+- **Persona:** Wealth
+- **Use case:** RM-curated invite list for an exclusive tax-planning webinar. High-touch, expected to seed Q1 advisor conversations.
+- **Suggested channels:** RM-co-branded email, calendar attachment, post-event follow-up sequence.
+
+**Technical implementation**
+- `apiName`: `CmpWealthTaxStrategyWebinar__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"`
+- `linked_campaign`: `HYDRATE-CMP-004`
+
+---
+
+### `CmpWealthEstatePlanningRoundtable__seg` — Wealth Estate Planning Roundtable
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-005` — Estate-planning roundtable invitation
+- **Persona:** Wealth
+- **Use case:** In-person or hybrid roundtable for high-net-worth clients with estate-planning expert panel. RM-led nomination model.
+- **Suggested channels:** Personalized RM email, printed invitation, follow-up with attorney referral list.
+
+**Technical implementation**
+- `apiName`: `CmpWealthEstatePlanningRoundtable__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth"`
+- `linked_campaign`: `HYDRATE-CMP-005`
+
+---
+
+### `CmpSbaAwareness__seg` — SBA Awareness Q1 2026
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-006` — Q1 SBA loan awareness campaign
+- **Persona:** Small Business
+- **Use case:** Top-of-funnel SBA awareness — educate small-business clients about loan eligibility, application process, partner referrals.
+- **Suggested channels:** Email, LinkedIn (paid + organic), business-podcast sponsorship retargeting.
+
+**Technical implementation**
+- `apiName`: `CmpSbaAwareness__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Small Business"`
+- `linked_campaign`: `HYDRATE-CMP-006`
+
+---
+
+### `CmpTreasuryModernizationBrief__seg` — Treasury Modernization Brief
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-007` — Treasury modernization white paper
+- **Persona:** Commercial
+- **Use case:** Gated white paper offering for commercial CFOs / treasurers — outlines automation, FX hedging, fraud-prevention tooling. Lead-scoring follow-up for sales conversations.
+- **Suggested channels:** Email, LinkedIn InMail, executive-briefing program enrollment.
+
+**Technical implementation**
+- `apiName`: `CmpTreasuryModernizationBrief__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"`
+- `linked_campaign`: `HYDRATE-CMP-007`
+
+---
+
+### `CmpCommercialRmRoundtable__seg` — Commercial RM Roundtable
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-008` — Commercial RM-curated roundtable
+- **Persona:** Commercial
+- **Use case:** Invite-only roundtable for top commercial accounts — peer networking, panel with industry analysts, RM relationship-deepening.
+- **Suggested channels:** Personalized RM email, calendar holds, dedicated event microsite.
+
+**Technical implementation**
+- `apiName`: `CmpCommercialRmRoundtable__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial"`
+- `linked_campaign`: `HYDRATE-CMP-008`
+
+---
+
+### `CmpMultiPersonaSpringNewsletter__seg` — Multi-Persona Spring Newsletter
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-009` — Spring quarterly newsletter
+- **Persona:** Mixed (all-hydrated audience)
+- **Use case:** Quarterly brand newsletter covering market commentary, product updates, community impact. Broadest reach in the campaign suite.
+- **Suggested channels:** Email (primary), web hub, optional print mailer for Wealth/Commercial top-tier subset.
+- **Refresh cadence:** Weekly (intended) — broadcast newsletter.
+
+**Technical implementation**
+- `apiName`: `CmpMultiPersonaSpringNewsletter__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `External_ID_c__c has value`
+- DSL: `text_has_value` (presence check, no `values` array)
+- `linked_campaign`: `HYDRATE-CMP-009`
+- **Note:** Effectively matches every hydrated account — the `has value` op + the auto-injected HYDRATE clause are both presence checks on the same field, so this is "all hydrated rows."
+
+---
+
+### `CmpMobileBankingAdoption__seg` — Mobile Banking Adoption
+
+**Marketing brief**
+- **Campaign:** `HYDRATE-CMP-010` — Mobile banking adoption push
+- **Persona:** Retail
+- **Use case:** Drive mobile-app installs and login frequency. Companion to checking onboarding but targeted at retail customers who haven't yet adopted mobile.
+- **Suggested channels:** Email, SMS, in-branch staff prompt, ATM screen takeover.
+
+**Technical implementation**
+- `apiName`: `CmpMobileBankingAdoption__seg`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
+- `linked_campaign`: `HYDRATE-CMP-010`
+
+---
+
+## Roadmap — what tightens as more DMOs hydrate
+
+| When this DMO is hydrated… | These segments tighten from "all persona X" to a real cut |
+|---|---|
+| `FinancialAccount` (Mortgage subtype) | `RetailFamilyWithMortgage` |
+| `FinancialAccount` (HELOC subtype) + utilization CI | `RetailHelocDrawn`, `CmpHelocRefiOutreach` |
+| `FinancialAccount` (SBA subtype) | `SmbWithSba`, `CmpSbaAwareness` |
+| `FinancialAccount` (Treasury subtype) | `CommercialWithTreasury`, `CmpTreasuryModernizationBrief` |
+| `PersonLifeEvent` | `WealthRecentLifeEvent` |
+| `CampaignMember` | All 10 `Cmp*` segments — tighten from persona → campaign membership |
+
+When those land, edit `config/segments.yaml`, re-run `python hydrate.py create-segments --target-org jdo-uqj0jr --allow-production`. Existing segments will be skipped (Dynamic segments can't be patched per DC API). To replace, manually delete in the DC UI first, then re-create.
+
+## How to refresh segment membership
+
+Dynamic segments accept `publishSchedule: "NoRefresh"` only via REST. Two ways to get a fresh membership count:
+
+1. **Auto-publish on data change** — Dynamic segments publish when their source DMO changes. Trigger a Full Refresh on the foundational SalesforceDotCom_Home streams (see `docs/foundational_streams.md` and the `dc-stream-full-refresh-via-ui` Claude skill) so the Account_demo DMO sees the latest hydrated rows. Segments will recompute on next publish window.
+2. **Manual publish in DC UI** — Open the segment in Data Cloud, click "Publish" / "Activate". Bypasses the REST policy via the Aura controller.
+
+Verify post-refresh:
+```bash
+python hydrate.py dc-status --target-org jdo-uqj0jr
+```
+
+## See also
+
+- `config/segments.yaml` — canonical YAML inventory and rule DSL
+- `docs/foundational_streams.md` — 30 streams to Full-Refresh after Phase 1 hydration
+- `customer_hydration/phase5/segments.py` — DSL translator and idempotent orchestrator
+- `customer_hydration/phase5/data_cloud.py` — REST methods for segment CRUD + status
+- `docs/superpowers/specs/2026-05-22-phase-2-streams-and-segments-design.md` — Phase 2 spec
