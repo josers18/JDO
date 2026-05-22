@@ -101,8 +101,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         rc = main([
             "create-segments", "--config-dir", str(cfg), "--dry-run",
@@ -121,8 +122,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         rc = main([
             "create-segments", "--config-dir", str(cfg),
@@ -153,12 +155,13 @@ segments:
     publish_schedule: hourly
     target_dmo: Account
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         mock_runner.return_value._run.return_value = {"result": {"isSandbox": True}}
         mock_exec.return_value = CreateSegmentsResult(
-            segments_processed=1, segments_created=1, segments_published=1,
+            segments_processed=1, segments_created=1,
         )
         rc = main([
             "create-segments", "--target-org", "alias", "--config-dir", str(cfg),
@@ -189,8 +192,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
   wealth_all:
     name: "Wealth Clients"
     description: "x"
@@ -198,8 +202,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         out = tmp_path / "output"
         out.mkdir()  # output dir with no manifest — segment-only path
@@ -233,8 +238,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         out = tmp_path / "output"
         out.mkdir()

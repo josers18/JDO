@@ -338,29 +338,51 @@ def list_segments(
 
 def create_segment(
     instance_url: str, access_token: str, *,
-    api_name: str,
+    developer_name: str,
     display_name: str,
     description: str,
-    target_dmo: str,
-    filter_sql: str,
-    publish_schedule: str = "manual",
+    segment_on_api_name: str,
+    include_criteria: dict,
+    publish_schedule: str = "NoRefresh",
+    segment_type: str = "Dynamic",
     api_version: str = "v60.0",
 ) -> tuple[bool, str | None]:
     """Create a new segment via POST /services/data/{v}/ssot/segments.
 
-    Returns (success, segment_id_or_error_message). Never raises.
-    Phase 5.5 fire-and-forget contract: HTTP errors are returned as
-    (False, error_string), not raised."""
+    Live-verified payload schema (Task 10 smoke against jdo-uqj0jr,
+    2026-05-22):
+
+        {
+          "displayName": ...,
+          "developerName": ...,
+          "segmentOnApiName": "Account_demo__dlm",
+          "segmentType": "Dynamic",        # required for new segments
+          "publishSchedule": "NoRefresh",  # enum: NoRefresh|One|Two|Four|Six|Twelve|TwentyFour
+          "description": ...,
+          "includeCriteria": "<stringified JSON DSL>",
+        }
+
+    The ``include_criteria`` dict is JSON-serialised at call time. It
+    must be a single TextComparison/NumberComparison/DateTimeComparison
+    object, or a LogicalComparison wrapping multiple filters. Callers
+    are responsible for AND-injecting the HYDRATE-* clause before
+    invoking this function (handled upstream in
+    ``segments.inject_hydrate_clause``).
+
+    Returns ``(success, segment_api_name_or_error_message)``. Never
+    raises — Phase 5.5 fire-and-forget contract: HTTP errors are
+    returned as (False, error_string)."""
     import urllib.request
     from urllib.error import HTTPError, URLError
     url = f"{instance_url}/services/data/{api_version}/ssot/segments"
     body = {
-        "apiName": api_name,
         "displayName": display_name,
-        "description": description,
-        "targetDmo": target_dmo,
-        "filter": filter_sql,
+        "developerName": developer_name,
+        "segmentOnApiName": segment_on_api_name,
+        "segmentType": segment_type,
         "publishSchedule": publish_schedule,
+        "description": description,
+        "includeCriteria": json.dumps(include_criteria),
     }
     req = urllib.request.Request(
         url, method="POST",
@@ -374,7 +396,15 @@ def create_segment(
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read())
-        return (True, data.get("id") or data.get("segmentId") or api_name)
+        # Live API echoes apiName for the created segment; fall back to
+        # id/segmentId for older responses, then to developer_name.
+        return (
+            True,
+            data.get("apiName")
+            or data.get("id")
+            or data.get("segmentId")
+            or developer_name,
+        )
     except HTTPError as exc:
         try:
             err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
@@ -385,48 +415,12 @@ def create_segment(
         return (False, str(exc))
 
 
-def patch_segment(
-    instance_url: str, access_token: str, *,
-    api_name: str,
-    display_name: str,
-    description: str,
-    filter_sql: str,
-    publish_schedule: str = "manual",
-    api_version: str = "v60.0",
-) -> tuple[bool, str | None]:
-    """Update an existing segment via PATCH /services/data/{v}/ssot/segments/{api_name}.
-
-    Returns (success, segment_id_or_error). Never raises."""
-    import urllib.request
-    from urllib.error import HTTPError, URLError
-    url = f"{instance_url}/services/data/{api_version}/ssot/segments/{api_name}"
-    body = {
-        "displayName": display_name,
-        "description": description,
-        "filter": filter_sql,
-        "publishSchedule": publish_schedule,
-    }
-    req = urllib.request.Request(
-        url, method="PATCH",
-        data=json.dumps(body).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read())
-        return (True, data.get("id") or data.get("segmentId") or api_name)
-    except HTTPError as exc:
-        try:
-            err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
-        except Exception:
-            err_body = ""
-        return (False, f"HTTP {exc.code} {exc.reason}: {err_body[:200]}")
-    except (URLError, json.JSONDecodeError) as exc:
-        return (False, str(exc))
+# NOTE: patch_segment was removed in the Task 10a rewrite. The Data
+# Cloud segments endpoint returns ENTITY_SAVE_ERROR on PATCH for any
+# segment with segmentType=Dynamic — only Dbt and Lookalike segments
+# accept update calls. Phase 2 segments are all Dynamic, so an existing
+# segment with the same developerName is now treated as idempotent
+# success by ``execute_create_segments`` (skipped, not patched).
 
 
 def publish_segment(

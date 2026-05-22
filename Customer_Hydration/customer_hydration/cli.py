@@ -668,16 +668,14 @@ def _run_create_segments(args) -> int:
             "target_org": args.target_org,
             "segments_processed": result.segments_processed,
             "segments_created": result.segments_created,
-            "segments_patched": result.segments_patched,
-            "segments_published": result.segments_published,
+            "segments_skipped": result.segments_skipped,
             "segments_failed": result.segments_failed,
             "results": [
                 {
                     "config_key": r.config_key,
                     "api_name": r.api_name,
                     "created": r.created,
-                    "patched": r.patched,
-                    "published": r.published,
+                    "skipped": r.skipped,
                     "error": r.error,
                 }
                 for r in result.results
@@ -687,8 +685,7 @@ def _run_create_segments(args) -> int:
 
     print(f"Segments processed: {result.segments_processed}")
     print(f"  Created: {result.segments_created}")
-    print(f"  Patched: {result.segments_patched}")
-    print(f"  Published: {result.segments_published}")
+    print(f"  Skipped (already exist): {result.segments_skipped}")
     print(f"  Failed: {result.segments_failed}")
     # Fire-and-forget: per-segment failures don't make the run exit non-zero
     return 0

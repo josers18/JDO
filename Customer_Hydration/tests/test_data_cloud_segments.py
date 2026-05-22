@@ -1,4 +1,22 @@
-"""Unit tests for Phase 2 segment REST methods on phase5/data_cloud.py."""
+"""Unit tests for Phase 2 segment REST methods on phase5/data_cloud.py.
+
+These tests cover the live-verified payload schema discovered during the
+Task 10 smoke run against jdo-uqj0jr (2026-05-22):
+
+    POST /services/data/v60.0/ssot/segments
+    {
+      "displayName": ...,
+      "developerName": ...,
+      "segmentOnApiName": "Account_demo__dlm",
+      "segmentType": "Dynamic",
+      "publishSchedule": "NoRefresh|One|...",
+      "description": ...,
+      "includeCriteria": "<stringified JSON DSL>",
+    }
+
+Dynamic segments cannot be PATCHed (ENTITY_SAVE_ERROR — only Dbt and
+Lookalike support update), so patch_segment has been removed.
+"""
 from __future__ import annotations
 
 import io
@@ -12,7 +30,6 @@ from customer_hydration.phase5.data_cloud import (
     SegmentStatus,
     list_segments,
     create_segment,
-    patch_segment,
     publish_segment,
     get_segment_status,
 )
@@ -35,7 +52,7 @@ class TestSegmentInfoDataclass:
             display_name="Retail Customers",
             description="All retail customers",
             target_dmo="Account_demo__dlm",
-            publish_schedule="hourly",
+            publish_schedule="One",
         )
         assert s.api_name == "RetailAll__seg"
         assert s.target_dmo == "Account_demo__dlm"
@@ -56,10 +73,10 @@ class TestListSegments:
             "segments": [
                 {"apiName": "RetailAll__seg", "displayName": "Retail Customers",
                  "description": "All retail", "targetDmo": "Account_demo__dlm",
-                 "publishSchedule": "hourly"},
+                 "publishSchedule": "One"},
                 {"apiName": "WealthAll__seg", "displayName": "Wealth Clients",
                  "description": "All wealth", "targetDmo": "Account_demo__dlm",
-                 "publishSchedule": "hourly"},
+                 "publishSchedule": "One"},
             ]
         })
         segs = list_segments("https://example.my.salesforce.com", "tok")
@@ -83,17 +100,90 @@ class TestListSegments:
 
 class TestCreateSegment:
     @patch("urllib.request.urlopen")
-    def test_returns_success_and_id(self, mock_urlopen):
-        mock_urlopen.return_value = _mock_response({"id": "0sX..."})
+    def test_returns_success_and_api_name(self, mock_urlopen):
+        # Live API returns the new segment with apiName populated
+        mock_urlopen.return_value = _mock_response({
+            "apiName": "RetailAll__seg",
+            "id": "0sX...",
+        })
         ok, sid = create_segment(
             "https://example.my.salesforce.com", "tok",
-            api_name="RetailAll__seg", display_name="Retail Customers",
-            description="All retail", target_dmo="Account_demo__dlm",
-            filter_sql="FinServ_ClientCategory_c__c = 'Retail'",
-            publish_schedule="hourly",
+            developer_name="RetailAll",
+            display_name="Retail Customers",
+            description="All retail",
+            segment_on_api_name="Account_demo__dlm",
+            include_criteria={
+                "type": "TextComparison",
+                "subject": {
+                    "objectApiName": "Account_demo__dlm",
+                    "fieldApiName": "FinServ_ClientCategory_c__c",
+                },
+                "operator": "equals",
+                "values": ["Retail"],
+            },
+            publish_schedule="One",
         )
         assert ok is True
-        assert sid == "0sX..."
+        # Returned identifier should be the apiName when present
+        assert sid == "RetailAll__seg"
+
+    @patch("urllib.request.urlopen")
+    def test_payload_uses_new_field_names(self, mock_urlopen):
+        mock_urlopen.return_value = _mock_response({"apiName": "X__seg"})
+        criteria = {
+            "type": "TextComparison",
+            "subject": {"objectApiName": "Account_demo__dlm",
+                        "fieldApiName": "External_ID_c__c"},
+            "operator": "contains",
+            "values": ["HYDRATE-"],
+        }
+        create_segment(
+            "https://x.salesforce.com", "tok",
+            developer_name="HydrateProbe",
+            display_name="Hydrate Probe",
+            description="probe",
+            segment_on_api_name="Account_demo__dlm",
+            include_criteria=criteria,
+            publish_schedule="NoRefresh",
+        )
+        request = mock_urlopen.call_args[0][0]
+        body = json.loads(request.data.decode("utf-8"))
+        assert body["developerName"] == "HydrateProbe"
+        assert body["displayName"] == "Hydrate Probe"
+        assert body["description"] == "probe"
+        assert body["segmentOnApiName"] == "Account_demo__dlm"
+        # Hard constraint: Dynamic for new segments
+        assert body["segmentType"] == "Dynamic"
+        assert body["publishSchedule"] == "NoRefresh"
+        # includeCriteria MUST be a stringified JSON object
+        assert isinstance(body["includeCriteria"], str)
+        assert json.loads(body["includeCriteria"]) == criteria
+        # The legacy fields must NOT be present
+        assert "apiName" not in body
+        assert "filter" not in body
+        assert "targetDmo" not in body
+
+    @patch("urllib.request.urlopen")
+    def test_default_segment_type_is_dynamic(self, mock_urlopen):
+        mock_urlopen.return_value = _mock_response({"apiName": "X__seg"})
+        create_segment(
+            "https://x.salesforce.com", "tok",
+            developer_name="X",
+            display_name="X",
+            description="",
+            segment_on_api_name="Account_demo__dlm",
+            include_criteria={
+                "type": "TextComparison",
+                "subject": {"objectApiName": "Account_demo__dlm",
+                            "fieldApiName": "External_ID_c__c"},
+                "operator": "has value",
+            },
+        )
+        request = mock_urlopen.call_args[0][0]
+        body = json.loads(request.data.decode("utf-8"))
+        assert body["segmentType"] == "Dynamic"
+        # Default publish schedule is NoRefresh per live constraint mapping
+        assert body["publishSchedule"] == "NoRefresh"
 
     @patch("urllib.request.urlopen")
     def test_handles_http_error(self, mock_urlopen):
@@ -104,47 +194,49 @@ class TestCreateSegment:
         )
         ok, err = create_segment(
             "https://example.my.salesforce.com", "tok",
-            api_name="X__seg", display_name="X", description="",
-            target_dmo="Account_demo__dlm", filter_sql="bad",
+            developer_name="X",
+            display_name="X",
+            description="",
+            segment_on_api_name="Account_demo__dlm",
+            include_criteria={
+                "type": "TextComparison",
+                "subject": {"objectApiName": "Account_demo__dlm",
+                            "fieldApiName": "External_ID_c__c"},
+                "operator": "has value",
+            },
         )
         assert ok is False
         assert "400" in err or "Bad Request" in err or "invalid filter" in err
 
     @patch("urllib.request.urlopen")
     def test_posts_to_correct_endpoint(self, mock_urlopen):
-        mock_urlopen.return_value = _mock_response({"id": "0sX..."})
+        mock_urlopen.return_value = _mock_response({"apiName": "A__seg"})
         create_segment(
             "https://x.salesforce.com", "tok",
-            api_name="A__seg", display_name="A", description="",
-            target_dmo="Account_demo__dlm", filter_sql="X = 'Y'",
+            developer_name="A",
+            display_name="A",
+            description="",
+            segment_on_api_name="Account_demo__dlm",
+            include_criteria={
+                "type": "TextComparison",
+                "subject": {"objectApiName": "Account_demo__dlm",
+                            "fieldApiName": "External_ID_c__c"},
+                "operator": "has value",
+            },
         )
         request = mock_urlopen.call_args[0][0]
         assert "/ssot/segments" in request.full_url
         assert request.get_method() == "POST"
 
 
-class TestPatchSegment:
-    @patch("urllib.request.urlopen")
-    def test_returns_success(self, mock_urlopen):
-        mock_urlopen.return_value = _mock_response({"id": "0sX..."})
-        ok, _ = patch_segment(
-            "https://example.my.salesforce.com", "tok",
-            api_name="RetailAll__seg", display_name="Retail Customers (updated)",
-            description="updated", filter_sql="FinServ_ClientCategory_c__c = 'Retail'",
-            publish_schedule="hourly",
-        )
-        assert ok is True
+class TestPatchSegmentRemoved:
+    """patch_segment has been removed: Dynamic segments cannot be PATCHed
+    per live ENTITY_SAVE_ERROR observation (only Dbt + Lookalike support
+    update). Importing it should fail."""
 
-    @patch("urllib.request.urlopen")
-    def test_uses_patch_verb(self, mock_urlopen):
-        mock_urlopen.return_value = _mock_response({"id": "0sX..."})
-        patch_segment(
-            "https://x.salesforce.com", "tok",
-            api_name="A__seg", display_name="A", description="",
-            filter_sql="X = 'Y'", publish_schedule="hourly",
-        )
-        request = mock_urlopen.call_args[0][0]
-        assert request.get_method() == "PATCH"
+    def test_patch_segment_is_not_exported(self):
+        import customer_hydration.phase5.data_cloud as dc_mod
+        assert not hasattr(dc_mod, "patch_segment")
 
 
 class TestPublishSegment:

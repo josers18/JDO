@@ -1,4 +1,11 @@
-"""Unit tests for phase5/segments.py — YAML loader + execute_create_segments."""
+"""Unit tests for phase5/segments.py — YAML loader + execute_create_segments.
+
+Post-Task-10a rewrite: the segment payload schema now uses a JSON DSL
+(TextComparison / NumberComparison / DateTimeComparison /
+LogicalComparison) instead of stringified SQL filters. inject_hydrate_clause
+now takes/returns a dict (not a SQL string), and load_segment_definitions
+translates each YAML rule.type into the DC JSON DSL.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,8 +20,10 @@ from customer_hydration.phase5.segments import (
     load_segment_definitions,
     config_key_to_api_name,
     inject_hydrate_clause,
+    map_publish_schedule,
     execute_create_segments,
     execute_refresh_streams,
+    HYDRATE_CLAUSE,
 )
 
 
@@ -34,30 +43,272 @@ class TestConfigKeyToApiName:
         assert config_key_to_api_name("commercial") == "Commercial__seg"
 
 
+# ---- map_publish_schedule ----
+
+class TestMapPublishSchedule:
+    def test_manual_maps_to_no_refresh(self):
+        assert map_publish_schedule("manual") == "NoRefresh"
+
+    def test_hourly_maps_to_one(self):
+        assert map_publish_schedule("hourly") == "One"
+
+    def test_daily_maps_to_twenty_four(self):
+        assert map_publish_schedule("daily") == "TwentyFour"
+
+    def test_weekly_falls_back_to_twenty_four(self):
+        # No native weekly enum; closest available DC slot is TwentyFour
+        assert map_publish_schedule("weekly") == "TwentyFour"
+
+    def test_unknown_value_passes_through(self):
+        # If YAML already uses the API enum directly, pass it through.
+        assert map_publish_schedule("NoRefresh") == "NoRefresh"
+        assert map_publish_schedule("Six") == "Six"
+
+
 # ---- inject_hydrate_clause ----
 
 class TestInjectHydrateClause:
-    def test_appends_and_clause_to_simple_filter(self):
-        out = inject_hydrate_clause("FinServ_ClientCategory_c__c = 'Retail'")
-        assert "FinServ_ClientCategory_c__c = 'Retail'" in out
-        assert "External_ID_c__c LIKE 'HYDRATE-%'" in out
-        assert " AND " in out
+    def test_wraps_user_criteria_in_logical_and_with_hydrate_filter(self):
+        user = {
+            "type": "TextComparison",
+            "subject": {"objectApiName": "Account_demo__dlm",
+                        "fieldApiName": "FinServ_ClientCategory_c__c"},
+            "operator": "equals",
+            "values": ["Retail"],
+        }
+        out = inject_hydrate_clause(user)
+        assert out["type"] == "LogicalComparison"
+        assert out["operator"] == "and"
+        # Two filters: HYDRATE first, user second
+        assert len(out["filters"]) == 2
+        assert out["filters"][0]["filter"] == HYDRATE_CLAUSE
+        assert out["filters"][1]["filter"] == user
 
-    def test_idempotent_when_clause_already_present(self):
-        already_has = "FinServ_ClientCategory_c__c = 'Retail' AND External_ID_c__c LIKE 'HYDRATE-%'"
-        out = inject_hydrate_clause(already_has)
-        # Should NOT double-inject
-        assert out.count("HYDRATE-%") == 1
+    def test_hydrate_clause_targets_external_id_c_field(self):
+        assert HYDRATE_CLAUSE["type"] == "TextComparison"
+        assert HYDRATE_CLAUSE["subject"]["fieldApiName"] == "External_ID_c__c"
+        assert HYDRATE_CLAUSE["operator"] == "contains"
+        assert HYDRATE_CLAUSE["values"] == ["HYDRATE-"]
 
-    def test_handles_multiline_filter(self):
-        multiline = "FinServ_ClientCategory_c__c = 'Wealth Management'\nAND DATE_DIFF(...)"
-        out = inject_hydrate_clause(multiline)
-        assert "External_ID_c__c LIKE 'HYDRATE-%'" in out
+    def test_wrapping_a_logical_comparison_keeps_structure(self):
+        # A user-supplied LogicalComparison.and is wrapped, NOT merged
+        # (avoids mutating caller-provided structures and keeps the
+        # injection idempotency rule simple).
+        user_compound = {
+            "type": "LogicalComparison",
+            "operator": "and",
+            "filters": [
+                {"filter": {"type": "TextComparison",
+                            "subject": {"objectApiName": "Account_demo__dlm",
+                                        "fieldApiName": "FinServ_ClientCategory_c__c"},
+                            "operator": "equals", "values": ["Wealth"]}},
+                {"filter": {"type": "DateTimeComparison",
+                            "subject": {"objectApiName": "Account_demo__dlm",
+                                        "fieldApiName": "PersonBirthdate__c"},
+                            "operator": "before", "values": ["1971-01-01"]}},
+            ],
+        }
+        out = inject_hydrate_clause(user_compound)
+        assert out["type"] == "LogicalComparison"
+        assert out["filters"][0]["filter"] == HYDRATE_CLAUSE
+        assert out["filters"][1]["filter"] == user_compound
 
 
-# ---- load_segment_definitions ----
+# ---- load_segment_definitions: DSL translation ----
 
-class TestLoadSegmentDefinitions:
+class TestLoadSegmentDefinitionsDsl:
+    def _write(self, tmp_path: Path, body: str) -> Path:
+        p = tmp_path / "segments.yaml"
+        p.write_text(body)
+        return p
+
+    def test_text_equals_translates_to_text_comparison(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  retail_all:
+    name: "Retail Customers"
+    description: "All retail"
+    persona: retail
+    publish_schedule: hourly
+    target_dmo: Account_demo__dlm
+    rule:
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
+""")
+        defs = load_segment_definitions(yaml_path)
+        assert len(defs) == 1
+        d = defs[0]
+        # Hydrate-injected wrapper
+        assert d.include_criteria["type"] == "LogicalComparison"
+        user = d.include_criteria["filters"][1]["filter"]
+        assert user["type"] == "TextComparison"
+        assert user["operator"] == "equals"
+        assert user["values"] == ["Retail"]
+        assert user["subject"] == {
+            "objectApiName": "Account_demo__dlm",
+            "fieldApiName": "FinServ_ClientCategory_c__c",
+        }
+
+    def test_text_contains_translates(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  probe:
+    name: "Probe"
+    description: "x"
+    persona: retail
+    publish_schedule: manual
+    target_dmo: Account_demo__dlm
+    rule:
+      type: text_contains
+      field: External_ID_c__c
+      value: "HYDRATE-"
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]["filter"]
+        assert user["operator"] == "contains"
+        assert user["values"] == ["HYDRATE-"]
+
+    def test_text_in_translates_with_values_list(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  multi:
+    name: "Multi"
+    description: "x"
+    persona: retail
+    publish_schedule: hourly
+    target_dmo: Account_demo__dlm
+    rule:
+      type: text_in
+      field: FinServ_ClientCategory_c__c
+      values: ["Retail", "Wealth"]
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]["filter"]
+        assert user["operator"] == "in"
+        assert user["values"] == ["Retail", "Wealth"]
+
+    def test_text_has_value_omits_values_key(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  any_hydrate:
+    name: "Any"
+    description: "x"
+    persona: mixed
+    publish_schedule: weekly
+    target_dmo: Account_demo__dlm
+    rule:
+      type: text_has_value
+      field: External_ID_c__c
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]["filter"]
+        assert user["operator"] == "has value"
+        assert "values" not in user
+
+    def test_number_gt_translates(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  high_credit:
+    name: "High Credit"
+    description: "x"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: number_gt
+      field: FinServ_CreditScore_c__c
+      value: 700
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]["filter"]
+        assert user["type"] == "NumberComparison"
+        assert user["operator"] == "greater than"
+        assert user["values"] == [700]
+
+    def test_number_in_range_translates_to_logical_and(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  income_band:
+    name: "Income Band"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: number_in_range
+      field: FinServ_AnnualIncome_pc__c
+      gte: 100000
+      lte: 250000
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]["filter"]
+        assert user["type"] == "LogicalComparison"
+        assert user["operator"] == "and"
+        operators = {f["filter"]["operator"] for f in user["filters"]}
+        assert operators == {"greater than or equal", "less than or equal"}
+
+    def test_date_before_translates(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  born_before:
+    name: "Born Before"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: date_before
+      field: PersonBirthdate__c
+      value: "1971-01-01"
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]["filter"]
+        assert user["type"] == "DateTimeComparison"
+        assert user["operator"] == "before"
+        assert user["values"] == ["1971-01-01"]
+
+    def test_date_in_range_translates_to_logical_and(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  pre_retiree:
+    name: "Pre-Retiree"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: date_in_range
+      field: PersonBirthdate__c
+      after: "1961-01-01"
+      before: "1971-01-01"
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]["filter"]
+        assert user["type"] == "LogicalComparison"
+        assert user["operator"] == "and"
+        ops = {f["filter"]["operator"] for f in user["filters"]}
+        assert ops == {"after", "before"}
+
+    def test_unknown_rule_type_raises(self, tmp_path: Path):
+        yaml_path = self._write(tmp_path, """\
+segments:
+  weird:
+    name: "Weird"
+    description: "x"
+    persona: retail
+    publish_schedule: manual
+    target_dmo: Account_demo__dlm
+    rule:
+      type: nonsense_op
+      field: External_ID_c__c
+      value: "x"
+""")
+        with pytest.raises(ValueError, match="rule type"):
+            load_segment_definitions(yaml_path)
+
+
+class TestLoadSegmentDefinitionsRequired:
     def test_loads_yaml_and_parses_each_segment(self, tmp_path: Path):
         yaml_path = tmp_path / "segments.yaml"
         yaml_path.write_text("""\
@@ -69,18 +320,22 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "FinServ_ClientCategory_c__c = 'Retail'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         defs = load_segment_definitions(yaml_path)
         assert len(defs) == 1
         d = defs[0]
         assert d.config_key == "retail_all"
         assert d.api_name == "RetailAll__seg"
+        assert d.developer_name == "RetailAll"
         assert d.display_name == "Retail Customers"
         assert d.persona == "retail"
         assert d.target_dmo == "Account_demo__dlm"
-        assert "External_ID_c__c LIKE 'HYDRATE-%'" in d.filter_sql
+        # Hydrate clause must be embedded in the criteria tree.
+        assert d.include_criteria["type"] == "LogicalComparison"
+        assert d.include_criteria["filters"][0]["filter"]["values"] == ["HYDRATE-"]
 
     def test_raises_on_missing_required_field(self, tmp_path: Path):
         yaml_path = tmp_path / "bad.yaml"
@@ -113,8 +368,9 @@ segments:
     target_dmo: Account_demo__dlm
     linked_campaign: HYDRATE-CMP-001
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
   retail_all:
     name: "Retail All"
     description: "x"
@@ -122,8 +378,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         defs = load_segment_definitions(yaml_path)
         d_with = next(d for d in defs if d.config_key == "cmp_heloc")
@@ -146,20 +403,19 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "FinServ_ClientCategory_c__c = 'Retail'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         with patch("customer_hydration.phase5.segments.get_org_session") as mock_sess, \
              patch("customer_hydration.phase5.segments.list_segments") as mock_list, \
-             patch("customer_hydration.phase5.segments.create_segment") as mock_create, \
-             patch("customer_hydration.phase5.segments.publish_segment") as mock_pub:
+             patch("customer_hydration.phase5.segments.create_segment") as mock_create:
             result = execute_create_segments(
                 target_org="DRY-RUN", yaml_path=yaml_path, dry_run=True,
             )
             assert mock_sess.call_count == 0
             assert mock_list.call_count == 0
             assert mock_create.call_count == 0
-            assert mock_pub.call_count == 0
             assert result.segments_processed == 1
 
 
@@ -167,9 +423,8 @@ class TestExecuteCreateSegmentsLive:
     @patch("customer_hydration.phase5.segments.get_org_session")
     @patch("customer_hydration.phase5.segments.list_segments")
     @patch("customer_hydration.phase5.segments.create_segment")
-    @patch("customer_hydration.phase5.segments.publish_segment")
     def test_creates_when_segment_not_in_existing_list(
-        self, mock_pub, mock_create, mock_list, mock_sess, tmp_path: Path,
+        self, mock_create, mock_list, mock_sess, tmp_path: Path,
     ):
         yaml_path = tmp_path / "segments.yaml"
         yaml_path.write_text("""\
@@ -181,26 +436,33 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         mock_sess.return_value = ("https://x.salesforce.com", "tok")
         mock_list.return_value = []  # No existing segments
-        mock_create.return_value = (True, "0sX...")
-        mock_pub.return_value = (True, "r-1")
+        mock_create.return_value = (True, "RetailAll__seg")
         result = execute_create_segments(target_org="alias", yaml_path=yaml_path)
         assert result.segments_created == 1
-        assert result.segments_patched == 0
-        assert result.segments_published == 1
+        assert result.segments_skipped == 0
         assert mock_create.call_count == 1
-        assert mock_pub.call_count == 1
+        # New payload kwargs must be passed through:
+        kwargs = mock_create.call_args.kwargs
+        assert kwargs["developer_name"] == "RetailAll"
+        assert kwargs["display_name"] == "Retail Customers"
+        assert kwargs["segment_on_api_name"] == "Account_demo__dlm"
+        assert kwargs["publish_schedule"] == "One"  # hourly -> One
+        criteria = kwargs["include_criteria"]
+        assert criteria["type"] == "LogicalComparison"
+        # HYDRATE clause is the first filter
+        assert criteria["filters"][0]["filter"]["values"] == ["HYDRATE-"]
 
     @patch("customer_hydration.phase5.segments.get_org_session")
     @patch("customer_hydration.phase5.segments.list_segments")
-    @patch("customer_hydration.phase5.segments.patch_segment")
-    @patch("customer_hydration.phase5.segments.publish_segment")
-    def test_patches_when_segment_already_exists(
-        self, mock_pub, mock_patch, mock_list, mock_sess, tmp_path: Path,
+    @patch("customer_hydration.phase5.segments.create_segment")
+    def test_skips_idempotently_when_segment_already_exists(
+        self, mock_create, mock_list, mock_sess, tmp_path: Path,
     ):
         from customer_hydration.phase5.data_cloud import SegmentInfo
         yaml_path = tmp_path / "segments.yaml"
@@ -213,28 +475,33 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         mock_sess.return_value = ("https://x.salesforce.com", "tok")
         mock_list.return_value = [SegmentInfo(
             api_name="RetailAll__seg", display_name="Old Name",
-            description="old", target_dmo="Account_demo__dlm", publish_schedule="manual",
+            description="old", target_dmo="Account_demo__dlm", publish_schedule="One",
         )]
-        mock_patch.return_value = (True, "0sX...")
-        mock_pub.return_value = (True, "r-1")
         result = execute_create_segments(target_org="alias", yaml_path=yaml_path)
+        # Dynamic segments cannot be PATCHed -> existing segment is a
+        # no-op idempotent skip.
         assert result.segments_created == 0
-        assert result.segments_patched == 1
-        assert result.segments_published == 1
+        assert result.segments_skipped == 1
+        assert result.segments_failed == 0
+        # create_segment must NOT be called for an existing segment.
+        assert mock_create.call_count == 0
+        assert result.results[0].skipped is True
 
     @patch("customer_hydration.phase5.segments.get_org_session")
     @patch("customer_hydration.phase5.segments.list_segments")
     @patch("customer_hydration.phase5.segments.create_segment")
-    @patch("customer_hydration.phase5.segments.publish_segment")
-    def test_skip_publish_does_not_call_publish(
-        self, mock_pub, mock_create, mock_list, mock_sess, tmp_path: Path,
+    def test_skip_publish_flag_is_no_op(
+        self, mock_create, mock_list, mock_sess, tmp_path: Path,
     ):
+        # --skip-publish is retained for argparse compatibility but is a
+        # no-op now (Dynamic segments publish on their schedule).
         yaml_path = tmp_path / "segments.yaml"
         yaml_path.write_text("""\
 segments:
@@ -245,25 +512,23 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         mock_sess.return_value = ("https://x.salesforce.com", "tok")
         mock_list.return_value = []
-        mock_create.return_value = (True, "0sX...")
+        mock_create.return_value = (True, "RetailAll__seg")
         result = execute_create_segments(
             target_org="alias", yaml_path=yaml_path, skip_publish=True,
         )
         assert result.segments_created == 1
-        assert result.segments_published == 0
-        assert mock_pub.call_count == 0
 
     @patch("customer_hydration.phase5.segments.get_org_session")
     @patch("customer_hydration.phase5.segments.list_segments")
     @patch("customer_hydration.phase5.segments.create_segment")
-    @patch("customer_hydration.phase5.segments.publish_segment")
     def test_segment_id_filters_to_one_entry(
-        self, mock_pub, mock_create, mock_list, mock_sess, tmp_path: Path,
+        self, mock_create, mock_list, mock_sess, tmp_path: Path,
     ):
         yaml_path = tmp_path / "segments.yaml"
         yaml_path.write_text("""\
@@ -275,8 +540,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
   wealth_all:
     name: "Wealth Clients"
     description: "x"
@@ -284,28 +550,26 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Wealth"
 """)
         mock_sess.return_value = ("https://x.salesforce.com", "tok")
         mock_list.return_value = []
-        mock_create.return_value = (True, "0sX...")
-        mock_pub.return_value = (True, "r-1")
+        mock_create.return_value = (True, "WealthAll__seg")
         result = execute_create_segments(
             target_org="alias", yaml_path=yaml_path, segment_id="wealth_all",
         )
         assert result.segments_processed == 1
         assert mock_create.call_count == 1
-        # Verify it created the wealth one, not the retail one
-        called_api_name = mock_create.call_args.kwargs["api_name"]
-        assert called_api_name == "WealthAll__seg"
+        called_developer_name = mock_create.call_args.kwargs["developer_name"]
+        assert called_developer_name == "WealthAll"
 
     @patch("customer_hydration.phase5.segments.get_org_session")
     @patch("customer_hydration.phase5.segments.list_segments")
     @patch("customer_hydration.phase5.segments.create_segment")
-    @patch("customer_hydration.phase5.segments.publish_segment")
     def test_create_failure_recorded_does_not_raise(
-        self, mock_pub, mock_create, mock_list, mock_sess, tmp_path: Path,
+        self, mock_create, mock_list, mock_sess, tmp_path: Path,
     ):
         yaml_path = tmp_path / "segments.yaml"
         yaml_path.write_text("""\
@@ -317,8 +581,9 @@ segments:
     publish_schedule: hourly
     target_dmo: Account_demo__dlm
     rule:
-      type: sql
-      filter: "X = 'Y'"
+      type: text_equals
+      field: FinServ_ClientCategory_c__c
+      value: "Retail"
 """)
         mock_sess.return_value = ("https://x.salesforce.com", "tok")
         mock_list.return_value = []
@@ -326,7 +591,6 @@ segments:
         result = execute_create_segments(target_org="alias", yaml_path=yaml_path)
         assert result.segments_failed == 1
         assert result.segments_created == 0
-        assert mock_pub.call_count == 0  # No publish on failed create
         assert "HTTP 400" in result.results[0].error
 
 

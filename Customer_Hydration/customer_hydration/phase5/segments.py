@@ -1,8 +1,15 @@
-"""Phase 2: orchestrate Data Cloud segment creation + publish.
+"""Phase 2: orchestrate Data Cloud segment creation.
 
-Reads config/segments.yaml, creates each segment via the REST API
-(or PATCHes if it already exists), and triggers a publish. Idempotent:
-re-runs are safe and effectively become a "republish all" pass.
+Reads ``config/segments.yaml``, translates each YAML rule into the live
+Data Cloud JSON DSL (TextComparison / NumberComparison /
+DateTimeComparison / LogicalComparison), AND-injects the HYDRATE-*
+membership clause, then creates each segment via the REST API.
+
+Idempotent: if a segment with the same ``developerName`` already
+exists, it's treated as a no-op skip. The Data Cloud API rejects PATCH
+on Dynamic segments (ENTITY_SAVE_ERROR — only Dbt and Lookalike
+segments accept update), so we never attempt to update an existing
+Dynamic segment in place.
 
 Fire-and-forget per Phase 5.5 convention: per-segment failures are
 recorded on the result, not raised.
@@ -11,7 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import yaml
 
@@ -22,22 +29,25 @@ from customer_hydration.phase5.data_cloud import (
     execute_phase5_5,
     get_org_session,
     list_segments,
-    patch_segment,
-    publish_segment,
 )
 
 
 @dataclass
 class SegmentDefinition:
-    """One segment as parsed from segments.yaml."""
+    """One segment as parsed from segments.yaml.
+
+    ``include_criteria`` is the FULL JSON DSL with the HYDRATE-* clause
+    already AND-injected — ready to hand to ``data_cloud.create_segment``.
+    """
     config_key: str
-    api_name: str
+    api_name: str            # <DeveloperName>__seg, derived for legacy callers
+    developer_name: str      # PascalCase, used as the API developerName
     display_name: str
     description: str
     persona: str
-    publish_schedule: str
+    publish_schedule: str    # YAML form (manual|hourly|daily|weekly)
     target_dmo: str
-    filter_sql: str
+    include_criteria: dict[str, Any]
     linked_campaign: Optional[str] = None
 
 
@@ -46,10 +56,8 @@ class SegmentCreateResult:
     """Per-segment outcome from execute_create_segments."""
     config_key: str
     api_name: str
-    created: bool = False  # True if newly created
-    patched: bool = False  # True if updated in place
-    published: bool = False
-    member_count: Optional[int] = None
+    created: bool = False    # True if newly created via POST
+    skipped: bool = False    # True if a same-developerName segment already existed
     error: Optional[str] = None
 
 
@@ -58,15 +66,44 @@ class CreateSegmentsResult:
     """Aggregate result for an execute_create_segments run."""
     segments_processed: int = 0
     segments_created: int = 0
-    segments_patched: int = 0
-    segments_published: int = 0
+    segments_skipped: int = 0
     segments_failed: int = 0
     results: list[SegmentCreateResult] = field(default_factory=list)
 
 
-# DMO-mapped name (verified against Account_demo__dlm in jdo-uqj0jr on 2026-05-22).
-# The source field External_ID__c becomes External_ID_c__c after DC mapping.
-_HYDRATE_CLAUSE = "External_ID_c__c LIKE 'HYDRATE-%'"
+# Live-verified HYDRATE membership filter. Every Phase 2 segment is
+# wrapped in a LogicalComparison.and so it can only match hydrated demo
+# accounts (External_ID_c__c starting with "HYDRATE-"), never the org's
+# 178 pre-existing seed accounts.
+HYDRATE_CLAUSE: dict[str, Any] = {
+    "type": "TextComparison",
+    "subject": {
+        "objectApiName": "Account_demo__dlm",
+        "fieldApiName": "External_ID_c__c",
+    },
+    "operator": "contains",
+    "values": ["HYDRATE-"],
+}
+
+
+# YAML publish_schedule form -> live DC API enum.
+# Live-verified enum: NoRefresh|One|Two|Four|Six|Twelve|TwentyFour.
+# There is no native weekly slot; we collapse weekly -> TwentyFour
+# (closest available cadence) and document that in segments.yaml.
+_PUBLISH_SCHEDULE_MAP = {
+    "manual": "NoRefresh",
+    "hourly": "One",
+    "daily": "TwentyFour",
+    "weekly": "TwentyFour",
+}
+
+
+def map_publish_schedule(yaml_value: str) -> str:
+    """Translate YAML publish_schedule form to live DC API enum.
+
+    Pass-through for values that are already valid API enums (so a
+    YAML author can opt into the granular live cadences directly)."""
+    return _PUBLISH_SCHEDULE_MAP.get(yaml_value, yaml_value)
 
 
 def config_key_to_api_name(config_key: str) -> str:
@@ -82,21 +119,142 @@ def config_key_to_api_name(config_key: str) -> str:
     return f"{pascal}__seg"
 
 
-def inject_hydrate_clause(filter_sql: str) -> str:
-    """Append `AND External_ID_c__c LIKE 'HYDRATE-%'` to a filter unless already present.
+def _config_key_to_developer_name(config_key: str) -> str:
+    """Map snake_case config key to the PascalCase developerName the
+    live API expects (no ``__seg`` suffix — that's appended server-side
+    on the returned ``apiName`` field)."""
+    parts = config_key.split("_")
+    return "".join(p.capitalize() for p in parts)
 
-    Idempotent: if the HYDRATE-* clause already appears in the filter (in any form),
-    the input is returned unchanged."""
-    if "HYDRATE-%" in filter_sql:
-        return filter_sql
-    stripped = filter_sql.strip()
-    return f"{stripped} AND {_HYDRATE_CLAUSE}"
+
+def inject_hydrate_clause(user_criteria: dict[str, Any]) -> dict[str, Any]:
+    """Wrap ``user_criteria`` in a LogicalComparison.and with the
+    HYDRATE-* membership filter, so segments can only match hydrated
+    demo accounts.
+
+    The wrapping is intentional even when ``user_criteria`` is itself a
+    LogicalComparison.and (we don't try to flatten / merge filters,
+    keeping the injection logic simple and predictable).
+    """
+    return {
+        "type": "LogicalComparison",
+        "operator": "and",
+        "filters": [
+            {"filter": HYDRATE_CLAUSE},
+            {"filter": user_criteria},
+        ],
+    }
+
+
+# ---- Rule DSL translation ----
+
+def _subject(target_dmo: str, field: str) -> dict[str, str]:
+    return {"objectApiName": target_dmo, "fieldApiName": field}
+
+
+def _text_comparison(
+    target_dmo: str, field: str, operator: str,
+    values: Optional[list[Any]] = None,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "type": "TextComparison",
+        "subject": _subject(target_dmo, field),
+        "operator": operator,
+    }
+    if values is not None:
+        out["values"] = values
+    return out
+
+
+def _number_comparison(
+    target_dmo: str, field: str, operator: str, values: list[Any],
+) -> dict[str, Any]:
+    return {
+        "type": "NumberComparison",
+        "subject": _subject(target_dmo, field),
+        "operator": operator,
+        "values": values,
+    }
+
+
+def _datetime_comparison(
+    target_dmo: str, field: str, operator: str, values: list[Any],
+) -> dict[str, Any]:
+    return {
+        "type": "DateTimeComparison",
+        "subject": _subject(target_dmo, field),
+        "operator": operator,
+        "values": values,
+    }
+
+
+def _and(*filters: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "LogicalComparison",
+        "operator": "and",
+        "filters": [{"filter": f} for f in filters],
+    }
+
+
+def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> dict[str, Any]:
+    """Translate one YAML rule into the DC JSON DSL."""
+    rule_type = rule.get("type")
+    field = rule.get("field")
+    if rule_type is None:
+        raise ValueError(f"Segment {config_key!r}.rule.type is required")
+    # text_has_value is the only operator that doesn't need a field-bound value.
+    if field is None and rule_type != "raw":
+        raise ValueError(f"Segment {config_key!r}.rule.field is required for type {rule_type!r}")
+
+    if rule_type == "text_equals":
+        return _text_comparison(target_dmo, field, "equals", [rule["value"]])
+    if rule_type == "text_contains":
+        return _text_comparison(target_dmo, field, "contains", [rule["value"]])
+    if rule_type == "text_in":
+        values = rule.get("values")
+        if not isinstance(values, list):
+            raise ValueError(
+                f"Segment {config_key!r}.rule.values must be a list for type text_in"
+            )
+        return _text_comparison(target_dmo, field, "in", list(values))
+    if rule_type == "text_has_value":
+        return _text_comparison(target_dmo, field, "has value")
+
+    if rule_type == "number_gt":
+        return _number_comparison(target_dmo, field, "greater than", [rule["value"]])
+    if rule_type == "number_lt":
+        return _number_comparison(target_dmo, field, "less than", [rule["value"]])
+    if rule_type == "number_gte":
+        return _number_comparison(target_dmo, field, "greater than or equal", [rule["value"]])
+    if rule_type == "number_lte":
+        return _number_comparison(target_dmo, field, "less than or equal", [rule["value"]])
+    if rule_type == "number_in_range":
+        return _and(
+            _number_comparison(target_dmo, field, "greater than or equal", [rule["gte"]]),
+            _number_comparison(target_dmo, field, "less than or equal", [rule["lte"]]),
+        )
+
+    if rule_type == "date_before":
+        return _datetime_comparison(target_dmo, field, "before", [rule["value"]])
+    if rule_type == "date_after":
+        return _datetime_comparison(target_dmo, field, "after", [rule["value"]])
+    if rule_type == "date_in_range":
+        return _and(
+            _datetime_comparison(target_dmo, field, "after", [rule["after"]]),
+            _datetime_comparison(target_dmo, field, "before", [rule["before"]]),
+        )
+
+    raise ValueError(
+        f"Segment {config_key!r}: unsupported rule type {rule_type!r}. "
+        f"Supported: text_equals, text_contains, text_in, text_has_value, "
+        f"number_gt/lt/gte/lte, number_in_range, date_before, date_after, date_in_range."
+    )
 
 
 def load_segment_definitions(yaml_path: Path) -> list[SegmentDefinition]:
-    """Parse segments.yaml. Validates required fields. Injects the
-    HYDRATE-* clause into each rule.filter. Raises ValueError on
-    malformed YAML."""
+    """Parse segments.yaml. Translates each rule into the DC JSON DSL,
+    AND-injects the HYDRATE-* clause, validates required fields. Raises
+    ValueError on malformed YAML or unknown rule type."""
     text = yaml_path.read_text(encoding="utf-8")
     data = yaml.safe_load(text) or {}
     segments_section = data.get("segments")
@@ -116,18 +274,21 @@ def load_segment_definitions(yaml_path: Path) -> list[SegmentDefinition]:
                 f"Segment {config_key!r} is missing required field(s): {sorted(missing)}"
             )
         rule = entry["rule"]
-        if not isinstance(rule, dict) or "filter" not in rule:
-            raise ValueError(f"Segment {config_key!r}.rule must contain 'filter'")
-        filter_sql = inject_hydrate_clause(str(rule["filter"]))
+        if not isinstance(rule, dict):
+            raise ValueError(f"Segment {config_key!r}.rule must be a mapping")
+        target_dmo = entry["target_dmo"]
+        user_criteria = _translate_rule(rule, target_dmo, config_key)
+        include_criteria = inject_hydrate_clause(user_criteria)
         out.append(SegmentDefinition(
             config_key=config_key,
             api_name=config_key_to_api_name(config_key),
+            developer_name=_config_key_to_developer_name(config_key),
             display_name=entry["name"],
             description=entry["description"],
             persona=entry["persona"],
             publish_schedule=entry["publish_schedule"],
-            target_dmo=entry["target_dmo"],
-            filter_sql=filter_sql,
+            target_dmo=target_dmo,
+            include_criteria=include_criteria,
             linked_campaign=entry.get("linked_campaign"),
         ))
     return out
@@ -138,21 +299,26 @@ def execute_create_segments(
     target_org: str,
     yaml_path: Path,
     segment_id: Optional[str] = None,
-    skip_publish: bool = False,
+    skip_publish: bool = False,  # noqa: ARG001 - retained for argparse compat (no-op)
     dry_run: bool = False,
 ) -> CreateSegmentsResult:
-    """Create + publish segments per segments.yaml.
+    """Create Dynamic Data Cloud segments per ``segments.yaml``.
 
-    Idempotent: if a segment exists (matching api_name), PATCH it; else POST.
-    Always publish (subject to skip_publish).
+    Idempotent: if a segment with the same developerName exists already
+    (per ``list_segments``), it's recorded as a skip and ``create_segment``
+    is NOT called. Dynamic segments cannot be PATCHed per the live
+    ENTITY_SAVE_ERROR observation.
+
+    The ``skip_publish`` flag is retained for backward compatibility with
+    the CLI but is a no-op: Dynamic segments publish per their own
+    ``publishSchedule`` enum, so there is no separate publish step.
 
     Per-segment failures are recorded on the result; this function never raises."""
     definitions = load_segment_definitions(yaml_path)
     if segment_id is not None:
         definitions = [d for d in definitions if d.config_key == segment_id]
         if not definitions:
-            result = CreateSegmentsResult()
-            return result
+            return CreateSegmentsResult()
 
     result = CreateSegmentsResult()
     result.segments_processed = len(definitions)
@@ -161,13 +327,15 @@ def execute_create_segments(
         for d in definitions:
             r = SegmentCreateResult(config_key=d.config_key, api_name=d.api_name)
             result.results.append(r)
-            print(f"  DRY-RUN would create/patch {d.api_name} ({d.display_name})")
+            print(
+                f"  DRY-RUN would create {d.api_name} ({d.display_name}) "
+                f"on {d.target_dmo} schedule={map_publish_schedule(d.publish_schedule)}"
+            )
         return result
 
     try:
         instance_url, access_token = get_org_session(target_org)
     except Exception as exc:
-        # Mark every definition as failed
         for d in definitions:
             r = SegmentCreateResult(
                 config_key=d.config_key, api_name=d.api_name,
@@ -182,54 +350,26 @@ def execute_create_segments(
     for d in definitions:
         r = SegmentCreateResult(config_key=d.config_key, api_name=d.api_name)
         if d.api_name in existing:
-            ok, info = patch_segment(
-                instance_url, access_token,
-                api_name=d.api_name,
-                display_name=d.display_name,
-                description=d.description,
-                filter_sql=d.filter_sql,
-                publish_schedule=d.publish_schedule,
-            )
-            if ok:
-                r.patched = True
-                result.segments_patched += 1
-            else:
-                r.error = info
-                result.segments_failed += 1
-                result.results.append(r)
-                continue
+            r.skipped = True
+            result.segments_skipped += 1
+            result.results.append(r)
+            continue
+
+        ok, info = create_segment(
+            instance_url, access_token,
+            developer_name=d.developer_name,
+            display_name=d.display_name,
+            description=d.description,
+            segment_on_api_name=d.target_dmo,
+            include_criteria=d.include_criteria,
+            publish_schedule=map_publish_schedule(d.publish_schedule),
+        )
+        if ok:
+            r.created = True
+            result.segments_created += 1
         else:
-            ok, info = create_segment(
-                instance_url, access_token,
-                api_name=d.api_name,
-                display_name=d.display_name,
-                description=d.description,
-                target_dmo=d.target_dmo,
-                filter_sql=d.filter_sql,
-                publish_schedule=d.publish_schedule,
-            )
-            if ok:
-                r.created = True
-                result.segments_created += 1
-            else:
-                r.error = info
-                result.segments_failed += 1
-                result.results.append(r)
-                continue
-
-        if not skip_publish:
-            ok, info = publish_segment(
-                instance_url, access_token, api_name=d.api_name,
-            )
-            if ok:
-                r.published = True
-                result.segments_published += 1
-            else:
-                # Publish-only failure — segment was successfully created/patched
-                # but couldn't trigger publish. Don't count toward `segments_failed`
-                # (the create/patch succeeded); just record the publish error.
-                r.error = f"publish failed: {info}"
-
+            r.error = info
+            result.segments_failed += 1
         result.results.append(r)
 
     return result
