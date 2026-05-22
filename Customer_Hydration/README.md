@@ -240,3 +240,104 @@ Phase 1 of the customer-hydration spec is **FEATURE-COMPLETE** as of 2026-05-21.
 
 **Phase 2 (out of scope for Phase 1)**: Data Cloud DLO/DMO mappings, Identity Resolution, Calculated Insights, Segments, Activations, FinancialAccountTransaction ingestion. Owned by a future Plan after Phase 1 lands.
 
+## Phase 2 status — Streams + Segments
+
+Phase 2 is **complete** as of 2026-05-22 (branch `feat/customer-hydration-phase-2`,
+verified live against `jdo-uqj0jr`).
+
+Phase 2 delivered:
+
+- [x] `refresh-streams` CLI subcommand — discovers SalesforceDotCom_Home streams the
+      org has configured against hydrated objects, attempts the public REST trigger,
+      and classifies UPSERT-mode streams as `PolicySkipped` (with a clear pointer to
+      the UI runbook).
+- [x] `create-segments` CLI subcommand — loads `config/segments.yaml`, auto-injects
+      the HYDRATE-* scope clause, and creates Dynamic segments via the live DC
+      JSON DSL. Idempotent via skip-on-existence.
+- [x] `dc-status` extended with a segment view — reports `developerName`, status,
+      `apiName`, last publish timestamp, last published row count, with `--strict`
+      / `--verbose` polish and visible `rc=2` on degraded health.
+- [x] `phase5/segments.py` orchestration + segments YAML loader. `create_segment`
+      takes `displayName`, `developerName`, `segmentOnApiName`, `segmentType:
+      "Dynamic"`, `publishSchedule: "NoRefresh"`, and a JSON-stringified
+      `includeCriteria` payload built from the YAML rule + auto-injected HYDRATE
+      filter.
+- [x] 20 segments published in `jdo-uqj0jr` against `Account_demo__dlm`.
+- [x] Foundational streams runbook at `docs/foundational_streams.md` documenting
+      the 30 SalesforceDotCom_Home streams Phase 1 hydration writes through, why
+      Full Refresh requires the Lightning UI dialog, and how to drive it via the
+      `dc-stream-full-refresh-via-ui` Claude skill.
+- [x] **468 unit tests pass** (Phase 1's 413 + 55 new for `test_phase5_segments`,
+      `test_segments_yaml`, `test_refresh_streams_cli`, `test_create_segments_cli`,
+      `dc-status` segment-view tests).
+
+### The 20 segments
+
+All target `Account_demo__dlm` (this org is FSC + Person Accounts; a single Account
+record represents each customer). All filter on `External_ID_c__c contains "HYDRATE-"`
+via auto-injected `LogicalComparison.and`, scoping to Phase 1 hydrated rows only and
+deliberately excluding the org's pre-existing seed accounts.
+
+- **4 persona base segments** — `RetailAll`, `WealthAll`, `SmbAll`, `CommercialAll`
+  (filter on `FinServ_ClientCategory_c__c matches "<persona>"`)
+- **6 lifecycle / sub-segments** — `WealthPreRetiree` (`PersonBirthdate__c` window
+  via `DateComparison`), `RetailFamilyWithMortgage`, `RetailHelocDrawn`, `SmbWithSba`,
+  `CommercialWithTreasury`, `WealthRecentLifeEvent` (the latter five collapse to a
+  persona filter until their reference DMOs are hydrated; documented in the YAML)
+- **10 campaign-aligned segments** — `CmpHelocRefiOutreach`, `CmpAutoLoanRateDrop`,
+  `CmpPremierCheckingOnboarding`, `CmpWealthTaxStrategyWebinar`,
+  `CmpWealthEstatePlanningRoundtable`, `CmpSbaAwareness`,
+  `CmpTreasuryModernizationBrief`, `CmpCommercialRmRoundtable`,
+  `CmpMultiPersonaSpringNewsletter` (uses `text_has_value` on `External_ID_c__c`),
+  `CmpMobileBankingAdoption`
+
+### How to run Phase 2 end-to-end
+
+```bash
+cd Customer_Hydration
+source .venv/bin/activate
+
+# 1. Discover and attempt to refresh CRM-source DC streams. UPSERT-mode streams
+#    classify as PolicySkipped — that is expected; see step 5.
+python hydrate.py refresh-streams --target-org jdo-uqj0jr
+
+# 2. Dry-run segment provisioning to see what would be created / skipped.
+python hydrate.py create-segments --target-org jdo-uqj0jr --dry-run
+
+# 3. Real run. Idempotent — re-running against an org that already has the 20
+#    segments records every match as `skipped`.
+python hydrate.py create-segments --target-org jdo-uqj0jr
+
+# 4. Verify segment health.
+python hydrate.py dc-status --target-org jdo-uqj0jr
+
+# 5. Trigger one-shot Full Refresh on the 30 foundational streams via the
+#    Lightning UI dialog. See docs/foundational_streams.md for the per-stream
+#    record-id table and the dc-stream-full-refresh-via-ui Claude skill.
+```
+
+### Honest constraints
+
+1. **Dynamic segments cannot be patched.** The DC API only accepts PATCH for
+   Dbt/Lookalike segments — Dynamic returns ENTITY_SAVE_ERROR. `create-segments`
+   is therefore idempotent via skip-on-existence, NOT via PATCH. To change a
+   segment's criteria, delete it in DC Setup and re-run `create-segments`.
+2. **Full Refresh of UPSERT-mode streams requires the Lightning UI**, not REST.
+   The public `POST /ssot/data-streams/{name}/actions/run` endpoint rejects
+   manual triggers on UPSERT-configured SalesforceDotCom-source streams with
+   HTTP 412. The Lightning UI's "Refresh Now → Full Refresh" dialog calls an
+   internal Aura RPC that bypasses the policy. See `docs/foundational_streams.md`.
+3. **The REST trigger endpoint is v62-only.** v60 / v61 return 404 for
+   `/services/data/vN.0/ssot/data-streams/{name}/actions/run`. Don't try to
+   downgrade.
+4. **`--skip-publish` is retained but a no-op.** Dynamic segments publish on
+   their own; explicit publish isn't a separate step in this design. The flag
+   stays for argparse compatibility.
+
+### See also
+
+- `docs/foundational_streams.md` — per-stream Full Refresh runbook (30 streams)
+- `docs/superpowers/specs/2026-05-22-phase-2-streams-and-segments-design.md` — Phase 2 spec
+- `docs/superpowers/plans/2026-05-22-phase-2-streams-and-segments.md` — Phase 2 plan
+- `config/segments.yaml` — all 20 Phase 2 segment definitions + DSL reference
+
