@@ -275,6 +275,7 @@ def _extract_policy_message(http_code: int, body: str) -> str | None:
       - HTTP 400 + "not allowed to run in non-interactive mode"
       - HTTP 412 + "not allowed to run in interactive mode if refresh mode
         is not FULL_REFRESH"
+      - HTTP 412 + "Data Stream status must be ACTIVE or PROCESSING"
     """
     if http_code not in (400, 412) or not body:
         return None
@@ -296,6 +297,7 @@ def _extract_policy_message(http_code: int, body: str) -> str | None:
         "not allowed to run in non-interactive mode" in lowered
         or "not allowed to run in interactive mode if refresh mode is not full_refresh"
         in lowered
+        or "data stream status must be active or processing" in lowered
     ):
         return message
     return None

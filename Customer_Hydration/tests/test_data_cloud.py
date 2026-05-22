@@ -285,6 +285,34 @@ def test_trigger_stream_refresh_returns_policy_message_on_412_full_refresh():
     assert "FULL_REFRESH" in err_str
 
 
+def test_trigger_stream_refresh_returns_policy_message_on_412_inactive_status():
+    """Org-policy rejection: stream not in ACTIVE/PROCESSING state. Live
+    response observed against jdo-fw51xz (2026-05-22) for a stream whose
+    status was DRAFT/ERROR."""
+    body = (
+        b'[{"errorCode":"DATACLOUD_API_CLIENT_EXCEPTION",'
+        b'"message":"Data Stream status must be ACTIVE or PROCESSING"}]'
+    )
+    err = HTTPError(
+        url="https://example.my.salesforce.com/...",
+        code=412,
+        msg="Precondition Failed",
+        hdrs=None,  # type: ignore[arg-type]
+        fp=io.BytesIO(body),
+    )
+    with patch("urllib.request.urlopen", side_effect=err):
+        ok, run_id, err_str = trigger_stream_refresh(
+            "https://example.my.salesforce.com",
+            "tok",
+            "Stream_Account__dlm",
+        )
+    assert ok is False
+    assert run_id is None
+    assert err_str is not None
+    assert err_str.startswith("policy:")
+    assert "ACTIVE" in err_str
+
+
 # --------------------------------------------------------------------------
 # execute_phase5_5
 # --------------------------------------------------------------------------
