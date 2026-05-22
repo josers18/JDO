@@ -132,24 +132,46 @@ def list_streams(
     access_token: str,
     api_version: str = "v60.0",
 ) -> list[StreamInfo]:
-    """List all Data Cloud Data Streams in the org via REST."""
+    """List all Data Cloud Data Streams in the org via REST.
+
+    The endpoint paginates (default page size 10). Walk ``nextPageUrl``
+    until the response stops returning one. Live-verified against
+    jdo-uqj0jr where ``totalSize=289`` and a single-page read missed
+    96% of streams.
+    """
     import urllib.request
 
-    url = f"{instance_url}/services/data/{api_version}/ssot/data-streams"
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json",
-    })
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read())
     streams: list[StreamInfo] = []
-    # Response shape varies; tolerate dataStreams / streams / records keys
-    for entry in (
-        data.get("dataStreams")
-        or data.get("streams")
-        or data.get("records")
-        or []
-    ):
+    next_path = f"/services/data/{api_version}/ssot/data-streams"
+    safety_pages = 0
+    while next_path and safety_pages < 200:
+        safety_pages += 1
+        req = urllib.request.Request(
+            f"{instance_url}{next_path}",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+        page_entries = (
+            data.get("dataStreams")
+            or data.get("streams")
+            or data.get("records")
+            or []
+        )
+        streams.extend(_parse_stream_entries(page_entries))
+        # ``nextPageUrl`` is a path (e.g. ``/services/data/v60.0/ssot/...?offset=11``)
+        # or null on the final page.
+        next_path = data.get("nextPageUrl")
+    return streams
+
+
+def _parse_stream_entries(entries: list[dict]) -> list[StreamInfo]:
+    """Translate raw /ssot/data-streams entries into StreamInfo objects."""
+    out: list[StreamInfo] = []
+    for entry in entries:
         api_name = (
             entry.get("apiName")
             or entry.get("name")
@@ -183,14 +205,14 @@ def list_streams(
             connector_type = ""
             connector_name = ""
         if api_name:
-            streams.append(StreamInfo(
+            out.append(StreamInfo(
                 api_name=api_name,
                 source_object=source or "",
                 label=label,
                 connector_type=connector_type,
                 connector_name=connector_name,
             ))
-    return streams
+    return out
 
 
 def trigger_stream_refresh(

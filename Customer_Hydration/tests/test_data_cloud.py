@@ -172,6 +172,40 @@ def test_list_streams_extracts_connector_type_from_connectorInfo():
     assert streams[0].label == "Account Home"
 
 
+def test_list_streams_walks_nextPageUrl_until_exhausted():
+    """The /ssot/data-streams endpoint paginates (default page size 10).
+    Live-verified jdo-uqj0jr returns ``totalSize=289`` across many pages;
+    list_streams must follow ``nextPageUrl`` until it's null. Regression
+    coverage for the bug where only page 1 was read."""
+    page1 = {
+        "dataStreams": [{"name": "S1", "connectorInfo": {"connectorType": "SalesforceDotCom"}}],
+        "currentPageUrl": "/services/data/v60.0/ssot/data-streams?limit=1&offset=1",
+        "nextPageUrl": "/services/data/v60.0/ssot/data-streams?limit=1&offset=2",
+        "totalSize": 3,
+    }
+    page2 = {
+        "dataStreams": [{"name": "S2", "connectorInfo": {"connectorType": "SalesforceDotCom"}}],
+        "currentPageUrl": "/services/data/v60.0/ssot/data-streams?limit=1&offset=2",
+        "nextPageUrl": "/services/data/v60.0/ssot/data-streams?limit=1&offset=3",
+        "totalSize": 3,
+    }
+    page3 = {
+        "dataStreams": [{"name": "S3", "connectorInfo": {"connectorType": "SalesforceDotCom"}}],
+        "currentPageUrl": "/services/data/v60.0/ssot/data-streams?limit=1&offset=3",
+        "nextPageUrl": None,
+        "totalSize": 3,
+    }
+    responses = [
+        _fake_urlopen_response(page1),
+        _fake_urlopen_response(page2),
+        _fake_urlopen_response(page3),
+    ]
+    with patch("urllib.request.urlopen", side_effect=responses):
+        streams = list_streams("https://example.my.salesforce.com", "tok")
+    names = [s.api_name for s in streams]
+    assert names == ["S1", "S2", "S3"]
+
+
 # --------------------------------------------------------------------------
 # trigger_stream_refresh
 # --------------------------------------------------------------------------
