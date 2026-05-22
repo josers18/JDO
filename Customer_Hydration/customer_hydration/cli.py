@@ -357,7 +357,13 @@ def _run_status(args: argparse.Namespace) -> int:
 
 
 def _run_dc_status(args: argparse.Namespace) -> int:
-    """Poll Data Cloud stream-run state from the latest manifest."""
+    """Poll Data Cloud stream-run state from the latest manifest.
+
+    Phase 2 also appends a Segments section sourced from
+    ``config/segments.yaml`` when present. Segment polling is best-effort:
+    a failure prints to stderr but does not change the return code, similar
+    to Phase 5.5 stream-refresh tolerance.
+    """
     import json as _json
 
     from customer_hydration.phase5.data_cloud import (
@@ -365,14 +371,18 @@ def _run_dc_status(args: argparse.Namespace) -> int:
         poll_stream_run_status,
     )
     output_dir = Path(args.output_dir)
+    yaml_path = Path(args.config_dir) / "segments.yaml"
+    have_segments_yaml = yaml_path.exists()
 
-    # Find the manifest
+    # Find the manifest (stream section is optional when segments.yaml exists)
+    manifest_path: Path | None = None
     if getattr(args, "run_id", None):
-        manifest_path = output_dir / args.run_id / "manifest.json"
+        candidate = output_dir / args.run_id / "manifest.json"
+        if candidate.exists():
+            manifest_path = candidate
     else:
         # Latest run with a DataCloud_Stream_Refresh section
         candidates = sorted(output_dir.glob("run-*/manifest.json"), reverse=True)
-        manifest_path = None
         for p in candidates:
             try:
                 m = _json.loads(p.read_text(encoding="utf-8"))
@@ -381,93 +391,169 @@ def _run_dc_status(args: argparse.Namespace) -> int:
                     break
             except Exception:
                 continue
-        if manifest_path is None:
+
+    stream_failed = 0
+    stream_section_ok = False
+    if manifest_path is None:
+        if not have_segments_yaml:
             print(
                 f"No run with Data Cloud stream refresh found in {output_dir}",
                 file=sys.stderr,
             )
             return 2
-
-    manifest = _json.loads(manifest_path.read_text(encoding="utf-8"))
-    dc_section = manifest.get("object_status", {}).get(
-        "DataCloud_Stream_Refresh", {}
-    )
-    stream_runs = dc_section.get("stream_runs", [])
-    if not stream_runs:
-        print(f"No stream runs in {manifest_path}")
-        return 0
-
-    if args.target_org is None:
-        print("--target-org required for live polling", file=sys.stderr)
-        return 2
-
-    instance_url, access_token = get_org_session(args.target_org)
-
-    rows = []
-    complete = 0
-    in_progress = 0
-    failed = 0
-    for sr in stream_runs:
-        run_id = sr.get("run_id")
-        if not run_id:
-            rows.append((
-                sr.get("stream_api_name"), sr.get("source_object"), "NoRunId", 0,
-            ))
-            failed += 1
-            continue
-        try:
-            state = poll_stream_run_status(instance_url, access_token, run_id)
-            status = state.get("status") or state.get("runStatus") or "Unknown"
-            rows_processed = (
-                state.get("rowsProcessed")
-                or state.get("recordsProcessed")
-                or 0
-            )
-            rows.append((
-                sr.get("stream_api_name"),
-                sr.get("source_object"),
-                status,
-                rows_processed,
-            ))
-            if status in ("Success", "Completed"):
-                complete += 1
-            elif status in ("Failed", "Error"):
-                failed += 1
-            else:
-                in_progress += 1
-        except Exception as exc:  # noqa: BLE001 — surfaced in row, not raised
-            rows.append((
-                sr.get("stream_api_name"),
-                sr.get("source_object"),
-                f"Err: {exc}",
-                0,
-            ))
-            failed += 1
-
-    if args.json:
-        print(_json.dumps(
-            {
-                "rows": rows,
-                "complete": complete,
-                "in_progress": in_progress,
-                "failed": failed,
-            },
-            indent=2,
-        ))
+        # No manifest, but segments.yaml exists — note it and fall through to
+        # the segment view. We still surface the missing manifest on stderr so
+        # the caller can tell stream output was skipped.
+        print(
+            f"No run with Data Cloud stream refresh found in {output_dir}",
+            file=sys.stderr,
+        )
     else:
-        print(f"\nCustomer_Hydration  ·  Data Cloud stream status")
-        print(f"Run: {manifest_path.parent.name}")
-        print(f"---")
-        print(f"{'Stream':35s} {'Source':30s} {'Status':12s} {'Rows':>10s}")
-        print(f"---")
-        for stream, source, status, rows_processed in rows:
-            print(
-                f"{stream:35s} {source:30s} {status:12s} {rows_processed:>10}"
-            )
-        print(f"---")
-        print(f"{complete} complete · {in_progress} in progress · {failed} failed")
+        manifest = _json.loads(manifest_path.read_text(encoding="utf-8"))
+        dc_section = manifest.get("object_status", {}).get(
+            "DataCloud_Stream_Refresh", {}
+        )
+        stream_runs = dc_section.get("stream_runs", [])
+        if not stream_runs:
+            print(f"No stream runs in {manifest_path}")
+            if not have_segments_yaml:
+                return 0
+        else:
+            if args.target_org is None:
+                print("--target-org required for live polling", file=sys.stderr)
+                return 2
 
-    return 0 if failed == 0 else 2
+            instance_url, access_token = get_org_session(args.target_org)
+
+            rows = []
+            complete = 0
+            in_progress = 0
+            failed = 0
+            for sr in stream_runs:
+                run_id = sr.get("run_id")
+                if not run_id:
+                    rows.append((
+                        sr.get("stream_api_name"), sr.get("source_object"),
+                        "NoRunId", 0,
+                    ))
+                    failed += 1
+                    continue
+                try:
+                    state = poll_stream_run_status(
+                        instance_url, access_token, run_id,
+                    )
+                    status = (
+                        state.get("status")
+                        or state.get("runStatus")
+                        or "Unknown"
+                    )
+                    rows_processed = (
+                        state.get("rowsProcessed")
+                        or state.get("recordsProcessed")
+                        or 0
+                    )
+                    rows.append((
+                        sr.get("stream_api_name"),
+                        sr.get("source_object"),
+                        status,
+                        rows_processed,
+                    ))
+                    if status in ("Success", "Completed"):
+                        complete += 1
+                    elif status in ("Failed", "Error"):
+                        failed += 1
+                    else:
+                        in_progress += 1
+                except Exception as exc:  # noqa: BLE001 — surfaced in row
+                    rows.append((
+                        sr.get("stream_api_name"),
+                        sr.get("source_object"),
+                        f"Err: {exc}",
+                        0,
+                    ))
+                    failed += 1
+
+            if args.json:
+                print(_json.dumps(
+                    {
+                        "rows": rows,
+                        "complete": complete,
+                        "in_progress": in_progress,
+                        "failed": failed,
+                    },
+                    indent=2,
+                ))
+            else:
+                print(f"\nCustomer_Hydration  ·  Data Cloud stream status")
+                print(f"Run: {manifest_path.parent.name}")
+                print(f"---")
+                print(
+                    f"{'Stream':35s} {'Source':30s} "
+                    f"{'Status':12s} {'Rows':>10s}"
+                )
+                print(f"---")
+                for stream, source, status, rows_processed in rows:
+                    print(
+                        f"{stream:35s} {source:30s} "
+                        f"{status:12s} {rows_processed:>10}"
+                    )
+                print(f"---")
+                print(
+                    f"{complete} complete · {in_progress} in progress · "
+                    f"{failed} failed"
+                )
+
+            stream_failed = failed
+            stream_section_ok = True
+
+    # NEW Phase 2 — segment publication state from segments.yaml
+    segment_section_ok = False
+    if args.target_org:
+        if yaml_path.exists():
+            try:
+                from customer_hydration.phase5.segments import load_segment_definitions
+                from customer_hydration.phase5.data_cloud import (
+                    get_org_session, get_segment_status,
+                )
+                instance_url, access_token = get_org_session(args.target_org)
+                definitions = load_segment_definitions(yaml_path)
+                print()
+                print("=== Segments ===")
+                segment_complete = 0
+                segment_in_progress = 0
+                segment_failed = 0
+                for sd in definitions:
+                    status = get_segment_status(
+                        instance_url, access_token, api_name=sd.api_name,
+                    )
+                    member_str = (
+                        f"{status.member_count:,}"
+                        if status.member_count is not None
+                        else "?"
+                    )
+                    last_str = status.last_publish_time or "never"
+                    print(f"  {sd.api_name:42s} {status.status:12s} "
+                          f"members={member_str:>10s}  last={last_str}")
+                    if status.status == "PUBLISHED":
+                        segment_complete += 1
+                    elif status.status in ("FAILED", "NOT_FOUND"):
+                        segment_failed += 1
+                    else:
+                        segment_in_progress += 1
+                print(
+                    f"---\n{segment_complete} published, {segment_in_progress} in progress, "
+                    f"{segment_failed} failed"
+                )
+                segment_section_ok = True
+            except Exception as exc:
+                print(f"Segment polling failed: {exc}", file=sys.stderr)
+
+    # If neither section produced output, surface a non-zero rc so callers
+    # (and the existing "no runs" smoke test) can tell dc-status had nothing
+    # actionable to report.
+    if not stream_section_ok and not segment_section_ok:
+        return 2
+    return 0 if stream_failed == 0 else 2
 
 
 # ---------------------------------------------------------------------------

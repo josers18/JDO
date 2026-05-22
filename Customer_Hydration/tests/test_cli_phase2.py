@@ -168,3 +168,50 @@ segments:
         assert kwargs["segment_id"] == "retail_all"
         assert kwargs["skip_publish"] is True
         assert kwargs["dry_run"] is False
+
+
+class TestDcStatusSegmentView:
+    @patch("customer_hydration.phase5.data_cloud.get_org_session")
+    @patch("customer_hydration.phase5.data_cloud.get_segment_status")
+    def test_dc_status_polls_each_segment_in_yaml(
+        self, mock_get_status, mock_sess, tmp_path,
+    ):
+        from customer_hydration.phase5.data_cloud import SegmentStatus
+        cfg = tmp_path / "config"
+        cfg.mkdir()
+        (cfg / "segments.yaml").write_text("""\
+segments:
+  retail_all:
+    name: "Retail Customers"
+    description: "x"
+    persona: retail
+    publish_schedule: hourly
+    target_dmo: Account
+    rule:
+      type: sql
+      filter: "X = 'Y'"
+  wealth_all:
+    name: "Wealth Clients"
+    description: "x"
+    persona: wealth
+    publish_schedule: hourly
+    target_dmo: Account
+    rule:
+      type: sql
+      filter: "X = 'Y'"
+""")
+        out = tmp_path / "output"
+        out.mkdir()  # output dir with no manifest — segment-only path
+        mock_sess.return_value = ("https://x.salesforce.com", "tok")
+        mock_get_status.side_effect = [
+            SegmentStatus("RetailAll__seg", "PUBLISHED", 1000, "2026-05-22T10:00:00Z"),
+            SegmentStatus("WealthAll__seg", "PUBLISHING", None, None),
+        ]
+        rc = main([
+            "dc-status", "--target-org", "alias",
+            "--config-dir", str(cfg), "--output-dir", str(out),
+        ])
+        # dc-status should at least call get_segment_status for each entry
+        # (return code may be 0 or 2 depending on whether mock_segment_status
+        # returns success — we just verify it ran the segment view)
+        assert mock_get_status.call_count == 2
