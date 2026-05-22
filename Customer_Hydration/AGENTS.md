@@ -42,13 +42,12 @@ admin-context.
 ### Phase 1 vs Phase 2 boundary
 Phase 1 covers customers + related CRM data + CRM campaigns + triggering
 the org's existing Data Cloud Data Streams that ingest from hydrated
-objects (Phase 5.5 — fire-and-forget). Phase 2 (separate spec) covers
-Data Cloud DLO/DMO MAPPING (i.e., creating new streams + DMO definitions),
-Identity Resolution rulesets, Calculated Insights, segments, activations,
-and FinancialAccountTransaction ingestion. If a request mentions creating
-new streams/DMOs, segmentation, calculated insights, transaction shaping,
-or activations, that's Phase 2. If a request is "the streams already exist
-and I want to refresh them," that's Phase 1 §5.5.
+objects (Phase 5.5 — fire-and-forget). Phase 2 (separate spec, **complete
+as of 2026-05-22**) added segment provisioning + a CRM-source DC stream
+refresh CLI + the foundational-streams runbook. Out-of-scope for both
+Phase 1 and 2: creating new DLO/DMO definitions, Identity Resolution
+rulesets, Calculated Insights, activations, and FinancialAccountTransaction
+ingestion — those live in a future phase.
 
 ## Banker briefs
 
@@ -124,10 +123,84 @@ tests assert that derived records honor anchors.
     in this org's FSC version. Apex post-load doesn't write them — relies on
     the Group Builder kickoff to trigger the FSC standard logic.
 
-## Plans 1–6 history
+13. **Phase 2 segments target the Account DMO, not a unified DMO.** The org
+    is FSC + Person Accounts, and the customer entity IS the Account record
+    — `Account_demo__dlm` carries both retail Person Accounts and business
+    Accounts on a single DMO. Don't reach for `UnifiedIndividual__dlm` or
+    similar; segments will return 0 members. Field convention on the DMO is
+    `__c -> _c__c` and `__pc -> _pc__c` (e.g. `FinServ__ClientCategory__c`
+    becomes `FinServ_ClientCategory_c__c`, `External_ID__c` becomes
+    `External_ID_c__c`, `PersonBirthdate` becomes `PersonBirthdate__c`).
+
+14. **Segment `apiName` silently strips `__seg`.** `developerName` is
+    `RetailAll__seg` per our naming convention (PascalCase + `__seg`, no
+    `HYDRATE_` prefix), but the live API stores + echoes back `apiName:
+    "RetailAll"`. The DELETE / GET endpoints take the un-suffixed form.
+    Idempotent skip-on-existence in `execute_create_segments` looks up by
+    the stored `apiName`, not by `developerName` — don't double-suffix the
+    lookup or every segment will appear "missing" and the orchestrator will
+    try to recreate them and fail with a duplicate-name error.
+
+15. **HYDRATE-* clause is JSON, auto-injected.** Segment YAML entries do NOT
+    include the HYDRATE filter. `phase5/segments.inject_hydrate_clause`
+    wraps the user's YAML rule in a `LogicalComparison.and` with a
+    `TextComparison` on `External_ID_c__c contains "HYDRATE-"` at load
+    time. This guarantees segments never accidentally match the org's
+    pre-existing seed accounts. Don't try to encode the HYDRATE filter in
+    the YAML — it will get double-injected.
+
+16. **Dynamic segments cannot be patched.** The DC API only accepts PATCH
+    for Dbt / Lookalike segment types — Dynamic returns ENTITY_SAVE_ERROR.
+    Do NOT reintroduce a `patch_segment` path. `execute_create_segments` is
+    idempotent via skip-on-existence: if a segment with the desired
+    `apiName` already exists in `list_segments` output, it's recorded as
+    `skipped` and untouched. To change a segment's criteria, delete it in
+    DC Setup and re-run `create-segments`. Also: `publishSchedule` on
+    Dynamic segments must be `"NoRefresh"` always — any other value
+    returns `"Parameters related to publish aren't supported for a dynamic
+    segments"`. The YAML's `publish_schedule` field is informational only.
+
+17. **DC API operator vocabulary is its own thing.** Text equality is
+    `"matches"` (NOT `equals` / `like`). Other text ops: `"contains"`,
+    `"in"` (with a list-valued `values` field), `"has value"` (no values).
+    Date type discriminator is `DateComparison` (NOT `DateTimeComparison`),
+    and the field is `value` singular (list-valued) NOT `values`. Number
+    ops are `"greater than"` / `"less than"` / `"greater than or equal"` /
+    `"less than or equal"`. Range filters are `LogicalComparison.and` of
+    two single-sided comparisons. See `config/segments.yaml` header for
+    the full DSL → DC JSON translation table and `phase5/segments.py`
+    for the `_rule_to_criteria` builder.
+
+18. **`refresh-streams` on UPSERT-mode SF-source streams is REST-impossible.**
+    The CLI correctly classifies these as `PolicySkipped` (NOT failures).
+    The public REST `POST /services/data/v62.0/ssot/data-streams/{name}/actions/run?interactive=true`
+    endpoint rejects manual triggers on UPSERT-configured SalesforceDotCom-source
+    streams with HTTP 412 demanding `FULL_REFRESH`. PATCHing `refreshMode`
+    to `TOTAL_REPLACE` returns 200 but silently no-ops. The Lightning UI's
+    "Refresh Now → Full Refresh" dialog calls an internal Aura RPC that
+    bypasses the policy. For real one-shot full refresh, see
+    `docs/foundational_streams.md` (the 30-stream runbook) and the
+    `dc-stream-full-refresh-via-ui` Claude skill (drives playwright
+    through the dialog one stream at a time).
+
+19. **`/ssot/data-streams` paginates.** Default `limit=10`. The implementation
+    walks `nextPageUrl` until null. The org has 289 total streams across all
+    connectors — single-page reads miss 96%+ of them. If you ever see
+    `refresh-streams` finding 0 matches when the org clearly has SF-source
+    streams configured, suspect a regression that dropped the pagination
+    walk.
+
+20. **API version drift on `actions/run`.** The trigger endpoint is **v62.0
+    only**. v60 / v61 return 404. Don't try to downgrade to match the
+    `apiVersion` used elsewhere in the package — the rest of the package
+    uses v60 for `/ssot/data-streams` listing + segment CRUD (those work
+    on v60+), but actions/run is v62-gated.
+
+## Plans history (Phase 1 + Phase 2)
 
 Phase 1 of the customer-hydration spec ships across 6 implementation plans.
 Each lands as a stack of TDD-pair commits on `feat/customer-hydration-plan-1`.
+Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
 
 - **Plan 1** (Skeleton + Phase 0 + retail-only smoke) — package scaffolding,
   External-ID seek, Phase 0 describe-and-drop, retail Person Account generator,
@@ -152,6 +225,20 @@ Each lands as a stack of TDD-pair commits on `feat/customer-hydration-plan-1`.
   banker brief generator, 7 hand-written docs (INDEX/ARCHITECTURE/
   PERSONA_PROFILES/DATA_MODEL/HOW_TO/IDEMPOTENCY/TROUBLESHOOTING),
   AGENTS.md final pass, top-level repo registration. ~399+ tests.
+- **Phase 2** (DC streams refresh + segment provisioning, 2026-05-22) —
+  `refresh-streams` and `create-segments` CLI subcommands; `dc-status`
+  segment view extension with `--strict` / `--verbose` polish + visible
+  `rc=2` on degraded health; `phase5/segments.py` orchestration with
+  HYDRATE-clause auto-injection; `phase5/data_cloud.py` extended with
+  5 segment REST methods + `nextPageUrl` pagination + v62 actions/run
+  trigger; `config/segments.yaml` with 20 segment definitions.
+  `docs/foundational_streams.md` runbook for the 30 SalesforceDotCom_Home
+  streams. **20 segments live in `jdo-uqj0jr`** against `Account_demo__dlm`.
+  Live-discovered rewrites mid-task: segment payload moved from raw SQL
+  to live DC JSON DSL with proper operator vocabulary; `patch_segment`
+  dropped (Dynamic segments can't be patched); pagination walk for
+  `/ssot/data-streams`; v62 endpoint for `actions/run`. **468 tests, all
+  green**. Spec: `docs/superpowers/specs/2026-05-22-phase-2-streams-and-segments-design.md`.
 
 ## When extending personas
 
