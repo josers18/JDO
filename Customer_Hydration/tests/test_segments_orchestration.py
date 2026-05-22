@@ -1,7 +1,7 @@
 """Unit tests for phase5/segments.py — YAML loader + execute_create_segments.
 
 Post-Task-10a rewrite: the segment payload schema now uses a JSON DSL
-(TextComparison / NumberComparison / DateTimeComparison /
+(TextComparison / NumberComparison / DateComparison /
 LogicalComparison) instead of stringified SQL filters. inject_hydrate_clause
 now takes/returns a dict (not a SQL string), and load_segment_definitions
 translates each YAML rule.type into the DC JSON DSL.
@@ -104,10 +104,10 @@ class TestInjectHydrateClause:
                  "subject": {"objectApiName": "Account_demo__dlm",
                              "fieldApiName": "FinServ_ClientCategory_c__c"},
                  "operator": "matches", "values": ["Wealth"]},
-                {"type": "DateTimeComparison",
+                {"type": "DateComparison",
                  "subject": {"objectApiName": "Account_demo__dlm",
                              "fieldApiName": "PersonBirthdate__c"},
-                 "operator": "before", "values": ["1971-01-01"]},
+                 "operator": "before", "value": ["1971-01-01"]},
             ],
         }
         out = inject_hydrate_clause(user_compound)
@@ -267,9 +267,9 @@ segments:
 """)
         defs = load_segment_definitions(yaml_path)
         user = defs[0].include_criteria["filters"][1]
-        assert user["type"] == "DateTimeComparison"
+        assert user["type"] == "DateComparison"
         assert user["operator"] == "before"
-        assert user["values"] == ["1971-01-01"]
+        assert user["value"] == ["1971-01-01"]
 
     def test_date_in_range_translates_to_logical_and(self, tmp_path: Path):
         yaml_path = self._write(tmp_path, """\

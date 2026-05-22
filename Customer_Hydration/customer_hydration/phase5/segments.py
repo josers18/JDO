@@ -2,7 +2,7 @@
 
 Reads ``config/segments.yaml``, translates each YAML rule into the live
 Data Cloud JSON DSL (TextComparison / NumberComparison /
-DateTimeComparison / LogicalComparison), AND-injects the HYDRATE-*
+DateComparison / LogicalComparison), AND-injects the HYDRATE-*
 membership clause, then creates each segment via the REST API.
 
 Idempotent: if a segment with the same ``developerName`` already
@@ -183,11 +183,12 @@ def _number_comparison(
 def _datetime_comparison(
     target_dmo: str, field: str, operator: str, values: list[Any],
 ) -> dict[str, Any]:
+    # Live DC API uses "DateComparison" with singular "value" (a list).
     return {
-        "type": "DateTimeComparison",
+        "type": "DateComparison",
         "subject": _subject(target_dmo, field),
         "operator": operator,
-        "values": values,
+        "value": values,
     }
 
 
