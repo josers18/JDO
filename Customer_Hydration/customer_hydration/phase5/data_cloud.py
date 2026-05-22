@@ -39,6 +39,7 @@ class StreamInfo:
     source_object: str
     label: str = ""
     connector_type: str = ""
+    connector_name: str = ""
 
 
 @dataclass
@@ -150,20 +151,30 @@ def list_streams(
             )
         label = entry.get("label") or entry.get("MasterLabel") or ""
         # Live API (v60.0) shape: connectorInfo.connectorType identifies the
-        # upstream system (SalesforceDotCom, SNOWFLAKE, etc.). Used by the
+        # upstream system (SalesforceDotCom, SNOWFLAKE, etc.) and
+        # connectorInfo.connectorDetails.name disambiguates own-source
+        # ("SalesforceDotCom_Home") from external federation streams
+        # (e.g. "SalesforceDotCom_FinsDC1"). Both are used by the
         # Phase 5.5 matcher as a fallback when source_object is empty.
         connector_info = entry.get("connectorInfo") or {}
-        connector_type = (
-            connector_info.get("connectorType", "")
-            if isinstance(connector_info, dict)
-            else ""
-        )
+        if isinstance(connector_info, dict):
+            connector_type = connector_info.get("connectorType", "")
+            connector_details = connector_info.get("connectorDetails") or {}
+            connector_name = (
+                connector_details.get("name", "")
+                if isinstance(connector_details, dict)
+                else ""
+            )
+        else:
+            connector_type = ""
+            connector_name = ""
         if api_name:
             streams.append(StreamInfo(
                 api_name=api_name,
                 source_object=source or "",
                 label=label,
                 connector_type=connector_type,
+                connector_name=connector_name,
             ))
     return streams
 
@@ -227,12 +238,16 @@ def execute_phase5_5(
 
     result.streams_discovered = len(streams)
     sources_set = set(sources_to_match)
-    # Match if legacy source_object is in allowlist OR connector_type
-    # indicates a CRM source (live v60.0 API omits sourceObject entirely
-    # and exposes the upstream system via connectorInfo.connectorType).
+    # Match if legacy source_object is in allowlist OR connector_name
+    # equals "SalesforceDotCom_Home" (live v60.0 API omits sourceObject
+    # entirely and exposes the upstream system via connectorInfo. The
+    # narrower connectorDetails.name check excludes external federation
+    # streams from other orgs — e.g. SalesforceDotCom_FinsDC1 — which
+    # share connectorType "SalesforceDotCom" but are NOT this org's own
+    # data and therefore must not be triggered by the hydrate refresh).
     matching = [
         s for s in streams
-        if s.source_object in sources_set or s.connector_type == "SalesforceDotCom"
+        if s.source_object in sources_set or s.connector_name == "SalesforceDotCom_Home"
     ]
     result.streams_matched = len(matching)
 

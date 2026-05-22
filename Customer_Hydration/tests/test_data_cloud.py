@@ -138,20 +138,22 @@ def test_list_streams_handles_alt_response_shape():
 
 def test_list_streams_extracts_connector_type_from_connectorInfo():
     """Live API shape: top-level sourceObject is absent; connectorInfo.connectorType
-    indicates the upstream system. The parser must populate
-    ``StreamInfo.connector_type`` and leave ``source_object`` empty."""
+    indicates the upstream system and connectorDetails.name disambiguates
+    own-source vs federation streams. The parser must populate both
+    ``StreamInfo.connector_type`` and ``StreamInfo.connector_name`` and leave
+    ``source_object`` empty."""
     payload = {
         "dataStreams": [
             {
-                "name": "Account_FinsDC1",
-                "label": "Account FinsDC1",
+                "name": "Account_Home",
+                "label": "Account Home",
                 "connectorInfo": {
                     "connectorType": "SalesforceDotCom",
-                    "connectorDetails": {"name": "SalesforceDotCom_FinsDC1"},
+                    "connectorDetails": {"name": "SalesforceDotCom_Home"},
                 },
                 "dataLakeObjectInfo": {
-                    "name": "Account_FinsDC1__dll",
-                    "label": "Account_FinsDC1",
+                    "name": "Account_Home__dll",
+                    "label": "Account_Home",
                 },
                 "lastRunStatus": "SUCCESS",
                 "status": "ACTIVE",
@@ -163,10 +165,11 @@ def test_list_streams_extracts_connector_type_from_connectorInfo():
     with patch("urllib.request.urlopen", return_value=resp):
         streams = list_streams("https://example.my.salesforce.com", "tok")
     assert len(streams) == 1
-    assert streams[0].api_name == "Account_FinsDC1"
+    assert streams[0].api_name == "Account_Home"
     assert streams[0].connector_type == "SalesforceDotCom"
+    assert streams[0].connector_name == "SalesforceDotCom_Home"
     assert streams[0].source_object == ""
-    assert streams[0].label == "Account FinsDC1"
+    assert streams[0].label == "Account Home"
 
 
 # --------------------------------------------------------------------------
@@ -254,11 +257,14 @@ def test_execute_phase5_5_skips_streams_with_unmatched_source_object():
     assert result.stream_trigger_failures == []
 
 
-def test_execute_phase5_5_matches_streams_by_connector_type_when_source_object_missing():
+def test_execute_phase5_5_matches_only_own_source_dotcom_home_connector():
     """Live API shape regression: when no top-level ``sourceObject`` is
-    present, streams whose ``connectorInfo.connectorType == "SalesforceDotCom"``
-    must still be matched and triggered. Non-SFDC connector types
-    (e.g. SNOWFLAKE) must NOT be triggered."""
+    present, only streams whose ``connectorInfo.connectorDetails.name ==
+    "SalesforceDotCom_Home"`` (i.e. the org's OWN data) must be matched
+    and triggered. External federation streams from other orgs (e.g.
+    ``SalesforceDotCom_FinsDC1``) and non-SFDC connector types
+    (e.g. SNOWFLAKE) must NOT be triggered, even if ``connectorType ==
+    "SalesforceDotCom"``."""
     org_payload = {
         "result": {
             "instanceUrl": "https://example.my.salesforce.com",
@@ -268,19 +274,28 @@ def test_execute_phase5_5_matches_streams_by_connector_type_when_source_object_m
     streams_payload = {
         "dataStreams": [
             {
-                "name": "Account_FinsDC1",
-                "label": "Account FinsDC1",
-                "connectorInfo": {"connectorType": "SalesforceDotCom"},
+                "name": "Account_Home",
+                "label": "Account Home",
+                "connectorInfo": {
+                    "connectorType": "SalesforceDotCom",
+                    "connectorDetails": {"name": "SalesforceDotCom_Home"},
+                },
             },
             {
-                "name": "Contact_FinsDC1",
-                "label": "Contact FinsDC1",
-                "connectorInfo": {"connectorType": "SalesforceDotCom"},
+                "name": "Account_FinsDC1",
+                "label": "Account FinsDC1 (federation)",
+                "connectorInfo": {
+                    "connectorType": "SalesforceDotCom",
+                    "connectorDetails": {"name": "SalesforceDotCom_FinsDC1"},
+                },
             },
             {
                 "name": "Activities_Snow",
                 "label": "Activities Snowflake",
-                "connectorInfo": {"connectorType": "SNOWFLAKE"},
+                "connectorInfo": {
+                    "connectorType": "SNOWFLAKE",
+                    "connectorDetails": {"name": "Snowflake_Default"},
+                },
             },
         ]
     }
@@ -289,21 +304,20 @@ def test_execute_phase5_5_matches_streams_by_connector_type_when_source_object_m
     sf_proc = _proc(returncode=0, stdout=json.dumps(org_payload))
     list_resp = _fake_urlopen_response(streams_payload)
     refresh_resp_1 = _fake_urlopen_response(refresh_payload)
-    refresh_resp_2 = _fake_urlopen_response(refresh_payload)
 
     with patch.object(data_cloud.subprocess, "run", return_value=sf_proc):
         with patch(
             "urllib.request.urlopen",
-            side_effect=[list_resp, refresh_resp_1, refresh_resp_2],
+            side_effect=[list_resp, refresh_resp_1],
         ):
             result = execute_phase5_5(target_org="my-org")
 
     assert result.streams_discovered == 3
-    assert result.streams_matched == 2
-    assert result.streams_triggered == 2
+    assert result.streams_matched == 1
+    assert result.streams_triggered == 1
     triggered_names = {r.stream_api_name for r in result.stream_runs}
-    assert "Account_FinsDC1" in triggered_names
-    assert "Contact_FinsDC1" in triggered_names
+    assert "Account_Home" in triggered_names
+    assert "Account_FinsDC1" not in triggered_names
     assert "Activities_Snow" not in triggered_names
     assert all(r.status == "Triggered" for r in result.stream_runs)
     assert result.stream_trigger_failures == []
