@@ -86,6 +86,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Required for non-sandbox orgs",
     )
 
+    p_segments = sub.add_parser(
+        "create-segments",
+        help="Create + publish DC segments from segments.yaml (Phase 2)",
+    )
+    _add_global_args(p_segments)
+    p_segments.add_argument("--allow-production", action="store_true")
+    p_segments.add_argument(
+        "--segment-id", default=None,
+        help="Process only one segment by config key",
+    )
+    p_segments.add_argument(
+        "--skip-publish", action="store_true",
+        help="Create/patch but don't publish",
+    )
+    # Note: --dry-run is inherited from _add_global_args above (would conflict
+    # if redeclared); it's reused here as the "print what would happen without
+    # making changes" mode.
+
     p_resume = sub.add_parser("resume", help="Continue an interrupted run (Plan 3)")
     _add_global_args(p_resume)
     _add_hydrate_args(p_resume)
@@ -138,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_dc_status(args)
     if args.subcommand == "refresh-streams":
         return _run_refresh_streams(args)
+    if args.subcommand == "create-segments":
+        return _run_create_segments(args)
     if args.subcommand == "briefs":
         return _run_briefs(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)
@@ -506,6 +526,79 @@ def _run_refresh_streams(args: argparse.Namespace) -> int:
     )
     print(f"Manifest: {manifest_path}")
     # Phase 5.5 fire-and-forget: even with trigger failures, exit 0
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 / Task 6 — create-segments subcommand
+# ---------------------------------------------------------------------------
+
+
+def _run_create_segments(args) -> int:
+    """Create + publish DC segments from segments.yaml (Phase 2)."""
+    yaml_path = Path(args.config_dir) / "segments.yaml"
+    if not yaml_path.exists():
+        print(f"segments.yaml not found at {yaml_path}", file=sys.stderr)
+        return 2
+
+    if not args.dry_run:
+        if args.target_org is None:
+            print("--target-org is required (unless --dry-run)", file=sys.stderr)
+            return 2
+        runner = SfRunner(args.target_org)
+        org_info = runner._run([  # noqa: SLF001
+            "sf", "org", "display", "--target-org", args.target_org, "--json",
+        ])
+        is_sandbox = bool(org_info.get("result", {}).get("isSandbox", False))
+        if not is_sandbox and not getattr(args, "allow_production", False):
+            print(
+                f"Refusing to create segments in non-sandbox org {args.target_org}. "
+                f"Pass --allow-production to override.",
+                file=sys.stderr,
+            )
+            return 2
+
+    from customer_hydration.phase5.segments import execute_create_segments
+    result = execute_create_segments(
+        target_org=args.target_org or "DRY-RUN",
+        yaml_path=yaml_path,
+        segment_id=args.segment_id,
+        skip_publish=args.skip_publish,
+        dry_run=args.dry_run,
+    )
+
+    if not args.dry_run:
+        from datetime import datetime, timezone
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M")
+        manifest_path = Path(args.output_dir) / f"create-segments-{ts}.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(json.dumps({
+            "target_org": args.target_org,
+            "segments_processed": result.segments_processed,
+            "segments_created": result.segments_created,
+            "segments_patched": result.segments_patched,
+            "segments_published": result.segments_published,
+            "segments_failed": result.segments_failed,
+            "results": [
+                {
+                    "config_key": r.config_key,
+                    "api_name": r.api_name,
+                    "created": r.created,
+                    "patched": r.patched,
+                    "published": r.published,
+                    "error": r.error,
+                }
+                for r in result.results
+            ],
+        }, indent=2), encoding="utf-8")
+        print(f"Manifest: {manifest_path}")
+
+    print(f"Segments processed: {result.segments_processed}")
+    print(f"  Created: {result.segments_created}")
+    print(f"  Patched: {result.segments_patched}")
+    print(f"  Published: {result.segments_published}")
+    print(f"  Failed: {result.segments_failed}")
+    # Fire-and-forget: per-segment failures don't make the run exit non-zero
     return 0
 
 
