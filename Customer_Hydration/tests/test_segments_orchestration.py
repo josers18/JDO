@@ -293,6 +293,92 @@ segments:
         ops = {f["operator"] for f in user["filters"]}
         assert ops == {"after", "before"}
 
+    def test_age_gte_translates_to_relative_date_before_negative(self, tmp_path: Path):
+        """age_gte: N -> field BEFORE (now - N years).
+
+        ExactlyRelativeDateComparison with operator=before and value=-N.
+        Live API requires lowercase dateUnits ("years")."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  senior_wealth:
+    name: "Senior Wealth"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: age_gte
+      field: PersonBirthdate__c
+      value: 60
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]
+        assert user["type"] == "ExactlyRelativeDateComparison"
+        assert user["operator"] == "before"
+        assert user["dateUnits"] == "years"
+        assert user["value"] == -60
+        assert user["subject"] == {
+            "objectApiName": "Account_demo__dlm",
+            "fieldApiName": "PersonBirthdate__c",
+        }
+
+    def test_age_lte_translates_to_relative_date_after_negative(self, tmp_path: Path):
+        """age_lte: N -> field AFTER (now - N years)."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  young_wealth:
+    name: "Young Wealth"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: age_lte
+      field: PersonBirthdate__c
+      value: 40
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]
+        assert user["type"] == "ExactlyRelativeDateComparison"
+        assert user["operator"] == "after"
+        assert user["dateUnits"] == "years"
+        assert user["value"] == -40
+
+    def test_age_in_range_translates_to_logical_and_of_relative_dates(self, tmp_path: Path):
+        """age_in_range: [55, 65] -> AND(BEFORE -55y, AFTER -65y).
+
+        This produces a self-correcting age window because DC re-evaluates
+        ExactlyRelativeDateComparison at each publish, replacing frozen
+        date anchors that drift as the calendar advances."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  pre_retiree:
+    name: "Pre-Retiree"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: age_in_range
+      field: PersonBirthdate__c
+      min_age: 55
+      max_age: 65
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]
+        assert user["type"] == "LogicalComparison"
+        assert user["operator"] == "and"
+        # Two ExactlyRelativeDateComparison filters
+        rel_filters = user["filters"]
+        assert len(rel_filters) == 2
+        for f in rel_filters:
+            assert f["type"] == "ExactlyRelativeDateComparison"
+            assert f["dateUnits"] == "years"
+        ops_to_values = {f["operator"]: f["value"] for f in rel_filters}
+        # min_age -> "before -55y" (older than 55, so DOB is more than 55y in the past)
+        # max_age -> "after -65y"  (younger than 65, so DOB is less than 65y in the past)
+        assert ops_to_values == {"before": -55, "after": -65}
+
     def test_unknown_rule_type_raises(self, tmp_path: Path):
         yaml_path = self._write(tmp_path, """\
 segments:

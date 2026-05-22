@@ -192,6 +192,34 @@ def _datetime_comparison(
     }
 
 
+def _relative_date_comparison(
+    target_dmo: str, field: str, operator: str, value: int, units: str = "years",
+) -> dict[str, Any]:
+    """Emit an ExactlyRelativeDateComparison clause.
+
+    DC evaluates the comparison at publish time, so the value is anchored
+    to today, not to a frozen calendar date. Used to express age windows
+    via PersonBirthdate without time-fragility.
+
+    Live API quirks (verified 2026-05-22 against jdo-uqj0jr):
+    - ``dateUnits`` is lowercase (``"years"``, ``"days"``, ``"months"``).
+      Title-case ``"Years"`` from the spec is rejected as
+      ``"Unexpected value 'Years'"``.
+    - ``value`` is a signed integer. Negative values mean "in the past":
+      ``operator: "after",  value: -65`` means "field date is later than
+      65 years ago" (i.e. the person is younger than 65). ``operator:
+      "before", value: -55`` means "field date is earlier than 55 years
+      ago" (i.e. the person is older than 55).
+    """
+    return {
+        "type": "ExactlyRelativeDateComparison",
+        "subject": _subject(target_dmo, field),
+        "operator": operator,
+        "dateUnits": units,
+        "value": value,
+    }
+
+
 def _and(*filters: dict[str, Any]) -> dict[str, Any]:
     # Live DC create endpoint expects a flat filter array — see
     # inject_hydrate_clause docstring for the asymmetry note.
@@ -254,10 +282,36 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
             _datetime_comparison(target_dmo, field, "before", [rule["before"]]),
         )
 
+    # Age rules use ExactlyRelativeDateComparison so DC re-evaluates the
+    # window at publish time. The YAML expresses age in years; the
+    # translator inverts to a date-of-birth filter relative to "now".
+    #
+    # Mapping (where field is a birthdate-like column):
+    #   age >= N   ->  field BEFORE  (now - N years)
+    #   age <= N   ->  field AFTER   (now - N years - 1 day approximation:
+    #                                   we use the year-boundary, which DC
+    #                                   evaluates as "more recent than
+    #                                   exactly N years ago")
+    #
+    # For age_in_range with [min_age, max_age]:
+    #   field BEFORE (now - min_age years)  AND  field AFTER (now - max_age years)
+    if rule_type == "age_gte":
+        return _relative_date_comparison(target_dmo, field, "before", -int(rule["value"]))
+    if rule_type == "age_lte":
+        return _relative_date_comparison(target_dmo, field, "after", -int(rule["value"]))
+    if rule_type == "age_in_range":
+        min_age = int(rule["min_age"])
+        max_age = int(rule["max_age"])
+        return _and(
+            _relative_date_comparison(target_dmo, field, "before", -min_age),
+            _relative_date_comparison(target_dmo, field, "after", -max_age),
+        )
+
     raise ValueError(
         f"Segment {config_key!r}: unsupported rule type {rule_type!r}. "
         f"Supported: text_equals, text_contains, text_in, text_has_value, "
-        f"number_gt/lt/gte/lte, number_in_range, date_before, date_after, date_in_range."
+        f"number_gt/lt/gte/lte, number_in_range, date_before, date_after, "
+        f"date_in_range, age_gte, age_lte, age_in_range."
     )
 
 

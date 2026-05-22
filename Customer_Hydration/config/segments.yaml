@@ -45,6 +45,14 @@
 #   date_before      -> DateTimeComparison operator "before"
 #   date_after       -> DateTimeComparison operator "after"
 #   date_in_range    -> LogicalComparison.and of two DateTimeComparisons
+#   age_gte          -> ExactlyRelativeDateComparison "before" -N years
+#                       (field is a birthdate; "before -N years" = older than N)
+#   age_lte          -> ExactlyRelativeDateComparison "after"  -N years
+#                       (field is a birthdate; "after -N years"  = younger than N)
+#   age_in_range     -> LogicalComparison.and of two ExactlyRelativeDateComparisons.
+#                       Self-correcting: DC re-evaluates the relative date
+#                       at every publish, so the age window doesn't drift.
+#                       Live API quirk: dateUnits is lowercase ("years").
 #
 # Many of the original 20 segments cross-referenced DMOs we have NOT
 # hydrated yet (Mortgage, HELOC, LifeEvent, CampaignMember). For those,
@@ -115,22 +123,23 @@ segments:
 
   # ----- 6 lifecycle / sub-segments -----
   #
-  # Pre-retiree window: ages 55-65 -> birthdates between (today-65y) and
-  # (today-55y). The literal anchor dates 1961-01-01 / 1971-01-01 are
-  # close enough for the demo data and avoid a CURRENT_DATE() function
-  # call which the DC DSL does not support inline.
+  # WealthPreRetiree uses age_in_range against PersonBirthdate__c. The
+  # translator emits ExactlyRelativeDateComparison clauses (live-API
+  # type), so DC re-evaluates the age window at every publish — the
+  # segment is self-correcting as the calendar advances. No annual
+  # YAML maintenance needed.
 
   wealth_pre_retiree:
     name: "Wealth Pre-Retirees (55-65)"
-    description: "Wealth Management clients born 1961-1971 (pre-retirement window)"
+    description: "Wealth Management clients aged 55-65 (pre-retirement window) — self-correcting via relative-date comparison"
     persona: wealth
     publish_schedule: daily
     target_dmo: Account_demo__dlm
     rule:
-      type: date_in_range
+      type: age_in_range
       field: PersonBirthdate__c
-      after: "1961-01-01"
-      before: "1971-01-01"
+      min_age: 55
+      max_age: 65
 
   retail_family_with_mortgage:
     name: "Retail Family-Building with Mortgage"
