@@ -38,6 +38,7 @@ class StreamInfo:
     api_name: str
     source_object: str
     label: str = ""
+    connector_type: str = ""
 
 
 @dataclass
@@ -148,11 +149,21 @@ def list_streams(
                 or ""
             )
         label = entry.get("label") or entry.get("MasterLabel") or ""
+        # Live API (v60.0) shape: connectorInfo.connectorType identifies the
+        # upstream system (SalesforceDotCom, SNOWFLAKE, etc.). Used by the
+        # Phase 5.5 matcher as a fallback when source_object is empty.
+        connector_info = entry.get("connectorInfo") or {}
+        connector_type = (
+            connector_info.get("connectorType", "")
+            if isinstance(connector_info, dict)
+            else ""
+        )
         if api_name:
             streams.append(StreamInfo(
                 api_name=api_name,
                 source_object=source or "",
                 label=label,
+                connector_type=connector_type,
             ))
     return streams
 
@@ -216,7 +227,13 @@ def execute_phase5_5(
 
     result.streams_discovered = len(streams)
     sources_set = set(sources_to_match)
-    matching = [s for s in streams if s.source_object in sources_set]
+    # Match if legacy source_object is in allowlist OR connector_type
+    # indicates a CRM source (live v60.0 API omits sourceObject entirely
+    # and exposes the upstream system via connectorInfo.connectorType).
+    matching = [
+        s for s in streams
+        if s.source_object in sources_set or s.connector_type == "SalesforceDotCom"
+    ]
     result.streams_matched = len(matching)
 
     for stream in matching:

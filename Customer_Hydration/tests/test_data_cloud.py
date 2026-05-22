@@ -136,6 +136,39 @@ def test_list_streams_handles_alt_response_shape():
     assert by_name["Stream_Task__dlm"].source_object == "Task"
 
 
+def test_list_streams_extracts_connector_type_from_connectorInfo():
+    """Live API shape: top-level sourceObject is absent; connectorInfo.connectorType
+    indicates the upstream system. The parser must populate
+    ``StreamInfo.connector_type`` and leave ``source_object`` empty."""
+    payload = {
+        "dataStreams": [
+            {
+                "name": "Account_FinsDC1",
+                "label": "Account FinsDC1",
+                "connectorInfo": {
+                    "connectorType": "SalesforceDotCom",
+                    "connectorDetails": {"name": "SalesforceDotCom_FinsDC1"},
+                },
+                "dataLakeObjectInfo": {
+                    "name": "Account_FinsDC1__dll",
+                    "label": "Account_FinsDC1",
+                },
+                "lastRunStatus": "SUCCESS",
+                "status": "ACTIVE",
+                "totalRecords": 0,
+            },
+        ]
+    }
+    resp = _fake_urlopen_response(payload)
+    with patch("urllib.request.urlopen", return_value=resp):
+        streams = list_streams("https://example.my.salesforce.com", "tok")
+    assert len(streams) == 1
+    assert streams[0].api_name == "Account_FinsDC1"
+    assert streams[0].connector_type == "SalesforceDotCom"
+    assert streams[0].source_object == ""
+    assert streams[0].label == "Account FinsDC1"
+
+
 # --------------------------------------------------------------------------
 # trigger_stream_refresh
 # --------------------------------------------------------------------------
@@ -217,6 +250,61 @@ def test_execute_phase5_5_skips_streams_with_unmatched_source_object():
     assert "Stream_Account__dlm" in triggered_names
     assert "Stream_Contact__dlm" in triggered_names
     assert "Stream_Custom__dlm" not in triggered_names
+    assert all(r.status == "Triggered" for r in result.stream_runs)
+    assert result.stream_trigger_failures == []
+
+
+def test_execute_phase5_5_matches_streams_by_connector_type_when_source_object_missing():
+    """Live API shape regression: when no top-level ``sourceObject`` is
+    present, streams whose ``connectorInfo.connectorType == "SalesforceDotCom"``
+    must still be matched and triggered. Non-SFDC connector types
+    (e.g. SNOWFLAKE) must NOT be triggered."""
+    org_payload = {
+        "result": {
+            "instanceUrl": "https://example.my.salesforce.com",
+            "accessToken": "tok",
+        }
+    }
+    streams_payload = {
+        "dataStreams": [
+            {
+                "name": "Account_FinsDC1",
+                "label": "Account FinsDC1",
+                "connectorInfo": {"connectorType": "SalesforceDotCom"},
+            },
+            {
+                "name": "Contact_FinsDC1",
+                "label": "Contact FinsDC1",
+                "connectorInfo": {"connectorType": "SalesforceDotCom"},
+            },
+            {
+                "name": "Activities_Snow",
+                "label": "Activities Snowflake",
+                "connectorInfo": {"connectorType": "SNOWFLAKE"},
+            },
+        ]
+    }
+    refresh_payload = {"runId": "0d3000FAKE"}
+
+    sf_proc = _proc(returncode=0, stdout=json.dumps(org_payload))
+    list_resp = _fake_urlopen_response(streams_payload)
+    refresh_resp_1 = _fake_urlopen_response(refresh_payload)
+    refresh_resp_2 = _fake_urlopen_response(refresh_payload)
+
+    with patch.object(data_cloud.subprocess, "run", return_value=sf_proc):
+        with patch(
+            "urllib.request.urlopen",
+            side_effect=[list_resp, refresh_resp_1, refresh_resp_2],
+        ):
+            result = execute_phase5_5(target_org="my-org")
+
+    assert result.streams_discovered == 3
+    assert result.streams_matched == 2
+    assert result.streams_triggered == 2
+    triggered_names = {r.stream_api_name for r in result.stream_runs}
+    assert "Account_FinsDC1" in triggered_names
+    assert "Contact_FinsDC1" in triggered_names
+    assert "Activities_Snow" not in triggered_names
     assert all(r.status == "Triggered" for r in result.stream_runs)
     assert result.stream_trigger_failures == []
 
