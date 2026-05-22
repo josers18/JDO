@@ -7,10 +7,13 @@ the rest.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
 import yaml
+
+from customer_hydration.sf_runner import SfRunner
 
 
 def _add_global_args(p: argparse.ArgumentParser) -> None:
@@ -72,6 +75,17 @@ def build_parser() -> argparse.ArgumentParser:
                       help="Machine-readable output")
     p_dc.add_argument("--watch", action="store_true",
                       help="Poll every 30s until done (v1: single-shot poll)")
+
+    p_refresh = sub.add_parser(
+        "refresh-streams",
+        help="Refresh DC streams sourcing from hydrated objects (Phase 2)",
+    )
+    _add_global_args(p_refresh)
+    p_refresh.add_argument(
+        "--allow-production", action="store_true",
+        help="Required for non-sandbox orgs",
+    )
+
     p_resume = sub.add_parser("resume", help="Continue an interrupted run (Plan 3)")
     _add_global_args(p_resume)
     _add_hydrate_args(p_resume)
@@ -122,6 +136,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_status(args)
     if args.subcommand == "dc-status":
         return _run_dc_status(args)
+    if args.subcommand == "refresh-streams":
+        return _run_refresh_streams(args)
     if args.subcommand == "briefs":
         return _run_briefs(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)
@@ -432,6 +448,65 @@ def _run_dc_status(args: argparse.Namespace) -> int:
         print(f"{complete} complete · {in_progress} in progress · {failed} failed")
 
     return 0 if failed == 0 else 2
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 / Task 5 — refresh-streams subcommand
+# ---------------------------------------------------------------------------
+
+
+def _run_refresh_streams(args: argparse.Namespace) -> int:
+    """Refresh DC streams sourcing from hydrated objects (Phase 2)."""
+    if args.target_org is None:
+        print("--target-org is required", file=sys.stderr)
+        return 2
+
+    runner = SfRunner(args.target_org)
+    org_info = runner._run([  # noqa: SLF001 — same pattern as _run_reset
+        "sf", "org", "display", "--target-org", args.target_org, "--json",
+    ])
+    is_sandbox = bool(org_info.get("result", {}).get("isSandbox", False))
+    if not is_sandbox and not getattr(args, "allow_production", False):
+        print(
+            f"Refusing to refresh streams in non-sandbox org {args.target_org}. "
+            f"Pass --allow-production to override.",
+            file=sys.stderr,
+        )
+        return 2
+
+    from customer_hydration.phase5.segments import execute_refresh_streams
+    result = execute_refresh_streams(target_org=args.target_org)
+
+    from datetime import datetime, timezone
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M")
+    manifest_path = Path(args.output_dir) / f"refresh-streams-{ts}.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps({
+        "target_org": args.target_org,
+        "streams_discovered": result.streams_discovered,
+        "streams_matched": result.streams_matched,
+        "streams_triggered": result.streams_triggered,
+        "stream_runs": [
+            {
+                "stream_api_name": sr.stream_api_name,
+                "source_object": sr.source_object,
+                "run_id": sr.run_id,
+                "status": sr.status,
+                "triggered_at": sr.triggered_at,
+                "error": sr.error,
+            }
+            for sr in result.stream_runs
+        ],
+        "stream_trigger_failures": result.stream_trigger_failures,
+    }, indent=2), encoding="utf-8")
+
+    print(
+        f"Refreshed {result.streams_triggered} of "
+        f"{result.streams_matched} matched streams"
+    )
+    print(f"Manifest: {manifest_path}")
+    # Phase 5.5 fire-and-forget: even with trigger failures, exit 0
+    return 0
 
 
 # ---------------------------------------------------------------------------
