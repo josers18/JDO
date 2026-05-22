@@ -63,6 +63,26 @@ class DataCloudStreamRefreshResult:
     stream_trigger_failures: list[str] = field(default_factory=list)
 
 
+@dataclass
+class SegmentInfo:
+    """Subset of a segment's metadata returned by list_segments."""
+    api_name: str
+    display_name: str
+    description: str
+    target_dmo: str
+    publish_schedule: str
+
+
+@dataclass
+class SegmentStatus:
+    """Current state of a segment: status + member count + last publish time."""
+    api_name: str
+    status: str  # DRAFT | PUBLISHING | PUBLISHED | FAILED | NOT_FOUND
+    member_count: int | None
+    last_publish_time: str | None
+    error: str | None = None
+
+
 def get_org_session(target_org: str) -> tuple[str, str]:
     """Return ``(instance_url, access_token)`` for the target org via
     ``sf org display --verbose --json``.
@@ -246,3 +266,206 @@ def poll_stream_run_status(
     })
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read())
+
+
+def list_segments(
+    instance_url: str, access_token: str, api_version: str = "v60.0",
+) -> list[SegmentInfo]:
+    """List all DC Segments via GET /services/data/{v}/ssot/segments.
+
+    Tolerates response shape variation: tries `segments`, `dataSegments`,
+    `records` keys in order. Returns empty list on any HTTP error
+    (Phase 5.5 fire-and-forget convention)."""
+    import urllib.request
+    from urllib.error import HTTPError, URLError
+    url = f"{instance_url}/services/data/{api_version}/ssot/segments"
+    req = urllib.request.Request(url, headers={
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+    except (HTTPError, URLError, json.JSONDecodeError):
+        return []
+    raw = data.get("segments") or data.get("dataSegments") or data.get("records") or []
+    out: list[SegmentInfo] = []
+    for entry in raw:
+        api_name = entry.get("apiName") or entry.get("name") or entry.get("DataSegmentApiName") or ""
+        if not api_name:
+            continue
+        out.append(SegmentInfo(
+            api_name=api_name,
+            display_name=entry.get("displayName") or entry.get("masterLabel") or api_name,
+            description=entry.get("description") or "",
+            target_dmo=entry.get("targetDmo") or entry.get("targetEntity") or "",
+            publish_schedule=entry.get("publishSchedule") or "manual",
+        ))
+    return out
+
+
+def create_segment(
+    instance_url: str, access_token: str, *,
+    api_name: str,
+    display_name: str,
+    description: str,
+    target_dmo: str,
+    filter_sql: str,
+    publish_schedule: str = "manual",
+    api_version: str = "v60.0",
+) -> tuple[bool, str | None]:
+    """Create a new segment via POST /services/data/{v}/ssot/segments.
+
+    Returns (success, segment_id_or_error_message). Never raises.
+    Phase 5.5 fire-and-forget contract: HTTP errors are returned as
+    (False, error_string), not raised."""
+    import urllib.request
+    from urllib.error import HTTPError, URLError
+    url = f"{instance_url}/services/data/{api_version}/ssot/segments"
+    body = {
+        "apiName": api_name,
+        "displayName": display_name,
+        "description": description,
+        "targetDmo": target_dmo,
+        "filter": filter_sql,
+        "publishSchedule": publish_schedule,
+    }
+    req = urllib.request.Request(
+        url, method="POST",
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read())
+        return (True, data.get("id") or data.get("segmentId") or api_name)
+    except HTTPError as exc:
+        try:
+            err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
+        except Exception:
+            err_body = ""
+        return (False, f"HTTP {exc.code} {exc.reason}: {err_body[:200]}")
+    except (URLError, json.JSONDecodeError) as exc:
+        return (False, str(exc))
+
+
+def patch_segment(
+    instance_url: str, access_token: str, *,
+    api_name: str,
+    display_name: str,
+    description: str,
+    filter_sql: str,
+    publish_schedule: str = "manual",
+    api_version: str = "v60.0",
+) -> tuple[bool, str | None]:
+    """Update an existing segment via PATCH /services/data/{v}/ssot/segments/{api_name}.
+
+    Returns (success, segment_id_or_error). Never raises."""
+    import urllib.request
+    from urllib.error import HTTPError, URLError
+    url = f"{instance_url}/services/data/{api_version}/ssot/segments/{api_name}"
+    body = {
+        "displayName": display_name,
+        "description": description,
+        "filter": filter_sql,
+        "publishSchedule": publish_schedule,
+    }
+    req = urllib.request.Request(
+        url, method="PATCH",
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read())
+        return (True, data.get("id") or data.get("segmentId") or api_name)
+    except HTTPError as exc:
+        try:
+            err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
+        except Exception:
+            err_body = ""
+        return (False, f"HTTP {exc.code} {exc.reason}: {err_body[:200]}")
+    except (URLError, json.JSONDecodeError) as exc:
+        return (False, str(exc))
+
+
+def publish_segment(
+    instance_url: str, access_token: str, *,
+    api_name: str,
+    api_version: str = "v60.0",
+) -> tuple[bool, str | None]:
+    """Trigger a publish (membership computation) for a segment via
+    POST /services/data/{v}/ssot/segments/{api_name}/publish.
+
+    Returns (success, run_id_or_error). Never raises."""
+    import urllib.request
+    from urllib.error import HTTPError, URLError
+    url = f"{instance_url}/services/data/{api_version}/ssot/segments/{api_name}/publish"
+    req = urllib.request.Request(url, method="POST", headers={
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+        return (True, data.get("runId") or data.get("id") or api_name)
+    except HTTPError as exc:
+        try:
+            err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
+        except Exception:
+            err_body = ""
+        return (False, f"HTTP {exc.code} {exc.reason}: {err_body[:200]}")
+    except (URLError, json.JSONDecodeError) as exc:
+        return (False, str(exc))
+
+
+def get_segment_status(
+    instance_url: str, access_token: str, *,
+    api_name: str,
+    api_version: str = "v60.0",
+) -> SegmentStatus:
+    """Fetch a segment's current state via GET /services/data/{v}/ssot/segments/{api_name}.
+
+    Returns SegmentStatus. Never raises — returns a status with status=NOT_FOUND or FAILED
+    on HTTP error."""
+    import urllib.request
+    from urllib.error import HTTPError, URLError
+    url = f"{instance_url}/services/data/{api_version}/ssot/segments/{api_name}"
+    req = urllib.request.Request(url, headers={
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+        return SegmentStatus(
+            api_name=api_name,
+            status=data.get("status") or "UNKNOWN",
+            member_count=data.get("memberCount"),
+            last_publish_time=data.get("lastPublishTime"),
+            error=None,
+        )
+    except HTTPError as exc:
+        return SegmentStatus(
+            api_name=api_name,
+            status="NOT_FOUND" if exc.code == 404 else "FAILED",
+            member_count=None,
+            last_publish_time=None,
+            error=f"HTTP {exc.code} {exc.reason}",
+        )
+    except (URLError, json.JSONDecodeError) as exc:
+        return SegmentStatus(
+            api_name=api_name,
+            status="FAILED",
+            member_count=None,
+            last_publish_time=None,
+            error=str(exc),
+        )
