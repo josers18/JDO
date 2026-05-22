@@ -230,14 +230,56 @@ def _and(*filters: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _or(*filters: dict[str, Any]) -> dict[str, Any]:
+    """LogicalComparison.or wrapper. Symmetric counterpart to ``_and``."""
+    return {
+        "type": "LogicalComparison",
+        "operator": "or",
+        "filters": list(filters),
+    }
+
+
 def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> dict[str, Any]:
-    """Translate one YAML rule into the DC JSON DSL."""
+    """Translate one YAML rule into the DC JSON DSL.
+
+    Compound rules (``all_of`` / ``any_of``) recurse into their sub-rules
+    so callers can build arbitrarily nested AND/OR trees:
+
+        rule:
+          type: all_of
+          rules:
+            - type: text_equals
+              field: FinServ_ClientCategory_c__c
+              value: "Wealth Management"
+            - type: age_in_range
+              field: PersonBirthdate__c
+              min_age: 55
+              max_age: 65
+
+    Atomic rules (``text_*``, ``number_*``, ``date_*``, ``age_*``) require
+    a ``field``; compound rules don't.
+    """
     rule_type = rule.get("type")
-    field = rule.get("field")
     if rule_type is None:
         raise ValueError(f"Segment {config_key!r}.rule.type is required")
-    # text_has_value is the only operator that doesn't need a field-bound value.
-    if field is None and rule_type != "raw":
+
+    # ----- Compound rules -----
+    if rule_type in ("all_of", "any_of"):
+        sub_rules = rule.get("rules")
+        if not isinstance(sub_rules, list) or not sub_rules:
+            raise ValueError(
+                f"Segment {config_key!r}.rule.rules must be a non-empty list "
+                f"for compound type {rule_type!r}"
+            )
+        translated = [_translate_rule(r, target_dmo, config_key) for r in sub_rules]
+        if len(translated) == 1:
+            # Don't wrap a single sub-rule in a logical-comparison.
+            return translated[0]
+        return _and(*translated) if rule_type == "all_of" else _or(*translated)
+
+    # Atomic rules from here down all need a field.
+    field = rule.get("field")
+    if field is None:
         raise ValueError(f"Segment {config_key!r}.rule.field is required for type {rule_type!r}")
 
     if rule_type == "text_equals":
@@ -311,7 +353,7 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
         f"Segment {config_key!r}: unsupported rule type {rule_type!r}. "
         f"Supported: text_equals, text_contains, text_in, text_has_value, "
         f"number_gt/lt/gte/lte, number_in_range, date_before, date_after, "
-        f"date_in_range, age_gte, age_lte, age_in_range."
+        f"date_in_range, age_gte, age_lte, age_in_range, all_of, any_of."
     )
 
 

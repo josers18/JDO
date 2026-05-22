@@ -5,6 +5,8 @@
 > **Phase 2.1 hot-fix (2026-05-22):** Persona-tier filter values were corrected to match the live `FinServ_ClientCategory_c__c` strings: `"Wealth"` → `"Wealth Management"`, `"Commercial"` → `"Commercial Banking"`. A new `HouseholdAll__seg` was added for the Household tier (3,424 hydrated rows that were uncaptured). Pre-fix, `WealthAll__seg` and `CommercialAll__seg` were matching 0 rows.
 >
 > **Phase 2.2 update (2026-05-22):** `WealthPreRetiree__seg` now uses an `age_in_range` rule that emits `ExactlyRelativeDateComparison` clauses (`PersonBirthdate__c` BEFORE `(now − 55y)` AND AFTER `(now − 65y)`). DC re-evaluates the relative dates at every publish, so the segment is self-correcting as the calendar advances — no annual YAML maintenance. The previous frozen anchors `1961-01-01 / 1971-01-01` are gone.
+>
+> **Phase 2.3 update (2026-05-22):** YAML schema gained `all_of` / `any_of` compound rules for arbitrary AND/OR nesting. `WealthPreRetiree__seg` now combines `FinServ_ClientCategory_c__c matches "Wealth Management"` AND the 55-65 age window — narrowed from "any tier aged 55-65" to "Wealth Management aged 55-65."
 
 For per-segment **live member counts and last-publish timestamps**, run:
 ```bash
@@ -118,18 +120,17 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 ### `WealthPreRetiree__seg` — Wealth Pre-Retirees (55-65)
 
 **Marketing brief**
-- **Persona:** Pre-retirement-age clients (any tier) — narrowed by age, not client category
+- **Persona:** Wealth Management clients in the pre-retirement window
 - **Use case:** Retirement readiness conversations — Social Security optimization, distribution planning, rollover consolidation, healthcare cost modeling. The highest-engagement segment for Wealth retention and AUM growth.
-- **Target:** Person Accounts aged 55-65 (calculated from `PersonBirthdate__c` relative to today). Self-correcting: the window slides forward as the calendar advances.
+- **Target:** Wealth Management Person Accounts aged 55-65 (calculated from `PersonBirthdate__c` relative to today). Self-correcting: the window slides forward as the calendar advances.
 - **Suggested channels:** Personalized RM outreach, retirement-planning webinars, in-branch consultation invitations, premium content.
 - **Refresh cadence:** Daily (intended). Window auto-corrects on every publish — no annual maintenance.
 
 **Technical implementation**
 - `apiName`: `WealthPreRetiree__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND (`PersonBirthdate__c BEFORE (now − 55 years)` AND `PersonBirthdate__c AFTER (now − 65 years)`)
-- DSL: `age_in_range` → `LogicalComparison.and` of two `ExactlyRelativeDateComparison` clauses with `dateUnits: "years"` and signed integer offsets (`-55`, `-65`)
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND (`FinServ_ClientCategory_c__c matches "Wealth Management"` AND (`PersonBirthdate__c BEFORE (now − 55 years)` AND `PersonBirthdate__c AFTER (now − 65 years)`))
+- DSL: `all_of` → `LogicalComparison.and` of [`text_equals "Wealth Management"`, `age_in_range 55..65`]. The `age_in_range` itself nests a `LogicalComparison.and` of two `ExactlyRelativeDateComparison` clauses (`dateUnits: "years"`, signed integer offsets `-55` / `-65`).
 - Self-correcting: DC re-evaluates `ExactlyRelativeDateComparison` at every publish, so the segment slides forward with the calendar without YAML edits.
-- **Compound-filter limitation:** the YAML schema currently supports one rule per segment, so this segment is age-only (it does NOT also filter on `FinServ_ClientCategory_c__c = "Wealth Management"`). All Person Accounts in the 55-65 age window match across all five client categories. To narrow to Wealth Management only, the YAML needs compound-rule support — captured as follow-up work.
 
 ---
 

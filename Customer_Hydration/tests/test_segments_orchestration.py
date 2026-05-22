@@ -379,6 +379,153 @@ segments:
         # max_age -> "after -65y"  (younger than 65, so DOB is less than 65y in the past)
         assert ops_to_values == {"before": -55, "after": -65}
 
+    def test_all_of_combines_two_atomic_rules_via_logical_and(self, tmp_path: Path):
+        """all_of with [text_equals, age_in_range] -> outer LogicalComparison.and
+        wrapping the two translated sub-rules. Combined with the auto-injected
+        HYDRATE clause, this gives a 3-clause AND chain at the top level."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  wealth_55_65:
+    name: "Wealth Pre-Retirees"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Wealth Management"
+        - type: age_in_range
+          field: PersonBirthdate__c
+          min_age: 55
+          max_age: 65
+""")
+        defs = load_segment_definitions(yaml_path)
+        outer = defs[0].include_criteria
+        assert outer["type"] == "LogicalComparison"
+        assert outer["operator"] == "and"
+        user = outer["filters"][1]
+        assert user["type"] == "LogicalComparison"
+        assert user["operator"] == "and"
+        assert len(user["filters"]) == 2
+        text_clause = user["filters"][0]
+        age_clause = user["filters"][1]
+        assert text_clause["type"] == "TextComparison"
+        assert text_clause["operator"] == "matches"
+        assert text_clause["values"] == ["Wealth Management"]
+        assert age_clause["type"] == "LogicalComparison"
+        assert age_clause["operator"] == "and"
+        ops = {f["operator"]: f["value"] for f in age_clause["filters"]}
+        assert ops == {"before": -55, "after": -65}
+
+    def test_any_of_combines_atomic_rules_via_logical_or(self, tmp_path: Path):
+        """any_of -> LogicalComparison.or."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  affluent_or_commercial:
+    name: "Affluent or Commercial"
+    description: "x"
+    persona: mixed
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: any_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Wealth Management"
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Commercial Banking"
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]
+        assert user["type"] == "LogicalComparison"
+        assert user["operator"] == "or"
+        values = {f["values"][0] for f in user["filters"]}
+        assert values == {"Wealth Management", "Commercial Banking"}
+
+    def test_compound_with_single_rule_unwraps_to_the_atomic(self, tmp_path: Path):
+        """A compound with exactly one sub-rule shouldn't wrap in a
+        no-op LogicalComparison. Pass the atomic clause through."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  retail_only:
+    name: "Retail (single)"
+    description: "x"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Retail"
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]
+        assert user["type"] == "TextComparison"
+        assert user["operator"] == "matches"
+        assert user["values"] == ["Retail"]
+
+    def test_nested_compound_rules(self, tmp_path: Path):
+        """Compound rules nest: any_of of (all_of, atomic)."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  niche:
+    name: "Niche"
+    description: "x"
+    persona: mixed
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: any_of
+      rules:
+        - type: all_of
+          rules:
+            - type: text_equals
+              field: FinServ_ClientCategory_c__c
+              value: "Wealth Management"
+            - type: age_in_range
+              field: PersonBirthdate__c
+              min_age: 55
+              max_age: 65
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Commercial Banking"
+""")
+        defs = load_segment_definitions(yaml_path)
+        user = defs[0].include_criteria["filters"][1]
+        assert user["type"] == "LogicalComparison"
+        assert user["operator"] == "or"
+        assert len(user["filters"]) == 2
+        first = user["filters"][0]
+        assert first["type"] == "LogicalComparison"
+        assert first["operator"] == "and"
+        second = user["filters"][1]
+        assert second["type"] == "TextComparison"
+        assert second["values"] == ["Commercial Banking"]
+
+    def test_compound_with_empty_rules_raises(self, tmp_path: Path):
+        """A compound with no sub-rules is a config error."""
+        yaml_path = self._write(tmp_path, """\
+segments:
+  bad:
+    name: "Bad"
+    description: "x"
+    persona: retail
+    publish_schedule: daily
+    target_dmo: Account_demo__dlm
+    rule:
+      type: all_of
+      rules: []
+""")
+        with pytest.raises(ValueError, match="non-empty list"):
+            load_segment_definitions(yaml_path)
+
     def test_unknown_rule_type_raises(self, tmp_path: Path):
         yaml_path = self._write(tmp_path, """\
 segments:
