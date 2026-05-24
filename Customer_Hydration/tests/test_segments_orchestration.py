@@ -92,6 +92,24 @@ class TestInjectHydrateClause:
         assert HYDRATE_CLAUSE["operator"] == "contains"
         assert HYDRATE_CLAUSE["values"] == ["HYDRATE-"]
 
+    def test_hydrate_clause_targets_segment_dmo_when_passed_explicitly(self):
+        """When inject_hydrate_clause is given a target_dmo, the HYDRATE
+        clause's subject.objectApiName matches that DMO. Phase 2.4
+        retargeted segments from Account_demo__dlm to ssot__Account__dlm,
+        so the HYDRATE filter must be parameterized rather than hardcoded."""
+        user = {
+            "type": "TextComparison",
+            "subject": {"objectApiName": "ssot__Account__dlm",
+                        "fieldApiName": "FinServ_ClientCategory_c__c"},
+            "operator": "matches",
+            "values": ["Retail"],
+        }
+        out = inject_hydrate_clause(user, "ssot__Account__dlm")
+        hydrate = out["filters"][0]
+        assert hydrate["subject"]["objectApiName"] == "ssot__Account__dlm"
+        assert hydrate["subject"]["fieldApiName"] == "External_ID_c__c"
+        assert hydrate["values"] == ["HYDRATE-"]
+
     def test_wrapping_a_logical_comparison_keeps_structure(self):
         # A user-supplied LogicalComparison.and is wrapped, NOT merged
         # (avoids mutating caller-provided structures and keeps the

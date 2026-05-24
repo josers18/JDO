@@ -13,8 +13,15 @@
 # AND-injected by the loader (see segments.inject_hydrate_clause), so
 # the YAML rule never needs to mention it.
 #
-# Verified live against jdo-uqj0jr on 2026-05-22.
-#   target DMO: Account_demo__dlm
+# Verified live against jdo-uqj0jr.
+#   target DMO: ssot__Account__dlm  (retargeted from Account_demo__dlm
+#       in Phase 2.4 on 2026-05-24 to use the FSC-canonical Account DMO).
+#       Five custom fields were PATCH-added to ssot__Account__dlm and
+#       new field-mappings created from Account_Home__dll: External_ID_c__c,
+#       FinServ_ClientCategory_c__c, PersonBirthdate__c,
+#       FinServ_AnnualIncome_pc__c, FinServ_CreditScore_c__c. DC retroactively
+#       populated the new fields against existing rows; population matches
+#       Account_demo__dlm exactly (24,404 HYDRATE rows, same persona breakdown).
 #   field convention: __c -> _c__c, __pc -> _pc__c
 #     FinServ__ClientCategory__c -> FinServ_ClientCategory_c__c
 #     External_ID__c             -> External_ID_c__c
@@ -78,7 +85,7 @@ segments:
     description: "All hydrated retail Person Account customers"
     persona: retail
     publish_schedule: hourly
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -89,7 +96,7 @@ segments:
     description: "All hydrated wealth Person Account customers"
     persona: wealth
     publish_schedule: hourly
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -100,7 +107,7 @@ segments:
     description: "All hydrated SMB business Account customers"
     persona: smb
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -111,7 +118,7 @@ segments:
     description: "All hydrated commercial business Account customers"
     persona: commercial
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -122,7 +129,7 @@ segments:
     description: "All hydrated household-tier Person Account customers"
     persona: household
     publish_schedule: hourly
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -141,7 +148,7 @@ segments:
     description: "Wealth Management clients aged 55-65 (pre-retirement window) — self-correcting via relative-date comparison"
     persona: wealth
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: all_of
       rules:
@@ -158,7 +165,7 @@ segments:
     description: "Retail customers (placeholder until Mortgage DMO hydrated)"
     persona: retail
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -169,7 +176,7 @@ segments:
     description: "Retail customers (placeholder until HELOC FinancialAccount DMO hydrated)"
     persona: retail
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-001
     rule:
       type: text_equals
@@ -181,7 +188,7 @@ segments:
     description: "SMB clients (placeholder until SBA FinancialAccount DMO hydrated)"
     persona: smb
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -192,7 +199,7 @@ segments:
     description: "Commercial clients (placeholder until Treasury FinancialAccount DMO hydrated)"
     persona: commercial
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -203,7 +210,7 @@ segments:
     description: "Wealth clients (placeholder until LifeEvent DMO hydrated)"
     persona: wealth
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     rule:
       type: text_equals
       field: FinServ_ClientCategory_c__c
@@ -222,7 +229,7 @@ segments:
     description: "Retail customers wired to Campaign HYDRATE-CMP-001"
     persona: retail
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-001
     rule:
       type: text_equals
@@ -234,7 +241,7 @@ segments:
     description: "Retail customers wired to Campaign HYDRATE-CMP-002"
     persona: retail
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-002
     rule:
       type: text_equals
@@ -246,7 +253,7 @@ segments:
     description: "Retail customers wired to Campaign HYDRATE-CMP-003"
     persona: retail
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-003
     rule:
       type: text_equals
@@ -258,7 +265,7 @@ segments:
     description: "Wealth clients wired to Campaign HYDRATE-CMP-004"
     persona: wealth
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-004
     rule:
       type: text_equals
@@ -270,7 +277,7 @@ segments:
     description: "Wealth clients wired to Campaign HYDRATE-CMP-005"
     persona: wealth
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-005
     rule:
       type: text_equals
@@ -282,7 +289,7 @@ segments:
     description: "Small Business clients wired to Campaign HYDRATE-CMP-006"
     persona: smb
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-006
     rule:
       type: text_equals
@@ -294,7 +301,7 @@ segments:
     description: "Commercial clients wired to Campaign HYDRATE-CMP-007"
     persona: commercial
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-007
     rule:
       type: text_equals
@@ -306,7 +313,7 @@ segments:
     description: "Commercial clients wired to Campaign HYDRATE-CMP-008"
     persona: commercial
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-008
     rule:
       type: text_equals
@@ -318,7 +325,7 @@ segments:
     description: "All-persona audience wired to Campaign HYDRATE-CMP-009"
     persona: mixed
     publish_schedule: weekly
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-009
     rule:
       type: text_has_value
@@ -329,7 +336,7 @@ segments:
     description: "Retail customers wired to Campaign HYDRATE-CMP-010"
     persona: retail
     publish_schedule: daily
-    target_dmo: Account_demo__dlm
+    target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-010
     rule:
       type: text_equals

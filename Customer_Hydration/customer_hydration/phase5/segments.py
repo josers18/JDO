@@ -71,19 +71,36 @@ class CreateSegmentsResult:
     results: list[SegmentCreateResult] = field(default_factory=list)
 
 
-# Live-verified HYDRATE membership filter. Every Phase 2 segment is
-# wrapped in a LogicalComparison.and so it can only match hydrated demo
-# accounts (External_ID_c__c starting with "HYDRATE-"), never the org's
-# 178 pre-existing seed accounts.
-HYDRATE_CLAUSE: dict[str, Any] = {
-    "type": "TextComparison",
-    "subject": {
-        "objectApiName": "Account_demo__dlm",
-        "fieldApiName": "External_ID_c__c",
-    },
-    "operator": "contains",
-    "values": ["HYDRATE-"],
-}
+# Field name on the target DMO that holds the External ID we use to
+# scope segments to hydrated demo accounts. The HYDRATE-* prefix lives
+# in this column on every hydrated row.
+HYDRATE_FIELD: str = "External_ID_c__c"
+HYDRATE_PREFIX: str = "HYDRATE-"
+
+
+def hydrate_clause(target_dmo: str) -> dict[str, Any]:
+    """Build the HYDRATE membership filter for a given target DMO.
+
+    Every Phase 2 segment is wrapped in a LogicalComparison.and so it
+    can only match hydrated demo accounts (``HYDRATE_FIELD`` starting
+    with ``HYDRATE-``), never the org's pre-existing seed accounts.
+    The DMO is parameterised so the same orchestrator works against
+    Account_demo__dlm, ssot__Account__dlm, or any other DMO that
+    exposes the External_ID_c__c field.
+    """
+    return {
+        "type": "TextComparison",
+        "subject": {
+            "objectApiName": target_dmo,
+            "fieldApiName": HYDRATE_FIELD,
+        },
+        "operator": "contains",
+        "values": [HYDRATE_PREFIX],
+    }
+
+
+# Backwards-compat alias for tests that imported the old constant.
+HYDRATE_CLAUSE: dict[str, Any] = hydrate_clause("Account_demo__dlm")
 
 
 # YAML publish_schedule form -> live DC API enum.
@@ -127,10 +144,17 @@ def _config_key_to_developer_name(config_key: str) -> str:
     return "".join(p.capitalize() for p in parts)
 
 
-def inject_hydrate_clause(user_criteria: dict[str, Any]) -> dict[str, Any]:
+def inject_hydrate_clause(
+    user_criteria: dict[str, Any],
+    target_dmo: str = "Account_demo__dlm",
+) -> dict[str, Any]:
     """Wrap ``user_criteria`` in a LogicalComparison.and with the
     HYDRATE-* membership filter, so segments can only match hydrated
     demo accounts.
+
+    ``target_dmo`` is the DMO whose ``External_ID_c__c`` field holds
+    the HYDRATE-* prefix. Defaults to ``Account_demo__dlm`` for
+    backwards compatibility with pre-Phase-2.4 callers and tests.
 
     The wrapping is intentional even when ``user_criteria`` is itself a
     LogicalComparison.and (we don't try to flatten / merge filters,
@@ -145,7 +169,7 @@ def inject_hydrate_clause(user_criteria: dict[str, Any]) -> dict[str, Any]:
     return {
         "type": "LogicalComparison",
         "operator": "and",
-        "filters": [HYDRATE_CLAUSE, user_criteria],
+        "filters": [hydrate_clause(target_dmo), user_criteria],
     }
 
 
@@ -384,7 +408,7 @@ def load_segment_definitions(yaml_path: Path) -> list[SegmentDefinition]:
             raise ValueError(f"Segment {config_key!r}.rule must be a mapping")
         target_dmo = entry["target_dmo"]
         user_criteria = _translate_rule(rule, target_dmo, config_key)
-        include_criteria = inject_hydrate_clause(user_criteria)
+        include_criteria = inject_hydrate_clause(user_criteria, target_dmo)
         out.append(SegmentDefinition(
             config_key=config_key,
             api_name=config_key_to_api_name(config_key),
