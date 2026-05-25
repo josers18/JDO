@@ -53,13 +53,20 @@
 #   date_after       -> DateTimeComparison operator "after"
 #   date_in_range    -> LogicalComparison.and of two DateTimeComparisons
 #   age_gte          -> ExactlyRelativeDateComparison "before" -N years
-#                       (field is a birthdate; "before -N years" = older than N)
+#                       *** KNOWN BROKEN on Profile DMOs in v62.0 ***
+#                       Use date_before with frozen anchor instead.
 #   age_lte          -> ExactlyRelativeDateComparison "after"  -N years
-#                       (field is a birthdate; "after -N years"  = younger than N)
+#                       *** KNOWN BROKEN on Profile DMOs in v62.0 ***
+#                       Use date_after with frozen anchor instead.
 #   age_in_range     -> LogicalComparison.and of two ExactlyRelativeDateComparisons.
-#                       Self-correcting: DC re-evaluates the relative date
-#                       at every publish, so the age window doesn't drift.
-#                       Live API quirk: dateUnits is lowercase ("years").
+#                       *** KNOWN BROKEN on Profile DMOs in v62.0 ***
+#                       Live probe (2026-05-25): both `before -55y` and
+#                       `after -55y` returned identical 410-row counts,
+#                       proving the filter is being ignored or evaluated
+#                       against an unrelated reference. Use date_in_range
+#                       with frozen anchors instead, bumped annually.
+#                       The translator code stays in segments.py for the
+#                       day relative-date filters work correctly.
 #   all_of           -> Compound rule: AND of a non-empty `rules:` sub-list.
 #                       Each sub-rule is itself a rule (atomic OR another
 #                       all_of/any_of for nesting). A single sub-rule
@@ -137,15 +144,24 @@ segments:
 
   # ----- 6 lifecycle / sub-segments -----
   #
-  # WealthPreRetiree uses age_in_range against PersonBirthdate__c. The
-  # translator emits ExactlyRelativeDateComparison clauses (live-API
-  # type), so DC re-evaluates the age window at every publish — the
-  # segment is self-correcting as the calendar advances. No annual
-  # YAML maintenance needed.
+  # WealthPreRetiree uses frozen birthdate anchors (date_in_range) for
+  # the 55-65 pre-retirement window. age_in_range / ExactlyRelativeDateComparison
+  # was attempted in Phase 2.2/2.3 but its semantics are broken on
+  # Profile-category DMOs in v62.0 (live probe: identical 410-row count
+  # for "before -55y" and "after -55y" — operator was being ignored).
+  # See dc-connect-api skill "Known endpoint quirks → Segments" for details.
+  #
+  # Maintenance: bump after / before by one year each January as the
+  # demo year advances:
+  #   2026 → after 1961-01-01 / before 1971-01-01  (ages 55-65 in 2026)
+  #   2027 → after 1962-01-01 / before 1972-01-01
+  #   2028 → after 1963-01-01 / before 1973-01-01
+  #   ...
+  # Last bumped: 2026-05-25 for demo year 2026.
 
   wealth_pre_retiree:
     name: "Wealth Pre-Retirees (55-65)"
-    description: "Wealth Management clients aged 55-65 (pre-retirement window) — self-correcting via relative-date comparison"
+    description: "Wealth Management clients aged 55-65 (pre-retirement window) — frozen DOB anchors, bump annually"
     persona: wealth
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
@@ -155,10 +171,10 @@ segments:
         - type: text_equals
           field: FinServ_ClientCategory_c__c
           value: "Wealth Management"
-        - type: age_in_range
+        - type: date_in_range
           field: PersonBirthdate__c
-          min_age: 55
-          max_age: 65
+          after: "1961-01-01"
+          before: "1971-01-01"
 
   retail_family_with_mortgage:
     name: "Retail Family-Building with Mortgage"

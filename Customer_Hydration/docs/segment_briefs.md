@@ -7,6 +7,10 @@
 > **Phase 2.2 update (2026-05-22):** `WealthPreRetiree__seg` now uses an `age_in_range` rule that emits `ExactlyRelativeDateComparison` clauses (`PersonBirthdate__c` BEFORE `(now − 55y)` AND AFTER `(now − 65y)`). DC re-evaluates the relative dates at every publish, so the segment is self-correcting as the calendar advances — no annual YAML maintenance. The previous frozen anchors `1961-01-01 / 1971-01-01` are gone.
 >
 > **Phase 2.3 update (2026-05-22):** YAML schema gained `all_of` / `any_of` compound rules for arbitrary AND/OR nesting. `WealthPreRetiree__seg` now combines `FinServ_ClientCategory_c__c matches "Wealth Management"` AND the 55-65 age window — narrowed from "any tier aged 55-65" to "Wealth Management aged 55-65."
+>
+> **Phase 2.4 update (2026-05-24):** All 21 segments retargeted from `Account_demo__dlm` to the FSC-canonical `ssot__Account__dlm`. 5 custom fields (`External_ID_c__c`, `FinServ_ClientCategory_c__c`, `PersonBirthdate__c`, `FinServ_AnnualIncome_pc__c`, `FinServ_CreditScore_c__c`) were PATCH-added to `ssot__Account__dlm` and field-mapped from `Account_Home__dll`. Live populations match the previous run exactly.
+>
+> **Phase 2.6 update (2026-05-25):** `WealthPreRetiree__seg` reverted from `age_in_range` (relative-date) back to `date_in_range` (frozen anchors `1961-01-01 / 1971-01-01` for ages 55-65 in 2026). Live probe found `ExactlyRelativeDateComparison` is broken on Profile DMOs in v62.0 — both `before -55y` and `after -55y` returned identical 410-row counts (operator effectively ignored). The frozen-anchor approach requires an annual January YAML bump but produces correct membership today. The `age_*` rule translators are retained in `segments.py` for the day the underlying API works.
 
 For per-segment **live member counts and last-publish timestamps**, run:
 ```bash
@@ -122,15 +126,15 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 **Marketing brief**
 - **Persona:** Wealth Management clients in the pre-retirement window
 - **Use case:** Retirement readiness conversations — Social Security optimization, distribution planning, rollover consolidation, healthcare cost modeling. The highest-engagement segment for Wealth retention and AUM growth.
-- **Target:** Wealth Management Person Accounts aged 55-65 (calculated from `PersonBirthdate__c` relative to today). Self-correcting: the window slides forward as the calendar advances.
+- **Target:** Wealth Management Person Accounts born between 1961-01-01 and 1971-01-01 (ages 55-65 during demo year 2026).
 - **Suggested channels:** Personalized RM outreach, retirement-planning webinars, in-branch consultation invitations, premium content.
-- **Refresh cadence:** Daily (intended). Window auto-corrects on every publish — no annual maintenance.
+- **Refresh cadence:** Daily (intended). **Annual maintenance required:** bump the date anchors by one year each January as the demo year advances.
 
 **Technical implementation**
 - `apiName`: `WealthPreRetiree__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND (`FinServ_ClientCategory_c__c matches "Wealth Management"` AND (`PersonBirthdate__c BEFORE (now − 55 years)` AND `PersonBirthdate__c AFTER (now − 65 years)`))
-- DSL: `all_of` → `LogicalComparison.and` of [`text_equals "Wealth Management"`, `age_in_range 55..65`]. The `age_in_range` itself nests a `LogicalComparison.and` of two `ExactlyRelativeDateComparison` clauses (`dateUnits: "years"`, signed integer offsets `-55` / `-65`).
-- Self-correcting: DC re-evaluates `ExactlyRelativeDateComparison` at every publish, so the segment slides forward with the calendar without YAML edits.
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND (`FinServ_ClientCategory_c__c matches "Wealth Management"` AND (`PersonBirthdate__c after "1961-01-01"` AND `PersonBirthdate__c before "1971-01-01"`))
+- DSL: `all_of` → `LogicalComparison.and` of [`text_equals "Wealth Management"`, `date_in_range 1961-01-01..1971-01-01`]. `date_in_range` nests two `DateComparison` clauses.
+- **Why frozen dates instead of `age_in_range`:** `ExactlyRelativeDateComparison` was attempted in Phase 2.2/2.3 for self-correcting age math. Live probing (Phase 2.6, 2026-05-25) showed both `before -55y` and `after -55y` operators returned identical 410-row counts on `ssot__Account__dlm` — the operator was effectively ignored. Reverted to frozen anchors as the working alternative. The `age_in_range` translator code is still in `segments.py` for the day the API works correctly. See `dc-connect-api` skill "Known endpoint quirks → Segments → ExactlyRelativeDateComparison" for details.
 
 ---
 
