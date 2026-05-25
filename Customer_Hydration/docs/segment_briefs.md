@@ -11,6 +11,8 @@
 > **Phase 2.4 update (2026-05-24):** All 21 segments retargeted from `Account_demo__dlm` to the FSC-canonical `ssot__Account__dlm`. 5 custom fields (`External_ID_c__c`, `FinServ_ClientCategory_c__c`, `PersonBirthdate__c`, `FinServ_AnnualIncome_pc__c`, `FinServ_CreditScore_c__c`) were PATCH-added to `ssot__Account__dlm` and field-mapped from `Account_Home__dll`. Live populations match the previous run exactly.
 >
 > **Phase 2.6 update (2026-05-25):** `WealthPreRetiree__seg` reverted from `age_in_range` (relative-date) back to `date_in_range` (frozen anchors `1961-01-01 / 1971-01-01` for ages 55-65 in 2026). Live probe found `ExactlyRelativeDateComparison` is broken on Profile DMOs in v62.0 — both `before -55y` and `after -55y` returned identical 410-row counts (operator effectively ignored). The frozen-anchor approach requires an annual January YAML bump but produces correct membership today. The `age_*` rule translators are retained in `segments.py` for the day the underlying API works.
+>
+> **Phase 2.7 update (2026-05-25):** `Account_demo__dlm` decommissioned. The DMO + its DLO mapping (`Account_Home_map_Account_demo_1768840659722`) + its two segment-membership tables (`Account_demo_SM_*__dlm`, `Account_demo_SMH_*__dlm`) + the foreign `Demo_WT` UI segment that targeted it were all deleted. Only `ssot__Account__dlm` remains as the Account DMO for hydrated rows. Decommission order matters: foreign segments → membership tables → DMO (not the mapping — DC rejects mapping-delete when it's the DMO's only one). The DMO DELETE returned HTTP 500 client-side but completed server-side; verify with a follow-up GET (returns 404 on success).
 
 For per-segment **live member counts and last-publish timestamps**, run:
 ```bash
