@@ -104,6 +104,14 @@ def build_parser() -> argparse.ArgumentParser:
     # if redeclared); it's reused here as the "print what would happen without
     # making changes" mode.
 
+    p_augment = sub.add_parser(
+        "augment-phase3",
+        help="Backfill life events + campaign members on existing HYDRATE-* accounts (Phase 3)",
+    )
+    _add_global_args(p_augment)
+    p_augment.add_argument("--seed", type=int, default=42)
+    p_augment.add_argument("--allow-production", action="store_true")
+
     p_resume = sub.add_parser("resume", help="Continue an interrupted run (Plan 3)")
     _add_global_args(p_resume)
     _add_hydrate_args(p_resume)
@@ -158,6 +166,9 @@ def main(argv: list[str] | None = None) -> int:
         return _run_refresh_streams(args)
     if args.subcommand == "create-segments":
         return _run_create_segments(args)
+    if args.subcommand == "augment-phase3":
+        from customer_hydration.augment_phase3 import run_augment
+        return run_augment(args)
     if args.subcommand == "briefs":
         return _run_briefs(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)
