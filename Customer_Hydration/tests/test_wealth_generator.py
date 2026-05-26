@@ -34,9 +34,9 @@ class TestGenerateWealth:
     def test_returns_one_account_per_customer(self, gen_kwargs):
         bundle = generate_wealth(**gen_kwargs)
         assert len(bundle.accounts) == 50
-        # FA count: at minimum 2 per customer (Premier Checking + Brokerage),
-        # at most 3 (+ Roth IRA at p=0.55).
-        assert 100 <= len(bundle.financial_accounts) <= 150
+        # Phase 3a: at min 2 (Premier Checking + Brokerage), at max 5
+        # (+ Roth p=0.55 + Jumbo Mortgage p=0.50 + HELOC p=0.30 cond.).
+        assert 100 <= len(bundle.financial_accounts) <= 250
         assert len(bundle.financial_account_roles) == len(bundle.financial_accounts)
 
     def test_external_ids_use_wealth_prefix(self, gen_kwargs):
@@ -134,3 +134,55 @@ class TestGenerateWealth:
         assert bundle1.financial_accounts == bundle2.financial_accounts
         assert bundle1.financial_account_roles == bundle2.financial_account_roles
         assert bundle1.holding_requests == bundle2.holding_requests
+
+
+class TestPhase3aWealthLoanSubtypes:
+    """Phase 3a: Jumbo Mortgage + HELOC products on Wealth customers."""
+
+    def test_jumbo_mortgage_emitted_at_around_50pct(self, gen_kwargs):
+        gen_kwargs["n"] = 200
+        bundle = generate_wealth(**gen_kwargs)
+        mortgages = [
+            fa for fa in bundle.financial_accounts if "Jumbo Mortgage" in fa["Name"]
+        ]
+        assert 80 <= len(mortgages) <= 130, f"got {len(mortgages)} mortgages"
+        for fa in mortgages:
+            assert fa["FinServ__FinancialAccountType__c"] == "Loans"
+            assert "[Mortgage]" in fa.get("FinServ__Description__c", "")
+            assert fa["FinServ__LoanType__c"] == "Mortgage"
+            principal = fa["FinServ__LoanAmount__c"]
+            assert 500_000 <= principal <= 2_000_000
+
+    def test_no_orphan_helocs_every_heloc_has_a_mortgage(self, gen_kwargs):
+        gen_kwargs["n"] = 200
+        bundle = generate_wealth(**gen_kwargs)
+        by_owner: dict[str, list[dict]] = {}
+        for fa in bundle.financial_accounts:
+            by_owner.setdefault(fa["FinServ__PrimaryOwner__c"], []).append(fa)
+        for owner_ext, fas in by_owner.items():
+            has_heloc = any("HELOC" in fa["Name"] for fa in fas)
+            has_mortgage = any("Mortgage" in fa["Name"] for fa in fas)
+            if has_heloc:
+                assert has_mortgage, (
+                    f"Wealth customer {owner_ext} has a HELOC without a Mortgage."
+                )
+
+    def test_heloc_carries_credit_limit(self, gen_kwargs):
+        gen_kwargs["n"] = 200
+        bundle = generate_wealth(**gen_kwargs)
+        helocs = [fa for fa in bundle.financial_accounts if "HELOC" in fa["Name"]]
+        assert len(helocs) > 0
+        for h in helocs:
+            assert h["FinServ__FinancialAccountType__c"] == "Loans"
+            assert "FinServ__TotalCreditLimit__c" in h
+            assert 50_000 <= h["FinServ__TotalCreditLimit__c"] <= 1_000_000
+            assert h["FinServ__Balance__c"] <= h["FinServ__TotalCreditLimit__c"]
+            assert "[HELOC]" in h.get("FinServ__Description__c", "")
+
+    def test_fa_external_ids_unique_and_monotonic(self, gen_kwargs):
+        gen_kwargs["n"] = 200
+        bundle = generate_wealth(**gen_kwargs)
+        fa_ids = [fa["External_ID__c"] for fa in bundle.financial_accounts]
+        assert len(fa_ids) == len(set(fa_ids))
+        seq_nums = [int(i.split("-")[-1]) for i in fa_ids]
+        assert seq_nums == sorted(seq_nums)

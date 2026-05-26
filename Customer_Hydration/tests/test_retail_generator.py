@@ -80,11 +80,19 @@ class TestGenerateRetail:
             income = acct["FinServ__AnnualIncome__pc"]
             assert 35000 <= income <= 180000
 
-    def test_fa_external_ids_are_sequential(self, gen_kwargs):
+    def test_fa_external_ids_are_sequential_and_unique(self, gen_kwargs):
+        # Phase 3a: optional Mortgage / HELOC / Auto / Personal loans now
+        # interleave with Checking + Savings, so the FA external-id stream
+        # is "monotonic per row", NOT "one per customer". The first id
+        # still anchors at starting_seq, but the last id is determined by
+        # the total number of FAs emitted across all branches.
         bundle = generate_retail(**gen_kwargs)
         fa_ids = [fa["External_ID__c"] for fa in bundle.financial_accounts]
         assert fa_ids[0] == "HYDRATE-FA-000001"
-        assert fa_ids[-1] == "HYDRATE-FA-000050"
+        assert len(fa_ids) == len(set(fa_ids)), "FA External_ID__c values must be unique"
+        seq_nums = [int(i.split("-")[-1]) for i in fa_ids]
+        # Counter is monotonic with no gaps within the persona window.
+        assert seq_nums == list(range(seq_nums[0], seq_nums[0] + len(seq_nums)))
 
     def test_fa_links_to_account_via_external_id_reference(self, gen_kwargs):
         """The FA CSV column must use the Bulk API 2.0 external-id reference
@@ -188,7 +196,10 @@ class TestGenerateRetail:
         for sav in savings_fas:
             assert "FinServ__APY__c" in sav
 
-    def test_savings_fa_external_id_uses_separate_sequence(self, gen_kwargs):
+    def test_savings_and_checking_fa_external_ids_are_disjoint(self, gen_kwargs):
+        # Phase 3a: counters are now per-bundle (interleaved), but
+        # uniqueness still guarantees Checking and Savings ids never
+        # overlap.
         gen_kwargs["n"] = 50
         bundle = generate_retail(**gen_kwargs)
         checking_ids = [fa["External_ID__c"] for fa in bundle.financial_accounts if "Checking" in fa["Name"]]
@@ -206,3 +217,127 @@ class TestGenerateRetail:
         gen_kwargs["seed"] = 99
         bundle2 = generate_retail(**gen_kwargs)
         assert bundle1.accounts[0]["LastName"] != bundle2.accounts[0]["LastName"]
+
+
+def _date_age_at(birthdate_iso: str, anchor: date) -> int:
+    return (anchor - date.fromisoformat(birthdate_iso)).days // 365
+
+
+def _life_stage_for_age(age: int) -> str:
+    for max_age, label in [(32, "young_pro"), (45, "family_building"), (60, "established"), (999, "retiree")]:
+        if age <= max_age:
+            return label
+    return "retiree"
+
+
+class TestPhase3aLoanSubtypes:
+    """Phase 3a: Mortgage / HELOC / Auto / Personal loan products.
+
+    Probabilities are tuned for the Phase 3d placeholder-segment tightening
+    work. With the fixed seed and n=400 these ranges are stable; if the
+    bands grow flaky the right move is to widen the bound, not pin a
+    specific count, since the rng draw schedule changes when new optional
+    branches are added upstream.
+    """
+
+    def test_mortgage_only_for_family_building_or_established(self, gen_kwargs, anchor_date):
+        gen_kwargs["n"] = 400
+        bundle = generate_retail(**gen_kwargs)
+        accounts_by_ext = {a["External_ID__c"]: a for a in bundle.accounts}
+        # Map FA primary-owner ext id back to the customer's birthdate.
+        for fa in bundle.financial_accounts:
+            if "Mortgage" not in fa["Name"]:
+                continue
+            owner_ext = fa["FinServ__PrimaryOwner__c"]
+            owner = accounts_by_ext[owner_ext]
+            age = _date_age_at(owner["PersonBirthdate"], anchor_date)
+            stage = _life_stage_for_age(age)
+            assert stage in ("family_building", "established"), (
+                f"Mortgage emitted for {stage} customer (age {age}); "
+                f"life-stage gate violated."
+            )
+
+    def test_mortgage_probability_in_expected_band(self, gen_kwargs):
+        # Among eligible (family_building + established) customers the
+        # mortgage rate is ~0.35. With n=400, ~half eligible per the age
+        # triangular, so expect ~50-100 mortgages overall. Wide band keeps
+        # the test robust against upstream rng-schedule changes.
+        gen_kwargs["n"] = 400
+        bundle = generate_retail(**gen_kwargs)
+        mortgages = [fa for fa in bundle.financial_accounts if "Mortgage" in fa["Name"]]
+        assert 30 <= len(mortgages) <= 130, f"got {len(mortgages)} mortgages"
+
+    def test_no_orphan_helocs_every_heloc_has_a_mortgage(self, gen_kwargs):
+        gen_kwargs["n"] = 400
+        bundle = generate_retail(**gen_kwargs)
+        # Group FAs by primary owner.
+        by_owner: dict[str, list[dict]] = {}
+        for fa in bundle.financial_accounts:
+            by_owner.setdefault(fa["FinServ__PrimaryOwner__c"], []).append(fa)
+        for owner_ext, fas in by_owner.items():
+            has_heloc = any("HELOC" in fa["Name"] for fa in fas)
+            has_mortgage = any("Mortgage" in fa["Name"] for fa in fas)
+            if has_heloc:
+                assert has_mortgage, (
+                    f"Customer {owner_ext} has a HELOC but no Mortgage — "
+                    f"orphan HELOCs are forbidden."
+                )
+
+    def test_heloc_carries_credit_limit_and_balance(self, gen_kwargs):
+        gen_kwargs["n"] = 400
+        bundle = generate_retail(**gen_kwargs)
+        helocs = [fa for fa in bundle.financial_accounts if "HELOC" in fa["Name"]]
+        assert len(helocs) > 0, "expected at least one HELOC for n=400 + seed=42"
+        for h in helocs:
+            assert h["FinServ__FinancialAccountType__c"] == "Loans"
+            assert "FinServ__TotalCreditLimit__c" in h
+            limit = h["FinServ__TotalCreditLimit__c"]
+            balance = h["FinServ__Balance__c"]
+            assert 25_000 <= limit <= 500_000
+            # Drawn must not exceed the line.
+            assert 0 <= balance <= limit
+
+    def test_loan_subtypes_carry_token_in_description(self, gen_kwargs):
+        # Phase 3d will filter on ssot__Description__c — the FA's
+        # FinServ__Description__c is what flows there. Each loan type gets
+        # a normalized leading token like "[Mortgage]".
+        gen_kwargs["n"] = 200
+        bundle = generate_retail(**gen_kwargs)
+        for fa in bundle.financial_accounts:
+            name = fa["Name"]
+            desc = fa.get("FinServ__Description__c", "")
+            for token in ("Mortgage", "HELOC", "Auto Loan", "Personal Loan"):
+                if token in name:
+                    assert f"[{token}]" in desc, (
+                        f"FA {fa['External_ID__c']} named {name!r} is missing "
+                        f"the [{token}] description token."
+                    )
+
+    def test_loan_type_field_dropped_by_preflight_in_practice(self, gen_kwargs):
+        # FinServ__LoanType__c does NOT exist on FinServ__FinancialAccount__c
+        # in jdo today; the generator emits it as a logical field for
+        # forward compatibility, and the preflight CSV writer drops it.
+        # We can't run the preflight here without an org, but the fieldmap
+        # is a no-op rename — physical name == logical name — so the field
+        # name shows up in the dict. That's the contract.
+        gen_kwargs["n"] = 200
+        bundle = generate_retail(**gen_kwargs)
+        loan_fas = [
+            fa for fa in bundle.financial_accounts
+            if fa["FinServ__FinancialAccountType__c"] == "Loans"
+        ]
+        assert len(loan_fas) > 0
+        for fa in loan_fas:
+            assert "FinServ__LoanType__c" in fa
+            assert fa["FinServ__LoanType__c"] in {
+                "Mortgage", "HELOC", "Auto Loan", "Personal Loan",
+            }
+
+    def test_every_loan_fa_has_a_role_back_to_owning_account(self, gen_kwargs):
+        gen_kwargs["n"] = 400
+        bundle = generate_retail(**gen_kwargs)
+        role_fa_ids = {r["FinServ__FinancialAccount__c"] for r in bundle.financial_account_roles}
+        for fa in bundle.financial_accounts:
+            assert fa["External_ID__c"] in role_fa_ids, (
+                f"FA {fa['External_ID__c']} ({fa['Name']}) has no role row"
+            )

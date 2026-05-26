@@ -1,14 +1,22 @@
-"""Wealth Person Account generator (Plan 2 / Task 11).
+"""Wealth Person Account generator.
 
-Emits one Person Account + 2-3 child FAs (Premier Checking, Brokerage,
-optional Roth IRA) + one FA Role per FA per wealth customer. Investment
-FAs additionally carry holding *requests* — runner_p2 calls
-``generate_holdings()`` separately to materialize FinancialHolding rows.
+Emits one Person Account + 2-N child FAs (Premier Checking, Brokerage,
+optional Roth IRA, plus Phase 3a optional Jumbo Mortgage + HELOC) + one
+FA Role per FA per wealth customer. Investment FAs additionally carry
+holding *requests* — runner_p2/p3 calls ``generate_holdings()``
+separately to materialize FinancialHolding rows.
 
-This generator follows the same structural template as ``retail.py``:
-anchor draws → logical Account row → fieldmap.apply → 1-N FAs with
-fieldmap-translated picklists → 1 FA Role per FA. The Wealth-specific
-divergences are documented inline.
+Phase 3a additions
+------------------
+Wealth clients buy real estate at materially different price points
+than retail, so wealth.py owns its own Jumbo-Mortgage + HELOC branch
+rather than reusing retail.py's. Probabilities and balance bands:
+
+  - Jumbo Mortgage (p=0.50; $500K-$2M)
+  - HELOC          (p=0.30 conditional on Mortgage; $50K-$1M limit)
+
+Both products carry the [Mortgage] / [HELOC] description token plus
+the FinServ__LoanType__c logical field for forward compatibility.
 """
 from __future__ import annotations
 
@@ -32,6 +40,10 @@ _LIFE_STAGE_BINS = [
     (75, "retiree"),
     (999, "legacy"),
 ]
+
+# Phase 3a: jumbo mortgage / HELOC probabilities for wealth customers.
+_JUMBO_MORTGAGE_PROB = 0.50
+_HELOC_PROB_GIVEN_MORTGAGE = 0.30
 
 # Wealth book skews to high-net-worth coastal + Sunbelt states. Weights
 # are deliberately steeper than retail's spread.
@@ -318,4 +330,105 @@ def generate_wealth(
                 )
             )
 
+        # ---- Jumbo Mortgage (p=0.50) ------------------------------------
+        # Wealth-specific jumbo balance band; retail.py's mortgage caps
+        # out at $750K so we keep the books separate.
+        has_mortgage = rng.random() < _JUMBO_MORTGAGE_PROB
+        if has_mortgage:
+            principal = round(rng.uniform(500_000.0, 2_000_000.0), -2)
+            balance = round(principal * rng.uniform(0.35, 0.95), 2)
+            origination = anchor_date - timedelta(days=rng.randint(180, 365 * 25))
+            maturity = origination + timedelta(days=365 * 30)
+            mtg_fa_ext = f"HYDRATE-FA-{starting_seq + fa_idx:06d}"
+            mtg_far_ext = f"HYDRATE-FAR-{starting_seq + far_idx:06d}"
+            fa_idx += 1
+            far_idx += 1
+            logical_mortgage = {
+                "Name": f"Cumulus Jumbo Mortgage - {rng.randint(1000, 9999)}",
+                "FinServ__FinancialAccountType__c": JDO_FIELDMAP.picklist_value(
+                    "FinServ__FinancialAccount__c",
+                    "FinServ__FinancialAccountType__c",
+                    "Mortgage",
+                ),
+                "FinServ__FinancialAccountSource__c": "Cumulus:PD-LN-JMG-2026.04",
+                "FinServ__Status__c": "Open",
+                "FinServ__OpenedDate__c": origination.isoformat(),
+                "FinServ__MaturityDate__c": maturity.isoformat(),
+                "FinServ__Balance__c": balance,
+                "FinServ__LoanAmount__c": principal,
+                "FinServ__InterestRate__c": round(rng.uniform(0.045, 0.07), 4),
+                "FinServ__OwnershipType__c": "Individual",
+                "FinServ__PrimaryOwner__c": ext_id,
+                "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
+                "FinServ__Description__c": (
+                    f"[Mortgage] Wealth jumbo mortgage; "
+                    f"original principal ${int(principal):,}."
+                ),
+                "FinServ__LoanType__c": "Mortgage",
+                "External_ID__c": mtg_fa_ext,
+                "FinServ__SourceSystemId__c": mtg_fa_ext,
+            }
+            bundle.financial_accounts.append(
+                JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_mortgage)
+            )
+            bundle.financial_account_roles.append(
+                _primary_owner_role(mtg_fa_ext, ext_id, origination, mtg_far_ext)
+            )
+
+            # ---- HELOC (p=0.30 GIVEN mortgage) --------------------------
+            if rng.random() < _HELOC_PROB_GIVEN_MORTGAGE:
+                limit = round(rng.uniform(50_000.0, 1_000_000.0), -3)
+                drawn = round(limit * rng.uniform(0.0, 0.95), 2)
+                opened_h = origination + timedelta(days=rng.randint(180, 365 * 5))
+                if opened_h > anchor_date:
+                    opened_h = anchor_date - timedelta(days=30)
+                heloc_fa_ext = f"HYDRATE-FA-{starting_seq + fa_idx:06d}"
+                heloc_far_ext = f"HYDRATE-FAR-{starting_seq + far_idx:06d}"
+                fa_idx += 1
+                far_idx += 1
+                logical_heloc = {
+                    "Name": f"Cumulus HELOC - {rng.randint(1000, 9999)}",
+                    "FinServ__FinancialAccountType__c": JDO_FIELDMAP.picklist_value(
+                        "FinServ__FinancialAccount__c",
+                        "FinServ__FinancialAccountType__c",
+                        "HELOC",
+                    ),
+                    "FinServ__FinancialAccountSource__c": "Cumulus:PD-LN-HEL-2026.04",
+                    "FinServ__Status__c": "Open",
+                    "FinServ__OpenedDate__c": opened_h.isoformat(),
+                    "FinServ__Balance__c": drawn,
+                    "FinServ__TotalCreditLimit__c": limit,
+                    "FinServ__InterestRate__c": round(rng.uniform(0.065, 0.095), 4),
+                    "FinServ__OwnershipType__c": "Individual",
+                    "FinServ__PrimaryOwner__c": ext_id,
+                    "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
+                    "FinServ__Description__c": (
+                        f"[HELOC] Wealth line of credit; limit ${int(limit):,}, "
+                        f"drawn ${int(drawn):,}."
+                    ),
+                    "FinServ__LoanType__c": "HELOC",
+                    "External_ID__c": heloc_fa_ext,
+                    "FinServ__SourceSystemId__c": heloc_fa_ext,
+                }
+                bundle.financial_accounts.append(
+                    JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_heloc)
+                )
+                bundle.financial_account_roles.append(
+                    _primary_owner_role(heloc_fa_ext, ext_id, opened_h, heloc_far_ext)
+                )
+
     return bundle
+
+
+def _primary_owner_role(
+    fa_ext: str, account_ext: str, start: date, role_ext: str,
+) -> dict:
+    """Build a Primary-Owner FinancialAccountRole row."""
+    return {
+        "FinServ__FinancialAccount__c": fa_ext,
+        "FinServ__RelatedAccount__c": account_ext,
+        "FinServ__Role__c": "Primary Owner",
+        "FinServ__Active__c": True,
+        "FinServ__StartDate__c": start.isoformat(),
+        "External_ID__c": role_ext,
+    }

@@ -85,6 +85,13 @@ _PICKLIST_VALUES: dict[tuple[str, str], dict[str, str]] = {
         "Personal Loan": "Loans",
         "Term Loan": "Loans",
         "SBA Loan": "Loans",
+        # Phase 3a: commercial / SMB sub-products that all collapse to the
+        # "Loans" parent picklist on the FSC FinancialAccount object. The
+        # subtype distinction lives in the FA Name + Description so the
+        # ssot__FinancialAccount__dlm.ssot__Name__c and ssot__Description__c
+        # mappings carry a Phase-3d-filterable token to Data Cloud.
+        "Line of Credit": "Loans",
+        "Commercial LOC": "Loans",
         "Credit Card": "Credit Cards",
         "Brokerage": "Investments",
         "Managed Advisory": "Investments",
@@ -100,6 +107,10 @@ _PICKLIST_VALUES: dict[tuple[str, str], dict[str, str]] = {
         "Positive Pay": "Treasury Management",
         "Wire Transfer": "Treasury Management",
         "ACH": "Treasury Management",
+        # Phase 3a: a top-level "Treasury Services" wrapper FA — used by the
+        # commercial generator so CommercialWithTreasury__seg can tighten on
+        # ssot__FinancialAccountType__c == "Treasury Management".
+        "Treasury Services": "Treasury Management",
         "Merchant Services": "Merchant Services",
     },
     ("FinServ__FinancialAccount__c", "FinServ__Status__c"): {

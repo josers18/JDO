@@ -92,6 +92,29 @@ class TestPicklistValueTranslation:
         fm = JDO_FIELDMAP
         assert fm.picklist_value("FinServ__FinancialAccount__c", "FinServ__Ownership__c", "Joint") == "Joint"
 
+    def test_phase3a_loan_subtypes_collapse_to_loans(self):
+        # Phase 3a added Auto Loan / Personal Loan / Term Loan / SBA Loan /
+        # Line of Credit / Commercial LOC. All collapse to the FSC parent
+        # picklist value "Loans" for FinancialAccountType.
+        fm = JDO_FIELDMAP
+        for subtype in (
+            "Mortgage", "HELOC", "Auto Loan", "Personal Loan",
+            "Term Loan", "SBA Loan", "Line of Credit", "Commercial LOC",
+        ):
+            assert fm.picklist_value(
+                "FinServ__FinancialAccount__c",
+                "FinServ__FinancialAccountType__c",
+                subtype,
+            ) == "Loans", f"{subtype} should map to 'Loans'"
+
+    def test_phase3a_treasury_services_maps_to_treasury_management(self):
+        fm = JDO_FIELDMAP
+        assert fm.picklist_value(
+            "FinServ__FinancialAccount__c",
+            "FinServ__FinancialAccountType__c",
+            "Treasury Services",
+        ) == "Treasury Management"
+
 
 class TestApplyToRow:
     def test_apply_renames_keys_and_drops_none(self):

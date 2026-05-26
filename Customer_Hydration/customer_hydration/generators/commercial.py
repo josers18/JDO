@@ -1,10 +1,29 @@
-"""Commercial Account generator (Plan 2 / Task 11).
+"""Commercial Account generator.
 
-Emits one Business Account + 1-2 child FAs (Business Analyzed Checking
-always, Commercial Real Estate Loan ~60%) + one FA Role per FA per
+Emits one Business Account + 1-N child FAs (Business Analyzed Checking
+always, plus optional Treasury Services / Term Loan / Commercial Line
+of Credit, plus the original CRE Loan branch) + one FA Role per FA per
 commercial customer. Same structural template as ``smb.py``, but with a
 larger revenue band, capital-intensive industry weights, and treasury
 complexity tiering.
+
+Phase 3a additions
+------------------
+The original Plan 2 generator only emitted Checking + an optional CRE
+Loan. The CommercialWithTreasury__seg / Commercial-loan placeholder
+segments need a richer product set so Phase 3d can tighten on subtype
+tokens. New optional products:
+
+  - Treasury Services (p=0.70) — wrapper FA whose
+    FinServ__FinancialAccountType__c = "Treasury Management" (the org
+    picklist value). The CommercialWithTreasury__seg filter will key
+    off ssot__FinancialAccountType__c == "Treasury Management".
+  - Term Loan (p=0.40) — generic mid-market term loan
+  - Commercial Line of Credit (p=0.40) — revolving, larger limits than
+    the SMB LoC
+
+The legacy CRE Loan branch is kept (probability lowered slightly) for
+continuity with the original commercial book shape.
 """
 from __future__ import annotations
 
@@ -46,6 +65,12 @@ class CommercialBundle:
     financial_account_roles: list[dict] = field(default_factory=list)
 
 
+_TREASURY_PROB = 0.70
+_TERM_LOAN_PROB = 0.40
+_COMMERCIAL_LOC_PROB = 0.40
+_CRE_LOAN_PROB = 0.40  # was 0.60 in Plan 2; lowered to spread book
+
+
 def generate_commercial(
     *,
     n: int,
@@ -57,11 +82,13 @@ def generate_commercial(
 ) -> CommercialBundle:
     """Generate ``n`` Commercial Business Accounts + child FAs + roles.
 
-    Each customer gets:
-      - 1 Business Analyzed Checking FA (always; balance = 1-2mo revenue)
-        — picklist type "Business Checking" (→ Deposits)
-      - 1 Commercial Real Estate Loan FA at probability 0.6
-        ($5M-$80M; type "Mortgage" → Loans)
+    Each customer always gets one Business Analyzed Checking FA. Optional
+    products (independent draws):
+
+      - Treasury Services (p=0.70; FinancialAccountType="Treasury Management")
+      - Term Loan         (p=0.40)
+      - Commercial LOC    (p=0.40)
+      - CRE Loan          (p=0.40; legacy Plan 2 product, retained)
     """
     rng = random.Random(seed)
     faker = Faker("en_US")
@@ -176,8 +203,134 @@ def generate_commercial(
             }
         )
 
-        # ---- Commercial Real Estate Loan (probability 0.6) --------------
-        if rng.random() < 0.6:
+        # ---- Treasury Services (p=0.70) ---------------------------------
+        # FinancialAccountType="Treasury Management" — this is the field
+        # CommercialWithTreasury__seg will filter on after Phase 3d.
+        if rng.random() < _TREASURY_PROB:
+            treasury_fa_ext = f"HYDRATE-FA-{starting_seq + fa_idx:06d}"
+            treasury_far_ext = f"HYDRATE-FAR-{starting_seq + far_idx:06d}"
+            fa_idx += 1
+            far_idx += 1
+            services = rng.sample(
+                ["Lockbox", "ZBA", "Sweep", "Positive Pay", "Wire Transfer", "ACH"],
+                k=rng.randint(2, 4),
+            )
+            logical_treasury = {
+                "Name": f"Cumulus Treasury Services - {rng.randint(1000, 9999)}",
+                "FinServ__FinancialAccountType__c": JDO_FIELDMAP.picklist_value(
+                    "FinServ__FinancialAccount__c",
+                    "FinServ__FinancialAccountType__c",
+                    "Treasury Services",
+                ),
+                "FinServ__FinancialAccountSource__c": "Cumulus:PD-TM-SVC-2026.04",
+                "FinServ__Status__c": "Open",
+                "FinServ__OpenedDate__c": opened.isoformat(),
+                # Treasury Services is a service wrapper, not a balance
+                # product — set Balance__c to 0 to keep DC ingest happy.
+                "FinServ__Balance__c": 0.0,
+                "FinServ__OwnershipType__c": "Individual",
+                "FinServ__PrimaryOwner__c": ext_id,
+                "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
+                "FinServ__Description__c": (
+                    "[Treasury Services] Commercial treasury-management bundle; "
+                    f"complexity={treasury_complexity}; services="
+                    f"{', '.join(services)}."
+                ),
+                # Not a loan — leave LoanType unset.
+                "External_ID__c": treasury_fa_ext,
+                "FinServ__SourceSystemId__c": treasury_fa_ext,
+            }
+            bundle.financial_accounts.append(
+                JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_treasury)
+            )
+            bundle.financial_account_roles.append(
+                _primary_owner_role(treasury_fa_ext, ext_id, opened, treasury_far_ext)
+            )
+
+        # ---- Commercial Term Loan (p=0.40) ------------------------------
+        if rng.random() < _TERM_LOAN_PROB:
+            principal = round(rng.uniform(500_000.0, 25_000_000.0), -3)
+            balance = round(principal * rng.uniform(0.20, 0.95), 2)
+            loan_opened = anchor_date - timedelta(days=rng.randint(180, 365 * 8))
+            loan_maturity = loan_opened + timedelta(days=365 * rng.randint(5, 15))
+            tl_fa_ext = f"HYDRATE-FA-{starting_seq + fa_idx:06d}"
+            tl_far_ext = f"HYDRATE-FAR-{starting_seq + far_idx:06d}"
+            fa_idx += 1
+            far_idx += 1
+            logical_tl = {
+                "Name": f"Cumulus Commercial Term Loan - {rng.randint(1000, 9999)}",
+                "FinServ__FinancialAccountType__c": JDO_FIELDMAP.picklist_value(
+                    "FinServ__FinancialAccount__c",
+                    "FinServ__FinancialAccountType__c",
+                    "Term Loan",
+                ),
+                "FinServ__FinancialAccountSource__c": "Cumulus:PD-LN-CTL-2026.04",
+                "FinServ__Status__c": "Open",
+                "FinServ__OpenedDate__c": loan_opened.isoformat(),
+                "FinServ__MaturityDate__c": loan_maturity.isoformat(),
+                "FinServ__Balance__c": balance,
+                "FinServ__LoanAmount__c": principal,
+                "FinServ__InterestRate__c": round(rng.uniform(0.045, 0.085), 4),
+                "FinServ__OwnershipType__c": "Individual",
+                "FinServ__PrimaryOwner__c": ext_id,
+                "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
+                "FinServ__Description__c": (
+                    f"[Term Loan] Commercial mid-market term loan; "
+                    f"original principal ${int(principal):,}."
+                ),
+                "FinServ__LoanType__c": "Term Loan",
+                "External_ID__c": tl_fa_ext,
+                "FinServ__SourceSystemId__c": tl_fa_ext,
+            }
+            bundle.financial_accounts.append(
+                JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_tl)
+            )
+            bundle.financial_account_roles.append(
+                _primary_owner_role(tl_fa_ext, ext_id, loan_opened, tl_far_ext)
+            )
+
+        # ---- Commercial Line of Credit (p=0.40) -------------------------
+        if rng.random() < _COMMERCIAL_LOC_PROB:
+            limit = round(rng.uniform(1_000_000.0, 50_000_000.0), -4)
+            drawn = round(limit * rng.uniform(0.0, 0.85), 2)
+            loc_opened = anchor_date - timedelta(days=rng.randint(180, 365 * 6))
+            loc_fa_ext = f"HYDRATE-FA-{starting_seq + fa_idx:06d}"
+            loc_far_ext = f"HYDRATE-FAR-{starting_seq + far_idx:06d}"
+            fa_idx += 1
+            far_idx += 1
+            logical_loc = {
+                "Name": f"Cumulus Commercial Line of Credit - {rng.randint(1000, 9999)}",
+                "FinServ__FinancialAccountType__c": JDO_FIELDMAP.picklist_value(
+                    "FinServ__FinancialAccount__c",
+                    "FinServ__FinancialAccountType__c",
+                    "Commercial LOC",
+                ),
+                "FinServ__FinancialAccountSource__c": "Cumulus:PD-LN-CLC-2026.04",
+                "FinServ__Status__c": "Open",
+                "FinServ__OpenedDate__c": loc_opened.isoformat(),
+                "FinServ__Balance__c": drawn,
+                "FinServ__TotalCreditLimit__c": limit,
+                "FinServ__InterestRate__c": round(rng.uniform(0.055, 0.115), 4),
+                "FinServ__OwnershipType__c": "Individual",
+                "FinServ__PrimaryOwner__c": ext_id,
+                "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
+                "FinServ__Description__c": (
+                    f"[Commercial LOC] Commercial revolving line; "
+                    f"limit ${int(limit):,}, drawn ${int(drawn):,}."
+                ),
+                "FinServ__LoanType__c": "Commercial LOC",
+                "External_ID__c": loc_fa_ext,
+                "FinServ__SourceSystemId__c": loc_fa_ext,
+            }
+            bundle.financial_accounts.append(
+                JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_loc)
+            )
+            bundle.financial_account_roles.append(
+                _primary_owner_role(loc_fa_ext, ext_id, loc_opened, loc_far_ext)
+            )
+
+        # ---- Commercial Real Estate Loan (p=0.40, legacy) ---------------
+        if rng.random() < _CRE_LOAN_PROB:
             loan_amount = round(rng.uniform(5_000_000.0, 80_000_000.0), 2)
             loan_opened = anchor_date - timedelta(days=rng.randint(180, 365 * 8))
             loan_maturity = loan_opened + timedelta(days=365 * rng.randint(7, 25))
@@ -205,6 +358,11 @@ def generate_commercial(
                 "FinServ__OwnershipType__c": "Individual",
                 "FinServ__PrimaryOwner__c": ext_id,
                 "FinServ__FinancialAccountNumber__c": f"****{rng.randint(1000, 9999)}",
+                "FinServ__Description__c": (
+                    f"[Mortgage] Commercial Real Estate loan; "
+                    f"original principal ${int(loan_amount):,}."
+                ),
+                "FinServ__LoanType__c": "Mortgage",
                 "External_ID__c": loan_fa_ext,
                 "FinServ__SourceSystemId__c": loan_fa_ext,
             }
@@ -212,14 +370,21 @@ def generate_commercial(
                 JDO_FIELDMAP.apply("FinServ__FinancialAccount__c", logical_loan)
             )
             bundle.financial_account_roles.append(
-                {
-                    "FinServ__FinancialAccount__c": loan_fa_ext,
-                    "FinServ__RelatedAccount__c": ext_id,
-                    "FinServ__Role__c": "Primary Owner",
-                    "FinServ__Active__c": True,
-                    "FinServ__StartDate__c": loan_opened.isoformat(),
-                    "External_ID__c": loan_far_ext,
-                }
+                _primary_owner_role(loan_fa_ext, ext_id, loan_opened, loan_far_ext)
             )
 
     return bundle
+
+
+def _primary_owner_role(
+    fa_ext: str, account_ext: str, start: date, role_ext: str,
+) -> dict:
+    """Build a Primary-Owner FinancialAccountRole row."""
+    return {
+        "FinServ__FinancialAccount__c": fa_ext,
+        "FinServ__RelatedAccount__c": account_ext,
+        "FinServ__Role__c": "Primary Owner",
+        "FinServ__Active__c": True,
+        "FinServ__StartDate__c": start.isoformat(),
+        "External_ID__c": role_ext,
+    }
