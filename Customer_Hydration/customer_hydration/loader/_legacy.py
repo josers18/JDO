@@ -69,6 +69,21 @@ def bulk_upsert(
         # via BulkLoadResult so the caller (parallel.py) can apply its own
         # retry/abort policy rather than us raising here.
         job_info = payload.get("result", {}).get("jobInfo", {})
+        # FailedRecordDetailsError shape: payload top-level has `name` and
+        # `data.jobId`, no jobInfo. Fall back to the failed-records report
+        # via a bulk-results sub-call so we surface non-zero records_failed
+        # instead of silently returning 0/0.
+        if not job_info and payload.get("name") == "FailedRecordDetailsError":
+            data = payload.get("data", {}) or {}
+            failed_msg = payload.get("message", "")
+            # Pull the count from the message: "...failed to process N records."
+            import re
+            m = re.search(r"failed to process (\d+) records", failed_msg)
+            failed_count = int(m.group(1)) if m else 0
+            return BulkLoadResult(
+                records_processed=failed_count,
+                records_failed=failed_count,
+            )
         records_processed = int(job_info.get("numberRecordsProcessed", 0))
         records_failed = int(job_info.get("numberRecordsFailed", 0))
         return BulkLoadResult(

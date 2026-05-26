@@ -316,6 +316,14 @@ def run_augment(args: argparse.Namespace) -> int:
         requests=plan.life_event_requests,
     ).life_events
 
+    # FinServ__LifeEvent__c.Name is auto-number on this org (createable=False).
+    # The generator emits a human-readable Name for spec parity, but Bulk
+    # API rejects the column with INVALID_FIELD_FOR_INSERT_UPDATE. Strip
+    # it here. Preflight's createable check would handle this generically;
+    # for now, fix at the source.
+    for row in life_events:
+        row.pop("Name", None)
+
     cm_plan = plan_campaign_members(
         seed=args.seed + 101,
         customer_personas=plan.persona_for_ext,
@@ -325,6 +333,12 @@ def run_augment(args: argparse.Namespace) -> int:
         starting_seq=plan.cm_starting_seq,
         requests=cm_plan,
     ).members
+
+    # CampaignMember.HasResponded is derived from Status on this org
+    # (createable=False, calculated). The generator emits it for spec
+    # parity but Bulk rejects the column. Strip here.
+    for row in campaign_members:
+        row.pop("HasResponded", None)
 
     # ---- Manifest + run dir ----------------------------------------------
     manifest = new_run_manifest(
