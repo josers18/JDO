@@ -1,0 +1,30 @@
+# Phase 4c coverage rules — partial-field gap-fill layer.
+#
+# Each entry declares a field that is *expected* to be populated under certain
+# conditions but might not be after the deriver pass. The engine evaluates
+# expected_when (must match) and ignore_when (must NOT match), then if the
+# field is still null in `delta` (and on the record), calls `fill_with` to
+# get a value.
+#
+# Plan 4c ships rules for the partial fields whose deriver doesn't always
+# produce them (e.g., LifetimeValue is null when AnnualIncome is missing;
+# AnnualRevenue should be filled for Business but never Person, etc.).
+
+- field: FinServ__LastInteraction__c
+  expected_when:
+    record_type_not_in: [Household]
+  fill_with: relationship.derive_last_interaction_for_coverage
+
+- field: FinServ__RiskTolerance__c
+  expected_when:
+    persona_in: [wealth, smb, commercial]
+  ignore_when:
+    is_person_account: false
+  fill_with: profile.derive_risk_tolerance_for_coverage
+
+- field: AnnualRevenue
+  expected_when:
+    record_type_in: [Business, Household, Entity, Partner]
+  ignore_when:
+    is_person_account: true
+  fill_with: profile.derive_annual_revenue_for_coverage

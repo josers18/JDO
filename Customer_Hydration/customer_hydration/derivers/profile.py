@@ -164,3 +164,31 @@ class ProfileDeriver:
             out["NumberOfEmployees"] = rng.randint(emp_low, emp_high)
 
         return out
+
+    def derive_risk_tolerance_for_coverage(
+        self,
+        archetype: PersonaArchetype,
+        record: dict,
+        rng: Random,
+    ):
+        """Coverage-rule callback for FinServ__RiskTolerance__c."""
+        weights = _RISK_WEIGHTS_BY_PERSONA.get(
+            archetype.persona, _RISK_WEIGHTS_BY_PERSONA["retail"]
+        )
+        triple_index = weighted_pick(rng, ["0", "1", "2"], weights)
+        risk, _, _ = _RISK_TRIPLES[int(triple_index)]
+        return risk
+
+    def derive_annual_revenue_for_coverage(
+        self,
+        archetype: PersonaArchetype,
+        record: dict,
+        rng: Random,
+    ):
+        """Coverage-rule callback for AnnualRevenue (B2B only)."""
+        if archetype.business_size is None:
+            return None
+        rev_low, rev_high = _BUSINESS_REVENUE_RANGE.get(
+            archetype.business_size, (10_000_000, 100_000_000)
+        )
+        return rng.randint(rev_low, rev_high - 1)

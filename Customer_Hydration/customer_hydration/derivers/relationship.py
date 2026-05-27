@@ -129,3 +129,17 @@ class RelationshipDeriver:
             out["FinServ__LastInteraction__c"] = (today - timedelta(days=offset)).isoformat()
 
         return out
+
+    def derive_last_interaction_for_coverage(
+        self,
+        archetype: PersonaArchetype,
+        record: dict,
+        rng: Random,
+    ):
+        """Coverage-rule callback for FinServ__LastInteraction__c.
+
+        Returns a single date string; called by coverage_rules.apply when the
+        deriver pass didn't already produce one.
+        """
+        offset = rng.randint(0, 365)
+        return (date.today() - timedelta(days=offset)).isoformat()
