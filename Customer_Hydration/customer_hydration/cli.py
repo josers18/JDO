@@ -112,6 +112,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_augment.add_argument("--seed", type=int, default=42)
     p_augment.add_argument("--allow-production", action="store_true")
 
+    p_mirror = sub.add_parser(
+        "mirror-life-events",
+        help=(
+            "Mirror every HYDRATE-LE-* legacy FinServ__LifeEvent__c row to a "
+            "matching HYDRATE-NLE-* native PersonLifeEvent row (Phase 3 parity)"
+        ),
+    )
+    _add_global_args(p_mirror)
+    p_mirror.add_argument("--allow-production", action="store_true")
+
     p_resume = sub.add_parser("resume", help="Continue an interrupted run (Plan 3)")
     _add_global_args(p_resume)
     _add_hydrate_args(p_resume)
@@ -169,6 +179,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.subcommand == "augment-phase3":
         from customer_hydration.augment_phase3 import run_augment
         return run_augment(args)
+    if args.subcommand == "mirror-life-events":
+        from customer_hydration.mirror_life_events import run_mirror
+        return run_mirror(args)
     if args.subcommand == "briefs":
         return _run_briefs(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)
