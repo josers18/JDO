@@ -62,13 +62,24 @@ def refresh_account_stream(
         return ("Triggered", run_id, None)
 
     err_text = error or ""
-    if "412" in err_text or "UPSERT" in err_text.upper():
+    err_lower = err_text.lower()
+    # Policy-skipped covers any rejection where the API accepted the request
+    # but the stream config blocked the operation (vs. real 5xx/network errors).
+    is_policy = (
+        "412" in err_text
+        or "upsert" in err_lower
+        or "policy" in err_lower
+        or "full_refresh" in err_lower
+        or "not allowed" in err_lower
+        or "non-interactive" in err_lower
+    )
+    if is_policy:
         return (
             "PolicySkipped",
             None,
-            _UI_FALLBACK_HINT.format(stream=stream_name),
+            _UI_FALLBACK_HINT.format(stream=stream_name) + f" (raw: {err_text})",
         )
-    if "404" in err_text or "not found" in err_text.lower():
+    if "404" in err_text or "not found" in err_lower:
         return (
             "Skipped",
             None,

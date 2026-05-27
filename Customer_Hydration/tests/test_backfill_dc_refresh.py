@@ -83,6 +83,29 @@ def test_refresh_account_stream_session_error_returns_skipped(mock_get_session):
 
 @patch("customer_hydration.backfill.dc_refresh.get_org_session")
 @patch("customer_hydration.backfill.dc_refresh.trigger_stream_refresh")
+def test_refresh_account_stream_full_refresh_policy_returns_policy_skipped(
+    mock_trigger, mock_get_session,
+):
+    """Regression: jdo-uqj0jr's Account_Home returned `policy: ... not allowed
+    to run in interactive mode if refresh mode is not FULL_REFRESH`. This is
+    a policy rejection (not a network/5xx failure) so it should map to
+    PolicySkipped, not Failed."""
+    mock_get_session.return_value = ("https://example.my.salesforce.com", "TOKEN_X")
+    mock_trigger.return_value = (
+        False, None,
+        "policy: Data Stream id 1dsam0000009GC1AAM is not allowed to run "
+        "in interactive mode if refresh mode is not FULL_REFRESH",
+    )
+    status, run_id, fallback = refresh_account_stream(
+        target_org="mock", stream_name="Account_Home",
+    )
+    assert status == "PolicySkipped"
+    assert run_id is None
+    assert "dc-stream-full-refresh-via-ui" in fallback
+
+
+@patch("customer_hydration.backfill.dc_refresh.get_org_session")
+@patch("customer_hydration.backfill.dc_refresh.trigger_stream_refresh")
 def test_refresh_account_stream_other_failure_returns_failed(
     mock_trigger, mock_get_session,
 ):
