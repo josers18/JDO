@@ -280,3 +280,23 @@ def test_per_persona_counts_in_manifest(tmp_path):
     manifest = json.loads((out_dir / "manifest.json").read_text())
     counts = manifest["derivation"]["per_persona_counts"]
     assert counts.get("retail", 0) == 1
+
+
+@patch("customer_hydration.backfill_accounts.upsert_to_org")
+@patch("customer_hydration.backfill_accounts.refresh_account_stream")
+def test_bulk_upsert_exception_returns_rc_3(mock_refresh, mock_upsert, tmp_path):
+    """Spec §6.2: if upsert_to_org raises (5xx, network), exit rc=3."""
+    mock_upsert.side_effect = RuntimeError("simulated bulk failure")
+    mock_refresh.return_value = ("Triggered", "07Lxx00004XY", None)
+    out_dir = tmp_path / "run"
+    rc = backfill_accounts.run_backfill(
+        target_org="mock",
+        output_dir=out_dir,
+        dry_run=False,
+        records=[_fixture_record()],
+        life_events_by_id={},
+    )
+    assert rc == 3
+    manifest = json.loads((out_dir / "manifest.json").read_text())
+    assert manifest["bulk_load"]["status"] == "Error"
+    assert "simulated bulk failure" in manifest["bulk_load"]["error"]
