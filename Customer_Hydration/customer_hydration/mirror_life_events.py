@@ -122,6 +122,25 @@ def fetch_legacy_rows(runner: SfRunner) -> list[LegacyRow]:
     return rows
 
 
+def _query_existing_native_seqs(runner: SfRunner) -> set[int]:
+    """Return the set of HYDRATE-NLE-* seqs already in the org.
+
+    Used to skip rows on the mirror's insert pass — existing native rows
+    can't be Bulk-upserted because EventType / PrimaryPersonId are
+    updateable=False on PersonLifeEvent.
+    """
+    rows = runner.query(
+        "SELECT External_ID__c FROM PersonLifeEvent "
+        "WHERE External_ID__c LIKE 'HYDRATE-NLE-%'"
+    )
+    seqs: set[int] = set()
+    for r in rows:
+        seq = parse_seq_from_external_id(r.get("External_ID__c"))
+        if seq is not None:
+            seqs.add(seq)
+    return seqs
+
+
 def to_native_requests(
     legacy_rows: Iterable[LegacyRow],
 ) -> list[NativePersonLifeEventRequest]:
@@ -209,9 +228,22 @@ def run_mirror(args: argparse.Namespace) -> int:
 
     print("Querying legacy FinServ__LifeEvent__c rows...")
     legacy_rows = fetch_legacy_rows(runner)
-    print(f"Mirror plan: {len(legacy_rows)} legacy rows to mirror.")
+    print(f"Found {len(legacy_rows)} legacy rows.")
     if not legacy_rows:
         print("No HYDRATE-LE-* rows in target org. Nothing to mirror.")
+        return 0
+
+    # Existing native rows: PersonLifeEvent.EventType and PrimaryPersonId
+    # are insert-only (updateable=False). Re-upserting an existing row
+    # via Bulk fails with INVALID_FIELD_FOR_INSERT_UPDATE on those
+    # columns. Filter the mirror plan to seqs that don't yet exist on
+    # the native side — that's strictly an insert pass, no updates.
+    existing_native_seqs = _query_existing_native_seqs(runner)
+    print(f"Existing HYDRATE-NLE-* rows: {len(existing_native_seqs)}.")
+    legacy_rows = [r for r in legacy_rows if r.seq not in existing_native_seqs]
+    print(f"Mirror plan: {len(legacy_rows)} new native rows to insert.")
+    if not legacy_rows:
+        print("Native lineage already at parity with legacy. Nothing to do.")
         return 0
 
     # ---- Phase 0: preflight describe ----
