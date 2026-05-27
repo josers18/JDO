@@ -23,6 +23,7 @@ from customer_hydration.backfill.exit_codes import (
     BULK_PARTIAL_FAILURE,
     PRODUCTION_GUARD,
 )
+from customer_hydration.backfill.preflight import find_unwritable_fields
 from customer_hydration.backfill.production_guard import enforce_production_guard
 from customer_hydration.backfill.query import fetch_account_chunks
 from customer_hydration.backfill.upsert import (
@@ -124,10 +125,24 @@ def run_backfill(
             return PRODUCTION_GUARD
 
     registry = _build_registry()
+    runner = sf_runner or SfRunner(target_org=target_org)
+
+    # Writability preflight: describe Account once, drop fields the platform
+    # won't accept on update (formula, rollup-summary, system audit fields,
+    # managed-package read-only fields). Empty when describe fails — better
+    # to attempt the upsert and let Bulk API report row-level rejections than
+    # to over-drop and lose the run entirely.
+    unwritable_fields = find_unwritable_fields(
+        runner, "Account", registry.all_owned_fields(),
+    )
+    if unwritable_fields:
+        logger.info(
+            "writability preflight dropped %d field(s) from output: %s",
+            len(unwritable_fields), sorted(unwritable_fields),
+        )
 
     # Fetch records (live SOQL) or use injected
     if records is None:
-        runner = sf_runner or SfRunner(target_org=target_org)
         all_chunks: list[list[dict]] = list(fetch_account_chunks(
             runner,
             owned_fields=registry.all_owned_fields(),
@@ -163,6 +178,12 @@ def run_backfill(
 
         delta = {f: v for f, v in candidates.items() if record.get(f) is None}
         apply_coverage_rules(archetype, record, delta, registry, rng)
+
+        # Drop platform-rejected fields (formula/rollup/managed-pkg read-only).
+        # The preflight ran once at startup and identified these from the
+        # describe payload; here we just mask them out per-row.
+        if unwritable_fields:
+            delta = {f: v for f, v in delta.items() if f not in unwritable_fields}
 
         if require_external_id and not record.get("External_ID__c"):
             rows_skipped_no_external_id += 1
@@ -238,6 +259,7 @@ def run_backfill(
         "rc": rc,
         "deriver_meta": {
             "fields_owned_by_derivers": registry.all_owned_fields(),
+            "unwritable_fields_dropped": sorted(unwritable_fields),
         },
         "query": {
             "rows_queried": len(records),
