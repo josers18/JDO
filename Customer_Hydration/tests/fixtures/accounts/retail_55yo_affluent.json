@@ -1,0 +1,15 @@
+{
+  "Id": "001xx000000RTL01",
+  "External_ID__c": "HYDRATE-RTL-000001",
+  "RecordType.Name": "FSC Person Accounts",
+  "IsPersonAccount": true,
+  "CreatedDate": "2018-04-12T10:00:00Z",
+  "PersonBirthdate": "1971-08-23",
+  "PersonGender": "Female",
+  "FinServ__MaritalStatus__pc": "Married",
+  "FinServ__NumberOfDependents__pc": 2,
+  "FinServ__AnnualIncome__pc": 250000,
+  "AnnualRevenue": null,
+  "FinServ__LastInteraction__c": "2026-05-12",
+  "Industry": null
+}
