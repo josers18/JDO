@@ -345,6 +345,33 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   test_backfill_e2e_live (2 SKIPPED unless `RUN_LIVE_TESTS=1`).
   **Suite: 763 PASS + 5 SKIPPED**, all green (was 718 after 4c). Spec:
   `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
+- **Phase 4 v1.1** (Live-org compatibility hotfixes, 2026-05-27) — Five
+  hotfix waves driven by first live-org runs against `jdo-uqj0jr` after
+  v1.0 merge. Wave 1 (`f4282b8`): writability preflight via
+  `Account.describe()` drops formula/rollup/managed-pkg fields where
+  `updateable=false`. Wave 2 (`1aac02d`): picklist drift preflight +
+  `_PICKLIST_OVERRIDE` runtime swap + length-tolerant `weighted_pick`
+  (truncates/pads when filtering shrinks values list) +
+  `backfill/value_translator.py` w/ `config/account_value_translator.yaml`
+  for spec→org synonym mapping (Diamond→A, Premier→Tier 1, etc.). Wave 3
+  (`a875d00`): `numeric_field_constraints()` preflight drops values that
+  exceed declared `precision/scale` (D&B Failure Score 1001-1610 vs.
+  org's `precision=3` field); `PERSONA_PREFIX_MAP` flipped to
+  `dict[str, list[str]]` to accept both `HYDRATE-RT-` and `HYDRATE-RTL-`;
+  `require_external_id` default flipped from `False` to `True`, CLI flag
+  renamed to `--allow-missing-external-id` (synth IDs broke MDM seed
+  rows). Wave 4 (`ecaa094`): leap-year clamp in `demographics.py`
+  (`birthdate.replace(year=non_leap)` → fall back to day=28); gitignore
+  `output/backfill-accounts-*/`; refresh `config/backfill_picklists.yaml`
+  to org's actual restricted vocabulary. Wave 5 (`78deb80`): broaden
+  DC refresh classifier in `dc_refresh.py` to recognize
+  `policy`/`full_refresh`/`not allowed`/`non-interactive` as
+  `PolicySkipped` (rc=0), not `Failed` — UPSERT-mode FSC streams reject
+  REST manual triggers and need the `dc-stream-full-refresh-via-ui` UI
+  workflow instead. Final clean run: rc=0, 35,722 rows upserted, 0 bulk
+  failures; **787 PASS + 5 SKIPPED**. Audit gap closed (see
+  `output/account-audit-2026-05-26/POST_BACKFILL_VERIFICATION.md`).
+  Retro: `docs/superpowers/specs/2026-05-27-phase-4-v1.1-live-org-retro.md`.
 
 ## When extending personas
 
