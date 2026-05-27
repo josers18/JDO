@@ -31,11 +31,11 @@ def test_deriver_metadata():
     assert "Fax" in d.fields
 
 
-def test_applies_to_person_only_in_4b():
-    """Plan 4b ships person-side. Business returns False until Plan 4c extends."""
+def test_applies_to_returns_true_for_both_branches():
+    """Plan 4c: addresses applies to both person and business."""
     d = AddressesDeriver()
     assert d.applies_to(_arch(is_person=True)) is True
-    assert d.applies_to(_arch(is_person=False)) is False
+    assert d.applies_to(_arch(is_person=False)) is True
 
 
 def test_rule_23_personmailing_uses_home_metro():

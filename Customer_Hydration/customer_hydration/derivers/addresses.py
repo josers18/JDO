@@ -189,11 +189,24 @@ class AddressesDeriver:
         "FinServ__MailingAddress__pc",
         "FinServ__OtherAddress__pc",
         "FinServ__ShippingAddress__pc",
+        # Plan 4c B2B fields
+        "BillingCity",
+        "BillingState",
+        "BillingCountry",
+        "BillingPostalCode",
+        "BillingStreet",
+        "ShippingCity",
+        "ShippingState",
+        "ShippingCountry",
+        "ShippingPostalCode",
+        "ShippingStreet",
+        "ShippingLatitude",
+        "ShippingLongitude",
+        "ShippingGeocodeAccuracy",
     ]
 
     def applies_to(self, archetype: PersonaArchetype) -> bool:
-        # Plan 4b: person-only. Plan 4c will add `or not archetype.is_person`.
-        return archetype.is_person
+        return True
 
     def derive(
         self,
@@ -206,49 +219,91 @@ class AddressesDeriver:
         home_centroid = _METRO_CENTROIDS.get(archetype.home_metro, (40.0, -100.0))
         home_city, home_state = _split_metro(archetype.home_metro)
 
-        # PersonMailing block — atomic
-        m_lat, m_lon = _jitter_lat_long(home_centroid, rng)
-        out["PersonMailingLatitude"] = m_lat
-        out["PersonMailingLongitude"] = m_lon
-        out["PersonMailingGeocodeAccuracy"] = "Address"
+        # Fax is common to both branches
+        out["Fax"] = _synth_phone(archetype.account_id, "fax:")
 
-        # PersonOther block — different metro, same state — atomic
-        alt_metro = _alt_in_same_state(archetype.home_metro, archetype.account_id)
-        alt_city, alt_state = _split_metro(alt_metro)
-        alt_centroid = _METRO_CENTROIDS.get(alt_metro, home_centroid)
-        o_lat, o_lon = _jitter_lat_long(alt_centroid, rng)
-        out["PersonOtherCity"] = alt_city
-        out["PersonOtherState"] = alt_state
-        out["PersonOtherCountry"] = "United States"
-        out["PersonOtherPostalCode"] = _synth_postal(alt_state, archetype.account_id)
-        out["PersonOtherStreet"] = _synth_street(archetype.account_id, "other:")
-        out["PersonOtherPhone"] = _synth_phone(archetype.account_id, "phone:")
-        out["PersonOtherLatitude"] = o_lat
-        out["PersonOtherLongitude"] = o_lon
-        out["PersonOtherGeocodeAccuracy"] = "Address"
+        if archetype.is_person:
+            # PersonMailing block — atomic
+            m_lat, m_lon = _jitter_lat_long(home_centroid, rng)
+            out["PersonMailingLatitude"] = m_lat
+            out["PersonMailingLongitude"] = m_lon
+            out["PersonMailingGeocodeAccuracy"] = "Address"
 
-        # Billing lat/long top-off (only when BillingCity already populated;
-        # the full Billing block is Plan 4c).
-        if record.get("BillingCity") is not None:
+            # PersonOther block — different metro, same state — atomic
+            alt_metro = _alt_in_same_state(archetype.home_metro, archetype.account_id)
+            alt_city, alt_state = _split_metro(alt_metro)
+            alt_centroid = _METRO_CENTROIDS.get(alt_metro, home_centroid)
+            o_lat, o_lon = _jitter_lat_long(alt_centroid, rng)
+            out["PersonOtherCity"] = alt_city
+            out["PersonOtherState"] = alt_state
+            out["PersonOtherCountry"] = "United States"
+            out["PersonOtherPostalCode"] = _synth_postal(alt_state, archetype.account_id)
+            out["PersonOtherStreet"] = _synth_street(archetype.account_id, "other:")
+            out["PersonOtherPhone"] = _synth_phone(archetype.account_id, "phone:")
+            out["PersonOtherLatitude"] = o_lat
+            out["PersonOtherLongitude"] = o_lon
+            out["PersonOtherGeocodeAccuracy"] = "Address"
+
+            # Billing lat/long top-off (only when BillingCity already populated)
+            if record.get("BillingCity") is not None:
+                b_lat, b_lon = _jitter_lat_long(home_centroid, rng)
+                out["BillingLatitude"] = b_lat
+                out["BillingLongitude"] = b_lon
+                out["BillingGeocodeAccuracy"] = "Address"
+
+            # FinServ__*Address__pc summary strings
+            mailing_street = _synth_street(archetype.account_id, "mail:")
+            mailing_postal = _synth_postal(home_state, archetype.account_id)
+            mailing_summary = f"{mailing_street}, {home_city}, {home_state} {mailing_postal}"
+            other_summary = (
+                f"{out['PersonOtherStreet']}, {alt_city}, {alt_state} "
+                f"{out['PersonOtherPostalCode']}"
+            )
+            out["FinServ__MailingAddress__pc"] = mailing_summary
+            out["FinServ__BillingAddress__pc"] = mailing_summary
+            out["FinServ__OtherAddress__pc"] = other_summary
+            out["FinServ__ShippingAddress__pc"] = mailing_summary
+
+            return out
+
+        # B2B branch — full Billing + Shipping blocks rooted in home_metro.
+        billing_postal = _synth_postal(home_state, archetype.account_id)
+        billing_street = _synth_street(archetype.account_id, "biz_bill:")
+
+        if record.get("BillingCity") is None:
+            # Full Billing block (rule 23)
+            out["BillingCity"] = home_city
+            out["BillingState"] = home_state
+            out["BillingCountry"] = "United States"
+            out["BillingPostalCode"] = billing_postal
+            out["BillingStreet"] = billing_street
+            b_lat, b_lon = _jitter_lat_long(home_centroid, rng)
+            out["BillingLatitude"] = b_lat
+            out["BillingLongitude"] = b_lon
+            out["BillingGeocodeAccuracy"] = "Address"
+        else:
+            # Existing BillingCity → only top off lat/long
             b_lat, b_lon = _jitter_lat_long(home_centroid, rng)
             out["BillingLatitude"] = b_lat
             out["BillingLongitude"] = b_lon
             out["BillingGeocodeAccuracy"] = "Address"
 
-        # Fax — synthetic phone keyed off account_id
-        out["Fax"] = _synth_phone(archetype.account_id, "fax:")
+        # Shipping — same as Billing (most B2B accounts share addresses)
+        if record.get("ShippingCity") is None:
+            out["ShippingCity"] = home_city
+            out["ShippingState"] = home_state
+            out["ShippingCountry"] = "United States"
+            out["ShippingPostalCode"] = billing_postal
+            out["ShippingStreet"] = billing_street
+            s_lat, s_lon = _jitter_lat_long(home_centroid, rng)
+            out["ShippingLatitude"] = s_lat
+            out["ShippingLongitude"] = s_lon
+            out["ShippingGeocodeAccuracy"] = "Address"
 
-        # FinServ__*Address__pc summary strings — formula-style "Street, City, State Postal"
-        mailing_street = _synth_street(archetype.account_id, "mail:")
-        mailing_postal = _synth_postal(home_state, archetype.account_id)
-        mailing_summary = f"{mailing_street}, {home_city}, {home_state} {mailing_postal}"
-        other_summary = (
-            f"{out['PersonOtherStreet']}, {alt_city}, {alt_state} "
-            f"{out['PersonOtherPostalCode']}"
-        )
-        out["FinServ__MailingAddress__pc"] = mailing_summary
-        out["FinServ__BillingAddress__pc"] = mailing_summary
-        out["FinServ__OtherAddress__pc"] = other_summary
-        out["FinServ__ShippingAddress__pc"] = mailing_summary
+        # Summary strings — formula-style "Street, City, State Postal"
+        billing_summary = f"{billing_street}, {home_city}, {home_state} {billing_postal}"
+        out["FinServ__BillingAddress__pc"] = billing_summary
+        out["FinServ__ShippingAddress__pc"] = billing_summary
+        # Mailing/Other not applicable to B2B; leave null
 
         return out
