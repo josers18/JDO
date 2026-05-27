@@ -1,5 +1,7 @@
 """Smoke tests for the Phase 4 backfill_accounts skeleton (no derivers yet)."""
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -55,3 +57,15 @@ def test_run_backfill_dry_run_skips_bulk_upsert(tmp_path):
     assert rc == 0
     # No bulk_job log file in dry-run mode
     assert not (out_dir / "bulk_job.log").exists()
+
+
+def test_cli_backfill_accounts_subcommand_registered():
+    """`hydrate.py backfill-accounts --help` must exit 0 and mention the subcommand."""
+    result = subprocess.run(
+        [sys.executable, "hydrate.py", "backfill-accounts", "--help"],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).resolve().parents[1],  # repo root
+    )
+    assert result.returncode == 0, f"stderr: {result.stderr}"
+    assert "backfill-accounts" in result.stdout or "--target-org" in result.stdout
