@@ -1,0 +1,162 @@
+{
+  "type": "LogicalComparison",
+  "operator": "and",
+  "filters": [
+    {
+      "type": "CalculatedInsight",
+      "subject": {
+        "objectApiName": "Expenses_for_1_Year__cio",
+        "fieldApiName": "PartyId__c"
+      },
+      "path": [
+        [
+          {
+            "objectApiName": "ssot__Account__dlm",
+            "fieldApiName": "ssot__Id__c"
+          },
+          {
+            "objectApiName": "Expenses_for_1_Year__cio",
+            "fieldApiName": "PartyId__c"
+          }
+        ]
+      ],
+      "comparison": {
+        "type": "NumberComparison",
+        "path": null,
+        "joinPath": null,
+        "subject": {
+          "objectApiName": "Expenses_for_1_Year__cio",
+          "fieldApiName": "TotalExpenses__c"
+        },
+        "selfReference": false,
+        "operator": "greater than",
+        "businessTypeArgument": null,
+        "subjectFieldDataType": "NUMBER",
+        "subjectFieldBusinessType": "NUMBER",
+        "subjectFieldSourceType": null,
+        "value": 0
+      }
+    },
+    {
+      "type": "CalculatedInsight",
+      "subject": {
+        "objectApiName": "Expenses_for_6_Months__cio",
+        "fieldApiName": "PartyId__c"
+      },
+      "path": [
+        [
+          {
+            "objectApiName": "ssot__Account__dlm",
+            "fieldApiName": "ssot__Id__c"
+          },
+          {
+            "objectApiName": "Expenses_for_6_Months__cio",
+            "fieldApiName": "PartyId__c"
+          }
+        ]
+      ],
+      "comparison": {
+        "type": "NumberComparison",
+        "path": null,
+        "joinPath": null,
+        "subject": {
+          "objectApiName": "Expenses_for_6_Months__cio",
+          "fieldApiName": "TotalExpenses__c"
+        },
+        "selfReference": false,
+        "operator": "equal",
+        "businessTypeArgument": null,
+        "subjectFieldDataType": "NUMBER",
+        "subjectFieldBusinessType": "NUMBER",
+        "subjectFieldSourceType": null,
+        "value": 0
+      }
+    },
+    {
+      "filter": {
+        "type": "TextComparison",
+        "path": null,
+        "joinPath": null,
+        "subject": {
+          "objectApiName": "ssot__AccountContact__dlm",
+          "fieldApiName": "ssot__Title__c"
+        },
+        "selfReference": false,
+        "operator": "in",
+        "subjectFieldDataType": "TEXT",
+        "subjectFieldBusinessType": "TEXT",
+        "subjectFieldSourceType": "RELATED",
+        "values": [
+          "Physician",
+          "Dr",
+          "Doctor"
+        ]
+      },
+      "containerObjectApiName": "ssot__AccountContact__dlm",
+      "path": [
+        [
+          {
+            "objectApiName": "ssot__Account__dlm",
+            "fieldApiName": "ssot__Id__c"
+          },
+          {
+            "objectApiName": "ssot__AccountContact__dlm",
+            "fieldApiName": "ssot__AccountId__c"
+          }
+        ]
+      ],
+      "joinPath": [
+        [
+          {
+            "objectApiName": "ssot__Account__dlm",
+            "fieldApiName": "ssot__Id__c"
+          },
+          {
+            "objectApiName": "ssot__AccountContact__dlm",
+            "fieldApiName": "ssot__AccountId__c"
+          }
+        ]
+      ],
+      "type": "NumberAggregation",
+      "aggregateFunction": "count",
+      "comparison": {
+        "type": "NumberComparison",
+        "path": null,
+        "joinPath": null,
+        "subject": {
+          "objectApiName": "ssot__AccountContact__dlm",
+          "fieldApiName": "ssot__Id__c"
+        },
+        "selfReference": false,
+        "operator": "greater than or equal",
+        "subjectFieldDataType": "TEXT",
+        "subjectFieldBusinessType": "TEXT",
+        "subjectFieldSourceType": null,
+        "value": 1
+      },
+      "hierarchySelected": false,
+      "hierarchicalPathList": null,
+      "innerAggregationEnabled": false,
+      "innerAggregationSubject": null,
+      "outerAggregationFunction": null,
+      "outerComparison": null
+    },
+    {
+      "type": "TextComparison",
+      "path": null,
+      "joinPath": null,
+      "subject": {
+        "objectApiName": "ssot__Account__dlm",
+        "fieldApiName": "ssot__ParentAccountId__c"
+      },
+      "selfReference": false,
+      "operator": "equal",
+      "subjectFieldDataType": "TEXT",
+      "subjectFieldBusinessType": "TEXT",
+      "subjectFieldSourceType": "DIRECT",
+      "values": [
+        "Cigna"
+      ]
+    }
+  ]
+}
