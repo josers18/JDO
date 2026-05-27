@@ -552,6 +552,41 @@ def create_segment(
 # success by ``execute_create_segments`` (skipped, not patched).
 
 
+def delete_segment(
+    instance_url: str,
+    access_token: str,
+    *,
+    api_name: str,
+    api_version: str = "v60.0",
+) -> tuple[bool, str]:
+    """Delete a segment via DELETE /services/data/{v}/ssot/segments/{api_name}.
+
+    HTTP 404 is treated as idempotent success (segment already gone).
+    All other 4xx/5xx return (False, "<status> <body[:200]>"). Never raises.
+    """
+    import urllib.request
+    from urllib.error import HTTPError, URLError
+    url = f"{instance_url}/services/data/{api_version}/ssot/segments/{api_name}"
+    req = urllib.request.Request(url, method="DELETE", headers={
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            _ = resp.read()
+        return (True, f"deleted {api_name}")
+    except HTTPError as exc:
+        try:
+            err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
+        except Exception:
+            err_body = ""
+        if exc.code == 404:
+            return (True, f"HTTP 404 (already gone) {api_name}")
+        return (False, f"HTTP {exc.code} {exc.reason}: {err_body[:200]}")
+    except (URLError, json.JSONDecodeError) as exc:
+        return (False, str(exc))
+
+
 def publish_segment(
     instance_url: str, access_token: str, *,
     api_name: str,
