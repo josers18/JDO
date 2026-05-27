@@ -1,0 +1,37 @@
+# Phase 4 picklist distributions — values + weights consumed by derivers via
+# customer_hydration.derivers._helpers.load_picklist_yaml.
+#
+# Each entry's `values` list MUST be a subset of the org's actual picklist
+# values for that field; preflight verifies this.
+
+FinServ__KYCStatus__c:
+  values: [Approved, Pending, Expired]
+  weights: [0.90, 0.08, 0.02]
+
+FinServ__HomeOwnership__pc:
+  values: [Own, Rent, Other]
+  weights: [0.65, 0.30, 0.05]
+
+Tier__c:
+  values: [Bronze, Silver, Gold, Platinum, Diamond]
+  weights: [0.40, 0.30, 0.20, 0.08, 0.02]
+
+FinServ__ServiceModel__c:
+  values: [Self-Service, Standard, Premier, Private]
+  weights: [0.40, 0.40, 0.15, 0.05]
+
+FinServ__CustomerType__c:
+  values: [Individual, Business, Trust]
+  weights: [0.85, 0.10, 0.05]
+
+FinServ__Status__c:
+  values: [Active, Inactive, Closed]
+  weights: [0.95, 0.04, 0.01]
+
+FinServ__RiskTolerance__c:
+  values: [Conservative, Moderate, Aggressive]
+  weights: [0.30, 0.55, 0.15]
+
+FinServ__BorrowingHistory__c:
+  values: [Excellent, Good, Fair, Poor, None]
+  weights: [0.25, 0.40, 0.20, 0.05, 0.10]

@@ -231,3 +231,35 @@ def test_registry_skips_non_applicable_deriver():
     rng = seeded_rng("001x")
     out = r.run(archetype, {"Id": "001x"}, rng)
     assert out == {}
+
+
+from customer_hydration.derivers._helpers import load_picklist_yaml
+
+
+def test_load_picklist_yaml_returns_values_and_weights():
+    entry = load_picklist_yaml("FinServ__KYCStatus__c")
+    assert entry["values"] == ["Approved", "Pending", "Expired"]
+    assert entry["weights"] == [0.90, 0.08, 0.02]
+
+
+def test_load_picklist_yaml_returns_none_when_missing():
+    assert load_picklist_yaml("Some__NonExistent__c") is None
+
+
+def test_load_picklist_yaml_loads_all_eight_phase_4b_fields():
+    expected = [
+        "FinServ__KYCStatus__c",
+        "FinServ__HomeOwnership__pc",
+        "Tier__c",
+        "FinServ__ServiceModel__c",
+        "FinServ__CustomerType__c",
+        "FinServ__Status__c",
+        "FinServ__RiskTolerance__c",
+        "FinServ__BorrowingHistory__c",
+    ]
+    for field in expected:
+        entry = load_picklist_yaml(field)
+        assert entry is not None, f"{field} missing from backfill_picklists.yaml"
+        assert "values" in entry
+        assert "weights" in entry
+        assert len(entry["values"]) == len(entry["weights"])

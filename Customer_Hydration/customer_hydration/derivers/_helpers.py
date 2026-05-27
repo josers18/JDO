@@ -1,9 +1,13 @@
 """Shared helpers for derivers — seeded RNG, weighted pickers, value-band utilities."""
 from __future__ import annotations
 
+import functools
 import hashlib
 import random
+from pathlib import Path
 from typing import Sequence
+
+import yaml
 
 
 def seeded_rng(account_id: str) -> random.Random:
@@ -77,3 +81,23 @@ def business_size(annual_revenue: float | None) -> str:
     if annual_revenue < 1_000_000_000:
         return "large"
     return "enterprise"
+
+
+_BACKFILL_PICKLIST_PATH = (
+    Path(__file__).resolve().parents[2] / "config" / "backfill_picklists.yaml"
+)
+
+
+@functools.lru_cache(maxsize=1)
+def _load_picklist_yaml() -> dict[str, dict]:
+    """Cache the YAML once per process."""
+    if not _BACKFILL_PICKLIST_PATH.exists():
+        return {}
+    with _BACKFILL_PICKLIST_PATH.open() as fh:
+        data = yaml.safe_load(fh) or {}
+    return data
+
+
+def load_picklist_yaml(field_name: str) -> dict | None:
+    """Return {'values': [...], 'weights': [...]} for a picklist field, or None."""
+    return _load_picklist_yaml().get(field_name)
