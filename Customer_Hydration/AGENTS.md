@@ -283,6 +283,37 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   spec's 2025 single-filer brackets place $12k in the 12% bracket (above
   the $11.6k threshold), not 10% — corrected during implementation. Spec:
   `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
+- **Phase 4 / Plan 4c** (B2B derivers + coverage rules, 2026-05-27) —
+  Plan 4b's `profile.py`, `addresses.py`, `contact.py` extended in-place
+  with B2B branches (`applies_to → True`, `derive` body branches on
+  `archetype.is_person`). New `credit_bureau.py` deriver implements rule
+  17: all B2B bureau scores (PAYDEX 1-100, Delinquency 101-670, Failure
+  1001-1610 *inverse*, Equifax Credit Risk 101-992, Equifax Failure
+  1000-1610 *inverse*, Equifax Payment Index 0-100, Experian Intelliscore
+  1-100, Experian Risk Band 1-6, Fitch Rating AAA→CCC, Fitch Category,
+  DNB Rating, INS_FEIN_Tax_ID 9-digit) derive from one
+  `archetype.business_credit_quality` latent. Coverage-rules layer added
+  at `customer_hydration/coverage_rules.py` + `config/coverage_rules.yaml`
+  — pure-function YAML interpreter that runs *after* the deriver pass,
+  loaded via `@functools.lru_cache(maxsize=1)`, with predicate matchers
+  (`record_type_in`, `record_type_not_in`, `is_person_account`,
+  `persona_in`) and `fill_with` callback resolution against the registry.
+  3 callback methods added to existing derivers
+  (`relationship.derive_last_interaction_for_coverage`,
+  `profile.derive_risk_tolerance_for_coverage`,
+  `profile.derive_annual_revenue_for_coverage`). New picklists Type,
+  Rating, Industry appended to `backfill_picklists.yaml`. New B2B
+  coherence tests in `test_coherence.py` cover rules 17–21 + 3 narrative
+  customers (commercial-enterprise, smb-micro, household-aggregate). All
+  24 coherence rules now verified end-to-end via build_archetype →
+  Registry → coverage_rules. Suite: 718 tests, all green. Note: the
+  rule-18 narrative test was redesigned mid-implementation — the original
+  shape (null AnnualRevenue → expect deriver to fill enterprise revenue)
+  was circular because the archetype's `business_size` is computed from
+  the *record's* AnnualRevenue at archetype-build time. The fix verifies
+  coherence via `NumberOfEmployees` instead, which depends only on
+  `business_size`. Spec:
+  `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
 
 ## When extending personas
 
