@@ -134,6 +134,40 @@ def test_paired_partner_returns_none_when_not_paired():
     assert paired_partner("Industry") is None
 
 
+def test_read_paired_value_returns_own_when_populated():
+    from customer_hydration.derivers._pairs import read_paired_value
+
+    record = {"FinServ__CreditScore__c": 720, "FinServ__CreditRating__c": None}
+    assert read_paired_value(record, "FinServ__CreditScore__c") == (
+        "FinServ__CreditScore__c",
+        720,
+    )
+
+
+def test_read_paired_value_returns_partner_when_only_partner_populated():
+    from customer_hydration.derivers._pairs import read_paired_value
+
+    record = {"FinServ__CreditScore__c": None, "FinServ__CreditRating__c": "Good"}
+    assert read_paired_value(record, "FinServ__CreditScore__c") == (
+        "FinServ__CreditRating__c",
+        "Good",
+    )
+
+
+def test_read_paired_value_returns_none_when_both_null():
+    from customer_hydration.derivers._pairs import read_paired_value
+
+    record = {"FinServ__CreditScore__c": None, "FinServ__CreditRating__c": None}
+    assert read_paired_value(record, "FinServ__CreditScore__c") is None
+
+
+def test_read_paired_value_returns_none_when_field_unpaired():
+    from customer_hydration.derivers._pairs import read_paired_value
+
+    record = {"Industry": "Banking"}
+    assert read_paired_value(record, "Industry") is None
+
+
 from datetime import date
 
 from customer_hydration.derivers._archetype import PersonaArchetype

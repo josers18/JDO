@@ -102,7 +102,7 @@ def run_backfill(
         "started_at": started_at,
         "completed_at": completed_at,
         "rc": 0,
-        "phase_0": {"fields_owned_by_derivers": registry.all_owned_fields()},
+        "deriver_meta": {"fields_owned_by_derivers": registry.all_owned_fields()},
         "query": {
             "rows_queried": len(records),
             "filter": {"persona": None, "record_type": None},
