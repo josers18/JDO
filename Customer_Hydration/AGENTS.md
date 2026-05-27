@@ -239,6 +239,24 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   dropped (Dynamic segments can't be patched); pagination walk for
   `/ssot/data-streams`; v62 endpoint for `actions/run`. **468 tests, all
   green**. Spec: `docs/superpowers/specs/2026-05-22-phase-2-streams-and-segments-design.md`.
+- **Phase 4 / Plan 4a** (Skeleton + PersonaArchetype, 2026-05-27) —
+  `customer_hydration/derivers/` package with `_archetype.py` (the 18-field
+  PersonaArchetype dataclass + 11-step `build_archetype` coherence layer
+  reading PersonBirthdate, AnnualIncome, CreatedDate, Phase 3c LifeEvents),
+  `_helpers.py` (`seeded_rng`, `weighted_pick`, `income_band`,
+  `business_size`), `_pairs.py` (8 PAIRED_FIELDS pairs +
+  `paired_partner` lookup), `_base.py` (Deriver Protocol),
+  `_registry.py` (ordered deriver execution + `all_owned_fields`).
+  Stubbed orchestrator `customer_hydration/backfill_accounts.py` with
+  `--dry-run` `backfill-accounts` CLI subcommand registered in `cli.py`
+  (re-uses `_add_global_args` for `--target-org` / `--dry-run` / etc.,
+  declares only the 7 backfill-specific flags). 40 new tests covering
+  archetype anchor reads, rng-fallback paths, LifeEvent integration,
+  paired-fields lookup, Registry semantics, and orchestrator skeleton
+  (567 tests total, all green). No derivers yet — Plans 4b–4d add the
+  7 derivers (relationship, credit_personal, credit_bureau, profile,
+  demographics, addresses, contact), coverage rules, bulk upsert, and
+  DC refresh. Spec: `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
 
 ## When extending personas
 
