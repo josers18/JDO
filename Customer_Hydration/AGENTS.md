@@ -239,6 +239,112 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   dropped (Dynamic segments can't be patched); pagination walk for
   `/ssot/data-streams`; v62 endpoint for `actions/run`. **468 tests, all
   green**. Spec: `docs/superpowers/specs/2026-05-22-phase-2-streams-and-segments-design.md`.
+- **Phase 4 / Plan 4a** (Skeleton + PersonaArchetype, 2026-05-27) —
+  `customer_hydration/derivers/` package with `_archetype.py` (the 18-field
+  PersonaArchetype dataclass + 11-step `build_archetype` coherence layer
+  reading PersonBirthdate, AnnualIncome, CreatedDate, Phase 3c LifeEvents),
+  `_helpers.py` (`seeded_rng`, `weighted_pick`, `income_band`,
+  `business_size`), `_pairs.py` (8 PAIRED_FIELDS pairs +
+  `paired_partner` lookup), `_base.py` (Deriver Protocol),
+  `_registry.py` (ordered deriver execution + `all_owned_fields`).
+  Stubbed orchestrator `customer_hydration/backfill_accounts.py` with
+  `--dry-run` `backfill-accounts` CLI subcommand registered in `cli.py`
+  (re-uses `_add_global_args` for `--target-org` / `--dry-run` / etc.,
+  declares only the 7 backfill-specific flags). 40 new tests covering
+  archetype anchor reads, rng-fallback paths, LifeEvent integration,
+  paired-fields lookup, Registry semantics, and orchestrator skeleton
+  (567 tests total, all green). No derivers yet — Plans 4b–4d add the
+  7 derivers (relationship, credit_personal, credit_bureau, profile,
+  demographics, addresses, contact), coverage rules, bulk upsert, and
+  DC refresh. Spec: `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
+- **Phase 4 / Plan 4b** (Person-side derivers + coherence, 2026-05-27) —
+  Six derivers landed: `relationship.py` (rules 4–8), `credit_personal.py`
+  (rules 2–3 with paired-fill via `read_paired_value`),
+  `profile.py` person-side (rules 1, 16 — Tier/ServiceModel chain + Risk
+  triple), `demographics.py` (rules 9–15 — HomeOwnership×age×income,
+  18-or-older Employment floor, dependents/children household-bound,
+  Marital/Anniversary consistency, 2025 single-filer Tax brackets, paired
+  TaxId+SSN), `addresses.py` person blocks (rule 23 — PersonMailing on
+  home_metro, PersonOther in same state, atomic blocks, geocode jitter),
+  `contact.py` person-side (rule 24 — PersonTitle by age×gender). Adds
+  `config/backfill_picklists.yaml` with 8 picklist distributions consumed
+  via the new `_helpers.load_picklist_yaml` reader (LRU-cached). The
+  orchestrator's `_build_registry` now wires all 6 derivers, so
+  `python hydrate.py backfill-accounts --target-org X --dry-run` against
+  injected person-account records produces a non-empty CSV with ~50
+  populated columns per row. New `tests/test_coherence.py` runs 18
+  end-to-end coherence-narrative tests (rules 1–16 + 22–24 + 4 narrative
+  profiles like 22yo-entry-renter and uhnw-Diamond-private) that go
+  build_archetype → Registry → null-filter and assert cross-deriver
+  invariants. New fixtures `wealth_uhnw.json` and `retail_22yo_entry.json`
+  drive the narratives. The `applies_to()` of `profile`, `addresses`,
+  `contact` is gated on `archetype.is_person` so Plan 4c can extend them
+  in-place. **655 tests total**, all green (was 567 after 4a). Note: the
+  spec's 2025 single-filer brackets place $12k in the 12% bracket (above
+  the $11.6k threshold), not 10% — corrected during implementation. Spec:
+  `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
+- **Phase 4 / Plan 4c** (B2B derivers + coverage rules, 2026-05-27) —
+  Plan 4b's `profile.py`, `addresses.py`, `contact.py` extended in-place
+  with B2B branches (`applies_to → True`, `derive` body branches on
+  `archetype.is_person`). New `credit_bureau.py` deriver implements rule
+  17: all B2B bureau scores (PAYDEX 1-100, Delinquency 101-670, Failure
+  1001-1610 *inverse*, Equifax Credit Risk 101-992, Equifax Failure
+  1000-1610 *inverse*, Equifax Payment Index 0-100, Experian Intelliscore
+  1-100, Experian Risk Band 1-6, Fitch Rating AAA→CCC, Fitch Category,
+  DNB Rating, INS_FEIN_Tax_ID 9-digit) derive from one
+  `archetype.business_credit_quality` latent. Coverage-rules layer added
+  at `customer_hydration/coverage_rules.py` + `config/coverage_rules.yaml`
+  — pure-function YAML interpreter that runs *after* the deriver pass,
+  loaded via `@functools.lru_cache(maxsize=1)`, with predicate matchers
+  (`record_type_in`, `record_type_not_in`, `is_person_account`,
+  `persona_in`) and `fill_with` callback resolution against the registry.
+  3 callback methods added to existing derivers
+  (`relationship.derive_last_interaction_for_coverage`,
+  `profile.derive_risk_tolerance_for_coverage`,
+  `profile.derive_annual_revenue_for_coverage`). New picklists Type,
+  Rating, Industry appended to `backfill_picklists.yaml`. New B2B
+  coherence tests in `test_coherence.py` cover rules 17–21 + 3 narrative
+  customers (commercial-enterprise, smb-micro, household-aggregate). All
+  24 coherence rules now verified end-to-end via build_archetype →
+  Registry → coverage_rules. Suite: 718 tests, all green. Note: the
+  rule-18 narrative test was redesigned mid-implementation — the original
+  shape (null AnnualRevenue → expect deriver to fill enterprise revenue)
+  was circular because the archetype's `business_size` is computed from
+  the *record's* AnnualRevenue at archetype-build time. The fix verifies
+  coherence via `NumberOfEmployees` instead, which depends only on
+  `business_size`. Spec:
+  `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
+- **Phase 4 / Plan 4d** (Live SOQL + Bulk upsert + DC refresh, 2026-05-27) —
+  New `customer_hydration/backfill/` sub-package: `query.py` (chunked
+  SOQL fetch + persona/RT filter clause builder; keyset-paginated by Id
+  for full-org runs, `LIMIT N` for single-shot --limit runs),
+  `upsert.py` (sparse-CSV builder using `csv.DictWriter`, External_ID__c
+  forced to column 0, LF endings, proper comma escaping; wraps
+  `loader._legacy.bulk_upsert`), `dc_refresh.py` (resolves auth via
+  `phase5.data_cloud.get_org_session`, classifies refresh outcomes as
+  Triggered / PolicySkipped / Skipped / Failed, returns
+  `dc-stream-full-refresh-via-ui` skill nudge on 412),
+  `production_guard.py` (frozenset of known-prod 15-char ids; empty by
+  default for v1; `enforce_production_guard` raises PermissionError →
+  rc=5), `exit_codes.py` (`OK=0`, `BULK_PARTIAL_FAILURE=2`,
+  `BULK_HARD_FAILURE=3`, `SCHEMA_PICKLIST_DRIFT=4`, `PRODUCTION_GUARD=5`).
+  Per-deriver exception isolation added to `Registry.run` — bad derivers
+  fail in place and accumulate to `registry.errors`, the rest of the
+  registry continues; errors reset per `run()` call. Orchestrator
+  `backfill_accounts.run_backfill` rewritten end-to-end: live SOQL via
+  injectable SfRunner (chunked at 2000), all 5 deferred CLI flags wired
+  (`--persona`, `--record-type`, `--limit`, `--require-external-id`,
+  `--strict`), Bulk API 2.0 upsert via the wrapper (rc=2 when
+  failed_pct > 1.0% or `--strict` + any failure), DC refresh trigger
+  with PolicySkipped non-fatal (rc=0), full manifest schema with
+  `per_field_fill_counts`, `per_persona_counts`, `errors`. New tests:
+  test_backfill_query (11), test_backfill_upsert (8),
+  test_backfill_dc_refresh (6), test_backfill_production_guard (6, with
+  3 SKIPPED while KNOWN_PRODUCTION_ORG_IDS is empty),
+  test_backfill_exception_isolation (5), test_backfill_accounts (12),
+  test_backfill_e2e_live (2 SKIPPED unless `RUN_LIVE_TESTS=1`).
+  **Suite: 763 PASS + 5 SKIPPED**, all green (was 718 after 4c). Spec:
+  `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
 
 ## When extending personas
 

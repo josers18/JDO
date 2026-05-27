@@ -1,0 +1,15 @@
+{
+  "Id": "001xx000000NOA01",
+  "External_ID__c": "HYDRATE-RTL-000999",
+  "RecordType.Name": "FSC Person Accounts",
+  "IsPersonAccount": true,
+  "CreatedDate": "2024-09-15T10:00:00Z",
+  "PersonBirthdate": null,
+  "PersonGender": null,
+  "FinServ__MaritalStatus__pc": null,
+  "FinServ__NumberOfDependents__pc": null,
+  "FinServ__AnnualIncome__pc": 75000,
+  "AnnualRevenue": null,
+  "FinServ__LastInteraction__c": null,
+  "Industry": null
+}

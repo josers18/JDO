@@ -122,6 +122,45 @@ def build_parser() -> argparse.ArgumentParser:
     _add_global_args(p_mirror)
     p_mirror.add_argument("--allow-production", action="store_true")
 
+    p_backfill = sub.add_parser(
+        "backfill-accounts",
+        help="Fill empty Account fields across the target org (Phase 4)",
+    )
+    _add_global_args(p_backfill)
+    p_backfill.add_argument(
+        "--persona",
+        help="Comma-separated persona filter (retail,wealth,smb,commercial,household)",
+    )
+    p_backfill.add_argument(
+        "--record-type",
+        help="Comma-separated RecordType.Name filter",
+    )
+    p_backfill.add_argument(
+        "--limit",
+        type=int,
+        help="Process at most N records (testing aid)",
+    )
+    p_backfill.add_argument(
+        "--skip-refresh-stream",
+        action="store_true",
+        help="Skip the post-load DC stream refresh trigger",
+    )
+    p_backfill.add_argument(
+        "--strict",
+        action="store_true",
+        help="Any non-zero per-row failure exits rc=2 (regardless of threshold)",
+    )
+    p_backfill.add_argument(
+        "--require-external-id",
+        action="store_true",
+        help="Skip rows missing External_ID__c instead of stamping BACKFILL-<Id>",
+    )
+    p_backfill.add_argument(
+        "--allow-production",
+        action="store_true",
+        help="Required to run against an org with a production-org id",
+    )
+
     p_resume = sub.add_parser("resume", help="Continue an interrupted run (Plan 3)")
     _add_global_args(p_resume)
     _add_hydrate_args(p_resume)
@@ -182,6 +221,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.subcommand == "mirror-life-events":
         from customer_hydration.mirror_life_events import run_mirror
         return run_mirror(args)
+    if args.subcommand == "backfill-accounts":
+        from customer_hydration.backfill_accounts import run_backfill
+        from datetime import datetime
+        ts = datetime.now().strftime("%Y-%m-%dT%H%M")
+        out_dir = Path(args.output_dir) / f"backfill-accounts-{ts}"
+        return run_backfill(
+            target_org=args.target_org,
+            output_dir=out_dir,
+            dry_run=args.dry_run,
+            persona=getattr(args, "persona", None),
+            record_type=getattr(args, "record_type", None),
+            limit=getattr(args, "limit", None),
+            skip_refresh_stream=getattr(args, "skip_refresh_stream", False),
+            strict=getattr(args, "strict", False),
+            require_external_id=getattr(args, "require_external_id", False),
+            allow_production=getattr(args, "allow_production", False),
+            records=None,
+            life_events_by_id=None,
+        )
     if args.subcommand == "briefs":
         return _run_briefs(args)
     print(f"Subcommand {args.subcommand!r} is implemented in a later plan.", file=sys.stderr)

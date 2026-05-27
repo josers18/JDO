@@ -1,0 +1,19 @@
+{
+  "Id": "001xx0000UHNW01",
+  "External_ID__c": "HYDRATE-WLT-000001",
+  "RecordType.Name": "FSC Person Accounts",
+  "IsPersonAccount": true,
+  "CreatedDate": "2014-09-01T10:00:00Z",
+  "PersonBirthdate": "1968-04-12",
+  "PersonGender": "Male",
+  "FinServ__MaritalStatus__pc": "Married",
+  "FinServ__NumberOfDependents__pc": null,
+  "FinServ__AnnualIncome__pc": 1500000,
+  "AnnualRevenue": null,
+  "FinServ__LastInteraction__c": "2026-05-15",
+  "Industry": null,
+  "FinServ__TotalInvestments__c": 5000000,
+  "FinServ__TotalBankDeposits__c": 800000,
+  "FinServ__TotalNonfinancialAssets__c": 3000000,
+  "FinServ__TotalLiabilities__c": 1200000
+}

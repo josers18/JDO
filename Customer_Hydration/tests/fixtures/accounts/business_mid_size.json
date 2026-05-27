@@ -1,0 +1,15 @@
+{
+  "Id": "001xx000000BIZ01",
+  "External_ID__c": "HYDRATE-COM-000001",
+  "RecordType.Name": "Business",
+  "IsPersonAccount": false,
+  "CreatedDate": "2017-01-15T10:00:00Z",
+  "PersonBirthdate": null,
+  "PersonGender": null,
+  "FinServ__MaritalStatus__pc": null,
+  "FinServ__NumberOfDependents__pc": null,
+  "FinServ__AnnualIncome__pc": null,
+  "AnnualRevenue": 50000000,
+  "FinServ__LastInteraction__c": "2026-04-01",
+  "Industry": "Banking"
+}

@@ -1,0 +1,20 @@
+{
+  "Id": "001xx0000SMB01",
+  "External_ID__c": "HYDRATE-SMB-000001",
+  "RecordType.Name": "Business",
+  "IsPersonAccount": false,
+  "CreatedDate": "2024-06-01T10:00:00Z",
+  "PersonBirthdate": null,
+  "PersonGender": null,
+  "FinServ__MaritalStatus__pc": null,
+  "FinServ__NumberOfDependents__pc": null,
+  "FinServ__AnnualIncome__pc": null,
+  "AnnualRevenue": 250000,
+  "FinServ__LastInteraction__c": null,
+  "Industry": "Retail",
+  "FinServ__TotalInvestments__c": null,
+  "FinServ__TotalBankDeposits__c": null,
+  "FinServ__TotalNonfinancialAssets__c": null,
+  "FinServ__TotalLiabilities__c": null,
+  "AccountSource": "Web"
+}
