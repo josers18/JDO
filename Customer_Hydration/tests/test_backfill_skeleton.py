@@ -106,3 +106,47 @@ def test_run_backfill_produces_csv_with_person_account_deltas(tmp_path):
     assert "Tier__c" in owned
     assert "PersonMailingLatitude" in owned
     assert "PersonTitle" in owned
+
+
+def test_run_backfill_produces_csv_with_business_account_deltas(tmp_path):
+    """End-to-end: a Business-account record with nulls produces a non-empty CSV row.
+    The B2B branches of profile/addresses/contact + credit_bureau all contribute."""
+    out_dir = tmp_path / "run"
+    record = {
+        "Id": "001xx000000BIZ01",
+        "External_ID__c": "HYDRATE-COM-000001",
+        "RecordType.Name": "Business",
+        "IsPersonAccount": False,
+        "CreatedDate": "2017-01-15T10:00:00Z",
+        "AnnualRevenue": None,
+        "Industry": "Banking",
+    }
+    rc = backfill_accounts.run_backfill(
+        target_org="mock", output_dir=out_dir, dry_run=True,
+        records=[record], life_events_by_id={},
+    )
+    assert rc == 0
+
+    csv_text = (out_dir / "account_backfill.csv").read_text()
+    # B2B-specific fields populated
+    assert "DNB_PAYDEX_Score__c" in csv_text  # credit_bureau
+    assert "AnnualRevenue" in csv_text         # profile B2B branch
+    assert "BillingCity" in csv_text           # addresses B2B branch
+    assert "NAICS_Code__c" in csv_text         # contact B2B branch
+    # Person-only fields NOT populated for this Business record
+    # (we check the row, not the header — header lists all owned fields)
+    lines = csv_text.strip().split("\n")
+    header = lines[0].split(",")
+    row = lines[1].split(",")
+    cells = dict(zip(header, row))
+    # PersonMailingLatitude column may exist in header but should be empty for B2B
+    assert cells.get("PersonMailingLatitude", "") == ""
+    assert cells.get("Tier__c", "") == ""
+
+    manifest = json.loads((out_dir / "manifest.json").read_text())
+    assert manifest["derivation"]["rows_with_deltas"] == 1
+    owned = manifest["deriver_meta"]["fields_owned_by_derivers"]
+    assert "DNB_PAYDEX_Score__c" in owned
+    assert "AnnualRevenue" in owned
+    assert "BillingCity" in owned
+    assert "NAICS_Code__c" in owned

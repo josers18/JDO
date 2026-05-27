@@ -23,13 +23,16 @@ from customer_hydration.derivers._registry import Registry
 
 
 def _build_registry() -> Registry:
-    """Build the deriver registry with all six Plan 4b derivers.
+    """Build the deriver registry with all seven derivers.
 
-    Plan 4c will extend this with credit_bureau and the B2B branches of
-    profile / addresses / contact.
+    Plan 4b: relationship, credit_personal, profile (person), demographics,
+             addresses (person), contact (person).
+    Plan 4c: credit_bureau (B2B). The Plan 4b derivers also got B2B branches
+             added in Plan 4c, so they apply to both.
     """
     from customer_hydration.derivers.relationship import RelationshipDeriver
     from customer_hydration.derivers.credit_personal import CreditPersonalDeriver
+    from customer_hydration.derivers.credit_bureau import CreditBureauDeriver
     from customer_hydration.derivers.profile import ProfileDeriver
     from customer_hydration.derivers.demographics import DemographicsDeriver
     from customer_hydration.derivers.addresses import AddressesDeriver
@@ -38,6 +41,7 @@ def _build_registry() -> Registry:
     registry = Registry()
     registry.register(RelationshipDeriver())
     registry.register(CreditPersonalDeriver())
+    registry.register(CreditBureauDeriver())
     registry.register(ProfileDeriver())
     registry.register(DemographicsDeriver())
     registry.register(AddressesDeriver())
@@ -73,6 +77,8 @@ def run_backfill(
     records = records or []
     life_events_by_id = life_events_by_id or {}
 
+    from customer_hydration.coverage_rules import apply_coverage_rules
+
     registry = _build_registry()
     rows_with_deltas = 0
     rows_skipped_already_full = 0
@@ -89,6 +95,8 @@ def run_backfill(
         )
         candidates = registry.run(archetype, record, rng)
         delta = {f: v for f, v in candidates.items() if record.get(f) is None}
+        # Coverage rules layer — fill partial-field gaps that survived
+        apply_coverage_rules(archetype, record, delta, registry, rng)
         if not delta:
             rows_skipped_already_full += 1
             continue
