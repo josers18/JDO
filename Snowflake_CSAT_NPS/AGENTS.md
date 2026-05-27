@@ -22,7 +22,8 @@ Snowflake_CSAT_NPS/
 │   └── historical_backfill.md
 ├── schemas/                               ← table DDL
 │   ├── csat_nps_data.sql                  ← CSAT_NPS_DATA (28,899+ rows, 8 cols)
-│   └── master_accounts.sql                ← daily snapshot of DC accounts
+│   ├── master_accounts.sql                ← one row per account, MERGE-maintained
+│   └── task_execution_log.sql             ← execution history for scheduled tasks
 ├── procedures/                            ← stored procedure definitions
 │   ├── sp_generate_monthly_csat.sql       ← SP_GENERATE_MONTHLY_CSAT()
 │   ├── sp_load_master_accounts.sql        ← SP_LOAD_MASTER_ACCOUNTS()
@@ -55,7 +56,7 @@ To re-deploy a procedure or task after editing the `.sql`, execute the file's CR
 
 See [README.md § Architecture](README.md#architecture) for the data-flow Mermaid diagram. In short:
 
-1. `TASK_LOAD_MASTER_ACCOUNTS` (daily 6 AM UTC) → `SP_LOAD_MASTER_ACCOUNTS()` snapshots all accounts from the DC datashare into `MASTER_ACCOUNTS` (one row per account per day).
+1. `TASK_LOAD_MASTER_ACCOUNTS` (daily 6 AM UTC) → `SP_LOAD_MASTER_ACCOUNTS()` MERGEs all accounts from the DC datashare into `MASTER_ACCOUNTS` (one row per account, updated in place). Source duplicates from Data Cloud replication are collapsed via `ROW_NUMBER() OVER (PARTITION BY ssot__Id__c)` before the MERGE.
 2. `TASK_MONTHLY_CSAT` (1st of month, 7 AM UTC) → `SP_GENERATE_MONTHLY_CSAT()` reads the active accounts from `MASTER_ACCOUNTS`, computes each account's score for the **previous** month using a 3-month rolling baseline + event-injection model, and writes one row per (account, month) to `CSAT_NPS_DATA`.
 3. The 1-hour gap between the daily account sync and the monthly score generation is intentional — newly-synced accounts must be visible to the score generator on day 1.
 
@@ -71,9 +72,17 @@ The historical-backfill script (`procedures/historical_backfill.sql`) is **refer
 
 ## Idempotency
 
-- `SP_LOAD_MASTER_ACCOUNTS()` snapshots the **current** account list each day — re-running on the same day creates a duplicate snapshot row (one per (account, snapshot_date)). The natural key prevents true duplication, but the procedure isn't gated. **If you call it manually after the scheduled run, expect `MASTER_ACCOUNTS` to grow by ~1,373 rows.**
+- `SP_LOAD_MASTER_ACCOUNTS()` uses `MERGE INTO` with source deduplication (`ROW_NUMBER() OVER (PARTITION BY ssot__Id__c)`). The target table holds exactly one row per `ACCOUNT_ID`. Re-running is a true no-op — existing accounts get their `SNAPSHOT_DATE` updated, new accounts are inserted, and duplicate source rows never reach the MERGE.
 - `SP_GENERATE_MONTHLY_CSAT()` is idempotent per (account, score_date) — uses `MERGE INTO CSAT_NPS_DATA` with `(ACCOUNTID, SCORE_DATE)` as the natural key. Re-running on the same month is a true no-op.
 - `historical_backfill.sql` is **NOT idempotent**. It's a reference of how the seed was created; re-running creates duplicates. Don't re-run.
+
+## Logging
+
+Both `SP_LOAD_MASTER_ACCOUNTS()` and `SP_GENERATE_MONTHLY_CSAT()` write execution outcomes (status, row counts, duration, errors) to `FINS.PUBLIC.TASK_EXECUTION_LOG`. Query this table for recent failures:
+
+```sql
+SELECT * FROM FINS.PUBLIC.TASK_EXECUTION_LOG ORDER BY EXECUTION_TIME DESC LIMIT 20;
+```
 
 ## Score model
 
@@ -84,13 +93,9 @@ The score generation has two concerns that need to stay aligned:
 
 When changing the model, regenerate a single month first (`MERGE`-style) and inspect the distribution shift before letting the next scheduled run apply it broadly.
 
-## Logging
-
-This project does **not** have a `TASK_EXECUTION_LOG` table — different from the sibling `Financial_Trades_Generation`. Failures show up only in `SHOW TASKS` history. Adding a log table would be a Medium-tier improvement; gate behind a sibling-coordination decision since it would be a candidate convention to mirror across both projects.
-
 # Common mistakes
 
-- **Re-running `SP_LOAD_MASTER_ACCOUNTS()` manually after the scheduled run.** Adds another `MASTER_ACCOUNTS` snapshot row per account; not destructive but inflates the table over time. Use `WHERE SNAPSHOT_DATE = CURRENT_DATE()` to verify before manual runs.
+- **Data Cloud source duplicates.** The inbound datashare `ssot__Account__dlm` can contain multiple rows per `ssot__Id__c` due to multi-source ingestion or DC replication. The MERGE + ROW_NUMBER dedup in `SP_LOAD_MASTER_ACCOUNTS()` handles this automatically. If you ever rewrite the procedure, always deduplicate the source before the MERGE — omitting this causes "Duplicate row detected during DML action" failures.
 - **Re-running `historical_backfill.sql`.** It creates duplicate rows in `CSAT_NPS_DATA` — there's no gate. Treat the file as reference-only after the initial seed.
 - **Editing the score model without regenerating one month first.** Distribution shifts can happen instantly across all accounts on the next monthly run. Always preview against one month before letting the schedule pick up the change.
 - **Dropping the inbound datashare reference (`FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__Account__dlm`).** That's the canonical link to the Salesforce demo org's account list. If the datashare is recreated, the schema-name segment may change — verify with `SHOW SHARES INBOUND` before assuming it's stable.
@@ -105,7 +110,7 @@ This project does **not** have a `TASK_EXECUTION_LOG` table — different from t
 |---|---|---|
 | Language | Pure SQL procedures | SQL + Snowpark Python |
 | Cadence | Monthly score generation | Daily trade generation |
-| Logging | None (consider adding) | `TASK_EXECUTION_LOG` table |
+| Logging | `TASK_EXECUTION_LOG` table | `TASK_EXECUTION_LOG` table |
 | Idempotency | MERGE-based | NOT EXISTS-based |
 
 When adding a new feature here that has obvious analogs there (or vice-versa), sync both projects in the same change.

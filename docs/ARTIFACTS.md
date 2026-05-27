@@ -4,6 +4,7 @@ Each Salesforce DX project maintains its own **`artifacts.md`** at the project r
 
 | Project | Artifacts file |
 |---------|----------------|
+| Snowflake | [../Snowflake/docs/ARTIFACTS.md](../Snowflake/docs/ARTIFACTS.md) |
 | DC_Prediction_Model_LWC | [../DC_Prediction_Model_LWC/artifacts.md](../DC_Prediction_Model_LWC/artifacts.md) |
 | DC_Multiclass_Prediction_LWC | [../DC_Multiclass_Prediction_LWC/artifacts.md](../DC_Multiclass_Prediction_LWC/artifacts.md) |
 | DC_AgentForce_Output_LWC | [../DC_AgentForce_Output_LWC/artifacts.md](../DC_AgentForce_Output_LWC/artifacts.md) |
