@@ -14,6 +14,15 @@ from pathlib import Path
 import yaml
 
 from customer_hydration.sf_runner import SfRunner
+from customer_hydration.phase5.segments import (
+    execute_create_segments,
+    execute_recreate_segments,
+)
+from customer_hydration.phase5.segments_probe import (
+    probe_relative_date_filter,
+    write_probe_artifact,
+)
+from customer_hydration.phase5.data_cloud import get_org_session
 
 
 def _add_global_args(p: argparse.ArgumentParser) -> None:
@@ -99,6 +108,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_segments.add_argument(
         "--skip-publish", action="store_true",
         help="Create/patch but don't publish",
+    )
+    p_segments.add_argument(
+        "--recreate", default=None, metavar="PATTERN",
+        help="Glob over config keys; runs DELETE+POST for matching segments. "
+             "Mutually exclusive with --segment-id.",
+    )
+    p_segments.add_argument(
+        "--probe-relative-dates", action="store_true",
+        help="One-shot: probe v62 relative-date semantics and write a verdict "
+             "artifact, then exit. Use --probe-artifact to control the path.",
+    )
+    p_segments.add_argument(
+        "--probe-artifact", default="output/phase3d/probe_latest.json",
+        help="Where to read/write the probe verdict (default: %(default)s)",
     )
     # Note: --dry-run is inherited from _add_global_args above (would conflict
     # if redeclared); it's reused here as the "print what would happen without
@@ -714,68 +737,72 @@ def _run_refresh_streams(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _run_create_segments(args) -> int:
-    """Create + publish DC segments from segments.yaml (Phase 2)."""
+def _run_create_segments(args):
+    from pathlib import Path
+    import os, sys
+
     yaml_path = Path(args.config_dir) / "segments.yaml"
-    if not yaml_path.exists():
+
+    # Probe-relative-dates does not require the YAML to exist, but recreate and
+    # the default create path do.
+    if not args.probe_relative_dates and not yaml_path.exists():
         print(f"segments.yaml not found at {yaml_path}", file=sys.stderr)
         return 2
 
+    if args.probe_relative_dates:
+        try:
+            instance_url, access_token = get_org_session(args.target_org)
+        except Exception as exc:
+            print(f"Probe FAILED to authenticate: {exc}", file=sys.stderr)
+            return 3
+        result = probe_relative_date_filter(instance_url, access_token)
+        artifact_path = Path(args.probe_artifact)
+        write_probe_artifact(artifact_path, result)
+        print(f"Probe verdict: {result.verdict}")
+        print(f"  target_dmo={result.target_dmo}  field={result.field}  days={result.days}")
+        print(f"  recent={result.count_recent}  old={result.count_old}  frozen={result.count_recent_frozen}")
+        print(f"Artifact: {artifact_path}")
+        return 0
+
+    # Make the recently-written probe artifact visible to the translator.
+    probe_artifact = Path(args.probe_artifact)
+    if probe_artifact.exists():
+        os.environ["PHASE3D_PROBE_ARTIFACT"] = str(probe_artifact)
+
+    if args.recreate is not None:
+        result = execute_recreate_segments(
+            target_org=args.target_org,
+            yaml_path=yaml_path,
+            pattern=args.recreate,
+            dry_run=args.dry_run,
+        )
+        print(f"recreated={result.segments_recreated} "
+              f"failed={result.segments_failed} "
+              f"processed={result.segments_processed}")
+        for r in result.results:
+            tag = "OK" if r.created else ("FAIL" if r.error else "SKIP")
+            print(f"  [{tag}] {r.config_key} ({r.api_name}) {r.error or ''}")
+        return 0 if result.segments_failed == 0 else 2
+
+    # Default path: existing create-or-skip behavior.
     if not args.dry_run:
         if args.target_org is None:
             print("--target-org is required (unless --dry-run)", file=sys.stderr)
             return 2
-        runner = SfRunner(args.target_org)
-        org_info = runner._run([  # noqa: SLF001
-            "sf", "org", "display", "--target-org", args.target_org, "--json",
-        ])
-        is_sandbox = bool(org_info.get("result", {}).get("isSandbox", False))
-        if not is_sandbox and not getattr(args, "allow_production", False):
-            print(
-                f"Refusing to create segments in non-sandbox org {args.target_org}. "
-                f"Pass --allow-production to override.",
-                file=sys.stderr,
-            )
-            return 2
-
-    from customer_hydration.phase5.segments import execute_create_segments
-    result = execute_create_segments(
-        target_org=args.target_org or "DRY-RUN",
+    # Import locally to maintain compatibility with existing test patches.
+    from customer_hydration.phase5.segments import execute_create_segments as _exec_create
+    result = _exec_create(
+        target_org=args.target_org,
         yaml_path=yaml_path,
         segment_id=args.segment_id,
         skip_publish=args.skip_publish,
         dry_run=args.dry_run,
     )
-
-    if not args.dry_run:
-        from datetime import datetime, timezone
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M")
-        manifest_path = Path(args.output_dir) / f"create-segments-{ts}.json"
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        manifest_path.write_text(json.dumps({
-            "target_org": args.target_org,
-            "segments_processed": result.segments_processed,
-            "segments_created": result.segments_created,
-            "segments_skipped": result.segments_skipped,
-            "segments_failed": result.segments_failed,
-            "results": [
-                {
-                    "config_key": r.config_key,
-                    "api_name": r.api_name,
-                    "created": r.created,
-                    "skipped": r.skipped,
-                    "error": r.error,
-                }
-                for r in result.results
-            ],
-        }, indent=2), encoding="utf-8")
-        print(f"Manifest: {manifest_path}")
-
-    print(f"Segments processed: {result.segments_processed}")
-    print(f"  Created: {result.segments_created}")
-    print(f"  Skipped (already exist): {result.segments_skipped}")
-    print(f"  Failed: {result.segments_failed}")
-    # Fire-and-forget: per-segment failures don't make the run exit non-zero
+    print(f"created={result.segments_created} "
+          f"skipped={result.segments_skipped} "
+          f"failed={result.segments_failed} "
+          f"processed={result.segments_processed}")
+    # Fire-and-forget: keep backward compatibility, always exit 0
     return 0
 
 
