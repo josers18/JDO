@@ -231,8 +231,7 @@ def build_archetype(
     if marital_status == "Single":  # only override the default
         for event in life_events:
             event_type = event.get("FinServ__EventType__c")
-            if event_type in LIFE_EVENT_MARITAL_MAP and \
-               record.get("FinServ__MaritalStatus__pc") is None:
+            if event_type in LIFE_EVENT_MARITAL_MAP:
                 marital_status = LIFE_EVENT_MARITAL_MAP[event_type]
                 break
 

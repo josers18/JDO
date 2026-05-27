@@ -1,4 +1,5 @@
 """Tests for build_archetype — the coherence layer (spec §4.1)."""
+import dataclasses
 import json
 from datetime import date
 from pathlib import Path
@@ -37,7 +38,7 @@ def test_persona_archetype_is_frozen_dataclass():
         industry_code=None,
         business_credit_quality=None,
     )
-    with pytest.raises(Exception):  # FrozenInstanceError
+    with pytest.raises(dataclasses.FrozenInstanceError):
         a.age = 99
 
 
