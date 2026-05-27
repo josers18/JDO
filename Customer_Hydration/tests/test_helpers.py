@@ -109,3 +109,26 @@ def test_deriver_protocol_imports():
 
     assert Deriver is not None
     assert hasattr(Deriver, "name") or "name" in Deriver.__annotations__
+
+
+from customer_hydration.derivers._pairs import PAIRED_FIELDS, paired_partner
+
+
+def test_paired_fields_is_list_of_tuples():
+    assert isinstance(PAIRED_FIELDS, list)
+    for pair in PAIRED_FIELDS:
+        assert isinstance(pair, tuple)
+        assert len(pair) == 2
+
+
+def test_paired_fields_contains_credit_pair():
+    assert ("FinServ__CreditScore__c", "FinServ__CreditRating__c") in PAIRED_FIELDS
+
+
+def test_paired_partner_returns_other_field():
+    assert paired_partner("FinServ__CreditScore__c") == "FinServ__CreditRating__c"
+    assert paired_partner("FinServ__CreditRating__c") == "FinServ__CreditScore__c"
+
+
+def test_paired_partner_returns_none_when_not_paired():
+    assert paired_partner("Industry") is None
