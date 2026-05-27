@@ -280,6 +280,55 @@ def _read_probe_verdict() -> str:
     return read_probe_artifact(Path(artifact)).verdict
 
 
+# Per-comparison-type field-data annotations the v62 segment POST endpoint
+# requires inside NumberAggregation.filter. See spec
+# docs/superpowers/specs/2026-05-27-phase-3d-v1.2-numberaggregation-shape.md §1.2.
+_DSL_TYPE_ANNOTATIONS = {
+    "TextComparison":                 ("TEXT", "TEXT"),
+    "NumberComparison":               ("NUMBER", "NUMBER"),
+    "DateComparison":                 ("DATE", "DATE"),
+    "ExactlyRelativeDateComparison":  ("DATE", "DATE"),
+}
+
+
+def _annotate_inner_filter(node: dict[str, Any], container_dmo: str) -> dict[str, Any]:
+    """Add live-API metadata that NumberAggregation's nested filters require.
+
+    The DC v62 segment POST endpoint expects every comparison nested inside
+    a NumberAggregation to carry subjectFieldDataType / subjectFieldBusinessType
+    / subjectFieldSourceType / selfReference / path:null / joinPath:null.
+    The translator builds bare comparisons (TextComparison, NumberComparison,
+    etc.); this helper layers the annotations on without changing semantics.
+    Recurses into LogicalComparison.filters so nested all_of/any_of inside
+    related_to.where: gets annotated through.
+    """
+    if not isinstance(node, dict):
+        return node
+    out = dict(node)  # shallow-copy so we don't mutate caller state
+    node_type = out.get("type")
+
+    if node_type == "LogicalComparison":
+        out["filters"] = [_annotate_inner_filter(f, container_dmo) for f in out.get("filters", [])]
+        return out
+
+    annotations = _DSL_TYPE_ANNOTATIONS.get(node_type)
+    if annotations is None:
+        return out  # unknown type — leave untouched
+
+    data_type, business_type = annotations
+    out.setdefault("subjectFieldDataType", data_type)
+    out.setdefault("subjectFieldBusinessType", business_type)
+    subject_dmo = out.get("subject", {}).get("objectApiName")
+    if subject_dmo == container_dmo:
+        out.setdefault("subjectFieldSourceType", "RELATED")
+    else:
+        out.setdefault("subjectFieldSourceType", None)
+    out.setdefault("selfReference", False)
+    out.setdefault("path", None)
+    out.setdefault("joinPath", None)
+    return out
+
+
 def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> dict[str, Any]:
     """Translate one YAML rule into the DC JSON DSL.
 
@@ -325,13 +374,14 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
                 f"Segment {config_key!r}.rule.dmo is required for type related_to"
             )
         via = rule.get("via", "AccountId__c")
-        # via_root: which field on target_dmo to join FROM. Default "Id"
-        # works when the related DMO has an AccountId-style FK to the
-        # primary key. Phase 3d v1.1: SSOT-canonical DMOs often join via
-        # IndividualId / PartyId rather than AccountId, in which case the
-        # YAML overrides via_root to e.g. ssot__IndividualId__c so both
-        # sides of the NestedAttribute reference the Individual key.
-        via_root = rule.get("via_root", "Id")
+        # via_root: which field on target_dmo to join FROM. Default
+        # "ssot__Id__c" is Account DMO's primary-key field — confirmed live
+        # against jdo-uqj0jr (Phase 3d v1.2 — `Id` does not exist on the
+        # SSOT Account DMO). When the related DMO joins via Individual or
+        # Party rather than the Account PK, the YAML overrides via_root
+        # to e.g. ssot__IndividualId__c so both sides of the cross-DMO
+        # NumberAggregation reference the same Individual key.
+        via_root = rule.get("via_root", "ssot__Id__c")
         where = rule.get("where")
         if not isinstance(where, dict):
             raise ValueError(
@@ -345,13 +395,42 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
         # Recurse with target_dmo set to the related DMO so inner field
         # references resolve there, not on the outer Account DMO.
         inner = _translate_rule(where, related_dmo, config_key)
+        # v62 cross-DMO envelope is NumberAggregation "count >= 1" — see
+        # docs/superpowers/specs/2026-05-27-phase-3d-v1.2-numberaggregation-shape.md.
+        # The functional intent ("Account has at least one related row matching X")
+        # is expressed as count(related rows where filter matches) >= 1.
+        hop = [
+            {"objectApiName": target_dmo, "fieldApiName": via_root},
+            {"objectApiName": related_dmo, "fieldApiName": via},
+        ]
         return {
-            "type": "NestedAttribute",
-            "primaryObjectApiName": target_dmo,
-            "primaryFieldApiName": via_root,
-            "relatedObjectApiName": related_dmo,
-            "relatedFieldApiName": via,
-            "filter": inner,
+            "type": "NumberAggregation",
+            "aggregateFunction": "count",
+            "containerObjectApiName": related_dmo,
+            "path": [hop],
+            "joinPath": [hop],
+            "filter": _annotate_inner_filter(inner, related_dmo),
+            "comparison": {
+                "type": "NumberComparison",
+                "path": None,
+                "joinPath": None,
+                "subject": {
+                    "objectApiName": related_dmo,
+                    "fieldApiName": "ssot__Id__c",
+                },
+                "selfReference": False,
+                "operator": "greater than or equal",
+                "subjectFieldDataType": "TEXT",
+                "subjectFieldBusinessType": "TEXT",
+                "subjectFieldSourceType": None,
+                "value": 1,
+            },
+            "hierarchySelected": False,
+            "hierarchicalPathList": None,
+            "innerAggregationEnabled": False,
+            "innerAggregationSubject": None,
+            "outerAggregationFunction": None,
+            "outerComparison": None,
         }
 
     # Atomic rules from here down all need a field.

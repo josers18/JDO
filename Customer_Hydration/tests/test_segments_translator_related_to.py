@@ -31,19 +31,31 @@ segments:
     defs = load_segment_definitions(yaml_path)
     user = defs[0].include_criteria["filters"][1]
 
-    assert user["type"] == "NestedAttribute"
-    assert user["primaryObjectApiName"] == "ssot__Account__dlm"
-    assert user["primaryFieldApiName"] == "Id"
-    assert user["relatedObjectApiName"] == "ssot__FinServ_FinancialAccount__dlm"
-    assert user["relatedFieldApiName"] == "AccountId__c"
+    # Phase 3d v1.2: NumberAggregation envelope (count of related rows ≥ 1).
+    assert user["type"] == "NumberAggregation"
+    assert user["aggregateFunction"] == "count"
+    assert user["containerObjectApiName"] == "ssot__FinServ_FinancialAccount__dlm"
+    hop = user["path"][0]
+    # v1.2: Account DMO's primary key is ssot__Id__c (not "Id").
+    assert hop[0] == {"objectApiName": "ssot__Account__dlm", "fieldApiName": "ssot__Id__c"}
+    assert hop[1] == {
+        "objectApiName": "ssot__FinServ_FinancialAccount__dlm",
+        "fieldApiName": "AccountId__c",
+    }
+    assert user["joinPath"] == user["path"]
     inner = user["filter"]
     assert inner["type"] == "TextComparison"
     assert inner["operator"] == "matches"
     assert inner["values"] == ["Mortgage"]
-    assert inner["subject"] == {
-        "objectApiName": "ssot__FinServ_FinancialAccount__dlm",
-        "fieldApiName": "FinServ_AccountType_c__c",
-    }
+    # Inner filter on the related DMO carries the v62 metadata annotations.
+    assert inner["subjectFieldDataType"] == "TEXT"
+    assert inner["subjectFieldBusinessType"] == "TEXT"
+    assert inner["subjectFieldSourceType"] == "RELATED"
+    assert inner["selfReference"] is False
+    # The "exists" comparison is pinned: count >= 1.
+    assert user["comparison"]["type"] == "NumberComparison"
+    assert user["comparison"]["operator"] == "greater than or equal"
+    assert user["comparison"]["value"] == 1
 
 
 def test_related_to_with_compound_where_translates(tmp_path: Path):
@@ -81,12 +93,17 @@ segments:
     persona_filter = user["filters"][0]
     related_filter = user["filters"][1]
     assert persona_filter["type"] == "TextComparison"
-    assert related_filter["type"] == "NestedAttribute"
+    # v1.2: NumberAggregation envelope, not NestedAttribute.
+    assert related_filter["type"] == "NumberAggregation"
     inner = related_filter["filter"]
+    # Compound where: → translated LogicalComparison whose nested filters
+    # all carry the v62 annotations via _annotate_inner_filter recursion.
     assert inner["type"] == "LogicalComparison"
     assert inner["filters"][0]["subject"]["objectApiName"] == \
         "ssot__FinServ_FinancialAccount__dlm"
+    assert inner["filters"][0]["subjectFieldSourceType"] == "RELATED"
     assert inner["filters"][1]["operator"] == "greater than or equal"
+    assert inner["filters"][1]["subjectFieldDataType"] == "NUMBER"
 
 
 def test_nested_related_to_inside_related_to_is_rejected(tmp_path: Path):
@@ -131,18 +148,21 @@ segments:
 """)
     defs = load_segment_definitions(yaml_path)
     user = defs[0].include_criteria["filters"][1]
-    assert user["relatedFieldApiName"] == "AccountId__c"
-    # via_root defaults to "Id" — Account-side join field unchanged.
-    assert user["primaryFieldApiName"] == "Id"
+    # v1.2: join hops live in path[0]; default via_root is ssot__Id__c
+    # (the SSOT Account DMO's primary key — "Id" doesn't exist on it).
+    hop = user["path"][0]
+    assert hop[0]["fieldApiName"] == "ssot__Id__c"
+    assert hop[1]["fieldApiName"] == "AccountId__c"
 
 
 def test_related_to_via_root_overrides_primary_field(tmp_path: Path):
     """Phase 3d v1.1: SSOT-canonical DMOs join via IndividualId, not Id.
 
-    The translator must let YAML override the Account-side join field
-    so a NestedAttribute can express
+    The translator must let YAML override the Account-side join field so the
+    cross-DMO clause expresses
         Account.ssot__IndividualId__c = PersonLifeEvent.ssot__IndividualId__c
-    where both sides reference the Individual primary key.
+    where both sides reference the Individual primary key. v1.2: that override
+    lands in path[0][0].fieldApiName, not in flat primaryFieldApiName.
     """
     yaml_path = _write(tmp_path, """\
 segments:
@@ -163,6 +183,13 @@ segments:
 """)
     defs = load_segment_definitions(yaml_path)
     user = defs[0].include_criteria["filters"][1]
-    assert user["primaryFieldApiName"] == "ssot__IndividualId__c"
-    assert user["relatedFieldApiName"] == "ssot__IndividualId__c"
-    assert user["relatedObjectApiName"] == "ssot__PersonLifeEvent__dlm"
+    hop = user["path"][0]
+    assert hop[0] == {
+        "objectApiName": "ssot__Account__dlm",
+        "fieldApiName": "ssot__IndividualId__c",
+    }
+    assert hop[1] == {
+        "objectApiName": "ssot__PersonLifeEvent__dlm",
+        "fieldApiName": "ssot__IndividualId__c",
+    }
+    assert user["containerObjectApiName"] == "ssot__PersonLifeEvent__dlm"

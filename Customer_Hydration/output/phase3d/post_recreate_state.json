@@ -1,0 +1,92 @@
+{
+  "CmpAutoLoanRateDrop": {
+    "createdDate": null,
+    "displayName": "Auto Loan Rate Drop Promo audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpCommercialRmRoundtable": {
+    "createdDate": null,
+    "displayName": "Commercial RM Roundtable audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpHelocRefiOutreach": {
+    "createdDate": null,
+    "displayName": "HELOC Refi Outreach Q2 audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpMobileBankingAdoption": {
+    "createdDate": null,
+    "displayName": "Mobile Banking Adoption audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpMultiPersonaSpringNewsletter": {
+    "createdDate": null,
+    "displayName": "Multi-Persona Spring Newsletter audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpPremierCheckingOnboarding": {
+    "createdDate": null,
+    "displayName": "Premier Checking Onboarding cohort",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpSbaAwareness": {
+    "createdDate": null,
+    "displayName": "SBA Awareness Q1 2026 audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpTreasuryModernizationBrief": {
+    "createdDate": null,
+    "displayName": "Treasury Modernization Brief audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpWealthEstatePlanningRoundtable": {
+    "createdDate": null,
+    "displayName": "Wealth Estate Planning Roundtable audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CmpWealthTaxStrategyWebinar": {
+    "createdDate": null,
+    "displayName": "Wealth Tax Strategy Webinar 2026 audience",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "CommercialWithTreasury": {
+    "createdDate": null,
+    "displayName": "Commercial with Treasury Services",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "RetailFamilyWithMortgage": {
+    "createdDate": null,
+    "displayName": "Retail Family-Building with Mortgage",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "RetailHelocDrawn": {
+    "createdDate": null,
+    "displayName": "Retail HELOC Drawn 50%+",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "SmbWithSba": {
+    "createdDate": null,
+    "displayName": "SMB Owners with SBA Loan",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  },
+  "WealthRecentLifeEvent": {
+    "createdDate": null,
+    "displayName": "Wealth with Recent Life Event (90d)",
+    "segmentStatus": "ACTIVE",
+    "segmentType": "Dynamic"
+  }
+}
