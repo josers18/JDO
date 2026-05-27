@@ -55,6 +55,11 @@ from customer_hydration.loader.parallel import (
 )
 from customer_hydration.loader.wave import Wave
 from customer_hydration.manifest import new_run_manifest
+from customer_hydration.native.person_life_event import (
+    NativePersonLifeEventRequest,
+    generate_native_person_life_events,
+    map_legacy_event_type,
+)
 from customer_hydration.preflight import run_preflight
 from customer_hydration.seek import parse_seq_from_external_id
 from customer_hydration.sf_runner import SfRunner
@@ -99,6 +104,7 @@ class AugmentPlan:
 
     life_event_requests: list[LifeEventRequest]
     le_starting_seq: int
+    nle_starting_seq: int
     cm_starting_seq: int
     persona_for_ext: dict[str, str]
 
@@ -229,6 +235,7 @@ def build_plan(
         return AugmentPlan(
             life_event_requests=[],
             le_starting_seq=1,
+            nle_starting_seq=1,
             cm_starting_seq=1,
             persona_for_ext={},
         )
@@ -242,12 +249,16 @@ def build_plan(
         runner, "FinServ__LifeEvent__c", "FinServ__SourceSystemId__c",
         "HYDRATE-LE",
     )
+    nle_seek = _max_seq_via_field(
+        runner, "PersonLifeEvent", "External_ID__c", "HYDRATE-NLE",
+    )
     cm_seek = _max_seq_via_field(
         runner, "CampaignMember", "External_ID__c", "HYDRATE-CMPMEM",
     )
     return AugmentPlan(
         life_event_requests=life_event_requests,
         le_starting_seq=le_seek,
+        nle_starting_seq=nle_seek,
         cm_starting_seq=cm_seek,
         persona_for_ext=persona_for_ext,
     )
@@ -304,9 +315,10 @@ def run_augment(args: argparse.Namespace) -> int:
         print("No HYDRATE-* customers in target org. Nothing to augment.")
         return 0
 
-    # ---- Phase 0: preflight describe for the 2 sObjects ------------------
+    # ---- Phase 0: preflight describe for the 3 sObjects ------------------
     cache = run_preflight(
-        runner, ["FinServ__LifeEvent__c", "CampaignMember"],
+        runner,
+        ["FinServ__LifeEvent__c", "PersonLifeEvent", "CampaignMember"],
     )
 
     # ---- Generate ---------------------------------------------------------
@@ -323,6 +335,23 @@ def run_augment(args: argparse.Namespace) -> int:
     # for now, fix at the source.
     for row in life_events:
         row.pop("Name", None)
+
+    # Native PersonLifeEvent — same per-customer plan, mapped to the
+    # native picklist + linked via auto-Contact. DC ingests this lineage
+    # via the PersonLifeEvent_Home stream; without it, the legacy custom
+    # object's rows would never reach Data Cloud.
+    native_le_requests = [
+        NativePersonLifeEventRequest(
+            client_account_external_id=req.client_account_external_id,
+            event_type=map_legacy_event_type(req.event_type),
+            event_date=req.event_date,
+        )
+        for req in plan.life_event_requests
+    ]
+    native_life_events = generate_native_person_life_events(
+        starting_seq=plan.nle_starting_seq,
+        requests=native_le_requests,
+    ).rows
 
     cm_plan = plan_campaign_members(
         seed=args.seed + 101,
@@ -359,15 +388,22 @@ def run_augment(args: argparse.Namespace) -> int:
 
     # ---- Write CSVs ------------------------------------------------------
     le_csv = run_dir / "life_events.csv"
+    nle_csv = run_dir / "person_life_events.csv"
     cm_csv = run_dir / "campaign_members.csv"
 
     le_write = write_csv(life_events, "FinServ__LifeEvent__c", cache, le_csv)
+    nle_write = write_csv(native_life_events, "PersonLifeEvent", cache, nle_csv)
     cm_write = write_csv(campaign_members, "CampaignMember", cache, cm_csv)
 
     manifest.object_status["FinServ__LifeEvent__c"] = {
         "csv_path": str(le_csv),
         "rows_written": le_write.rows_written,
         "dropped_fields": sorted(le_write.dropped_fields),
+    }
+    manifest.object_status["PersonLifeEvent"] = {
+        "csv_path": str(nle_csv),
+        "rows_written": nle_write.rows_written,
+        "dropped_fields": sorted(nle_write.dropped_fields),
     }
     manifest.object_status["CampaignMember"] = {
         "csv_path": str(cm_csv),
@@ -384,6 +420,9 @@ def run_augment(args: argparse.Namespace) -> int:
         cm_csv,
         {"CampaignId": "Campaign.External_ID__c"},
     )
+    # Native PersonLifeEvent.PrimaryPersonId is resolved post-Account-query
+    # via the IdResolver's Person Account → auto-Contact map. The CSV stays
+    # with RESOLVE: markers until the rewrite step below.
 
     if args.dry_run:
         manifest.exit_code = 0
@@ -391,14 +430,14 @@ def run_augment(args: argparse.Namespace) -> int:
         print(f"Dry-run: CSVs written to {run_dir} but not loaded.")
         return 0
 
-    # ---- Wave A: FinServ__LifeEvent__c upsert ----------------------------
-    print(f"Wave A: upserting {le_write.rows_written} life events...")
+    # ---- Wave A: FinServ__LifeEvent__c upsert (no resolver dep) ----------
+    print(f"Wave A: upserting {le_write.rows_written} legacy life events...")
     wave_a = Wave(
         name="A-augment",
         sobjects=("FinServ__LifeEvent__c",),
         depends_on=(),
         parallel=False,
-        description="Augment Wave A: LifeEvents",
+        description="Augment Wave A: legacy LifeEvents",
     )
     wave_a_result = run_wave_parallel(
         wave=wave_a,
@@ -413,10 +452,10 @@ def run_augment(args: argparse.Namespace) -> int:
     )
     for r in wave_a_result.csv_results:
         if r.error:
-            print(f"  LifeEvent load FAILED: {r.error}", file=sys.stderr)
+            print(f"  legacy LifeEvent load FAILED: {r.error}", file=sys.stderr)
         else:
             print(
-                f"  LifeEvent: {r.records_processed - r.records_failed}/"
+                f"  legacy LifeEvent: {r.records_processed - r.records_failed}/"
                 f"{r.records_processed} ok in {r.duration_s:.1f}s"
             )
 
@@ -428,44 +467,66 @@ def run_augment(args: argparse.Namespace) -> int:
         f"Person Account auto-Contact(s) loaded."
     )
 
-    # Rewrite RESOLVE:HYDRATE-* ContactId markers in-place. Drops any rows
-    # whose Account → Contact lookup fails (unlikely — every Person Account
-    # gets an auto-Contact at insert time).
-    kept, dropped = rewrite_csv_resolve_markers(
+    # Rewrite RESOLVE:HYDRATE-* markers in-place on both Contact-bearing
+    # CSVs. CampaignMember.ContactId and PersonLifeEvent.PrimaryPersonId
+    # both point at the auto-Contact, so a single resolver call serves
+    # both. Drops any rows whose Account → Contact lookup fails (unlikely
+    # — every Person Account gets an auto-Contact at insert time).
+    cm_kept, cm_dropped = rewrite_csv_resolve_markers(
         cm_csv, {"ContactId": "contact"}, resolver,
     )
-    if dropped:
+    if cm_dropped:
         print(
-            f"  WARN: {dropped} CampaignMember rows dropped "
+            f"  WARN: {cm_dropped} CampaignMember rows dropped "
             f"(unresolved ContactId)"
         )
+    nle_kept, nle_dropped = rewrite_csv_resolve_markers(
+        nle_csv, {"PrimaryPersonId": "contact"}, resolver,
+    )
+    if nle_dropped:
+        print(
+            f"  WARN: {nle_dropped} PersonLifeEvent rows dropped "
+            f"(unresolved PrimaryPersonId)"
+        )
 
-    # ---- Wave B: CampaignMember upsert -----------------------------------
-    print(f"Wave B: upserting {kept} campaign members...")
+    # ---- Wave B: native PersonLifeEvent + CampaignMember (parallel) ------
+    # Both sObjects only need the auto-Contact map; they don't depend on
+    # each other. Parallel=2 cuts wall-clock vs serializing.
+    print(
+        f"Wave B: upserting {nle_kept} native life events + "
+        f"{cm_kept} campaign members in parallel..."
+    )
     wave_b = Wave(
         name="B-augment",
-        sobjects=("CampaignMember",),
+        sobjects=("PersonLifeEvent", "CampaignMember"),
         depends_on=("A-augment",),
-        parallel=False,
-        description="Augment Wave B: CampaignMembers",
+        parallel=True,
+        description="Augment Wave B: native LifeEvents + CampaignMembers",
     )
     wave_b_result = run_wave_parallel(
         wave=wave_b,
-        specs=[CsvLoadSpec(
-            sobject="CampaignMember",
-            csv_path=cm_csv,
-            external_id_field="External_ID__c",
-        )],
+        specs=[
+            CsvLoadSpec(
+                sobject="PersonLifeEvent",
+                csv_path=nle_csv,
+                external_id_field="External_ID__c",
+            ),
+            CsvLoadSpec(
+                sobject="CampaignMember",
+                csv_path=cm_csv,
+                external_id_field="External_ID__c",
+            ),
+        ],
         target_org=args.target_org,
-        parallel=1,
+        parallel=2,
         retry=RetryPolicy(),
     )
     for r in wave_b_result.csv_results:
         if r.error:
-            print(f"  CampaignMember load FAILED: {r.error}", file=sys.stderr)
+            print(f"  {r.sobject} load FAILED: {r.error}", file=sys.stderr)
         else:
             print(
-                f"  CampaignMember: {r.records_processed - r.records_failed}/"
+                f"  {r.sobject}: {r.records_processed - r.records_failed}/"
                 f"{r.records_processed} ok in {r.duration_s:.1f}s"
             )
 
