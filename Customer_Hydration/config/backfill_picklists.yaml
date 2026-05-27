@@ -2,7 +2,15 @@
 # customer_hydration.derivers._helpers.load_picklist_yaml.
 #
 # Each entry's `values` list MUST be a subset of the org's actual picklist
-# values for that field; preflight verifies this.
+# values for that field; preflight verifies this and filters drift at startup.
+#
+# **Plan 4d hotfix (2026-05-27):** This file was rewritten to match the actual
+# picklist vocabulary in jdo-uqj0jr (discovered via the live runs that
+# repeatedly hit INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST errors). The original
+# Plan 4b values (e.g., Tier=Bronze/Silver/...) didn't exist in the org. The
+# value translator at `config/account_value_translator.yaml` still bridges
+# spec-form values that derivers hardcode (e.g., the Tier=Diamond fallback
+# from profile.py's _TIER_BY_INCOME_BAND mapping) to org-accepted values.
 #
 # Weight consumption:
 #   - FinServ__KYCStatus__c       → relationship.py loads weights at call time
@@ -14,55 +22,72 @@
 #   - FinServ__ServiceModel__c    → values reference-only; profile.py derives from
 #                                   Tier (paired-field, deterministic)
 #   - FinServ__CustomerType__c    → values reference-only; profile.py picks
-#                                   "Individual" for person accounts; Plan 4c
-#                                   will branch for Business/Trust
+#                                   "Individual" for person accounts (translated
+#                                   to "Relational" by value_translator)
 #   - FinServ__Status__c          → values reference-only; profile.py hardcodes
-#                                   "Active" for backfilled accounts
+#                                   "Active" for backfilled accounts (kept as-is
+#                                   since the org accepts "Active" natively)
 #   - FinServ__RiskTolerance__c   → values reference-only; profile.py picks one
 #                                   of three coherent triples (rule 16)
 
+# org accepts: Required/Overdue/In Queue/In progress/Completed - Valid/
+#              Completed - Invalid/Expired
 FinServ__KYCStatus__c:
-  values: [Approved, Pending, Expired]
+  values: ['Completed - Valid', 'In progress', 'Overdue']
   weights: [0.90, 0.08, 0.02]
 
+# org accepts: Rent/Own/Other (matches deriver semantics directly)
 FinServ__HomeOwnership__pc:
   values: [Own, Rent, Other]
   weights: [0.65, 0.30, 0.05]
 
+# org accepts: A/B/C — three rank tiers, not five.
 Tier__c:
-  values: [Bronze, Silver, Gold, Platinum, Diamond]
-  weights: [0.40, 0.30, 0.20, 0.08, 0.02]
+  values: [A, B, C]
+  weights: [0.10, 0.30, 0.60]
 
+# org accepts: Tier 1/Tier 2/Tier 3
 FinServ__ServiceModel__c:
-  values: [Self-Service, Standard, Premier, Private]
-  weights: [0.40, 0.40, 0.15, 0.05]
+  values: ['Tier 1', 'Tier 2', 'Tier 3']
+  weights: [0.05, 0.25, 0.70]
 
+# org accepts: Transaction/Relational/Borrower/Investor
 FinServ__CustomerType__c:
-  values: [Individual, Business, Trust]
-  weights: [0.85, 0.10, 0.05]
+  values: [Relational, Transaction, Borrower, Investor]
+  weights: [0.50, 0.20, 0.20, 0.10]
 
+# org accepts: Active/Closed/Deceased/Deliquent/Dormant/Inactive/Onboarding/Prospect
 FinServ__Status__c:
-  values: [Active, Inactive, Closed]
-  weights: [0.95, 0.04, 0.01]
+  values: [Active, Onboarding, Inactive, Dormant, Closed]
+  weights: [0.85, 0.05, 0.05, 0.04, 0.01]
 
+# org accepts: Aggressive/Conservative/Moderate/None
 FinServ__RiskTolerance__c:
   values: [Conservative, Moderate, Aggressive]
   weights: [0.30, 0.55, 0.15]
 
+# org accepts: Excellent/Moderate/Poor/Limited to No History
 FinServ__BorrowingHistory__c:
-  values: [Excellent, Good, Fair, Poor, None]
-  weights: [0.25, 0.40, 0.20, 0.05, 0.10]
+  values: [Excellent, Moderate, Poor, 'Limited to No History']
+  weights: [0.25, 0.50, 0.10, 0.15]
 
-# --- Plan 4c B2B additions ---
+# --- B2B picklists (Plan 4c, refreshed for jdo-uqj0jr) ---
 
+# org accepts: Enterprise/Mid-Market/Small Business/Person/Partner
 Type:
-  values: [Customer - Direct, Customer - Channel, Prospect, Partner, Other]
-  weights: [0.55, 0.10, 0.20, 0.10, 0.05]
+  values: [Person, 'Mid-Market', 'Small Business', Enterprise, Partner]
+  weights: [0.55, 0.20, 0.15, 0.05, 0.05]
 
+# org accepts: Hot/Warm/Cool (NOT Cold)
 Rating:
-  values: [Hot, Warm, Cold]
+  values: [Hot, Warm, Cool]
   weights: [0.20, 0.55, 0.25]
 
+# org accepts a long list — keep the most-common subset for the synthetic
+# Industry top-off path. The translator handles spec-form Finance/Healthcare/
+# Real Estate aliases.
 Industry:
-  values: [Banking, Finance, Insurance, Healthcare, Manufacturing, Retail, Technology, Real Estate, Education, Hospitality, Energy, Agriculture]
-  weights: [0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.10, 0.05, 0.05]
+  values: [Banking, 'Financial Services', Insurance, 'Healthcare & Life Sciences',
+           Manufacturing, Retail, Technology, Education, Hospitality, Energy,
+           Agriculture, Other]
+  weights: [0.15, 0.10, 0.10, 0.10, 0.10, 0.10, 0.10, 0.05, 0.05, 0.05, 0.05, 0.05]

@@ -123,13 +123,16 @@ def test_industry_topoff_skipped_when_industry_already_set():
 
 
 def test_type_and_rating_are_picklist_values():
+    """Plan 4d hotfix (2026-05-27): YAML refreshed to match jdo-uqj0jr's
+    actual Type and Rating picklists — Type accepts Person/Mid-Market/
+    Small Business/Enterprise/Partner; Rating accepts Hot/Warm/Cool (NOT Cold)."""
     d = ContactDeriver()
     a = _arch_business()
     out = d.derive(a, {"Id": a.account_id}, seeded_rng(a.account_id))
     assert out["Type"] in (
-        "Customer - Direct", "Customer - Channel", "Prospect", "Partner", "Other"
+        "Person", "Mid-Market", "Small Business", "Enterprise", "Partner"
     )
-    assert out["Rating"] in ("Hot", "Warm", "Cold")
+    assert out["Rating"] in ("Hot", "Warm", "Cool")
 
 
 def test_business_branch_is_deterministic():

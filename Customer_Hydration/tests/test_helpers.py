@@ -248,8 +248,10 @@ from customer_hydration.derivers._helpers import load_picklist_yaml
 
 
 def test_load_picklist_yaml_returns_values_and_weights():
+    """Plan 4d hotfix (2026-05-27): YAML values updated to match jdo-uqj0jr's
+    actual KYCStatus picklist (Completed - Valid / In progress / Overdue)."""
     entry = load_picklist_yaml("FinServ__KYCStatus__c")
-    assert entry["values"] == ["Approved", "Pending", "Expired"]
+    assert entry["values"] == ["Completed - Valid", "In progress", "Overdue"]
     assert entry["weights"] == [0.90, 0.08, 0.02]
 
 

@@ -155,7 +155,14 @@ class DemographicsDeriver:
         birthdate_str = record.get("PersonBirthdate")
         if birthdate_str:
             birthdate = date.fromisoformat(birthdate_str)
-            eighteenth = birthdate.replace(year=birthdate.year + 18)
+            # Leap-year safety: a Feb-29 birthdate can't `.replace(year=...)`
+            # to a non-leap year (date raises ValueError). Clamp Feb 29 to
+            # Feb 28 when the target year isn't a leap year.
+            target_year = birthdate.year + 18
+            try:
+                eighteenth = birthdate.replace(year=target_year)
+            except ValueError:
+                eighteenth = birthdate.replace(year=target_year, day=28)
             # Pick uniform between eighteenth birthday and (today - 1 month)
             span = max(1, (today - eighteenth).days - 30)
             offset = rng.randint(0, span)

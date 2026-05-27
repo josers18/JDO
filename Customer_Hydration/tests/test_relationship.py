@@ -82,10 +82,18 @@ def test_rule_5_kyc_date_after_relationship_start():
 
 
 def test_rule_6_kyc_status_distribution_skews_with_engagement():
-    """Rule 6: dormant→Approved ~60%, heavy→Approved ~98%."""
+    """Rule 6: dormant→approved ~60%, heavy→approved ~98%.
+
+    Plan 4d hotfix (2026-05-27): the YAML now uses jdo-uqj0jr's actual KYC
+    picklist values (Completed - Valid / In progress / Overdue) — semantically
+    equivalent to the spec's Approved/Pending/Expired but the org's vocabulary.
+    The deriver's _KYC_WEIGHTS_BY_ENGAGEMENT[level] is a 3-element weight tuple
+    that weighted_pick zips with the YAML's 3-element values list in order.
+    """
     d = RelationshipDeriver()
-    dormant_counts = {"Approved": 0, "Pending": 0, "Expired": 0}
-    heavy_counts = {"Approved": 0, "Pending": 0, "Expired": 0}
+    APPROVED, PENDING, EXPIRED = "Completed - Valid", "In progress", "Overdue"
+    dormant_counts = {APPROVED: 0, PENDING: 0, EXPIRED: 0}
+    heavy_counts = {APPROVED: 0, PENDING: 0, EXPIRED: 0}
     for i in range(1000):
         ad = make_archetype(
             account_id=f"001xx000DOR{i:05d}",
@@ -100,11 +108,11 @@ def test_rule_6_kyc_status_distribution_skews_with_engagement():
         dormant_counts[d_out["FinServ__KYCStatus__c"]] += 1
         heavy_counts[h_out["FinServ__KYCStatus__c"]] += 1
     # dormant: 60% Approved expected, allow [50, 70]
-    assert 500 <= dormant_counts["Approved"] <= 700
+    assert 500 <= dormant_counts[APPROVED] <= 700
     # heavy: 98% Approved expected, allow [950, 1000]
-    assert heavy_counts["Approved"] >= 950
+    assert heavy_counts[APPROVED] >= 950
     # heavy never produces Expired
-    assert heavy_counts["Expired"] == 0
+    assert heavy_counts[EXPIRED] == 0
 
 
 def test_rule_7_lifetime_value_formula():

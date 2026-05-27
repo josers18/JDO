@@ -84,6 +84,22 @@ def test_rule_10_employed_since_after_age_18():
         assert es >= eighteenth_birthday
 
 
+def test_rule_10_employed_since_handles_leap_year_birthdate():
+    """Regression: a Feb-29 birthdate (leap year) was crashing demographics
+    on jdo-uqj0jr full-org run because date.replace(year=non_leap) raises
+    ValueError. The deriver now clamps Feb 29 → Feb 28 when the +18y target
+    year isn't a leap year."""
+    d = DemographicsDeriver()
+    a = _arch(age=42)
+    # 1976 was a leap year, 1976 + 18 = 1994 was not — used to crash.
+    record = {"Id": a.account_id, "PersonBirthdate": "1976-02-29"}
+    out = d.derive(a, record, seeded_rng(a.account_id))
+    assert "FinServ__EmployedSince__pc" in out
+    es = date.fromisoformat(out["FinServ__EmployedSince__pc"])
+    # Floor is birthdate + 18y = 1994-02-28 (clamped)
+    assert es >= date(1994, 2, 28)
+
+
 def test_rule_11_dependents_within_household_bound():
     """Rule 11: NumberOfDependents ∈ [0, household_size − 1]."""
     d = DemographicsDeriver()
