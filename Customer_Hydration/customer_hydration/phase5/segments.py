@@ -301,6 +301,35 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
             return translated[0]
         return _and(*translated) if rule_type == "all_of" else _or(*translated)
 
+    if rule_type == "related_to":
+        related_dmo = rule.get("dmo")
+        if not related_dmo:
+            raise ValueError(
+                f"Segment {config_key!r}.rule.dmo is required for type related_to"
+            )
+        via = rule.get("via", "AccountId__c")
+        where = rule.get("where")
+        if not isinstance(where, dict):
+            raise ValueError(
+                f"Segment {config_key!r}.rule.where must be a mapping for type related_to"
+            )
+        if where.get("type") == "related_to":
+            raise ValueError(
+                f"Segment {config_key!r}: nested related_to inside related_to "
+                f"is not supported (v62 NestedAttribute does not compose)."
+            )
+        # Recurse with target_dmo set to the related DMO so inner field
+        # references resolve there, not on the outer Account DMO.
+        inner = _translate_rule(where, related_dmo, config_key)
+        return {
+            "type": "NestedAttribute",
+            "primaryObjectApiName": target_dmo,
+            "primaryFieldApiName": "Id",
+            "relatedObjectApiName": related_dmo,
+            "relatedFieldApiName": via,
+            "filter": inner,
+        }
+
     # Atomic rules from here down all need a field.
     field = rule.get("field")
     if field is None:
@@ -377,7 +406,8 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
         f"Segment {config_key!r}: unsupported rule type {rule_type!r}. "
         f"Supported: text_equals, text_contains, text_in, text_has_value, "
         f"number_gt/lt/gte/lte, number_in_range, date_before, date_after, "
-        f"date_in_range, age_gte, age_lte, age_in_range, all_of, any_of."
+        f"date_in_range, age_gte, age_lte, age_in_range, all_of, any_of, "
+        f"related_to."
     )
 
 
