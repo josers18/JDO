@@ -51,6 +51,24 @@ _RISK_WEIGHTS_BY_PERSONA: dict[str, list[float]] = {
 }
 
 
+# Rule 18 — B2B revenue/employees ranges by business_size
+_BUSINESS_REVENUE_RANGE: dict[str, tuple[int, int]] = {
+    "micro":      (50_000,         1_000_000),
+    "small":      (1_000_000,      10_000_000),
+    "mid":        (10_000_000,     100_000_000),
+    "large":      (100_000_000,    1_000_000_000),
+    "enterprise": (1_000_000_000,  50_000_000_000),
+}
+
+
+_BUSINESS_EMPLOYEES_RANGE: dict[str, tuple[int, int]] = {
+    "micro":      (1,    10),
+    "small":      (10,   50),
+    "mid":        (50,   500),
+    "large":      (500,  5000),
+    "enterprise": (5000, 100000),
+}
+
 
 
 class ProfileDeriver:
@@ -72,11 +90,14 @@ class ProfileDeriver:
         "FinServ__TimeHorizon__c",
         "FinServ__BorrowingHistory__c",
         "FinServ__InvestmentExperience__c",
+        # Plan 4c B2B fields
+        "AnnualRevenue",
+        "NumberOfEmployees",
+        "FinServ__TotalRevenue__c",
     ]
 
     def applies_to(self, archetype: PersonaArchetype) -> bool:
-        # Plan 4b ships person-side. Plan 4c will add `or not archetype.is_person`.
-        return archetype.is_person
+        return True
 
     def derive(
         self,
@@ -86,44 +107,60 @@ class ProfileDeriver:
     ) -> dict[str, Any]:
         out: dict[str, Any] = {}
 
-        # Rule 1 — Tier and ServiceModel
-        tier = _TIER_BY_INCOME_BAND.get(archetype.income_band, "Silver")
-        out["Tier__c"] = tier
-        out["FinServ__ServiceModel__c"] = _SERVICE_MODEL_BY_TIER[tier]
-
-        # CustomerType — Person Account → Individual (rule 16-adjacent)
-        out["FinServ__CustomerType__c"] = "Individual"
-
-        # Status — always Active for backfilled accounts
+        # Status — common to both person and B2B
         out["FinServ__Status__c"] = "Active"
 
-        # NetWorth = (TotalInvestments + TotalBankDeposits + TotalNonfinAssets
-        #            - TotalLiabilities) × net_worth_multiple
-        rollups = [
-            record.get("FinServ__TotalInvestments__c"),
-            record.get("FinServ__TotalBankDeposits__c"),
-            record.get("FinServ__TotalNonfinancialAssets__c"),
-            record.get("FinServ__TotalLiabilities__c"),
-        ]
-        if all(v is not None for v in rollups):
-            inv, deposits, nonfin, liab = rollups
-            base = float(inv) + float(deposits) + float(nonfin) - float(liab)
-            out["FinServ__NetWorth__c"] = round(base * archetype.net_worth_multiple, 2)
+        if archetype.is_person:
+            # Person-side: Tier/ServiceModel chain, NetWorth, Risk triple,
+            # BorrowingHistory, CustomerType=Individual.
+            tier = _TIER_BY_INCOME_BAND.get(archetype.income_band, "Silver")
+            out["Tier__c"] = tier
+            out["FinServ__ServiceModel__c"] = _SERVICE_MODEL_BY_TIER[tier]
+            out["FinServ__CustomerType__c"] = "Individual"
 
-        # Rule 16 — pick one risk triple
-        weights = _RISK_WEIGHTS_BY_PERSONA.get(archetype.persona,
-                                                _RISK_WEIGHTS_BY_PERSONA["retail"])
-        triple_index = weighted_pick(rng, ["0", "1", "2"], weights)
-        risk, horizon, exp = _RISK_TRIPLES[int(triple_index)]
-        out["FinServ__RiskTolerance__c"] = risk
-        out["FinServ__TimeHorizon__c"] = horizon
-        out["FinServ__InvestmentExperience__c"] = exp
+            rollups = [
+                record.get("FinServ__TotalInvestments__c"),
+                record.get("FinServ__TotalBankDeposits__c"),
+                record.get("FinServ__TotalNonfinancialAssets__c"),
+                record.get("FinServ__TotalLiabilities__c"),
+            ]
+            if all(v is not None for v in rollups):
+                inv, deposits, nonfin, liab = rollups
+                base = float(inv) + float(deposits) + float(nonfin) - float(liab)
+                out["FinServ__NetWorth__c"] = round(
+                    base * archetype.net_worth_multiple, 2
+                )
 
-        # BorrowingHistory — picklist
-        borrowing_picklist = load_picklist_yaml("FinServ__BorrowingHistory__c")
-        if borrowing_picklist:
-            out["FinServ__BorrowingHistory__c"] = weighted_pick(
-                rng, borrowing_picklist["values"], borrowing_picklist["weights"]
+            weights = _RISK_WEIGHTS_BY_PERSONA.get(
+                archetype.persona, _RISK_WEIGHTS_BY_PERSONA["retail"]
             )
+            triple_index = weighted_pick(rng, ["0", "1", "2"], weights)
+            risk, horizon, exp = _RISK_TRIPLES[int(triple_index)]
+            out["FinServ__RiskTolerance__c"] = risk
+            out["FinServ__TimeHorizon__c"] = horizon
+            out["FinServ__InvestmentExperience__c"] = exp
+
+            borrowing_picklist = load_picklist_yaml("FinServ__BorrowingHistory__c")
+            if borrowing_picklist:
+                out["FinServ__BorrowingHistory__c"] = weighted_pick(
+                    rng, borrowing_picklist["values"], borrowing_picklist["weights"]
+                )
+
+            return out
+
+        # B2B branch (rule 18)
+        out["FinServ__CustomerType__c"] = "Business"
+
+        # Only fill AnnualRevenue if the record doesn't already have one
+        if record.get("AnnualRevenue") is None:
+            rev_low, rev_high = _BUSINESS_REVENUE_RANGE[archetype.business_size]
+            revenue = rng.randint(rev_low, rev_high - 1)
+            out["AnnualRevenue"] = revenue
+            out["FinServ__TotalRevenue__c"] = revenue
+
+        # NumberOfEmployees coherent with business_size
+        if record.get("NumberOfEmployees") is None:
+            emp_low, emp_high = _BUSINESS_EMPLOYEES_RANGE[archetype.business_size]
+            out["NumberOfEmployees"] = rng.randint(emp_low, emp_high)
 
         return out
