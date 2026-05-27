@@ -132,3 +132,68 @@ def test_paired_partner_returns_other_field():
 
 def test_paired_partner_returns_none_when_not_paired():
     assert paired_partner("Industry") is None
+
+
+from datetime import date
+
+from customer_hydration.derivers._archetype import PersonaArchetype
+from customer_hydration.derivers._registry import Registry
+
+
+def test_registry_starts_empty():
+    r = Registry()
+    assert r.derivers == []
+
+
+def test_registry_register_and_run():
+    r = Registry()
+
+    class FakeDeriver:
+        name = "fake"
+        fields = ["X"]
+
+        def applies_to(self, archetype):
+            return True
+
+        def derive(self, archetype, record, rng):
+            return {"X": 1}
+
+    r.register(FakeDeriver())
+    archetype = PersonaArchetype(
+        account_id="001x", created_date=date(2020, 1, 1),
+        record_type="x", is_person=True, persona="retail",
+        age=30, gender="Male", marital_status="Single", household_size=1,
+        income_band="middle", credit_quality=0.5, net_worth_multiple=1.0,
+        tenure_years=5.0, engagement_level="regular", home_metro="X, Y",
+        business_size=None, industry_code=None, business_credit_quality=None,
+    )
+    rng = seeded_rng("001x")
+    out = r.run(archetype, {"Id": "001x"}, rng)
+    assert out == {"X": 1}
+
+
+def test_registry_skips_non_applicable_deriver():
+    r = Registry()
+
+    class SkipDeriver:
+        name = "skip"
+        fields = ["Y"]
+
+        def applies_to(self, archetype):
+            return False
+
+        def derive(self, archetype, record, rng):
+            return {"Y": 2}
+
+    r.register(SkipDeriver())
+    archetype = PersonaArchetype(
+        account_id="001x", created_date=date(2020, 1, 1),
+        record_type="x", is_person=True, persona="retail",
+        age=30, gender="Male", marital_status="Single", household_size=1,
+        income_band="middle", credit_quality=0.5, net_worth_multiple=1.0,
+        tenure_years=5.0, engagement_level="regular", home_metro="X, Y",
+        business_size=None, industry_code=None, business_credit_quality=None,
+    )
+    rng = seeded_rng("001x")
+    out = r.run(archetype, {"Id": "001x"}, rng)
+    assert out == {}
