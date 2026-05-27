@@ -20,6 +20,10 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
 ## Documentation map
 
 - **Visual diagrams:** [DIAGRAMS.md](DIAGRAMS.md)
+- **Snowflake data pipelines:**
+  - [Snowflake/docs/ARCHITECTURE.md](../Snowflake/docs/ARCHITECTURE.md) — ER diagrams, data flow, sequence diagrams, design decisions
+  - [Snowflake/docs/PROCESSES.md](../Snowflake/docs/PROCESSES.md) — Operational runbook, monitoring, deployment
+  - [Snowflake/docs/DIAGRAMS.md](../Snowflake/docs/DIAGRAMS.md) — Consolidated Mermaid diagrams for pipelines
 - **Per-project deep dives:**
   - [DC_Prediction_Model_LWC/docs/ARCHITECTURE.md](../DC_Prediction_Model_LWC/docs/ARCHITECTURE.md)
   - [DC_Multiclass_Prediction_LWC/docs/ARCHITECTURE.md](../DC_Multiclass_Prediction_LWC/docs/ARCHITECTURE.md)
