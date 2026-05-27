@@ -98,3 +98,64 @@ def test_build_archetype_business_branch():
     assert a.industry_code is not None  # 'Banking' → some NAICS code
     assert a.business_credit_quality is not None
     assert 0.0 <= a.business_credit_quality <= 1.0
+
+
+def test_age_seeded_when_birthdate_missing():
+    """Same Id with no birthdate produces same age across runs (deterministic rng)."""
+    record = load_fixture("no_birthdate")
+    rng1 = seeded_rng(record["Id"])
+    rng2 = seeded_rng(record["Id"])
+    a1 = build_archetype(record, rng1, life_events=[])
+    a2 = build_archetype(record, rng2, life_events=[])
+    assert a1.age == a2.age
+    assert 30 <= a1.age <= 60
+
+
+def test_engagement_seeded_when_last_interaction_missing():
+    record = load_fixture("no_birthdate")
+    rng = seeded_rng(record["Id"])
+    a = build_archetype(record, rng, life_events=[])
+    assert a.engagement_level in ("dormant", "light", "regular", "heavy")
+
+
+def test_persona_unknown_when_no_prefix_or_rt():
+    """RT not matching any known persona → 'unknown'."""
+    record = {
+        "Id": "001xx00000UNK001",
+        "External_ID__c": None,
+        "RecordType.Name": "Some Custom Type",
+        "IsPersonAccount": False,
+        "CreatedDate": "2020-01-01T00:00:00Z",
+    }
+    rng = seeded_rng(record["Id"])
+    a = build_archetype(record, rng, life_events=[])
+    assert a.persona == "unknown"
+
+
+def test_home_metro_deterministic_per_id():
+    """Same Id → same metro across calls (spec rule 23)."""
+    record = load_fixture("retail_55yo_affluent")
+    rng1 = seeded_rng(record["Id"])
+    rng2 = seeded_rng(record["Id"])
+    a1 = build_archetype(record, rng1, life_events=[])
+    a2 = build_archetype(record, rng2, life_events=[])
+    assert a1.home_metro == a2.home_metro
+
+
+def test_credit_quality_in_zero_one_range():
+    """Boundary check across 100 fixtures with varied seeds."""
+    base = load_fixture("retail_55yo_affluent")
+    for i in range(100):
+        record = {**base, "Id": f"001xx00000{i:06d}"}
+        rng = seeded_rng(record["Id"])
+        a = build_archetype(record, rng, life_events=[])
+        assert 0.0 <= a.credit_quality <= 1.0
+
+
+def test_business_branch_has_no_person_demographics():
+    """Business accounts: household_size=0, gender from rng (not used by derivers)."""
+    record = load_fixture("business_mid_size")
+    rng = seeded_rng(record["Id"])
+    a = build_archetype(record, rng, life_events=[])
+    assert a.is_person is False
+    assert a.household_size == 0
