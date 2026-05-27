@@ -230,6 +230,13 @@ def main(argv: list[str] | None = None) -> int:
             target_org=args.target_org,
             output_dir=out_dir,
             dry_run=args.dry_run,
+            persona=getattr(args, "persona", None),
+            record_type=getattr(args, "record_type", None),
+            limit=getattr(args, "limit", None),
+            skip_refresh_stream=getattr(args, "skip_refresh_stream", False),
+            strict=getattr(args, "strict", False),
+            require_external_id=getattr(args, "require_external_id", False),
+            allow_production=getattr(args, "allow_production", False),
             records=None,
             life_events_by_id=None,
         )

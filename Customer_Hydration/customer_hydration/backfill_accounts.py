@@ -1,25 +1,42 @@
 """Phase 4 backfill orchestrator.
 
 Reads existing Account records, builds a PersonaArchetype per record, runs
-the deriver registry, null-filters the candidates, writes a sparse CSV, and
-(unless --dry-run) bulk-upserts via External_ID__c. Optionally triggers the
-Account DC stream refresh after upsert.
+the deriver registry (with per-deriver exception isolation), runs the
+coverage-rules pass, null-filters, writes a sparse CSV, and (unless --dry-run)
+bulk-upserts via External_ID__c and triggers the Account DC stream refresh.
 
-In Plan 4a, only the skeleton is implemented — no derivers registered, no
-bulk upsert, no DC refresh. Plans 4b–4d add those capabilities.
-
-See spec docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md.
+Spec: docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md
 """
 from __future__ import annotations
 
 import json
+import logging
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from customer_hydration.backfill.dc_refresh import refresh_account_stream
+from customer_hydration.backfill.exit_codes import (
+    OK,
+    BULK_HARD_FAILURE,
+    BULK_PARTIAL_FAILURE,
+    PRODUCTION_GUARD,
+)
+from customer_hydration.backfill.production_guard import enforce_production_guard
+from customer_hydration.backfill.query import fetch_account_chunks
+from customer_hydration.backfill.upsert import (
+    PARTIAL_FAILURE_THRESHOLD_PCT,
+    upsert_to_org,
+    write_sparse_csv,
+)
+from customer_hydration.coverage_rules import apply_coverage_rules
 from customer_hydration.derivers._archetype import build_archetype
 from customer_hydration.derivers._helpers import seeded_rng
 from customer_hydration.derivers._registry import Registry
+from customer_hydration.sf_runner import SfRunner
+
+logger = logging.getLogger(__name__)
 
 
 def _build_registry() -> Registry:
@@ -49,101 +66,216 @@ def _build_registry() -> Registry:
     return registry
 
 
+def _resolve_org_id(target_org: str) -> str | None:
+    """Look up the org id for a target alias via `sf org display`. None on failure."""
+    import subprocess
+    try:
+        proc = subprocess.run(
+            ["sf", "org", "display", "--target-org", target_org, "--json"],
+            capture_output=True, text=True, check=False, timeout=30,
+        )
+        if proc.returncode != 0:
+            return None
+        payload = json.loads(proc.stdout)
+        return payload.get("result", {}).get("id")
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def run_backfill(
     *,
     target_org: str,
     output_dir: Path,
     dry_run: bool = False,
+    persona: str | None = None,
+    record_type: str | None = None,
+    limit: int | None = None,
+    skip_refresh_stream: bool = False,
+    strict: bool = False,
+    require_external_id: bool = False,
+    allow_production: bool = False,
     records: list[dict] | None = None,
     life_events_by_id: dict[str, list[dict]] | None = None,
+    sf_runner=None,
+    account_stream_name: str | None = None,
 ) -> int:
-    """Run the Phase 4 backfill against the given records.
+    """Run the Phase 4 backfill against the target org.
 
-    Args:
-        target_org: SF org alias (used by Plan 4d to issue real SOQL).
-        output_dir: Where to write manifest, CSV, and logs.
-        dry_run: If True, skip the bulk upsert and DC refresh steps.
-        records: Pre-fetched Account records. In Plan 4a, callers always inject
-                 these (no live SOQL yet). In Plan 4d the orchestrator will
-                 fetch from the org when records is None.
-        life_events_by_id: Map of account Id → list of LifeEvent dicts.
+    Returns an exit code from customer_hydration.backfill.exit_codes.
 
-    Returns:
-        Exit code (0 on success).
+    When `records` is provided, the function uses them and never calls SOQL.
+    When `records` is None, the function fetches via `sf_runner.query` (or a
+    new SfRunner instance if `sf_runner` is None).
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    started_at = datetime.now(timezone.utc).isoformat()
 
-    records = records or []
-    life_events_by_id = life_events_by_id or {}
-
-    from customer_hydration.coverage_rules import apply_coverage_rules
+    # Production guard
+    org_id = _resolve_org_id(target_org)
+    if org_id:
+        try:
+            enforce_production_guard(org_id, allow_production=allow_production)
+        except PermissionError as exc:
+            _write_manifest(
+                output_dir, target_org=target_org, started_at=started_at,
+                rc=PRODUCTION_GUARD, errors=[str(exc)],
+            )
+            return PRODUCTION_GUARD
 
     registry = _build_registry()
+
+    # Fetch records (live SOQL) or use injected
+    if records is None:
+        runner = sf_runner or SfRunner(target_org=target_org)
+        all_chunks: list[list[dict]] = list(fetch_account_chunks(
+            runner,
+            owned_fields=registry.all_owned_fields(),
+            persona=persona,
+            record_type=record_type,
+            chunk_size=2000,
+            limit=limit,
+        ))
+        records = [r for chunk in all_chunks for r in chunk]
+    if life_events_by_id is None:
+        life_events_by_id = {}
+
+    # Derive
     rows_with_deltas = 0
     rows_skipped_already_full = 0
+    rows_skipped_no_external_id = 0
+    rows_with_deriver_errors = 0
+    per_field_counts: Counter = Counter()
+    per_persona_counts: Counter = Counter()
     output_buffer: list[dict[str, Any]] = []
-
-    started_at = datetime.now(timezone.utc).isoformat()
+    derivation_errors: list[dict] = []
 
     for record in records:
         rng = seeded_rng(record["Id"])
         archetype = build_archetype(
-            record,
-            rng,
+            record, rng,
             life_events=life_events_by_id.get(record["Id"], []),
         )
         candidates = registry.run(archetype, record, rng)
+        if registry.errors:
+            rows_with_deriver_errors += 1
+            derivation_errors.extend(registry.errors)
+
         delta = {f: v for f, v in candidates.items() if record.get(f) is None}
-        # Coverage rules layer — fill partial-field gaps that survived
         apply_coverage_rules(archetype, record, delta, registry, rng)
+
+        if require_external_id and not record.get("External_ID__c"):
+            rows_skipped_no_external_id += 1
+            continue
+
         if not delta:
             rows_skipped_already_full += 1
             continue
+
         rows_with_deltas += 1
-        output_buffer.append(
-            {
-                "External_ID__c": record.get("External_ID__c") or f"BACKFILL-{record['Id']}",
-                **delta,
-            }
-        )
+        per_persona_counts[archetype.persona] += 1
+        for fname in delta:
+            per_field_counts[fname] += 1
 
-    # Write CSV (always; sparse is OK)
+        output_buffer.append({
+            "External_ID__c": record.get("External_ID__c") or f"BACKFILL-{record['Id']}",
+            **delta,
+        })
+
+    # Write CSV (sparse, External_ID__c first, LF, properly escaped)
     csv_path = output_dir / "account_backfill.csv"
-    if output_buffer:
-        all_cols = sorted({k for row in output_buffer for k in row.keys()})
-        lines = [",".join(all_cols)]
-        for row in output_buffer:
-            lines.append(",".join(str(row.get(c, "")) for c in all_cols))
-        csv_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    else:
-        csv_path.write_text("External_ID__c\n", encoding="utf-8")
+    write_sparse_csv(csv_path, output_buffer)
 
+    # Bulk upsert (unless dry run)
+    bulk_section: dict | None = None
+    rc = OK
+    if not dry_run and output_buffer:
+        try:
+            bulk_result = upsert_to_org(
+                csv_path=csv_path, target_org=target_org,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Bulk upsert raised")
+            bulk_section = {"status": "Error", "error": str(exc)}
+            rc = BULK_HARD_FAILURE
+        else:
+            processed = getattr(bulk_result, "records_processed", 0) or 0
+            failed = getattr(bulk_result, "records_failed", 0) or 0
+            failed_pct = (100.0 * failed / processed) if processed else 0.0
+            bulk_section = {
+                "status": "OK" if failed == 0 else "PartialFailure",
+                "rows_processed": processed,
+                "rows_failed": failed,
+                "failed_pct": round(failed_pct, 3),
+            }
+            if strict and failed > 0:
+                rc = BULK_PARTIAL_FAILURE
+            elif failed_pct > PARTIAL_FAILURE_THRESHOLD_PCT:
+                rc = BULK_PARTIAL_FAILURE
+
+    # DC refresh (unless dry run or skipped)
+    dc_section: dict | None = None
+    if not dry_run and not skip_refresh_stream:
+        kwargs = {"target_org": target_org}
+        if account_stream_name:
+            kwargs["stream_name"] = account_stream_name
+        status, run_id, fallback = refresh_account_stream(**kwargs)
+        dc_section = {
+            "status": status,
+            "run_id": run_id,
+            "fallback_message": fallback,
+        }
+        # PolicySkipped does NOT fail the run — it's expected when the stream
+        # is configured for UPSERT refresh mode (AGENTS.md note 18).
+
+    # Manifest
     completed_at = datetime.now(timezone.utc).isoformat()
-
     manifest = {
         "run_id": output_dir.name,
         "target_org": target_org,
         "started_at": started_at,
         "completed_at": completed_at,
-        "rc": 0,
-        "deriver_meta": {"fields_owned_by_derivers": registry.all_owned_fields()},
+        "rc": rc,
+        "deriver_meta": {
+            "fields_owned_by_derivers": registry.all_owned_fields(),
+        },
         "query": {
             "rows_queried": len(records),
-            "filter": {"persona": None, "record_type": None},
+            "filter": {"persona": persona, "record_type": record_type, "limit": limit},
         },
         "derivation": {
             "rows_with_deltas": rows_with_deltas,
             "rows_skipped_already_full": rows_skipped_already_full,
-            "rows_skipped_no_external_id": 0,
-            "rows_with_deriver_errors": 0,
-            "per_field_fill_counts": {},
-            "per_persona_counts": {},
+            "rows_skipped_no_external_id": rows_skipped_no_external_id,
+            "rows_with_deriver_errors": rows_with_deriver_errors,
+            "per_field_fill_counts": dict(per_field_counts),
+            "per_persona_counts": dict(per_persona_counts),
         },
-        "bulk_load": None if dry_run else {"status": "not_implemented_in_4a"},
-        "dc_refresh": None,
-        "errors": [],
+        "bulk_load": bulk_section,
+        "dc_refresh": dc_section,
+        "errors": derivation_errors,
     }
     (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
-    return 0
+    return rc
+
+
+def _write_manifest(
+    output_dir: Path,
+    *,
+    target_org: str,
+    started_at: str,
+    rc: int,
+    errors: list[str],
+) -> None:
+    """Write a minimal manifest for early-exit paths (e.g., production guard)."""
+    completed_at = datetime.now(timezone.utc).isoformat()
+    manifest = {
+        "run_id": output_dir.name,
+        "target_org": target_org,
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "rc": rc,
+        "errors": errors,
+    }
+    (output_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
