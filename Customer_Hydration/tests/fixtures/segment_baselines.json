@@ -1,0 +1,18 @@
+{
+  "_comment": "Pre-Phase-3d baseline. All values null because the live REST GET /ssot/segments/{api_name} returns 404 on jdo-uqj0jr and the list endpoint does not carry memberCount. Verification in plan Step 7.8 instead checks that post-recreate counts are non-zero and reasonable (smaller than persona-level baselines from Phase 4 audit: retail ~25K, wealth ~25K, smb/commercial ~10K).",
+  "cmp_auto_loan_rate_drop": null,
+  "cmp_commercial_rm_roundtable": null,
+  "cmp_heloc_refi_outreach": null,
+  "cmp_mobile_banking_adoption": null,
+  "cmp_multi_persona_spring_newsletter": null,
+  "cmp_premier_checking_onboarding": null,
+  "cmp_sba_awareness": null,
+  "cmp_treasury_modernization_brief": null,
+  "cmp_wealth_estate_planning_roundtable": null,
+  "cmp_wealth_tax_strategy_webinar": null,
+  "commercial_with_treasury": null,
+  "retail_family_with_mortgage": null,
+  "retail_heloc_drawn": null,
+  "smb_with_sba": null,
+  "wealth_recent_life_event": null
+}
