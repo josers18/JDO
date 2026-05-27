@@ -263,3 +263,14 @@ def test_load_picklist_yaml_loads_all_eight_phase_4b_fields():
         assert "values" in entry
         assert "weights" in entry
         assert len(entry["values"]) == len(entry["weights"])
+
+
+def test_load_picklist_yaml_loads_b2b_phase_4c_fields():
+    """Plan 4c adds Type, Rating, Industry picklists for B2B contact fields."""
+    expected = ["Type", "Rating", "Industry"]
+    for field in expected:
+        entry = load_picklist_yaml(field)
+        assert entry is not None, f"{field} missing from backfill_picklists.yaml"
+        assert "values" in entry
+        assert "weights" in entry
+        assert len(entry["values"]) == len(entry["weights"])
