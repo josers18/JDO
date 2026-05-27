@@ -257,6 +257,32 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   7 derivers (relationship, credit_personal, credit_bureau, profile,
   demographics, addresses, contact), coverage rules, bulk upsert, and
   DC refresh. Spec: `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
+- **Phase 4 / Plan 4b** (Person-side derivers + coherence, 2026-05-27) —
+  Six derivers landed: `relationship.py` (rules 4–8), `credit_personal.py`
+  (rules 2–3 with paired-fill via `read_paired_value`),
+  `profile.py` person-side (rules 1, 16 — Tier/ServiceModel chain + Risk
+  triple), `demographics.py` (rules 9–15 — HomeOwnership×age×income,
+  18-or-older Employment floor, dependents/children household-bound,
+  Marital/Anniversary consistency, 2025 single-filer Tax brackets, paired
+  TaxId+SSN), `addresses.py` person blocks (rule 23 — PersonMailing on
+  home_metro, PersonOther in same state, atomic blocks, geocode jitter),
+  `contact.py` person-side (rule 24 — PersonTitle by age×gender). Adds
+  `config/backfill_picklists.yaml` with 8 picklist distributions consumed
+  via the new `_helpers.load_picklist_yaml` reader (LRU-cached). The
+  orchestrator's `_build_registry` now wires all 6 derivers, so
+  `python hydrate.py backfill-accounts --target-org X --dry-run` against
+  injected person-account records produces a non-empty CSV with ~50
+  populated columns per row. New `tests/test_coherence.py` runs 18
+  end-to-end coherence-narrative tests (rules 1–16 + 22–24 + 4 narrative
+  profiles like 22yo-entry-renter and uhnw-Diamond-private) that go
+  build_archetype → Registry → null-filter and assert cross-deriver
+  invariants. New fixtures `wealth_uhnw.json` and `retail_22yo_entry.json`
+  drive the narratives. The `applies_to()` of `profile`, `addresses`,
+  `contact` is gated on `archetype.is_person` so Plan 4c can extend them
+  in-place. **655 tests total**, all green (was 567 after 4a). Note: the
+  spec's 2025 single-filer brackets place $12k in the 12% bracket (above
+  the $11.6k threshold), not 10% — corrected during implementation. Spec:
+  `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
 
 ## When extending personas
 
