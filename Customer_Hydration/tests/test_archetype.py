@@ -159,3 +159,41 @@ def test_business_branch_has_no_person_demographics():
     a = build_archetype(record, rng, life_events=[])
     assert a.is_person is False
     assert a.household_size == 0
+
+
+def test_lifeevent_marriage_sets_married():
+    """Recent Marriage life event → archetype.marital_status='Married' (rule 22)."""
+    record = load_fixture("no_birthdate")  # marital_status=null in fixture
+    rng = seeded_rng(record["Id"])
+    life_events = [
+        {
+            "FinServ__EventType__c": "Marriage",
+            "FinServ__EventDate__c": "2025-06-12",
+        }
+    ]
+    a = build_archetype(record, rng, life_events=life_events)
+    assert a.marital_status == "Married"
+
+
+def test_lifeevent_marriage_does_not_overwrite_existing_status():
+    """If MaritalStatus already populated, life event doesn't override (fill-nulls-only)."""
+    record = load_fixture("retail_55yo_affluent")  # marital_status='Married' already
+    rng = seeded_rng(record["Id"])
+    life_events = [
+        {"FinServ__EventType__c": "Divorce", "FinServ__EventDate__c": "2026-01-15"}
+    ]
+    a = build_archetype(record, rng, life_events=life_events)
+    # Existing 'Married' wins because it's already populated
+    assert a.marital_status == "Married"
+
+
+def test_lifeevent_no_match_leaves_defaults():
+    """Unrelated life event types don't change archetype."""
+    record = load_fixture("no_birthdate")
+    rng = seeded_rng(record["Id"])
+    life_events = [
+        {"FinServ__EventType__c": "Job Change", "FinServ__EventDate__c": "2025-06-01"}
+    ]
+    a = build_archetype(record, rng, life_events=life_events)
+    # marital_status stays at default 'Single'
+    assert a.marital_status == "Single"

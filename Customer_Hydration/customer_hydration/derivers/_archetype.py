@@ -222,6 +222,20 @@ def build_archetype(
     gender = record.get("PersonGender") or rng.choice(["Male", "Female"])
     marital_status = record.get("FinServ__MaritalStatus__pc") or "Single"
 
+    # 2b. LifeEvent integration (spec rule 22) — fills nulls only, never overwrites
+    LIFE_EVENT_MARITAL_MAP = {
+        "Marriage": "Married",
+        "Divorce": "Divorced",
+        "Death of Spouse": "Widowed",
+    }
+    if marital_status == "Single":  # only override the default
+        for event in life_events:
+            event_type = event.get("FinServ__EventType__c")
+            if event_type in LIFE_EVENT_MARITAL_MAP and \
+               record.get("FinServ__MaritalStatus__pc") is None:
+                marital_status = LIFE_EVENT_MARITAL_MAP[event_type]
+                break
+
     # 3. tenure_years
     tenure_years = (today - created_date).days / 365.25
 
