@@ -263,6 +263,22 @@ def _or(*filters: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _read_probe_verdict() -> str:
+    """Read probe verdict from PHASE3D_PROBE_ARTIFACT env var, defaulting
+    to RELATIVE_DATES_UNKNOWN. The env var indirection keeps the
+    translator pure (no I/O on every call) while letting orchestration
+    point at a fresh artifact."""
+    import os
+    from pathlib import Path
+    from customer_hydration.phase5.segments_probe import (
+        read_probe_artifact, RELATIVE_DATES_UNKNOWN,
+    )
+    artifact = os.environ.get("PHASE3D_PROBE_ARTIFACT")
+    if not artifact:
+        return RELATIVE_DATES_UNKNOWN
+    return read_probe_artifact(Path(artifact)).verdict
+
+
 def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> dict[str, Any]:
     """Translate one YAML rule into the DC JSON DSL.
 
@@ -402,12 +418,27 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
             _relative_date_comparison(target_dmo, field, "after", -max_age),
         )
 
+    if rule_type in ("relative_date_after_days", "relative_date_before_days"):
+        days = int(rule["days"])
+        if rule_type == "relative_date_after_days":
+            relative_op, frozen_op, frozen_delta = "after", "after", -days
+        else:
+            relative_op, frozen_op, frozen_delta = "before", "before", -days
+
+        verdict = _read_probe_verdict()
+        if verdict == "RELATIVE_DATES_OK":
+            return _relative_date_comparison(target_dmo, field, relative_op, -days, units="days")
+        # Fall through to frozen anchor for BROKEN / UNKNOWN
+        from datetime import datetime, timedelta, timezone
+        anchor_iso = (datetime.now(timezone.utc) + timedelta(days=frozen_delta)).date().isoformat()
+        return _datetime_comparison(target_dmo, field, frozen_op, [anchor_iso])
+
     raise ValueError(
         f"Segment {config_key!r}: unsupported rule type {rule_type!r}. "
         f"Supported: text_equals, text_contains, text_in, text_has_value, "
         f"number_gt/lt/gte/lte, number_in_range, date_before, date_after, "
         f"date_in_range, age_gte, age_lte, age_in_range, all_of, any_of, "
-        f"related_to."
+        f"related_to, relative_date_after_days, relative_date_before_days."
     )
 
 
