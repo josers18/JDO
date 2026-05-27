@@ -15,3 +15,18 @@ def seeded_rng(account_id: str) -> random.Random:
     digest = hashlib.sha256(account_id.encode("utf-8")).digest()
     seed = int.from_bytes(digest[:8], "big")
     return random.Random(seed)
+
+
+def weighted_pick(rng: random.Random, values: Sequence[str], weights: Sequence[float]) -> str:
+    """Pick one value from `values` with probability proportional to `weights`.
+
+    Both lists must be the same length and non-empty. Weights need not sum to 1.0;
+    they're normalized internally.
+    """
+    if not values or not weights:
+        raise ValueError("weighted_pick requires non-empty values and weights")
+    if len(values) != len(weights):
+        raise ValueError(
+            f"weighted_pick: values has {len(values)} items but weights has {len(weights)}"
+        )
+    return rng.choices(list(values), weights=list(weights), k=1)[0]
