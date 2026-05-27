@@ -106,8 +106,33 @@ The org has 119 SalesforceDotCom_Home streams total. The 89 not listed here are 
 
 If a future hydration phase introduces records into any of those, add the corresponding streams to the appropriate tier above and update this doc.
 
+## Schema verifications (2026-05-26 / 2026-05-27, jdo-uqj0jr)
+
+While running Phase 3a–3c the live org diverged from a couple of names this doc originally implied. Capturing the deltas inline so the next operator doesn't repeat the discoveries.
+
+### Legacy FSC roles: no DC stream
+
+There is **no `FinServ_FinancialAccountRole_c_Home` stream** in jdo-uqj0jr. The `Financial_Account_Role` stream listed at row 15 above ingests only the **native** `FinancialAccountRole` object — it doesn't carry `FinServ__FinancialAccountRole__c` (the legacy custom-package role records the runner emits). For Phase 3d cross-DMO joins we therefore filter on the loan's `ssot__Description__c` (token-bearing) rather than via the role link.
+
+### LifeEvent: native lineage is the DC-visible one
+
+The `PersonLifeEvent_Home` stream at row 22 ingests the **native** `PersonLifeEvent` object — there is **no `FinServ_LifeEvent_c_Home`** stream pulling the legacy `FinServ__LifeEvent__c` rows. Implications:
+
+- Anything writing only to `FinServ__LifeEvent__c` (legacy lineage) is invisible to DC.
+- The augment + the new `mirror-life-events` CLI both write **native** `PersonLifeEvent` (with `External_ID__c` `HYDRATE-NLE-NNNNNN`).
+- Field gotchas verified live: `EventType` and `PrimaryPersonId` are `updateable=False` (insert-only, so re-runs must skip seqs already in the org); `EventDate` is `xsd:dateTime` not `xsd:date` so the bare `YYYY-MM-DD` form is rejected — anchor to `T00:00:00.000Z`.
+
+### CampaignMember field gotchas
+
+`CampaignMember.HasResponded` is calculated from `Status` (`createable=False`) and `(CampaignId, ContactId)` is unique. Augment runs strip `HasResponded` from the row before Bulk and skip generation entirely on re-runs whose seq pointer is already past 1.
+
+### `FinServ__LifeEvent__c.Name` is auto-number
+
+Generated rows must drop `Name` before Bulk; the field is read-only on this org's package version.
+
 ## See also
 
 - Phase 5.5 fire-and-forget contract: `customer_hydration/phase5/data_cloud.py`
 - `dc-status` segment view: surfaces stream + segment health post-refresh
 - Phase 2 segments: 20 segments published in `jdo-uqj0jr` against `Account_demo__dlm`, all filter on `External_ID_c__c contains "HYDRATE-"` to scope to Phase 1 records only
+- Phase 3 augment: `customer_hydration/augment_phase3.py` + `customer_hydration/mirror_life_events.py`
