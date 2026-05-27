@@ -1,0 +1,20 @@
+{
+  "Id": "001xx0000ENT01",
+  "External_ID__c": "HYDRATE-COM-000001",
+  "RecordType.Name": "Business",
+  "IsPersonAccount": false,
+  "CreatedDate": "2010-01-15T10:00:00Z",
+  "PersonBirthdate": null,
+  "PersonGender": null,
+  "FinServ__MaritalStatus__pc": null,
+  "FinServ__NumberOfDependents__pc": null,
+  "FinServ__AnnualIncome__pc": null,
+  "AnnualRevenue": 5000000000,
+  "FinServ__LastInteraction__c": "2026-05-20",
+  "Industry": "Banking",
+  "FinServ__TotalInvestments__c": null,
+  "FinServ__TotalBankDeposits__c": null,
+  "FinServ__TotalNonfinancialAssets__c": null,
+  "FinServ__TotalLiabilities__c": null,
+  "AccountSource": null
+}

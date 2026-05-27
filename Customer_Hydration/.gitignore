@@ -10,8 +10,21 @@ venv/
 
 # Run artifacts (CSVs, manifests, logs)
 output/run-*/
+output/backfill-accounts-*/
+output/augment-phase3-*/
 output/*.json
 output/*.csv
+# Within audit dirs: keep REPORT.md but ignore raw extracts
+output/account-audit-*/account_fields*.json
+output/account-audit-*/populated_counts.json
+output/account-audit-*/non_agg_counts.json
+output/account-audit-*/queryable_fields.json
+output/account-audit-*/segment_breakdown.json
+output/account-audit-*/ranked_fields.json
+output/account-audit-*/bucketed.json
+output/account-audit-*/dmo_field_map.json
+output/account-audit-*/dmo_fields_user.txt
+output/account-audit-*/chunks/
 
 # sf data bulk results files (sf CLI dumps these into the cwd on failure)
 750a*-records.csv

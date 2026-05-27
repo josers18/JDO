@@ -1,0 +1,163 @@
+# Plan 4d hotfix: post-derive value translation for org-restricted picklists.
+#
+# When a deriver produces a value the spec defines (e.g., Tier="Diamond")
+# but the org's restricted picklist accepts a different vocabulary
+# (e.g., Tier expects "A"/"B"/"C"), the orchestrator translates the value
+# *after* derivation, just before CSV write. Same precedent as
+# customer_hydration/fieldmap.py for field NAMES.
+#
+# Translation rules MAY drop a value (set to ~) when no equivalent exists
+# in the org. Untranslated values pass through unchanged (no-op).
+#
+# Discovered from jdo-uqj0jr 2026-05-27 via `sf sobject describe Account`.
+
+# Tier__c — org accepts A/B/C. Map by rank.
+Tier__c:
+  Diamond: A
+  Platinum: A
+  Gold: B
+  Silver: C
+  Bronze: C
+
+# FinServ__ServiceModel__c — org accepts Tier 1/Tier 2/Tier 3
+FinServ__ServiceModel__c:
+  Private: Tier 1
+  Premier: Tier 1
+  Standard: Tier 2
+  Self-Service: Tier 3
+
+# FinServ__CustomerType__c — org accepts Borrower/Investor/Relational/Transaction
+FinServ__CustomerType__c:
+  Individual: Relational
+  Business: Relational
+  Trust: Investor
+
+# FinServ__KYCStatus__c — org accepts Completed - Valid/Completed - Invalid/
+# In progress/In Queue/Overdue/Required/Expired
+FinServ__KYCStatus__c:
+  Approved: Completed - Valid
+  Pending: In progress
+
+# FinServ__Status__c — org accepts Active/Closed/Deceased/Deliquent/Dormant/Inactive/Onboarding/Prospect
+# Deriver outputs "Active" which is accepted natively. No translation needed.
+
+# FinServ__BorrowingHistory__c — org accepts Excellent/Limited to No History/Moderate/Poor
+FinServ__BorrowingHistory__c:
+  Good: Moderate
+  Fair: Moderate
+  None: Limited to No History
+
+# FinServ__InvestmentExperience__c — org accepts Experienced/Moderately Experienced/
+# Moderately Inexperienced/Inexperienced. Deriver outputs Beginner/Intermediate/Experienced.
+FinServ__InvestmentExperience__c:
+  Beginner: Inexperienced
+  Intermediate: Moderately Experienced
+
+# FinServ__TimeHorizon__c — org accepts Long Term/Medium Term/Short Term (no hyphens)
+# Deriver outputs Short-Term/Medium-Term/Long-Term
+FinServ__TimeHorizon__c:
+  Short-Term: Short Term
+  Medium-Term: Medium Term
+  Long-Term: Long Term
+
+# FinServ__RiskTolerance__c — org accepts Aggressive/Conservative/Moderate/None.
+# Deriver outputs match. No translation needed.
+
+# Type — org accepts Enterprise/Mid-Market/Small Business/Person/Partner
+Type:
+  Customer - Direct: Person
+  Customer - Channel: Mid-Market
+  Prospect: Person
+  Other: Person
+
+# Rating — org accepts Hot/Warm/Cool (NOT Cold)
+Rating:
+  Cold: Cool
+
+# FinServ__CreditRating__c — org accepts Excellent/Good/Fair/Poor (no "Very Good")
+FinServ__CreditRating__c:
+  Very Good: Good
+
+# Experian_Risk_Band__c — org accepts High/Low/Low-Medium/Medium/Medium-High
+# Deriver outputs '1'-'6' numeric strings. Map by rank (1=lowest risk).
+Experian_Risk_Band__c:
+  '1': Low
+  '2': Low-Medium
+  '3': Medium
+  '4': Medium-High
+  '5': High
+  '6': High
+
+# PersonGender — org accepts Male/Female/Other/Unknown.
+# Deriver outputs Male/Female/Non-Binary/Prefer Not to Say.
+PersonGender:
+  Non-Binary: Other
+  Prefer Not to Say: Unknown
+
+# PersonGenderIdentity — org accepts Male/Female/Nonbinary/Not Listed.
+PersonGenderIdentity:
+  Non-Binary: Nonbinary
+  Prefer Not to Say: Not Listed
+  Other: Not Listed
+  Unknown: Not Listed
+
+# FinServ__Gender__pc — org accepts Female/Male/Decline to Specify/Other.
+FinServ__Gender__pc:
+  Non-Binary: Other
+  Prefer Not to Say: Decline to Specify
+
+# PersonPronouns — org accepts He/Him, She/Her, They/Them, He/They, She/They, Not Listed
+# Deriver outputs he/him, she/her, they/them (lowercase). Translate to capitalized.
+PersonPronouns:
+  he/him: He/Him
+  she/her: She/Her
+  they/them: They/Them
+
+# Salutation — org accepts Mr./Ms./Mrs./Dr./Prof./Mx. (with periods).
+# Deriver outputs Mr/Ms/Mrs/Dr/Sr/Hon/Miss/Mx (no periods). Translate.
+Salutation:
+  Mr: Mr.
+  Ms: Ms.
+  Mrs: Mrs.
+  Dr: Dr.
+  Mx: Mx.
+  Miss: Ms.
+  Sr: Mr.
+  Hon: Dr.
+
+# PersonTitle has the same vocabulary issue but is a freetext string field
+# in many orgs — no translation needed unless we discover otherwise.
+
+# PersonLeadSource — org accepts Website/Social Media/Marketing Event/Referral/
+# Cold Call/Data.com/Partner/Community/Inbound Call/Salesforce IoT.
+# Deriver outputs Web/Referral/Phone Inquiry/Partner/Other.
+PersonLeadSource:
+  Web: Website
+  Phone Inquiry: Inbound Call
+  Other: Community
+
+# Industry — org accepts a long list of values. Map deriver outputs to closest.
+Industry:
+  Finance: Financial Services
+  Healthcare: Healthcare & Life Sciences
+  Real Estate: Other
+
+# FinServ__TaxBracket__pc — org accepts 10%/15%/25%/28%/33%/35% (NOT 12%/22%/24%/32%/37%).
+# Deriver outputs 2025 IRS brackets which don't match the older list.
+FinServ__TaxBracket__pc:
+  '12%': '15%'
+  '22%': '25%'
+  '24%': '25%'
+  '32%': '33%'
+  '37%': '35%'
+
+# FinServ__CommunicationPreferences__pc — org accepts a multipicklist with very
+# specific tokens (Fraud:Phone, Promotions:Email, etc.). The deriver outputs
+# "Email;Text" which doesn't match. Translate to a safe valid combination.
+FinServ__CommunicationPreferences__pc:
+  Email;Text: Promotions:Email;Promotions:SMS
+
+# FinServ__ContactPreference__pc — org accepts Email/Phone/Mobile (NOT Text/Mail).
+FinServ__ContactPreference__pc:
+  Text: Mobile
+  Mail: Email
