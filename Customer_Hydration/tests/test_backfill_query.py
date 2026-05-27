@@ -83,12 +83,16 @@ def test_build_where_combines_persona_and_record_type_with_and():
 
 
 def test_persona_prefix_map_covers_known_personas():
-    """All 5 hydration personas have External_ID__c prefixes."""
-    assert PERSONA_PREFIX_MAP["retail"] == "HYDRATE-RTL-"
-    assert PERSONA_PREFIX_MAP["wealth"] == "HYDRATE-WLT-"
-    assert PERSONA_PREFIX_MAP["smb"] == "HYDRATE-SMB-"
-    assert PERSONA_PREFIX_MAP["commercial"] == "HYDRATE-COM-"
-    assert PERSONA_PREFIX_MAP["household"] == "HYDRATE-HH-"
+    """All 5 hydration personas have External_ID__c prefixes (now lists,
+    so a single persona can match multiple variants — e.g., retail accepts
+    both 'HYDRATE-RT-' (real org form) and 'HYDRATE-RTL-' (spec form))."""
+    assert "HYDRATE-RT-" in PERSONA_PREFIX_MAP["retail"]
+    assert "HYDRATE-RTL-" in PERSONA_PREFIX_MAP["retail"]
+    assert "HYDRATE-WL-" in PERSONA_PREFIX_MAP["wealth"]
+    assert "HYDRATE-WLT-" in PERSONA_PREFIX_MAP["wealth"]
+    assert PERSONA_PREFIX_MAP["smb"] == ["HYDRATE-SMB-"]
+    assert PERSONA_PREFIX_MAP["commercial"] == ["HYDRATE-COM-"]
+    assert PERSONA_PREFIX_MAP["household"] == ["HYDRATE-HH-"]
 
 
 def test_fetch_account_chunks_yields_lists_of_dicts():

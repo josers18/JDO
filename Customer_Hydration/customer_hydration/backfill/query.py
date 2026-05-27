@@ -44,13 +44,17 @@ _REQUIRED_ANCHORS: list[str] = [
 ]
 
 
-# CLI --persona value → External_ID__c prefix.
-PERSONA_PREFIX_MAP: dict[str, str] = {
-    "retail":     "HYDRATE-RTL-",
-    "wealth":     "HYDRATE-WLT-",
-    "smb":        "HYDRATE-SMB-",
-    "commercial": "HYDRATE-COM-",
-    "household":  "HYDRATE-HH-",
+# CLI --persona value → list of External_ID__c prefixes the org might use.
+# Verified against jdo-uqj0jr 2026-05-27: the org uses 2-letter codes for
+# retail (RT, not RTL) and wealth (WL, not WLT), 3-letter for the others.
+# Each persona maps to a list so we can match both spec form and real form
+# during the v1 transition.
+PERSONA_PREFIX_MAP: dict[str, list[str]] = {
+    "retail":     ["HYDRATE-RT-", "HYDRATE-RTL-"],
+    "wealth":     ["HYDRATE-WL-", "HYDRATE-WLT-"],
+    "smb":        ["HYDRATE-SMB-"],
+    "commercial": ["HYDRATE-COM-"],
+    "household":  ["HYDRATE-HH-"],
 }
 
 
@@ -78,12 +82,12 @@ def build_where_clause(persona: str | None, record_type: str | None) -> str:
     parts: list[str] = []
 
     if persona:
-        prefixes = []
+        prefixes: list[str] = []
         for p in persona.split(","):
             p = p.strip().lower()
-            prefix = PERSONA_PREFIX_MAP.get(p)
-            if prefix:
-                prefixes.append(prefix)
+            entry = PERSONA_PREFIX_MAP.get(p)
+            if entry:
+                prefixes.extend(entry)
         if prefixes:
             ors = " OR ".join(f"External_ID__c LIKE '{p}%'" for p in prefixes)
             parts.append(f"({ors})")

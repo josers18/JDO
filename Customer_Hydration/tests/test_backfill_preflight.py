@@ -86,6 +86,61 @@ def test_find_unwritable_treats_missing_updateable_as_writable():
     assert out == set()
 
 
+def test_numeric_field_constraints_returns_precision_scale_pairs():
+    """numeric_field_constraints reads precision+scale from describe payload."""
+    from customer_hydration.backfill.preflight import numeric_field_constraints
+    from unittest.mock import MagicMock
+    sf = MagicMock()
+    sf.describe.return_value = _describe_payload([
+        {"name": "DNB_Failure_Score__c", "type": "double",
+         "precision": 3, "scale": 0},
+        {"name": "FinServ__CreditScore__c", "type": "double",
+         "precision": 18, "scale": 0},
+        {"name": "Tier__c", "type": "picklist"},  # not numeric
+    ])
+    out = numeric_field_constraints(
+        sf, "Account",
+        ["DNB_Failure_Score__c", "FinServ__CreditScore__c", "Tier__c"],
+    )
+    assert out == {
+        "DNB_Failure_Score__c": (3, 0),
+        "FinServ__CreditScore__c": (18, 0),
+    }
+    assert "Tier__c" not in out
+
+
+def test_value_exceeds_field_range_for_jdo_dnb_failure():
+    """DNB_Failure_Score__c precision=3 scale=0 → max 999. The deriver
+    generates 1001-1610, all of which exceed the org's range."""
+    from customer_hydration.backfill.preflight import value_exceeds_field_range
+    assert value_exceeds_field_range(1610, (3, 0)) is True
+    assert value_exceeds_field_range(1001, (3, 0)) is True
+    assert value_exceeds_field_range(999, (3, 0)) is False
+    assert value_exceeds_field_range(0, (3, 0)) is False
+    # None passes through
+    assert value_exceeds_field_range(None, (3, 0)) is False
+    # Strings (from misformed delta) pass through
+    assert value_exceeds_field_range("not a number", (3, 0)) is False
+
+
+def test_find_unwritable_drops_fields_not_in_describe():
+    """If a candidate field isn't in the org's describe at all (e.g.,
+    Cust360_Contact_Picture_URL__pc doesn't exist on jdo-uqj0jr), it's
+    treated as unwritable so the orchestrator strips it before bulk submit."""
+    from unittest.mock import MagicMock
+    sf = MagicMock()
+    sf.describe.return_value = _describe_payload([
+        {"name": "Tier__c", "updateable": True},
+    ])
+    out = find_unwritable_fields(
+        sf, "Account",
+        ["Tier__c", "Cust360_Contact_Picture_URL__pc", "FinServ__SomeMissingField__pc"],
+    )
+    assert "Cust360_Contact_Picture_URL__pc" in out
+    assert "FinServ__SomeMissingField__pc" in out
+    assert "Tier__c" not in out
+
+
 def test_find_unwritable_real_jdo_problem_fields():
     """Regression test for the 4 fields that broke the first jdo-uqj0jr live run:
     FinServ__BillingAddress__pc, FinServ__LengthOfRelationship__c,

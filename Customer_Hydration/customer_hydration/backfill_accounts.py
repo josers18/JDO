@@ -28,7 +28,10 @@ from customer_hydration.backfill.preflight import (
     find_picklist_drift,
     find_unwritable_fields,
     install_picklist_overrides,
+    numeric_field_constraints,
+    value_exceeds_field_range,
 )
+from customer_hydration.backfill.value_translator import translate_delta
 from customer_hydration.backfill.production_guard import enforce_production_guard
 from customer_hydration.backfill.query import fetch_account_chunks
 from customer_hydration.backfill.upsert import (
@@ -98,7 +101,12 @@ def run_backfill(
     limit: int | None = None,
     skip_refresh_stream: bool = False,
     strict: bool = False,
-    require_external_id: bool = False,
+    # Plan 4d hotfix: default to True. Records without External_ID__c get
+    # synthetic BACKFILL-<Id> stamps that Bulk treats as create-not-update,
+    # which fails for org seed records (e.g., MDM rows on jdo-uqj0jr) because
+    # __pc fields can't be set on non-person accounts during create. Operators
+    # can pass require_external_id=False to opt back into the synthetic-id path.
+    require_external_id: bool = True,
     allow_production: bool = False,
     records: list[dict] | None = None,
     life_events_by_id: dict[str, list[dict]] | None = None,
@@ -163,6 +171,15 @@ def run_backfill(
         filtered = filter_picklist_yaml_to_org(yaml_dict, picklist_drift)
         install_picklist_overrides(filtered)
 
+    # Numeric range preflight: identify fields whose deriver output may exceed
+    # the org's precision/scale (e.g., DNB Failure Score deriver generates
+    # 1001-1610 but the org's field is precision=3 → max 999). Used per-row
+    # to drop out-of-range values rather than reject the whole row.
+    numeric_constraints = numeric_field_constraints(
+        runner, "Account", registry.all_owned_fields(),
+    )
+    numeric_drops_count: dict[str, int] = {}
+
     # Fetch records (live SOQL) or use injected
     if records is None:
         all_chunks: list[list[dict]] = list(fetch_account_chunks(
@@ -206,6 +223,21 @@ def run_backfill(
         # describe payload; here we just mask them out per-row.
         if unwritable_fields:
             delta = {f: v for f, v in delta.items() if f not in unwritable_fields}
+
+        # Drop numeric values that exceed the org's precision/scale.
+        # E.g., D&B Failure Score deriver emits 1001-1610 but the org's
+        # field may be precision=3 → max 999.
+        if numeric_constraints:
+            for field in list(delta.keys()):
+                constraint = numeric_constraints.get(field)
+                if constraint and value_exceeds_field_range(delta[field], constraint):
+                    numeric_drops_count[field] = numeric_drops_count.get(field, 0) + 1
+                    del delta[field]
+
+        # Translate spec-defined picklist outputs to the org's accepted vocabulary
+        # (e.g., Tier=Diamond → A; ServiceModel=Premier → Tier 1). The translator
+        # is a no-op for fields/values not in config/account_value_translator.yaml.
+        delta = translate_delta(delta)
 
         if require_external_id and not record.get("External_ID__c"):
             rows_skipped_no_external_id += 1

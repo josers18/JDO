@@ -151,9 +151,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Any non-zero per-row failure exits rc=2 (regardless of threshold)",
     )
     p_backfill.add_argument(
-        "--require-external-id",
+        "--allow-missing-external-id",
         action="store_true",
-        help="Skip rows missing External_ID__c instead of stamping BACKFILL-<Id>",
+        help=(
+            "Allow rows lacking External_ID__c to be backfilled with a synthetic "
+            "BACKFILL-<Id> stamp. Default: skip such rows (avoids creating new "
+            "Account records when the synthetic id doesn't match an existing row)."
+        ),
     )
     p_backfill.add_argument(
         "--allow-production",
@@ -235,7 +239,7 @@ def main(argv: list[str] | None = None) -> int:
             limit=getattr(args, "limit", None),
             skip_refresh_stream=getattr(args, "skip_refresh_stream", False),
             strict=getattr(args, "strict", False),
-            require_external_id=getattr(args, "require_external_id", False),
+            require_external_id=not getattr(args, "allow_missing_external_id", False),
             allow_production=getattr(args, "allow_production", False),
             records=None,
             life_events_by_id=None,

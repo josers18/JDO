@@ -1,0 +1,387 @@
+{
+  "run_id": "backfill-accounts-2026-05-27T1249",
+  "target_org": "jdo-uqj0jr",
+  "started_at": "2026-05-27T16:49:04.424648+00:00",
+  "completed_at": "2026-05-27T16:49:44.858106+00:00",
+  "rc": 2,
+  "deriver_meta": {
+    "fields_owned_by_derivers": [
+      "FinServ__RelationshipStartDate__c",
+      "FinServ__LengthOfRelationship__c",
+      "FinServ__KYCDate__c",
+      "FinServ__KYCStatus__c",
+      "FinServ__NextReview__c",
+      "FinServ__LifetimeValue__c",
+      "FinServ__LastInteraction__c",
+      "FinServ__CreditScore__c",
+      "FinServ__CreditRating__c",
+      "DNB_PAYDEX_Score__c",
+      "DNB_Delinquency_Score__c",
+      "DNB_Failure_Score__c",
+      "DNB_Rating__c",
+      "Equifax_Credit_Risk_Score__c",
+      "Equifax_Failure_Score_CR__c",
+      "Equifax_Payment_Index__c",
+      "Experian_Intelliscore__c",
+      "Experian_Risk_Band__c",
+      "Fitch_Category__c",
+      "Fitch_Rating__c",
+      "INS_FEIN_Tax_ID__c",
+      "Tier__c",
+      "FinServ__CustomerType__c",
+      "FinServ__Status__c",
+      "FinServ__ServiceModel__c",
+      "FinServ__NetWorth__c",
+      "FinServ__RiskTolerance__c",
+      "FinServ__TimeHorizon__c",
+      "FinServ__BorrowingHistory__c",
+      "FinServ__InvestmentExperience__c",
+      "AnnualRevenue",
+      "NumberOfEmployees",
+      "FinServ__TotalRevenue__c",
+      "FinServ__HomeOwnership__pc",
+      "FinServ__EmployedSince__pc",
+      "FinServ__TaxBracket__pc",
+      "FinServ__TaxId__pc",
+      "FinServ__LastFourDigitSSN__pc",
+      "FinServ__MotherMaidenName__pc",
+      "FinServ__NumberOfChildren__pc",
+      "FinServ__NumberOfDependents__pc",
+      "FinServ__WeddingAnniversary__pc",
+      "PersonGender",
+      "PersonGenderIdentity",
+      "PersonPronouns",
+      "FinServ__Gender__pc",
+      "FinServ__LanguagesSpoken__pc",
+      "FinServ__CountryOfResidence__pc",
+      "FinServ__CommunicationPreferences__pc",
+      "FinServ__ContactPreference__pc",
+      "Cust360_Contact_Picture_URL__pc",
+      "PersonMailingLatitude",
+      "PersonMailingLongitude",
+      "PersonMailingGeocodeAccuracy",
+      "PersonOtherCity",
+      "PersonOtherState",
+      "PersonOtherCountry",
+      "PersonOtherPostalCode",
+      "PersonOtherStreet",
+      "PersonOtherPhone",
+      "PersonOtherLatitude",
+      "PersonOtherLongitude",
+      "PersonOtherGeocodeAccuracy",
+      "BillingLatitude",
+      "BillingLongitude",
+      "BillingGeocodeAccuracy",
+      "Fax",
+      "FinServ__BillingAddress__pc",
+      "FinServ__MailingAddress__pc",
+      "FinServ__OtherAddress__pc",
+      "FinServ__ShippingAddress__pc",
+      "BillingCity",
+      "BillingState",
+      "BillingCountry",
+      "BillingPostalCode",
+      "BillingStreet",
+      "ShippingCity",
+      "ShippingState",
+      "ShippingCountry",
+      "ShippingPostalCode",
+      "ShippingStreet",
+      "ShippingLatitude",
+      "ShippingLongitude",
+      "ShippingGeocodeAccuracy",
+      "MiddleName",
+      "PersonTitle",
+      "PersonAssistantName",
+      "PersonAssistantPhone",
+      "PersonDepartment",
+      "PersonLeadSource",
+      "Salutation",
+      "AccountNumber",
+      "Description",
+      "NAICS_Code__c",
+      "Sic",
+      "SicDesc",
+      "Site",
+      "TickerSymbol",
+      "Jigsaw",
+      "JigsawCompanyId",
+      "Industry",
+      "Type",
+      "Rating"
+    ],
+    "unwritable_fields_dropped": [
+      "FinServ__BillingAddress__pc",
+      "FinServ__LengthOfRelationship__c",
+      "FinServ__MailingAddress__pc",
+      "FinServ__OtherAddress__pc",
+      "FinServ__ShippingAddress__pc",
+      "JigsawCompanyId"
+    ],
+    "picklist_drift": {
+      "FinServ__KYCStatus__c": {
+        "invalid": [
+          "Approved",
+          "Pending"
+        ],
+        "missing": [
+          "Completed - Invalid",
+          "Completed - Valid",
+          "In Queue",
+          "In progress",
+          "Overdue",
+          "Required"
+        ]
+      },
+      "Tier__c": {
+        "invalid": [
+          "Bronze",
+          "Diamond",
+          "Gold",
+          "Platinum",
+          "Silver"
+        ],
+        "missing": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      "FinServ__ServiceModel__c": {
+        "invalid": [
+          "Premier",
+          "Private",
+          "Self-Service",
+          "Standard"
+        ],
+        "missing": [
+          "Tier 1",
+          "Tier 2",
+          "Tier 3"
+        ]
+      },
+      "FinServ__CustomerType__c": {
+        "invalid": [
+          "Business",
+          "Individual",
+          "Trust"
+        ],
+        "missing": [
+          "Borrower",
+          "Investor",
+          "Relational",
+          "Transaction"
+        ]
+      },
+      "FinServ__Status__c": {
+        "invalid": [],
+        "missing": [
+          "Deceased",
+          "Deliquent",
+          "Dormant",
+          "Onboarding",
+          "Prospect"
+        ]
+      },
+      "FinServ__RiskTolerance__c": {
+        "invalid": [],
+        "missing": [
+          "None"
+        ]
+      },
+      "FinServ__BorrowingHistory__c": {
+        "invalid": [
+          "Fair",
+          "Good",
+          "None"
+        ],
+        "missing": [
+          "Limited to No History",
+          "Moderate"
+        ]
+      },
+      "Type": {
+        "invalid": [
+          "Customer - Channel",
+          "Customer - Direct",
+          "Other",
+          "Prospect"
+        ],
+        "missing": [
+          "Enterprise",
+          "Mid-Market",
+          "Person",
+          "Small Business"
+        ]
+      },
+      "Rating": {
+        "invalid": [
+          "Cold"
+        ],
+        "missing": [
+          "Cool"
+        ]
+      },
+      "Industry": {
+        "invalid": [
+          "Finance",
+          "Healthcare",
+          "Real Estate"
+        ],
+        "missing": [
+          "Apparel",
+          "Biotechnology",
+          "Chemicals",
+          "Communications",
+          "Construction",
+          "Consulting",
+          "Electronics",
+          "Engineering",
+          "Entertainment",
+          "Environmental",
+          "Financial Services",
+          "Food & Beverage",
+          "Government",
+          "Healthcare & Life Sciences",
+          "Machinery",
+          "Media",
+          "Not For Profit",
+          "Other",
+          "Recreation",
+          "Shipping",
+          "Telecommunications",
+          "Transportation",
+          "Utilities"
+        ]
+      }
+    }
+  },
+  "query": {
+    "rows_queried": 500,
+    "filter": {
+      "persona": null,
+      "record_type": null,
+      "limit": 500
+    }
+  },
+  "derivation": {
+    "rows_with_deltas": 118,
+    "rows_skipped_already_full": 382,
+    "rows_skipped_no_external_id": 0,
+    "rows_with_deriver_errors": 0,
+    "per_field_fill_counts": {
+      "FinServ__RelationshipStartDate__c": 118,
+      "FinServ__KYCDate__c": 118,
+      "FinServ__KYCStatus__c": 113,
+      "FinServ__LifetimeValue__c": 58,
+      "FinServ__NextReview__c": 117,
+      "FinServ__CreditRating__c": 64,
+      "Tier__c": 64,
+      "FinServ__ServiceModel__c": 64,
+      "FinServ__CustomerType__c": 113,
+      "FinServ__NetWorth__c": 64,
+      "FinServ__RiskTolerance__c": 25,
+      "FinServ__TimeHorizon__c": 64,
+      "FinServ__InvestmentExperience__c": 25,
+      "FinServ__BorrowingHistory__c": 64,
+      "FinServ__HomeOwnership__pc": 64,
+      "FinServ__EmployedSince__pc": 69,
+      "FinServ__TaxBracket__pc": 63,
+      "FinServ__TaxId__pc": 67,
+      "FinServ__MotherMaidenName__pc": 69,
+      "FinServ__NumberOfDependents__pc": 10,
+      "FinServ__NumberOfChildren__pc": 69,
+      "FinServ__WeddingAnniversary__pc": 54,
+      "PersonGender": 64,
+      "FinServ__Gender__pc": 67,
+      "PersonGenderIdentity": 69,
+      "PersonPronouns": 69,
+      "FinServ__LanguagesSpoken__pc": 69,
+      "Fax": 117,
+      "PersonMailingGeocodeAccuracy": 69,
+      "PersonOtherCity": 69,
+      "PersonOtherState": 69,
+      "PersonOtherCountry": 69,
+      "PersonOtherPostalCode": 69,
+      "PersonOtherStreet": 69,
+      "PersonOtherPhone": 69,
+      "PersonOtherLatitude": 69,
+      "PersonOtherLongitude": 69,
+      "PersonOtherGeocodeAccuracy": 69,
+      "BillingGeocodeAccuracy": 63,
+      "AccountNumber": 114,
+      "MiddleName": 69,
+      "Salutation": 10,
+      "PersonAssistantName": 17,
+      "PersonAssistantPhone": 17,
+      "PersonDepartment": 64,
+      "Description": 15,
+      "FinServ__CreditScore__c": 63,
+      "FinServ__Status__c": 112,
+      "FinServ__LastFourDigitSSN__pc": 67,
+      "Cust360_Contact_Picture_URL__pc": 66,
+      "PersonTitle": 62,
+      "FinServ__CountryOfResidence__pc": 65,
+      "FinServ__CommunicationPreferences__pc": 65,
+      "FinServ__ContactPreference__pc": 65,
+      "PersonMailingLatitude": 65,
+      "PersonMailingLongitude": 65,
+      "BillingLatitude": 57,
+      "BillingLongitude": 57,
+      "FinServ__LastInteraction__c": 102,
+      "DNB_PAYDEX_Score__c": 49,
+      "DNB_Delinquency_Score__c": 49,
+      "DNB_Rating__c": 49,
+      "Equifax_Credit_Risk_Score__c": 49,
+      "Equifax_Failure_Score_CR__c": 49,
+      "Equifax_Payment_Index__c": 49,
+      "Experian_Intelliscore__c": 49,
+      "Experian_Risk_Band__c": 49,
+      "Fitch_Rating__c": 49,
+      "Fitch_Category__c": 49,
+      "INS_FEIN_Tax_ID__c": 49,
+      "NumberOfEmployees": 49,
+      "ShippingCity": 49,
+      "ShippingState": 49,
+      "ShippingCountry": 49,
+      "ShippingPostalCode": 49,
+      "ShippingStreet": 49,
+      "ShippingLatitude": 49,
+      "ShippingLongitude": 49,
+      "ShippingGeocodeAccuracy": 49,
+      "NAICS_Code__c": 49,
+      "Sic": 49,
+      "SicDesc": 49,
+      "Site": 49,
+      "Jigsaw": 49,
+      "Rating": 49,
+      "PersonLeadSource": 60,
+      "AnnualRevenue": 43,
+      "FinServ__TotalRevenue__c": 43,
+      "BillingCity": 43,
+      "BillingState": 43,
+      "BillingCountry": 43,
+      "BillingPostalCode": 43,
+      "BillingStreet": 43,
+      "Industry": 7,
+      "Type": 7
+    },
+    "per_persona_counts": {
+      "retail": 69,
+      "unknown": 13,
+      "household": 36
+    }
+  },
+  "bulk_load": {
+    "status": "PartialFailure",
+    "rows_processed": 24,
+    "rows_failed": 24,
+    "failed_pct": 100.0
+  },
+  "dc_refresh": {
+    "status": "Failed",
+    "run_id": null,
+    "fallback_message": "policy: Data Stream id 1dsam0000009GC1AAM is not allowed to run in interactive mode if refresh mode is not FULL_REFRESH"
+  },
+  "errors": []
+}

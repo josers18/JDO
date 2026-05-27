@@ -65,12 +65,90 @@ def find_unwritable_fields(
         )
         return set()
 
-    unwritable: set[str] = set()
+    # Build the set of fields that DO exist in describe — anything in
+    # candidates not in this set is missing-from-org and must be dropped.
+    described_names: set[str] = {f.get("name") for f in fields if f.get("name")}
+    missing_from_org = candidates - described_names
+    if missing_from_org:
+        logger.warning(
+            "writability preflight: %d candidate field(s) not present on %s in "
+            "this org — dropping: %s",
+            len(missing_from_org), sobject, sorted(missing_from_org),
+        )
+
+    unwritable: set[str] = set(missing_from_org)
     for f in fields:
         name = f.get("name")
         if name in candidates and not f.get("updateable", True):
             unwritable.add(name)
     return unwritable
+
+
+def numeric_field_constraints(
+    sf_runner,
+    sobject: str,
+    candidate_fields: Iterable[str],
+) -> dict[str, tuple[int, int]]:
+    """Return a dict {field_name: (max_digits, scale)} for numeric fields.
+
+    `max_digits` is the field's `precision` from describe — the total number
+    of digits the field can hold (including before AND after the decimal).
+    `scale` is the number of digits after the decimal.
+
+    Used to drop deriver outputs that exceed the field's range (e.g., the
+    Plan 4d derivers generate D&B Failure scores up to 1610, but the org's
+    `DNB_Failure_Score__c` may be precision=3 → max 999).
+    """
+    candidates = set(candidate_fields)
+    if not candidates:
+        return {}
+
+    try:
+        payload = sf_runner.describe(sobject)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "numeric preflight skipped — describe failed for %s: %s",
+            sobject, exc,
+        )
+        return {}
+
+    out: dict[str, tuple[int, int]] = {}
+    for f in _extract_fields(payload):
+        name = f.get("name")
+        if name not in candidates:
+            continue
+        if f.get("type") not in ("int", "double", "currency", "percent"):
+            continue
+        precision = f.get("precision")
+        scale = f.get("scale")
+        if precision is None:
+            continue
+        out[name] = (int(precision), int(scale or 0))
+    return out
+
+
+def value_exceeds_field_range(
+    value,
+    constraint: tuple[int, int],
+) -> bool:
+    """Return True if `value` doesn't fit in a field with `(precision, scale)`.
+
+    Salesforce expresses precision/scale where the integer-part digit count
+    is `precision - scale`. e.g. precision=3, scale=0 → max 999.
+    Negative values use the same digit budget.
+    """
+    if value is None:
+        return False
+    try:
+        v = abs(float(value))
+    except (TypeError, ValueError):
+        return False
+    precision, scale = constraint
+    integer_digits = precision - scale
+    if integer_digits <= 0:
+        return False  # malformed describe; don't flag
+    max_int = 10 ** integer_digits - 1
+    return v > max_int
 
 
 def _picklist_values_from_describe(payload: dict) -> dict[str, set[str]]:
