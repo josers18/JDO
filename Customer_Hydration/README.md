@@ -1,14 +1,23 @@
 # Customer_Hydration
 
+![Phase](https://img.shields.io/badge/phase-3c%20complete-brightgreen)
+![Tests](https://img.shields.io/badge/tests-527%20passing-brightgreen)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Salesforce CLI](https://img.shields.io/badge/sf%20CLI-v2-00a1e0)
+![Data Cloud](https://img.shields.io/badge/Data%20Cloud-v62-1798c1)
+![FSC](https://img.shields.io/badge/FSC-dual%20lineage-blueviolet)
+![Status](https://img.shields.io/badge/status-active-success)
+
 Reusable CLI artifact that hydrates the JDO demo org with realistic Cumulus
 Bank customer data — Retail, Wealth, Small Business, and Commercial — across
 role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 (legacy `FinServ__*` + native FSC standard objects).
 
-> **Status:** Plans 1 + 2 complete (skeleton, Phase 0, fieldmap, all 4
-> personas, full retail child fanout, sequential bulk loader). Plans 3–6
-> add multi-wave parallelism + reset/resume, native FSC mirrors, Apex
-> post-load wireup + Data Cloud stream refresh, and banker briefs.
+> **Status (2026-05-27):** Phases 1, 2, and 3a–3c complete. Phase 1 hydration,
+> Phase 2 segment provisioning + DC stream refresh, Phase 3a loan subtype
+> generators, Phase 3b append load (36,044 customers), and Phase 3c augment
+> + dual-lineage LifeEvent mirror are all on `main`. Phase 3d (cross-DMO
+> segment YAML to tighten the placeholder segments) is the open work item.
 
 ## Quick start
 
