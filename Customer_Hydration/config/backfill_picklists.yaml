@@ -3,6 +3,23 @@
 #
 # Each entry's `values` list MUST be a subset of the org's actual picklist
 # values for that field; preflight verifies this.
+#
+# Weight consumption:
+#   - FinServ__KYCStatus__c       → relationship.py loads weights at call time
+#   - FinServ__HomeOwnership__pc  → demographics.py loads values at call time
+#                                   (weights computed dynamically from age × income)
+#   - FinServ__BorrowingHistory__c → profile.py loads values + weights at call time
+#   - Tier__c                     → values reference-only; profile.py maps from
+#                                   income_band quintile (deterministic, no rng)
+#   - FinServ__ServiceModel__c    → values reference-only; profile.py derives from
+#                                   Tier (paired-field, deterministic)
+#   - FinServ__CustomerType__c    → values reference-only; profile.py picks
+#                                   "Individual" for person accounts; Plan 4c
+#                                   will branch for Business/Trust
+#   - FinServ__Status__c          → values reference-only; profile.py hardcodes
+#                                   "Active" for backfilled accounts
+#   - FinServ__RiskTolerance__c   → values reference-only; profile.py picks one
+#                                   of three coherent triples (rule 16)
 
 FinServ__KYCStatus__c:
   values: [Approved, Pending, Expired]

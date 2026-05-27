@@ -10,19 +10,22 @@ from random import Random
 from typing import Any
 
 from customer_hydration.derivers._archetype import PersonaArchetype
-from customer_hydration.derivers._helpers import weighted_pick
+from customer_hydration.derivers._helpers import load_picklist_yaml, weighted_pick
 
 
 # Rule 9 — HomeOwnership weights by (age_bucket, income_bucket)
-def _home_ownership_weights(age: int, income_band: str) -> tuple[list[str], list[float]]:
-    values = ["Own", "Rent", "Other"]
+def _home_ownership_weights(age: int, income_band: str) -> list[float]:
+    """Return weight list for HomeOwnership picklist (values from YAML).
+    Order matches load_picklist_yaml('FinServ__HomeOwnership__pc')['values']:
+    [Own, Rent, Other].
+    """
     if age < 25:
-        return values, [0.15, 0.80, 0.05]
+        return [0.15, 0.80, 0.05]
     if age < 40 and income_band in ("middle", "affluent", "hnw", "uhnw"):
-        return values, [0.60, 0.35, 0.05]
+        return [0.60, 0.35, 0.05]
     if age >= 40 and income_band in ("affluent", "hnw", "uhnw"):
-        return values, [0.92, 0.05, 0.03]
-    return values, [0.55, 0.40, 0.05]  # default fallback
+        return [0.92, 0.05, 0.03]
+    return [0.55, 0.40, 0.05]  # default fallback
 
 
 # Rule 14 — 2025 single-filer brackets (low end of bracket)
@@ -141,8 +144,12 @@ class DemographicsDeriver:
         today = date.today()
 
         # Rule 9 — HomeOwnership
-        ho_values, ho_weights = _home_ownership_weights(archetype.age, archetype.income_band)
-        out["FinServ__HomeOwnership__pc"] = weighted_pick(rng, ho_values, ho_weights)
+        ho_picklist = load_picklist_yaml("FinServ__HomeOwnership__pc")
+        ho_weights = _home_ownership_weights(archetype.age, archetype.income_band)
+        if ho_picklist:
+            out["FinServ__HomeOwnership__pc"] = weighted_pick(
+                rng, ho_picklist["values"], ho_weights
+            )
 
         # Rule 10 — EmployedSince ≥ birthdate + 18y
         birthdate_str = record.get("PersonBirthdate")

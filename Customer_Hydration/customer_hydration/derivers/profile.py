@@ -9,7 +9,7 @@ from random import Random
 from typing import Any
 
 from customer_hydration.derivers._archetype import PersonaArchetype
-from customer_hydration.derivers._helpers import weighted_pick
+from customer_hydration.derivers._helpers import load_picklist_yaml, weighted_pick
 
 
 # Rule 1 — Tier from income_band quintile
@@ -51,8 +51,6 @@ _RISK_WEIGHTS_BY_PERSONA: dict[str, list[float]] = {
 }
 
 
-_BORROWING_VALUES = ["Excellent", "Good", "Fair", "Poor", "None"]
-_BORROWING_WEIGHTS = [0.25, 0.40, 0.20, 0.05, 0.10]
 
 
 class ProfileDeriver:
@@ -122,8 +120,10 @@ class ProfileDeriver:
         out["FinServ__InvestmentExperience__c"] = exp
 
         # BorrowingHistory — picklist
-        out["FinServ__BorrowingHistory__c"] = weighted_pick(
-            rng, _BORROWING_VALUES, _BORROWING_WEIGHTS
-        )
+        borrowing_picklist = load_picklist_yaml("FinServ__BorrowingHistory__c")
+        if borrowing_picklist:
+            out["FinServ__BorrowingHistory__c"] = weighted_pick(
+                rng, borrowing_picklist["values"], borrowing_picklist["weights"]
+            )
 
         return out
