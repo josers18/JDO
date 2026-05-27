@@ -101,3 +101,11 @@ def test_business_size_thresholds():
 
 def test_business_size_handles_none():
     assert business_size(None) == "micro"
+
+
+def test_deriver_protocol_imports():
+    """Sanity: the Protocol class is importable."""
+    from customer_hydration.derivers._base import Deriver
+
+    assert Deriver is not None
+    assert hasattr(Deriver, "name") or "name" in Deriver.__annotations__
