@@ -26,6 +26,7 @@ from customer_hydration.phase5.data_cloud import (
     DataCloudStreamRefreshResult,
     SegmentInfo,
     create_segment,
+    delete_segment,
     execute_phase5_5,
     get_org_session,
     list_segments,
@@ -577,3 +578,105 @@ def execute_refresh_streams(*, target_org: str) -> DataCloudStreamRefreshResult:
     standalone function so the new `refresh-streams` CLI subcommand can call
     it directly without going through the hydrate runner."""
     return execute_phase5_5(target_org=target_org)
+
+
+@dataclass
+class SegmentRecreateResult:
+    config_key: str
+    api_name: str
+    deleted: bool = False
+    created: bool = False
+    error: Optional[str] = None
+
+
+@dataclass
+class RecreateSegmentsResult:
+    segments_processed: int = 0
+    segments_recreated: int = 0
+    segments_failed: int = 0
+    results: list[SegmentRecreateResult] = field(default_factory=list)
+
+
+def _matches_pattern(config_key: str, pattern: str) -> bool:
+    """Glob-style match: '*' matches all, 'cmp_*' matches prefix, exact otherwise."""
+    import fnmatch
+    return fnmatch.fnmatchcase(config_key, pattern)
+
+
+def execute_recreate_segments(
+    *,
+    target_org: str,
+    yaml_path: Path,
+    pattern: str,
+    dry_run: bool = False,
+) -> RecreateSegmentsResult:
+    """DELETE-then-POST migration for segments matching `pattern`.
+
+    Used to push new YAML rules onto an existing live segment, since
+    PATCH on Dynamic segments returns ENTITY_SAVE_ERROR.
+
+    Per-segment failures are recorded; this function never raises.
+    """
+    definitions = [d for d in load_segment_definitions(yaml_path)
+                   if _matches_pattern(d.config_key, pattern)]
+    result = RecreateSegmentsResult(segments_processed=len(definitions))
+
+    if dry_run:
+        for d in definitions:
+            result.results.append(SegmentRecreateResult(
+                config_key=d.config_key, api_name=d.api_name,
+            ))
+            print(f"  DRY-RUN would DELETE+POST {d.api_name} ({d.display_name})")
+        return result
+
+    if not definitions:
+        return result
+
+    try:
+        instance_url, access_token = get_org_session(target_org)
+    except Exception as exc:
+        for d in definitions:
+            result.results.append(SegmentRecreateResult(
+                config_key=d.config_key, api_name=d.api_name,
+                error=f"get_org_session failed: {exc}",
+            ))
+            result.segments_failed += 1
+        return result
+
+    existing = {s.api_name for s in list_segments(instance_url, access_token)}
+
+    for d in definitions:
+        r = SegmentRecreateResult(config_key=d.config_key, api_name=d.api_name)
+
+        # DELETE phase — only if segment is known to exist.
+        if d.api_name in existing:
+            ok, info = delete_segment(
+                instance_url, access_token, api_name=d.api_name,
+            )
+            if not ok:
+                r.error = info
+                result.segments_failed += 1
+                result.results.append(r)
+                continue
+            r.deleted = True
+        # else: not present in `existing`, skip DELETE entirely.
+
+        # POST phase
+        ok, info = create_segment(
+            instance_url, access_token,
+            developer_name=d.developer_name,
+            display_name=d.display_name,
+            description=d.description,
+            segment_on_api_name=d.target_dmo,
+            include_criteria=d.include_criteria,
+            publish_schedule="NoRefresh",
+        )
+        if ok:
+            r.created = True
+            result.segments_recreated += 1
+        else:
+            r.error = info
+            result.segments_failed += 1
+        result.results.append(r)
+
+    return result
