@@ -23,7 +23,12 @@ from customer_hydration.backfill.exit_codes import (
     BULK_PARTIAL_FAILURE,
     PRODUCTION_GUARD,
 )
-from customer_hydration.backfill.preflight import find_unwritable_fields
+from customer_hydration.backfill.preflight import (
+    filter_picklist_yaml_to_org,
+    find_picklist_drift,
+    find_unwritable_fields,
+    install_picklist_overrides,
+)
 from customer_hydration.backfill.production_guard import enforce_production_guard
 from customer_hydration.backfill.query import fetch_account_chunks
 from customer_hydration.backfill.upsert import (
@@ -140,6 +145,23 @@ def run_backfill(
             "writability preflight dropped %d field(s) from output: %s",
             len(unwritable_fields), sorted(unwritable_fields),
         )
+
+    # Picklist drift preflight: load YAML, intersect each field's values with
+    # the org's actual picklist values from describe, install a filtered
+    # override so derivers' weighted_pick calls only use org-accepted values.
+    from customer_hydration.derivers._helpers import _load_picklist_yaml
+    yaml_dict = _load_picklist_yaml()
+    picklist_drift = find_picklist_drift(runner, "Account", yaml_dict)
+    if picklist_drift:
+        for field, info in picklist_drift.items():
+            if info.get("invalid"):
+                logger.info(
+                    "picklist preflight: %s — dropping YAML values not accepted "
+                    "by org: %s",
+                    field, info["invalid"],
+                )
+        filtered = filter_picklist_yaml_to_org(yaml_dict, picklist_drift)
+        install_picklist_overrides(filtered)
 
     # Fetch records (live SOQL) or use injected
     if records is None:
@@ -260,6 +282,7 @@ def run_backfill(
         "deriver_meta": {
             "fields_owned_by_derivers": registry.all_owned_fields(),
             "unwritable_fields_dropped": sorted(unwritable_fields),
+            "picklist_drift": picklist_drift if picklist_drift else None,
         },
         "query": {
             "rows_queried": len(records),

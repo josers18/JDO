@@ -24,15 +24,26 @@ def seeded_rng(account_id: str) -> random.Random:
 def weighted_pick(rng: random.Random, values: Sequence[str], weights: Sequence[float]) -> str:
     """Pick one value from `values` with probability proportional to `weights`.
 
-    Both lists must be the same length and non-empty. Weights need not sum to 1.0;
-    they're normalized internally.
+    Both lists must be non-empty. Weights need not sum to 1.0; they're
+    normalized internally.
+
+    Length-mismatch handling (Plan 4d hotfix): when ``values`` and ``weights``
+    differ in length — typically because the picklist preflight filtered some
+    values out of the YAML to match the org — the function adapts:
+      - if values is shorter, use weights[: len(values)]  (drop trailing weights)
+      - if weights is shorter, use the available weights and pad with their
+        mean (so trailing extra values get an average weight)
+    Both halves are still non-empty.
     """
     if not values or not weights:
         raise ValueError("weighted_pick requires non-empty values and weights")
-    if len(values) != len(weights):
-        raise ValueError(
-            f"weighted_pick: values has {len(values)} items but weights has {len(weights)}"
-        )
+    nv, nw = len(values), len(weights)
+    if nv != nw:
+        if nv < nw:
+            weights = list(weights[:nv])
+        else:
+            mean_w = sum(weights) / nw if nw else 1.0
+            weights = list(weights) + [mean_w] * (nv - nw)
     return rng.choices(list(values), weights=list(weights), k=1)[0]
 
 
@@ -88,6 +99,13 @@ _BACKFILL_PICKLIST_PATH = (
 )
 
 
+# Plan 4d hotfix: an override dict the orchestrator can install at startup
+# after the picklist preflight filters values to those the org accepts.
+# When set, `load_picklist_yaml` reads from this in preference to the YAML.
+# See customer_hydration.backfill.preflight.install_picklist_overrides.
+_PICKLIST_OVERRIDE: dict[str, dict] | None = None
+
+
 @functools.lru_cache(maxsize=1)
 def _load_picklist_yaml() -> dict[str, dict]:
     """Cache the YAML once per process."""
@@ -99,5 +117,13 @@ def _load_picklist_yaml() -> dict[str, dict]:
 
 
 def load_picklist_yaml(field_name: str) -> dict | None:
-    """Return {'values': [...], 'weights': [...]} for a picklist field, or None."""
+    """Return {'values': [...], 'weights': [...]} for a picklist field, or None.
+
+    If the orchestrator installed a picklist override at startup (the picklist
+    preflight filters YAML values to the org-accepted subset), the override
+    takes precedence. Fields absent from the override fall through to the
+    on-disk YAML.
+    """
+    if _PICKLIST_OVERRIDE is not None and field_name in _PICKLIST_OVERRIDE:
+        return _PICKLIST_OVERRIDE[field_name]
     return _load_picklist_yaml().get(field_name)

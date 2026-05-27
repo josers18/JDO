@@ -10,8 +10,10 @@ from customer_hydration.backfill.dc_refresh import (
 
 
 def test_default_account_stream_name():
-    """Sane default that operators can override via --account-stream flag if needed."""
-    assert DEFAULT_ACCOUNT_STREAM_NAME == "Account_jdo"
+    """Sane default that operators can override via --account-stream flag if needed.
+    Verified in jdo-uqj0jr (2026-05-27): the SalesforceDotCom-typed Account
+    stream is named 'Account_Home'."""
+    assert DEFAULT_ACCOUNT_STREAM_NAME == "Account_Home"
 
 
 @patch("customer_hydration.backfill.dc_refresh.get_org_session")

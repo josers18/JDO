@@ -52,10 +52,21 @@ def test_weighted_pick_respects_weights_at_scale():
     assert counts["B"] < 200
 
 
-def test_weighted_pick_rejects_mismatched_lengths():
+def test_weighted_pick_truncates_weights_when_values_shorter():
+    """Plan 4d hotfix: when the picklist preflight filters values, the
+    inline weights from the deriver may be longer. Truncate weights to
+    values length rather than raising — the values list is already in
+    correct rank order."""
     rng = seeded_rng("test_pick_4")
-    with pytest.raises(ValueError):
-        weighted_pick(rng, ["A", "B"], [0.5, 0.3, 0.2])
+    out = weighted_pick(rng, ["A", "B"], [0.5, 0.3, 0.2])
+    assert out in ("A", "B")
+
+
+def test_weighted_pick_pads_weights_when_values_longer():
+    """When values is longer than weights, pad weights with their mean."""
+    rng = seeded_rng("test_pick_4b")
+    out = weighted_pick(rng, ["A", "B", "C"], [0.5, 0.3])
+    assert out in ("A", "B", "C")
 
 
 def test_weighted_pick_rejects_empty():

@@ -18,8 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 # Default stream name. Operators can override via the orchestrator argument.
-# Matches the SalesforceDotCom-typed Account stream the JDO demo orgs ship.
-DEFAULT_ACCOUNT_STREAM_NAME: str = "Account_jdo"
+# Verified in jdo-uqj0jr (2026-05-27): the SalesforceDotCom-typed Account
+# stream is named "Account_Home". The earlier default "Account_jdo" was a
+# spec-time guess that didn't match any of the org's 289 streams.
+DEFAULT_ACCOUNT_STREAM_NAME: str = "Account_Home"
 
 
 _UI_FALLBACK_HINT = (
