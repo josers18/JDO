@@ -132,3 +132,37 @@ segments:
     defs = load_segment_definitions(yaml_path)
     user = defs[0].include_criteria["filters"][1]
     assert user["relatedFieldApiName"] == "AccountId__c"
+    # via_root defaults to "Id" — Account-side join field unchanged.
+    assert user["primaryFieldApiName"] == "Id"
+
+
+def test_related_to_via_root_overrides_primary_field(tmp_path: Path):
+    """Phase 3d v1.1: SSOT-canonical DMOs join via IndividualId, not Id.
+
+    The translator must let YAML override the Account-side join field
+    so a NestedAttribute can express
+        Account.ssot__IndividualId__c = PersonLifeEvent.ssot__IndividualId__c
+    where both sides reference the Individual primary key.
+    """
+    yaml_path = _write(tmp_path, """\
+segments:
+  via_root_test:
+    name: "x"
+    description: "x"
+    persona: wealth
+    publish_schedule: daily
+    target_dmo: ssot__Account__dlm
+    rule:
+      type: related_to
+      dmo: ssot__PersonLifeEvent__dlm
+      via: ssot__IndividualId__c
+      via_root: ssot__IndividualId__c
+      where:
+        type: text_has_value
+        field: ssot__PersonLifeEventDateTime__c
+""")
+    defs = load_segment_definitions(yaml_path)
+    user = defs[0].include_criteria["filters"][1]
+    assert user["primaryFieldApiName"] == "ssot__IndividualId__c"
+    assert user["relatedFieldApiName"] == "ssot__IndividualId__c"
+    assert user["relatedObjectApiName"] == "ssot__PersonLifeEvent__dlm"

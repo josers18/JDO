@@ -60,7 +60,7 @@ def probe_relative_date_filter(
     access_token: str,
     *,
     target_dmo: str = "ssot__PersonLifeEvent__dlm",
-    field: str = "EventDate__c",
+    field: str = "ssot__PersonLifeEventDateTime__c",
     days: int = 90,
     create_segment_fn=None,
     delete_segment_fn=None,

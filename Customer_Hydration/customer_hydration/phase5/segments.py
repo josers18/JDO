@@ -325,6 +325,13 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
                 f"Segment {config_key!r}.rule.dmo is required for type related_to"
             )
         via = rule.get("via", "AccountId__c")
+        # via_root: which field on target_dmo to join FROM. Default "Id"
+        # works when the related DMO has an AccountId-style FK to the
+        # primary key. Phase 3d v1.1: SSOT-canonical DMOs often join via
+        # IndividualId / PartyId rather than AccountId, in which case the
+        # YAML overrides via_root to e.g. ssot__IndividualId__c so both
+        # sides of the NestedAttribute reference the Individual key.
+        via_root = rule.get("via_root", "Id")
         where = rule.get("where")
         if not isinstance(where, dict):
             raise ValueError(
@@ -341,7 +348,7 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
         return {
             "type": "NestedAttribute",
             "primaryObjectApiName": target_dmo,
-            "primaryFieldApiName": "Id",
+            "primaryFieldApiName": via_root,
             "relatedObjectApiName": related_dmo,
             "relatedFieldApiName": via,
             "filter": inner,
