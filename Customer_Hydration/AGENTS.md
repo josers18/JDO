@@ -314,6 +314,37 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   coherence via `NumberOfEmployees` instead, which depends only on
   `business_size`. Spec:
   `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
+- **Phase 4 / Plan 4d** (Live SOQL + Bulk upsert + DC refresh, 2026-05-27) —
+  New `customer_hydration/backfill/` sub-package: `query.py` (chunked
+  SOQL fetch + persona/RT filter clause builder; keyset-paginated by Id
+  for full-org runs, `LIMIT N` for single-shot --limit runs),
+  `upsert.py` (sparse-CSV builder using `csv.DictWriter`, External_ID__c
+  forced to column 0, LF endings, proper comma escaping; wraps
+  `loader._legacy.bulk_upsert`), `dc_refresh.py` (resolves auth via
+  `phase5.data_cloud.get_org_session`, classifies refresh outcomes as
+  Triggered / PolicySkipped / Skipped / Failed, returns
+  `dc-stream-full-refresh-via-ui` skill nudge on 412),
+  `production_guard.py` (frozenset of known-prod 15-char ids; empty by
+  default for v1; `enforce_production_guard` raises PermissionError →
+  rc=5), `exit_codes.py` (`OK=0`, `BULK_PARTIAL_FAILURE=2`,
+  `BULK_HARD_FAILURE=3`, `SCHEMA_PICKLIST_DRIFT=4`, `PRODUCTION_GUARD=5`).
+  Per-deriver exception isolation added to `Registry.run` — bad derivers
+  fail in place and accumulate to `registry.errors`, the rest of the
+  registry continues; errors reset per `run()` call. Orchestrator
+  `backfill_accounts.run_backfill` rewritten end-to-end: live SOQL via
+  injectable SfRunner (chunked at 2000), all 5 deferred CLI flags wired
+  (`--persona`, `--record-type`, `--limit`, `--require-external-id`,
+  `--strict`), Bulk API 2.0 upsert via the wrapper (rc=2 when
+  failed_pct > 1.0% or `--strict` + any failure), DC refresh trigger
+  with PolicySkipped non-fatal (rc=0), full manifest schema with
+  `per_field_fill_counts`, `per_persona_counts`, `errors`. New tests:
+  test_backfill_query (11), test_backfill_upsert (8),
+  test_backfill_dc_refresh (6), test_backfill_production_guard (6, with
+  3 SKIPPED while KNOWN_PRODUCTION_ORG_IDS is empty),
+  test_backfill_exception_isolation (5), test_backfill_accounts (12),
+  test_backfill_e2e_live (2 SKIPPED unless `RUN_LIVE_TESTS=1`).
+  **Suite: 763 PASS + 5 SKIPPED**, all green (was 718 after 4c). Spec:
+  `docs/superpowers/specs/2026-05-26-phase-4-account-backfill-design.md`.
 
 ## When extending personas
 

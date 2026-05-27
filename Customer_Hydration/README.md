@@ -1,7 +1,7 @@
 # Customer_Hydration
 
-![Phase](https://img.shields.io/badge/phase-3c%20complete-brightgreen)
-![Tests](https://img.shields.io/badge/tests-527%20passing-brightgreen)
+![Phase](https://img.shields.io/badge/phase-4d%20complete-brightgreen)
+![Tests](https://img.shields.io/badge/tests-763%20passing-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Salesforce CLI](https://img.shields.io/badge/sf%20CLI-v2-00a1e0)
 ![Data Cloud](https://img.shields.io/badge/Data%20Cloud-v62-1798c1)
@@ -13,11 +13,14 @@ Bank customer data — Retail, Wealth, Small Business, and Commercial — across
 role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 (legacy `FinServ__*` + native FSC standard objects).
 
-> **Status (2026-05-27):** Phases 1, 2, and 3a–3c complete. Phase 1 hydration,
-> Phase 2 segment provisioning + DC stream refresh, Phase 3a loan subtype
-> generators, Phase 3b append load (36,044 customers), and Phase 3c augment
-> + dual-lineage LifeEvent mirror are all on `main`. Phase 3d (cross-DMO
-> segment YAML to tighten the placeholder segments) is the open work item.
+> **Status (2026-05-27):** Phases 1, 2, and 3a–3c complete on `main`. Phase 4
+> (Account field backfill) Plans 4a–4d complete and pushed for review on
+> chained `feat/customer-hydration-phase-4-plan-4*` branches — 7 derivers
+> across the 24 coherence rules, coverage-rules engine, live SOQL fetch +
+> Bulk API 2.0 upsert + DC stream refresh trigger + production guard. Suite
+> at **763 tests passing + 5 skipped** (live-org smoke gated by
+> `RUN_LIVE_TESTS=1`). Phase 3d (cross-DMO segment YAML) remains the open
+> work item.
 
 ## Quick start
 
