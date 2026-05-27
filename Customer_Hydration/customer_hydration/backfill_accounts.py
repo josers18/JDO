@@ -23,9 +23,26 @@ from customer_hydration.derivers._registry import Registry
 
 
 def _build_registry() -> Registry:
-    """Build the deriver registry. In Plan 4a this returns an empty registry;
-    Plans 4b/4c register the 7 derivers."""
-    return Registry()
+    """Build the deriver registry with all six Plan 4b derivers.
+
+    Plan 4c will extend this with credit_bureau and the B2B branches of
+    profile / addresses / contact.
+    """
+    from customer_hydration.derivers.relationship import RelationshipDeriver
+    from customer_hydration.derivers.credit_personal import CreditPersonalDeriver
+    from customer_hydration.derivers.profile import ProfileDeriver
+    from customer_hydration.derivers.demographics import DemographicsDeriver
+    from customer_hydration.derivers.addresses import AddressesDeriver
+    from customer_hydration.derivers.contact import ContactDeriver
+
+    registry = Registry()
+    registry.register(RelationshipDeriver())
+    registry.register(CreditPersonalDeriver())
+    registry.register(ProfileDeriver())
+    registry.register(DemographicsDeriver())
+    registry.register(AddressesDeriver())
+    registry.register(ContactDeriver())
+    return registry
 
 
 def run_backfill(
