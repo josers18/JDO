@@ -30,3 +30,50 @@ def weighted_pick(rng: random.Random, values: Sequence[str], weights: Sequence[f
             f"weighted_pick: values has {len(values)} items but weights has {len(weights)}"
         )
     return rng.choices(list(values), weights=list(weights), k=1)[0]
+
+
+def income_band(annual_income: float | None) -> str:
+    """Return income band name from AnnualIncome.
+
+    Bands per spec §4.1:
+      entry    < $50k
+      middle   < $150k
+      affluent < $400k
+      hnw      < $1M
+      uhnw     ≥ $1M
+    Missing income falls back to 'entry' (most conservative).
+    """
+    if annual_income is None:
+        return "entry"
+    if annual_income < 50_000:
+        return "entry"
+    if annual_income < 150_000:
+        return "middle"
+    if annual_income < 400_000:
+        return "affluent"
+    if annual_income < 1_000_000:
+        return "hnw"
+    return "uhnw"
+
+
+def business_size(annual_revenue: float | None) -> str:
+    """Return business size band from AnnualRevenue.
+
+    Bands per spec §4.1:
+      micro      < $1M
+      small      < $10M
+      mid        < $100M
+      large      < $1B
+      enterprise ≥ $1B
+    """
+    if annual_revenue is None:
+        return "micro"
+    if annual_revenue < 1_000_000:
+        return "micro"
+    if annual_revenue < 10_000_000:
+        return "small"
+    if annual_revenue < 100_000_000:
+        return "mid"
+    if annual_revenue < 1_000_000_000:
+        return "large"
+    return "enterprise"

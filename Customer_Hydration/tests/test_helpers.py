@@ -1,6 +1,6 @@
 """Tests for customer_hydration.derivers._helpers."""
 import pytest
-from customer_hydration.derivers._helpers import seeded_rng, weighted_pick
+from customer_hydration.derivers._helpers import seeded_rng, weighted_pick, income_band, business_size
 
 
 def test_seeded_rng_returns_random_instance():
@@ -62,3 +62,42 @@ def test_weighted_pick_rejects_empty():
     rng = seeded_rng("test_pick_5")
     with pytest.raises(ValueError):
         weighted_pick(rng, [], [])
+
+
+def test_income_band_thresholds():
+    """Spec §4.1 step 4: entry < $50k, middle < $150k, affluent < $400k, hnw < $1M, uhnw ≥ $1M."""
+    assert income_band(25_000) == "entry"
+    assert income_band(49_999) == "entry"
+    assert income_band(50_000) == "middle"
+    assert income_band(80_000) == "middle"
+    assert income_band(149_999) == "middle"
+    assert income_band(150_000) == "affluent"
+    assert income_band(250_000) == "affluent"
+    assert income_band(399_999) == "affluent"
+    assert income_band(400_000) == "hnw"
+    assert income_band(750_000) == "hnw"
+    assert income_band(999_999) == "hnw"
+    assert income_band(1_000_000) == "uhnw"
+    assert income_band(50_000_000) == "uhnw"
+
+
+def test_income_band_handles_none():
+    assert income_band(None) == "entry"
+
+
+def test_business_size_thresholds():
+    """Spec §4.1 step 4: micro < $1M, small < $10M, mid < $100M, large < $1B, enterprise ≥ $1B."""
+    assert business_size(50_000) == "micro"
+    assert business_size(999_999) == "micro"
+    assert business_size(1_000_000) == "small"
+    assert business_size(9_999_999) == "small"
+    assert business_size(10_000_000) == "mid"
+    assert business_size(99_999_999) == "mid"
+    assert business_size(100_000_000) == "large"
+    assert business_size(999_999_999) == "large"
+    assert business_size(1_000_000_000) == "enterprise"
+    assert business_size(50_000_000_000) == "enterprise"
+
+
+def test_business_size_handles_none():
+    assert business_size(None) == "micro"
