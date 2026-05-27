@@ -13,7 +13,7 @@ from random import Random
 from typing import Any
 
 from customer_hydration.derivers._archetype import PersonaArchetype
-from customer_hydration.derivers._helpers import weighted_pick
+from customer_hydration.derivers._helpers import load_picklist_yaml, weighted_pick
 
 
 # Rule 24 — PersonTitle distributions by (age_bucket, gender)
@@ -52,6 +52,30 @@ _DESCRIPTION_TEMPLATES = [
 ]
 
 
+# Rule 20 — NAICS → SIC mapping (subset; matches archetype's INDUSTRY_TO_NAICS)
+_NAICS_TO_SIC: dict[str, tuple[str, str]] = {
+    "522110": ("6020", "Commercial Banks"),
+    "523000": ("6199", "Finance Services"),
+    "524113": ("6311", "Life Insurance"),
+    "621111": ("8011", "Offices of Doctors of Medicine"),
+    "336111": ("3711", "Motor Vehicles & Passenger Car Bodies"),
+    "452210": ("5331", "Variety Stores"),
+    "541512": ("7372", "Prepackaged Software"),
+    "531210": ("6531", "Real Estate Agents & Managers"),
+    "611110": ("8211", "Elementary & Secondary Schools"),
+    "721110": ("7011", "Hotels & Motels"),
+    "211120": ("1311", "Crude Petroleum & Natural Gas"),
+    "111110": ("0111", "Wheat"),
+}
+
+
+# Rule 21 — Industry top-off skipped when AccountSource indicates real data
+_REAL_ACCOUNT_SOURCES = {"Web", "Phone Inquiry", "Partner Referral"}
+
+
+_TICKER_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
 def _account_number(record: dict, account_id: str) -> str:
     """Format AccountNumber from External_ID__c digits, or a hash-based fallback."""
     ext = record.get("External_ID__c") or ""
@@ -77,10 +101,21 @@ class ContactDeriver:
         "Salutation",
         "AccountNumber",
         "Description",
+        # Plan 4c B2B fields
+        "NAICS_Code__c",
+        "Sic",
+        "SicDesc",
+        "Site",
+        "TickerSymbol",
+        "Jigsaw",
+        "JigsawCompanyId",
+        "Industry",
+        "Type",
+        "Rating",
     ]
 
     def applies_to(self, archetype: PersonaArchetype) -> bool:
-        return archetype.is_person
+        return True
 
     def derive(
         self,
@@ -90,43 +125,95 @@ class ContactDeriver:
     ) -> dict[str, Any]:
         out: dict[str, Any] = {}
 
-        # MiddleName — single letter from a deterministic pool
-        digest = hashlib.sha256(("mid:" + archetype.account_id).encode()).digest()
-        out["MiddleName"] = string.ascii_uppercase[digest[0] % 26]
-
-        # Rule 24 — PersonTitle by (age, gender)
-        title_values, title_weights = _person_title_weights(
-            archetype.age, archetype.gender
-        )
-        title = weighted_pick(rng, title_values, title_weights)
-        out["PersonTitle"] = title
-        # Salutation = same as title (org convention)
-        out["Salutation"] = title
-
-        # Assistant name + phone (only for affluent+)
-        if archetype.income_band in ("hnw", "uhnw"):
-            out["PersonAssistantName"] = "Executive Assistant"
-            ph_digest = hashlib.sha256(
-                ("assist:" + archetype.account_id).encode()
-            ).digest()
-            n = int.from_bytes(ph_digest[:6], "big")
-            out["PersonAssistantPhone"] = (
-                f"({200 + (n % 800):03d}) "
-                f"{(n >> 16) % 1000:03d}-{(n >> 8) % 10_000:04d}"
-            )
-
-        # Department + LeadSource
-        out["PersonDepartment"] = weighted_pick(
-            rng, _DEPARTMENT_VALUES, _DEPARTMENT_WEIGHTS
-        )
-        out["PersonLeadSource"] = weighted_pick(
-            rng, _LEADSOURCE_VALUES, _LEADSOURCE_WEIGHTS
-        )
-
-        # AccountNumber — formatted from external id (or hash fallback)
+        # AccountNumber — common to both branches
         out["AccountNumber"] = _account_number(record, archetype.account_id)
 
-        # Description — top-off (only if null)
+        if archetype.is_person:
+            # Person-side (rule 24)
+            digest = hashlib.sha256(("mid:" + archetype.account_id).encode()).digest()
+            out["MiddleName"] = string.ascii_uppercase[digest[0] % 26]
+
+            title_values, title_weights = _person_title_weights(
+                archetype.age, archetype.gender
+            )
+            title = weighted_pick(rng, title_values, title_weights)
+            out["PersonTitle"] = title
+            out["Salutation"] = title
+
+            if archetype.income_band in ("hnw", "uhnw"):
+                out["PersonAssistantName"] = "Executive Assistant"
+                ph_digest = hashlib.sha256(
+                    ("assist:" + archetype.account_id).encode()
+                ).digest()
+                n = int.from_bytes(ph_digest[:6], "big")
+                out["PersonAssistantPhone"] = (
+                    f"({200 + (n % 800):03d}) "
+                    f"{(n >> 16) % 1000:03d}-{(n >> 8) % 10_000:04d}"
+                )
+
+            out["PersonDepartment"] = weighted_pick(
+                rng, _DEPARTMENT_VALUES, _DEPARTMENT_WEIGHTS
+            )
+            out["PersonLeadSource"] = weighted_pick(
+                rng, _LEADSOURCE_VALUES, _LEADSOURCE_WEIGHTS
+            )
+
+            if record.get("Description") is None:
+                template_idx = digest[1] % len(_DESCRIPTION_TEMPLATES)
+                out["Description"] = _DESCRIPTION_TEMPLATES[template_idx]
+
+            return out
+
+        # B2B branch (rules 19, 20, 21)
+        digest = hashlib.sha256(archetype.account_id.encode()).digest()
+
+        # Rule 20 — NAICS + Sic + SicDesc paired
+        naics = archetype.industry_code or "541512"
+        out["NAICS_Code__c"] = naics
+        sic, sic_desc = _NAICS_TO_SIC.get(naics, ("7389", "Services-Business Services"))
+        out["Sic"] = sic
+        out["SicDesc"] = sic_desc
+
+        # Site — synthetic URL keyed off account_id
+        site_slug = digest[:3].hex()
+        out["Site"] = f"https://cumulus-{site_slug}.example.com"
+
+        # Rule 19 — TickerSymbol only for large/enterprise
+        if archetype.business_size in ("large", "enterprise"):
+            ticker_chars = [
+                _TICKER_LETTERS[digest[i] % 26] for i in range(4)
+            ]
+            out["TickerSymbol"] = "".join(ticker_chars)
+
+        # Jigsaw + JigsawCompanyId — synthetic 8-digit identifiers
+        jig = int.from_bytes(digest[3:7], "big") % 100_000_000
+        jig_company = int.from_bytes(digest[7:11], "big") % 100_000_000
+        out["Jigsaw"] = f"{jig:08d}"
+        out["JigsawCompanyId"] = f"{jig_company:08d}"
+
+        # Rule 21 — Industry top-off (skip if real source or already set)
+        account_source = record.get("AccountSource")
+        existing_industry = record.get("Industry")
+        if existing_industry is None and account_source not in _REAL_ACCOUNT_SOURCES:
+            industry_picklist = load_picklist_yaml("Industry")
+            if industry_picklist:
+                out["Industry"] = weighted_pick(
+                    rng, industry_picklist["values"], industry_picklist["weights"]
+                )
+
+        # Type + Rating — picklists
+        type_picklist = load_picklist_yaml("Type")
+        if type_picklist:
+            out["Type"] = weighted_pick(
+                rng, type_picklist["values"], type_picklist["weights"]
+            )
+        rating_picklist = load_picklist_yaml("Rating")
+        if rating_picklist:
+            out["Rating"] = weighted_pick(
+                rng, rating_picklist["values"], rating_picklist["weights"]
+            )
+
+        # Description top-off — same templates as person side
         if record.get("Description") is None:
             template_idx = digest[1] % len(_DESCRIPTION_TEMPLATES)
             out["Description"] = _DESCRIPTION_TEMPLATES[template_idx]

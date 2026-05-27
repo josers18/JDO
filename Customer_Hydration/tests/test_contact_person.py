@@ -31,11 +31,11 @@ def test_deriver_metadata():
     assert "AccountNumber" in d.fields
 
 
-def test_applies_to_person_only_in_4b():
+def test_applies_to_returns_true_for_both_branches():
+    """Plan 4c: contact applies to both person and business."""
     d = ContactDeriver()
     assert d.applies_to(_arch(is_person=True)) is True
-    # Plan 4b: returns False for business (Plan 4c will extend).
-    assert d.applies_to(_arch(is_person=False)) is False
+    assert d.applies_to(_arch(is_person=False)) is True
 
 
 def test_middle_name_is_single_letter():
