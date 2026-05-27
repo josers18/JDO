@@ -372,6 +372,48 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   failures; **787 PASS + 5 SKIPPED**. Audit gap closed (see
   `output/account-audit-2026-05-26/POST_BACKFILL_VERIFICATION.md`).
   Retro: `docs/superpowers/specs/2026-05-27-phase-4-v1.1-live-org-retro.md`.
+- **Phase 3d** (Cross-DMO segment YAML, 2026-05-27) — Replaced
+  persona-only filters in 5 placeholder + 10 campaign-aligned segments
+  with real cross-DMO clauses against `ssot__FinancialAccount__dlm`,
+  `ssot__CampaignMember__dlm`, and `ssot__PersonLifeEvent__dlm`. New
+  `related_to` rule type in `customer_hydration/phase5/segments.py`
+  emits a v62 `NumberAggregation count(related rows where filter) >= 1`
+  envelope (the API's idiom for SQL `EXISTS`); v1.0 emitted
+  `NestedAttribute`, which v62 rejected with `cannot determine model
+  class of name`, so v1.2 retargeted to the live UI-built shape captured
+  from `Recent_Transactions`. New `via_root:` knob (v1.1) supports
+  IndividualId-mediated joins where `Account.ssot__IndividualId__c =
+  CampaignMember.ssot__IndividualId__c`. Default `via_root` = `ssot__Id__c`
+  (the SSOT Account DMO has no `Id` field). New
+  `relative_date_after_days` / `..._before_days` rule params are
+  probe-gated by `customer_hydration/phase5/segments_probe.py` —
+  POSTs three throwaway segments (relative-after, relative-before,
+  frozen anchor), compares row counts, persists verdict to
+  `output/phase3d/probe_latest.json`. Translator reads the artifact via
+  `PHASE3D_PROBE_ARTIFACT` env var; defaults to frozen ISO anchor when
+  unknown/broken. New `delete_segment` helper in `phase5/data_cloud.py`
+  (404 → idempotent success) and `execute_recreate_segments` in
+  `phase5/segments.py` (DELETE-then-POST migration, since PATCH on
+  Dynamic segments returns `ENTITY_SAVE_ERROR`). New `_annotate_inner_filter`
+  helper (v1.2) layers per-comparison `subjectFieldDataType` /
+  `subjectFieldBusinessType` / `subjectFieldSourceType` /
+  `selfReference` / `path:null` / `joinPath:null` annotations onto
+  comparisons inside `NumberAggregation.filter`, recursing through
+  `LogicalComparison`. Fixed `list_segments` pagination bug (was
+  capping at 20 silently; the DC v62 endpoint caps page size below the
+  requested limit, so only `len(raw)==0` reliably signals end-of-pages).
+  New CLI flags: `create-segments --recreate <pattern>` (glob over
+  config keys) and `create-segments --probe-relative-dates` (one-shot
+  artifact write). Live recreate against `jdo-uqj0jr`: 15 segments
+  ACTIVE in `output/phase3d/post_recreate_state.json`. Pragmatic
+  deviations from v1.1 spec: FinancialAccount has no Mortgage / HELOC /
+  SBA sub-type field (segments coarsen to `Loans` bucket + name-string
+  fallback); CampaignMember `BusinessAccountId__c` proved non-queryable
+  in this org (commercial campaigns + multi-persona newsletter collapse
+  to IndividualId-only join). Specs:
+  `docs/superpowers/specs/2026-05-27-phase-3d-cross-dmo-segments-design.md`,
+  `docs/superpowers/specs/2026-05-27-phase-3d-v1.1-real-dmo-shapes.md`,
+  `docs/superpowers/specs/2026-05-27-phase-3d-v1.2-numberaggregation-shape.md`.
 
 ## When extending personas
 

@@ -26,6 +26,7 @@ from customer_hydration.phase5.data_cloud import (
     DataCloudStreamRefreshResult,
     SegmentInfo,
     create_segment,
+    delete_segment,
     execute_phase5_5,
     get_org_session,
     list_segments,
@@ -263,6 +264,71 @@ def _or(*filters: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _read_probe_verdict() -> str:
+    """Read probe verdict from PHASE3D_PROBE_ARTIFACT env var, defaulting
+    to RELATIVE_DATES_UNKNOWN. The env var indirection keeps the
+    translator pure (no I/O on every call) while letting orchestration
+    point at a fresh artifact."""
+    import os
+    from pathlib import Path
+    from customer_hydration.phase5.segments_probe import (
+        read_probe_artifact, RELATIVE_DATES_UNKNOWN,
+    )
+    artifact = os.environ.get("PHASE3D_PROBE_ARTIFACT")
+    if not artifact:
+        return RELATIVE_DATES_UNKNOWN
+    return read_probe_artifact(Path(artifact)).verdict
+
+
+# Per-comparison-type field-data annotations the v62 segment POST endpoint
+# requires inside NumberAggregation.filter. See spec
+# docs/superpowers/specs/2026-05-27-phase-3d-v1.2-numberaggregation-shape.md §1.2.
+_DSL_TYPE_ANNOTATIONS = {
+    "TextComparison":                 ("TEXT", "TEXT"),
+    "NumberComparison":               ("NUMBER", "NUMBER"),
+    "DateComparison":                 ("DATE", "DATE"),
+    "ExactlyRelativeDateComparison":  ("DATE", "DATE"),
+}
+
+
+def _annotate_inner_filter(node: dict[str, Any], container_dmo: str) -> dict[str, Any]:
+    """Add live-API metadata that NumberAggregation's nested filters require.
+
+    The DC v62 segment POST endpoint expects every comparison nested inside
+    a NumberAggregation to carry subjectFieldDataType / subjectFieldBusinessType
+    / subjectFieldSourceType / selfReference / path:null / joinPath:null.
+    The translator builds bare comparisons (TextComparison, NumberComparison,
+    etc.); this helper layers the annotations on without changing semantics.
+    Recurses into LogicalComparison.filters so nested all_of/any_of inside
+    related_to.where: gets annotated through.
+    """
+    if not isinstance(node, dict):
+        return node
+    out = dict(node)  # shallow-copy so we don't mutate caller state
+    node_type = out.get("type")
+
+    if node_type == "LogicalComparison":
+        out["filters"] = [_annotate_inner_filter(f, container_dmo) for f in out.get("filters", [])]
+        return out
+
+    annotations = _DSL_TYPE_ANNOTATIONS.get(node_type)
+    if annotations is None:
+        return out  # unknown type — leave untouched
+
+    data_type, business_type = annotations
+    out.setdefault("subjectFieldDataType", data_type)
+    out.setdefault("subjectFieldBusinessType", business_type)
+    subject_dmo = out.get("subject", {}).get("objectApiName")
+    if subject_dmo == container_dmo:
+        out.setdefault("subjectFieldSourceType", "RELATED")
+    else:
+        out.setdefault("subjectFieldSourceType", None)
+    out.setdefault("selfReference", False)
+    out.setdefault("path", None)
+    out.setdefault("joinPath", None)
+    return out
+
+
 def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> dict[str, Any]:
     """Translate one YAML rule into the DC JSON DSL.
 
@@ -300,6 +366,72 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
             # Don't wrap a single sub-rule in a logical-comparison.
             return translated[0]
         return _and(*translated) if rule_type == "all_of" else _or(*translated)
+
+    if rule_type == "related_to":
+        related_dmo = rule.get("dmo")
+        if not related_dmo:
+            raise ValueError(
+                f"Segment {config_key!r}.rule.dmo is required for type related_to"
+            )
+        via = rule.get("via", "AccountId__c")
+        # via_root: which field on target_dmo to join FROM. Default
+        # "ssot__Id__c" is Account DMO's primary-key field — confirmed live
+        # against jdo-uqj0jr (Phase 3d v1.2 — `Id` does not exist on the
+        # SSOT Account DMO). When the related DMO joins via Individual or
+        # Party rather than the Account PK, the YAML overrides via_root
+        # to e.g. ssot__IndividualId__c so both sides of the cross-DMO
+        # NumberAggregation reference the same Individual key.
+        via_root = rule.get("via_root", "ssot__Id__c")
+        where = rule.get("where")
+        if not isinstance(where, dict):
+            raise ValueError(
+                f"Segment {config_key!r}.rule.where must be a mapping for type related_to"
+            )
+        if where.get("type") == "related_to":
+            raise ValueError(
+                f"Segment {config_key!r}: nested related_to inside related_to "
+                f"is not supported (v62 NestedAttribute does not compose)."
+            )
+        # Recurse with target_dmo set to the related DMO so inner field
+        # references resolve there, not on the outer Account DMO.
+        inner = _translate_rule(where, related_dmo, config_key)
+        # v62 cross-DMO envelope is NumberAggregation "count >= 1" — see
+        # docs/superpowers/specs/2026-05-27-phase-3d-v1.2-numberaggregation-shape.md.
+        # The functional intent ("Account has at least one related row matching X")
+        # is expressed as count(related rows where filter matches) >= 1.
+        hop = [
+            {"objectApiName": target_dmo, "fieldApiName": via_root},
+            {"objectApiName": related_dmo, "fieldApiName": via},
+        ]
+        return {
+            "type": "NumberAggregation",
+            "aggregateFunction": "count",
+            "containerObjectApiName": related_dmo,
+            "path": [hop],
+            "joinPath": [hop],
+            "filter": _annotate_inner_filter(inner, related_dmo),
+            "comparison": {
+                "type": "NumberComparison",
+                "path": None,
+                "joinPath": None,
+                "subject": {
+                    "objectApiName": related_dmo,
+                    "fieldApiName": "ssot__Id__c",
+                },
+                "selfReference": False,
+                "operator": "greater than or equal",
+                "subjectFieldDataType": "TEXT",
+                "subjectFieldBusinessType": "TEXT",
+                "subjectFieldSourceType": None,
+                "value": 1,
+            },
+            "hierarchySelected": False,
+            "hierarchicalPathList": None,
+            "innerAggregationEnabled": False,
+            "innerAggregationSubject": None,
+            "outerAggregationFunction": None,
+            "outerComparison": None,
+        }
 
     # Atomic rules from here down all need a field.
     field = rule.get("field")
@@ -373,11 +505,27 @@ def _translate_rule(rule: dict[str, Any], target_dmo: str, config_key: str) -> d
             _relative_date_comparison(target_dmo, field, "after", -max_age),
         )
 
+    if rule_type in ("relative_date_after_days", "relative_date_before_days"):
+        days = int(rule["days"])
+        if rule_type == "relative_date_after_days":
+            relative_op, frozen_op, frozen_delta = "after", "after", -days
+        else:
+            relative_op, frozen_op, frozen_delta = "before", "before", -days
+
+        verdict = _read_probe_verdict()
+        if verdict == "RELATIVE_DATES_OK":
+            return _relative_date_comparison(target_dmo, field, relative_op, -days, units="days")
+        # Fall through to frozen anchor for BROKEN / UNKNOWN
+        from datetime import datetime, timedelta, timezone
+        anchor_iso = (datetime.now(timezone.utc) + timedelta(days=frozen_delta)).date().isoformat()
+        return _datetime_comparison(target_dmo, field, frozen_op, [anchor_iso])
+
     raise ValueError(
         f"Segment {config_key!r}: unsupported rule type {rule_type!r}. "
         f"Supported: text_equals, text_contains, text_in, text_has_value, "
         f"number_gt/lt/gte/lte, number_in_range, date_before, date_after, "
-        f"date_in_range, age_gte, age_lte, age_in_range, all_of, any_of."
+        f"date_in_range, age_gte, age_lte, age_in_range, all_of, any_of, "
+        f"related_to, relative_date_after_days, relative_date_before_days."
     )
 
 
@@ -516,3 +664,105 @@ def execute_refresh_streams(*, target_org: str) -> DataCloudStreamRefreshResult:
     standalone function so the new `refresh-streams` CLI subcommand can call
     it directly without going through the hydrate runner."""
     return execute_phase5_5(target_org=target_org)
+
+
+@dataclass
+class SegmentRecreateResult:
+    config_key: str
+    api_name: str
+    deleted: bool = False
+    created: bool = False
+    error: Optional[str] = None
+
+
+@dataclass
+class RecreateSegmentsResult:
+    segments_processed: int = 0
+    segments_recreated: int = 0
+    segments_failed: int = 0
+    results: list[SegmentRecreateResult] = field(default_factory=list)
+
+
+def _matches_pattern(config_key: str, pattern: str) -> bool:
+    """Glob-style match: '*' matches all, 'cmp_*' matches prefix, exact otherwise."""
+    import fnmatch
+    return fnmatch.fnmatchcase(config_key, pattern)
+
+
+def execute_recreate_segments(
+    *,
+    target_org: str,
+    yaml_path: Path,
+    pattern: str,
+    dry_run: bool = False,
+) -> RecreateSegmentsResult:
+    """DELETE-then-POST migration for segments matching `pattern`.
+
+    Used to push new YAML rules onto an existing live segment, since
+    PATCH on Dynamic segments returns ENTITY_SAVE_ERROR.
+
+    Per-segment failures are recorded; this function never raises.
+    """
+    definitions = [d for d in load_segment_definitions(yaml_path)
+                   if _matches_pattern(d.config_key, pattern)]
+    result = RecreateSegmentsResult(segments_processed=len(definitions))
+
+    if dry_run:
+        for d in definitions:
+            result.results.append(SegmentRecreateResult(
+                config_key=d.config_key, api_name=d.api_name,
+            ))
+            print(f"  DRY-RUN would DELETE+POST {d.api_name} ({d.display_name})")
+        return result
+
+    if not definitions:
+        return result
+
+    try:
+        instance_url, access_token = get_org_session(target_org)
+    except Exception as exc:
+        for d in definitions:
+            result.results.append(SegmentRecreateResult(
+                config_key=d.config_key, api_name=d.api_name,
+                error=f"get_org_session failed: {exc}",
+            ))
+            result.segments_failed += 1
+        return result
+
+    existing = {s.api_name for s in list_segments(instance_url, access_token)}
+
+    for d in definitions:
+        r = SegmentRecreateResult(config_key=d.config_key, api_name=d.api_name)
+
+        # DELETE phase — only if segment is known to exist.
+        if d.api_name in existing:
+            ok, info = delete_segment(
+                instance_url, access_token, api_name=d.api_name,
+            )
+            if not ok:
+                r.error = info
+                result.segments_failed += 1
+                result.results.append(r)
+                continue
+            r.deleted = True
+        # else: not present in `existing`, skip DELETE entirely.
+
+        # POST phase
+        ok, info = create_segment(
+            instance_url, access_token,
+            developer_name=d.developer_name,
+            display_name=d.display_name,
+            description=d.description,
+            segment_on_api_name=d.target_dmo,
+            include_criteria=d.include_criteria,
+            publish_schedule="NoRefresh",
+        )
+        if ok:
+            r.created = True
+            result.segments_recreated += 1
+        else:
+            r.error = info
+            result.segments_failed += 1
+        result.results.append(r)
+
+    return result

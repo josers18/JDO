@@ -178,183 +178,340 @@ segments:
 
   retail_family_with_mortgage:
     name: "Retail Family-Building with Mortgage"
-    description: "Retail customers (placeholder until Mortgage DMO hydrated)"
+    description: "Retail customers with at least one Loan-type FinancialAccount (Phase 3d v1.2: org has no Mortgage sub-type, segments on Loans bucket)"
     persona: retail
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Retail"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Retail"
+        - type: related_to
+          dmo: ssot__FinancialAccount__dlm
+          via: CustomerID__c
+          where:
+            type: text_equals
+            field: ssot__FinancialAccountType__c
+            value: "Loans"
 
   retail_heloc_drawn:
     name: "Retail HELOC Drawn 50%+"
-    description: "Retail customers (placeholder until HELOC FinancialAccount DMO hydrated)"
+    description: "Retail customers with a Loan FinancialAccount whose name contains HELOC (Phase 3d v1.2: live data has no Drawn_Ratio field)"
     persona: retail
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-001
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Retail"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Retail"
+        - type: related_to
+          dmo: ssot__FinancialAccount__dlm
+          via: CustomerID__c
+          where:
+            type: all_of
+            rules:
+              - type: text_equals
+                field: ssot__FinancialAccountType__c
+                value: "Loans"
+              - type: text_contains
+                field: ssot__Name__c
+                value: "HELOC"
 
   smb_with_sba:
     name: "SMB Owners with SBA Loan"
-    description: "SMB clients (placeholder until SBA FinancialAccount DMO hydrated)"
+    description: "SMB clients with a Loan FinancialAccount whose name contains SBA"
     persona: smb
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Small Business"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Small Business"
+        - type: related_to
+          dmo: ssot__FinancialAccount__dlm
+          via: CustomerID__c
+          where:
+            type: all_of
+            rules:
+              - type: text_equals
+                field: ssot__FinancialAccountType__c
+                value: "Loans"
+              - type: text_contains
+                field: ssot__Name__c
+                value: "SBA"
 
   commercial_with_treasury:
     name: "Commercial with Treasury Services"
-    description: "Commercial clients (placeholder until Treasury FinancialAccount DMO hydrated)"
+    description: "Commercial banking clients with at least one Treasury Management FinancialAccount"
     persona: commercial
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Commercial Banking"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Commercial Banking"
+        - type: related_to
+          dmo: ssot__FinancialAccount__dlm
+          via: CustomerID__c
+          where:
+            type: text_equals
+            field: ssot__FinancialAccountType__c
+            value: "Treasury Management"
 
   wealth_recent_life_event:
     name: "Wealth with Recent Life Event (90d)"
-    description: "Wealth clients (placeholder until LifeEvent DMO hydrated)"
+    description: "Wealth clients with a PersonLifeEvent in the last 90 days (frozen 90d anchor; refresh weekly via probe)"
     persona: wealth
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Wealth Management"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Wealth Management"
+        - type: related_to
+          dmo: ssot__PersonLifeEvent__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: relative_date_after_days
+            field: ssot__PersonLifeEventDateTime__c
+            days: 90
 
   # ----- 10 campaign-aligned segments -----
   #
-  # CampaignMember DMO is not yet hydrated, so each segment is collapsed
-  # to a persona text_equals filter (or text_has_value for the
-  # multi-persona newsletter). The linked_campaign field stays in YAML
-  # for downstream activations / dashboards but is not encoded into the
-  # DC includeCriteria yet.
+  # Phase 3d v1.2: CampaignMember DMO is now hydrated. Each segment AND-joins
+  # the persona filter with a NumberAggregation count(>=1) on
+  # ssot__CampaignMember__dlm filtering by ssot__CampaignId__c. Person-rooted
+  # personas (retail / wealth / smb in this org) join via
+  # Account.IndividualId = CampaignMember.IndividualId. Business-rooted
+  # (commercial) join via Account.Id = CampaignMember.BusinessAccountId.
+  # The HYDRATE-CMP-NNN External_ID is resolved to the live SF Campaign
+  # 18-char Id at YAML-author time (see v1.1 §2.3 + v1.2 spec). The
+  # linked_campaign field stays as informational metadata for downstream
+  # activations.
 
   cmp_heloc_refi_outreach:
     name: "HELOC Refi Outreach Q2 audience"
-    description: "Retail customers wired to Campaign HYDRATE-CMP-001"
+    description: "Retail customers who are members of Campaign HYDRATE-CMP-001"
     persona: retail
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-001
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Retail"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Retail"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDaAAJ"
 
   cmp_auto_loan_rate_drop:
     name: "Auto Loan Rate Drop Promo audience"
-    description: "Retail customers wired to Campaign HYDRATE-CMP-002"
+    description: "Retail customers who are members of Campaign HYDRATE-CMP-002"
     persona: retail
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-002
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Retail"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Retail"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDbAAJ"
 
   cmp_premier_checking_onboarding:
     name: "Premier Checking Onboarding cohort"
-    description: "Retail customers wired to Campaign HYDRATE-CMP-003"
+    description: "Retail customers who are members of Campaign HYDRATE-CMP-003"
     persona: retail
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-003
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Retail"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Retail"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDcAAJ"
 
   cmp_wealth_tax_strategy_webinar:
     name: "Wealth Tax Strategy Webinar 2026 audience"
-    description: "Wealth clients wired to Campaign HYDRATE-CMP-004"
+    description: "Wealth clients who are members of Campaign HYDRATE-CMP-004"
     persona: wealth
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-004
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Wealth Management"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Wealth Management"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDdAAJ"
 
   cmp_wealth_estate_planning_roundtable:
     name: "Wealth Estate Planning Roundtable audience"
-    description: "Wealth clients wired to Campaign HYDRATE-CMP-005"
+    description: "Wealth clients who are members of Campaign HYDRATE-CMP-005"
     persona: wealth
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-005
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Wealth Management"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Wealth Management"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDeAAJ"
 
   cmp_sba_awareness:
     name: "SBA Awareness Q1 2026 audience"
-    description: "Small Business clients wired to Campaign HYDRATE-CMP-006"
+    description: "Small Business clients who are members of Campaign HYDRATE-CMP-006 (SMB hydration writes Person Accounts → joins via IndividualId)"
     persona: smb
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-006
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Small Business"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Small Business"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDfAAJ"
 
   cmp_treasury_modernization_brief:
     name: "Treasury Modernization Brief audience"
-    description: "Commercial clients wired to Campaign HYDRATE-CMP-007"
+    description: "Commercial clients who are members of Campaign HYDRATE-CMP-007 (Phase 3d v1.2: this org hydrates commercial accounts as Person Accounts; CampaignMember.ssot__BusinessAccountId__c isn't query-eligible, so we join via IndividualId)"
     persona: commercial
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-007
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Commercial Banking"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Commercial Banking"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDgAAJ"
 
   cmp_commercial_rm_roundtable:
     name: "Commercial RM Roundtable audience"
-    description: "Commercial clients wired to Campaign HYDRATE-CMP-008"
+    description: "Commercial clients who are members of Campaign HYDRATE-CMP-008 (Phase 3d v1.2: same IndividualId-rooted pattern as cmp_treasury_modernization_brief)"
     persona: commercial
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-008
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Commercial Banking"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Commercial Banking"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDhAAJ"
 
   cmp_multi_persona_spring_newsletter:
     name: "Multi-Persona Spring Newsletter audience"
-    description: "All-persona audience wired to Campaign HYDRATE-CMP-009"
+    description: "Any persona who is a member of Campaign HYDRATE-CMP-009 (Phase 3d v1.2: BusinessAccountId path dropped — non-queryable in this org. IndividualId-only join still catches all hydrated persons + commercial-as-person.)"
     persona: mixed
     publish_schedule: weekly
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-009
     rule:
-      type: text_has_value
-      field: External_ID_c__c
+      type: related_to
+      dmo: ssot__CampaignMember__dlm
+      via: ssot__IndividualId__c
+      via_root: ssot__IndividualId__c
+      where:
+        type: text_equals
+        field: ssot__CampaignId__c
+        value: "701am00002A9aDiAAJ"
 
   cmp_mobile_banking_adoption:
     name: "Mobile Banking Adoption audience"
-    description: "Retail customers wired to Campaign HYDRATE-CMP-010"
+    description: "Retail customers who are members of Campaign HYDRATE-CMP-010"
     persona: retail
     publish_schedule: daily
     target_dmo: ssot__Account__dlm
     linked_campaign: HYDRATE-CMP-010
     rule:
-      type: text_equals
-      field: FinServ_ClientCategory_c__c
-      value: "Retail"
+      type: all_of
+      rules:
+        - type: text_equals
+          field: FinServ_ClientCategory_c__c
+          value: "Retail"
+        - type: related_to
+          dmo: ssot__CampaignMember__dlm
+          via: ssot__IndividualId__c
+          via_root: ssot__IndividualId__c
+          where:
+            type: text_equals
+            field: ssot__CampaignId__c
+            value: "701am00002A9aDjAAJ"

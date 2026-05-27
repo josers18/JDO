@@ -435,33 +435,49 @@ def list_segments(
     """List all DC Segments via GET /services/data/{v}/ssot/segments.
 
     Tolerates response shape variation: tries `segments`, `dataSegments`,
-    `records` keys in order. Returns empty list on any HTTP error
-    (Phase 5.5 fire-and-forget convention)."""
+    `records` keys in order. Paginates via `?limit=200&offset=N` until a
+    short page is returned, so org-wide listings are complete (the default
+    page size is 20, which made early Phase 3d work miss segments past
+    that boundary). Returns empty list on any HTTP error (Phase 5.5
+    fire-and-forget convention)."""
     import urllib.request
     from urllib.error import HTTPError, URLError
-    url = f"{instance_url}/services/data/{api_version}/ssot/segments"
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json",
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read())
-    except (HTTPError, URLError, json.JSONDecodeError):
-        return []
-    raw = data.get("segments") or data.get("dataSegments") or data.get("records") or []
     out: list[SegmentInfo] = []
-    for entry in raw:
-        api_name = entry.get("apiName") or entry.get("name") or entry.get("DataSegmentApiName") or ""
-        if not api_name:
-            continue
-        out.append(SegmentInfo(
-            api_name=api_name,
-            display_name=entry.get("displayName") or entry.get("masterLabel") or api_name,
-            description=entry.get("description") or "",
-            target_dmo=entry.get("targetDmo") or entry.get("targetEntity") or "",
-            publish_schedule=entry.get("publishSchedule") or "manual",
-        ))
+    page_size = 200            # requested; the API may cap below this
+    offset = 0
+    while True:
+        url = (
+            f"{instance_url}/services/data/{api_version}/ssot/segments"
+            f"?limit={page_size}&offset={offset}"
+        )
+        req = urllib.request.Request(url, headers={
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read())
+        except (HTTPError, URLError, json.JSONDecodeError):
+            return out
+        raw = data.get("segments") or data.get("dataSegments") or data.get("records") or []
+        for entry in raw:
+            api_name = entry.get("apiName") or entry.get("name") or entry.get("DataSegmentApiName") or ""
+            if not api_name:
+                continue
+            out.append(SegmentInfo(
+                api_name=api_name,
+                display_name=entry.get("displayName") or entry.get("masterLabel") or api_name,
+                description=entry.get("description") or "",
+                target_dmo=entry.get("targetDmo") or entry.get("targetEntity") or "",
+                publish_schedule=entry.get("publishSchedule") or "manual",
+            ))
+        # The DC v62 segment list endpoint silently caps page size below
+        # the requested limit (observed: limit=200 returns 20). We can't
+        # rely on `len(raw) < page_size` to detect last page. Instead,
+        # advance offset by the actual returned count and stop when zero.
+        if not raw:
+            break
+        offset += len(raw)
     return out
 
 
@@ -550,6 +566,41 @@ def create_segment(
 # accept update calls. Phase 2 segments are all Dynamic, so an existing
 # segment with the same developerName is now treated as idempotent
 # success by ``execute_create_segments`` (skipped, not patched).
+
+
+def delete_segment(
+    instance_url: str,
+    access_token: str,
+    *,
+    api_name: str,
+    api_version: str = "v60.0",
+) -> tuple[bool, str]:
+    """Delete a segment via DELETE /services/data/{v}/ssot/segments/{api_name}.
+
+    HTTP 404 is treated as idempotent success (segment already gone).
+    All other 4xx/5xx return (False, "<status> <body[:200]>"). Never raises.
+    """
+    import urllib.request
+    from urllib.error import HTTPError, URLError
+    url = f"{instance_url}/services/data/{api_version}/ssot/segments/{api_name}"
+    req = urllib.request.Request(url, method="DELETE", headers={
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            _ = resp.read()
+        return (True, f"deleted {api_name}")
+    except HTTPError as exc:
+        try:
+            err_body = exc.fp.read().decode("utf-8") if exc.fp else ""
+        except Exception:
+            err_body = ""
+        if exc.code == 404:
+            return (True, f"HTTP 404 (already gone) {api_name}")
+        return (False, f"HTTP {exc.code} {exc.reason}: {err_body[:200]}")
+    except (URLError, json.JSONDecodeError) as exc:
+        return (False, str(exc))
 
 
 def publish_segment(

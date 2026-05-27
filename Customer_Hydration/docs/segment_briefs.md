@@ -13,6 +13,8 @@
 > **Phase 2.6 update (2026-05-25):** `WealthPreRetiree__seg` reverted from `age_in_range` (relative-date) back to `date_in_range` (frozen anchors `1961-01-01 / 1971-01-01` for ages 55-65 in 2026). Live probe found `ExactlyRelativeDateComparison` is broken on Profile DMOs in v62.0 — both `before -55y` and `after -55y` returned identical 410-row counts (operator effectively ignored). The frozen-anchor approach requires an annual January YAML bump but produces correct membership today. The `age_*` rule translators are retained in `segments.py` for the day the underlying API works.
 >
 > **Phase 2.7 update (2026-05-25):** `Account_demo__dlm` decommissioned. The DMO + its DLO mapping (`Account_Home_map_Account_demo_1768840659722`) + its two segment-membership tables (`Account_demo_SM_*__dlm`, `Account_demo_SMH_*__dlm`) + the foreign `Demo_WT` UI segment that targeted it were all deleted. Only `ssot__Account__dlm` remains as the Account DMO for hydrated rows. Decommission order matters: foreign segments → membership tables → DMO (not the mapping — DC rejects mapping-delete when it's the DMO's only one). The DMO DELETE returned HTTP 500 client-side but completed server-side; verify with a follow-up GET (returns 404 on success).
+>
+> **Phase 3d update (2026-05-27):** The 5 placeholder lifecycle segments + 10 campaign-aligned segments below were rewritten to use real cross-DMO clauses. New `related_to` rule type in `customer_hydration/phase5/segments.py` emits a v62 `NumberAggregation` envelope (`count(related rows where filter) >= 1`, the API's idiom for SQL `EXISTS`). Cross-DMO joins resolve via `ssot__Account__dlm.ssot__Id__c` for Account-rooted DMOs (`ssot__FinancialAccount__dlm.CustomerID__c`) or via `ssot__IndividualId__c` for person-mediated DMOs (`ssot__CampaignMember__dlm`, `ssot__PersonLifeEvent__dlm`). v1.0 of this phase emitted `NestedAttribute`, which v62 rejected with `cannot determine model class of name`; live inspection of UI-built segments revealed the correct envelope (spec: `docs/superpowers/specs/2026-05-27-phase-3d-v1.2-numberaggregation-shape.md`). 15 segments DELETE-then-POST recreated via new `--recreate <pattern>` CLI flag (PATCH on Dynamic segments returns `ENTITY_SAVE_ERROR`). FinancialAccount has no Mortgage/HELOC/SBA/Treasury sub-type field — segments coarsen to the live `ssot__FinancialAccountType__c` enum (`Loans`, `Treasury Management`) with optional `text_contains ssot__Name__c` for name-based partitioning.
 
 For per-segment **live member counts and last-publish timestamps**, run:
 ```bash
@@ -143,49 +145,51 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 ### `RetailFamilyWithMortgage__seg` — Retail Family-Building with Mortgage
 
 **Marketing brief**
-- **Persona:** Retail — life-stage cut for family-formation households with active mortgages
+- **Persona:** Retail — life-stage cut for family-formation households with at least one Loan-type account
 - **Use case:** Cross-sell opportunities — HELOC pre-approval, life insurance, 529 college savings, refinance offers. High intent for life-event-tied financial products.
-- **Target:** *Intended:* Retail customers with an active mortgage on `FinServ__FinancialAccount__c`. *Currently:* All Retail customers (placeholder).
+- **Target:** Retail customers with at least one `ssot__FinancialAccount__dlm` row whose `ssot__FinancialAccountType__c = "Loans"`. Coarsens "Mortgage" to the live `Loans` bucket — the org has no Mortgage sub-type field.
 - **Suggested channels:** Email, mobile in-app, direct mail with personalized offer.
 - **Refresh cadence:** Daily (intended).
 
 **Technical implementation**
 - `apiName`: `RetailFamilyWithMortgage__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` *(placeholder — see below)*
-- **Placeholder note:** Will tighten once the Mortgage / FinancialAccount DMO is hydrated and joinable. Anticipated criteria: `FinancialAccount.Type = "Mortgage"` AND `Status = "Active"` joined via party model. Until then, all Retail accounts match.
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` AND `EXISTS(ssot__FinancialAccount__dlm.CustomerID__c = ssot__Account__dlm.ssot__Id__c WHERE ssot__FinancialAccountType__c = "Loans")`
+- DSL: `all_of` of `text_equals` + `related_to` (Phase 3d v1.2 — emits `NumberAggregation count(related) >= 1`)
+- **Coarsening note:** A future phase could add `text_contains ssot__Name__c "Mortgage"` if loan names disambiguate; for v1.2 the segment captures all 8,099 live `Loans`-bucket FinancialAccount rows.
 
 ---
 
 ### `RetailHelocDrawn__seg` — Retail HELOC Drawn 50%+
 
 **Marketing brief**
-- **Persona:** Retail — high-intent refi prospects with HELOC utilization above 50%
-- **Use case:** Refinance / consolidation campaigns. High-utilization HELOC customers are prime targets for term-loan conversion or rate-lock products.
-- **Target:** *Intended:* Retail customers whose HELOC balance / limit ratio ≥ 0.5. *Currently:* All Retail customers (placeholder).
+- **Persona:** Retail — refi prospects with a HELOC-named loan
+- **Use case:** Refinance / consolidation campaigns. HELOC customers are prime targets for term-loan conversion or rate-lock products.
+- **Target:** Retail customers with at least one Loan-type FinancialAccount whose `ssot__Name__c` contains "HELOC". The drawn-ratio dimension was dropped — the live DMO has no `Drawn_Ratio` field.
 - **Suggested channels:** Email, RM-led phone outreach, in-app banner offer.
 - **Refresh cadence:** Daily (intended). Linked to Campaign `HYDRATE-CMP-001` (HELOC Refi Outreach Q2).
 
 **Technical implementation**
 - `apiName`: `RetailHelocDrawn__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` *(placeholder)*
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` AND `EXISTS(FinancialAccount.CustomerID = Account.ssot__Id WHERE Type = "Loans" AND Name contains "HELOC")`
 - `linked_campaign`: `HYDRATE-CMP-001`
-- **Placeholder note:** Will tighten once HELOC `FinancialAccount` DMO is hydrated with balance + limit fields. Anticipated criteria: a Calculated Insight `HelocUtilization >= 0.5`.
+- DSL: nested `all_of` inside `related_to.where:` — proves the `_annotate_inner_filter` recursion through `LogicalComparison`.
+- **Note:** If `ssot__Name__c contains "HELOC"` returns 0 rows, fall back to the same shape as `RetailFamilyWithMortgage__seg` (Loans bucket only). Verify post-recreate count vs. baseline ~25K Retail.
 
 ---
 
 ### `SmbWithSba__seg` — SMB Owners with SBA Loan
 
 **Marketing brief**
-- **Persona:** Small Business — narrowed to existing SBA-loan customers
+- **Persona:** Small Business — narrowed to clients with an SBA-named loan
 - **Use case:** Cross-sell merchant services, payroll, business credit cards, treasury sweeps to a captive small-business population.
-- **Target:** *Intended:* SMB clients with a `FinancialAccount` of subtype "SBA Loan". *Currently:* All SMB clients (placeholder).
+- **Target:** SMB clients with at least one Loan-type FinancialAccount whose `ssot__Name__c` contains "SBA".
 - **Suggested channels:** Email, LinkedIn, RM cadence, branch invitations.
 - **Refresh cadence:** Daily (intended).
 
 **Technical implementation**
 - `apiName`: `SmbWithSba__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Small Business"` *(placeholder)*
-- **Placeholder note:** Will tighten once SBA-flagged FinancialAccount DMO is hydrated.
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Small Business"` AND `EXISTS(FinancialAccount.CustomerID = Account.ssot__Id WHERE Type = "Loans" AND Name contains "SBA")`
+- DSL: same nested `all_of` shape as `RetailHelocDrawn__seg`.
 
 ---
 
@@ -194,14 +198,14 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 **Marketing brief**
 - **Persona:** Commercial — already-engaged customers using Treasury Services
 - **Use case:** Upsell to international payments, FX hedging, working capital optimization, or RM-led syndicated lending conversations. Lowest CAC commercial cross-sell.
-- **Target:** *Intended:* Commercial clients with a Treasury Services product flag. *Currently:* All Commercial clients (placeholder).
+- **Target:** Commercial clients with at least one `ssot__FinancialAccount__dlm` row whose `ssot__FinancialAccountType__c = "Treasury Management"` (243 live rows org-wide).
 - **Suggested channels:** Direct RM, executive briefings, conference invites.
 - **Refresh cadence:** Daily (intended).
 
 **Technical implementation**
 - `apiName`: `CommercialWithTreasury__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"` *(placeholder)*
-- **Placeholder note:** Will tighten once Treasury Services product DMO is hydrated.
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"` AND `EXISTS(FinancialAccount.CustomerID = Account.ssot__Id WHERE Type = "Treasury Management")`
+- DSL: `all_of` of `text_equals` + atomic `related_to`. Cleanest of the FinancialAccount segments — `Treasury Management` is a real enum value, no name-string fallback needed.
 
 ---
 
@@ -210,20 +214,38 @@ Filter expressions below are **rendered for humans** — the live-API DSL uses `
 **Marketing brief**
 - **Persona:** Wealth — clients who triggered a major life event in the last 90 days
 - **Use case:** Highest-intent Wealth audience — life events (marriage, birth, inheritance, retirement, divorce) drive the largest near-term planning conversations and AUM movements.
-- **Target:** *Intended:* Wealth clients with a `PersonLifeEvent` record dated within the last 90 days. *Currently:* All Wealth clients (placeholder).
+- **Target:** Wealth clients with at least one `ssot__PersonLifeEvent__dlm` row dated within the last 90 days, joined via `IndividualId`.
 - **Suggested channels:** Personalized RM outreach (highest priority), life-event-themed content, white-glove follow-up.
 - **Refresh cadence:** Daily (intended) — life-event freshness is the whole point of this segment.
 
 **Technical implementation**
 - `apiName`: `WealthRecentLifeEvent__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"` *(placeholder)*
-- **Placeholder note:** Will tighten once `PersonLifeEvent_Home` stream + DMO are hydrated. Anticipated criteria: `LifeEventDate within last 90 days` joined via party model.
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"` AND `EXISTS(PersonLifeEvent.ssot__IndividualId__c = Account.ssot__IndividualId__c WHERE ssot__PersonLifeEventDateTime__c after <90d-ago>)`
+- DSL: `all_of` + `related_to` with `via: ssot__IndividualId__c` AND `via_root: ssot__IndividualId__c` (both sides of the cross-DMO key are Individual, not Account.Id). Inner rule is `relative_date_after_days field=ssot__PersonLifeEventDateTime__c days=90`.
+- **Probe-gated:** v62 `ExactlyRelativeDateComparison` was broken on Profile DMOs in Phase 2.6; the live probe (`output/phase3d/probe_latest.json`) re-tests this each weekly run. Translator emits relative-date when verdict = `RELATIVE_DATES_OK`, frozen `<today − 90d>` ISO anchor otherwise. Frozen-anchor mode requires weekly probe re-runs to stay current.
 
 ---
 
 ## Campaign-Aligned (10)
 
-Each segment below scopes to the persona of its target audience and links to a `HYDRATE-CMP-NNN` campaign in CRM. Once the `CampaignMember` DMO is hydrated and joinable, these will tighten to "members of campaign X" rather than "all customers in persona Y." Until then, the persona filter is the operative scope.
+Each segment links to a `HYDRATE-CMP-NNN` campaign in CRM and AND-joins the persona filter with a real `EXISTS` clause on `ssot__CampaignMember__dlm` (Phase 3d v1.2 — `CampaignMember` is now hydrated and queryable).
+
+**Resolved Campaign 18-char IDs** — the `linked_campaign` external IDs map to live SF Campaign IDs in this org:
+
+| External ID | Live Campaign Id |
+|---|---|
+| `HYDRATE-CMP-001` | `701am00002A9aDaAAJ` |
+| `HYDRATE-CMP-002` | `701am00002A9aDbAAJ` |
+| `HYDRATE-CMP-003` | `701am00002A9aDcAAJ` |
+| `HYDRATE-CMP-004` | `701am00002A9aDdAAJ` |
+| `HYDRATE-CMP-005` | `701am00002A9aDeAAJ` |
+| `HYDRATE-CMP-006` | `701am00002A9aDfAAJ` |
+| `HYDRATE-CMP-007` | `701am00002A9aDgAAJ` |
+| `HYDRATE-CMP-008` | `701am00002A9aDhAAJ` |
+| `HYDRATE-CMP-009` | `701am00002A9aDiAAJ` |
+| `HYDRATE-CMP-010` | `701am00002A9aDjAAJ` |
+
+**Join path:** All 10 segments join `Account.ssot__IndividualId__c = CampaignMember.ssot__IndividualId__c`. v1.1 of this phase considered routing commercial campaigns through `BusinessAccountId__c` instead, but in `jdo-uqj0jr` commercial accounts are hydrated as Person Accounts (so Individual is the only common key) and `BusinessAccountId__c` proved non-queryable for these rows. The v1.2 commit collapses both paths to `IndividualId__c`, captured inline in the YAML descriptions.
 
 ### `CmpHelocRefiOutreach__seg` — HELOC Refi Outreach Q2
 
@@ -236,8 +258,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpHelocRefiOutreach__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
-- `linked_campaign`: `HYDRATE-CMP-001`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` AND `EXISTS(CampaignMember.ssot__IndividualId__c = Account.ssot__IndividualId__c WHERE ssot__CampaignId__c = "701am00002A9aDaAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-001` → `701am00002A9aDaAAJ`
 
 ---
 
@@ -251,8 +273,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpAutoLoanRateDrop__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
-- `linked_campaign`: `HYDRATE-CMP-002`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDbAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-002` → `701am00002A9aDbAAJ`
 
 ---
 
@@ -266,8 +288,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpPremierCheckingOnboarding__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
-- `linked_campaign`: `HYDRATE-CMP-003`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDcAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-003` → `701am00002A9aDcAAJ`
 
 ---
 
@@ -281,8 +303,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpWealthTaxStrategyWebinar__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"`
-- `linked_campaign`: `HYDRATE-CMP-004`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDdAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-004` → `701am00002A9aDdAAJ`
 
 ---
 
@@ -296,8 +318,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpWealthEstatePlanningRoundtable__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"`
-- `linked_campaign`: `HYDRATE-CMP-005`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Wealth Management"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDeAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-005` → `701am00002A9aDeAAJ`
 
 ---
 
@@ -311,8 +333,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpSbaAwareness__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Small Business"`
-- `linked_campaign`: `HYDRATE-CMP-006`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Small Business"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDfAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-006` → `701am00002A9aDfAAJ` — SMB hydration writes Person Accounts in this org, so the IndividualId path catches the SMB owners.
 
 ---
 
@@ -326,8 +348,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpTreasuryModernizationBrief__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"`
-- `linked_campaign`: `HYDRATE-CMP-007`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDgAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-007` → `701am00002A9aDgAAJ` — commercial accounts are hydrated as Person Accounts here, so IndividualId is the operative join path (BusinessAccountId path was tried in v1.1 and proved non-queryable).
 
 ---
 
@@ -341,8 +363,8 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpCommercialRmRoundtable__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"`
-- `linked_campaign`: `HYDRATE-CMP-008`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Commercial Banking"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDhAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-008` → `701am00002A9aDhAAJ` — same IndividualId path as `CmpTreasuryModernizationBrief__seg`.
 
 ---
 
@@ -357,10 +379,10 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpMultiPersonaSpringNewsletter__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `External_ID_c__c has value`
-- DSL: `text_has_value` (presence check, no `values` array)
-- `linked_campaign`: `HYDRATE-CMP-009`
-- **Note:** Effectively matches every hydrated account — the `has value` op + the auto-injected HYDRATE clause are both presence checks on the same field, so this is "all hydrated rows."
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDiAAJ")`
+- DSL: bare top-level `related_to` (no persona `text_equals` wrapper — any persona qualifies). One of two segments in the codebase that doesn't `all_of`-wrap a persona filter.
+- `linked_campaign`: `HYDRATE-CMP-009` → `701am00002A9aDiAAJ`
+- **Note:** Phase 3d v1.1 originally proposed `any_of` of two `related_to` clauses (IndividualId + BusinessAccountId paths). v1.2 collapsed to the IndividualId path only because the BusinessAccountId join proved non-queryable in this org's CampaignMember rows.
 
 ---
 
@@ -374,23 +396,28 @@ Each segment below scopes to the persona of its target audience and links to a `
 
 **Technical implementation**
 - `apiName`: `CmpMobileBankingAdoption__seg`
-- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"`
-- `linked_campaign`: `HYDRATE-CMP-010`
+- Filter: `External_ID_c__c contains "HYDRATE-"` AND `FinServ_ClientCategory_c__c matches "Retail"` AND `EXISTS(CampaignMember via IndividualId WHERE ssot__CampaignId__c = "701am00002A9aDjAAJ")`
+- `linked_campaign`: `HYDRATE-CMP-010` → `701am00002A9aDjAAJ`
 
 ---
 
 ## Roadmap — what tightens as more DMOs hydrate
 
-| When this DMO is hydrated… | These segments tighten from "all persona X" to a real cut |
-|---|---|
-| `FinancialAccount` (Mortgage subtype) | `RetailFamilyWithMortgage` |
-| `FinancialAccount` (HELOC subtype) + utilization CI | `RetailHelocDrawn`, `CmpHelocRefiOutreach` |
-| `FinancialAccount` (SBA subtype) | `SmbWithSba`, `CmpSbaAwareness` |
-| `FinancialAccount` (Treasury subtype) | `CommercialWithTreasury`, `CmpTreasuryModernizationBrief` |
-| `PersonLifeEvent` | `WealthRecentLifeEvent` |
-| `CampaignMember` | All 10 `Cmp*` segments — tighten from persona → campaign membership |
+Phase 3d (2026-05-27) closed all 16 cross-DMO entries below. Remaining roadmap is product-driven, not DMO-driven:
 
-When those land, edit `config/segments.yaml`, re-run `python hydrate.py create-segments --target-org jdo-uqj0jr --allow-production`. Existing segments will be skipped (Dynamic segments can't be patched per DC API). To replace, manually delete in the DC UI first, then re-create.
+| Future hydration… | Could tighten… |
+|---|---|
+| `FinancialAccount` Mortgage / HELOC / SBA sub-type fields | `RetailFamilyWithMortgage`, `RetailHelocDrawn`, `SmbWithSba` (currently coarsen to `Loans` bucket + name-string fallback) |
+| `Drawn_Ratio` / utilization Calculated Insight on FinancialAccount | `RetailHelocDrawn` (currently has no drawn-ratio dimension) |
+| `BusinessAccountId__c` made query-eligible on CampaignMember | `CmpTreasuryModernizationBrief`, `CmpCommercialRmRoundtable`, `CmpMultiPersonaSpringNewsletter` (currently use IndividualId-only join) |
+
+To migrate a segment after editing `config/segments.yaml`, run:
+
+```bash
+python hydrate.py create-segments --target-org jdo-uqj0jr --recreate '<glob>'
+```
+
+The `--recreate` flag (Phase 3d v1.0 Task 5) DELETEs the live segment then POSTs the new definition, since PATCH on Dynamic segments returns `ENTITY_SAVE_ERROR`. 404 on DELETE is treated as idempotent success.
 
 ## How to refresh segment membership
 

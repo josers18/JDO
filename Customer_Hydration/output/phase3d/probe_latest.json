@@ -1,0 +1,11 @@
+{
+  "count_old": null,
+  "count_recent": null,
+  "count_recent_frozen": null,
+  "days": 90,
+  "error": null,
+  "field": "ssot__PersonLifeEventDateTime__c",
+  "target_dmo": "ssot__PersonLifeEvent__dlm",
+  "ts": "20260527T201054Z",
+  "verdict": "RELATIVE_DATES_UNKNOWN"
+}
