@@ -353,21 +353,33 @@ def run_augment(args: argparse.Namespace) -> int:
         requests=native_le_requests,
     ).rows
 
-    cm_plan = plan_campaign_members(
-        seed=args.seed + 101,
-        customer_personas=plan.persona_for_ext,
-    )
-    campaign_members = generate_campaign_members(
-        seed=args.seed + 102,
-        starting_seq=plan.cm_starting_seq,
-        requests=cm_plan,
-    ).members
+    # CampaignMember has a unique constraint on (CampaignId, ContactId)
+    # that External_ID__c can't bypass — re-running the augment regenerates
+    # the same persona-targeted pairs, which Bulk rejects with
+    # DUPLICATE_VALUE. If the seq pointer is already past 1, a prior run
+    # loaded the pairs; skip generation to keep the augment idempotent.
+    if plan.cm_starting_seq > 1:
+        print(
+            f"  Skipping CampaignMember (cm_seek={plan.cm_starting_seq}) — "
+            f"prior run already loaded the (Campaign, Contact) pairs."
+        )
+        campaign_members: list[dict] = []
+    else:
+        cm_plan = plan_campaign_members(
+            seed=args.seed + 101,
+            customer_personas=plan.persona_for_ext,
+        )
+        campaign_members = generate_campaign_members(
+            seed=args.seed + 102,
+            starting_seq=plan.cm_starting_seq,
+            requests=cm_plan,
+        ).members
 
-    # CampaignMember.HasResponded is derived from Status on this org
-    # (createable=False, calculated). The generator emits it for spec
-    # parity but Bulk rejects the column. Strip here.
-    for row in campaign_members:
-        row.pop("HasResponded", None)
+        # CampaignMember.HasResponded is derived from Status on this org
+        # (createable=False, calculated). The generator emits it for spec
+        # parity but Bulk rejects the column. Strip here.
+        for row in campaign_members:
+            row.pop("HasResponded", None)
 
     # ---- Manifest + run dir ----------------------------------------------
     manifest = new_run_manifest(
@@ -472,14 +484,16 @@ def run_augment(args: argparse.Namespace) -> int:
     # both point at the auto-Contact, so a single resolver call serves
     # both. Drops any rows whose Account → Contact lookup fails (unlikely
     # — every Person Account gets an auto-Contact at insert time).
-    cm_kept, cm_dropped = rewrite_csv_resolve_markers(
-        cm_csv, {"ContactId": "contact"}, resolver,
-    )
-    if cm_dropped:
-        print(
-            f"  WARN: {cm_dropped} CampaignMember rows dropped "
-            f"(unresolved ContactId)"
+    cm_kept = 0
+    if campaign_members:
+        cm_kept, cm_dropped = rewrite_csv_resolve_markers(
+            cm_csv, {"ContactId": "contact"}, resolver,
         )
+        if cm_dropped:
+            print(
+                f"  WARN: {cm_dropped} CampaignMember rows dropped "
+                f"(unresolved ContactId)"
+            )
     nle_kept, nle_dropped = rewrite_csv_resolve_markers(
         nle_csv, {"PrimaryPersonId": "contact"}, resolver,
     )
@@ -492,33 +506,37 @@ def run_augment(args: argparse.Namespace) -> int:
     # ---- Wave B: native PersonLifeEvent + CampaignMember (parallel) ------
     # Both sObjects only need the auto-Contact map; they don't depend on
     # each other. Parallel=2 cuts wall-clock vs serializing.
-    print(
-        f"Wave B: upserting {nle_kept} native life events + "
-        f"{cm_kept} campaign members in parallel..."
-    )
+    wave_b_specs = [
+        CsvLoadSpec(
+            sobject="PersonLifeEvent",
+            csv_path=nle_csv,
+            external_id_field="External_ID__c",
+        ),
+    ]
+    if campaign_members:
+        wave_b_specs.append(CsvLoadSpec(
+            sobject="CampaignMember",
+            csv_path=cm_csv,
+            external_id_field="External_ID__c",
+        ))
+        print(
+            f"Wave B: upserting {nle_kept} native life events + "
+            f"{cm_kept} campaign members in parallel..."
+        )
+    else:
+        print(f"Wave B: upserting {nle_kept} native life events...")
     wave_b = Wave(
         name="B-augment",
-        sobjects=("PersonLifeEvent", "CampaignMember"),
+        sobjects=tuple(s.sobject for s in wave_b_specs),
         depends_on=("A-augment",),
-        parallel=True,
-        description="Augment Wave B: native LifeEvents + CampaignMembers",
+        parallel=len(wave_b_specs) > 1,
+        description="Augment Wave B: native LifeEvents (+ CampaignMembers)",
     )
     wave_b_result = run_wave_parallel(
         wave=wave_b,
-        specs=[
-            CsvLoadSpec(
-                sobject="PersonLifeEvent",
-                csv_path=nle_csv,
-                external_id_field="External_ID__c",
-            ),
-            CsvLoadSpec(
-                sobject="CampaignMember",
-                csv_path=cm_csv,
-                external_id_field="External_ID__c",
-            ),
-        ],
+        specs=wave_b_specs,
         target_org=args.target_org,
-        parallel=2,
+        parallel=len(wave_b_specs),
         retry=RetryPolicy(),
     )
     for r in wave_b_result.csv_results:

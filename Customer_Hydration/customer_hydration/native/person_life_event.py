@@ -100,13 +100,14 @@ def generate_native_person_life_events(
             )
 
         ext_id = f"HYDRATE-NLE-{starting_seq + i:06d}"
-        # PersonLifeEvent.EventDate is datetime, not date — DC accepts the
-        # ISO date form ("YYYY-MM-DD") and treats it as midnight UTC. Same
-        # convention used elsewhere in the hydration pipeline.
+        # PersonLifeEvent.EventDate is xsd:dateTime — Bulk rejects the
+        # bare date form (verified live: "'2026-03-28' is not a valid
+        # value for the type xsd:dateTime"). Anchor to midnight UTC.
+        event_iso = f"{req.event_date.isoformat()}T00:00:00.000Z"
         bundle.rows.append({
             "Name": f"{req.event_type} - {req.event_date.isoformat()}",
             "EventType": req.event_type,
-            "EventDate": req.event_date.isoformat(),
+            "EventDate": event_iso,
             # IdResolver.contact_id_by_account_external_id swaps this for
             # the Person Account's auto-Contact Id at load time.
             "PrimaryPersonId": f"RESOLVE:{req.client_account_external_id}",

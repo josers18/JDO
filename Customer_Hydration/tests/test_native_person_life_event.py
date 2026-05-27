@@ -70,14 +70,17 @@ class TestGenerateNativePersonLifeEvents:
         assert bundle.rows[0]["PrimaryPersonId"] == "RESOLVE:HYDRATE-RT-000001"
         assert bundle.rows[1]["PrimaryPersonId"] == "RESOLVE:HYDRATE-WL-000099"
 
-    def test_event_date_is_iso_string(
+    def test_event_date_is_iso_datetime(
         self, sample_requests: list[NativePersonLifeEventRequest],
     ) -> None:
+        # PersonLifeEvent.EventDate is xsd:dateTime, not date. Bulk
+        # rejects bare "YYYY-MM-DD" with "is not a valid value for the
+        # type xsd:dateTime". Anchored to midnight UTC.
         bundle = generate_native_person_life_events(
             starting_seq=1, requests=sample_requests,
         )
-        assert bundle.rows[0]["EventDate"] == "2025-06-14"
-        assert bundle.rows[1]["EventDate"] == "2026-03-01"
+        assert bundle.rows[0]["EventDate"] == "2025-06-14T00:00:00.000Z"
+        assert bundle.rows[1]["EventDate"] == "2026-03-01T00:00:00.000Z"
 
     def test_invalid_event_type_raises(self) -> None:
         # The org's PersonLifeEvent.EventType picklist is restrictive.
