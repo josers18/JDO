@@ -171,12 +171,12 @@ def test_paydex_score_correlates_with_industry(all_anchors):
 
 EXPECTED_KEYS = {
     "ACCOUNT_ID", "PROFILE_MONTH",
-    "DUNS_NUMBER", "ULTIMATE_PARENT_DUNS",
+    "DUNS_NUMBER", "DNB_RATING",
     "FINANCIAL_STRENGTH_TIER", "COMPOSITE_RISK_SCORE",
-    "PAYDEX_SCORE", "CORPORATE_FAMILY_SIZE",
-    "EMPLOYEES_IN_US", "ANNUAL_SALES",
-    "YEARS_IN_BUSINESS", "DNB_RATING",
-    "INDUSTRY_CODE", "BUREAU_MONTHS_SINCE_LAST_UPDATE",
+    "PAYDEX_SCORE", "AVERAGE_DAYS_BEYOND_TERMS",
+    "FAILURE_RISK_SCORE", "DELINQUENCY_PREDICTOR_SCORE",
+    "SUPPLIER_RISK_LEVEL", "CORPORATE_FAMILY_SIZE",
+    "ULTIMATE_PARENT_DUNS", "VERIFICATION_STATUS",
     "GENERATED_AT",
 }
 
@@ -198,29 +198,24 @@ def test_output_schema_constant_matches_test_set():
 
 
 def test_financial_scores_in_range(in_audience_anchors):
-    """COMPOSITE_RISK_SCORE 1-100, PAYDEX_SCORE 0-100."""
+    """Validate numeric score ranges per rowspec."""
     if not in_audience_anchors:
         pytest.skip("empty audience")
     for anchor in in_audience_anchors[:20]:
         row = _row_for(anchor, datetime(2026, 5, 1))
         composite = row["COMPOSITE_RISK_SCORE"]
         paydex = row["PAYDEX_SCORE"]
-        assert 1 <= composite <= 100, f"COMPOSITE_RISK_SCORE={composite} out of range"
-        assert 0 <= paydex <= 100, f"PAYDEX_SCORE={paydex} out of range"
+        avg_days = row["AVERAGE_DAYS_BEYOND_TERMS"]
+        failure_risk = row["FAILURE_RISK_SCORE"]
+        delinquency = row["DELINQUENCY_PREDICTOR_SCORE"]
+        family_size = row["CORPORATE_FAMILY_SIZE"]
 
-
-def test_employees_and_sales_non_negative(in_audience_anchors):
-    """EMPLOYEES_IN_US and ANNUAL_SALES must be non-negative when present."""
-    if not in_audience_anchors:
-        pytest.skip("empty audience")
-    for anchor in in_audience_anchors[:20]:
-        row = _row_for(anchor, datetime(2026, 5, 1))
-        emps = row["EMPLOYEES_IN_US"]
-        sales = row["ANNUAL_SALES"]
-        if emps is not None:
-            assert emps >= 0, f"EMPLOYEES_IN_US={emps} is negative"
-        if sales is not None:
-            assert sales >= 0, f"ANNUAL_SALES={sales} is negative"
+        assert 1 <= composite <= 4, f"COMPOSITE_RISK_SCORE={composite}, expected 1-4"
+        assert 0 <= paydex <= 100, f"PAYDEX_SCORE={paydex}, expected 0-100"
+        assert 0 <= avg_days <= 180, f"AVERAGE_DAYS_BEYOND_TERMS={avg_days}, expected 0-180"
+        assert 1 <= failure_risk <= 100, f"FAILURE_RISK_SCORE={failure_risk}, expected 1-100"
+        assert 1 <= delinquency <= 100, f"DELINQUENCY_PREDICTOR_SCORE={delinquency}, expected 1-100"
+        assert family_size >= 1, f"CORPORATE_FAMILY_SIZE={family_size}, expected ≥1"
 
 
 def test_family_size_positive(in_audience_anchors):
@@ -233,9 +228,31 @@ def test_family_size_positive(in_audience_anchors):
         assert size >= 1, f"CORPORATE_FAMILY_SIZE={size}, expected ≥1"
 
 
+def test_supplier_risk_level_is_canonical(in_audience_anchors):
+    """SUPPLIER_RISK_LEVEL must be one of the canonical values."""
+    canonical = {"Low", "Moderate", "High", "Severe"}
+    if not in_audience_anchors:
+        pytest.skip("empty audience")
+    for anchor in in_audience_anchors[:20]:
+        row = _row_for(anchor, datetime(2026, 5, 1))
+        risk = row["SUPPLIER_RISK_LEVEL"]
+        assert risk in canonical, f"unknown supplier risk level {risk}"
+
+
+def test_verification_status_is_canonical(in_audience_anchors):
+    """VERIFICATION_STATUS must be one of the canonical values."""
+    canonical = {"Verified", "Probable", "Unverified"}
+    if not in_audience_anchors:
+        pytest.skip("empty audience")
+    for anchor in in_audience_anchors[:20]:
+        row = _row_for(anchor, datetime(2026, 5, 1))
+        status = row["VERIFICATION_STATUS"]
+        assert status in canonical, f"unknown verification status {status}"
+
+
 def test_financial_strength_tier_is_canonical(in_audience_anchors):
-    """FINANCIAL_STRENGTH_TIER must be one of the 14 documented codes."""
-    canonical = {"1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B", "5A", "5B", "CC", "DC", "DD", "CB"}
+    """FINANCIAL_STRENGTH_TIER must be one of the 11 documented codes."""
+    canonical = {"5A", "4A", "3A", "2A", "1A", "BA", "BB", "CB", "CC", "DC", "DD"}
     if not in_audience_anchors:
         pytest.skip("empty audience")
     for anchor in in_audience_anchors[:20]:
