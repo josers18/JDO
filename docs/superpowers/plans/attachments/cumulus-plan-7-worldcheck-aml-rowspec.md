@@ -54,10 +54,10 @@ Real World-Check finds Severe matches on <0.1% of populations even in high-risk 
 
 | Rating | Rate | Notes |
 |---|---|---|
-| Low | ~92.0% | The vast majority — clean, low-jurisdiction risk |
-| Medium | ~6.0% | One soft signal (e.g. adverse media in low-severity category) |
-| High | ~1.7% | Two soft signals OR one moderate signal (PEP not currently in office) |
-| Severe | ~0.3% | Sanctions hit OR sitting PEP OR Prohibited jurisdiction |
+| Low | ~93.5% | The vast majority — clean, low-jurisdiction risk |
+| Medium | ~4.0% | One soft signal (e.g. adverse media in low-severity category) |
+| High | ~1.5% | Two soft signals OR one moderate signal (PEP not currently in office) |
+| Severe | ~1.0% | Sanctions hit OR Prohibited jurisdiction. Math: P(Severe) ≈ P(sanctions) + P(prohibited) ≈ 0.5% + 0.5% ≈ 1.0% (independence). |
 
 ```python
 def _overall_risk_rating(sanctions_hit, pep_hit, adverse_media_hit,
