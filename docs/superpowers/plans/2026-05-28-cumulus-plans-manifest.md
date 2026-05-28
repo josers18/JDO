@@ -165,10 +165,27 @@ For maximum reviewer parallelism without dependency conflicts:
 6. **Plan 9** (Relationship Graph) — last in Tier 1.
 7. **Plans 10, 11, 12, 13** — parallel; ship after Plan 9.
 
+## v1.4 — Plan 1 deploy lessons (apply to Plans 2–13)
+
+Plan 1 (Claritas Demographics) was the first per-dataset SP deployed live. Three patterns emerged that every downstream plan should adopt without re-discovering:
+
+1. **Org-canonical wrapper / warehouse / retries.** The org uses `SP_RETRY_WRAPPER` (not `SP_RUN_WITH_RETRY`), `MAIN_WH_XS` (not `FINS_WH`), and `retries=2` (not `3`). The wrapper signature takes the SP **call string** (`'FINS.PUBLIC.SP_GENERATE_X()'`), not the SP name alone. Spec §5.2 and template Task 6 are now updated.
+
+2. **Inline-source deploy.** The org has no internal stage with USAGE granted, so stage-based Snowpark deploy (`snow snowpark deploy`) doesn't work. The shipping pattern is:
+   - Hand-write a `procedures/sp_create_procedure.sql` file containing `CREATE OR REPLACE PROCEDURE ... LANGUAGE PYTHON ... AS $$ ...inlined source... $$`.
+   - Inline both `cumulus_common.seed.seed_for` and `cumulus_common.coverage.assert_coverage` source (each <50 LoC) directly into the procedure body so no external IMPORT is needed.
+   - Deploy via `snow sql -c GSB13421 -f procedures/sp_create_procedure.sql`.
+   - Helper at `Snowflake_Claritas_Demographics/scripts/deploy_sp.py` codifies the build step.
+
+3. **`write_pandas` datetime → NUMBER bug.** `session.write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)` (nanoseconds since epoch). Fix in the MERGE source SELECT with `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)`. Template Task 4 §_merge has the codified pattern.
+
+These changes reduced Plan 1's deploy from "BLOCKED — share privileges, schema setup, deploy framework" to "**SP live, TASK scheduled, 25,424 rows generated, STATUS=SUCCEEDED**" in one task. Plans 2–13 should hit zero of these snags.
+
 ## Status
 
 This manifest is the planning deliverable for the Cumulus brainstorm. After it's approved:
-- Plan 0 is ready to execute as written.
-- Plans 1–13 are instantiated on demand, one at a time, by copying `2026-05-28-cumulus-plan-N-dataset-template.md` and substituting the row from §2.
+- Plan 0 is ready to execute as written. **Done — `V_ACCOUNT_ANCHORS` deployed live.**
+- Plan 1 (Claritas) is **shipping** — SP deployed, TASK scheduled, table populated. T7 (DC federation stream) and T8 (L3 smoke) remaining.
+- Plans 2–13 are instantiated on demand from the template + a per-dataset rowspec.
 
-After Plan 0 + Plan 1 ship as a proving run, the rest of Tier 1 + Tier 2 follow the recommended execution order in §4.
+After Plan 1 closes, Plans 2–13 follow the recommended execution order in §"Execution order recommendation" above.

@@ -4,7 +4,7 @@
 
 **Goal:** This is the **template** every per-dataset plan (Plans 1–13) instantiates. Each dataset plan is a copy of this file with `<<DATASET>>` and similar placeholders replaced. The structure does not vary across datasets — only the audience predicate, row factory, and table schema do.
 
-**Architecture:** A single Snowpark Python stored procedure reads from `FINS.PUBLIC.V_ACCOUNT_ANCHORS` (Plan 0), builds deterministic rows via `cumulus_common.seed_for`, MERGEs into a per-dataset table, asserts coverage via `cumulus_common.assert_coverage`, and logs to `FINS.PUBLIC.TASK_EXECUTION_LOG`. A scheduled Snowflake TASK calls the SP via the existing `SP_RUN_WITH_RETRY` wrapper. The table is then federated into Data Cloud as a Data Stream via the existing "Snowflake (Federate / Zero Copy)" connector — no outbound Snowflake share, no GRANT step.
+**Architecture:** A single Snowpark Python stored procedure reads from `FINS.PUBLIC.V_ACCOUNT_ANCHORS` (Plan 0), builds deterministic rows via `cumulus_common.seed_for`, MERGEs into a per-dataset table, asserts coverage via `cumulus_common.assert_coverage`, and logs to `FINS.PUBLIC.TASK_EXECUTION_LOG`. A scheduled Snowflake TASK calls the SP via the existing `SP_RETRY_WRAPPER` wrapper. The table is then federated into Data Cloud as a Data Stream via the existing "Snowflake (Federate / Zero Copy)" connector — no outbound Snowflake share, no GRANT step.
 
 **Tech Stack:** Snowflake (SQL DDL, Snowpark Python SPs, TASKs, shares), Python 3.11+ (pytest, snowflake-snowpark-python), `snow` CLI v3+.
 
@@ -585,7 +585,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 
 
 def main(session: Any) -> str:
-    """Entry point invoked by FINS.PUBLIC.<<SP_NAME>> via SP_RUN_WITH_RETRY."""
+    """Entry point invoked by FINS.PUBLIC.<<SP_NAME>> via SP_RETRY_WRAPPER."""
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
@@ -789,6 +789,25 @@ def _merge(session: Any, records: list[dict]) -> int:
 
 Replace `COL_A`, `COL_B`, etc. with the actual column list from the rowspec.
 
+**v1.4 — `write_pandas` datetime gotcha (discovered Plan 1 T6):** when the
+records list contains Python `datetime` values (e.g. `GENERATED_AT`),
+`session.write_pandas(auto_create_table=True)` infers them as `NUMBER(38,0)`
+(nanoseconds since epoch) rather than `TIMESTAMP_NTZ`. Two safe fixes:
+
+1. **Cast in the MERGE source SELECT** (smallest delta):
+   ```sql
+   USING (
+       SELECT
+           ACCOUNT_ID, PROFILE_MONTH, ...,
+           TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
+       FROM FINS.PUBLIC.<<DATASET_TABLE>>_STAGING
+   ) src
+   ```
+2. **Pre-create the staging table** with the correct types and `auto_create_table=False`.
+
+Plan 1 used #1; codify whichever your dataset uses in `_merge` and the
+deploy SQL artifact.
+
 - [ ] **Step 4: Run L1 tests, iterate to green**
 
 ```bash
@@ -894,7 +913,7 @@ DROP TABLE IF EXISTS FINS.TEST.TEST_V_ACCOUNT_ANCHORS_FIXTURE;
 - [ ] **Step 2: Run the L2 test against `FINS.TEST` (interactive verification)**
 
 ```bash
-# Pre-req: SP_RUN_WITH_RETRY and TASK_EXECUTION_LOG must exist in FINS.TEST.
+# Pre-req: SP_RETRY_WRAPPER and TASK_EXECUTION_LOG must exist in FINS.TEST.
 # Pre-req: <<DATASET_TABLE>> must exist in FINS.TEST. Deploy:
 snow sql --database FINS --schema TEST -f <<REPO_DIR>>/schemas/<<DATASET_TABLE_LOWER>>.sql
 
@@ -931,21 +950,26 @@ git commit -m "test(cumulus): L2 integration test for <<SP_NAME>>"
 ```sql
 -- =============================================================================
 -- FINS.PUBLIC.<<TASK_NAME>>
--- Scheduled task wrapping <<SP_NAME>> via SP_RUN_WITH_RETRY (3 attempts).
+-- Scheduled task wrapping <<SP_NAME>> via SP_RETRY_WRAPPER (org canon: 2 attempts).
 -- =============================================================================
 -- Cadence:  <<CADENCE>>
 -- Schedule: <<CRON>>
--- Wrapper:  FINS.PUBLIC.SP_RUN_WITH_RETRY('<<SP_NAME>>', 3)
+-- Wrapper:  FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.<<SP_NAME>>()', 2)
 -- =============================================================================
 
 CREATE OR REPLACE TASK FINS.PUBLIC.<<TASK_NAME>>
-    WAREHOUSE = FINS_WH
+    WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = <<CRON>>
 AS
-    CALL FINS.PUBLIC.SP_RUN_WITH_RETRY('<<SP_NAME>>', 3);
+    CALL FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.<<SP_NAME>>()', 2);
 
 ALTER TASK FINS.PUBLIC.<<TASK_NAME>> RESUME;
 ```
+
+**v1.4 — wrapper signature.** `SP_RETRY_WRAPPER` takes the SP **call string**
+(with parens, e.g. `'FINS.PUBLIC.SP_GENERATE_X()'`), not the SP name alone.
+Default retries in the org is `2`; tasks pass `2` explicitly to match the
+`TASK_MONTHLY_CSAT` / `DAILY_TRADE_GENERATOR` precedent.
 
 - [ ] **Step 2: Deploy the task**
 

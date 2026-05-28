@@ -260,12 +260,19 @@ def _merge(session, records) -> int:
 
 ### 5.2 Task definition (one per dataset)
 
+> **v1.4 — org-canonical names.** Plan 1's live deploy revealed that the
+> umbrella spec's earlier `SP_RUN_WITH_RETRY` / `FINS_WH` / `retries=3` are
+> inventions; the actual sister-task pattern in the org (validated against
+> `TASK_MONTHLY_CSAT`, `DAILY_TRADE_GENERATOR`, etc.) is
+> `SP_RETRY_WRAPPER` / `MAIN_WH_XS` / `retries=2`. The wrapper takes the SP
+> call as a quoted string (with parens), not the SP name alone.
+
 ```sql
 CREATE OR REPLACE TASK FINS.PUBLIC.TASK_MONTHLY_CLARITAS_DEMOGRAPHICS
-  WAREHOUSE = FINS_WH
+  WAREHOUSE = MAIN_WH_XS
   SCHEDULE  = 'USING CRON 0 7 1 * * UTC'    -- 1st of month, 07:00 UTC
 AS
-  CALL FINS.PUBLIC.SP_RUN_WITH_RETRY('SP_GENERATE_CLARITAS_DEMOGRAPHICS', 3);
+  CALL FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS()', 2);
 
 ALTER TASK FINS.PUBLIC.TASK_MONTHLY_CLARITAS_DEMOGRAPHICS RESUME;
 ```
