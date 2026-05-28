@@ -407,6 +407,8 @@ After each plan ships, run the SP once against `jdo-uqj0jr`'s `FINS.PUBLIC` and 
 
 **Egress shape:** each `FINS.PUBLIC.<DATASET_TABLE>` is exposed to Data Cloud as its own Data Stream via the **already-configured "Snowflake (Federate / Zero Copy)" connector** in the org's DC instance. No outbound Snowflake share is created; no `CREATE SHARE` privilege is needed. DC federates queries through to Snowflake live — Snowflake stays the system of record.
 
+**Strictly one physical table per dataset.** The 13 dataset tables in §4 are 13 separate `CREATE TABLE` statements producing 13 distinct objects in `FINS.PUBLIC` (`CLARITAS_DEMOGRAPHICS`, `DNB_BUSINESS_CREDIT`, `MGP_FINANCIAL_PLANS`, `PLAID_HELD_AWAY`, `CORELOGIC_PROPERTY`, `WORLDCHECK_AML`, `SYNTH_RELATIONSHIP_GRAPH`, `BOARDEX_EXEC_INTEL`, `ZOOMINFO_FIRMOGRAPHICS`, `GONG_CALL_SENTIMENT`, `MSCI_ESG_SCORES`, `ESRI_GEO_FOOTPRINT`, `MOODYS_MARKET_CONTEXT`). No combined view, no "wide" union table — each table has its own column list driven by the per-dataset rowspec attachment, its own primary key, its own MERGE in its own SP. DC federates one Data Stream per table → one DLO → one DMO.
+
 **Naming conventions:**
 - DLO: `Cumulus<Vendor><Topic>__dll`
 - DMO: `Cumulus<Vendor><Topic>__dlm`

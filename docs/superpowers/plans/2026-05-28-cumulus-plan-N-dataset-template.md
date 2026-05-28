@@ -233,6 +233,8 @@ git commit -m "feat(cumulus): scaffold <<REPO_DIR>>"
 
 ## Task 2: Create the dataset table DDL
 
+**Principle:** this task creates **one physical table** `FINS.PUBLIC.<<DATASET_TABLE>>` — its own DDL, its own column list from the rowspec attachment, its own primary key, its own ownership boundary. No shared/combined/wide table across datasets. Each of the 13 plans does this independently; the result is 13 distinct tables in `FINS.PUBLIC`.
+
 **Files:**
 - Create: `<<REPO_DIR>>/schemas/<<DATASET_TABLE_LOWER>>.sql`
 
