@@ -27,7 +27,7 @@
 | `MORTGAGE_PROPENSITY_SCORE` | NUMBER(5,2) | NOT NULL | 0.00–100.00, biased high in Young Families / Young Couples, low in Retirees |
 | `URBANICITY` | VARCHAR(20) | NOT NULL | "Urban", "Suburban", "Town", "Rural" — biased by POSTAL_CODE leading digit (rough US convention; see §"Urbanicity bias") |
 | `FINANCIAL_STRESS_INDICATOR` | VARCHAR(10) | NOT NULL | "Low", "Moderate", "High" — biased low for high-income/Wealth, high for low-income |
-| `GENERATED_AT` | TIMESTAMP_NTZ(9) | NOT NULL | run_ts as TIMESTAMP_NTZ |
+| `GENERATED_AT` | TIMESTAMP_NTZ(9) | NOT NULL | **Month-bucketed** (`datetime(run_ts.year, run_ts.month, 1)`) so mid-month re-runs are byte-identical. Audit timestamp lives in `TASK_EXECUTION_LOG.EXECUTION_TIME`, not here. |
 
 ## Primary key
 
