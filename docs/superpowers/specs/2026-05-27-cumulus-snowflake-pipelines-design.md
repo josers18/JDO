@@ -133,6 +133,13 @@ WHERE ma.SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM FINS.PUBLIC.MASTER_ACCO
 2. **`CLIENT_CATEGORY` has 9 distinct values, not 4** — beyond `{Retail, Wealth Management, Small Business, Commercial Banking}` the source carries near-equivalents (e.g., wealth sub-bands). Audience predicates that filter on a specific category (Plans 3, 8, 10, 12) MUST probe the actual set of values before locking the predicate; `=` may be too strict, prefer `IN (...)` with the discovered list. Plan 1 should add a `Snowflake_Cumulus_Common/output/client_category_probe.json` capture as the first step before instantiating downstream plans.
 3. **`ACCOUNT_TYPE_FLAG` discriminator misclassifies 12,021 accounts as BUSINESS** — `PersonBirthdate__c IS NULL → BUSINESS` is a heuristic and Phase 4 backfill didn't fully populate birthdate on Person Accounts. The 25,424 PERSON / 12,021 BUSINESS split is plausible enough for the demo, but Plans 2/9/11 (`BUSINESS`-scoped) should validate row counts against expected business cardinality from CRM (which is closer to 5K) and warn if `BUSINESS_actual > BUSINESS_expected × 2`. Long-term fix is upstream backfill, not view-layer change.
 
+**v1.5 — Plan 4 string-quality discoveries (2026-05-28):**
+
+4. **`POSTAL_CODE` has 10,798 empty-string rows** alongside ~25K real ZIPs and 1,223 actual NULLs. `WHERE POSTAL_CODE IS NOT NULL` lets the empty strings through; the safe predicate is `WHERE POSTAL_CODE IS NOT NULL AND POSTAL_CODE <> ''`. Plans that filter on POSTAL_CODE (4 Esri, 5 CoreLogic) MUST use both checks. Long-term fix is `NULLIF(..., '')` in the V_ACCOUNT_ANCHORS view itself, but until then audience SQL is defensive at the consumer.
+5. **`COUNTRY_CODE` has 4 rows with `'USA'` or `'United States'` literals** instead of the canonical `'US'`. Tables that declare `COUNTRY_CODE VARCHAR(2)` will fail to insert these rows. Two safe patterns: project `'US' AS COUNTRY_CODE` literally if the dataset is US-only, or use `LEFT(COUNTRY_CODE, 2)` to truncate. Plan 4's SP uses the literal projection.
+
+The general rule going forward: **assume any string column from V_ACCOUNT_ANCHORS may carry empty strings, dirty values, or unexpected widths.** Defensive SQL beats post-deploy fix-up.
+
 ---
 
 ## 4. The 13 dataset tables
