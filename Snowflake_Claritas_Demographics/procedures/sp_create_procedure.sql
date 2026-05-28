@@ -1,69 +1,84 @@
-"""Claritas-style synthetic demographics generator.
+-- =============================================================================
+-- FINS.PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS  (Snowpark Python SP)
+-- =============================================================================
+-- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-1-claritas-demographics.md
+-- Task:    Plan 1 T6
+-- Source:  procedures/sp_generate_claritas_demographics.py
+--          (with cumulus_common.seed_for + cumulus_common.assert_coverage
+--          inlined so the SP body is self-contained — no IMPORTS / no stage).
+--
+-- Audience: ACCOUNT_TYPE_FLAG = 'PERSON'
+-- Cadence:  MONTHLY (TASK_MONTHLY_CLARITAS_DEMOGRAPHICS)
+-- Salt:     "claritas"
+-- =============================================================================
 
-Snowpark Python stored procedure registered as FINS.PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS.
-Mirrors the canonical 5-step pattern from the Cumulus umbrella spec §5.1.
-
-Audience: ACCOUNT_TYPE_FLAG = 'PERSON'
-Cadence:  MONTHLY
-Salt:     "claritas"
-Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-1-claritas-demographics.md
-Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-1-claritas-demographics-rowspec.md
-"""
+CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS()
+RETURNS STRING
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.11'
+PACKAGES = ('snowflake-snowpark-python', 'pandas')
+HANDLER = 'main'
+EXECUTE AS CALLER
+AS
+$$
 from __future__ import annotations
 
+import hashlib
 import random
 import uuid
 from datetime import date, datetime
 from typing import Any
 
-# Locally + in Snowflake, cumulus_common is shipped via pip install -e or
-# the IMPORTS clause on CREATE PROCEDURE.
-from cumulus_common import seed_for, assert_coverage
+
+# -------------------------------------------------------------------
+# Inlined from cumulus_common.seed
+# -------------------------------------------------------------------
+def seed_for(account_id: str, dataset_salt: str, run_ts: datetime) -> bytes:
+    if not account_id:
+        raise ValueError("account_id must be non-empty")
+    if not dataset_salt:
+        raise ValueError("dataset_salt must be non-empty")
+    key = f"{account_id}|{dataset_salt}|{run_ts:%Y-%m}"
+    return hashlib.sha256(key.encode("utf-8")).digest()
 
 
 # -------------------------------------------------------------------
-# Constants — these MUST stay in sync with the rowspec attachment
+# Inlined from cumulus_common.coverage
 # -------------------------------------------------------------------
+def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
+    expected = session.sql(expected_sql).collect()[0][0]
+    actual = session.sql(actual_sql).collect()[0][0]
+    if actual < expected:
+        missing = expected - actual
+        raise RuntimeError(
+            f"coverage gap: {missing} missing rows (expected {expected}, got {actual})"
+        )
 
+
+# -------------------------------------------------------------------
+# Constants — keep in sync with the rowspec attachment
+# -------------------------------------------------------------------
 TABLE        = "FINS.PUBLIC.CLARITAS_DEMOGRAPHICS"
 TASK_NAME    = "TASK_MONTHLY_CLARITAS_DEMOGRAPHICS"
 DATASET_SALT = "claritas"
 
-# Audience predicate — the same string in 2 places (AUDIENCE_SQL + COVERAGE_SQL).
-# A drift between the two would silently produce a coverage gap; we keep them
-# both anchored on this single string.
 _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'PERSON'"
 AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
-# 14-column output contract (kept in sync with table DDL by the L1 schema test)
-EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
-    "ACCOUNT_ID", "PROFILE_MONTH",
-    "PRIZM_SEGMENT_CODE", "PRIZM_SEGMENT_NAME", "PRIZM_LIFESTYLE_GROUP",
-    "LIFE_STAGE", "HOUSEHOLD_COMPOSITION",
-    "ESTIMATED_NET_WORTH_BAND",
-    "WEALTH_PROPENSITY_SCORE", "INVESTMENT_PROPENSITY_SCORE", "MORTGAGE_PROPENSITY_SCORE",
-    "URBANICITY", "FINANCIAL_STRESS_INDICATOR",
-    "GENERATED_AT",
-})
-
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_CLARITAS_DEMOGRAPHICS
+# Entry point — invoked via SP_RETRY_WRAPPER
 # -------------------------------------------------------------------
-
 def main(session: Any) -> str:
-    """The 5-step canonical pattern: read → build → MERGE → assert → log."""
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
 
     try:
-        # 1. Read audience from the shared view (zero-copy fresh anchors).
         audience = session.sql(AUDIENCE_SQL).collect()
         accounts_processed = len(audience)
 
-        # 2. Build deterministic rows; tolerate up to 1% per-row failures.
         records, errors = [], []
         for row in audience:
             try:
@@ -82,10 +97,8 @@ def main(session: Any) -> str:
                 f"first: {errors[0]}"
             )
 
-        # 3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_MONTH).
         rows_inserted = _merge(session, records)
 
-        # 4. Coverage assertion — canonical message format from spec §6.2.
         actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
         assert_coverage(session, COVERAGE_SQL, actual_sql)
 
@@ -95,7 +108,6 @@ def main(session: Any) -> str:
         raise
 
     finally:
-        # 5. Always log — success or failure.
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
@@ -112,7 +124,6 @@ def main(session: Any) -> str:
 
 
 def _anchor_to_dict(row: Any) -> dict:
-    """Snowpark Row → plain dict so _row_for can be tested with dict literals."""
     if isinstance(row, dict):
         return row
     if hasattr(row, "asDict"):
@@ -122,21 +133,13 @@ def _anchor_to_dict(row: Any) -> dict:
     return dict(row)
 
 
-# -------------------------------------------------------------------
-# _anchor_in_audience — defense-in-depth for the audience predicate
-# -------------------------------------------------------------------
-
 def _anchor_in_audience(anchor: dict) -> bool:
-    """Translate the AUDIENCE_PREDICATE into a Python predicate."""
     return anchor.get("ACCOUNT_TYPE_FLAG") == "PERSON"
 
 
 # -------------------------------------------------------------------
-# _row_for — the substantive synthesis logic (per rowspec)
+# PRIZM segments
 # -------------------------------------------------------------------
-
-# 12 PRIZM segments — recognisable subset, NOT license-grade.
-# (code, name, lifestyle_group)
 _PRIZM_AFFLUENT_EMPTY_NESTS = [
     ("UC", "Upper Crust", "Affluent Empty Nests"),
     ("MB", "Money & Brains", "Affluent Empty Nests"),
@@ -166,9 +169,8 @@ _PRIZM_RURAL = ("FS", "Farms & Suburbs", "Town/Rural Families")
 
 
 def _age_from_birthdate(birthdate: Any, today: date) -> int:
-    """Tolerate ISO string, datetime, date, or None inputs."""
     if birthdate is None:
-        return 40  # safe default; should not happen for PERSON audience
+        return 40
     if isinstance(birthdate, str):
         bd = datetime.fromisoformat(birthdate.split("T")[0]).date()
     elif isinstance(birthdate, datetime):
@@ -197,7 +199,6 @@ def _life_stage(age: int, rng: random.Random) -> str:
 
 
 def _urbanicity_from_zip(zip_code: Any, rng: random.Random) -> str:
-    """Hand-tuned heuristic from US ZIP first digit. Not real Esri data."""
     if not zip_code:
         return rng.choices(["Suburban", "Town", "Rural"], weights=[0.4, 0.4, 0.2])[0]
     first = str(zip_code)[0]
@@ -208,9 +209,8 @@ def _urbanicity_from_zip(zip_code: Any, rng: random.Random) -> str:
     return rng.choices(["Suburban", "Town", "Rural"], weights=[0.4, 0.4, 0.2])[0]
 
 
-def _prizm_pool(income: float, life_stage: str, urbanicity: str, client_cat: str) -> list[tuple[str, str, str]]:
-    """Build a candidate PRIZM pool weighted by anchor signal."""
-    pool: list[tuple[str, str, str]] = []
+def _prizm_pool(income, life_stage, urbanicity, client_cat):
+    pool = []
     if income >= 250_000 or client_cat == "Wealth Management":
         pool.extend(_PRIZM_AFFLUENT_EMPTY_NESTS + _PRIZM_HIGH_INCOME_FAMILY)
     if income >= 150_000:
@@ -221,13 +221,12 @@ def _prizm_pool(income: float, life_stage: str, urbanicity: str, client_cat: str
         pool.extend(_PRIZM_LOW_INCOME)
     if urbanicity == "Rural":
         pool.append(_PRIZM_RURAL)
-    # Life-stage filter so retirees don't end up "Young Achievers".
     if life_stage == "Retirees":
         retiree_groups = {"Affluent Empty Nests", "Empty Nesters", "Retirees", "Town/Rural Families"}
         filtered = [p for p in pool if p[2] in retiree_groups]
         pool = filtered or pool
     if not pool:
-        pool = _PRIZM_MID_INCOME_URBAN[:1]  # fallback: City Roots
+        pool = _PRIZM_MID_INCOME_URBAN[:1]
     return pool
 
 
@@ -251,7 +250,7 @@ def _household_composition(life_stage: str, rng: random.Random) -> str:
 _NET_WORTH_BANDS = ["<$50K", "$50K-$250K", "$250K-$1M", "$1M-$5M", "$5M+"]
 
 
-def _net_worth_band(income: float, client_cat: str, rng: random.Random) -> str:
+def _net_worth_band(income, client_cat, rng):
     if income >= 1_000_000:
         idx = 4
     elif income >= 250_000:
@@ -269,21 +268,21 @@ def _net_worth_band(income: float, client_cat: str, rng: random.Random) -> str:
     return _NET_WORTH_BANDS[idx]
 
 
-def _wealth_propensity(income: float, age: int, rng: random.Random) -> float:
+def _wealth_propensity(income, age, rng):
     base = min(100.0, 5 + (income / 5_000))
     if 45 <= age <= 65:
         base += 10
     return round(max(0.0, min(100.0, base + (rng.random() - 0.5) * 20)), 2)
 
 
-def _investment_propensity(income: float, life_stage: str, rng: random.Random) -> float:
+def _investment_propensity(income, life_stage, rng):
     base = min(100.0, 10 + (income / 4_000))
     if life_stage in ("Empty Nesters", "Retirees", "Established Families"):
         base += 15
     return round(max(0.0, min(100.0, base + (rng.random() - 0.5) * 20)), 2)
 
 
-def _mortgage_propensity(life_stage: str, client_cat: str, rng: random.Random) -> float:
+def _mortgage_propensity(life_stage, client_cat, rng):
     base = {
         "Young Couples": 65, "Young Families": 80, "Established Families": 50,
         "Empty Nesters": 25, "Retirees": 5, "Young Singles": 30, "Gen Z": 15,
@@ -293,7 +292,7 @@ def _mortgage_propensity(life_stage: str, client_cat: str, rng: random.Random) -
     return round(max(0.0, min(100.0, base + (rng.random() - 0.5) * 20)), 2)
 
 
-def _financial_stress(income: float, client_cat: str, rng: random.Random) -> str:
+def _financial_stress(income, client_cat, rng):
     if client_cat == "Wealth Management" or income >= 250_000:
         return rng.choices(["Low", "Moderate"], weights=[0.85, 0.15])[0]
     if income >= 75_000:
@@ -304,11 +303,6 @@ def _financial_stress(income: float, client_cat: str, rng: random.Random) -> str
 
 
 def _row_for(anchor: dict, run_ts: datetime) -> dict:
-    """Pure function: anchor row → fact row. Deterministic.
-
-    Per rowspec: seed = SHA-256(account_id || "claritas" || YYYY-MM).
-    Mid-month re-runs replay exactly; new month rolls a new seed.
-    """
     if not _anchor_in_audience(anchor):
         raise ValueError(
             f"anchor {anchor.get('ACCOUNT_ID')} fails audience predicate "
@@ -350,24 +344,11 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
         "MORTGAGE_PROPENSITY_SCORE":  mortgage_p,
         "URBANICITY":                 urbanicity,
         "FINANCIAL_STRESS_INDICATOR": stress,
-        # Bucket GENERATED_AT to the month-start so same-month re-runs produce
-        # byte-identical rows (the deterministic-month-bucket contract). The
-        # actual wall-clock execution time is captured in TASK_EXECUTION_LOG.
         "GENERATED_AT":               datetime(run_ts.year, run_ts.month, 1),
     }
 
 
-# -------------------------------------------------------------------
-# _merge — idempotent MERGE on PK (ACCOUNT_ID, PROFILE_MONTH)
-# -------------------------------------------------------------------
-
-def _merge(session: Any, records: list[dict]) -> int:
-    """MERGE records into TABLE. Returns rows MERGED.
-
-    Implementation: write_pandas → staging table → MERGE statement.
-    The staging table is overwrite-truncated each call so re-runs produce
-    consistent state.
-    """
+def _merge(session: Any, records: list) -> int:
     if not records:
         return 0
 
@@ -436,3 +417,4 @@ def _merge(session: Any, records: list[dict]) -> int:
     """
     rows = session.sql(merge_sql).collect()
     return int(rows[0][0]) if rows else len(records)
+$$;
