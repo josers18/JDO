@@ -100,29 +100,51 @@ class SegmentStatus:
 
 
 def get_org_session(target_org: str) -> tuple[str, str]:
-    """Return ``(instance_url, access_token)`` for the target org via
-    ``sf org display --verbose --json``.
+    """Return ``(instance_url, access_token)`` for the target org.
+
+    As of Salesforce CLI v2.136 (2026-05-27), ``sf org display`` redacts
+    the access-token field — it returns the literal string
+    ``"[REDACTED] Use 'sf org auth show-access-token' to view"`` instead
+    of the bearer token. We use ``sf org display`` for the instance URL
+    and ``sf org auth show-access-token`` for the token itself.
 
     Raises :class:`RuntimeError` on subprocess failure or missing fields.
     Callers in :func:`execute_phase5_5` catch this so Phase 5.5 stays
     fire-and-forget.
     """
-    cmd = [
+    display_cmd = [
         "sf", "org", "display",
         "--target-org", target_org,
         "--verbose",
         "--json",
     ]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    if proc.returncode != 0:
-        raise RuntimeError(f"sf org display failed: {proc.stderr or proc.stdout}")
-    payload = json.loads(proc.stdout)
-    result = payload.get("result", {})
-    instance_url = result.get("instanceUrl") or result.get("InstanceUrl")
-    access_token = result.get("accessToken") or result.get("AccessToken")
-    if not instance_url or not access_token:
+    display_proc = subprocess.run(display_cmd, capture_output=True, text=True, check=False)
+    if display_proc.returncode != 0:
+        raise RuntimeError(f"sf org display failed: {display_proc.stderr or display_proc.stdout}")
+    display_payload = json.loads(display_proc.stdout)
+    display_result = display_payload.get("result", {})
+    instance_url = display_result.get("instanceUrl") or display_result.get("InstanceUrl")
+    if not instance_url:
         raise RuntimeError(
-            f"sf org display returned no instanceUrl/accessToken: {result}"
+            f"sf org display returned no instanceUrl: {display_result}"
+        )
+
+    token_cmd = [
+        "sf", "org", "auth", "show-access-token",
+        "--target-org", target_org,
+        "--json",
+    ]
+    token_proc = subprocess.run(token_cmd, capture_output=True, text=True, check=False)
+    if token_proc.returncode != 0:
+        raise RuntimeError(
+            f"sf org auth show-access-token failed: {token_proc.stderr or token_proc.stdout}"
+        )
+    token_payload = json.loads(token_proc.stdout)
+    token_result = token_payload.get("result", {})
+    access_token = token_result.get("accessToken") or token_result.get("access_token")
+    if not access_token or access_token.startswith("[REDACTED]"):
+        raise RuntimeError(
+            f"sf org auth show-access-token returned no usable token: {token_result}"
         )
     return (instance_url, access_token)
 

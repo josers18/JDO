@@ -8,6 +8,21 @@ entry rather than retroactively editing prior ones.
 
 ## [May 2026] — 2026-05-19 → 2026-05-27
 
+### 2026-05-27 — Phase 6 cutover closed + sf CLI v2.136 token-redaction fix
+
+- `fix(customer-hydration)` —
+  `customer_hydration/phase5/data_cloud.get_org_session()` now uses
+  `sf org auth show-access-token` for the bearer token instead of
+  `sf org display --verbose --json`. Salesforce CLI v2.136 (released
+  ~May 2026) redacts the `accessToken` field in `org display` output,
+  returning the literal string
+  `[REDACTED] Use 'sf org auth show-access-token' to view`. The 54-char
+  redaction was previously misdiagnosed as a session-level token-redaction
+  hook; removing the assumption unblocked DC REST end-to-end.
+- `chore(customer-hydration)` — All 21 segments recreated against the
+  Phase 6 MDM filter (21/21 success, 0 failures). Phase 6 cutover blocker
+  closed.
+
 ### 2026-05-27 — Phase 7: biz-cohort completion + person __pc shadow coverage
 
 - `feat(customer-hydration)` — Phase 7a closed the biz-side gap on 7

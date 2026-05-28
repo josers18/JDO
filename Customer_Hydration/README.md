@@ -23,10 +23,11 @@ role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 > 5 person-cohort `__pc` shadow fields (Category, Contact_Status, CommunicationPreferences,
 > ContactPreference, LastUsedChannel). 36,222 / 36,222 successful. `Email__c` confirmed
 > as a formula field (`PersonContact.Email`) — by-design NULL on biz, 100% on persons.
-> Phase 6 cutover blockers: the 21 live DC segments still carry the old `HYDRATE-` filter;
-> recreate from a fresh shell with `--recreate '*'` (the current Claude session has a
-> token-redaction hook that blocks DC REST auth). Tracked in
-> [`docs/ROADMAP.md`](docs/ROADMAP.md) § Phase 6 / Phase 7 follow-ups.
+> Phase 6 cutover closed 2026-05-27 — all 21 segments DELETE-then-POST recreated against the
+> new MDM filter (21/21 success). Root cause of the original block was Salesforce CLI v2.136
+> redacting `accessToken` in `sf org display --json`; fixed in `get_org_session()` by switching
+> to `sf org auth show-access-token`. Open items tracked in
+> [`docs/ROADMAP.md`](docs/ROADMAP.md).
 > Suite at **820 tests passing + 5 skipped** (live-org smoke gated by `RUN_LIVE_TESTS=1`).
 
 ## Quick start

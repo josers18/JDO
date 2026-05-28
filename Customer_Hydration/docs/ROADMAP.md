@@ -22,20 +22,18 @@ then cross-link from this file to the new artifacts.
   business emails, populate a different writable field (e.g. a
   custom `Business_Email__c` if the org adds one).
 
-## Phase 6 follow-ups (cutover blockers)
+## Phase 6 follow-ups
 
-- **Segment recreate against MDM filter.** The 21 live segments on
-  `jdo-uqj0jr` still hold their old `External_ID_c__c contains
-  "HYDRATE-"` server-side criteria from Phase 2/3d. The Phase 6 fleet
-  rename invalidated that match (every Account is now `MDM*`/`MDMP*`,
-  no longer `HYDRATE-*`), so until segments are recreated they return
-  0 members. The recreate call needs a clean session (the current
-  Claude session has a token-redaction hook that breaks DC REST auth).
-  Run from a fresh shell:
+- ~~**Segment recreate against MDM filter.**~~ **Closed 2026-05-27.** All
+  21 segments DELETE-then-POST recreated cleanly via
   `python hydrate.py create-segments --target-org jdo-uqj0jr --recreate '*' --allow-production`.
-  Code side is ready —
-  `customer_hydration/phase5/segments.HYDRATE_PREFIX` is now `"MDM"`
-  and `config/segments.yaml` header is updated.
+  21/21 success, 0 failures. Root cause of the prior session block was
+  Salesforce CLI v2.136 redacting `accessToken` in
+  `sf org display --json` output (returned the literal string
+  `[REDACTED] Use 'sf org auth show-access-token' to view`). Fixed in
+  `customer_hydration/phase5/data_cloud.get_org_session()` by splitting
+  the call: `sf org display` for `instanceUrl`, new `sf org auth
+  show-access-token` for the bearer token.
 - **Persona detector update.** `customer_hydration/derivers/_archetype.
   _persona_from_external_id_or_rt` only knows `HYDRATE-{RT,WL,SMB,
   COM,HH}-*` prefixes. Post-rename, every persona resolves to `retail`
