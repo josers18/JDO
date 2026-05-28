@@ -15,7 +15,7 @@
 | Plan 3 — D&B Business Credit | **LIVE** (11,389 rows, DC mapping pending UI) | `2026-05-28-cumulus-plan-3-dnb-business-credit.md` |
 | Plan 4 — Esri Geo Footprint | **LIVE** (13,328 rows, DC mapping pending UI) | `2026-05-28-cumulus-plan-4-esri-geo-footprint.md` |
 | Plan 5 — CoreLogic Property | **LIVE** (25,424 rows, DC mapping pending UI; first quarterly cadence) | `2026-05-28-cumulus-plan-5-corelogic-property.md` |
-| Plan 6 — Plaid Held-Away | **Drafted** (rowspec + plan written; ready to implement; first 1:N dataset) | `2026-05-28-cumulus-plan-6-plaid-held-away.md` |
+| Plan 6 — Plaid Held-Away | **LIVE** (55,274 rows, DC mapping pending UI; first 1:N dataset) | `2026-05-28-cumulus-plan-6-plaid-held-away.md` |
 | Plan 7 — World-Check AML | Pending instantiation | (instantiate from template) |
 | Plan 8 — MGP Financial Plans | Pending instantiation | (instantiate from template) |
 | Plan 9 — Synth Relationship Graph | Pending instantiation | (instantiate from template; see §3 below for graph-specific deviations) |
