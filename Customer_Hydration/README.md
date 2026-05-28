@@ -13,14 +13,15 @@ Bank customer data — Retail, Wealth, Small Business, and Commercial — across
 role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 (legacy `FinServ__*` + native FSC standard objects).
 
-> **Status (2026-05-27):** Phases 1, 2, and 3a–3c complete on `main`. Phase 4
-> (Account field backfill) Plans 4a–4d complete and pushed for review on
-> chained `feat/customer-hydration-phase-4-plan-4*` branches — 7 derivers
-> across the 24 coherence rules, coverage-rules engine, live SOQL fetch +
-> Bulk API 2.0 upsert + DC stream refresh trigger + production guard. Suite
-> at **763 tests passing + 5 skipped** (live-org smoke gated by
-> `RUN_LIVE_TESTS=1`). Phase 3d (cross-DMO segment YAML) remains the open
-> work item.
+> **Status (2026-05-27 evening):** Phases 1, 2, 3a–3c, 3d, 4 (+ v1.1 hotfixes), and 5 all complete on `main`.
+> Phase 3d (cross-DMO segment YAML, 15 segments live) merged via `46c5dcf`. Phase 5
+> (cohort-aware Account DMO backfill) merged via the latest commit — closed 56 of 64 gap fields
+> on `ssot__Account__dlm` across 6 sub-phases (Branch backfill from live `BranchUnit`,
+> universal field backfill across ~26 fields, Phase 4 50-row regression replay, PA address
+> mirror, mapping verify, DC stream refresh via Lightning UI). DMO state at 2026-05-28 01:59Z:
+> `BranchCode`, `InvestmentObjectives`, `BillingStreet`, `Rating`, `PersonalInterests` all 0 missing
+> on the 36,044 HYDRATE rows; `__pc` shadows correctly biz-NULL by platform constraint.
+> Suite at **787 tests passing + 5 skipped** (live-org smoke gated by `RUN_LIVE_TESTS=1`).
 
 ## Quick start
 
