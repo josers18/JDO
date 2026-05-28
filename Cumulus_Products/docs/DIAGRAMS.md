@@ -1,34 +1,43 @@
 # Cumulus Products — Diagrams
 
-Mermaid diagrams describing the brochure generation system and the brand segmentation model. Rendered natively on GitHub.
+Mermaid diagrams describing the brochure and offer generation system, the brand segmentation model, and the collateral layout patterns. Rendered natively on GitHub.
 
 ---
 
-## 1. Generation pipeline
+## 1. Collateral generation pipeline
 
-From a product-spec document to a 55-PDF catalog via a shared brand system.
+From a product-spec document to 110 PDFs via a shared brand system: 55 product brochures and 55 campaign offer documents.
 
 ```mermaid
 flowchart LR
     SPEC["docs/PRODUCT_SPECS.md<br/>canonical rates, fees, terms"]:::spec
     BRAND["generator/brand.py<br/>palette · themes · flowables · charts"]:::brand
 
-    BUILD["generator/build_&lt;product&gt;.py<br/>55 scripts"]:::code
+    BUILD["generator/build_&lt;product&gt;.py<br/>55 brochure scripts"]:::code
+    OFFERGEN["generator/generate_offers.py<br/>55 OfferSpec records"]:::code
 
     DOC["BrochureDoc<br/>(ReportLab BaseDocTemplate)"]:::rl
     FLOW["Story flowables<br/>hero · sections · tables<br/>grids · callouts · charts"]:::rl
     CHART["matplotlib charts<br/>growth · amortization · bar · donut"]:::chart
 
-    PDF[("55 PDFs<br/>brochures/01..08")]:::out
+    BROCHUREPDF[("55 brochure PDFs<br/>brochures/01..08")]:::out
+    OFFERPDF[("55 offer PDFs<br/>Offers/01..08")]:::offer
+    OFFERINDEX["Offers/README.md<br/>generated index"]:::offer
 
     SPEC --> BUILD
+    SPEC --> OFFERGEN
     BRAND --> BUILD
+    BRAND --> OFFERGEN
     BUILD --> DOC
     BUILD --> FLOW
+    OFFERGEN --> DOC
+    OFFERGEN --> FLOW
     FLOW --> CHART
     CHART --> FLOW
     FLOW --> DOC
-    DOC --> PDF
+    DOC --> BROCHUREPDF
+    DOC --> OFFERPDF
+    OFFERGEN --> OFFERINDEX
 
     classDef spec fill:#F5EFE2,stroke:#B08D3C,color:#0A1F3D
     classDef brand fill:#E8F3F4,stroke:#0E7C86,color:#0A1F3D
@@ -36,6 +45,7 @@ flowchart LR
     classDef rl fill:#F6EDE3,stroke:#B45F1D,color:#0A1F3D
     classDef chart fill:#FBFAF6,stroke:#C7CCD6,color:#0A1F3D
     classDef out fill:#0A1F3D,stroke:#0A1F3D,color:#FFFFFF
+    classDef offer fill:#E8F3F4,stroke:#0E7C86,color:#0A1F3D
 ```
 
 ---
@@ -112,9 +122,44 @@ flowchart TB
 
 ---
 
-## 4. Chart selection by product family
+## 4. Offer document layout (per product)
 
-Each brochure embeds at least one matplotlib chart. Type is chosen to match the financial question the product raises.
+Offer documents reuse the same brand flowables but follow an FSC campaign workflow rather than a brochure education workflow.
+
+```mermaid
+flowchart TB
+    subgraph COVER["Cover (campaign offer)"]
+        HERO["Navy gradient hero<br/>+ monogram + segment label"]
+        OFFERMETA["Product · campaign · window<br/>primary incentive · base terms<br/>offer code · fulfillment"]
+    end
+
+    subgraph CAMPAIGN["Campaign body"]
+        O1["Campaign overview<br/>+ primary client promise"]
+        O2["Current offer economics<br/>standard terms vs campaign concession"]
+        O3["Qualification and fulfillment<br/>eligibility · evidence · timing"]
+        O4["FSC playbook<br/>audiences · triggers"]
+        O5["Next best actions<br/>relationship expansion"]
+        O6["Client journey<br/>identify · present · validate<br/>open/book/implement · fulfill · deepen"]
+        O7["Controls and guardrails<br/>rate basis · authority · evidence"]
+        O8["Offer disclosures<br/>family standard + campaign specific"]
+        O9["Back cover<br/>segment-themed CTA"]
+    end
+
+    COVER --> CAMPAIGN
+    HERO --> OFFERMETA
+    O1 --> O2 --> O3 --> O4 --> O5 --> O6 --> O7 --> O8 --> O9
+
+    classDef cover fill:#0A1F3D,color:#FFFFFF,stroke:#0E7C86
+    classDef body fill:#F4F6FA,color:#0A1F3D,stroke:#C7CCD6
+    class COVER,HERO,OFFERMETA cover
+    class CAMPAIGN,O1,O2,O3,O4,O5,O6,O7,O8,O9 body
+```
+
+---
+
+## 5. Chart selection by brochure product family
+
+Each brochure embeds at least one matplotlib chart. Type is chosen to match the financial question the product raises. Offer documents are primarily campaign tables and do not require charts unless a future campaign needs one.
 
 ```mermaid
 flowchart LR
