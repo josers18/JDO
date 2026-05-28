@@ -84,6 +84,18 @@ automatically. `FinServ__ClientCategory__c` carries `Retail` or
 `Wealth Management`. `FinServ__SourceSystemId__c` mirrors `External_ID__c`
 for downstream tools that key off it.
 
+**Phase 5 cohort-aware fields (added 2026-05-27):** Person Accounts also
+populate `BillingStreet/City/State/PostalCode/Country` (mirrored from
+`PersonMailing*` so a unified DMO query sees a billing address regardless
+of subtype) and the same for `Shipping*`. New fields `Rating`, `Type`,
+`AccountSource`, `Phone`, `FinServ__BranchCode__c`,
+`FinServ__BranchName__c`, `FinServ_Category__pc`, `FinServ_Contact_Status__pc`,
+`FinServ__IndividualType__pc` plus 5 multipicklists (`InvestmentObjectives`,
+`PersonalInterests`, `CustomerSegment`, `MarketingSegment`,
+`FinancialInterests`) are 100% populated on persons. Branch is
+state-weighted via the live `BranchUnit` SObject (canonical
+`BranchUnitCustomer` link inherited where present).
+
 ## Account — Business (SMB + Commercial)
 
 | Logical name | Physical (org) name | Notes |
@@ -97,6 +109,16 @@ for downstream tools that key off it.
 `AccountSource = 'Hydration'` so dashboards can additionally filter by
 source. Commercial accounts may set `ParentId` (25%) for holding-co ->
 operating-sub structure.
+
+**Phase 5 additions on Business Accounts (2026-05-27):**
+`FinServ__BranchCode__c` / `FinServ__BranchName__c` (state-weighted from
+live `BranchUnit`), `Rating`, `Type`, `AccountSource` (filled where
+previously blank), `Phone`, `Website` (where blank), 5 multipicklists,
+8 person→biz parity fields (`InvestmentExperience`, `RiskTolerance`,
+`ServiceModel`, `BorrowingHistory`, `TimeHorizon`, etc.), and
+`FinServ__IndividualType__c = "Group"` for the 5,610 pure-Business RT
+rows that were missing it. `__pc` shadow fields stay person-only by
+platform constraint.
 
 ## Contact (business officers + signers)
 

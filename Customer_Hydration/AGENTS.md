@@ -414,6 +414,66 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   `docs/superpowers/specs/2026-05-27-phase-3d-cross-dmo-segments-design.md`,
   `docs/superpowers/specs/2026-05-27-phase-3d-v1.1-real-dmo-shapes.md`,
   `docs/superpowers/specs/2026-05-27-phase-3d-v1.2-numberaggregation-shape.md`.
+- **Phase 5** (Cohort-aware DMO backfill, 2026-05-27) — Closed 56 of 64
+  gap fields on `ssot__Account__dlm` identified by the comprehensive
+  cohort-aware audit at `output/account-dmo-audit-2026-05-27/REPORT.md`.
+  Cohort-aware = persons-vs-businesses computed separately; the prior
+  17-field audit treated person-only and biz-only fills as design,
+  per FSC unification rule both should populate where the field has
+  meaning across subtypes. Six sub-phases:
+    - **5a** Branch backfill — new `BranchAssignmentDeriver`
+      (`customer_hydration/derivers/branch.py`) pulls 26 BranchUnit rows +
+      144 canonical BranchUnitCustomer links once at startup; assigns
+      via canonical-if-known else state-weighted random keyed off
+      `archetype.home_metro`. Live: 36,044 rows, 0 failures.
+    - **5b** Universal field backfill — single `Phase5UniversalDeriver`
+      (`customer_hydration/derivers/phase5_universal.py`) covers ~26
+      fields across 6 logical groups: 5 multipicklists (InvestmentObjectives,
+      PersonalInterests, CustomerSegment, MarketingSegment, FinancialInterests),
+      3 FSC `__pc` shadows (Category, Contact_Status, IndividualType — all
+      gated `if is_person`), 8 person→biz parity (RiskTolerance,
+      ServiceModel, BorrowingHistory, TimeHorizon, etc.), 2 biz→person
+      parity (Rating, Type), 3 standards (AccountSource, Phone, Website),
+      and the 5,610-row `IndividualType__c` recovery. First run hit
+      `__pc`-on-business write rejection (CountryOfBirth__pc) — fix:
+      `if is_person:` gate. Pulled live picklist vocabularies via
+      `SfRunner.describe('Account')` before writing the deriver so values
+      survive the picklist-drift preflight (Rating is Hot/Warm/Cool not
+      Hot/Warm/Cold; FinServ_Category__pc is Platinum/Gold/Silver/Bronze).
+    - **5c** Phase 4 regression replay — diagnosed: 50 missing rows are
+      `HYDRATE-RT-000001..000050` (the very first batch of the retail
+      generator). Root cause: `AnnualIncome__pc` was NULL on those 50,
+      which short-circuited Phase 4's archetype income-band coherence.
+      Fix: bulk-upserted deterministic salaries (60-90k via External_ID
+      hash), then ran the standard backfill which populated TaxBracket
+      + LifetimeValue automatically. Demographics fields (MaritalStatus,
+      CurrentEmployer, Occupation) aren't owned by any Phase 4 deriver,
+      so wrote them directly via second bulk-upsert. Person cohort:
+      25,320 → 25,370 across all 6 fields.
+    - **5d** PA address mirror — 25,370 person rows: copied
+      `PersonMailing*` → `Billing*` AND `Shipping*` via two-pass export +
+      bulk upsert. No code change needed (data-only operation).
+    - **5e** Mapping verify — confirmed `FinServ_Category_pc__c` and
+      `FinServ_Contact_Status_pc__c` mappings are correct (the prior
+      audit's "GAP_FIELD_NONEXISTENT" was a typo: `FinServ_Category__pc`
+      with single underscore, not double, exists on Account). No
+      mapping changes needed; `FinServ_ShippingAddress_pc__c` drop
+      deferred (DC Connect MCP toolkit doesn't expose drop-mapping;
+      no segment depends on the field; equivalent end-state with or
+      without the drop).
+    - **5f** Stream refresh + verify — `Account_Home` triggered via
+      Lightning UI (`dc-stream-full-refresh-via-ui` skill) since the
+      session token redaction blocks in-process REST trigger.
+      Post-refresh DMO verification: BranchCode/InvestmentObjectives/
+      AccountRatingType (= Rating)/BillingStreet/PersonalInterests all
+      0 missing on HYDRATE rows; Category_pc/Contact_Status_pc 10,674
+      missing (= biz; correct by design — `__pc` fields don't apply
+      to Business Accounts).
+  ~445,000 cells written across 5 live executions, 0 bulk failures.
+  Audit + spec + plan at:
+  `output/account-dmo-audit-2026-05-27/REPORT.md`,
+  `docs/superpowers/specs/2026-05-27-phase-5-dmo-backfill-design.md`,
+  `docs/superpowers/plans/2026-05-27-phase-5-dmo-backfill.md`.
 
 ## When extending personas
 
