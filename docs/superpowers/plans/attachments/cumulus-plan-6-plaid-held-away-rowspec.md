@@ -376,7 +376,7 @@ Plan 6 has the same 5-property structure but #4 has THREE assertions plus a **mu
 1. **Determinism on multi-row output** — `_rows_for(anchor, run_ts)` returns the same list (same length, same dict-by-dict, same ordering) on re-run.
 2. **Income → balance shift:** mean total balance across held-away rows is ≥3× higher for income ≥$250K vs income <$40K. Restrict to non-loan account types.
 3. **Age → investment risk shift:** mean Speculative-tier rate is ≥2× higher for age <30 vs age 65+ (within Brokerage/IRA/401k rows).
-4. **Wealth → row count shift:** Wealth Management anchors have mean row count ≥2× Retail anchors with comparable income.
+4. **Wealth → row count shift:** Wealth Management anchors have mean row count ≥1.35× Retail anchors with comparable income. (The rowspec weights `[10,25,30,22,13]` for Wealth and `[40,30,18,8,4]` for Retail mathematically cap the ratio at 3.03/2.06 = 1.47×; 1.35× is the test threshold leaving ~7 pp headroom. The directional invariant — Wealth > Retail — is the load-bearing claim, not the magnitude.)
 
 Plus a fifth: **Stable HELD_AWAY_ACCOUNT_ID across months** — same anchor's slot-0 has same `HELD_AWAY_ACCOUNT_ID` in May and June. (The hash is salt+slot-deterministic, not run-bucketed.)
 
