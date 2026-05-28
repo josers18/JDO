@@ -224,19 +224,23 @@ WHERE TABLE_SCHEMA = 'schema_Jedi_Snowflake' AND TABLE_NAME = 'ssot__Account__dl
 ORDER BY COLUMN_NAME" > output/plan-0-anchor-probe.json
 ```
 
-- [ ] **Step 2: Probe `ssot__ContactPointAddress__dlm`**
+- [ ] **Step 2: Confirm address fields on `ssot__Account__dlm`**
 
-Run:
+The address DMO `ssot__ContactPointAddress__dlm` is **not** in the `FINSDC3_DATASHARE` inbound share. Address fields are sourced denormalized from `ssot__Account__dlm` directly. Confirm the columns exist:
+
 ```bash
 snow sql -q "
 SELECT COLUMN_NAME, DATA_TYPE
 FROM FINSDC3_DATASHARE.INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_SCHEMA = 'schema_Jedi_Snowflake' AND TABLE_NAME = 'ssot__ContactPointAddress__dlm'
-  AND COLUMN_NAME IN ('ssot__Id__c','ssot__PostalCode__c','ssot__StateCode__c','ssot__CountryCode__c')
+WHERE TABLE_SCHEMA = 'schema_Jedi_Snowflake' AND TABLE_NAME = 'ssot__Account__dlm'
+  AND COLUMN_NAME IN (
+    'PersonMailingPostalCode__c','PersonMailingState__c','PersonMailingCountry__c',
+    'BillingPostalCode__c','BillingState__c','BillingCountry__c'
+  )
 ORDER BY COLUMN_NAME"
 ```
 
-Expected: 4 rows. Halt and check the share refresh status if rows are missing.
+Expected: 6 rows. If any are missing, halt — the schema has drifted further than this plan anticipates.
 
 - [ ] **Step 3: Write the view DDL**
 
@@ -282,19 +286,18 @@ SELECT
     a.ssot__AnnualRevenueAmount__c              AS ANNUAL_REVENUE,
     a.ssot__EmployeeCount__c                    AS EMPLOYEE_COUNT,
 
-    -- Geo anchor
-    cpa.ssot__PostalCode__c                     AS POSTAL_CODE,
-    cpa.ssot__StateCode__c                      AS STATE_CODE,
-    cpa.ssot__CountryCode__c                    AS COUNTRY_CODE,
+    -- Geo anchor — address DMO not in share; pull denormalized fields off Account.
+    -- PersonMailing* is populated for persons; Billing* for businesses.
+    COALESCE(a."PersonMailingPostalCode__c", a."BillingPostalCode__c")  AS POSTAL_CODE,
+    COALESCE(a."PersonMailingState__c",      a."BillingState__c")       AS STATE_CODE,
+    COALESCE(a."PersonMailingCountry__c",    a."BillingCountry__c")     AS COUNTRY_CODE,
 
     -- Namespace flag
-    a.External_ID_c__c                          AS EXTERNAL_ID
+    a."External_ID_c__c"                        AS EXTERNAL_ID
 
 FROM FINS.PUBLIC.MASTER_ACCOUNTS ma
 INNER JOIN FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" a
         ON a."ssot__Id__c" = ma.ACCOUNT_ID
-LEFT JOIN  FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__ContactPointAddress__dlm" cpa
-        ON cpa."ssot__Id__c" = a."ssot__ContactPointAddressId__c"
 WHERE ma.SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM FINS.PUBLIC.MASTER_ACCOUNTS);
 
 -- Smoke check: every active account should appear with non-null anchors.

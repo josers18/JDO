@@ -107,23 +107,24 @@ SELECT
     a.ssot__EmployeeCount__c                    AS EMPLOYEE_COUNT,
 
     -- Geo anchor (for CoreLogic / Esri / Placer.ai)
-    cpa.ssot__PostalCode__c                     AS POSTAL_CODE,
-    cpa.ssot__StateCode__c                      AS STATE_CODE,
-    cpa.ssot__CountryCode__c                    AS COUNTRY_CODE,
+    -- v1.1: address fields live denormalized on ssot__Account__dlm —
+    -- ssot__ContactPointAddress__dlm is not in the inbound share. PersonMailing*
+    -- is populated for persons; Billing* for businesses.
+    COALESCE(a.PersonMailingPostalCode__c, a.BillingPostalCode__c)  AS POSTAL_CODE,
+    COALESCE(a.PersonMailingState__c,      a.BillingState__c)       AS STATE_CODE,
+    COALESCE(a.PersonMailingCountry__c,    a.BillingCountry__c)     AS COUNTRY_CODE,
 
     -- Namespace flag
     a.External_ID_c__c                          AS EXTERNAL_ID
 FROM FINS.PUBLIC.MASTER_ACCOUNTS ma
 INNER JOIN FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__Account__dlm a
         ON a.ssot__Id__c = ma.ACCOUNT_ID
-LEFT JOIN  FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__ContactPointAddress__dlm cpa
-        ON cpa.ssot__Id__c = a.ssot__ContactPointAddressId__c
 WHERE ma.SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM FINS.PUBLIC.MASTER_ACCOUNTS);
 ```
 
 **Design notes:**
 - `INNER JOIN` on the share so an account in the view *means* anchors are real. Accounts not yet in the share are invisible to all 13 generators by design.
-- `LEFT JOIN` on address — missing ZIP still lets a row through for non-geo datasets.
+- Address fields come from denormalized columns on `ssot__Account__dlm` (PersonMailing* / Billing*) via COALESCE — `ssot__ContactPointAddress__dlm` is not currently in the `FINSDC3_DATASHARE` inbound share. If the address DMO is added later, swap COALESCE → LEFT JOIN with no schema change to the view.
 - `WHERE SNAPSHOT_DATE = MAX(...)` pin keeps the view to today's roster, not a historical Cartesian product.
 
 ---
