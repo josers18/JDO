@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stand up the shared foundation that unblocks all 13 Cumulus dataset plans — `V_ACCOUNT_ANCHORS` view, the 100-anchor pytest fixture, the `CUMULUS_SYNTH_SHARE` outbound share scaffold, and the `Snowflake_Cumulus_Common/` repo dir holding shared Python helpers.
+**Goal:** Stand up the shared foundation that unblocks all 13 Cumulus dataset plans — `V_ACCOUNT_ANCHORS` view, the 100-anchor pytest fixture, and the `Snowflake_Cumulus_Common/` repo dir holding shared Python helpers. DC egress is per-dataset (Task 8 in each per-dataset plan) via the existing "Snowflake (Federate / Zero Copy)" connector — no outbound share for Plan 0 to scaffold.
 
 **Architecture:** Plan 0 produces nothing user-facing — it's pure infrastructure. The view joins the existing `FINS.PUBLIC.MASTER_ACCOUNTS` to `FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__Account__dlm` (zero-copy share, already mounted) so the 13 generators can read up-to-date anchor fields without a sync task. The fixture and helpers live in a new sister-project `Snowflake_Cumulus_Common/` so the dataset projects can import from one place.
 
@@ -13,7 +13,7 @@
 ## Spec references
 
 - Source spec: `docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md`
-- Sections covered by this plan: §3 (anchor view), §5.1 (shared concerns), §7.5 (shared anchor fixture), §8 (zero-copy egress scaffold), §9 (Plan 0 row)
+- Sections covered by this plan: §3 (anchor view), §5.1 (shared concerns), §7.5 (shared anchor fixture), §9 (Plan 0 row). §8 (DC federation egress) is per-dataset, not Plan 0.
 
 ## Pre-flight (one-time)
 
@@ -38,8 +38,6 @@ Snowflake_Cumulus_Common/                          ← NEW sister-project
 ├── AGENTS.md                                       ← Task 1
 ├── schemas/
 │   └── v_account_anchors.sql                       ← Task 2
-├── shares/
-│   └── cumulus_synth_share.sql                     ← Task 8
 ├── cumulus_common/
 │   ├── __init__.py                                 ← Task 3
 │   ├── seed.py                                     ← Task 4 (deterministic hash seed)
@@ -81,7 +79,6 @@ mkdir -p Snowflake_Cumulus_Common/tests/fixtures
 Shared infrastructure for the 13 Cumulus dataset pipelines. Owns:
 
 - `FINS.PUBLIC.V_ACCOUNT_ANCHORS` — the shared anchor view (`schemas/v_account_anchors.sql`)
-- `FINS.PUBLIC.CUMULUS_SYNTH_SHARE` — the outbound zero-copy share to Data Cloud (`shares/cumulus_synth_share.sql`)
 - `cumulus_common.seed` — deterministic per-row seed function used by all 13 generators
 - `cumulus_common.coverage` — coverage-assertion helper used by all 13 generators
 - `tests/fixtures/sample_anchors.py` — 100-row pytest fixture (50 person + 50 business) used by every dataset's L1 tests
@@ -107,8 +104,7 @@ See the umbrella spec at `../docs/superpowers/specs/2026-05-27-cumulus-snowflake
 ## Layout
 
 \`\`\`
-schemas/             — Snowflake DDL (views, tables)
-shares/              — Outbound share definitions
+schemas/             — Snowflake DDL (views)
 cumulus_common/      — Reusable Python helpers
 tests/               — pytest tests + fixture
 \`\`\`
@@ -125,12 +121,11 @@ pytest tests/ -v
 ## Deploying
 
 \`\`\`bash
-# View
+# Anchor view (idempotent)
 snow sql -f schemas/v_account_anchors.sql
-
-# Outbound share scaffold
-snow sql -f shares/cumulus_synth_share.sql
 \`\`\`
+
+DC ingests each per-dataset table via the existing "Snowflake (Federate / Zero Copy)" connector. See per-dataset plan Task 8.
 ```
 
 - [ ] **Step 3: Write `Snowflake_Cumulus_Common/AGENTS.md`**
@@ -143,12 +138,13 @@ Pattern mirrors `Snowflake_CSAT_NPS/`.
 
 ## Boundaries
 
-- Owns: `FINS.PUBLIC.V_ACCOUNT_ANCHORS`, `FINS.PUBLIC.CUMULUS_SYNTH_SHARE`, `cumulus_common` Python pkg, shared anchor fixture.
+- Owns: `FINS.PUBLIC.V_ACCOUNT_ANCHORS`, `cumulus_common` Python pkg, shared anchor fixture.
 - Does NOT own: any dataset table, any generator SP, any TASK definition. Those live in the per-dataset sister-projects.
+- Does NOT own any outbound Snowflake share. DC ingests each `FINS.PUBLIC.<DATASET_TABLE>` via the existing "Snowflake (Federate / Zero Copy)" connector.
 
 ## Conventions
 
-- DDL for shared objects goes in `schemas/` (views) or `shares/` (shares).
+- DDL for shared objects goes in `schemas/` (views).
 - Python helpers go under `cumulus_common/` and are importable as `from cumulus_common.seed import seed_for`.
 - Every helper has a pytest test alongside in `tests/`.
 - Snowflake objects use the schema-qualified form `FINS.PUBLIC.<NAME>` in DDL — never rely on session schema.
@@ -1120,72 +1116,7 @@ git commit -m "test(cumulus): 100-anchor shared pytest fixture"
 
 ---
 
-## Task 8: Create `CUMULUS_SYNTH_SHARE` outbound share scaffold
-
-The share is the egress path: each dataset plan adds a `GRANT SELECT ON TABLE … TO SHARE` once the table exists. Plan 0 creates the empty share so per-dataset plans don't each redefine it.
-
-**Files:**
-- Create: `Snowflake_Cumulus_Common/shares/cumulus_synth_share.sql`
-
-- [ ] **Step 1: Write the share DDL**
-
-```sql
--- =============================================================================
--- FINS.PUBLIC.CUMULUS_SYNTH_SHARE
--- Outbound zero-copy share carrying all 13 Cumulus dataset tables to
--- Salesforce Data Cloud.
--- =============================================================================
--- Per-dataset plans append a GRANT SELECT ON TABLE FINS.PUBLIC.<DATASET>
--- TO SHARE CUMULUS_SYNTH_SHARE once their table exists.
---
--- See spec §8 for the egress design rationale (single share + 13 tables vs
--- 13 separate shares).
--- =============================================================================
-
-CREATE SHARE IF NOT EXISTS CUMULUS_SYNTH_SHARE
-COMMENT = 'Outbound share carrying all 13 Cumulus synthetic dataset tables to Data Cloud. See docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md §8.';
-
--- The share needs USAGE on FINS database / PUBLIC schema before per-dataset
--- table grants land. Idempotent — safe to re-run.
-GRANT USAGE ON DATABASE FINS TO SHARE CUMULUS_SYNTH_SHARE;
-GRANT USAGE ON SCHEMA FINS.PUBLIC TO SHARE CUMULUS_SYNTH_SHARE;
-
--- Add the consumer Salesforce Data Cloud account to the share. The exact
--- account identifier is environment-specific — set it via:
---     ALTER SHARE CUMULUS_SYNTH_SHARE ADD ACCOUNTS = <DC_ACCOUNT_LOCATOR>;
--- after this scaffold is deployed. Per-dataset plans do NOT touch this line.
-```
-
-- [ ] **Step 2: Deploy the share scaffold**
-
-```bash
-snow sql -f Snowflake_Cumulus_Common/shares/cumulus_synth_share.sql
-```
-
-Expected output: 3 successful statement messages (`Share CUMULUS_SYNTH_SHARE successfully created`, `GRANT USAGE successful` × 2). Re-run safely (`CREATE SHARE IF NOT EXISTS` + idempotent grants).
-
-- [ ] **Step 3: Verify the share exists and has no granted tables yet**
-
-```bash
-snow sql -q "SHOW SHARES LIKE 'CUMULUS_SYNTH_SHARE'"
-snow sql -q "SHOW GRANTS TO SHARE CUMULUS_SYNTH_SHARE"
-```
-
-Expected:
-- `SHOW SHARES`: 1 row, kind=`OUTBOUND`, owner=`ACCOUNTADMIN` (or your role).
-- `SHOW GRANTS`: 2 rows (USAGE on DATABASE FINS, USAGE on SCHEMA FINS.PUBLIC). No table grants — expected, since per-dataset plans add them.
-
-- [ ] **Step 4: Commit**
-
-```bash
-cd /Users/jsifontes/Documents/Git/JDO
-git add Snowflake_Cumulus_Common/shares/cumulus_synth_share.sql
-git commit -m "feat(cumulus): scaffold CUMULUS_SYNTH_SHARE outbound share"
-```
-
----
-
-## Task 9: Update repo-level docs to reference the new sister-project
+## Task 8: Update repo-level docs to reference the new sister-project
 
 **Files:**
 - Modify: `Snowflake/README.md`
@@ -1197,7 +1128,7 @@ git commit -m "feat(cumulus): scaffold CUMULUS_SYNTH_SHARE outbound share"
 Read the file first to find the "Pipelines" or analogous section, then add a third pipeline row to whatever table or list lists `Financial_Trades_Generation` and `Snowflake_CSAT_NPS`. Example pattern (adapt to actual file content):
 
 ```markdown
-3. **Cumulus Common (Plan 0 foundation)** — shared `V_ACCOUNT_ANCHORS` view, anchor fixture, and outbound share scaffolding for the 13 forthcoming Cumulus dataset pipelines (Plans 1–13). See `../Snowflake_Cumulus_Common/`.
+3. **Cumulus Common (Plan 0 foundation)** — shared `V_ACCOUNT_ANCHORS` view, anchor fixture, and Python helpers for the 13 forthcoming Cumulus dataset pipelines (Plans 1–13). DC ingests each per-dataset table via the existing "Snowflake (Federate / Zero Copy)" connector. See `../Snowflake_Cumulus_Common/`.
 ```
 
 - [ ] **Step 2: Add a row to the monorepo overview**
@@ -1228,7 +1159,7 @@ git commit -m "docs(cumulus): link Snowflake_Cumulus_Common in monorepo docs"
 
 ---
 
-## Task 10: Final verification gates
+## Task 9: Final verification gates
 
 - [ ] **Step 1: Run all tests**
 
@@ -1238,7 +1169,7 @@ source .venv/bin/activate
 pytest tests/ -v
 ```
 
-Expected: 21 passed, 0 failed.
+Expected: 24 passed, 0 failed.
 
 - [ ] **Step 2: Verify the deployed view returns expected counts**
 
@@ -1262,15 +1193,7 @@ Expected (rough order of magnitude — exact numbers depend on `MASTER_ACCOUNTS`
 
 If `distinct_categories < 4`, halt — the view is missing a category, which means the upstream `FinServ_ClientCategory_c__c` field has fewer values than Phase 4 produces.
 
-- [ ] **Step 3: Verify share is in place with no table grants yet**
-
-```bash
-snow sql -q "SHOW GRANTS TO SHARE CUMULUS_SYNTH_SHARE"
-```
-
-Expected: 2 rows (USAGE × 2), 0 table grants. Per-dataset plans add the table grants.
-
-- [ ] **Step 4: Verify importability of the common package from a fresh shell**
+- [ ] **Step 3: Verify importability of the common package from a fresh shell**
 
 ```bash
 cd /tmp && /Users/jsifontes/Documents/Git/JDO/Snowflake_Cumulus_Common/.venv/bin/python -c "
@@ -1283,7 +1206,7 @@ print('assert_coverage callable:', callable(assert_coverage))
 
 Expected: 16-char hex on first line, `True` on second line.
 
-- [ ] **Step 5: Mark Plan 0 done — ready for Plans 1–13**
+- [ ] **Step 4: Mark Plan 0 done — ready for Plans 1–13**
 
 Plan 0 produces no user-visible feature. Its deliverable is the foundation that 13 follow-on plans depend on. The L3 smoke test is implicit: if Plan 1 (Claritas Demographics) compiles and runs against this foundation, Plan 0 worked.
 
@@ -1291,13 +1214,13 @@ Plan 0 produces no user-visible feature. Its deliverable is the foundation that 
 git log --oneline | head -10
 ```
 
-Expected: 9 commits from Plan 0 (Tasks 1–9), in order.
+Expected: 8 commits from Plan 0 (Tasks 1–8) plus follow-up commits from spec revisions.
 
 ---
 
 ## Self-Review
 
-**Spec coverage:** Plan 0 implements §3 (anchor view, Task 2), §5.1 shared concerns (seed Task 4 + coverage Task 5), §7.5 shared fixture (Task 7), §8 egress scaffold (Task 8), §9 Plan 0 row (whole plan). Per-dataset SP shape (§5), error taxonomy (§6), and dataset-specific tests are intentionally out of scope for Plan 0 — they belong in Plans 1–13.
+**Spec coverage:** Plan 0 implements §3 (anchor view, Task 2), §5.1 shared concerns (seed Task 4 + coverage Task 5), §7.5 shared fixture (Task 7), §9 Plan 0 row (whole plan). Per-dataset SP shape (§5), error taxonomy (§6), DC federation egress (§8), and dataset-specific tests are intentionally out of scope for Plan 0 — they belong in Plans 1–13.
 
 **Placeholder scan:** None. The fixture body intentionally leaves a stub for the engineer to fill in 47+47 anchor rows; that's documented and the test suite enforces the distribution requirements rather than carrying inline pseudo-code.
 

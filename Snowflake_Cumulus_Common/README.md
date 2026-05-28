@@ -3,10 +3,11 @@
 Shared infrastructure for the 13 Cumulus dataset pipelines. Owns:
 
 - `FINS.PUBLIC.V_ACCOUNT_ANCHORS` — the shared anchor view (`schemas/v_account_anchors.sql`)
-- `FINS.PUBLIC.CUMULUS_SYNTH_SHARE` — the outbound zero-copy share to Data Cloud (`shares/cumulus_synth_share.sql`)
 - `cumulus_common.seed` — deterministic per-row seed function used by all 13 generators
 - `cumulus_common.coverage` — coverage-assertion helper used by all 13 generators
 - `tests/fixtures/sample_anchors.py` — 100-row pytest fixture (50 person + 50 business) used by every dataset's L1 tests
+
+DC egress is handled per-dataset via the existing **"Snowflake (Federate / Zero Copy)" connector** in Data Cloud — no outbound Snowflake share to manage here.
 
 See the umbrella spec at `../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md`.
 
@@ -29,10 +30,10 @@ See the umbrella spec at `../docs/superpowers/specs/2026-05-27-cumulus-snowflake
 ## Layout
 
 ```
-schemas/             — Snowflake DDL (views, tables)
-shares/              — Outbound share definitions
+schemas/             — Snowflake DDL (views)
 cumulus_common/      — Reusable Python helpers
 tests/               — pytest tests + fixture
+output/              — Deploy probes + recovered metadata
 ```
 
 ## Running tests
@@ -47,9 +48,8 @@ pytest tests/ -v
 ## Deploying
 
 ```bash
-# View
+# Anchor view (idempotent)
 snow sql -f schemas/v_account_anchors.sql
-
-# Outbound share scaffold
-snow sql -f shares/cumulus_synth_share.sql
 ```
+
+Per-dataset Data Cloud streams are configured manually in DC Setup → Data Streams via the existing "Snowflake (Federate / Zero Copy)" connector. See each per-dataset plan's Task 8 for the column mapping.

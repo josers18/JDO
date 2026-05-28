@@ -4,7 +4,7 @@
 
 **Goal:** This is the **template** every per-dataset plan (Plans 1–13) instantiates. Each dataset plan is a copy of this file with `<<DATASET>>` and similar placeholders replaced. The structure does not vary across datasets — only the audience predicate, row factory, and table schema do.
 
-**Architecture:** A single Snowpark Python stored procedure reads from `FINS.PUBLIC.V_ACCOUNT_ANCHORS` (Plan 0), builds deterministic rows via `cumulus_common.seed_for`, MERGEs into a per-dataset table, asserts coverage via `cumulus_common.assert_coverage`, and logs to `FINS.PUBLIC.TASK_EXECUTION_LOG`. A scheduled Snowflake TASK calls the SP via the existing `SP_RUN_WITH_RETRY` wrapper. The table is granted to `CUMULUS_SYNTH_SHARE` for DC egress.
+**Architecture:** A single Snowpark Python stored procedure reads from `FINS.PUBLIC.V_ACCOUNT_ANCHORS` (Plan 0), builds deterministic rows via `cumulus_common.seed_for`, MERGEs into a per-dataset table, asserts coverage via `cumulus_common.assert_coverage`, and logs to `FINS.PUBLIC.TASK_EXECUTION_LOG`. A scheduled Snowflake TASK calls the SP via the existing `SP_RUN_WITH_RETRY` wrapper. The table is then federated into Data Cloud as a Data Stream via the existing "Snowflake (Federate / Zero Copy)" connector — no outbound Snowflake share, no GRANT step.
 
 **Tech Stack:** Snowflake (SQL DDL, Snowpark Python SPs, TASKs, shares), Python 3.11+ (pytest, snowflake-snowpark-python), `snow` CLI v3+.
 
@@ -44,8 +44,6 @@ For any column-list / row-factory specifics, see the per-dataset attachment file
 ```bash
 snow sql -q "SHOW VIEWS LIKE 'V_ACCOUNT_ANCHORS' IN SCHEMA FINS.PUBLIC"
                           # expect 1 row — if 0, Plan 0 hasn't shipped; halt
-snow sql -q "SHOW SHARES LIKE 'CUMULUS_SYNTH_SHARE'"
-                          # expect 1 row, kind=OUTBOUND
 ls Snowflake_Cumulus_Common/cumulus_common/seed.py
                           # expect file present (Plan 0)
 ```
@@ -80,8 +78,6 @@ Inspect the output. If your target value is one of multiple near-equivalents (e.
 │   └── sp_generate_<<DATASET_SLUG_UNDERSCORE>>.py  ← Task 4 (Snowpark Python SP)
 ├── tasks/
 │   └── <<TASK_NAME_LOWER>>.sql                  ← Task 6 (CREATE TASK)
-├── shares/
-│   └── grant_to_synth_share.sql                 ← Task 7 (GRANT to share)
 └── tests/
     ├── conftest.py                              ← Task 3
     ├── test_<<DATASET_SLUG_UNDERSCORE>>_row_factory.py  ← Task 3 (L1 pytest)
@@ -127,7 +123,7 @@ spec at [docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md
 - Table: `FINS.PUBLIC.<<DATASET_TABLE>>`
 - Stored procedure: `FINS.PUBLIC.<<SP_NAME>>()`
 - Task: `FINS.PUBLIC.<<TASK_NAME>>` (<<CADENCE>>, <<CRON>>)
-- Egress: `CUMULUS_SYNTH_SHARE` → DC `<<DC_DMO>>`
+- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `Cumulus<<MIMICS_VENDOR>><<TOPIC>>__dll` → DMO `<<DC_DMO>>`
 
 ## Audience
 \`\`\`sql
@@ -146,8 +142,9 @@ pytest tests/ -v
 snow sql -f schemas/<<DATASET_TABLE_LOWER>>.sql
 snow sql -f procedures/sp_generate_<<DATASET_SLUG_UNDERSCORE>>.py
 snow sql -f tasks/<<TASK_NAME_LOWER>>.sql
-snow sql -f shares/grant_to_synth_share.sql
 \`\`\`
+
+DC ingest is configured in DC Setup → Data Streams (see Task 8 below).
 ```
 
 - [ ] **Step 3: Write `<<REPO_DIR>>/AGENTS.md`**
@@ -158,10 +155,12 @@ snow sql -f shares/grant_to_synth_share.sql
 Synthetic <<MIMICS_VENDOR>>-style dataset for the Cumulus FSC demo. One of 13.
 
 ## Boundaries
-- Owns: `FINS.PUBLIC.<<DATASET_TABLE>>`, `<<SP_NAME>>`, `<<TASK_NAME>>`, the share grant
-  for this table.
-- Does NOT own: `V_ACCOUNT_ANCHORS`, `CUMULUS_SYNTH_SHARE`, `MASTER_ACCOUNTS`,
-  the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
+- Owns: `FINS.PUBLIC.<<DATASET_TABLE>>`, `<<SP_NAME>>`, `<<TASK_NAME>>`, and the DC
+  Data Stream / DLO / DMO that federates this table.
+- Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers —
+  see `Snowflake_Cumulus_Common`.
+- Does NOT own any outbound Snowflake share. DC reads through via the existing
+  "Snowflake (Federate / Zero Copy)" connector.
 
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `<<DATASET_SALT>>`.
@@ -266,7 +265,7 @@ Write `<<REPO_DIR>>/schemas/<<DATASET_TABLE_LOWER>>.sql`:
 -- Cadence:    <<CADENCE>> via <<TASK_NAME>>
 -- Audience:   <<AUDIENCE_PREDICATE>>
 -- Generator:  <<SP_NAME>>
--- Egress:     CUMULUS_SYNTH_SHARE → DC <<DC_DMO>>
+-- Egress:     DC Snowflake federation → DLO/DMO <<DC_DMO>>
 -- Spec:       docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md
 -- =============================================================================
 
@@ -971,71 +970,21 @@ git commit -m "feat(cumulus): schedule <<TASK_NAME>>"
 
 ---
 
-## Task 7: Grant the dataset table to `CUMULUS_SYNTH_SHARE`
+## Task 7: Salesforce Data Cloud setup — create Data Stream, DLO, DMO
 
-**Files:**
-- Create: `<<REPO_DIR>>/shares/grant_to_synth_share.sql`
+DC ingests `FINS.PUBLIC.<<DATASET_TABLE>>` via the existing **"Snowflake (Federate / Zero Copy)" connector**. This task is manual UI work (~5 min); no Snowflake-side share or GRANT is needed.
 
-- [ ] **Step 1: Write the GRANT DDL**
+- [ ] **Step 1: Create the Data Stream in DC Setup**
 
-```sql
--- =============================================================================
--- Grant FINS.PUBLIC.<<DATASET_TABLE>> to CUMULUS_SYNTH_SHARE
--- =============================================================================
--- Idempotent — safe to re-run.
--- =============================================================================
+In Salesforce Data Cloud Setup → **Data Streams → New**, choose the **Snowflake** source. Pick the existing pre-configured Snowflake connection. Select the table `FINS.PUBLIC.<<DATASET_TABLE>>`. Name the resulting Data Stream / DLO `Cumulus<<MIMICS_VENDOR>><<TOPIC>>__dll`.
 
-GRANT SELECT ON TABLE FINS.PUBLIC.<<DATASET_TABLE>>
-    TO SHARE CUMULUS_SYNTH_SHARE;
-```
-
-- [ ] **Step 2: Deploy the grant**
-
-```bash
-snow sql -f <<REPO_DIR>>/shares/grant_to_synth_share.sql
-```
-
-Expected: `Statement executed successfully.`
-
-- [ ] **Step 3: Verify the grant landed**
-
-```bash
-snow sql -q "SHOW GRANTS TO SHARE CUMULUS_SYNTH_SHARE" | grep -i <<DATASET_TABLE>>
-```
-
-Expected: 1 row matching the dataset table name with `privilege=SELECT`.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add <<REPO_DIR>>/shares/grant_to_synth_share.sql
-git commit -m "feat(cumulus): grant <<DATASET_TABLE>> to CUMULUS_SYNTH_SHARE"
-```
-
----
-
-## Task 8: Salesforce Data Cloud setup — create DLO, promote to DMO
-
-This task is partly manual (DC Setup UI) and partly via the dc-connect-api skill.
-The result is `<<DC_DMO>>` mounted in DC, joinable to `ssot__Account__dlm`.
-
-- [ ] **Step 1: In Data Cloud, mount the inbound stream from `CUMULUS_SYNTH_SHARE`**
-
-If the share has not yet been mounted (first dataset to land), follow the
-one-time DC-side setup in the umbrella spec §8 — add the consumer SF account to
-the share, then create the inbound stream in DC pointing at `FINS.PUBLIC.<<DATASET_TABLE>>`.
-For subsequent datasets, the share is already mounted; only the per-table stream/DLO
-configuration is new.
-
-Use the `dc-connect-api` skill if doing this via REST. Otherwise, DC Setup UI
-→ Data Streams → New → Snowflake → existing connection → pick the table.
+If the org has more than one Snowflake connection, choose the one already pointed at the FINS database used by `Snowflake_CSAT_NPS` and `Financial_Trades_Generation` — confirm with the operator before creating a new connection.
 
 - [ ] **Step 2: Promote DLO → DMO with column mapping**
 
-In DC, promote `Cumulus<<MIMICS_VENDOR>><<TOPIC>>__dll` to
-`<<DC_DMO>>`. Map:
+In DC, promote `Cumulus<<MIMICS_VENDOR>><<TOPIC>>__dll` to `<<DC_DMO>>`. Map:
 
-- Snowflake `ACCOUNT_ID` → DC `ssot__AccountId__c` (lookup to `ssot__Account__dlm.ssot__Id__c`)
+- Snowflake `ACCOUNT_ID` → DC `ssot__AccountId__c` (Foreign Key → `ssot__Account__dlm.ssot__Id__c`)
 - Snowflake snake_case columns → DC camelCase fields per the standard SSOT mapper (see
   `Customer_Hydration/docs/foundational_streams.md` for the established convention).
 
@@ -1059,7 +1008,7 @@ appropriate Tier section:
 SELECT COUNT(*) FROM <<DC_DMO>>
 ```
 
-Expected: row count > 0, matching `SELECT COUNT(*) FROM FINS.PUBLIC.<<DATASET_TABLE>>` (within share lag).
+Expected: row count > 0, matching `SELECT COUNT(*) FROM FINS.PUBLIC.<<DATASET_TABLE>>` (within DC federation cache window — typically minutes).
 
 - [ ] **Step 5: Commit the docs change**
 
@@ -1071,7 +1020,7 @@ git commit -m "docs(cumulus): register <<DC_DMO>> in foundational-streams allowl
 
 ---
 
-## Task 9: L3 live smoke test
+## Task 8: L3 live smoke test
 
 - [ ] **Step 1: Trigger the SP manually in `jdo-uqj0jr` `FINS.PUBLIC`**
 

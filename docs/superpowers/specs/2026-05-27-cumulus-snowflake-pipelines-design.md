@@ -42,10 +42,11 @@
                 │     13 fact/reference tables in            │
                 │     FINS.PUBLIC                            │
                 └──────────────────┬─────────────────────────┘
-                                   │ inbound DC zero-copy share
-                                   ▼     CUMULUS_SYNTH_SHARE
+                                   │ DC "Snowflake (Federate / Zero Copy)"
+                                   ▼  connector — already configured.
+                                   │  One Data Stream per FINS.PUBLIC table.
                 ┌──────────────────────────────────────────────┐
-                │  Data Cloud — DLOs/DMOs hydrated from share  │
+                │  Data Cloud — DLOs/DMOs from connector       │
                 │  (Cumulus<Vendor><Topic>__dlm × 13)          │
                 └──────────────────┬───────────────────────────┘
                                    │
@@ -55,9 +56,9 @@
  (retrievers, prompts)  cross-DMO segs    FlexCards/UI      dashboards
 ```
 
-**The shape in one paragraph:** 13 new sister-projects to `Snowflake_CSAT_NPS` / `Financial_Trades_Generation`, each owning one Snowflake table populated by a Snowpark Python stored procedure on a daily/weekly/monthly task. All 13 generators read account context from a single new view `FINS.PUBLIC.V_ACCOUNT_ANCHORS` that joins `MASTER_ACCOUNTS` to the existing `FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__Account__dlm` zero-copy share — so anchor fields stay live without any sync task. Each table flows back into Data Cloud via a single outbound zero-copy share `CUMULUS_SYNTH_SHARE`, becoming new DLOs/DMOs that drive segments, Agentforce grounding, and demo UI surfaces.
+**The shape in one paragraph:** 13 new sister-projects to `Snowflake_CSAT_NPS` / `Financial_Trades_Generation`, each owning one Snowflake table populated by a Snowpark Python stored procedure on a daily/weekly/monthly task. All 13 generators read account context from a single new view `FINS.PUBLIC.V_ACCOUNT_ANCHORS` that joins `MASTER_ACCOUNTS` to the existing `FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__Account__dlm` zero-copy share — so anchor fields stay live without any sync task. Each Snowflake table is then federated into Data Cloud as a new Data Stream via the **already-configured DC "Snowflake (Federate / Zero Copy)" connector**, materialized as a DLO and promoted to a DMO that drives segments, Agentforce grounding, and demo UI surfaces.
 
-**Key architectural property:** zero-copy on **both** ingress (anchors) and egress (DLOs). The only hand-rolled data movement inside Snowflake is the synthesis itself — no API pumps, no sync drift.
+**Key architectural property:** zero-copy on **both** ingress (anchors via inbound share) and egress (per-table federation through the existing DC Snowflake connector — no outbound share, no data copy into DC, no CREATE SHARE privilege). Snowflake is the system of record; DC reads through. The only hand-rolled data movement inside Snowflake is the synthesis itself — no API pumps, no sync drift.
 
 ---
 
@@ -287,7 +288,7 @@ Without a salt, two datasets seeded only by `ACCOUNT_ID` would produce correlate
 
 | Failure mode | Detected where | Behavior | Operator action |
 |---|---|---|---|
-| **Anchor share unavailable** | Audience SELECT raises | Task fails fast; `ERROR_MESSAGE = 'anchor unreachable: <error>'` | Check DC outbound share status |
+| **Anchor share unavailable** | Audience SELECT raises | Task fails fast; `ERROR_MESSAGE = 'anchor unreachable: <error>'` | Check inbound DC share `FINSDC3_DATASHARE` status |
 | **Empty audience** | `accounts_processed == 0` | Task **succeeds**; logs `ROWS_INSERTED=0`. Email flags as warning. | Investigate predicate or upstream loss |
 | **MERGE deadlock / transient I/O** | Snowpark raises mid-MERGE | `SP_RUN_WITH_RETRY` retries 3× w/ backoff | None if retry succeeds |
 | **Coverage gap** | Step 4 assertion | Task fails red, `ERROR_MESSAGE = 'coverage gap: N missing rows'` | Diagnose row-factory bug |
@@ -402,9 +403,9 @@ After each plan ships, run the SP once against `jdo-uqj0jr`'s `FINS.PUBLIC` and 
 
 ---
 
-## 8. DC zero-copy egress
+## 8. DC zero-copy egress (federation via existing connector)
 
-**Egress shape:** one outbound Snowflake share `CUMULUS_SYNTH_SHARE` containing all 13 tables. Salesforce side mounts it once via Data Cloud, hydrating 13 DLOs that promote to 13 DMOs (table from §4).
+**Egress shape:** each `FINS.PUBLIC.<DATASET_TABLE>` is exposed to Data Cloud as its own Data Stream via the **already-configured "Snowflake (Federate / Zero Copy)" connector** in the org's DC instance. No outbound Snowflake share is created; no `CREATE SHARE` privilege is needed. DC federates queries through to Snowflake live — Snowflake stays the system of record.
 
 **Naming conventions:**
 - DLO: `Cumulus<Vendor><Topic>__dll`
@@ -412,15 +413,17 @@ After each plan ships, run the SP once against `jdo-uqj0jr`'s `FINS.PUBLIC` and 
 - Primary key column: `ACCOUNT_ID` → DC field `ssot__AccountId__c` (joinable to `ssot__Account__dlm`)
 - Snake_case Snowflake columns → camelCase DC fields via standard SSOT mapper
 
-**Refresh cadence:** Snowflake share refreshes are continuous; DC pulls on its own schedule (typically every 1h for active streams). Each DLO is configured `refreshMode: TOTAL_REPLACE` since the Snowflake-side MERGE is already idempotent — no incremental delta logic needed.
+**Refresh / latency:** federation queries Snowflake live, so DLO/DMO contents reflect Snowflake state at query time (within DC's caching window for federated sources, typically minutes). The Snowpark SP's MERGE timing controls when new rows appear in DC — no separate DC refresh schedule to manage. Generators that re-run idempotently mid-cadence are safe since DC reads the current row state on next query.
 
-**One-time setup per dataset (folded into each plan):**
-1. Snowflake: `GRANT SELECT ON TABLE … TO SHARE CUMULUS_SYNTH_SHARE`
-2. DC: create the inbound stream pointing at the share
-3. DC: promote DLO → DMO with the column mapping
-4. DC: add to the foundational-streams allowlist (per `Customer_Hydration/docs/foundational_streams.md`)
+**One-time setup per dataset (folded into each plan, Task 8):**
+1. **Snowflake:** nothing. The table is already query-eligible by the connector's role once it lands in `FINS.PUBLIC`.
+2. **DC:** in Data Cloud Setup → Data Streams → New, pick the existing "Snowflake (Federate / Zero Copy)" connection, select `FINS.PUBLIC.<DATASET_TABLE>`, name the stream `Cumulus<Vendor><Topic>__dll`.
+3. **DC:** map the DLO's columns to a new DMO `Cumulus<Vendor><Topic>__dlm`. `ACCOUNT_ID` → `ssot__AccountId__c` with a Foreign Key relationship to `ssot__Account__dlm.ssot__Id__c`. Snake_case → camelCase per the standard SSOT mapper.
+4. **DC:** add the DMO to the foundational-streams allowlist in `Customer_Hydration/docs/foundational_streams.md` (the existing per-DMO catalog).
 
-**Single share + 13 tables** (vs. 13 separate shares) is deliberate: one DC connection to mount, one set of credentials, and adding a 14th dataset later is just a `GRANT` rather than a new share-mount workflow.
+**Per-dataset DC setup is manual** in DC Setup UI for now (skill: `dc-connect-api` if scripting later). 13 datasets × ~5 min each = ~1h of UI work spread across the per-dataset plans, not a Plan 0 deliverable. Each plan's Task 8 captures the dataset-specific column mapping.
+
+**Why federation, not a share or Bulk API:** federation requires zero net-new infrastructure (the connector already exists), no `CREATE SHARE` account privilege, and no API write throttling. The cost is read-time latency (Snowflake compute on every DC query); for the demo workload (≤ daily refresh on 36K accounts × 13 datasets) this is well within free-tier compute headroom. If federation latency becomes a bottleneck for a specific high-volume dataset (e.g., daily AML at 36K rows/day), that dataset can be promoted to a materialized DC stream later — design unchanged.
 
 ---
 
@@ -430,7 +433,7 @@ Each plan is a phased implementation following `Customer_Hydration` style — ge
 
 | Plan | Scope | Dependency |
 |---|---|---|
-| **Plan 0** | `V_ACCOUNT_ANCHORS` view + `tests/fixtures/sample_anchors.py` shared fixture + `CUMULUS_SYNTH_SHARE` outbound share scaffold | none |
+| **Plan 0** | `V_ACCOUNT_ANCHORS` view + `tests/fixtures/sample_anchors.py` shared fixture + `cumulus_common` Python helpers (no outbound share — DC federates via the existing Snowflake connector) | none |
 | **Plan 1** | `CLARITAS_DEMOGRAPHICS` (Tier 1) | Plan 0 |
 | **Plan 2** | `MSCI_ESG_SCORES` (Tier 2 — parallel track) | Plan 0 |
 | **Plan 3** | `DNB_BUSINESS_CREDIT` (Tier 1) | Plan 0 |
