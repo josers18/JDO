@@ -61,3 +61,16 @@ def test_seed_rejects_empty_account_id():
     """Empty account_id would collapse all accounts to the same seed. Fail loud."""
     with pytest.raises(ValueError, match="account_id must be non-empty"):
         seed_for("", "claritas", datetime(2026, 5, 1))
+
+
+def test_seed_rejects_none_account_id():
+    """None account_id should fail the same way as empty (defense against
+    nullable anchor-view columns leaking through to the seed function)."""
+    with pytest.raises(ValueError, match="account_id must be non-empty"):
+        seed_for(None, "claritas", datetime(2026, 5, 1))  # type: ignore[arg-type]
+
+
+def test_seed_rejects_none_salt():
+    """None salt — same defense, on the other input."""
+    with pytest.raises(ValueError, match="dataset_salt must be non-empty"):
+        seed_for("ACCT-001", None, datetime(2026, 5, 1))  # type: ignore[arg-type]
