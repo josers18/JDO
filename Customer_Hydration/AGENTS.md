@@ -474,6 +474,20 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   `output/account-dmo-audit-2026-05-27/REPORT.md`,
   `docs/superpowers/specs/2026-05-27-phase-5-dmo-backfill-design.md`,
   `docs/superpowers/plans/2026-05-27-phase-5-dmo-backfill.md`.
+- **Phase 6** (Fleet-wide MDMP/MDM External_ID renumber, 2026-05-27) —
+  Renumbered all 36,222 Accounts off `HYDRATE-{RT,WL,SMB,COM,HH}-*`
+  to a sequential `MDMP##### / MDM#####` convention: persons →
+  `MDMP00001..MDMP25424`, businesses → `MDM00001..MDM10798`.
+  Existing 159 MDM seed rows + 19 previously-NULL rows folded into
+  the same sequence. Closed 11 outstanding broken rows (5 partial-
+  fill MDM seeds + 6 Cohort A NULL persons) by bulk-upserting
+  ClientCategory (43 rows, RecordType-derived), then synthetic
+  AnnualIncome + Demographics + addresses + birthdates for the
+  Cohort A 6. `customer_hydration/phase5/segments.HYDRATE_PREFIX`
+  switched to `"MDM"` so future segment recreates target the new
+  cohort. Phase 6 follow-ups (segment recreate from a clean shell;
+  persona detector + generator forward-run prefix updates) tracked
+  in `docs/ROADMAP.md`.
 
 ## When extending personas
 

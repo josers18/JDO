@@ -7,11 +7,14 @@
 #   <ConfigKeyInPascalCase>  (e.g. retail_all -> RetailAll)
 # The live API echoes back ``apiName`` in the form ``<DeveloperName>__seg``.
 #
-# Membership is filtered by External_ID_c__c containing 'HYDRATE-' so we
-# only match hydrated demo accounts (not the 178 pre-existing seed
-# accounts on the org). The HYDRATE-* TextComparison clause is auto
-# AND-injected by the loader (see segments.inject_hydrate_clause), so
-# the YAML rule never needs to mention it.
+# Membership is filtered by External_ID_c__c containing 'MDM' so we
+# only match the demo cohort. As of Phase 6 (2026-05-27) the entire
+# fleet was renumbered from HYDRATE-* to a sequential MDMP##### /
+# MDM##### convention. The MDM TextComparison clause is auto AND-
+# injected by the loader (see segments.inject_hydrate_clause), so the
+# YAML rule never needs to mention it. Note the segment-injection code
+# uses `contains "MDM"` which matches both MDM##### businesses and
+# MDMP##### persons.
 #
 # Verified live against jdo-uqj0jr.
 #   target DMO: ssot__Account__dlm  (retargeted from Account_demo__dlm

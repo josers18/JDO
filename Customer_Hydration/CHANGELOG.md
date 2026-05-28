@@ -8,6 +8,44 @@ entry rather than retroactively editing prior ones.
 
 ## [May 2026] — 2026-05-19 → 2026-05-27
 
+### 2026-05-27 — Phase 6: fleet-wide MDMP/MDM External_ID renumber
+
+- `feat(customer-hydration)` — Renumbered all 36,222 Account
+  External_IDs from the legacy `HYDRATE-{RT,WL,SMB,COM,HH}-*`
+  prefixes to a sequential `MDMP##### / MDM#####` convention:
+  25,424 person Accounts → `MDMP00001..MDMP25424`; 10,798 business
+  Accounts → `MDM00001..MDM10798`. Existing seed rows (MDMP002..MDMP048,
+  MDM001..MDM111) renumbered to fit the new 5-digit width. 19
+  previously-NULL External_ID rows (6 person + 13 business) included
+  in the renumber; the 6 Cohort A persons (David Chen, Marcus
+  Rodriguez, Anika Patel, Julia Nakamura, Ethan Brooks, Priya
+  Venkatesh) now have full MDMP IDs and got synthetic addresses,
+  birthdates, emails, phones, demographics.
+- `fix(customer-hydration)` — ClientCategory now populated on all
+  36,222 rows: 43 previously-NULL rows filled via RecordType-mapping
+  bulk upsert (Household RT → "Household", Person Account variants →
+  "Retail", Account RT → "Small Business").
+- `fix(customer-hydration)` — 11 originally-broken rows from the
+  prior session's triage (`MDMP00002`/`MDMP00016`/`MDMP00018`/
+  `MDMP00037`/`MDMP00048` + the 6 Cohort A IDs) now fully populated
+  with MaritalStatus / CurrentEmployer / Occupation / AnnualIncome /
+  BillingStreet via direct bulk-upsert (these fields aren't owned
+  by any Phase 4/5 deriver, so generator-driven backfill couldn't
+  reach them).
+- `feat(customer-hydration)` — `customer_hydration/phase5/segments.
+  HYDRATE_PREFIX` switched from `"HYDRATE-"` to `"MDM"` so
+  segment-injection clauses target the renumbered cohort.
+  `config/segments.yaml` header updated. All 46 segment-orchestration
+  + translator-related-to tests still green after the prefix change.
+- **Cutover blocker:** the 21 live segments on `jdo-uqj0jr` still
+  carry the old `HYDRATE-` server-side criteria; until they're
+  recreated they return 0 members. Recreate command requires a
+  fresh shell (the current session's token-redaction hook breaks DC
+  REST auth) — see `docs/ROADMAP.md` § Phase 6 follow-ups.
+- `Account_Home` DC stream refresh triggered via Lightning UI
+  (`dc-stream-full-refresh-via-ui` skill) so the DLO/DMO see the
+  new IDs.
+
 ### 2026-05-27 — Phase 5: cohort-aware Account DMO backfill
 
 - `feat(customer-hydration)` — Closed 56 of 64 gap fields on `ssot__Account__dlm`

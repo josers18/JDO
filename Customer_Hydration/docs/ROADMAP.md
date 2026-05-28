@@ -1,10 +1,38 @@
 # Roadmap
 
-Open work items deferred by the closed phases (1, 2, 3a–3c, 3d, 4, 5).
+Open work items deferred by the closed phases (1, 2, 3a–3c, 3d, 4, 5, 6).
 Each entry has a one-line evidence link to the spec or audit that
 documented the deferral. When you pick one up, file a fresh spec under
 `docs/superpowers/specs/` and a plan under `docs/superpowers/plans/`,
 then cross-link from this file to the new artifacts.
+
+## Phase 6 follow-ups (cutover blockers)
+
+- **Segment recreate against MDM filter.** The 21 live segments on
+  `jdo-uqj0jr` still hold their old `External_ID_c__c contains
+  "HYDRATE-"` server-side criteria from Phase 2/3d. The Phase 6 fleet
+  rename invalidated that match (every Account is now `MDM*`/`MDMP*`,
+  no longer `HYDRATE-*`), so until segments are recreated they return
+  0 members. The recreate call needs a clean session (the current
+  Claude session has a token-redaction hook that breaks DC REST auth).
+  Run from a fresh shell:
+  `python hydrate.py create-segments --target-org jdo-uqj0jr --recreate '*' --allow-production`.
+  Code side is ready —
+  `customer_hydration/phase5/segments.HYDRATE_PREFIX` is now `"MDM"`
+  and `config/segments.yaml` header is updated.
+- **Persona detector update.** `customer_hydration/derivers/_archetype.
+  _persona_from_external_id_or_rt` only knows `HYDRATE-{RT,WL,SMB,
+  COM,HH}-*` prefixes. Post-rename, every persona resolves to `retail`
+  or `unknown` via the RecordType fallback. Phase 1 generators wrote
+  the rich persona-aware data at hydration time; reruns don't rewrite
+  it (the orchestrator's `delta` filter respects existing values),
+  but the detector should still learn the MDMP/MDM convention so
+  future generator passes classify correctly.
+- **Forward-run prefix.** `customer_hydration/generators/*.py` and
+  `augment_phase3.py` may still emit `HYDRATE-*` External_IDs for
+  newly-generated rows. Future generator passes should produce
+  MDMP/MDM-prefixed IDs to maintain the convention introduced in
+  Phase 6.
 
 ## Mapping work — DLO → DMO
 

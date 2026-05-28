@@ -90,7 +90,7 @@ class TestInjectHydrateClause:
         assert HYDRATE_CLAUSE["type"] == "TextComparison"
         assert HYDRATE_CLAUSE["subject"]["fieldApiName"] == "External_ID_c__c"
         assert HYDRATE_CLAUSE["operator"] == "contains"
-        assert HYDRATE_CLAUSE["values"] == ["HYDRATE-"]
+        assert HYDRATE_CLAUSE["values"] == ["MDM"]
 
     def test_hydrate_clause_targets_segment_dmo_when_passed_explicitly(self):
         """When inject_hydrate_clause is given a target_dmo, the HYDRATE
@@ -108,7 +108,7 @@ class TestInjectHydrateClause:
         hydrate = out["filters"][0]
         assert hydrate["subject"]["objectApiName"] == "ssot__Account__dlm"
         assert hydrate["subject"]["fieldApiName"] == "External_ID_c__c"
-        assert hydrate["values"] == ["HYDRATE-"]
+        assert hydrate["values"] == ["MDM"]
 
     def test_wrapping_a_logical_comparison_keeps_structure(self):
         # A user-supplied LogicalComparison.and is wrapped, NOT merged
@@ -589,7 +589,7 @@ segments:
         assert d.target_dmo == "Account_demo__dlm"
         # Hydrate clause must be embedded in the criteria tree.
         assert d.include_criteria["type"] == "LogicalComparison"
-        assert d.include_criteria["filters"][0]["values"] == ["HYDRATE-"]
+        assert d.include_criteria["filters"][0]["values"] == ["MDM"]
 
     def test_raises_on_missing_required_field(self, tmp_path: Path):
         yaml_path = tmp_path / "bad.yaml"
@@ -715,7 +715,7 @@ segments:
         assert criteria["type"] == "LogicalComparison"
         # HYDRATE clause is the first filter — flat (no {"filter": ...}
         # wrapper), matching the live API's create-shape.
-        assert criteria["filters"][0]["values"] == ["HYDRATE-"]
+        assert criteria["filters"][0]["values"] == ["MDM"]
 
     @patch("customer_hydration.phase5.segments.get_org_session")
     @patch("customer_hydration.phase5.segments.list_segments")
