@@ -65,6 +65,7 @@ def _build_registry() -> Registry:
     from customer_hydration.derivers.addresses import AddressesDeriver
     from customer_hydration.derivers.contact import ContactDeriver
     from customer_hydration.derivers.branch import BranchAssignmentDeriver
+    from customer_hydration.derivers.phase5_universal import Phase5UniversalDeriver
 
     registry = Registry()
     registry.register(RelationshipDeriver())
@@ -75,6 +76,7 @@ def _build_registry() -> Registry:
     registry.register(AddressesDeriver())
     registry.register(ContactDeriver())
     registry.register(BranchAssignmentDeriver())
+    registry.register(Phase5UniversalDeriver())
     return registry
 
 
