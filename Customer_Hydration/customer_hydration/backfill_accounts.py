@@ -49,12 +49,13 @@ logger = logging.getLogger(__name__)
 
 
 def _build_registry() -> Registry:
-    """Build the deriver registry with all seven derivers.
+    """Build the deriver registry with all derivers.
 
     Plan 4b: relationship, credit_personal, profile (person), demographics,
              addresses (person), contact (person).
     Plan 4c: credit_bureau (B2B). The Plan 4b derivers also got B2B branches
              added in Plan 4c, so they apply to both.
+    Phase 5a: branch (BranchCode + BranchName from live BranchUnit + BUC).
     """
     from customer_hydration.derivers.relationship import RelationshipDeriver
     from customer_hydration.derivers.credit_personal import CreditPersonalDeriver
@@ -63,6 +64,7 @@ def _build_registry() -> Registry:
     from customer_hydration.derivers.demographics import DemographicsDeriver
     from customer_hydration.derivers.addresses import AddressesDeriver
     from customer_hydration.derivers.contact import ContactDeriver
+    from customer_hydration.derivers.branch import BranchAssignmentDeriver
 
     registry = Registry()
     registry.register(RelationshipDeriver())
@@ -72,7 +74,59 @@ def _build_registry() -> Registry:
     registry.register(DemographicsDeriver())
     registry.register(AddressesDeriver())
     registry.register(ContactDeriver())
+    registry.register(BranchAssignmentDeriver())
     return registry
+
+
+def _fetch_branch_lookup(runner: SfRunner) -> tuple[list[dict], dict[str, dict]]:
+    """Pull BranchUnit + BranchUnitCustomer once. Returns:
+
+    - branch_units: list of {Id, BranchCode, Name} for state-weighted random.
+    - canonical_by_account: dict mapping AccountId -> {BranchCode, Name} for
+      the ~144 accounts that already have a canonical BranchUnitCustomer link.
+
+    Live in jdo-uqj0jr (2026-05-27): 26 BranchUnit rows + 144 BUC rows. Both
+    queries are tiny; one-shot at startup, no pagination needed.
+    """
+    branches: list[dict] = []
+    canonical: dict[str, dict] = {}
+    try:
+        for row in runner.query(
+            "SELECT Id, BranchCode, Name FROM BranchUnit WHERE BranchCode != null"
+        ):
+            branches.append({
+                "Id": row.get("Id"),
+                "BranchCode": row.get("BranchCode"),
+                "Name": row.get("Name"),
+            })
+    except Exception as exc:
+        logger.warning("BranchUnit fetch failed: %s — branch deriver will no-op", exc)
+        return [], {}
+
+    try:
+        # Note: BUC stores BranchUnit as a lookup; dot-walk for code+name.
+        for row in runner.query(
+            "SELECT AccountId, BranchUnit.BranchCode, BranchUnit.Name "
+            "FROM BranchUnitCustomer WHERE BranchUnit.BranchCode != null"
+        ):
+            account_id = row.get("AccountId")
+            bu = row.get("BranchUnit") or {}
+            if account_id and bu.get("BranchCode"):
+                canonical[account_id] = {
+                    "BranchCode": bu.get("BranchCode"),
+                    "Name": bu.get("Name"),
+                }
+    except Exception as exc:
+        logger.warning(
+            "BranchUnitCustomer fetch failed: %s — falling back to state-weighted "
+            "random for every row", exc,
+        )
+
+    logger.info(
+        "branch lookup: %d BranchUnit rows, %d canonical BranchUnitCustomer links",
+        len(branches), len(canonical),
+    )
+    return branches, canonical
 
 
 def _resolve_org_id(target_org: str) -> str | None:
@@ -194,6 +248,11 @@ def run_backfill(
     if life_events_by_id is None:
         life_events_by_id = {}
 
+    # Phase 5a: pull BranchUnit + BranchUnitCustomer once. Each record gets
+    # _branch_units (full list) and _branch_unit_customer (canonical link, if
+    # any) injected before deriver runs. Empty lookups = branch deriver no-ops.
+    branch_units, canonical_branches = _fetch_branch_lookup(runner)
+
     # Derive
     rows_with_deltas = 0
     rows_skipped_already_full = 0
@@ -210,6 +269,12 @@ def run_backfill(
             record, rng,
             life_events=life_events_by_id.get(record["Id"], []),
         )
+        # Phase 5a: enrich the record with branch lookups so the BranchAssignmentDeriver
+        # can pick a code+name without doing I/O per row.
+        record["_branch_units"] = branch_units
+        canonical = canonical_branches.get(record["Id"])
+        if canonical:
+            record["_branch_unit_customer"] = canonical
         candidates = registry.run(archetype, record, rng)
         if registry.errors:
             rows_with_deriver_errors += 1
