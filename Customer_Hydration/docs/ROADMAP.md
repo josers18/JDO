@@ -1,10 +1,23 @@
 # Roadmap
 
-Open work items deferred by the closed phases (1, 2, 3a–3c, 3d, 4, 5, 6).
+Open work items deferred by the closed phases (1, 2, 3a–3c, 3d, 4, 5, 6, 7).
 Each entry has a one-line evidence link to the spec or audit that
 documented the deferral. When you pick one up, file a fresh spec under
 `docs/superpowers/specs/` and a plan under `docs/superpowers/plans/`,
 then cross-link from this file to the new artifacts.
+
+## Phase 7 follow-ups
+
+- **`Email__c` FLS-blocked on biz cohort.** Phase 7a tried to populate
+  `Account.Email__c` (custom string field) on all 10,798 MDM business
+  Accounts but every row failed with
+  `INVALID_FIELD_FOR_INSERT_UPDATE: Email__c — security settings of
+  this field`. The CSV column was dropped on retry; the deterministic
+  values are still in `output/phase7-2026-05-27/phase7a_biz.csv` (full)
+  and `phase7a_biz_no_email.csv` (loaded). Resolution: grant
+  field-level write to the loader profile (or run via a sysadmin perm
+  set), then re-bulk-update the original CSV. Evidence:
+  `output/phase7-2026-05-27/750am00000gA0bKAAS-failed-records.csv`.
 
 ## Phase 6 follow-ups (cutover blockers)
 

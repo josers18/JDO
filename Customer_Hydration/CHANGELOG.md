@@ -8,6 +8,31 @@ entry rather than retroactively editing prior ones.
 
 ## [May 2026] — 2026-05-19 → 2026-05-27
 
+### 2026-05-27 — Phase 7: biz-cohort completion + person __pc shadow coverage
+
+- `feat(customer-hydration)` — Phase 7a closed the biz-side gap on 7
+  fields the Phase 5b parity pass had skipped: `FinServ__NetWorth__c`
+  (revenue × 4), `FinServ__CreditRating__c` (banded from
+  `Equifax_Credit_Risk_Score__c`), `Tier__c` (persona-mapped A/B/C),
+  `FinServ__LifetimeValue__c` (revenue × 7%, persona-floored),
+  `FinServ__LastUsedChannel__c` (deterministic pick),
+  `Ownership` (~10% Public via stable hash), `TickerSymbol`
+  (gated to Public ownership; 1,009/10,798 = 9.3% populated as
+  designed). Loaded via `sf data update bulk`, 10,798/10,798 success.
+- `feat(customer-hydration)` — Phase 7b closed the person-side gap on 5
+  `__pc` shadow + standard fields the Phase 5b ALL_NULL bucket missed
+  (`FinServ_Category__pc`, `FinServ_Contact_Status__pc`,
+  `FinServ__CommunicationPreferences__pc` multipicklist,
+  `FinServ__ContactPreference__pc`, `FinServ__LastUsedChannel__c`).
+  All 25,424/25,424 person Accounts updated successfully.
+- **Deferred:** `Email__c` FLS-blocked the loader profile —
+  `INVALID_FIELD_FOR_INSERT_UPDATE` on every row; column dropped from
+  the retry CSV. See ROADMAP "Phase 7 follow-ups" for the
+  permission-set fix.
+- Generator script: `scripts/phase7_generate_csvs.py` (deterministic
+  hash-keyed value selection; SOQL fetch + CSV write). Artifacts in
+  `output/phase7-2026-05-27/`.
+
 ### 2026-05-27 — Phase 6: fleet-wide MDMP/MDM External_ID renumber
 
 - `feat(customer-hydration)` — Renumbered all 36,222 Account
