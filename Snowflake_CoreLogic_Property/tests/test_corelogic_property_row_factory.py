@@ -346,23 +346,29 @@ def test_last_transfer_year_stable_across_quarters(in_audience_anchors):
 
 
 def test_mortgage_rate_stable_across_quarters(in_audience_anchors):
-    """For a given account that owns + carries a mortgage in all 4 quarters,
-    MORTGAGE_RATE_PCT must be identical across quarters within the same year
-    (fixed-rate mortgages don't reprice quarter-to-quarter)."""
+    """For a given account that owns + carries a mortgage in 2+ quarters,
+    MORTGAGE_RATE_PCT must be identical across those quarters within the same
+    year (fixed-rate mortgages don't reprice quarter-to-quarter).
+
+    Note: most anchors won't be IS_OWNER=true AND mortgage>0 in all 4 quarters
+    (owner-status flips quarter-to-quarter, mortgages get paid off), so we
+    only require >=2 quarters of overlap to verify the year-stability invariant.
+    """
     if not in_audience_anchors:
         pytest.skip("empty audience")
     checked = 0
     for a in in_audience_anchors:
         rows = [_row_for(a, datetime(2026, q, 1)) for q in (1, 4, 7, 10)]
-        # Need IS_OWNER=true AND a non-zero mortgage in every quarter.
-        if all(r["IS_OWNER"] and r["MORTGAGE_RATE_PCT"] is not None for r in rows):
-            rates = {r["MORTGAGE_RATE_PCT"] for r in rows}
-            assert len(rates) == 1, (
+        rates_in_quarters = [r["MORTGAGE_RATE_PCT"] for r in rows
+                             if r["IS_OWNER"] and r["MORTGAGE_RATE_PCT"] is not None]
+        if len(rates_in_quarters) >= 2:
+            distinct = set(rates_in_quarters)
+            assert len(distinct) == 1, (
                 f"MORTGAGE_RATE_PCT drifted across quarters for "
-                f"{a['ACCOUNT_ID']}: {rates}"
+                f"{a['ACCOUNT_ID']}: {distinct}"
             )
             checked += 1
-            if checked >= 2:
+            if checked >= 3:
                 return
     if checked == 0:
-        pytest.skip("no consistent mortgaged owners across all 4 quarters of 2026")
+        pytest.skip("no anchor had >=2 mortgaged-owner quarters in 2026")
