@@ -255,6 +255,14 @@ cat docs/superpowers/plans/attachments/cumulus-plan-<<PLAN_N>>-<<DATASET_SLUG>>-
 Expected: a markdown file specifying every column name, data type, NULL/NOT NULL,
 COMMENT, and the primary key.
 
+**v1.4.1 — `snow sql` Jinja gotcha (discovered Plan 3 T2):** the `snow` CLI
+treats `&{` as a Jinja template-variable directive. Any literal `&` in the
+SQL content (header comments, COMMENT clauses, etc.) followed by `{` will
+crash deployment with `SQL template rendering error`. **Avoid `&` in SQL
+files entirely** — substitute `and` or use the alternate spelling (e.g.
+`DnB` or `Dun and Bradstreet` for the D&B dataset). README.md / AGENTS.md
+are not affected since they aren't deployed via `snow sql`.
+
 - [ ] **Step 2: Translate the rowspec to a Snowflake DDL file**
 
 Write `<<REPO_DIR>>/schemas/<<DATASET_TABLE_LOWER>>.sql`:
