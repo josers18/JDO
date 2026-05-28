@@ -263,6 +263,16 @@ files entirely** — substitute `and` or use the alternate spelling (e.g.
 `DnB` or `Dun and Bradstreet` for the D&B dataset). README.md / AGENTS.md
 are not affected since they aren't deployed via `snow sql`.
 
+**v1.4.2 extension (Plan 3 T6):** the gotcha extends to the SP **body**
+inlined inside `$$ ... $$` because `snow sql -f` runs the entire file
+through Jinja, including Python source. `&` followed by a letter (e.g.
+`D&B`, `S&P`) trips `'B' is undefined`. Spaced ampersands (`Food &
+Beverage`, `Oil & Gas`) are fine. **Fix at deploy-build time:** in
+`scripts/deploy_sp.py`, add a sanitize pass that replaces the
+problematic `&<letter>` strings before writing `sp_create_procedure.sql`
+(e.g. `sp_clean = sp_src.replace("D&B", "DnB")`). The original Python
+source remains canonical; only the deployed SQL is sanitized.
+
 - [ ] **Step 2: Translate the rowspec to a Snowflake DDL file**
 
 Write `<<REPO_DIR>>/schemas/<<DATASET_TABLE_LOWER>>.sql`:
