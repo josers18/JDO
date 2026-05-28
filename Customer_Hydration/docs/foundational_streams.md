@@ -137,6 +137,7 @@ In addition to the 30 SalesforceDotCom streams above, the Cumulus rollout introd
 | # | DC Stream | DLO | DMO | Snowflake source | Notes |
 |---|---|---|---|---|---|
 | 1 | `CumulusClaritasDemographics` | `CumulusClaritasDemographics__dll` | `CumulusClaritasDemographics__dlm` | `FINS.PUBLIC.CLARITAS_DEMOGRAPHICS` | Plan 1. Monthly bucket. ~25,424 rows. PK = `(ssot__AccountId__c, profileMonth__c)`. ACCOUNT_ID FK → `ssot__Account__dlm.ssot__Id__c`. |
+| 2 | `CumulusMSCIESG` | `CumulusMSCIESG__dll` | `CumulusMSCIESG__dlm` | `FINS.PUBLIC.MSCI_ESG_SCORES` | Plan 2. Monthly bucket. 11,389 rows (BUSINESS accounts only — overcount vs CRM ~5K is expected per spec §3 v1.2). PK = `(ssot__AccountId__c, profileMonth__c)`. ACCOUNT_ID FK → `ssot__Account__dlm.ssot__Id__c`. DLO→DMO mapping deferred to UI (REST 500 — same as Plan 1). |
 
 Setup recipe: `Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`. Stream + DLO + DMO are API-scriptable; the DLO→DMO column mapping currently requires the Data Model Setup UI (public REST returns `UNKNOWN_EXCEPTION` for fully-custom DMO targets — the mapping endpoint only succeeds when targeting standard `ssot__*` DMOs).
 
