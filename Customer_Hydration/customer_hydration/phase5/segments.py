@@ -73,21 +73,26 @@ class CreateSegmentsResult:
 
 
 # Field name on the target DMO that holds the External ID we use to
-# scope segments to hydrated demo accounts. The HYDRATE-* prefix lives
-# in this column on every hydrated row.
+# scope segments to the demo cohort. Phase 6 (2026-05-27) renumbered the
+# entire fleet from HYDRATE-* prefixes to a sequential MDMP##### / MDM#####
+# convention, so the membership clause now uses the "MDM" prefix (matches
+# both MDM##### businesses and MDMP##### persons via `contains`).
 HYDRATE_FIELD: str = "External_ID_c__c"
-HYDRATE_PREFIX: str = "HYDRATE-"
+HYDRATE_PREFIX: str = "MDM"
 
 
 def hydrate_clause(target_dmo: str) -> dict[str, Any]:
-    """Build the HYDRATE membership filter for a given target DMO.
+    """Build the demo-cohort membership filter for a given target DMO.
 
     Every Phase 2 segment is wrapped in a LogicalComparison.and so it
-    can only match hydrated demo accounts (``HYDRATE_FIELD`` starting
-    with ``HYDRATE-``), never the org's pre-existing seed accounts.
-    The DMO is parameterised so the same orchestrator works against
-    Account_demo__dlm, ssot__Account__dlm, or any other DMO that
-    exposes the External_ID_c__c field.
+    can only match the demo cohort (``HYDRATE_FIELD`` starting with
+    ``MDM`` post-Phase-6 renumbering — covers both MDM##### biz and
+    MDMP##### person via the `contains` operator), never any unrelated
+    rows. The DMO is parameterised so the same orchestrator works
+    against Account_demo__dlm, ssot__Account__dlm, or any other DMO
+    that exposes the External_ID_c__c field. Constants are named
+    ``HYDRATE_*`` for backwards-compat with existing tests; the value
+    is the active membership prefix.
     """
     return {
         "type": "TextComparison",

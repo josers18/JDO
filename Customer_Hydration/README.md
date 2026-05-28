@@ -13,14 +13,16 @@ Bank customer data — Retail, Wealth, Small Business, and Commercial — across
 role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 (legacy `FinServ__*` + native FSC standard objects).
 
-> **Status (2026-05-27 evening):** Phases 1, 2, 3a–3c, 3d, 4 (+ v1.1 hotfixes), and 5 all complete on `main`.
-> Phase 3d (cross-DMO segment YAML, 15 segments live) merged via `46c5dcf`. Phase 5
-> (cohort-aware Account DMO backfill) merged via the latest commit — closed 56 of 64 gap fields
-> on `ssot__Account__dlm` across 6 sub-phases (Branch backfill from live `BranchUnit`,
-> universal field backfill across ~26 fields, Phase 4 50-row regression replay, PA address
-> mirror, mapping verify, DC stream refresh via Lightning UI). DMO state at 2026-05-28 01:59Z:
-> `BranchCode`, `InvestmentObjectives`, `BillingStreet`, `Rating`, `PersonalInterests` all 0 missing
-> on the 36,044 HYDRATE rows; `__pc` shadows correctly biz-NULL by platform constraint.
+> **Status (2026-05-27 late evening):** Phases 1, 2, 3a–3c, 3d, 4 (+ v1.1 hotfixes), 5, and 6 all complete.
+> Phase 5 (cohort-aware Account DMO backfill) merged via `f54c740` — 56 of 64 gap fields closed.
+> Phase 6 (fleet-wide MDMP/MDM External_ID renumber) ran live: 36,222 Accounts moved off
+> `HYDRATE-{RT,WL,SMB,COM,HH}-*` prefixes to a sequential `MDMP##### / MDM#####` convention
+> (persons → `MDMP00001..MDMP25424`, businesses → `MDM00001..MDM10798`). 11 outstanding
+> broken rows from the prior session's triage closed with synthetic addresses + demographics +
+> ClientCategory backfill. Phase 6 cutover blockers: the 21 live DC segments still carry the
+> old `HYDRATE-` filter; recreate from a fresh shell with `--recreate '*'` (the current Claude
+> session has a token-redaction hook that blocks DC REST auth). Tracked in
+> [`docs/ROADMAP.md`](docs/ROADMAP.md) § Phase 6 follow-ups.
 > Suite at **787 tests passing + 5 skipped** (live-org smoke gated by `RUN_LIVE_TESTS=1`).
 
 ## Quick start
