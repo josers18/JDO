@@ -52,6 +52,21 @@ ls Snowflake_Cumulus_Common/cumulus_common/seed.py
 
 If any check fails, halt — Plan 0 has not been merged yet.
 
+### Audience-predicate probe (Plans 3 / 8 / 10 / 12 only — those filtering on CLIENT_CATEGORY)
+
+If your `<<AUDIENCE_PREDICATE>>` filters on `CLIENT_CATEGORY = '<one>'`, probe the live distinct values FIRST so the predicate doesn't miss near-equivalent categories:
+
+```bash
+mkdir -p Snowflake_Cumulus_Common/output
+snow sql -c GSB13421 --format json -q "
+SELECT CLIENT_CATEGORY, COUNT(*) AS N
+FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+GROUP BY 1
+ORDER BY 2 DESC" > Snowflake_Cumulus_Common/output/client_category_probe.json
+```
+
+Inspect the output. If your target value is one of multiple near-equivalents (e.g. "Wealth Management" plus "Wealth - Managed"), update `<<AUDIENCE_PREDICATE>>` to use `IN (...)` with the full list before proceeding. Spec §3 v1.2 documents that `CLIENT_CATEGORY` has 9 distinct values, not 4.
+
 ## File Structure
 
 ```
@@ -116,7 +131,7 @@ spec at [docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md
 
 ## Audience
 \`\`\`sql
-SELECT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>
+SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>
 \`\`\`
 
 ## Tests
@@ -555,8 +570,8 @@ from cumulus_common import seed_for, assert_coverage
 TABLE        = "FINS.PUBLIC.<<DATASET_TABLE>>"
 TASK_NAME    = "<<TASK_NAME>>"
 DATASET_SALT = "<<DATASET_SALT>>"
-AUDIENCE_SQL = "SELECT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>"
-COVERAGE_SQL = "SELECT COUNT(*) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>"
 
 # Authoritative output column set — kept in sync with the table DDL by the
 # schema-contract test in tests/.
@@ -1085,7 +1100,7 @@ non-zero `ACCOUNTS_PROCESSED`, NULL `ERROR_MESSAGE`.
 ```bash
 snow sql -q "
 WITH expected AS (
-    SELECT COUNT(*) AS n FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>
+    SELECT COUNT(DISTINCT ACCOUNT_ID) AS n FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE <<AUDIENCE_PREDICATE>>
 ),
 actual AS (
     SELECT COUNT(DISTINCT ACCOUNT_ID) AS n FROM FINS.PUBLIC.<<DATASET_TABLE>>
@@ -1098,6 +1113,8 @@ SELECT
 ```
 
 Expected: `pct_drift <= 5`.
+
+**BUSINESS-scoped plans (2 / 9 / 11) extra check:** the spec §3 v1.2 finding #3 documents that `ACCOUNT_TYPE_FLAG` misclassifies ~7K Person Accounts as BUSINESS due to incomplete `PersonBirthdate__c` backfill. Add a warning (not a fail) to your SP if `accounts_processed > 10000` — actual BUSINESS cardinality from CRM is closer to 5K.
 
 - [ ] **Step 4: Sample 10 rows and verify they look plausible**
 
