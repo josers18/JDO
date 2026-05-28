@@ -25,10 +25,12 @@ entry rather than retroactively editing prior ones.
   `FinServ__CommunicationPreferences__pc` multipicklist,
   `FinServ__ContactPreference__pc`, `FinServ__LastUsedChannel__c`).
   All 25,424/25,424 person Accounts updated successfully.
-- **Deferred:** `Email__c` FLS-blocked the loader profile —
-  `INVALID_FIELD_FOR_INSERT_UPDATE` on every row; column dropped from
-  the retry CSV. See ROADMAP "Phase 7 follow-ups" for the
-  permission-set fix.
+- **Not actionable:** `Email__c` is a formula field
+  (`PersonContact.Email`), not an FLS gap as initially diagnosed.
+  Cannot be written by anyone; person rows resolve via formula,
+  biz rows are by-design NULL. Column dropped from the retry CSV
+  (kept in `phase7a_biz.csv` for historical reference). See ROADMAP
+  "Phase 7 closed (no follow-up)".
 - Generator script: `scripts/phase7_generate_csvs.py` (deterministic
   hash-keyed value selection; SOQL fetch + CSV write). Artifacts in
   `output/phase7-2026-05-27/`.

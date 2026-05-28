@@ -21,7 +21,8 @@ role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 > Phase 7 (merge `bd003d2`) closed the remaining biz/person parity gaps: 7 biz-cohort fields
 > (NetWorth, CreditRating, Tier, LifetimeValue, LastUsedChannel, Ownership, TickerSymbol) and
 > 5 person-cohort `__pc` shadow fields (Category, Contact_Status, CommunicationPreferences,
-> ContactPreference, LastUsedChannel). 36,222 / 36,222 successful; `Email__c` FLS-deferred.
+> ContactPreference, LastUsedChannel). 36,222 / 36,222 successful. `Email__c` confirmed
+> as a formula field (`PersonContact.Email`) — by-design NULL on biz, 100% on persons.
 > Phase 6 cutover blockers: the 21 live DC segments still carry the old `HYDRATE-` filter;
 > recreate from a fresh shell with `--recreate '*'` (the current Claude session has a
 > token-redaction hook that blocks DC REST auth). Tracked in

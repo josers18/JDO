@@ -142,11 +142,12 @@ C), `FinServ__LifetimeValue__c` (`AnnualRevenue × 7%` with persona
 floors), `FinServ__LastUsedChannel__c`, `Ownership` (Public/Private/
 Subsidiary/Other; ~10% Public via deterministic hash), `TickerSymbol`
 (gated to `Ownership = Public`; 1,009 / 10,798 = 9.3% populated as
-designed). **Deferred:** `Email__c` (custom CRM field) is FLS-blocked
-on the loader profile — every row failed with
-`INVALID_FIELD_FOR_INSERT_UPDATE`; column dropped from the retry CSV.
-Resolution requires a permission-set grant. Tracked in
-[`ROADMAP.md`](ROADMAP.md) § Phase 7 follow-ups.
+designed). **`Email__c` clarification:** initially diagnosed as FLS-blocked on the
+loader profile (`INVALID_FIELD_FOR_INSERT_UPDATE`), follow-up describe
+revealed `calculated=True` with formula `PersonContact.Email`. The
+field cannot be written by anyone; person rows resolve via the formula
+(PersonEmail is 100%), biz rows are by-design NULL. Not a deferred
+item.
 
 ## Contact (business officers + signers)
 

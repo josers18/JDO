@@ -507,9 +507,11 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   Generator: `scripts/phase7_generate_csvs.py` (deterministic
   sha256-keyed value selection; SOQL fetch + CSV write). Loaded via
   `sf data update bulk`; 36,222 / 36,222 successful (post-Email-drop).
-  **Deferred:** `Email__c` FLS-blocked the loader profile —
-  `INVALID_FIELD_FOR_INSERT_UPDATE` on every row; column dropped from
-  retry CSV. Tracked in `docs/ROADMAP.md` § Phase 7 follow-ups.
+  **Not actionable:** `Email__c` is a formula field
+  (`PersonContact.Email`), not an FLS gap as initially diagnosed.
+  `calculated=True, createable=False, updateable=False` — cannot be
+  written by any perm set. Person rows resolve via formula
+  (PersonEmail is 100%); biz rows are by-design NULL.
 
 ## When extending personas
 

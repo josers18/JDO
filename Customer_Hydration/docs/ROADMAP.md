@@ -6,18 +6,21 @@ documented the deferral. When you pick one up, file a fresh spec under
 `docs/superpowers/specs/` and a plan under `docs/superpowers/plans/`,
 then cross-link from this file to the new artifacts.
 
-## Phase 7 follow-ups
+## Phase 7 closed (no follow-up)
 
-- **`Email__c` FLS-blocked on biz cohort.** Phase 7a tried to populate
-  `Account.Email__c` (custom string field) on all 10,798 MDM business
-  Accounts but every row failed with
-  `INVALID_FIELD_FOR_INSERT_UPDATE: Email__c — security settings of
-  this field`. The CSV column was dropped on retry; the deterministic
-  values are still in `output/phase7-2026-05-27/phase7a_biz.csv` (full)
-  and `phase7a_biz_no_email.csv` (loaded). Resolution: grant
-  field-level write to the loader profile (or run via a sysadmin perm
-  set), then re-bulk-update the original CSV. Evidence:
-  `output/phase7-2026-05-27/750am00000gA0bKAAS-failed-records.csv`.
+- **`Email__c` is a formula field, not a Phase 7 gap.** Initial Phase 7a
+  bulk-update appeared to be FLS-blocked
+  (`INVALID_FIELD_FOR_INSERT_UPDATE: Email__c`). On follow-up describe
+  the field is `calculated=True` with formula `PersonContact.Email` —
+  it cannot be written by anyone, regardless of perm set. Person rows
+  resolve via the formula (PersonEmail is 100% populated); business
+  rows have no PersonContact and will always be NULL by formula
+  definition. **Not a deferral — by-design.** Deterministic
+  pre-attempt values are preserved in
+  `output/phase7-2026-05-27/phase7a_biz.csv` for historical reference;
+  the full CSV column is unused. If a future hydration phase wants
+  business emails, populate a different writable field (e.g. a
+  custom `Business_Email__c` if the org adds one).
 
 ## Phase 6 follow-ups (cutover blockers)
 
