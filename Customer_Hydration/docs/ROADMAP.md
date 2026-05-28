@@ -6,34 +6,8 @@ documented the deferral. When you pick one up, file a fresh spec under
 `docs/superpowers/specs/` and a plan under `docs/superpowers/plans/`,
 then cross-link from this file to the new artifacts.
 
-## Phase 7 closed (no follow-up)
-
-- **`Email__c` is a formula field, not a Phase 7 gap.** Initial Phase 7a
-  bulk-update appeared to be FLS-blocked
-  (`INVALID_FIELD_FOR_INSERT_UPDATE: Email__c`). On follow-up describe
-  the field is `calculated=True` with formula `PersonContact.Email` —
-  it cannot be written by anyone, regardless of perm set. Person rows
-  resolve via the formula (PersonEmail is 100% populated); business
-  rows have no PersonContact and will always be NULL by formula
-  definition. **Not a deferral — by-design.** Deterministic
-  pre-attempt values are preserved in
-  `output/phase7-2026-05-27/phase7a_biz.csv` for historical reference;
-  the full CSV column is unused. If a future hydration phase wants
-  business emails, populate a different writable field (e.g. a
-  custom `Business_Email__c` if the org adds one).
-
 ## Phase 6 follow-ups
 
-- ~~**Segment recreate against MDM filter.**~~ **Closed 2026-05-27.** All
-  21 segments DELETE-then-POST recreated cleanly via
-  `python hydrate.py create-segments --target-org jdo-uqj0jr --recreate '*' --allow-production`.
-  21/21 success, 0 failures. Root cause of the prior session block was
-  Salesforce CLI v2.136 redacting `accessToken` in
-  `sf org display --json` output (returned the literal string
-  `[REDACTED] Use 'sf org auth show-access-token' to view`). Fixed in
-  `customer_hydration/phase5/data_cloud.get_org_session()` by splitting
-  the call: `sf org display` for `instanceUrl`, new `sf org auth
-  show-access-token` for the bearer token.
 - **Persona detector update.** `customer_hydration/derivers/_archetype.
   _persona_from_external_id_or_rt` only knows `HYDRATE-{RT,WL,SMB,
   COM,HH}-*` prefixes. Post-rename, every persona resolves to `retail`
@@ -135,5 +109,19 @@ then cross-link from this file to the new artifacts.
 3. Add the new spec/plan entries to [`docs/INDEX.md`](INDEX.md).
 4. When the work lands, add a CHANGELOG entry under the current month
    with a one-line summary and a link to the spec.
-5. Move the entry from this ROADMAP to a "Closed" section at the
-   bottom (or remove if it never warranted further documentation).
+5. Move the entry from this ROADMAP to "Closed" below (or remove if
+   it never warranted further documentation).
+
+## Closed
+
+- **2026-05-27 — Phase 6 segment recreate.** All 21 segments DELETE-then-
+  POST recreated against the MDM filter (21/21 success, 0 failures) via
+  `python hydrate.py create-segments --target-org jdo-uqj0jr --recreate '*' --allow-production`.
+  Original block was Salesforce CLI v2.136 redacting `accessToken` in
+  `sf org display --json`; fixed by splitting the call to use
+  `sf org auth show-access-token` for the bearer.
+- **2026-05-27 — Phase 7 `Email__c` "FLS deferral".** Not actionable —
+  `Email__c` is a formula field (`calculated=True`, formula
+  `PersonContact.Email`). Person rows resolve via the formula
+  (PersonEmail is 100%); business rows have no PersonContact and are
+  by-design NULL.
