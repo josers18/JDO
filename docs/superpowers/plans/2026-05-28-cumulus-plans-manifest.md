@@ -17,7 +17,7 @@
 | Plan 5 — CoreLogic Property | **LIVE** (25,424 rows, DC mapping pending UI; first quarterly cadence) | `2026-05-28-cumulus-plan-5-corelogic-property.md` |
 | Plan 6 — Plaid Held-Away | **LIVE** (55,274 rows, DC mapping pending UI; first 1:N dataset) | `2026-05-28-cumulus-plan-6-plaid-held-away.md` |
 | Plan 7 — World-Check AML | **LIVE** (36,813 rows, DC mapping pending UI; first daily cadence + first all-accounts audience) | `2026-05-28-cumulus-plan-7-worldcheck-aml.md` |
-| Plan 8 — MGP Financial Plans | **Drafted** (rowspec + plan written; ready to implement; smallest audience by 2.9×) | `2026-05-28-cumulus-plan-8-mgp-financial-plans.md` |
+| Plan 8 — MGP Financial Plans | **In progress** (T1+T2 deployed: scaffold + table DDL; T3+T4 done: 19 L1 tests green + SP module; T5-T8 pending) | `2026-05-28-cumulus-plan-8-mgp-financial-plans.md` |
 | Plan 9 — Synth Relationship Graph | Pending instantiation | (instantiate from template; see §3 below for graph-specific deviations) |
 | Plan 10 — BoardEx Exec Intel | Pending instantiation | (instantiate from template) |
 | Plan 11 — ZoomInfo Firmographics | Pending instantiation | (instantiate from template) |
