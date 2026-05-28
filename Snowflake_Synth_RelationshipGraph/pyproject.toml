@@ -1,0 +1,23 @@
+[project]
+name = "cumulus-synth-relationship-graph"
+version = "0.1.0"
+description = "Synthesized directed relationship graph (household / corporate-parent / board / advisor-book / referral / business-owner / SELF) stitching prior Cumulus plans for the Cumulus FSC demo."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "snowflake-snowpark-python>=1.20",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["procedures", "."]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []
