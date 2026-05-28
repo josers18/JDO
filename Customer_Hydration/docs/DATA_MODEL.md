@@ -96,6 +96,18 @@ of subtype) and the same for `Shipping*`. New fields `Rating`, `Type`,
 state-weighted via the live `BranchUnit` SObject (canonical
 `BranchUnitCustomer` link inherited where present).
 
+**Phase 7 additions on Person Accounts (2026-05-27):** Closed the
+remaining `__pc` shadow gap from Phase 5b's ALL_NULL bucket on all
+25,424 person rows. New fields: `FinServ_Category__pc` (Platinum/Gold/
+Silver/Bronze, persona-mapped — overrides any Phase 5 partial fill),
+`FinServ_Contact_Status__pc` ("Client" — hydrated rows are existing
+customers, not prospects), `FinServ__CommunicationPreferences__pc`
+(multipicklist, persona-coherent combinations of `Fraud:*`,
+`Promotions:*`, `Balance Activities:*` channels),
+`FinServ__ContactPreference__pc` (Email/Phone/Mobile, deterministic
+pick), `FinServ__LastUsedChannel__c` (Mobile/Web/Branch/Call Center/
+Other, deterministic pick).
+
 ## Account — Business (SMB + Commercial)
 
 | Logical name | Physical (org) name | Notes |
@@ -119,6 +131,22 @@ previously blank), `Phone`, `Website` (where blank), 5 multipicklists,
 `FinServ__IndividualType__c = "Group"` for the 5,610 pure-Business RT
 rows that were missing it. `__pc` shadow fields stay person-only by
 platform constraint.
+
+**Phase 7 additions on Business Accounts (2026-05-27):** Closed the
+biz-cohort gap on 7 fields the Phase 5b parity pass had skipped, all
+10,798 biz rows populated. New fields: `FinServ__NetWorth__c`
+(`AnnualRevenue × 4`, persona-floored), `FinServ__CreditRating__c`
+(Excellent/Good/Fair/Poor banded from `Equifax_Credit_Risk_Score__c`),
+`Tier__c` (A/B/C — Wealth/Commercial = A, SMB = B, Retail/Household =
+C), `FinServ__LifetimeValue__c` (`AnnualRevenue × 7%` with persona
+floors), `FinServ__LastUsedChannel__c`, `Ownership` (Public/Private/
+Subsidiary/Other; ~10% Public via deterministic hash), `TickerSymbol`
+(gated to `Ownership = Public`; 1,009 / 10,798 = 9.3% populated as
+designed). **Deferred:** `Email__c` (custom CRM field) is FLS-blocked
+on the loader profile — every row failed with
+`INVALID_FIELD_FOR_INSERT_UPDATE`; column dropped from the retry CSV.
+Resolution requires a permission-set grant. Tracked in
+[`ROADMAP.md`](ROADMAP.md) § Phase 7 follow-ups.
 
 ## Contact (business officers + signers)
 

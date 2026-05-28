@@ -1,7 +1,7 @@
 # Customer_Hydration
 
-![Phase](https://img.shields.io/badge/phase-4d%20complete-brightgreen)
-![Tests](https://img.shields.io/badge/tests-763%20passing-brightgreen)
+![Phase](https://img.shields.io/badge/phase-7%20complete-brightgreen)
+![Tests](https://img.shields.io/badge/tests-820%20passing-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Salesforce CLI](https://img.shields.io/badge/sf%20CLI-v2-00a1e0)
 ![Data Cloud](https://img.shields.io/badge/Data%20Cloud-v62-1798c1)
@@ -13,17 +13,20 @@ Bank customer data — Retail, Wealth, Small Business, and Commercial — across
 role-aligned RMs, with full FSC party-model linking and dual-lineage coverage
 (legacy `FinServ__*` + native FSC standard objects).
 
-> **Status (2026-05-27 late evening):** Phases 1, 2, 3a–3c, 3d, 4 (+ v1.1 hotfixes), 5, and 6 all complete.
+> **Status (2026-05-27 late evening):** Phases 1, 2, 3a–3c, 3d, 4 (+ v1.1 hotfixes), 5, 6, and 7 all complete.
 > Phase 5 (cohort-aware Account DMO backfill) merged via `f54c740` — 56 of 64 gap fields closed.
 > Phase 6 (fleet-wide MDMP/MDM External_ID renumber) ran live: 36,222 Accounts moved off
 > `HYDRATE-{RT,WL,SMB,COM,HH}-*` prefixes to a sequential `MDMP##### / MDM#####` convention
-> (persons → `MDMP00001..MDMP25424`, businesses → `MDM00001..MDM10798`). 11 outstanding
-> broken rows from the prior session's triage closed with synthetic addresses + demographics +
-> ClientCategory backfill. Phase 6 cutover blockers: the 21 live DC segments still carry the
-> old `HYDRATE-` filter; recreate from a fresh shell with `--recreate '*'` (the current Claude
-> session has a token-redaction hook that blocks DC REST auth). Tracked in
-> [`docs/ROADMAP.md`](docs/ROADMAP.md) § Phase 6 follow-ups.
-> Suite at **787 tests passing + 5 skipped** (live-org smoke gated by `RUN_LIVE_TESTS=1`).
+> (persons → `MDMP00001..MDMP25424`, businesses → `MDM00001..MDM10798`).
+> Phase 7 (merge `bd003d2`) closed the remaining biz/person parity gaps: 7 biz-cohort fields
+> (NetWorth, CreditRating, Tier, LifetimeValue, LastUsedChannel, Ownership, TickerSymbol) and
+> 5 person-cohort `__pc` shadow fields (Category, Contact_Status, CommunicationPreferences,
+> ContactPreference, LastUsedChannel). 36,222 / 36,222 successful; `Email__c` FLS-deferred.
+> Phase 6 cutover blockers: the 21 live DC segments still carry the old `HYDRATE-` filter;
+> recreate from a fresh shell with `--recreate '*'` (the current Claude session has a
+> token-redaction hook that blocks DC REST auth). Tracked in
+> [`docs/ROADMAP.md`](docs/ROADMAP.md) § Phase 6 / Phase 7 follow-ups.
+> Suite at **820 tests passing + 5 skipped** (live-org smoke gated by `RUN_LIVE_TESTS=1`).
 
 ## Quick start
 

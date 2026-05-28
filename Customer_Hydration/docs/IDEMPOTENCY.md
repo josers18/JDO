@@ -1,23 +1,62 @@
 # Idempotency
 
-Every record this package writes carries an External-ID under the
-`HYDRATE-*` namespace. Re-running with `--append` is safe; re-running
-without `--append` against an org that already has HYDRATE-* records
-refuses to proceed; `--reset --confirm` deletes only HYDRATE-* records
-and never touches anything else.
+Every record this package writes carries an External-ID. Account rows
+use the `MDMP#####` (persons) / `MDM#####` (businesses) namespace as
+of Phase 6 (2026-05-27); every other object still uses the legacy
+`HYDRATE-{TYPE}-{SEQ}` convention. Re-running with `--append` is safe;
+re-running without `--append` against an org that already has hydrated
+records refuses to proceed; `--reset --confirm` deletes only the
+hydration cohort (Account `MDM%` + child-object `HYDRATE-%`) and never
+touches anything else.
 
 This document is the canonical reference for those guarantees. The
 authoritative implementation is in `customer_hydration/loader/reset.py`
 and `customer_hydration/cli.py`.
 
-## External-ID namespace
+## Phase 6 namespace migration (2026-05-27)
+
+Phase 6 renumbered the Account cohort fleet-wide:
+
+```
+HYDRATE-RT-NNNNNN  →  MDMP#####  (Retail Person Account)
+HYDRATE-WL-NNNNNN  →  MDMP#####  (Wealth Person Account)
+HYDRATE-HH-NNNNNN  →  MDMP#####  (Household Person Account)
+HYDRATE-SMB-NNNNNN →  MDM#####   (Small Business Account)
+HYDRATE-COM-NNNNNN →  MDM#####   (Commercial Account)
+```
+
+Persons → `MDMP00001..MDMP25424` (25,424 rows). Businesses →
+`MDM00001..MDM10798` (10,798 rows). Existing 159 MDM seed rows + 19
+previously-NULL rows folded into the same sequence; total cohort
+36,222.
+
+**Width is not capped.** The 5-digit width was demo-convenient; if
+a future hydration pass exceeds it, expand to whatever sequence is
+needed.
+
+**Child objects (Contact, ACR, FinancialAccount, Card, Goal,
+Opportunity, Case, Task, Event, Campaign, CampaignMember, etc.)
+were NOT renumbered** — they keep the `HYDRATE-{TYPE}-{SEQ}`
+convention below. The `External_ID__c LIKE 'HYDRATE-%'` filter in
+side-DMO joins still resolves correctly because the parent Account
+relationship traverses via `Id`, not `External_ID__c`.
+
+**Segment side effect:** the 21 live DC segments still hold a
+`External_ID_c__c contains "HYDRATE-"` server-side criteria from
+Phase 2/3d. The renumber invalidated that filter (every Account is
+now `MDM*`/`MDMP*`), so segments return 0 members until recreated.
+Tracked in [`ROADMAP.md`](ROADMAP.md) § Phase 6 follow-ups.
+
+## External-ID namespace (child objects)
 
 ```
 HYDRATE-{TYPE}-{SEQ}
 ```
 
 `SEQ` is zero-padded to 6 digits. `TYPE` is a 2-5 letter object family
-prefix.
+prefix. Account-row prefixes (`HYDRATE-RT/WL/SMB/COM/HH-*`) are
+historical — current Account External_IDs follow the `MDMP/MDM`
+convention above.
 
 | Prefix | Object | Idempotency field | Bridge field | Wave |
 |---|---|---|---|---|

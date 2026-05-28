@@ -53,6 +53,7 @@ tasks delivered in a single git branch.
 - [Account audit 2026-05-26](../output/account-audit-2026-05-26/REPORT.md) — Phase 4 baseline (538 fields, persona-coherent gap analysis)
 - [Phase 4 post-backfill verification](../output/account-audit-2026-05-26/POST_BACKFILL_VERIFICATION.md) — pre/post metrics for the 7-deriver run
 - [Account DMO audit 2026-05-27](../output/account-dmo-audit-2026-05-27/REPORT.md) — Phase 5 baseline (cohort-aware, 64 fields, 6 gap classes)
+- [Phase 7 update CSVs 2026-05-27](../output/phase7-2026-05-27/) — biz parity + person `__pc` shadow CSVs loaded via `sf data update bulk`
 
 ### AI agent context
 

@@ -18,9 +18,13 @@ Read in order:
 ## Conventions you MUST follow
 
 ### Idempotency keys
-All generated records carry an External ID under the HYDRATE-* namespace
-(see docs/IDEMPOTENCY.md). Never insert a record without one. Never modify
-or delete records outside this namespace.
+All generated records carry an External ID. **Account rows use the
+`MDMP#####` (persons) / `MDM#####` (businesses) namespace as of Phase 6
+(2026-05-27);** child objects (Contact, ACR, FinancialAccount, Card,
+Goal, Opportunity, Case, Task, Event, Campaign, CampaignMember, etc.)
+still use the legacy `HYDRATE-{TYPE}-{SEQ}` convention. See
+docs/IDEMPOTENCY.md for the full namespace map. Never insert a record
+without one. Never modify or delete records outside these namespaces.
 
 ### Schema continuity (dual lineage)
 The org has BOTH legacy FinServ__* and native FSC standard objects in use
@@ -488,6 +492,24 @@ Phase 2 ships as a single plan on `feat/customer-hydration-phase-2`.
   cohort. Phase 6 follow-ups (segment recreate from a clean shell;
   persona detector + generator forward-run prefix updates) tracked
   in `docs/ROADMAP.md`.
+- **Phase 7** (Biz parity completion + person __pc shadow coverage,
+  2026-05-27) — Closed the remaining cohort-aware gaps the Phase 5b
+  parity pass had skipped. **Phase 7a** (biz, 10,798 rows): filled
+  `FinServ__NetWorth__c` (revenue × 4), `FinServ__CreditRating__c`
+  (banded from `Equifax_Credit_Risk_Score__c`), `Tier__c` (persona-
+  mapped A/B/C), `FinServ__LifetimeValue__c` (revenue × 7%),
+  `FinServ__LastUsedChannel__c`, `Ownership` (~10% Public via stable
+  hash), `TickerSymbol` (gated to Public only; 1,009/10,798 = 9.3%
+  populated as designed). **Phase 7b** (persons, 25,424 rows):
+  filled `FinServ_Category__pc`, `FinServ_Contact_Status__pc`,
+  `FinServ__CommunicationPreferences__pc` (multipicklist),
+  `FinServ__ContactPreference__pc`, `FinServ__LastUsedChannel__c`.
+  Generator: `scripts/phase7_generate_csvs.py` (deterministic
+  sha256-keyed value selection; SOQL fetch + CSV write). Loaded via
+  `sf data update bulk`; 36,222 / 36,222 successful (post-Email-drop).
+  **Deferred:** `Email__c` FLS-blocked the loader profile —
+  `INVALID_FIELD_FOR_INSERT_UPDATE` on every row; column dropped from
+  retry CSV. Tracked in `docs/ROADMAP.md` § Phase 7 follow-ups.
 
 ## When extending personas
 
