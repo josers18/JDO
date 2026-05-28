@@ -61,13 +61,13 @@ Real World-Check finds Severe matches on <0.1% of populations even in high-risk 
 
 ```python
 def _overall_risk_rating(sanctions_hit, pep_hit, adverse_media_hit,
-                         jurisdiction_tier, rng):
+                         jurisdiction_tier, noise_bump):
     """Roll up component flags into a single rating.
 
     Severe: sanctions match OR Prohibited jurisdiction
     High:   PEP match OR (Enhanced jurisdiction AND any other flag)
     Medium: adverse-media match OR Enhanced jurisdiction alone
-    Low:    none of the above (random tail under noise model)
+    Low:    none of the above (year-stable noise tail can bump ~0.3% to Medium)
     """
     if sanctions_hit or jurisdiction_tier == "Prohibited":
         return "Severe"
@@ -77,24 +77,78 @@ def _overall_risk_rating(sanctions_hit, pep_hit, adverse_media_hit,
         return "High"
     if adverse_media_hit or jurisdiction_tier == "Enhanced":
         return "Medium"
-    # Long tail: ~0.3% of clean accounts get a noise-driven rating bump
-    return rng.choices(["Low", "Medium"], weights=[0.997, 0.003])[0]
+    # Long tail: ~0.3% of clean accounts get a year-stable noise-driven bump
+    return "Medium" if noise_bump else "Low"
+
+
+def _noise_tail_bump(account_id, run_ts):
+    """Year-stable ~0.3% noise bump from Low to Medium for the rating.
+    Year-stable so it doesn't flip the CHANGE_SINCE_LAST_RUN signal day-to-day.
+    """
+    seed = seed_for(
+        account_id + "_noise", "worldcheck_jurisdiction",
+        datetime(run_ts.year, 1, 1),
+    )
+    return random.Random(seed).random() < 0.003
 ```
 
 ## Component flag rates (sanctions / PEP / adverse-media)
 
+The naive formulation — IID daily draws — is **mathematically incompatible** with the CHANGE_SINCE_LAST_RUN ~99% Unchanged target. With IID daily flips, P(all-3-flags-unchanged) ≈ `(1−2×0.005)(1−2×0.012)(1−2×0.030)` ≈ 0.908 → ~9% of accounts would show non-Unchanged every day, not ~1%. The two invariants are arithmetically incompatible.
+
+**Solution: hybrid year-stable base + small daily XOR.** Each flag has a year-stable "base truth" drawn at the start of the year; each day, a small flip probability (`_DAILY_FLIP_PROB ≈ 0.003`) XORs the base. This preserves both invariants:
+- Marginal rates converge to target (base calibrated so `marginal ≈ base + flip × (1 − 2×base) ≈ target`)
+- Day-to-day stability is high (~99% Unchanged, since most accounts don't flip)
+
+This is also **more realistic** — a customer's PEP status doesn't actually flip day-to-day in real World-Check feeds; it changes on material events (election, prosecution, sanctions list update).
+
 ```python
-def _sanctions_hit(rng):
-    return rng.random() < 0.005  # 0.5%
+_DAILY_FLIP_PROB = 0.003
 
-def _pep_hit(rng):
-    return rng.random() < 0.012  # 1.2%
+def _component_flag(account_id, run_ts, salt_suffix, target_rate):
+    """Year-stable base + small daily XOR.
 
-def _adverse_media_hit(rng):
-    return rng.random() < 0.030  # 3.0%
+    Calibrated so `marginal ≈ base + flip × (1 − 2×base) ≈ target_rate`.
+    """
+    # Year-stable base
+    year_seed = seed_for(
+        account_id + salt_suffix, "worldcheck_flag_base",
+        datetime(run_ts.year, 1, 1),
+    )
+    year_rng = random.Random(year_seed)
+    # Solve: target = base + flip × (1 − 2×base) → base = (target − flip) / (1 − 2×flip)
+    base_rate = (target_rate - _DAILY_FLIP_PROB) / (1 - 2 * _DAILY_FLIP_PROB)
+    base = year_rng.random() < base_rate
+    # Daily flip
+    day_seed = _daily_seed(account_id + salt_suffix, run_ts)
+    day_rng = random.Random(day_seed)
+    flip = day_rng.random() < _DAILY_FLIP_PROB
+    return base != flip  # XOR
+
+def _sanctions_hit(account_id, run_ts):
+    return _component_flag(account_id, run_ts, "_sanctions", 0.005)
+
+def _pep_hit(account_id, run_ts):
+    return _component_flag(account_id, run_ts, "_pep", 0.012)
+
+def _adverse_media_hit(account_id, run_ts):
+    return _component_flag(account_id, run_ts, "_adverse_media", 0.030)
 ```
 
-**Independence assumption:** the three flags are drawn independently. Real World-Check has correlation (most sanctions-hit accounts also have adverse-media in financial-crime categories), but for the demo's screening UX, independence is fine. Total non-Low rate ≈ 1 − (1−0.005)(1−0.012)(1−0.030) ≈ 4.7% which lines up with the rating distribution targets.
+**Independence assumption:** the three flags' year-stable bases and daily flips are all drawn from independent rng streams. Real World-Check has correlation (most sanctions-hit accounts also have adverse-media in financial-crime categories), but for the demo's screening UX, independence is fine.
+
+**Note on `_daily_seed`:** Cumulus_Common's `seed_for` is Y-M-only (Plan 0 design choice for monthly cadence). For daily cadence, use the wrapper:
+
+```python
+def _daily_seed(account_id, run_ts):
+    """Day-bucketed seed wrapper. Folds the day into the account_id parameter
+    so we get a unique seed per (account_id, calendar day) without modifying
+    cumulus_common.seed_for (which only buckets by year-month)."""
+    day_str = run_ts.strftime("%Y%m%d")
+    return seed_for(f"{account_id}|{day_str}", "worldcheck", run_ts)
+```
+
+Plan 13 (Moody's, also daily) will reuse this pattern.
 
 ## RISK_JURISDICTION_CODE
 
@@ -182,29 +236,29 @@ def _adverse_media_categories(adverse_media_hit, rng):
 This is **the** load-bearing demo field — World-Check's value prop is "tell me what changed since yesterday." For the demo we synthesize it deterministically from the account's `(today_seed, yesterday_seed)` pair:
 
 ```python
-def _change_since_last_run(account_id, run_ts, today_rating, rng):
-    """Compare today's rating to yesterday's by recomputing yesterday's seed.
+def _change_since_last_run(account_id, run_ts, today_rating):
+    """Compare today's rating to yesterday's by recomputing yesterday's flags.
 
-    Uses the daily seed for run_ts - 1 day to get yesterday's overall
-    rating, then diffs.
+    Re-derives yesterday's component flags using the hybrid (year-stable base
+    + daily XOR) model, then diffs the resulting overall rating.
 
-    Distribution target:
-      Unchanged: ~99.0%
-      Risk Increased: ~0.5%
-      Risk Decreased: ~0.4%
+    Distribution target (with hybrid flag model):
+      Unchanged: ~98.5%
+      Risk Increased: ~0.7%
+      Risk Decreased: ~0.6%
       New: 0% (no new accounts mid-pipeline; all anchors persist)
-      Cleared: ~0.1% (yesterday-flagged, today-clean)
+      Cleared: ~0.2% (yesterday-flagged, today-clean)
     """
     yesterday = run_ts - timedelta(days=1)
-    y_seed = seed_for(account_id, "worldcheck", yesterday.replace(hour=0,minute=0,second=0,microsecond=0))
-    y_rng = random.Random(y_seed)
-    # Re-derive yesterday's rating components in shorthand
-    y_sanctions = _sanctions_hit(y_rng)
-    y_pep = _pep_hit(y_rng)
-    y_media = _adverse_media_hit(y_rng)
-    # Reuse same jurisdiction (year-stable)
+    # Re-derive yesterday's component flags via the same hybrid helpers
+    y_sanctions = _sanctions_hit(account_id, yesterday)
+    y_pep = _pep_hit(account_id, yesterday)
+    y_media = _adverse_media_hit(account_id, yesterday)
+    # Year-stable jurisdiction is shared across yesterday/today
     _, y_tier = _risk_jurisdiction_stable(account_id, yesterday)
-    y_rating = _overall_risk_rating(y_sanctions, y_pep, y_media, y_tier, y_rng)
+    # Year-stable noise bump is shared across yesterday/today
+    y_bump = _noise_tail_bump(account_id, yesterday)
+    y_rating = _overall_risk_rating(y_sanctions, y_pep, y_media, y_tier, y_bump)
 
     return _diff_rating(y_rating, today_rating)
 
@@ -252,25 +306,27 @@ from datetime import datetime, timedelta
 # else state-dependent.  All bias is from account_id + run_ts.
 account_id = anchor["ACCOUNT_ID"]
 
-# Daily-bucketed seed (most fields).
+# Daily-bucketed seed (used only for adverse-media category list — the
+# stochastic part that doesn't need cross-day stability).
 day_start = run_ts.replace(hour=0, minute=0, second=0, microsecond=0)
-seed = seed_for(account_id, "worldcheck", day_start)
-rng = random.Random(seed)
+day_seed = _daily_seed(account_id, run_ts)
+day_rng = random.Random(day_seed)
 
 # 1. Year-stable jurisdiction (synthesized; doesn't read anchor.COUNTRY_CODE).
 jurisdiction_code, jurisdiction_tier = _risk_jurisdiction_stable(account_id, run_ts)
 
-# 2. Today's component flags.
-sanctions = _sanctions_hit(rng)
-pep = _pep_hit(rng)
-media = _adverse_media_hit(rng)
-media_categories = _adverse_media_categories(media, rng)
+# 2. Today's component flags (hybrid year-stable base + daily XOR).
+sanctions = _sanctions_hit(account_id, run_ts)
+pep = _pep_hit(account_id, run_ts)
+media = _adverse_media_hit(account_id, run_ts)
+media_categories = _adverse_media_categories(media, day_rng)
 
-# 3. Roll up overall rating.
-overall = _overall_risk_rating(sanctions, pep, media, jurisdiction_tier, rng)
+# 3. Roll up overall rating (year-stable noise tail).
+noise_bump = _noise_tail_bump(account_id, run_ts)
+overall = _overall_risk_rating(sanctions, pep, media, jurisdiction_tier, noise_bump)
 
-# 4. Compare to yesterday.
-change = _change_since_last_run(account_id, run_ts, overall, rng)
+# 4. Compare to yesterday (re-derives yesterday's flags + jurisdiction + bump).
+change = _change_since_last_run(account_id, run_ts, overall)
 
 # 5. Case reference (year-stable; populated only when High/Severe).
 case_ref = _case_reference(account_id, run_ts, overall)
@@ -319,8 +375,8 @@ Instead, four assertions:
 
 1. **Determinism on the same day** — `_row_for(anchor, datetime(2026,5,28,3,0,0))` and `_row_for(anchor, datetime(2026,5,28,23,30,0))` produce identical dicts (mid-day bucketing).
 2. **Day-to-day delta** — `_row_for(anchor, datetime(2026,5,28))` and `_row_for(anchor, datetime(2026,5,29))` *can* differ on rating/flags but **must have same `RISK_JURISDICTION_CODE`** (year-stable).
-3. **Rate distributions converge** — Across the full audience (36,813 anchors), the population rates of `SANCTIONS_HIT` (~0.5%), `PEP_HIT` (~1.2%), `ADVERSE_MEDIA_HIT` (~3.0%) match targets within ±0.3 pp. (Test against the 100-anchor SAMPLE_ANCHORS fixture rolled over 365 days for stability.)
-4. **CHANGE_SINCE_LAST_RUN coherence** — On the day-2 run, ~99% of anchors show `Unchanged` (computed from the day-1 seed). The `Unchanged` rate is the load-bearing one because it's the one a demo scenario actually queries against.
+3. **Rate distributions converge** — Across the full audience (36,813 anchors), the population rates of `SANCTIONS_HIT` (~0.5%), `PEP_HIT` (~1.2%), `ADVERSE_MEDIA_HIT` (~3.0%) match targets within ±0.3 pp. With hybrid year-stable flags, sample size matters: roll over **10 years × 100 SAMPLE_ANCHORS × 365 days = 365,000 samples** to get enough independent year-bucket realizations for sanctions (target 0.5%) to converge inside the band.
+4. **CHANGE_SINCE_LAST_RUN coherence** — On the day-2 run, **≥96%** of anchors show `Unchanged` (target ~98.5% with hybrid flags + 2.5 pp test-noise headroom). The `Unchanged` rate is the load-bearing one because it's the one a demo scenario actually queries against.
 
 Plus a fifth: **CASE_REFERENCE year-stable** — a given account that's `High` on day-1 and `High` on day-2 has the same `CASE_REFERENCE` on both days.
 
