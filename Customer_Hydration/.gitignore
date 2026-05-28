@@ -25,6 +25,13 @@ output/account-audit-*/bucketed.json
 output/account-audit-*/dmo_field_map.json
 output/account-audit-*/dmo_fields_user.txt
 output/account-audit-*/chunks/
+# Phase 5 DMO audit raw extracts: keep REPORT.md, ignore JSON/CSV (regenerable)
+output/account-dmo-audit-*/audit_field_inventory.json
+output/account-dmo-audit-*/comprehensive_audit.json
+output/account-dmo-audit-*/cross_tab.json
+output/account-dmo-audit-*/dmo_mapping_digest.json
+output/account-dmo-audit-*/dmo_population_hydrate.json
+output/account-dmo-audit-*/crm_account_fields.csv
 
 # sf data bulk results files (sf CLI dumps these into the cwd on failure)
 750a*-records.csv
