@@ -1,0 +1,16 @@
+[project]
+name = "cumulus-claritas-demographics"
+version = "0.1.0"
+description = "Claritas-style synthetic demographics dataset for Cumulus."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "snowflake-snowpark-python>=1.20",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["procedures", "."]
