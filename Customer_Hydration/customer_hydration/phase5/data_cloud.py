@@ -120,13 +120,17 @@ def get_org_session(target_org: str) -> tuple[str, str]:
     ]
     display_proc = subprocess.run(display_cmd, capture_output=True, text=True, check=False)
     if display_proc.returncode != 0:
-        raise RuntimeError(f"sf org display failed: {display_proc.stderr or display_proc.stdout}")
+        raise RuntimeError(
+            f"sf org display failed (exit {display_proc.returncode}); "
+            "check `sf org list` for the alias."
+        )
     display_payload = json.loads(display_proc.stdout)
     display_result = display_payload.get("result", {})
     instance_url = display_result.get("instanceUrl") or display_result.get("InstanceUrl")
     if not instance_url:
+        keys = ",".join(sorted(display_result)) or "<empty>"
         raise RuntimeError(
-            f"sf org display returned no instanceUrl: {display_result}"
+            f"sf org display returned no instanceUrl (keys present: {keys})"
         )
 
     token_cmd = [
@@ -137,14 +141,17 @@ def get_org_session(target_org: str) -> tuple[str, str]:
     token_proc = subprocess.run(token_cmd, capture_output=True, text=True, check=False)
     if token_proc.returncode != 0:
         raise RuntimeError(
-            f"sf org auth show-access-token failed: {token_proc.stderr or token_proc.stdout}"
+            f"sf org auth show-access-token failed (exit {token_proc.returncode}); "
+            "check `sf org list` and re-authenticate if needed."
         )
     token_payload = json.loads(token_proc.stdout)
     token_result = token_payload.get("result", {})
     access_token = token_result.get("accessToken") or token_result.get("access_token")
     if not access_token or access_token.startswith("[REDACTED]"):
+        keys = ",".join(sorted(token_result)) or "<empty>"
         raise RuntimeError(
-            f"sf org auth show-access-token returned no usable token: {token_result}"
+            f"sf org auth show-access-token returned no usable token "
+            f"(keys present: {keys})"
         )
     return (instance_url, access_token)
 
