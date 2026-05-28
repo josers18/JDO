@@ -130,9 +130,22 @@ The `PersonLifeEvent_Home` stream at row 22 ingests the **native** `PersonLifeEv
 
 Generated rows must drop `Name` before Bulk; the field is read-only on this org's package version.
 
+## Cumulus Snowflake federations (per-dataset, post-Phase-3)
+
+In addition to the 30 SalesforceDotCom streams above, the Cumulus rollout introduces **per-dataset Snowflake-federated DLOs/DMOs**. These do NOT need full-refresh treatment — `dataAccessMode: DIRECT_ACCESS` means DC reads through to Snowflake on every query, so any change in the source table is visible immediately.
+
+| # | DC Stream | DLO | DMO | Snowflake source | Notes |
+|---|---|---|---|---|---|
+| 1 | `CumulusClaritasDemographics` | `CumulusClaritasDemographics__dll` | `CumulusClaritasDemographics__dlm` | `FINS.PUBLIC.CLARITAS_DEMOGRAPHICS` | Plan 1. Monthly bucket. ~25,424 rows. PK = `(ssot__AccountId__c, profileMonth__c)`. ACCOUNT_ID FK → `ssot__Account__dlm.ssot__Id__c`. |
+
+Setup recipe: `Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`. Stream + DLO + DMO are API-scriptable; the DLO→DMO column mapping currently requires the Data Model Setup UI (public REST returns `UNKNOWN_EXCEPTION` for fully-custom DMO targets — the mapping endpoint only succeeds when targeting standard `ssot__*` DMOs).
+
+The connector underlying all Cumulus Snowflake streams is **`Jedi_Snowflake`** (id `9cgam0000003EknAAE`, account `eob55465.us-east-1.snowflakecomputing.com`, warehouse `MAIN_WH_XS`). Plans 2–13 will append rows to the table above following the same recipe.
+
 ## See also
 
 - Phase 5.5 fire-and-forget contract: `customer_hydration/phase5/data_cloud.py`
 - `dc-status` segment view: surfaces stream + segment health post-refresh
 - Phase 2 segments: 20 segments published in `jdo-uqj0jr` against `Account_demo__dlm`, all filter on `External_ID_c__c contains "HYDRATE-"` to scope to Phase 1 records only
 - Phase 3 augment: `customer_hydration/augment_phase3.py` + `customer_hydration/mirror_life_events.py`
+- Cumulus Plan 1 DC setup recipe: `Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`

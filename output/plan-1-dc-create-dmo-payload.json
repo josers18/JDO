@@ -1,0 +1,23 @@
+{
+  "name": "CumulusClaritasDemographics",
+  "label": "Cumulus Claritas Demographics",
+  "description": "Claritas-style demographics & propensity scores per PERSON account per month. Federated from FINS.PUBLIC.CLARITAS_DEMOGRAPHICS via Snowflake Direct_Access. ACCOUNT_ID FKs to ssot__Account__dlm.ssot__Id__c. See Snowflake_Claritas_Demographics/.",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ssot__AccountId",            "label": "Account ID",                  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Salesforce Account ID. FK to ssot__Account__dlm.ssot__Id__c."},
+    {"name": "profileMonth",               "label": "Profile Month",               "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Date",     "description": "First-of-month for the run; PK."},
+    {"name": "prizmSegmentCode",           "label": "PRIZM Segment Code",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "8-char PRIZM segment code."},
+    {"name": "prizmSegmentName",           "label": "PRIZM Segment Name",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "PRIZM segment display name."},
+    {"name": "prizmLifestyleGroup",        "label": "PRIZM Lifestyle Group",       "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Parent PRIZM lifestyle group."},
+    {"name": "lifeStage",                  "label": "Life Stage",                  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Gen Z / Young Singles / etc."},
+    {"name": "householdComposition",       "label": "Household Composition",       "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Single / Couple / Family / etc."},
+    {"name": "estimatedNetWorthBand",      "label": "Estimated Net Worth Band",    "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "<$50K / $50K-$250K / etc."},
+    {"name": "wealthPropensityScore",      "label": "Wealth Propensity Score",     "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "0.00-100.00."},
+    {"name": "investmentPropensityScore",  "label": "Investment Propensity Score", "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "0.00-100.00."},
+    {"name": "mortgagePropensityScore",    "label": "Mortgage Propensity Score",   "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "0.00-100.00."},
+    {"name": "urbanicity",                 "label": "Urbanicity",                  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Urban / Suburban / Town / Rural."},
+    {"name": "financialStressIndicator",   "label": "Financial Stress Indicator",  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Low / Moderate / High."},
+    {"name": "generatedAt",                "label": "Generated At",                "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC)."}
+  ]
+}
