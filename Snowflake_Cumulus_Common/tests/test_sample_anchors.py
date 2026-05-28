@@ -79,3 +79,12 @@ def test_persons_have_some_with_postal_code_some_without():
     without_zip = [p for p in persons if p["POSTAL_CODE"] is None]
     assert len(with_zip) >= 40, "need at least 40 persons with ZIP"
     assert len(without_zip) >= 2, "need at least 2 persons without ZIP for predicate tests"
+
+
+def test_businesses_span_at_least_five_industries():
+    """Business audience predicates may filter on INDUSTRY (e.g., D&B credit
+    biases by industry); ≥5 distinct industries ensures audience-aware tests
+    actually exercise different branches."""
+    biz = [a for a in SAMPLE_ANCHORS if a["ACCOUNT_TYPE_FLAG"] == "BUSINESS"]
+    industries = {b["INDUSTRY"] for b in biz}
+    assert len(industries) >= 5, f"only {len(industries)} distinct industries: {industries}"
