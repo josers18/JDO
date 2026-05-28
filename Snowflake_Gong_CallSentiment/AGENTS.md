@@ -1,0 +1,58 @@
+# AGENTS.md — Snowflake_Gong_CallSentiment
+
+Synthetic Gong / Chorus / ExecVision-style weekly conversation-intelligence rollups for the Cumulus FSC demo. One of 13. **Account-scoped with weekly cadence — second weekly Cumulus plan after Plan 6 (Plaid Held-Away). Mid-size cohort (Wealth Management + Commercial Banking, ~4,880 anchors). First Cumulus dataset whose NULL semantics cascade-collapse from a single zero-activity Boolean predicate (`CALL_COUNT_LAST_7D == 0`) — the boring case is itself a meaningful row, not a row that's filtered out.**
+
+## Boundaries
+- Owns: `FINS.PUBLIC.GONG_CALL_SENTIMENT`, `SP_GENERATE_GONG_CALL_SENTIMENT`, `TASK_WEEKLY_GONG_CALL_SENTIMENT`, and the DC Data Stream / DLO / DMO that federates this table.
+- Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
+- Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
+- **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_WEEK)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct Wealth Management + Commercial Banking account per week.**
+
+## Conventions
+- The SP uses `cumulus_common.seed_for(...)` with **two-salt model**:
+  - Primary salt **`gong`** (week-bucketed) — drives CALL_COUNT_LAST_7D, TOTAL_TALK_TIME_MINUTES, CUSTOMER_TALK_RATIO_PCT, OVERALL_SENTIMENT, KEY_TOPICS_FLAGS, ACTION_ITEMS_COUNT, DEAL_RISK_SCORE, LAST_CALL_DATE, NEXT_SCHEDULED_CALL_DATE, RM_LAST_LOGGED_NOTE_DATE.
+  - Secondary salt **`gong_rm`** (year-stable) — drives RM_NAME (RMs don't reassign weekly).
+  - A tertiary helper salt `"gong_trend"` (year-stable) lives inside the row factory as a base-trajectory helper for SENTIMENT_TREND, but it isn't a top-level dataset salt — it's a helper that keeps trend from whipsawing weekly.
+- **One seed stream per anchor per run** for the primary salt — `seed_for(account_id, "gong", week_start)` where `week_start = run_ts - timedelta(days=run_ts.weekday())` truncated to midnight (Monday anchor). Mid-week re-runs are byte-identical because `week_start` truncates day-of-week + time.
+- The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` for the standard 1:1 audience-vs-actual coverage check (every distinct Wealth+Commercial anchor must produce exactly one row per week — including no-call weeks).
+- The MERGE replaces on composite PK `(ACCOUNT_ID, PROFILE_WEEK)`. Re-runs same calendar week are idempotent (byte-identical). Re-runs in a later week INSERT new rows for that week.
+- Audience SQL is `SELECT DISTINCT * FROM V_ACCOUNT_ANCHORS WHERE CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')`. **4,880 distinct accounts** (Wealth 3,920 + Commercial 960; probed 2026-05-28). Anchor reads: `ACCOUNT_ID` + `CLIENT_CATEGORY` only — no BIRTHDATE / ANNUAL_INCOME used (cohort bias is on the cohort flag itself).
+- `accounts_processed` in `TASK_EXECUTION_LOG` equals `len(audience)` — the **distinct customer count** AND the row count (1:1 emit per anchor per week).
+
+## Tests
+- L1 (pytest): determinism in the same calendar week (byte-identical Mon 06:00 vs Wed 23:30 vs Sun 12:00), input-shape validation (ACCOUNT_ID non-empty), boring case (Wealth anchor with 0 calls → CALL_COUNT_LAST_7D=0, all six cascade fields take their no-call defaults), **per-row cascade-gate invariants** rolled over 8+ weeks (every row with `CALL_COUNT_LAST_7D == 0` → `TOTAL_TALK_TIME_MINUTES==0`, `CUSTOMER_TALK_RATIO_PCT==0.00`, `OVERALL_SENTIMENT=='Neutral'`, `LAST_CALL_DATE IS NULL`, `KEY_TOPICS_FLAGS IS NULL`, `ACTION_ITEMS_COUNT==0`), **range invariants** (CUSTOMER_TALK_RATIO_PCT in [0.00, 100.00]; DEAL_RISK_SCORE in [0.00, 100.00]; CALL_COUNT_LAST_7D in [0, 15]; ACTION_ITEMS_COUNT in [0, 10]; TOTAL_TALK_TIME_MINUTES in [0, 600]; LAST_CALL_DATE if populated ≤ run_ts.date(); NEXT_SCHEDULED_CALL_DATE if populated > run_ts.date()), **vocabulary invariants** (OVERALL_SENTIMENT in `_SENTIMENT_VOCAB`; SENTIMENT_TREND in `_TREND_VOCAB`; KEY_TOPICS_FLAGS when not NULL/empty is a pipe-delimited subset of `_TOPIC_POOL`), **year-stable RM_NAME** (same anchor produces identical RM_NAME for two weeks within the same calendar year; cross-year drift expected and not asserted), schema contract (output dict keys exactly match the 15 columns).
+- L2 (`tests/integration/`): deploys SP into a fixture-backed schema with `V_ACCOUNT_ANCHORS_FIXTURE` (4 Wealth + 2 Commercial + 8 non-audience filtered out); asserts coverage (`COUNT(DISTINCT ACCOUNT_ID) = 6`); all 6 emit exactly one row per week; at least 1 Wealth anchor has a no-call week somewhere across an 8-week roll; 0 rows where `CALL_COUNT_LAST_7D == 0` AND any cascade field is non-default; year-stable RM_NAME (every anchor has exactly one distinct RM_NAME across all 8 weeks of the same year); idempotent re-run on same week (ROWS_INSERTED=0).
+- L3 (manual smoke, post-deploy): one CALL against jdo-uqj0jr; row count ≈ 4,880 (distinct Wealth+Commercial accounts); 5-row sample plausibility (mix of boring no-call rows + active rows + at least one elevated-risk row); CALL_COUNT_LAST_7D distribution (~60-65% rows have 0 calls — boring case dominates); cascade-gate invariants on live data (0 rows with `CALL_COUNT_LAST_7D==0` AND non-NULL `LAST_CALL_DATE`; 0 rows with `CALL_COUNT_LAST_7D==0` AND non-NULL `KEY_TOPICS_FLAGS`; 0 rows with `CALL_COUNT_LAST_7D==0` AND `OVERALL_SENTIMENT != 'Neutral'`); date-coherence (0 future-dated `LAST_CALL_DATE`; 0 non-future `NEXT_SCHEDULED_CALL_DATE`); range invariants (percentages in [0, 100]; DEAL_RISK_SCORE in [0.00, 100.00]); cohort difference (Commercial Banking mean `CALL_COUNT_LAST_7D` ≥ 2× Wealth Management mean — 1.8 vs 0.6 expected).
+
+## Gotchas
+- **Weekly cadence** — Plan 12 is the second weekly Cumulus plan (after Plan 6 Plaid Held-Away). Cron `'USING CRON 0 5 * * 1 UTC'` (Monday 05:00 UTC) — matches Plan 6 and the in-flight Plan 9. PROFILE_WEEK is the Monday-of-week DATE — `week_start = run_ts - timedelta(days=run_ts.weekday())` truncated to midnight. Re-runs same week MERGE-replace.
+- **Cascade-gated NULL contract — the load-bearing demo behavior.** First Cumulus dataset where the boring case (zero activity that week) is a meaningful row, not a row that's filtered out. When `CALL_COUNT_LAST_7D == 0`, **six fields collapse together**:
+  - `TOTAL_TALK_TIME_MINUTES = 0`
+  - `CUSTOMER_TALK_RATIO_PCT = 0.00`
+  - `OVERALL_SENTIMENT = 'Neutral'`
+  - `KEY_TOPICS_FLAGS IS NULL` (cascade-gated NULLable)
+  - `LAST_CALL_DATE IS NULL` (cascade-gated NULLable)
+  - `ACTION_ITEMS_COUNT = 0`
+  Coverage invariant still holds — every anchor emits a row even on no-call weeks. Plan 8 had 2 NULLables gated by a 3-value enum; Plan 12 collapses six fields off a single Boolean predicate. The L1 cascade-gate test rolled over 8+ weeks is the load-bearing demo behavior — Wealth no-call rate ~65%, Commercial ~35%.
+- **Two-salt + year-stable trajectory model.** Primary salt `"gong"` (week-bucketed) for everything that legitimately changes weekly. Secondary salt `"gong_rm"` (year-bucketed) for RM_NAME stickiness. Tertiary `"gong_trend"` (year-bucketed) lives inside the row factory as the base trajectory for SENTIMENT_TREND. Distinct from Plan 7's three-salt model (each driving a top-level dataset behavior); here it's one main + one year-stable for the single sticky field, plus a helper.
+- **Independent ~40% NULL gate on `NEXT_SCHEDULED_CALL_DATE`** — RMs don't always schedule the next touch immediately. Independent of `call_count` — the gate fires uniformly regardless of whether the week had calls.
+- **Auxiliary mixed gate on `RM_LAST_LOGGED_NOTE_DATE`** — NULLable (~15% NULL) but feeds into DEAL_RISK_SCORE via the `rm_note_stale` boolean rather than emitting NULL semantics for the row's call activity. Not part of the cascade.
+- **Anchor reads.** `ACCOUNT_ID` + `CLIENT_CATEGORY` only — no BIRTHDATE / ANNUAL_INCOME used (Wealth+Commercial cohort bias is on the cohort flag itself).
+- **Per-anchor deterministic invariants, not distributional.** Property tests for cascade-gate, ranges, vocabulary, year-stable RM are per-anchor or per-row. Distributional cohort facts (Wealth no-call rate ~65%, Commercial ~35%; Commercial mean talk time ~38min vs Wealth ~22min) are L3 smoke checks against live ~4,880-row volume — L1 SAMPLE_ANCHORS is too narrow for distributional convergence; if `SAMPLE_ANCHORS` happens to surface fewer than 3 audience anchors, the L1 cohort-specific tests should `pytest.skip` gracefully (Plan 5/6/8 pattern).
+- **Date-coherence invariants** (must hold per row, asserted in L1 and L3):
+  - `LAST_CALL_DATE` (if populated) `≤ run_ts.date()` — `_last_call_date` returns `run_ts.date() - timedelta(days=rng.randint(0, 6))`.
+  - `NEXT_SCHEDULED_CALL_DATE` (if populated) `> run_ts.date()` — `_next_scheduled_call_date` returns `run_ts.date() + timedelta(days=rng.randint(1, 60))`.
+  - `RM_LAST_LOGGED_NOTE_DATE` (if populated) `≤ run_ts.date()` — drawn from `[1, 3, 7, 14, 30, 60]` days back.
+- **0 BOOLEAN columns at the table level** (DEAL_RISK_SCORE staleness is computed in-flight via `rm_note_stale = RM_LAST_LOGGED_NOTE_DATE is None or (run_ts.date() - RM_LAST_LOGGED_NOTE_DATE).days > 30`, not stored). No DC DLO/DMO Boolean type concern — Plan 5's "default to Text fails Boolean parse" finding doesn't apply here.
+- **3 NULLable columns** (`KEY_TOPICS_FLAGS`, `LAST_CALL_DATE`, `NEXT_SCHEDULED_CALL_DATE`) plus the auxiliary mixed-gate `RM_LAST_LOGGED_NOTE_DATE`. The DDL marks all four as NULL; the MERGE source SELECT must preserve `None` → `NULL`.
+- **`KEY_TOPICS_FLAGS` empty-string vs NULL distinction is meaningful.** An anchor with calls but no flagged topic is `""` (we listened, nothing crossed threshold); an anchor with no calls is `NULL` (we never listened).
+- The `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
+- **15 columns total: 12 NOT NULL + 3 NULLable** (KEY_TOPICS_FLAGS, LAST_CALL_DATE, NEXT_SCHEDULED_CALL_DATE). RM_LAST_LOGGED_NOTE_DATE is the 4th NULLable but counts as the auxiliary mixed-gate, not a cascade-gated NULL.
+- L1 conftest provides a synthetic anchor fixture — `SAMPLE_ANCHORS` from Cumulus_Common with `in_audience_anchors = [a for a in all_anchors if a["CLIENT_CATEGORY"] in ("Wealth Management", "Commercial Banking")]`.
+- The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
+- Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_WEEK`, `LAST_CALL_DATE`, `NEXT_SCHEDULED_CALL_DATE`, `RM_LAST_LOGGED_NOTE_DATE`'s `sourceFields` entries, NOT `yyyy-MM-dd`.
+- DC mapping descriptions must be ≤521 chars (Plan 6 finding). Trim the DMO description if drafting against the rowspec verbatim.
+- DC PK collapses to single-column `profileWeek__c` with `ssot__AccountId__c` as a KQ qualifier (single-column-PK rule from Plan 4).
+- `accounts_processed = len(audience) = row count` (1:1 emit per anchor per week) — same shape as Plans 1-3, 5, 7, 8.
+- Cadence is **weekly** (`'USING CRON 0 5 * * 1 UTC'` — Monday at 05:00 UTC). Matches Plan 6 (Plaid Held-Away) and in-flight Plan 9 (Synth Relationship Graph).
+- **Volume.** ~4,880 rows/week → ~21,000/month. Mid-volume — bigger than Plan 8 but smaller than Plans 1, 5, 6 (all >25K). SP runtime expected <3s. Live storage grows by ~4,880 rows per week.
