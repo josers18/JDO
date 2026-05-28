@@ -18,11 +18,11 @@
 | Plan 6 — Plaid Held-Away | **LIVE** (55,274 rows, DC mapping pending UI; first 1:N dataset) | `2026-05-28-cumulus-plan-6-plaid-held-away.md` |
 | Plan 7 — World-Check AML | **LIVE** (36,813 rows, DC mapping pending UI; first daily cadence + first all-accounts audience) | `2026-05-28-cumulus-plan-7-worldcheck-aml.md` |
 | Plan 8 — MGP Financial Plans | **LIVE** (3,920 rows, smallest Cumulus audience by 2.9×; first non-Boolean-enum NULL gating; DC mapping pending UI) | `2026-05-28-cumulus-plan-8-mgp-financial-plans.md` |
-| Plan 9 — Synth Relationship Graph | Pending instantiation | (instantiate from template; see §3 below for graph-specific deviations) |
-| Plan 10 — BoardEx Exec Intel | Pending instantiation | (instantiate from template) |
-| Plan 11 — ZoomInfo Firmographics | Pending instantiation | (instantiate from template) |
-| Plan 12 — Gong Call Sentiment | Pending instantiation | (instantiate from template) |
-| Plan 13 — Moody's Market Context | Pending instantiation | (instantiate from template; see §3 below for instrument-scoped deviations) |
+| Plan 9 — Synth Relationship Graph | **Drafted** (rowspec + plan written; first edge-scoped 1:N; cross-joins Plans 1, 2, 3, 5, 6, 7, 8 with soft `IF EXISTS` deps; 7 EDGE_TYPE values) | `2026-05-28-cumulus-plan-9-synth-relationship-graph.md` |
+| Plan 10 — BoardEx Exec Intel | **Drafted** (rowspec + plan written; smallest Cumulus audience 960 anchors — dethrones Plan 8 by 4×; SAMPLE_ANCHORS has zero Commercial Banking → conftest needs synthetic fixture) | `2026-05-28-cumulus-plan-10-boardex-exec-intel.md` |
+| Plan 11 — ZoomInfo Firmographics | **Drafted** (rowspec + plan written; structurally identical to Plans 2/3 + defensive string handling per Plan 4 v1.5 findings) | `2026-05-28-cumulus-plan-11-zoominfo-firmographics.md` |
+| Plan 12 — Gong Call Sentiment | **Drafted** (rowspec + plan written; second weekly cadence after Plan 6; first cascade-NULL semantics for zero-activity boring case) | `2026-05-28-cumulus-plan-12-gong-call-sentiment.md` |
+| Plan 13 — Moody's Market Context | **Drafted** (rowspec + plan written; final plan; second daily cadence; instrument-scoped — INSTRUMENT_UNIVERSE schema drift caught at draft time) | `2026-05-28-cumulus-plan-13-moodys-market-context.md` |
 
 **Why a template + manifest instead of 13 plan files:** the per-dataset variation is mechanical (audience predicate, table columns, salt), so a 700-line plan that's 95% identical for each of 13 datasets would be 9000 lines of copy-paste with drift risk. The template + per-dataset rowspec attachment captures the variation in ~50 lines per dataset instead.
 
