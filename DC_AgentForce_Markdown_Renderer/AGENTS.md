@@ -4,7 +4,11 @@ Context for AI coding agents working on the **Markdown Renderer** Lightning comp
 
 # Product context
 
-A renderer for Agentforce GenAI Function responses formatted as markdown. Wired in via the platform's Lightning Type renderer-override mechanism: `c__markdownResponse` is a custom Lightning type whose `lightningDesktopGenAi` renderer is `c/markdownRenderer`. Any GenAiFunction whose `output/schema.json` types `promptResponse` as `c__markdownResponse` is auto-routed through this LWC by the Agentforce panel.
+A renderer for Agentforce GenAI Function responses formatted as **markdown OR HTML**. Wired in via the platform's Lightning Type renderer-override mechanism: `c__markdownResponse` is a custom Lightning type whose `lightningDesktopGenAi` renderer is `c/markdownRenderer`. Any GenAiFunction whose `output/schema.json` types `promptResponse` as `c__markdownResponse` is auto-routed through this LWC by the Agentforce panel.
+
+The component auto-detects which format it received and routes through the appropriate path:
+- **Markdown path** — regex-based parser (`parseMarkdown`) handles headings, bold/italic/triple-asterisk, code fences + inline code, ordered/unordered lists, blockquotes, tables, and links.
+- **HTML path** — `DOMParser`-based sanitizer (`sanitizeHtml`) walks an inert detached document, allowlists tags + attributes, force-adds `rel="noopener noreferrer" target="_blank"` on links, and applies the same URL allowlist used by the markdown link parser.
 
 Sibling project `DC_AgentForce_Output_LWC` solves a similar problem with an Apex sanitizer + `marked.js` static resource; this project is the newer, leaner pattern that avoids both.
 
@@ -54,8 +58,12 @@ Agentforce panel binds renderer at runtime
        ▼
 markdownRenderer.js
   ├─ markdownText getter unwraps value to string
-  ├─ parseMarkdown: escapeHtml -> headings -> bold/italic -> links -> lists -> paragraphs
-  └─ renderedCallback: container.innerHTML = parsed (lwc:dom="manual")
+  ├─ renderedCallback dispatches based on isHtml(text):
+  │     ├─ isHtml=false → parseMarkdown(text)
+  │     │     └─ escapeHtml -> headings -> bold/italic -> links -> lists -> tables -> code -> paragraphs
+  │     └─ isHtml=true  → sanitizeHtml(text)
+  │           └─ DOMParser -> walk tree -> tag/attr allowlist -> force rel/target on <a>
+  └─ container.innerHTML = result (lwc:dom="manual")
 ```
 
 ## Why `lwc:dom="manual"` + `innerHTML`
@@ -69,11 +77,26 @@ This project uses pattern 2 because the markdown grammar is small and the securi
 
 ## Security boundaries
 
-The component trusts the LLM-generated text only as far as: (a) `escapeHtml` runs first, neutralizing raw `&<>"`, then (b) the markdown regex inserts a curated tag set, and (c) the link parser enforces a URL scheme allowlist with control-character stripping.
+Both paths land at the same emitted-tag set and the same URL/attribute guarantees, but the mechanisms differ.
 
-- **escapeHtml** — `markdownRenderer.js:67-70`. Only neutralizes `& < > "`. Single-quote and backtick pass through but the curated tag set never opens an attribute context where they'd matter.
-- **URL allowlist** — `markdownRenderer.js:35-40`. Strips whitespace + `0x00-0x1F` + DEL `0x7F` BEFORE scheme matching, then tests against `/^(https?:|mailto:|\/|#|\.\/)/i`. Anything else collapses to `href="#"`. This defeats `javascript:`, `data:`, `vbscript:`, plus padded variants like `java\tscript:` (browsers ignore intra-scheme whitespace, so post-cleaned matching is mandatory).
-- **`rel="noopener noreferrer"`** — emitted on every `<a>`. `noopener` blocks reverse tabnabbing; `noreferrer` prevents the `Referer` header from leaking the Agentforce panel URL (which can encode session/record IDs) to externally-linked sites.
+### Markdown path
+- **escapeHtml runs first** — neutralizes raw `& < > "` before any regex inserts a tag.
+- **Curated tag emission** — only the tags the parser explicitly emits (`<h1-3>`, `<strong>`, `<em>`, `<ul>/<ol>/<li>`, `<blockquote>`, `<code>`, `<pre>`, `<a>`, `<table>` family, `<p>`, `<br>`) end up in the output.
+- **Code fences round-trip** — content extracted to placeholders BEFORE escapeHtml, escaped at restore time. HTML inside a fence renders as literal text.
+
+### HTML path
+- **DOMParser inert parsing** — the parsed tree never executes scripts, never loads resources, never fires events. Only structural data, available for traversal.
+- **Tag allowlist (`ALLOWED_TAGS`)** — disallowed tags get unwrapped (children survive as text). `<script>` and `<style>` special-cased: tag AND contents dropped.
+- **Per-tag attribute allowlist (`ALLOWED_ATTRS`)** — currently only `<a href>` survives. Strips event handlers (`onclick`, `onerror`, ...), `style="..."`, `class="..."`, `id="..."`, `src` on `<img>`, `data-*`, etc.
+- **Re-escape at serialize time** — text node values run through `escapeHtml` when serializing back to a string, since the browser already decoded entities during parse.
+
+### Both paths
+- **URL allowlist on `<a href>`** — strips whitespace + `0x00-0x1F` + DEL `0x7F` BEFORE scheme matching, then tests against `/^(https?:|mailto:|\/|#|\.\/)/i`. Anything else collapses to `href="#"`. Defeats `javascript:`, `data:`, `vbscript:`, plus padded variants (`java\tscript:`).
+- **`rel="noopener noreferrer"` + `target="_blank"`** — force-added to every emitted `<a>`. `noopener` blocks reverse tabnabbing; `noreferrer` prevents `Referer` leakage of the Agentforce panel URL (which can encode session/record IDs).
+
+### Detect heuristic (`isHtml`)
+
+The dispatcher uses a regex that matches structural and inline HTML tags but **excludes** `<script>` and `<style>`. A markdown doc containing literal `<script>foo</script>` text continues through the markdown path, where `escapeHtml` neutralizes it to `&lt;script&gt;foo&lt;/script&gt;`. This is intentional: it avoids false positives on documents that mention HTML tags in prose without wrapping them in a fence.
 
 # Conventions
 
@@ -90,9 +113,18 @@ The component trusts the LLM-generated text only as far as: (a) `escapeHtml` run
 
 ## Markdown parser
 - Each markdown construct is one regex. Pure functions; no state between matches.
-- Order matters: `escapeHtml` first, then headings (line-anchored, multi-line flag), then bold/italic (italic uses lookbehind/lookahead to avoid eating bold markers), then links, then lists, then paragraphs/breaks.
-- Lookbehind `(?<!\*)` on the italic regex is fine for desktop browsers but has poor mobile Safari coverage (< iOS 16.4). If mobile becomes a target surface, refactor to a stateful tokenizer.
-- The wrap-list regex `/((?:<li[^>]*>.*?<\/li>\s*)+)/g` greedily wraps consecutive `<li>` runs in `<ul>`. Don't reorder — it must run AFTER the `<li>` substitution and BEFORE paragraph wrapping.
+- Order matters: code fences/inlines extracted to placeholders FIRST, `escapeHtml` SECOND, then tables → headings → blockquotes → triple-asterisk → bold → italic → links → lists → paragraphs/breaks → cleanup → restore code placeholders (with content escapeHtml'd) LAST.
+- Triple-asterisk (`***both***`) handled BEFORE bold-only and italic-only to avoid lazy-match mis-nesting. Without it, the lazy `**...**` regex captures `**` + stray `*text*` and emits `<strong><em>both</strong></em>` (mis-nested).
+- No lookbehind regex — replaced with the ordered triple/double/single-asterisk passes above. Mobile Safari < iOS 16.4 doesn't support lookbehind.
+- The wrap-list regexes (`<oli>` for ordered, `<uli>` for unordered) use intermediate tags to avoid double-wrapping when both kinds of lists appear in the same document. Replace `<oli>`→`<li>` and `<uli>`→`<li>` happens during the wrap step.
+- Table grammar requires three lines: header `| a | b |`, separator `|---|---|`, body `| 1 | 2 |`. Strict separator detection rejects horizontal rules that happen to contain `|`.
+
+## HTML sanitizer
+- `sanitizeHtml(text)` parses into a `DOMParser` doc, then `_serializeChildren` recurses through every node, calling `_serializeNode` per node.
+- `_serializeNode` handles three cases: text node (re-escape), allowed element (emit with allowlisted attrs + recurse), disallowed element (drop wrapper, recurse into children — except `<script>`/`<style>` which drop both tag and contents).
+- All attribute values pass through `_sanitizeAttrValue` for context-specific cleaning. Currently only `<a href>` has a non-passthrough rule (URL allowlist + control-char strip); add new rules here as new attributes are allowlisted.
+- Void elements (`<br>`, `<hr>`) self-close. Other tags recurse and emit closing tags.
+- The `ALLOWED_TAGS` set is intentionally narrower than what the markdown parser CAN emit, but it's a strict superset of what `parseMarkdown` actually emits today. Don't widen without considering attribute sanitization for the new tag.
 
 # Testing
 
@@ -103,10 +135,14 @@ npm run test:unit
 
 (No `package.json` ships with this project today; if you add one, mirror `DC_Multiclass_Prediction_LWC/package.json` — `@salesforce/sfdx-lwc-jest` + `sfdx-lwc-jest` script.)
 
+**Current coverage:** 56 Jest tests across 6 describe blocks (escapeHtml, URL allowlist, markdown constructs, HTML sanitizer, value getter, edge cases). Run with `npm test`.
+
 Coverage targets when adding tests:
 - `escapeHtml` — every special char + idempotency
 - `parseMarkdown` — each markdown construct + edge cases (nested bold inside list, link-in-paragraph)
-- **URL allowlist** — `javascript:`, `data:`, `vbscript:`, padded variants (`java\tscript:`, `java\nscript:`, `  https://x  `), legit schemes preserved
+- `sanitizeHtml` — each disallowed tag (drop unwrap), `<script>`/`<style>` (drop both), each disallowed attribute (strip), nested allowlisted tags (preserve)
+- **URL allowlist (both paths)** — `javascript:`, `data:`, `vbscript:`, padded variants (`java\tscript:`, `java\nscript:`, `  https://x  `), legit schemes preserved
+- `isHtml` heuristic — markdown stays markdown; HTML routes correctly; ambiguous cases (markdown with stray `<script>` literal) route to markdown path
 
 # Deploy gotchas
 
@@ -116,10 +152,13 @@ Coverage targets when adding tests:
 
 # Common mistakes
 
-- **Reaching for `textContent`** when the security plugin warns about `innerHTML`. `textContent` defeats the feature (no markdown rendering). The security boundary is `escapeHtml` + URL allowlist, not `innerHTML`-avoidance.
+- **Reaching for `textContent`** when the security plugin warns about `innerHTML`. `textContent` defeats the feature (no markdown rendering). The security boundary is `escapeHtml` + URL allowlist + tag/attribute allowlist, not `innerHTML`-avoidance.
 - **Adding DOMPurify** without checking the dependency cost. ~50KB static resource + `lightning/platformResourceLoader` import. Sibling `DC_AgentForce_Output_LWC` does this; the explicit choice for this project was to avoid it. Re-evaluate only if the input trust boundary widens (e.g. user-typed markdown vs. LLM-output).
 - **Hardcoding inline styles in `parseMarkdown` output.** Move to `markdownRenderer.css` — shadow-scoped CSS still applies to `lwc:dom="manual"` injected DOM.
-- **Adding `style="..."` attributes via parser regex** — also creates an attribute-injection vector if the regex template strings ever interpolate user-controlled values. Keep emitted tags attribute-free and let CSS do the work.
+- **Adding `style="..."` attributes via parser regex** — creates an attribute-injection vector if the regex template strings ever interpolate user-controlled values. Keep emitted tags attribute-free and let CSS do the work.
+- **Widening `ALLOWED_TAGS` without sanitizing the new tag's attributes.** Adding `img` to `ALLOWED_TAGS` without adding a `src` URL allowlist to `ALLOWED_ATTRS.img` re-opens the same XSS vector the URL allowlist was designed to close.
+- **Widening `isHtml` to include `<script>` or `<style>`.** That would route `<script>` payloads through the HTML path's special-case "drop tag and contents" logic, which is fine — but it would ALSO route benign markdown docs that mention `<script>` in prose through the sanitizer, where the content silently disappears. Current behavior (markdown path → escape) is more visible.
+- **Trusting browser-decoded text inside the sanitizer.** When `DOMParser` reads `<p>A &amp; B</p>`, the text node value is `A & B` (entity decoded). The sanitizer MUST re-escape on emit (`_serializeNode` does this for `nodeType === 3`). If you skip this, output corrupts when the same string round-trips through Agentforce.
 
 # Related projects
 

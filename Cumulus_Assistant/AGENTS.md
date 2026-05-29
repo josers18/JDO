@@ -84,6 +84,7 @@ The output schema's `lightning:type: "c__markdownResponse"` references a custom 
 - `genAiFunction-meta.xml` is the metadata header (description, developerName, invocationTarget, invocationTargetType, isConfirmationRequired, etc.).
 - `input/schema.json` declares the parameters the planner can pass; `output/schema.json` declares what the function returns.
 - For markdown-formatted output, type `promptResponse` as `lightning:type: "c__markdownResponse"`. This auto-routes the value through `c/markdownRenderer` in the Agentforce panel.
+- The renderer also accepts **HTML** input — if a future prompt template emits `<p>...</p>` instead of `**...**`, no schema change is required. The renderer auto-detects format and routes through a `DOMParser`-based sanitizer with the same tag/attribute allowlist as the markdown path. See `../DC_AgentForce_Markdown_Renderer/docs/INTEGRATION_GUIDE.md`.
 - The function output type `lightning__objectType` wraps the inner properties.
 
 # Testing

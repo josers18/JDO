@@ -10,6 +10,8 @@ flowchart TB
         P[DC_Prediction_Model_LWC]
         M[DC_Multiclass_Prediction_LWC]
         A[DC_AgentForce_Output_LWC]
+        MR[DC_AgentForce_Markdown_Renderer]
+        CA[Cumulus_Assistant]
         Q[DC_Query_to_Table_LWC]
         C[DC_PersonProfileWidget]
         B[DC_BusinessProfileWidget]
@@ -22,6 +24,8 @@ flowchart TB
     P --> |Flow + optional Prompt| SF[(Salesforce org)]
     M --> |Flow + optional Prompt| SF
     A --> |Autolaunched Flow| SF
+    MR --> |Lightning Type c__markdownResponse + renderer override| SF
+    CA --> |GenAiFunction promptResponse typed c__markdownResponse| MR
     Q --> |ConnectApi.CdpQuery| SF
     C --> |SOQL + Flow + optional Einstein Overview + Insight| SF
     B --> |Account field map + Flow + optional Overview Agentforce + Insight| SF
@@ -41,6 +45,8 @@ flowchart TB
 | `classificationModelLwc` | Prediction Model |
 | `multiclassPredictionLwc` | Multiclass Prediction |
 | `dcAgentforceOutputLwc` | DC AgentForce Output |
+| `markdownRenderer` | Markdown Renderer (Lightning Type `c__markdownResponse` renderer override; accepts markdown OR HTML input) |
+| `aiAuthoringBundles/Cumulus_Assistant` | Cumulus Assistant (Agentforce agent bundle, employee assistant template) |
 | `dcQueryToTableLwc` | DC Query to Table |
 | `customerProfileWidget` | Customer Profile Widget |
 | `businessProfileWidget` | Business Profile Widget |

@@ -11,6 +11,8 @@ Content-generation projects use their own artifact inventories for generated PDF
 | DC_Prediction_Model_LWC | [../DC_Prediction_Model_LWC/artifacts.md](../DC_Prediction_Model_LWC/artifacts.md) |
 | DC_Multiclass_Prediction_LWC | [../DC_Multiclass_Prediction_LWC/artifacts.md](../DC_Multiclass_Prediction_LWC/artifacts.md) |
 | DC_AgentForce_Output_LWC | [../DC_AgentForce_Output_LWC/artifacts.md](../DC_AgentForce_Output_LWC/artifacts.md) |
+| DC_AgentForce_Markdown_Renderer | [../DC_AgentForce_Markdown_Renderer/AGENTS.md](../DC_AgentForce_Markdown_Renderer/AGENTS.md) · [INTEGRATION_GUIDE](../DC_AgentForce_Markdown_Renderer/docs/INTEGRATION_GUIDE.md) |
+| Cumulus_Assistant | [../Cumulus_Assistant/AGENTS.md](../Cumulus_Assistant/AGENTS.md) · [README](../Cumulus_Assistant/README.md) |
 | DC_Query_to_Table_LWC | [../DC_Query_to_Table_LWC/artifacts.md](../DC_Query_to_Table_LWC/artifacts.md) |
 | DC_PersonProfileWidget | [../DC_PersonProfileWidget/artifacts.md](../DC_PersonProfileWidget/artifacts.md) |
 | DC_BusinessProfileWidget | [../DC_BusinessProfileWidget/artifacts.md](../DC_BusinessProfileWidget/artifacts.md) |

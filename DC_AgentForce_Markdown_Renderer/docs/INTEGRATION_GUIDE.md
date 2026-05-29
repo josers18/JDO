@@ -7,6 +7,7 @@ How to wire the markdown renderer into different Salesforce surfaces. This compo
 ## TL;DR
 
 - **The component renders any value typed `c__markdownResponse`** as styled HTML.
+- **Accepts both markdown AND HTML input.** Auto-detects which format it received and routes through the appropriate path — markdown goes through the regex parser, HTML goes through a DOMParser-based sanitizer with a strict tag/attribute allowlist.
 - **The wiring is declarative**, not procedural — there's no Flow plumbing or Apex sanitizer to invoke. Type the field, the platform binds the renderer.
 - **Deploy this project FIRST**, then deploy any consumer that references `c__markdownResponse`.
 
@@ -200,6 +201,64 @@ This project ships `lightningDesktopGenAi/renderer.json` only. Add more if you h
 
 ---
 
+## Input format detection (markdown vs. HTML)
+
+The component accepts either format and dispatches automatically:
+
+```
+markdownText (string)
+  │
+  ▼
+isHtml(text)?    ← regex test for known HTML structural / inline tags
+  │              (excludes <script> and <style> so a markdown doc with
+  │               literal `<script>` text still routes through markdown)
+  │
+  ├─ no  → parseMarkdown(text)   ← regex pipeline (headings, bold, lists, ...)
+  │
+  └─ yes → sanitizeHtml(text)    ← DOMParser + tag/attribute allowlist
+```
+
+Both paths emit the same set of safe HTML tags (`p`, `h1-3`, `strong`, `em`, `ul`/`ol`/`li`, `blockquote`, `code`, `pre`, `a`, `table` family). The sanitizer guarantees:
+
+- **Inert parsing.** `DOMParser.parseFromString(text, 'text/html')` returns a detached doc — no scripts run, no `<img>` resources load, no event handlers fire during parsing.
+- **Tag allowlist.** Disallowed tags (e.g. `<div>`, `<form>`, `<iframe>`) get unwrapped — children survive as text. **Exception:** `<script>` and `<style>` drop tag AND contents.
+- **Attribute allowlist.** Per-tag. Currently only `<a href>` is allowed — everything else (`onclick`, `onerror`, `onload`, `style`, `class`, `id`, `src`, `data-*`) gets stripped.
+- **URL allowlist on `<a href>`.** Same logic as the markdown link parser: control-char strip + scheme allowlist (http(s):/mailto:/relative). `rel="noopener noreferrer"` and `target="_blank"` are force-added.
+
+### When does each path trigger?
+
+| Input | Detected as | Routed through |
+|-------|-------------|----------------|
+| `# heading\n**bold**` | markdown | `parseMarkdown` |
+| `<p>paragraph</p>` | HTML | `sanitizeHtml` |
+| `<a href="https://x">link</a>` | HTML | `sanitizeHtml` |
+| `**bold** and a stray <script>tag</script>` | markdown | `parseMarkdown` (escapeHtml neutralizes `<script>`) |
+| ` ```html\n<p>raw</p>\n``` ` | markdown | `parseMarkdown` (fence extracted first; HTML inside renders as literal text) |
+| `Plain text with no tags` | markdown | `parseMarkdown` |
+
+Heuristic source: `isHtml(text)` in `markdownRenderer.js`. The regex matches structural and inline HTML tags but intentionally excludes `<script>` and `<style>` so a markdown doc containing literal `<script>` text continues through the markdown path (where `escapeHtml` neutralizes it).
+
+### What HTML tags survive sanitization?
+
+Allowlist (matches markdown parser output set):
+
+```
+p, span, br, hr,
+h1, h2, h3, h4, h5, h6,
+strong, b, em, i, u,
+ul, ol, li,
+blockquote,
+code, pre,
+a (href only),
+table, thead, tbody, tr, th, td
+```
+
+Anything else — including `<div>`, `<section>`, `<article>`, `<form>`, `<input>`, `<button>`, `<img>`, `<iframe>`, `<object>`, `<embed>`, `<video>`, `<audio>`, `<svg>` — gets unwrapped. `<script>` and `<style>` contents get dropped entirely.
+
+If your prompt template needs to emit something not in the allowlist (e.g. images), extend `ALLOWED_TAGS` and `ALLOWED_ATTRS` in `markdownRenderer.js` and add Jest coverage for the new tag's attribute sanitization.
+
+---
+
 ## Markdown syntax reference
 
 What `parseMarkdown` understands today:
@@ -234,14 +293,21 @@ If your prompt template will emit anything in the "not supported" list, either c
 
 The component treats the input as **semi-trusted**: it's LLM-generated, possibly influenced by retrieval results that could include adversarial content.
 
-| Attack | Mitigation | Where in code |
-|--------|------------|---------------|
-| `<script>` injection | `escapeHtml` runs on all text BEFORE markdown regex emits any tag. | `markdownRenderer.js:131-134` |
-| `javascript:` link URI | URL scheme allowlist: `http(s):`, `mailto:`, `/`, `#`, `./`. Anything else → `href="#"`. | `markdownRenderer.js:67-73` |
-| `java\tscript:` padding | Strip whitespace + `0x00-0x1F` + DEL `0x7F` BEFORE scheme matching. | `markdownRenderer.js:69` |
-| Reverse tabnabbing | `rel="noopener noreferrer"` on every emitted `<a>`. | `markdownRenderer.js:71` |
-| Referer header leakage | `noreferrer` (above) prevents `Referer` exposure to externally-linked sites. | `markdownRenderer.js:71` |
-| HTML inside code blocks | Code-block content is round-tripped through placeholders, then `escapeHtml`'d at restore time. Markdown inside code is preserved as literal text. | `markdownRenderer.js:25-37, 102-112` |
+| Attack | Mitigation | Path |
+|--------|------------|------|
+| `<script>` injection (markdown path) | `escapeHtml` runs on all text BEFORE markdown regex emits any tag. | markdown |
+| `<script>` injection (HTML path) | Sanitizer special-cases `<script>` — drops tag AND contents. | HTML |
+| `<style>` injection (HTML path) | Sanitizer special-cases `<style>` — drops tag AND contents. | HTML |
+| `javascript:` link URI (both paths) | URL scheme allowlist: `http(s):`, `mailto:`, `/`, `#`, `./`. Anything else → `href="#"`. | both |
+| `java\tscript:` padding (both paths) | Strip whitespace + `0x00-0x1F` + DEL `0x7F` BEFORE scheme matching. | both |
+| Reverse tabnabbing | `rel="noopener noreferrer"` on every emitted `<a>`. | both |
+| Referer header leakage | `noreferrer` (above) prevents `Referer` exposure to externally-linked sites. | both |
+| Event handler attributes (`onclick`, `onerror`, `onload`, etc.) | Per-tag attribute allowlist; only `<a href>` survives. | HTML |
+| Inline `style="..."` attributes | Stripped by attribute allowlist. | HTML |
+| `<img onerror>` payloads | `<img>` not in tag allowlist → element + `onerror` dropped. | HTML |
+| `<iframe>`, `<object>`, `<embed>`, `<form>`, etc. | Not in tag allowlist → element dropped, children unwrapped to text. | HTML |
+| HTML inside markdown code blocks | Code-block content is round-tripped through placeholders, then `escapeHtml`'d at restore time. | markdown |
+| Resource loading during parsing (HTML path) | `DOMParser.parseFromString(s, 'text/html')` returns a detached, inert doc — no scripts run, no `<img>` loads, no events fire. | HTML |
 
 What it **does not** mitigate:
 - **Phishing via plausible link text.** A markdown link `[Click here](https://evil.example)` renders as a clickable link with whatever label the LLM chose. The URL allowlist confirms scheme but not domain. If your trust model requires domain allowlisting, extend the link parser.
@@ -283,10 +349,14 @@ See "Surface 2" and "Surface 3" above. The fastest path is "Surface 3" (programm
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | Response renders as raw `**bold**` text | Output schema not typed `c__markdownResponse`, OR renderer project not deployed | Verify `output/schema.json` has `"lightning:type": "c__markdownResponse"`; deploy `DC_AgentForce_Markdown_Renderer/` to the org. |
+| Response renders as raw `<p>...</p>` text | Same as above — the LWC isn't getting hooked up. The HTML path only fires when the renderer receives the value, not when Agentforce passes it as plain string. | Verify the type binding; deploy renderer. |
 | Deploy fails with "type c__markdownResponse not found" | Consumer deployed before renderer | Deploy `DC_AgentForce_Markdown_Renderer/` first, then re-run consumer deploy. |
 | Component shows nothing | `value` is null/undefined, OR `markdownText` getter returned empty | Check the data binding; remember the getter unwraps `value.text`, `value.promptResponse`, or stringifies. |
-| Links emit `href="#"` even for valid URLs | URL has unusual chars (control bytes, unicode whitespace) being stripped | Inspect the cleaned URL in the regex on `markdownRenderer.js:69`; the strip is intentional but may be too aggressive for niche URLs. |
+| Links emit `href="#"` even for valid URLs | URL has unusual chars (control bytes, unicode whitespace) being stripped, OR scheme not in allowlist | Inspect the cleaned URL; the control-char strip is intentional. If you need additional schemes (e.g. `tel:`), extend the regex on `markdownRenderer.js`. |
+| HTML input renders bare text instead of formatted | The detected HTML had no allowlisted tags — they all got stripped to text | Check `ALLOWED_TAGS` in `markdownRenderer.js`. If your prompt template emits a custom tag set, extend the allowlist + add Jest coverage. |
+| HTML `<img>` doesn't render | `<img>` is not in the tag allowlist (no attribute sanitization for `src` exists yet) | If you trust the source, add `img` to `ALLOWED_TAGS` and `src` to `ALLOWED_ATTRS.img` with a URL allowlist for the `src` value. Add Jest coverage. |
 | Markdown table renders as raw pipes | Table grammar doesn't match (missing separator row, header/body cell-count mismatch) | Verify the markdown matches GitHub-flavored table grammar exactly. |
+| HTML on the markdown path got escaped instead of rendered | The `isHtml` heuristic missed your tag pattern | Check the heuristic in `isHtml()` — extend the tag list if your input uses tags not currently detected. Or wrap the input in a recognized block tag (e.g. `<p>`). |
 | Component works on desktop but not on mobile | `lookbehind` regex no longer used (removed in current parser), but check for other ES2018 features | Modern parser uses no lookbehind; if you re-introduce it, target iOS 16.4+. |
 
 ---
