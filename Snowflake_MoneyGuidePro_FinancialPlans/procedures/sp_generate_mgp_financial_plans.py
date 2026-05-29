@@ -413,11 +413,12 @@ def _rows_for(anchor: dict, profile_month: date | datetime) -> list[dict]:
 # Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MGP_FINANCIAL_PLANS
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
+def main(session: Any, num_months: int = 1) -> str:
     """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log.
 
-    Current-cycle SP — emits exactly one row per anchor for the current
-    calendar month. The companion backfill SP handles the 24-month history.
+    `num_months` controls the history depth. Default 1 = current month only
+    (cron-driven). Pass 24 for one-shot historical backfill (operator-CALL).
+    Cron task is registered without arguments so it always emits 1 month.
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
@@ -430,16 +431,27 @@ def main(session: Any) -> str:
         current_month_start = started.replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
         ).date()
+        # Build N month-starts walking backward from current_month_start.
+        # num_months=1 -> [current]; num_months=24 -> [current, current-1mo,
+        # ..., current-23mo].
+        month_starts = []
+        y, m = current_month_start.year, current_month_start.month
+        for _ in range(max(1, num_months)):
+            month_starts.append(date(y, m, 1))
+            m -= 1
+            if m == 0:
+                m = 12
+                y -= 1
 
         records, errors = [], []
         for row in audience:
-            try:
-                records.extend(
-                    _rows_for(_anchor_to_dict(row), current_month_start)
-                )
-            except Exception as exc:
-                errors.append((row.ACCOUNT_ID, str(exc)[:200]))
-        max_tolerated = max(10, len(audience) // 100)
+            anchor = _anchor_to_dict(row)
+            for ms in month_starts:
+                try:
+                    records.extend(_rows_for(anchor, ms))
+                except Exception as exc:
+                    errors.append((row.ACCOUNT_ID, str(exc)[:200]))
+        max_tolerated = max(10, (len(audience) * len(month_starts)) // 100)
         if len(errors) > max_tolerated:
             raise RuntimeError(
                 f"row factory failed on {len(errors)}/{len(audience)} accounts "
@@ -451,7 +463,16 @@ def main(session: Any) -> str:
                 f"first: {errors[0]}"
             )
 
-        rows_inserted = _merge(session, records)
+        # MERGE in 100K-row batches to avoid Snowpark SP heap OOM on
+        # large backfill runs (24 months x 36,813 anchors ≈ 884K rows).
+        # Single-shot MERGE works for cron runs (1 month x 36,813 = 36K)
+        # but blows the runtime on 884K. Batching is unconditional —
+        # 36K/cron run in one batch is fine.
+        BATCH_SIZE = 100_000
+        rows_inserted = 0
+        for batch_start in range(0, len(records), BATCH_SIZE):
+            batch = records[batch_start:batch_start + BATCH_SIZE]
+            rows_inserted += _merge(session, batch)
 
         # Coverage: every anchor must be represented at least once across the
         # full table (current-month rows MERGE-replace previous current-month

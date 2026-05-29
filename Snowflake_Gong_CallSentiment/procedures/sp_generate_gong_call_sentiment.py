@@ -466,46 +466,52 @@ def _rows_for(anchor: dict, profile_week: date) -> list[dict]:
 # Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_GONG_CALL_SENTIMENT
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
-    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log.
+def main(session: Any, num_weeks: int = 1) -> str:
+    """5-step pattern with optional history backfill.
 
-    Weekly cadence — re-runs same calendar week MERGE-replace (byte-identical
-    because the seed + every date helper anchor on profile_week).
-    Current-cycle row count: ~36,813 (one row per anchor for this Monday).
+    `num_weeks=1` (default): cron-driven, current Monday only.
+    `num_weeks=24`: one-shot historical backfill.
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
 
     try:
-        # 1. Read audience from the shared view (zero-copy fresh anchors).
         audience = session.sql(AUDIENCE_SQL).collect()
-        accounts_processed = len(audience)  # 1:1 — also matches row count.
+        accounts_processed = len(audience)
 
-        # Profile_week for the current cycle: Monday-of-week of `started`.
-        profile_week = _profile_week_from(started)
+        # Build N week-starts walking backward from current Monday.
+        current_profile_week = _profile_week_from(started)
+        profile_weeks = []
+        for i in range(max(1, num_weeks)):
+            profile_weeks.append(current_profile_week - timedelta(weeks=i))
 
-        # 2. Build deterministic rows; tolerate up to 1% per-row failures.
         records, errors = [], []
         for row in audience:
-            try:
-                records.extend(_rows_for(_anchor_to_dict(row), profile_week))
-            except Exception as exc:
-                errors.append((row.ACCOUNT_ID, str(exc)[:200]))
-        max_tolerated = max(10, len(audience) // 100)
+            anchor = _anchor_to_dict(row)
+            for pw in profile_weeks:
+                try:
+                    records.extend(_rows_for(anchor, pw))
+                except Exception as exc:
+                    errors.append((row.ACCOUNT_ID, str(exc)[:200]))
+        max_tolerated = max(10, (len(audience) * len(profile_weeks)) // 100)
         if len(errors) > max_tolerated:
             raise RuntimeError(
-                f"row factory failed on {len(errors)}/{len(audience)} accounts "
+                f"row factory failed on {len(errors)}/{len(audience) * len(profile_weeks)} pairs "
                 f"(tolerance {max_tolerated}); first: {errors[0] if errors else 'n/a'}"
             )
         if errors:
             err = (
-                f"row factory failed on {len(errors)}/{len(audience)} accounts; "
+                f"row factory failed on {len(errors)}/{len(audience) * len(profile_weeks)} pairs; "
                 f"first: {errors[0]}"
             )
 
-        # 3. Idempotent MERGE on composite PK (ACCOUNT_ID, PROFILE_WEEK).
-        rows_inserted = _merge(session, records)
+        # Batched MERGE for backfill safety (884K rows / 100K = ~9 batches).
+        BATCH_SIZE = 100_000
+        rows_inserted = 0
+        for batch_start in range(0, len(records), BATCH_SIZE):
+            batch = records[batch_start:batch_start + BATCH_SIZE]
+            rows_inserted += _merge(session, batch)
 
         # 4. Coverage assertion — 1:1 audience-vs-actual.
         actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"

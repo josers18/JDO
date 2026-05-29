@@ -179,7 +179,7 @@ SQL_HEADER = f"""\
 --           (OUTLOOK_LAST_CHANGED_DATE). Simplest of any Cumulus dataset.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}()
+CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}(NUM_DAYS INT DEFAULT 1)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'

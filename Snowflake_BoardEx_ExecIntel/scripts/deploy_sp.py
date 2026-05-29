@@ -155,7 +155,7 @@ SQL_HEADER = f"""\
 --           workaround).
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}()
+CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}(NUM_MONTHS INT DEFAULT 1)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'

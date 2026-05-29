@@ -419,13 +419,11 @@ def _rows_for(anchor: dict, profile_month: datetime) -> list[dict]:
 # Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
-    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log.
+def main(session: Any, num_months: int = 1) -> str:
+    """5-step pattern with optional history backfill.
 
-    Current-cycle SP — emits one row per anchor for the current calendar
-    month. Audience is all-accounts (~36,813 anchors), so each invocation
-    produces ~36,813 rows. Backfill across 24 months is owned by
-    sp_backfill_boardex_exec_intel.py (TASK_NAME=SP_BACKFILL_BOARDEX_EXEC_INTEL).
+    `num_months=1` (default): cron-driven, current month only.
+    `num_months=24`: one-shot historical backfill.
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
@@ -435,25 +433,43 @@ def main(session: Any) -> str:
         audience = session.sql(AUDIENCE_SQL).collect()
         accounts_processed = len(audience)
 
+        current_month_start = started.replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        month_starts = []
+        y, m = current_month_start.year, current_month_start.month
+        for _ in range(max(1, num_months)):
+            month_starts.append(datetime(y, m, 1))
+            m -= 1
+            if m == 0:
+                m = 12
+                y -= 1
+
         records, errors = [], []
         for row in audience:
-            try:
-                records.extend(_rows_for(_anchor_to_dict(row), started))
-            except Exception as exc:
-                errors.append((row.ACCOUNT_ID, str(exc)[:200]))
-        max_tolerated = max(10, len(audience) // 100)
+            anchor = _anchor_to_dict(row)
+            for ms in month_starts:
+                try:
+                    records.extend(_rows_for(anchor, ms))
+                except Exception as exc:
+                    errors.append((row.ACCOUNT_ID, str(exc)[:200]))
+        max_tolerated = max(10, (len(audience) * len(month_starts)) // 100)
         if len(errors) > max_tolerated:
             raise RuntimeError(
-                f"row factory failed on {len(errors)}/{len(audience)} accounts "
+                f"row factory failed on {len(errors)}/{len(audience) * len(month_starts)} pairs "
                 f"(tolerance {max_tolerated}); first: {errors[0] if errors else 'n/a'}"
             )
         if errors:
             err = (
-                f"row factory failed on {len(errors)}/{len(audience)} accounts; "
+                f"row factory failed on {len(errors)}/{len(audience) * len(month_starts)} pairs; "
                 f"first: {errors[0]}"
             )
 
-        rows_inserted = _merge(session, records)
+        BATCH_SIZE = 100_000
+        rows_inserted = 0
+        for batch_start in range(0, len(records), BATCH_SIZE):
+            batch = records[batch_start:batch_start + BATCH_SIZE]
+            rows_inserted += _merge(session, batch)
 
         actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
         assert_coverage(session, COVERAGE_SQL, actual_sql)

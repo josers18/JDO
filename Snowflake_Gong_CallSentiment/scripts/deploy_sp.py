@@ -141,7 +141,7 @@ SQL_HEADER = f"""\
 --           canonical name. No ampersand sanitize ("Gong" is clean).
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}()
+CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}(NUM_WEEKS INT DEFAULT 1)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'

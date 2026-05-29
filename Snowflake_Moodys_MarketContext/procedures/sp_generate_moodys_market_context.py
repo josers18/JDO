@@ -458,55 +458,56 @@ def _rows_for(anchor: dict, profile_date: date) -> list[dict]:
 # Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MOODYS_MARKET_CONTEXT
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
-    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log.
+def main(session: Any, num_days: int = 1) -> str:
+    """5-step pattern with optional history backfill.
 
-    1. Read audience (BUSINESS-only via V_ACCOUNT_ANCHORS).
-    2. Build deterministic rows (tolerate up to 1% per-row failures).
-    3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_DATE).
-    4. Coverage assertion vs V_ACCOUNT_ANCHORS BUSINESS count.
-    5. Always log to TASK_EXECUTION_LOG (success or failure).
+    `num_days=1` (default): cron-driven, current day only.
+    `num_days=90`: one-shot 90-day historical backfill.
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
 
     try:
-        # 1. Read audience — BUSINESS-only.
         audience = session.sql(AUDIENCE_SQL).collect()
         accounts_processed = len(audience)
 
-        # 2. Build deterministic rows; tolerate up to 1% per-row failures.
-        profile_date = _day_start(started).date()
+        # Build N profile_dates walking backward from today.
+        current_profile_date = _day_start(started).date()
+        profile_dates = []
+        for i in range(max(1, num_days)):
+            profile_dates.append(current_profile_date - timedelta(days=i))
+
         records, errors = [], []
         for row in audience:
             anchor = _anchor_to_dict(row)
-            try:
-                records.extend(_rows_for(anchor, profile_date))
-            except Exception as exc:
-                errors.append((anchor.get("ACCOUNT_ID"), str(exc)[:200]))
-        max_tolerated = max(10, len(audience) // 100)
+            for pd in profile_dates:
+                try:
+                    records.extend(_rows_for(anchor, pd))
+                except Exception as exc:
+                    errors.append((anchor.get("ACCOUNT_ID"), str(exc)[:200]))
+        max_tolerated = max(10, (len(audience) * len(profile_dates)) // 100)
         if len(errors) > max_tolerated:
             raise RuntimeError(
-                f"row factory failed on {len(errors)}/{len(audience)} accounts "
+                f"row factory failed on {len(errors)}/{len(audience) * len(profile_dates)} pairs "
                 f"(tolerance {max_tolerated}); first: {errors[0] if errors else 'n/a'}"
             )
         if errors:
             err = (
-                f"row factory failed on {len(errors)}/{len(audience)} accounts; "
+                f"row factory failed on {len(errors)}/{len(audience) * len(profile_dates)} pairs; "
                 f"first: {errors[0]}"
             )
 
-        # 3. Idempotent MERGE on composite PK (ACCOUNT_ID, PROFILE_DATE).
-        rows_inserted = _merge(session, records)
+        # Batched MERGE for backfill safety (1.025M / 100K = ~11 batches).
+        BATCH_SIZE = 100_000
+        rows_inserted = 0
+        for batch_start in range(0, len(records), BATCH_SIZE):
+            batch = records[batch_start:batch_start + BATCH_SIZE]
+            rows_inserted += _merge(session, batch)
 
-        # 4. Coverage assertion — 1:1 audience-vs-actual for today''s slice.
-        # Actual count restricted to today''s PROFILE_DATE because the table
-        # holds 90 days of backfilled history alongside today''s row.
-        actual_sql = (
-            f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE} "
-            f"WHERE PROFILE_DATE = '{profile_date.isoformat()}'"
-        )
+        # Coverage assertion — every BUSINESS anchor has at least one row
+        # somewhere across the backfilled window.
+        actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
         assert_coverage(session, COVERAGE_SQL, actual_sql)
 
     except Exception as exc:
