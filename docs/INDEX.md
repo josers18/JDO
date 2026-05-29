@@ -34,7 +34,7 @@
 | DC_Multiclass_Prediction_LWC | [INDEX](../DC_Multiclass_Prediction_LWC/docs/INDEX.md) | [README](../DC_Multiclass_Prediction_LWC/README.md) | [artifacts](../DC_Multiclass_Prediction_LWC/artifacts.md) |
 | DC_AgentForce_Output_LWC | [INDEX](../DC_AgentForce_Output_LWC/docs/INDEX.md) | [README](../DC_AgentForce_Output_LWC/README.md) | [artifacts](../DC_AgentForce_Output_LWC/artifacts.md) |
 | DC_AgentForce_Markdown_Renderer | [AGENTS](../DC_AgentForce_Markdown_Renderer/AGENTS.md) | [README](../DC_AgentForce_Markdown_Renderer/README.md) | [INTEGRATION_GUIDE](../DC_AgentForce_Markdown_Renderer/docs/INTEGRATION_GUIDE.md) — markdown + HTML rendering, Lightning Type wiring, security model |
-| Cumulus_Assistant | [AGENTS](../Cumulus_Assistant/AGENTS.md) | [README](../Cumulus_Assistant/README.md) | Agentforce agent bundle for Cumulus Bank — consumes `c__markdownResponse` renderer |
+| Cumulus_Assistant | [AGENTS](../Cumulus_Assistant/AGENTS.md) | [README](../Cumulus_Assistant/README.md) | Agentforce agent bundle for Cumulus Bank — consumes `markdownResponse` renderer |
 | DC_Query_to_Table_LWC | [INDEX](../DC_Query_to_Table_LWC/docs/INDEX.md) | [README](../DC_Query_to_Table_LWC/README.md) | [artifacts](../DC_Query_to_Table_LWC/artifacts.md) |
 | Web_Engagements_RT_Timeline | [README](../Web_Engagements_RT_Timeline/README.md) (no `docs/INDEX.md`; spec + plans in `docs/superpowers/`) | [README](../Web_Engagements_RT_Timeline/README.md) | [artifacts](../Web_Engagements_RT_Timeline/artifacts.md) |
 

@@ -14,7 +14,7 @@ A reusable Lightning Web Component that renders markdown-formatted Agentforce pr
 
 ## What it does
 
-Agentforce GenAI Functions return text. When that text is markdown (`**bold**`, `# headings`, lists, `[links](url)`) **or** raw HTML (`<p>`, `<strong>`, `<ul>`, etc.), the default Agentforce panel renders it as an unformatted blob. This component intercepts responses typed `c__markdownResponse` and renders them with proper HTML formatting.
+Agentforce GenAI Functions return text. When that text is markdown (`**bold**`, `# headings`, lists, `[links](url)`) **or** raw HTML (`<p>`, `<strong>`, `<ul>`, etc.), the default Agentforce panel renders it as an unformatted blob. This component intercepts responses typed `markdownResponse` and renders them with proper HTML formatting.
 
 **Dual-input support.** The renderer auto-detects whether the input is markdown or HTML and routes it through the appropriate path:
 - Markdown → regex-based parser → emits sanitized HTML
@@ -26,11 +26,11 @@ Both paths produce the same set of safe tags and apply the same URL allowlist on
 
 ```
 GenAiFunction returns promptResponse
-  ├─ output/schema.json types it as "lightning:type": "c__markdownResponse"
+  ├─ output/schema.json types it as "lightning:type": "markdownResponse"
   │
   ▼
 Lightning Type registry (lightningTypes/markdownResponse/)
-  ├─ schema.json        — declares c__markdownResponse + its properties
+  ├─ schema.json        — declares markdownResponse + its properties
   └─ lightningDesktopGenAi/renderer.json
                         — points "$" at "c/markdownRenderer"
   │
@@ -47,8 +47,8 @@ No Flow, no Apex sanitizer, no static-resource library. The platform binds rende
 | Path | Purpose |
 |------|---------|
 | `lwc/markdownRenderer/` | The LWC. Regex-based markdown parser → HTML, scoped CSS. Target: `lightning__AgentforceOutput`. |
-| `lightningTypes/markdownResponse/schema.json` | Declares the `c__markdownResponse` Lightning type with a single `text` property. |
-| `lightningTypes/markdownResponse/lightningDesktopGenAi/renderer.json` | Tells Agentforce desktop GenAI to render `c__markdownResponse` values via `c/markdownRenderer`. |
+| `lightningTypes/markdownResponse/schema.json` | Declares the `markdownResponse` Lightning type with a single `text` property. |
+| `lightningTypes/markdownResponse/lightningDesktopGenAi/renderer.json` | Tells Agentforce desktop GenAI to render `markdownResponse` values via `c/markdownRenderer`. |
 
 ## Markdown syntax supported
 
@@ -92,7 +92,7 @@ cd DC_AgentForce_Markdown_Renderer
 sf project deploy start --source-dir force-app --target-org my-org --wait 10
 ```
 
-**Important:** Deploy this project BEFORE any GenAiFunction whose `output/schema.json` references `c__markdownResponse`, otherwise the type lookup fails at deploy time. Sibling project `Cumulus_Assistant/` (in this monorepo) is one such consumer.
+**Important:** Deploy this project BEFORE any GenAiFunction whose `output/schema.json` references `markdownResponse`, otherwise the type lookup fails at deploy time. Sibling project `Cumulus_Assistant/` (in this monorepo) is one such consumer.
 
 ## Related
 

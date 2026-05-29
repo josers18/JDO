@@ -6,7 +6,7 @@ Context for AI coding agents working on the **Cumulus Bank Agentforce agent** de
 
 The Cumulus Assistant is an `AgentforceEmployeeAgent` template aimed at Cumulus Bank employees (wealth advisors, retail bankers, commercial bankers, treasury managers). It routes user prompts through 18+ topic subagents and dispatches to actions (Flows, GenAiFunctions, knowledge retrievers).
 
-This project contains **only** the agent definition + the Cumulus-specific GenAiFunction. The renderer surface that visualizes responses is in the sibling project `DC_AgentForce_Markdown_Renderer/` (the `c__markdownResponse` Lightning type + `c/markdownRenderer` LWC).
+This project contains **only** the agent definition + the Cumulus-specific GenAiFunction. The renderer surface that visualizes responses is in the sibling project `DC_AgentForce_Markdown_Renderer/` (the `markdownResponse` Lightning type + `c/markdownRenderer` LWC).
 
 # Tech stack
 
@@ -26,7 +26,7 @@ Cumulus_Assistant/
 │   └── genAiFunctions/DC_Product_Offers/
 │       ├── DC_Product_Offers.genAiFunction-meta.xml  ← invocationTarget: Product_Offers retriever
 │       ├── input/schema.json                          ← Input:ProductOfferQuestion (text)
-│       └── output/schema.json                         ← promptResponse: c__markdownResponse
+│       └── output/schema.json                         ← promptResponse: markdownResponse
 ├── README.md
 ├── AGENTS.md                                  ← this file
 └── sfdx-project.json                          ← name: cumulus-assistant
@@ -64,11 +64,11 @@ start_agent agent_router (Cumulus_Assistant.agent line ~50)
 | `invocationTarget` | `Product_Offers` (Data Cloud retriever) |
 | `invocationTargetType` | `generatePromptResponse` |
 | Input | `Input:ProductOfferQuestion` (text) — product inquiry |
-| Output | `promptResponse` typed `c__markdownResponse` — auto-rendered via sibling renderer |
+| Output | `promptResponse` typed `markdownResponse` — auto-rendered via sibling renderer |
 
 ## Cross-project dependency on DC_AgentForce_Markdown_Renderer
 
-The output schema's `lightning:type: "c__markdownResponse"` references a custom Lightning type owned by `../DC_AgentForce_Markdown_Renderer/`. That project must deploy first or this one's deploy fails at the type lookup. Same is true for the `complex_data_type_name: "c__markdownResponse"` reference inside `Cumulus_Assistant.agent` line ~3303.
+The output schema's `lightning:type: "markdownResponse"` references a custom Lightning type owned by `../DC_AgentForce_Markdown_Renderer/`. That project must deploy first or this one's deploy fails at the type lookup. Same is true for the `complex_data_type_name: "markdownResponse"` reference inside `Cumulus_Assistant.agent` line ~3303.
 
 # Conventions
 
@@ -83,7 +83,7 @@ The output schema's `lightning:type: "c__markdownResponse"` references a custom 
 ## GenAiFunctions
 - `genAiFunction-meta.xml` is the metadata header (description, developerName, invocationTarget, invocationTargetType, isConfirmationRequired, etc.).
 - `input/schema.json` declares the parameters the planner can pass; `output/schema.json` declares what the function returns.
-- For markdown-formatted output, type `promptResponse` as `lightning:type: "c__markdownResponse"`. This auto-routes the value through `c/markdownRenderer` in the Agentforce panel.
+- For markdown-formatted output, type `promptResponse` as `lightning:type: "markdownResponse"`. This auto-routes the value through `c/markdownRenderer` in the Agentforce panel.
 - The renderer also accepts **HTML** input — if a future prompt template emits `<p>...</p>` instead of `**...**`, no schema change is required. The renderer auto-detects format and routes through a `DOMParser`-based sanitizer with the same tag/attribute allowlist as the markdown path. See `../DC_AgentForce_Markdown_Renderer/docs/INTEGRATION_GUIDE.md`.
 - The function output type `lightning__objectType` wraps the inner properties.
 
@@ -97,7 +97,7 @@ There are no automated tests for `.agent` bundles or GenAiFunctions in this proj
 
 # Deploy gotchas
 
-- **Deploy `DC_AgentForce_Markdown_Renderer/` first.** The `c__markdownResponse` type referenced by this project's `output/schema.json` and `.agent` file lives there.
+- **Deploy `DC_AgentForce_Markdown_Renderer/` first.** The `markdownResponse` type referenced by this project's `output/schema.json` and `.agent` file lives there.
 - **Large `.agent` files take time.** 3.3K lines is the largest agent bundle in the JDO monorepo. Allow 10+ minutes for the deploy.
 - **Subagent reference integrity.** If you remove a subagent, scrub all `go_to_<name>` and `@subagent.<name>` references first or the bundle fails to compile with a cryptic "subagent not found" error.
 - **GenAiFunction `invocationTarget`.** If `Product_Offers` (the retriever) doesn't exist in the target org, the GenAiFunction deploy succeeds but the action fails at runtime. Check Setup → Data Cloud → Retrievers before deploying.
@@ -106,8 +106,8 @@ There are no automated tests for `.agent` bundles or GenAiFunctions in this proj
 
 - **Editing `.agent` indentation by hand without re-validating.** The DSL is whitespace-sensitive. Use a Salesforce-aware editor or run `sf project deploy validate` after any non-trivial change.
 - **Removing a subagent without scrubbing references.** Always grep for the subagent name before deletion.
-- **Deploying without the renderer project.** First-deploy failures are recoverable — just deploy the renderer first, then this — but the error message is misleading ("type c__markdownResponse not found" rather than "wrong project order").
-- **Adding new GenAiFunctions that emit markdown without typing the output as `c__markdownResponse`** — they'll work, but the response will render as raw text instead of formatted HTML in the Agentforce panel.
+- **Deploying without the renderer project.** First-deploy failures are recoverable — just deploy the renderer first, then this — but the error message is misleading ("type markdownResponse not found" rather than "wrong project order").
+- **Adding new GenAiFunctions that emit markdown without typing the output as `markdownResponse`** — they'll work, but the response will render as raw text instead of formatted HTML in the Agentforce panel.
 
 # Related projects
 

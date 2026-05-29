@@ -4,7 +4,7 @@ Context for AI coding agents working on the **Markdown Renderer** Lightning comp
 
 # Product context
 
-A renderer for Agentforce GenAI Function responses formatted as **markdown OR HTML**. Wired in via the platform's Lightning Type renderer-override mechanism: `c__markdownResponse` is a custom Lightning type whose `lightningDesktopGenAi` renderer is `c/markdownRenderer`. Any GenAiFunction whose `output/schema.json` types `promptResponse` as `c__markdownResponse` is auto-routed through this LWC by the Agentforce panel.
+A renderer for Agentforce GenAI Function responses formatted as **markdown OR HTML**. Wired in via the platform's Lightning Type renderer-override mechanism: `markdownResponse` is a custom Lightning type whose `lightningDesktopGenAi` renderer is `c/markdownRenderer`. Any GenAiFunction whose `output/schema.json` types `promptResponse` as `markdownResponse` is auto-routed through this LWC by the Agentforce panel.
 
 The component auto-detects which format it received and routes through the appropriate path:
 - **Markdown path** — regex-based parser (`parseMarkdown`) handles headings, bold/italic/triple-asterisk, code fences + inline code, ordered/unordered lists, blockquotes, tables, and links.
@@ -30,7 +30,7 @@ DC_AgentForce_Markdown_Renderer/
 │   │   ├── markdownRenderer.css         ← scoped styles for emitted h1-3 / p / ul / li / a
 │   │   └── markdownRenderer.js-meta.xml ← target: lightning__AgentforceOutput
 │   └── lightningTypes/markdownResponse/
-│       ├── schema.json                                   ← c__markdownResponse type with text property
+│       ├── schema.json                                   ← markdownResponse type with text property
 │       └── lightningDesktopGenAi/renderer.json           ← maps "$" -> "c/markdownRenderer"
 ├── README.md
 ├── AGENTS.md                            ← this file
@@ -43,7 +43,7 @@ DC_AgentForce_Markdown_Renderer/
 
 ```
 GenAiFunction.output.schema.json
-  └─ promptResponse: { "lightning:type": "c__markdownResponse" }
+  └─ promptResponse: { "lightning:type": "markdownResponse" }
        │
        ▼
 Lightning Type registry (this project)
@@ -146,7 +146,7 @@ Coverage targets when adding tests:
 
 # Deploy gotchas
 
-- **Deploy this project BEFORE any consumer.** Any GenAiFunction whose `output/schema.json` references `c__markdownResponse` will fail to deploy if the Lightning Type isn't already in the org. `Cumulus_Assistant/` (sibling project) is one such consumer.
+- **Deploy this project BEFORE any consumer.** Any GenAiFunction whose `output/schema.json` references `markdownResponse` will fail to deploy if the Lightning Type isn't already in the org. `Cumulus_Assistant/` (sibling project) is one such consumer.
 - **API version mismatch.** If you back-port to an org running an API version < 66.0, the `lightning__AgentforceOutput` target won't resolve. Check the org's Agentforce/Einstein Copilot version before deploying.
 - **No `forceignore`.** Everything in `force-app/` deploys. If you add Jest tests, add `__tests__/` to `.forceignore` (sibling pattern: see `Web_Engagements_RT_Timeline/.forceignore`).
 
@@ -162,6 +162,6 @@ Coverage targets when adding tests:
 
 # Related projects
 
-- `../Cumulus_Assistant/` — sibling project containing the Cumulus Bank `.agent` definition and the `DC_Product_Offers` GenAiFunction that consumes `c__markdownResponse`.
+- `../Cumulus_Assistant/` — sibling project containing the Cumulus Bank `.agent` definition and the `DC_Product_Offers` GenAiFunction that consumes `markdownResponse`.
 - `../DC_AgentForce_Output_LWC/` — older renderer pattern (Apex sanitizer + `marked.js` static resource).
 - `../docs/MONOREPO_OVERVIEW.md` — JDO monorepo index.
