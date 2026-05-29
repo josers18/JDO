@@ -1,0 +1,279 @@
+import { createElement } from 'lwc';
+import MarkdownRenderer from 'c/markdownRenderer';
+
+function mount(value) {
+    const el = createElement('c-markdown-renderer', { is: MarkdownRenderer });
+    el.value = value;
+    document.body.appendChild(el);
+    return el;
+}
+
+// LWC injects shadow-scope attributes (e.g. ` lwc-abc123=""`) onto every
+// emitted element. Strip them so test assertions can match canonical tags.
+function html(el) {
+    return el.shadowRoot
+        .querySelector('.markdown-container')
+        .innerHTML.replace(/\s+lwc-[a-z0-9]+=""/g, '');
+}
+
+describe('escapeHtml', () => {
+    it('escapes HTML control chars before any markdown regex runs', () => {
+        const el = mount('<script>alert(1)</script>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).not.toContain('<script>');
+            expect(out).toContain('&lt;script&gt;');
+        });
+    });
+
+    it('escapes &amp; &lt; &gt; in parsed markdown text', () => {
+        const el = mount('Compare A & B < C > D');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('A &amp; B');
+            expect(out).toContain('&lt; C');
+            expect(out).toContain('&gt; D');
+        });
+    });
+});
+
+describe('URL allowlist (security-critical)', () => {
+    // The renderer must reject javascript:, data:, vbscript:, and any padded
+    // variant (java\tscript:, java\nscript:, etc.) by collapsing href to "#".
+    // Browsers' URL parser ignores intra-scheme whitespace, so the allowlist
+    // MUST run after stripping control chars from the URL.
+
+    const REJECTED_SCHEMES = [
+        ['plain javascript', '[click](javascript:alert(1))'],
+        ['javascript with tab padding', '[click](java\tscript:alert(1))'],
+        ['javascript with newline padding', '[click](java\nscript:alert(1))'],
+        ['javascript with leading whitespace', '[click](  javascript:alert(1))'],
+        ['javascript uppercase', '[click](JAVASCRIPT:alert(1))'],
+        ['javascript mixed case', '[click](JaVaScRiPt:alert(1))'],
+        ['data URI text/html', '[click](data:text/html,<script>alert(1)</script>)'],
+        ['data URI base64', '[click](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)'],
+        ['vbscript URI', '[click](vbscript:msgbox(1))'],
+        ['file URI', '[click](file:///etc/passwd)'],
+        ['ftp URI', '[click](ftp://example.com/path)']
+    ];
+
+    REJECTED_SCHEMES.forEach(([label, input]) => {
+        it(`rejects ${label} -> href="#"`, () => {
+            const el = mount(input);
+            return Promise.resolve().then(() => {
+                const out = html(el);
+                expect(out).toContain('href="#"');
+                expect(out).not.toContain('javascript:');
+                expect(out).not.toContain('data:');
+                expect(out).not.toContain('vbscript:');
+            });
+        });
+    });
+
+    const ACCEPTED_SCHEMES = [
+        ['https', '[click](https://example.com/path?q=1)', 'https://example.com/path?q=1'],
+        ['http', '[click](http://example.com)', 'http://example.com'],
+        ['mailto', '[email](mailto:a@b.com)', 'mailto:a@b.com'],
+        ['relative path', '[home](/home)', '/home'],
+        ['fragment', '[anchor](#section)', '#section'],
+        ['relative dot', '[file](./page.html)', './page.html']
+    ];
+
+    ACCEPTED_SCHEMES.forEach(([label, input, expectedHref]) => {
+        it(`preserves ${label}`, () => {
+            const el = mount(input);
+            return Promise.resolve().then(() => {
+                expect(html(el)).toContain(`href="${expectedHref}"`);
+            });
+        });
+    });
+
+    it('emits rel="noopener noreferrer" on every link', () => {
+        const el = mount('[link](https://example.com)');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('rel="noopener noreferrer"');
+        });
+    });
+
+    it('opens links in new tab via target="_blank"', () => {
+        const el = mount('[link](https://example.com)');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('target="_blank"');
+        });
+    });
+});
+
+describe('markdown constructs', () => {
+    it('renders headings h1-h3', () => {
+        const el = mount('# H1\n## H2\n### H3');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<h1>H1</h1>');
+            expect(out).toContain('<h2>H2</h2>');
+            expect(out).toContain('<h3>H3</h3>');
+        });
+    });
+
+    it('renders bold and italic', () => {
+        const el = mount('**bold** and *italic*');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<strong>bold</strong>');
+            expect(out).toContain('<em>italic</em>');
+        });
+    });
+
+    it('renders triple-asterisk as bold+italic', () => {
+        const el = mount('***both***');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('<strong><em>both</em></strong>');
+        });
+    });
+
+    it('renders unordered lists', () => {
+        const el = mount('- a\n- b\n- c');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<ul>');
+            expect(out).toContain('<li>a</li>');
+            expect(out).toContain('<li>b</li>');
+            expect(out).toContain('<li>c</li>');
+            expect(out).toContain('</ul>');
+        });
+    });
+
+    it('renders ordered lists', () => {
+        const el = mount('1. one\n2. two\n3. three');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<ol>');
+            expect(out).toContain('<li>one</li>');
+            expect(out).toContain('<li>two</li>');
+            expect(out).toContain('<li>three</li>');
+            expect(out).toContain('</ol>');
+        });
+    });
+
+    it('renders blockquotes', () => {
+        const el = mount('> first\n> second');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<blockquote>');
+            expect(out).toContain('first');
+            expect(out).toContain('second');
+            expect(out).toContain('</blockquote>');
+        });
+    });
+
+    it('renders inline code', () => {
+        const el = mount('Use `console.log()` to debug.');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('<code>console.log()</code>');
+        });
+    });
+
+    it('renders fenced code blocks and preserves markdown literals inside', () => {
+        const el = mount('```js\nconst x = **not bold**;\n```');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<pre><code>');
+            expect(out).toContain('**not bold**');
+            expect(out).not.toContain('<strong>not bold</strong>');
+        });
+    });
+
+    it('escapes HTML inside fenced code blocks', () => {
+        const el = mount('```\n<script>alert(1)</script>\n```');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('&lt;script&gt;');
+            expect(out).not.toContain('<script>alert(1)</script>');
+        });
+    });
+
+    it('renders github-flavored tables', () => {
+        const el = mount('| col1 | col2 |\n|------|------|\n| a    | b    |\n| c    | d    |');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<table>');
+            expect(out).toContain('<th>col1</th>');
+            expect(out).toContain('<th>col2</th>');
+            expect(out).toContain('<td>a</td>');
+            expect(out).toContain('<td>d</td>');
+        });
+    });
+});
+
+describe('value getter', () => {
+    it('handles plain string', () => {
+        const el = mount('plain string');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('plain string');
+        });
+    });
+
+    it('unwraps object with text property', () => {
+        const el = mount({ text: '**bold**' });
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('<strong>bold</strong>');
+        });
+    });
+
+    it('unwraps object with promptResponse property (Agentforce shape)', () => {
+        const el = mount({ promptResponse: '## Heading' });
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('<h2>Heading</h2>');
+        });
+    });
+
+    it('falls back to JSON.stringify for unknown shapes', () => {
+        const el = mount({ unknown: 'shape', n: 42 });
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('unknown');
+            expect(out).toContain('42');
+        });
+    });
+
+    it('renders nothing when value is null/undefined', () => {
+        const el = mount(null);
+        return Promise.resolve().then(() => {
+            expect(html(el)).toBe('');
+        });
+    });
+});
+
+describe('edge cases', () => {
+    it('handles empty input', () => {
+        const el = mount('');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toBe('');
+        });
+    });
+
+    it('handles a complex multi-construct response', () => {
+        const md = [
+            '# Product Offers',
+            '',
+            'Here are **two** offers for you:',
+            '',
+            '1. Premium Card — *low APR*',
+            '2. Basic Card — `no annual fee`',
+            '',
+            '> Talk to your advisor for details.',
+            '',
+            '[Learn more](https://example.com)'
+        ].join('\n');
+        const el = mount(md);
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<h1>Product Offers</h1>');
+            expect(out).toContain('<strong>two</strong>');
+            expect(out).toContain('<ol>');
+            expect(out).toContain('<em>low APR</em>');
+            expect(out).toContain('<code>no annual fee</code>');
+            expect(out).toContain('<blockquote>');
+            expect(out).toContain('href="https://example.com"');
+        });
+    });
+});

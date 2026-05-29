@@ -1,0 +1,9 @@
+# LWC Jest tests
+**/__tests__/**
+**/*.test.js
+
+# LWC configuration files
+**/jsconfig.json
+
+# node_modules
+node_modules

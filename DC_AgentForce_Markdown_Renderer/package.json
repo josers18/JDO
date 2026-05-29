@@ -1,0 +1,18 @@
+{
+  "name": "dc-agentforce-markdown-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Salesforce DX project: markdown renderer LWC + Lightning Type for Agentforce GenAI output.",
+  "overrides": {
+    "@tootallnate/once": "3.0.1"
+  },
+  "scripts": {
+    "test": "sfdx-lwc-jest",
+    "test:unit": "sfdx-lwc-jest",
+    "test:unit:watch": "sfdx-lwc-jest --watch",
+    "test:unit:coverage": "sfdx-lwc-jest --coverage"
+  },
+  "devDependencies": {
+    "@salesforce/sfdx-lwc-jest": "^7.0.0"
+  }
+}
