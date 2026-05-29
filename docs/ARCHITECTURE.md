@@ -16,6 +16,7 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
 | **CRM + Flow-assembled tabbed profile UI** | DC Person Profile Widget (Account + Contact; SOQL + **`flow:`/`flows:`** slots + optional Flows + Einstein; **icon + label** field rows on key tabs; optional live rollups such as open case count and summed open opportunity amounts on Account); DC Business Profile Widget (Account; `fieldMappingsJson` SOQL or **`flow:`**; **Pipeline** tab lists open Opportunities with configurable row cap via **`pipelineOpportunityLimit`** / App Builder **Pipeline: max open opportunities** (default **0** → up to **2000**); **Active products** can reflect **FinServ Financial Account** count when that object exists; icon rows on Overview, Credit facilities, Structure) |
 | **Shared theme tokens (profile-aligned)** | DC Prediction Model + DC Multiclass Prediction import **`predictionThemes.js`** (same CSS variable keys as profile widgets; App Builder **Theme** / optional header switcher) |
 | **Hybrid two-call multi-source timeline (hot cache + cold-store backfill)** | Web_Engagements_RT_Timeline fires **Promise A** (`DataCloudWebEngagementController.getWebEngagementsWithBackfill` — orchestrates a Data Graph hot-cache fetch via `callout:Data_Cloud_API` AND a cold-store backfill from `CumulusWeb_Engagements__dlm` via `ConnectApi.CdpQuery.querySql` JOIN'd to `UnifiedLinkssotAccountAcc__dlm` on `deviceId__c = SourceRecordId__c`, merged hot-wins-on-eventId-collision into one envelope so the timeline stays populated after the real-time cache window expires) and **Promise B** (CRM SOQL aggregator `CrmTimelineController` across Case/Task/Event/VoiceCall) **in parallel**. Data Graph rows render the moment Promise A resolves; CRM events stream in below when Promise B finishes. Cold-side failures are non-fatal — the response degrades gracefully to hot-only. Filter chips operate on already-loaded data with no Apex round-trip. Helper LWC modules (`sourceConfig.js` + `timelineMappers.js`) keep the component class thin and Jest-testable. |
+| **Generated customer documents** | Customer_Documents uses Python + ReportLab to produce content-heavy onboarding, relationship review, and service/retention PDFs. It is a demo content asset, not a DX package; generated PDFs live under `Customer_Documents/documents/` and the generator refreshes its own artifact inventory. |
 
 ## Documentation map
 
@@ -32,6 +33,7 @@ JDO groups **demo-grade Salesforce packages** used with a single demo org: predi
   - [DC_PersonProfileWidget/docs/ARCHITECTURE.md](../DC_PersonProfileWidget/docs/ARCHITECTURE.md)
   - [DC_BusinessProfileWidget/docs/ARCHITECTURE.md](../DC_BusinessProfileWidget/docs/ARCHITECTURE.md)
   - [Web_Engagements_RT_Timeline/README.md](../Web_Engagements_RT_Timeline/README.md) and the [revamp design spec](../Web_Engagements_RT_Timeline/docs/superpowers/specs/2026-05-17-revamp-design.md)
+  - [Customer_Documents/README.md](../Customer_Documents/README.md) and [Customer_Documents/docs/DOCUMENTS.md](../Customer_Documents/docs/DOCUMENTS.md)
 
 ## Security posture (high level)
 

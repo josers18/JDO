@@ -15,7 +15,11 @@ flowchart LR
         BP[Business Profile Widget]
         WE[Web Engagements RT Timeline]
     end
+    subgraph content [Generated content assets]
+        CD[Customer Documents]
+    end
     ORG[(Salesforce org)]
+    PDF[(PDF artifacts)]
     PM -->|Flow| ORG
     MC -->|Flow| ORG
     AF -->|Flow| ORG
@@ -23,6 +27,7 @@ flowchart LR
     PP -->|HTTP NC + SOQL + Flow| ORG
     BP -->|SOQL + Flow + optional Einstein| ORG
     WE -->|Data Graph callout + parallel CRM SOQL| ORG
+    CD -->|ReportLab| PDF
 ```
 
 ## Flow-driven components (pattern)

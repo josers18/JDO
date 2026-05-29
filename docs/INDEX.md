@@ -24,6 +24,7 @@
 | Project | Doc index (start here) | README | Artifacts |
 |---------|------------------------|--------|-----------|
 | Customer_Hydration | [INDEX](../Customer_Hydration/docs/INDEX.md) | [README](../Customer_Hydration/README.md) | [AGENTS.md](../Customer_Hydration/AGENTS.md) (artifact context) · [briefs](../Customer_Hydration/docs/BANKER_BRIEFS.md) |
+| Customer_Documents | [DOCUMENTS](../Customer_Documents/docs/DOCUMENTS.md) | [README](../Customer_Documents/README.md) | [Artifacts](../Customer_Documents/docs/ARTIFACTS.md) · [generated PDFs](../Customer_Documents/documents/README.md) |
 | Snowflake | [README](../Snowflake/README.md) | [README](../Snowflake/README.md) | [Artifacts](../Snowflake/docs/ARTIFACTS.md) · [Architecture](../Snowflake/docs/ARCHITECTURE.md) · [Processes](../Snowflake/docs/PROCESSES.md) |
 | DC_PersonProfileWidget | [INDEX](../DC_PersonProfileWidget/docs/INDEX.md) | [README](../DC_PersonProfileWidget/README.md) | [artifacts](../DC_PersonProfileWidget/artifacts.md) |
 | DC_BusinessProfileWidget | [INDEX](../DC_BusinessProfileWidget/docs/INDEX.md) | [README](../DC_BusinessProfileWidget/README.md) | [artifacts](../DC_BusinessProfileWidget/artifacts.md) |

@@ -2,7 +2,7 @@
 
 ## What lives here
 
-Each top-level folder that contains `sfdx-project.json` is a **complete DX project**. There is no shared `force-app` at the repository root; deploy **from the project directory** you care about.
+Each top-level folder that contains `sfdx-project.json` is a **complete DX project**. There is no shared `force-app` at the repository root; deploy **from the project directory** you care about. Content-generation folders, such as `Customer_Documents`, are local generator assets rather than DX deployments.
 
 ```mermaid
 flowchart TB
@@ -15,6 +15,7 @@ flowchart TB
         B[DC_BusinessProfileWidget]
         W[Web_Engagements_RT_Timeline]
         H[Customer_Hydration]
+        D[Customer_Documents]
     end
     P --> |Flow + optional Prompt| SF[(Salesforce org)]
     M --> |Flow + optional Prompt| SF
@@ -24,6 +25,7 @@ flowchart TB
     B --> |Account field map + Flow + optional Overview Agentforce + Insight| SF
     W --> |Data Graph callout + parallel CRM SOQL| SF
     H --> |Bulk API 2.0 + Apex post-load + Data Cloud REST| SF
+    D --> |ReportLab PDF generation| PDF[(Generated customer documents)]
 ```
 
 ## Naming vs App Builder labels
@@ -38,6 +40,7 @@ flowchart TB
 | `businessProfileWidget` | Business Profile Widget |
 | `webEngagementData` | Real Time Digital Engagements |
 | `customer_hydration` (Python) | Customer Hydration CLI |
+| `customer_documents` (Python) | Customer document generator |
 
 Historical Apex class names (e.g. `ClassificationModelLwcController`) are kept for stable upgrades in orgs that already deployed earlier versions.
 
