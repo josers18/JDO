@@ -2,7 +2,7 @@
 
 **JDO** stands for **Jose’s Demo Org**. This repository holds **Salesforce DX projects**, Lightning Web Components, Apex, sample flows, and documentation used with or built for that org.
 
-Each subfolder that contains **`sfdx-project.json`** is a **standalone** package: clone the repo, `cd` into that folder, and run **`sf project deploy`** (see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)).
+Each subfolder that contains **`sfdx-project.json`** is a **standalone** deployable package: clone the repo, `cd` into that folder, and run **`sf project deploy`** (see [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)). Content-generation folders such as `Customer_Documents` are local generator projects and are not deployed with Salesforce DX.
 
 <div align="center">
 
@@ -20,7 +20,7 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 
 <br/>
 
-**Monorepo** · **Nine DX packages** · **LWCs + Apex + docs**
+**Monorepo** · **DX packages + generated content** · **LWCs + Apex + docs**
 
 </div>
 
@@ -45,11 +45,12 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** package
 
 ## Projects
 
-Each folder with `sfdx-project.json` is its own package. For **easy onboarding**, open the project’s **`docs/INDEX.md`** (reading order, deploy, how-tos in plain language).
+Each folder with `sfdx-project.json` is its own deployable package. Content-generation folders are listed here as repo assets. For **easy onboarding**, open the project’s README or **`docs/INDEX.md`** when present.
 
 | Path | In short | Doc index |
 |------|----------|-----------|
 | [**Customer_Hydration**](Customer_Hydration/README.md) | **Customer hydration CLI** for the JDO demo org — Python pipeline that generates ~10K realistic Cumulus Bank customers (4 personas) with full FSC party-model linking, dual-lineage coverage (legacy + native FSC), Apex post-load wireup, and Data Cloud stream refresh. Phase 1 of the spec; 6 implementation plans. | [README](Customer_Hydration/README.md) · [INDEX](Customer_Hydration/docs/INDEX.md) · [briefs](Customer_Hydration/docs/BANKER_BRIEFS.md) |
+| [**Customer_Documents**](Customer_Documents/README.md) | **Customer document generation** — ReportLab-based PDF catalog for content-heavy onboarding, relationship review, service/retention, Salesforce-backed KYC briefs, and business Account Articles of Incorporation. KYC files use `<AccountId>_KYC_<date>.pdf`; Articles files use `<AccountId>_Articles_of_Incorporation_<date>.pdf`. | [README](Customer_Documents/README.md) · [documents](Customer_Documents/documents/README.md) · [artifacts](Customer_Documents/docs/ARTIFACTS.md) |
 | [**DC_PersonProfileWidget**](DC_PersonProfileWidget/README.md) | **Customer profile** card (Account + Contact); seven tabs incl. Structure; SOQL + **`flow:`/`flows:`**; optional **Insight** Einstein + optional **Overview Agentforce** above Contact (`getAgentforceOverviewSummary`); icon field rows; Account rollups (e.g. open cases / open opp amount) | [docs/INDEX](DC_PersonProfileWidget/docs/INDEX.md) |
 | [**DC_BusinessProfileWidget**](DC_BusinessProfileWidget/README.md) | **Business profile** card (Account only); **Pipeline** tab (open Opps); FinServ **active financial accounts** count; field maps = SOQL path or **`flow:`**; optional **Overview Agentforce** (`getAgentforceOverviewSummary`); 42 themes; icon rows | [docs/INDEX](DC_BusinessProfileWidget/docs/INDEX.md) |
 | [**DC_Prediction_Model_LWC**](DC_Prediction_Model_LWC/README.md) | **Prediction Model** — percent **gauge** or big **number**, drivers, optional summary; **profile-aligned themes** (`predictionThemes.js`) | [docs/INDEX](DC_Prediction_Model_LWC/docs/INDEX.md) |
