@@ -1,67 +1,65 @@
-"""L1 tests for the Moody's Market Context row factory.
+"""L1 tests for the Moody's Market Context row factory — RE-SCOPED.
 
-**Plan 13 is the FINAL Cumulus plan (13 of 13).** Second non-account-scoped
-plan after Plan 4 (Esri / branch-scoped); second daily-cadence plan after
-Plan 7 (WorldCheck AML). Most-divergent instantiation of the dataset
-template — 4 structural deviations from the Plan 8 baseline:
+**Plan 13 is the FINAL Cumulus plan (13 of 13)** and has been re-scoped from
+instrument-scoped (TICKER PK, INSTRUMENT_UNIVERSE audience, 2,004 rows) to
+**per-BUSINESS account-scoped** (ACCOUNT_ID PK, audience =
+`ACCOUNT_TYPE_FLAG = 'BUSINESS'`, daily cadence, 90-day backfill,
+~1.025M rows). Mimics Moody's COMMERCIAL credit risk on COMPANIES.
 
-  1. Instrument-scoped, not account-scoped — row factory takes an instrument
-     record (TICKER, INSTRUMENT_NAME, SECTOR, BASE_PRICE), not an anchor.
-  2. Daily cadence — `_daily_seed` wrapper inlined per Plan 7.
-  3. Two salts — `moodys` (daily) + `moodys_year` (year-stable).
-  4. Hybrid year-stable + daily field model — editorial fields year-stable;
-     market signals daily-bucketed; MARKET_CAP_USD hybrid.
+Key shape changes vs. the prior instrument-scoped L1:
+  - Row factory is `_rows_for(anchor, profile_date) -> list[dict]` of length 1
+    (cycle-driven externally, mirroring the 1:N daily/per-account pattern).
+  - Audience predicate `_anchor_in_audience(anchor)` is now load-bearing
+    (PERSONs MUST raise; BUSINESSes MUST emit) — Plan 2 / DnB pattern.
+  - Output keys: ACCOUNT_ID + 13 commercial-credit fields (was TICKER + 13).
+  - Year-stable invariants are anchored on COMPANY (ACCOUNT_ID) not TICKER.
 
-**No `_anchor_in_audience` predicate.** Every instrument is in audience by
-definition (no IS_ACTIVE column on INSTRUMENT_UNIVERSE).
-
-Property classes (per rowspec / AGENTS.md / plan §4.3):
-  1. Same-day determinism — mid-day re-runs (03:00 vs 23:30) byte-identical.
-  2. Boring case — every fixture instrument emits a non-None dict with
-     required-non-null fields populated; TICKER passthrough.
-  3. Per-row range invariants — DAILY_VOLATILITY_PCT, MARKET_CAP_USD,
-     THIRTY_DAY_PRICE_CHANGE_PCT, 52W high/low, RATING_AGENCY_FLAG_COUNT,
-     LIQUIDITY_TIER vocabulary, CREDIT_RATING vocabulary, RATING_OUTLOOK
-     vocabulary.
-  4. Year-stable invariants — same TICKER on May 1 2026 and Sep 15 2026 →
-     identical CREDIT_RATING, RATING_OUTLOOK, OUTLOOK_LAST_CHANGED_DATE,
-     FIFTY_TWO_WEEK_HIGH/LOW, RATING_AGENCY_FLAG_COUNT, LIQUIDITY_TIER.
-     **Load-bearing structural test for the hybrid model.**
-  5. Cross-field invariants — LAST_DATA_REFRESH_AT.date()==PROFILE_DATE;
-     PROFILE_DATE==run_ts.date(); GENERATED_AT==day-start.
-  6. Schema contract — output dict has 14 keys matching DDL;
-     `EXPECTED_OUTPUT_COLUMNS` matches.
+Property classes (per task spec):
+  1. Same-day determinism — _rows_for(anchor, date) byte-identical across calls.
+  2. Audience scoping — PERSON anchors raise; BUSINESSes emit.
+  3. Boring case — every BUSINESS anchor produces a 14-key dict.
+  4. Per-anchor invariants — credit rating / outlook / market cap / volatility
+     / 30d change / 52w high>=low / market cap correlates with revenue / industry
+     bias / liquidity tier.
+  5. Year-stable invariants — same ACCOUNT_ID on day-1 vs day-180 of 2026 yields
+     identical CREDIT_RATING / RATING_OUTLOOK / OUTLOOK_LAST_CHANGED_DATE /
+     52w HIGH/LOW / RATING_AGENCY_FLAG_COUNT / LIQUIDITY_TIER. Cross-year drift
+     NOT asserted (year-stable seed bucket is `datetime(year, 1, 1)`).
+  6. 90-day history determinism — 3 anchors x 90 days = 270 rows, all 90 distinct
+     PROFILE_DATE per anchor, byte-identical re-run.
+  7. Schema contract — 14 keys per the new DDL.
 
 Plus bonus tests:
-  - CREDIT_RATING biased by SECTOR (Financials clustered A/Baa; Tech wider).
-  - MARKET_CAP_USD positive for all rows.
-  - `_anchor_in_audience` is NOT in the SP module namespace (Plan 13 deviation).
+  - `_anchor_in_audience` returns False for 5+ PERSON anchors.
+  - BUSINESS anchors with NULL ANNUAL_REVENUE emit gracefully.
+  - PROFILE_DATE pass-through: `_rows_for(a, date(2026, 5, 28))[0]["PROFILE_DATE"]
+    == date(2026, 5, 28)`.
 """
-from datetime import datetime, time
+from datetime import date, datetime, timedelta
 
 import pytest
 
-# Imports from the SP module (Task 4 in the same diff family as this file).
+# Imports from the SP module (T4 builds the new account-scoped SP).
 from sp_generate_moodys_market_context import (
-    _row_for,
+    _rows_for,
+    _anchor_in_audience,
     EXPECTED_OUTPUT_COLUMNS,
 )
-import sp_generate_moodys_market_context as _moodys_module
 
 
-# Canonical vocabularies per rowspec §"Per-row invariants" + DDL.
-_VALID_CREDIT_RATINGS = {
+# Canonical vocabularies per rowspec / DDL.
+_VALID_CREDIT_RATINGS = frozenset({
     "Aaa", "Aa1", "Aa2", "Aa3", "A1", "A2", "A3",
     "Baa1", "Baa2", "Baa3", "Ba1", "Ba2", "Ba3",
     "B1", "B2", "B3", "Caa1", "Caa2", "Caa3",
     "Ca", "C", "NR",
-}
-_VALID_RATING_OUTLOOKS = {"Stable", "Positive", "Negative", "Developing", "Watch"}
-_VALID_LIQUIDITY_TIERS = {"Tier 1", "Tier 2", "Tier 3", "Illiquid"}
+})
+_VALID_RATING_OUTLOOKS = frozenset({"Stable", "Positive", "Negative", "Developing", "Watch"})
+_VALID_LIQUIDITY_TIERS = frozenset({"Tier 1", "Tier 2", "Tier 3", "Illiquid"})
 
-# 14-column schema per DDL (12 NOT NULL + 1 NULLable + 1 NOT NULL audit ts).
-EXPECTED_KEYS = {
-    "TICKER",
+# 14-column schema per the new DDL (per-BUSINESS account-scoped).
+EXPECTED_KEYS = frozenset({
+    "ACCOUNT_ID",
     "PROFILE_DATE",
     "CREDIT_RATING",
     "RATING_OUTLOOK",
@@ -69,270 +67,384 @@ EXPECTED_KEYS = {
     "MARKET_CAP_USD",
     "DAILY_VOLATILITY_PCT",
     "THIRTY_DAY_PRICE_CHANGE_PCT",
-    "FIFTY_TWO_WEEK_HIGH_PRICE",
-    "FIFTY_TWO_WEEK_LOW_PRICE",
+    "FIFTY_TWO_WEEK_HIGH_USD",
+    "FIFTY_TWO_WEEK_LOW_USD",
     "RATING_AGENCY_FLAG_COUNT",
     "LIQUIDITY_TIER",
+    "ANNUAL_REVENUE_USD",
+    "EMPLOYEE_COUNT",
     "LAST_DATA_REFRESH_AT",
     "GENERATED_AT",
-}
+})
+# Note: spec says "14 columns total" but enumerates 16 fields (14 business +
+# LAST_DATA_REFRESH_AT + GENERATED_AT). The schema test below asserts the SP
+# module's `EXPECTED_OUTPUT_COLUMNS` matches whatever shape the SP returns,
+# so any drift between the spec count and the implementation surfaces here.
+
+
+# Banking-ish industries — task spec says "Banking-INDUSTRY anchors" but the
+# fixture's actual industry values use "Finance"; substring-match both for
+# robustness against rename.
+_BANKING_INDUSTRIES = ("Finance", "Banking")
+
+
+def _matches_industry(industry, keywords):
+    if not industry:
+        return False
+    low = industry.lower()
+    return any(k.lower() in low for k in keywords)
 
 
 # ---------- Property 1: Same-day determinism ----------
 
-def test_determinism_mid_day_reruns_byte_identical(in_audience_instruments):
-    """`_row_for(inst, 03:00)` and `_row_for(inst, 23:30)` produce IDENTICAL
-    dicts — mid-day bucketing collapses to day-start."""
-    morning = datetime(2026, 5, 28, 3, 0, 0)
-    night = datetime(2026, 5, 28, 23, 30, 0)
-    for inst in in_audience_instruments:
-        a = _row_for(inst, morning)
-        b = _row_for(inst, night)
-        assert a == b, (
-            f"non-deterministic mid-day for {inst['TICKER']}: "
-            f"03:00 vs 23:30 differ"
+def test_determinism_same_day_byte_identical(in_audience_anchors):
+    """`_rows_for(anchor, date)` is byte-identical across back-to-back calls."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    d = date(2026, 5, 28)
+    for anchor in in_audience_anchors[:10]:
+        a = _rows_for(anchor, d)
+        b = _rows_for(anchor, d)
+        assert a == b, f"non-deterministic for {anchor['ACCOUNT_ID']}"
+
+
+def test_determinism_accepts_datetime_or_date(in_audience_anchors):
+    """`_rows_for(anchor, datetime)` collapses to the same row as
+    `_rows_for(anchor, date)` for the same calendar day — mid-day re-runs
+    re-bucket to the day-start."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    d = date(2026, 5, 28)
+    dt_morning = datetime(2026, 5, 28, 3, 0, 0)
+    dt_night = datetime(2026, 5, 28, 23, 30, 0)
+    for anchor in in_audience_anchors[:5]:
+        a = _rows_for(anchor, d)
+        b = _rows_for(anchor, dt_morning)
+        c = _rows_for(anchor, dt_night)
+        assert a == b == c, (
+            f"date / datetime(03:00) / datetime(23:30) differ for "
+            f"{anchor['ACCOUNT_ID']}"
         )
 
 
-def test_determinism_noon_equals_midnight(in_audience_instruments):
-    """`_row_for(inst, 12:00)` is byte-identical to `_row_for(inst, 00:00)`."""
-    midnight = datetime(2026, 5, 28, 0, 0, 0)
-    noon = datetime(2026, 5, 28, 12, 0, 0)
-    for inst in in_audience_instruments:
-        a = _row_for(inst, midnight)
-        b = _row_for(inst, noon)
-        assert a == b, f"non-deterministic noon vs midnight for {inst['TICKER']}"
+# ---------- Property 2: Audience scoping ----------
+
+def test_person_anchors_raise(out_of_audience_anchors):
+    """PERSON anchors fail the predicate AND `_rows_for` raises ValueError."""
+    if not out_of_audience_anchors:
+        pytest.skip("no out-of-audience anchors in fixture")
+    for bad in out_of_audience_anchors[:5]:
+        assert _anchor_in_audience(bad) is False, (
+            f"_anchor_in_audience should reject PERSON {bad['ACCOUNT_ID']}"
+        )
+        with pytest.raises((ValueError, AssertionError)):
+            _rows_for(bad, date(2026, 5, 28))
 
 
-def test_determinism_same_inputs_same_dict(in_audience_instruments):
-    """Two back-to-back calls with the same inputs produce the same dict."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments[:5]:
-        a = _row_for(inst, ts)
-        b = _row_for(inst, ts)
-        assert a == b
-
-
-# ---------- Property 2: Boring case (every instrument emits) ----------
-
-def test_every_instrument_emits_a_row_no_exceptions(in_audience_instruments):
-    """All 10 fixture instruments produce a row without raising."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        assert row is not None, inst["TICKER"]
-        assert row["TICKER"] == inst["TICKER"], (
-            f"TICKER passthrough broken: input {inst['TICKER']!r} "
-            f"!= output {row['TICKER']!r}"
+def test_business_anchors_in_audience(in_audience_anchors):
+    """Every BUSINESS anchor passes the predicate and emits >= 1 row."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors:
+        assert _anchor_in_audience(anchor) is True, (
+            f"_anchor_in_audience should accept BUSINESS {anchor['ACCOUNT_ID']}"
+        )
+        rows = _rows_for(anchor, date(2026, 5, 28))
+        assert isinstance(rows, list)
+        assert len(rows) == 1, (
+            f"{anchor['ACCOUNT_ID']}: expected list-of-1, got {len(rows)}"
         )
 
 
-def test_boring_case_required_non_null_fields_populated(in_audience_instruments):
-    """All 10 fixture instruments produce a non-None dict with the 13
-    required-non-null fields populated (only OUTLOOK_LAST_CHANGED_DATE may
-    be NULL per DDL)."""
-    ts = datetime(2026, 5, 28)
-    required_non_null = EXPECTED_KEYS - {"OUTLOOK_LAST_CHANGED_DATE"}
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        for f in required_non_null:
+# ---------- Property 3: Boring case (every BUSINESS anchor emits) ----------
+
+def test_every_business_anchor_emits_14_key_dict(in_audience_anchors):
+    """Every BUSINESS anchor produces a 14-key dict with ACCOUNT_ID populated.
+
+    The schema-key count is asserted via `EXPECTED_KEYS` (which the test set
+    syncs against the SP module's `EXPECTED_OUTPUT_COLUMNS`). If the SP
+    actually emits more or fewer keys, the schema-contract test in Property 7
+    fails first."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    d = date(2026, 5, 28)
+    for anchor in in_audience_anchors:
+        rows = _rows_for(anchor, d)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row is not None
+        assert row["ACCOUNT_ID"] == anchor["ACCOUNT_ID"], (
+            f"ACCOUNT_ID passthrough broken: input {anchor['ACCOUNT_ID']!r} "
+            f"!= output {row['ACCOUNT_ID']!r}"
+        )
+        # Required-non-null per DDL (only OUTLOOK_LAST_CHANGED_DATE may be NULL).
+        for f in EXPECTED_KEYS - {"OUTLOOK_LAST_CHANGED_DATE"}:
             assert row[f] is not None, (
-                f"{inst['TICKER']}: required-non-null field {f} is None"
+                f"{anchor['ACCOUNT_ID']}: required-non-null field {f} is None"
             )
 
 
-# ---------- Property 3: Per-row range invariants ----------
+# ---------- Property 4: Per-anchor invariants over a 90-day roll ----------
 
-def test_daily_volatility_pct_in_range(in_audience_instruments):
-    """DAILY_VOLATILITY_PCT in [0, 25]."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        v = row["DAILY_VOLATILITY_PCT"]
-        assert 0.0 <= float(v) <= 25.0, (
-            f"{inst['TICKER']}: DAILY_VOLATILITY_PCT={v} out of [0, 25]"
+# A small slice of in-audience anchors for the 90-day roll (kept tight to keep
+# this test L1-fast; 5 anchors x 90 days = 450 rows is enough to exercise every
+# range invariant without slowing the suite).
+def _ninety_day_rows(anchor, start=date(2026, 3, 1)):
+    rows = []
+    for i in range(90):
+        d = start + timedelta(days=i)
+        rows.extend(_rows_for(anchor, d))
+    return rows
+
+
+def test_4a_credit_rating_canonical(in_audience_anchors):
+    """CREDIT_RATING in canonical 22-rating + NR set across 90 days."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors[:5]:
+        for row in _ninety_day_rows(anchor):
+            r = row["CREDIT_RATING"]
+            assert r in _VALID_CREDIT_RATINGS, (
+                f"{anchor['ACCOUNT_ID']}: CREDIT_RATING={r!r} not in canonical "
+                f"23-value set"
+            )
+
+
+def test_4b_rating_outlook_canonical(in_audience_anchors):
+    """RATING_OUTLOOK in canonical 5-value set across 90 days."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors[:5]:
+        for row in _ninety_day_rows(anchor):
+            o = row["RATING_OUTLOOK"]
+            assert o in _VALID_RATING_OUTLOOKS, (
+                f"{anchor['ACCOUNT_ID']}: RATING_OUTLOOK={o!r} not in "
+                f"{set(_VALID_RATING_OUTLOOKS)}"
+            )
+
+
+def test_4c_market_cap_positive(in_audience_anchors):
+    """MARKET_CAP_USD > 0 for every row across 90 days."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors[:5]:
+        for row in _ninety_day_rows(anchor):
+            cap = row["MARKET_CAP_USD"]
+            assert float(cap) > 0, (
+                f"{anchor['ACCOUNT_ID']}: MARKET_CAP_USD={cap} not > 0"
+            )
+
+
+def test_4d_volatility_in_range(in_audience_anchors):
+    """DAILY_VOLATILITY_PCT in [0, 25] across 90 days (daily-bucketed)."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors[:5]:
+        for row in _ninety_day_rows(anchor):
+            v = row["DAILY_VOLATILITY_PCT"]
+            assert 0.0 <= float(v) <= 25.0, (
+                f"{anchor['ACCOUNT_ID']}: DAILY_VOLATILITY_PCT={v} out of [0, 25]"
+            )
+
+
+def test_4e_thirty_day_change_in_range(in_audience_anchors):
+    """THIRTY_DAY_PRICE_CHANGE_PCT in [-50, 50] across 90 days."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors[:5]:
+        for row in _ninety_day_rows(anchor):
+            v = row["THIRTY_DAY_PRICE_CHANGE_PCT"]
+            assert -50.0 <= float(v) <= 50.0, (
+                f"{anchor['ACCOUNT_ID']}: THIRTY_DAY_PRICE_CHANGE_PCT={v} out "
+                f"of [-50, 50]"
+            )
+
+
+def test_4f_high_ge_low(in_audience_anchors):
+    """FIFTY_TWO_WEEK_HIGH_USD >= FIFTY_TWO_WEEK_LOW_USD across 90 days."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors[:5]:
+        for row in _ninety_day_rows(anchor):
+            hi = float(row["FIFTY_TWO_WEEK_HIGH_USD"])
+            lo = float(row["FIFTY_TWO_WEEK_LOW_USD"])
+            assert hi >= lo, (
+                f"{anchor['ACCOUNT_ID']}: 52W HIGH={hi} < LOW={lo}"
+            )
+
+
+def test_4g_market_cap_correlates_with_revenue(in_audience_anchors):
+    """For anchors with ANNUAL_REVENUE > 0, MARKET_CAP_USD lies in
+    `[ANNUAL_REVENUE * 0.5, ANNUAL_REVENUE * 50]` (loose 100x-band check).
+
+    Defense against a row factory that ignores ANNUAL_REVENUE when computing
+    market cap. The rowspec target is ~5x with daily noise; the asserted band
+    [0.5x, 50x] is intentionally loose to absorb noise + clamps."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    d = date(2026, 5, 28)
+    revenue_anchors = [
+        a for a in in_audience_anchors
+        if a.get("ANNUAL_REVENUE") and float(a["ANNUAL_REVENUE"]) > 0
+    ]
+    if not revenue_anchors:
+        pytest.skip("no BUSINESS anchors with ANNUAL_REVENUE > 0")
+    for anchor in revenue_anchors[:20]:
+        rev = float(anchor["ANNUAL_REVENUE"])
+        row = _rows_for(anchor, d)[0]
+        cap = float(row["MARKET_CAP_USD"])
+        lo, hi = rev * 0.5, rev * 50.0
+        assert lo <= cap <= hi, (
+            f"{anchor['ACCOUNT_ID']}: MARKET_CAP_USD={cap:.0f} out of "
+            f"[{lo:.0f}, {hi:.0f}] for ANNUAL_REVENUE={rev:.0f}"
         )
 
 
-def test_market_cap_usd_positive(in_audience_instruments):
-    """MARKET_CAP_USD > 0 for every fixture instrument."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        cap = row["MARKET_CAP_USD"]
-        assert float(cap) > 0, f"{inst['TICKER']}: MARKET_CAP_USD={cap} not > 0"
+def test_4h_credit_rating_biased_by_industry(in_audience_anchors):
+    """Banking/Finance-INDUSTRY anchors concentrate in A/Baa range across the
+    50-anchor BUSINESS sample. Loose distributional check: >= 60% of
+    Banking/Finance ratings fall within {A1..Baa3}.
 
-
-def test_thirty_day_price_change_in_range(in_audience_instruments):
-    """THIRTY_DAY_PRICE_CHANGE_PCT in [-50, 50] (loose user-instruction bound;
-    rowspec target is [-25, 25])."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        v = row["THIRTY_DAY_PRICE_CHANGE_PCT"]
-        assert -50.0 <= float(v) <= 50.0, (
-            f"{inst['TICKER']}: THIRTY_DAY_PRICE_CHANGE_PCT={v} out of [-50, 50]"
+    Note: task spec says "Banking-INDUSTRY"; fixture uses "Finance" as the
+    INDUSTRY value (no "Banking" string in SAMPLE_ANCHORS). Substring-match
+    handles both — this is a flagged ambiguity (see report)."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    d = date(2026, 5, 28)
+    a_baa_band = {"A1", "A2", "A3", "Baa1", "Baa2", "Baa3"}
+    banking = [
+        a for a in in_audience_anchors
+        if _matches_industry(a.get("INDUSTRY"), _BANKING_INDUSTRIES)
+    ]
+    if len(banking) < 2:
+        pytest.skip(
+            f"need >= 2 Banking/Finance-industry anchors, got {len(banking)}"
         )
+    in_band = 0
+    total = 0
+    for anchor in banking:
+        row = _rows_for(anchor, d)[0]
+        total += 1
+        if row["CREDIT_RATING"] in a_baa_band:
+            in_band += 1
+    rate = in_band / total
+    # Loose distributional check — Banking/Finance bias table sums to ~0.88
+    # over {A1..Baa3} per the rowspec. Threshold conservative for small-n
+    # (only ~5 Finance-industry anchors in the 50-business fixture).
+    assert rate >= 0.60, (
+        f"Banking/Finance-INDUSTRY in {{A1..Baa3}} only {rate:.2%} "
+        f"({in_band}/{total}); expected >= 60%"
+    )
 
 
-def test_52w_high_ge_low(in_audience_instruments):
-    """FIFTY_TWO_WEEK_HIGH_PRICE >= FIFTY_TWO_WEEK_LOW_PRICE."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        hi = float(row["FIFTY_TWO_WEEK_HIGH_PRICE"])
-        lo = float(row["FIFTY_TWO_WEEK_LOW_PRICE"])
-        assert hi >= lo, f"{inst['TICKER']}: 52W HIGH={hi} < LOW={lo}"
+def test_4i_liquidity_tier_canonical(in_audience_anchors):
+    """LIQUIDITY_TIER in canonical 4-value set across 90 days."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    for anchor in in_audience_anchors[:5]:
+        for row in _ninety_day_rows(anchor):
+            tier = row["LIQUIDITY_TIER"]
+            assert tier in _VALID_LIQUIDITY_TIERS, (
+                f"{anchor['ACCOUNT_ID']}: LIQUIDITY_TIER={tier!r} not in "
+                f"{set(_VALID_LIQUIDITY_TIERS)}"
+            )
 
 
-def test_52w_high_ge_base_price_floor(in_audience_instruments):
-    """FIFTY_TWO_WEEK_HIGH_PRICE >= BASE_PRICE * 0.5 (sanity floor — guards
-    weird base prices like the TINY fixture)."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        hi = float(row["FIFTY_TWO_WEEK_HIGH_PRICE"])
-        base = float(inst["BASE_PRICE"])
-        floor = base * 0.5
-        assert hi >= floor, (
-            f"{inst['TICKER']}: 52W HIGH={hi} < BASE_PRICE*0.5={floor} "
-            f"(BASE_PRICE={base})"
-        )
-
-
-def test_rating_agency_flag_count_in_range(in_audience_instruments):
-    """RATING_AGENCY_FLAG_COUNT in [0, 5] (loose user-instruction bound;
-    rowspec target weights are [0, 3])."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        n = int(row["RATING_AGENCY_FLAG_COUNT"])
-        assert 0 <= n <= 5, (
-            f"{inst['TICKER']}: RATING_AGENCY_FLAG_COUNT={n} out of [0, 5]"
-        )
-
-
-def test_liquidity_tier_canonical(in_audience_instruments):
-    """LIQUIDITY_TIER in canonical 4-value set."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        tier = row["LIQUIDITY_TIER"]
-        assert tier in _VALID_LIQUIDITY_TIERS, (
-            f"{inst['TICKER']}: LIQUIDITY_TIER={tier!r} not in "
-            f"{_VALID_LIQUIDITY_TIERS}"
-        )
-
-
-def test_credit_rating_canonical(in_audience_instruments):
-    """CREDIT_RATING in canonical 22-rating + NR set (23 values)."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        r = row["CREDIT_RATING"]
-        assert r in _VALID_CREDIT_RATINGS, (
-            f"{inst['TICKER']}: CREDIT_RATING={r!r} not in canonical 23-value set"
-        )
-
-
-def test_rating_outlook_canonical(in_audience_instruments):
-    """RATING_OUTLOOK in canonical 5-value set."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        o = row["RATING_OUTLOOK"]
-        assert o in _VALID_RATING_OUTLOOKS, (
-            f"{inst['TICKER']}: RATING_OUTLOOK={o!r} not in {_VALID_RATING_OUTLOOKS}"
-        )
-
-
-# ---------- Property 4: Year-stable invariants ----------
+# ---------- Property 5: Year-stable invariants (load-bearing) ----------
 
 _YEAR_STABLE_FIELDS = (
     "CREDIT_RATING",
     "RATING_OUTLOOK",
     "OUTLOOK_LAST_CHANGED_DATE",
-    "FIFTY_TWO_WEEK_HIGH_PRICE",
-    "FIFTY_TWO_WEEK_LOW_PRICE",
+    "FIFTY_TWO_WEEK_HIGH_USD",
+    "FIFTY_TWO_WEEK_LOW_USD",
     "RATING_AGENCY_FLAG_COUNT",
     "LIQUIDITY_TIER",
 )
 
 
-def test_year_stable_fields_identical_across_days_same_year(in_audience_instruments):
-    """For every fixture instrument, `_row_for(inst, May 1 2026)` and
-    `_row_for(inst, Sep 15 2026)` produce IDENTICAL year-stable fields.
+def test_year_stable_credit_rating(in_audience_anchors):
+    """For every BUSINESS anchor, day-1 vs day-180 of 2026 produce IDENTICAL
+    year-stable fields (CREDIT_RATING, RATING_OUTLOOK,
+    OUTLOOK_LAST_CHANGED_DATE, 52W HIGH/LOW, RATING_AGENCY_FLAG_COUNT,
+    LIQUIDITY_TIER).
 
     Load-bearing: this is the structural test for the hybrid year-stable +
-    daily model. If any year-stable field drifts within a calendar year,
-    the two-salt seed bucketing is broken (the year-stable salt is leaking
-    daily entropy)."""
-    may = datetime(2026, 5, 1)
-    sep = datetime(2026, 9, 15)
-    for inst in in_audience_instruments:
-        a = _row_for(inst, may)
-        b = _row_for(inst, sep)
+    daily model. If any year-stable field drifts within a calendar year, the
+    two-salt seed bucketing is broken (the year-stable salt is leaking daily
+    entropy). Cross-year drift (2026 -> 2027) is intentional and NOT
+    asserted here — the year-stable seed bucket is `datetime(year, 1, 1)`."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    day1 = date(2026, 1, 1)
+    day180 = date(2026, 6, 30)
+    for anchor in in_audience_anchors[:10]:
+        a = _rows_for(anchor, day1)[0]
+        b = _rows_for(anchor, day180)[0]
         for fld in _YEAR_STABLE_FIELDS:
             assert a[fld] == b[fld], (
-                f"{inst['TICKER']}: year-stable field {fld} drifted within "
-                f"calendar year 2026 (May 1: {a[fld]!r} vs Sep 15: {b[fld]!r})"
+                f"{anchor['ACCOUNT_ID']}: year-stable field {fld} drifted "
+                f"within calendar year 2026 (Jan 1: {a[fld]!r} vs Jun 30: "
+                f"{b[fld]!r})"
             )
 
 
-# Cross-year (2026 vs 2027) drift is allowed and not asserted here — the
-# year-stable seed bucket is `datetime(run_ts.year, 1, 1)`, so a year shift
+# Cross-year (2026 vs 2027) drift is allowed and not asserted — the
+# year-stable seed bucket is `datetime(year, 1, 1)`, so a year shift
 # legitimately rerolls these fields.
 
 
-# ---------- Property 5: Cross-field invariants ----------
+# ---------- Property 6: 90-day history determinism ----------
 
-def test_last_data_refresh_at_date_equals_profile_date(in_audience_instruments):
-    """LAST_DATA_REFRESH_AT.date() == PROFILE_DATE (same-day refresh)."""
-    ts = datetime(2026, 5, 28, 14, 30, 0)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        assert row["LAST_DATA_REFRESH_AT"].date() == row["PROFILE_DATE"], (
-            f"{inst['TICKER']}: LAST_DATA_REFRESH_AT.date()="
-            f"{row['LAST_DATA_REFRESH_AT'].date()} != "
-            f"PROFILE_DATE={row['PROFILE_DATE']}"
-        )
+def test_90day_history_per_anchor(in_audience_anchors):
+    """3 BUSINESS anchors x 90 days = 270 rows total. Every anchor produces
+    exactly 90 distinct PROFILE_DATE values, and the full 270-row sequence is
+    byte-identical across re-runs (90-day backfill determinism).
 
+    This is the structural cadence test for the daily 90-day backfill that
+    underpins the ~1.025M-row dataset (~11,389 BUSINESS anchors x 90 days)."""
+    if len(in_audience_anchors) < 3:
+        pytest.skip("need >= 3 BUSINESS anchors for 90-day history test")
+    start = date(2026, 3, 1)
+    sample = in_audience_anchors[:3]
 
-def test_profile_date_equals_run_ts_date(in_audience_instruments):
-    """PROFILE_DATE == run_ts.date() — daily bucketing."""
-    for day_offset in range(7):
-        from datetime import timedelta
-        ts = datetime(2026, 5, 28) + timedelta(days=day_offset)
-        for inst in in_audience_instruments[:3]:
-            row = _row_for(inst, ts)
-            assert row["PROFILE_DATE"] == ts.date(), (
-                f"{inst['TICKER']}: PROFILE_DATE={row['PROFILE_DATE']} "
-                f"!= run_ts.date()={ts.date()}"
+    def collect():
+        all_rows = []
+        for anchor in sample:
+            anchor_rows = []
+            for i in range(90):
+                d = start + timedelta(days=i)
+                anchor_rows.extend(_rows_for(anchor, d))
+            anchor_dates = [r["PROFILE_DATE"] for r in anchor_rows]
+            assert len(anchor_dates) == 90, (
+                f"{anchor['ACCOUNT_ID']}: expected 90 rows, got {len(anchor_dates)}"
             )
+            assert len(set(anchor_dates)) == 90, (
+                f"{anchor['ACCOUNT_ID']}: only {len(set(anchor_dates))} "
+                f"distinct PROFILE_DATE in 90-day roll (expected 90)"
+            )
+            all_rows.extend(anchor_rows)
+        return all_rows
+
+    first = collect()
+    second = collect()
+    assert len(first) == 270, f"expected 270 rows, got {len(first)}"
+    assert first == second, (
+        "90-day history is non-deterministic across re-runs"
+    )
 
 
-def test_generated_at_is_day_start(in_audience_instruments):
-    """GENERATED_AT == datetime.combine(run_ts.date(), time(0)) — day-start
-    bucketing for byte-identical mid-day re-runs."""
-    ts = datetime(2026, 5, 28, 17, 45, 30)
-    expected = datetime.combine(ts.date(), time(0))
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        assert row["GENERATED_AT"] == expected, (
-            f"{inst['TICKER']}: GENERATED_AT={row['GENERATED_AT']} "
-            f"!= expected day-start {expected}"
-        )
+# ---------- Property 7: Schema contract ----------
 
-
-# ---------- Property 6: Schema contract ----------
-
-def test_output_schema_has_14_keys(in_audience_instruments):
-    """Output dict has EXACTLY the 14 DDL columns — no extras, no missing."""
-    row = _row_for(in_audience_instruments[0], datetime(2026, 5, 28))
+def test_output_schema_has_expected_keys(in_audience_anchors):
+    """Output dict has EXACTLY the DDL columns — no extras, no missing —
+    matching `EXPECTED_OUTPUT_COLUMNS` from the SP module."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    row = _rows_for(in_audience_anchors[0], date(2026, 5, 28))[0]
     assert set(row.keys()) == EXPECTED_KEYS, (
         f"row keys {sorted(row.keys())} != expected {sorted(EXPECTED_KEYS)}"
     )
-    assert len(row) == 14, f"row has {len(row)} keys, expected 14"
 
 
 def test_expected_output_columns_constant_matches_test_set():
@@ -345,91 +457,59 @@ def test_expected_output_columns_constant_matches_test_set():
     )
 
 
-# ---------- Bonus: SECTOR-biased CREDIT_RATING distribution ----------
+# ---------- Bonus tests ----------
 
-def test_credit_rating_biased_by_sector():
-    """Aggregate over a 50-instrument-per-sector synthesized batch:
-      - Financials concentrated in {A1..Baa3} ({A1, A2, A3, Baa1, Baa2, Baa3}).
-      - Technology spans wider — at least 4 distinct rating buckets seen.
-
-    Synthesizes 50 tickers per sector (FIN_001..FIN_050, TEC_001..TEC_050) so
-    aggregate biases are observable above binomial noise. Year-stable seed
-    bucket means the rating draw is deterministic per (ticker, year).
-    """
-    ts = datetime(2026, 5, 28)
-    fin_a_baa = {"A1", "A2", "A3", "Baa1", "Baa2", "Baa3"}
-    fin_in_band = 0
-    fin_total = 0
-    tech_ratings_seen = set()
-    tech_total = 0
-
-    for i in range(1, 51):
-        fin_inst = {
-            "TICKER": f"FIN{i:03d}",
-            "INSTRUMENT_NAME": f"Financial Test {i}",
-            "SECTOR": "Financials",
-            "BASE_PRICE": 100.0,
-        }
-        row = _row_for(fin_inst, ts)
-        fin_total += 1
-        if row["CREDIT_RATING"] in fin_a_baa:
-            fin_in_band += 1
-
-        tech_inst = {
-            "TICKER": f"TEC{i:03d}",
-            "INSTRUMENT_NAME": f"Tech Test {i}",
-            "SECTOR": "Technology",
-            "BASE_PRICE": 100.0,
-        }
-        tech_row = _row_for(tech_inst, ts)
-        tech_total += 1
-        tech_ratings_seen.add(tech_row["CREDIT_RATING"])
-
-    fin_band_rate = fin_in_band / fin_total
-    print(
-        f"\nSECTOR-biased CREDIT_RATING distribution (n={fin_total}/sector):\n"
-        f"  Financials in {{A1..Baa3}}: {fin_in_band}/{fin_total} "
-        f"= {fin_band_rate:.2f} (target ~0.88 per bias table)\n"
-        f"  Technology distinct ratings seen: {len(tech_ratings_seen)} "
-        f"({sorted(tech_ratings_seen)})"
-    )
-    # Per `_SECTOR_RATING_BIAS["Financials"]` summing the {A1..Baa3} weights:
-    # 0.10 + 0.18 + 0.20 + 0.18 + 0.14 + 0.08 = 0.88. Threshold conservative.
-    assert fin_band_rate >= 0.70, (
-        f"Financials in {{A1..Baa3}} band only {fin_band_rate:.2f}, "
-        f"expected >=0.70 (target ~0.88 per bias table)"
-    )
-    # Technology bias has 14 buckets; expect at least 4 distinct in a sample
-    # of 50 (binomial coverage).
-    assert len(tech_ratings_seen) >= 4, (
-        f"Technology only spanned {len(tech_ratings_seen)} ratings in 50 "
-        f"samples; expected >=4 (bias table has 14 buckets)"
-    )
-
-
-def test_market_cap_positive_for_all(in_audience_instruments):
-    """Defense-in-depth: aggregate restate of the per-row positivity check
-    across the full fixture (no sampling)."""
-    ts = datetime(2026, 5, 28)
-    for inst in in_audience_instruments:
-        row = _row_for(inst, ts)
-        assert float(row["MARKET_CAP_USD"]) > 0, (
-            f"{inst['TICKER']}: MARKET_CAP_USD non-positive"
+def test_no_anchor_in_audience_returns_false_for_person(out_of_audience_anchors):
+    """Explicit defense-in-depth: `_anchor_in_audience` returns False for 5+
+    PERSON anchors. Guards against the SP author over-broadening the predicate
+    (e.g., accepting any anchor with ACCOUNT_ID, regardless of TYPE_FLAG)."""
+    persons = [
+        a for a in out_of_audience_anchors
+        if a.get("ACCOUNT_TYPE_FLAG") == "PERSON"
+    ]
+    if len(persons) < 5:
+        pytest.skip(f"need >= 5 PERSON anchors, got {len(persons)}")
+    for p in persons[:5]:
+        assert _anchor_in_audience(p) is False, (
+            f"_anchor_in_audience accepted PERSON {p['ACCOUNT_ID']} — "
+            f"BUSINESS-only predicate over-broadened"
         )
 
 
-# ---------- Bonus: confirm Plan 13 deviation (no `_anchor_in_audience`) ----------
+def test_business_anchor_with_null_revenue_handled(in_audience_anchors):
+    """BUSINESS anchors with NULL ANNUAL_REVENUE emit gracefully — `_rows_for`
+    must not raise, and the resulting MARKET_CAP_USD must still be > 0
+    (computed via fallback path).
 
-def test_no_anchor_in_audience_function():
-    """Plan 13 deviation: every instrument is in audience by definition
-    (no IS_ACTIVE column on INSTRUMENT_UNIVERSE; no per-row predicate). The
-    SP module MUST NOT define a module-level `_anchor_in_audience` function.
-
-    Guard against the SP author copy-pasting a Plans 1-3/5/6/8 SP scaffold
-    that brings the predicate along."""
-    assert hasattr(_moodys_module, "_anchor_in_audience") is False, (
-        "Plan 13 SP module unexpectedly exports `_anchor_in_audience` — "
-        "Plan 13 has no per-row audience predicate (every instrument is in "
-        "audience by definition). Don't copy-paste the Plans 1-3/5/6/8 "
-        "predicate scaffold; remove it."
+    Synthesizes a NULL-revenue BUSINESS anchor when the fixture has none
+    (the SAMPLE_ANCHORS fixture currently populates ANNUAL_REVENUE for every
+    BUSINESS row, so this also doubles as a forward-defense as the fixture
+    grows).
+    """
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    template = dict(in_audience_anchors[0])
+    template["ACCOUNT_ID"] = "TEST-BIZ-NULL-REV"
+    template["ANNUAL_REVENUE"] = None
+    rows = _rows_for(template, date(2026, 5, 28))
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["ACCOUNT_ID"] == "TEST-BIZ-NULL-REV"
+    assert float(row["MARKET_CAP_USD"]) > 0, (
+        "NULL-revenue BUSINESS anchor should still produce positive "
+        "MARKET_CAP_USD via fallback path"
     )
+
+
+def test_profile_date_passes_through(in_audience_anchors):
+    """`_rows_for(anchor, date(2026, 5, 28))[0]["PROFILE_DATE"] ==
+    date(2026, 5, 28)` — daily bucketing is keyed on the input date."""
+    if not in_audience_anchors:
+        pytest.skip("empty BUSINESS audience")
+    target = date(2026, 5, 28)
+    for anchor in in_audience_anchors[:5]:
+        row = _rows_for(anchor, target)[0]
+        assert row["PROFILE_DATE"] == target, (
+            f"{anchor['ACCOUNT_ID']}: PROFILE_DATE={row['PROFILE_DATE']} "
+            f"!= input date {target}"
+        )
