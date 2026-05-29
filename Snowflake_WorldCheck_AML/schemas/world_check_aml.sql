@@ -1,7 +1,13 @@
 -- =============================================================================
--- FINS.PUBLIC.WORLD_CHECK_AML
--- LSEG World-Check / Dow Jones Risk & Compliance / ComplyAdvantage-style
+-- FINS.PUBLIC.WORLD_CHECK_AML  (v1.x — multi-org-additive)
+-- LSEG World-Check / Dow Jones Risk and Compliance / ComplyAdvantage-style
 -- synthetic AML / sanctions / PEP screening per Cumulus customer.
+-- =============================================================================
+-- Multi-org migration (additive, backward-compatible):
+--   ORG_ID is the leading PK column with NOT NULL DEFAULT 'JDO'. Existing
+--   single-org callers continue to work unchanged; new orgs stamp their own
+--   ORG_ID via the per-org loader / V_ACCOUNT_ANCHORS filter. See
+--   Snowflake_Cumulus_Common/docs/ROLLOUT.md Phase A.
 -- =============================================================================
 -- Cadence:    DAILY via TASK_DAILY_WORLD_CHECK_AML
 --             (Cron: 0 6 * * * UTC — every day at 06:00 UTC, after the
@@ -18,6 +24,7 @@
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.WORLD_CHECK_AML (
+    ORG_ID                     VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'Logical-tenant tag (e.g. JDO, ACME, WFB). NOT the 18-char SF Org Id. Leading PK component for multi-org sharing of FINS.PUBLIC. Defaults to JDO for backward compatibility with single-org callers.',
     ACCOUNT_ID                 VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus customer being screened. FK to ssot__Account__dlm. PK component.',
     PROFILE_DATE               DATE              NOT NULL  COMMENT 'Screening run date (UTC). Day-bucketed for determinism — mid-day re-runs are byte-identical. PK component.',
     OVERALL_RISK_RATING        VARCHAR(10)       NOT NULL  COMMENT 'Rolled-up flag: Low (~92%), Medium (~6%), High (~1.7%), Severe (~0.3%). Derived from component flags + jurisdiction tier.',
@@ -31,6 +38,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.WORLD_CHECK_AML (
     CHANGE_SINCE_LAST_RUN      VARCHAR(20)       NOT NULL  COMMENT 'New, Unchanged, Risk Increased, Risk Decreased, Cleared. ~99% Unchanged on day-2+. Computed by re-deriving yesterday''s seed and diffing the rating.',
     CASE_REFERENCE             VARCHAR(32)       NULL      COMMENT 'Vendor case-management ID (format WCH-YYYY-NNNNNN). Year-stable via salt "worldcheck_case". NULL when OVERALL_RISK_RATING NOT IN (High, Severe).',
     GENERATED_AT               TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Day-bucketed for byte-identical mid-day re-runs (audit time -> TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_world_check_aml PRIMARY KEY (ACCOUNT_ID, PROFILE_DATE)
+    CONSTRAINT pk_world_check_aml PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_DATE)
 )
-COMMENT = 'LSEG World-Check / Dow Jones / ComplyAdvantage-style synthetic AML / sanctions / PEP screening per Cumulus customer. Daily generation. 1:1 — one row per distinct anchor per screening day (~36,813 rows/day). First daily-cadence AND first all-accounts-audience dataset in the Cumulus rollout. Composite PK (ACCOUNT_ID, PROFILE_DATE) — DC DMO collapses to single-column PK profileDate__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable fields conditional on ADVERSE_MEDIA_HIT / OVERALL_RISK_RATING. 3 BOOLEAN columns. Re-runs same day MERGE-replace; no daily history retained. See Snowflake_WorldCheck_AML/README.md and the umbrella spec.';
+COMMENT = 'v1.x multi-org-additive. LSEG World-Check / Dow Jones / ComplyAdvantage-style synthetic AML / sanctions / PEP screening per Cumulus customer. Daily generation. 1:1 — one row per distinct anchor per screening day (~36,813 rows/day per org). First daily-cadence AND first all-accounts-audience dataset in the Cumulus rollout. Composite PK (ORG_ID, ACCOUNT_ID, PROFILE_DATE) — leading ORG_ID lets a single FINS.PUBLIC schema serve N orgs; DC DMO still collapses to single-column PK profileDate__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable fields conditional on ADVERSE_MEDIA_HIT / OVERALL_RISK_RATING. 3 BOOLEAN columns. Re-runs same day MERGE-replace; no daily history retained. See Snowflake_WorldCheck_AML/README.md, Snowflake_Cumulus_Common/docs/ROLLOUT.md, and the umbrella spec.';

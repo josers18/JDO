@@ -12,6 +12,7 @@
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.DNB_BUSINESS_CREDIT (
+    ORG_ID                       VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Logical-tenant identifier (DnB-style short code, e.g. JDO, ACME). PK component. Sourced from V_ACCOUNT_ANCHORS.ORG_ID per umbrella ROLLOUT.md.',
     ACCOUNT_ID                   VARCHAR(16777216) NOT NULL  COMMENT 'Salesforce Account ID (ssot__Id__c). FK to V_ACCOUNT_ANCHORS.',
     PROFILE_MONTH                DATE              NOT NULL  COMMENT 'First-of-month for the run; PK component for monthly idempotency.',
     DUNS_NUMBER                  VARCHAR(9)        NOT NULL  COMMENT 'Deterministic 9-digit D-U-N-S derived from HASH(account_id, "duns_id", year). Stable across months for the same account.',
@@ -27,6 +28,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.DNB_BUSINESS_CREDIT (
     ULTIMATE_PARENT_DUNS         VARCHAR(9)                  COMMENT 'NULL when CORPORATE_FAMILY_SIZE=1 (standalone). Otherwise a deterministic 9-digit DUNS for the parent.',
     VERIFICATION_STATUS          VARCHAR(20)       NOT NULL  COMMENT 'Verified / Probable / Unverified. Most rows Verified; smaller firms more often Probable.',
     GENERATED_AT                 TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed for byte-identical mid-month re-runs (audit time -> TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_dnb_business_credit PRIMARY KEY (ACCOUNT_ID, PROFILE_MONTH)
+    CONSTRAINT pk_dnb_business_credit PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )
 COMMENT = 'DnB-style synthetic business credit ratings (Dun and Bradstreet shape). Monthly generation. One row per BUSINESS account per month. See Snowflake_DnB_BusinessCredit/README.md and the umbrella spec.';

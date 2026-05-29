@@ -10,9 +10,16 @@
 -- Egress:     DC Snowflake federation -> DLO/DMO CumulusCoreLogicProperty__dlm
 -- Plan:       docs/superpowers/plans/2026-05-28-cumulus-plan-5-corelogic-property.md
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-5-corelogic-property-rowspec.md
+--
+-- v1.x multi-org-additive note (2026-05-29):
+--   ORG_ID added as first column with DEFAULT 'JDO' to support backward-
+--   compatible multi-org rollout (per Snowflake_Cumulus_Common/docs/ROLLOUT.md).
+--   PK extended to (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER). Existing JDO rows
+--   keep behavior identical via DEFAULT; future orgs append rather than mutate.
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.CORELOGIC_PROPERTY (
+    ORG_ID                         VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Multi-org tenant key. Defaults to ''JDO'' for backward compatibility. PK component.',
     ACCOUNT_ID                     VARCHAR(16777216) NOT NULL  COMMENT 'Account anchor ID. FK to ssot__Account__dlm. PK component.',
     PROFILE_QUARTER                DATE              NOT NULL  COMMENT 'First-of-quarter for the run (Jan/Apr/Jul/Oct 1st). Quarter-bucketed for determinism. PK component.',
     IS_OWNER                       BOOLEAN           NOT NULL  COMMENT 'true = property owner; false = renter. Biased by life stage + income. When false, property fields (below) are NULL.',
@@ -28,6 +35,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.CORELOGIC_PROPERTY (
     LAST_TRANSFER_YEAR             NUMBER(4,0)       NULL      COMMENT 'Year of last deed transfer (1980-2026). Stable within calendar year (year-stable seed). NULL when IS_OWNER=false.',
     HELOC_OPPORTUNITY_SCORE        NUMBER(3,0)       NULL      COMMENT 'HELOC score 0-100, biased by EQUITY_USD + LIEN_COUNT + LTV. NULL when IS_OWNER=false.',
     GENERATED_AT                   TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Quarter-bucketed for byte-identical mid-quarter re-runs (audit time -> TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_corelogic_property PRIMARY KEY (ACCOUNT_ID, PROFILE_QUARTER)
+    CONSTRAINT pk_corelogic_property PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)
 )
 COMMENT = 'CoreLogic-style synthetic property records per PERSON account. Quarterly generation. One row per PERSON account per quarter (~25,424 rows). Account-scoped with FK to ssot__Account__dlm. 9 NULLable property fields when IS_OWNER=false. See Snowflake_CoreLogic_Property/README.md and the umbrella spec.';

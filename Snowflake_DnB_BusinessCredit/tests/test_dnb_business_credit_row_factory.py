@@ -170,6 +170,7 @@ def test_paydex_score_correlates_with_industry(all_anchors):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "DUNS_NUMBER", "DNB_RATING",
     "FINANCIAL_STRENGTH_TIER", "COMPOSITE_RISK_SCORE",

@@ -15,9 +15,16 @@
 -- Egress:     DC Snowflake federation -> DLO/DMO CumulusZoomInfoFirmographics__dlm
 -- Plan:       docs/superpowers/plans/2026-05-28-cumulus-plan-11-zoominfo-firmographics.md
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-11-zoominfo-firmographics-rowspec.md
+--
+-- v1.x multi-org-additive: ORG_ID prepended as the leading PK column so two
+-- orgs can carry the same ACCOUNT_ID. DEFAULT 'JDO' kept in place for
+-- backward-compatible single-org loads; per-org SPs stamp ORG_ID explicitly
+-- via the audience row supplied by V_ACCOUNT_ANCHORS. See
+-- Snowflake_Cumulus_Common/docs/ROLLOUT.md.
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS (
+    ORG_ID                       VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Tenant short identifier (JDO / ACME / WFB). Backward-compatible default; per-org SPs stamp explicitly via V_ACCOUNT_ANCHORS. Leading PK component for multi-org isolation.',
     ACCOUNT_ID                   VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus BUSINESS customer whose firmographics this is. FK to ssot__Account__dlm. PK component.',
     PROFILE_MONTH                DATE              NOT NULL  COMMENT 'First-of-month for the run (UTC). Month-bucketed for determinism — mid-month re-runs are byte-identical. PK component.',
     EMPLOYEE_BAND                VARCHAR(12)       NOT NULL  COMMENT 'Categorical band derived deterministically from EMPLOYEE_COUNT. 7 buckets: 1-10 / 11-50 / 51-200 / 201-1000 / 1001-5000 / 5001-25000 / 25001+. Default 1-10 when EMPLOYEE_COUNT NULL/0.',
@@ -33,6 +40,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS (
     TECH_STACK_FLAGS             VARCHAR(200)      NULL      COMMENT 'Comma-separated 0-5 tech indicators from a 12-tag pool (Salesforce, AWS, Snowflake, etc.). NULL when industry-biased tag count rolls 0 (~10% of rows). Distributionally tested at L1.',
     LAST_DATA_REFRESH_DATE       DATE              NOT NULL  COMMENT 'Vendor data-refresh date. Uniform [run_ts.date() - 90d, run_ts.date()]. Always populated, always within 90-day window of run.',
     GENERATED_AT                 TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed (= PROFILE_MONTH 00:00:00) for byte-identical mid-month re-runs (audit time -> TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_zoominfo_firmographics PRIMARY KEY (ACCOUNT_ID, PROFILE_MONTH)
+    CONSTRAINT pk_zoominfo_firmographics PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )
-COMMENT = 'ZoomInfo / DiscoverOrg / Crunchbase-style synthetic B2B firmographics dataset per Cumulus BUSINESS customer. Monthly generation. 1:1 — one row per distinct BUSINESS anchor per month (~12,021 rows/month). Most boring Plan structurally in the rollout — same audience as Plans 2 (MSCI) and 3 (DnB). Composite PK (ACCOUNT_ID, PROFILE_MONTH) — DC DMO collapses to single-column PK profileMonth__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable VARCHAR columns (WEBSITE_DOMAIN, TECH_STACK_FLAGS) gated by data-availability heuristics, distributionally tested. Defensive HQ-string projection per Plan 4 v1.5 findings (US literal country, synth-fallback ZIP, _state_from_zip fallback). Re-runs same month MERGE-replace. See Snowflake_ZoomInfo_Firmographics/README.md and Plan 11.';
+COMMENT = 'ZoomInfo / DiscoverOrg / Crunchbase-style synthetic B2B firmographics dataset per Cumulus BUSINESS customer. Monthly generation. 1:1 — one row per distinct BUSINESS anchor per month (~12,021 rows/month). Most boring Plan structurally in the rollout — same audience as Plans 2 (MSCI) and 3 (DnB). v1.x multi-org-additive: ORG_ID is the leading PK column. Composite PK (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) — DC DMO collapses to single-column PK profileMonth__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable VARCHAR columns (WEBSITE_DOMAIN, TECH_STACK_FLAGS) gated by data-availability heuristics, distributionally tested. Defensive HQ-string projection per Plan 4 v1.5 findings (US literal country, synth-fallback ZIP, _state_from_zip fallback). Re-runs same month MERGE-replace. See Snowflake_ZoomInfo_Firmographics/README.md and Plan 11.';

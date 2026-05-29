@@ -74,8 +74,10 @@ _AUDIENCE_PREDICATE = ""  # all-accounts
 AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 
-# 15-column output contract (kept in sync with the table DDL by the L1 schema test).
+# 16-column output contract (kept in sync with the table DDL by the L1 schema test).
+# v1.x multi-org-additive: ORG_ID is the first key in every emitted row.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_WEEK",
     "CALL_COUNT_LAST_7D", "TOTAL_TALK_TIME_MINUTES", "CUSTOMER_TALK_RATIO_PCT",
     "OVERALL_SENTIMENT", "SENTIMENT_TREND",
@@ -443,7 +445,12 @@ def _rows_for(anchor: dict, profile_week: date) -> list[dict]:
     # Stage 4: year-stable RM name (separate salt; not from rng above).
     rm_name = _rm_name(account_id, profile_week)
 
+    # v1.x multi-org-additive: stamp ORG_ID first key from the anchor row.
+    # V_ACCOUNT_ANCHORS exposes ORG_ID as the first column post-Phase-A.
+    # Fixture anchors that omit ORG_ID fall back to 'JDO' so legacy L1 tests
+    # keep passing without rewriting the 100-anchor sample.
     return [{
+        "ORG_ID":                    anchor.get("ORG_ID") or "JDO",
         "ACCOUNT_ID":                account_id,
         "PROFILE_WEEK":              profile_week,
         "CALL_COUNT_LAST_7D":        call_count,
@@ -551,7 +558,11 @@ def _anchor_to_dict(row: Any) -> dict:
 
 
 # -------------------------------------------------------------------
-# _merge — idempotent MERGE on composite PK (ACCOUNT_ID, PROFILE_WEEK).
+# _merge — idempotent MERGE on composite PK (ORG_ID, ACCOUNT_ID, PROFILE_WEEK).
+#
+# v1.x multi-org-additive: ORG_ID is the first PK component (per ROLLOUT.md
+# Phase A6); UPDATE SET deliberately skips ORG_ID — the PK component is
+# fixed per row and never gets re-stamped to a different tenant.
 #
 # Exposed at module scope so the backfill SP can reuse it for batch MERGEs.
 # -------------------------------------------------------------------
@@ -596,6 +607,7 @@ def _merge(session: Any, records: list[dict],
         MERGE INTO FINS.PUBLIC.GONG_CALL_SENTIMENT tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_WEEK::DATE AS PROFILE_WEEK,
                 CALL_COUNT_LAST_7D,
@@ -613,7 +625,8 @@ def _merge(session: Any, records: list[dict],
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_WEEK = src.PROFILE_WEEK
         WHEN MATCHED THEN UPDATE SET
             CALL_COUNT_LAST_7D       = src.CALL_COUNT_LAST_7D,
@@ -630,7 +643,7 @@ def _merge(session: Any, records: list[dict],
             RM_LAST_LOGGED_NOTE_DATE = src.RM_LAST_LOGGED_NOTE_DATE,
             GENERATED_AT             = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_WEEK,
+            ORG_ID, ACCOUNT_ID, PROFILE_WEEK,
             CALL_COUNT_LAST_7D, TOTAL_TALK_TIME_MINUTES, CUSTOMER_TALK_RATIO_PCT,
             OVERALL_SENTIMENT, SENTIMENT_TREND,
             KEY_TOPICS_FLAGS, ACTION_ITEMS_COUNT, DEAL_RISK_SCORE,
@@ -638,7 +651,7 @@ def _merge(session: Any, records: list[dict],
             RM_NAME, RM_LAST_LOGGED_NOTE_DATE,
             GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_WEEK,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_WEEK,
             src.CALL_COUNT_LAST_7D, src.TOTAL_TALK_TIME_MINUTES, src.CUSTOMER_TALK_RATIO_PCT,
             src.OVERALL_SENTIMENT, src.SENTIMENT_TREND,
             src.KEY_TOPICS_FLAGS, src.ACTION_ITEMS_COUNT, src.DEAL_RISK_SCORE,

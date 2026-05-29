@@ -57,8 +57,9 @@ _VALID_CREDIT_RATINGS = frozenset({
 _VALID_RATING_OUTLOOKS = frozenset({"Stable", "Positive", "Negative", "Developing", "Watch"})
 _VALID_LIQUIDITY_TIERS = frozenset({"Tier 1", "Tier 2", "Tier 3", "Illiquid"})
 
-# 14-column schema per the new DDL (per-BUSINESS account-scoped).
+# 17-column schema per the v2.x multi-org-additive DDL (per-BUSINESS account-scoped, ORG_ID first).
 EXPECTED_KEYS = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID",
     "PROFILE_DATE",
     "CREDIT_RATING",

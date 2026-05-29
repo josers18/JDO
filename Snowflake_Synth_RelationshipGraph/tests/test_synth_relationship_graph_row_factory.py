@@ -273,6 +273,7 @@ def test_edge_discovered_le_last_seen(in_audience_anchors, available_edge_types)
 # ---------- Property 6: Schema contract ----------
 
 EXPECTED_KEYS = frozenset({
+    "ORG_ID",
     "SRC_ACCOUNT_ID", "DST_ACCOUNT_ID", "EDGE_TYPE",
     "EDGE_WEIGHT", "CONFIDENCE_PCT",
     "EDGE_DISCOVERED_DATE", "EDGE_LAST_SEEN_DATE",
@@ -281,7 +282,7 @@ EXPECTED_KEYS = frozenset({
 
 
 def test_output_schema_matches_table(in_audience_anchors, available_edge_types):
-    """Each row's keys EXACTLY match the 9 table columns."""
+    """Each row's keys EXACTLY match the 10 table columns (ORG_ID + 9 originals)."""
     ts = datetime(2026, 5, 4)
     rows = _rows_for(
         in_audience_anchors[0], ts, available_edge_types=available_edge_types,

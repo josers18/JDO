@@ -472,7 +472,9 @@ def test_24week_history_per_anchor(in_audience_anchors):
 
 # ---------- Property 6: Schema contract ----------
 
+# v1.x multi-org-additive: ORG_ID is the first key in every emitted row.
 EXPECTED_KEYS = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID",
     "PROFILE_WEEK",
     "CALL_COUNT_LAST_7D",

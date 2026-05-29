@@ -12,6 +12,7 @@
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.ESRI_GEO_FOOTPRINT (
+    ORG_ID                         VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'Owning org code. Sourced from V_ACCOUNT_ANCHORS.ORG_ID via the audience GROUP BY. ORG_ID required because two orgs may have the same BRANCH_ZIP. PK component for cross-org isolation.',
     BRANCH_ZIP                     VARCHAR(10)       NOT NULL  COMMENT 'US ZIP this row covers. Derived from V_ACCOUNT_ANCHORS distinct POSTAL_CODE. PK component. NOT an FK to ssot__Account__dlm.',
     STATE_CODE                     VARCHAR(2)        NOT NULL  COMMENT 'US state code from V_ACCOUNT_ANCHORS.',
     COUNTRY_CODE                   VARCHAR(2)        NOT NULL  COMMENT 'Always US for our audience (V_ACCOUNT_ANCHORS POSTAL_CODE filter implicitly drops non-US).',
@@ -27,6 +28,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.ESRI_GEO_FOOTPRINT (
     MARKET_PENETRATION_PCT         NUMBER(5,2)       NOT NULL  COMMENT '0.00-100.00. Cumulus market share in this ZIP, biased by ANNUAL_REVENUE-weighted customer mass.',
     BRANCH_RECOMMENDATION          VARCHAR(20)       NOT NULL  COMMENT 'Expand / Maintain / Optimize / Consolidate. Decision tree on market penetration + foot traffic + branch distance.',
     GENERATED_AT                   TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed for byte-identical mid-month re-runs (audit time -> TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_esri_geo_footprint PRIMARY KEY (BRANCH_ZIP, PROFILE_MONTH)
+    CONSTRAINT pk_esri_geo_footprint PRIMARY KEY (ORG_ID, BRANCH_ZIP, PROFILE_MONTH)
 )
-COMMENT = 'Esri-style synthetic geographic enrichment per ZIP. Monthly generation. One row per distinct US ZIP per month (~13,328 rows). Branch-scoped, NOT account-scoped — no FK to ssot__Account__dlm. See Snowflake_Esri_GeoFootprint/README.md and the umbrella spec.';
+COMMENT = 'Esri-style synthetic geographic enrichment per ZIP. Monthly generation. One row per (ORG_ID, distinct US ZIP) per month (~13,328 rows for JDO). Branch-scoped, NOT account-scoped — no FK to ssot__Account__dlm. ORG_ID required because two orgs may have the same BRANCH_ZIP. See Snowflake_Esri_GeoFootprint/README.md and the umbrella spec.';

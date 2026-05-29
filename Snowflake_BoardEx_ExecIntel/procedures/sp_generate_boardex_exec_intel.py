@@ -64,8 +64,9 @@ _AUDIENCE_PREDICATE = ""  # all-accounts
 AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 
-# 15-column output contract — UNCHANGED from the original Plan 10 DDL.
+# 16-column output contract — v1.x multi-org-additive (ORG_ID prepended).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "BOARD_SIZE", "BOARD_INDEPENDENCE_PCT",
     "WOMEN_BOARD_PCT", "MINORITY_BOARD_PCT",
@@ -281,6 +282,7 @@ def _business_governance_row(anchor: dict, month_start: datetime) -> dict:
     last_refresh_date = _last_data_refresh(month_start, rng)
 
     return {
+        "ORG_ID":                        anchor.get("ORG_ID") or "JDO",
         "ACCOUNT_ID":                    account_id,
         "PROFILE_MONTH":                 month_start.date(),
         "BOARD_SIZE":                    board_size,
@@ -347,6 +349,7 @@ def _personal_governance_row(anchor: dict, month_start: datetime) -> dict:
     last_refresh = month_start.date() - timedelta(days=rng.randint(1, 30))
 
     return {
+        "ORG_ID":                        anchor.get("ORG_ID") or "JDO",
         "ACCOUNT_ID":                    account_id,
         "PROFILE_MONTH":                 month_start.date(),
         "BOARD_SIZE":                    _PERSON_BOARD_SIZE,
@@ -543,6 +546,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.BOARDEX_EXEC_INTEL tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_MONTH,
                 BOARD_SIZE,
@@ -562,6 +566,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
+           AND tgt.ORG_ID = src.ORG_ID
         WHEN MATCHED THEN UPDATE SET
             BOARD_SIZE                   = src.BOARD_SIZE,
             BOARD_INDEPENDENCE_PCT       = src.BOARD_INDEPENDENCE_PCT,
@@ -577,13 +582,13 @@ def _merge(session: Any, records: list[dict]) -> int:
             LAST_DATA_REFRESH_DATE       = src.LAST_DATA_REFRESH_DATE,
             GENERATED_AT                 = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_MONTH, BOARD_SIZE, BOARD_INDEPENDENCE_PCT,
+            ORG_ID, ACCOUNT_ID, PROFILE_MONTH, BOARD_SIZE, BOARD_INDEPENDENCE_PCT,
             WOMEN_BOARD_PCT, MINORITY_BOARD_PCT, BOARD_AVG_TENURE_YEARS,
             CEO_TENURE_YEARS, EXEC_TURNOVER_FLAG, GOVERNANCE_RATING,
             INTERLOCK_COUNT, KEY_DIRECTOR_NAME, RECENT_GOVERNANCE_EVENT_DATE,
             LAST_DATA_REFRESH_DATE, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_MONTH, src.BOARD_SIZE, src.BOARD_INDEPENDENCE_PCT,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_MONTH, src.BOARD_SIZE, src.BOARD_INDEPENDENCE_PCT,
             src.WOMEN_BOARD_PCT, src.MINORITY_BOARD_PCT, src.BOARD_AVG_TENURE_YEARS,
             src.CEO_TENURE_YEARS, src.EXEC_TURNOVER_FLAG, src.GOVERNANCE_RATING,
             src.INTERLOCK_COUNT, src.KEY_DIRECTOR_NAME, src.RECENT_GOVERNANCE_EVENT_DATE,

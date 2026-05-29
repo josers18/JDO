@@ -58,7 +58,7 @@ AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
-    "ACCOUNT_ID", "PROFILE_MONTH",
+    "ORG_ID", "ACCOUNT_ID", "PROFILE_MONTH",
     "PLAN_STATUS", "PLAN_LAST_UPDATED_DATE",
     "RETIREMENT_TARGET_AGE", "MONTHLY_INCOME_TARGET_USD",
     "TOTAL_GOAL_AMOUNT_USD", "GOAL_COUNT",
@@ -392,6 +392,7 @@ def _rows_for(anchor: dict, profile_month: date | datetime) -> list[dict]:
     notes_flag = _advisor_notes_flag(plan_status, rng)
 
     return [{
+        "ORG_ID":                        anchor.get("ORG_ID", "JDO"),
         "ACCOUNT_ID":                    account_id,
         "PROFILE_MONTH":                 month_start,
         "PLAN_STATUS":                   plan_status,
@@ -549,6 +550,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.MGP_FINANCIAL_PLANS tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_MONTH,
                 PLAN_STATUS,
@@ -565,7 +567,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             PLAN_STATUS                  = src.PLAN_STATUS,
@@ -581,13 +584,13 @@ def _merge(session: Any, records: list[dict]) -> int:
             ADVISOR_NOTES_FLAG           = src.ADVISOR_NOTES_FLAG,
             GENERATED_AT                 = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_MONTH, PLAN_STATUS, PLAN_LAST_UPDATED_DATE,
+            ORG_ID, ACCOUNT_ID, PROFILE_MONTH, PLAN_STATUS, PLAN_LAST_UPDATED_DATE,
             RETIREMENT_TARGET_AGE, MONTHLY_INCOME_TARGET_USD,
             TOTAL_GOAL_AMOUNT_USD, GOAL_COUNT, MONTE_CARLO_SUCCESS_PCT,
             RECOMMENDED_ASSET_ALLOCATION, LAST_REVIEW_DATE, NEXT_REVIEW_DATE,
             ADVISOR_NOTES_FLAG, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_MONTH, src.PLAN_STATUS, src.PLAN_LAST_UPDATED_DATE,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_MONTH, src.PLAN_STATUS, src.PLAN_LAST_UPDATED_DATE,
             src.RETIREMENT_TARGET_AGE, src.MONTHLY_INCOME_TARGET_USD,
             src.TOTAL_GOAL_AMOUNT_USD, src.GOAL_COUNT, src.MONTE_CARLO_SUCCESS_PCT,
             src.RECOMMENDED_ASSET_ALLOCATION, src.LAST_REVIEW_DATE, src.NEXT_REVIEW_DATE,

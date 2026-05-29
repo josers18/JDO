@@ -505,6 +505,7 @@ def test_history_month_n_independent_of_history_month_m(in_audience_anchors):
 # ---------- Property 6: Schema contract ----------
 
 EXPECTED_KEYS = {
+    "ORG_ID",
     "ACCOUNT_ID",
     "PROFILE_MONTH",
     "PLAN_STATUS",

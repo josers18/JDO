@@ -297,6 +297,8 @@ def test_4e_held_away_account_id_stable_across_months(in_audience_anchors):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
+    # v1.x multi-org-additive: ORG_ID leads the schema contract.
+    "ORG_ID",
     "ACCOUNT_ID", "HELD_AWAY_ACCOUNT_ID", "PROFILE_MONTH",
     "INSTITUTION_NAME", "INSTITUTION_TYPE", "ACCOUNT_TYPE",
     "BALANCE_USD", "LAST_LINKED_DATE", "IS_ACTIVE",

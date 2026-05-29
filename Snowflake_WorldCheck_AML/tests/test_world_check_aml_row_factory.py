@@ -336,6 +336,7 @@ def test_4f_case_reference_null_for_low_medium(in_audience_anchors):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
+    "ORG_ID",  # v1.x multi-org-additive (leading PK component)
     "ACCOUNT_ID", "PROFILE_DATE", "OVERALL_RISK_RATING",
     "SANCTIONS_HIT", "PEP_HIT", "ADVERSE_MEDIA_HIT",
     "ADVERSE_MEDIA_CATEGORIES",

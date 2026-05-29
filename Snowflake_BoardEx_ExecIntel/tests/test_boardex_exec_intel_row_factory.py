@@ -402,6 +402,7 @@ def test_24month_history_per_anchor(in_audience_anchors):
 # ---------- Property 6: Schema contract ----------
 
 EXPECTED_KEYS = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID",
     "PROFILE_MONTH",
     "BOARD_SIZE",

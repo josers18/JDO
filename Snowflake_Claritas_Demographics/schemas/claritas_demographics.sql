@@ -11,6 +11,7 @@
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.CLARITAS_DEMOGRAPHICS (
+    ORG_ID                        VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'v1.x multi-org-additive: ORG_ID stamped from V_ACCOUNT_ANCHORS; default JDO is the backward-compat backstop. Leads the PK so two orgs holding the same SF ACCOUNT_ID never clobber each other.',
     ACCOUNT_ID                    VARCHAR(16777216) NOT NULL  COMMENT 'Salesforce Account ID (ssot__Id__c). FK to V_ACCOUNT_ANCHORS.',
     PROFILE_MONTH                 DATE              NOT NULL  COMMENT 'First-of-month for the run; PK component for monthly idempotency.',
     PRIZM_SEGMENT_CODE            VARCHAR(8)        NOT NULL  COMMENT 'One of 12 segment codes: UC/MB/YA/MS/PP/BB/CR/CD/SS/HR/FS/MT.',
@@ -25,6 +26,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.CLARITAS_DEMOGRAPHICS (
     URBANICITY                    VARCHAR(20)       NOT NULL  COMMENT 'Urban / Suburban / Town / Rural (heuristic from POSTAL_CODE leading digit).',
     FINANCIAL_STRESS_INDICATOR    VARCHAR(10)       NOT NULL  COMMENT 'Low / Moderate / High.',
     GENERATED_AT                  TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Run timestamp (UTC).',
-    CONSTRAINT pk_claritas_demographics PRIMARY KEY (ACCOUNT_ID, PROFILE_MONTH)
+    CONSTRAINT pk_claritas_demographics PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )
-COMMENT = 'Claritas-style synthetic demographics. Monthly generation. One row per PERSON account per month. See Snowflake_Claritas_Demographics/README.md and the umbrella spec.';
+COMMENT = 'Claritas-style synthetic demographics. Monthly generation. One row per PERSON account per month. v1.x multi-org-additive: ORG_ID stamped from V_ACCOUNT_ANCHORS; default JDO is the backward-compat backstop. See Snowflake_Claritas_Demographics/README.md and the umbrella spec.';

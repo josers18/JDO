@@ -41,8 +41,10 @@ COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_AN
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
 
-# 15-column output contract (kept in sync with table DDL by the L1 schema test)
+# 16-column output contract (kept in sync with table DDL by the L1 schema test)
+# v1.5 (multi-org): ORG_ID first per umbrella ROLLOUT.md Phase A.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "DUNS_NUMBER", "DNB_RATING",
     "FINANCIAL_STRENGTH_TIER", "COMPOSITE_RISK_SCORE",
@@ -458,6 +460,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     verification = _verification_status(revenue, tier, rng)
 
     return {
+        "ORG_ID":                      anchor["ORG_ID"],
         "ACCOUNT_ID":                  account_id,
         "PROFILE_MONTH":               run_ts.replace(day=1).date(),
         "DUNS_NUMBER":                 duns_number,
@@ -507,6 +510,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.DNB_BUSINESS_CREDIT tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID, PROFILE_MONTH, DUNS_NUMBER, DNB_RATING,
                 FINANCIAL_STRENGTH_TIER, COMPOSITE_RISK_SCORE,
                 PAYDEX_SCORE, AVERAGE_DAYS_BEYOND_TERMS,
@@ -516,7 +520,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             DUNS_NUMBER                  = src.DUNS_NUMBER,
@@ -533,6 +538,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             VERIFICATION_STATUS          = src.VERIFICATION_STATUS,
             GENERATED_AT                 = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
+            ORG_ID,
             ACCOUNT_ID, PROFILE_MONTH, DUNS_NUMBER, DNB_RATING,
             FINANCIAL_STRENGTH_TIER, COMPOSITE_RISK_SCORE,
             PAYDEX_SCORE, AVERAGE_DAYS_BEYOND_TERMS,
@@ -540,6 +546,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             SUPPLIER_RISK_LEVEL, CORPORATE_FAMILY_SIZE,
             ULTIMATE_PARENT_DUNS, VERIFICATION_STATUS, GENERATED_AT
         ) VALUES (
+            src.ORG_ID,
             src.ACCOUNT_ID, src.PROFILE_MONTH, src.DUNS_NUMBER, src.DNB_RATING,
             src.FINANCIAL_STRENGTH_TIER, src.COMPOSITE_RISK_SCORE,
             src.PAYDEX_SCORE, src.AVERAGE_DAYS_BEYOND_TERMS,

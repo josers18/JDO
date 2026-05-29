@@ -43,8 +43,10 @@ COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_AN
 # population stops leaking into ACCOUNT_TYPE_FLAG = 'BUSINESS'.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
 
-# 14-column output contract (kept in sync with table DDL by the L1 schema test)
+# 15-column output contract (kept in sync with table DDL by the L1 schema test).
+# v1.x multi-org-additive: ORG_ID stamped from anchor (V_ACCOUNT_ANCHORS).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "MSCI_ESG_RATING", "INDUSTRY_CLASSIFICATION",
     "ESG_SCORE_OVERALL", "ENVIRONMENTAL_SCORE", "SOCIAL_SCORE", "GOVERNANCE_SCORE",
@@ -350,6 +352,9 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     )[0]
 
     return {
+        # v1.x multi-org-additive: stamp ORG_ID from the audience row.
+        # V_ACCOUNT_ANCHORS supplies ORG_ID as the first column (post-A3).
+        "ORG_ID":                              anchor.get("ORG_ID", "JDO"),
         "ACCOUNT_ID":                          account_id,
         "PROFILE_MONTH":                       run_ts.replace(day=1).date(),
         "MSCI_ESG_RATING":                     rating,
@@ -398,6 +403,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.MSCI_ESG_SCORES tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID, PROFILE_MONTH,
                 MSCI_ESG_RATING, INDUSTRY_CLASSIFICATION,
                 ESG_SCORE_OVERALL, ENVIRONMENTAL_SCORE, SOCIAL_SCORE, GOVERNANCE_SCORE,
@@ -407,7 +413,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             MSCI_ESG_RATING                     = src.MSCI_ESG_RATING,
@@ -423,12 +430,14 @@ def _merge(session: Any, records: list[dict]) -> int:
             LAST_RATING_CHANGE_DIRECTION        = src.LAST_RATING_CHANGE_DIRECTION,
             GENERATED_AT                        = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
+            ORG_ID,
             ACCOUNT_ID, PROFILE_MONTH, MSCI_ESG_RATING, INDUSTRY_CLASSIFICATION,
             ESG_SCORE_OVERALL, ENVIRONMENTAL_SCORE, SOCIAL_SCORE, GOVERNANCE_SCORE,
             CARBON_INTENSITY_TONS_PER_M_REVENUE,
             CONTROVERSY_FLAG_COUNT, TOP_CONTROVERSY_CATEGORY,
             MATERIALITY_TAGS, LAST_RATING_CHANGE_DIRECTION, GENERATED_AT
         ) VALUES (
+            src.ORG_ID,
             src.ACCOUNT_ID, src.PROFILE_MONTH, src.MSCI_ESG_RATING, src.INDUSTRY_CLASSIFICATION,
             src.ESG_SCORE_OVERALL, src.ENVIRONMENTAL_SCORE, src.SOCIAL_SCORE, src.GOVERNANCE_SCORE,
             src.CARBON_INTENSITY_TONS_PER_M_REVENUE,

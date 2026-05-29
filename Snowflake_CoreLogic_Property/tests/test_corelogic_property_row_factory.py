@@ -209,7 +209,7 @@ def test_state_correlates_with_flood_zone(in_audience_anchors):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
-    "ACCOUNT_ID", "PROFILE_QUARTER", "IS_OWNER",
+    "ORG_ID", "ACCOUNT_ID", "PROFILE_QUARTER", "IS_OWNER",
     "PRIMARY_PROPERTY_TYPE", "ESTIMATED_PROPERTY_VALUE",
     "OUTSTANDING_MORTGAGE_BALANCE", "LOAN_TO_VALUE_PCT", "EQUITY_USD",
     "MORTGAGE_RATE_PCT", "LIEN_COUNT", "FLOOD_ZONE_CODE",

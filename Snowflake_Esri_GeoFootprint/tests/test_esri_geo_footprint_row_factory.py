@@ -129,6 +129,7 @@ def test_urbanicity_correlates_with_branch_distance(urban_zips, rural_zips):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
+    "ORG_ID",
     "BRANCH_ZIP", "STATE_CODE", "COUNTRY_CODE", "PROFILE_MONTH",
     "TAPESTRY_SEGMENT_CODE", "TAPESTRY_SEGMENT_NAME",
     "URBANICITY_TIER",

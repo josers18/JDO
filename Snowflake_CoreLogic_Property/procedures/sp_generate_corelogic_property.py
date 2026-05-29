@@ -45,9 +45,10 @@ _AUDIENCE_PREDICATE = (
 AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
-# 15-column output contract (kept in sync with table DDL by the L1 schema test)
+# 16-column output contract (kept in sync with table DDL by the L1 schema test)
+# v1.x multi-org-additive: ORG_ID leads the contract list; stamped from anchor.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
-    "ACCOUNT_ID", "PROFILE_QUARTER", "IS_OWNER",
+    "ORG_ID", "ACCOUNT_ID", "PROFILE_QUARTER", "IS_OWNER",
     "PRIMARY_PROPERTY_TYPE", "ESTIMATED_PROPERTY_VALUE",
     "OUTSTANDING_MORTGAGE_BALANCE", "LOAN_TO_VALUE_PCT", "EQUITY_USD",
     "MORTGAGE_RATE_PCT", "LIEN_COUNT", "FLOOD_ZONE_CODE",
@@ -100,7 +101,7 @@ def main(session: Any) -> str:
                 f"first: {errors[0]}"
             )
 
-        # 3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_QUARTER).
+        # 3. Idempotent MERGE on PK (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER).
         rows_inserted = _merge(session, records)
 
         # 4. Coverage assertion — canonical message format from spec §6.2.
@@ -415,6 +416,9 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
     if not is_owner:
         return {
+            # v1.x multi-org-additive: ORG_ID leads each emitted row (default 'JDO' backstop
+            # if anchor lacks the column — matches V_ACCOUNT_ANCHORS post-Plan-5 contract).
+            "ORG_ID":                       anchor.get("ORG_ID") or "JDO",
             "ACCOUNT_ID":                   account_id,
             "PROFILE_QUARTER":              quarter_start.date(),
             "IS_OWNER":                     False,
@@ -444,6 +448,9 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     heloc         = _heloc_opportunity(equity, lien_count, ltv, rng)
 
     return {
+        # v1.x multi-org-additive: ORG_ID leads each emitted row (default 'JDO' backstop
+        # if anchor lacks the column — matches V_ACCOUNT_ANCHORS post-Plan-5 contract).
+        "ORG_ID":                       anchor.get("ORG_ID") or "JDO",
         "ACCOUNT_ID":                   account_id,
         "PROFILE_QUARTER":              quarter_start.date(),
         "IS_OWNER":                     True,
@@ -463,7 +470,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
 
 # -------------------------------------------------------------------
-# _merge — idempotent MERGE on PK (ACCOUNT_ID, PROFILE_QUARTER)
+# _merge — idempotent MERGE on PK (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)
 # -------------------------------------------------------------------
 
 def _merge(session: Any, records: list[dict]) -> int:
@@ -493,10 +500,13 @@ def _merge(session: Any, records: list[dict]) -> int:
         database="FINS", schema="PUBLIC",
     )
 
+    # v1.x multi-org-additive: ORG_ID is part of the join eligibility; we
+    # never UPDATE it in WHEN MATCHED (a row can't change orgs).
     merge_sql = f"""
         MERGE INTO FINS.PUBLIC.CORELOGIC_PROPERTY tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_QUARTER,
                 IS_OWNER,
@@ -514,7 +524,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_QUARTER = src.PROFILE_QUARTER
         WHEN MATCHED THEN UPDATE SET
             IS_OWNER                     = src.IS_OWNER,
@@ -531,14 +542,14 @@ def _merge(session: Any, records: list[dict]) -> int:
             HELOC_OPPORTUNITY_SCORE      = src.HELOC_OPPORTUNITY_SCORE,
             GENERATED_AT                 = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_QUARTER, IS_OWNER,
+            ORG_ID, ACCOUNT_ID, PROFILE_QUARTER, IS_OWNER,
             PRIMARY_PROPERTY_TYPE, ESTIMATED_PROPERTY_VALUE,
             OUTSTANDING_MORTGAGE_BALANCE, LOAN_TO_VALUE_PCT, EQUITY_USD,
             MORTGAGE_RATE_PCT, LIEN_COUNT, FLOOD_ZONE_CODE,
             WILDFIRE_RISK_SCORE, LAST_TRANSFER_YEAR,
             HELOC_OPPORTUNITY_SCORE, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_QUARTER, src.IS_OWNER,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_QUARTER, src.IS_OWNER,
             src.PRIMARY_PROPERTY_TYPE, src.ESTIMATED_PROPERTY_VALUE,
             src.OUTSTANDING_MORTGAGE_BALANCE, src.LOAN_TO_VALUE_PCT, src.EQUITY_USD,
             src.MORTGAGE_RATE_PCT, src.LIEN_COUNT, src.FLOOD_ZONE_CODE,

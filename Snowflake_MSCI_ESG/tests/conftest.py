@@ -28,8 +28,14 @@ import pytest  # noqa: E402
 
 @pytest.fixture
 def all_anchors():
-    """The full 100-anchor fixture (50 person + 50 business)."""
-    return SAMPLE_ANCHORS
+    """The full 100-anchor fixture (50 person + 50 business).
+
+    v1.x multi-org-additive: stamp ORG_ID='JDO' on each anchor to mirror
+    the post-A3 V_ACCOUNT_ANCHORS shape (ORG_ID is the first column).
+    The shared fixture in Snowflake_Cumulus_Common is intentionally NOT
+    mutated — the override happens here, in the local conftest only.
+    """
+    return [{**a, "ORG_ID": "JDO"} for a in SAMPLE_ANCHORS]
 
 
 @pytest.fixture

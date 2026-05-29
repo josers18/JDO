@@ -47,8 +47,11 @@ _AUDIENCE_PREDICATE = ""  # all-accounts; kept as empty string for symmetry
 AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 
-# 13-column output contract (kept in sync with the table DDL by the L1 schema test).
+# 14-column output contract (v1.x multi-org-additive: ORG_ID added as
+# leading PK column; backward-compatible default 'JDO'). Kept in sync with
+# the table DDL by the L1 schema test.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_DATE", "OVERALL_RISK_RATING",
     "SANCTIONS_HIT", "PEP_HIT", "ADVERSE_MEDIA_HIT",
     "ADVERSE_MEDIA_CATEGORIES",
@@ -417,7 +420,12 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     # 5. Case reference (year-stable; populated only when High/Severe).
     case_ref = _case_reference(account_id, run_ts, overall)
 
+    # Multi-org tag: V_ACCOUNT_ANCHORS post-Phase A exposes ORG_ID first;
+    # legacy single-org callers / fixtures without ORG_ID default to 'JDO'.
+    org_id = anchor.get("ORG_ID") or "JDO"
+
     return {
+        "ORG_ID":                   org_id,
         "ACCOUNT_ID":               account_id,
         "PROFILE_DATE":             day_start.date(),
         "OVERALL_RISK_RATING":      overall,
@@ -546,6 +554,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.WORLD_CHECK_AML tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_DATE,
                 OVERALL_RISK_RATING,
@@ -561,7 +570,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_DATE = src.PROFILE_DATE
         WHEN MATCHED THEN UPDATE SET
             OVERALL_RISK_RATING      = src.OVERALL_RISK_RATING,
@@ -576,14 +586,14 @@ def _merge(session: Any, records: list[dict]) -> int:
             CASE_REFERENCE           = src.CASE_REFERENCE,
             GENERATED_AT             = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_DATE, OVERALL_RISK_RATING,
+            ORG_ID, ACCOUNT_ID, PROFILE_DATE, OVERALL_RISK_RATING,
             SANCTIONS_HIT, PEP_HIT, ADVERSE_MEDIA_HIT,
             ADVERSE_MEDIA_CATEGORIES,
             RISK_JURISDICTION_CODE, RISK_JURISDICTION_TIER,
             LAST_SCREENED_AT, CHANGE_SINCE_LAST_RUN,
             CASE_REFERENCE, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_DATE, src.OVERALL_RISK_RATING,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_DATE, src.OVERALL_RISK_RATING,
             src.SANCTIONS_HIT, src.PEP_HIT, src.ADVERSE_MEDIA_HIT,
             src.ADVERSE_MEDIA_CATEGORIES,
             src.RISK_JURISDICTION_CODE, src.RISK_JURISDICTION_TIER,

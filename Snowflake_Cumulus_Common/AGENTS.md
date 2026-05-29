@@ -3,6 +3,8 @@
 This sister-project owns the shared infrastructure for all 13 Cumulus dataset pipelines.
 Pattern mirrors `Snowflake_CSAT_NPS/`.
 
+> **Multi-org rollout?** See `docs/ROLLOUT.md` for the Phase A (Snowflake schema migration to add `ORG_ID`) + Phase B (per-org DC stream replay) runbook.
+
 ## Boundaries
 
 - Owns: `FINS.PUBLIC.V_ACCOUNT_ANCHORS`, `cumulus_common` Python pkg, shared anchor fixture.

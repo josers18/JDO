@@ -9,9 +9,15 @@
 -- Egress:     DC Snowflake federation → DLO/DMO CumulusMSCIESG__dlm
 -- Plan:       docs/superpowers/plans/2026-05-28-cumulus-plan-2-msci-esg.md
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-2-msci-esg-rowspec.md
+--
+-- v1.x multi-org-additive: ORG_ID prepended to PK so two orgs can carry the
+-- same ACCOUNT_ID. DEFAULT 'JDO' kept in place for backward-compatible
+-- single-org loads; per-org SPs stamp ORG_ID explicitly via the audience row
+-- supplied by V_ACCOUNT_ANCHORS. See Snowflake_Cumulus_Common/docs/ROLLOUT.md.
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.MSCI_ESG_SCORES (
+    ORG_ID                                VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Tenant short identifier (JDO / ACME / WFB). Backward-compatible default; per-org SPs stamp explicitly.',
     ACCOUNT_ID                            VARCHAR(16777216) NOT NULL  COMMENT 'Salesforce Account ID (ssot__Id__c). FK to V_ACCOUNT_ANCHORS.',
     PROFILE_MONTH                         DATE              NOT NULL  COMMENT 'First-of-month for the run; PK component for monthly idempotency.',
     MSCI_ESG_RATING                       VARCHAR(8)        NOT NULL  COMMENT 'One of 7 ratings: AAA / AA / A / BBB / BB / B / CCC.',
@@ -26,6 +32,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.MSCI_ESG_SCORES (
     MATERIALITY_TAGS                      VARCHAR(200)      NOT NULL  COMMENT 'Comma-separated 2-4 tags from a 12-tag pool, biased by industry.',
     LAST_RATING_CHANGE_DIRECTION          VARCHAR(10)       NOT NULL  COMMENT 'Upgrade / Downgrade / Unchanged (~85% Unchanged).',
     GENERATED_AT                          TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed for byte-identical mid-month re-runs (audit time → TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_msci_esg_scores PRIMARY KEY (ACCOUNT_ID, PROFILE_MONTH)
+    CONSTRAINT pk_msci_esg_scores PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )
-COMMENT = 'MSCI-style synthetic ESG ratings. Monthly generation. One row per BUSINESS account per month. See Snowflake_MSCI_ESG/README.md and the umbrella spec.';
+COMMENT = 'MSCI-style synthetic ESG ratings. Monthly generation. One row per BUSINESS account per month. v1.x multi-org-additive: ORG_ID is first PK column. See Snowflake_MSCI_ESG/README.md and the umbrella spec.';

@@ -38,8 +38,10 @@ _AUDIENCE_PREDICATE = "CLIENT_CATEGORY IN ('Retail', 'Wealth Management')"
 AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
-# 14-column output contract (kept in sync with table DDL by the L1 schema test).
+# 15-column output contract (kept in sync with table DDL by the L1 schema test).
+# v1.x multi-org-additive: ORG_ID leads the contract list; stamped from anchor.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "HELD_AWAY_ACCOUNT_ID", "PROFILE_MONTH",
     "INSTITUTION_NAME", "INSTITUTION_TYPE", "ACCOUNT_TYPE",
     "BALANCE_USD", "LAST_LINKED_DATE", "IS_ACTIVE",
@@ -230,6 +232,11 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
         rate         = _interest_rate(account_type, slot_rng)
 
         rows.append({
+            # v1.x multi-org-additive: ORG_ID leads EVERY emitted record (1:N
+            # — stamped on every slot, not just the first). Default 'JDO'
+            # backstop if anchor lacks the column — backward-compat with
+            # pre-migration fixtures.
+            "ORG_ID":                anchor.get("ORG_ID") or "JDO",
             "ACCOUNT_ID":            account_id,
             "HELD_AWAY_ACCOUNT_ID":  held_away_id,
             "PROFILE_MONTH":         month_start.date(),
@@ -460,10 +467,13 @@ def _merge(session: Any, records: list[dict]) -> int:
         database="FINS", schema="PUBLIC",
     )
 
+    # v1.x multi-org-additive: ORG_ID is part of the join eligibility; we
+    # never UPDATE it in WHEN MATCHED (a row can't change orgs).
     merge_sql = f"""
         MERGE INTO FINS.PUBLIC.PLAID_HELD_AWAY tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 HELD_AWAY_ACCOUNT_ID::VARCHAR AS HELD_AWAY_ACCOUNT_ID,
                 PROFILE_MONTH,
@@ -480,7 +490,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.HELD_AWAY_ACCOUNT_ID = src.HELD_AWAY_ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
@@ -496,13 +507,13 @@ def _merge(session: Any, records: list[dict]) -> int:
             INTEREST_RATE_PCT     = src.INTEREST_RATE_PCT,
             GENERATED_AT          = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH,
+            ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH,
             INSTITUTION_NAME, INSTITUTION_TYPE, ACCOUNT_TYPE,
             BALANCE_USD, LAST_LINKED_DATE, IS_ACTIVE,
             LAST_TRANSACTION_DATE, MONTHLY_NET_FLOW_USD,
             INVESTMENT_RISK_TIER, INTEREST_RATE_PCT, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.HELD_AWAY_ACCOUNT_ID, src.PROFILE_MONTH,
+            src.ORG_ID, src.ACCOUNT_ID, src.HELD_AWAY_ACCOUNT_ID, src.PROFILE_MONTH,
             src.INSTITUTION_NAME, src.INSTITUTION_TYPE, src.ACCOUNT_TYPE,
             src.BALANCE_USD, src.LAST_LINKED_DATE, src.IS_ACTIVE,
             src.LAST_TRANSACTION_DATE, src.MONTHLY_NET_FLOW_USD,

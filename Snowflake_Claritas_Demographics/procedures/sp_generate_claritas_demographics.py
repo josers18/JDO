@@ -36,8 +36,10 @@ _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'PERSON'"
 AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
-# 14-column output contract (kept in sync with table DDL by the L1 schema test)
+# 15-column output contract (kept in sync with table DDL by the L1 schema test).
+# v1.x multi-org-additive: ORG_ID leads the contract list; stamped from anchor.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "PRIZM_SEGMENT_CODE", "PRIZM_SEGMENT_NAME", "PRIZM_LIFESTYLE_GROUP",
     "LIFE_STAGE", "HOUSEHOLD_COMPOSITION",
@@ -337,6 +339,9 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     stress       = _financial_stress(income, client_cat, rng)
 
     return {
+        # v1.x multi-org-additive: ORG_ID leads each emitted row (default 'JDO' backstop
+        # if anchor lacks the column — backward-compat with pre-migration fixtures).
+        "ORG_ID":                     anchor.get("ORG_ID") or "JDO",
         "ACCOUNT_ID":                 account_id,
         "PROFILE_MONTH":              run_ts.replace(day=1).date(),
         "PRIZM_SEGMENT_CODE":         code,
@@ -385,10 +390,13 @@ def _merge(session: Any, records: list[dict]) -> int:
     # then auto-creates as NUMBER(38,0) holding nanoseconds-since-epoch in the
     # staging table. Cast back to TIMESTAMP_NTZ in the MERGE so the target
     # TIMESTAMP_NTZ(9) column type is satisfied.
+    # v1.x multi-org-additive: ORG_ID is part of the join eligibility; we
+    # never UPDATE it in WHEN MATCHED (a row can't change orgs).
     merge_sql = f"""
         MERGE INTO FINS.PUBLIC.CLARITAS_DEMOGRAPHICS tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_MONTH,
                 PRIZM_SEGMENT_CODE,
@@ -405,7 +413,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             PRIZM_SEGMENT_CODE          = src.PRIZM_SEGMENT_CODE,
@@ -421,13 +430,13 @@ def _merge(session: Any, records: list[dict]) -> int:
             FINANCIAL_STRESS_INDICATOR  = src.FINANCIAL_STRESS_INDICATOR,
             GENERATED_AT                = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, PRIZM_SEGMENT_NAME,
+            ORG_ID, ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, PRIZM_SEGMENT_NAME,
             PRIZM_LIFESTYLE_GROUP, LIFE_STAGE, HOUSEHOLD_COMPOSITION,
             ESTIMATED_NET_WORTH_BAND, WEALTH_PROPENSITY_SCORE,
             INVESTMENT_PROPENSITY_SCORE, MORTGAGE_PROPENSITY_SCORE,
             URBANICITY, FINANCIAL_STRESS_INDICATOR, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_MONTH, src.PRIZM_SEGMENT_CODE, src.PRIZM_SEGMENT_NAME,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_MONTH, src.PRIZM_SEGMENT_CODE, src.PRIZM_SEGMENT_NAME,
             src.PRIZM_LIFESTYLE_GROUP, src.LIFE_STAGE, src.HOUSEHOLD_COMPOSITION,
             src.ESTIMATED_NET_WORTH_BAND, src.WEALTH_PROPENSITY_SCORE,
             src.INVESTMENT_PROPENSITY_SCORE, src.MORTGAGE_PROPENSITY_SCORE,

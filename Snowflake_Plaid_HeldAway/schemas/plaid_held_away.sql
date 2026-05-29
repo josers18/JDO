@@ -16,6 +16,7 @@
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.PLAID_HELD_AWAY (
+    ORG_ID                     VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'v1.x multi-org-additive: ORG_ID stamped from V_ACCOUNT_ANCHORS; default JDO is the backward-compat backstop. Leads the PK so two orgs holding the same SF ACCOUNT_ID + slot never clobber each other.',
     ACCOUNT_ID                 VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus customer that owns this held-away account. FK to ssot__Account__dlm. PK component.',
     HELD_AWAY_ACCOUNT_ID       VARCHAR(64)       NOT NULL  COMMENT 'sha256(account_id + "_slot" + slot_index + "_plaid")[:16] hex — deterministic per (anchor, slot, salt). Identity-stable across months. PK component (single-column DC DMO PK).',
     PROFILE_MONTH              DATE              NOT NULL  COMMENT 'First-of-month for the run. Month-bucketed for determinism. PK component.',
@@ -30,6 +31,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.PLAID_HELD_AWAY (
     INVESTMENT_RISK_TIER       VARCHAR(15)       NULL      COMMENT 'Conservative, Moderate, Aggressive, Speculative. Only populated for ACCOUNT_TYPE in (Brokerage, IRA, 401k, HSA). Age-glide-path biased.',
     INTEREST_RATE_PCT          NUMBER(5,3)       NULL      COMMENT 'APY for Savings (0.5-5.5%); APR for Mortgage/Auto Loan/Credit Card (3-28%). NULL for non-rate-bearing accounts.',
     GENERATED_AT               TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed for byte-identical mid-month re-runs (audit time -> TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_plaid_held_away PRIMARY KEY (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)
+    CONSTRAINT pk_plaid_held_away PRIMARY KEY (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)
 )
-COMMENT = 'Plaid-style synthetic held-away financial accounts per Retail/Wealth anchor. Monthly generation. 1-5 rows per anchor per month (~52,300 rows/month). First 1:N dataset in the Cumulus rollout. Composite PK (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) — DC DMO collapses to single-column PK heldAwayAccountId__c. 4 NULLable fields conditional on IS_ACTIVE / ACCOUNT_TYPE. See Snowflake_Plaid_HeldAway/README.md and the umbrella spec.';
+COMMENT = 'Plaid-style synthetic held-away financial accounts per Retail/Wealth anchor. Monthly generation. 1-5 rows per anchor per month (~52,300 rows/month). First 1:N dataset in the Cumulus rollout. Composite PK (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) — DC DMO collapses to single-column PK heldAwayAccountId__c. 4 NULLable fields conditional on IS_ACTIVE / ACCOUNT_TYPE. v1.x multi-org-additive: ORG_ID stamped from V_ACCOUNT_ANCHORS; default JDO is the backward-compat backstop. See Snowflake_Plaid_HeldAway/README.md and the umbrella spec.';

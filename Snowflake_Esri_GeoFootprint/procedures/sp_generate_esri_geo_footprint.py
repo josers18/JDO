@@ -41,26 +41,33 @@ DATASET_SALT = "esri"
 #     audience is implicitly US-only — non-US customers don't have US ZIPs in
 #     this dataset, and the 4 non-canonical rows are typos). The 4 non-empty
 #     rows would otherwise truncate against VARCHAR(2) ('USA' -> error).
+#
+# Multi-org note (v1.5): ORG_ID is part of the GROUP BY (and SELECT) so two
+# orgs sharing the same POSTAL_CODE do not collapse into one row and silently
+# lose org-isolation. ORG_ID also becomes the leading PK component on the
+# target table.
 AUDIENCE_SQL = """
-    SELECT POSTAL_CODE, STATE_CODE, 'US' AS COUNTRY_CODE,
+    SELECT ORG_ID, POSTAL_CODE, STATE_CODE, 'US' AS COUNTRY_CODE,
            COUNT(DISTINCT ACCOUNT_ID) AS CUSTOMER_COUNT
     FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
     WHERE POSTAL_CODE IS NOT NULL
       AND POSTAL_CODE <> ''
-    GROUP BY POSTAL_CODE, STATE_CODE
+    GROUP BY ORG_ID, POSTAL_CODE, STATE_CODE
 """
 
-# Coverage compares ZIP cardinality, not account cardinality.
-# Mirror the AUDIENCE_SQL filter exactly (drift = silent coverage gap).
+# Coverage compares (ORG_ID, ZIP) cardinality, not account cardinality.
+# Mirror the AUDIENCE_SQL filter + GROUP BY shape exactly (drift = silent coverage gap).
 COVERAGE_SQL = """
-    SELECT COUNT(DISTINCT POSTAL_CODE)
+    SELECT COUNT(DISTINCT (ORG_ID || '|' || POSTAL_CODE))
     FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
     WHERE POSTAL_CODE IS NOT NULL
       AND POSTAL_CODE <> ''
 """
 
-# 15-column output contract (kept in sync with table DDL by the L1 schema test)
+# 16-column output contract (kept in sync with table DDL by the L1 schema test).
+# ORG_ID is the leading PK component (multi-org migration v1.5).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "BRANCH_ZIP", "STATE_CODE", "COUNTRY_CODE", "PROFILE_MONTH",
     "TAPESTRY_SEGMENT_CODE", "TAPESTRY_SEGMENT_NAME",
     "URBANICITY_TIER",
@@ -105,6 +112,7 @@ def main(session: Any) -> str:
                     _field(row, "COUNTRY_CODE"),
                     int(_field(row, "CUSTOMER_COUNT")),
                     started,
+                    org_id=_field(row, "ORG_ID"),
                 ))
             except Exception as exc:
                 errors.append((_field(row, "POSTAL_CODE"), str(exc)[:200]))
@@ -123,8 +131,9 @@ def main(session: Any) -> str:
         # 3. MERGE on PK (BRANCH_ZIP, PROFILE_MONTH).
         rows_inserted = _merge(session, records)
 
-        # 4. Coverage assertion: ZIP cardinality, not account cardinality.
-        actual_sql = f"SELECT COUNT(DISTINCT BRANCH_ZIP) FROM {TABLE}"
+        # 4. Coverage assertion: (ORG_ID, ZIP) cardinality, not account cardinality.
+        # Multi-org: pipe-concat to mirror COVERAGE_SQL's shape exactly.
+        actual_sql = f"SELECT COUNT(DISTINCT (ORG_ID || '|' || BRANCH_ZIP)) FROM {TABLE}"
         assert_coverage(session, COVERAGE_SQL, actual_sql)
 
     except Exception as exc:
@@ -344,13 +353,18 @@ def _row_for_zip(zip_code: str,
                  state_code: str,
                  country_code: str,
                  customer_count: int,
-                 run_ts: datetime) -> dict:
+                 run_ts: datetime,
+                 org_id: str = "JDO") -> dict:
     """Pure function: per-ZIP fact row. Deterministic via seed_for(zip, "esri", run_ts).
 
     Input validation:
     - zip_code must be non-None.
     - zip_code must be a non-empty string.
     - zip_code must be all-digits (raises ValueError on "ABCDE").
+
+    Multi-org (v1.5): ``org_id`` is the leading PK component on the target
+    table. Defaults to ``'JDO'`` to keep call-sites that haven't migrated
+    backward-compatible.
     """
     # Validate input shape (defense-in-depth — the audience SQL filters to
     # non-null US ZIPs but tests exercise these paths directly).
@@ -392,6 +406,7 @@ def _row_for_zip(zip_code: str,
     seg_code, seg_name = _tapestry_segment(urbanicity, income, rng)
 
     return {
+        "ORG_ID":                        org_id,
         "BRANCH_ZIP":                    zip_code,
         "STATE_CODE":                    state_code,
         "COUNTRY_CODE":                  country_code,
@@ -441,6 +456,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.ESRI_GEO_FOOTPRINT tgt
         USING (
             SELECT
+                ORG_ID,
                 BRANCH_ZIP, STATE_CODE, COUNTRY_CODE, PROFILE_MONTH,
                 TAPESTRY_SEGMENT_CODE, TAPESTRY_SEGMENT_NAME,
                 URBANICITY_TIER,
@@ -451,7 +467,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.BRANCH_ZIP = src.BRANCH_ZIP
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.BRANCH_ZIP = src.BRANCH_ZIP
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             STATE_CODE                    = src.STATE_CODE,
@@ -468,6 +485,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             BRANCH_RECOMMENDATION         = src.BRANCH_RECOMMENDATION,
             GENERATED_AT                  = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
+            ORG_ID,
             BRANCH_ZIP, STATE_CODE, COUNTRY_CODE, PROFILE_MONTH,
             TAPESTRY_SEGMENT_CODE, TAPESTRY_SEGMENT_NAME, URBANICITY_TIER,
             MEDIAN_HOUSEHOLD_INCOME, WEALTH_INDEX,
@@ -475,6 +493,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             DISTANCE_TO_NEAREST_BRANCH_MI, MARKET_PENETRATION_PCT,
             BRANCH_RECOMMENDATION, GENERATED_AT
         ) VALUES (
+            src.ORG_ID,
             src.BRANCH_ZIP, src.STATE_CODE, src.COUNTRY_CODE, src.PROFILE_MONTH,
             src.TAPESTRY_SEGMENT_CODE, src.TAPESTRY_SEGMENT_NAME, src.URBANICITY_TIER,
             src.MEDIAN_HOUSEHOLD_INCOME, src.WEALTH_INDEX,

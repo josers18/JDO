@@ -14,9 +14,16 @@
 -- Egress:     DC Snowflake federation -> DLO/DMO CumulusMgpFinancialPlans__dlm
 -- Plan:       docs/superpowers/plans/2026-05-28-cumulus-plan-8-mgp-financial-plans.md
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-8-mgp-financial-plans-rowspec.md
+--
+-- v1.x (multi-org-additive): ORG_ID prepended as the leading PK column so a
+-- single Snowflake table can hold rows for multiple Salesforce orgs without
+-- ACCOUNT_ID collisions. ORG_ID DEFAULT 'JDO' keeps existing single-org
+-- callers backward-compatible. See Snowflake_Cumulus_Common/docs/ROLLOUT.md
+-- Phase A6.
 -- =============================================================================
 
 CREATE OR REPLACE TABLE FINS.PUBLIC.MGP_FINANCIAL_PLANS (
+    ORG_ID                        VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Logical-tenant identifier (e.g. JDO, ACME, WFB). Stable short id chosen per org — NOT the 18-char SF Org Id, since that rotates per sandbox refresh. DEFAULT JDO keeps single-org loaders backward-compatible. PK component.',
     ACCOUNT_ID                    VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus Wealth Management customer whose plan this is. FK to ssot__Account__dlm. PK component.',
     PROFILE_MONTH                 DATE              NOT NULL  COMMENT 'First-of-month for the run (UTC). Month-bucketed for determinism — mid-month re-runs are byte-identical. PK component.',
     PLAN_STATUS                   VARCHAR(20)       NOT NULL  COMMENT 'Active (~80%), Draft (~12%), Stale (~8%). Drives NULL gating on LAST_REVIEW_DATE / NEXT_REVIEW_DATE.',
@@ -31,6 +38,6 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.MGP_FINANCIAL_PLANS (
     NEXT_REVIEW_DATE              DATE              NULL      COMMENT 'Scheduled next review. NULL when PLAN_STATUS=Stale (no review scheduled). When populated, > run_ts.date() (1-18 months ahead).',
     ADVISOR_NOTES_FLAG            BOOLEAN           NOT NULL  COMMENT 'true if advisor has logged free-text notes on the plan. ~75% true for Active, ~30% for Draft, ~15% for Stale.',
     GENERATED_AT                  TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed (= PROFILE_MONTH 00:00:00) for byte-identical mid-month re-runs (audit time -> TASK_EXECUTION_LOG).',
-    CONSTRAINT pk_mgp_financial_plans PRIMARY KEY (ACCOUNT_ID, PROFILE_MONTH)
+    CONSTRAINT pk_mgp_financial_plans PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )
-COMMENT = 'MoneyGuidePro / eMoney / NaviPlan-style synthetic financial-plan dataset per Cumulus Wealth Management customer. Monthly generation. 1:1 — one row per distinct Wealth anchor per month (~3,920 rows/month). Smallest Cumulus audience by 2.9× and first dataset whose NULL semantics are gated by a non-Boolean enum (PLAN_STATUS). Composite PK (ACCOUNT_ID, PROFILE_MONTH) — DC DMO collapses to single-column PK profileMonth__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable date fields conditional on PLAN_STATUS. 1 BOOLEAN column. Re-runs same month MERGE-replace. See Snowflake_MoneyGuidePro_FinancialPlans/README.md and Plan 8.';
+COMMENT = 'MoneyGuidePro / eMoney / NaviPlan-style synthetic financial-plan dataset per Cumulus Wealth Management customer. Monthly generation. 1:1 — one row per distinct Wealth anchor per month (~3,920 rows/month). Smallest Cumulus audience by 2.9× and first dataset whose NULL semantics are gated by a non-Boolean enum (PLAN_STATUS). Composite PK (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) — v1.x multi-org-additive (ORG_ID DEFAULT JDO). DC DMO collapses to single-column PK profileMonth__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable date fields conditional on PLAN_STATUS. 1 BOOLEAN column. Re-runs same month MERGE-replace. See Snowflake_MoneyGuidePro_FinancialPlans/README.md and Plan 8.';

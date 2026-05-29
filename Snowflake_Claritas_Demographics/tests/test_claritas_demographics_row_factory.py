@@ -147,6 +147,8 @@ def test_life_stage_correlates_with_age(all_anchors):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
+    # v1.x multi-org-additive: ORG_ID leads the schema contract.
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "PRIZM_SEGMENT_CODE", "PRIZM_SEGMENT_NAME", "PRIZM_LIFESTYLE_GROUP",
     "LIFE_STAGE", "HOUSEHOLD_COMPOSITION",

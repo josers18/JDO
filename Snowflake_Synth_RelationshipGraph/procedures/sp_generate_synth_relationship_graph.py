@@ -62,8 +62,11 @@ _AUDIENCE_PREDICATE = ""  # all-accounts
 AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 
-# 9-column output contract (kept in sync with the table DDL by the L1 schema test).
+# 10-column output contract (kept in sync with the table DDL by the L1 schema test).
+# ORG_ID is the multi-tenant prefix; cross-org edges are not modeled (DST anchors
+# come from the same audience, so within-anchor=within-org is naturally enforced).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "SRC_ACCOUNT_ID", "DST_ACCOUNT_ID", "EDGE_TYPE",
     "EDGE_WEIGHT", "CONFIDENCE_PCT",
     "EDGE_DISCOVERED_DATE", "EDGE_LAST_SEEN_DATE",
@@ -184,16 +187,20 @@ def _confidence_pct(edge_type: str, edge_discovered_date: date,
 
 def _make_edge(src: str, dst: str, edge_type: str,
                rng: random.Random | None, run_ts: datetime,
-               metadata: str | None = None) -> dict:
-    """Edge factory — assembles one 9-key dict.
+               metadata: str | None = None,
+               org_id: str = "JDO") -> dict:
+    """Edge factory — assembles one 10-key dict.
 
     Ordering is load-bearing: discovered first (so confidence age-decay can
-    read it), then weight, then confidence, then last-seen.
+    read it), then weight, then confidence, then last-seen. ORG_ID is the
+    tenant prefix; cross-org edges are not modeled (callers stamp the anchor's
+    ORG_ID on every edge in the 1:N loop).
     """
     discovered, last_seen = _edge_dates(edge_type, run_ts, rng)
     weight = _edge_weight(edge_type, rng)
     confidence = _confidence_pct(edge_type, discovered, run_ts.date(), rng)
     return {
+        "ORG_ID":               org_id,
         "SRC_ACCOUNT_ID":       src,
         "DST_ACCOUNT_ID":       dst,
         "EDGE_TYPE":            edge_type,
@@ -208,9 +215,11 @@ def _make_edge(src: str, dst: str, edge_type: str,
 
 def _self_edge(anchor: dict, run_ts: datetime) -> dict:
     """Unconditional fallback. Fixed weight 1.000, confidence 100.00,
-    discovered == last_seen == week_start.date(), METADATA=None."""
+    discovered == last_seen == week_start.date(), METADATA=None.
+    ORG_ID stamped from anchor (defaults to 'JDO' if absent)."""
     aid = anchor["ACCOUNT_ID"]
-    return _make_edge(aid, aid, "SELF", rng=None, run_ts=run_ts, metadata=None)
+    return _make_edge(aid, aid, "SELF", rng=None, run_ts=run_ts,
+                      metadata=None, org_id=anchor.get("ORG_ID") or "JDO")
 
 
 # -------------------------------------------------------------------
@@ -256,9 +265,11 @@ def _household_edges(anchor: dict, lookup: dict,
     if not bucket or len(bucket) < 2:
         return []
     aid = anchor["ACCOUNT_ID"]
+    org_id = anchor.get("ORG_ID") or "JDO"
     return [
         _make_edge(aid, peer, "HOUSEHOLD", rng, run_ts,
-                   metadata=json.dumps({"household_role": "member"}))
+                   metadata=json.dumps({"household_role": "member"}),
+                   org_id=org_id)
         for peer in bucket if peer != aid
     ]
 
@@ -276,7 +287,8 @@ def _corporate_parent_edges(anchor: dict, lookup: dict,
         return []
     return [_make_edge(anchor["ACCOUNT_ID"], parent, "CORPORATE_PARENT",
                        rng, run_ts,
-                       metadata=json.dumps({"link_source": "dnb"}))]
+                       metadata=json.dumps({"link_source": "dnb"}),
+                       org_id=anchor.get("ORG_ID") or "JDO")]
 
 
 def _board_member_edges(anchor: dict, lookup: dict,
@@ -289,10 +301,12 @@ def _board_member_edges(anchor: dict, lookup: dict,
     company_ids = seats.get(anchor["ACCOUNT_ID"])
     if not company_ids:
         return []
+    org_id = anchor.get("ORG_ID") or "JDO"
     return [
         _make_edge(anchor["ACCOUNT_ID"], company, "BOARD_MEMBER",
                    rng, run_ts,
-                   metadata=json.dumps({"board_role": "Director"}))
+                   metadata=json.dumps({"board_role": "Director"}),
+                   org_id=org_id)
         for company in company_ids
     ]
 
@@ -321,7 +335,9 @@ def _advisor_book_edges(anchor: dict, lookup: dict,
         return []
     n = min(rng.randint(1, 3), len(candidates))
     peers = candidates[:n]
-    return [_make_edge(aid, p, "ADVISOR_BOOK", rng, run_ts) for p in peers]
+    org_id = anchor.get("ORG_ID") or "JDO"
+    return [_make_edge(aid, p, "ADVISOR_BOOK", rng, run_ts, org_id=org_id)
+            for p in peers]
 
 
 def _referral_edges(anchor: dict, lookup: dict,
@@ -336,7 +352,8 @@ def _referral_edges(anchor: dict, lookup: dict,
     aid = anchor["ACCOUNT_ID"]
     if referrer == aid:
         return []
-    return [_make_edge(aid, referrer, "REFERRAL", rng, run_ts)]
+    return [_make_edge(aid, referrer, "REFERRAL", rng, run_ts,
+                       org_id=anchor.get("ORG_ID") or "JDO")]
 
 
 def _business_owner_edges(anchor: dict, lookup: dict,
@@ -359,7 +376,8 @@ def _business_owner_edges(anchor: dict, lookup: dict,
     target = rng.choice(biz_ids)
     return [_make_edge(anchor["ACCOUNT_ID"], target, "BUSINESS_OWNER",
                        rng, run_ts,
-                       metadata=json.dumps({"ownership_pct": "majority"}))]
+                       metadata=json.dumps({"ownership_pct": "majority"}),
+                       org_id=anchor.get("ORG_ID") or "JDO")]
 
 
 # Generator dispatch — ordered for deterministic rng consumption. SELF is
@@ -712,6 +730,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH tgt
         USING (
             SELECT
+                ORG_ID::VARCHAR(18)               AS ORG_ID,
                 SRC_ACCOUNT_ID,
                 DST_ACCOUNT_ID,
                 EDGE_TYPE::VARCHAR(20)            AS EDGE_TYPE,
@@ -723,7 +742,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.SRC_ACCOUNT_ID = src.SRC_ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.SRC_ACCOUNT_ID = src.SRC_ACCOUNT_ID
            AND tgt.DST_ACCOUNT_ID = src.DST_ACCOUNT_ID
            AND tgt.EDGE_TYPE      = src.EDGE_TYPE
         WHEN MATCHED THEN UPDATE SET
@@ -734,11 +754,13 @@ def _merge(session: Any, records: list[dict]) -> int:
             METADATA             = src.METADATA,
             GENERATED_AT         = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
+            ORG_ID,
             SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE,
             EDGE_WEIGHT, CONFIDENCE_PCT,
             EDGE_DISCOVERED_DATE, EDGE_LAST_SEEN_DATE,
             METADATA, GENERATED_AT
         ) VALUES (
+            src.ORG_ID,
             src.SRC_ACCOUNT_ID, src.DST_ACCOUNT_ID, src.EDGE_TYPE,
             src.EDGE_WEIGHT, src.CONFIDENCE_PCT,
             src.EDGE_DISCOVERED_DATE, src.EDGE_LAST_SEEN_DATE,

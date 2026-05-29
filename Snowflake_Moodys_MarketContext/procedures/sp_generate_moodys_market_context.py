@@ -78,10 +78,12 @@ COVERAGE_SQL = (
     "WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'"
 )
 
-# 16-column output contract (kept in sync with the table DDL by the L1 schema test).
-# 14 NOT NULL + 2 NULLable (OUTLOOK_LAST_CHANGED_DATE, ANNUAL_REVENUE_USD).
-# EMPLOYEE_COUNT is also nullable in the DDL; total NULLable = 3.
+# 17-column output contract (kept in sync with the table DDL by the L1 schema test).
+# v2.x multi-org-additive: ORG_ID first (NOT NULL DEFAULT 'JDO').
+# 15 NOT NULL + 3 NULLable (OUTLOOK_LAST_CHANGED_DATE, ANNUAL_REVENUE_USD,
+# EMPLOYEE_COUNT).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_DATE",
     "CREDIT_RATING", "RATING_OUTLOOK",
     "OUTLOOK_LAST_CHANGED_DATE",
@@ -435,6 +437,7 @@ def _rows_for(anchor: dict, profile_date: date) -> list[dict]:
     )
 
     return [{
+        "ORG_ID":                       anchor.get("ORG_ID", "JDO"),
         "ACCOUNT_ID":                   account_id,
         "PROFILE_DATE":                 day_start.date(),
         "CREDIT_RATING":                rating,
@@ -588,6 +591,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.MOODYS_MARKET_CONTEXT tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 TO_DATE(TO_TIMESTAMP_NTZ(PROFILE_DATE::NUMBER / 1000000000)) AS PROFILE_DATE,
                 CREDIT_RATING,
@@ -608,7 +612,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_DATE = src.PROFILE_DATE
         WHEN MATCHED THEN UPDATE SET
             CREDIT_RATING                = src.CREDIT_RATING,
@@ -626,7 +631,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             LAST_DATA_REFRESH_AT         = src.LAST_DATA_REFRESH_AT,
             GENERATED_AT                 = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_DATE, CREDIT_RATING, RATING_OUTLOOK,
+            ORG_ID, ACCOUNT_ID, PROFILE_DATE, CREDIT_RATING, RATING_OUTLOOK,
             OUTLOOK_LAST_CHANGED_DATE, MARKET_CAP_USD,
             DAILY_VOLATILITY_PCT, THIRTY_DAY_PRICE_CHANGE_PCT,
             FIFTY_TWO_WEEK_HIGH_USD, FIFTY_TWO_WEEK_LOW_USD,
@@ -634,7 +639,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             ANNUAL_REVENUE_USD, EMPLOYEE_COUNT,
             LAST_DATA_REFRESH_AT, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_DATE, src.CREDIT_RATING, src.RATING_OUTLOOK,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_DATE, src.CREDIT_RATING, src.RATING_OUTLOOK,
             src.OUTLOOK_LAST_CHANGED_DATE, src.MARKET_CAP_USD,
             src.DAILY_VOLATILITY_PCT, src.THIRTY_DAY_PRICE_CHANGE_PCT,
             src.FIFTY_TWO_WEEK_HIGH_USD, src.FIFTY_TWO_WEEK_LOW_USD,

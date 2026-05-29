@@ -160,6 +160,7 @@ def test_environmental_score_correlates_with_industry(all_anchors):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "MSCI_ESG_RATING", "INDUSTRY_CLASSIFICATION",
     "ESG_SCORE_OVERALL", "ENVIRONMENTAL_SCORE", "SOCIAL_SCORE", "GOVERNANCE_SCORE",
@@ -171,7 +172,7 @@ EXPECTED_KEYS = {
 
 
 def test_output_schema_matches_table(in_audience_anchors):
-    """Output dict keys EXACTLY match the 14 table columns."""
+    """Output dict keys EXACTLY match the 15 table columns (ORG_ID + 14 originals)."""
     if not in_audience_anchors:
         pytest.skip("empty audience")
     row = _row_for(in_audience_anchors[0], datetime(2026, 5, 1))

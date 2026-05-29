@@ -23,12 +23,17 @@ sys.modules["_cumulus_common_sample_anchors"] = _mod
 _spec.loader.exec_module(_mod)
 SAMPLE_ANCHORS = _mod.SAMPLE_ANCHORS
 
+# Multi-org migration (umbrella ROLLOUT.md Phase A): the shared fixture predates
+# the ORG_ID anchor column. Stamp 'JDO' locally so Plan 3's row factory and
+# schema tests see the same shape V_ACCOUNT_ANCHORS exposes in production.
+SAMPLE_ANCHORS = [{"ORG_ID": "JDO", **a} for a in SAMPLE_ANCHORS]
+
 import pytest  # noqa: E402
 
 
 @pytest.fixture
 def all_anchors():
-    """The full 100-anchor fixture (50 person + 50 business)."""
+    """The full 100-anchor fixture (50 person + 50 business), ORG_ID-stamped."""
     return SAMPLE_ANCHORS
 
 

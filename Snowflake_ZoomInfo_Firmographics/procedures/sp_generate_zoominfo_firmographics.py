@@ -62,8 +62,12 @@ COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_AN
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
 
-# 15-column output contract (kept in sync with table DDL by the L1 schema test).
-EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+# 16-column output contract (kept in sync with table DDL by the L1 schema test).
+# v1.x multi-org-additive: ORG_ID stamped from anchor (V_ACCOUNT_ANCHORS) and
+# is the leading PK component. Falls back to 'JDO' when anchor lacks ORG_ID
+# (backward-compatible with single-org call sites and pre-migration fixtures).
+ROW_KEYS: tuple[str, ...] = (
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "EMPLOYEE_BAND", "REVENUE_BAND",
     "INDUSTRY_NAICS_CODE", "INDUSTRY_SIC_CODE",
@@ -72,7 +76,8 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "WEBSITE_DOMAIN", "LINKEDIN_FOLLOWERS", "TECH_STACK_FLAGS",
     "LAST_DATA_REFRESH_DATE",
     "GENERATED_AT",
-})
+)
+EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset(ROW_KEYS)
 
 
 # -------------------------------------------------------------------
@@ -538,7 +543,13 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     # 8. Last data refresh — within last 30 days from month_start.
     last_refresh = _last_data_refresh(month_start, rng)
 
+    # Multi-org-additive (v1.x): stamp ORG_ID from the anchor row supplied by
+    # V_ACCOUNT_ANCHORS. Backward-compatible default 'JDO' lets pre-migration
+    # fixtures and single-org call sites work without changes.
+    org_id = anchor.get("ORG_ID") or "JDO"
+
     return {
+        "ORG_ID":                 org_id,
         "ACCOUNT_ID":             account_id,
         "PROFILE_MONTH":          month_start.date(),
         "EMPLOYEE_BAND":          employee_band,
@@ -591,6 +602,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID, PROFILE_MONTH,
                 EMPLOYEE_BAND, REVENUE_BAND,
                 INDUSTRY_NAICS_CODE, INDUSTRY_SIC_CODE,
@@ -601,7 +613,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM FINS.PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             EMPLOYEE_BAND          = src.EMPLOYEE_BAND,
@@ -618,6 +631,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             LAST_DATA_REFRESH_DATE = src.LAST_DATA_REFRESH_DATE,
             GENERATED_AT           = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
+            ORG_ID,
             ACCOUNT_ID, PROFILE_MONTH,
             EMPLOYEE_BAND, REVENUE_BAND,
             INDUSTRY_NAICS_CODE, INDUSTRY_SIC_CODE,
@@ -626,6 +640,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             WEBSITE_DOMAIN, LINKEDIN_FOLLOWERS, TECH_STACK_FLAGS,
             LAST_DATA_REFRESH_DATE, GENERATED_AT
         ) VALUES (
+            src.ORG_ID,
             src.ACCOUNT_ID, src.PROFILE_MONTH,
             src.EMPLOYEE_BAND, src.REVENUE_BAND,
             src.INDUSTRY_NAICS_CODE, src.INDUSTRY_SIC_CODE,

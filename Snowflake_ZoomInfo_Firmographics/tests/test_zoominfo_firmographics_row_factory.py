@@ -438,6 +438,7 @@ def test_4h_naics_sic_code_format(in_audience_anchors):
 # ---------- Property 5: Schema contract ----------
 
 EXPECTED_KEYS = {
+    "ORG_ID",
     "ACCOUNT_ID",
     "PROFILE_MONTH",
     "EMPLOYEE_BAND",
