@@ -17,12 +17,12 @@
 | Plan 5 — CoreLogic Property | **LIVE** (25,424 rows, DC mapping pending UI; first quarterly cadence) | `2026-05-28-cumulus-plan-5-corelogic-property.md` |
 | Plan 6 — Plaid Held-Away | **LIVE** (55,274 rows, DC mapping pending UI; first 1:N dataset) | `2026-05-28-cumulus-plan-6-plaid-held-away.md` |
 | Plan 7 — World-Check AML | **LIVE** (36,813 rows, DC mapping pending UI; first daily cadence + first all-accounts audience) | `2026-05-28-cumulus-plan-7-worldcheck-aml.md` |
-| Plan 8 — MGP Financial Plans | **LIVE** (3,920 rows, smallest Cumulus audience by 2.9×; first non-Boolean-enum NULL gating; DC mapping pending UI) | `2026-05-28-cumulus-plan-8-mgp-financial-plans.md` |
+| Plan 8 — MGP Financial Plans | **LIVE** (883,512 rows; rebroadcast: all-accounts × 24-month history; DC mapping pending UI) | `2026-05-28-cumulus-plan-8-mgp-financial-plans.md` |
 | Plan 9 — Synth Relationship Graph | **LIVE** (38,099 rows; first edge-scoped 1:N; cross-plan SOFT-deps shipped HOUSEHOLD/CORPORATE/BOARD edges as 0-emit; SELF/ADVISOR_BOOK/REFERRAL/BUSINESS_OWNER fired; DC mapping pending UI) | `2026-05-28-cumulus-plan-9-synth-relationship-graph.md` |
-| Plan 10 — BoardEx Exec Intel | **LIVE** (960 rows — smallest Cumulus audience by 4×; DC mapping pending UI) | `2026-05-28-cumulus-plan-10-boardex-exec-intel.md` |
+| Plan 10 — BoardEx Exec Intel | **LIVE** (883,512 rows; rebroadcast: all-accounts × 24-month history; PERSON anchors get personal-household governance defaults; DC mapping pending UI) | `2026-05-28-cumulus-plan-10-boardex-exec-intel.md` |
 | Plan 11 — ZoomInfo Firmographics | **LIVE** (11,389 rows; defensive-string handling holding 0 invariants violated; DC mapping pending UI) | `2026-05-28-cumulus-plan-11-zoominfo-firmographics.md` |
-| Plan 12 — Gong Call Sentiment | **LIVE** (4,880 rows; second weekly cadence; cascade-NULL invariants holding across 2,933 zero-call rows; DC mapping pending UI) | `2026-05-28-cumulus-plan-12-gong-call-sentiment.md` |
-| Plan 13 — Moody's Market Context | **LIVE** (2,004 rows; **FINAL plan**; instrument-scoped; second daily cadence; year-stable invariants holding; DC mapping pending UI) | `2026-05-28-cumulus-plan-13-moodys-market-context.md` |
+| Plan 12 — Gong Call Sentiment | **LIVE** (883,512 rows; rebroadcast: all-accounts × 24-week history; per-CLIENT_CATEGORY call-rate tiering with cascade-NULL dominant for Retail/Household; DC mapping pending UI) | `2026-05-28-cumulus-plan-12-gong-call-sentiment.md` |
+| Plan 13 — Moody's Market Context | **LIVE v2** (1,025,010 rows; re-scoped from instrument to per-BUSINESS account; 90-day daily history; ANNUAL_REVENUE-driven market cap, INDUSTRY-driven credit rating; DC mapping pending UI) | `2026-05-28-cumulus-plan-13-moodys-market-context.md` |
 
 **Why a template + manifest instead of 13 plan files:** the per-dataset variation is mechanical (audience predicate, table columns, salt), so a 700-line plan that's 95% identical for each of 13 datasets would be 9000 lines of copy-paste with drift risk. The template + per-dataset rowspec attachment captures the variation in ~50 lines per dataset instead.
 
