@@ -1,0 +1,20 @@
+[project]
+name = "cumulus-common"
+version = "0.1.0"
+description = "Shared helpers for the Cumulus Snowflake dataset pipelines."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "snowflake-snowpark-python>=1.20"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cumulus_common*"]

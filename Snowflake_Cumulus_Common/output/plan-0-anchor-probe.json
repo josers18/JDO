@@ -1,0 +1,710 @@
+[
+    {
+        "COLUMN_NAME": "AUM_Currency__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "BillingCity__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "BillingCountry__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "BillingPostalCode__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "BillingState__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "BillingStreet__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ChannelProgramLevelName__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ChannelProgramName__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "CreatedById__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Credit_Balance_Currency__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Credit_Limit_Currency__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Cust360_Contact_Picture_URL_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "DNB_Delinquency_Score_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "DNB_Failure_Score_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "DNB_PAYDEX_Score_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "DNB_Rating_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Earnings_Path__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Email_Verified_Bool__c",
+        "DATA_TYPE": "BOOLEAN"
+    },
+    {
+        "COLUMN_NAME": "Email_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Equifax_Credit_Risk_Score_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Equifax_Failure_Score_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Equifax_Payment_Index_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Experian_Intelliscore_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Experian_Risk_Band_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "External_ID_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_Age_pc__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "FinServ_AnnualIncome_pc__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "FinServ_BranchCode_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_BranchName_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_Category_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_ClientCategory_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_CommunicationPreferences_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_ContactPreference_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_Contact_Status_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_CountryOfBirth_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_CountryOfResidence_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_CreditScore_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "FinServ_CurrentEmployer_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_EmployedSince_pc__c",
+        "DATA_TYPE": "DATE"
+    },
+    {
+        "COLUMN_NAME": "FinServ_FinancialInterests_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_Gender_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_HomeOwnership_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_InvestmentExperience_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_InvestmentObjectives_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_KYCDate_c__c",
+        "DATA_TYPE": "DATE"
+    },
+    {
+        "COLUMN_NAME": "FinServ_KYCStatus_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_LanguagesSpoken_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_LengthOfRelationship_c__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "FinServ_MailingAddress_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_MaritalStatus_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_MarketingSegment_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_MotherMaidenName_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_Notes_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_NumberOfChildren_pc__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "FinServ_NumberOfDependents_pc__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "FinServ_Occupation_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_OtherAddress_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_PersonalInterests_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_PrimaryContact_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_PrimaryLanguage_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_RelationshipStartDate_c__c",
+        "DATA_TYPE": "DATE"
+    },
+    {
+        "COLUMN_NAME": "FinServ_RiskTolerance_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_ServiceModel_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_ShippingAddress_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_TaxBracket_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_TaxId_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FinServ_TimeHorizon_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "FirstName__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Fitch_Category_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Fitch_Rating_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Home_Phone_Verified_Bool__c",
+        "DATA_TYPE": "BOOLEAN"
+    },
+    {
+        "COLUMN_NAME": "IsBuyer__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "IsPersonAccount__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_BillContactAddressId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_FaxPhoneId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_Id__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_IndividualId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_Name__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_OwnerId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_ParentAccountId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_PartyId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KQ_SalesPhoneId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "KYC_Path__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "LastName__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Last_Interaction_Date__c",
+        "DATA_TYPE": "DATE"
+    },
+    {
+        "COLUMN_NAME": "Lifetime_Value_Currency__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Marketing_Opt_Out_Bool__c",
+        "DATA_TYPE": "BOOLEAN"
+    },
+    {
+        "COLUMN_NAME": "MiddleName__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "NAICS_Code_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Net_Worth_Currency__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "Next_Review_Date__c",
+        "DATA_TYPE": "DATE"
+    },
+    {
+        "COLUMN_NAME": "Notes_pc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonAssistantName__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonAssistantPhone__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonBirthdate__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "PersonContactId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonDepartment__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonDoNotCall__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonFirstCallDateTime__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "PersonFirstEmailDateTime__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "PersonGenderIdentity__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonGender__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonHasOptedOutOfEmail__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonHasOptedOutOfFax__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonHomePhone__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonLeadSource__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonMailingCity__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonMailingCountry__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonMailingPostalCode__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonMailingState__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonMailingStreet__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonMobilePhone__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonOtherCity__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonOtherCountry__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonOtherPhone__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonOtherPostalCode__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonOtherState__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonOtherStreet__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonPronouns__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "PersonTitle__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Photo_URL_Url__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Salutation__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ShippingCity__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ShippingCountry__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ShippingPostalCode__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ShippingState__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ShippingStreet__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "SicDesc__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Sic__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Site__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "TickerSymbol__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Tier_c__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Total_Revenue_Currency__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "UnifiedProfileId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "Wallet_Share_Percent__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "cdp_sys_record_currency__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AccountOwnershipType__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AccountRatingType__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AccountSegmentType__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AccountSource__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AccountTypeId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AccountType__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AccountWebsiteURL__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__AnnualRevenueAmount__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "ssot__BillContactAddressId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__ContactPointAddressId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__ContactPointEmailId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__ContactPointPhoneId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__CreatedDate__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "ssot__CreditRatingType__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__DataSourceId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__DataSourceObjectId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__Description__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__EffectiveDate__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "ssot__EmployeeCount__c",
+        "DATA_TYPE": "NUMBER"
+    },
+    {
+        "COLUMN_NAME": "ssot__EndDate__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "ssot__ExternalRecordId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__FaxPhoneId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__Id__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__IndividualId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__InternalOrganizationId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__IsActive__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__LastActivityDate__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "ssot__LastModifiedById__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__LastModifiedDate__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "ssot__Name__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__Number__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__OperatingHoursId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__OwnerId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__ParentAccountId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__PartyId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__PrimaryIndustry__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__RecordType__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__SalesPhoneId__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__SourceSystemIdentifier__c",
+        "DATA_TYPE": "TEXT"
+    },
+    {
+        "COLUMN_NAME": "ssot__SourceSystemModifiedDateTime__c",
+        "DATA_TYPE": "TIMESTAMP_LTZ"
+    },
+    {
+        "COLUMN_NAME": "ssot__isPartner__c",
+        "DATA_TYPE": "TEXT"
+    }
+]

@@ -1,0 +1,66 @@
+{
+  "name": "CumulusMoodysMarketContext",
+  "label": "Cumulus Moodys Market Context",
+  "datastreamType": "EXTERNAL",
+  "connectorInfo": {
+    "connectorType": "DataConnector",
+    "connectorDetails": { "name": "Jedi_Snowflake" }
+  },
+  "dataLakeObjectInfo": {
+    "dataspaceInfo": [{ "name": "default" }],
+    "category": "Profile",
+    "label": "Cumulus Moodys Market Context",
+    "name": "CumulusMoodysMarketContext__dll",
+    "dataLakeFieldInputRepresentations": [
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "TICKER",                       "name": "TICKER"},
+      {"dataType": "Date",     "isPrimaryKey": true,  "label": "PROFILE_DATE",                 "name": "PROFILE_DATE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "CREDIT_RATING",                "name": "CREDIT_RATING"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "RATING_OUTLOOK",               "name": "RATING_OUTLOOK"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "OUTLOOK_LAST_CHANGED_DATE",    "name": "OUTLOOK_LAST_CHANGED_DATE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "MARKET_CAP_USD",               "name": "MARKET_CAP_USD"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "DAILY_VOLATILITY_PCT",         "name": "DAILY_VOLATILITY_PCT"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "THIRTY_DAY_PRICE_CHANGE_PCT",  "name": "THIRTY_DAY_PRICE_CHANGE_PCT"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "FIFTY_TWO_WEEK_HIGH_PRICE",    "name": "FIFTY_TWO_WEEK_HIGH_PRICE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "FIFTY_TWO_WEEK_LOW_PRICE",     "name": "FIFTY_TWO_WEEK_LOW_PRICE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "RATING_AGENCY_FLAG_COUNT",     "name": "RATING_AGENCY_FLAG_COUNT"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "LIQUIDITY_TIER",               "name": "LIQUIDITY_TIER"},
+      {"dataType": "DateTime", "isPrimaryKey": false, "label": "LAST_DATA_REFRESH_AT",         "name": "LAST_DATA_REFRESH_AT"},
+      {"dataType": "DateTime", "isPrimaryKey": false, "label": "GENERATED_AT",                 "name": "GENERATED_AT"}
+    ]
+  },
+  "mappings": [
+    {"sourceFieldLabel": "TICKER",                       "targetFieldName": "TICKER"},
+    {"sourceFieldLabel": "PROFILE_DATE",                 "targetFieldName": "PROFILE_DATE"},
+    {"sourceFieldLabel": "CREDIT_RATING",                "targetFieldName": "CREDIT_RATING"},
+    {"sourceFieldLabel": "RATING_OUTLOOK",               "targetFieldName": "RATING_OUTLOOK"},
+    {"sourceFieldLabel": "OUTLOOK_LAST_CHANGED_DATE",    "targetFieldName": "OUTLOOK_LAST_CHANGED_DATE"},
+    {"sourceFieldLabel": "MARKET_CAP_USD",               "targetFieldName": "MARKET_CAP_USD"},
+    {"sourceFieldLabel": "DAILY_VOLATILITY_PCT",         "targetFieldName": "DAILY_VOLATILITY_PCT"},
+    {"sourceFieldLabel": "THIRTY_DAY_PRICE_CHANGE_PCT",  "targetFieldName": "THIRTY_DAY_PRICE_CHANGE_PCT"},
+    {"sourceFieldLabel": "FIFTY_TWO_WEEK_HIGH_PRICE",    "targetFieldName": "FIFTY_TWO_WEEK_HIGH_PRICE"},
+    {"sourceFieldLabel": "FIFTY_TWO_WEEK_LOW_PRICE",     "targetFieldName": "FIFTY_TWO_WEEK_LOW_PRICE"},
+    {"sourceFieldLabel": "RATING_AGENCY_FLAG_COUNT",     "targetFieldName": "RATING_AGENCY_FLAG_COUNT"},
+    {"sourceFieldLabel": "LIQUIDITY_TIER",               "targetFieldName": "LIQUIDITY_TIER"},
+    {"sourceFieldLabel": "LAST_DATA_REFRESH_AT",         "targetFieldName": "LAST_DATA_REFRESH_AT"},
+    {"sourceFieldLabel": "GENERATED_AT",                 "targetFieldName": "GENERATED_AT"}
+  ],
+  "refreshConfig": { "refreshMode": "TOTAL_REPLACE" },
+  "sourceFields": [
+    {"dataType": "Text",     "name": "TICKER"},
+    {"dataType": "Date",     "name": "PROFILE_DATE",                 "format": "MM/dd/yyyy"},
+    {"dataType": "Text",     "name": "CREDIT_RATING"},
+    {"dataType": "Text",     "name": "RATING_OUTLOOK"},
+    {"dataType": "Date",     "name": "OUTLOOK_LAST_CHANGED_DATE",    "format": "MM/dd/yyyy"},
+    {"dataType": "Number",   "name": "MARKET_CAP_USD"},
+    {"dataType": "Number",   "name": "DAILY_VOLATILITY_PCT"},
+    {"dataType": "Number",   "name": "THIRTY_DAY_PRICE_CHANGE_PCT"},
+    {"dataType": "Number",   "name": "FIFTY_TWO_WEEK_HIGH_PRICE"},
+    {"dataType": "Number",   "name": "FIFTY_TWO_WEEK_LOW_PRICE"},
+    {"dataType": "Number",   "name": "RATING_AGENCY_FLAG_COUNT"},
+    {"dataType": "Text",     "name": "LIQUIDITY_TIER"},
+    {"dataType": "DateTime", "name": "LAST_DATA_REFRESH_AT"},
+    {"dataType": "DateTime", "name": "GENERATED_AT"}
+  ],
+  "advancedAttributes": { "schema": "PUBLIC", "database": "FINS", "object": "MOODYS_MARKET_CONTEXT" },
+  "dataAccessMode": "Direct_Access"
+}

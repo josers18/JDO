@@ -1,0 +1,24 @@
+{
+  "name": "CumulusZoomInfoFirmographics",
+  "label": "Cumulus ZoomInfo Firmographics",
+  "description": "Synthetic ZoomInfo-style B2B firmographics per Cumulus BUSINESS account per month. Federated from FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS via Snowflake Direct_Access. ACCOUNT_ID FKs to ssot__Account__dlm. Defensive string handling per Plan 4 v1.5 findings.",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ssot__AccountId",        "label": "Account ID",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Salesforce Account ID. FK to ssot__Account__dlm.ssot__Id__c."},
+    {"name": "profileMonth",           "label": "Profile Month",           "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Date",     "description": "First-of-month for the run; PK."},
+    {"name": "employeeBand",           "label": "Employee Band",           "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "1-10 / 11-50 / 51-200 / 201-1000 / 1001-5000 / 5001-25000 / 25001+."},
+    {"name": "revenueBand",            "label": "Revenue Band",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "<$1M / $1M-$10M / $10M-$50M / $50M-$200M / $200M-$1B / $1B+."},
+    {"name": "industryNaicsCode",      "label": "Industry NAICS Code",     "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "6-digit NAICS code synthesized from INDUSTRY."},
+    {"name": "industrySicCode",        "label": "Industry SIC Code",       "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "4-digit SIC code synthesized from INDUSTRY."},
+    {"name": "foundedYear",            "label": "Founded Year",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Year founded; biased by INDUSTRY."},
+    {"name": "hqCountryCode",          "label": "HQ Country Code",         "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "2-char ISO. Literal projection 'US' (defensive per v1.5 finding #5)."},
+    {"name": "hqStateCode",            "label": "HQ State Code",           "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "2-char state. _state_from_zip helper fallback."},
+    {"name": "hqPostalCode",           "label": "HQ Postal Code",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "5-digit ZIP. Synth-fallback when raw empty (v1.5 finding #4)."},
+    {"name": "websiteDomain",          "label": "Website Domain",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Synthesized from ACCOUNT_NAME; NULL when name short/empty."},
+    {"name": "linkedinFollowers",      "label": "LinkedIn Followers",      "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Integer estimate; biased by EMPLOYEE_COUNT."},
+    {"name": "techStackFlags",         "label": "Tech Stack Flags",        "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Comma-separated tech indicators; NULL ~10%."},
+    {"name": "lastDataRefreshDate",    "label": "Last Data Refresh Date",  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Vendor's last update."},
+    {"name": "generatedAt",            "label": "Generated At",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC)."}
+  ]
+}

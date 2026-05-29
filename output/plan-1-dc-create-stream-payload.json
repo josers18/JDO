@@ -1,0 +1,78 @@
+{
+  "name": "CumulusClaritasDemographics",
+  "label": "Cumulus Claritas Demographics",
+  "datastreamType": "EXTERNAL",
+  "connectorInfo": {
+    "connectorType": "DataConnector",
+    "connectorDetails": {
+      "name": "Jedi_Snowflake"
+    }
+  },
+  "dataLakeObjectInfo": {
+    "dataspaceInfo": [
+      {
+        "name": "default"
+      }
+    ],
+    "category": "Profile",
+    "label": "Cumulus Claritas Demographics",
+    "name": "CumulusClaritasDemographics__dll",
+    "dataLakeFieldInputRepresentations": [
+      {"dataType": "Text",     "isPrimaryKey": true,  "label": "ACCOUNT_ID",                "name": "ACCOUNT_ID"},
+      {"dataType": "Date",     "isPrimaryKey": true,  "label": "PROFILE_MONTH",             "name": "PROFILE_MONTH"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "PRIZM_SEGMENT_CODE",        "name": "PRIZM_SEGMENT_CODE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "PRIZM_SEGMENT_NAME",        "name": "PRIZM_SEGMENT_NAME"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "PRIZM_LIFESTYLE_GROUP",     "name": "PRIZM_LIFESTYLE_GROUP"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "LIFE_STAGE",                "name": "LIFE_STAGE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "HOUSEHOLD_COMPOSITION",     "name": "HOUSEHOLD_COMPOSITION"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "ESTIMATED_NET_WORTH_BAND",  "name": "ESTIMATED_NET_WORTH_BAND"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "WEALTH_PROPENSITY_SCORE",   "name": "WEALTH_PROPENSITY_SCORE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "INVESTMENT_PROPENSITY_SCORE","name": "INVESTMENT_PROPENSITY_SCORE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "MORTGAGE_PROPENSITY_SCORE", "name": "MORTGAGE_PROPENSITY_SCORE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "URBANICITY",                "name": "URBANICITY"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "FINANCIAL_STRESS_INDICATOR","name": "FINANCIAL_STRESS_INDICATOR"},
+      {"dataType": "DateTime", "isPrimaryKey": false, "label": "GENERATED_AT",              "name": "GENERATED_AT"}
+    ]
+  },
+  "mappings": [
+    {"sourceFieldLabel": "ACCOUNT_ID",                 "targetFieldName": "ACCOUNT_ID"},
+    {"sourceFieldLabel": "PROFILE_MONTH",              "targetFieldName": "PROFILE_MONTH"},
+    {"sourceFieldLabel": "PRIZM_SEGMENT_CODE",         "targetFieldName": "PRIZM_SEGMENT_CODE"},
+    {"sourceFieldLabel": "PRIZM_SEGMENT_NAME",         "targetFieldName": "PRIZM_SEGMENT_NAME"},
+    {"sourceFieldLabel": "PRIZM_LIFESTYLE_GROUP",      "targetFieldName": "PRIZM_LIFESTYLE_GROUP"},
+    {"sourceFieldLabel": "LIFE_STAGE",                 "targetFieldName": "LIFE_STAGE"},
+    {"sourceFieldLabel": "HOUSEHOLD_COMPOSITION",      "targetFieldName": "HOUSEHOLD_COMPOSITION"},
+    {"sourceFieldLabel": "ESTIMATED_NET_WORTH_BAND",   "targetFieldName": "ESTIMATED_NET_WORTH_BAND"},
+    {"sourceFieldLabel": "WEALTH_PROPENSITY_SCORE",    "targetFieldName": "WEALTH_PROPENSITY_SCORE"},
+    {"sourceFieldLabel": "INVESTMENT_PROPENSITY_SCORE","targetFieldName": "INVESTMENT_PROPENSITY_SCORE"},
+    {"sourceFieldLabel": "MORTGAGE_PROPENSITY_SCORE",  "targetFieldName": "MORTGAGE_PROPENSITY_SCORE"},
+    {"sourceFieldLabel": "URBANICITY",                 "targetFieldName": "URBANICITY"},
+    {"sourceFieldLabel": "FINANCIAL_STRESS_INDICATOR", "targetFieldName": "FINANCIAL_STRESS_INDICATOR"},
+    {"sourceFieldLabel": "GENERATED_AT",               "targetFieldName": "GENERATED_AT"}
+  ],
+  "refreshConfig": {
+    "refreshMode": "TOTAL_REPLACE"
+  },
+  "sourceFields": [
+    {"dataType": "Text",     "name": "ACCOUNT_ID"},
+    {"dataType": "Date",     "name": "PROFILE_MONTH", "format": "MM/dd/yyyy"},
+    {"dataType": "Text",     "name": "PRIZM_SEGMENT_CODE"},
+    {"dataType": "Text",     "name": "PRIZM_SEGMENT_NAME"},
+    {"dataType": "Text",     "name": "PRIZM_LIFESTYLE_GROUP"},
+    {"dataType": "Text",     "name": "LIFE_STAGE"},
+    {"dataType": "Text",     "name": "HOUSEHOLD_COMPOSITION"},
+    {"dataType": "Text",     "name": "ESTIMATED_NET_WORTH_BAND"},
+    {"dataType": "Number",   "name": "WEALTH_PROPENSITY_SCORE"},
+    {"dataType": "Number",   "name": "INVESTMENT_PROPENSITY_SCORE"},
+    {"dataType": "Number",   "name": "MORTGAGE_PROPENSITY_SCORE"},
+    {"dataType": "Text",     "name": "URBANICITY"},
+    {"dataType": "Text",     "name": "FINANCIAL_STRESS_INDICATOR"},
+    {"dataType": "DateTime", "name": "GENERATED_AT"}
+  ],
+  "advancedAttributes": {
+    "schema": "PUBLIC",
+    "database": "FINS",
+    "object": "CLARITAS_DEMOGRAPHICS"
+  },
+  "dataAccessMode": "Direct_Access"
+}

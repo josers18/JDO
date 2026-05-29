@@ -144,6 +144,7 @@ CALL FINS.PUBLIC.SP_DAILY_JOB_REPORT();
 
 | Project | Description | Docs |
 |---------|-------------|------|
+| [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common/README.md) | Shared `V_ACCOUNT_ANCHORS` view, anchor fixture, and Python helpers for the 13 forthcoming Cumulus dataset pipelines (Plans 1–13). DC ingests each per-dataset table via the existing "Snowflake (Federate / Zero Copy)" connector. | [AGENTS.md](../Snowflake_Cumulus_Common/AGENTS.md) |
 | [Financial_Trades_Generation](../Financial_Trades_Generation/README.md) | Daily synthetic trade generation (Snowpark Python + SQL) | [AGENTS.md](../Financial_Trades_Generation/AGENTS.md) |
 | [Snowflake_CSAT_NPS](../Snowflake_CSAT_NPS/README.md) | Monthly CSAT/NPS score generation (pure SQL) | [AGENTS.md](../Snowflake_CSAT_NPS/AGENTS.md) |
 | [Customer_Hydration](../Customer_Hydration/README.md) | Upstream: seeds Salesforce CRM accounts that flow into Data Cloud | [AGENTS.md](../Customer_Hydration/AGENTS.md) |

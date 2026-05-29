@@ -1,0 +1,25 @@
+{
+  "name": "CumulusMoodysMarketContext",
+  "label": "Cumulus Moodys Market Context",
+  "description": "Synthetic Moodys-style commercial credit risk + market context per Cumulus BUSINESS account, daily snapshot. Federated from FINS.PUBLIC.MOODYS_MARKET_CONTEXT via Snowflake Direct_Access. ACCOUNT_ID FKs to ssot__Account__dlm. v2 re-scope from instrument-scoped (TICKER) to per-BUSINESS-account (ACCOUNT_ID).",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ssot__AccountId",            "label": "Account ID",                    "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Salesforce Account ID. FK to ssot__Account__dlm.ssot__Id__c."},
+    {"name": "profileDate",                "label": "Profile Date",                  "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Date",     "description": "Day of run; PK."},
+    {"name": "creditRating",               "label": "Credit Rating",                 "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Moodys 22-grade scale + NR. Year-stable per account."},
+    {"name": "ratingOutlook",              "label": "Rating Outlook",                "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Stable / Positive / Negative / Developing / Watch. Year-stable."},
+    {"name": "outlookLastChangedDate",     "label": "Outlook Last Changed Date",     "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Last outlook change; NULL when Stable for full year history (~80%)."},
+    {"name": "marketCapUsd",               "label": "Market Cap (USD)",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Market cap derived from ANNUAL_REVENUE * year-stable revenue multiple, with daily noise."},
+    {"name": "dailyVolatilityPct",         "label": "Daily Volatility %",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Daily volatility [0,25]. Daily-bucketed."},
+    {"name": "thirtyDayPriceChangePct",    "label": "30-Day Price Change %",         "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "30-day cumulative price change [-25,25]. Daily-bucketed."},
+    {"name": "fiftyTwoWeekHighUsd",        "label": "52-Week High USD",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Year-stable 52-week high; >= base * 0.5 sanity floor."},
+    {"name": "fiftyTwoWeekLowUsd",         "label": "52-Week Low USD",               "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Year-stable 52-week low; <= high invariant."},
+    {"name": "ratingAgencyFlagCount",      "label": "Rating Agency Flag Count",      "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Count of rating-watch events [0,5]. Year-stable."},
+    {"name": "liquidityTier",              "label": "Liquidity Tier",                "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Tier 1 / Tier 2 / Tier 3 / Illiquid. Year-stable; biased by market cap."},
+    {"name": "annualRevenueUsd",           "label": "Annual Revenue (USD)",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Pass-through from V_ACCOUNT_ANCHORS for demo storytelling."},
+    {"name": "employeeCount",              "label": "Employee Count",                "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Pass-through from V_ACCOUNT_ANCHORS."},
+    {"name": "lastDataRefreshAt",          "label": "Last Data Refresh At",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Daily timestamp."},
+    {"name": "generatedAt",                "label": "Generated At",                  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC). Day-bucketed."}
+  ]
+}

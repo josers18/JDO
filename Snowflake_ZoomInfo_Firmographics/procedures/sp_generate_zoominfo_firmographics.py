@@ -1,0 +1,639 @@
+"""ZoomInfo-style synthetic B2B firmographics generator.
+
+Snowpark Python stored procedure registered as
+FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS.
+
+The most boring plan structurally in the Cumulus rollout: same audience
+predicate as Plans 2 (MSCI) and 3 (DnB), same monthly cadence, same 1:1 row
+shape, same MERGE pattern. The only structural deviations from that canonical
+template are inherited from prior plans:
+
+  1. Defensive HQ-string projection per Plan 4 v1.5 findings — three
+     V_ACCOUNT_ANCHORS string columns require defensive projection because
+     the raw values violate the target VARCHAR widths or are empty:
+
+       a. COUNTRY_CODE — projected as the literal "US" regardless of source
+          value (4 rows carry "USA" / "United States" literals which would
+          fail VARCHAR(2) insert).
+       b. POSTAL_CODE — synth-fallbacks to a deterministic 5-digit ZIP from
+          seed bytes when raw is empty (10,798 empty-string rows in the
+          source view).
+       c. STATE_CODE — fallbacks via _state_from_zip when raw is blank or
+          shorter than 2 chars, guaranteeing len == 2.
+
+  2. Two NULLable VARCHAR columns gated by data-availability heuristics
+     (WEBSITE_DOMAIN, TECH_STACK_FLAGS) rather than enums. Distributionally
+     tested at L1 over a multi-month roll.
+
+Audience: ACCOUNT_TYPE_FLAG = 'BUSINESS'  (~12K rows; over-count vs CRM ~5K
+          is expected. The SP warns at >10K but does not fail; long-term fix
+          is upstream PersonBirthdate__c backfill.)
+Cadence:  MONTHLY
+Salt:     "zoominfo"  (per-row randomness, month-bucketed)
+Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-11-zoominfo-firmographics.md
+Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-11-zoominfo-firmographics-rowspec.md
+"""
+from __future__ import annotations
+
+import random
+import re
+import uuid
+from datetime import datetime, timedelta
+from typing import Any
+
+# Locally and in Snowflake, cumulus_common is shipped via pip install -e or
+# the IMPORTS clause on CREATE PROCEDURE.
+from cumulus_common import seed_for, assert_coverage
+
+
+# -------------------------------------------------------------------
+# Constants — these MUST stay in sync with the rowspec attachment
+# -------------------------------------------------------------------
+
+TABLE        = "FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
+TASK_NAME    = "TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS"
+DATASET_SALT = "zoominfo"
+
+# Audience predicate — single source of truth for AUDIENCE_SQL plus COVERAGE_SQL.
+_AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'BUSINESS'"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+
+# Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
+_BUSINESS_OVERCOUNT_THRESHOLD = 10000
+
+# 15-column output contract (kept in sync with table DDL by the L1 schema test).
+EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ACCOUNT_ID", "PROFILE_MONTH",
+    "EMPLOYEE_BAND", "REVENUE_BAND",
+    "INDUSTRY_NAICS_CODE", "INDUSTRY_SIC_CODE",
+    "FOUNDED_YEAR",
+    "HQ_COUNTRY_CODE", "HQ_STATE_CODE", "HQ_POSTAL_CODE",
+    "WEBSITE_DOMAIN", "LINKEDIN_FOLLOWERS", "TECH_STACK_FLAGS",
+    "LAST_DATA_REFRESH_DATE",
+    "GENERATED_AT",
+})
+
+
+# -------------------------------------------------------------------
+# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY
+# -------------------------------------------------------------------
+
+def main(session: Any) -> str:
+    """5-step canonical pattern plus BUSINESS-cardinality warning between 1 and 2.
+
+    1. Read audience.
+    1.5. Warn if accounts_processed > 10K — do NOT fail (Plan 2 precedent).
+    2. Build deterministic rows (tolerate up to 1% per-row failures).
+    3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_MONTH).
+    4. Coverage assertion vs V_ACCOUNT_ANCHORS.
+    5. Always log to TASK_EXECUTION_LOG (success or failure).
+    """
+    log_id = str(uuid.uuid4())
+    started = datetime.utcnow()
+    rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
+    warning_msg: str | None = None
+
+    try:
+        # 1. Read audience from the shared view (zero-copy fresh anchors).
+        audience = session.sql(AUDIENCE_SQL).collect()
+        accounts_processed = len(audience)
+
+        # 1.5. BUSINESS over-count warning (per spec §3 v1.2 finding #3).
+        if accounts_processed > _BUSINESS_OVERCOUNT_THRESHOLD:
+            warning_msg = (
+                f"BUSINESS audience over-count: {accounts_processed} accounts "
+                f"(expected ~5K — see spec §3 v1.2 finding #3). Continuing."
+            )
+
+        # 2. Build deterministic rows; tolerate up to 1% per-row failures.
+        records, errors = [], []
+        for row in audience:
+            try:
+                records.append(_row_for(_anchor_to_dict(row), started))
+            except Exception as exc:
+                errors.append((row.ACCOUNT_ID, str(exc)[:200]))
+        max_tolerated = max(10, len(audience) // 100)
+        if len(errors) > max_tolerated:
+            raise RuntimeError(
+                f"row factory failed on {len(errors)}/{len(audience)} accounts "
+                f"(tolerance {max_tolerated}); first: {errors[0] if errors else 'n/a'}"
+            )
+        if errors:
+            err = (
+                f"row factory failed on {len(errors)}/{len(audience)} accounts; "
+                f"first: {errors[0]}"
+            )
+
+        # Stack the warning onto err so both surface in TASK_EXECUTION_LOG.
+        if warning_msg:
+            err = f"{warning_msg} | {err}" if err else warning_msg
+
+        # 3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_MONTH).
+        rows_inserted = _merge(session, records)
+
+        # 4. Coverage assertion — canonical message format from spec §6.2.
+        actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
+        assert_coverage(session, COVERAGE_SQL, actual_sql)
+
+    except Exception as exc:
+        status = "FAILED"
+        err = str(exc)[:4000]
+        raise
+
+    finally:
+        # 5. Always log — success or failure.
+        duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+        session.sql(
+            """
+            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+                (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
+                 ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            params=[log_id, TASK_NAME, started, status,
+                    rows_inserted, accounts_processed, err, duration_ms],
+        ).collect()
+
+    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"
+
+
+def _anchor_to_dict(row: Any) -> dict:
+    """Snowpark Row → plain dict so _row_for can be tested with dict literals."""
+    if isinstance(row, dict):
+        return row
+    if hasattr(row, "asDict"):
+        return dict(row.asDict())
+    if hasattr(row, "_fields"):
+        return {f.name: row[f.name] for f in row._fields}
+    return dict(row)
+
+
+# -------------------------------------------------------------------
+# _anchor_in_audience — defense-in-depth for the audience predicate
+# -------------------------------------------------------------------
+
+def _anchor_in_audience(anchor: dict) -> bool:
+    """Translate the AUDIENCE_PREDICATE into a Python predicate.
+
+    True iff ACCOUNT_TYPE_FLAG == 'BUSINESS' AND ACCOUNT_ID is non-empty.
+    """
+    return (
+        anchor.get("ACCOUNT_TYPE_FLAG") == "BUSINESS"
+        and bool(anchor.get("ACCOUNT_ID"))
+    )
+
+
+# -------------------------------------------------------------------
+# Bias logic — rowspec translations
+# -------------------------------------------------------------------
+
+# EMPLOYEE_BAND — 7 buckets, deterministic from EMPLOYEE_COUNT.
+# Default to "1-10" when EMPLOYEE_COUNT is NULL or 0 (consistent with the
+# BUSINESS-misclassified Person-Account cohort).
+def _employee_band(emp_count: Any) -> str:
+    if not emp_count or emp_count < 11:
+        return "1-10"
+    if emp_count < 51:
+        return "11-50"
+    if emp_count < 201:
+        return "51-200"
+    if emp_count < 1001:
+        return "201-1000"
+    if emp_count < 5001:
+        return "1001-5000"
+    if emp_count < 25001:
+        return "5001-25000"
+    return "25001+"
+
+
+# REVENUE_BAND — 6 buckets, deterministic from ANNUAL_REVENUE.
+# Default to "<$1M" when ANNUAL_REVENUE is NULL or 0.
+def _revenue_band(revenue: Any) -> str:
+    if not revenue or revenue < 1_000_000:
+        return "<$1M"
+    if revenue < 10_000_000:
+        return "$1M-$10M"
+    if revenue < 50_000_000:
+        return "$10M-$50M"
+    if revenue < 200_000_000:
+        return "$50M-$200M"
+    if revenue < 1_000_000_000:
+        return "$200M-$1B"
+    return "$1B+"
+
+
+# INDUSTRY substring → (NAICS, SIC) mapping.
+# Order matters — first match wins. Substring match is case-insensitive.
+# Default fallback to "999999" / "9999" when no key matches.
+_INDUSTRY_CODES: list[tuple[str, str, str]] = [
+    ("Finance",         "522110", "6021"),
+    ("Banking",         "522110", "6021"),
+    ("Healthcare",      "622110", "8062"),
+    ("Tech",            "541511", "7372"),
+    ("Software",        "541511", "7372"),
+    ("Information Technology", "541511", "7372"),
+    ("Manufacturing",   "336411", "3711"),
+    ("Industrial",      "336411", "3711"),
+    ("Retail",          "452210", "5311"),
+    ("Consumer",        "452210", "5311"),
+    ("Food",            "722511", "5812"),
+    ("Beverage",        "722511", "5812"),
+    ("Real Estate",     "236220", "1542"),
+    ("Construction",    "236220", "1542"),
+    ("Energy",          "211120", "1311"),
+    ("Mining",          "211120", "1311"),
+    ("Oil",             "211120", "1311"),
+    ("Personal Services", "812990", "7299"),
+]
+_DEFAULT_NAICS = "999999"
+_DEFAULT_SIC   = "9999"
+
+
+def _industry_codes(industry: str) -> tuple[str, str]:
+    """Map INDUSTRY substring → (NAICS, SIC). Default to unclassified."""
+    if not industry:
+        return _DEFAULT_NAICS, _DEFAULT_SIC
+    low = industry.lower()
+    for key, naics, sic in _INDUSTRY_CODES:
+        if key.lower() in low:
+            return naics, sic
+    return _DEFAULT_NAICS, _DEFAULT_SIC
+
+
+# FOUNDED_YEAR industry-bias table: (substring, mean, low, high).
+# Bias parameters from rowspec; clamp upper bound to current_year at call time.
+_FOUNDED_BANDS: list[tuple[str, int, int, int]] = [
+    ("Tech",            2008, 1990, 2024),
+    ("Software",        2008, 1990, 2024),
+    ("Information Technology", 2008, 1990, 2024),
+    ("Healthcare",      1985, 1940, 2024),
+    ("Finance",         1965, 1900, 2024),
+    ("Banking",         1965, 1900, 2024),
+    ("Retail",          1995, 1950, 2024),
+    ("Consumer",        1995, 1950, 2024),
+    ("Food",            1995, 1950, 2024),
+    ("Beverage",        1995, 1950, 2024),
+    ("Manufacturing",   1970, 1900, 2024),
+    ("Industrial",      1970, 1900, 2024),
+    ("Energy",          1955, 1900, 2024),
+    ("Mining",          1955, 1900, 2024),
+    ("Oil",             1955, 1900, 2024),
+    ("Real Estate",     1990, 1940, 2024),
+    ("Construction",    1990, 1940, 2024),
+]
+_FOUNDED_DEFAULT = (2000, 1960, 2024)  # Personal Services or unclassified
+
+
+def _founded_year(industry: str, current_year: int, rng: random.Random) -> int:
+    """Year founded, biased by INDUSTRY. Clamped to [1900, current_year].
+
+    Uses a triangular distribution around the band mean for a soft skew.
+    """
+    mean, low, high = _FOUNDED_DEFAULT
+    if industry:
+        ind_low = industry.lower()
+        for key, m, lo, hi in _FOUNDED_BANDS:
+            if key.lower() in ind_low:
+                mean, low, high = m, lo, hi
+                break
+    # Hard cap upper bound at current_year — no future-founded businesses.
+    high = min(high, current_year)
+    # Triangular gives a soft bias toward the mean.
+    year = int(round(rng.triangular(low, high, mean)))
+    return max(1900, min(current_year, year))
+
+
+# -------------------------------------------------------------------
+# Defensive string handling (Plan 4 v1.5 findings)
+# -------------------------------------------------------------------
+
+# ZIP first-digit → 2-char US state code. 10-entry table covering US ZIP
+# regions (each first digit anchors a multi-state region; we pick a
+# representative state per region for the fallback).
+_ZIP_FIRST_DIGIT_TO_STATE: dict[str, str] = {
+    "0": "MA",  # New England (CT, MA, ME, NH, RI, VT, NJ slice, PR)
+    "1": "NY",  # NY, PA northeast
+    "2": "VA",  # DC, MD, VA, WV, NC, SC
+    "3": "FL",  # AL, FL, GA, MS, TN
+    "4": "OH",  # IN, KY, MI, OH
+    "5": "IL",  # IA, MN, MT, ND, SD, WI, IL slice
+    "6": "TX",  # IL slice, KS, MO, NE, TX north
+    "7": "TX",  # AR, LA, OK, TX south
+    "8": "CO",  # AZ, CO, ID, NM, NV, UT, WY
+    "9": "CA",  # AK, CA, HI, OR, WA
+}
+
+
+def _state_from_zip(postal: str) -> str:
+    """Derive a 2-char state code from the first digit of a 5-digit ZIP.
+
+    Always returns exactly 2 chars. Falls back to "US" only as a last-resort
+    placeholder when the postal cannot be inspected (defensive — should never
+    trigger in practice because _hq_postal_code guarantees a 5-digit string).
+    """
+    if not postal:
+        return "US"
+    first = postal[0]
+    return _ZIP_FIRST_DIGIT_TO_STATE.get(first, "US")
+
+
+def _hq_country_code(_anchor: dict) -> str:
+    """Literal projection of "US" — never trust the anchor's COUNTRY_CODE.
+
+    Rationale (v1.5 finding #5): 4 rows in V_ACCOUNT_ANCHORS carry "USA" or
+    "United States" literals which would truncate against VARCHAR(2). Demo
+    is US-only.
+    """
+    return "US"
+
+
+def _hq_postal_code(anchor: dict, seed_bytes: bytes) -> str:
+    """5-char ZIP — first 5 chars of POSTAL_CODE, or seed-derived synth.
+
+    Rationale (v1.5 finding #4): 10,798 V_ACCOUNT_ANCHORS rows carry
+    empty-string POSTAL_CODE. The synth-fallback is deterministic from
+    seed_bytes so re-runs are byte-identical, and yields a ZIP in the
+    valid US range [10000, 99999].
+    """
+    raw_zip = (anchor.get("POSTAL_CODE") or "").strip()
+    if not raw_zip:
+        # Synth-fallback: deterministic 5-digit ZIP from the seed.
+        synth = int.from_bytes(seed_bytes[:4], "big") % 90000 + 10000
+        return f"{synth:05d}"
+    # Take first 5 chars; left-pad with zeros for shorter ZIPs.
+    return raw_zip[:5].zfill(5)
+
+
+def _hq_state_code(anchor: dict, postal: str) -> str:
+    """2-char state — first 2 chars of STATE_CODE, or ZIP-derived fallback.
+
+    Rationale: V_ACCOUNT_ANCHORS' STATE_CODE has the same empty-string drift
+    as POSTAL_CODE. Always returns exactly 2 chars.
+    """
+    raw_state = (anchor.get("STATE_CODE") or "").strip()
+    if not raw_state or len(raw_state) < 2:
+        return _state_from_zip(postal)
+    return raw_state[:2].upper()
+
+
+# -------------------------------------------------------------------
+# WEBSITE_DOMAIN / LINKEDIN_FOLLOWERS / TECH_STACK_FLAGS / LAST_DATA_REFRESH_DATE
+# -------------------------------------------------------------------
+
+def _website_domain(account_name: Any) -> str | None:
+    """Lowercase, strip non-alnum, append ".com". NULL when slug too short.
+
+    Returns None when the normalized slug is shorter than 3 chars (account
+    name empty or all punctuation). Empirically <0.5% of rows.
+    """
+    if not account_name:
+        return None
+    slug = re.sub(r"[^a-z0-9]", "", str(account_name).lower())[:40]
+    if len(slug) < 3:
+        return None
+    return f"{slug}.com"
+
+
+# LINKEDIN_FOLLOWERS base ranges per EMPLOYEE_BAND (low, high).
+_LINKEDIN_BANDS: dict[str, tuple[int, int]] = {
+    "1-10":       (0,         1_500),
+    "11-50":      (200,       8_000),
+    "51-200":     (1_500,     35_000),
+    "201-1000":   (10_000,    150_000),
+    "1001-5000":  (50_000,    500_000),
+    "5001-25000": (200_000,   1_500_000),
+    "25001+":     (800_000,   5_000_000),
+}
+
+
+def _linkedin_industry_multiplier(industry: str) -> float:
+    """Tech / Finance x1.5; Personal Services / FnB x0.5; otherwise x1.0."""
+    if not industry:
+        return 1.0
+    low = industry.lower()
+    if "tech" in low or "software" in low or "information technology" in low:
+        return 1.5
+    if "finance" in low or "banking" in low:
+        return 1.5
+    if "personal services" in low or "food" in low or "beverage" in low:
+        return 0.5
+    return 1.0
+
+
+def _linkedin_followers(employee_band: str, industry: str, rng: random.Random) -> int:
+    """LinkedIn follower count, biased by EMPLOYEE_BAND with INDUSTRY multiplier.
+
+    Range clamped to [0, 5_000_000] per the rowspec invariant.
+    """
+    low, high = _LINKEDIN_BANDS.get(employee_band, (0, 1_500))
+    raw = rng.uniform(low, high) * _linkedin_industry_multiplier(industry)
+    return max(0, min(5_000_000, int(round(raw))))
+
+
+# TECH_STACK_FLAGS pool — 12 indicators.
+_TECH_POOL: list[str] = [
+    "Salesforce", "AWS", "Snowflake", "Workday", "Okta", "Marketo",
+    "Zoom", "Slack", "Google Workspace", "Microsoft 365", "Tableau", "HubSpot",
+]
+
+
+def _tech_stack_size_range(industry: str) -> tuple[int, int]:
+    """Per-industry tag-count range (inclusive). Returns (low, high).
+
+    Tech / Software / IT: 3-5 (heavy stack). Finance / Banking / Healthcare:
+    2-4. Retail / FnB / Construction / Personal Services: 0-2. Energy /
+    Mining / Manufacturing: 1-3. Default 0-3.
+    """
+    if not industry:
+        return (0, 3)
+    low = industry.lower()
+    if "tech" in low or "software" in low or "information technology" in low:
+        return (3, 5)
+    if "finance" in low or "banking" in low or "healthcare" in low:
+        return (2, 4)
+    if "retail" in low or "consumer" in low or "food" in low or "beverage" in low:
+        return (0, 2)
+    if "construction" in low or "real estate" in low or "personal services" in low:
+        return (0, 2)
+    if "energy" in low or "mining" in low or "oil" in low or "manufacturing" in low or "industrial" in low:
+        return (1, 3)
+    return (0, 3)
+
+
+def _tech_stack_flags(industry: str, rng: random.Random) -> str | None:
+    """Comma-separated 0-5 tag string, or None ~10% of the time.
+
+    Industry biases the sample size. Returns None when the rolled count is 0.
+    """
+    low, high = _tech_stack_size_range(industry)
+    count = rng.randint(low, high)
+    if count == 0:
+        return None
+    sample = rng.sample(_TECH_POOL, count)
+    return ",".join(sample)
+
+
+def _last_data_refresh(month_start: datetime, rng: random.Random):
+    """Vendor refresh date within the last 30 days from month_start.
+
+    Anchors on month_start.date() per Plan 8 lesson — never run_ts.date().
+    """
+    delta_days = rng.randint(0, 30)
+    return (month_start - timedelta(days=delta_days)).date()
+
+
+# -------------------------------------------------------------------
+# _row_for — translate the rowspec faithfully
+# -------------------------------------------------------------------
+
+def _row_for(anchor: dict, run_ts: datetime) -> dict:
+    """Pure function: BUSINESS anchor → ZoomInfo firmographics row. Deterministic.
+
+    Per rowspec: per-row seed = SHA-256(account_id || "zoominfo" || YYYY-MM).
+    Mid-month re-runs are byte-identical because month_start truncates the
+    day plus time component before seeding.
+    """
+    if not _anchor_in_audience(anchor):
+        raise ValueError(
+            f"anchor {anchor.get('ACCOUNT_ID')} fails audience predicate "
+            f"({_AUDIENCE_PREDICATE})"
+        )
+
+    account_id   = anchor["ACCOUNT_ID"]
+    account_name = anchor.get("ACCOUNT_NAME") or ""
+    industry     = (anchor.get("INDUSTRY") or "").strip()
+    revenue      = float(anchor.get("ANNUAL_REVENUE") or 0)
+    employees    = int(anchor.get("EMPLOYEE_COUNT") or 0)
+
+    # Month-bucket the seed input so mid-month re-runs are byte-identical.
+    month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    seed = seed_for(account_id, DATASET_SALT, month_start)
+    rng  = random.Random(seed)
+
+    # 1. Bands — deterministic from anchors (no rng noise tolerated).
+    employee_band = _employee_band(employees)
+    revenue_band  = _revenue_band(revenue)
+
+    # 2. Industry codes — deterministic from INDUSTRY.
+    naics, sic = _industry_codes(industry)
+
+    # 3. Founded year — industry-biased, capped at run_ts.year.
+    founded_year = _founded_year(industry, run_ts.year, rng)
+
+    # 4. HQ geography — defensive (v1.5 findings #4 plus #5).
+    hq_country = _hq_country_code(anchor)
+    hq_postal  = _hq_postal_code(anchor, seed)
+    hq_state   = _hq_state_code(anchor, hq_postal)
+
+    # 5. Website domain — NULL when normalized slug too short.
+    website = _website_domain(account_name)
+
+    # 6. LinkedIn followers — band-biased with industry multiplier.
+    followers = _linkedin_followers(employee_band, industry, rng)
+
+    # 7. Tech-stack flags — comma-separated 0-5 tags or NULL.
+    tech_stack = _tech_stack_flags(industry, rng)
+
+    # 8. Last data refresh — within last 30 days from month_start.
+    last_refresh = _last_data_refresh(month_start, rng)
+
+    return {
+        "ACCOUNT_ID":             account_id,
+        "PROFILE_MONTH":          month_start.date(),
+        "EMPLOYEE_BAND":          employee_band,
+        "REVENUE_BAND":           revenue_band,
+        "INDUSTRY_NAICS_CODE":    naics,
+        "INDUSTRY_SIC_CODE":      sic,
+        "FOUNDED_YEAR":           founded_year,
+        "HQ_COUNTRY_CODE":        hq_country,
+        "HQ_STATE_CODE":          hq_state,
+        "HQ_POSTAL_CODE":         hq_postal,
+        "WEBSITE_DOMAIN":         website,
+        "LINKEDIN_FOLLOWERS":     followers,
+        "TECH_STACK_FLAGS":       tech_stack,
+        "LAST_DATA_REFRESH_DATE": last_refresh,
+        # Bucket GENERATED_AT to month-start so same-month re-runs produce
+        # byte-identical rows. Wall-clock execution time is captured in
+        # TASK_EXECUTION_LOG separately.
+        "GENERATED_AT":           datetime(run_ts.year, run_ts.month, 1),
+    }
+
+
+# -------------------------------------------------------------------
+# _merge — idempotent MERGE on PK with v1.4 datetime cast
+# -------------------------------------------------------------------
+
+def _merge(session: Any, records: list[dict]) -> int:
+    """MERGE records into TABLE. Returns rows MERGED.
+
+    v1.4: write_pandas auto_create_table=True mis-types datetime64[ns] as
+    NUMBER(38,0) (nanoseconds-since-epoch) — cast back to TIMESTAMP_NTZ in
+    the source SELECT so the target TIMESTAMP_NTZ(9) column is satisfied.
+
+    The two NULLable VARCHAR columns (WEBSITE_DOMAIN, TECH_STACK_FLAGS) pass
+    None values through write_pandas → MERGE without special-casing.
+    """
+    if not records:
+        return 0
+
+    import pandas as pd
+    df = pd.DataFrame(records)
+    staging = "ZOOMINFO_FIRMOGRAPHICS_STAGING"
+
+    session.write_pandas(
+        df, staging,
+        auto_create_table=True, overwrite=True,
+        database="FINS", schema="PUBLIC",
+    )
+
+    merge_sql = f"""
+        MERGE INTO FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
+        USING (
+            SELECT
+                ACCOUNT_ID, PROFILE_MONTH,
+                EMPLOYEE_BAND, REVENUE_BAND,
+                INDUSTRY_NAICS_CODE, INDUSTRY_SIC_CODE,
+                FOUNDED_YEAR,
+                HQ_COUNTRY_CODE, HQ_STATE_CODE, HQ_POSTAL_CODE,
+                WEBSITE_DOMAIN, LINKEDIN_FOLLOWERS, TECH_STACK_FLAGS,
+                LAST_DATA_REFRESH_DATE,
+                TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
+            FROM FINS.PUBLIC.{staging}
+        ) src
+        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+           AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
+        WHEN MATCHED THEN UPDATE SET
+            EMPLOYEE_BAND          = src.EMPLOYEE_BAND,
+            REVENUE_BAND           = src.REVENUE_BAND,
+            INDUSTRY_NAICS_CODE    = src.INDUSTRY_NAICS_CODE,
+            INDUSTRY_SIC_CODE      = src.INDUSTRY_SIC_CODE,
+            FOUNDED_YEAR           = src.FOUNDED_YEAR,
+            HQ_COUNTRY_CODE        = src.HQ_COUNTRY_CODE,
+            HQ_STATE_CODE          = src.HQ_STATE_CODE,
+            HQ_POSTAL_CODE         = src.HQ_POSTAL_CODE,
+            WEBSITE_DOMAIN         = src.WEBSITE_DOMAIN,
+            LINKEDIN_FOLLOWERS     = src.LINKEDIN_FOLLOWERS,
+            TECH_STACK_FLAGS       = src.TECH_STACK_FLAGS,
+            LAST_DATA_REFRESH_DATE = src.LAST_DATA_REFRESH_DATE,
+            GENERATED_AT           = src.GENERATED_AT
+        WHEN NOT MATCHED THEN INSERT (
+            ACCOUNT_ID, PROFILE_MONTH,
+            EMPLOYEE_BAND, REVENUE_BAND,
+            INDUSTRY_NAICS_CODE, INDUSTRY_SIC_CODE,
+            FOUNDED_YEAR,
+            HQ_COUNTRY_CODE, HQ_STATE_CODE, HQ_POSTAL_CODE,
+            WEBSITE_DOMAIN, LINKEDIN_FOLLOWERS, TECH_STACK_FLAGS,
+            LAST_DATA_REFRESH_DATE, GENERATED_AT
+        ) VALUES (
+            src.ACCOUNT_ID, src.PROFILE_MONTH,
+            src.EMPLOYEE_BAND, src.REVENUE_BAND,
+            src.INDUSTRY_NAICS_CODE, src.INDUSTRY_SIC_CODE,
+            src.FOUNDED_YEAR,
+            src.HQ_COUNTRY_CODE, src.HQ_STATE_CODE, src.HQ_POSTAL_CODE,
+            src.WEBSITE_DOMAIN, src.LINKEDIN_FOLLOWERS, src.TECH_STACK_FLAGS,
+            src.LAST_DATA_REFRESH_DATE, src.GENERATED_AT
+        )
+    """
+    rows = session.sql(merge_sql).collect()
+    return int(rows[0][0]) if rows else len(records)

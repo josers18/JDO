@@ -1,0 +1,23 @@
+[project]
+name = "cumulus-moodys-market-context"
+version = "0.1.0"
+description = "Moody's Investors Service / Moody's Analytics-style synthetic credit-rating + market-context dataset (instrument-scoped, daily) for Cumulus."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "snowflake-snowpark-python>=1.20",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["procedures", "."]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []

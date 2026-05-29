@@ -1,0 +1,513 @@
+"""Plaid-style synthetic held-away financial accounts generator.
+
+Snowpark Python stored procedure registered as
+FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY. **First 1:N dataset** in the Cumulus
+rollout — `_rows_for(anchor, run_ts) -> list[dict]` returns 1-5 rows per
+anchor (versus Plans 1-5's `_row_for(...) -> dict`).
+
+Audience: CLIENT_CATEGORY IN ('Retail', 'Wealth Management')
+Cadence:  MONTHLY (first-of-month at 07:00 UTC)
+Salt:     "plaid" (month-bucketed)
+Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-6-plaid-held-away.md
+Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-6-plaid-held-away-rowspec.md
+"""
+from __future__ import annotations
+
+import hashlib
+import random
+import uuid
+from datetime import date, datetime, timedelta
+from typing import Any
+
+# Locally + in Snowflake, cumulus_common is shipped via pip install -e or
+# the IMPORTS clause on CREATE PROCEDURE.
+from cumulus_common import seed_for, assert_coverage
+
+
+# -------------------------------------------------------------------
+# Constants — these MUST stay in sync with the rowspec attachment
+# -------------------------------------------------------------------
+
+TABLE        = "FINS.PUBLIC.PLAID_HELD_AWAY"
+TASK_NAME    = "TASK_MONTHLY_PLAID_HELD_AWAY"
+DATASET_SALT = "plaid"
+
+# Audience predicate — repeated in 2 places (AUDIENCE_SQL + COVERAGE_SQL).
+# Both strings must match exactly to keep the coverage assertion meaningful.
+_AUDIENCE_PREDICATE = "CLIENT_CATEGORY IN ('Retail', 'Wealth Management')"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+
+# 14-column output contract (kept in sync with table DDL by the L1 schema test).
+EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ACCOUNT_ID", "HELD_AWAY_ACCOUNT_ID", "PROFILE_MONTH",
+    "INSTITUTION_NAME", "INSTITUTION_TYPE", "ACCOUNT_TYPE",
+    "BALANCE_USD", "LAST_LINKED_DATE", "IS_ACTIVE",
+    "LAST_TRANSACTION_DATE", "MONTHLY_NET_FLOW_USD",
+    "INVESTMENT_RISK_TIER", "INTEREST_RATE_PCT", "GENERATED_AT",
+})
+
+# 20-institution pool — recognisable names mapped to types. NOT license-grade
+# Plaid data; mirrors the rowspec attachment.
+_INSTITUTIONS = [
+    ("Vanguard", "Brokerage"), ("Fidelity", "Brokerage"), ("Charles Schwab", "Brokerage"),
+    ("E*TRADE", "Brokerage"), ("Robinhood", "Brokerage"),
+    ("Chase", "Bank"), ("Wells Fargo", "Bank"), ("Bank of America", "Bank"),
+    ("Citi", "Bank"), ("US Bank", "Bank"), ("Capital One", "Bank"),
+    ("PNC", "Bank"), ("Ally", "Bank"),
+    ("Navy Federal", "Credit Union"), ("PenFed", "Credit Union"),
+    ("State Employees CU", "Credit Union"),
+    ("Betterment", "Robo-Advisor"), ("Wealthfront", "Robo-Advisor"),
+    ("Coinbase", "Crypto Exchange"), ("Kraken", "Crypto Exchange"),
+]
+
+_INVESTMENT_TYPES = {"Brokerage", "IRA", "401k", "HSA"}
+_LOAN_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
+
+
+# -------------------------------------------------------------------
+# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_PLAID_HELD_AWAY
+# -------------------------------------------------------------------
+
+def main(session: Any) -> str:
+    """The 5-step canonical pattern, adapted for 1:N output:
+    read -> build (extend) -> MERGE -> two-part assert -> log."""
+    log_id = str(uuid.uuid4())
+    started = datetime.utcnow()
+    rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
+
+    try:
+        # 1. Read audience from the shared view (zero-copy fresh anchors).
+        audience = session.sql(AUDIENCE_SQL).collect()
+        accounts_processed = len(audience)  # NOT len(records); customer count.
+
+        # 2. Build deterministic rows; tolerate up to 1% per-anchor failures.
+        records, errors = [], []
+        for row in audience:
+            anchor_dict = _anchor_to_dict(row)
+            try:
+                # Flatten 1:N — each anchor produces 1-5 rows.
+                records.extend(_rows_for(anchor_dict, started))
+            except Exception as exc:
+                errors.append((row.ACCOUNT_ID, str(exc)[:200]))
+        max_tolerated = max(10, len(audience) // 100)
+        if len(errors) > max_tolerated:
+            raise RuntimeError(
+                f"row factory failed on {len(errors)}/{len(audience)} accounts "
+                f"(tolerance {max_tolerated}); first: {errors[0] if errors else 'n/a'}"
+            )
+        if errors:
+            err = (
+                f"row factory failed on {len(errors)}/{len(audience)} accounts; "
+                f"first: {errors[0]}"
+            )
+
+        # 3. Idempotent MERGE on composite PK
+        # (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH).
+        rows_inserted = _merge(session, records)
+
+        # 4. Two-part coverage assertion. Plans 1-5's coverage is "rows = audience".
+        # Plan 6 is (a) every anchor must have >=1 row AND (b) total rows in band.
+        actual_distinct_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
+        assert_coverage(session, COVERAGE_SQL, actual_distinct_sql)
+
+        audience_size = accounts_processed
+        total_rows = session.sql(f"SELECT COUNT(*) FROM {TABLE}").collect()[0][0]
+        if not (audience_size <= total_rows <= 5 * audience_size):
+            raise RuntimeError(
+                f"row count {total_rows} outside band "
+                f"[{audience_size}, {5 * audience_size}]"
+            )
+
+    except Exception as exc:
+        status = "FAILED"
+        err = str(exc)[:4000]
+        raise
+
+    finally:
+        # 5. Always log — success or failure.
+        duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+        session.sql(
+            """
+            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+                (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
+                 ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            params=[log_id, TASK_NAME, started, status,
+                    rows_inserted, accounts_processed, err, duration_ms],
+        ).collect()
+
+    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"
+
+
+def _anchor_to_dict(row: Any) -> dict:
+    """Snowpark Row -> plain dict so _rows_for can be tested with dict literals."""
+    if isinstance(row, dict):
+        return row
+    if hasattr(row, "asDict"):
+        return dict(row.asDict())
+    if hasattr(row, "_fields"):
+        return {f.name: row[f.name] for f in row._fields}
+    return dict(row)
+
+
+# -------------------------------------------------------------------
+# _anchor_in_audience — defense-in-depth for the audience predicate
+# -------------------------------------------------------------------
+
+def _anchor_in_audience(anchor: dict) -> bool:
+    """Translate the AUDIENCE_PREDICATE into a Python predicate.
+
+    Retail / Wealth Management anchors are in-audience.
+    Household / Small Business / Commercial Banking / null are out.
+    """
+    return anchor.get("CLIENT_CATEGORY") in ("Retail", "Wealth Management")
+
+
+# -------------------------------------------------------------------
+# _rows_for — the substantive 1:N synthesis logic (per rowspec)
+# -------------------------------------------------------------------
+
+def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
+    """Pure function: anchor -> sorted list of 1-5 held-away rows. Deterministic.
+
+    Two seed levels:
+      - Parent seed `seed_for(account_id, "plaid", run_ts)` drives `_row_count`.
+      - Per-slot seed `seed_for(f"{account_id}_slot{i}", "plaid", run_ts)`
+        drives the 13 other fields per row — independent stream per slot.
+
+    HELD_AWAY_ACCOUNT_ID = sha256(f"{account_id}_slot{i}_plaid")[:16] hex —
+    NO run_ts in the hash, so the value is constant across all months for the
+    same (anchor, slot) pair (identity-stable, not month-bucketed).
+
+    Rows are sorted by HELD_AWAY_ACCOUNT_ID ascending before return so the
+    list ordering is deterministic across re-runs with identical inputs.
+    """
+    if not _anchor_in_audience(anchor):
+        raise ValueError(
+            f"anchor {anchor.get('ACCOUNT_ID')} fails audience predicate "
+            f"({_AUDIENCE_PREDICATE}); CLIENT_CATEGORY="
+            f"{anchor.get('CLIENT_CATEGORY')!r}"
+        )
+
+    account_id = anchor["ACCOUNT_ID"]
+    income     = float(anchor.get("ANNUAL_INCOME") or 0)
+    birthdate  = anchor.get("BIRTHDATE")
+    client_cat = anchor.get("CLIENT_CATEGORY") or ""
+
+    # Parent-level seed (drives row_count, doesn't change per slot).
+    parent_seed = seed_for(account_id, DATASET_SALT, run_ts)
+    parent_rng = random.Random(parent_seed)
+
+    age = _age_from_birthdate(birthdate, run_ts.date())
+    n = _row_count(income, age, client_cat, parent_rng)
+
+    month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    rows: list[dict] = []
+    for slot in range(n):
+        # Per-slot seed — independent stream per slot.
+        slot_seed = seed_for(f"{account_id}_slot{slot}", DATASET_SALT, run_ts)
+        slot_rng = random.Random(slot_seed)
+
+        # Identity-stable hash — NO run_ts in the key.
+        held_away_id = hashlib.sha256(
+            f"{account_id}_slot{slot}_plaid".encode()
+        ).hexdigest()[:16]
+
+        institution_name, institution_type = slot_rng.choice(_INSTITUTIONS)
+        account_type = _account_type(institution_type, age, slot_rng)
+        balance      = _balance(account_type, income, age, client_cat, slot_rng)
+        # Pass month_start (not raw run_ts) to date-arithmetic helpers so
+        # mid-month re-runs produce byte-identical rows. The seed is
+        # month-bucketed but the arithmetic on run_ts.date() is not.
+        last_linked  = _last_linked_date(month_start, slot_rng)
+        is_active    = _is_active(slot_rng)
+        last_txn     = _last_txn_date(is_active, month_start, slot_rng)
+        monthly_flow = _monthly_net_flow(is_active, account_type, balance, slot_rng)
+        risk_tier    = _investment_risk_tier(account_type, age, slot_rng)
+        rate         = _interest_rate(account_type, slot_rng)
+
+        rows.append({
+            "ACCOUNT_ID":            account_id,
+            "HELD_AWAY_ACCOUNT_ID":  held_away_id,
+            "PROFILE_MONTH":         month_start.date(),
+            "INSTITUTION_NAME":      institution_name,
+            "INSTITUTION_TYPE":      institution_type,
+            "ACCOUNT_TYPE":          account_type,
+            "BALANCE_USD":           balance,
+            "LAST_LINKED_DATE":      last_linked,
+            "IS_ACTIVE":             is_active,
+            "LAST_TRANSACTION_DATE": last_txn,
+            "MONTHLY_NET_FLOW_USD":  monthly_flow,
+            "INVESTMENT_RISK_TIER":  risk_tier,
+            "INTEREST_RATE_PCT":     rate,
+            "GENERATED_AT":          month_start,
+        })
+
+    # Deterministic ordering: sort by HELD_AWAY_ACCOUNT_ID before MERGE.
+    rows.sort(key=lambda r: r["HELD_AWAY_ACCOUNT_ID"])
+    return rows
+
+
+# -------------------------------------------------------------------
+# Bias-logic helpers — translate the rowspec faithfully
+# -------------------------------------------------------------------
+
+def _age_from_birthdate(birthdate: Any, today: date) -> int:
+    """Tolerate ISO string, datetime, date, or None inputs."""
+    if birthdate is None:
+        return 40  # safe default; should not happen for Retail/Wealth audience
+    if isinstance(birthdate, str):
+        bd = datetime.fromisoformat(birthdate.split("T")[0]).date()
+    elif isinstance(birthdate, datetime):
+        bd = birthdate.date()
+    elif isinstance(birthdate, date):
+        bd = birthdate
+    else:
+        return 40
+    return (today - bd).days // 365
+
+
+def _row_count(income: float, age: int, client_cat: str,
+               rng: random.Random) -> int:
+    """1-5 held-away accounts, biased by wealth indicators."""
+    base_weights = [40, 30, 18, 8, 4]  # 1, 2, 3, 4, 5 -> mean ~2.06
+    if client_cat == "Wealth Management":
+        # Wealth clients have more linked accounts (multiple brokerages, IRAs).
+        base_weights = [10, 25, 30, 22, 13]
+    elif income >= 200_000:
+        base_weights = [20, 30, 25, 15, 10]
+    elif income < 40_000:
+        # Lower-income tend to have fewer linked accounts.
+        base_weights = [55, 30, 10, 4, 1]
+    return rng.choices([1, 2, 3, 4, 5], weights=base_weights)[0]
+
+
+def _account_type(institution_type: str, age: int,
+                  rng: random.Random) -> str:
+    """ACCOUNT_TYPE conditional on INSTITUTION_TYPE."""
+    if institution_type == "Brokerage":
+        if age >= 50:
+            pool = ["Brokerage", "IRA", "401k"]
+            weights = [0.45, 0.35, 0.20]
+        else:
+            pool = ["Brokerage", "IRA", "401k", "HSA"]
+            weights = [0.55, 0.20, 0.20, 0.05]
+    elif institution_type == "Bank":
+        pool = ["Checking", "Savings", "Credit Card", "Mortgage", "Auto Loan"]
+        weights = [0.30, 0.25, 0.20, 0.15, 0.10]
+    elif institution_type == "Credit Union":
+        pool = ["Checking", "Savings", "Credit Card", "Auto Loan"]
+        weights = [0.35, 0.30, 0.20, 0.15]
+    elif institution_type == "Robo-Advisor":
+        pool = ["Brokerage", "IRA"]
+        weights = [0.65, 0.35]
+    else:  # Crypto Exchange
+        return "Crypto Wallet"
+    return rng.choices(pool, weights=weights)[0]
+
+
+def _balance(account_type: str, income: float, age: int,
+             client_cat: str, rng: random.Random) -> float:
+    """Balance ranges differ wildly by account_type. Loans return negative."""
+    is_wealth = client_cat == "Wealth Management"
+    if income >= 250_000:
+        income_mult = 3.0
+    elif income >= 100_000:
+        income_mult = 1.5
+    elif income < 40_000:
+        income_mult = 0.5
+    else:
+        income_mult = 1.0
+
+    if account_type == "Checking":
+        base = rng.uniform(500, 25_000)
+    elif account_type == "Savings":
+        base = rng.uniform(1_000, 80_000)
+    elif account_type == "Brokerage":
+        base = rng.uniform(5_000, 800_000) * (2.0 if is_wealth else 1.0)
+    elif account_type == "IRA":
+        # IRA accumulates with age.
+        age_mult = max(0.3, min(3.0, (age - 25) / 15))
+        base = rng.uniform(8_000, 350_000) * age_mult
+    elif account_type == "401k":
+        age_mult = max(0.2, min(4.0, (age - 22) / 12))
+        base = rng.uniform(5_000, 600_000) * age_mult
+    elif account_type == "HSA":
+        base = rng.uniform(500, 12_000)
+    elif account_type == "Credit Card":
+        # Credit-card balance is debt — negative.
+        return -round(rng.uniform(0, 18_000), 2)
+    elif account_type == "Mortgage":
+        return -round(rng.uniform(50_000, 1_200_000) * income_mult, 2)
+    elif account_type == "Auto Loan":
+        return -round(rng.uniform(3_000, 65_000), 2)
+    else:  # Crypto Wallet — long tail, mostly small balances.
+        base = rng.choices(
+            [rng.uniform(50, 2_500), rng.uniform(2_500, 30_000),
+             rng.uniform(30_000, 500_000)],
+            weights=[0.65, 0.27, 0.08],
+        )[0]
+    return round(min(10_000_000, base * income_mult), 2)
+
+
+def _last_linked_date(run_ts: datetime, rng: random.Random) -> date:
+    """Connection age 1-48 months ago, mode ~12 months."""
+    months_ago = rng.choices(
+        range(1, 49),
+        weights=[max(1, 50 - abs(m - 12)) for m in range(1, 49)],
+    )[0]
+    return run_ts.date().replace(day=1) - timedelta(days=months_ago * 30)
+
+
+def _is_active(rng: random.Random) -> bool:
+    """~92% healthy connections."""
+    return rng.random() >= 0.08
+
+
+def _last_txn_date(is_active: bool, run_ts: datetime,
+                   rng: random.Random) -> date | None:
+    if not is_active:
+        return None
+    days_ago = rng.choices(
+        [0, 1, 2, 3, 7, 14, 30],
+        weights=[40, 25, 15, 8, 6, 4, 2],
+    )[0]
+    return run_ts.date() - timedelta(days=days_ago)
+
+
+def _monthly_net_flow(is_active: bool, account_type: str, balance: float,
+                      rng: random.Random) -> float | None:
+    if not is_active:
+        return None
+    if account_type in ("Mortgage", "Auto Loan"):
+        # Loans: monthly principal+interest payment outflow (4-7% of balance/12).
+        return -round(abs(balance) * rng.uniform(0.04, 0.07) / 12, 2)
+    if account_type == "Credit Card":
+        return round(rng.uniform(-1500, 800), 2)  # mix of charges + payoffs
+    if account_type in ("Checking", "Savings"):
+        return round(rng.uniform(-3000, 5000), 2)
+    if account_type in ("Brokerage", "IRA", "401k"):
+        return round(rng.uniform(-500, 2500), 2)  # contributions skew positive
+    return round(rng.uniform(-200, 600), 2)  # HSA, Crypto
+
+
+def _investment_risk_tier(account_type: str, age: int,
+                          rng: random.Random) -> str | None:
+    if account_type not in _INVESTMENT_TYPES:
+        return None
+    # Older = more conservative (textbook glide path).
+    if age >= 60:
+        pool = ["Conservative", "Moderate", "Aggressive"]
+        weights = [0.55, 0.35, 0.10]
+    elif age >= 40:
+        pool = ["Conservative", "Moderate", "Aggressive", "Speculative"]
+        weights = [0.20, 0.50, 0.25, 0.05]
+    else:
+        pool = ["Moderate", "Aggressive", "Speculative"]
+        weights = [0.30, 0.50, 0.20]
+    return rng.choices(pool, weights=weights)[0]
+
+
+def _interest_rate(account_type: str, rng: random.Random) -> float | None:
+    """APY for savings, APR for loans, NULL otherwise."""
+    if account_type == "Savings":
+        return round(rng.uniform(0.50, 5.50), 3)
+    if account_type == "Mortgage":
+        return round(rng.uniform(2.75, 7.50), 3)  # bimodal pre/post-2022
+    if account_type == "Auto Loan":
+        return round(rng.uniform(4.00, 12.00), 3)
+    if account_type == "Credit Card":
+        return round(rng.uniform(14.00, 28.00), 3)
+    return None  # Checking, Brokerage, IRA, 401k, HSA, Crypto
+
+
+# -------------------------------------------------------------------
+# _merge — idempotent MERGE on composite PK
+# (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)
+# -------------------------------------------------------------------
+
+def _merge(session: Any, records: list[dict]) -> int:
+    """MERGE records into TABLE. Returns rows MERGED.
+
+    Implementation: write_pandas -> staging table -> MERGE statement.
+    The staging table is overwrite-truncated each call so re-runs produce
+    consistent state.
+
+    Casts in the source SELECT:
+      - GENERATED_AT (write_pandas datetime64[ns] -> NUMBER mis-typing
+        from v1.4 — cast back via TO_TIMESTAMP_NTZ).
+      - HELD_AWAY_ACCOUNT_ID::VARCHAR (write_pandas may infer the wrong
+        type for an empty staging table).
+      - IS_ACTIVE::BOOLEAN (defensive, same reason).
+
+    The 4 NULLable columns (LAST_TRANSACTION_DATE, MONTHLY_NET_FLOW_USD,
+    INVESTMENT_RISK_TIER, INTEREST_RATE_PCT) pass through; pandas +
+    write_pandas serializes Python None -> SQL NULL transparently.
+    """
+    if not records:
+        return 0
+
+    import pandas as pd
+    df = pd.DataFrame(records)
+    staging = "PLAID_HELD_AWAY_STAGING"
+
+    session.write_pandas(
+        df, staging,
+        auto_create_table=True, overwrite=True,
+        database="FINS", schema="PUBLIC",
+    )
+
+    merge_sql = f"""
+        MERGE INTO FINS.PUBLIC.PLAID_HELD_AWAY tgt
+        USING (
+            SELECT
+                ACCOUNT_ID,
+                HELD_AWAY_ACCOUNT_ID::VARCHAR AS HELD_AWAY_ACCOUNT_ID,
+                PROFILE_MONTH,
+                INSTITUTION_NAME,
+                INSTITUTION_TYPE,
+                ACCOUNT_TYPE,
+                BALANCE_USD,
+                LAST_LINKED_DATE,
+                IS_ACTIVE::BOOLEAN AS IS_ACTIVE,
+                LAST_TRANSACTION_DATE,
+                MONTHLY_NET_FLOW_USD,
+                INVESTMENT_RISK_TIER,
+                INTEREST_RATE_PCT,
+                TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
+            FROM FINS.PUBLIC.{staging}
+        ) src
+        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+           AND tgt.HELD_AWAY_ACCOUNT_ID = src.HELD_AWAY_ACCOUNT_ID
+           AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
+        WHEN MATCHED THEN UPDATE SET
+            INSTITUTION_NAME      = src.INSTITUTION_NAME,
+            INSTITUTION_TYPE      = src.INSTITUTION_TYPE,
+            ACCOUNT_TYPE          = src.ACCOUNT_TYPE,
+            BALANCE_USD           = src.BALANCE_USD,
+            LAST_LINKED_DATE      = src.LAST_LINKED_DATE,
+            IS_ACTIVE             = src.IS_ACTIVE,
+            LAST_TRANSACTION_DATE = src.LAST_TRANSACTION_DATE,
+            MONTHLY_NET_FLOW_USD  = src.MONTHLY_NET_FLOW_USD,
+            INVESTMENT_RISK_TIER  = src.INVESTMENT_RISK_TIER,
+            INTEREST_RATE_PCT     = src.INTEREST_RATE_PCT,
+            GENERATED_AT          = src.GENERATED_AT
+        WHEN NOT MATCHED THEN INSERT (
+            ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH,
+            INSTITUTION_NAME, INSTITUTION_TYPE, ACCOUNT_TYPE,
+            BALANCE_USD, LAST_LINKED_DATE, IS_ACTIVE,
+            LAST_TRANSACTION_DATE, MONTHLY_NET_FLOW_USD,
+            INVESTMENT_RISK_TIER, INTEREST_RATE_PCT, GENERATED_AT
+        ) VALUES (
+            src.ACCOUNT_ID, src.HELD_AWAY_ACCOUNT_ID, src.PROFILE_MONTH,
+            src.INSTITUTION_NAME, src.INSTITUTION_TYPE, src.ACCOUNT_TYPE,
+            src.BALANCE_USD, src.LAST_LINKED_DATE, src.IS_ACTIVE,
+            src.LAST_TRANSACTION_DATE, src.MONTHLY_NET_FLOW_USD,
+            src.INVESTMENT_RISK_TIER, src.INTEREST_RATE_PCT, src.GENERATED_AT
+        )
+    """
+    rows = session.sql(merge_sql).collect()
+    return int(rows[0][0]) if rows else len(records)

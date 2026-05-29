@@ -1,0 +1,23 @@
+{
+  "name": "CumulusMgpFinancialPlans",
+  "label": "Cumulus MGP Financial Plans",
+  "description": "MoneyGuidePro / eMoney / NaviPlan-style synthetic financial-plan dataset per Wealth Management account per month. Federated from FINS.PUBLIC.MGP_FINANCIAL_PLANS via Snowflake Direct_Access. ACCOUNT_ID FKs to ssot__Account__dlm. PLAN_STATUS gates LAST_REVIEW_DATE / NEXT_REVIEW_DATE NULLability.",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ssot__AccountId",            "label": "Account ID",                    "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Salesforce Account ID. FK to ssot__Account__dlm.ssot__Id__c."},
+    {"name": "profileMonth",               "label": "Profile Month",                 "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Date",     "description": "First-of-month for the run; PK (DC collapses composite to single-column)."},
+    {"name": "planStatus",                 "label": "Plan Status",                   "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Active (~80%), Draft (~12%), Stale (~8%). Gates review-date NULLs."},
+    {"name": "planLastUpdatedDate",        "label": "Plan Last Updated Date",        "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "When the plan was last touched. ≤ today."},
+    {"name": "retirementTargetAge",        "label": "Retirement Target Age",         "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Target retirement age in [55,80]."},
+    {"name": "monthlyIncomeTargetUsd",     "label": "Monthly Income Target (USD)",   "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "70-90% replacement of pre-retirement annual income, monthly. Range [10K,200K]."},
+    {"name": "totalGoalAmountUsd",         "label": "Total Goal Amount (USD)",       "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Sum of all goal amounts. Range [500K,50M]."},
+    {"name": "goalCount",                  "label": "Goal Count",                    "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Number of distinct goals. Range [1,6]."},
+    {"name": "monteCarloSuccessPct",       "label": "Monte Carlo Success %",         "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Monte Carlo simulation success probability. Range [30.0,99.0]."},
+    {"name": "recommendedAssetAllocation", "label": "Recommended Asset Allocation",  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Conservative / Moderate Conservative / Moderate / Moderate Aggressive / Aggressive."},
+    {"name": "lastReviewDate",             "label": "Last Review Date",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Date of last advisor review. NULL when planStatus=Draft."},
+    {"name": "nextReviewDate",             "label": "Next Review Date",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Scheduled next review. NULL when planStatus=Stale."},
+    {"name": "advisorNotesFlag",           "label": "Advisor Notes Flag",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Boolean",  "description": "True if advisor has logged free-text notes on the plan."},
+    {"name": "generatedAt",                "label": "Generated At",                  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC). Month-bucketed for byte-identical mid-month re-runs."}
+  ]
+}

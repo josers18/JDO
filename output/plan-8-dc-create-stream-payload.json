@@ -1,0 +1,78 @@
+{
+  "name": "CumulusMgpFinancialPlans",
+  "label": "Cumulus MGP Financial Plans",
+  "datastreamType": "EXTERNAL",
+  "connectorInfo": {
+    "connectorType": "DataConnector",
+    "connectorDetails": {
+      "name": "Jedi_Snowflake"
+    }
+  },
+  "dataLakeObjectInfo": {
+    "dataspaceInfo": [
+      {
+        "name": "default"
+      }
+    ],
+    "category": "Profile",
+    "label": "Cumulus MGP Financial Plans",
+    "name": "CumulusMgpFinancialPlans__dll",
+    "dataLakeFieldInputRepresentations": [
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "ACCOUNT_ID",                   "name": "ACCOUNT_ID"},
+      {"dataType": "Date",     "isPrimaryKey": true,  "label": "PROFILE_MONTH",                "name": "PROFILE_MONTH"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "PLAN_STATUS",                  "name": "PLAN_STATUS"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "PLAN_LAST_UPDATED_DATE",       "name": "PLAN_LAST_UPDATED_DATE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "RETIREMENT_TARGET_AGE",        "name": "RETIREMENT_TARGET_AGE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "MONTHLY_INCOME_TARGET_USD",    "name": "MONTHLY_INCOME_TARGET_USD"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "TOTAL_GOAL_AMOUNT_USD",        "name": "TOTAL_GOAL_AMOUNT_USD"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "GOAL_COUNT",                   "name": "GOAL_COUNT"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "MONTE_CARLO_SUCCESS_PCT",      "name": "MONTE_CARLO_SUCCESS_PCT"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "RECOMMENDED_ASSET_ALLOCATION", "name": "RECOMMENDED_ASSET_ALLOCATION"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "LAST_REVIEW_DATE",             "name": "LAST_REVIEW_DATE"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "NEXT_REVIEW_DATE",             "name": "NEXT_REVIEW_DATE"},
+      {"dataType": "Boolean",  "isPrimaryKey": false, "label": "ADVISOR_NOTES_FLAG",           "name": "ADVISOR_NOTES_FLAG"},
+      {"dataType": "DateTime", "isPrimaryKey": false, "label": "GENERATED_AT",                 "name": "GENERATED_AT"}
+    ]
+  },
+  "mappings": [
+    {"sourceFieldLabel": "ACCOUNT_ID",                   "targetFieldName": "ACCOUNT_ID"},
+    {"sourceFieldLabel": "PROFILE_MONTH",                "targetFieldName": "PROFILE_MONTH"},
+    {"sourceFieldLabel": "PLAN_STATUS",                  "targetFieldName": "PLAN_STATUS"},
+    {"sourceFieldLabel": "PLAN_LAST_UPDATED_DATE",       "targetFieldName": "PLAN_LAST_UPDATED_DATE"},
+    {"sourceFieldLabel": "RETIREMENT_TARGET_AGE",        "targetFieldName": "RETIREMENT_TARGET_AGE"},
+    {"sourceFieldLabel": "MONTHLY_INCOME_TARGET_USD",    "targetFieldName": "MONTHLY_INCOME_TARGET_USD"},
+    {"sourceFieldLabel": "TOTAL_GOAL_AMOUNT_USD",        "targetFieldName": "TOTAL_GOAL_AMOUNT_USD"},
+    {"sourceFieldLabel": "GOAL_COUNT",                   "targetFieldName": "GOAL_COUNT"},
+    {"sourceFieldLabel": "MONTE_CARLO_SUCCESS_PCT",      "targetFieldName": "MONTE_CARLO_SUCCESS_PCT"},
+    {"sourceFieldLabel": "RECOMMENDED_ASSET_ALLOCATION", "targetFieldName": "RECOMMENDED_ASSET_ALLOCATION"},
+    {"sourceFieldLabel": "LAST_REVIEW_DATE",             "targetFieldName": "LAST_REVIEW_DATE"},
+    {"sourceFieldLabel": "NEXT_REVIEW_DATE",             "targetFieldName": "NEXT_REVIEW_DATE"},
+    {"sourceFieldLabel": "ADVISOR_NOTES_FLAG",           "targetFieldName": "ADVISOR_NOTES_FLAG"},
+    {"sourceFieldLabel": "GENERATED_AT",                 "targetFieldName": "GENERATED_AT"}
+  ],
+  "refreshConfig": {
+    "refreshMode": "TOTAL_REPLACE"
+  },
+  "sourceFields": [
+    {"dataType": "Text",     "name": "ACCOUNT_ID"},
+    {"dataType": "Date",     "name": "PROFILE_MONTH",          "format": "MM/dd/yyyy"},
+    {"dataType": "Text",     "name": "PLAN_STATUS"},
+    {"dataType": "Date",     "name": "PLAN_LAST_UPDATED_DATE", "format": "MM/dd/yyyy"},
+    {"dataType": "Number",   "name": "RETIREMENT_TARGET_AGE"},
+    {"dataType": "Number",   "name": "MONTHLY_INCOME_TARGET_USD"},
+    {"dataType": "Number",   "name": "TOTAL_GOAL_AMOUNT_USD"},
+    {"dataType": "Number",   "name": "GOAL_COUNT"},
+    {"dataType": "Number",   "name": "MONTE_CARLO_SUCCESS_PCT"},
+    {"dataType": "Text",     "name": "RECOMMENDED_ASSET_ALLOCATION"},
+    {"dataType": "Date",     "name": "LAST_REVIEW_DATE",       "format": "MM/dd/yyyy"},
+    {"dataType": "Date",     "name": "NEXT_REVIEW_DATE",       "format": "MM/dd/yyyy"},
+    {"dataType": "Boolean",  "name": "ADVISOR_NOTES_FLAG"},
+    {"dataType": "DateTime", "name": "GENERATED_AT"}
+  ],
+  "advancedAttributes": {
+    "schema": "PUBLIC",
+    "database": "FINS",
+    "object": "MGP_FINANCIAL_PLANS"
+  },
+  "dataAccessMode": "Direct_Access"
+}

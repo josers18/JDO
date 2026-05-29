@@ -1,0 +1,24 @@
+{
+  "sourceEntityDeveloperName": "CumulusClaritasDemographics__dll",
+  "targetEntityDeveloperName": "CumulusClaritasDemographics__dlm",
+  "fieldMapping": [
+    {"sourceFieldDeveloperName": "ACCOUNT_ID__c",                 "targetFieldDeveloperName": "ssot__AccountId__c"},
+    {"sourceFieldDeveloperName": "PROFILE_MONTH__c",              "targetFieldDeveloperName": "profileMonth__c"},
+    {"sourceFieldDeveloperName": "PRIZM_SEGMENT_CODE__c",         "targetFieldDeveloperName": "prizmSegmentCode__c"},
+    {"sourceFieldDeveloperName": "PRIZM_SEGMENT_NAME__c",         "targetFieldDeveloperName": "prizmSegmentName__c"},
+    {"sourceFieldDeveloperName": "PRIZM_LIFESTYLE_GROUP__c",      "targetFieldDeveloperName": "prizmLifestyleGroup__c"},
+    {"sourceFieldDeveloperName": "LIFE_STAGE__c",                 "targetFieldDeveloperName": "lifeStage__c"},
+    {"sourceFieldDeveloperName": "HOUSEHOLD_COMPOSITION__c",      "targetFieldDeveloperName": "householdComposition__c"},
+    {"sourceFieldDeveloperName": "ESTIMATED_NET_WORTH_BAND__c",   "targetFieldDeveloperName": "estimatedNetWorthBand__c"},
+    {"sourceFieldDeveloperName": "WEALTH_PROPENSITY_SCORE__c",    "targetFieldDeveloperName": "wealthPropensityScore__c"},
+    {"sourceFieldDeveloperName": "INVESTMENT_PROPENSITY_SCORE__c","targetFieldDeveloperName": "investmentPropensityScore__c"},
+    {"sourceFieldDeveloperName": "MORTGAGE_PROPENSITY_SCORE__c",  "targetFieldDeveloperName": "mortgagePropensityScore__c"},
+    {"sourceFieldDeveloperName": "URBANICITY__c",                 "targetFieldDeveloperName": "urbanicity__c"},
+    {"sourceFieldDeveloperName": "FINANCIAL_STRESS_INDICATOR__c", "targetFieldDeveloperName": "financialStressIndicator__c"},
+    {"sourceFieldDeveloperName": "GENERATED_AT__c",               "targetFieldDeveloperName": "generatedAt__c"},
+    {"sourceFieldDeveloperName": "KQ_PROFILE_MONTH__c",           "targetFieldDeveloperName": "KQ_profileMonth__c"},
+    {"sourceFieldDeveloperName": "DataSource__c",                 "targetFieldDeveloperName": "DataSource__c"},
+    {"sourceFieldDeveloperName": "DataSourceObject__c",           "targetFieldDeveloperName": "DataSourceObject__c"},
+    {"sourceFieldDeveloperName": "InternalOrganization__c",       "targetFieldDeveloperName": "InternalOrganization__c"}
+  ]
+}

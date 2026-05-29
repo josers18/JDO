@@ -1,0 +1,26 @@
+[project]
+name = "cumulus-claritas-demographics"
+version = "0.1.0"
+description = "Claritas-style synthetic demographics dataset for Cumulus."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "snowflake-snowpark-python>=1.20",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# This project ships SQL schemas + Snowpark SP procedures + tests; nothing
+# is meant to be installed as an importable package. The `procedures` dir
+# lands on sys.path via [tool.pytest.ini_options].pythonpath instead.
+py-modules = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["procedures", "."]
