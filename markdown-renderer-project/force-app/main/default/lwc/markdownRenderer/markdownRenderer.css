@@ -1,0 +1,11 @@
+:host {
+    display: block;
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    font-size: 0.875rem;
+    color: #181818;
+    line-height: 1.5;
+}
+
+.markdown-container {
+    padding: 0.5rem 0;
+}

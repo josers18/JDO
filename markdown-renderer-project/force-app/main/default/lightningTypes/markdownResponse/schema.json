@@ -1,0 +1,14 @@
+{
+    "title": "Markdown Response",
+    "description": "Renders markdown-formatted text with proper formatting",
+    "lightning:type": "lightning__objectType",
+    "type": "object",
+    "properties": {
+        "text": {
+            "title": "text",
+            "type": "string",
+            "lightning:type": "lightning__textType",
+            "description": "Markdown-formatted response text"
+        }
+    }
+}

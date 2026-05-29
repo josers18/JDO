@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Search and retrieve product offer information from Data Cloud using the Product Offers Retriever. Answers questions about current product offerings, promotions, rates, eligibility, and features for Cumulus Bank products. Output rendered with markdown formatting.</description>
+    <developerName>DC_Product_Offers</developerName>
+    <invocationTarget>Product_Offers</invocationTarget>
+    <invocationTargetType>generatePromptResponse</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+    <localDeveloperName>DC_Product_Offers</localDeveloperName>
+    <masterLabel>DC_Product_Offers</masterLabel>
+</GenAiFunction>
