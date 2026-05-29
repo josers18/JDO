@@ -5,7 +5,7 @@
       "default": true
     }
   ],
-  "name": "markdown-renderer",
+  "name": "dc-agentforce-markdown-renderer",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "66.0"
