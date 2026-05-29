@@ -1,13 +1,13 @@
 """Per-dataset pytest config — pulls the shared 100-anchor fixture from
-Snowflake_Cumulus_Common and provides Plan 12 Wealth-Management +
-Commercial-Banking-audience overrides.
+Snowflake_Cumulus_Common and provides Plan 12 all-accounts-audience overrides.
 
-Plan 12 audience: ``CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')``.
-
-Of SAMPLE_ANCHORS' 100 anchors, the audience surfaces the 19 Wealth Management
-PERSON entries (TEST-PERSON-26..44) plus a handful of Commercial Banking
-fixture entries. Cohort-specific tests `pytest.skip` if the audience drops
-below 3 (Plan 5/6/8 pattern).
+Plan 12 audience (rebroadcast scope): every anchor with a non-empty
+``ACCOUNT_ID`` — no ``CLIENT_CATEGORY`` filter. This widens the cohort from
+the original Wealth+Commercial 4,880-row design to ~36,813 anchors (~884K
+rows over a 24-week roll). The cascade-NULL boring case stays load-bearing,
+and the per-category call-rate tier (Commercial > Wealth > Small Business >
+Retail/Household > Default) keeps the cohort biases sensible across the
+broader audience.
 """
 import importlib.util
 import sys
@@ -42,20 +42,13 @@ def all_anchors():
 
 @pytest.fixture
 def in_audience_anchors(all_anchors):
-    """Plan 12 audience predicate:
-    ``CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')``.
-    """
-    return [
-        a for a in all_anchors
-        if a.get("CLIENT_CATEGORY") in ("Wealth Management", "Commercial Banking")
-    ]
+    """Plan 12 audience (rebroadcast): every anchor with a non-empty
+    ACCOUNT_ID. No CLIENT_CATEGORY filter — degenerate audience."""
+    return [a for a in all_anchors if a.get("ACCOUNT_ID")]
 
 
 @pytest.fixture
 def out_of_audience_anchors(all_anchors):
-    """Anchors that fail the Plan 12 predicate (Retail / Household /
-    Small Business / null CLIENT_CATEGORY)."""
-    return [
-        a for a in all_anchors
-        if a.get("CLIENT_CATEGORY") not in ("Wealth Management", "Commercial Banking")
-    ]
+    """Degenerate-audience: no fixture anchor is out-of-scope. Cohort
+    tests that depend on an out-of-audience pool ``pytest.skip``."""
+    return []
