@@ -2,6 +2,8 @@
 
 Synthetic Gong / Chorus / ExecVision-style weekly conversation-intelligence rollups for the Cumulus FSC demo. One of 13. **Account-scoped with weekly cadence — second weekly Cumulus plan after Plan 6 (Plaid Held-Away). Mid-size cohort (Wealth Management + Commercial Banking, ~4,880 anchors). First Cumulus dataset whose NULL semantics cascade-collapse from a single zero-activity Boolean predicate (`CALL_COUNT_LAST_7D == 0`) — the boring case is itself a meaningful row, not a row that's filtered out.**
 
+> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_WEEK)` to `(ORG_ID, ACCOUNT_ID, PROFILE_WEEK)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). The `num_cycles` parameter on `main()` is unchanged. Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+
 ## Boundaries
 - Owns: `FINS.PUBLIC.GONG_CALL_SENTIMENT`, `SP_GENERATE_GONG_CALL_SENTIMENT`, `TASK_WEEKLY_GONG_CALL_SENTIMENT`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.

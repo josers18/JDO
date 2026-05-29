@@ -16,6 +16,8 @@ flowchart TB
         W[Web_Engagements_RT_Timeline]
         H[Customer_Hydration]
         D[Customer_Documents]
+        SC[Snowflake_Cumulus_Common]
+        SD[Snowflake_*_* x13<br/>Cumulus datasets]
     end
     P --> |Flow + optional Prompt| SF[(Salesforce org)]
     M --> |Flow + optional Prompt| SF
@@ -26,6 +28,10 @@ flowchart TB
     W --> |Data Graph callout + parallel CRM SOQL| SF
     H --> |Bulk API 2.0 + Apex post-load + Data Cloud REST| SF
     D --> |ReportLab PDF generation| PDF[(Generated customer documents)]
+    SC --> |V_ACCOUNT_ANCHORS feeds 13 SPs| SD
+    SD --> |Snowpark MERGE| SNOW[(FINS.PUBLIC<br/>3.97M rows · 13 tables)]
+    SNOW --> |Direct_Access federate / zero-copy| DC[(Salesforce Data Cloud<br/>13 DLO/DMO pairs)]
+    DC --> SF
 ```
 
 ## Naming vs App Builder labels
@@ -41,6 +47,8 @@ flowchart TB
 | `webEngagementData` | Real Time Digital Engagements |
 | `customer_hydration` (Python) | Customer Hydration CLI |
 | `customer_documents` (Python) | Customer document generator |
+| `Snowflake_Cumulus_Common` (Python + SQL) | Cumulus pipelines foundation (V_ACCOUNT_ANCHORS, helpers) |
+| `Snowflake_*_*` × 13 (Python + SQL) | Cumulus dataset SPs — see [ROLLOUT.md](../Snowflake_Cumulus_Common/docs/ROLLOUT.md) |
 
 Historical Apex class names (e.g. `ClassificationModelLwcController`) are kept for stable upgrades in orgs that already deployed earlier versions.
 

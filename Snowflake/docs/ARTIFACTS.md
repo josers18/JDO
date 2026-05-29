@@ -2,13 +2,15 @@
 
 Complete inventory of all database objects in `FINS.PUBLIC`.
 
+> **Multi-org Phase A live as of 2026-05-29.** `MASTER_ACCOUNTS` and the 13 Cumulus dataset tables now carry `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the leading column with PKs promoted to lead with ORG_ID. See [ROLLOUT.md](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).
+
 ---
 
 ## Tables
 
 | Table | Rows | Owner | Purpose | Pipeline |
 |-------|------|-------|---------|----------|
-| MASTER_ACCOUNTS | 36,813 | SYSADMIN | Current Salesforce Data Cloud account master list | CSAT/NPS |
+| MASTER_ACCOUNTS | 36,813 | SYSADMIN | Current Salesforce Data Cloud account master list (now with ORG_ID) | CSAT/NPS · Cumulus |
 | TRADE_GENERATION_CONFIG | 36,756 | SYSADMIN | Per-account trade generation parameters (frequency, risk, sectors) | Trades |
 | FINANCIAL_TRADES | 1,876,216 | SYSADMIN | Synthetic instrument trades (BUY/SELL) | Trades |
 | INSTRUMENT_UNIVERSE | 2,004 | SYSADMIN | Reference: tradeable instruments (stocks, bonds, ETFs) | Trades |
@@ -46,6 +48,19 @@ Complete inventory of all database objects in `FINS.PUBLIC`.
 | TRANSACTIONS_CLONE | 8,748 | SYSADMIN | Transaction table clone (testing) | Legacy |
 | FINANCIAL_TRADES_EXT | — | SYSADMIN | External table for trades (external stage) | Trades |
 | TEST | 1 | SYSADMIN | Scratch/test table | — |
+| **CLARITAS_DEMOGRAPHICS** | 25,424 | SYSADMIN | Cumulus Plan 1 — synthetic Claritas PRIZM segment demographics, ORG_ID-tagged | Cumulus |
+| **MSCI_ESG_SCORES** | 11,389 | SYSADMIN | Cumulus Plan 2 — BUSINESS-only ESG scores | Cumulus |
+| **DNB_BUSINESS_CREDIT** | 11,389 | SYSADMIN | Cumulus Plan 3 — DnB-style business credit ratings | Cumulus |
+| **ESRI_GEO_FOOTPRINT** | 13,327 | SYSADMIN | Cumulus Plan 4 — geo-keyed (BRANCH_ZIP, PROFILE_MONTH) demographics | Cumulus |
+| **CORELOGIC_PROPERTY** | 25,424 | SYSADMIN | Cumulus Plan 5 — quarterly property records (PERSON-only) | Cumulus |
+| **PLAID_HELD_AWAY** | 55,274 | SYSADMIN | Cumulus Plan 6 — 1:N held-away financial accounts per anchor | Cumulus |
+| **WORLD_CHECK_AML** | 73,626 | SYSADMIN | Cumulus Plan 7 — AML screening daily snapshots | Cumulus |
+| **MGP_FINANCIAL_PLANS** | 883,512 | SYSADMIN | Cumulus Plan 8 — MoneyGuidePro-style monthly financial plans (24-cycle backfill) | Cumulus |
+| **SYNTH_RELATIONSHIP_GRAPH** | 38,099 | SYSADMIN | Cumulus Plan 9 — directed-edge relationship graph (only edge-scoped plan) | Cumulus |
+| **BOARDEX_EXEC_INTEL** | 883,512 | SYSADMIN | Cumulus Plan 10 — BUSINESS executive intelligence (24-cycle backfill) | Cumulus |
+| **ZOOMINFO_FIRMOGRAPHICS** | 11,389 | SYSADMIN | Cumulus Plan 11 — BUSINESS firmographics | Cumulus |
+| **GONG_CALL_SENTIMENT** | 883,512 | SYSADMIN | Cumulus Plan 12 — weekly call sentiment (24-cycle backfill) | Cumulus |
+| **MOODYS_MARKET_CONTEXT** | 1,025,010 | SYSADMIN | Cumulus Plan 13 — daily commercial credit risk × 90-day history | Cumulus |
 
 ---
 
@@ -56,6 +71,7 @@ Complete inventory of all database objects in `FINS.PUBLIC`.
 | VW_ACCOUNT_SUMMARY | Lifetime summary statistics for all active accounts | FINANCIAL_TRANSACTIONS, ACCOUNT_BALANCE_TRACKER |
 | VW_CURRENT_MONTH_BALANCES | Current month balance status with account flags | ACCOUNT_DAILY_BALANCE, ACCOUNT_BALANCE_TRACKER |
 | V_YTD_FINANCIAL_TRANSACTIONS | Year-to-date financial transactions | FINANCIAL_TRANSACTIONS |
+| **V_ACCOUNT_ANCHORS** (v1.2) | Multi-org-additive anchor view — joins MASTER_ACCOUNTS to FINSDC3_DATASHARE; 1 row per active account; ORG_ID-aware | MASTER_ACCOUNTS, FINSDC3_DATASHARE |
 
 ---
 

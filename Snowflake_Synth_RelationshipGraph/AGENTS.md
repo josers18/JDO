@@ -2,6 +2,8 @@
 
 Synthesized directed relationship-graph dataset for the Cumulus FSC demo. One of 13. **All-accounts audience with weekly cadence — the second 1:N dataset (Plan 6 was first), the second weekly cadence (Plan 6 first; Plan 12 third), and the only edge-scoped dataset in the rollout. First Cumulus dataset with cross-plan SOFT dependencies (Claritas / D&B / BoardEx).**
 
+> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE)` to `(ORG_ID, SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE)`. **ORG_ID is stamped on every emitted edge dict** (HOUSEHOLD, CORPORATE_PARENT, BOARD_MEMBER, ADVISOR_BOOK, REFERRAL, BUSINESS_OWNER, SELF) — `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key. **Cross-org edges are not modeled in Phase A** — every edge's SRC and DST share the same ORG_ID, scoped through the SRC anchor. MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+
 ## Boundaries
 - Owns: `FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH`, `SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH`, `TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.

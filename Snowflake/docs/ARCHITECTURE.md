@@ -2,6 +2,10 @@
 
 Detailed architecture of the Snowflake data pipelines in `FINS.PUBLIC`.
 
+> **Cumulus dataset family** (13 SPs, ~3.97M rows live as of 2026-05-29) is documented separately. See [`../../Snowflake_Cumulus_Common/AGENTS.md`](../../Snowflake_Cumulus_Common/AGENTS.md) and the multi-org rollout runbook at [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).
+>
+> **Phase A multi-org migration** (commit `c9119d32`, 2026-05-29) added `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the leading column on `MASTER_ACCOUNTS` and the 13 Cumulus dataset tables. `V_ACCOUNT_ANCHORS` is now v1.2 and exposes `ORG_ID` as its first column. PKs were promoted to lead with `ORG_ID`. JDO existing loaders continue working unchanged via the DEFAULT backstop.
+
 ---
 
 ## Entity Relationship Diagram
@@ -9,6 +13,7 @@ Detailed architecture of the Snowflake data pipelines in `FINS.PUBLIC`.
 ```mermaid
 erDiagram
     MASTER_ACCOUNTS {
+        VARCHAR ORG_ID PK "Tenant id (DEFAULT 'JDO') — Phase A multi-org additive"
         VARCHAR ACCOUNT_ID PK "Salesforce Account ID (ssot__Id__c)"
         VARCHAR ACCOUNT_NAME "Account display name"
         VARCHAR DATA_SOURCE "Originating DC data source"
@@ -254,3 +259,55 @@ The wrapper is **Snowpark Python** (`EXECUTE AS OWNER`) so it can call arbitrary
 | **EXECUTE AS OWNER** on datashare-reading SPs | Avoids granting inbound share privileges to the task-runner role; owner (SYSADMIN) has the share grants. |
 | **One row per account** in MASTER_ACCOUNTS (not daily snapshots) | Historical tracking isn't needed — downstream consumers want "current state." MERGE in-place is simpler and eliminates table growth. |
 | **X-Large warehouse for trades only** | Trade generation processes 36K+ accounts with instrument filtering, price computation, and batch inserts. XS would take 10x longer and risk timeout. All other tasks are lightweight. |
+| **`ORG_ID` first column, additive backward-compat** (Phase A multi-org) | Adding `ORG_ID VARCHAR(18) DEFAULT 'JDO'` to every dataset table makes the schema multi-tenant-ready without invalidating existing JDO loaders. PKs were promoted to lead with ORG_ID; SP MERGE clauses now include `tgt.ORG_ID = src.ORG_ID` in their ON. The `V_ACCOUNT_ANCHORS` view is the single binding point — change the view's filter when adding org #2, no per-SP rewrites needed. See [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md). |
+| **JWT default for `snow sql`** (deploy_sp.py) | All 13 plan deploy scripts default to `snow sql -f <file>` (unflagged), which uses the active JWT connection at `~/.snowflake/connections.toml`. The OAuth-mode `GSB13421` connection still exists but is non-default — explicit `--connection GSB13421` is required to use it. JWT is service-account-friendly (no browser pop) and matches the production cron path that owns the SP runs. |
+
+---
+
+## Cumulus dataset family (13 plans, ~3.97M rows)
+
+The Cumulus pipelines live alongside this hub but are documented in their own packages. Architecture overview:
+
+```mermaid
+flowchart LR
+    subgraph FINSDC3 [FINSDC3_DATASHARE inbound]
+        SHARE[ssot__Account__dlm]
+    end
+    subgraph CUMULUS [Snowflake_Cumulus_Common]
+        MA2[MASTER_ACCOUNTS<br/>+ ORG_ID]
+        VA[V_ACCOUNT_ANCHORS v1.2<br/>+ ORG_ID first column]
+        CC[cumulus_common<br/>seed.py · coverage.py]
+    end
+    subgraph PLANS [13 dataset SPs]
+        SP1[SP_GENERATE_CLARITAS_DEMOGRAPHICS]
+        SP2[SP_GENERATE_MSCI_ESG_SCORES]
+        SP3[...11 more SPs...]
+    end
+    subgraph TABLES [13 dataset tables in FINS.PUBLIC]
+        T1[CLARITAS_DEMOGRAPHICS<br/>25,424 rows]
+        T8[MGP_FINANCIAL_PLANS<br/>883,512 rows]
+        T13[MOODYS_MARKET_CONTEXT<br/>1,025,010 rows]
+    end
+    subgraph DC [Salesforce Data Cloud]
+        DLO[13 DLOs<br/>__dll]
+        DMO[13 DMOs<br/>__dlm · hasMappings=true]
+    end
+
+    SHARE --> VA
+    MA2 --> VA
+    VA -->|audience read<br/>incl ORG_ID| SP1
+    VA -->|audience read<br/>incl ORG_ID| SP2
+    VA -->|audience read<br/>incl ORG_ID| SP3
+    CC -.->|imports inlined| SP1
+    CC -.->|imports inlined| SP2
+    CC -.->|imports inlined| SP3
+    SP1 -->|MERGE batch 100K| T1
+    SP1 -.->|MERGE batch 100K| T8
+    SP1 -.->|MERGE batch 100K| T13
+    T1 -->|Direct_Access<br/>Federate / Zero Copy| DLO
+    T8 -->|Direct_Access| DLO
+    T13 -->|Direct_Access| DLO
+    DLO -->|Einstein auto-map<br/>via Data Stream UI| DMO
+```
+
+Per-plan details live in each `Snowflake_<dataset>/AGENTS.md` (boundaries, conventions, gotchas, salts, audience SQL). The shared infrastructure conventions live in [`../../Snowflake_Cumulus_Common/AGENTS.md`](../../Snowflake_Cumulus_Common/AGENTS.md). For multi-org rollout to additional Salesforce orgs, see [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).

@@ -195,8 +195,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--connection", "-c",
-        default="GSB13421",
-        help="Snowflake CLI connection name (default: GSB13421)",
+        default=None,
+        help="Snowflake CLI connection name (default: unflagged — use the active JWT connection)",
     )
     parser.add_argument(
         "--no-deploy",
@@ -219,20 +219,22 @@ def main() -> int:
         print("--no-deploy set; skipping snow sql.")
         return 0
 
-    print(f"Deploying SP from {SP_SQL} via connection {args.connection} ...")
-    rc = subprocess.call(
-        ["snow", "sql", "-c", args.connection, "-f", str(SP_SQL)],
-    )
+    cmd = ["snow", "sql", "-f", str(SP_SQL)]
+    if args.connection:
+        cmd[1:1] = ["-c", args.connection]
+    print(f"Deploying SP via: {' '.join(cmd)}")
+    rc = subprocess.call(cmd)
     if rc != 0:
         print(f"ERROR: snow sql exited with code {rc}", file=sys.stderr)
         return rc
 
-    print("Deploy complete. Verify with:")
-    print(
-        f"  snow sql -c {args.connection} -q "
-        f"\"SHOW PROCEDURES LIKE 'SP_GENERATE_MSCI_ESG_SCORES' "
-        "IN SCHEMA FINS.PUBLIC\""
+    verify_cmd = (
+        "snow sql"
+        + (f" -c {args.connection}" if args.connection else "")
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MSCI_ESG_SCORES' IN SCHEMA FINS.PUBLIC\""
     )
+    print("Deploy complete. Verify with:")
+    print(f"  {verify_cmd}")
     return 0
 
 

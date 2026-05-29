@@ -2,7 +2,9 @@
 
 How to roll all 13 Cumulus Snowflake datasets out to an additional Salesforce Data Cloud org.
 
-> **TL;DR.** Phase A (one-time) extends `MASTER_ACCOUNTS` with an `ORG_ID` column and parameterizes `V_ACCOUNT_ANCHORS` so a single Snowflake schema serves N orgs. Phase B (per-org) provisions the inbound share, registers a DC connector, and replays the 13-stream/DLO/DMO/mapping sequence. **All 13 SPs and TASKs stay untouched after Phase A.**
+> **Status (2026-05-29):** Phase A **LIVE on `main`** (commit `c9119d32`). `MASTER_ACCOUNTS` + 13 dataset tables + `V_ACCOUNT_ANCHORS` v1.2 all carry `ORG_ID VARCHAR(18) DEFAULT 'JDO'`. 3,977,690 rows tagged uniformly (zero NULLs). Phase B (per-org rollout) runs when the first non-JDO org is provisioned.
+
+> **TL;DR.** Phase A (one-time) extends `MASTER_ACCOUNTS` with an `ORG_ID` column and parameterizes `V_ACCOUNT_ANCHORS` so a single Snowflake schema serves N orgs. Phase B (per-org) provisions the inbound share, registers a DC connector, and replays the 13-stream/DLO/DMO/mapping sequence. **All 13 SPs and TASKs stay untouched after Phase A** — they read `ORG_ID` from the audience row and stamp it into output records.
 
 ---
 
@@ -409,6 +411,61 @@ If counts are 0, suspect: (a) FK relationship not saved, (b) `ssot__Account__dlm
   - B7d + B8 + B9 (FKs + verify): 10 min
 
 After ~3 orgs, B7c becomes the dominant cost; if Salesforce ever fixes the REST mapping endpoint for custom DMOs, the per-org cost collapses to ~15 minutes.
+
+---
+
+# Patterns learned during Phase A live deployment (2026-05-29)
+
+The 13-plan parallel rollout exposed several patterns worth documenting for future Phase A-style migrations on this repo or any sibling.
+
+### 1. The `anchor.get("ORG_ID", "JDO")` defensive default in row factories
+
+Every SP module's row factory was independently updated by 13 parallel subagents. **All 13 converged on the same defensive pattern** — `anchor.get("ORG_ID", "JDO")` (or `or "JDO"`) — none used the strict `anchor["ORG_ID"]` lookup. This is the right move because:
+- Production: `V_ACCOUNT_ANCHORS` v1.2 always supplies `ORG_ID`, so the default never fires.
+- L1 tests: shared `SAMPLE_ANCHORS` in `cumulus_common` doesn't carry ORG_ID; the default keeps tests green without forcing a shared-fixture edit.
+- Phase B onboarding: no SP rewrites needed when org #2 arrives — anchors will simply carry the new ORG_ID value.
+
+**Canonical row factory pattern:**
+```python
+def _row_for(anchor: dict, run_ts: datetime) -> dict:
+    return {
+        "ORG_ID": anchor.get("ORG_ID", "JDO"),  # defensive default
+        "ACCOUNT_ID": anchor["ACCOUNT_ID"],
+        # ... remaining fields ...
+    }
+```
+
+### 2. Patch `EXPECTED_KEYS` in the test module, not conftest
+
+Each plan's `test_<dataset>_row_factory.py` carries an `EXPECTED_KEYS` set asserting the schema contract. When ORG_ID was added, the rule "patch local conftest only" was too restrictive — the right move is to update `EXPECTED_KEYS` directly in the test module. 10 of 13 subagents inferred this correctly; 3 stalled trying to patch conftest before the controller closed the gap. Future Phase X-style migrations should explicitly call out: **schema contract assertions live in the test module, not conftest. Patch them where they live.**
+
+### 3. Snowflake `ALTER TABLE ADD COLUMN ... DEFAULT '<literal>'` is metadata-only and synchronous
+
+The 1.025M-row Plan 13 (`MOODYS_MARKET_CONTEXT`) `UPDATE ... WHERE ORG_ID IS NULL` returned 0 rows updated and finished in seconds. The reason: Snowflake auto-populates existing rows with the constant DEFAULT at the metadata layer at `ALTER TABLE` time — no actual row rewrite happens. The `UPDATE` is a defensive safety net, not the heavy lift. Practical effect: even ~3.97M-row migrations apply in seconds, not minutes. Don't size your maintenance window for the UPDATE — size it for the SP redeploys + L1 reverification.
+
+### 4. JWT default for `snow sql` deploys
+
+Three early-Plans deploy scripts (Plans 1/2/3) hardcoded `default="GSB13421"` (the OAuth-mode connection), forcing browser logins on every redeploy. This was caught and fixed during Phase A — all 13 plans now default to unflagged `snow sql -f <file>` (active JWT connection). The `--connection NAME` flag is opt-in for the rare ad-hoc OAuth case. **For new plan scaffolds**: copy the canonical Plan 4+ pattern, never hardcode a default connection name.
+
+```python
+parser.add_argument(
+    "--connection", "-c",
+    default=None,  # NOT "GSB13421"
+    help="Snowflake CLI connection name (default: unflagged — use the active JWT connection)",
+)
+# Build cmd conditionally:
+cmd = ["snow", "sql", "-f", str(SP_SQL)]
+if args.connection:
+    cmd[1:1] = ["-c", args.connection]
+```
+
+### 5. Mass-parallel subagent dispatch + integration verification gate
+
+The 13-plan rollout used the pattern from `[[feedback_parallel_subagent_integration_testing]]`: 13 parallel `fde-engineer` subagents, one per plan, with a non-negotiable controller-side integration check (`SELECT ORG_ID, COUNT(*) GROUP BY ORG_ID` across all 14 tables) immediately after they all returned. Wall-clock: ~5 minutes for 13 plans vs. ~45 minutes if serial. 2 of 13 subagents (Plans 5, 11) terminated mid-fix on the EXPECTED_KEYS test patch; the controller closed those gaps in < 1 minute each. The integration check caught zero drift — a clean validation that the per-subagent contract was tight enough.
+
+### 6. Plan 4 is the geo-keyed exception
+
+Esri (Plan 4) is the only plan with a non-account audience. Its `AUDIENCE_SQL` adds ORG_ID to the GROUP BY, and its coverage assertion uses `COUNT(DISTINCT (ORG_ID || '|' || BRANCH_ZIP))` because `assert_coverage()` takes a single scalar SELECT. **If a future plan is geo-, segment-, or other-non-account-keyed, follow this pattern**: ORG_ID must be in the GROUP BY of the audience query, and the coverage check must concatenate or split per-ORG.
 
 ---
 

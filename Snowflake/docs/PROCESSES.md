@@ -2,6 +2,8 @@
 
 Operational runbook for the Snowflake data pipelines in `FINS.PUBLIC`.
 
+> **Cumulus dataset family operations** (13 monthly/weekly/daily SPs covering ~3.97M rows) are documented in their own AGENTS.md files; the per-org rollout runbook lives at [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md). Phase A multi-org migration landed 2026-05-29 (commit `c9119d32`).
+
 ---
 
 ## Daily Pipeline Schedule
@@ -18,6 +20,28 @@ All tasks run via Snowflake's built-in CRON scheduler. Times shown in both UTC a
 | DAILY_JOB_REPORT_TASK | 12:00 / 13:00 | 8 AM | TASK_WH | SP_DAILY_JOB_REPORT() | Email execution summary |
 
 **Execution order rationale:** Account sync runs first (midnight) so new accounts are available for trade generation (1 AM). Master accounts sync runs at 6 AM UTC to capture any Data Cloud stream updates from the prior day. Monthly CSAT runs 1 hour after master accounts so newly-synced accounts are visible. The daily report runs last (8 AM ET) to capture all overnight executions.
+
+### Cumulus dataset tasks
+
+13 additional Cumulus pipelines run on monthly / weekly / daily cadences against `FINS.PUBLIC`:
+
+| Task | Cadence (UTC CRON) | Procedure | Purpose |
+|------|--------------------|-----------|---------|
+| TASK_MONTHLY_CLARITAS_DEMOGRAPHICS | `0 7 1 * * UTC` (1st of month) | SP_GENERATE_CLARITAS_DEMOGRAPHICS() | Plan 1 — PRIZM segment demographics |
+| TASK_MONTHLY_MSCI_ESG_SCORES | `0 7 1 * * UTC` | SP_GENERATE_MSCI_ESG_SCORES() | Plan 2 — BUSINESS ESG scores |
+| TASK_MONTHLY_DNB_BUSINESS_CREDIT | `0 7 1 * * UTC` | SP_GENERATE_DNB_BUSINESS_CREDIT() | Plan 3 — Business credit ratings |
+| TASK_MONTHLY_ESRI_GEO_FOOTPRINT | `0 7 1 * * UTC` | SP_GENERATE_ESRI_GEO_FOOTPRINT() | Plan 4 — Geo demographics by ZIP |
+| TASK_QUARTERLY_CORELOGIC_PROPERTY | `0 7 1 1,4,7,10 * UTC` | SP_GENERATE_CORELOGIC_PROPERTY() | Plan 5 — Property records (PERSON-only) |
+| TASK_MONTHLY_PLAID_HELD_AWAY | `0 7 1 * * UTC` | SP_GENERATE_PLAID_HELD_AWAY() | Plan 6 — Held-away accounts (1:N) |
+| TASK_DAILY_WORLD_CHECK_AML | daily | SP_GENERATE_WORLD_CHECK_AML() | Plan 7 — AML screening snapshots |
+| TASK_MONTHLY_MGP_FINANCIAL_PLANS | `0 7 1 * * UTC` | SP_GENERATE_MGP_FINANCIAL_PLANS(num_cycles) | Plan 8 — Financial plans (24-cycle backfill capable) |
+| TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH | weekly | SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH() | Plan 9 — Edge-scoped relationship graph |
+| TASK_MONTHLY_BOARDEX_EXEC_INTEL | `0 7 1 * * UTC` | SP_GENERATE_BOARDEX_EXEC_INTEL(num_cycles) | Plan 10 — BUSINESS exec intel |
+| TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS | `0 7 1 * * UTC` | SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS() | Plan 11 — Firmographics |
+| TASK_WEEKLY_GONG_CALL_SENTIMENT | weekly | SP_GENERATE_GONG_CALL_SENTIMENT(num_cycles) | Plan 12 — Call sentiment |
+| TASK_DAILY_MOODYS_MARKET_CONTEXT | daily | SP_GENERATE_MOODYS_MARKET_CONTEXT() | Plan 13 — Market context (90-day daily) |
+
+All Cumulus SPs read audience from `V_ACCOUNT_ANCHORS` (which now exposes `ORG_ID`) and stamp ORG_ID on every emitted row. MERGE clauses use `ON tgt.ORG_ID = src.ORG_ID AND tgt.<existing-PK> = src.<existing-PK>`. UPDATE SET deliberately skips ORG_ID (PK component, immutable).
 
 ---
 

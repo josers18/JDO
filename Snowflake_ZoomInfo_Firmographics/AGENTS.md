@@ -2,6 +2,8 @@
 
 Synthetic ZoomInfo / DiscoverOrg / Crunchbase-style B2B company-level firmographics dataset for the Cumulus FSC demo. One of 13. **BUSINESS-scoped (same audience as Plans 2 MSCI and 3 D&B), monthly cadence — the most "boring" Plan structurally in the rollout.** Same audience predicate, cadence, and 1:1 row shape as Plans 2 and 3; the only structural deviations are defensive HQ-string projection and two distributionally-gated NULLable columns, both inherited from prior Plans.
 
+> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+
 ## Boundaries
 - Owns: `FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS`, `SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS`, `TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.

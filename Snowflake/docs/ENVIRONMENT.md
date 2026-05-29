@@ -2,24 +2,43 @@
 
 Snowflake connection details, warehouse configuration, permissions, and external data sources.
 
+> **Multi-org Phase A live as of 2026-05-29.** `MASTER_ACCOUNTS` and the 13 Cumulus dataset tables now carry `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the leading column. `V_ACCOUNT_ANCHORS` is v1.2 and exposes ORG_ID first. JDO existing loaders continue working unchanged. Per-org rollout runbook at [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).
+
 ---
 
 ## Connection Details
 
 | Setting | Value |
 |---------|-------|
-| **Account** | GSB13421 |
-| **Region** | (default) |
+| **Account** | GSB13421 (`eob55465.us-east-1.snowflakecomputing.com`) |
+| **Region** | us-east-1 |
 | **Database** | FINS |
 | **Schema** | PUBLIC |
 | **Role** | SYSADMIN |
 | **Default Warehouse** | MAIN_WH_XS |
+| **Default `snow` connection** | `GSB13421_jwt` (RSA key-pair JWT auth) |
+| **OAuth fallback** | `GSB13421` (browser-based; non-default; explicit `--connection GSB13421` to use) |
 
 ### Connection String (SnowSQL / CLI)
 
-```
+```bash
+# Modern Snowflake CLI (preferred — auto-uses default JWT connection from ~/.snowflake/connections.toml)
+snow sql -q "SELECT CURRENT_USER(), CURRENT_ROLE();"
+
+# Snow CLI listing both connections:
+snow connection list
+
+# Explicit connection selection:
+snow sql -c GSB13421_jwt -q "SELECT 1;"      # JWT (default)
+snow sql -c GSB13421     -q "SELECT 1;"      # OAuth — browser opens
+
+# Legacy SnowSQL CLI:
 snowsql -a GSB13421 -u <username> -d FINS -s PUBLIC -w MAIN_WH_XS -r SYSADMIN
 ```
+
+> **Why JWT is default:** OAuth opens a browser for re-auth, which breaks unattended cron/CI flows. JWT (RSA key-pair) is service-account-friendly, stable across sessions, and matches the production cron path that owns the SP runs.
+>
+> **deploy_sp.py uniform default:** All 13 Cumulus plans' `scripts/deploy_sp.py` default to unflagged `snow sql -f <file>` (active JWT connection). The `--connection NAME` argument is opt-in for the rare ad-hoc OAuth case. Hardcoding `default="GSB13421"` was a regression caught and fixed on 2026-05-29.
 
 ---
 

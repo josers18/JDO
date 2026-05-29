@@ -3,6 +3,8 @@
 Consolidated Mermaid diagram reference for the Snowflake data pipelines.
 
 > All diagrams render natively in GitHub markdown. No external image files needed.
+>
+> **Multi-org Phase A live as of 2026-05-29.** `MASTER_ACCOUNTS` and the 13 Cumulus dataset tables now carry `ORG_ID VARCHAR(18) DEFAULT 'JDO'` as the leading column. For the Cumulus-family lineage diagram see [`ARCHITECTURE.md`](ARCHITECTURE.md#cumulus-dataset-family-13-plans-397m-rows). Per-org rollout runbook: [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).
 
 ---
 

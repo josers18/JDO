@@ -4,6 +4,8 @@ This sister-project owns the shared infrastructure for all 13 Cumulus dataset pi
 Pattern mirrors `Snowflake_CSAT_NPS/`.
 
 > **Multi-org rollout?** See `docs/ROLLOUT.md` for the Phase A (Snowflake schema migration to add `ORG_ID`) + Phase B (per-org DC stream replay) runbook.
+>
+> **Phase A is LIVE** (commit `c9119d32`, 2026-05-29). `MASTER_ACCOUNTS`, the 13 dataset tables, and `V_ACCOUNT_ANCHORS` (v1.2) all carry `ORG_ID VARCHAR(18) DEFAULT 'JDO'`. ~3.97M rows tagged uniformly. JDO existing loaders continue working unchanged via the DEFAULT backstop. Phase B runs when org #2 is provisioned.
 
 ## Boundaries
 
