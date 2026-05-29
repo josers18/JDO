@@ -1,10 +1,17 @@
 """Per-dataset pytest config — pulls the shared 100-anchor fixture from
-Snowflake_Cumulus_Common and provides Plan 8 Wealth-Management-audience overrides.
+Snowflake_Cumulus_Common and exposes Plan 8's all-accounts audience.
 
-Plan 8 audience: `CLIENT_CATEGORY == 'Wealth Management'`. Of SAMPLE_ANCHORS'
-100 anchors, 19 (TEST-PERSON-26 through TEST-PERSON-44) carry the Wealth
-Management category. Cohort-specific tests must `pytest.skip` if this drops
-below 3 (per Plan 5/6 pattern).
+Plan 8 audience (rebroadcast 2026-05-28): every anchor with a non-empty
+ACCOUNT_ID. The dataset originally filtered to `CLIENT_CATEGORY = 'Wealth
+Management'` (~3,920 rows / 19 fixture anchors), but the rebroadcast widens
+to all 36,813 anchors × 24 months of history (~884K rows) so that demo
+dashboards have MGP coverage for ~all customer profiles, not just the 11%
+Wealth Management slice.
+
+`out_of_audience_anchors` therefore returns an empty list — the only
+out-of-audience condition is an empty/missing ACCOUNT_ID, which is asserted
+directly in the L1 test rather than through a cohort fixture. Tests that
+depend on a non-empty out-of-audience cohort `pytest.skip`.
 """
 import importlib.util
 import sys
@@ -33,18 +40,22 @@ import pytest  # noqa: E402
 
 @pytest.fixture
 def all_anchors():
-    """The full 100-anchor fixture (50 person + 50 business)."""
+    """The full 100-anchor fixture (50 PERSON + 50 BUSINESS)."""
     return SAMPLE_ANCHORS
 
 
 @pytest.fixture
 def in_audience_anchors(all_anchors):
-    """Plan 8 audience predicate: CLIENT_CATEGORY = 'Wealth Management'."""
-    return [a for a in all_anchors if a["CLIENT_CATEGORY"] == "Wealth Management"]
+    """Plan 8 (rebroadcast) audience predicate: any anchor with a non-empty
+    ACCOUNT_ID — i.e. all 100 fixture anchors."""
+    return [a for a in all_anchors if a.get("ACCOUNT_ID")]
 
 
 @pytest.fixture
 def out_of_audience_anchors(all_anchors):
-    """Anchors that fail the Wealth Management predicate (Retail / Small Business
-    / Commercial Banking + all BUSINESS rows)."""
-    return [a for a in all_anchors if a["CLIENT_CATEGORY"] != "Wealth Management"]
+    """No fixture-level out-of-audience cohort exists under the all-accounts
+    rebroadcast — every fixture row has a non-empty ACCOUNT_ID. Returns an
+    empty list; tests that need a violator should `pytest.skip` rather than
+    fabricate one (empty-ACCOUNT_ID is exercised directly via a literal in
+    the L1 suite)."""
+    return []

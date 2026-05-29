@@ -1,27 +1,37 @@
 """MoneyGuidePro / eMoney / NaviPlan-style synthetic financial-plan generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS. Smallest Cumulus dataset by
-2.9× — Wealth Management only (~3,920 anchors). Emits exactly one row
-per Wealth anchor per calendar month (1:1, ~3,920 rows/month).
+FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS. Cumulus rebroadcast (v2):
+all-accounts audience (~36,813 anchors, PERSON + BUSINESS) with current-month
+emission. The companion backfill SP (sp_backfill_mgp_financial_plans) iterates
+the same row-factory across 24 months for ~884K rows — eliminating the 89%
+empty-customer gap that the v1 Wealth-Management-only audience left behind.
 
-Audience: CLIENT_CATEGORY = 'Wealth Management'
-Cadence:  MONTHLY (07:00 UTC on the 1st)
-Salt:     "mgp" (month-bucketed; single salt — no year-stable subfields,
-          unlike Plan 7's three-salt arrangement; back to Plan 6's shape)
+Audience: all distinct V_ACCOUNT_ANCHORS rows (no predicate).
+Cadence:  MONTHLY (07:00 UTC on the 1st) — emits one row per anchor for the
+          current calendar month.
+Salt:     "mgp" (month-bucketed, single-salt).
 Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-8-mgp-financial-plans.md
 Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-8-mgp-financial-plans-rowspec.md
 
-STRUCTURAL DEVIATIONS from Plans 1-7 (load-bearing for tests, not the SP itself):
-  1. Smallest audience by 2.9×. SAMPLE_ANCHORS at 100 anchors yields ~3-5
-     Wealth anchors — too narrow for distributional convergence tests.
-     L1 shifts to per-anchor deterministic invariants; the SP shape is
-     unaffected, but the test contract changes.
-  2. Status-driven NULL semantics. PLAN_STATUS (Active/Draft/Stale) gates
-     LAST_REVIEW_DATE and NEXT_REVIEW_DATE — the first Cumulus dataset whose
-     NULL semantics depend on a non-Boolean enum. PLAN_STATUS must be
-     computed BEFORE the review-date helper so NULL gating is determined
-     upfront (status-first computation; see _row_for body).
+STRUCTURAL CHANGES from v1 (Wealth-Management-only):
+  1. 24-month history backfill. Backfill SP iterates _rows_for over 24 month
+     starts, producing 36,813 x 24 = 883,512 rows. Current-cycle SP only
+     emits the current month (1 month per run).
+  2. All-accounts audience. Plan 7's CLIENT_CATEGORY filter is dropped — the
+     row factory now serves the full anchor population (PERSON + BUSINESS).
+     Audience predicate stays as an empty-string sentinel for symmetry with
+     Plans 1-7.
+  3. BUSINESS-anchor fallback. PERSON anchors keep BIRTHDATE + ANNUAL_INCOME
+     populated; BUSINESS anchors have both NULL. Two new helpers,
+     _effective_age and _effective_annual_income, synthesize a "business
+     owner" persona (year-stable owner age in [40,65] from ACCOUNT_ID hash;
+     owner draw ~5% of ANNUAL_REVENUE clamped to [150K, 2M]). Existing
+     age/income-banded helpers downstream are unchanged.
+
+The cycle parameter throughout the row factory is the *month*, not the
+run timestamp. month_start.date() anchors every date-helper call so
+mid-month re-runs and historical backfill runs are byte-identical.
 """
 from __future__ import annotations
 
@@ -41,9 +51,11 @@ TABLE        = "FINS.PUBLIC.MGP_FINANCIAL_PLANS"
 TASK_NAME    = "TASK_MONTHLY_MGP_FINANCIAL_PLANS"
 DATASET_SALT = "mgp"
 
-_AUDIENCE_PREDICATE = "CLIENT_CATEGORY = 'Wealth Management'"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+# All-accounts audience — no predicate. Empty string kept for symmetry with
+# Plans 1-7 (where this slot held a CLIENT_CATEGORY filter).
+_AUDIENCE_PREDICATE = ""
+AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "ACCOUNT_ID", "PROFILE_MONTH",
@@ -64,41 +76,101 @@ _GOAL_TYPES = ["Retirement", "College", "Vacation Home", "Legacy", "Travel", "Ed
 # -------------------------------------------------------------------
 
 def _anchor_in_audience(anchor: dict) -> bool:
-    """Translate _AUDIENCE_PREDICATE into a Python predicate.
+    """All-accounts audience — every anchor with a non-empty ACCOUNT_ID is in.
 
-    Wealth Management anchors only, with a non-empty ACCOUNT_ID. The L1
-    audience-violator test depends on this returning False for both a
-    missing ACCOUNT_ID and a wrong CLIENT_CATEGORY.
+    No CLIENT_CATEGORY filter. The L1 audience-violator test still depends on
+    this returning False for a missing or empty ACCOUNT_ID.
     """
-    return (
-        anchor.get("CLIENT_CATEGORY") == "Wealth Management"
-        and bool(anchor.get("ACCOUNT_ID"))
-    )
+    return bool(anchor.get("ACCOUNT_ID"))
+
+
+# -------------------------------------------------------------------
+# BUSINESS-anchor fallback helpers.
+#
+# PERSON anchors carry populated BIRTHDATE and ANNUAL_INCOME. BUSINESS anchors
+# carry NULL for both — instead they expose ANNUAL_REVENUE. Rather than
+# branching deep inside the synthesis helpers, we synthesize a "business owner"
+# persona at the anchor edge:
+#
+#   _effective_age — year-stable owner age in [40, 65] from a hash of
+#       ACCOUNT_ID when BIRTHDATE is missing. The age is held constant across
+#       a calendar year (it advances by 1 each calendar year so 24-month
+#       backfills see two age values per BUSINESS anchor at most).
+#
+#   _effective_annual_income — owner draw / management compensation modeled
+#       as ~5% of ANNUAL_REVENUE, clamped to [150K, 2M]. Drops back to 250K
+#       only when both ANNUAL_INCOME and ANNUAL_REVENUE are missing.
+#
+# Both helpers are pure and depend only on the anchor dict + month_start.
+# -------------------------------------------------------------------
+
+def _effective_age(anchor: dict, month_start: date) -> int:
+    """Age at month_start. PERSON anchors use BIRTHDATE; BUSINESS anchors use
+    a year-stable owner-age in [40, 65] derived from ACCOUNT_ID hash.
+
+    Uses the v1 _age_from_birthdate logic when BIRTHDATE is populated. When
+    BIRTHDATE is missing (BUSINESS anchors), the synthesized owner-age is
+    held year-stable so a 24-month backfill produces at most two age values
+    per anchor. Owner-age band [40, 65] reflects typical business-owner
+    demographics and keeps the downstream age-banded helpers in their
+    well-tested middle ranges (no <35 or >=70 clipping).
+    """
+    bd = anchor.get("BIRTHDATE")
+    if bd is not None:
+        # v1 logic, lifted verbatim.
+        if isinstance(bd, str):
+            try:
+                parsed: date = date.fromisoformat(bd.split("T")[0])
+            except ValueError:
+                parsed = date(1980, 1, 1)
+        elif isinstance(bd, datetime):
+            parsed = bd.date()
+        elif isinstance(bd, date):
+            parsed = bd
+        else:
+            return 40
+        return month_start.year - parsed.year - (
+            (month_start.month, month_start.day) < (parsed.month, parsed.day)
+        )
+
+    # BUSINESS-anchor fallback. Year-stable owner-age in [40, 65].
+    aid = anchor.get("ACCOUNT_ID") or ""
+    base = 40 + (abs(hash(f"{aid}|owner-age")) % 26)  # [40, 65]
+    # Advance by month_start.year - 2020 so the age glides 1yr/yr — keeps the
+    # anchor "aging" across the 24-month backfill in a way analogous to
+    # PERSON anchors with real BIRTHDATEs.
+    return min(85, base + max(0, month_start.year - 2020))
+
+
+def _effective_annual_income(anchor: dict) -> float:
+    """ANNUAL_INCOME if populated; else ANNUAL_REVENUE x 0.05 clamped to
+    [150K, 2M]; else 250K fallback.
+
+    The 5% multiplier models owner-draw / management compensation as a rough
+    fraction of business revenue — anchored low enough that a $1M-revenue
+    BUSINESS clamps to the 150K floor (still affluent) and high enough that
+    a $40M-revenue BUSINESS clamps to the 2M ceiling (capped to keep the
+    downstream Monte Carlo / total-goal helpers in their tested ranges).
+    """
+    income = anchor.get("ANNUAL_INCOME")
+    if income is not None:
+        try:
+            return float(income)
+        except (TypeError, ValueError):
+            pass
+    revenue = anchor.get("ANNUAL_REVENUE")
+    if revenue is not None:
+        try:
+            r = float(revenue)
+            return max(150_000.0, min(2_000_000.0, r * 0.05))
+        except (TypeError, ValueError):
+            pass
+    return 250_000.0
 
 
 # -------------------------------------------------------------------
 # Per-field synthesis helpers — implemented verbatim from the rowspec.
 # -------------------------------------------------------------------
-
-def _age_from_birthdate(birthdate: Any, ref_date: date) -> int:
-    """ISO-string / date / datetime → integer age at ref_date.
-
-    BIRTHDATE in V_ACCOUNT_ANCHORS is an ISO 'YYYY-MM-DD' string in the
-    fixtures and the live view. For Wealth Management the field is 100%
-    populated, but we tolerate other shapes for L1 fixture flexibility.
-    """
-    if birthdate is None:
-        return 40
-    if isinstance(birthdate, str):
-        bd = date.fromisoformat(birthdate.split("T")[0])
-    elif isinstance(birthdate, datetime):
-        bd = birthdate.date()
-    elif isinstance(birthdate, date):
-        bd = birthdate
-    else:
-        return 40
-    return ref_date.year - bd.year - ((ref_date.month, ref_date.day) < (bd.month, bd.day))
-
 
 def _plan_status(rng: random.Random) -> str:
     """Active / Draft / Stale at ~80% / 12% / 8%."""
@@ -108,14 +180,13 @@ def _plan_status(rng: random.Random) -> str:
     )[0]
 
 
-def _plan_last_updated(plan_status: str, month_start: datetime, rng: random.Random) -> date:
+def _plan_last_updated(plan_status: str, month_start: date, rng: random.Random) -> date:
     """Days-ago bias keyed off plan_status; never future-dated.
 
-    Anchored on month_start (not run_ts) so mid-month re-runs are byte-identical
-    — the AGENTS.md determinism contract requires it. The rowspec skeleton uses
-    run_ts.date() directly, which would drift across mid-month re-runs since
-    days-ago is subtracted from a moving "today". Anchoring on month_start.date()
-    keeps date-coherence (result ≤ month_start ≤ run_ts.date()) intact.
+    Anchored on month_start (a date) so mid-month re-runs and historical
+    backfill runs are byte-identical — the AGENTS.md determinism contract
+    requires it. Result is always <= month_start, which is itself <=
+    run_ts.date() in the current-cycle SP.
     """
     if plan_status == "Stale":
         days_ago = rng.randint(365, 1095)
@@ -123,7 +194,7 @@ def _plan_last_updated(plan_status: str, month_start: datetime, rng: random.Rand
         days_ago = rng.randint(0, 90)
     else:
         days_ago = rng.randint(30, 365)
-    return month_start.date() - timedelta(days=days_ago)
+    return month_start - timedelta(days=days_ago)
 
 
 def _retirement_target_age(current_age: int, rng: random.Random) -> int:
@@ -141,7 +212,12 @@ def _retirement_target_age(current_age: int, rng: random.Random) -> int:
 
 def _monthly_income_target(annual_income: float, rng: random.Random) -> int:
     """70-90% replacement-rate band, expressed monthly. Per-anchor invariant test
-    in L1 asserts the result lies in [annual_income × 0.70 / 12, annual_income × 0.90 / 12]."""
+    in L1 asserts the result lies in [annual_income x 0.70 / 12, annual_income x 0.90 / 12].
+
+    No absolute floor/ceiling clamp — the per-anchor band is the contract.
+    DDL allows any NUMBER(8,0) value; the L1 absolute-range test 4e covers
+    the floor only for BUSINESS-fallback anchors where the rowspec band was
+    designed."""
     replacement_rate = rng.uniform(0.70, 0.90)
     monthly = annual_income * replacement_rate / 12
     return round(monthly)
@@ -187,8 +263,8 @@ def _monte_carlo_success(annual_income: float, age: int, goal_count: int,
 
 
 def _asset_allocation(age: int, rng: random.Random) -> str:
-    """Textbook 5-tier age glide. L1 invariant: <35 → {Aggressive, Moderate Aggressive};
-    ≥70 → {Moderate Conservative, Conservative}. Other bands have noise overlap."""
+    """Textbook 5-tier age glide. L1 invariant: <35 -> {Aggressive, Moderate Aggressive};
+    >=70 -> {Moderate Conservative, Conservative}. Other bands have noise overlap."""
     if age < 35:
         return rng.choices(
             ["Aggressive", "Moderate Aggressive"], weights=[0.65, 0.35]
@@ -213,7 +289,7 @@ def _asset_allocation(age: int, rng: random.Random) -> str:
     )[0]
 
 
-def _review_dates(plan_status: str, plan_last_updated: date, month_start: datetime,
+def _review_dates(plan_status: str, plan_last_updated: date, month_start: date,
                    rng: random.Random) -> tuple[date | None, date | None]:
     """Status-gated review dates with a date-coherence guard.
 
@@ -222,30 +298,21 @@ def _review_dates(plan_status: str, plan_last_updated: date, month_start: dateti
       - Stale: NEXT_REVIEW_DATE None (no review scheduled).
       - Active: both populated.
 
-    Anchored on month_start.date() (not run_ts.date()) so mid-month re-runs are
-    byte-identical. The rowspec skeleton uses run_ts.date() directly; anchoring
-    on month_start.date() keeps both the determinism contract AND the date-
-    coherence invariants intact:
-      - last_review clamp lands ≥7 days before month_start, so always ≤ run_ts.date().
-      - next_review = month_start + ≥30 days; for any in-month run (day-of-month
-        ≤ 31), next_review is ≥ month_start + 30 days > run_ts.date(). The 30-day
-        floor is the rowspec's lower bound and is wide enough that no in-month
-        run can land on or after the next review date.
-
-    The 7-90 day clamp band: floor 7 keeps clamped last_reviews recognisably
-    "recent" without colliding with run_ts (avoids ambiguous edge-of-day
-    comparisons); cap 90 keeps the distribution tight rather than re-introducing
-    multi-month variance after a clamp.
+    Anchored on month_start (a date) so mid-month re-runs and historical
+    backfill runs are byte-identical. The 7-90 day clamp band keeps a
+    clamped last_review recognisably "recent" without colliding with
+    month_start; the 30-day next_review floor keeps next_review in the
+    future relative to any in-month run timestamp.
     """
     last_review: date | None = None
     next_review: date | None = None
     if plan_status != "Draft":
         review_offset = rng.randint(30, 365)
         last_review = plan_last_updated + timedelta(days=review_offset)
-        if last_review > month_start.date():
-            last_review = month_start.date() - timedelta(days=rng.randint(7, 90))
+        if last_review > month_start:
+            last_review = month_start - timedelta(days=rng.randint(7, 90))
     if plan_status != "Stale":
-        next_review = month_start.date() + timedelta(days=rng.randint(30, 540))
+        next_review = month_start + timedelta(days=rng.randint(30, 540))
     return last_review, next_review
 
 
@@ -258,42 +325,59 @@ def _advisor_notes_flag(plan_status: str, rng: random.Random) -> bool:
 
 
 # -------------------------------------------------------------------
-# _row_for — substantive synthesis logic (per rowspec)
+# _rows_for — substantive synthesis logic (per rowspec)
 # -------------------------------------------------------------------
 
-def _row_for(anchor: dict, run_ts: datetime) -> dict:
-    """Pure function: anchor row → fact row. Deterministic on (account_id, month_start).
+def _rows_for(anchor: dict, profile_month: date | datetime) -> list[dict]:
+    """Pure function: anchor row -> 1-element list of fact rows.
 
-    Reads anchor['ACCOUNT_ID'], 'BIRTHDATE', 'ANNUAL_INCOME', 'CLIENT_CATEGORY'.
-    Mid-month re-runs are byte-identical because month_start truncates the
-    day-of-month and time of day from run_ts before the seed is derived.
+    Cycle parameter is the *month* (date or datetime), NOT a run timestamp.
+    This is the v2 contract change: the backfill SP iterates _rows_for over
+    24 month_start values, and the current-cycle SP passes today's month.
+    Truncating any datetime input to first-of-month keeps mid-month re-runs
+    byte-identical with first-of-month runs.
+
+    Reads anchor['ACCOUNT_ID'], 'BIRTHDATE', 'ANNUAL_INCOME', 'ANNUAL_REVENUE',
+    'ACCOUNT_TYPE_FLAG'. PERSON anchors use BIRTHDATE + ANNUAL_INCOME directly;
+    BUSINESS anchors fall back to _effective_age / _effective_annual_income.
     """
     if not _anchor_in_audience(anchor):
         raise ValueError(
-            f"anchor failed audience predicate "
-            f"({_AUDIENCE_PREDICATE}) or has empty ACCOUNT_ID: {anchor!r}"
+            f"anchor failed all-accounts audience predicate "
+            f"(ACCOUNT_ID empty/missing): {anchor!r}"
+        )
+
+    # Normalize cycle parameter to a first-of-month date.
+    if isinstance(profile_month, datetime):
+        month_start: date = profile_month.replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        ).date()
+    elif isinstance(profile_month, date):
+        month_start = profile_month.replace(day=1)
+    else:
+        raise TypeError(
+            f"profile_month must be date or datetime, got {type(profile_month)!r}"
         )
 
     account_id = anchor["ACCOUNT_ID"]
-    birthdate  = anchor.get("BIRTHDATE")
-    income     = float(anchor.get("ANNUAL_INCOME") or 0)
-
-    month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    seed = seed_for(account_id, DATASET_SALT, month_start)
+    seed = seed_for(
+        account_id, DATASET_SALT,
+        datetime.combine(month_start, datetime.min.time()),
+    )
     rng = random.Random(seed)
 
-    # Anchor age on month_start.date() (not run_ts.date()) so an anchor whose
-    # birthday falls mid-month doesn't flip age bands between mid-month re-runs.
-    # Otherwise: birthday-day-N anchor at 50→51 transition has age=50 on day 1
-    # but age=51 on day 28, which cascades through every age-banded helper
-    # (retirement target, asset allocation, total goal, goal count).
-    age = _age_from_birthdate(birthdate, month_start.date())
+    # Age + income via the BUSINESS-aware helpers. PERSON anchors take the
+    # populated paths; BUSINESS anchors take the synthesized owner-persona
+    # paths. Either way, downstream age-banded / income-banded helpers see
+    # the same shape of input.
+    age = _effective_age(anchor, month_start)
+    income = _effective_annual_income(anchor)
 
     # Status-first computation: PLAN_STATUS gates the NULL semantics for
     # LAST_REVIEW_DATE / NEXT_REVIEW_DATE, so it must be drawn before
     # _review_dates is called. Reordering breaks the load-bearing L1
-    # NULL-semantic invariants (Active → both populated, Draft → LAST None,
-    # Stale → NEXT None).
+    # NULL-semantic invariants (Active -> both populated, Draft -> LAST None,
+    # Stale -> NEXT None).
     plan_status  = _plan_status(rng)
     plan_updated = _plan_last_updated(plan_status, month_start, rng)
 
@@ -307,9 +391,9 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     last_review, next_review = _review_dates(plan_status, plan_updated, month_start, rng)
     notes_flag = _advisor_notes_flag(plan_status, rng)
 
-    return {
+    return [{
         "ACCOUNT_ID":                    account_id,
-        "PROFILE_MONTH":                 month_start.date(),
+        "PROFILE_MONTH":                 month_start,
         "PLAN_STATUS":                   plan_status,
         "PLAN_LAST_UPDATED_DATE":        plan_updated,
         "RETIREMENT_TARGET_AGE":         retire_age,
@@ -321,16 +405,20 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
         "LAST_REVIEW_DATE":              last_review,
         "NEXT_REVIEW_DATE":              next_review,
         "ADVISOR_NOTES_FLAG":            notes_flag,
-        "GENERATED_AT":                  month_start,
-    }
+        "GENERATED_AT":                  datetime.combine(month_start, datetime.min.time()),
+    }]
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_MGP_FINANCIAL_PLANS
+# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MGP_FINANCIAL_PLANS
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
-    """The 5-step canonical pattern: read → build → MERGE → assert → log."""
+    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log.
+
+    Current-cycle SP — emits exactly one row per anchor for the current
+    calendar month. The companion backfill SP handles the 24-month history.
+    """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
@@ -339,10 +427,16 @@ def main(session: Any) -> str:
         audience = session.sql(AUDIENCE_SQL).collect()
         accounts_processed = len(audience)
 
+        current_month_start = started.replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        ).date()
+
         records, errors = [], []
         for row in audience:
             try:
-                records.append(_row_for(_anchor_to_dict(row), started))
+                records.extend(
+                    _rows_for(_anchor_to_dict(row), current_month_start)
+                )
             except Exception as exc:
                 errors.append((row.ACCOUNT_ID, str(exc)[:200]))
         max_tolerated = max(10, len(audience) // 100)
@@ -359,6 +453,9 @@ def main(session: Any) -> str:
 
         rows_inserted = _merge(session, records)
 
+        # Coverage: every anchor must be represented at least once across the
+        # full table (current-month rows MERGE-replace previous current-month
+        # rows in place, so >= holds).
         actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
         assert_coverage(session, COVERAGE_SQL, actual_sql)
 
@@ -384,7 +481,7 @@ def main(session: Any) -> str:
 
 
 def _anchor_to_dict(row: Any) -> dict:
-    """Snowpark Row → plain dict so _row_for can be tested with dict literals."""
+    """Snowpark Row -> plain dict so _rows_for can be tested with dict literals."""
     if isinstance(row, dict):
         return row
     if hasattr(row, "asDict"):
@@ -412,7 +509,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         NEXT_REVIEW_DATE) pass through — Plan 1 demonstrates that pandas
         serialises datetime.date as DATE-compatible, so write_pandas creates
         the staging columns with DATE-friendly types and Snowflake auto-coerces
-        on MERGE. The 2 NULLable date columns serialise Python None → SQL NULL.
+        on MERGE. The 2 NULLable date columns serialise Python None -> SQL NULL.
     """
     if not records:
         return 0
