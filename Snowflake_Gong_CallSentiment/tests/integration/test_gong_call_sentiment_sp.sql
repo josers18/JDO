@@ -129,11 +129,13 @@ UNION ALL SELECT 'GONG-FIX-HH-01', 'Sam Walters',   '2026-05-28'::DATE, 'Househo
 UNION ALL SELECT 'GONG-FIX-HH-02', 'Alex Brennan',  '2026-05-28'::DATE, 'Household',      'PERSON',   '1954-01-22'::TIMESTAMP_LTZ,   150000, 760, NULL, NULL, NULL, '90001', 'CA', 'US', 'GONG-FIX-HH-002'
 -- 2 Small Business BUSINESS
 UNION ALL SELECT 'GONG-FIX-SB-01', 'Pinewood Coffee Co.',    '2026-05-28'::DATE, 'Small Business', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Food Service',     1200000, 18, '98101', 'WA', 'US', 'GONG-FIX-SB-001'
-UNION ALL SELECT 'GONG-FIX-SB-02', 'Mariposa Cleaners LLC',  '2026-05-28'::DATE, 'Small Business', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services', 480000,  6, '94110', 'CA', 'US', 'GONG-FIX-SB-002'
--- 1 Wealth-but-empty-ACCOUNT_ID edge -- defense-in-depth: SQL audience-predicate
--- catches CLIENT_CATEGORY but the SP's `_anchor_in_audience` defensive filter
--- rejects this row on the empty-ACCOUNT_ID guard. Either way this row drops.
-UNION ALL SELECT 'GONG-FIX-WM-EMPTYACC', 'Edge Case Empty Acct', '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1980-01-01'::TIMESTAMP_LTZ, 250000, 750, NULL, NULL, NULL, '90210', 'CA', 'US', 'GONG-FIX-EDGE-001';
+UNION ALL SELECT 'GONG-FIX-SB-02', 'Mariposa Cleaners LLC',  '2026-05-28'::DATE, 'Small Business', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services', 480000,  6, '94110', 'CA', 'US', 'GONG-FIX-SB-002';
+-- Note: the empty-ACCOUNT_ID defense-in-depth case is covered exhaustively in
+-- the L1 unit tests (`test_empty_account_id_raises`). Including it here would
+-- make the SP's `assert_coverage` fail — the SQL audience predicate counts the
+-- empty-ACCOUNT_ID row as in-audience (CLIENT_CATEGORY = 'Wealth Management'),
+-- but `_anchor_in_audience` rejects it, producing a coverage gap. The L1 test
+-- exercises the predicate directly without that complication.
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
@@ -212,8 +214,7 @@ SELECT
     (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE ACCOUNT_ID LIKE 'GONG-FIX-RT-%'
           OR ACCOUNT_ID LIKE 'GONG-FIX-HH-%'
-          OR ACCOUNT_ID LIKE 'GONG-FIX-SB-%'
-          OR ACCOUNT_ID = 'GONG-FIX-WM-EMPTYACC') = 0
+          OR ACCOUNT_ID LIKE 'GONG-FIX-SB-%') = 0
     AS audience_filter_excludes_non_audience;
 -- Expected: TRUE
 

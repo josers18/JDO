@@ -477,6 +477,13 @@ def _merge(session: Any, records: list[dict]) -> int:
 
     import pandas as pd
     df = pd.DataFrame(records)
+    # Force date-typed columns to pandas datetime dtype so write_pandas
+    # auto_create_table doesn't mis-type all-NULL columns as NUMBER(38,0).
+    # OUTLOOK_LAST_CHANGED_DATE is ~80% NULL when RATING_OUTLOOK='Stable';
+    # at fixture-scale (8 rows) it can be 100% NULL on some seeds, which
+    # write_pandas serialises as NUMBER and breaks the DATE-typed MERGE.
+    for col in ("PROFILE_DATE", "OUTLOOK_LAST_CHANGED_DATE"):
+        df[col] = pd.to_datetime(df[col])
     staging = "MOODYS_MARKET_CONTEXT_STAGING"
 
     session.write_pandas(
@@ -490,10 +497,12 @@ def _merge(session: Any, records: list[dict]) -> int:
         USING (
             SELECT
                 TICKER,
-                PROFILE_DATE::DATE AS PROFILE_DATE,
+                TO_DATE(TO_TIMESTAMP_NTZ(PROFILE_DATE::NUMBER / 1000000000)) AS PROFILE_DATE,
                 CREDIT_RATING,
                 RATING_OUTLOOK,
-                OUTLOOK_LAST_CHANGED_DATE::DATE AS OUTLOOK_LAST_CHANGED_DATE,
+                CASE WHEN OUTLOOK_LAST_CHANGED_DATE IS NULL THEN NULL
+                     ELSE TO_DATE(TO_TIMESTAMP_NTZ(OUTLOOK_LAST_CHANGED_DATE::NUMBER / 1000000000))
+                END AS OUTLOOK_LAST_CHANGED_DATE,
                 MARKET_CAP_USD,
                 DAILY_VOLATILITY_PCT,
                 THIRTY_DAY_PRICE_CHANGE_PCT,
