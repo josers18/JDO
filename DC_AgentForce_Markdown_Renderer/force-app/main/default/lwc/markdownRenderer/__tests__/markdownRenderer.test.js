@@ -243,6 +243,178 @@ describe('value getter', () => {
     });
 });
 
+describe('HTML input path (auto-detect + sanitize)', () => {
+    // When the input is HTML rather than markdown, it goes through the
+    // DOMParser-based sanitizer instead of the markdown regex pipeline.
+    // Both code paths emit the same allowlisted tag set.
+
+    it('detects and renders simple HTML', () => {
+        const el = mount('<p>This is <strong>HTML</strong>.</p>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<p>');
+            expect(out).toContain('<strong>HTML</strong>');
+        });
+    });
+
+    it('strips disallowed tags but keeps inner content', () => {
+        // <div> isn't in the allowlist; its content should survive as text.
+        const el = mount('<div>Important text</div>');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('Important text');
+        });
+    });
+
+    it('drops <script> tags AND their contents', () => {
+        const el = mount('<p>Safe <script>alert(1)</script> text</p>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).not.toContain('<script>');
+            expect(out).not.toContain('alert(1)');
+            expect(out).toContain('Safe');
+            expect(out).toContain('text');
+        });
+    });
+
+    it('drops <style> tags AND their contents', () => {
+        const el = mount('<style>body { background: red }</style><p>Hi</p>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).not.toContain('<style>');
+            expect(out).not.toContain('background');
+        });
+    });
+
+    it('strips event handler attributes', () => {
+        const el = mount('<p onclick="alert(1)">click</p>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).not.toContain('onclick');
+            expect(out).not.toContain('alert');
+        });
+    });
+
+    it('strips style attributes', () => {
+        const el = mount('<p style="color:red">red text</p>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).not.toContain('style=');
+            expect(out).not.toContain('color:red');
+        });
+    });
+
+    it('strips class and id attributes', () => {
+        const el = mount('<p class="evil" id="x">text</p>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).not.toContain('class=');
+            expect(out).not.toContain('id=');
+        });
+    });
+
+    it('preserves href on anchor + URL allowlist applies', () => {
+        const el = mount('<a href="https://example.com">link</a>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('href="https://example.com"');
+            expect(out).toContain('rel="noopener noreferrer"');
+            expect(out).toContain('target="_blank"');
+        });
+    });
+
+    it('rejects javascript: URI on anchor href', () => {
+        const el = mount('<a href="javascript:alert(1)">click</a>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('href="#"');
+            expect(out).not.toContain('javascript:');
+        });
+    });
+
+    it('rejects padded javascript: URI on anchor href', () => {
+        const el = mount('<a href="java\tscript:alert(1)">click</a>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('href="#"');
+            expect(out).not.toContain('javascript:');
+        });
+    });
+
+    it('rejects data: URI on anchor href', () => {
+        const el = mount('<a href="data:text/html,<script>alert(1)</script>">click</a>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('href="#"');
+            expect(out).not.toContain('data:');
+        });
+    });
+
+    it('drops <img> with onerror payload', () => {
+        const el = mount('<img src=x onerror="alert(1)">text');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).not.toContain('<img');
+            expect(out).not.toContain('onerror');
+            expect(out).not.toContain('alert');
+        });
+    });
+
+    it('drops <iframe>', () => {
+        const el = mount('<iframe src="https://evil.com"></iframe>');
+        return Promise.resolve().then(() => {
+            expect(html(el)).not.toContain('<iframe');
+        });
+    });
+
+    it('preserves nested allowlisted tags', () => {
+        const el = mount('<ul><li><strong>a</strong></li><li><em>b</em></li></ul>');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<ul>');
+            expect(out).toContain('<li><strong>a</strong></li>');
+            expect(out).toContain('<li><em>b</em></li>');
+        });
+    });
+
+    it('preserves HTML tables', () => {
+        const html_input = '<table><thead><tr><th>A</th><th>B</th></tr></thead>'
+            + '<tbody><tr><td>1</td><td>2</td></tr></tbody></table>';
+        const el = mount(html_input);
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('<table>');
+            expect(out).toContain('<th>A</th>');
+            expect(out).toContain('<td>2</td>');
+        });
+    });
+
+    it('escapes text content (e.g. & in body)', () => {
+        const el = mount('<p>A & B</p>');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('A &amp; B');
+        });
+    });
+
+    it('handles plain text mixed into a known-html string', () => {
+        // Detected as HTML because of the <p>; surrounding text is escaped.
+        const el = mount('Lead text <p>paragraph</p> trailing & more');
+        return Promise.resolve().then(() => {
+            const out = html(el);
+            expect(out).toContain('Lead text');
+            expect(out).toContain('<p>paragraph</p>');
+            expect(out).toContain('trailing &amp; more');
+        });
+    });
+
+    it('plain markdown still goes through the markdown path (not HTML)', () => {
+        // No HTML tag pattern → markdown path; ** must convert to <strong>.
+        const el = mount('**not html, just markdown**');
+        return Promise.resolve().then(() => {
+            expect(html(el)).toContain('<strong>not html, just markdown</strong>');
+        });
+    });
+});
+
 describe('edge cases', () => {
     it('handles empty input', () => {
         const el = mount('');

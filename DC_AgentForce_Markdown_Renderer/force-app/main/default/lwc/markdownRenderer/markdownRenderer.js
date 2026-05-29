@@ -5,6 +5,29 @@ import { LightningElement, api } from 'lwc';
 const FENCE_TOKEN = 'FENCE';
 const INLINE_TOKEN = 'INLINE';
 
+// Tag allowlist for the HTML-input sanitizer path. Matches the tag set the
+// markdown parser emits, so both code paths produce the same surface area.
+const ALLOWED_TAGS = new Set([
+    'p', 'br', 'span',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'strong', 'b', 'em', 'i', 'u',
+    'ul', 'ol', 'li',
+    'blockquote',
+    'code', 'pre',
+    'a',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'hr'
+]);
+
+// Per-tag attribute allowlist. Anything not listed gets stripped during
+// sanitization. Note: NO style/class/onclick/etc. ever survives.
+const ALLOWED_ATTRS = {
+    a: ['href']
+};
+
+const URL_SAFE_RE = /^(https?:|mailto:|\/|#|\.\/)/i;
+const URL_STRIP_RE = /[\s\x00-\x1F\x7F]/g;
+
 export default class MarkdownRenderer extends LightningElement {
     @api value;
 
@@ -136,10 +159,101 @@ export default class MarkdownRenderer extends LightningElement {
         return text.replace(/[&<>"]/g, c => map[c]);
     }
 
+    /**
+     * Heuristic: route to the HTML path when the input contains a known
+     * structural-HTML tag. The allowlist intentionally excludes <script>
+     * and <style> so that a markdown doc containing a stray literal
+     * `<script>` continues through the markdown path, where escapeHtml
+     * neutralizes it. A code fence containing HTML also stays on the
+     * markdown path because the fence is extracted first (step 1) and
+     * its content is escaped at restore time (step 16).
+     */
+    isHtml(text) {
+        // Detect any known structural / inline-formatting / interactive HTML
+        // tag. Includes both safe tags (p, ul, a, etc.) AND unsafe ones the
+        // sanitizer must drop (img, iframe, object, embed). Excludes script
+        // and style — those are markdown-friendly to literal-render via escape.
+        return /<(?:p|div|span|table|thead|tbody|tr|th|td|h[1-6]|ul|ol|li|blockquote|pre|br|hr|strong|b|em|i|u|code|a|img|iframe|object|embed|video|audio|form|input|button|svg)\b/i.test(text);
+    }
+
+    /**
+     * Parse `text` as HTML in a detached, inert document, then walk the tree
+     * and emit only allowlisted tags with allowlisted attributes. Attribute
+     * values on `<a href>` are run through the same URL allowlist used by
+     * the markdown link parser; rel/target are force-added.
+     */
+    sanitizeHtml(text) {
+        // Parse into a detached doc — no scripts run, no <img> loads, no
+        // event handlers fire. Result is purely structural data we can walk.
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        return this._serializeChildren(doc.body);
+    }
+
+    _serializeChildren(node) {
+        let out = '';
+        for (const child of node.childNodes) {
+            out += this._serializeNode(child);
+        }
+        return out;
+    }
+
+    _serializeNode(node) {
+        // Text nodes: re-escape (browser already decoded entities during parse).
+        if (node.nodeType === 3) {
+            return this.escapeHtml(node.nodeValue);
+        }
+        // Anything that isn't an element (comments, CDATA, etc.) is dropped.
+        if (node.nodeType !== 1) return '';
+
+        const tag = node.tagName.toLowerCase();
+        // Disallowed tag → drop the wrapper, keep the children. This makes
+        // <script>foo</script> become "foo" (text-escaped), not vanish entirely
+        // for benign nested content.
+        if (!ALLOWED_TAGS.has(tag)) {
+            // BUT: <script> and <style> contents are themselves dangerous text;
+            // for those, drop the contents too.
+            if (tag === 'script' || tag === 'style') return '';
+            return this._serializeChildren(node);
+        }
+
+        // Build attribute string from the per-tag allowlist.
+        const allowedAttrs = ALLOWED_ATTRS[tag] || [];
+        let attrStr = '';
+        for (const attrName of allowedAttrs) {
+            const raw = node.getAttribute(attrName);
+            if (raw === null) continue;
+            const value = this._sanitizeAttrValue(tag, attrName, raw);
+            if (value === null) continue;
+            attrStr += ` ${attrName}="${this.escapeHtml(value)}"`;
+        }
+
+        // Force rel + target on every <a> (mirrors markdown link parser).
+        if (tag === 'a') {
+            attrStr += ' target="_blank" rel="noopener noreferrer"';
+        }
+
+        // Void elements (br, hr) self-close; everything else recurses.
+        if (tag === 'br' || tag === 'hr') {
+            return `<${tag}${attrStr}/>`;
+        }
+        return `<${tag}${attrStr}>${this._serializeChildren(node)}</${tag}>`;
+    }
+
+    _sanitizeAttrValue(tag, attrName, raw) {
+        if (tag === 'a' && attrName === 'href') {
+            const cleaned = raw.replace(URL_STRIP_RE, '');
+            return URL_SAFE_RE.test(cleaned) ? cleaned : '#';
+        }
+        return raw;
+    }
+
     renderedCallback() {
         const container = this.template.querySelector('.markdown-container');
         if (container && this.markdownText) {
-            const newHtml = this.parseMarkdown(this.markdownText);
+            const text = this.markdownText;
+            const newHtml = this.isHtml(text)
+                ? this.sanitizeHtml(text)
+                : this.parseMarkdown(text);
             if (container.innerHTML !== newHtml) {
                 container.innerHTML = newHtml;
             }
