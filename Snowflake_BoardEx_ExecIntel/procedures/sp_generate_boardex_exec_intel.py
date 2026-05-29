@@ -1,34 +1,45 @@
 """BoardEx / Equilar / ISS-style synthetic board-and-exec intelligence generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL. **Smallest Cumulus dataset of
-all 13 plans by 4.1×** — Commercial Banking only (~960 anchors), dethroning
-Plan 8 (MGP Financial Plans, 3,920) from that title. Emits exactly one row
-per Commercial Banking anchor per calendar month (1:1, ~960 rows/month).
+FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL. **Rebroadcast — all-accounts
+audience** (~36,813 anchors) with a 24-month history backfill companion
+SP. The original Plan 10 design narrowed to Commercial Banking only; the
+rebroadcast widens to every distinct anchor and emits one row per anchor
+per calendar month. Current-cycle SP emits ~36,813 rows per run; the
+backfill SP (sp_backfill_boardex_exec_intel.py) iterates audience x 24
+months for ~883K rows.
 
-Audience: CLIENT_CATEGORY = 'Commercial Banking'
-Cadence:  MONTHLY (07:00 UTC on the 1st)
-Salt:     "boardex" (month-bucketed; single salt — no year-stable subfields,
-          matches Plan 8's simpler shape)
+Audience: all accounts (1=1 predicate; SELECT DISTINCT to dedupe MASTER_ACCOUNTS).
+Cadence:  MONTHLY (07:00 UTC on the 1st).
+Salt:     "boardex" (month-bucketed; single salt — no year-stable subfields).
 Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-10-boardex-exec-intel.md
 Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-10-boardex-exec-intel-rowspec.md
 
-STRUCTURAL DEVIATIONS from Plans 1-8 (load-bearing for tests, not the SP itself):
-  1. Smallest audience by 4.1×. SAMPLE_ANCHORS at 100 anchors yields ZERO
-     Commercial Banking anchors (the 100-row Retail / Wealth / Household /
-     Small Business slice contains none of this cohort). The L1 conftest
-     therefore overrides SAMPLE_ANCHORS entirely with an inline 5-anchor
-     synthetic Commercial Banking fixture spanning the EMPLOYEE_COUNT and
-     INTERLOCK_DEGREE bias bands. The Plan 5/6 graceful-skip pattern is
-     NOT acceptable here — skipping every cohort assertion would defeat
-     the point.
-  2. Single NULLable column with independent 30%/70% Bernoulli draw —
-     RECENT_GOVERNANCE_EVENT_DATE has no enum gating (compare Plan 8's
-     PLAN_STATUS-gated 2-NULL setup). The MERGE source SELECT preserves
-     None -> NULL via straight pandas serialisation.
-  3. Per-anchor deterministic invariants are even more load-bearing than
-     Plan 8 because the cohort is too narrow for any rate-convergence
-     approach across SAMPLE_ANCHORS at all.
+PERSON-anchor personal-governance fallback (rebroadcast deviation):
+  PERSON anchors have NULL EMPLOYEE_COUNT and no real board. Rather than
+  reject them or fold into the BUSINESS bias bands, the rebroadcast emits
+  a "personal household" governance row:
+    - BOARD_SIZE = 1 (self only)
+    - BOARD_INDEPENDENCE_PCT = 100.0 (self is fully independent of self)
+    - WOMEN_BOARD_PCT in {0.0, 100.0} (deterministic from ACCOUNT_ID hash)
+    - MINORITY_BOARD_PCT in {0.0, 100.0} (deterministic from ACCOUNT_ID hash)
+    - BOARD_AVG_TENURE_YEARS = 5.0 default
+    - CEO_TENURE_YEARS = same as BOARD_AVG_TENURE_YEARS
+    - EXEC_TURNOVER_FLAG = False (no exec to turn over)
+    - GOVERNANCE_RATING = 'Adequate' (neutral)
+    - INTERLOCK_COUNT = 0
+    - KEY_DIRECTOR_NAME = 'Self'
+    - RECENT_GOVERNANCE_EVENT_DATE = None
+    - LAST_DATA_REFRESH_DATE = month_start.date() - small random offset
+  This keeps the schema invariant (15 columns) and makes coverage hold
+  trivially (every anchor produces exactly one row).
+
+Contract for the L1 sibling tests (Plan 10 T3):
+    from sp_generate_boardex_exec_intel import (
+        _rows_for,                # (anchor, profile_month) -> [dict] (len 1)
+        _anchor_in_audience,      # (anchor) -> bool — True iff ACCOUNT_ID non-empty
+        EXPECTED_OUTPUT_COLUMNS,  # frozenset of 15 unchanged column names
+    )
 """
 from __future__ import annotations
 
@@ -41,17 +52,19 @@ from cumulus_common import seed_for, assert_coverage
 
 
 # -------------------------------------------------------------------
-# Constants — these MUST stay in sync with the rowspec attachment
+# Constants — these MUST stay in sync with the rowspec attachment + DDL
 # -------------------------------------------------------------------
 
 TABLE        = "FINS.PUBLIC.BOARDEX_EXEC_INTEL"
 TASK_NAME    = "TASK_MONTHLY_BOARDEX_EXEC_INTEL"
 DATASET_SALT = "boardex"
 
-_AUDIENCE_PREDICATE = "CLIENT_CATEGORY = 'Commercial Banking'"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+# Rebroadcast: no audience predicate. Every distinct anchor contributes.
+_AUDIENCE_PREDICATE = ""  # all-accounts
+AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
 
+# 15-column output contract — UNCHANGED from the original Plan 10 DDL.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "ACCOUNT_ID", "PROFILE_MONTH",
     "BOARD_SIZE", "BOARD_INDEPENDENCE_PCT",
@@ -83,22 +96,31 @@ _LAST_NAMES = [
 # -------------------------------------------------------------------
 
 def _anchor_in_audience(anchor: dict) -> bool:
-    """Translate _AUDIENCE_PREDICATE into a Python predicate.
+    """Rebroadcast audience predicate: every anchor with a non-empty ACCOUNT_ID.
 
-    Commercial Banking anchors only, with a non-empty ACCOUNT_ID. The
-    cohort is overwhelmingly BUSINESS-typed but the predicate keys on
-    CLIENT_CATEGORY only (matching the SQL audience filter); a Person
-    row that drifts in is still emitted with the BUSINESS shape — there
-    are no Person-specific synthesis paths in this dataset to guard.
+    The L1 audience-violator test depends on this returning False for a
+    missing or empty ACCOUNT_ID. There is no CLIENT_CATEGORY gate in the
+    rebroadcast — both BUSINESS and PERSON anchors are in audience and
+    routed via _is_person_anchor to the appropriate row-builder.
     """
-    return (
-        anchor.get("CLIENT_CATEGORY") == "Commercial Banking"
-        and bool(anchor.get("ACCOUNT_ID"))
-    )
+    return bool(anchor.get("ACCOUNT_ID"))
+
+
+def _is_person_anchor(anchor: dict) -> bool:
+    """PERSON-vs-BUSINESS classifier for the rebroadcast row-builder routing.
+
+    Two equivalent triggers — either is sufficient:
+      1. ACCOUNT_TYPE_FLAG explicitly says PERSON (the canonical V_ACCOUNT_ANCHORS
+         signal); or
+      2. EMPLOYEE_COUNT is NULL / 0 / falsy (defensive: handles PERSON rows
+         that lack the flag and BUSINESS rows that lack employee data).
+    """
+    return anchor.get("ACCOUNT_TYPE_FLAG") == "PERSON" or not anchor.get("EMPLOYEE_COUNT")
 
 
 # -------------------------------------------------------------------
-# Per-field synthesis helpers — implemented verbatim from the rowspec.
+# Per-field synthesis helpers (BUSINESS path) — implemented verbatim
+# from the rowspec.
 # -------------------------------------------------------------------
 
 def _board_size(employee_count: int, rng: random.Random) -> int:
@@ -129,7 +151,7 @@ def _board_independence_pct(rng: random.Random) -> float:
 
 
 def _women_board_pct(rng: random.Random) -> float:
-    """Real BoardEx 2026 mean ~32% women across S+P 500; skews 20-45.
+    """Real BoardEx 2026 mean ~32% women across the S+P 500; skews 20-45.
     Range [0.00, 100.00]."""
     return round(rng.uniform(0.0, 50.0) * 0.3 + rng.uniform(20.0, 45.0) * 0.7, 2)
 
@@ -205,44 +227,33 @@ def _key_director_name(rng: random.Random) -> str:
     return f"{rng.choice(_FIRST_NAMES)} {rng.choice(_LAST_NAMES)}"
 
 
-def _recent_governance_event_date(run_ts: datetime, rng: random.Random) -> date | None:
+def _recent_governance_event_date(month_start: datetime, rng: random.Random) -> date | None:
     """Independent 30%/70% Bernoulli; when populated, drawn 1-365 days before
-    run_ts.date(). NULL in ~70% of rows. The MERGE source SELECT preserves
+    month_start.date(). NULL in ~70% of rows. The MERGE source SELECT preserves
     None -> NULL via straight pandas serialisation (no enum gating)."""
     if rng.random() >= 0.30:
         return None
-    return run_ts.date() - timedelta(days=rng.randint(1, 365))
+    return month_start.date() - timedelta(days=rng.randint(1, 365))
 
 
-def _last_data_refresh(run_ts: datetime, rng: random.Random) -> date:
-    """Vendor refresh cadence: 1-30 days before run_ts.date(). Always <= run_ts.date()."""
-    return run_ts.date() - timedelta(days=rng.randint(1, 30))
+def _last_data_refresh(month_start: datetime, rng: random.Random) -> date:
+    """Vendor refresh cadence: 1-30 days before month_start.date(). Always <= run_ts.date()."""
+    return month_start.date() - timedelta(days=rng.randint(1, 30))
 
 
 # -------------------------------------------------------------------
-# _row_for — substantive synthesis logic (per rowspec)
+# _business_governance_row — substantive synthesis logic for BUSINESS
+# anchors (existing Plan 10 path, modulo date-helper anchoring).
 # -------------------------------------------------------------------
 
-def _row_for(anchor: dict, run_ts: datetime) -> dict:
-    """Pure function: anchor row -> fact row. Deterministic on (account_id, month_start).
+def _business_governance_row(anchor: dict, month_start: datetime) -> dict:
+    """BUSINESS anchor row-builder. Pure function: deterministic on
+    (account_id, month_start). All date helpers anchor on month_start.date()
+    so mid-month re-runs are byte-identical."""
+    account_id     = anchor["ACCOUNT_ID"]
+    employee_count = int(anchor.get("EMPLOYEE_COUNT") or 0)
+    interlock_deg  = int(anchor.get("INTERLOCK_DEGREE") or 0)
 
-    Reads anchor['ACCOUNT_ID'], 'EMPLOYEE_COUNT', 'INTERLOCK_DEGREE',
-    'CLIENT_CATEGORY'. Mid-month re-runs are byte-identical because
-    month_start truncates the day-of-month and time of day from run_ts
-    before the seed is derived. ALL date helpers use month_start.date()
-    (not run_ts.date()) so dates do not drift across mid-month re-runs.
-    """
-    if not _anchor_in_audience(anchor):
-        raise ValueError(
-            f"anchor failed audience predicate "
-            f"({_AUDIENCE_PREDICATE}) or has empty ACCOUNT_ID: {anchor!r}"
-        )
-
-    account_id      = anchor["ACCOUNT_ID"]
-    employee_count  = int(anchor.get("EMPLOYEE_COUNT") or 0)
-    interlock_deg   = int(anchor.get("INTERLOCK_DEGREE") or 0)
-
-    month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     seed = seed_for(account_id, DATASET_SALT, month_start)
     rng = random.Random(seed)
 
@@ -289,11 +300,133 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
 
 # -------------------------------------------------------------------
+# _personal_governance_row — PERSON anchor fallback ("personal household"
+# governance shape). Most fields are constants; the only stochastic
+# pieces are the deterministic gender / minority hash and the small
+# random LAST_DATA_REFRESH_DATE offset.
+# -------------------------------------------------------------------
+
+# PERSON personal-governance constants — load-bearing for tests.
+_PERSON_BOARD_SIZE             = 1
+_PERSON_BOARD_INDEPENDENCE_PCT = 100.0
+_PERSON_BOARD_AVG_TENURE_YEARS = 5.0
+_PERSON_INTERLOCK_COUNT        = 0
+_PERSON_GOVERNANCE_RATING      = "Adequate"
+_PERSON_KEY_DIRECTOR_NAME      = "Self"
+
+
+def _personal_governance_row(anchor: dict, month_start: datetime) -> dict:
+    """PERSON anchor "personal household" governance row-builder.
+
+    Pure function: deterministic on (account_id, month_start). The
+    seed is derived the same way as the BUSINESS path so cross-routing
+    bugs are caught quickly (any anchor that flips PERSON-vs-BUSINESS
+    between runs would emit a different but still byte-identical row
+    on each side).
+
+    Field shape (rebroadcast contract):
+      - BOARD_SIZE = 1, INDEPENDENCE = 100.0, INTERLOCK = 0
+      - WOMEN_BOARD_PCT in {0.0, 100.0} via deterministic ACCOUNT_ID hash
+      - MINORITY_BOARD_PCT in {0.0, 100.0} via deterministic ACCOUNT_ID hash
+      - tenure 5.0 default; CEO_TENURE_YEARS = BOARD_AVG_TENURE_YEARS
+      - EXEC_TURNOVER_FLAG = False
+      - GOVERNANCE_RATING = 'Adequate'
+      - KEY_DIRECTOR_NAME = 'Self'
+      - RECENT_GOVERNANCE_EVENT_DATE = None
+      - LAST_DATA_REFRESH_DATE = month_start.date() - small random offset
+    """
+    account_id = anchor["ACCOUNT_ID"]
+    seed = seed_for(account_id, DATASET_SALT, month_start)
+    rng = random.Random(seed)
+
+    # Two independent deterministic Bernoulli draws — gender and minority.
+    # rng is consumed in a stable order: women -> minority -> last_refresh
+    # offset. Re-runs in the same calendar month are byte-identical.
+    women_pct    = 100.0 if rng.random() < 0.5 else 0.0
+    minority_pct = 100.0 if rng.random() < 0.5 else 0.0
+    last_refresh = month_start.date() - timedelta(days=rng.randint(1, 30))
+
+    return {
+        "ACCOUNT_ID":                    account_id,
+        "PROFILE_MONTH":                 month_start.date(),
+        "BOARD_SIZE":                    _PERSON_BOARD_SIZE,
+        "BOARD_INDEPENDENCE_PCT":        _PERSON_BOARD_INDEPENDENCE_PCT,
+        "WOMEN_BOARD_PCT":               women_pct,
+        "MINORITY_BOARD_PCT":            minority_pct,
+        "BOARD_AVG_TENURE_YEARS":        _PERSON_BOARD_AVG_TENURE_YEARS,
+        "CEO_TENURE_YEARS":              _PERSON_BOARD_AVG_TENURE_YEARS,
+        "EXEC_TURNOVER_FLAG":            False,
+        "GOVERNANCE_RATING":             _PERSON_GOVERNANCE_RATING,
+        "INTERLOCK_COUNT":               _PERSON_INTERLOCK_COUNT,
+        "KEY_DIRECTOR_NAME":             _PERSON_KEY_DIRECTOR_NAME,
+        "RECENT_GOVERNANCE_EVENT_DATE":  None,
+        "LAST_DATA_REFRESH_DATE":        last_refresh,
+        "GENERATED_AT":                  month_start,
+    }
+
+
+# -------------------------------------------------------------------
+# _rows_for — list-of-1 row factory dispatching on PERSON-vs-BUSINESS.
+#
+# Contract for the L1 sibling tests: (anchor, profile_month) -> [dict]
+# of length 1. profile_month is a datetime; first-of-month/00:00:00 is
+# enforced inside the function (defensive — callers may pass either a
+# raw datetime or an already-floored month_start).
+# -------------------------------------------------------------------
+
+def _rows_for(anchor: dict, profile_month: datetime) -> list[dict]:
+    """Pure function: anchor row -> [fact row] of length 1.
+
+    Deterministic on (account_id, month_start) where month_start is the
+    first-of-month floor of profile_month. PERSON anchors are routed to
+    _personal_governance_row; BUSINESS anchors (and any anchor with a
+    non-zero EMPLOYEE_COUNT) go to _business_governance_row.
+
+    Args:
+        anchor: distinct V_ACCOUNT_ANCHORS row as a dict.
+        profile_month: a datetime; defensively floored to first-of-month
+            00:00:00 UTC inside the function so mid-month re-runs are
+            byte-identical regardless of caller carelessness.
+
+    Returns:
+        Single-row list (length 1). Wrapped to mirror the 1:N row-factory
+        signature of the Plan 9 sibling — Plan 10 is 1:1 but the wrapper
+        keeps both call sites uniform across plans.
+    """
+    if not _anchor_in_audience(anchor):
+        raise ValueError(
+            f"anchor failed audience predicate "
+            f"(ACCOUNT_ID empty/missing): {anchor!r}"
+        )
+
+    # profile_month may be `date` or `datetime`; the L1 contract accepts both.
+    # Normalize to `datetime` at first-of-month 00:00:00 UTC. Downstream
+    # helpers consistently call `month_start.date()` — they all expect a
+    # datetime, not a date.
+    if isinstance(profile_month, datetime):
+        month_start = profile_month.replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0,
+        )
+    else:
+        month_start = datetime(profile_month.year, profile_month.month, 1)
+
+    if _is_person_anchor(anchor):
+        return [_personal_governance_row(anchor, month_start)]
+    return [_business_governance_row(anchor, month_start)]
+
+
+# -------------------------------------------------------------------
 # Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
-    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log."""
+    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log.
+
+    Current-cycle SP — emits one row per anchor for the current calendar
+    month. Audience is all-accounts (~36,813 anchors), so each invocation
+    produces ~36,813 rows. Backfill across 24 months is owned by
+    sp_backfill_boardex_exec_intel.py (TASK_NAME=SP_BACKFILL_BOARDEX_EXEC_INTEL).
+    """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
@@ -305,7 +438,7 @@ def main(session: Any) -> str:
         records, errors = [], []
         for row in audience:
             try:
-                records.append(_row_for(_anchor_to_dict(row), started))
+                records.extend(_rows_for(_anchor_to_dict(row), started))
             except Exception as exc:
                 errors.append((row.ACCOUNT_ID, str(exc)[:200]))
         max_tolerated = max(10, len(audience) // 100)
@@ -347,7 +480,7 @@ def main(session: Any) -> str:
 
 
 def _anchor_to_dict(row: Any) -> dict:
-    """Snowpark Row -> plain dict so _row_for can be tested with dict literals."""
+    """Snowpark Row -> plain dict so _rows_for can be tested with dict literals."""
     if isinstance(row, dict):
         return row
     if hasattr(row, "asDict"):

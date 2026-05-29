@@ -1,34 +1,56 @@
-"""Per-dataset pytest config — Plan 10 cohort-fixture override.
+"""Per-dataset pytest config — Plan 10 ALL-ACCOUNTS audience (rebroadcast).
 
-Plan 10 audience: `CLIENT_CATEGORY == 'Commercial Banking'`. **Plan 10 is the
-first Cumulus dataset where the shared 100-anchor `SAMPLE_ANCHORS` fixture has
-zero relevant cohort members** (Commercial Banking is ~2.6% of the anchor
-pool and the SAMPLE_ANCHORS slice is Retail / Wealth / Household / Small
-Business heavy). Filtering SAMPLE_ANCHORS would drop every cohort-specific
-test silently, and the Plan 5/6 graceful-skip pattern would do the same.
+Plan 10 audience was originally `CLIENT_CATEGORY == 'Commercial Banking'`
+which produced 960 rows = 97% empty profiles. The rebroadcast widens the
+audience to **all accounts** (36,813 anchors) × 24-month history → ~884K
+rows. The ONLY audience predicate now is `ACCOUNT_ID` non-empty; CLIENT_CATEGORY
+no longer gates emission.
 
-Instead, this conftest **does not consult SAMPLE_ANCHORS at all** for cohort
-tests. It defines an inline 5-anchor `COMMERCIAL_BANKING_FIXTURE` covering
-the EMPLOYEE_COUNT / INTERLOCK_DEGREE bias bands (mid-market enterprise,
-regulated bank, family business, recent IPO, large cap) and a small
-`OUT_OF_AUDIENCE_FIXTURE` of 3 non-Commercial-Banking anchors used to
-exercise the audience-rejection path. Rolled across 6+ months in the row
-factory tests, the 5-anchor cohort yields ~30 rows — enough to surface all
-5 governance-rating tiers and every bias band.
-
-This deviation is documented in `Snowflake_BoardEx_ExecIntel/AGENTS.md` and
-in the rowspec attachment.
+This conftest:
+  - `in_audience_anchors` returns the full SAMPLE_ANCHORS slice (no filter).
+  - `out_of_audience_anchors` returns `[]` — there is no real-anchor
+    out-of-audience class anymore (only synthetic empty-ACCOUNT_ID anchors,
+    constructed inline by individual tests).
+  - `commercial_banking_fixture` keeps the original 5-anchor synthetic
+    Commercial Banking cohort for cohort-specific tests against
+    EMPLOYEE_COUNT > 5000 enterprise-band assertions (the shared
+    100-anchor SAMPLE_ANCHORS still has zero Commercial Banking BUSINESS
+    members at that scale).
 """
-import pytest
+import importlib.util
+import sys
+from pathlib import Path
+
+# Load the shared fixture module directly from its file path so we don't
+# collide with the local `tests/` package (which would shadow Cumulus_Common's
+# own `tests/` namespace if we just appended its root to sys.path).
+_FIXTURE_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "Snowflake_Cumulus_Common"
+    / "tests"
+    / "fixtures"
+    / "sample_anchors.py"
+)
+_spec = importlib.util.spec_from_file_location(
+    "_cumulus_common_sample_anchors", _FIXTURE_PATH
+)
+_mod = importlib.util.module_from_spec(_spec)
+sys.modules["_cumulus_common_sample_anchors"] = _mod
+_spec.loader.exec_module(_mod)
+SAMPLE_ANCHORS = _mod.SAMPLE_ANCHORS
+
+import pytest  # noqa: E402
 
 
-# 5 hand-picked Commercial Banking anchors spanning the EMPLOYEE_COUNT bias
-# bands and the INTERLOCK_DEGREE distribution. All BUSINESS-typed (Commercial
-# Banking is enterprise by definition); INDUSTRY / ANNUAL_REVENUE / EMPLOYEE_COUNT
-# all populated.
+# ---------------------------------------------------------------------------
+# 5-anchor synthetic Commercial Banking cohort — preserved from the previous
+# conftest. Used by the cohort-specific BUSINESS-band tests (EMPLOYEE_COUNT
+# > 5000) because the shared 100-anchor fixture has zero Commercial Banking
+# anchors at enterprise scale.
+# ---------------------------------------------------------------------------
+
 COMMERCIAL_BANKING_FIXTURE = [
-    # Mid-market enterprise: ~$50M revenue, 250 employees. Hits the
-    # small-to-mid BOARD_SIZE band [5, 10] and modest INTERLOCK_DEGREE.
+    # Mid-market enterprise: ~$50M revenue, 250 employees.
     {
         "ACCOUNT_ID": "TEST_CB_001_MIDMARKET",
         "ACCOUNT_TYPE_FLAG": "BUSINESS",
@@ -38,8 +60,7 @@ COMMERCIAL_BANKING_FIXTURE = [
         "EMPLOYEE_COUNT": 250,
         "INTERLOCK_DEGREE": 1,
     },
-    # Regulated bank: ~$5B revenue, 8,000 employees. Hits the mid-market
-    # BOARD_SIZE band [7, 12] with elevated INTERLOCK_DEGREE.
+    # Regulated bank: ~$5B revenue, 8,000 employees. (>5000 — cohort-band test target.)
     {
         "ACCOUNT_ID": "TEST_CB_002_REGULATED_BANK",
         "ACCOUNT_TYPE_FLAG": "BUSINESS",
@@ -49,8 +70,7 @@ COMMERCIAL_BANKING_FIXTURE = [
         "EMPLOYEE_COUNT": 8_000,
         "INTERLOCK_DEGREE": 3,
     },
-    # Family business: ~$15M revenue, 80 employees. Hits the smallest band
-    # [5, 8] and zero INTERLOCK_DEGREE.
+    # Family business: ~$15M revenue, 80 employees.
     {
         "ACCOUNT_ID": "TEST_CB_003_FAMILY_BUSINESS",
         "ACCOUNT_TYPE_FLAG": "BUSINESS",
@@ -60,8 +80,7 @@ COMMERCIAL_BANKING_FIXTURE = [
         "EMPLOYEE_COUNT": 80,
         "INTERLOCK_DEGREE": 0,
     },
-    # Recent IPO: ~$200M revenue, 600 employees. Hits the small-to-mid
-    # BOARD_SIZE band [5, 10] with moderate INTERLOCK_DEGREE.
+    # Recent IPO: ~$200M revenue, 600 employees.
     {
         "ACCOUNT_ID": "TEST_CB_004_RECENT_IPO",
         "ACCOUNT_TYPE_FLAG": "BUSINESS",
@@ -71,8 +90,7 @@ COMMERCIAL_BANKING_FIXTURE = [
         "EMPLOYEE_COUNT": 600,
         "INTERLOCK_DEGREE": 2,
     },
-    # Large cap: ~$15B revenue, 25,000 employees. Hits the large-enterprise
-    # BOARD_SIZE band [9, 15] and high INTERLOCK_DEGREE.
+    # Large cap: ~$15B revenue, 25,000 employees. (>5000 — cohort-band test target.)
     {
         "ACCOUNT_ID": "TEST_CB_005_LARGE_CAP",
         "ACCOUNT_TYPE_FLAG": "BUSINESS",
@@ -85,50 +103,56 @@ COMMERCIAL_BANKING_FIXTURE = [
 ]
 
 
-# 3 inline anchors that fail the Commercial Banking predicate. Used to
-# exercise `_anchor_in_audience` False path and `_row_for` audience-violator
-# rejection. Spans Retail PERSON, Wealth PERSON, and Small Business BUSINESS
-# so we cover both ACCOUNT_TYPE_FLAG values and the most common drift
-# categories.
-OUT_OF_AUDIENCE_FIXTURE = [
-    {
-        "ACCOUNT_ID": "TEST_OOA_001_RETAIL_PERSON",
-        "ACCOUNT_TYPE_FLAG": "PERSON",
-        "CLIENT_CATEGORY": "Retail",
-        "BIRTHDATE": "1985-04-12",
-        "ANNUAL_INCOME": 95_000,
-    },
-    {
-        "ACCOUNT_ID": "TEST_OOA_002_WEALTH_PERSON",
-        "ACCOUNT_TYPE_FLAG": "PERSON",
-        "CLIENT_CATEGORY": "Wealth Management",
-        "BIRTHDATE": "1962-09-30",
-        "ANNUAL_INCOME": 425_000,
-    },
-    {
-        "ACCOUNT_ID": "TEST_OOA_003_SMALL_BUSINESS",
-        "ACCOUNT_TYPE_FLAG": "BUSINESS",
-        "CLIENT_CATEGORY": "Small Business",
-        "INDUSTRY": "Retail",
-        "ANNUAL_REVENUE": 2_500_000,
-        "EMPLOYEE_COUNT": 12,
-        "INTERLOCK_DEGREE": 0,
-    },
-]
+@pytest.fixture
+def all_anchors():
+    """The full 100-anchor fixture (50 person + 50 business)."""
+    return SAMPLE_ANCHORS
 
 
 @pytest.fixture
-def in_audience_anchors():
-    """Plan 10 cohort: 5 inline synthetic Commercial Banking anchors.
+def in_audience_anchors(all_anchors):
+    """Plan 10 rebroadcast audience: all accounts (no CLIENT_CATEGORY filter).
 
-    Does NOT filter SAMPLE_ANCHORS — Commercial Banking is absent from the
-    shared 100-anchor fixture, so we ignore it entirely. See module docstring.
+    Returns the full SAMPLE_ANCHORS slice unfiltered. The only audience
+    predicate is `ACCOUNT_ID` non-empty, which every fixture anchor satisfies.
+    """
+    return list(all_anchors)
+
+
+@pytest.fixture
+def out_of_audience_anchors():
+    """Empty list — Plan 10 rebroadcast is all-accounts.
+
+    There is no real-anchor out-of-audience class. The empty-ACCOUNT_ID
+    failure mode is constructed inline in `test_empty_account_id_raises`.
+    """
+    return []
+
+
+@pytest.fixture
+def commercial_banking_fixture():
+    """5-anchor synthetic Commercial Banking cohort.
+
+    Used by cohort-specific BUSINESS-band tests on EMPLOYEE_COUNT > 5000.
+    The shared 100-anchor SAMPLE_ANCHORS has zero Commercial Banking
+    anchors at enterprise scale, so this inline fixture covers the
+    mid-market / regulated-bank / family-business / recent-IPO / large-cap
+    EMPLOYEE_COUNT bands.
     """
     return COMMERCIAL_BANKING_FIXTURE
 
 
 @pytest.fixture
-def out_of_audience_anchors():
-    """3 inline non-Commercial-Banking anchors (Retail PERSON, Wealth PERSON,
-    Small Business BUSINESS) for the audience-rejection path."""
-    return OUT_OF_AUDIENCE_FIXTURE
+def person_anchors(all_anchors):
+    """Persons subset — used by the personal-household defaults test."""
+    return [a for a in all_anchors if a.get("ACCOUNT_TYPE_FLAG") == "PERSON"]
+
+
+@pytest.fixture
+def business_anchors(all_anchors):
+    """BUSINESS subset with EMPLOYEE_COUNT > 100 — full-governance band."""
+    return [
+        a for a in all_anchors
+        if a.get("ACCOUNT_TYPE_FLAG") == "BUSINESS"
+        and int(a.get("EMPLOYEE_COUNT") or 0) > 100
+    ]
