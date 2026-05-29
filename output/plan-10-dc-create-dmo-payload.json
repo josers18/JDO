@@ -1,0 +1,24 @@
+{
+  "name": "CumulusBoardExExecIntel",
+  "label": "Cumulus BoardEx Exec Intel",
+  "description": "Synthetic BoardEx-style executive intelligence per Cumulus Commercial Banking customer per month. Federated from FINS.PUBLIC.BOARDEX_EXEC_INTEL via Snowflake Direct_Access. ACCOUNT_ID FKs to ssot__Account__dlm. Smallest Cumulus audience by 4×.",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ssot__AccountId",            "label": "Account ID",                    "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Salesforce Account ID. FK to ssot__Account__dlm.ssot__Id__c."},
+    {"name": "profileMonth",               "label": "Profile Month",                 "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Date",     "description": "First-of-month for the run; PK."},
+    {"name": "boardSize",                  "label": "Board Size",                    "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Number of directors in [5, 15]."},
+    {"name": "boardIndependencePct",       "label": "Board Independence %",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Percent independent directors."},
+    {"name": "womenBoardPct",              "label": "Women on Board %",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Gender diversity %."},
+    {"name": "minorityBoardPct",           "label": "Minority on Board %",           "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Racial/ethnic diversity %."},
+    {"name": "boardAvgTenureYears",        "label": "Board Avg Tenure (Years)",      "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Average years on board."},
+    {"name": "ceoTenureYears",             "label": "CEO Tenure (Years)",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Current CEO tenure."},
+    {"name": "execTurnoverFlag",           "label": "Exec Turnover Flag",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Boolean",  "description": "True if any C-suite change in last 12 months."},
+    {"name": "governanceRating",           "label": "Governance Rating",             "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Excellent / Strong / Adequate / Weak / Concerning."},
+    {"name": "interlockCount",             "label": "Interlock Count",               "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Count of board interlocks (other client boards)."},
+    {"name": "keyDirectorName",            "label": "Key Director Name",             "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Synthesized exemplar director name."},
+    {"name": "recentGovernanceEventDate",  "label": "Recent Governance Event Date",  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Last reported governance change. NULL when no recent event (~70%)."},
+    {"name": "lastDataRefreshDate",        "label": "Last Data Refresh Date",        "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Vendor's last update."},
+    {"name": "generatedAt",                "label": "Generated At",                  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC)."}
+  ]
+}

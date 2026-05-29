@@ -1,0 +1,69 @@
+{
+  "name": "CumulusGongCallSentiment",
+  "label": "Cumulus Gong Call Sentiment",
+  "datastreamType": "EXTERNAL",
+  "connectorInfo": {
+    "connectorType": "DataConnector",
+    "connectorDetails": { "name": "Jedi_Snowflake" }
+  },
+  "dataLakeObjectInfo": {
+    "dataspaceInfo": [{ "name": "default" }],
+    "category": "Profile",
+    "label": "Cumulus Gong Call Sentiment",
+    "name": "CumulusGongCallSentiment__dll",
+    "dataLakeFieldInputRepresentations": [
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "ACCOUNT_ID",                   "name": "ACCOUNT_ID"},
+      {"dataType": "Date",     "isPrimaryKey": true,  "label": "PROFILE_WEEK",                 "name": "PROFILE_WEEK"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "CALL_COUNT_LAST_7D",           "name": "CALL_COUNT_LAST_7D"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "TOTAL_TALK_TIME_MINUTES",      "name": "TOTAL_TALK_TIME_MINUTES"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "CUSTOMER_TALK_RATIO_PCT",      "name": "CUSTOMER_TALK_RATIO_PCT"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "OVERALL_SENTIMENT",            "name": "OVERALL_SENTIMENT"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "SENTIMENT_TREND",              "name": "SENTIMENT_TREND"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "KEY_TOPICS_FLAGS",             "name": "KEY_TOPICS_FLAGS"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "ACTION_ITEMS_COUNT",           "name": "ACTION_ITEMS_COUNT"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "DEAL_RISK_SCORE",              "name": "DEAL_RISK_SCORE"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "LAST_CALL_DATE",               "name": "LAST_CALL_DATE"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "NEXT_SCHEDULED_CALL_DATE",     "name": "NEXT_SCHEDULED_CALL_DATE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "RM_NAME",                      "name": "RM_NAME"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "RM_LAST_LOGGED_NOTE_DATE",     "name": "RM_LAST_LOGGED_NOTE_DATE"},
+      {"dataType": "DateTime", "isPrimaryKey": false, "label": "GENERATED_AT",                 "name": "GENERATED_AT"}
+    ]
+  },
+  "mappings": [
+    {"sourceFieldLabel": "ACCOUNT_ID",                "targetFieldName": "ACCOUNT_ID"},
+    {"sourceFieldLabel": "PROFILE_WEEK",              "targetFieldName": "PROFILE_WEEK"},
+    {"sourceFieldLabel": "CALL_COUNT_LAST_7D",        "targetFieldName": "CALL_COUNT_LAST_7D"},
+    {"sourceFieldLabel": "TOTAL_TALK_TIME_MINUTES",   "targetFieldName": "TOTAL_TALK_TIME_MINUTES"},
+    {"sourceFieldLabel": "CUSTOMER_TALK_RATIO_PCT",   "targetFieldName": "CUSTOMER_TALK_RATIO_PCT"},
+    {"sourceFieldLabel": "OVERALL_SENTIMENT",         "targetFieldName": "OVERALL_SENTIMENT"},
+    {"sourceFieldLabel": "SENTIMENT_TREND",           "targetFieldName": "SENTIMENT_TREND"},
+    {"sourceFieldLabel": "KEY_TOPICS_FLAGS",          "targetFieldName": "KEY_TOPICS_FLAGS"},
+    {"sourceFieldLabel": "ACTION_ITEMS_COUNT",        "targetFieldName": "ACTION_ITEMS_COUNT"},
+    {"sourceFieldLabel": "DEAL_RISK_SCORE",           "targetFieldName": "DEAL_RISK_SCORE"},
+    {"sourceFieldLabel": "LAST_CALL_DATE",            "targetFieldName": "LAST_CALL_DATE"},
+    {"sourceFieldLabel": "NEXT_SCHEDULED_CALL_DATE",  "targetFieldName": "NEXT_SCHEDULED_CALL_DATE"},
+    {"sourceFieldLabel": "RM_NAME",                   "targetFieldName": "RM_NAME"},
+    {"sourceFieldLabel": "RM_LAST_LOGGED_NOTE_DATE",  "targetFieldName": "RM_LAST_LOGGED_NOTE_DATE"},
+    {"sourceFieldLabel": "GENERATED_AT",              "targetFieldName": "GENERATED_AT"}
+  ],
+  "refreshConfig": { "refreshMode": "TOTAL_REPLACE" },
+  "sourceFields": [
+    {"dataType": "Text",     "name": "ACCOUNT_ID"},
+    {"dataType": "Date",     "name": "PROFILE_WEEK",              "format": "MM/dd/yyyy"},
+    {"dataType": "Number",   "name": "CALL_COUNT_LAST_7D"},
+    {"dataType": "Number",   "name": "TOTAL_TALK_TIME_MINUTES"},
+    {"dataType": "Number",   "name": "CUSTOMER_TALK_RATIO_PCT"},
+    {"dataType": "Text",     "name": "OVERALL_SENTIMENT"},
+    {"dataType": "Text",     "name": "SENTIMENT_TREND"},
+    {"dataType": "Text",     "name": "KEY_TOPICS_FLAGS"},
+    {"dataType": "Number",   "name": "ACTION_ITEMS_COUNT"},
+    {"dataType": "Number",   "name": "DEAL_RISK_SCORE"},
+    {"dataType": "Date",     "name": "LAST_CALL_DATE",            "format": "MM/dd/yyyy"},
+    {"dataType": "Date",     "name": "NEXT_SCHEDULED_CALL_DATE",  "format": "MM/dd/yyyy"},
+    {"dataType": "Text",     "name": "RM_NAME"},
+    {"dataType": "Date",     "name": "RM_LAST_LOGGED_NOTE_DATE",  "format": "MM/dd/yyyy"},
+    {"dataType": "DateTime", "name": "GENERATED_AT"}
+  ],
+  "advancedAttributes": { "schema": "PUBLIC", "database": "FINS", "object": "GONG_CALL_SENTIMENT" },
+  "dataAccessMode": "Direct_Access"
+}

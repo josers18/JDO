@@ -1,0 +1,23 @@
+{
+  "name": "CumulusMoodysMarketContext",
+  "label": "Cumulus Moodys Market Context",
+  "description": "Synthetic Moodys-style market-context per instrument per day. Federated from FINS.PUBLIC.MOODYS_MARKET_CONTEXT via Snowflake Direct_Access. TICKER (instrument-scoped, NOT account-scoped) is the join key. Final Cumulus plan; 13 of 13 LIVE.",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ticker",                       "label": "Ticker",                       "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Instrument ticker (3-10 char). FK to INSTRUMENT_UNIVERSE.TICKER."},
+    {"name": "profileDate",                  "label": "Profile Date",                 "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Date",     "description": "Day of run; PK."},
+    {"name": "creditRating",                 "label": "Credit Rating",                "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Moodys 22-grade scale + NR. Year-stable per ticker."},
+    {"name": "ratingOutlook",                "label": "Rating Outlook",               "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Stable / Positive / Negative / Developing / Watch. Year-stable."},
+    {"name": "outlookLastChangedDate",       "label": "Outlook Last Changed Date",    "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Last outlook change; NULL when Stable for full history (~80%)."},
+    {"name": "marketCapUsd",                 "label": "Market Cap (USD)",             "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Market cap; year-stable shares-outstanding base."},
+    {"name": "dailyVolatilityPct",           "label": "Daily Volatility %",           "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Daily volatility [0,25]. Daily-bucketed."},
+    {"name": "thirtyDayPriceChangePct",      "label": "30-Day Price Change %",        "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "30-day cumulative price change [-25,25]. Daily-bucketed."},
+    {"name": "fiftyTwoWeekHighPrice",        "label": "52-Week High Price",           "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Year-stable; high >= base_price * 0.5 sanity floor."},
+    {"name": "fiftyTwoWeekLowPrice",         "label": "52-Week Low Price",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Year-stable; low <= high invariant."},
+    {"name": "ratingAgencyFlagCount",        "label": "Rating Agency Flag Count",     "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Count of rating-watch events [0,5]. Year-stable."},
+    {"name": "liquidityTier",                "label": "Liquidity Tier",               "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Tier 1 / Tier 2 / Tier 3 / Illiquid. Year-stable; biased by market cap."},
+    {"name": "lastDataRefreshAt",            "label": "Last Data Refresh At",         "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Daily timestamp."},
+    {"name": "generatedAt",                  "label": "Generated At",                 "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC). Day-bucketed."}
+  ]
+}

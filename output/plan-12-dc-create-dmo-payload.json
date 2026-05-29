@@ -1,0 +1,24 @@
+{
+  "name": "CumulusGongCallSentiment",
+  "label": "Cumulus Gong Call Sentiment",
+  "description": "Synthetic Gong-style call-sentiment per Wealth+Commercial account per week. Federated from FINS.PUBLIC.GONG_CALL_SENTIMENT via Snowflake Direct_Access. ACCOUNT_ID FKs to ssot__Account__dlm. Cascade-NULL on zero-call weeks.",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ssot__AccountId",            "label": "Account ID",                "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Salesforce Account ID. FK to ssot__Account__dlm.ssot__Id__c."},
+    {"name": "profileWeek",                "label": "Profile Week",              "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Date",     "description": "Monday of run-week; PK."},
+    {"name": "callCountLast7d",            "label": "Call Count Last 7d",        "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Calls in last 7 days [0,15]."},
+    {"name": "totalTalkTimeMinutes",       "label": "Total Talk Time Minutes",   "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Sum of call durations [0,600]. Cascade-NULL when call_count=0."},
+    {"name": "customerTalkRatioPct",       "label": "Customer Talk Ratio %",     "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Percent customer talk time [0,100]. Cascade-NULL when call_count=0."},
+    {"name": "overallSentiment",           "label": "Overall Sentiment",         "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Very Positive / Positive / Neutral / Negative / Very Negative."},
+    {"name": "sentimentTrend",             "label": "Sentiment Trend",           "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Improving / Stable / Declining."},
+    {"name": "keyTopicsFlags",             "label": "Key Topics Flags",          "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Pipe-delimited topics; NULL when call_count=0."},
+    {"name": "actionItemsCount",           "label": "Action Items Count",        "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Detected action items [0,10]."},
+    {"name": "dealRiskScore",              "label": "Deal Risk Score",           "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Synthesized deal-risk score [0,100]."},
+    {"name": "lastCallDate",               "label": "Last Call Date",            "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Most-recent call; NULL when call_count=0."},
+    {"name": "nextScheduledCallDate",      "label": "Next Scheduled Call Date",  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Next call; NULL ~40%."},
+    {"name": "rmName",                     "label": "RM Name",                   "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Year-stable relationship manager name."},
+    {"name": "rmLastLoggedNoteDate",       "label": "RM Last Logged Note Date",  "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "RM's last activity log; NULLable."},
+    {"name": "generatedAt",                "label": "Generated At",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC). Week-bucketed."}
+  ]
+}

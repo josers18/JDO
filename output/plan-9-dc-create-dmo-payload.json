@@ -1,0 +1,18 @@
+{
+  "name": "CumulusSynthRelationshipGraph",
+  "label": "Cumulus Synth Relationship Graph",
+  "description": "Synthesized directed account-relationship graph (1:N edges per anchor) for Cumulus. Federated from FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH via Snowflake Direct_Access. SRC_ACCOUNT_ID + DST_ACCOUNT_ID FK to ssot__Account__dlm. Composite 3-col PK collapses to edgeType single-column DC PK with KQ on src + dst.",
+  "dataSpaceName": "default",
+  "category": "PROFILE",
+  "fields": [
+    {"name": "ssot__SrcAccountId",      "label": "Source Account ID",        "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Source anchor (the From side). FK to ssot__Account__dlm.ssot__Id__c."},
+    {"name": "ssot__DstAccountId",      "label": "Destination Account ID",   "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "Destination anchor (the To side). For SELF edges, equals src."},
+    {"name": "edgeType",                "label": "Edge Type",                "isPrimaryKey": true,  "isDynamicLookup": false, "dataType": "Text",     "description": "HOUSEHOLD / CORPORATE_PARENT / BOARD_MEMBER / ADVISOR_BOOK / REFERRAL / BUSINESS_OWNER / SELF."},
+    {"name": "edgeWeight",              "label": "Edge Weight",              "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Edge strength in [0.000, 1.000]. SELF edges weight=1.000."},
+    {"name": "confidencePct",           "label": "Confidence %",             "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Number",   "description": "Synthesis confidence in [30.00, 100.00]. SELF edges confidence=100.00."},
+    {"name": "edgeDiscoveredDate",      "label": "Edge Discovered Date",     "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "When this edge was first synthesized."},
+    {"name": "edgeLastSeenDate",        "label": "Edge Last Seen Date",      "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Date",     "description": "Current run date (week_start)."},
+    {"name": "metadata",                "label": "Metadata",                 "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "Text",     "description": "JSON-ish key-value notes; NULL when no synthesis context."},
+    {"name": "generatedAt",             "label": "Generated At",             "isPrimaryKey": false, "isDynamicLookup": false, "dataType": "DateTime", "description": "Run timestamp (UTC). Week-bucketed for byte-identical mid-week re-runs."}
+  ]
+}

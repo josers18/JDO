@@ -1,0 +1,63 @@
+{
+  "name": "CumulusSynthRelationshipGraph",
+  "label": "Cumulus Synth Relationship Graph",
+  "datastreamType": "EXTERNAL",
+  "connectorInfo": {
+    "connectorType": "DataConnector",
+    "connectorDetails": {
+      "name": "Jedi_Snowflake"
+    }
+  },
+  "dataLakeObjectInfo": {
+    "dataspaceInfo": [
+      {
+        "name": "default"
+      }
+    ],
+    "category": "Profile",
+    "label": "Cumulus Synth Relationship Graph",
+    "name": "CumulusSynthRelationshipGraph__dll",
+    "dataLakeFieldInputRepresentations": [
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "SRC_ACCOUNT_ID",       "name": "SRC_ACCOUNT_ID"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "DST_ACCOUNT_ID",       "name": "DST_ACCOUNT_ID"},
+      {"dataType": "Text",     "isPrimaryKey": true,  "label": "EDGE_TYPE",            "name": "EDGE_TYPE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "EDGE_WEIGHT",          "name": "EDGE_WEIGHT"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "CONFIDENCE_PCT",       "name": "CONFIDENCE_PCT"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "EDGE_DISCOVERED_DATE", "name": "EDGE_DISCOVERED_DATE"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "EDGE_LAST_SEEN_DATE",  "name": "EDGE_LAST_SEEN_DATE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "METADATA",             "name": "METADATA"},
+      {"dataType": "DateTime", "isPrimaryKey": false, "label": "GENERATED_AT",         "name": "GENERATED_AT"}
+    ]
+  },
+  "mappings": [
+    {"sourceFieldLabel": "SRC_ACCOUNT_ID",       "targetFieldName": "SRC_ACCOUNT_ID"},
+    {"sourceFieldLabel": "DST_ACCOUNT_ID",       "targetFieldName": "DST_ACCOUNT_ID"},
+    {"sourceFieldLabel": "EDGE_TYPE",            "targetFieldName": "EDGE_TYPE"},
+    {"sourceFieldLabel": "EDGE_WEIGHT",          "targetFieldName": "EDGE_WEIGHT"},
+    {"sourceFieldLabel": "CONFIDENCE_PCT",       "targetFieldName": "CONFIDENCE_PCT"},
+    {"sourceFieldLabel": "EDGE_DISCOVERED_DATE", "targetFieldName": "EDGE_DISCOVERED_DATE"},
+    {"sourceFieldLabel": "EDGE_LAST_SEEN_DATE",  "targetFieldName": "EDGE_LAST_SEEN_DATE"},
+    {"sourceFieldLabel": "METADATA",             "targetFieldName": "METADATA"},
+    {"sourceFieldLabel": "GENERATED_AT",         "targetFieldName": "GENERATED_AT"}
+  ],
+  "refreshConfig": {
+    "refreshMode": "TOTAL_REPLACE"
+  },
+  "sourceFields": [
+    {"dataType": "Text",     "name": "SRC_ACCOUNT_ID"},
+    {"dataType": "Text",     "name": "DST_ACCOUNT_ID"},
+    {"dataType": "Text",     "name": "EDGE_TYPE"},
+    {"dataType": "Number",   "name": "EDGE_WEIGHT"},
+    {"dataType": "Number",   "name": "CONFIDENCE_PCT"},
+    {"dataType": "Date",     "name": "EDGE_DISCOVERED_DATE", "format": "MM/dd/yyyy"},
+    {"dataType": "Date",     "name": "EDGE_LAST_SEEN_DATE",  "format": "MM/dd/yyyy"},
+    {"dataType": "Text",     "name": "METADATA"},
+    {"dataType": "DateTime", "name": "GENERATED_AT"}
+  ],
+  "advancedAttributes": {
+    "schema": "PUBLIC",
+    "database": "FINS",
+    "object": "SYNTH_RELATIONSHIP_GRAPH"
+  },
+  "dataAccessMode": "Direct_Access"
+}

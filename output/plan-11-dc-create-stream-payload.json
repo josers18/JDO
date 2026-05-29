@@ -1,0 +1,69 @@
+{
+  "name": "CumulusZoomInfoFirmographics",
+  "label": "Cumulus ZoomInfo Firmographics",
+  "datastreamType": "EXTERNAL",
+  "connectorInfo": {
+    "connectorType": "DataConnector",
+    "connectorDetails": { "name": "Jedi_Snowflake" }
+  },
+  "dataLakeObjectInfo": {
+    "dataspaceInfo": [{ "name": "default" }],
+    "category": "Profile",
+    "label": "Cumulus ZoomInfo Firmographics",
+    "name": "CumulusZoomInfoFirmographics__dll",
+    "dataLakeFieldInputRepresentations": [
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "ACCOUNT_ID",                "name": "ACCOUNT_ID"},
+      {"dataType": "Date",     "isPrimaryKey": true,  "label": "PROFILE_MONTH",             "name": "PROFILE_MONTH"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "EMPLOYEE_BAND",             "name": "EMPLOYEE_BAND"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "REVENUE_BAND",              "name": "REVENUE_BAND"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "INDUSTRY_NAICS_CODE",       "name": "INDUSTRY_NAICS_CODE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "INDUSTRY_SIC_CODE",         "name": "INDUSTRY_SIC_CODE"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "FOUNDED_YEAR",              "name": "FOUNDED_YEAR"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "HQ_COUNTRY_CODE",           "name": "HQ_COUNTRY_CODE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "HQ_STATE_CODE",             "name": "HQ_STATE_CODE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "HQ_POSTAL_CODE",            "name": "HQ_POSTAL_CODE"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "WEBSITE_DOMAIN",            "name": "WEBSITE_DOMAIN"},
+      {"dataType": "Number",   "isPrimaryKey": false, "label": "LINKEDIN_FOLLOWERS",        "name": "LINKEDIN_FOLLOWERS"},
+      {"dataType": "Text",     "isPrimaryKey": false, "label": "TECH_STACK_FLAGS",          "name": "TECH_STACK_FLAGS"},
+      {"dataType": "Date",     "isPrimaryKey": false, "label": "LAST_DATA_REFRESH_DATE",    "name": "LAST_DATA_REFRESH_DATE"},
+      {"dataType": "DateTime", "isPrimaryKey": false, "label": "GENERATED_AT",              "name": "GENERATED_AT"}
+    ]
+  },
+  "mappings": [
+    {"sourceFieldLabel": "ACCOUNT_ID",                "targetFieldName": "ACCOUNT_ID"},
+    {"sourceFieldLabel": "PROFILE_MONTH",             "targetFieldName": "PROFILE_MONTH"},
+    {"sourceFieldLabel": "EMPLOYEE_BAND",             "targetFieldName": "EMPLOYEE_BAND"},
+    {"sourceFieldLabel": "REVENUE_BAND",              "targetFieldName": "REVENUE_BAND"},
+    {"sourceFieldLabel": "INDUSTRY_NAICS_CODE",       "targetFieldName": "INDUSTRY_NAICS_CODE"},
+    {"sourceFieldLabel": "INDUSTRY_SIC_CODE",         "targetFieldName": "INDUSTRY_SIC_CODE"},
+    {"sourceFieldLabel": "FOUNDED_YEAR",              "targetFieldName": "FOUNDED_YEAR"},
+    {"sourceFieldLabel": "HQ_COUNTRY_CODE",           "targetFieldName": "HQ_COUNTRY_CODE"},
+    {"sourceFieldLabel": "HQ_STATE_CODE",             "targetFieldName": "HQ_STATE_CODE"},
+    {"sourceFieldLabel": "HQ_POSTAL_CODE",            "targetFieldName": "HQ_POSTAL_CODE"},
+    {"sourceFieldLabel": "WEBSITE_DOMAIN",            "targetFieldName": "WEBSITE_DOMAIN"},
+    {"sourceFieldLabel": "LINKEDIN_FOLLOWERS",        "targetFieldName": "LINKEDIN_FOLLOWERS"},
+    {"sourceFieldLabel": "TECH_STACK_FLAGS",          "targetFieldName": "TECH_STACK_FLAGS"},
+    {"sourceFieldLabel": "LAST_DATA_REFRESH_DATE",    "targetFieldName": "LAST_DATA_REFRESH_DATE"},
+    {"sourceFieldLabel": "GENERATED_AT",              "targetFieldName": "GENERATED_AT"}
+  ],
+  "refreshConfig": { "refreshMode": "TOTAL_REPLACE" },
+  "sourceFields": [
+    {"dataType": "Text",     "name": "ACCOUNT_ID"},
+    {"dataType": "Date",     "name": "PROFILE_MONTH",          "format": "MM/dd/yyyy"},
+    {"dataType": "Text",     "name": "EMPLOYEE_BAND"},
+    {"dataType": "Text",     "name": "REVENUE_BAND"},
+    {"dataType": "Text",     "name": "INDUSTRY_NAICS_CODE"},
+    {"dataType": "Text",     "name": "INDUSTRY_SIC_CODE"},
+    {"dataType": "Number",   "name": "FOUNDED_YEAR"},
+    {"dataType": "Text",     "name": "HQ_COUNTRY_CODE"},
+    {"dataType": "Text",     "name": "HQ_STATE_CODE"},
+    {"dataType": "Text",     "name": "HQ_POSTAL_CODE"},
+    {"dataType": "Text",     "name": "WEBSITE_DOMAIN"},
+    {"dataType": "Number",   "name": "LINKEDIN_FOLLOWERS"},
+    {"dataType": "Text",     "name": "TECH_STACK_FLAGS"},
+    {"dataType": "Date",     "name": "LAST_DATA_REFRESH_DATE", "format": "MM/dd/yyyy"},
+    {"dataType": "DateTime", "name": "GENERATED_AT"}
+  ],
+  "advancedAttributes": { "schema": "PUBLIC", "database": "FINS", "object": "ZOOMINFO_FIRMOGRAPHICS" },
+  "dataAccessMode": "Direct_Access"
+}
