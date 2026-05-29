@@ -9,3 +9,37 @@
 .markdown-container {
     padding: 0.5rem 0;
 }
+
+/* Headings — emitted by parseMarkdown via lwc:dom="manual" innerHTML.
+   Shadow-scoped CSS still applies to manually injected DOM. */
+.markdown-container h1,
+.markdown-container h2,
+.markdown-container h3 {
+    font-weight: 700;
+    margin: 0.75rem 0 0.25rem 0;
+    color: #181818;
+}
+.markdown-container h1 { font-size: 1.25rem; }
+.markdown-container h2 { font-size: 1.125rem; }
+.markdown-container h3 { font-size: 1rem; }
+
+.markdown-container p {
+    margin: 0.5rem 0;
+    line-height: 1.5;
+}
+
+.markdown-container ul {
+    padding-left: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.markdown-container li {
+    margin-bottom: 0.25rem;
+    margin-left: 1.25rem;
+    list-style-type: disc;
+}
+
+.markdown-container a {
+    color: #0070d2;
+    text-decoration: underline;
+}

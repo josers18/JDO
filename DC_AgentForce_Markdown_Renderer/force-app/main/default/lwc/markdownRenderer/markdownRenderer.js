@@ -3,8 +3,6 @@ import { LightningElement, api } from 'lwc';
 export default class MarkdownRenderer extends LightningElement {
     @api value;
 
-    _hasRendered = false;
-
     get markdownText() {
         if (!this.value) return '';
         if (typeof this.value === 'string') return this.value;
@@ -16,12 +14,9 @@ export default class MarkdownRenderer extends LightningElement {
         let html = this.escapeHtml(text);
 
         // Headings: ### -> h3, ## -> h2, # -> h1
-        html = html.replace(/^### (.+)$/gm,
-            '<h3 style="font-size:1rem;font-weight:700;margin:0.75rem 0 0.25rem 0;color:#181818;">$1</h3>');
-        html = html.replace(/^## (.+)$/gm,
-            '<h2 style="font-size:1.125rem;font-weight:700;margin:0.75rem 0 0.25rem 0;color:#181818;">$1</h2>');
-        html = html.replace(/^# (.+)$/gm,
-            '<h1 style="font-size:1.25rem;font-weight:700;margin:0.75rem 0 0.25rem 0;color:#181818;">$1</h1>');
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
 
         // Bold: **text**
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -36,25 +31,23 @@ export default class MarkdownRenderer extends LightningElement {
             const cleaned = url.replace(/[\s\x00-\x1F\x7F]/g, '');
             const safe = /^(https?:|mailto:|\/|#|\.\/)/i.test(cleaned);
             const href = safe ? cleaned : '#';
-            return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:#0070d2;text-decoration:underline;">${label}</a>`;
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
         });
 
         // Unordered list items: - item
-        html = html.replace(/^- (.+)$/gm,
-            '<li style="margin-bottom:0.25rem;margin-left:1.25rem;list-style-type:disc;">$1</li>');
+        html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
 
         // Wrap consecutive <li> elements in <ul>
-        html = html.replace(/((?:<li[^>]*>.*?<\/li>\s*)+)/g,
-            '<ul style="padding-left:0.5rem;margin:0.5rem 0;">$1</ul>');
+        html = html.replace(/((?:<li[^>]*>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
 
         // Double newline -> paragraph break
-        html = html.replace(/\n\n/g, '</p><p style="margin:0.5rem 0;line-height:1.5;">');
+        html = html.replace(/\n\n/g, '</p><p>');
 
         // Single newline (not inside tags) -> <br>
         html = html.replace(/\n/g, '<br/>');
 
         // Wrap in paragraph
-        html = '<p style="margin:0.5rem 0;line-height:1.5;">' + html + '</p>';
+        html = '<p>' + html + '</p>';
 
         // Clean up empty paragraphs and stray <br> inside lists
         html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
