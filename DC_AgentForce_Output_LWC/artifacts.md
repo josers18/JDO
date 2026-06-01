@@ -25,7 +25,7 @@ Source of truth: `force-app/main/default/`. This file lists deployable artifacts
 | Artifact | File(s) | Role |
 |----------|---------|------|
 | **DcAgentforceOutputController** | `classes/DcAgentforceOutputController.cls` (+ `-meta.xml`) | `runPromptFlow`: creates `Flow.Interview`, passes optional **SObject** record shell into Flow Record input, reads **Text** `promptResponse` (configurable) and optional **generation Id** output; returns `text` + `generationId`. `submitGenerationFeedback`: `aiplatform.ModelsAPI.submitFeedback` for thumbs. |
-| **DcAgentforceOutputControllerTest** | `classes/DcAgentforceOutputControllerTest.cls` (+ `-meta.xml`) | Validation tests for blank flow, invalid flow, blank generation Id on feedback. |
+| **DcAgentforceOutputControllerTest** | `classes/DcAgentforceOutputControllerTest.cls` (+ `-meta.xml`) | 8 tests: 3 boundary (blank flow, invalid flow, blank generation Id) + oversize-feedback guard + 4 `flowOutputToDisplayString` type-branch tests (String / null / SObject / Decimal). |
 | **LlmOutputSanitizer** | `classes/LlmOutputSanitizer.cls` (+ `-meta.xml`) | Strips boilerplate closing phrase from display strings server-side. |
 | **LlmOutputSanitizerTest** | `classes/LlmOutputSanitizerTest.cls` (+ `-meta.xml`) | Unit tests for sanitizer. |
 
@@ -48,6 +48,7 @@ Source of truth: `force-app/main/default/`. This file lists deployable artifacts
 | **dcAgentforceOutputLwc** | Yes (Record / App / Home) | Main card: Run, output panel (text / rich text), toolbar, clipboard helpers, print iframe, marked loader, thumbs. |
 | **dcAgentforceOutputModal** | No | `LightningModal`: expanded output, Copy with inline fallback, Print. |
 | **dcAgentforceCopyModal** | No | `LightningModal`: large textarea for manual copy when clipboard APIs fail. |
+| **dcAgentforceClipboardPrint** | No | Service module (plain ES exports — no `LightningElement`). Three-tier clipboard write (`navigator.clipboard` → template textarea → dynamic textarea), `buildPrintHtml`, hidden-iframe + blob-URL print fallbacks. Imported by the main bundle and the expand modal. |
 
 | File (main bundle) | Role |
 |--------------------|------|

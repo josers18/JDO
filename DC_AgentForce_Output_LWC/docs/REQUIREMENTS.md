@@ -25,7 +25,7 @@ Project targets **API 66.0** (`sfdx-project.json`). Deploy to an org that suppor
 | Area | Requirement |
 |------|-------------|
 | **Flow** | Users need permission to **run** the autolaunched flow (via profile/permission set / flow access as your org configures). |
-| **Record access** | If **Pass record to flow** is on, the running user must be able to read the record (Apex uses `WITH USER_MODE` for the Id query). |
+| **Record access** | If **Pass record to flow** is on, the running user must be able to read the record. The controller is `with sharing` and uses a bind-variable Id lookup, so org sharing rules and CRUD/FLS for the page object apply. |
 | **Models API feedback** | Thumbs call `aiplatform.ModelsAPI.submitFeedback`. Users need the appropriate **Einstein / AI** permissions your org assigns for feedback (often bundled with Agentforce / Gen AI access). |
 
 ---

@@ -50,7 +50,7 @@ Same properties as above except:
 | **Expand** | Opens `dcAgentforceOutputModal`. |
 | **Print** | Hidden iframe `print()` first; blob URL window fallback. |
 | **Markdown** | Loads `marked` from static resource `marked`. |
-| **Sanitized HTML** | `lightning-formatted-rich-text` strips unsafe markup. |
+| **Sanitized HTML** | `lightning-formatted-rich-text` strips unsafe markup at **display time**. The print path (iframe `srcdoc`) bypasses that filtering — point the card only at flows whose output you trust. |
 
 ---
 

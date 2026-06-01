@@ -7,7 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-May_29_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-May_31_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
 [![Commits](https://img.shields.io/badge/Commits-130%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
 [![Cumulus Datasets](https://img.shields.io/badge/Cumulus_Datasets-13_LIVE-00A1E0?style=for-the-badge&logo=snowflake&logoColor=white)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
@@ -26,7 +26,16 @@ Jump to: [May 2026](#may-2026) · [April 2026](#april-2026) · [March 2026](#mar
 
 ---
 
-## [May 2026] — 2026-05-11 → 2026-05-29
+## [May 2026] — 2026-05-11 → 2026-05-31
+
+### 2026-05-31 — DC_AgentForce_Output_LWC — review, attempted hardening, partial revert
+
+- **Component review** produced a 12-item punch list covering print-path XSS, Apex test gaps, format-detection refactoring, a11y, and AGENTS.md drift. See conversation transcript for the audit + tier rationale.
+- **Slice 1c79cb75 attempted to ship the High + Medium tier** (sanitize markdown output via `sanitizeRichHtml` allowlist, extract `detectFormat`/`looksLikeHtml`/`looksLikeMarkdown` to a new `dcAgentforceFormatDetect` service module + Jest harness with 17 fixtures, iframe `srcdoc` cleanup post-print, `@TestVisible` on `flowOutputToDisplayString`, 5 new Apex tests, `prefers-reduced-motion`, `_feedbackInFlight` guard, AGENTS.md refresh). Deployed to `jdo-uqj0jr` as `0Afam00002UtetlCAB` with all 11 Apex tests green.
+- **Runtime regression observed in production:** `Cannot read properties of undefined (reading 'toLowerCase')` when running the autolaunched flow on Account record pages. Two defensive deploys (`0Afam00002Utf0DCAR`) didn't resolve it — the `typeof rawTag === 'string'` guards in `sanitizeRichHtml` were verified live but the symptom persisted. Root cause not isolated; the failing stack trace was never captured.
+- **Slice reverted in commit `da616ade`** (`git revert 1c79cb75` + redeploy) to restore service. Component verified working post-revert via Playwright + manual hard-refresh check.
+- **Salvage slice landed in commit `58beb953`** with the four items that don't touch the LWC render path: `prefers-reduced-motion` CSS guard on the sparkle loading animation, `_feedbackInFlight` flag on `submitThumbsFeedback` to block double-click double-submits, `@TestVisible` on `flowOutputToDisplayString` + 5 new deterministic tests (oversize-feedback guard + 4 type-branch tests for the helper), bare-`catch` justification comment, and an AGENTS.md refresh naming the renderer sibling and the decision rule. **Total Apex tests: 8 controller + 3 sanitizer = 11, all passing live.** Docs sweep updated 4 project files + this changelog.
+- **Open punch list (carried forward):** the print-path XSS surface is reverted (LFRT filters at display, iframe `srcdoc` does not — currently relies on the prompt template producing trusted output); the format-detection extraction + Jest harness are also reverted; slice 1c79cb75 root cause remains unisolated. Re-attempt only with debug logs / source-mapped browser trace captured first.
 
 ### 2026-05-29 — DC_AgentForce_Markdown_Renderer + Cumulus_Assistant — Agentforce markdown rendering
 - **`DC_AgentForce_Markdown_Renderer/`** (new DX project) — A reusable Lightning Web Component that renders Agentforce GenAI Function output as styled HTML, wired in via the platform's Lightning Type renderer-override mechanism (`c__markdownResponse` Lightning type → `c/markdownRenderer` LWC). No Flow plumbing or Apex sanitizer needed — the Agentforce panel binds renderer to type at runtime.

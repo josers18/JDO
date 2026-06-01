@@ -58,7 +58,7 @@
 - **Output formats:** auto-detect, or force plain text / HTML / Markdown.  
 - **Actions:** copy, expand, print.  
 - **Optional thumbs** when generation Id is wired.  
-- **Sanitization** of common LLM footer text and safe rich rendering.
+- **Sanitization** of common LLM footer text (`LlmOutputSanitizer.cls` server-side). HTML and Markdown render through `lightning-formatted-rich-text`, which applies the SLDS rich-text allowlist at **display time**. Note: the print path (iframe `srcdoc`) bypasses that allowlist — the component currently relies on the prompt template producing trusted output. If you point the card at a flow that surfaces untrusted markdown, add a source-side allowlist before re-enabling print.
 
 ---
 
@@ -77,9 +77,12 @@ Then assign **DC AgentForce Output User** and follow **[docs/SETUP_GUIDE.md](doc
 
 | Path | Role |
 |------|------|
-| `lwc/dcAgentforceOutputLwc/` | Main card |
-| `lwc/dcAgentforceOutputModal/` | Expand modal |
+| `lwc/dcAgentforceOutputLwc/` | Main card (exposed in App Builder) |
+| `lwc/dcAgentforceOutputModal/` | Expand modal (`LightningModal`) |
+| `lwc/dcAgentforceCopyModal/` | Copy-fallback modal (`LightningModal`) |
+| `lwc/dcAgentforceClipboardPrint/` | Service module: clipboard + print helpers |
 | `classes/DcAgentforceOutputController.cls` | Runs Flow + feedback |
+| `classes/LlmOutputSanitizer.cls` | Strips LLM footer phrases (byte-identical to multiclass sibling) |
 | `staticresources/marked.*` | Markdown (MIT license) |
 
 ---
