@@ -1,3 +1,17 @@
+/* Header actions row holds the runtime lookback dropdown next to the refresh
+   button. flex + gap keeps them aligned vertically; width on the combobox
+   prevents the dropdown's default 100% width from pushing refresh off-screen
+   on narrow card placements. */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.header-actions .lookback-select {
+    width: 8.5rem;
+}
+
 /* Container for the feed, controls height and scrolling */
 .engagement-feed {
     background-color: var(--slds-g-color-neutral-base-100, #ffffff); /* Clean white for timeline */

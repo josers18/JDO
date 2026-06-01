@@ -14,7 +14,21 @@
             </template>
         </h3>
     
-        <div slot="actions">
+        <div slot="actions" class="header-actions">
+            <!-- Variant=label-hidden hides the screen-reader label visually but keeps it
+                 in the a11y tree, so users with assistive tech still hear "Lookback".
+                 Width is constrained via .lookback-select so the combobox doesn't push
+                 the refresh button off the right edge of the card header. -->
+            <lightning-combobox
+                class="lookback-select"
+                name="lookback"
+                label="Lookback"
+                variant="label-hidden"
+                value={currentLookback}
+                options={lookbackOptions}
+                onchange={handleLookbackChange}
+                dropdown-alignment="right">
+            </lightning-combobox>
             <lightning-button-icon icon-name="utility:refresh" onclick={handleRefresh} alternative-text="Refresh"></lightning-button-icon>
         </div>
         
@@ -129,8 +143,10 @@
                 </template>
             </template>
 
-            <!-- Empty state: web finished, CRM either disabled or finished, no events -->
-            <template lwc:if={isFullyLoadedAndEmpty}>
+            <!-- Empty state: web (Data Graph + cold-store) finished with zero events.
+                 CRM intentionally NOT in the gate — if CRM is still loading, the italic
+                 "Loading CRM activity..." chip below this block keeps the user informed. -->
+            <template lwc:if={isWebLoadedAndEmpty}>
                 <div class="slds-text-align_center slds-text-color_weak slds-p-top_medium">
                     No recent engagements found.
                 </div>

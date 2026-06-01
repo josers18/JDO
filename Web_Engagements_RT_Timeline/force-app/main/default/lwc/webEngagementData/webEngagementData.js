@@ -4,6 +4,20 @@ import getCrmTimelineEvents from '@salesforce/apex/CrmTimelineController.getCrmT
 import { parseDataGraphResponse, mergeAndSort, groupByDay } from './timelineMappers';
 import { SOURCE_CONFIG, SOURCE_ORDER } from './sourceConfig';
 
+// Runtime lookback presets shown in the header dropdown. 365 is the upper bound
+// enforced by MAX_LOOKBACK_DAYS in CrmTimelineController.cls and COLD_MAX_LOOKBACK_DAYS
+// in DataCloudWebEngagementController.cls — keep these in sync if Apex caps change.
+// Values are STRINGS because lightning-combobox compares value-prop to option.value
+// with strict equality; numeric values would render but never show as selected.
+const LOOKBACK_OPTIONS = [
+    { label: '30 days',  value: '30'  },
+    { label: '60 days',  value: '60'  },
+    { label: '90 days',  value: '90'  },
+    { label: '180 days', value: '180' },
+    { label: '365 days', value: '365' }
+];
+const LOOKBACK_VALUES = LOOKBACK_OPTIONS.map(o => parseInt(o.value, 10));
+
 export default class WebEngagementData extends LightningElement {
     @api recordId;
 
@@ -19,6 +33,13 @@ export default class WebEngagementData extends LightningElement {
     @api showVoiceCalls = false;
     @api lookbackDays = 90;
 
+    // Runtime override for the lookback window. Seeded from the @api default in
+    // connectedCallback so App Builder still controls the initial value, but the
+    // user can change it via the header dropdown without admin involvement. All
+    // Apex calls read this private field, NOT the @api property, so the original
+    // App Builder value remains a stable seed even after the user picks something.
+    _currentLookback = null;
+
     webEvents = [];
     crmEvents = [];
 
@@ -31,12 +52,51 @@ export default class WebEngagementData extends LightningElement {
     expandedIds = new Set();
 
     connectedCallback() {
+        // Don't seed _currentLookback here — at connectedCallback time, @api
+        // properties from FlexiPage may not be hydrated yet (especially when the
+        // LWC sits inside a tab that gets activated late). The currentLookback
+        // getter reads lookbackDays lazily so the dropdown reflects the actual
+        // App Builder config on first render.
         this.handleRefresh();
     }
 
     handleRefresh() {
         this.loadWebEngagements();
         this.loadCrmEvents();
+    }
+
+    handleLookbackChange(event) {
+        const next = parseInt(event.detail.value, 10);
+        if (Number.isNaN(next) || next === this.effectiveLookbackDays) return;
+        this._currentLookback = next;
+        // Reset both data sources before refetching so partial-failure banners
+        // and chip filters from the previous window don't bleed into the new one.
+        this.webEvents = [];
+        this.crmEvents = [];
+        this.activeSourceFilters = new Set();
+        this.handleRefresh();
+    }
+
+    get lookbackOptions() {
+        return LOOKBACK_OPTIONS;
+    }
+
+    // String form of the active lookback for lightning-combobox value-prop matching.
+    // The combobox compares value (string) to option.value (string) with strict equality.
+    // When the user hasn't overridden, fall back to the @api seed clamped into the
+    // supported set; an unsupported config value (e.g., 45) shows up as 90.
+    get currentLookback() {
+        const effective = this._currentLookback != null
+            ? this._currentLookback
+            : (LOOKBACK_VALUES.includes(this.lookbackDays) ? this.lookbackDays : 90);
+        return String(effective);
+    }
+
+    // Numeric value for Apex calls. Mirrors currentLookback's fallback chain so that
+    // both UI display and server-side queries always agree on the active window.
+    get effectiveLookbackDays() {
+        if (this._currentLookback != null) return this._currentLookback;
+        return LOOKBACK_VALUES.includes(this.lookbackDays) ? this.lookbackDays : 90;
     }
 
     async loadWebEngagements() {
@@ -50,7 +110,7 @@ export default class WebEngagementData extends LightningElement {
             const raw = await getWebEngagementsWithBackfill({
                 accountId: this.recordId,
                 dataGraphName: this.dcDataGraphName,
-                lookbackDays: this.lookbackDays
+                lookbackDays: this.effectiveLookbackDays
             });
             this.webEvents = parseDataGraphResponse(raw);
             this.maybeAutoEnableChips();
@@ -74,7 +134,7 @@ export default class WebEngagementData extends LightningElement {
             const events = await getCrmTimelineEvents({
                 recordId: this.recordId,
                 enabledSources: enabled,
-                lookbackDays: this.lookbackDays
+                lookbackDays: this.effectiveLookbackDays
             });
             this.crmEvents = events || [];
             this.maybeAutoEnableChips();
@@ -195,8 +255,14 @@ export default class WebEngagementData extends LightningElement {
         return this.loadingWeb && this.webEvents.length === 0;
     }
 
-    get isFullyLoadedAndEmpty() {
-        return !this.loadingWeb && !this.loadingCrm && !this.hasAnyEvents;
+    // Fallback fires as soon as the web (Data Graph + cold-store) call confirms zero
+    // events. CRM is intentionally excluded from the gate: if CRM is still loading,
+    // the italic "Loading CRM activity..." chip renders BELOW the fallback, then the
+    // fallback disappears the moment CRM events arrive. Including !loadingCrm here
+    // would suppress the fallback any time CRM hung/lagged, which is what produced
+    // the "completely blank card" symptom.
+    get isWebLoadedAndEmpty() {
+        return !this.loadingWeb && !this.hasAnyEvents;
     }
 
     // After data loads, auto-enable all source chips so the chip bar starts
