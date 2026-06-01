@@ -10,8 +10,10 @@ import {
     writeClipboard,
     buildPrintHtml,
     tryPrintWithIframe,
-    tryPrintWithBlobUrl
+    tryPrintWithBlobUrl,
+    sanitizeRichHtml
 } from 'c/dcAgentforceClipboardPrint';
+import { detectFormat } from 'c/dcAgentforceFormatDetect';
 
 export default class DcAgentforceOutputLwc extends LightningElement {
     @api cardTitle = 'Generative output';
@@ -56,6 +58,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
     lastGenerationId = null;
     userSentiment = null;
     _markedLoadPromise = null;
+    _feedbackInFlight = false;
 
     connectedCallback() {
         if (this.autoExecuteOnLoad && this.resolvedFlowApiName) {
@@ -121,7 +124,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
         if (m !== 'auto') {
             return m;
         }
-        return this.detectFormat(this.outputText || '');
+        return detectFormat(this.outputText || '');
     }
 
     get showPlainOutput() {
@@ -131,53 +134,6 @@ export default class DcAgentforceOutputLwc extends LightningElement {
     get showRichOutput() {
         const f = this.effectiveOutputFormat;
         return f === 'html' || f === 'markdown';
-    }
-
-    detectFormat(raw) {
-        const s = (raw || '').trim();
-        if (!s) {
-            return 'text';
-        }
-        if (this.looksLikeHtml(s)) {
-            return 'html';
-        }
-        if (this.looksLikeMarkdown(s)) {
-            return 'markdown';
-        }
-        return 'text';
-    }
-
-    looksLikeHtml(s) {
-        if (!s.startsWith('<')) {
-            return false;
-        }
-        return (
-            /^[\s]*<([a-zA-Z][a-zA-Z0-9]*)[\s>\/]/.test(s) ||
-            /^[\s]*<\/[a-zA-Z]/.test(s) ||
-            /^[\s]*<!--/.test(s) ||
-            (s.includes('</') && s.includes('>'))
-        );
-    }
-
-    looksLikeMarkdown(s) {
-        if (this.looksLikeHtml(s)) {
-            return false;
-        }
-        const lines = s.split(/\r?\n/);
-        const firstNonEmpty = (lines.find((l) => l.trim()) || '').trim();
-        if (/^#{1,6}\s/.test(firstNonEmpty)) {
-            return true;
-        }
-        if (/^```/.test(s.trim())) {
-            return true;
-        }
-        if (/^\s*([-*+]|\d+\.)\s+\S/.test(firstNonEmpty)) {
-            return true;
-        }
-        if (/\*\*[^*\n]+\*\*/.test(s)) {
-            return true;
-        }
-        return false;
     }
 
     ensureMarked() {
@@ -201,20 +157,23 @@ export default class DcAgentforceOutputLwc extends LightningElement {
             return;
         }
         if (fmt === 'html') {
-            this.renderedRichHtml = raw;
+            // Sanitize at the source so display, print, and modal expansion all
+            // inherit a safe payload — lightning-formatted-rich-text filters at
+            // display time, but the print path (iframe srcdoc) bypasses it.
+            this.renderedRichHtml = sanitizeRichHtml(raw);
             return;
         }
         if (fmt === 'markdown') {
             try {
                 await this.ensureMarked();
-                // marked.parse output is rendered through lightning-formatted-rich-text,
-                // which applies the SLDS-documented HTML allowlist (same as the rich-text
-                // editor toolbar). Do NOT switch this to lwc:dom="manual" without first
-                // adding DOMPurify — bare marked.parse has no built-in sanitizer.
-                this.renderedRichHtml =
+                const parsed =
                     typeof window.marked !== 'undefined' && typeof window.marked.parse === 'function'
                         ? window.marked.parse(raw, { breaks: true, headerIds: false, mangle: false })
                         : '';
+                // marked has no built-in sanitizer; allowlist-strip before storing.
+                // Display via lightning-formatted-rich-text + print via iframe srcdoc
+                // both consume this string, and only the former filters at render time.
+                this.renderedRichHtml = sanitizeRichHtml(parsed);
             } catch (ignore) {
                 this.renderedRichHtml = '<p>Could not load markdown renderer.</p>';
             }
@@ -224,7 +183,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
     }
 
     get feedbackDisabled() {
-        return !this.lastGenerationId || this.loading;
+        return !this.lastGenerationId || this.loading || this._feedbackInFlight;
     }
 
     get thumbsUpVariant() {
@@ -382,6 +341,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
         if (this.feedbackDisabled) {
             return;
         }
+        this._feedbackInFlight = true;
         try {
             await submitGenerationFeedback({
                 generationId: this.lastGenerationId,
@@ -404,6 +364,8 @@ export default class DcAgentforceOutputLwc extends LightningElement {
                     variant: 'error'
                 })
             );
+        } finally {
+            this._feedbackInFlight = false;
         }
     }
 

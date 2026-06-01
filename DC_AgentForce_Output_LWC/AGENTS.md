@@ -6,15 +6,29 @@ Context for AI coding agents working on the **AgentForce Output** Lightning card
 
 A record-page (and AppPage / HomePage) LWC that runs an autolaunched Flow producing generative output (typically from an Einstein Prompt Builder template), then renders the result with format auto-detection (text / HTML / Markdown), copy-to-clipboard, expand-in-modal, print/PDF, and optional Models API thumbs-up / thumbs-down feedback.
 
-Sibling projects in the same monorepo: `DC_Prediction_Model_LWC`, `DC_Multiclass_Prediction_LWC`, and `DC_Query_to_Table_LWC`. The `LlmOutputSanitizer.cls` here is **byte-identical** to the multiclass sibling — both must stay in sync.
+Sibling projects in the same monorepo: `DC_Prediction_Model_LWC`, `DC_Multiclass_Prediction_LWC`, `DC_Query_to_Table_LWC`, and `DC_AgentForce_Markdown_Renderer`. The `LlmOutputSanitizer.cls` here is **byte-identical** to the multiclass sibling — both must stay in sync.
+
+## When to use this LWC vs. DC_AgentForce_Markdown_Renderer
+
+The two AgentForce projects solve different problems:
+
+- **This project (`DC_AgentForce_Output_LWC`)** — a configurable card with a Run button that invokes a user-owned autolaunched Flow, renders the response, and ships a copy/expand/print/feedback toolbar. Use for record-page surfaces where the *flow* is the contract and the prompt template lives inside it.
+- **`DC_AgentForce_Markdown_Renderer`** — a renderer-override LWC wired in via the platform's `c__markdownResponse` Lightning Type. Any GenAiFunction whose `output/schema.json` types `promptResponse` as `c__markdownResponse` is auto-routed through it inside the Agentforce panel. No Flow, no toolbar, no Apex. Use for GenAiFunction responses that just need to render as markdown in the conversation.
+
+The renderer's AGENTS.md calls itself "the newer, leaner pattern" — that's accurate for its narrower use case (GenAiFunction conversation rendering), not a deprecation signal for this project.
 
 # Tech stack
 
 - **Apex** — `with sharing` controller; `Flow.Interview` for prompt execution; `aiplatform.ModelsAPI.submitFeedback` for Models API thumbs feedback
-- **LWC** — three bundles: `dcAgentforceOutputLwc` (main), `dcAgentforceOutputModal` (expand), `dcAgentforceCopyModal` (clipboard fallback)
+- **LWC** — five bundles:
+  - `dcAgentforceOutputLwc` (main, exposed)
+  - `dcAgentforceOutputModal` + `dcAgentforceCopyModal` (LightningModal subclasses, expose=false)
+  - `dcAgentforceClipboardPrint` (service module: clipboard, print, `sanitizeRichHtml`)
+  - `dcAgentforceFormatDetect` (service module: `detectFormat` / `looksLikeHtml` / `looksLikeMarkdown` pure functions, Jest-tested)
 - **Static resource** — `marked` for Markdown → HTML rendering, loaded on demand via `loadScript`
-- **`lightning-formatted-rich-text`** for HTML output rendering (relies on its built-in HTML allowlist for safety)
+- **`lightning-formatted-rich-text`** for display-time HTML rendering. Note: the LWC sanitizes the `marked.parse` output via `sanitizeRichHtml` *before* it reaches the rich-text component, so the print path (iframe `srcdoc`, which bypasses LFRT) gets the same safe payload as display.
 - **Salesforce DX** — `sourceApiVersion: 66.0`, `sf` CLI v2 (NOT `sfdx`)
+- **Jest** — `@salesforce/sfdx-lwc-jest` v7. Run `npm test` from the project root. 17 tests cover the format-detection module.
 
 # Project structure
 
@@ -23,15 +37,19 @@ DC_AgentForce_Output_LWC/
 ├── force-app/main/default/
 │   ├── classes/
 │   │   ├── DcAgentforceOutputController.cls       ← runPromptFlow + submitGenerationFeedback
-│   │   ├── DcAgentforceOutputControllerTest.cls   ← 3 tests (blank flow, invalid flow, blank generation Id)
+│   │   ├── DcAgentforceOutputControllerTest.cls   ← 8 tests (3 boundary + 5 helper-coverage)
 │   │   ├── LlmOutputSanitizer.cls                 ← strips LLM closing courtesy text; mirror of multiclass sibling
 │   │   └── LlmOutputSanitizerTest.cls
-│   ├── lwc/dcAgentforceOutputLwc/                 ← main bundle (553-line .js)
+│   ├── lwc/dcAgentforceOutputLwc/                 ← main bundle (exposed)
 │   ├── lwc/dcAgentforceOutputModal/               ← expand-in-popup modal (LightningModal)
 │   ├── lwc/dcAgentforceCopyModal/                 ← copy-fallback modal (LightningModal)
+│   ├── lwc/dcAgentforceClipboardPrint/            ← service module: clipboard + print + sanitizeRichHtml
+│   ├── lwc/dcAgentforceFormatDetect/              ← service module: format detection (+ Jest tests)
 │   └── staticresources/                           ← marked.js for Markdown rendering
 ├── docs/                                          ← INDEX.md is the entry point
 ├── README.md
+├── package.json                                   ← Jest harness (npm test)
+├── jest.config.js
 └── sfdx-project.json
 ```
 
@@ -97,7 +115,14 @@ When the Flow returns a non-blank value in the `generationIdVariableName` Text o
 
 ## Markdown rendering safety
 
-Markdown output is parsed via `window.marked.parse(raw, { breaks: true, headerIds: false, mangle: false })` and the result piped into `lightning-formatted-rich-text`, which applies the **same HTML allowlist** as `lightning-rich-text-toolbar` (a documented SLDS safety boundary). Do **NOT** switch the markdown render path to `lwc:dom="manual"` without adding DOMPurify — the `marked` call has no built-in sanitizer.
+Markdown output is parsed via `window.marked.parse(raw, { breaks: true, headerIds: false, mangle: false })`, then **immediately allowlist-sanitized via `sanitizeRichHtml` from `c/dcAgentforceClipboardPrint`** before being stored in `renderedRichHtml`. The sanitizer is a DOMParser-based pass that strips disallowed tags/attributes and rejects non-`http(s):`/`mailto:`/relative `href` schemes (so `javascript:` / `data:` / `vbscript:` URIs are removed).
+
+Two consumers eat that string:
+
+1. **Display** — `lightning-formatted-rich-text`, which also enforces the SLDS rich-text allowlist on render (defense in depth).
+2. **Print** — the iframe `srcdoc` path in `tryPrintWithIframe` (and the popup blob URL path in `tryPrintWithBlobUrl`). Neither applies the LFRT allowlist; sanitizing at the *source* is what keeps print safe.
+
+If you switch the markdown render path to `lwc:dom="manual"`, you still need `sanitizeRichHtml` first — bare `marked.parse` has no built-in sanitizer.
 
 # Conventions
 
@@ -127,16 +152,22 @@ Markdown output is parsed via `window.marked.parse(raw, { breaks: true, headerId
 # Testing
 
 ```bash
-# Apex (org-side)
+# Apex (org-side) — 8 controller tests + sanitizer tests
 sf apex run test --tests DcAgentforceOutputControllerTest LlmOutputSanitizerTest \
   --result-format human --code-coverage --wait 10
 
-# LWC Jest (no harness for these bundles currently — manual smoke tests on a record page)
+# LWC Jest (project-local harness, ~0.5s) — 17 tests over format detection
+npm install            # one-time
+npm test               # or: npm run test:unit:watch
 ```
 
 Apex test patterns:
 - `runPromptFlow` paths that hit `Flow.Interview` cannot be stubbed; tests use a known-bogus flow API name and assert the catch path throws.
-- `submitGenerationFeedback` paths that hit `aiplatform.ModelsAPI` cannot be stubbed in the standard Apex test runner; tests cover the validation guards (blank generation Id) and trust the SDK at the boundary.
+- `submitGenerationFeedback` paths that hit `aiplatform.ModelsAPI` cannot be stubbed in the standard Apex test runner; tests cover the validation guards (blank generation Id, >1024-char feedback text).
+- `flowOutputToDisplayString` is `@TestVisible` and unit-tested directly across the 4 type branches (String passthrough, null, SObject mistype, Decimal mistype) without going through `Flow.Interview`. Use the same `@TestVisible` pattern when extracting future pure-helper logic from un-stubbable platform boundaries.
+
+Jest test patterns:
+- Pure-function logic lives in service modules (`dcAgentforceFormatDetect`, `dcAgentforceClipboardPrint`) so Jest can import directly without `createElement`-mounting an LWC. Non-`@api` methods on a host element return `undefined` to external callers — extract before testing.
 
 # Common mistakes
 
@@ -147,7 +178,8 @@ Apex test patterns:
 - **Adding `@api` properties to only one `targetConfig` block** — the App Builder UX silently drops the property on the unconfigured pages. Always update all three.
 - **Boolean `@api foo = true;`** — fails with LWC1503. See the two workarounds documented above.
 - **`Decimal in = ...;`** — Apex compile error; rename to `inVal`/`input`.
-- **Switching the markdown render path to `lwc:dom="manual"` without adding DOMPurify** — bypasses the `lightning-formatted-rich-text` HTML allowlist and re-opens the XSS surface.
+- **Switching the markdown render path to `lwc:dom="manual"` without keeping `sanitizeRichHtml`** — bypasses the LFRT display-time allowlist; the `sanitizeRichHtml` source-side pass is what keeps both display *and* print safe.
+- **Trying to Jest-test non-`@api` LWC methods via `createElement` + `el.someMethod()`** — LWC's reactive engine intentionally hides non-`@api` instance methods on the host proxy; calls return `undefined`. Extract pure helpers to a service module (see `dcAgentforceFormatDetect`) and test that module directly.
 
 # Related docs
 
@@ -164,3 +196,4 @@ Apex test patterns:
 - @docs/GIT.md — clone path
 - @../DC_Multiclass_Prediction_LWC/AGENTS.md — sibling project; shares `LlmOutputSanitizer.cls`
 - @../DC_Prediction_Model_LWC/AGENTS.md — sibling project; reference for `buildAuraException` helper pattern
+- @../DC_AgentForce_Markdown_Renderer/AGENTS.md — sibling AgentForce project; renderer-override LWC for GenAiFunction responses (different use case from this project's Flow-driven card; see "When to use this LWC vs. DC_AgentForce_Markdown_Renderer" above)
