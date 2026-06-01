@@ -1,0 +1,686 @@
+/*
+ * fscJourneyCockpit
+ *
+ * Theming: mock tokens (--gold/--ink/--paper/--line) are aliased to family
+ * --wp-* tokens on :host so flipping themeMode retheme this LWC alongside
+ * the JDO record-page suite.
+ */
+:host {
+    --gold: var(--wp-accent, #b08a4a);
+    --gold-deep: var(--wp-accent-dim, #946f33);
+    --gold-wash: var(--wp-accent-bg, #f3ead9);
+    --ink: var(--wp-text-primary, #1c2433);
+    --ink-soft: var(--wp-text-secondary, #3a4456);
+    --muted: var(--wp-text-tertiary, #76808f);
+    --faint: var(--wp-text-tertiary, #9aa3b0);
+    --paper: var(--wp-body-bg, #f6f3ec);
+    --card: var(--wp-shell-bg, #ffffff);
+    --line: var(--wp-border-soft, #e7e1d6);
+    --line-soft: var(--wp-border-med, #efeae0);
+    --green: var(--wp-progress-good, #2f7d5b);
+    --green-wash: rgba(47, 125, 91, 0.12);
+    --blue: var(--wp-progress-blue, #2b5fb3);
+    --blue-wash: rgba(43, 95, 179, 0.10);
+    --red: #b4452f;
+    --rail-pending: var(--wp-rail-pending, var(--line-soft));
+    --shadow: 0 1px 2px rgba(28, 36, 51, 0.05), 0 8px 28px -12px rgba(28, 36, 51, 0.18);
+    --shadow-lg: 0 2px 6px rgba(28, 36, 51, 0.06), 0 24px 60px -24px rgba(28, 36, 51, 0.30);
+    --wp-card-cols: 2;
+
+    display: block;
+    color: var(--ink);
+    font-feature-settings: 'tnum' 1;
+    position: relative;
+}
+
+.lwc-shell {
+    position: relative;
+    display: block;
+    background:
+        radial-gradient(1200px 600px at 85% -10%, rgba(255, 253, 248, 0.5) 0%, rgba(255, 253, 248, 0) 60%),
+        radial-gradient(900px 500px at -5% 110%, rgba(241, 236, 225, 0.4) 0%, rgba(241, 236, 225, 0) 55%),
+        var(--paper);
+    padding: 1rem;
+    min-height: 200px;
+    border-radius: 14px;
+}
+
+.panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+/* ─── KPI strip ─────────────────────────────────────────────────────────── */
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--line-soft);
+}
+.kpi {
+    padding: 18px 22px;
+    border-right: 1px solid var(--line-soft);
+}
+.kpi:last-child {
+    border-right: 0;
+}
+.kpi .k {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.kpi .k lightning-icon {
+    --sds-c-icon-color-foreground-default: var(--gold-deep);
+}
+.kpi .v {
+    font-weight: 600;
+    font-size: 27px;
+    letter-spacing: -0.01em;
+    line-height: 1;
+}
+.kpi .meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 5px;
+}
+
+/* ─── Section headers (rail + right panel) ─────────────────────────────── */
+.section-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 16px;
+    gap: 8px;
+}
+.section-hdr h3 {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex: 1;
+}
+.section-hdr h3 .ct {
+    font-size: 10px;
+    background: var(--line-soft);
+    color: var(--ink-soft);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+.hdr-action {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.hdr-action:hover {
+    border-color: var(--gold);
+    color: var(--gold-deep);
+}
+.hdr-action:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+.hdr-action lightning-icon {
+    --sds-c-icon-color-foreground-default: currentColor;
+}
+
+/* ─── Two-column body: rail (300px) + right panel ──────────────────────── */
+.body-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+}
+
+/* Original vertical journey rail */
+.tl {
+    padding: 20px 22px;
+    border-right: 1px solid var(--line-soft);
+    background: linear-gradient(180deg, rgba(252, 250, 245, 0.6), var(--card));
+}
+.step {
+    position: relative;
+    padding: 0 0 18px 32px;
+}
+.step .step-icon {
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: var(--card);
+    display: grid;
+    place-items: center;
+    box-shadow: 0 0 0 3px var(--blue-wash);
+    --sds-c-icon-color-foreground-default: var(--card);
+}
+.step.pending .step-icon {
+    background: var(--card);
+    border: 2px solid var(--rail-pending);
+    box-shadow: none;
+    --sds-c-icon-color-foreground-default: var(--muted);
+}
+.step::after {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 24px;
+    bottom: -3px;
+    width: 2px;
+    background: var(--line-soft);
+}
+.step:last-child::after {
+    display: none;
+}
+.step .t {
+    font-weight: 700;
+    font-size: 13.5px;
+    line-height: 1.25;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.step.pending .t {
+    color: var(--faint);
+}
+.step .step-link {
+    color: inherit;
+    text-decoration: none;
+    border-radius: 4px;
+}
+.step .step-link:hover {
+    color: var(--gold-deep);
+    text-decoration: underline;
+}
+.step .step-link:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+.step .desc {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    font-weight: 600;
+    line-height: 1.3;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.step.pending .desc {
+    color: var(--muted);
+}
+.step .d {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-top: 1px;
+}
+.step .cnt {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--card);
+    font-size: 9.5px;
+    font-weight: 800;
+    border-radius: 6px;
+    padding: 1px 5px;
+}
+
+/* ─── Right panel cards (Goals / Opportunities) ─────────────────────────── */
+.rp {
+    padding: 20px 22px;
+}
+.ggrid {
+    display: grid;
+    grid-template-columns: repeat(var(--wp-card-cols, 2), 1fr);
+    gap: 13px;
+}
+.gcard {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--card);
+    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+}
+.gcard:hover {
+    border-color: var(--gold);
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+.gcard:focus-within {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+.gtop {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 11px;
+}
+.gic {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    background: var(--gold-wash);
+    color: var(--gold-deep);
+    flex: none;
+    --sds-c-icon-color-foreground-default: var(--gold-deep);
+}
+.nm-link {
+    font-weight: 700;
+    font-size: 13.5px;
+    line-height: 1.15;
+    flex: 1;
+    color: var(--ink);
+    text-decoration: none;
+    border-radius: 4px;
+}
+.nm-link:hover {
+    color: var(--gold-deep);
+    text-decoration: underline;
+}
+.nm-link:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+.card-menu-btn {
+    appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    cursor: pointer;
+    color: var(--muted);
+    --sds-c-icon-color-foreground-default: currentColor;
+    flex: none;
+}
+.card-menu-btn:hover,
+.card-menu-btn[aria-expanded='true'] {
+    background: var(--line-soft);
+    color: var(--ink);
+    border-color: var(--line);
+}
+.card-menu-btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 1px;
+}
+.amt {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.amt .big {
+    font-weight: 600;
+    font-size: 21px;
+    letter-spacing: -0.01em;
+}
+.amt .of {
+    font-size: 11.5px;
+    color: var(--muted);
+}
+.track {
+    height: 7px;
+    border-radius: 7px;
+    background: var(--line-soft);
+    overflow: hidden;
+}
+.track i {
+    display: block;
+    height: 100%;
+    border-radius: 7px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-deep));
+    transition: width 1s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.track.full i {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--green) 70%, white 30%), var(--green));
+}
+.track.blue i {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--blue) 70%, white 30%), var(--blue));
+}
+.gfoot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 9px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+}
+.chip {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 999px;
+}
+.chip.High {
+    background: rgba(180, 69, 47, 0.15);
+    color: var(--red);
+}
+.chip.Medium {
+    background: var(--gold-wash);
+    color: var(--gold-deep);
+}
+.chip.Low {
+    background: var(--green-wash);
+    color: var(--green);
+}
+.chip.green {
+    background: var(--green-wash);
+    color: var(--green);
+}
+.chip.blue {
+    background: var(--blue-wash);
+    color: var(--blue);
+}
+.chip.neutral {
+    background: var(--line-soft);
+    color: var(--ink-soft);
+}
+
+/* ─── Rings (SVG progress rings) ────────────────────────────────────────── */
+/* The ring's progress arc is `stroke="currentColor"` — set `color` on the
+ * container so the arc picks up the right gold/green/blue. The .pc text
+ * label is colored separately so it stays readable. */
+.ring {
+    position: relative;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    color: var(--gold);
+}
+.ring.full {
+    color: var(--green);
+}
+.ring.blue {
+    color: var(--blue);
+}
+.ring svg {
+    transform: rotate(-90deg);
+}
+.ring .pc {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--ink);
+}
+.ring.full .pc {
+    color: var(--green);
+}
+.ring.blue .pc {
+    color: var(--blue);
+}
+
+/* ─── Theme switcher ───────────────────────────────────────────────────── */
+.cockpit-theme-row {
+    display: flex;
+    gap: 6px;
+    padding: 8px 22px 0;
+}
+.cockpit-theme-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.cockpit-theme-btn:hover {
+    border-color: var(--gold);
+}
+.cockpit-theme-btn.is-active {
+    background: var(--ink);
+    color: var(--card);
+    border-color: var(--ink);
+}
+
+/* ─── Popover (hover preview + action menu) ────────────────────────────── */
+.popover {
+    position: absolute;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    min-width: 240px;
+    max-width: 320px;
+    transform: translateX(-50%);
+}
+.popover-menu {
+    transform: none;
+    min-width: 160px;
+}
+.popover-hdr {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--gold-wash);
+    border-radius: 10px 10px 0 0;
+    gap: 10px;
+}
+.popover-eyebrow {
+    font-size: 9.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--gold-deep);
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+.popover-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.2;
+}
+.popover-new {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--gold-deep);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex: none;
+}
+.popover-new:hover {
+    border-color: var(--gold);
+}
+.popover-body {
+    margin: 0;
+    padding: 10px 14px 12px;
+    font-size: 12px;
+}
+.popover-field {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 4px 12px;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+.popover-field:last-child {
+    margin-bottom: 0;
+}
+.popover-body dt {
+    color: var(--muted);
+    font-weight: 600;
+    margin: 0;
+}
+.popover-body dd {
+    margin: 0;
+    color: var(--ink);
+    font-weight: 600;
+}
+.popover-subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-top: 4px;
+}
+.popover-members {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.popover-member {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 12.5px;
+}
+.popover-member:last-child {
+    border-bottom: 0;
+}
+.popover-member-link {
+    color: var(--gold-deep);
+    font-weight: 700;
+    text-decoration: none;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.popover-member-link:hover {
+    text-decoration: underline;
+}
+.popover-member-date {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    flex: none;
+}
+.popover-foot {
+    padding: 8px 14px 12px;
+    border-top: 1px solid var(--line-soft);
+}
+.popover-link {
+    color: var(--gold-deep);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+.popover-link:hover {
+    text-decoration: underline;
+}
+.popover .menu {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+}
+.popover .menu li {
+    margin: 0;
+}
+.popover .menu button {
+    appearance: none;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    padding: 7px 14px;
+    cursor: pointer;
+}
+.popover .menu button:hover,
+.popover .menu button:focus-visible {
+    background: var(--line-soft);
+    outline: none;
+}
+.popover .menu button.danger {
+    color: var(--red);
+}
+
+/* ─── States ────────────────────────────────────────────────────────────── */
+.state {
+    padding: 28px 22px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+.state.empty {
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    margin: 14px 0;
+}
+.state.error {
+    color: var(--red);
+}
+
+/* ─── Responsive collapse (mock parity) ────────────────────────────────── */
+@media (max-width: 760px) {
+    .kpis {
+        grid-template-columns: 1fr 1fr;
+    }
+    .kpi:nth-child(2) {
+        border-right: 0;
+    }
+    .body-grid {
+        grid-template-columns: 1fr;
+    }
+    .tl {
+        border-right: 0;
+        border-bottom: 1px solid var(--line-soft);
+    }
+    .ggrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─── Reduced motion ──────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .gcard,
+    .track i,
+    .cockpit-theme-btn,
+    .hdr-action {
+        transition: none;
+    }
+}

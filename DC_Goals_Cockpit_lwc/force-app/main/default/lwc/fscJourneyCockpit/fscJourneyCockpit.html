@@ -1,0 +1,294 @@
+<template>
+    <article class="lwc-shell" style={gridStyle} onclick={handleHostClick}>
+
+        <template lwc:if={hasError}>
+            <div class="state error" role="alert">{error}</div>
+        </template>
+
+        <template lwc:if={loading}>
+            <div class="state" aria-live="polite">
+                <lightning-spinner alternative-text="Loading cockpit" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <template lwc:if={hasData}>
+            <div class="panel">
+
+                <!-- Quick theme switcher (off by default) -->
+                <template lwc:if={showThemeSwitcher}>
+                    <div class="cockpit-theme-row" role="group" aria-label="Theme switcher">
+                        <template for:each={themeSwitcherButtons} for:item="btn">
+                            <button
+                                key={btn.name}
+                                type="button"
+                                data-theme={btn.name}
+                                class={btn.class}
+                                onclick={handleThemeButton}
+                            >{btn.label}</button>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- KPI strip -->
+                <section class="kpis" aria-label="Key metrics">
+                    <template for:each={kpis} for:item="k">
+                        <div key={k.key} class="kpi">
+                            <div class="k">
+                                <lightning-icon icon-name={k.iconName} size="xx-small" alternative-text=""></lightning-icon>
+                                {k.label}
+                            </div>
+                            <div class="v">{k.value}</div>
+                            <div class="meta">{k.meta}</div>
+                        </div>
+                    </template>
+                </section>
+
+                <div class="body-grid">
+
+                    <!-- Vertical journey rail (original two-column layout) -->
+                    <section class="tl" aria-label={cockpit.journeyLabel}>
+                        <header class="section-hdr">
+                            <h3>
+                                {cockpit.journeyLabel}
+                                <span class="ct" aria-label="item count">{journeyCount}</span>
+                            </h3>
+                            <button
+                                type="button"
+                                class="hdr-action"
+                                data-action="new-journey"
+                                onclick={handleNewJourneyClick}
+                                title={addJourneyLabel}
+                                aria-label={addJourneyLabel}
+                            >
+                                <lightning-icon icon-name="utility:add" size="xx-small" alternative-text=""></lightning-icon>
+                                <span class="hdr-action-label">New</span>
+                            </button>
+                        </header>
+
+                        <template lwc:if={hasJourneyItems}>
+                            <template for:each={journeyItems} for:item="j">
+                                <div
+                                    key={j.key}
+                                    class={j.stepClass}
+                                    data-record-id={j.recordId}
+                                    data-popover-id={j.key}
+                                    onmouseenter={handleJourneyHover}
+                                    onmouseleave={handlePopoverLeave}
+                                >
+                                    <div class="step-icon" aria-hidden="true">
+                                        <lightning-icon icon-name={j.iconName} size="xx-small" variant={j.iconVariant}></lightning-icon>
+                                    </div>
+                                    <div class="t">
+                                        <a
+                                            class="step-link"
+                                            href={j.recordUrl}
+                                            data-record-id={j.recordId}
+                                            onclick={handleRecordLinkClick}
+                                            title={j.label}
+                                        >{j.label}</a>
+                                        <template lwc:if={j.countBadge}>
+                                            <span class="cnt">{j.countBadge}</span>
+                                        </template>
+                                    </div>
+                                    <template lwc:if={j.showDescription}>
+                                        <div class="desc" title={j.description}>{j.description}</div>
+                                    </template>
+                                    <div class="d">{j.dateText}</div>
+                                </div>
+                            </template>
+                        </template>
+                        <template lwc:else>
+                            <div class="state">No journey items yet.</div>
+                        </template>
+                    </section>
+
+                    <!-- Right panel: Goals (person) or Opportunities (business) -->
+                    <section class="rp" aria-label={cockpit.panelTitle}>
+                        <header class="section-hdr">
+                            <h3>
+                                {cockpit.panelTitle}
+                                <span class="ct" aria-label="item count">{cardsCount}</span>
+                            </h3>
+                            <button
+                                type="button"
+                                class="hdr-action"
+                                data-action="new-card"
+                                onclick={handleNewCardClick}
+                                title={addCardLabel}
+                                aria-label={addCardLabel}
+                            >
+                                <lightning-icon icon-name="utility:add" size="xx-small" alternative-text=""></lightning-icon>
+                                <span class="hdr-action-label">{addCardShortLabel}</span>
+                            </button>
+                        </header>
+
+                        <template lwc:if={hasCards}>
+                            <div class="ggrid">
+                                <template for:each={decoratedCards} for:item="c">
+                                    <article
+                                        key={c.key}
+                                        class="gcard"
+                                        data-record-id={c.recordId}
+                                        data-popover-id={c.key}
+                                        aria-label={c.name}
+                                        onmouseenter={handleCardHover}
+                                        onmouseleave={handlePopoverLeave}
+                                    >
+                                        <div class="gtop">
+                                            <div class="gic" aria-hidden="true">
+                                                <lightning-icon icon-name={c.icon} size="x-small"></lightning-icon>
+                                            </div>
+                                            <a
+                                                class="nm-link"
+                                                href={c.recordUrl}
+                                                data-record-id={c.recordId}
+                                                onclick={handleRecordLinkClick}
+                                                title={c.name}
+                                            >{c.name}</a>
+                                            <button
+                                                type="button"
+                                                class="card-menu-btn"
+                                                data-record-id={c.recordId}
+                                                data-popover-id={c.key}
+                                                onclick={handleCardMenuClick}
+                                                aria-label="More actions"
+                                                aria-haspopup="menu"
+                                            >
+                                                <lightning-icon icon-name="utility:down" size="xx-small"></lightning-icon>
+                                            </button>
+                                            <div class="ringwrap">
+                                                <div
+                                                    class={c.ringClass}
+                                                    role="img"
+                                                    aria-label={c.ringDisplay}
+                                                >
+                                                    <svg width="42" height="42" aria-hidden="true">
+                                                        <circle cx="21" cy="21" r="18.5" fill="none" stroke="var(--line-soft)" stroke-width="5"></circle>
+                                                        <circle
+                                                            cx="21" cy="21" r="18.5" fill="none"
+                                                            stroke="currentColor" stroke-width="5"
+                                                            stroke-linecap="round"
+                                                            stroke-dasharray="116.24"
+                                                            stroke-dashoffset={c.ringDashOffset}
+                                                        ></circle>
+                                                    </svg>
+                                                    <div class="pc">{c.ringDisplay}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="amt">
+                                            <span class="big">{c.primaryAmountFmt}</span>
+                                            <template lwc:if={c.targetAmountFmt}>
+                                                <span class="of">{c.targetAmountFmt}</span>
+                                            </template>
+                                        </div>
+
+                                        <div
+                                            class={c.trackClass}
+                                            role="progressbar"
+                                            aria-valuenow={c.progressPctNum}
+                                            aria-valuemin="0"
+                                            aria-valuemax="100"
+                                        >
+                                            <i style={c.progressStyle}></i>
+                                        </div>
+
+                                        <div class="gfoot">
+                                            <span class={c.chipClass}>{c.chipLabel}</span>
+                                            <span>{c.footRight}</span>
+                                        </div>
+                                    </article>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template lwc:else>
+                            <div class="state empty">
+                                <template lwc:if={isPerson}>
+                                    No financial goals tracked for this person yet.
+                                </template>
+                                <template lwc:else>
+                                    No open opportunities for this business.
+                                </template>
+                            </div>
+                        </template>
+                    </section>
+
+                </div>
+            </div>
+        </template>
+
+        <!-- Floating popover (hover preview + action menu, single instance) -->
+        <template lwc:if={popoverVisible}>
+            <div
+                class={popoverClass}
+                style={popoverStyle}
+                role={popoverRole}
+                onmouseenter={handlePopoverEnter}
+                onmouseleave={handlePopoverLeave}
+            >
+                <template lwc:if={popoverIsHover}>
+                    <header class="popover-hdr">
+                        <div>
+                            <div class="popover-eyebrow">{popoverEyebrow}</div>
+                            <div class="popover-title">{popoverTitle}</div>
+                            <template lwc:if={popoverSubtitle}>
+                                <div class="popover-subtitle">{popoverSubtitle}</div>
+                            </template>
+                        </div>
+                        <button
+                            type="button"
+                            class="popover-new"
+                            data-popover-action="new"
+                            onclick={handlePopoverAction}
+                        >+ New</button>
+                    </header>
+
+                    <template lwc:if={popoverHasMembers}>
+                        <ul class="popover-members">
+                            <template for:each={popoverMembers} for:item="pm">
+                                <li key={pm.recordId} class="popover-member">
+                                    <a class="popover-member-link" href={pm.recordUrl}>{pm.name}</a>
+                                    <span class="popover-member-date">{pm.dateText}</span>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+
+                    <template lwc:else>
+                        <dl class="popover-body">
+                            <template for:each={popoverFields} for:item="pf">
+                                <div key={pf.label} class="popover-field">
+                                    <dt>{pf.label}</dt>
+                                    <dd>{pf.value}</dd>
+                                </div>
+                            </template>
+                        </dl>
+                        <footer class="popover-foot">
+                            <a href={popoverRecordUrl} class="popover-link">Open record</a>
+                        </footer>
+                    </template>
+                </template>
+
+                <template lwc:if={popoverIsMenu}>
+                    <ul class="menu" role="menu">
+                        <li role="menuitem">
+                            <button type="button" data-popover-action="view" onclick={handlePopoverAction}>View</button>
+                        </li>
+                        <li role="menuitem">
+                            <button type="button" data-popover-action="edit" onclick={handlePopoverAction}>Edit</button>
+                        </li>
+                        <li role="menuitem">
+                            <button type="button" data-popover-action="clone" onclick={handlePopoverAction}>Clone</button>
+                        </li>
+                        <li role="menuitem">
+                            <button type="button" data-popover-action="delete" class="danger" onclick={handlePopoverAction}>Delete</button>
+                        </li>
+                    </ul>
+                </template>
+            </div>
+        </template>
+
+    </article>
+</template>

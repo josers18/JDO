@@ -1,0 +1,207 @@
+<!-- FSC Cockpit — Journey + adaptive right panel -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FSC Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.460.0/lucide.min.js"></script>
+<style>
+  :root{
+    --ink:#1c2433;--ink-soft:#3a4456;--muted:#76808f;--faint:#9aa3b0;
+    --paper:#f6f3ec;--card:#fff;--line:#e7e1d6;--line-soft:#efeae0;
+    --gold:#b08a4a;--gold-deep:#946f33;--gold-wash:#f3ead9;
+    --green:#2f7d5b;--green-wash:#e4f0e9;--red:#b4452f;--blue:#2b5fb3;--blue-wash:#eef2f8;
+    --shadow:0 1px 2px rgba(28,36,51,.05),0 8px 28px -12px rgba(28,36,51,.18);
+    --shadow-lg:0 2px 6px rgba(28,36,51,.06),0 24px 60px -24px rgba(28,36,51,.30);
+  }
+  *{box-sizing:border-box}html,body{margin:0}
+  body{background:radial-gradient(1200px 600px at 85% -10%,#fffdf8 0%,rgba(255,253,248,0) 60%),radial-gradient(900px 500px at -5% 110%,#f1ece1 0%,rgba(241,236,225,0) 55%),var(--paper);
+    color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif;font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased;padding:26px clamp(14px,3vw,40px) 80px;min-height:100vh}
+  .topbar{max-width:1180px;margin:0 auto 22px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+  .brandblock{display:flex;align-items:center;gap:14px}
+  .crest{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(150deg,#23304a,#101725);color:#f3ead9;box-shadow:var(--shadow);flex:none}
+  .crest svg{width:24px;height:24px}
+  .who small{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;margin-bottom:2px}
+  .who h1{margin:0;font-family:"Newsreader",serif;font-weight:500;font-size:30px;letter-spacing:-.01em;line-height:1.05}
+  .controls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end}
+  .cgroup{display:flex;flex-direction:column;gap:7px}
+  .cgroup label{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:3px;box-shadow:var(--shadow)}
+  .seg button{appearance:none;border:0;background:transparent;cursor:pointer;font-family:inherit;font-weight:600;font-size:13px;color:var(--muted);padding:7px 13px;border-radius:8px;transition:.18s;white-space:nowrap}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--ink);color:#fff;box-shadow:0 2px 8px -2px rgba(28,36,51,.4)}
+  .seg.gold button.on{background:linear-gradient(160deg,var(--gold),var(--gold-deep))}
+  #fillWrap{transition:.2s;opacity:1}
+  #fillWrap.hide{opacity:0;pointer-events:none;width:0;overflow:hidden}
+
+  .stage{max-width:1180px;margin:0 auto}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line-soft)}
+  .kpi{padding:18px 22px;border-right:1px solid var(--line-soft)}
+  .kpi:last-child{border-right:0}
+  .kpi .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+  .kpi .k svg{width:13px;height:13px;color:var(--gold-deep)}
+  .kpi .v{font-family:"Newsreader",serif;font-weight:500;font-size:27px;letter-spacing:-.01em;line-height:1}
+  .kpi .meta{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .grid{display:grid;grid-template-columns:300px 1fr}
+  .tl{padding:20px 22px;border-right:1px solid var(--line-soft);background:linear-gradient(180deg,#fcfaf5,#fff)}
+  .tl h3,.rp h3{margin:0 0 16px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:800;display:flex;align-items:center;gap:7px}
+  .tl h3 .ct,.rp h3 .ct{margin-left:auto;font-size:10px;background:var(--line-soft);color:var(--ink-soft);padding:2px 8px;border-radius:999px}
+  .step{position:relative;padding:0 0 18px 26px}
+  .step::before{content:"";position:absolute;left:6px;top:3px;width:11px;height:11px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 3px var(--blue-wash)}
+  .step.pending::before{background:#fff;border:2px solid var(--line);box-shadow:none}
+  .step::after{content:"";position:absolute;left:11px;top:14px;bottom:-3px;width:2px;background:var(--line-soft)}
+  .step:last-child::after{display:none}
+  .step .t{font-weight:700;font-size:13.5px;line-height:1.25}
+  .step.pending .t{color:var(--faint)}
+  .step .d{font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
+  .step .cnt{display:inline-block;margin-left:6px;background:var(--ink);color:#fff;font-size:9.5px;font-weight:800;border-radius:6px;padding:1px 5px;vertical-align:middle}
+  .rp{padding:20px 22px}
+  .ggrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .gcard{border:1px solid var(--line);border-radius:12px;padding:14px;transition:.18s;background:#fff}
+  .gcard:hover{border-color:var(--gold);box-shadow:var(--shadow);transform:translateY(-2px)}
+  .gtop{display:flex;align-items:center;gap:9px;margin-bottom:11px}
+  .gic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--gold-wash);color:var(--gold-deep);flex:none}
+  .gic svg{width:16px;height:16px}
+  .gcard .nm{font-weight:700;font-size:13.5px;line-height:1.15;flex:1}
+  .gcard .ringwrap{margin-left:auto}
+  .amt{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+  .amt .big{font-family:"Newsreader",serif;font-weight:600;font-size:21px;letter-spacing:-.01em}
+  .amt .of{font-size:11.5px;color:var(--muted)}
+  .track{height:7px;border-radius:7px;background:var(--line-soft);overflow:hidden}
+  .track i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--gold),var(--gold-deep));transition:width 1s cubic-bezier(.2,.7,.2,1)}
+  .track.full i{background:linear-gradient(90deg,#3a9a72,var(--green))}
+  .track.blue i{background:linear-gradient(90deg,#3f74c4,var(--blue))}
+  .gfoot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:11px;color:var(--muted);font-weight:600}
+  .chip{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+  .chip.High{background:#fae6e1;color:var(--red)}.chip.Medium{background:var(--gold-wash);color:var(--gold-deep)}.chip.Low{background:var(--green-wash);color:var(--green)}
+  .chip.blue{background:var(--blue-wash);color:var(--blue)}.chip.neutral{background:var(--line-soft);color:var(--ink-soft)}.chip.green{background:var(--green-wash);color:var(--green)}
+  .sub{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .ring{position:relative;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pc{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--ink)}
+  .ring.full .pc{color:var(--green)}.ring.blue .pc{color:var(--blue)}
+
+  .note{max-width:1180px;margin:0 auto 16px;display:flex;gap:12px;align-items:flex-start;padding:14px 18px;background:linear-gradient(120deg,var(--gold-wash),#fff);border:1px solid var(--line);border-radius:12px}
+  .note svg{width:18px;height:18px;color:var(--gold-deep);flex:none;margin-top:1px}
+  .note p{margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.5}
+  .note .nm{font-family:"Newsreader",serif;font-style:italic;font-size:15px;color:var(--ink);margin-right:5px}
+  .foot{max-width:1180px;margin:22px auto 0;font-size:12px;color:var(--faint);text-align:center}
+  @media(max-width:760px){.kpis{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}.grid{grid-template-columns:1fr}.tl{border-right:0;border-bottom:1px solid var(--line-soft)}.ggrid{grid-template-columns:1fr}}
+</style>
+
+<div class="topbar">
+  <div class="brandblock">
+    <div class="crest"><i data-lucide="hourglass"></i></div>
+    <div class="who"><small id="acctType">Person Account</small><h1 id="acctName">Mrs. Julie E Morris</h1></div>
+  </div>
+  <div class="controls">
+    <div class="cgroup"><label>Record</label>
+      <div class="seg" id="recSeg"><button data-rec="person" class="on">Person · Julie</button><button data-rec="business">Business · Omega</button></div>
+    </div>
+    <div class="cgroup" id="fillWrap"><label>Business right panel</label>
+      <div class="seg gold" id="fillSeg">
+        <button data-fill="opps" class="on">Opportunities</button>
+        <button data-fill="relationship">Relationship</button>
+        <button data-fill="objectives">Objectives</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note" id="note"></div>
+<div class="stage" id="stage"></div>
+<div class="foot">Cockpit concept · sample data · the right panel is record-type aware — Goals for persons, your chosen fill for businesses</div>
+
+<script>
+const TODAY=new Date(2026,5,1);
+const ICON={Birth:'baby',Graduation:'graduation-cap','Appointed CEO':'briefcase',Marriage:'heart','Moved to San Francisco':'map-pin','Audi Q7':'car','Purchased Home':'home',
+'Charitable Giving':'hand-heart','Estate Planning':'scroll',Retirement:'piggy-bank','Vacation Home':'palmtree',"Jack\u2019s College Fund":'graduation-cap',"Rachel\u2019s Wedding Fund":'gem',
+'Merger & Acquisition':'git-merge','International Expansion':'globe','New CEO Named':'user-round-cog','Market Listing':'flag',Bankruptcy:'ban','New Product Launch':'rocket','New Partnership':'handshake','Seed Funding':'sprout',
+'Equipment Term Loan':'truck','Treasury Management':'landmark','CRE Construction Loan':'building-2','FX & Global Payments':'globe','Working Capital Line':'banknote',
+'Deposits & Operating':'piggy-bank','Lending & Credit':'landmark','Treasury Services':'arrow-left-right','Owner Wealth':'gem',
+'IPO / Market Listing':'flag','Product Launch Financing':'rocket','Strategic Partnership':'handshake','M&A Advisory':'git-merge'};
+
+const DATA={
+  person:{acctType:'Person Account',name:'Mrs. Julie E Morris',journeyLabel:'Life Events',
+    events:[{label:'Birth',date:null,done:true,start:true},{label:'Graduation',date:'1993-05-31',done:true},{label:'Marriage',date:'2000-10-11',done:true},{label:'Moved to San Francisco',date:'2018-04-09',done:true},{label:'Purchased Home',date:'2018-05-02',done:true},{label:'Audi Q7',date:'2021-01-04',done:true},{label:'Appointed CEO',date:'2026-05-04',done:true,count:2}],
+    goals:[{label:'Rachel\u2019s Wedding Fund',prio:'High',actual:85000,target:120000,pct:70.833,date:'2025-07-31'},{label:'Jack\u2019s College Fund',prio:'High',actual:175000,target:285000,pct:61.404,date:'2030-07-07'},{label:'Charitable Giving',prio:'Medium',actual:15000,target:100000,pct:15,date:'2030-12-31'},{label:'Vacation Home',prio:'Medium',actual:208000,target:650000,pct:32,date:'2045-06-13'},{label:'Retirement',prio:'Low',actual:6750000,target:7000000,pct:96.429,date:'2047-05-13'},{label:'Estate Planning',prio:'Medium',actual:1500000,target:1500000,pct:100,date:'2017-11-09'}]},
+  business:{acctType:'Account',name:'Omega, Inc.',journeyLabel:'Business Milestones',
+    events:[{label:'New CEO Named',date:'2020-10-05',done:true},{label:'International Expansion',date:'2026-05-12',done:true,count:3},{label:'Merger & Acquisition',date:null,done:false},{label:'Market Listing',date:null,done:false},{label:'New Product Launch',date:null,done:false},{label:'New Partnership',date:null,done:false},{label:'Seed Funding',date:null,done:false},{label:'Bankruptcy',date:null,done:false}],
+    opps:[{label:'Working Capital Line',amount:3000000,stage:'Closing',prob:90,date:'2026-06-20'},{label:'Treasury Management',amount:850000,stage:'Negotiation',prob:85,date:'2026-07-01'},{label:'Equipment Term Loan',amount:4500000,stage:'Proposal',prob:70,date:'2026-08-15'},{label:'CRE Construction Loan',amount:12000000,stage:'Underwriting',prob:60,date:'2026-09-30'},{label:'FX & Global Payments',amount:2200000,stage:'Discovery',prob:35,date:'2026-10-20'}],
+    pillars:[{label:'Deposits & Operating',value:14200000,ring:null,sub:'+6% QoQ \u00b7 3 accounts',chip:'Primary',chipc:'green'},{label:'Lending & Credit',value:28000000,ring:62,sub:'$28M committed \u00b7 62% drawn',chip:'62% util',chipc:'Medium'},{label:'Treasury Services',value:1100000,ring:null,sub:'Annual fees \u00b7 4 products live',chip:'Active',chipc:'blue'},{label:'Owner Wealth',value:9500000,ring:null,sub:'AUM \u00b7 linked owner relationship',chip:'Cross-sell',chipc:'neutral'}],
+    objectives:[{label:'Product Launch Financing',ready:70,date:'2026-12-31',sub:'Support via working-capital line + treasury'},{label:'IPO / Market Listing',ready:45,date:'2027-09-30',sub:'IPO readiness, banker & equity desk intro'},{label:'Strategic Partnership',ready:30,date:'2027-06-30',sub:'JV structuring & escrow services'},{label:'M&A Advisory',ready:20,date:'2027-12-31',sub:'Acquisition financing & advisory'}]}
+};
+
+let rec='person',fill='opps';
+const fmtUSD=n=>'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+const fmtUSDk=n=>n>=1e6?'$'+(n/1e6).toFixed(n%1e6?1:0).replace(/\.0$/,'')+'M':n>=1e3?'$'+Math.round(n/1e3)+'K':'$'+n;
+const parse=d=>d?new Date(d+'T00:00:00'):null;
+const fmtDate=d=>{const x=parse(d);return x?x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''};
+const isPast=d=>{const x=parse(d);return x?x<TODAY:true};
+const STAGEPCT={Discovery:20,Proposal:40,Negotiation:60,Underwriting:78,Closing:92};
+function ring(pct,size,stroke,variant){const full=variant==='full'||pct>=99.9;const blue=variant==='blue';const r=(size-stroke)/2,c=2*Math.PI*r,off=c*(1-Math.min(pct,100)/100);const col=full?'var(--green)':blue?'var(--blue)':'var(--gold)';
+  return `<div class="ring ${full?'full':''} ${blue?'blue':''}" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--line-soft)" stroke-width="${stroke}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><div class="pc">${full?'\u2713':Math.round(pct)+'%'}</div></div>`;}
+const ic=l=>`<i data-lucide="${ICON[l]||'circle'}"></i>`;
+const kpi=(k,icn,v,meta)=>`<div class="kpi"><div class="k"><i data-lucide="${icn}"></i>${k}</div><div class="v">${v}</div><div class="meta">${meta||''}</div></div>`;
+
+function timelineHTML(d){
+  const evs=[...d.events].sort((a,b)=>(parse(b.date)?.getTime()||-1e15)-(parse(a.date)?.getTime()||-1e15));
+  return `<div class="tl"><h3>${d.journeyLabel}<span class="ct">${d.events.length}</span></h3>${evs.map(e=>`<div class="step ${e.done?'':'pending'}"><div class="t">${e.label}${e.count?`<span class="cnt">x${e.count}</span>`:''}</div><div class="d">${e.date?fmtDate(e.date):(e.done?'Recorded':'Planned')}</div></div>`).join('')}</div>`;
+}
+
+// right panel + kpis per mode
+function buildPerson(d){
+  const g=d.goals,done=d.events.filter(e=>e.done).length,avg=g.reduce((s,x)=>s+Math.min(x.pct,100),0)/g.length,tracked=g.reduce((s,x)=>s+x.actual,0);
+  const up=g.filter(x=>!isPast(x.date)).sort((a,b)=>parse(a.date)-parse(b.date))[0];
+  const kpis=kpi('Goals','target',g.length,`${done} life events recorded`)+kpi('Avg funded','gauge',Math.round(avg)+'%','across all goals')+kpi('Total tracked','wallet',fmtUSDk(tracked),'in goal balances')+kpi('Next deadline','calendar-clock',up?fmtDate(up.date):'\u2014',up?up.label:'all reached');
+  const cards=[...g].sort((a,b)=>b.pct-a.pct).map(x=>{const full=x.pct>=99.9;return `<div class="gcard"><div class="gtop"><div class="gic">${ic(x.label)}</div><div class="nm">${x.label}</div><div class="ringwrap">${ring(x.pct,42,5,full?'full':'')}</div></div><div class="amt"><span class="big">${fmtUSD(x.actual)}</span><span class="of">of ${fmtUSD(x.target)}</span></div><div class="track ${full?'full':''}"><i style="width:${Math.min(x.pct,100)}%"></i></div><div class="gfoot"><span class="chip ${x.prio}">${x.prio}</span><span>${isPast(x.date)?'Reached':'Target'} ${fmtDate(x.date)}</span></div></div>`;}).join('');
+  return {kpis,title:`Goals<span class="ct">${g.length}</span>`,body:`<div class="ggrid">${cards}</div>`};
+}
+function buildOpps(d){
+  const o=d.opps,total=o.reduce((s,x)=>s+x.amount,0),weighted=o.reduce((s,x)=>s+x.amount*x.prob/100,0);
+  const next=[...o].sort((a,b)=>parse(a.date)-parse(b.date))[0];
+  const kpis=kpi('Open deals','target',o.length,'in active pipeline')+kpi('Pipeline','wallet',fmtUSDk(total),'total opportunity value')+kpi('Weighted','gauge',fmtUSDk(weighted),'probability-adjusted')+kpi('Next close','calendar-clock',fmtDate(next.date),next.label);
+  const cards=[...o].sort((a,b)=>b.prob-a.prob).map(x=>`<div class="gcard"><div class="gtop"><div class="gic">${ic(x.label)}</div><div class="nm">${x.label}</div><div class="ringwrap">${ring(x.prob,42,5,'blue')}</div></div><div class="amt"><span class="big">${fmtUSDk(x.amount)}</span><span class="of">${x.prob}% to close</span></div><div class="track blue"><i style="width:${STAGEPCT[x.stage]}%"></i></div><div class="gfoot"><span class="chip blue">${x.stage}</span><span>Close ${fmtDate(x.date)}</span></div></div>`).join('');
+  return {kpis,title:`Opportunities<span class="ct">${o.length}</span>`,body:`<div class="ggrid">${cards}</div>`};
+}
+function buildRelationship(d){
+  const p=d.pillars,total=p.reduce((s,x)=>s+x.value,0);
+  const kpis=kpi('Relationship','wallet',fmtUSDk(total),'total across pillars')+kpi('Products','layers',7,'across 4 pillars')+kpi('Credit util','gauge','62%','$17.4M of $28M drawn')+kpi('Next renewal','calendar-clock','Sep 30, 2026','Revolving credit facility');
+  const cards=p.map(x=>`<div class="gcard"><div class="gtop"><div class="gic">${ic(x.label)}</div><div class="nm">${x.label}</div>${x.ring?`<div class="ringwrap">${ring(x.ring,42,5,'')}</div>`:''}</div><div class="amt"><span class="big">${fmtUSDk(x.value)}</span></div><div class="sub">${x.sub}</div><div class="gfoot"><span class="chip ${x.chipc}">${x.chip}</span></div></div>`).join('');
+  return {kpis,title:`Relationship<span class="ct">${p.length}</span>`,body:`<div class="ggrid">${cards}</div>`};
+}
+function buildObjectives(d){
+  const o=d.objectives,avg=o.reduce((s,x)=>s+x.ready,0)/o.length,done=d.events.filter(e=>e.done).length;
+  const next=[...o].sort((a,b)=>parse(a.date)-parse(b.date))[0];
+  const kpis=kpi('Objectives','target',o.length,'strategic, bank-supported')+kpi('Avg readiness','gauge',Math.round(avg)+'%','to execute')+kpi('Milestones','flag',done,'already reached')+kpi('Next focus','calendar-clock',fmtDate(next.date),next.label);
+  const cards=[...o].sort((a,b)=>b.ready-a.ready).map(x=>`<div class="gcard"><div class="gtop"><div class="gic">${ic(x.label)}</div><div class="nm">${x.label}</div><div class="ringwrap">${ring(x.ready,42,5,'')}</div></div><div class="sub">${x.sub}</div><div class="track"><i style="width:${x.ready}%"></i></div><div class="gfoot"><span class="chip ${x.ready>=60?'green':x.ready>=35?'Medium':'neutral'}">${x.ready>=60?'Ready':x.ready>=35?'Developing':'Early'}</span><span>Target ${fmtDate(x.date)}</span></div></div>`).join('');
+  return {kpis,title:`Strategic Objectives<span class="ct">${o.length}</span>`,body:`<div class="ggrid">${cards}</div>`};
+}
+
+const NOTES={
+  person:['Goals','For a person, the right panel is their financial Goals \u2014 exactly as today, but unified with the journey and topped with funded-% / total-tracked KPIs.'],
+  opps:['Opportunities','Open deals slot straight into the goal-card layout \u2014 deal size, a probability ring, a stage chip and close date. The truest analog of \u201cwhat we\u2019re working toward,\u201d and the cleanest fill for a lending relationship like Omega.'],
+  relationship:['Relationship','Share-of-wallet pillars \u2014 Deposits, Lending, Treasury, Owner Wealth \u2014 each with balance and utilization. Answers \u201cdo we own the whole relationship?\u201d at a glance.'],
+  objectives:['Objectives','The planned (greyed) milestones become objectives the bank is positioned to support, each with a readiness ring \u2014 reusing data already on the record, no new fields.']
+};
+
+function render(){
+  const d=DATA[rec];
+  document.getElementById('acctType').textContent=d.acctType;
+  document.getElementById('acctName').textContent=d.name;
+  document.getElementById('fillWrap').classList.toggle('hide',rec!=='person'?false:true);
+  let pack;
+  if(rec==='person') pack=buildPerson(d);
+  else pack = fill==='opps'?buildOpps(d):fill==='relationship'?buildRelationship(d):buildObjectives(d);
+  const nKey=rec==='person'?'person':fill;
+  document.getElementById('note').innerHTML=`<i data-lucide="lightbulb"></i><p><span class="nm">${NOTES[nKey][0]}.</span>${NOTES[nKey][1]}</p>`;
+  const html=`<div class="panel"><div class="kpis">${pack.kpis}</div><div class="grid">${timelineHTML(d)}<div class="rp"><h3>${pack.title}</h3>${pack.body}</div></div></div>`;
+  const stage=document.getElementById('stage');stage.style.opacity=0;
+  setTimeout(()=>{stage.innerHTML=html;if(window.lucide)lucide.createIcons();requestAnimationFrame(()=>{stage.style.transition='opacity .35s ease';stage.style.opacity=1;});},60);
+}
+document.getElementById('recSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;rec=b.dataset.rec;[...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));render();});
+document.getElementById('fillSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;fill=b.dataset.fill;[...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));if(rec!=='business'){rec='business';[...document.getElementById('recSeg').children].forEach(x=>x.classList.toggle('on',x.dataset.rec==='business'));}render();});
+lucide.createIcons();render();
+</script>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>FSC Journey Cockpit</masterLabel>
+    <description>Unified KPI strip + journey rail + adaptive panel (Goals for persons, Opportunities for businesses) for FSC record pages.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <!-- Account scope covers both Business Accounts and Person Accounts
+                 (Person Accounts are Account rows with IsPersonAccount=true). -->
+            <objects>
+                <object>Account</object>
+            </objects>
+
+            <property name="goalBinding" type="String" label="Goal data source" default="standard"
+                datasource="managed,standard"
+                description="FSC managed (FinServ__FinancialGoal__c via PrimaryOwner/Household) or standard (FinancialGoal via FinancialGoalParty junction). 'standard' matches the FSC native FinancialGoals component out-of-the-box. Switch to 'managed' for orgs that only have the FSC managed package data populated." />
+
+            <property name="lifeEventBinding" type="String" label="Life Event data source" default="standard"
+                datasource="managed,standard"
+                description="FSC managed (FinServ__LifeEvent__c via Client) or standard (PersonLifeEvent via PrimaryPerson.AccountId). 'standard' matches the FSC native Person Life Events component and typically has more rows because Person Account birth/job events are auto-created on PersonLifeEvent. Switching can surface dual-write divergence — events created on one stack post-backfill won't appear on the other." />
+
+            <property name="cardColumns" type="Integer" label="Card columns" default="2" min="1" max="3"
+                description="Number of columns in the right-panel card grid. Mock uses 2." />
+
+            <property name="maxJourneyItems" type="Integer" label="Max journey rail items" default="20" min="5" max="50"
+                description="Caps the vertical timeline. The controller fetches up to 50; this only governs render." />
+
+            <property name="panelMode" type="String" label="Right panel mode (v2 placeholder)" default="auto"
+                datasource="auto,goalsOnly,oppsOnly"
+                description="Reserved. v1 routes by record type. Future v2 will add Relationship and Objectives panels." />
+
+            <property name="themeMode" type="String" label="Theme" default="default"
+                datasource="default,obsidian,midnight,graphite,ivory,dusk,slate,parchment,onyx,fog,forest,ember,sage,copper,verdant,steel,mercury,arctic,indigo,glacier,bordeaux,pewter,walnut,denim,moss,birch,mist,cashew,mineral,blush,chamois,bullion,prussian,coutts,vault,endowment,trust,cobalt,heritage,civic,cardinal,meridian,union"
+                description="default preserves the original mock palette. The 42 alternates pair with profile widgets and the multiclass prediction LWC — pick the same theme on all record-page LWCs for consistency." />
+
+            <property name="accentColor" type="String" label="Theme accent (optional)" default=""
+                description="Optional #hex (e.g. #b08a4a). Overrides the theme's gold accent. Blank = theme default." />
+
+            <property name="warningColor" type="String" label="Theme warning override" default=""
+                description="Optional #hex. Override only if you need a non-default warning tint." />
+
+            <property name="negativeColor" type="String" label="Theme negative tint" default=""
+                description="Optional #hex. Override only if you need a non-default error tint." />
+
+            <property name="showThemeSwitcher" type="Boolean" label="Show theme switcher in header" default="false"
+                description="When true, renders four quick-switch buttons (obsidian/midnight/graphite/ivory). Keep false in production." />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

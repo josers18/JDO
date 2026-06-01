@@ -1,0 +1,5 @@
+# Standard SFDX ignores
+**/jsconfig.json
+**/.eslintrc.json
+**/__tests__/**
+package.xml
