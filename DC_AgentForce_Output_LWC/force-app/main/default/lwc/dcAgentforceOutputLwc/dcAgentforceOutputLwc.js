@@ -56,6 +56,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
     lastGenerationId = null;
     userSentiment = null;
     _markedLoadPromise = null;
+    _feedbackInFlight = false;
 
     connectedCallback() {
         if (this.autoExecuteOnLoad && this.resolvedFlowApiName) {
@@ -224,7 +225,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
     }
 
     get feedbackDisabled() {
-        return !this.lastGenerationId || this.loading;
+        return !this.lastGenerationId || this.loading || this._feedbackInFlight;
     }
 
     get thumbsUpVariant() {
@@ -382,6 +383,7 @@ export default class DcAgentforceOutputLwc extends LightningElement {
         if (this.feedbackDisabled) {
             return;
         }
+        this._feedbackInFlight = true;
         try {
             await submitGenerationFeedback({
                 generationId: this.lastGenerationId,
@@ -404,6 +406,8 @@ export default class DcAgentforceOutputLwc extends LightningElement {
                     variant: 'error'
                 })
             );
+        } finally {
+            this._feedbackInFlight = false;
         }
     }
 

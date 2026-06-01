@@ -6,7 +6,12 @@ Context for AI coding agents working on the **AgentForce Output** Lightning card
 
 A record-page (and AppPage / HomePage) LWC that runs an autolaunched Flow producing generative output (typically from an Einstein Prompt Builder template), then renders the result with format auto-detection (text / HTML / Markdown), copy-to-clipboard, expand-in-modal, print/PDF, and optional Models API thumbs-up / thumbs-down feedback.
 
-Sibling projects in the same monorepo: `DC_Prediction_Model_LWC`, `DC_Multiclass_Prediction_LWC`, and `DC_Query_to_Table_LWC`. The `LlmOutputSanitizer.cls` here is **byte-identical** to the multiclass sibling — both must stay in sync.
+Sibling projects in the same monorepo: `DC_Prediction_Model_LWC`, `DC_Multiclass_Prediction_LWC`, `DC_Query_to_Table_LWC`, and `DC_AgentForce_Markdown_Renderer`. The `LlmOutputSanitizer.cls` here is **byte-identical** to the multiclass sibling — both must stay in sync.
+
+## When to use this LWC vs. DC_AgentForce_Markdown_Renderer
+
+- **This project** — configurable record-page card with a Run button that invokes a user-owned autolaunched Flow, renders the response, and ships a copy/expand/print/feedback toolbar. Use for Lightning pages where the *Flow* is the contract.
+- **`DC_AgentForce_Markdown_Renderer`** — a renderer-override LWC wired in via the `c__markdownResponse` Lightning Type. Auto-routed for any GenAiFunction whose `output/schema.json` types `promptResponse` as `c__markdownResponse`. No Flow, no toolbar, no Apex. Use for Agentforce conversation panels.
 
 # Tech stack
 
@@ -23,7 +28,7 @@ DC_AgentForce_Output_LWC/
 ├── force-app/main/default/
 │   ├── classes/
 │   │   ├── DcAgentforceOutputController.cls       ← runPromptFlow + submitGenerationFeedback
-│   │   ├── DcAgentforceOutputControllerTest.cls   ← 3 tests (blank flow, invalid flow, blank generation Id)
+│   │   ├── DcAgentforceOutputControllerTest.cls   ← 8 tests (3 boundary + 5 helper-coverage on flowOutputToDisplayString)
 │   │   ├── LlmOutputSanitizer.cls                 ← strips LLM closing courtesy text; mirror of multiclass sibling
 │   │   └── LlmOutputSanitizerTest.cls
 │   ├── lwc/dcAgentforceOutputLwc/                 ← main bundle (553-line .js)
@@ -136,7 +141,8 @@ sf apex run test --tests DcAgentforceOutputControllerTest LlmOutputSanitizerTest
 
 Apex test patterns:
 - `runPromptFlow` paths that hit `Flow.Interview` cannot be stubbed; tests use a known-bogus flow API name and assert the catch path throws.
-- `submitGenerationFeedback` paths that hit `aiplatform.ModelsAPI` cannot be stubbed in the standard Apex test runner; tests cover the validation guards (blank generation Id) and trust the SDK at the boundary.
+- `submitGenerationFeedback` paths that hit `aiplatform.ModelsAPI` cannot be stubbed in the standard Apex test runner; tests cover the validation guards (blank generation Id, >1024-char feedback text).
+- `flowOutputToDisplayString` is `@TestVisible` and unit-tested directly across the 4 type branches (String passthrough, null, SObject mistype, Decimal mistype) without going through `Flow.Interview`. Use the same `@TestVisible` pattern when extracting future pure-helper logic from un-stubbable platform boundaries.
 
 # Common mistakes
 
@@ -164,3 +170,4 @@ Apex test patterns:
 - @docs/GIT.md — clone path
 - @../DC_Multiclass_Prediction_LWC/AGENTS.md — sibling project; shares `LlmOutputSanitizer.cls`
 - @../DC_Prediction_Model_LWC/AGENTS.md — sibling project; reference for `buildAuraException` helper pattern
+- @../DC_AgentForce_Markdown_Renderer/AGENTS.md — sibling AgentForce project; renderer-override LWC for GenAiFunction responses (different use case from this project's Flow-driven card; see "When to use this LWC vs. DC_AgentForce_Markdown_Renderer" above)

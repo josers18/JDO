@@ -109,15 +109,26 @@
         0% 50%,
         39% 35%
     );
-    animation: sparkle-pulse 0.45s ease-in-out infinite alternate;
 }
 
-.sparkle:nth-child(2) {
-    animation-delay: 0.06s;
+@media (prefers-reduced-motion: no-preference) {
+    .sparkle {
+        animation: sparkle-pulse 0.45s ease-in-out infinite alternate;
+    }
+
+    .sparkle:nth-child(2) {
+        animation-delay: 0.06s;
+    }
+
+    .sparkle:nth-child(3) {
+        animation-delay: 0.12s;
+    }
 }
 
-.sparkle:nth-child(3) {
-    animation-delay: 0.12s;
+@media (prefers-reduced-motion: reduce) {
+    .sparkle {
+        opacity: 0.7;
+    }
 }
 
 @keyframes sparkle-pulse {
