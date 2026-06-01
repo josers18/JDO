@@ -8,6 +8,65 @@ Single reference for the **`--wp-*` theme system** shared by JDO's record-page L
 
 ---
 
+## 0. How to reference this cookbook from a new project
+
+Three patterns. Use whichever matches the situation.
+
+### 0.1 In a Claude / agent prompt (when starting a themed LWC)
+
+Paste this block at the top of the prompt so the agent reads the cookbook before it writes code:
+
+```
+Use the JDO theme system. Reference docs/THEME_CATALOG.md for:
+- The --wp-* CSS variable contract (§2)
+- Lifecycle canon (§3): _isConnected guard, RAF in renderedCallback,
+  _lastAppliedThemeKey cache, dual-target apply on :host + .lwc-shell
+- Adapter pattern (§4): import { THEMES as BASE_THEMES } from
+  'c/predictionThemes' and layer my component-specific tokens —
+  do NOT fork predictionThemes.js
+- meta.xml datasource enumeration for themeMode (§6.3)
+- Starter skeleton (§7)
+
+Canonical worked example: DC_Goals_Cockpit_lwc/.../fscJourneyCockpit/
+```
+
+That single block tells the agent to (a) read the cookbook first, (b) use the adapter instead of duplicating the 800-line palette, (c) follow the lifecycle canon (which prevents the FOUC, double-paint, and "first load shows wrong theme" bugs that bit earlier components).
+
+### 0.2 In your new component's `AGENTS.md`
+
+Add a one-line **Theming** section that points here — don't re-explain the contract:
+
+```markdown
+## Theming
+
+This component participates in the JDO `--wp-*` theme family. See
+[docs/THEME_CATALOG.md](../docs/THEME_CATALOG.md) for the contract,
+lifecycle canon, and adapter pattern. Add component-specific tokens
+via a `<bundle>Themes.js` adapter — never fork `predictionThemes.js`.
+```
+
+Future agents working on that component pick up the pointer through `AGENTS.md` automatically — no need to re-prompt them.
+
+### 0.3 In your new component's `docs/COMPONENT_REFERENCE.md`
+
+Mirror the split already in place across the four reference components (Person Profile, Business Profile, Prediction Model, Multiclass Prediction):
+
+```markdown
+**Visual reference:** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf).
+**Implementation reference (NEW LWCs start here):** [docs/THEME_CATALOG.md](../../docs/THEME_CATALOG.md)
+```
+
+Visual = "what does theme `obsidian` look like?" Implementation = "how do I wire one in?"
+
+### 0.4 The four-step loop for any new themed component
+
+1. **Skeleton** — read §7, copy the three files (`.js` + `.html` + `.css`) into `lwc/<name>/`.
+2. **Tokens** — base palette covers most components. If you need extension tokens, write `<name>Themes.js` modeled on `cockpitThemes.js` (§4); otherwise import `c/predictionThemes` directly.
+3. **Meta** — copy the §6.3 `datasource=` string verbatim into `<name>.js-meta.xml` so the App Builder dropdown matches every sibling.
+4. **Pointer** — add the §0.2 Theming block to `<name>/AGENTS.md` and the §0.3 visual/implementation split to `docs/COMPONENT_REFERENCE.md`.
+
+---
+
 ## 1. Theme inventory
 
 42 named themes plus `default`, organised in eight families. Same names across every consumer.
