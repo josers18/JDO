@@ -54,6 +54,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - **AGENTS.md** — full rewrite with v1.1 architecture, conventions, traps section (picklist label-vs-value, BusinessMilestone required fields, PersonAccount FlexiPage trap, PermissionSet description cap, bulk API CRLF requirement).
 - **CHANGELOG.md** (this file) — created.
 - **artifacts.md** — created; matches sibling LWC convention.
+- **docs/SETUP_GUIDE.md** — created; admin runbook covering deploy → permset assignment (single + bulk recipe with CRLF CSV trick) → FlexiPage placement → configure all 8 design attributes → verification checklist with SOQL sanity queries → troubleshooting table covering 7 common symptoms.
 
 ---
 

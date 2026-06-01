@@ -13,6 +13,7 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 | Doc | Topic |
 |---|---|
 | [README.md](README.md) | Overview, quick start, FlexiPage placement, mermaid architecture |
+| [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) | Step-by-step admin runbook with SOQL sanity queries + troubleshooting |
 | [AGENTS.md](AGENTS.md) | AI-coding-agent context: architecture, conventions, traps, testing patterns |
 | [CHANGELOG.md](CHANGELOG.md) | Keep-a-Changelog format; v1.0 → v1.1 history |
 | [artifacts.md](artifacts.md) | This file — deployable artifact inventory |

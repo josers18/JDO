@@ -189,10 +189,11 @@ For deeper context, see [`AGENTS.md`](AGENTS.md).
 
 ## Documentation
 
-| File | Topic |
-|---|---|
-| [`README.md`](README.md) | This file — overview, quick start, FlexiPage placement |
-| [`AGENTS.md`](AGENTS.md) | AI-coding-agent context: architecture, conventions, traps, testing patterns |
-| [`CHANGELOG.md`](CHANGELOG.md) | Keep-a-Changelog format; v1.0 → v1.1 history |
-| [`artifacts.md`](artifacts.md) | Inventory of every deployable metadata artifact |
-| [`design/fsc-cockpit.html`](design/fsc-cockpit.html) | Approved design mock (visual source of truth) |
+| File | Topic | Audience |
+|---|---|---|
+| [`README.md`](README.md) | This file — overview, quick start, FlexiPage placement | Developers, evaluators |
+| [`docs/SETUP_GUIDE.md`](docs/SETUP_GUIDE.md) | Step-by-step admin runbook: deploy → permset → place → configure → verify (with SOQL sanity queries + troubleshooting table) | **Salesforce admins** |
+| [`AGENTS.md`](AGENTS.md) | Architecture deep-dive, conventions, traps, testing patterns | AI coding agents, contributors |
+| [`CHANGELOG.md`](CHANGELOG.md) | Keep-a-Changelog format; v1.0 → v1.1 history | Anyone tracking iterations |
+| [`artifacts.md`](artifacts.md) | Inventory of every deployable metadata artifact + deploy snapshot | DevOps, release engineers |
+| [`design/fsc-cockpit.html`](design/fsc-cockpit.html) | Approved design mock (visual source of truth) | Designers, QA |
