@@ -143,9 +143,19 @@ Once deployed, the **Real Time Digital Engagements** component exposes 10 proper
 | **Show Task events (incl. logged calls)** | _off_ | Include Task records on the timeline. Logged calls (Task with CallType set) get a distinct icon. |
 | **Show Event records (calendar)** | _off_ | Include Salesforce Calendar Event records on the timeline. |
 | **Show Agentforce Voice calls** | _off_ | Include VoiceCall records (Service Cloud Voice). Silently skipped if Voice isn't provisioned. |
-| **CRM lookback (days)** | `90` | How far back to query CRM events. Max 365; values out of range fall back to 90. |
+| **CRM lookback (days)** | `90` | How far back to query CRM events. Max 365; values out of range fall back to 90. **Acts as the SEED** for the runtime dropdown in the card header — end users can override per session without admin access. |
 
 Defaults preserve pre-revamp behavior except for **Card title link URL** (was hardcoded to a Cumulus Bank demo URL; now blank — paste a URL to restore the link) and the four **Show … events** toggles (default off, so no CRM events appear until an admin opts in).
+
+### Runtime lookback override
+
+In addition to the App Builder seed, the card header renders a **lookback dropdown** (`30 / 60 / 90 / 180 / 365 days`) next to the refresh button. Picking a different window:
+
+- Updates an internal `_currentLookback` field (the `@api lookbackDays` stays untouched as the seed)
+- Clears `webEvents`, `crmEvents`, and `activeSourceFilters` so chips and partial-failure banners from the previous window don't bleed into the new one
+- Re-fires both Apex calls in parallel via `handleRefresh`
+
+Both controllers receive the new value via the LWC's `effectiveLookbackDays` getter, so server-side queries always agree with the visible dropdown. App Builder values not in the supported set (e.g. a stale `45`) clamp up to `90` — the dropdown only ever shows a real preset. Apex still enforces the `[1..365]` bound (`MAX_LOOKBACK_DAYS` / `COLD_MAX_LOOKBACK_DAYS`); the dropdown's hard ceiling is intentionally aligned with that cap.
 
 ---
 
@@ -172,7 +182,7 @@ The Data Graph rows render the moment Call A resolves. CRM events stream in belo
 
 **Partial-failure UX:** if Call A or Call B fails, the other still renders. An inline warning banner with a Retry button appears for the failed side; the working side keeps showing.
 
-**Lookback:** all CRM sources share the `CRM lookback (days)` window (default 90; cold-store backfill uses the same value capped at 365 server-side). Per-source `LIMIT 200` keeps the SOQL inside governor headroom.
+**Lookback:** all CRM sources share the active lookback window — seeded from the `CRM lookback (days)` App Builder property (default 90) and **overridable at runtime via the header dropdown** (`30 / 60 / 90 / 180 / 365`). The cold-store backfill uses the same value capped at 365 server-side. Per-source `LIMIT 200` keeps the SOQL inside governor headroom.
 
 ---
 
@@ -219,11 +229,12 @@ Each event card and filter chip uses the same source color so the user can scan 
 
 | Asset | Version | Why |
 |---|---|---|
-| `sfdx-project.json` `sourceApiVersion` | **62.0** | Matches sibling DX projects (`DC_BusinessProfileWidget`, `DC_PersonProfileWidget`, etc.) for monorepo consistency. Bump only when a feature requires it. |
-| Component / class `-meta.xml` `apiVersion` | **65.0** | What was retrieved from the org. Untouched. |
+| `sfdx-project.json` `sourceApiVersion` | **66.0** | Aligned to the org runtime after a clean test pass (28/28 Jest, 39/39 Apex). Bumped from 62.0 in commit `b077f85` (2026-05-20). |
+| Component / class `-meta.xml` `apiVersion` | **66.0** | Bumped from 65.0 alongside `sourceApiVersion` in `b077f85`; AGENTS.md cross-reference corrected in `046d12e`. |
+| Data Graph callout URL | **v65.0** | Pinned in `DataCloudWebEngagementController.cls`: `/services/data/v65.0/ssot/data-graphs/...`. The Data Graph endpoint shape changed between v65 and v66, so bumping requires re-validating the response against `extractUnifiedIdFromQueryOutput`. **Different concern** from metadata API version — this is a REST route version. |
 | Org runtime API | **66.0** | Salesforce platform release running on the target org. |
 
-These three numbers can legally differ. `sourceApiVersion` only governs *new* metadata authored in this DX project — not retrieval, deploy, or runtime behavior of components already at 65.0.
+These four numbers can legally differ. `sourceApiVersion` and meta-XML `apiVersion` govern Salesforce metadata; the callout URL governs the Data Cloud REST contract; the org runtime is the platform release.
 
 ---
 
@@ -258,6 +269,7 @@ GitHub Dependabot flags 1 low-severity alert on this project's `package-lock.jso
 This folder is a **Salesforce DX project** inside the [JDO monorepo](../README.md). See the root [deployment guide](../docs/DEPLOYMENT_GUIDE.md) for org aliases and shared patterns.
 
 See [artifacts.md](artifacts.md) for the full inventory of `force-app/main/default/`.
+See [CHANGELOG.md](CHANGELOG.md) for the dated history of every change shipped here.
 
 ---
 
