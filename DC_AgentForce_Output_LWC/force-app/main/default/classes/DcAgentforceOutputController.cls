@@ -58,10 +58,7 @@ public with sharing class DcAgentforceOutputController {
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception e) {
-            // Bare Exception is intentional here: Flow.Interview.start() can throw
-            // any subclass (FlowException, runtime, limit, type) and the user-facing
-            // message is the same in every case. Typed AuraHandledException is
-            // already re-thrown above; everything else is sanitized below.
+            // Sanitized message to the user; full detail to debug logs only.
             System.debug(LoggingLevel.ERROR, 'runPromptFlow unexpected: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
             throw buildAuraException(
                 'Flow could not run. Confirm the Flow API name, that it is autolaunched and active, and output variable name.'
@@ -133,7 +130,6 @@ public with sharing class DcAgentforceOutputController {
      * the caller's "blank promptResponse" path produces a more accurate user message
      * than dumping serialized JSON into the output panel.
      */
-    @TestVisible
     private static String flowOutputToDisplayString(Object value) {
         if (value == null) {
             return null;
@@ -144,7 +140,7 @@ public with sharing class DcAgentforceOutputController {
         System.debug(
             LoggingLevel.WARN,
             'flowOutputToDisplayString: promptResponse variable is not a String (got '
-                + String.valueOf(value).left(40) + '...). '
+                + (value == null ? 'null' : String.valueOf(value).left(40)) + '...). '
                 + 'Wire the flow variable to a Text output.'
         );
         return null;

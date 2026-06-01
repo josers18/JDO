@@ -20,91 +20,6 @@ export function escapeForHtml(s) {
         .replace(/'/g, '&#39;');
 }
 
-// Tag/attribute allowlist for sanitizing marked.parse() output. Matches the
-// surface area lightning-formatted-rich-text accepts on display, so the same
-// payload is safe for both display AND print (which bypasses LFRT entirely).
-const ALLOWED_TAGS = new Set([
-    'p', 'br', 'span',
-    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'strong', 'b', 'em', 'i', 'u',
-    'ul', 'ol', 'li',
-    'blockquote',
-    'code', 'pre',
-    'a',
-    'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    'hr'
-]);
-
-const ALLOWED_ATTRS = {
-    a: ['href']
-};
-
-const URL_SAFE_RE = /^(https?:|mailto:|\/|#|\.\/)/i;
-const URL_STRIP_RE = /[\s\x00-\x1F\x7F]/g;
-
-/**
- * Allowlist-sanitize HTML produced by marked.parse(). Strips disallowed tags
- * (preserves their text), strips disallowed attributes, and rejects href
- * schemes that aren't http(s)/mailto/relative — closes the javascript: /
- * data: / vbscript: surface. Uses a detached DOMParser so no scripts run
- * during parsing.
- *
- * Designed to be idempotent: sanitize(sanitize(x)) === sanitize(x).
- */
-export function sanitizeRichHtml(html) {
-    if (html == null || html === '') {
-        return '';
-    }
-    const doc = new DOMParser().parseFromString(String(html), 'text/html');
-    if (!doc || !doc.body) {
-        return '';
-    }
-    sanitizeNode(doc.body);
-    return doc.body.innerHTML;
-}
-
-function sanitizeNode(root) {
-    const toUnwrap = [];
-    const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null);
-    let node = walker.nextNode();
-    while (node) {
-        const tag = node.tagName.toLowerCase();
-        if (!ALLOWED_TAGS.has(tag)) {
-            toUnwrap.push(node);
-        } else {
-            const allowedAttrs = ALLOWED_ATTRS[tag] || [];
-            for (const attr of Array.from(node.attributes)) {
-                if (!allowedAttrs.includes(attr.name.toLowerCase())) {
-                    node.removeAttribute(attr.name);
-                    continue;
-                }
-                if (attr.name.toLowerCase() === 'href') {
-                    const cleaned = String(attr.value).replace(URL_STRIP_RE, '');
-                    if (!URL_SAFE_RE.test(cleaned)) {
-                        node.removeAttribute('href');
-                    } else {
-                        node.setAttribute('href', cleaned);
-                    }
-                }
-            }
-        }
-        node = walker.nextNode();
-    }
-    // Unwrap disallowed elements (replace with their text/children) in
-    // reverse-DOM order so child unwrap doesn't disturb parent walking.
-    for (let i = toUnwrap.length - 1; i >= 0; i--) {
-        const el = toUnwrap[i];
-        const parent = el.parentNode;
-        if (!parent) {
-            continue;
-        }
-        while (el.firstChild) {
-            parent.insertBefore(el.firstChild, el);
-        }
-        parent.removeChild(el);
-    }
-}
-
 /**
  * Build a self-contained HTML page for printing the prompt output.
  * `effectiveFormat` is one of 'text' | 'html' | 'markdown' (matches the
@@ -207,10 +122,6 @@ export async function writeClipboard(hostTemplate, bufferTextarea, text) {
  * [data-print-frame]. Uses iframe.srcdoc (the modern alternative to document.write)
  * and waits for the iframe's load event before invoking print() — avoids the timing
  * race where print() fires against an empty document. Returns a Promise<boolean>.
- *
- * After the print dialog opens, srcdoc is cleared on a 1-second timer so the
- * generated content (which may include record data) doesn't sit in the DOM
- * for the lifetime of the parent component.
  */
 export function tryPrintWithIframe(hostTemplate, html) {
     return new Promise((resolve) => {
@@ -219,26 +130,13 @@ export function tryPrintWithIframe(hostTemplate, html) {
             resolve(false);
             return;
         }
-        const clearLater = () => {
-            // 1s gives the print dialog time to capture the document; longer is
-            // overkill, shorter races the dialog open in slow browsers.
-            window.setTimeout(() => {
-                try {
-                    iframe.srcdoc = '';
-                } catch (ignore) {
-                    // ignore
-                }
-            }, 1000);
-        };
         const onLoad = () => {
             iframe.removeEventListener('load', onLoad);
             try {
                 iframe.contentWindow.focus();
                 iframe.contentWindow.print();
-                clearLater();
                 resolve(true);
             } catch (ignore) {
-                clearLater();
                 resolve(false);
             }
         };
@@ -283,10 +181,6 @@ export function tryPrintWithBlobUrl(html) {
             }
             window.setTimeout(cleanup, 120000);
         };
-        // Blob-URL popups don't reliably fire a load event; 300ms is empirically
-        // long enough for the document to render but short enough that the user
-        // doesn't notice a delay before the print dialog opens. Don't drop this
-        // — calling print() against an empty document produces a blank preview.
         window.setTimeout(runPrint, 300);
         return true;
     } catch (ignore) {
