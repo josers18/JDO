@@ -15,7 +15,7 @@
 | [DIAGRAMS.md](DIAGRAMS.md) | Consolidated Mermaid diagrams (architecture) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Narrative + links to per-project architecture docs |
 | [ARTIFACTS.md](ARTIFACTS.md) | Links to each project’s `artifacts.md` inventory |
-| [THEME_CATALOG.md](THEME_CATALOG.md) | **Theme catalog (PDF)** — 42 shared presets for profile + prediction widgets |
+| [THEME_CATALOG.md](THEME_CATALOG.md) | **Theme catalog & cookbook** — visual PDFs + palette/lifecycle/switcher contract for all `--wp-*` themed LWCs |
 
 ## Per-project documentation
 
@@ -45,6 +45,6 @@
 - **Deploy / how-tos:** `docs/DEPLOY.md` and `docs/HOW_TO.md` (all projects above except optional extras).
 - **Flows:** `docs/FLOW_GUIDE.md` (Prediction, Multiclass, AgentForce Output). Person and Business profile widgets each have `docs/FLOW_GUIDE.md`. Query-to-Table has no Flow dependency.
 - **Prompt Builder:** `docs/PROMPT_TEMPLATE_GUIDE.md` (Prediction, Multiclass).
-- **Prediction / Multiclass themes:** `predictionThemes.js` in each LWC bundle (aligned with profile widget tokens); see each project’s **COMPONENT_REFERENCE.md** (Theme section). **Visual reference:** [THEME_CATALOG.md](THEME_CATALOG.md) → [widget_theme_catalog.pdf](assets/widget_theme_catalog.pdf).
+- **Theming a new LWC:** read **[THEME_CATALOG.md](THEME_CATALOG.md)** first — it covers the `--wp-*` CSS contract, lifecycle canon (`_isConnected` / RAF / `_lastAppliedThemeKey`), the adapter pattern (`cockpitThemes.js`-style), switcher UI + meta.xml properties, and a copy-paste skeleton. Visual references: [widget_theme_catalog.pdf](assets/widget_theme_catalog.pdf), [widget_theme_palette_poster.pdf](assets/output/pdf/widget_theme_palette_poster.pdf).
 - **Setup / requirements:** `docs/SETUP_GUIDE.md`, `docs/REQUIREMENTS.md` (AgentForce Output); `docs/SETUP_GUIDE.md` (Query to Table); `docs/SETUP.md` (Person Profile Widget).
 - **Git / naming:** `docs/GIT.md` in each project.

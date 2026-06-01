@@ -82,7 +82,8 @@ Model explanations often use signed **contribution** values (positive vs negativ
 
 The card can use the same **CSS variable tokens** as the Customer / Business profile widgets so prediction tiles match adjacent profile chrome on FSI demos.
 
-**Visual reference (preset names):** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+**Visual reference:** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf).
+**Implementation reference (NEW LWCs start here):** [docs/THEME_CATALOG.md](../../docs/THEME_CATALOG.md) — the cookbook covers the `--wp-*` CSS variable contract, the `_isConnected`/RAF/`_lastAppliedThemeKey` lifecycle canon, the adapter pattern for layering component-specific tokens, the App Builder switcher UI + `meta.xml` `datasource`, and a copy-paste starter skeleton.
 
 | Property | Default | Meaning |
 |----------|---------|---------|

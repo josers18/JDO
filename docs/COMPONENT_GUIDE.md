@@ -45,6 +45,6 @@ For other components, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) (section **
 
 ## Related reading
 
-- [THEME_CATALOG.md](THEME_CATALOG.md) — **42 shared themes** (PDF) for Customer Profile, Business Profile, Prediction Model, and Multiclass Prediction.
+- [THEME_CATALOG.md](THEME_CATALOG.md) — **Theme catalog & cookbook**: 42 shared themes + the `--wp-*` CSS contract, lifecycle canon, adapter pattern, switcher UI, and starter skeleton. Start here when adding theming to any new LWC.
 - [MOBILE_AND_FORM_FACTORS.md](MOBILE_AND_FORM_FACTORS.md) — Home vs phone, activation.
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) — Deploy commands and permission set table.

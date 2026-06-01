@@ -23,6 +23,7 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** deploya
 [![Cumulus Rows](https://img.shields.io/badge/Cumulus_Rows-3.97M-181717?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 [![Multi-Org](https://img.shields.io/badge/Multi--Org-Phase_A_LIVE-2EA44F?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 [![Agentforce Renderer](https://img.shields.io/badge/Agentforce_Renderer-Markdown-7F56D9?style=for-the-badge)](DC_AgentForce_Markdown_Renderer/docs/INTEGRATION_GUIDE.md)
+[![Theme System](https://img.shields.io/badge/Theme_System-Cookbook-7F56D9?style=for-the-badge)](docs/THEME_CATALOG.md)
 
 <br/>
 

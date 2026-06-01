@@ -67,7 +67,8 @@ Signed **contribution** values (for example SHAP scores) drive **diverging** bar
 
 Same **preset names** and **CSS variables** as the profile widgets and **Prediction Model** (`--wp-shell-bg`, `--wp-accent`, etc.).
 
-**Visual reference:** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf) · [THEME_CATALOG.md](../../docs/THEME_CATALOG.md).
+**Visual reference:** [Widget theme catalog (PDF)](assets/widget_theme_catalog.pdf).
+**Implementation reference (NEW LWCs start here):** [docs/THEME_CATALOG.md](../../docs/THEME_CATALOG.md) — the cookbook covers the `--wp-*` CSS variable contract, the `_isConnected`/RAF/`_lastAppliedThemeKey` lifecycle canon, the adapter pattern for layering component-specific tokens, the App Builder switcher UI + `meta.xml` `datasource`, and a copy-paste starter skeleton.
 
 | Property | Default | Meaning |
 |----------|---------|---------|

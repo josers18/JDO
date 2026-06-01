@@ -113,3 +113,64 @@ sequenceDiagram
 ```
 
 Promise A is never blocked on Promise B. The hot+cold merge happens server-side inside Promise A, so the LWC consumes hot-only and hot+cold responses identically — `parseDataGraphResponse` is unchanged. Filter chips re-render visible events without firing Apex. Partial-failure UX surfaces inline retry banners for whichever side failed; the working side keeps showing.
+
+## Theme system — `--wp-*` token flow across the LWC family
+
+```mermaid
+flowchart LR
+    subgraph base [Base palette source]
+        PT[c/predictionThemes<br/>THEMES map]
+    end
+    subgraph adapters [Per-component adapters / consumers]
+        CPW[customerProfileWidget<br/>inline THEMES]
+        BPW[businessProfileWidget<br/>inline THEMES]
+        CML[classificationModelLwc<br/>predictionThemes.js]
+        MPL[multiclassPredictionLwc<br/>predictionThemes.js]
+        CT[cockpitThemes.js<br/>adapter — adds 3 cockpit tokens]
+        FJC[fscJourneyCockpit]
+    end
+    subgraph runtime [Runtime apply path]
+        AT[applyTheme — caches via _lastAppliedThemeKey,<br/>writes :host + .lwc-shell style.setProperty]
+        CSS[CSS rules consume --wp-* with hex fallbacks]
+    end
+    PT -. duplicated .-> CML
+    PT -. duplicated .-> MPL
+    PT -- import --> CT
+    CT --> FJC
+    CPW --> AT
+    BPW --> AT
+    CML --> AT
+    MPL --> AT
+    FJC --> AT
+    AT --> CSS
+```
+
+The **adapter pattern** (`cockpitThemes.js` → `c/predictionThemes`) is the recommended path for new components — it eliminates the "keep these files identical" duplication that bridges `classificationModelLwc` ↔ `multiclassPredictionLwc`. Full contract, lifecycle canon, and copy-paste skeleton in [THEME_CATALOG.md](THEME_CATALOG.md).
+
+```mermaid
+sequenceDiagram
+    participant AB as App Builder admin
+    participant LWC as Themed LWC
+    participant TM as Theme module<br/>(adapter or inline)
+    participant DOM as :host + .lwc-shell
+
+    AB->>LWC: themeMode / accentColor / showThemeSwitcher
+    LWC->>LWC: connectedCallback → _isConnected = true
+    LWC->>LWC: scheduleApplyTheme (microtask coalesce)
+    LWC->>LWC: renderedCallback → RAF (one frame deferral)
+    LWC->>TM: read THEMES[mode] (default if unknown)
+    LWC->>LWC: cache key = mode|accent|warning|negative|targets
+    alt key === _lastAppliedThemeKey
+        LWC-->>LWC: skip (idempotent)
+    else key changed
+        LWC->>DOM: setProperty(--wp-shell-bg, ...)
+        LWC->>DOM: setProperty(--wp-text-primary, ...)
+        LWC->>DOM: setProperty(--wp-accent, accentResolved)
+        LWC->>DOM: setProperty(--wp-accent-bg, accent + 14)
+        LWC->>DOM: setProperty(--wp-accent-border, accent + 40)
+        LWC->>DOM: setProperty(--wp-accent-dim, accent + 99)
+        LWC->>LWC: _lastAppliedThemeKey = key
+    end
+```
+
+Key invariants (drift here causes the FOUC and "first load shows wrong theme" bugs that bit earlier components): `_isConnected` re-entry guard, `_animationPending` + `requestAnimationFrame` (NOT `setTimeout`), `_lastAppliedThemeKey` cache, two-target apply (`:host` + `.lwc-shell`), 8-char hex alpha-strip on the accent. See the **Why each piece exists** table in [THEME_CATALOG.md §3](THEME_CATALOG.md#3-lifecycle-canon).
