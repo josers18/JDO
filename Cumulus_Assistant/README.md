@@ -18,7 +18,7 @@ The Cumulus Bank Agentforce agent definition + the GenAiFunctions that drive it.
 |------|---------|
 | `aiAuthoringBundles/Cumulus_Assistant/Cumulus_Assistant.agent` | 3.3K-line Agent Script defining the Cumulus Bank assistant — agent_router subagent, 18+ topic subagents, action wirings, prompts, knowledge config. |
 | `aiAuthoringBundles/Cumulus_Assistant/Cumulus_Assistant.bundle-meta.xml` | Bundle metadata: `bundleType=AGENT`. |
-| `genAiFunctions/DC_Product_Offers/` | GenAiFunction wrapping the `Product_Offers` retriever. Output `promptResponse` is typed `markdownResponse` so Agentforce auto-routes it through the markdown renderer. |
+| `genAiFunctions/DC_Product_Offers/` | GenAiFunction wrapping the `Product_Offers` retriever. Output `promptResponse` is typed `c__markdownResponse` so Agentforce auto-routes it through the markdown renderer. |
 
 ## Agent surface
 
@@ -28,7 +28,7 @@ Agent Script details live in `Cumulus_Assistant.agent` — too large to summariz
 
 ## Cross-project dependency
 
-The `DC_Product_Offers` GenAiFunction's `output/schema.json` types `promptResponse` as `markdownResponse`. That type is owned by sibling project `DC_AgentForce_Markdown_Renderer/` (Lightning Type + LWC). **Deploy the renderer project FIRST**, otherwise this project's deploy will fail at the type lookup.
+The `DC_Product_Offers` GenAiFunction's `output/schema.json` types `promptResponse` as `c__markdownResponse`. That type is owned by sibling project `DC_AgentForce_Markdown_Renderer/` (Lightning Type + LWC). **Deploy the renderer project FIRST**, otherwise this project's deploy will fail at the type lookup.
 
 ## Deploy
 
@@ -46,5 +46,5 @@ The agent bundle is large (~3.3K lines) — deploys take longer than typical met
 
 ## Related
 
-- `../DC_AgentForce_Markdown_Renderer/` — sibling project owning the `markdownResponse` Lightning type + `c/markdownRenderer` LWC.
+- `../DC_AgentForce_Markdown_Renderer/` — sibling project owning the `c__markdownResponse` Lightning type + `c/markdownRenderer` LWC.
 - `AGENTS.md` — context for AI coding agents working on this project.
