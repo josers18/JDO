@@ -1,0 +1,19 @@
+Connector Type,Streams,Active,Failed Last Run,Mapped Streams,Unmapped Streams,Unique Source Objects,Total Records
+SalesforceDotCom,142,137,4,93,49,117,460322
+SNOWFLAKE,43,43,0,34,9,0,109223813
+Databricks,28,28,0,3,25,0,1015654
+IngestApi,27,27,0,1,26,0,14139949
+AIPlatform,15,15,0,0,15,0,30497
+HerokuPostgres,14,14,0,1,13,0,22017
+StreamingApp,14,14,0,1,13,0,6704
+EventBusConnector,11,11,0,0,11,0,131897
+ECI,6,6,0,0,6,0,6771
+UploadedFiles,5,5,0,1,4,0,600346
+AwsS3,5,5,0,0,5,0,4393
+CDataJdbcGoogleAnalytics,2,2,2,0,2,0,0
+REDSHIFT,2,2,0,2,0,0,2188
+AzureSql,1,1,0,0,1,0,847
+DATABRICKS_UNITY,1,1,0,1,0,0,102
+DATACLOUD,1,1,0,1,0,0,10000159
+Observability,1,1,1,0,1,0,0
+TenantBillingUsageConnector,1,1,0,0,1,0,0

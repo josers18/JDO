@@ -1,0 +1,567 @@
+DLO Name,Label,Category,Status,Field Count,Primary Key(s),Created Date,Last Refreshed
+AIRetrieverRequest__dll,AIRetrieverRequest,Engagement,ACTIVE,20,id__c,2026-06-18T09:00:43.000Z,2026-07-02T16:58:24.000Z
+AIRetrieverResponse__dll,AIRetrieverResponse,Engagement,ACTIVE,16,id__c,2026-06-18T09:01:29.000Z,2026-07-02T16:59:06.000Z
+AJG_Test_Output_DLO__dll,AJG Test Output DLO,Other,ACTIVE,16,RecordId__c,2025-11-18T16:49:09.000Z,
+AbnExperimentCohort_Home__dll,AbnExperimentCohort_Home,Other,ACTIVE,24,Id__c,2025-11-25T17:21:22.000Z,2026-07-02T17:00:36.000Z
+AbnExperiment_Home__dll,AbnExperiment_Home,Other,ACTIVE,38,Id__c,2025-11-25T17:21:29.000Z,2026-07-02T17:00:36.000Z
+AbnExperimentationDailySummary__dll,AbnExperimentationDailySummary,Other,ACTIVE,21,Id__c,2025-11-25T17:25:56.000Z,
+AbnExperimentationSummary__dll,AbnExperimentationSummary,Other,ACTIVE,29,Id__c,2025-11-25T17:26:07.000Z,
+Acc_DefaultAttribution_FT_DCO__dll,Acc_DefaultAttribution_FT_DCO,Engagement,ACTIVE,21,PersonalizationAttrPk__c,2024-10-16T13:58:35.000Z,
+Acc_DefaultAttribution_FT_DO__dll,Acc_DefaultAttribution_FT_DO,Engagement,ACTIVE,20,PersonalizationAttrPk__c,2024-10-16T13:58:27.000Z,
+Acc_DefaultAttribution_LT_DCO__dll,Acc_DefaultAttribution_LT_DCO,Engagement,ACTIVE,21,PersonalizationAttrPk__c,2024-10-16T13:59:49.000Z,
+Acc_DefaultAttribution_LT_DO__dll,Acc_DefaultAttribution_LT_DO,Engagement,ACTIVE,20,PersonalizationAttrPk__c,2024-10-16T13:59:29.000Z,
+AccountAccountRelationship__dll,AccountAccountRelationship,Profile,ACTIVE,35,Id__c,2025-05-05T19:51:11.000Z,2026-05-26T15:13:53.000Z
+AccountContactRelation_Home__dll,AccountContactRelation_Home,Profile,ACTIVE,33,Id__c,2025-05-05T20:16:56.000Z,2026-06-25T21:06:12.000Z
+Account_B2B_DLO__dll,Account B2B DLO,Profile,ACTIVE,40,Id__c,2024-07-26T20:30:49.000Z,2026-07-01T12:42:03.000Z
+Account_B2C_DLO__dll,Account B2C DLO,Profile,ACTIVE,16,Id__c,2024-07-26T20:30:14.000Z,2025-01-09T18:05:40.000Z
+Account_DCCDO1__dll,Account_DCCDO1,Profile,ACTIVE,196,Id__c,2024-08-07T20:33:07.000Z,2025-12-31T17:05:37.000Z
+Account_FinsDC1__dll,Account_FinsDC1,Profile,ACTIVE,37,Id__c,2024-08-07T20:18:03.000Z,2025-12-31T17:05:40.000Z
+Account_FinsDC4__dll,Account_FinsDC4,Profile,ACTIVE,70,Id__c,2024-09-26T02:23:15.000Z,2025-12-31T17:05:40.000Z
+Account_Home__dll,Account_Home,Profile,ACTIVE,197,Id__c,2024-07-26T20:06:18.000Z,2026-05-28T03:07:34.000Z
+Account_InsuranceAFDC__dll,Account_InsuranceAFDC,Profile,ACTIVE,60,Id__c,2025-10-08T21:38:30.000Z,2026-07-02T17:00:39.000Z
+Account_chunk__dll,Account chunk,Content,ACTIVE,12,RecordId__c,2025-09-10T02:36:02.000Z,
+Account_index__dll,Account index,Vector_Embedding,ACTIVE,9,RecordId__c,2025-09-10T02:36:27.000Z,
+Account_transcribe__dll,Account transcribe,Content,ACTIVE,12,RecordId__c,2025-09-10T02:36:14.000Z,
+AccountsWithOpportunitiesDenormalized__dll,AccountsWithOpportunitiesDenormalized,Other,ACTIVE,66,Id__c,2024-11-04T02:40:02.000Z,2024-11-04T02:47:05.000Z
+Activities_Snow__dll,Activities_Snow,Engagement,ACTIVE,14,activity_id__c,2025-05-22T14:42:00.000Z,2025-12-29T06:01:01.000Z
+ActivityInsightActionDtl_00Dam00000Uo32q__dll,ActivityInsightActionDtl_00Dam00000Uo32q,Other,ACTIVE,10,Id__c,2025-04-09T02:01:12.000Z,2026-07-02T16:30:54.000Z
+ActivityInsightAction_00Dam00000Uo32q__dll,ActivityInsightAction_00Dam00000Uo32q,Other,ACTIVE,10,Id__c,2025-04-09T02:00:54.000Z,2026-07-02T16:19:49.000Z
+ActivityInsightSubjctDtl_00Dam00000Uo32q__dll,ActivityInsightSubjctDtl_00Dam00000Uo32q,Other,ACTIVE,10,Id__c,2025-04-09T02:00:33.000Z,2026-07-02T16:26:22.000Z
+ActivityInsightSubject_00Dam00000Uo32q__dll,ActivityInsightSubject_00Dam00000Uo32q,Other,ACTIVE,9,Id__c,2025-04-09T02:01:08.000Z,2026-07-02T16:14:55.000Z
+ActivityInsight_00Dam00000Uo32q__dll,ActivityInsight_00Dam00000Uo32q,Engagement,ACTIVE,17,Id__c,2025-04-09T02:00:59.000Z,2026-07-02T16:21:56.000Z
+AgentOpt_Tag_1A38A90B__dll,AgentOpt-Tag,Other,ACTIVE,15,Id__c,2025-09-05T14:12:38.000Z,2026-07-02T07:32:24.000Z
+AgentOpt_Tag_Association_FEBD952C__dll,AgentOpt-Tag Association,Engagement,ACTIVE,24,Id__c,2026-03-18T02:19:29.000Z,2026-07-01T18:21:16.000Z
+AgentOpt_Tag_Def_1A38A908__dll,AgentOpt-Tag Def,Other,ACTIVE,20,Id__c,2025-09-05T14:12:25.000Z,2026-07-02T07:33:26.000Z
+AgentOpt_Tag_Def_Association_1A38A90B__dll,AgentOpt-Tag Def Association,Other,ACTIVE,13,Id__c,2025-09-05T14:12:48.000Z,2026-07-02T08:20:13.000Z
+Agntfrc_Sls_Coach_Analytics_Opp_Users__dll,Agntfrc Sls Coach Analytics Opp Users,Other,ACTIVE,14,Opportunity_ID__c,2025-02-18T01:41:53.000Z,2025-03-07T08:05:55.000Z
+Agntfrc_Sls_Coach_Analytics_Tasks__dll,Agntfrc Sls Coach Analytics Tasks,Other,ACTIVE,10,Opportunity_Task_ID__c,2025-02-18T01:41:50.000Z,2025-03-07T08:06:15.000Z
+Agntfrc_Sls_Coach_Analytics_W_Coach__dll,Agntfrc Sls Coach Analytics W Coach,Other,ACTIVE,21,Opportunity_Task_ID__c,2025-02-18T01:41:44.000Z,2025-03-07T08:06:14.000Z
+Agntfrc_Sls_Coach_Analytics_Wo_Coach__dll,Agntfrc Sls Coach Analytics Wo Coach,Other,ACTIVE,14,Opportunity_ID__c,2025-02-18T01:41:39.000Z,2025-03-07T08:05:55.000Z
+AiAgentGenerativeAiUsage__dll,AiAgentGenerativeAiUsage,Engagement,ACTIVE,40,id__c,2026-05-18T13:27:38.000Z,2026-07-02T17:01:05.000Z
+AiAgentInteractionMessage__dll,AiAgentInteractionMessage,Engagement,ACTIVE,28,id__c,2025-08-22T17:32:49.000Z,2026-07-02T17:00:44.000Z
+AiAgentInteractionStep__dll,AiAgentInteractionStep,Profile,ACTIVE,28,id__c,2025-08-22T17:32:58.000Z,2026-07-02T17:00:01.000Z
+AiAgentInteraction__dll,AiAgentInteraction,Engagement,ACTIVE,25,id__c,2025-08-22T17:32:29.000Z,2026-07-02T17:00:22.000Z
+AiAgentMessageAttachmentBridge__dll,AiAgentMessageAttachmentBridge,Engagement,ACTIVE,16,id__c,2025-11-08T03:00:20.000Z,2026-07-02T17:02:30.000Z
+AiAgentSessionAttachmentBridge__dll,AiAgentSessionAttachmentBridge,Engagement,ACTIVE,16,id__c,2025-11-08T03:00:29.000Z,2026-07-02T17:02:58.000Z
+AiAgentSessionLog__dll,AiAgentSessionLog,Engagement,ACTIVE,27,id__c,2026-06-13T14:00:38.000Z,2026-07-02T16:53:43.000Z
+AiAgentSessionParticipant__dll,AiAgentSessionParticipant,Engagement,ACTIVE,23,id__c,2025-08-22T17:32:39.000Z,2026-07-02T16:59:16.000Z
+AiAgentSession__dll,AiAgentSession,Profile,ACTIVE,23,id__c,2025-08-22T17:32:18.000Z,2026-07-02T16:54:10.000Z
+AiAgentTagDefAssoc_Home__dll,AiAgentTagDefAssoc_Home,Other,ACTIVE,19,Id__c,2026-03-18T02:31:52.000Z,2026-07-02T17:00:36.000Z
+AiGroundingFileRef_Home__dll,AiGroundingFileRef_Home,Other,ACTIVE,19,Id__c,2024-12-23T03:24:04.000Z,2026-05-29T14:10:41.000Z
+AiRetrieverQualityMetric__dll,AiRetrieverQualityMetric,Engagement,ACTIVE,30,id__c,2026-06-18T09:00:14.000Z,
+AiTagDefinition_Home__dll,AiTagDefinition_Home,Other,ACTIVE,30,Id__c,2026-03-18T02:31:32.000Z,2026-07-02T17:00:36.000Z
+AiTagValue_Home__dll,AiTagValue_Home,Other,ACTIVE,23,Id__c,2026-03-18T02:31:15.000Z,2026-07-02T17:00:36.000Z
+Alert__dll,Alert,Profile,ACTIVE,32,Id__c,2024-08-03T14:25:20.000Z,2026-05-26T15:22:40.000Z
+ApiAnomalyEvent_Salesforce_Platform_Even__dll,ApiAnomalyEvent Salesforce Platform Even,Engagement,ACTIVE,29,EventIdentifier__c,2025-03-13T21:24:32.000Z,2026-07-02T16:36:03.000Z
+ApiEventStream_Salesforce_Platform_Event__dll,ApiEventStream Salesforce Platform Event,Engagement,ACTIVE,37,EventIdentifier__c,2025-03-13T20:55:43.000Z,2026-07-02T16:32:29.000Z
+Atlas_6500__dll,Atlas 6500,Vector_Embedding,ACTIVE,9,RecordId__c,2025-12-18T18:33:17.000Z,
+Attrition_Inputs_Snowflake__dll,Attrition_Inputs_Snowflake,Profile,ACTIVE,20,uniqueid__c,2024-08-19T12:34:56.000Z,
+Auto_Insurance_Declaration_Page_dlo__dll,Auto Insurance Declaration Page,Directory_Table,ACTIVE,18,FilePath__c,2025-12-09T01:18:33.000Z,
+Auto_Insurance_Detail_Output__dll,Auto Insurance Detail Output,Other,ACTIVE,12,RecordId__c,2025-12-11T18:08:23.000Z,
+BUSINESS_PRODUCT_RECOMMENDATION_INPUTS__dll,BUSINESS_PRODUCT_RECOMMENDATION_INPUTS,Other,ACTIVE,17,accountid__c,2026-03-27T17:04:09.000Z,
+BUSINESS_PRODUCT_RECOMMENDATION__dll,BUSINESS_PRODUCT_RECOMMENDATION,Other,ACTIVE,36,accountid__c,2026-03-27T16:03:12.000Z,
+BotDefinition_Home__dll,BotDefinition_Home,Other,ACTIVE,20,Id__c,2024-12-11T05:30:29.000Z,2025-12-31T17:05:37.000Z
+BotVersion_Home__dll,BotVersion_Home,Other,ACTIVE,19,Id__c,2025-04-05T04:00:36.000Z,2025-12-31T18:00:36.000Z
+BulkApiResultEvent_Salesforce_Platform_E__dll,BulkApiResultEvent Salesforce Platform E,Engagement,ACTIVE,24,EventIdentifier__c,2025-03-13T20:58:08.000Z,2026-07-02T16:26:42.000Z
+BulkMessage_Home__dll,BulkMessage_Home,Other,ACTIVE,26,Id__c,2025-09-09T13:43:31.000Z,2026-07-02T17:00:37.000Z
+CG_Audience_Dropped__dll,CG_Audience_Dropped,Engagement,ACTIVE,12,Id__c,2025-05-06T18:59:40.000Z,
+CG_Audience_Qualified__dll,CG_Audience_Qualified,Engagement,ACTIVE,11,Id__c,2025-05-06T18:59:36.000Z,
+CONVERSATION_ENTRY_00Dam00000Uo32q__dll,CONVERSATION_ENTRY_00Dam00000Uo32q,Engagement,ACTIVE,26,id__c,2024-09-20T13:23:49.000Z,2026-07-02T16:31:10.000Z
+CSAT_Attrition_Inputs_Snow__dll,CSAT_Attrition_Inputs_Snow,Other,ACTIVE,18,accountid__c,2026-03-26T16:16:38.000Z,
+CSAT_Prediction_Input__dll,CSAT Prediction Input,Other,ACTIVE,19,accountid__c,2025-02-14T17:05:03.000Z,2026-03-26T16:26:49.000Z
+CSAT_Prediction_Training__dll,CSAT Prediction Training,Other,ACTIVE,20,Customer_ID__c,2025-02-14T15:40:00.000Z,2026-02-12T17:24:26.000Z
+CSAT_Snowflake__dll,CSAT_Snowflake,Other,ACTIVE,13,rowid__c,2026-04-22T21:01:57.000Z,2026-04-22T21:07:19.000Z
+CSAT__dll,CSAT,Other,ACTIVE,12,Id__c,2024-10-05T01:45:27.000Z,2026-02-12T17:22:06.000Z
+CSAT_chunk__dll,CSAT chunk,Content,ACTIVE,10,RecordId__c,2024-10-05T04:03:06.000Z,
+CSAT_index__dll,CSAT index,Vector_Embedding,ACTIVE,8,RecordId__c,2024-10-05T04:03:15.000Z,
+CallTranscriptEntry_00Dam00000Uo32q__dll,CallTranscriptEntry_00Dam00000Uo32q,Other,ACTIVE,26,Id__c,2025-04-09T02:00:39.000Z,2025-12-31T18:10:17.000Z
+CampaignMember_Home__dll,CampaignMember_Home,Profile,ACTIVE,43,Id__c,2025-09-09T13:43:50.000Z,2026-07-02T17:00:36.000Z
+Campaign_Home__dll,Campaign_Home,Other,ACTIVE,9,Id__c,2025-09-09T13:44:34.000Z,2026-06-15T05:16:05.000Z
+Card__dll,Card,Profile,ACTIVE,25,Id__c,2024-08-03T14:28:46.000Z,2026-05-26T15:21:33.000Z
+CaseArticle_Home__dll,CaseArticle_Home,Other,ACTIVE,21,Id__c,2025-03-07T04:03:56.000Z,2025-12-31T18:00:37.000Z
+Case_DCCDO1__dll,Case_DCCDO1,Engagement,ACTIVE,48,Id__c,2024-08-07T20:40:26.000Z,2025-12-31T17:05:39.000Z
+Case_FinsDC1__dll,Case_FinsDC1,Engagement,ACTIVE,233,Id__c,2024-08-07T20:20:43.000Z,2025-12-31T17:05:39.000Z
+Case_FinsDC4__dll,Case_FinsDC4,Engagement,ACTIVE,232,Id__c,2024-09-26T02:26:45.000Z,2025-12-31T17:05:39.000Z
+Case__dll,Case,Engagement,ACTIVE,55,Id__c,2024-08-04T05:32:21.000Z,2026-05-26T15:11:55.000Z
+Churn_Training_Data__dll,Churn Training Data,Other,ACTIVE,15,customerid__c,2025-08-27T12:46:14.000Z,
+Claim_Snowflake_InsAFDC__dll,Claim_Snowflake_InsAFDC,Engagement,ACTIVE,16,claim_id__c,2025-10-09T22:13:09.000Z,
+Claims__dll,Claims,Engagement,ACTIVE,15,claim_id__c,2025-08-13T05:41:09.000Z,
+Clean_Room_Audit_Log__dll,Clean_Room_Audit_Log,Other,ACTIVE,12,Id__c,2026-02-06T13:42:46.000Z,
+Clean_Room_Customer_Data__dll,Clean Room Customer Data,Profile,ACTIVE,15,row_id__c,2026-02-10T09:04:58.000Z,2026-02-10T09:05:16.000Z
+Clean_Room_Engagement_Data__dll,Clean Room Engagement Data,Engagement,ACTIVE,20,row_id__c,2026-02-10T11:04:29.000Z,2026-02-10T11:04:43.000Z
+Clean_Rooms_Advertising_Data__dll,Clean Rooms Advertising Data,Engagement,ACTIVE,21,unique_engagement_id__c,2026-02-10T11:31:22.000Z,2026-02-10T11:31:38.000Z
+Cloned_Transactions__dll,Cloned_Transactions,Other,ACTIVE,20,transactionid__c,2025-02-17T16:58:23.000Z,
+CollaborationGroupMember_Home__dll,CollaborationGroupMember_Home,Other,ACTIVE,18,Id__c,2025-09-19T14:23:24.000Z,2026-07-02T17:00:36.000Z
+CollaborationGroupRecord_Home__dll,CollaborationGroupRecord_Home,Other,ACTIVE,16,Id__c,2025-09-19T14:23:08.000Z,2026-07-02T17:00:36.000Z
+CollaborationGroup_Home__dll,CollaborationGroup_Home,Other,ACTIVE,34,Id__c,2025-09-19T14:23:33.000Z,2026-07-02T17:00:36.000Z
+CommSubscriptionChannelType_Home__dll,CommSubscriptionChannelType_Home,Other,ACTIVE,25,Id__c,2025-09-09T13:43:44.000Z,2026-06-30T07:10:51.000Z
+CommSubscription_Home__dll,CommSubscription_Home,Other,ACTIVE,16,Id__c,2025-09-09T13:44:29.000Z,2026-06-15T14:20:54.000Z
+ConsentAuditTrailV2_ConsentAudi_2EBB2A3F__dll,ConsentAuditTrailV2-ConsentAuditTrail,Other,ACTIVE,18,Id__c,2025-09-09T13:47:22.000Z,2025-09-09T16:28:01.000Z
+Contact_Home__dll,Contact_Home,Profile,ACTIVE,106,Id__c,2024-07-26T20:19:02.000Z,2026-05-26T16:33:18.000Z
+Contact_InsuranceAFDC__dll,Contact_InsuranceAFDC,Profile,ACTIVE,61,Id__c,2025-10-08T21:36:51.000Z,2026-07-02T17:00:36.000Z
+ContentDocumentLink__dll,ContentDocumentLink,Other,ACTIVE,14,Id__c,2025-03-07T01:39:10.000Z,2025-12-31T18:00:36.000Z
+ContentDocument__dll,ContentDocument,Other,ACTIVE,37,Id__c,2025-03-07T01:37:06.000Z,2025-12-31T18:00:37.000Z
+ContentVersion__dll,ContentVersion,Directory_Table,ACTIVE,57,Id__c,2025-03-07T01:40:37.000Z,2025-12-31T18:00:37.000Z
+ConvTranscriptEntry_00Dam00000Uo32q__dll,ConvTranscriptEntry_00Dam00000Uo32q,Engagement,ACTIVE,30,Id__c,2026-02-21T11:00:19.000Z,2026-07-02T16:12:04.000Z
+ConversationDefinitionSession_Home__dll,ConversationDefinitionSession_Home,Other,ACTIVE,30,Id__c,2024-12-11T05:31:19.000Z,2025-12-31T17:05:37.000Z
+CopilotAnalyticsCalculator__dll,Copilot Analytics Calculator,Other,ACTIVE,13,MetricId__c,2024-11-15T05:57:18.000Z,
+CopilotEvents__dll,CopilotEvents,Engagement,ACTIVE,38,uuid__c,2025-02-18T01:41:23.000Z,2025-12-31T18:09:49.000Z
+CopilotForSalesforceAppsEvents__dll,Copilot for Salesforce Apps Events,Other,ACTIVE,23,uuid__c,2025-02-18T01:50:16.000Z,2025-06-21T08:03:42.000Z
+CopilotUtteranceAnalysis__dll,Copilot Utterance Analysis,Other,ACTIVE,16,RequestId__c,2025-01-15T10:45:55.000Z,
+CumulusBoardExExecIntel__dll,Cumulus BoardEx Exec Intel,Profile,ACTIVE,20,ACCOUNT_ID__c; PROFILE_MONTH__c,2026-05-29T00:41:10.000Z,
+CumulusClaritasDemographics__dll,Cumulus Claritas Demographics,Profile,ACTIVE,19,PROFILE_MONTH__c; ACCOUNT_ID__c,2026-05-28T16:42:32.000Z,
+CumulusCoreLogicProperty__dll,Cumulus CoreLogic Property,Profile,ACTIVE,20,ACCOUNT_ID__c; PROFILE_QUARTER__c,2026-05-28T20:22:50.000Z,
+CumulusDnBBusinessCredit__dll,Cumulus DnB Business Credit,Profile,ACTIVE,20,PROFILE_MONTH__c; ACCOUNT_ID__c,2026-05-28T18:39:08.000Z,
+CumulusEsriGeoFootprint__dll,Cumulus Esri Geo Footprint,Profile,ACTIVE,20,PROFILE_MONTH__c; BRANCH_ZIP__c,2026-05-28T19:51:37.000Z,
+CumulusGTM_Behavioral_Events_DD359D25__dll,CumulusGTM-Behavioral Events DD359D25,Engagement,ACTIVE,100,eventId__c,2025-12-02T03:57:50.000Z,2025-12-02T04:32:11.000Z
+CumulusGTM_identity_DD362998__dll,CumulusGTM-identity DD362998,Profile,ACTIVE,41,deviceId__c,2025-12-02T03:58:26.000Z,2025-12-02T04:32:55.000Z
+CumulusGTM_partyIdentification_DD365FAB__dll,CumulusGTM-partyIdentification DD365FAB,Profile,ACTIVE,31,deviceId__c,2025-12-02T03:58:39.000Z,2025-12-02T04:31:42.000Z
+CumulusGongCallSentiment__dll,Cumulus Gong Call Sentiment,Profile,ACTIVE,20,PROFILE_WEEK__c; ACCOUNT_ID__c,2026-05-29T00:46:35.000Z,
+CumulusMSCIESG__dll,Cumulus MSCI ESG,Profile,ACTIVE,19,ACCOUNT_ID__c; PROFILE_MONTH__c,2026-05-28T17:38:42.000Z,
+CumulusMgpFinancialPlans__dll,Cumulus MGP Financial Plans,Profile,ACTIVE,19,PROFILE_MONTH__c; ACCOUNT_ID__c,2026-05-28T23:00:48.000Z,
+CumulusMoodysMarketContext__dll,Cumulus Moodys Market Context,Profile,ACTIVE,21,ACCOUNT_ID__c; PROFILE_DATE__c,2026-05-29T01:50:35.000Z,
+CumulusPlaidHeldAway__dll,Cumulus Plaid Held-Away,Profile,ACTIVE,20,ACCOUNT_ID__c; PROFILE_MONTH__c; HELD_AWAY_ACCOUNT_ID__c,2026-05-28T21:10:10.000Z,
+CumulusSynthRelationshipGraph__dll,Cumulus Synth Relationship Graph,Profile,ACTIVE,15,EDGE_TYPE__c; DST_ACCOUNT_ID__c; SRC_ACCOUNT_ID__c,2026-05-29T00:39:04.000Z,
+CumulusWebProfilesSQL__dll,CumulusWebProfilesSQL,Profile,ACTIVE,27,id__c,2025-05-04T17:48:39.000Z,2025-12-31T21:59:50.000Z
+CumulusWebsiteProfile_Filtered__dll,CumulusWebsiteProfile_Filtered,Profile,ACTIVE,23,userId__c,2025-05-03T21:06:59.000Z,
+CumulusWebsite_Behavioral_Event_7F44305A__dll,CumulusWebsite-Behavioral Event 7F44305A,Engagement,ACTIVE,41,eventId__c,2025-04-29T02:00:24.000Z,2026-07-02T10:04:13.000Z
+CumulusWebsite_Identity_E645A226__dll,CumulusWebsite-Identity E645A226,Profile,ACTIVE,41,deviceId__c,2025-12-03T22:12:09.000Z,2026-07-02T10:01:25.000Z
+CumulusWebsite_userProfile_7F443081__dll,CumulusWebsite-userProfile 7F443081,Profile,ACTIVE,42,eventId__c,2025-04-29T02:00:08.000Z,2025-12-04T17:12:37.000Z
+CumulusWorldCheckAml__dll,Cumulus World-Check AML,Profile,ACTIVE,18,ACCOUNT_ID__c; PROFILE_DATE__c,2026-05-28T21:52:24.000Z,
+CumulusZoomInfoFirmographics__dll,Cumulus ZoomInfo Firmographics,Profile,ACTIVE,20,ACCOUNT_ID__c; PROFILE_MONTH__c,2026-05-29T00:44:21.000Z,
+Cumulus_Products__dll,Cumulus Products,Directory_Table,ACTIVE,18,FilePath__c,2026-05-14T16:23:31.000Z,
+Cumulus_Products_chunk__dll,Cumulus Products chunk,Content,ACTIVE,18,RecordId__c,2026-05-14T18:10:26.000Z,
+Cumulus_Products_index__dll,Cumulus Products index,Vector_Embedding,ACTIVE,12,RecordId__c,2026-05-14T18:11:24.000Z,
+Cumulus_Products_transcribe__dll,Cumulus Products transcribe,Content,ACTIVE,11,RecordId__c,2026-05-14T18:11:01.000Z,
+CurrencyType_DCCDO1__dll,CurrencyType_DCCDO1,Other,ACTIVE,16,Id__c,2024-09-24T11:37:57.000Z,2026-01-01T12:29:29.000Z
+CurrencyType_FinsDC1__dll,CurrencyType_FinsDC1,Other,ACTIVE,16,Id__c,2024-09-24T11:38:21.000Z,2025-12-31T17:05:36.000Z
+CurrencyType_FinsDC4__dll,CurrencyType_FinsDC4,Other,ACTIVE,16,Id__c,2024-09-24T11:38:14.000Z,2026-01-01T12:29:33.000Z
+CurrencyType_Home__dll,CurrencyType_Home,Other,ACTIVE,16,Id__c,2024-09-24T11:38:03.000Z,2025-12-31T17:05:36.000Z
+CurrencyType_InsuranceAFDC__dll,CurrencyType_InsuranceAFDC,Other,ACTIVE,16,Id__c,2025-10-08T18:08:42.000Z,2026-07-02T17:00:36.000Z
+Customer_Jedi_Azure_SQL__dll,Customer Jedi_Azure_SQL,Profile,ACTIVE,9,CustomerID__c,2026-03-26T17:48:16.000Z,2026-03-26T17:48:31.000Z
+DC_UnifiedssotIndividualIr1__dll,DC_UnifiedssotIndividualIr1,Profile,ACTIVE,46,id__c,2025-12-30T18:02:35.000Z,
+DPE_WB_0mdam00000GWc8zAAD_9__dll,DPE_WB_0mdam00000GWc8zAAD_9,Other,ACTIVE,8,DPE_ID_PK_FIELD__c,2025-09-16T13:36:37.000Z,
+DataCategoryGroup_Home__dll,DataCategoryGroup_Home,Other,ACTIVE,19,Id__c,2024-12-03T18:42:07.000Z,2025-12-31T17:05:37.000Z
+DataCategory_Home__dll,DataCategory_Home,Other,ACTIVE,20,Id__c,2024-12-03T18:41:46.000Z,2025-12-31T17:05:37.000Z
+DataCleanRoom_Home__dll,DataCleanRoom_Home,Other,ACTIVE,19,Id__c,2025-09-15T16:11:14.000Z,2026-07-02T17:00:37.000Z
+DataDetectScanResult__dll,DataDetectScanResult,Other,ACTIVE,18,UniqueIdentifier__c,2025-10-30T00:22:05.000Z,
+DataLakeObjectInstanceFeed_Home__dll,DataLakeObjectInstanceFeed_Home,Other,ACTIVE,24,Id__c,2025-09-15T16:10:08.000Z,2026-07-02T17:00:37.000Z
+DataLakeObjectInstance_Home__dll,DataLakeObjectInstance_Home,Other,ACTIVE,33,Id__c,2025-03-14T18:15:06.000Z,2025-12-31T18:00:51.000Z
+DataObjectAutoTaggingJob_Home__dll,DataObjectAutoTaggingJob_Home,Other,ACTIVE,26,Id__c,2025-09-15T16:09:58.000Z,2026-07-02T17:00:36.000Z
+DataObjectTagSuggestion_Home__dll,DataObjectTagSuggestion_Home,Other,ACTIVE,23,Id__c,2025-09-15T16:10:17.000Z,2026-07-02T17:00:37.000Z
+DataPackageKitDefinition_Home__dll,DataPackageKitDefinition_Home,Other,ACTIVE,25,Id__c,2025-09-15T16:09:38.000Z,2026-07-02T17:00:36.000Z
+DataPackageKitObject_Home__dll,DataPackageKitObject_Home,Other,ACTIVE,18,Id__c,2025-09-15T16:10:53.000Z,2026-07-02T17:00:36.000Z
+DataSemanticSearch_Home__dll,DataSemanticSearch_Home,Other,ACTIVE,28,Id__c,2025-09-15T16:11:22.000Z,2026-07-02T17:00:39.000Z
+DataSrcDataModelFieldMap_Home__dll,DataSrcDataModelFieldMap_Home,Other,ACTIVE,25,Id__c,2025-03-14T18:34:23.000Z,2025-07-05T09:06:11.000Z
+DataStreamDefinition_Home__dll,DataStreamDefinition_Home,Other,ACTIVE,40,Id__c,2025-03-14T17:51:40.000Z,2025-12-31T18:00:36.000Z
+DataStreamFeed_Home__dll,DataStreamFeed_Home,Other,ACTIVE,24,Id__c,2025-03-14T17:54:25.000Z,2025-12-31T18:00:36.000Z
+DataStream_Home__dll,DataStream_Home,Other,ACTIVE,35,Id__c,2025-03-14T17:49:18.000Z,2025-12-31T18:00:50.000Z
+Data_Masking__dll,Data_Masking,Profile,ACTIVE,16,account_number__c,2025-06-02T20:41:06.000Z,
+Databricks_File_Federation_Sample__dll,Databricks File Federation Sample,Engagement,ACTIVE,10,transaction_id__c,2025-04-09T12:33:29.000Z,
+Dataforce_Car_Telematics__dll,Dataforce Car Telematics,Engagement,ACTIVE,17,event_line_number__c; event_id__c,2026-06-10T13:55:17.000Z,2026-07-02T16:57:58.000Z
+Deposits_Latest__dll,Deposits_Latest,Other,ACTIVE,22,account_number__c,2025-01-21T21:43:16.000Z,2026-02-12T17:31:38.000Z
+Deposits__dll,Deposits,Other,ACTIVE,22,UUID__c,2025-01-21T20:55:47.000Z,2026-02-12T17:24:15.000Z
+Document_AI_Input_Files_uDLO__dll,Document AI Input Files uDLO,Directory_Table,ACTIVE,18,FilePath__c,2025-09-01T19:59:39.000Z,
+Document_AI_Output_DLO__dll,Document AI Output DLO,Other,ACTIVE,17,RecordId__c,2025-09-01T20:05:33.000Z,
+EAC_Documents__dll,EAC - Documents,Directory_Table,ACTIVE,18,FilePath__c,2025-03-13T19:06:49.000Z,
+EAC_Documents_chunk__dll,EAC - Documents chunk,Content,ACTIVE,10,RecordId__c,2025-03-13T19:07:12.000Z,
+EAC_Documents_index__dll,EAC - Documents index,Vector_Embedding,ACTIVE,8,RecordId__c,2025-03-13T19:07:28.000Z,
+EAC_Documents_transcribe__dll,EAC - Documents transcribe,Content,ACTIVE,12,RecordId__c,2025-03-13T19:07:20.000Z,
+EVFBotsEvent__dll,EVFBotsEvent,Engagement,ACTIVE,29,uuid__c,2024-08-01T21:43:34.000Z,2026-02-12T17:25:03.000Z
+EmailEngagementFrequency__dll,EmailEngagementFrequency,Other,ACTIVE,11,Id__c,2026-03-23T14:22:40.000Z,
+EmailEngagementScore__dll,EmailEngagementScore,Other,ACTIVE,16,Id__c,2026-03-23T14:45:31.000Z,
+EmailMessageRelation_Home__dll,EmailMessageRelation_Home,Other,ACTIVE,19,Id__c,2025-06-13T19:58:54.000Z,2026-05-26T15:25:43.000Z
+EmailMessageTopic_00Dam00000Uo32q__dll,EmailMessageTopic_00Dam00000Uo32q,Other,ACTIVE,12,Id__c,2025-06-13T20:11:01.000Z,
+EmailMessageTopic_Home__dll,EmailMessageTopic_Home,Other,ACTIVE,12,Id__c,2025-06-30T13:56:07.000Z,
+EmailMessage_Home__dll,EmailMessage_Home,Engagement,ACTIVE,48,Id__c,2025-06-13T19:58:30.000Z,2026-05-26T15:25:19.000Z
+EmailSendTimeOptimization__dll,EmailSendTimeOptimization,Other,ACTIVE,11,Id__c,2026-03-17T18:28:28.000Z,
+EngagementChannelType_Home__dll,EngagementChannelType_Home,Other,ACTIVE,17,Id__c,2025-09-09T13:44:38.000Z,2026-06-17T09:40:51.000Z
+Engagement_A4S_Behavioral_Event_F851F30C__dll,Engagement_A4S-Behavioral Event F851F30C,Engagement,ACTIVE,36,eventId__c,2026-03-16T20:24:34.000Z,2026-03-16T20:57:55.000Z
+Engagement_Google_Analytics__dll,Engagement Google Analytics,Engagement,ACTIVE,41,UUID__c,2025-06-26T02:13:38.000Z,2025-06-26T02:14:07.000Z
+Enrollments__dll,Enrollments,Other,ACTIVE,16,accountid__c,2026-04-02T17:49:52.000Z,2026-04-06T14:08:53.000Z
+EventParticipant_00Dam00000Uo32q__dll,EventParticipant_00Dam00000Uo32q,Other,ACTIVE,16,Id__c,2025-06-13T20:18:42.000Z,
+EventParticipant_Home__dll,EventParticipant_Home,Other,ACTIVE,16,Id__c,2025-06-30T14:07:22.000Z,
+EventRelation_Home__dll,EventRelation_Home,Other,ACTIVE,19,Id__c,2025-06-13T20:07:01.000Z,2026-06-22T17:35:39.000Z
+EventTopic_00Dam00000Uo32q__dll,EventTopic_00Dam00000Uo32q,Other,ACTIVE,12,Id__c,2025-06-13T20:17:10.000Z,
+EventTopic_Home__dll,EventTopic_Home,Other,ACTIVE,12,Id__c,2025-06-30T14:06:53.000Z,
+Event_Home__dll,Event_Home,Engagement,ACTIVE,60,Id__c,2025-06-13T20:06:38.000Z,2026-05-26T15:13:26.000Z
+Events_Google_Analytics__dll,Events Google Analytics,Other,ACTIVE,18,UUID__c,2025-06-26T04:03:41.000Z,2025-06-26T04:28:42.000Z
+Experience_Cloud_Event_Connecto_8AE43755__dll,Experience_Cloud_Event_Connecto 8AE43755,Engagement,ACTIVE,247,eventId__c,2024-12-03T05:01:53.000Z,2026-06-25T15:03:31.000Z
+Experience_Cloud_Event_Connecto_8AE4378C__dll,Experience_Cloud_Event_Connecto 8AE4378C,Profile,ACTIVE,45,eventId__c,2024-12-03T05:01:29.000Z,2024-12-03T05:33:31.000Z
+Experience_Cloud_Event_Connecto_8AE437A8__dll,Experience_Cloud_Event_Connecto 8AE437A8,Profile,ACTIVE,34,eventId__c,2024-12-03T05:00:55.000Z,2024-12-03T05:32:56.000Z
+Experience_Cloud_Event_Connecto_8AE437C8__dll,Experience_Cloud_Event_Connecto 8AE437C8,Profile,ACTIVE,34,eventId__c,2024-12-03T05:04:00.000Z,2024-12-03T05:36:05.000Z
+Experience_Cloud_Event_Connecto_8AE437EA__dll,Experience_Cloud_Event_Connecto 8AE437EA,Profile,ACTIVE,42,deviceId__c,2024-12-03T05:00:33.000Z,2026-06-25T14:59:26.000Z
+Experience_Cloud_Event_Connecto_8AE43803__dll,Experience_Cloud_Event_Connecto 8AE43803,Profile,ACTIVE,37,partyIdentificationId__c,2024-12-03T05:01:11.000Z,2025-04-26T17:35:08.000Z
+ExperimentationLog_experimentat_BC0BD7EC__dll,ExperimentationLog-experimentation,Engagement,ACTIVE,24,Id__c,2025-11-25T17:24:44.000Z,2025-11-25T17:56:43.000Z
+External_Profile__dll,External Profile,Profile,ACTIVE,11,customer_id__c,2025-08-08T03:28:37.000Z,
+FileEvent_Salesforce_Platform_Events__dll,FileEvent Salesforce Platform Events,Engagement,ACTIVE,31,EventIdentifier__c,2025-03-13T21:02:01.000Z,2026-07-02T16:29:05.000Z
+FileUDMO_SI_chunk__dll,FileUDMO_SI_chunk__dlm,Content,ACTIVE,10,RecordId__c,2024-12-23T03:24:31.000Z,
+FileUDMO_SI_index__dll,FileUDMO_SI_index__dlm,Vector_Embedding,ACTIVE,10,RecordId__c,2024-12-23T03:24:38.000Z,
+FinServ_AssetsAndLiabilities_c_Home__dll,FinServ__AssetsAndLiabilities__c_Home,Profile,ACTIVE,31,Id__c,2024-08-03T14:26:44.000Z,2026-05-26T15:20:50.000Z
+FinServ_FinancialAccount_c_Home__dll,FinServ__FinancialAccount__c_Home,Profile,ACTIVE,162,Id__c,2024-08-03T14:05:38.000Z,2026-05-26T16:33:50.000Z
+Financial_Account_Balance_DLO__dll,Financial Account Balance DLO,Profile,ACTIVE,13,Id__c,2024-08-03T15:00:41.000Z,2026-07-01T18:41:48.000Z
+Financial_Account_Limit_DLO__dll,Financial Account Limit DLO,Profile,ACTIVE,9,Id__c,2024-08-03T15:01:30.000Z,2026-07-01T18:21:27.000Z
+Financial_Account_Role__dll,Financial Account Role,Profile,ACTIVE,32,Id__c,2024-08-03T14:10:21.000Z,2026-05-26T15:18:46.000Z
+Financial_Goal_Party__dll,Financial Goal Party,Profile,ACTIVE,19,Id__c,2024-08-03T14:14:25.000Z,2026-05-26T15:18:04.000Z
+Financial_Goal__dll,Financial Goal,Profile,ACTIVE,34,Id__c,2024-08-03T14:12:27.000Z,2026-05-26T15:17:33.000Z
+Financial_Holding__dll,Financial Holding,Profile,ACTIVE,37,Id__c,2024-08-03T14:56:43.000Z,2026-05-26T15:19:47.000Z
+Financial_Products_Brochures__dll,Financial_Products_Brochures,Directory_Table,ACTIVE,18,FilePath__c,2024-08-27T15:14:16.000Z,
+Financial_Products_Brochures_chunk__dll,Financial_Products_Brochures chunk,Content,ACTIVE,10,RecordId__c,2024-08-27T15:15:39.000Z,
+Financial_Products_Brochures_index__dll,Financial_Products_Brochures index,Vector_Embedding,ACTIVE,8,RecordId__c,2024-08-27T15:15:48.000Z,
+Financial_Trades_Snow__dll,Financial_Trades_Snow,Engagement,ACTIVE,30,trade_id__c,2026-04-17T15:49:13.000Z,2026-07-02T16:37:12.000Z
+Financial_Transactions_AWSRedshift__dll,Financial_Transactions_AWSRedshift,Engagement,ACTIVE,20,transactionid__c,2024-08-30T20:56:58.000Z,
+Financial_Transactions_BT_Snow__dll,Financial Transactions BT Snow,Engagement,ACTIVE,23,transactionid__c,2026-06-30T19:04:19.000Z,2026-07-01T11:01:39.000Z
+Financial_Transactions_DataBricks__dll,Financial_Transactions_DataBricks,Engagement,ACTIVE,23,transactionid__c,2024-08-20T02:47:34.000Z,
+Financial_Transactions_GCP__dll,Financial_Transactions_GCP,Engagement,ACTIVE,20,transactionid__c,2025-06-17T02:07:13.000Z,
+Financial_Transactions_Heroku_Postgres__dll,Financial_Transactions Heroku Postgres,Profile,ACTIVE,20,TRANSACTIONID__c,2025-11-13T02:49:17.000Z,
+Financial_Transactions_Redshift__dll,Financial_Transactions_Redshift,Engagement,ACTIVE,23,transactionid__c,2024-08-30T18:38:33.000Z,
+Financial_Transactions_Snow_XL__dll,Financial_Transactions_Snow_XL,Engagement,ACTIVE,18,transactionid__c,2024-08-26T15:10:56.000Z,2026-02-12T17:20:54.000Z
+Financial_Transactions_Snow__dll,Financial_Transactions_Snow,Engagement,ACTIVE,23,transactionid__c,2024-08-01T21:58:41.000Z,
+FlowRecordElement_Home__dll,FlowRecordElement_Home,Other,ACTIVE,18,Id__c,2025-09-09T14:34:16.000Z,2026-07-02T17:00:37.000Z
+FlowRecordVersionOccurrence_Home__dll,FlowRecordVersionOccurrence_Home,Other,ACTIVE,18,Id__c,2025-09-09T14:34:31.000Z,2026-07-02T17:00:36.000Z
+FlowRecordVersion_Home__dll,FlowRecordVersion_Home,Other,ACTIVE,22,Id__c,2025-09-09T14:41:28.000Z,2026-07-02T17:00:37.000Z
+FlowRecord_Home__dll,FlowRecord_Home,Other,ACTIVE,22,Id__c,2025-09-09T14:34:23.000Z,2026-07-02T17:00:37.000Z
+Flow_Run_Ingestion_FlowElementR_2EE55616__dll,Flow_Run_Ingestion-FlowElementRun,Engagement,ACTIVE,18,Id__c,2025-09-09T14:33:26.000Z,2026-07-02T10:32:31.000Z
+Flow_Run_Ingestion_FlowRun_2EE55616__dll,Flow_Run_Ingestion-FlowRun,Engagement,ACTIVE,22,Id__c,2025-09-09T14:33:59.000Z,2026-07-02T10:31:09.000Z
+Flow_Run_Ingestion_IdentityMatc_2EE55615__dll,Flow_Run_Ingestion-IdentityMatch,Other,ACTIVE,20,Id__c,2025-09-09T14:33:43.000Z,2025-09-09T16:20:43.000Z
+ForecastingGroup_Home__dll,ForecastingGroup_Home,Other,ACTIVE,19,Id__c,2025-09-19T14:23:16.000Z,2026-07-02T17:00:36.000Z
+GCP_Transactions__dll,GCP_Transactions,Engagement,ACTIVE,18,transactionid__c,2025-01-09T03:57:10.000Z,
+GenAIAppGeneration__dll,GenAIAppGeneration,Engagement,ACTIVE,10,id__c,2024-08-04T04:41:09.000Z,2026-02-12T17:26:13.000Z
+GenAIContentCategory__dll,GenAIContentCategory,Engagement,ACTIVE,10,id__c,2024-08-04T04:41:14.000Z,2026-02-12T17:26:11.000Z
+GenAIContentQuality__dll,GenAIContentQuality,Engagement,ACTIVE,10,id__c,2024-08-04T04:41:04.000Z,2026-02-12T17:26:09.000Z
+GenAIFeedbackDetail__dll,GenAIFeedbackDetail,Engagement,ACTIVE,10,feedbackDetailId__c,2024-08-04T04:41:00.000Z,2026-02-12T17:26:12.000Z
+GenAIFeedback__dll,GenAIFeedback,Engagement,ACTIVE,16,feedbackId__c,2024-08-04T04:40:53.000Z,2026-02-12T17:26:08.000Z
+GenAIGatewayRequestTag__dll,GenAIGatewayRequestTag,Engagement,ACTIVE,9,id__c,2024-08-04T04:41:18.000Z,2026-02-12T17:26:12.000Z
+GenAIGatewayRequest__dll,GenAIGatewayRequest,Engagement,ACTIVE,30,gatewayRequestId__c,2024-08-04T04:40:31.000Z,2026-02-12T17:26:17.000Z
+GenAIGatewayResponse__dll,GenAIGatewayResponse,Engagement,ACTIVE,8,generationResponseId__c,2024-08-04T04:40:44.000Z,2026-02-12T17:26:15.000Z
+GenAIGeneration__dll,GenAIGeneration,Engagement,ACTIVE,11,generationId__c,2024-08-04T04:40:48.000Z,2026-02-12T17:26:08.000Z
+GenAIGtwyObjRecCitationRef__dll,GenAIGtwyObjRecCitationRef,Engagement,ACTIVE,9,id__c,2025-02-15T16:15:36.000Z,2025-12-31T17:09:02.000Z
+GenAIGtwyObjRecord__dll,GenAIGtwyObjRecord,Engagement,ACTIVE,13,id__c,2025-02-15T16:15:23.000Z,2025-12-31T17:09:00.000Z
+GenAIGtwyRequestLLM__dll,GenAIGtwyRequestLLM,Engagement,ACTIVE,15,id__c,2025-02-15T16:15:30.000Z,2025-12-31T17:09:01.000Z
+GenAIGtwyRequestMetadata__dll,GenAIGtwyRequestMetadata,Engagement,ACTIVE,10,id__c,2025-02-15T16:15:41.000Z,2025-12-31T17:08:59.000Z
+GenAiFunctionDefinition_Home__dll,GenAiFunctionDefinition_Home,Other,ACTIVE,28,Id__c,2026-03-18T02:43:00.000Z,2026-07-02T17:00:36.000Z
+GenAiPluginDefinition_Home__dll,GenAiPluginDefinition_Home,Other,ACTIVE,25,Id__c,2026-03-18T02:42:32.000Z,2026-07-02T17:00:36.000Z
+GroupMember_Home__dll,GroupMember_Home,Other,ACTIVE,11,Id__c,2025-09-19T14:23:56.000Z,2026-07-02T17:00:36.000Z
+Group_Home__dll,Group_Home,Other,ACTIVE,21,Id__c,2025-09-19T14:23:46.000Z,2026-07-02T17:00:37.000Z
+InsAfdc_PolicyholderPortal_Web_B_3B3FA68__dll,InsAfdc_PolicyholderPortal_Web-B 3B3FA68,Engagement,ACTIVE,44,eventId__c,2025-10-20T22:18:51.000Z,2025-10-20T22:52:11.000Z
+InsurancePolicy_InsuranceAFDC__dll,InsurancePolicy_InsuranceAFDC,Engagement,ACTIVE,128,Id__c,2026-04-22T18:10:59.000Z,2026-07-02T17:00:36.000Z
+InteractionSummary_Home__dll,InteractionSummary_Home,Engagement,ACTIVE,33,Id__c,2025-09-26T21:02:09.000Z,2026-07-02T17:00:37.000Z
+InteractionSummary_Home_chunk__dll,InteractionSummary_Home chunk,Content,ACTIVE,12,RecordId__c,2025-09-30T14:53:54.000Z,
+InteractionSummary_Home_index__dll,InteractionSummary_Home index,Vector_Embedding,ACTIVE,8,RecordId__c,2025-09-30T14:54:06.000Z,
+Intermediary__dll,Intermediary,Other,ACTIVE,8,acc_customer_id__c,2025-04-04T16:10:28.000Z,
+Investment_Latest__dll,Investment_Latest,Other,ACTIVE,19,Investment_ID__c,2025-01-30T20:36:05.000Z,2026-02-12T17:24:12.000Z
+Investments__dll,Investments,Profile,ACTIVE,20,uniqueid__c,2025-01-30T19:42:23.000Z,2026-02-12T17:24:10.000Z
+KA_Cumulus_Knowledge_chunk__dll,KA_Cumulus_Knowledge_chunk__dlm,Content,ACTIVE,15,RecordId__c,2026-05-15T19:50:31.000Z,
+KA_Cumulus_Knowledge_index__dll,KA_Cumulus_Knowledge_index__dlm,Vector_Embedding,ACTIVE,12,RecordId__c,2026-05-15T19:51:07.000Z,
+KYC_Data__dll,KYC Data,Directory_Table,ACTIVE,18,FilePath__c,2024-08-15T13:08:29.000Z,
+KYC_Data_chunk__dll,KYC Data chunk,Content,ACTIVE,10,RecordId__c,2024-08-15T13:08:39.000Z,
+KYC_Data_index__dll,KYC Data index,Vector_Embedding,ACTIVE,8,RecordId__c,2024-08-15T13:08:47.000Z,
+KYC_Hybrid_chunk__dll,KYC_Hybrid chunk,Content,ACTIVE,10,RecordId__c,2024-12-18T04:45:26.000Z,
+KYC_Hybrid_index__dll,KYC_Hybrid index,Vector_Embedding,ACTIVE,9,RecordId__c,2024-12-18T04:45:41.000Z,
+KYC_Hybrid_transcribe__dll,KYC_Hybrid transcribe,Content,ACTIVE,12,RecordId__c,2024-12-18T04:45:33.000Z,
+KnowledgeArticleVersion_Home__dll,KnowledgeArticleVersion_Home,Other,ACTIVE,58,Id__c,2026-05-19T16:21:50.000Z,2026-05-19T16:25:37.000Z
+Knowledge_DataCategorySelection_Home__dll,Knowledge_DataCategorySelection_Home,Other,ACTIVE,15,Id__c,2024-12-03T18:42:26.000Z,2026-05-17T21:23:30.000Z
+Knowledge_ka_Home__dll,Knowledge_ka_Home,Other,ACTIVE,22,Id__c,2025-03-07T04:03:40.000Z,2026-05-17T20:00:52.000Z
+Knowledge_kav_Home__dll,Knowledge_kav_Home,Other,ERROR,81,Id__c,2024-12-03T18:41:11.000Z,2025-03-23T06:15:35.000Z
+Lead_DCCDO1__dll,Lead_DCCDO1,Profile,ACTIVE,91,Id__c,2024-08-07T20:41:43.000Z,2025-12-31T17:05:37.000Z
+Lead_FinsDC1__dll,Lead_FinsDC1,Profile,ACTIVE,100,Id__c,2024-08-07T20:29:33.000Z,2025-12-31T17:05:38.000Z
+Lead_FinsDC4__dll,Lead_FinsDC4,Profile,ACTIVE,41,Id__c,2024-09-26T19:13:20.000Z,2025-12-31T17:05:38.000Z
+Lead_Home__dll,Lead_Home,Profile,ACTIVE,92,Id__c,2024-07-26T20:24:05.000Z,2026-05-26T15:10:41.000Z
+Lead_InsuranceAFDC__dll,Lead_InsuranceAFDC,Profile,ACTIVE,64,Id__c,2025-10-08T21:38:48.000Z,2026-07-02T17:00:37.000Z
+LightningUriEventStream_Salesforce_Platf__dll,LightningUriEventStream Salesforce Platf,Engagement,ACTIVE,44,EventIdentifier__c,2025-03-13T21:09:16.000Z,2026-07-02T16:25:15.000Z
+Lines__dll,Lines,Other,ACTIVE,25,uniqueid__c,2025-01-23T20:08:48.000Z,2026-02-12T17:24:15.000Z
+LinkedArticle_Home__dll,LinkedArticle_Home,Other,ACTIVE,21,Id__c,2025-03-07T04:03:49.000Z,2025-12-31T18:00:36.000Z
+ListEmail_Home__dll,ListEmail_Home,Other,ACTIVE,27,Id__c,2025-09-09T13:44:11.000Z,2026-07-02T17:00:38.000Z
+ListViewEventStream_Salesforce_Platform__dll,ListViewEventStream Salesforce Platform,Engagement,ACTIVE,39,EventIdentifier__c,2025-03-13T21:10:56.000Z,2026-07-02T16:25:21.000Z
+Loan_Delinquencies__dll,Loan_Delinquencies,Other,ACTIVE,25,uniqueid__c,2024-10-10T18:55:47.000Z,2026-02-12T17:22:04.000Z
+Loans_Latest__dll,Loans_Latest,Other,ACTIVE,20,Loan_ID__c,2025-01-23T20:12:08.000Z,2026-02-12T17:24:11.000Z
+Loans__dll,Loans,Other,ACTIVE,21,uniqueid__c,2025-01-23T20:07:10.000Z,2026-02-12T17:24:12.000Z
+LoginEventStream_Salesforce_Platform_Eve__dll,LoginEventStream Salesforce Platform Eve,Engagement,ACTIVE,48,EventIdentifier__c,2025-03-13T21:13:26.000Z,2026-07-02T16:30:59.000Z
+LogoutEventStream_Salesforce_Platform_Ev__dll,LogoutEventStream Salesforce Platform Ev,Engagement,ACTIVE,17,EventIdentifier__c,2025-03-13T21:21:56.000Z,2026-07-02T16:26:35.000Z
+MCC_Table__dll,MCC_Table,Other,ACTIVE,9,mcc__c,2026-06-17T19:45:37.000Z,
+ML_Attrition_Training_Data__dll,ML_Attrition_Training_Data,Profile,ACTIVE,20,UniqueID__c,2024-08-18T15:34:52.000Z,2026-02-12T17:20:41.000Z
+ML_Loan_Chargeoffs_Snow__dll,ML_Loan_Chargeoffs_Snow,Other,ACTIVE,18,accountid__c,2024-08-21T15:58:11.000Z,2026-02-12T17:20:37.000Z
+ManagedContentPublishedUrl_Home__dll,ManagedContentPublishedUrl_Home,Other,ACTIVE,13,Id__c,2025-09-09T13:44:05.000Z,2026-07-02T17:00:37.000Z
+ManagedContent_Home__dll,ManagedContent_Home,Other,ACTIVE,10,Id__c,2025-09-09T13:44:19.000Z,2026-07-02T17:00:36.000Z
+MarketSegment_Home__dll,MarketSegment_Home,Profile,ACTIVE,58,Id__c,2025-03-09T19:00:38.000Z,2025-12-31T18:00:36.000Z
+Marketing_Campaigns__dll,Marketing Campaigns,Engagement,ACTIVE,19,SendID__c,2025-02-13T03:53:49.000Z,2026-02-12T17:24:27.000Z
+Meeting_Note_c_Home__dll,Meeting_Note__c_Home,Engagement,ACTIVE,25,Id__c,2025-09-30T02:32:20.000Z,2026-07-02T17:00:36.000Z
+Meeting_Note_c_Home_chunk__dll,Meeting_Note__c_Home chunk,Content,ACTIVE,12,RecordId__c,2025-09-30T02:54:15.000Z,
+Meeting_Note_c_Home_index__dll,Meeting_Note__c_Home index,Vector_Embedding,ACTIVE,8,RecordId__c,2025-09-30T02:54:27.000Z,
+MessagingChannelUsage_Home__dll,MessagingChannelUsage_Home,Other,ACTIVE,20,Id__c,2025-09-09T13:44:24.000Z,2026-07-02T17:00:36.000Z
+MessagingChannel_Home__dll,MessagingChannel_Home,Other,ACTIVE,35,Id__c,2025-09-09T13:43:39.000Z,2026-07-02T17:00:36.000Z
+MessagingConsentV2_MessagingCon_2EBB2DBE__dll,MessagingConsentV2-MessagingConsent,Other,ACTIVE,17,ConsentId__c,2025-09-09T13:47:40.000Z,2025-09-09T16:19:35.000Z
+MessagingEventsEmailV2_00Dam000_B94CF714__dll,MessagingEventsEmailV2_00Dam00000Uo32q-E,Engagement,ACTIVE,64,EventId__c,2025-11-25T04:37:19.000Z,2025-11-25T05:10:00.000Z
+MessagingEventsEmailV2_EmailEng_2EF27E9C__dll,MessagingEventsEmailV2-EmailEngagement,Engagement,ACTIVE,64,EventId__c,2025-09-09T14:48:04.000Z,2025-09-09T16:20:23.000Z
+MessagingEventsSmsV2_00Dam00000_B95055B5__dll,MessagingEventsSmsV2_00Dam00000Uo32q-Sms,Engagement,ACTIVE,51,EventId__c,2025-11-25T04:40:41.000Z,2025-11-25T05:12:46.000Z
+MessagingEventsSmsV2_SmsEngagem_2EF71E76__dll,MessagingEventsSmsV2-SmsEngagement,Engagement,ACTIVE,49,EventId__c,2025-09-09T14:52:52.000Z,2025-09-09T16:24:55.000Z
+MessagingEventsWhatsAppV2_00Dam_B94EA8A1__dll,MessagingEventsWhatsAppV2_00Dam00000Uo32,Engagement,ACTIVE,39,EventId__c,2025-11-25T04:38:51.000Z,2025-11-25T05:11:19.000Z
+MessagingEventsWhatsAppV2_Whats_2EFABDC9__dll,MessagingEventsWhatsAppV2-WhatsappEngage,Engagement,ACTIVE,37,EventId__c,2025-09-09T14:56:49.000Z,2025-09-09T16:13:55.000Z
+MktDataConnection_Home__dll,MktDataConnection_Home,Other,ACTIVE,24,Id__c,2025-09-15T16:09:48.000Z,2026-07-02T17:00:36.000Z
+MktDataLakeField_Home__dll,MktDataLakeField_Home,Other,ACTIVE,37,Id__c,2025-09-15T16:10:27.000Z,2025-10-11T04:25:37.000Z
+MktDataLakeMapping_Home__dll,MktDataLakeMapping_Home,Other,ACTIVE,31,Id__c,2025-09-15T16:10:42.000Z,2026-07-02T17:00:36.000Z
+MktDataLakeObject_Home__dll,MktDataLakeObject_Home,Other,ACTIVE,36,Id__c,2025-03-14T18:17:04.000Z,2025-12-31T18:00:36.000Z
+MktDataModelField_Home__dll,MktDataModelField_Home,Other,ACTIVE,28,Id__c,2025-03-14T18:43:06.000Z,2025-12-31T18:00:37.000Z
+MktDataTransformDefinition_Home__dll,MktDataTransformDefinition_Home,Other,ACTIVE,35,Id__c,2025-09-15T16:09:25.000Z,2026-07-02T17:00:36.000Z
+MktDataTransform_Home__dll,MktDataTransform_Home,Other,ACTIVE,34,Id__c,2025-09-15T16:11:02.000Z,2026-07-02T16:50:54.000Z
+MlEngagementEvent__dll,MlEngagementEvent,Engagement,ACTIVE,21,EventIdentifier__c,2024-08-01T21:43:19.000Z,2026-02-12T17:25:02.000Z
+Note_Home__dll,Note_Home,Engagement,ACTIVE,18,Id__c,2025-09-26T15:59:24.000Z,2026-07-02T17:00:41.000Z
+NotebookAIFilesDLO__dll,NotebookAI Files DLO,Directory_Table,ACTIVE,18,FilePath__c,2025-11-14T03:11:49.000Z,
+NotebookAI_SI_chunk__dll,NotebookAI SI chunk,Content,ACTIVE,12,RecordId__c,2025-11-14T03:14:11.000Z,
+NotebookAI_SI_index__dll,NotebookAI SI index,Vector_Embedding,ACTIVE,11,RecordId__c,2025-11-14T03:14:24.000Z,
+NotebookFilesStream__dll,NotebookFilesStream,Other,ACTIVE,21,Id__c,2025-11-14T03:12:43.000Z,2026-07-02T17:00:36.000Z
+OPERS_Annual_Investment_Plan_2026__dll,OPERS Annual Investment Plan 2026,Vector_Embedding,ACTIVE,9,RecordId__c,2026-04-28T13:05:24.000Z,
+ObjectMetadataTag_Home__dll,ObjectMetadataTag_Home,Other,ACTIVE,19,Id__c,2025-09-15T16:09:16.000Z,2026-07-02T17:00:37.000Z
+ObservabilitySpans__dll,ObservabilitySpans,Observability_Table,ACTIVE,18,spanId__c,2026-04-21T23:13:56.000Z,
+OpportunityContactRole_Home__dll,OpportunityContactRole_Home,Other,ACTIVE,19,Id__c,2025-06-13T19:49:26.000Z,2026-05-26T15:26:54.000Z
+OpportunityContactRole_InsuranceAFDC__dll,OpportunityContactRole_InsuranceAFDC,Other,ACTIVE,19,Id__c,2025-10-08T21:37:11.000Z,2026-07-02T17:00:39.000Z
+OpportunityInfluenceFirstTouch__dll,OpportunityInfluenceFirstTouch,Other,ACTIVE,25,CampaignInfluenceAttrPk__c,2026-03-25T01:58:57.000Z,
+OpportunityInfluenceLastTouch__dll,OpportunityInfluenceLastTouch,Other,ACTIVE,23,CampaignInfluenceAttrPk__c,2026-03-25T02:00:33.000Z,
+Opportunity_DCCDO1__dll,Opportunity_DCCDO1,Profile,ACTIVE,51,Id__c,2024-08-07T20:43:07.000Z,2025-12-31T17:05:37.000Z
+Opportunity_FinsDC1__dll,Opportunity_FinsDC1,Profile,ACTIVE,166,Id__c,2024-08-07T20:25:39.000Z,2025-12-31T17:05:38.000Z
+Opportunity_FinsDC4__dll,Opportunity_FinsDC4,Profile,ACTIVE,175,Id__c,2024-09-26T02:30:04.000Z,2025-12-31T17:05:39.000Z
+Opportunity_InsuranceAFDC__dll,Opportunity_InsuranceAFDC,Other,ACTIVE,45,Id__c,2025-10-08T21:37:19.000Z,2026-07-02T17:00:37.000Z
+Opportunity__dll,Opportunity,Profile,ACTIVE,76,Id__c,2024-08-04T05:34:08.000Z,2026-05-26T15:11:33.000Z
+PERSONAL_PRODUCT_RECOMMENDATION_INPUTS__dll,PERSONAL_PRODUCT_RECOMMENDATION_INPUTS,Other,ACTIVE,17,accountid__c,2026-03-27T17:03:53.000Z,
+PERSONAL_PRODUCT_RECOMMENDATION_TRAINING__dll,PERSONAL_PRODUCT_RECOMMENDATION_TRAINING,Other,ACTIVE,38,accountid__c,2026-03-27T14:27:50.000Z,
+PR_AIRetrieverRequest__dll,PR_AIRetrieverRequest,Engagement,ACTIVE,13,id__c,2026-06-18T09:01:06.000Z,
+PR_AIRetrieverResponse__dll,PR_AIRetrieverResponse,Engagement,ACTIVE,13,id__c,2026-06-18T09:01:51.000Z,
+PR_AgentOpt_Tag_1A38A90B__dll,PR_AgentOpt_Tag_1A38A90B,Engagement,ACTIVE,13,id__c,2025-09-05T14:12:44.000Z,
+PR_AgentOpt_Tag_Association_FEBD952C__dll,PR_AgentOpt_Tag_Association_FEBD952C,Engagement,ACTIVE,13,id__c,2026-03-18T02:19:47.000Z,
+PR_AgentOpt_Tag_Def_1A38A908__dll,PR_AgentOpt_Tag_Def_1A38A908,Engagement,ACTIVE,13,id__c,2025-09-05T14:12:33.000Z,
+PR_AgentOpt_Tag_Def_Association_1A38A90B__dll,PR_AgentOpt_Tag_Def_Association_1A38A90B,Engagement,ACTIVE,13,id__c,2025-09-05T14:12:54.000Z,
+PR_AiAgentGenerativeAiUsage__dll,PR_AiAgentGenerativeAiUsage,Engagement,ACTIVE,13,id__c,2026-05-18T13:28:04.000Z,
+PR_AiAgentSessionLog__dll,PR_AiAgentSessionLog,Engagement,ACTIVE,13,id__c,2026-06-13T14:01:09.000Z,
+PR_ConsentAuditTrailV2_ConsentAuditTrail__dll,PR_ConsentAuditTrailV2_ConsentAuditTrail,Engagement,ACTIVE,13,id__c,2025-09-09T13:47:34.000Z,
+PR_Engagement_A4S_Behavioral_Events_F851__dll,PR_Engagement_A4S_Behavioral_Events_F851,Engagement,ACTIVE,13,id__c,2026-03-16T20:25:04.000Z,
+PR_ExperimentationLog_experimentation_BC__dll,PR_ExperimentationLog_experimentation_BC,Engagement,ACTIVE,13,id__c,2025-11-25T17:24:58.000Z,
+PR_Flow_Run_Ingestion_FlowElementRun_2EE__dll,PR_Flow_Run_Ingestion_FlowElementRun_2EE,Engagement,ACTIVE,13,id__c,2025-09-09T14:33:37.000Z,2025-12-05T22:06:03.000Z
+PR_Flow_Run_Ingestion_FlowRun_2EE55616__dll,PR_Flow_Run_Ingestion_FlowRun_2EE55616,Engagement,ACTIVE,13,id__c,2025-09-09T14:34:09.000Z,2025-12-05T22:09:31.000Z
+PR_Flow_Run_Ingestion_IdentityMatch_2EE5__dll,PR_Flow_Run_Ingestion_IdentityMatch_2EE5,Engagement,ACTIVE,13,id__c,2025-09-09T14:33:53.000Z,
+PR_MessagingConsentV2_MessagingConsent_2__dll,PR_MessagingConsentV2_MessagingConsent_2,Engagement,ACTIVE,13,id__c,2025-09-09T13:47:52.000Z,
+PR_MessagingEventsEmailV2_00Dam00000Uo32__dll,PR_MessagingEventsEmailV2_00Dam00000Uo32,Engagement,ACTIVE,13,id__c,2025-11-25T04:37:48.000Z,
+PR_MessagingEventsEmailV2_EmailEngagemen__dll,PR_MessagingEventsEmailV2_EmailEngagemen,Engagement,ACTIVE,13,id__c,2025-09-09T14:48:28.000Z,
+PR_MessagingEventsSmsV2_00Dam00000Uo32q__dll,PR_MessagingEventsSmsV2_00Dam00000Uo32q,Engagement,ACTIVE,13,id__c,2025-11-25T04:41:01.000Z,
+PR_MessagingEventsSmsV2_SmsEngagement_2E__dll,PR_MessagingEventsSmsV2_SmsEngagement_2E,Engagement,ACTIVE,13,id__c,2025-09-09T14:53:20.000Z,
+PR_MessagingEventsWhatsAppV2_00Dam00000U__dll,PR_MessagingEventsWhatsAppV2_00Dam00000U,Engagement,ACTIVE,13,id__c,2025-11-25T04:39:11.000Z,
+PR_MessagingEventsWhatsAppV2_WhatsappEng__dll,PR_MessagingEventsWhatsAppV2_WhatsappEng,Engagement,ACTIVE,13,id__c,2025-09-09T14:57:06.000Z,
+PR_ObservabilitySpans__dll,PR_ObservabilitySpans,Engagement,ACTIVE,13,id__c,2026-04-21T23:14:25.000Z,
+PR_PersonalizationLog_personalization_95__dll,PR_PersonalizationLog_personalization_95,Engagement,ACTIVE,13,id__c,2024-10-16T13:59:45.000Z,
+PR_PredictionAuditTrail__dll,PR_PredictionAuditTrail,Engagement,ACTIVE,13,id__c,2026-05-17T15:10:33.000Z,
+PR_RT_Transfers_WebTransfers_C66280E7__dll,PR_RT_Transfers_WebTransfers_C66280E7,Engagement,ACTIVE,13,id__c,2025-11-27T17:35:59.000Z,
+PR_RT_WebEvents_WebEngagement_DACDA11C__dll,PR_RT_WebEvents_WebEngagement_DACDA11C,Engagement,ACTIVE,13,id__c,2025-03-28T03:31:23.000Z,2025-03-28T04:02:39.000Z
+PR_RecordView__dll,PR_RecordView,Engagement,ACTIVE,13,id__c,2026-05-22T21:59:24.000Z,
+PR_SearchQuery__dll,PR_SearchQuery,Engagement,ACTIVE,13,id__c,2026-05-22T22:00:05.000Z,
+PR_SetupPageSearchMetadataStream_K7M3X_S__dll,PR_SetupPageSearchMetadataStream_K7M3X_S,Engagement,ACTIVE,13,id__c,2026-03-16T20:24:19.000Z,
+PR_Streaming_API_TradeTransaction_D688A5__dll,PR_Streaming_API_TradeTransaction_D688A5,Engagement,ACTIVE,13,id__c,2025-02-05T14:34:54.000Z,
+PR_TenantBillingUsageEvent_De_1728959211__dll,PR_TenantBillingUsageEvent_De_1728959211,Engagement,ACTIVE,13,id__c,2024-10-15T02:28:43.000Z,
+PR_TenantDailyEntitlementCons_1728959211__dll,PR_TenantDailyEntitlementCons_1728959211,Engagement,ACTIVE,13,id__c,2024-10-15T02:27:58.000Z,
+PR_TenantEntitlementTransacti_1728959211__dll,PR_TenantEntitlementTransacti_1728959211,Engagement,ACTIVE,13,id__c,2024-10-15T02:28:25.000Z,
+PR_TenantHourlyEntitlementCon_1728959211__dll,PR_TenantHourlyEntitlementCon_1728959211,Engagement,ACTIVE,13,id__c,2024-10-15T02:27:34.000Z,
+PR_TenantUsageTypeMultiplierS_1728959211__dll,PR_TenantUsageTypeMultiplierS_1728959211,Engagement,ACTIVE,13,id__c,2024-10-15T02:27:07.000Z,
+PR_WebEngagementEventsV2_00Dam00000Uo32q__dll,PR_WebEngagementEventsV2_00Dam00000Uo32q,Engagement,ACTIVE,13,id__c,2025-11-25T04:37:13.000Z,
+PR_WebEngagementEventsV2_DeviceToIndivid__dll,PR_WebEngagementEventsV2_DeviceToIndivid,Engagement,ACTIVE,13,id__c,2025-09-09T14:47:58.000Z,
+Party_Financial_Asset_DLO__dll,Party Financial Asset DLO,Profile,ACTIVE,12,Id__c,2024-08-03T15:01:53.000Z,2026-07-01T18:41:48.000Z
+Party_Financial_Liability_DLO__dll,Party Financial Liability DLO,Profile,ACTIVE,12,Id__c,2024-08-03T15:02:40.000Z,2026-07-01T18:41:57.000Z
+Party_ID__dll,Party ID,Profile,ACTIVE,11,Party_Identification_ID__c,2024-07-26T20:53:39.000Z,2025-12-30T21:03:04.000Z
+Payment_Snowflake_InsAFDC__dll,Payment_Snowflake_InsAFDC,Engagement,ACTIVE,14,payment_id__c,2025-10-09T22:13:16.000Z,
+PermissionSetAssignment_Home__dll,PermissionSetAssignment_Home,Other,ACTIVE,13,Id__c,2024-12-11T05:31:07.000Z,2025-12-31T17:05:37.000Z
+PermissionSetEvent_Salesforce_Platform_E__dll,PermissionSetEvent Salesforce Platform E,Engagement,ACTIVE,32,EventIdentifier__c,2025-03-13T21:18:32.000Z,2026-07-02T16:35:26.000Z
+PermissionSet_Home__dll,PermissionSet_Home,Other,ACTIVE,9,Id__c,2024-12-11T05:30:57.000Z,2025-12-31T17:05:37.000Z
+PersonLifeEventFeed_Home__dll,PersonLifeEventFeed_Home,Engagement,ACTIVE,25,Id__c,2026-05-06T02:18:43.000Z,2026-07-02T17:00:37.000Z
+PersonLifeEvent_Home__dll,PersonLifeEvent_Home,Engagement,ACTIVE,42,Id__c,2026-05-06T02:18:11.000Z,2026-07-02T17:00:37.000Z
+PersonalizationDecision_Home__dll,PersonalizationDecision_Home,Other,ACTIVE,25,Id__c,2024-10-16T13:58:50.000Z,
+PersonalizationLog_personalizat_95A068DD__dll,PersonalizationLog-personalization,Engagement,ACTIVE,40,Id__c,2024-10-16T13:59:33.000Z,2025-02-11T01:50:37.000Z
+PersonalizationPoint_Home__dll,PersonalizationPoint_Home,Other,ACTIVE,32,Id__c,2024-10-16T13:59:02.000Z,
+PersonalizationRecommender_Home__dll,PersonalizationRecommender_Home,Other,ACTIVE,29,Id__c,2024-10-16T13:58:44.000Z,
+PersonalizationSchema_Home__dll,PersonalizationSchema_Home,Other,ACTIVE,22,Id__c,2024-10-16T13:58:56.000Z,
+PilotAIRetrieverQualityMetric__dll,PilotAIRetrieverQualityMetric,Engagement,ACTIVE,21,id__c,2025-05-22T02:17:03.000Z,2026-07-02T16:19:22.000Z
+PilotAIRetrieverRequest__dll,PilotAIRetrieverRequest,Engagement,ACTIVE,17,id__c,2025-05-22T02:16:47.000Z,2026-07-02T16:50:29.000Z
+PilotAIRetrieverResponse__dll,PilotAIRetrieverResponse,Engagement,ACTIVE,13,id__c,2025-05-22T02:16:56.000Z,2026-07-02T16:58:49.000Z
+PilotAiAgentConvInteraction__dll,Pilot AI Agent Conv Interaction,Engagement,ACTIVE,11,Id__c,2025-05-08T05:37:02.000Z,
+PilotAiAgentConvMoment__dll,Pilot AI Agent Conv Moment,Engagement,ACTIVE,11,Id__c,2025-05-08T05:36:55.000Z,
+PilotAiAgentConvPipelineExecution__dll,Pilot AI Agent Conv Pipeline Execution,Engagement,ACTIVE,7,Id__c,2025-05-08T05:36:52.000Z,
+PilotAiAgentConvTagAssociation__dll,Pilot AI Agent Conv Tag Association,Engagement,ACTIVE,7,Id__c,2025-05-08T05:36:59.000Z,
+PilotAiAgentConvTagDefinition__dll,Pilot AI Agent Conv Tag Definition,Engagement,ACTIVE,9,Id__c,2025-05-08T05:36:42.000Z,
+Policy_Snowflake_InsAFDC__dll,Policy_Snowflake_InsAFDC,Engagement,ACTIVE,15,policy_id__c,2025-10-09T22:13:23.000Z,
+PredictionAuditTrail__dll,PredictionAuditTrail,Engagement,ACTIVE,17,eventId__c,2026-05-17T15:10:10.000Z,2026-07-02T16:12:46.000Z
+PredictionDistribution__dll,PredictionDistribution,Engagement,ACTIVE,20,ConfiguredModelName__c,2026-05-17T15:09:51.000Z,
+Pricebook2_FinsDC4__dll,Pricebook2_FinsDC4,Other,ACTIVE,26,Id__c,2025-04-01T15:26:06.000Z,2025-12-31T18:00:38.000Z
+PricebookEntry_FinsDC4__dll,PricebookEntry_FinsDC4,Other,ACTIVE,28,Id__c,2025-04-01T15:36:43.000Z,2025-12-31T18:00:39.000Z
+PricebookEntry_Home__dll,PricebookEntry_Home,Other,ACTIVE,28,Id__c,2025-04-01T15:32:52.000Z,2025-12-31T18:00:37.000Z
+Pricebook_Home__dll,Pricebook_Home,Other,ACTIVE,23,Id__c,2025-03-26T04:26:48.000Z,2025-12-31T18:00:37.000Z
+Product_Insurance_AFDC__dll,Product Insurance AFDC,Other,ACTIVE,61,Id__c,2026-04-22T18:15:25.000Z,2026-07-02T17:00:36.000Z
+Profile_Main__dll,Profile_Main,Profile,ACTIVE,16,accountid__c,2024-11-26T18:57:23.000Z,
+Prospect_Home__dll,Prospect_Home,Profile,ACTIVE,57,Id__c,2025-09-09T13:44:43.000Z,2026-07-02T17:00:36.000Z
+Quarterly_Earnings_10QPDF__dll,Quarterly Earnings 10QPDF,Directory_Table,ACTIVE,18,FilePath__c,2024-08-16T00:43:09.000Z,
+Quarterly_Earnings_10QPDF_chunk__dll,Quarterly Earnings 10QPDF chunk,Content,ACTIVE,10,RecordId__c,2024-08-16T00:43:20.000Z,
+Quarterly_Earnings_10QPDF_index__dll,Quarterly Earnings 10QPDF index,Vector_Embedding,ACTIVE,8,RecordId__c,2024-08-16T00:43:28.000Z,
+Quarterly_Earnings_10Q__dll,Quarterly Earnings 10Q,Directory_Table,ACTIVE,18,FilePath__c,2024-08-15T23:05:18.000Z,
+Quarterly_Earnings_10Q_chunk__dll,Quarterly_Earnings_10Q chunk,Content,ACTIVE,10,RecordId__c,2024-08-15T23:05:28.000Z,
+Quarterly_Earnings_10Q_index__dll,Quarterly_Earnings_10Q index,Vector_Embedding,ACTIVE,8,RecordId__c,2024-08-15T23:05:35.000Z,
+QuestionSuggestions__dll,Question Suggestions,Other,ACTIVE,10,RecordId__c,2026-05-22T22:01:24.000Z,
+Quote_FinsDC4__dll,Quote_FinsDC4,Other,ACTIVE,83,Id__c,2025-04-01T15:23:22.000Z,2025-12-31T18:00:40.000Z
+Quote_Home__dll,Quote_Home,Other,ACTIVE,83,Id__c,2025-04-01T14:43:22.000Z,2025-12-31T18:00:37.000Z
+RELATED_RECORD_00Dam00000Uo32q__dll,RELATED_RECORD_00Dam00000Uo32q,Engagement,ACTIVE,8,id__c,2024-09-20T13:24:09.000Z,2026-07-02T16:25:53.000Z
+RT_Transfers_WebTransfers_C66280E7__dll,RT_Transfers-WebTransfers,Engagement,ACTIVE,18,TransactionID__c,2025-11-27T17:35:42.000Z,2026-01-26T18:58:14.000Z
+RT_WebEvents_WebEngagement_DACDA11C__dll,RT_WebEvents-WebEngagement,Engagement,ACTIVE,25,Website_Engagement_ID__c,2025-03-28T03:31:11.000Z,2025-05-21T23:00:45.000Z
+RagFileUDMO__dll,RagFileUDMO,Directory_Table,ACTIVE,18,FilePath__c,2024-12-23T03:23:15.000Z,
+RecordView__dll,Record View,Engagement,ACTIVE,13,Id__c,2026-05-22T21:58:55.000Z,2026-05-22T22:32:42.000Z
+Redemption_History_DLO__dll,Redemption History DLO,Other,ACTIVE,25,Account_ID__c,2025-06-24T01:15:22.000Z,2025-06-24T01:15:35.000Z
+Referral_c_Home__dll,Referral__c_Home,Engagement,ACTIVE,37,Id__c,2025-08-13T13:10:23.000Z,2026-05-26T15:16:39.000Z
+ReportEventStream_Salesforce_Platform_Ev__dll,ReportEventStream Salesforce Platform Ev,Engagement,ACTIVE,43,EventIdentifier__c,2025-03-13T21:16:27.000Z,2026-07-02T16:31:10.000Z
+Retirement__dll,Retirement,Other,ACTIVE,11,row_id__c,2026-03-13T15:44:03.000Z,
+SASearchInteractions__dll,Search Interactions DLO,Engagement,ACTIVE,11,InteractionId__c,2025-03-26T04:08:17.000Z,
+SASearchQueries__dll,Search Queries DLO,Engagement,ACTIVE,16,QueryId__c,2025-03-26T04:08:08.000Z,
+SASearchResults__dll,Search Results DLO,Engagement,ACTIVE,14,ResultId__c,2025-03-26T04:08:12.000Z,
+SEC_Filings__dll,SEC_Filings,Other,ACTIVE,10,uniqueid__c,2024-08-16T18:03:21.000Z,
+SearchAnswers_01213e2d_3_chunk__dll,SearchAnswers Account chunk,Content,ACTIVE,12,RecordId__c,2025-07-23T16:12:18.000Z,
+SearchAnswers_01213e2d_3_index__dll,SearchAnswers Account index,Vector_Embedding,ACTIVE,8,RecordId__c,2025-07-23T16:12:29.000Z,
+SearchAnswers_496359fc_8_chunk__dll,SearchAnswers CSAT chunk,Content,ACTIVE,12,RecordId__c,2025-10-23T21:11:31.000Z,
+SearchAnswers_496359fc_8_index__dll,SearchAnswers CSAT index,Vector_Embedding,ACTIVE,8,RecordId__c,2025-10-23T21:11:43.000Z,
+SearchAnswers_bbe465c3_1_chunk__dll,SearchAnswers Unified Account Acc chunk,Content,ACTIVE,15,RecordId__c,2026-06-04T19:51:56.000Z,
+SearchAnswers_bbe465c3_1_index__dll,SearchAnswers Unified Account Acc index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-04T19:52:24.000Z,
+SearchQuery__dll,Search Query,Engagement,ACTIVE,10,Id__c,2026-05-22T21:59:46.000Z,2026-05-22T22:32:41.000Z
+SearchResults_05777996_e_chunk__dll,SearchResults Financial Account chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:20:24.000Z,
+SearchResults_05777996_e_index__dll,SearchResults Financial Account index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:20:52.000Z,
+SearchResults_0db3a9de_9_chunk__dll,SearchResults Opportunity chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:28:48.000Z,
+SearchResults_0db3a9de_9_index__dll,SearchResults Opportunity index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:29:16.000Z,
+SearchResults_1efe7bff_9_chunk__dll,SearchResults Financial Trades chunk,Content,ACTIVE,15,RecordId__c,2026-05-23T16:43:01.000Z,
+SearchResults_1efe7bff_9_index__dll,SearchResults Financial Trades index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-05-23T16:43:32.000Z,
+SearchResults_285d4cd8_2_chunk__dll,SearchResults Financial Goal chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:25:42.000Z,
+SearchResults_285d4cd8_2_index__dll,SearchResults Financial Goal index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:26:10.000Z,
+SearchResults_31691ea8_1_chunk__dll,SearchResults Campaign chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:19:23.000Z,
+SearchResults_31691ea8_1_index__dll,SearchResults Campaign index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:19:52.000Z,
+SearchResults_357d4364_4_chunk__dll,SearchResults Lead chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:24:35.000Z,
+SearchResults_357d4364_4_index__dll,SearchResults Lead index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:25:01.000Z,
+SearchResults_39e05f2f_b_chunk__dll,SearchResults Engagement Action chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:30:52.000Z,
+SearchResults_39e05f2f_b_index__dll,SearchResults Engagement Action index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:31:20.000Z,
+SearchResults_406c7438_a_chunk__dll,SearchResults Meeting_Note__c_Home chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:23:34.000Z,
+SearchResults_406c7438_a_index__dll,SearchResults Meeting_Note__c_Home index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:24:01.000Z,
+SearchResults_5847111c_2_chunk__dll,SearchResults Case chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:21:26.000Z,
+SearchResults_5847111c_2_index__dll,SearchResults Case index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:21:54.000Z,
+SearchResults_5fc71ac2_2_chunk__dll,SearchResults Cumulus Products chunk,Content,ACTIVE,15,RecordId__c,2026-06-04T20:02:09.000Z,
+SearchResults_5fc71ac2_2_index__dll,SearchResults Cumulus Products index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-04T20:02:44.000Z,
+SearchResults_abcb805e_4_chunk__dll,SearchResults CSAT chunk,Content,ACTIVE,15,RecordId__c,2026-05-23T16:44:20.000Z,
+SearchResults_abcb805e_4_index__dll,SearchResults CSAT index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-05-23T16:44:56.000Z,
+SearchResults_b305ffa6_9_chunk__dll,SearchResults Conversation Entry chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:31:53.000Z,
+SearchResults_b305ffa6_9_index__dll,SearchResults Conversation Entry index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:32:21.000Z,
+SearchResults_d2db7053_2_chunk__dll,SearchResults Referral chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:26:43.000Z,
+SearchResults_d2db7053_2_index__dll,SearchResults Referral index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:27:10.000Z,
+SearchResults_d39c7e6d_d_chunk__dll,SearchResults Person Life Event chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:27:47.000Z,
+SearchResults_d39c7e6d_d_index__dll,SearchResults Person Life Event index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:28:14.000Z,
+SearchResults_f12d2600_2_chunk__dll,SearchResults Note_Home chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:29:51.000Z,
+SearchResults_f12d2600_2_index__dll,SearchResults Note_Home index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:30:18.000Z,
+SearchResults_fa78badd_d_chunk__dll,SearchResults Activity chunk,Content,ACTIVE,15,RecordId__c,2026-06-17T03:22:32.000Z,
+SearchResults_fa78badd_d_index__dll,SearchResults Activity index,Vector_Embedding,ACTIVE,9,RecordId__c,2026-06-17T03:22:59.000Z,
+Securities__dll,Securities,Profile,ACTIVE,29,Id__c,2024-08-03T14:59:09.000Z,2026-05-26T15:22:13.000Z
+ServiceAgentCopilotEvents__dll,Service Agent Copilot Events,Other,ACTIVE,22,uuid__c,2025-02-18T01:50:00.000Z,2025-06-21T08:03:35.000Z
+ServiceAgentSessionEngagement__dll,Service Agent Session Engagement,Other,ACTIVE,20,SessionID__c,2025-02-18T01:49:27.000Z,
+Service_Now__dll,Service Now,Engagement,ACTIVE,18,Case_ID__c,2025-02-13T18:11:28.000Z,2026-02-12T17:24:30.000Z
+SetupPageSearchMetadataStream_K_F85193EB__dll,Setup Page Search Metadata Lake Object,Other,ACTIVE,13,Id__c,2026-03-16T20:24:03.000Z,2026-03-16T21:11:37.000Z
+SetupPageSearchMetadata_chunk__dll,Setup Page Search Metadata Chunk DMO,Content,ACTIVE,15,RecordId__c,2026-03-16T20:26:10.000Z,
+SetupPageSearchMetadata_index__dll,Setup Page Search Metadata Index DMO,Vector_Embedding,ACTIVE,9,RecordId__c,2026-03-16T20:26:36.000Z,
+Snowflake_External_Table_Test__dll,Snowflake_External_Table_Test,Engagement,ACTIVE,14,trade_id__c,2025-04-09T20:23:00.000Z,
+StaticCurrencyRates_00Da500000TFDEl__dll,Static Currency Rates 00Da500000TFDEl,Other,ACTIVE,9,Id__c,2024-09-24T11:38:12.000Z,2026-02-12T17:22:57.000Z
+StaticCurrencyRates_00Dal000003O56w__dll,Static Currency Rates 00Dal000003O56w,Other,ACTIVE,9,Id__c,2024-09-24T11:38:40.000Z,2025-12-27T07:46:11.000Z
+StaticCurrencyRates_00Dal00000bx9DL__dll,Static Currency Rates 00Dal00000bx9DL,Other,ACTIVE,9,Id__c,2024-09-24T11:38:37.000Z,2026-02-12T17:23:04.000Z
+StaticCurrencyRates_00Dam00000Uo32q__dll,Static Currency Rates 00Dam00000Uo32q,Other,ACTIVE,9,Id__c,2024-09-24T11:38:29.000Z,2025-12-27T10:36:48.000Z
+StaticCurrencyRates_InsuranceAFDC__dll,Static Currency Rates InsuranceAFDC,Other,ACTIVE,9,Id__c,2025-10-08T18:08:50.000Z,2026-06-20T10:09:20.000Z
+Streaming_API_TradeTransaction_D688A535__dll,Streaming_API-TradeTransaction,Engagement,ACTIVE,29,TradeID__c,2025-02-05T14:34:33.000Z,2026-05-20T16:03:58.000Z
+TEST__dll,TEST,Vector_Embedding,ACTIVE,9,RecordId__c,2026-02-03T20:45:07.000Z,
+Task_Home__dll,Task_Home,Other,ACTIVE,19,Id__c,2025-02-18T01:39:54.000Z,2026-05-26T15:12:34.000Z
+Tasks_Snow__dll,Tasks_Snow,Engagement,ACTIVE,15,activity_id__c,2025-05-22T14:03:01.000Z,2025-12-29T06:01:08.000Z
+TenantBillingUsageEvent_De_1728959211458__dll,TenantBillingUsageEvent_De_1728959211458,Engagement,ACTIVE,19,ID__c,2024-10-15T02:28:30.000Z,2025-12-31T06:01:12.000Z
+TenantBillingUsageEvent__dll,TenantBillingUsageEvent,Engagement,ACTIVE,15,Id__c,2024-07-24T13:15:28.000Z,2026-07-02T16:26:18.000Z
+TenantDailyEntitlementCons_1728959211410__dll,TenantDailyEntitlementCons_1728959211410,Engagement,ACTIVE,30,Unique_Usage_ID__c,2024-10-15T02:27:39.000Z,2025-12-31T06:01:11.000Z
+TenantDailyEntitlementConsumption__dll,TenantDailyEntitlementConsumption,Engagement,ACTIVE,24,uniqueusageid__c,2024-07-24T13:15:18.000Z,
+TenantEntitlementTransacti_1728959211436__dll,TenantEntitlementTransacti_1728959211436,Profile,ACTIVE,32,ID__c,2024-10-15T02:28:04.000Z,2025-12-31T06:01:11.000Z
+TenantEntitlementTransaction__dll,TenantEntitlementTransaction,Other,ACTIVE,28,id__c,2024-07-24T13:15:44.000Z,2026-07-02T17:00:36.000Z
+TenantHourlyEntitlementCon_1728959211384__dll,TenantHourlyEntitlementCon_1728959211384,Profile,ACTIVE,35,ID__c,2024-10-15T02:27:12.000Z,2026-02-12T17:29:11.000Z
+TenantHourlyEntitlementConsumption__dll,TenantHourlyEntitlementConsumption,Engagement,ACTIVE,30,id__c,2024-07-24T13:15:07.000Z,
+TenantUsageTypeMultiplierS_1728959211361__dll,TenantUsageTypeMultiplierS_1728959211361,Profile,ACTIVE,20,ID__c,2024-10-15T02:26:52.000Z,2026-02-12T17:29:09.000Z
+TenantUsageTypeMultiplier__dll,TenantUsageTypeMultiplier,Other,ACTIVE,16,id__c,2024-07-24T13:15:35.000Z,2026-07-02T17:00:36.000Z
+Territory2_Home__dll,Territory2_Home,Other,ACTIVE,21,Id__c,2026-03-18T17:36:32.000Z,2026-07-02T17:00:36.000Z
+UriEventStream_Salesforce_Platform_Event__dll,UriEventStream Salesforce Platform Event,Engagement,ACTIVE,30,EventIdentifier__c,2025-03-13T20:49:36.000Z,2026-07-02T16:27:25.000Z
+UserAccountTeamMember_Home__dll,UserAccountTeamMember_Home,Profile,ACTIVE,18,Id__c,2025-09-18T20:44:08.000Z,2026-07-02T17:00:36.000Z
+UserEngagement__dll,UserEngagement,Engagement,ACTIVE,20,EventIdentifier__c,2025-02-18T01:40:57.000Z,2025-12-31T17:09:02.000Z
+UserRole_Home__dll,UserRole_Home,Profile,ACTIVE,22,Id__c,2025-09-18T20:43:58.000Z,2026-07-02T17:00:36.000Z
+UserTerritory2Association_Home__dll,UserTerritory2Association_Home,Other,ACTIVE,14,Id__c,2026-03-18T17:36:51.000Z,2026-07-02T17:00:36.000Z
+User_Home__dll,User_Home,Other,ACTIVE,184,Id__c,2024-12-11T05:30:46.000Z,2025-12-31T17:05:38.000Z
+User_InsuranceAFDC__dll,User_InsuranceAFDC,Profile,ACTIVE,163,Id__c,2025-10-08T21:37:36.000Z,2026-07-02T17:00:38.000Z
+VideoCallParticipant_Home__dll,VideoCallParticipant_Home,Other,ACTIVE,24,Id__c,2025-06-13T20:04:08.000Z,2025-12-31T21:50:37.000Z
+VideoCallRecording_Home__dll,VideoCallRecording_Home,Other,ACTIVE,25,Id__c,2025-06-13T20:04:16.000Z,2025-12-31T21:50:37.000Z
+VideoCall_Home__dll,VideoCall,Engagement,ACTIVE,48,Id__c,2025-04-09T01:59:47.000Z,2025-12-31T18:00:38.000Z
+VideoEngmtParticipant_Home__dll,VideoEngmtParticipant_Home,Engagement,ACTIVE,23,Id__c,2026-02-21T11:32:27.000Z,2026-07-02T12:01:55.000Z
+VoiceCallParticipant_00Dam00000Uo32q__dll,VoiceCallParticipant_00Dam00000Uo32q,Other,ACTIVE,16,Id__c,2025-06-13T20:13:36.000Z,
+VoiceCallParticipant_Home__dll,VoiceCallParticipant_Home,Other,ACTIVE,16,Id__c,2025-06-30T14:01:17.000Z,
+VoiceCallTopic_00Dam00000Uo32q__dll,VoiceCallTopic_00Dam00000Uo32q,Other,ACTIVE,12,Id__c,2025-06-13T20:15:10.000Z,
+VoiceCallTopic_Home__dll,VoiceCallTopic_Home,Other,ACTIVE,12,Id__c,2025-06-30T14:01:47.000Z,
+VoiceCall_Home__dll,VoiceCall,Engagement,ACTIVE,71,Id__c,2025-04-09T01:58:52.000Z,2026-04-22T23:51:52.000Z
+WebEngagementEventsV2_00Dam0000_B94CF6A7__dll,WebEngagementEventsV2_00Dam00000Uo32q-De,Engagement,ACTIVE,18,IdentityMatchId__c,2025-11-25T04:37:00.000Z,2025-11-25T05:09:13.000Z
+WebEngagementEventsV2_DeviceToI_2EF27A96__dll,WebEngagementEventsV2-DeviceToIndividual,Engagement,ACTIVE,18,IdentityMatchId__c,2025-09-09T14:47:47.000Z,2025-09-09T16:19:19.000Z
+Web_Engagements_Snow__dll,Web_Engagements_Snow,Engagement,ACTIVE,28,website_engagement_id__c,2024-08-01T21:58:51.000Z,2025-12-31T06:01:05.000Z
+YTD_Transactions_SNOW__dll,YTD_Transactions_SNOW,Engagement,ACTIVE,18,transactionid__c,2024-10-07T17:00:20.000Z,
+account_Databricks__dll,account Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T20:32:18.000Z,
+additional_endorsements__dll,additional_endorsements,Other,ACTIVE,10,RecordId__c,2025-12-11T18:07:59.000Z,
+asset_Databricks__dll,asset Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T22:36:09.000Z,
+bank_churners_jl_Databricks__dll,bank_churners_jl Databricks,Profile,ACTIVE,26,Id__c,2026-01-22T15:51:37.000Z,
+claims_Databricks__dll,claims Databricks,Profile,ACTIVE,6,claim_id__c,2026-06-17T20:56:24.000Z,
+claims_history__dll,claims_history,Engagement,ACTIVE,15,claim_id__c,2025-11-10T22:06:58.000Z,
+contact_202401_Databricks__dll,contact_202401 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:27:13.000Z,
+contact_202402_Databricks__dll,contact_202402 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T20:41:54.000Z,
+contact_202403_Databricks__dll,contact_202403 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T20:47:34.000Z,
+contact_202404_Databricks__dll,contact_202404 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:10:58.000Z,
+contact_202405_Databricks__dll,contact_202405 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:06:14.000Z,
+contact_202406_Databricks__dll,contact_202406 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:15:54.000Z,
+contact_202407_Databricks__dll,contact_202407 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:33:57.000Z,
+contact_202408_Databricks__dll,contact_202408 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:38:33.000Z,
+contact_202409_Databricks__dll,contact_202409 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:45:34.000Z,
+contact_202410_Databricks__dll,contact_202410 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:59:30.000Z,
+contact_202411_Databricks__dll,contact_202411 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T22:18:04.000Z,
+contact_202412_Databricks__dll,contact_202412 Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T22:24:34.000Z,
+contact_Databricks__dll,contact Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T20:36:48.000Z,
+coverages__dll,coverages,Other,ACTIVE,11,RecordId__c,2025-12-11T18:08:15.000Z,
+csat_nps_data_Databricks__dll,csat_nps_data Databricks,Profile,ACTIVE,12,RowID__c,2026-06-05T16:21:37.000Z,
+customer_test__dll,customer_test,Profile,ACTIVE,14,customerid__c,2025-06-11T15:29:36.000Z,
+financial_services_lea09132348059__dll,financial_services_leads_with_campaigns,Other,ACTIVE,13,uuid_temp__c,2025-07-09T17:23:49.000Z,2025-07-09T17:23:56.000Z
+insured_vehicles__dll,insured_vehicles,Other,ACTIVE,12,RecordId__c,2025-12-11T18:08:06.000Z,
+invoiceitems_Databricks__dll,invoiceitems Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T23:04:54.000Z,
+invoices_Databricks__dll,invoices Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T21:59:20.000Z,
+meterreads_Databricks__dll,meterreads Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T23:20:13.000Z,
+outliers_Databricks__dll,outliers Databricks,Profile,ACTIVE,5,AssetID__c,2026-06-17T22:47:52.000Z,
+premises_Databricks__dll,premises Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T23:09:08.000Z,
+product_Databricks__dll,product Databricks,Profile,ACTIVE,5,ProductType__c,2026-06-17T22:55:01.000Z,
+remote_connection_full_sync_feed__dll,remote_connection_full-sync_feed,Engagement,ACTIVE,30,id__c,2024-08-22T12:21:47.000Z,2025-12-19T08:37:37.000Z
+remote_connection_incremental_sync_feed__dll,remote_connection_incremental-sync_feed,Engagement,ACTIVE,31,id__c,2024-08-22T12:21:35.000Z,2026-07-02T16:42:45.000Z
+sfm_AiAgentMomentInteraction__dll,AI Agent Moment Interaction,Engagement,ACTIVE,14,Id__c,2025-09-05T14:00:19.000Z,
+sfm_AiAgentMoment__dll,AI Agent Moment,Engagement,ACTIVE,16,Id__c,2025-09-05T14:04:13.000Z,
+sfm_AiAgentTagAssociation__dll,AI Agent Tag Association,Engagement,ACTIVE,26,Id__c,2025-09-05T14:04:20.000Z,
+sfm_AiAgentTagDefinitionAssociation__dll,AI Agent Tag Definition Association,Other,ACTIVE,14,Id__c,2025-09-05T14:04:27.000Z,
+sfm_AiAgentTagDefinition__dll,AI Agent Tag Definition,Other,ACTIVE,21,Id__c,2025-09-05T14:08:17.000Z,
+sfm_AiAgentTag__dll,AI Agent Tag,Other,ACTIVE,16,Id__c,2025-09-05T14:00:10.000Z,
+sfmc_campaign_523021287__dll,SFMC Campaign 523021287,Other,ACTIVE,15,ID__c,2024-12-20T16:23:42.000Z,2026-07-02T16:27:26.000Z
+sfmc_contact_point_email_523021287__dll,SFMC Contact Point Email 523021287,Other,ACTIVE,11,SubscriberKey__c,2024-12-20T16:22:33.000Z,2026-07-02T16:26:58.000Z
+sfmc_ees_email_snapshot_523021287__dll,SFMC EES Email Snapshot 523021287,Other,ACTIVE,20,ID__c,2024-12-20T16:22:14.000Z,2026-07-02T16:26:56.000Z
+sfmc_einstein_email_scores_523021287__dll,SFMC Einstein Email Scores 523021287,Insights,ACTIVE,20,ID__c,2024-12-20T16:20:44.000Z,2026-07-02T16:27:26.000Z
+sfmc_email_complaint_523021287__dll,SFMC Email Complaint 523021287,Engagement,ACTIVE,36,ID__c,2024-12-20T16:21:30.000Z,2026-07-02T16:27:03.000Z
+sfmc_email_engagement_bounce_523021287__dll,SFMC Email Engagement Bounce 523021287,Engagement,ACTIVE,39,ID__c,2024-12-20T16:20:51.000Z,2026-07-02T16:27:29.000Z
+sfmc_email_engagement_click_523021287__dll,SFMC Email Engagement Click 523021287,Engagement,ACTIVE,44,ID__c,2024-12-20T16:22:58.000Z,2026-07-02T16:26:57.000Z
+sfmc_email_engagement_open_523021287__dll,SFMC Email Engagement Open 523021287,Engagement,ACTIVE,43,ID__c,2024-12-20T16:24:10.000Z,2026-07-02T16:27:55.000Z
+sfmc_email_engagement_send_523021287__dll,SFMC Email Engagement Send 523021287,Engagement,ACTIVE,35,ID__c,2024-12-20T16:21:52.000Z,2026-07-02T16:27:02.000Z
+sfmc_email_publication_523021287__dll,SFMC Email Publication 523021287,Other,ACTIVE,25,ID__c,2024-12-20T16:20:27.000Z,2026-07-02T16:32:01.000Z
+sfmc_email_template_523021287__dll,SFMC Email Template 523021287,Other,ACTIVE,11,ID__c,2024-12-20T16:22:46.000Z,2026-07-02T16:27:34.000Z
+sfmc_email_unsubscribe_523021287__dll,SFMC Email Unsubscribe 523021287,Engagement,ACTIVE,36,ID__c,2024-12-20T16:20:04.000Z,2026-07-02T16:27:33.000Z
+sfmc_ent_profile_attribute_523021287__dll,SFMC Ent Profile Attribute 523021287,Profile,ACTIVE,14,SubscriberKey__c,2024-12-20T16:23:26.000Z,2026-07-02T16:26:59.000Z
+sfmc_journey_523021287__dll,SFMC Journey 523021287,Other,ACTIVE,17,ID__c,2024-12-20T16:24:53.000Z,2026-07-02T16:36:29.000Z
+sfmc_journey_activity_523021287__dll,SFMC Journey Activity 523021287,Other,ACTIVE,16,ID__c,2024-12-20T16:24:37.000Z,2026-07-02T16:27:00.000Z
+sfmc_subscriber_523021287__dll,SFMC Subscriber 523021287,Profile,ACTIVE,13,SubscriberKey__c,2024-12-20T16:21:15.000Z,2026-07-02T16:27:32.000Z
+sfmc_subscriber_bu_mapping_523021287__dll,SFMC Subscriber BU Mapping 523021287,Other,ACTIVE,10,ID__c,2024-12-20T16:23:58.000Z,2026-07-02T16:36:26.000Z
+ssot_KnowledgeArticleVers_SI_chunk__dll,ssot_KnowledgeArticleVers_SI_chunk__dlm,Content,ACTIVE,10,RecordId__c,2024-12-03T18:42:39.000Z,
+ssot_KnowledgeArticleVers_SI_index__dll,ssot_KnowledgeArticleVers_SI_index__dlm,Vector_Embedding,ACTIVE,10,RecordId__c,2024-12-03T18:42:44.000Z,
+test2__dll,test2,Vector_Embedding,ACTIVE,9,RecordId__c,2026-04-02T20:19:34.000Z,
+test_ej__dll,test_ej,Other,ACTIVE,6,account_id__c,2026-05-20T14:04:52.000Z,
+testinh__dll,testinh,Vector_Embedding,ACTIVE,9,RecordId__c,2026-04-01T14:54:49.000Z,
+tipo_pagamento__dll,tipo_pagamento,Other,ACTIVE,17,RecordId__c,2025-11-18T16:48:56.000Z,
+transactions_Databricks__dll,transactions Databricks,Profile,ACTIVE,5,ID__c,2026-06-17T23:15:04.000Z,
+transactions_jl_Databricks__dll,transactions_jl Databricks,Engagement,ACTIVE,15,TransactionID__c,2026-01-20T14:44:26.000Z,
