@@ -1,0 +1,119 @@
+Source Object,Stream Count,Connector Type(s),Mapped DMO Count,Mapped DMOs,Total Records
+(none),177,AIPlatform; AwsS3; AzureSql; CDataJdbcGoogleAnalytics; DATABRICKS_UNITY; DATACLOUD; Databricks; ECI; EventBusConnector; HerokuPostgres; IngestApi; Observability; REDSHIFT; SNOWFLAKE; StreamingApp; TenantBillingUsageConnector; UploadedFiles,42,Attrition_Inputs_Snowflake__dlm; BUSINESS_PRODUCT_RECOMMENDATION_INPU__dlm; BUSINESS_PRODUCT_RECOMMENDATION__dlm; Bank_Churner__dlm; CSAT_Prediction_Input__dlm; CSAT_Snowflake__dlm; Churn_Training_Data__dlm; Claim_Snowflake_InsAFDC__dlm; CumulusBoardExExecIntel__dlm; CumulusClaritasDemographics__dlm; CumulusCoreLogicProperty__dlm; CumulusDnBBusinessCredit__dlm; CumulusEsriGeoFootprint__dlm; CumulusGongCallSentiment__dlm; CumulusMSCIESG__dlm; CumulusMgpFinancialPlans__dlm; CumulusMoodysMarketContext__dlm; CumulusPlaidHeldAway__dlm; CumulusSynthRelationshipGraph__dlm; CumulusWorldCheckAml__dlm; CumulusZoomInfoFirmographics__dlm; Data_Masking__dlm; Databricks_File_Federation_Sample__dlm; Dataforce_Car_Telematics__dlm; Enrollments__dlm; Financial_Trades__dlm; Financial_Transactions_AWSRedshift__dlm; Financial_Transactions_Redshift__dlm; Loan_Delinquencies__dlm; ML_Loan_Chargeoffs__dlm; PERSONAL_PRODUCT_RECOMMENDATION_INPU__dlm; PERSONAL_PRODUCT_RECOMMENDATION_TRAI__dlm; Profile_Main__dlm; SEC_Filings__dlm; SRDO_Unified_Members__dlm; ins_Claim_Snowflake_InsAFDC__dlm; ins_Payment_Snowflake_InsAFDC__dlm; ins_Policy_Snowflake_InsAFDC__dlm; ssot__Activity__dlm; ssot__EngagementAction__dlm; ssot__FinancialAccountTransaction__dlm; ssot__WebsiteEngagement__dlm,135185337
+Account,5,SalesforceDotCom,9,ins_Account__dlm; ins_ContactPointAddress__dlm; ins_ContactPointEmail__dlm; ins_ContactPointPhone__dlm; ssot__Account__dlm; ssot__ContactPointAddress__dlm; ssot__ContactPointEmail__dlm; ssot__ContactPointPhone__dlm; ssot__Party__dlm,36751
+CurrencyType,5,SalesforceDotCom,0,,5
+Lead,5,SalesforceDotCom,7,ssot__ContactPointAddress__dlm; ssot__ContactPointEmail__dlm; ssot__ContactPointPhone__dlm; ssot__IdentityMatch__dlm; ssot__Individual__dlm; ssot__Lead__dlm; ssot__Party__dlm,2943
+Opportunity,5,SalesforceDotCom,1,ssot__Opportunity__dlm,32939
+Case,4,SalesforceDotCom,1,ssot__Case__dlm,11230
+Contact,2,SalesforceDotCom,5,ssot__AccountContact__dlm; ssot__ContactPointAddress__dlm; ssot__ContactPointEmail__dlm; ssot__ContactPointPhone__dlm; ssot__Individual__dlm,25979
+OpportunityContactRole,2,SalesforceDotCom,1,ssot__OpportunityContact__dlm,43
+Pricebook2,2,SalesforceDotCom,1,ssot__PriceBook__dlm,20
+PricebookEntry,2,SalesforceDotCom,1,ssot__PriceBookEntry__dlm,626
+Quote,2,SalesforceDotCom,1,ssot__Quote__dlm,14
+User,2,SalesforceDotCom,1,ssot__User__dlm,193
+AbnExperiment,1,SalesforceDotCom,1,ssot__AbnExperiment__dlm,0
+AbnExperimentCohort,1,SalesforceDotCom,1,ssot__AbnExperimentCohort__dlm,0
+FinServ__AccountAccountRelation__c,1,SalesforceDotCom,0,,116
+AccountContactRelation,1,SalesforceDotCom,0,,24986
+AiAgentTagDefAssoc,1,SalesforceDotCom,1,ssot__AiAgentTagDefinitionAssociation__dlm,16
+AiGroundingFileRef,1,SalesforceDotCom,1,AiGroundingFileRefCustom__dlm,116
+AiTagDefinition,1,SalesforceDotCom,1,ssot__AiAgentTagDefinition__dlm,16
+AiTagValue,1,SalesforceDotCom,1,ssot__AiAgentTag__dlm,72
+FinServ__Alert__c,1,SalesforceDotCom,1,ssot__RecordAlert__dlm,0
+BotDefinition,1,SalesforceDotCom,2,BotDefinition_Home__dlm; ssot__Bot__dlm,16
+BotVersion,1,SalesforceDotCom,2,BotVersion_Home__dlm; ssot__BotVersion__dlm,17
+BulkMessage,1,SalesforceDotCom,1,ssot__BulkMessage__dlm,0
+Campaign,1,SalesforceDotCom,1,ssot__Campaign__dlm,38
+CampaignMember,1,SalesforceDotCom,1,ssot__CampaignMember__dlm,57872
+FinServ__Card__c,1,SalesforceDotCom,1,ssot__PaymentCard__dlm,185
+CaseArticle,1,SalesforceDotCom,1,ssot__LinkedKnowledgeArticle__dlm,13
+CollaborationGroup,1,SalesforceDotCom,0,,0
+CollaborationGroupMember,1,SalesforceDotCom,0,,46
+CollaborationGroupRecord,1,SalesforceDotCom,0,,0
+CommSubscription,1,SalesforceDotCom,1,ssot__CommunicationSubscription__dlm,2
+CommSubscriptionChannelType,1,SalesforceDotCom,1,ssot__CommunicationSubscriptionChannelType__dlm,3
+ContentDocument,1,SalesforceDotCom,1,ssot__ContentDocument__dlm,435
+ContentDocumentLink,1,SalesforceDotCom,1,ssot__ContentDocumentRelationship__dlm,857
+ContentVersion,1,SalesforceDotCom,1,ssot__ContentDocumentVersion__dlm,7
+ConversationDefinitionSession,1,SalesforceDotCom,0,,1128
+DataCategory,1,SalesforceDotCom,2,DataCategoryCustom__dlm; ssot__Category__dlm,30
+DataCategoryGroup,1,SalesforceDotCom,2,DataCategoryGroupCustom__dlm; ssot__Category__dlm,5
+DataCleanRoom,1,SalesforceDotCom,0,,6
+DataLakeObjectInstance,1,SalesforceDotCom,0,,422
+DataLakeObjectInstanceFeed,1,SalesforceDotCom,0,,0
+DataObjectAutoTaggingJob,1,SalesforceDotCom,0,,433
+DataObjectTagSuggestion,1,SalesforceDotCom,0,,1191
+DataPackageKitDefinition,1,SalesforceDotCom,0,,17
+DataPackageKitObject,1,SalesforceDotCom,0,,756
+DataSemanticSearch,1,SalesforceDotCom,0,,33
+DataSrcDataModelFieldMap,1,SalesforceDotCom,0,,3382
+DataStream,1,SalesforceDotCom,0,,284
+DataStreamDefinition,1,SalesforceDotCom,0,,292
+DataStreamFeed,1,SalesforceDotCom,0,,0
+EmailMessage,1,SalesforceDotCom,2,ssot__Activity__dlm; ssot__EmailMessage__dlm,14173
+EmailMessageRelation,1,SalesforceDotCom,1,ssot__ActivityParticipant__dlm,28346
+EngagementChannelType,1,SalesforceDotCom,1,ssot__EngagementChannelType__dlm,2
+Event,1,SalesforceDotCom,2,ssot__Activity__dlm; ssot__CalendarEvent__dlm,6369
+EventRelation,1,SalesforceDotCom,0,,0
+FinServ__FinancialAccountRole__c,1,SalesforceDotCom,1,ssot__FinancialAccountParty__dlm,90790
+FinancialGoal,1,SalesforceDotCom,1,ssot__FinancialGoal__dlm,1368
+FinancialGoalParty,1,SalesforceDotCom,1,ssot__FinancialGoalParty__dlm,111
+FinServ__FinancialHolding__c,1,SalesforceDotCom,1,ssot__FinancialHolding__dlm,860
+FinServ__AssetsAndLiabilities__c,1,SalesforceDotCom,0,,229
+FinServ__FinancialAccount__c,1,SalesforceDotCom,8,ssot__CardAccount__dlm; ssot__DepositAccount__dlm; ssot__FinancialAccountFee__dlm; ssot__FinancialAccountInterestRate__dlm; ssot__FinancialAccount__dlm; ssot__InsurancePolicy__dlm; ssot__InvestmentAccount__dlm; ssot__LoanAccount__dlm,32131
+FlowRecord,1,SalesforceDotCom,1,ssot__Flow__dlm,1176
+FlowRecordElement,1,SalesforceDotCom,1,ssot__FlowElement__dlm,1124
+FlowRecordVersion,1,SalesforceDotCom,1,ssot__FlowVersion__dlm,1249
+FlowRecordVersionOccurrence,1,SalesforceDotCom,1,ssot__FlowVersionOccurrence__dlm,68
+ForecastingGroup,1,SalesforceDotCom,0,,0
+GenAiFunctionDefinition,1,SalesforceDotCom,1,ssot__AiAgentAction__dlm,2087
+GenAiPluginDefinition,1,SalesforceDotCom,1,ssot__AiAgentTopic__dlm,698
+Group,1,SalesforceDotCom,0,,472
+GroupMember,1,SalesforceDotCom,1,ssot__UserGroup__dlm,156
+InsurancePolicy,1,SalesforceDotCom,1,ins_InsurancePolicy_InsuranceAFDC__dlm,62
+InteractionSummary,1,SalesforceDotCom,1,InteractionSummary_Home__dlm,1565
+Knowledge__DataCategorySelection,1,SalesforceDotCom,2,DataCategorySelectionCustom__dlm; ssot__KnowledgeArticleCategory__dlm,322
+Knowledge__ka,1,SalesforceDotCom,1,ssot__KnowledgeArticle__dlm,58
+Knowledge__kav,1,SalesforceDotCom,1,ssot__KnowledgeArticleVersion__dlm,191
+KnowledgeArticleVersion,1,SalesforceDotCom,0,,0
+LinkedArticle,1,SalesforceDotCom,1,ssot__LinkedKnowledgeArticle__dlm,1
+ListEmail,1,SalesforceDotCom,1,ssot__BulkEmailMessage__dlm,6
+ManagedContent,1,SalesforceDotCom,1,ssot__DigitalContent__dlm,844
+ManagedContentPublishedUrl,1,SalesforceDotCom,1,ssot__WebsitePublication__dlm,0
+MarketSegment,1,SalesforceDotCom,1,ssot__MarketSegment__dlm,22
+Meeting_Note__c,1,SalesforceDotCom,1,Meeting_Note_c_Home__dlm,6
+MessagingChannel,1,SalesforceDotCom,1,ssot__EngagementChannel__dlm,10
+MessagingChannelUsage,1,SalesforceDotCom,1,ssot__EngagementChannelUsage__dlm,0
+MktDataConnection,1,SalesforceDotCom,0,,43
+MktDataLakeField,1,SalesforceDotCom,0,,11191
+MktDataLakeMapping,1,SalesforceDotCom,0,,0
+MktDataLakeObject,1,SalesforceDotCom,0,,432
+MktDataModelField,1,SalesforceDotCom,0,,21743
+MktDataTransform,1,SalesforceDotCom,0,,63
+MktDataTransformDefinition,1,SalesforceDotCom,0,,66
+Note,1,SalesforceDotCom,1,Note_Home__dlm,0
+DataKnowledgeSrcFileRef,1,SalesforceDotCom,1,DataKnowledgeSrcFileRefDMO__dlm,1
+ObjectMetadataTag,1,SalesforceDotCom,0,,0
+PermissionSet,1,SalesforceDotCom,0,,970
+PermissionSetAssignment,1,SalesforceDotCom,0,,1014
+PersonalizationDecision,1,SalesforceDotCom,0,,0
+PersonalizationPoint,1,SalesforceDotCom,0,,0
+PersonalizationRecommender,1,SalesforceDotCom,0,,0
+PersonalizationSchema,1,SalesforceDotCom,0,,0
+PersonLifeEvent,1,SalesforceDotCom,1,ssot__PersonLifeEvent__dlm,25287
+PersonLifeEventFeed,1,SalesforceDotCom,0,,0
+Product2,1,SalesforceDotCom,0,,283
+Prospect,1,SalesforceDotCom,6,ssot__ContactPointAddress__dlm; ssot__ContactPointEmail__dlm; ssot__ContactPointPhone__dlm; ssot__IdentityMatch__dlm; ssot__Individual__dlm; ssot__Prospect__dlm,0
+Referral__c,1,SalesforceDotCom,1,ssot__Referral__dlm,24
+FinServ__Securities__c,1,SalesforceDotCom,1,ssot__FinancialSecurity__dlm,28
+Task,1,SalesforceDotCom,0,,11011
+TenantEntitlementTransaction,1,SalesforceDotCom,0,,0
+TenantUsageTypeMultiplier,1,SalesforceDotCom,0,,0
+Territory2,1,SalesforceDotCom,1,ssot__SalesTerritory__dlm,0
+UserAccountTeamMember,1,SalesforceDotCom,0,,0
+UserRole,1,SalesforceDotCom,1,ssot__UserRole__dlm,103
+UserTerritory2Association,1,SalesforceDotCom,1,ssot__UserSalesTerritory__dlm,0
+VideoCall,1,SalesforceDotCom,2,ssot__Activity__dlm; ssot__VideoCall__dlm,0
+VideoCallParticipant,1,SalesforceDotCom,1,ssot__ActivityParticipant__dlm,0
+VideoCallRecording,1,SalesforceDotCom,0,,0
+VoiceCall,1,SalesforceDotCom,2,ssot__Activity__dlm; ssot__VoiceCall__dlm,32
