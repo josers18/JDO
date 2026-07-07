@@ -1,0 +1,105 @@
+/**
+ * Shared design tokens — the "Aurora Glass" system (chosen 2026-07-06).
+ * Structural tokens live per-mode; accent tokens can still be overridden
+ * per-persona by ThemeProvider. Light mode is the primary Aurora surface.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --wp-font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+:root,
+[data-mode='dark'] {
+  --wp-surface: #070b14;
+  --wp-surface-raised: #101827;
+  --wp-surface-glass: rgba(16, 24, 39, 0.66);
+  --wp-surface-glass-strong: rgba(16, 24, 39, 0.88);
+  --wp-border: rgba(148, 163, 184, 0.16);
+  --wp-border-strong: rgba(148, 163, 184, 0.28);
+  --wp-text: #e6edf6;
+  --wp-text-muted: #8ea0b8;
+  --wp-text-faint: #5b6b83;
+  --wp-radius: 18px;
+  --wp-radius-sm: 12px;
+  --wp-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --wp-shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --wp-pos: #34d399;
+  --wp-neg: #f87171;
+  --wp-warn: #fbbf24;
+  /* text that sits on a solid accent fill */
+  --wp-on-accent: #04121a;
+
+  /* Overridden per-persona by ThemeProvider */
+  --wp-accent: #14b8a6;
+  --wp-accent-2: #0ea5e9;
+  --wp-accent-soft: #5eead4;
+  --wp-gradient: linear-gradient(120deg, #0d9488 0%, #115e59 100%);
+  --wp-glow: radial-gradient(60% 120% at 15% 0%, rgba(20, 184, 166, 0.35) 0%, rgba(20, 184, 166, 0) 60%);
+  --wp-aurora: radial-gradient(60% 50% at 20% 0%, rgba(20, 184, 166, 0.15), transparent 60%);
+}
+
+/* ── AURORA GLASS (light, primary) ─────────────────────────────
+   Frosted panels over one ambient gradient wash. Near-invisible borders,
+   soft depth, blue→violet accent. Seamless via shared background, not lines. */
+[data-mode='light'] {
+  --wp-surface: #eef1fb;
+  --wp-surface-raised: #ffffff;
+  --wp-surface-glass: rgba(255, 255, 255, 0.72);
+  --wp-surface-glass-strong: rgba(255, 255, 255, 0.86);
+  --wp-border: rgba(255, 255, 255, 0.9);
+  --wp-border-strong: rgba(40, 50, 90, 0.12);
+  --wp-text: #1e2233;
+  --wp-text-muted: #6b7290;
+  --wp-text-faint: #9aa2bd;
+  --wp-radius: 20px;
+  --wp-radius-sm: 14px;
+  --wp-shadow: 0 18px 50px rgba(40, 50, 90, 0.14);
+  --wp-shadow-sm: 0 10px 30px rgba(40, 50, 90, 0.10);
+  --wp-pos: #12a594;
+  --wp-neg: #e5544b;
+  --wp-warn: #e0912f;
+  --wp-on-accent: #ffffff;
+
+  /* Aurora accent — blue → violet, with the ambient page wash */
+  --wp-accent: #5b8def;
+  --wp-accent-2: #9b6dff;
+  --wp-accent-soft: #a9c4fb;
+  --wp-gradient: linear-gradient(135deg, #5b8def 0%, #9b6dff 100%);
+  --wp-glow: radial-gradient(60% 120% at 15% 0%, rgba(91, 141, 239, 0.22) 0%, rgba(91, 141, 239, 0) 60%);
+  /* the one page-wide aurora wash applied by layouts on a fixed backdrop */
+  --wp-aurora:
+    radial-gradient(50% 45% at 12% 8%, rgba(91, 141, 239, 0.30), transparent 60%),
+    radial-gradient(45% 40% at 90% 10%, rgba(155, 109, 255, 0.26), transparent 55%),
+    radial-gradient(60% 50% at 70% 100%, rgba(45, 212, 191, 0.18), transparent 60%);
+}
+
+@keyframes wp-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wp-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes wp-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

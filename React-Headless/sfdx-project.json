@@ -1,0 +1,15 @@
+{
+  "packageDirectories": [
+    {
+      "path": "force-app",
+      "default": true,
+      "package": "ReactHeadless",
+      "versionName": "v1",
+      "versionNumber": "67.0.0.NEXT"
+    }
+  ],
+  "name": "react-headless",
+  "namespace": "",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "67.0"
+}
