@@ -157,6 +157,47 @@ export interface FinancialPlan {
   asOf: string;
 }
 
+/* ---------- Company Intel (ZoomInfo / BoardEx / MSCI / SEC) ---------- */
+export interface Firmographics {
+  revenueBand: string;
+  employeeBand: string;
+  industryNaics: string;
+  industrySic: string;
+  foundedYear: number;
+  website: string;
+  hq: string;
+  linkedinFollowers: number;
+  techStack: string[];
+  asOf: string;
+}
+export interface Governance {
+  boardSize: number;
+  ceoTenureYears: number;
+  boardAvgTenureYears: number;
+  governanceRating: string;
+  keyDirector: string;
+  interlockCount: number;
+  execTurnover: boolean;
+  recentEventDate: string;
+  asOf: string;
+}
+export interface EsgProfile {
+  overall: number;
+  environmental: number;
+  social: number;
+  governance: number;
+  rating: string;
+  carbonIntensity: number;
+  controversyCount: number;
+  topControversy: string;
+  ratingChangeDirection: string;
+  asOf: string;
+}
+export interface SecFiling {
+  filingType: string;
+  sections: { id: string; section: string; text: string }[];
+}
+
 /* ---------- The full bundle ---------- */
 export interface Full360 {
   details: DetailField[];
@@ -177,4 +218,12 @@ export interface Full360 {
   property: PropertyInfo | null;
   /** MoneyGuidePro financial plan (null when no plan on file). */
   financialPlan: FinancialPlan | null;
+  /** ZoomInfo firmographics (null when the account has no firmographic row). */
+  firmographics: Firmographics | null;
+  /** BoardEx governance / exec intel (null when none). */
+  governance: Governance | null;
+  /** MSCI corporate ESG profile (null when none). */
+  esg: EsgProfile | null;
+  /** SEC filings grouped by filing type (empty array when none). */
+  secFilings: SecFiling[];
 }
