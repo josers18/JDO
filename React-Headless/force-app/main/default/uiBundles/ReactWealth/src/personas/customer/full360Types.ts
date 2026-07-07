@@ -1,0 +1,153 @@
+/**
+ * Full Customer 360 content contract (§3b of
+ * docs/customer-360-inventory-and-gaps.md). One type per content area. Retail
+ * (Julie Morris) first. Mock now; each maps 1:1 to a GraphQL/DC source later.
+ */
+
+/* ---------- Details (editable) ---------- */
+export interface DetailField {
+  key: string;
+  label: string;
+  value: string;
+  editable: boolean;
+  group: string; // section grouping
+  type?: 'text' | 'email' | 'phone' | 'picklist' | 'currency';
+  options?: string[];
+}
+
+/* ---------- Financial Accounts / Transactions / Trades ---------- */
+export interface FinAccount {
+  id: string;
+  name: string;
+  type: string;
+  number: string;
+  balance: number;
+  status: string;
+  opened: string;
+}
+export interface Transaction {
+  id: string;
+  date: string;
+  description: string;
+  category: string;
+  account: string;
+  amount: number;
+}
+export interface Trade {
+  id: string;
+  date: string;
+  action: 'BUY' | 'SELL';
+  symbol: string;
+  name: string;
+  shares: number;
+  price: number;
+  amount: number;
+}
+
+/* ---------- Interactions & Engagements ---------- */
+export interface Interaction {
+  id: string;
+  when: string;
+  channel: string;
+  type: string;
+  summary: string;
+  sentiment: 'positive' | 'neutral' | 'negative';
+}
+
+/* ---------- Cases ---------- */
+export interface CaseRow {
+  id: string;
+  number: string;
+  subject: string;
+  status: string;
+  priority: 'High' | 'Medium' | 'Low';
+  opened: string;
+}
+
+/* ---------- CSAT & NPS ---------- */
+export interface CsatNps {
+  csatScore: number;
+  npsScore: number;
+  csatTrend: number[];
+  npsTrend: number[];
+  recent: { id: string; when: string; type: 'CSAT' | 'NPS'; score: number; verbatim: string }[];
+}
+
+/* ---------- Opportunities ---------- */
+export interface Opportunity {
+  id: string;
+  name: string;
+  stage: string;
+  amount: number;
+  closeDate: string;
+  probability: number;
+}
+
+/* ---------- Campaigns ---------- */
+export interface Campaign {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  responded: boolean;
+  memberSince: string;
+}
+
+/* ---------- Meeting Notes / Call Summaries / KYC ---------- */
+export interface MeetingNote {
+  id: string;
+  date: string;
+  title: string;
+  author: string;
+  body: string;
+}
+export interface CallSummary {
+  id: string;
+  date: string;
+  duration: string;
+  channel: string;
+  sentiment: 'positive' | 'neutral' | 'negative';
+  summary: string;
+}
+export interface KycSummary {
+  id: string;
+  status: string;
+  lastReview: string;
+  riskRating: string;
+  amlStatus: string;
+  notes: string;
+}
+
+/* ---------- Sidebar: ML predictions + Agentforce summaries ---------- */
+export interface MlPrediction {
+  key: 'attrition' | 'csat' | 'productRec';
+  title: string;
+  score: number; // 0..1
+  scoreLabel: string;
+  outcome: string;
+  tone: 'positive' | 'opportunity' | 'risk' | 'neutral';
+  drivers: { label: string; impact: number }[];
+}
+export interface AgentforceSummary {
+  key: string; // account | transaction | trade | interaction | csat | opportunity | case | campaign
+  title: string;
+  text: string;
+}
+
+/* ---------- The full bundle ---------- */
+export interface Full360 {
+  details: DetailField[];
+  finAccounts: FinAccount[];
+  transactions: Transaction[];
+  trades: Trade[];
+  interactions: Interaction[];
+  cases: CaseRow[];
+  csatNps: CsatNps;
+  opportunities: Opportunity[];
+  campaigns: Campaign[];
+  meetingNotes: MeetingNote[];
+  callSummaries: CallSummary[];
+  kyc: KycSummary;
+  predictions: MlPrediction[];
+  agentforce: Record<string, AgentforceSummary>;
+}

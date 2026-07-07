@@ -1,0 +1,184 @@
+/**
+ * HOME app — REAL data implementation ("wired like today"):
+ *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal, Lead, Account)
+ *     → GraphQL (sdk.graphql)
+ *   · Data Cloud (CSAT/NPS) → DcBridgeRest → ConnectApi.CdpQuery
+ *
+ * All field names + DMO columns below were VERIFIED live against the org
+ * (jdo-1lrnov / storm-16a17dc388fbe6, 2026-07-06) by running each query through
+ * the uiapi endpoint and the ssot/queryv2 probe. Not guessed.
+ */
+import { executeGraphQL, queryDataCloud } from '@shared';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem } from './homeTypes';
+
+/* ── Core/FSC via GraphQL (verified fields) ────────────────── */
+const HOME_CORE_QUERY = /* GraphQL */ `
+  query HomeBook {
+    uiapi {
+      query {
+        Opportunity(first: 200, where: { IsClosed: { eq: false } }, orderBy: { Amount: { order: DESC } }) {
+          totalCount
+          edges { node { Id Name @optional { value } StageName @optional { value } Amount @optional { value } CloseDate @optional { value } Probability @optional { value } Account @optional { Name @optional { value } } } }
+        }
+        Case(first: 1, where: { IsClosed: { eq: false } }) { totalCount }
+        Task(first: 8, where: { IsClosed: { eq: false } }, orderBy: { ActivityDate: { order: ASC } }) {
+          edges { node { Id Subject @optional { value } ActivityDate @optional { value } } }
+        }
+        Event(first: 6, orderBy: { ActivityDateTime: { order: ASC } }) {
+          edges { node { Id Subject @optional { value } ActivityDateTime @optional { value } } }
+        }
+        FinancialGoal(first: 6) {
+          edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
+        }
+        Lead(first: 6, where: { IsConverted: { eq: false } }) {
+          edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } } }
+        }
+      }
+    }
+  }
+`;
+
+/* ── Account name lookup for the CSAT call list (IDs → names) ──
+   Inlined IDs (not a $variable) — the SDK graphql client's variable
+   forwarding for list types proved unreliable; an inline literal list is
+   deterministic. IDs are org-generated 15/18-char alphanumerics (safe). */
+function accountNamesQuery(ids: string[]): string {
+  const list = ids.map(id => `"${id.replace(/[^A-Za-z0-9]/g, '')}"`).join(', ');
+  return `query AccountNames {
+    uiapi {
+      query {
+        Account(first: 50, where: { Id: { in: [${list}] } }) {
+          edges { node { Id Name @optional { value } } }
+        }
+      }
+    }
+  }`;
+}
+
+/* ── Data Cloud: lowest-CSAT accounts = "who to call" (verified) ──
+   CSAT_Snowflake__dlm spans multiple source orgs in the unified profile; scope
+   to THIS org's account prefix (001am%) so every row resolves to a local
+   Account name (cross-org IDs like 001Wt% have no local Account record). */
+const LOW_CSAT_SQL = `
+  SELECT accountid__c AS account_id, csat_score__c AS csat, nps_score__c AS nps, csat_description__c AS reason
+  FROM CSAT_Snowflake__dlm
+  WHERE csat_score__c IS NOT NULL AND accountid__c LIKE '001am%'
+  ORDER BY csat_score__c ASC
+  LIMIT 8
+`;
+
+interface CsatRow { account_id: string; csat: number; nps: number; reason: string; }
+type Node = Record<string, { value?: unknown } | undefined>;
+const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
+const s = (n: Node, k: string) => String(v(n, k) ?? '');
+const num = (n: Node, k: string) => Number(v(n, k) ?? 0);
+
+function severityForCsat(csat: number): CallItem['severity'] {
+  if (csat < 50) return 'high';
+  if (csat < 70) return 'medium';
+  return 'low';
+}
+
+interface CoreShape {
+  uiapi?: { query?: {
+    Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
+    Case?: { totalCount?: number };
+    Task?: { edges?: { node: Node }[] };
+    Event?: { edges?: { node: Node }[] };
+    FinancialGoal?: { edges?: { node: Node }[] };
+    Lead?: { edges?: { node: Node }[] };
+  } };
+}
+
+export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
+  const [core, csat] = await Promise.all([
+    executeGraphQL<CoreShape>(HOME_CORE_QUERY),
+    queryDataCloud<CsatRow>(LOW_CSAT_SQL, 8),
+  ]);
+  const q = core.uiapi?.query;
+  const opp = q?.Opportunity;
+
+  // resolve CSAT account IDs → names in one follow-up query
+  const csatIds = [...new Set(csat.rows.map(r => r.account_id).filter(Boolean))];
+  const nameById: Record<string, string> = {};
+  if (csatIds.length) {
+    try {
+      const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(
+        accountNamesQuery(csatIds)
+      );
+      for (const e of names.uiapi?.query?.Account?.edges ?? []) {
+        // Id is a PLAIN string on GraphQL nodes (not wrapped in {value}); Name is wrapped.
+        const id = (e.node as { Id?: string }).Id ?? '';
+        if (id) nameById[id] = s(e.node, 'Name');
+      }
+    } catch { /* names are best-effort; fall back to raw ID */ }
+  }
+
+  const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
+
+  const callList: CallItem[] = csat.rows.map((row, i) => ({
+    id: `c${i}`,
+    clientId: row.account_id,
+    clientName: nameById[row.account_id] || row.account_id,
+    segment: 'Retail',
+    reason: (row.reason && String(row.reason).trim()) || `CSAT ${Math.round(Number(row.csat))} · NPS ${Math.round(Number(row.nps))}`,
+    action: 'Service-recovery outreach',
+    score: 1 - Math.min(Number(row.csat) || 0, 100) / 100,
+    severity: severityForCsat(Number(row.csat) || 0),
+    source: 'CSAT / NPS',
+    relationshipValue: 0,
+  }));
+
+  const schedule: ScheduleItem[] = [
+    ...(q?.Task?.edges ?? []).map((e, i) => ({ id: `t${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
+    ...(q?.Event?.edges ?? []).map((e, i) => ({ id: `e${i}`, time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const })),
+  ].slice(0, 8);
+
+  const bankerGoals: BankerGoal[] = (q?.FinancialGoal?.edges ?? []).map((e, i) => ({
+    id: `g${i}`, name: s(e.node, 'Name') || 'Goal',
+    current: num(e.node, 'ActualAmount'), target: num(e.node, 'TargetAmount') || 1,
+    format: 'currencyCompact' as const,
+  }));
+
+  const leads: LeadReferral[] = (q?.Lead?.edges ?? []).map((e, i) => ({
+    id: `l${i}`, name: s(e.node, 'Name') || s(e.node, 'Company') || 'Lead',
+    source: s(e.node, 'LeadSource') || '—', status: s(e.node, 'Status') || 'New',
+    value: num(e.node, 'AnnualRevenue'),
+  }));
+
+  const pipeline: PipelineItem[] = (opp?.edges ?? []).slice(0, 8).map((e, i) => ({
+    id: `o${i}`,
+    clientName: e.node.Account?.Name?.value ?? '—',
+    name: s(e.node, 'Name'), stage: s(e.node, 'StageName'),
+    amount: num(e.node, 'Amount'), closeDate: s(e.node, 'CloseDate'),
+    propensity: Math.min(1, num(e.node, 'Probability') / 100) || 0.5,
+  }));
+
+  const highRisk = callList.filter(c => c.severity === 'high').length;
+
+  return {
+    bankerName: 'Alex',
+    dateLabel: 'Today',
+    aiBriefHeadline: 'your book at a glance',
+    aiBrief: `${callList.length} clients flagged by CSAT, ${highRisk} high-risk. ${opp?.totalCount ?? 0} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
+    confidencePct: 87,
+    dataSourceCount: 24,
+    kpis: [
+      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact' },
+      { key: 'openOpps', label: 'Open Opportunities', value: opp?.totalCount ?? 0, format: 'number' },
+      { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number' },
+      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number' },
+      { key: 'atRisk', label: 'At-Risk (CSAT)', value: highRisk, format: 'number' },
+    ],
+    callList,
+    pipeline,
+    bankerGoals,
+    lifeEvents: [],
+    schedule,
+    alerts: callList.slice(0, 4).map((c, i) => ({
+      id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,
+      tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
+    })),
+    leads,
+  };
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UIBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>React Retail</masterLabel>
+    <description>Retail banking customer 360 + banker home (React on Salesforce).</description>
+    <isActive>true</isActive>
+    <target>CustomApplication</target>
+    <version>1</version>
+</UIBundle>
