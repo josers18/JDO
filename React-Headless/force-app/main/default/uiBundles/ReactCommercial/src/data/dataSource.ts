@@ -30,6 +30,9 @@ const config: DataConfig = {
   overrides: {
     core: 'real',
     dataCloud: 'real',
+    // Live Einstein prompt flows via the Flow Actions REST API; slots with no
+    // runnable org flow fall back to the composed summary (see agentforceFlows.ts).
+    agentforce: 'real',
   },
 };
 

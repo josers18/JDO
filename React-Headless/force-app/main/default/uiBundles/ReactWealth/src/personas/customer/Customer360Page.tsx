@@ -77,7 +77,7 @@ export default function Customer360Page() {
       </div>
 
       {/* RIGHT — contextual AI/ML */}
-      {full.data && <ContextSidebar data={full.data} tab={tab} />}
+      {full.data && <ContextSidebar data={full.data} tab={tab} accountId={accountId} />}
     </div>
   );
 }

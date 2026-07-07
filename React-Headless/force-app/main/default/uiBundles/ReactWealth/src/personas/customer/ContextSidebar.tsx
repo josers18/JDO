@@ -10,7 +10,7 @@ const PRED_COLOR = { positive: 'var(--wp-pos)', opportunity: 'var(--wp-accent)',
  * banker is looking at. Always includes the persistent Account summary + the
  * relevant prediction models.
  */
-export function ContextSidebar({ data, tab }: { data: Full360; tab: string }) {
+export function ContextSidebar({ data, tab, accountId }: { data: Full360; tab: string; accountId: string }) {
   // which agentforce summaries + predictions are relevant per tab
   const map: Record<string, { af: string[]; ml: MlPrediction['key'][] }> = {
     Overview: { af: ['account'], ml: ['attrition', 'productRec'] },
@@ -39,7 +39,7 @@ export function ContextSidebar({ data, tab }: { data: Full360; tab: string }) {
         </GlassCard>
       ))}
       {summaries.map(s => (
-        <AgentforceSummaryCard key={s.key} summary={s} />
+        <AgentforceSummaryCard key={s.key} summary={s} accountId={accountId} />
       ))}
     </div>
   );
