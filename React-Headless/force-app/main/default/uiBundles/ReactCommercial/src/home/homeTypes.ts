@@ -82,6 +82,14 @@ export interface LeadReferral {
   value: number;
 }
 
+/** Book-level loan delinquency aggregate (NOT client-joinable — a book metric). */
+export interface DelinquencyWatch {
+  totalDelinquentBalance: number;
+  totalRecovered: number;
+  byStatus: { status: string; count: number; balance: number }[];
+  asOf: string;
+}
+
 export interface HomeDashboard {
   bankerName: string;
   dateLabel: string;
@@ -97,4 +105,6 @@ export interface HomeDashboard {
   leads: LeadReferral[];
   confidencePct: number;
   dataSourceCount: number;
+  /** Book-level delinquency aggregate (null when not wired for this persona). */
+  delinquency: DelinquencyWatch | null;
 }
