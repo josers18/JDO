@@ -4,6 +4,8 @@
  * later; components + call sites unchanged.
  */
 import { mockResolve, series } from '../mock/mockUtil';
+import { resolve } from '../../data/dataSource';
+import { fetchFull360Real } from './full360DataReal';
 import type { Full360 } from './full360Types';
 
 const JULIE_FULL: Full360 = {
@@ -118,5 +120,9 @@ const JULIE_FULL: Full360 = {
 
 export function fetchFull360(accountId: string | null): Promise<Full360 | null> {
   if (!accountId) return Promise.resolve(null);
-  return mockResolve(JULIE_FULL, 400);
+  return resolve(
+    'core',
+    () => mockResolve(JULIE_FULL, 400),
+    () => fetchFull360Real(accountId),
+  );
 }

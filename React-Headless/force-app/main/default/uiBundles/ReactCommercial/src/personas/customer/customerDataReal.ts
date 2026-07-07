@@ -57,6 +57,8 @@ interface Core360Shape {
 
 interface ClaritasRow { segment: string; life_stage: string; net_worth: string; wealth_prop: number; }
 interface CsatRow { csat: number; nps: number; }
+/** Commercial persona signal: D&B business credit (CumulusDnBBusinessCredit__dlm). */
+interface DnbRow { paydex: number; risk: number; delinq: number; rating: string; dbt: number; }
 
 const LENDING_RE = /mortgage|loan|heloc|line of credit/i;
 function bucketOf(type: string, name: string): 'Deposits' | 'Investments' | 'Lending' | 'Other' {
@@ -69,11 +71,14 @@ function bucketOf(type: string, name: string): 'Deposits' | 'Investments' | 'Len
 export async function fetchCustomer360Real(accountId: string | null): Promise<Customer360 | null> {
   if (!accountId) return null;
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
-  const [core, claritas, csat] = await Promise.all([
+  const [core, claritas, csat, dnb] = await Promise.all([
     executeGraphQL<Core360Shape>(core360Query(acct)),
     queryDataCloud<ClaritasRow>(`SELECT prizmSegmentName__c AS segment, lifeStage__c AS life_stage, estimatedNetWorthBand__c AS net_worth, wealthPropensityScore__c AS wealth_prop FROM CumulusClaritasDemographics__dlm WHERE ssot__AccountId__c = '${acct}' LIMIT 1`, 1).catch(() => ({ rows: [] as ClaritasRow[] })),
     queryDataCloud<CsatRow>(`SELECT csat_score__c AS csat, nps_score__c AS nps FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY csat_score__c ASC LIMIT 1`, 1).catch(() => ({ rows: [] as CsatRow[] })),
+    queryDataCloud<DnbRow>(`SELECT paydexScore__c AS paydex, compositeRiskScore__c AS risk, delinquencyPredictorScore__c AS delinq, dnbRating__c AS rating, averageDaysBeyondTerms__c AS dbt FROM CumulusDnBBusinessCredit__dlm WHERE ssot__AccountId__c = '${acct}' LIMIT 1`, 1).catch(() => ({ rows: [] as DnbRow[] })),
   ]);
+  const db = dnb.rows[0];
+  const paydex = db ? Number(db.paydex) : NaN;
 
   const acctNode = core.uiapi?.query?.Account?.edges?.[0]?.node;
   if (!acctNode) return null;
@@ -110,9 +115,10 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
   const state = s(acctNode, 'BillingState');
 
   const aiSignals: AiSignal[] = [
+    ...(!isNaN(paydex) ? [{ label: 'D&B PAYDEX', value: `${Math.round(paydex)}${db!.rating ? ` · ${db!.rating}` : ''}`, tone: (paydex < 60 ? 'risk' : paydex < 80 ? 'neutral' : 'positive') as AiSignal['tone'] }] : []),
+    ...(db ? [{ label: 'Delinquency Risk', value: `${Math.round(Number(db.delinq))}/100`, tone: (Number(db.delinq) >= 50 ? 'risk' : 'neutral') as AiSignal['tone'] }] : []),
     { label: 'Engagement Sentiment', value: cs && Number(cs.nps) >= 7 ? 'Positive' : cs ? 'Neutral' : 'Unknown', tone: cs && Number(cs.nps) >= 7 ? 'positive' : 'neutral' },
     { label: 'Attrition Risk', value: attritionLabel, tone: attritionTone },
-    ...(cl ? [{ label: 'Wealth Propensity', value: `${Math.round(Number(cl.wealth_prop))}/100`, tone: 'opportunity' as const }] : []),
     ...(cl ? [{ label: 'Net Worth Band', value: cl.net_worth, tone: 'neutral' as const }] : []),
   ];
 
@@ -121,6 +127,7 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
     { icon: '📈', label: 'Investments', value: buckets.Investments.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }), sub: `${investCount} accounts`, tone: 'positive' },
     { icon: '🎯', label: 'Open Pipeline', value: oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }), sub: `${opp?.totalCount ?? 0} opportunities`, tone: 'opportunity' },
     ...(csatScore != null ? [{ icon: '⭐', label: 'CSAT', value: `${Math.round(csatScore)}`, sub: `NPS ${Math.round(Number(cs!.nps))}`, tone: (attritionTone === 'risk' ? 'risk' : 'positive') as Highlight['tone'] }] : []),
+    ...(!isNaN(paydex) ? [{ icon: '🏦', label: 'PAYDEX', value: `${Math.round(paydex)}`, sub: db!.rating ? `D&B ${db!.rating}` : 'D&B credit', tone: (paydex < 60 ? 'risk' : 'positive') as Highlight['tone'] }] : []),
   ];
 
   return {
@@ -151,8 +158,9 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
     unifiedProfiles: [{ sourceOrg: 'Retail', accountId, name }],
     aiSignals,
     aiBriefHeadline: `${name.split(' ')[0]}’s relationship at a glance`,
-    aiBrief: `${name} holds ${money.map(m => `${m.label.toLowerCase()} of ${m.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}`).join(', ')} across ${fins.length} financial accounts. ${opp?.totalCount ?? 0} open opportunities worth ${oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.${cl ? ` Claritas segment: ${cl.segment} (${cl.life_stage}).` : ''}${csatScore != null ? ` Latest CSAT ${Math.round(csatScore)} / NPS ${Math.round(Number(cs!.nps))}.` : ''}`,
+    aiBrief: `${name} holds ${money.map(m => `${m.label.toLowerCase()} of ${m.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}`).join(', ')} across ${fins.length} financial accounts. ${opp?.totalCount ?? 0} open opportunities worth ${oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.${!isNaN(paydex) ? ` D&B PAYDEX ${Math.round(paydex)}${db!.rating ? ` (rating ${db!.rating})` : ''}, delinquency-predictor ${Math.round(Number(db!.delinq))}/100.` : ''}${csatScore != null ? ` Latest CSAT ${Math.round(csatScore)} / NPS ${Math.round(Number(cs!.nps))}.` : ''}`,
     nextBestActions: [
+      ...(!isNaN(paydex) && paydex < 60 ? [{ id: 'nba0', title: 'Review credit exposure', detail: `PAYDEX ${Math.round(paydex)}${db!.rating ? ` (D&B ${db!.rating})` : ''} — below covenant threshold`, impact: 'High' as const }] : []),
       ...(buckets.Lending > 0 ? [{ id: 'nba1', title: 'Review lending relationship', detail: `${buckets.Lending.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in loans/cards`, impact: 'Medium' as const }] : []),
       ...((opp?.totalCount ?? 0) > 0 ? [{ id: 'nba2', title: 'Advance open pipeline', detail: `${opp?.totalCount} opportunities in flight`, impact: 'High' as const }] : []),
       ...(attritionTone === 'risk' ? [{ id: 'nba3', title: 'Service-recovery outreach', detail: `CSAT ${Math.round(csatScore ?? 0)} — below threshold`, impact: 'High' as const }] : []),

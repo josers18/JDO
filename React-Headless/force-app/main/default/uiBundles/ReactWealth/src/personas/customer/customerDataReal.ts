@@ -57,6 +57,8 @@ interface Core360Shape {
 
 interface ClaritasRow { segment: string; life_stage: string; net_worth: string; wealth_prop: number; }
 interface CsatRow { csat: number; nps: number; }
+/** Wealth persona signal: held-away assets in reach (CumulusPlaidHeldAway__dlm). */
+interface HeldAwayRow { total: number; institutions: number; }
 
 const LENDING_RE = /mortgage|loan|heloc|line of credit/i;
 function bucketOf(type: string, name: string): 'Deposits' | 'Investments' | 'Lending' | 'Other' {
@@ -69,11 +71,14 @@ function bucketOf(type: string, name: string): 'Deposits' | 'Investments' | 'Len
 export async function fetchCustomer360Real(accountId: string | null): Promise<Customer360 | null> {
   if (!accountId) return null;
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
-  const [core, claritas, csat] = await Promise.all([
+  const [core, claritas, csat, heldAway] = await Promise.all([
     executeGraphQL<Core360Shape>(core360Query(acct)),
     queryDataCloud<ClaritasRow>(`SELECT prizmSegmentName__c AS segment, lifeStage__c AS life_stage, estimatedNetWorthBand__c AS net_worth, wealthPropensityScore__c AS wealth_prop FROM CumulusClaritasDemographics__dlm WHERE ssot__AccountId__c = '${acct}' LIMIT 1`, 1).catch(() => ({ rows: [] as ClaritasRow[] })),
     queryDataCloud<CsatRow>(`SELECT csat_score__c AS csat, nps_score__c AS nps FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY csat_score__c ASC LIMIT 1`, 1).catch(() => ({ rows: [] as CsatRow[] })),
+    queryDataCloud<HeldAwayRow>(`SELECT SUM(balanceUsd__c) AS total, COUNT(institutionName__c) AS institutions FROM CumulusPlaidHeldAway__dlm WHERE ssot__AccountId__c = '${acct}' AND isActive__c = true`, 1).catch(() => ({ rows: [] as HeldAwayRow[] })),
   ]);
+  const held = heldAway.rows[0];
+  const heldTotal = held ? Number(held.total) : 0;
 
   const acctNode = core.uiapi?.query?.Account?.edges?.[0]?.node;
   if (!acctNode) return null;
@@ -110,6 +115,7 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
   const state = s(acctNode, 'BillingState');
 
   const aiSignals: AiSignal[] = [
+    ...(heldTotal > 0 ? [{ label: 'Held-Away Assets', value: `${heldTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in reach`, tone: 'opportunity' as const }] : []),
     { label: 'Engagement Sentiment', value: cs && Number(cs.nps) >= 7 ? 'Positive' : cs ? 'Neutral' : 'Unknown', tone: cs && Number(cs.nps) >= 7 ? 'positive' : 'neutral' },
     { label: 'Attrition Risk', value: attritionLabel, tone: attritionTone },
     ...(cl ? [{ label: 'Wealth Propensity', value: `${Math.round(Number(cl.wealth_prop))}/100`, tone: 'opportunity' as const }] : []),
@@ -121,6 +127,7 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
     { icon: '📈', label: 'Investments', value: buckets.Investments.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }), sub: `${investCount} accounts`, tone: 'positive' },
     { icon: '🎯', label: 'Open Pipeline', value: oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }), sub: `${opp?.totalCount ?? 0} opportunities`, tone: 'opportunity' },
     ...(csatScore != null ? [{ icon: '⭐', label: 'CSAT', value: `${Math.round(csatScore)}`, sub: `NPS ${Math.round(Number(cs!.nps))}`, tone: (attritionTone === 'risk' ? 'risk' : 'positive') as Highlight['tone'] }] : []),
+    ...(heldTotal > 0 ? [{ icon: '🔗', label: 'Held-Away', value: heldTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }), sub: `${held ? Number(held.institutions) : 0} institutions`, tone: 'opportunity' as Highlight['tone'] }] : []),
   ];
 
   return {
@@ -151,8 +158,9 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
     unifiedProfiles: [{ sourceOrg: 'Retail', accountId, name }],
     aiSignals,
     aiBriefHeadline: `${name.split(' ')[0]}’s relationship at a glance`,
-    aiBrief: `${name} holds ${money.map(m => `${m.label.toLowerCase()} of ${m.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}`).join(', ')} across ${fins.length} financial accounts. ${opp?.totalCount ?? 0} open opportunities worth ${oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.${cl ? ` Claritas segment: ${cl.segment} (${cl.life_stage}).` : ''}${csatScore != null ? ` Latest CSAT ${Math.round(csatScore)} / NPS ${Math.round(Number(cs!.nps))}.` : ''}`,
+    aiBrief: `${name} holds ${money.map(m => `${m.label.toLowerCase()} of ${m.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}`).join(', ')} across ${fins.length} financial accounts. ${opp?.totalCount ?? 0} open opportunities worth ${oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.${heldTotal > 0 ? ` Data Cloud detects ${heldTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in held-away assets across ${held ? Number(held.institutions) : 0} outside institutions — a consolidation opportunity.` : ''}${cl ? ` Claritas segment: ${cl.segment} (${cl.life_stage}).` : ''}${csatScore != null ? ` Latest CSAT ${Math.round(csatScore)} / NPS ${Math.round(Number(cs!.nps))}.` : ''}`,
     nextBestActions: [
+      ...(heldTotal > 0 ? [{ id: 'nba0', title: 'Capture held-away assets', detail: `${heldTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} across ${held ? Number(held.institutions) : 0} outside institutions`, impact: 'High' as const }] : []),
       ...(buckets.Lending > 0 ? [{ id: 'nba1', title: 'Review lending relationship', detail: `${buckets.Lending.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in loans/cards`, impact: 'Medium' as const }] : []),
       ...((opp?.totalCount ?? 0) > 0 ? [{ id: 'nba2', title: 'Advance open pipeline', detail: `${opp?.totalCount} opportunities in flight`, impact: 'High' as const }] : []),
       ...(attritionTone === 'risk' ? [{ id: 'nba3', title: 'Service-recovery outreach', detail: `CSAT ${Math.round(csatScore ?? 0)} — below threshold`, impact: 'High' as const }] : []),

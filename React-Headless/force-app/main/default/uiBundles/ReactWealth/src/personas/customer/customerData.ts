@@ -5,6 +5,8 @@
  * profile) later; components + call sites unchanged.
  */
 import { mockResolve, series } from '../mock/mockUtil';
+import { resolve } from '../../data/dataSource';
+import { fetchCustomer360Real, fetchCustomer360DetailReal } from './customerDataReal';
 import type { Customer360, Customer360Detail, BookClient } from './customerTypes';
 
 const JULIE: Customer360 = {
@@ -75,8 +77,11 @@ const JULIE: Customer360 = {
 
 export function fetchCustomer360(accountId: string | null): Promise<Customer360 | null> {
   if (!accountId) return Promise.resolve(null);
-  // In mock phase, everyone resolves to Julie's rich profile.
-  return mockResolve({ ...JULIE, id: accountId }, 350);
+  return resolve(
+    'core',
+    () => mockResolve({ ...JULIE, id: accountId }, 350),
+    () => fetchCustomer360Real(accountId),
+  );
 }
 
 const TEAL = '#0d9488';
@@ -192,7 +197,11 @@ const JULIE_DETAIL: Customer360Detail = {
 
 export function fetchCustomer360Detail(accountId: string | null): Promise<Customer360Detail | null> {
   if (!accountId) return Promise.resolve(null);
-  return mockResolve(JULIE_DETAIL, 400);
+  return resolve(
+    'core',
+    () => mockResolve(JULIE_DETAIL, 400),
+    () => fetchCustomer360DetailReal(accountId),
+  );
 }
 
 export function fetchBookClients(): Promise<BookClient[]> {
