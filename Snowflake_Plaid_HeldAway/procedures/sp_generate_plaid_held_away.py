@@ -1,7 +1,7 @@
 """Plaid-style synthetic held-away financial accounts generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY. **First 1:N dataset** in the Cumulus
+DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY. **First 1:N dataset** in the Cumulus
 rollout — `_rows_for(anchor, run_ts) -> list[dict]` returns 1-5 rows per
 anchor (versus Plans 1-5's `_row_for(...) -> dict`).
 
@@ -28,15 +28,15 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.PLAID_HELD_AWAY"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY"
 TASK_NAME    = "TASK_MONTHLY_PLAID_HELD_AWAY"
 DATASET_SALT = "plaid"
 
 # Audience predicate — repeated in 2 places (AUDIENCE_SQL + COVERAGE_SQL).
 # Both strings must match exactly to keep the coverage assertion meaningful.
 _AUDIENCE_PREDICATE = "CLIENT_CATEGORY IN ('Retail', 'Wealth Management')"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # 15-column output contract (kept in sync with table DDL by the L1 schema test).
 # v1.x multi-org-additive: ORG_ID leads the contract list; stamped from anchor.
@@ -68,7 +68,7 @@ _LOAN_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_PLAID_HELD_AWAY
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_PLAID_HELD_AWAY
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -131,7 +131,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -470,7 +470,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     # v1.x multi-org-additive: ORG_ID is part of the join eligibility; we
     # never UPDATE it in WHEN MATCHED (a row can't change orgs).
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.PLAID_HELD_AWAY tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY tgt
         USING (
             SELECT
                 ORG_ID,
@@ -488,7 +488,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 INVESTMENT_RISK_TIER,
                 INTEREST_RATE_PCT,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID

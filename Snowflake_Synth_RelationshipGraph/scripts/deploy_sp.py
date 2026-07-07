@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH into FINS.PUBLIC.
+"""Deploy SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 6's `Snowflake_Plaid_HeldAway/scripts/deploy_sp.py`
 (the closer 1:N template) and Plan 7's `Snowflake_WorldCheck_AML/scripts/deploy_sp.py`
@@ -130,8 +130,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH"
-TABLE_FQN = "FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH"
 TASK_NAME = "TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH"
 DATASET_SALT = "synth-graph"
 
@@ -248,7 +248,7 @@ def build_sql() -> str:
     # Plan 9 has no ampersand in branding ("synth-graph" / "Synth Relationship
     # Graph") — the `D-and-B -> DnB` sanitize from Plan 3 is intentionally
     # OMITTED here. The Plan 9 SP module text references DnB only via the
-    # FQN `FINS.PUBLIC.DNB_BUSINESS_CREDIT` and never spells it with an
+    # FQN `DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT` and never spells it with an
     # ampersand, so no string substitution is needed on the inlined body.
     seed_for_def = _extract_helper(seed_src, "seed_for")
     assert_coverage_def = _extract_helper(coverage_src, "assert_coverage")
@@ -340,7 +340,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

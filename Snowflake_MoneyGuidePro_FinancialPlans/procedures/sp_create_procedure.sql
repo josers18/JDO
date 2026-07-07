@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-8-mgp-financial-plans.md
 -- Task:    Plan 8 T6
@@ -16,7 +16,7 @@
 -- Salt:     "mgp"  (month-bucketed; SINGLE salt — no year-stable
 --           subfields, unlike Plan 7's three-salt arrangement; back to
 --           Plan 6's simpler shape).
--- Table:    FINS.PUBLIC.MGP_FINANCIAL_PLANS
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS
 --           Composite PK (ACCOUNT_ID, PROFILE_MONTH).
 --           DC DMO collapses to single-column PK profileMonth__c.
 -- 1:1:      Each Wealth anchor produces exactly one row per calendar month
@@ -32,7 +32,7 @@
 --           README uses canonical name. No real vendor data / license.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS(NUM_MONTHS INT DEFAULT 1)
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS(NUM_MONTHS INT DEFAULT 1)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -113,15 +113,15 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.MGP_FINANCIAL_PLANS"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS"
 TASK_NAME    = "TASK_MONTHLY_MGP_FINANCIAL_PLANS"
 DATASET_SALT = "mgp"
 
 # All-accounts audience — no predicate. Empty string kept for symmetry with
 # Plans 1-7 (where this slot held a CLIENT_CATEGORY filter).
 _AUDIENCE_PREDICATE = ""
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "ACCOUNT_ID", "PROFILE_MONTH",
@@ -476,7 +476,7 @@ def _rows_for(anchor: dict, profile_month: date | datetime) -> list[dict]:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MGP_FINANCIAL_PLANS
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MGP_FINANCIAL_PLANS
 # -------------------------------------------------------------------
 
 def main(session: Any, num_months: int = 1) -> str:
@@ -555,7 +555,7 @@ def main(session: Any, num_months: int = 1) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -612,7 +612,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.MGP_FINANCIAL_PLANS tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS tgt
         USING (
             SELECT
                 ACCOUNT_ID,
@@ -629,7 +629,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 NEXT_REVIEW_DATE,
                 ADVISOR_NOTES_FLAG::BOOLEAN AS ADVISOR_NOTES_FLAG,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH

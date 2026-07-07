@@ -9,12 +9,12 @@
 -- Pre-requisites (all one-time ops, NOT performed by this script):
 --   1. CREATE SCHEMA FINS.TEST;                                                 -- ops
 --   2. CREATE TABLE FINS.TEST.MSCI_ESG_SCORES (run schemas/msci_esg_scores.sql
---      after rewriting the FQN from FINS.PUBLIC.MSCI_ESG_SCORES to FINS.TEST.*).
---   3. CREATE TABLE FINS.TEST.TASK_EXECUTION_LOG (carbon copy of FINS.PUBLIC.TASK_EXECUTION_LOG).
+--      after rewriting the FQN from DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES to FINS.TEST.*).
+--   3. CREATE TABLE FINS.TEST.TASK_EXECUTION_LOG (carbon copy of DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG).
 --   4. SP_GENERATE_MSCI_ESG_SCORES deployed into FINS.TEST.
 --      NOTE: the SP body in procedures/sp_generate_msci_esg_scores.py hardcodes
---      `FINS.PUBLIC.V_ACCOUNT_ANCHORS`, `FINS.PUBLIC.MSCI_ESG_SCORES`, and
---      `FINS.PUBLIC.TASK_EXECUTION_LOG`. To run the SP in FINS.TEST against a fixture
+--      `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`, `DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES`, and
+--      `DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG`. To run the SP in FINS.TEST against a fixture
 --      audience, either:
 --        (a) Parameterise those FQNs via env var or session.get_current_schema(); OR
 --        (b) Build a separate `_test` build of the SP that points at FINS.TEST.* by

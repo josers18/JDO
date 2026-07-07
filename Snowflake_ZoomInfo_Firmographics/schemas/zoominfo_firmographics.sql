@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS
+-- DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS
 -- ZoomInfo / DiscoverOrg / Crunchbase-style synthetic B2B firmographics dataset
 -- per Cumulus BUSINESS account.
 -- =============================================================================
@@ -23,7 +23,7 @@
 -- Snowflake_Cumulus_Common/docs/ROLLOUT.md.
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS (
     ORG_ID                       VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Tenant short identifier (JDO / ACME / WFB). Backward-compatible default; per-org SPs stamp explicitly via V_ACCOUNT_ANCHORS. Leading PK component for multi-org isolation.',
     ACCOUNT_ID                   VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus BUSINESS customer whose firmographics this is. FK to ssot__Account__dlm. PK component.',
     PROFILE_MONTH                DATE              NOT NULL  COMMENT 'First-of-month for the run (UTC). Month-bucketed for determinism — mid-month re-runs are byte-identical. PK component.',

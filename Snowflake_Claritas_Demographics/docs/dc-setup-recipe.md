@@ -1,6 +1,6 @@
 # DC Setup Recipe — `CumulusClaritasDemographics`
 
-Canonical recipe for wiring a Snowflake-federated dataset into Salesforce Data Cloud, discovered while implementing **Plan 1 Task 7** (`FINS.PUBLIC.CLARITAS_DEMOGRAPHICS` → DLO → DMO). This is the first per-dataset DC stream in the Cumulus rollout — Plans 2–13 should follow the same recipe.
+Canonical recipe for wiring a Snowflake-federated dataset into Salesforce Data Cloud, discovered while implementing **Plan 1 Task 7** (`DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS` → DLO → DMO). This is the first per-dataset DC stream in the Cumulus rollout — Plans 2–13 should follow the same recipe.
 
 > **TL;DR.** Steps 1 and 2 (data stream + DLO, then DMO) are **fully scriptable** via the public REST API. Step 3 (DLO → DMO column mapping) **must be completed in the Lightning UI** — the public REST endpoint returns `UNKNOWN_EXCEPTION` for federated-Snowflake source DLOs, even though it works for SFDC-source DLOs.
 

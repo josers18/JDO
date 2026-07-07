@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-5-corelogic-property.md
 -- Task:    Plan 5 T6
@@ -14,11 +14,11 @@
 -- Salt:     "corelogic" (per-quarter), "corelogic_year" (year-stable
 --           — LAST_TRANSFER_YEAR + MORTGAGE_RATE_PCT don't reprice across
 --           quarters within the same calendar year)
--- Table:    FINS.PUBLIC.CORELOGIC_PROPERTY
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY
 -- Vendor:   CoreLogic-style (property profile shape) — README uses canonical name
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -101,7 +101,7 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE             = "FINS.PUBLIC.CORELOGIC_PROPERTY"
+TABLE             = "DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY"
 TASK_NAME         = "TASK_QUARTERLY_CORELOGIC_PROPERTY"
 DATASET_SALT      = "corelogic"
 # Year-stable salt for fields that don't reprice/change quarter-to-quarter
@@ -118,8 +118,8 @@ _AUDIENCE_PREDICATE = (
     "AND POSTAL_CODE IS NOT NULL "
     "AND POSTAL_CODE <> ''"
 )
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # 15-column output contract (kept in sync with table DDL by the L1 schema test)
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
@@ -143,7 +143,7 @@ def _quarter_start(run_ts: datetime) -> datetime:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_CORELOGIC_PROPERTY
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_CORELOGIC_PROPERTY
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -193,7 +193,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -570,7 +570,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.CORELOGIC_PROPERTY tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY tgt
         USING (
             SELECT
                 ACCOUNT_ID,
@@ -588,7 +588,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 LAST_TRANSFER_YEAR,
                 HELOC_OPPORTUNITY_SCORE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_QUARTER = src.PROFILE_QUARTER

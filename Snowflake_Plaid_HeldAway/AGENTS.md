@@ -5,7 +5,7 @@ Synthetic Plaid-style held-away financial accounts dataset for the Cumulus FSC d
 > **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)`. **Every emitted row in the held-away slot loop carries ORG_ID** — `_rows_for(anchor, run_ts)` stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key on each of the 1–5 dicts produced per anchor. MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
 
 ## Boundaries
-- Owns: `FINS.PUBLIC.PLAID_HELD_AWAY`, `SP_GENERATE_PLAID_HELD_AWAY`, `TASK_MONTHLY_PLAID_HELD_AWAY`, and the DC Data Stream / DLO / DMO that federates this table.
+- Owns: `DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY`, `SP_GENERATE_PLAID_HELD_AWAY`, `TASK_MONTHLY_PLAID_HELD_AWAY`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
 - **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1–5 rows per Retail/Wealth anchor per month.**

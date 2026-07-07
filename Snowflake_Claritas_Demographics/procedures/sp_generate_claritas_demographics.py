@@ -1,6 +1,6 @@
 """Claritas-style synthetic demographics generator.
 
-Snowpark Python stored procedure registered as FINS.PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS.
+Snowpark Python stored procedure registered as DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS.
 Mirrors the canonical 5-step pattern from the Cumulus umbrella spec §5.1.
 
 Audience: ACCOUNT_TYPE_FLAG = 'PERSON'
@@ -25,7 +25,7 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.CLARITAS_DEMOGRAPHICS"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS"
 TASK_NAME    = "TASK_MONTHLY_CLARITAS_DEMOGRAPHICS"
 DATASET_SALT = "claritas"
 
@@ -33,8 +33,8 @@ DATASET_SALT = "claritas"
 # A drift between the two would silently produce a coverage gap; we keep them
 # both anchored on this single string.
 _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'PERSON'"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # 15-column output contract (kept in sync with table DDL by the L1 schema test).
 # v1.x multi-org-additive: ORG_ID leads the contract list; stamped from anchor.
@@ -51,7 +51,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_CLARITAS_DEMOGRAPHICS
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_CLARITAS_DEMOGRAPHICS
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -101,7 +101,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -393,7 +393,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     # v1.x multi-org-additive: ORG_ID is part of the join eligibility; we
     # never UPDATE it in WHEN MATCHED (a row can't change orgs).
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.CLARITAS_DEMOGRAPHICS tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS tgt
         USING (
             SELECT
                 ORG_ID,
@@ -411,7 +411,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 URBANICITY,
                 FINANCIAL_STRESS_INDICATOR,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID

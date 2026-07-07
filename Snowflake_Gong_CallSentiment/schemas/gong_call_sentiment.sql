@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.GONG_CALL_SENTIMENT
+-- DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT
 -- Gong / Chorus.ai / ExecVision-style synthetic weekly conversation-intelligence
 -- rollups per Wealth Management + Commercial Banking Cumulus customer.
 -- =============================================================================
@@ -20,7 +20,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-12-gong-call-sentiment-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.GONG_CALL_SENTIMENT (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT (
     ORG_ID                        VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'Multi-org tenant identifier (v1.x multi-org-additive migration). Stable short-id assigned per logical tenant (e.g. JDO, ACME, WFB) — NOT the 18-char SF Org Id, which changes per sandbox refresh. Sourced from V_ACCOUNT_ANCHORS.ORG_ID (ROLLOUT.md Phase A). PK component (first). DEFAULT ''JDO'' kept for backward compatibility with the model-org loader; per-org loaders explicitly stamp their own ORG_ID.',
     ACCOUNT_ID                    VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus customer whose weekly rollup this is. FK to ssot__Account__dlm. PK component.',
     PROFILE_WEEK                  DATE              NOT NULL  COMMENT 'Monday-of-week DATE for the run (UTC) — week_start = run_ts - timedelta(days=run_ts.weekday()) truncated to midnight. Week-bucketed for determinism — mid-week re-runs are byte-identical. PK component.',

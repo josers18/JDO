@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-10-boardex-exec-intel.md
 -- Task:    Plan 10 T6
@@ -16,7 +16,7 @@
 --           Matches Plans 1-3 / Plan 6 / Plan 8 PRECISELY.
 -- Salt:     "boardex"  (month-bucketed; SINGLE salt — no year-stable
 --           subfields. Same simpler shape as Plan 8 / Plan 6.)
--- Table:    FINS.PUBLIC.BOARDEX_EXEC_INTEL
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL
 --           Composite PK (ACCOUNT_ID, PROFILE_MONTH).
 --           DC DMO collapses to single-column PK profileMonth__c.
 -- 1:1:      Each Commercial Banking anchor produces exactly one row per
@@ -41,7 +41,7 @@
 --           workaround).
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL(NUM_MONTHS INT DEFAULT 1)
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL(NUM_MONTHS INT DEFAULT 1)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -122,14 +122,14 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment + DDL
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.BOARDEX_EXEC_INTEL"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL"
 TASK_NAME    = "TASK_MONTHLY_BOARDEX_EXEC_INTEL"
 DATASET_SALT = "boardex"
 
 # Rebroadcast: no audience predicate. Every distinct anchor contributes.
 _AUDIENCE_PREDICATE = ""  # all-accounts
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 # 15-column output contract — UNCHANGED from the original Plan 10 DDL.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
@@ -483,7 +483,7 @@ def _rows_for(anchor: dict, profile_month: datetime) -> list[dict]:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
 # -------------------------------------------------------------------
 
 def main(session: Any, num_months: int = 1) -> str:
@@ -550,7 +550,7 @@ def main(session: Any, num_months: int = 1) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -607,7 +607,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.BOARDEX_EXEC_INTEL tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL tgt
         USING (
             SELECT
                 ACCOUNT_ID,
@@ -625,7 +625,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 RECENT_GOVERNANCE_EVENT_DATE,
                 LAST_DATA_REFRESH_DATE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH

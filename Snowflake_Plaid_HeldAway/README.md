@@ -13,9 +13,9 @@ Synthetic Plaid-style held-away financial accounts per Retail/Wealth anchor for 
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.PLAID_HELD_AWAY`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()`
-- Task: `FINS.PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusPlaidHeldAway__dll` → DMO `CumulusPlaidHeldAway__dlm`
 
 ## Audience
@@ -23,7 +23,7 @@ Synthetic Plaid-style held-away financial accounts per Retail/Wealth anchor for 
 
 ```sql
 SELECT DISTINCT ACCOUNT_ID
-FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 WHERE CLIENT_CATEGORY IN ('Retail', 'Wealth Management')
 ```
 

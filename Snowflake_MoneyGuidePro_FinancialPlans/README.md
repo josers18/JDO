@@ -13,16 +13,16 @@ Synthetic MoneyGuidePro / eMoney / NaviPlan-style financial-plan dataset per Wea
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.MGP_FINANCIAL_PLANS`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()`
-- Task: `FINS.PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusMgpFinancialPlans__dll` → DMO `CumulusMgpFinancialPlans__dlm`
 
 ## Audience
 **Wealth Management only** — every distinct anchor in `V_ACCOUNT_ANCHORS` whose `CLIENT_CATEGORY = 'Wealth Management'`. Retail customers don't get formal financial plans (they self-serve via apps); Commercial / Small Business has its own corporate-treasury planning tools. The audience predicate is therefore the cleanest in the rollout:
 
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 WHERE CLIENT_CATEGORY = 'Wealth Management'
 ```
 

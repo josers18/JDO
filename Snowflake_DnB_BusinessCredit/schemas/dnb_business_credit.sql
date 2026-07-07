@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.DNB_BUSINESS_CREDIT
+-- DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT
 -- DnB-style synthetic business credit ratings for Cumulus BUSINESS accounts.
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_DNB_BUSINESS_CREDIT
@@ -11,7 +11,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-3-dnb-business-credit-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.DNB_BUSINESS_CREDIT (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT (
     ORG_ID                       VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Logical-tenant identifier (DnB-style short code, e.g. JDO, ACME). PK component. Sourced from V_ACCOUNT_ANCHORS.ORG_ID per umbrella ROLLOUT.md.',
     ACCOUNT_ID                   VARCHAR(16777216) NOT NULL  COMMENT 'Salesforce Account ID (ssot__Id__c). FK to V_ACCOUNT_ANCHORS.',
     PROFILE_MONTH                DATE              NOT NULL  COMMENT 'First-of-month for the run; PK component for monthly idempotency.',

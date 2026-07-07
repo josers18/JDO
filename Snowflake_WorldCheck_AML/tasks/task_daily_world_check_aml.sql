@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_DAILY_WORLD_CHECK_AML
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_WORLD_CHECK_AML
 -- Scheduled task wrapping SP_GENERATE_WORLD_CHECK_AML via SP_RETRY_WRAPPER.
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-7-worldcheck-aml.md
@@ -7,7 +7,7 @@
 -- Cadence:  DAILY (every day at 06:00 UTC, after LSEG's overnight feed publishes
 --           at ~02:00 GMT)
 -- Schedule: 0 6 * * * UTC  (5-field cron: minute hour day-of-month month day-of-week)
--- Wrapper:  FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML()', 2)
+-- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()', 2)
 -- Warehouse: MAIN_WH_XS
 --
 -- Pattern parity:
@@ -25,13 +25,13 @@
 --   real-world dependency for downstream-team education.)
 -- =============================================================================
 
-CREATE OR REPLACE TASK FINS.PUBLIC.TASK_DAILY_WORLD_CHECK_AML
+CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_WORLD_CHECK_AML
     WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = 'USING CRON 0 6 * * * UTC'
 AS
-    CALL FINS.PUBLIC.SP_RETRY_WRAPPER(
-        'FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML()',
+    CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
+        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()',
         2
     );
 
-ALTER TASK FINS.PUBLIC.TASK_DAILY_WORLD_CHECK_AML RESUME;
+ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_WORLD_CHECK_AML RESUME;

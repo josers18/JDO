@@ -1,12 +1,12 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS
 -- Scheduled task wrapping SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS via SP_RETRY_WRAPPER.
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-11-zoominfo-firmographics.md
 -- Task:     Plan 11 T6
 -- Cadence:  MONTHLY (first of month at 07:00 UTC).
 -- Schedule: 0 7 1 * * UTC  (5-field cron: minute hour day-of-month month day-of-week)
--- Wrapper:  FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()', 2)
+-- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()', 2)
 -- Warehouse: MAIN_WH_XS
 --
 -- Pattern parity:
@@ -30,13 +30,13 @@
 --   real-world cadence for downstream-team education.)
 -- =============================================================================
 
-CREATE OR REPLACE TASK FINS.PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS
+CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS
     WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = 'USING CRON 0 7 1 * * UTC'
 AS
-    CALL FINS.PUBLIC.SP_RETRY_WRAPPER(
-        'FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()',
+    CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
+        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()',
         2
     );
 
-ALTER TASK FINS.PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS RESUME;
+ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS RESUME;

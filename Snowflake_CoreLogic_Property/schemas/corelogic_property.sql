@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.CORELOGIC_PROPERTY
+-- DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY
 -- CoreLogic-style synthetic property records for Cumulus's customer footprint.
 -- =============================================================================
 -- Cadence:    QUARTERLY via TASK_QUARTERLY_CORELOGIC_PROPERTY
@@ -18,7 +18,7 @@
 --   keep behavior identical via DEFAULT; future orgs append rather than mutate.
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.CORELOGIC_PROPERTY (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY (
     ORG_ID                         VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Multi-org tenant key. Defaults to ''JDO'' for backward compatibility. PK component.',
     ACCOUNT_ID                     VARCHAR(16777216) NOT NULL  COMMENT 'Account anchor ID. FK to ssot__Account__dlm. PK component.',
     PROFILE_QUARTER                DATE              NOT NULL  COMMENT 'First-of-quarter for the run (Jan/Apr/Jul/Oct 1st). Quarter-bucketed for determinism. PK component.',

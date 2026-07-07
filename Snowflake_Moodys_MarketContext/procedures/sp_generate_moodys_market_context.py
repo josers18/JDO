@@ -1,7 +1,7 @@
 """Moody''s Investors Service / Moody''s Analytics-style synthetic market-context generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT.
+DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT.
 
 **v2 RE-SCOPE (Plan 13 of 13 — most divergent rewrite of the dataset
 template).** The original Plan 13 v1 module was instrument-scoped (TICKER
@@ -62,7 +62,7 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE                = "FINS.PUBLIC.MOODYS_MARKET_CONTEXT"
+TABLE                = "DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT"
 TASK_NAME            = "TASK_DAILY_MOODYS_MARKET_CONTEXT"
 DATASET_SALT         = "moodys"        # daily-bucketed via _daily_seed wrapper
 DATASET_SALT_YEAR    = "moodys_year"   # year-stable via datetime(year, 1, 1)
@@ -70,11 +70,11 @@ DATASET_SALT_YEAR    = "moodys_year"   # year-stable via datetime(year, 1, 1)
 # Audience predicate — single source of truth for AUDIENCE_SQL + COVERAGE_SQL.
 _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'BUSINESS'"
 AUDIENCE_SQL = (
-    "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS "
+    "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS "
     "WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'"
 )
 COVERAGE_SQL = (
-    "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS "
+    "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS "
     "WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'"
 )
 
@@ -458,7 +458,7 @@ def _rows_for(anchor: dict, profile_date: date) -> list[dict]:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MOODYS_MARKET_CONTEXT
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MOODYS_MARKET_CONTEXT
 # -------------------------------------------------------------------
 
 def main(session: Any, num_days: int = 1) -> str:
@@ -523,7 +523,7 @@ def main(session: Any, num_days: int = 1) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -588,7 +588,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.MOODYS_MARKET_CONTEXT tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT tgt
         USING (
             SELECT
                 ORG_ID,
@@ -610,7 +610,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 EMPLOYEE_COUNT,
                 TO_TIMESTAMP_NTZ(LAST_DATA_REFRESH_AT::NUMBER / 1000000000) AS LAST_DATA_REFRESH_AT,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID

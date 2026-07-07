@@ -10,11 +10,11 @@ How to roll all 13 Cumulus Snowflake datasets out to an additional Salesforce Da
 
 ## Architecture decision: shared `MASTER_ACCOUNTS`, per-org filtered view
 
-Each dataset SP reads from `FINS.PUBLIC.V_ACCOUNT_ANCHORS`, never from `MASTER_ACCOUNTS` directly. That single indirection point is where the org-binding lives. The chosen approach:
+Each dataset SP reads from `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`, never from `MASTER_ACCOUNTS` directly. That single indirection point is where the org-binding lives. The chosen approach:
 
 | | Shared table + ORG_ID column (chosen) | Per-org MASTER_ACCOUNTS | Per-org schema |
 |---|---|---|---|
-| Snowflake artifacts duplicated | 1 view per org | 1 table + view + share + load TASK per org | Entire `FINS.PUBLIC.*` per org |
+| Snowflake artifacts duplicated | 1 view per org | 1 table + view + share + load TASK per org | Entire `DATA_JEDAIS.FINS__PUBLIC.*` per org |
 | Dataset SPs require changes | **No** | No | All 13 (schema-qualified swaps) |
 | Storage growth | Linear, single table | Linear × N orgs | Linear × N orgs |
 | Cross-org analytics | Trivial (`GROUP BY ORG_ID`) | Requires UNION across tables | Requires UNION across schemas |
@@ -32,7 +32,7 @@ Use these IDs from the model org as your "expected shape" reference when verifyi
 - 13 streams + DLOs + DMOs all `ACTIVE` and `hasExternalDataLakeObjectMappings: true`.
 - Connector: `Jedi_Snowflake` (`9cgam0000003EknAAE`), account `eob55465.us-east-1.snowflakecomputing.com`, warehouse `MAIN_WH_XS`, user `jsifontes`.
 - Inbound share: `FINSDC3_DATASHARE` (schema `schema_Jedi_Snowflake`).
-- Source tables: `FINS.PUBLIC.MASTER_ACCOUNTS` (~36,813 rows), 13 dataset tables (~3.92M rows total).
+- Source tables: `DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS` (~36,813 rows), 13 dataset tables (~3.92M rows total).
 
 Full registry with stream RecordIds + DMO Ids: see memory `[[reference_jdo_dc_artifacts]]`.
 
@@ -45,14 +45,14 @@ Run this **once** before onboarding any second org. Idempotent; safe to re-run.
 ## A1. Add `ORG_ID` to `MASTER_ACCOUNTS`
 
 ```sql
-ALTER TABLE FINS.PUBLIC.MASTER_ACCOUNTS
+ALTER TABLE DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS
   ADD COLUMN IF NOT EXISTS ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO';
 
 -- Backfill existing rows to the model org's identifier.
-UPDATE FINS.PUBLIC.MASTER_ACCOUNTS SET ORG_ID = 'JDO' WHERE ORG_ID IS NULL OR ORG_ID = '';
+UPDATE DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS SET ORG_ID = 'JDO' WHERE ORG_ID IS NULL OR ORG_ID = '';
 
 -- Forbid the default going forward — every loader must specify ORG_ID.
-ALTER TABLE FINS.PUBLIC.MASTER_ACCOUNTS ALTER COLUMN ORG_ID DROP DEFAULT;
+ALTER TABLE DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS ALTER COLUMN ORG_ID DROP DEFAULT;
 ```
 
 > `ORG_ID` is a stable short identifier you assign (e.g. `JDO`, `ACME`, `WFB`) — *not* the 18-char SF Org Id, because that changes per sandbox refresh. Pick something durable per logical-tenant.
@@ -63,7 +63,7 @@ The model org's loader is `SP_LOAD_MASTER_ACCOUNTS` reading from `FINSDC3_DATASH
 
 ```sql
 -- Inside SP_LOAD_MASTER_ACCOUNTS — before MERGE, narrow the source to the org.
-MERGE INTO FINS.PUBLIC.MASTER_ACCOUNTS tgt
+MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS tgt
 USING (
   SELECT 'JDO' AS ORG_ID, /* ... existing source SELECT ... */
   FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
@@ -80,7 +80,7 @@ Point: the composite match key becomes `(ORG_ID, ACCOUNT_ID)`. Without this, two
 The view must filter to the caller's org. Snowflake supports session parameters:
 
 ```sql
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS AS
 SELECT
     ma.ORG_ID,
     ma.ACCOUNT_ID,
@@ -88,13 +88,13 @@ SELECT
     ma.SNAPSHOT_DATE,
     -- ... existing columns unchanged ...
     a."External_ID_c__c"  AS EXTERNAL_ID
-FROM FINS.PUBLIC.MASTER_ACCOUNTS ma
-INNER JOIN FINS.PUBLIC.V_ACCOUNT_DATASHARE_UNION a
+FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS ma
+INNER JOIN DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_DATASHARE_UNION a
         ON a."ssot__Id__c" = ma.ACCOUNT_ID
        AND a.ORG_ID         = ma.ORG_ID
 WHERE ma.SNAPSHOT_DATE = (
     SELECT MAX(SNAPSHOT_DATE)
-    FROM FINS.PUBLIC.MASTER_ACCOUNTS
+    FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS
     WHERE ORG_ID = ma.ORG_ID
 )
   AND ma.ORG_ID = COALESCE(
@@ -113,7 +113,7 @@ WHERE ma.SNAPSHOT_DATE = (
 Each new org delivers its own DC inbound share. To keep `V_ACCOUNT_ANCHORS` agnostic, fan-in via a UNION view that re-stamps `ORG_ID`:
 
 ```sql
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_DATASHARE_UNION AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_DATASHARE_UNION AS
 SELECT 'JDO' AS ORG_ID, * FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
 UNION ALL
 SELECT 'ACME' AS ORG_ID, * FROM ACME_DATASHARE."schema_Acme_Snowflake"."ssot__Account__dlm"
@@ -128,10 +128,10 @@ Each SELECT block matches the column shape of the model share. If a future Sales
 If a dataset table is queryable by users from multiple orgs, attach a row-access policy:
 
 ```sql
-CREATE OR REPLACE ROW ACCESS POLICY FINS.PUBLIC.ORG_FILTER AS (org_id VARCHAR) RETURNS BOOLEAN ->
+CREATE OR REPLACE ROW ACCESS POLICY DATA_JEDAIS.FINS__PUBLIC.ORG_FILTER AS (org_id VARCHAR) RETURNS BOOLEAN ->
   org_id = SYSTEM$GET_TAG('ORG_ID', CURRENT_ROLE(), 'ROLE');
 
-ALTER TABLE FINS.PUBLIC.CLARITAS_DEMOGRAPHICS ADD ROW ACCESS POLICY FINS.PUBLIC.ORG_FILTER ON (ORG_ID);
+ALTER TABLE DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS ADD ROW ACCESS POLICY DATA_JEDAIS.FINS__PUBLIC.ORG_FILTER ON (ORG_ID);
 -- repeat for the 12 others
 ```
 
@@ -142,11 +142,11 @@ Skip if all 13 datasets are written by per-org SPs that already filter via `V_AC
 Each dataset table currently keys on `ACCOUNT_ID` (and per-plan time qualifiers). Add `ORG_ID` and update the PK so two orgs can carry the same `ACCOUNT_ID`:
 
 ```sql
-ALTER TABLE FINS.PUBLIC.MGP_FINANCIAL_PLANS
+ALTER TABLE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS
   ADD COLUMN IF NOT EXISTS ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO';
 
-UPDATE FINS.PUBLIC.MGP_FINANCIAL_PLANS SET ORG_ID = 'JDO' WHERE ORG_ID IS NULL;
-ALTER TABLE FINS.PUBLIC.MGP_FINANCIAL_PLANS ALTER COLUMN ORG_ID DROP DEFAULT;
+UPDATE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS SET ORG_ID = 'JDO' WHERE ORG_ID IS NULL;
+ALTER TABLE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS ALTER COLUMN ORG_ID DROP DEFAULT;
 
 -- Update primary-key column list in each plan's DDL file:
 -- before: PRIMARY KEY (ACCOUNT_ID, PROFILE_MONTH)
@@ -178,12 +178,12 @@ Then update each plan's SP MERGE so the source SELECT carries `ORG_ID` (sourced 
 ```bash
 snow sql -q "
 SELECT ORG_ID, COUNT(DISTINCT ACCOUNT_ID) AS distinct_accounts
-FROM FINS.PUBLIC.MASTER_ACCOUNTS
-WHERE SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM FINS.PUBLIC.MASTER_ACCOUNTS)
+FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS
+WHERE SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS)
 GROUP BY ORG_ID;"
 -- Expect: JDO | 36181  (only one org until Phase B runs)
 
-snow sql -q "SELECT ORG_ID, COUNT(*) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS GROUP BY ORG_ID;"
+snow sql -q "SELECT ORG_ID, COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS GROUP BY ORG_ID;"
 -- Expect: JDO | 36181  (filter from session role tag)
 ```
 
@@ -235,9 +235,9 @@ GRANT SELECT ON ALL VIEWS IN SCHEMA ACME_DATASHARE."schema_Acme_Snowflake" TO RO
 
 -- Grants for the federated 13 dataset tables + V_ACCOUNT_ANCHORS
 GRANT USAGE ON DATABASE FINS TO ROLE DC_CONNECTOR_ACME;
-GRANT USAGE ON SCHEMA FINS.PUBLIC TO ROLE DC_CONNECTOR_ACME;
-GRANT SELECT ON ALL VIEWS IN SCHEMA FINS.PUBLIC TO ROLE DC_CONNECTOR_ACME;
-GRANT SELECT ON ALL TABLES IN SCHEMA FINS.PUBLIC TO ROLE DC_CONNECTOR_ACME;
+GRANT USAGE ON SCHEMA DATA_JEDAIS.FINS__PUBLIC TO ROLE DC_CONNECTOR_ACME;
+GRANT SELECT ON ALL VIEWS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC TO ROLE DC_CONNECTOR_ACME;
+GRANT SELECT ON ALL TABLES IN SCHEMA DATA_JEDAIS.FINS__PUBLIC TO ROLE DC_CONNECTOR_ACME;
 
 -- Create per-org service user
 CREATE USER IF NOT EXISTS DC_CONNECTOR_ACME_USER
@@ -251,7 +251,7 @@ GRANT ROLE DC_CONNECTOR_ACME TO USER DC_CONNECTOR_ACME_USER;
 ## B3. Update the UNION view in Snowflake
 
 ```sql
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_DATASHARE_UNION AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_DATASHARE_UNION AS
 SELECT 'JDO'  AS ORG_ID, * FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
 UNION ALL
 SELECT 'ACME' AS ORG_ID, * FROM ACME_DATASHARE."schema_Acme_Snowflake"."ssot__Account__dlm";

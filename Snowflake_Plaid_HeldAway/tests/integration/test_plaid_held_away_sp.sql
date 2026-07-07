@@ -8,8 +8,8 @@
 --
 -- Strategy:
 --   Plan 5's L2 fixture lives in a separate FINS.TEST schema. That schema
---   doesn't exist in this org (only FINS.PUBLIC), so Plan 6 takes a different
---   path: clone the live SP into FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE
+--   doesn't exist in this org (only DATA_JEDAIS.FINS__PUBLIC), so Plan 6 takes a different
+--   path: clone the live SP into DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE
 --   via GET_DDL + REPLACE, redirecting the audience view, dataset table, and
 --   staging table FQNs to fixture-scoped names. Self-contained — no schema
 --   prerequisites beyond the deployed live SP.
@@ -29,16 +29,16 @@
 --   1. SP_GENERATE_PLAID_HELD_AWAY deployed (run scripts/deploy_sp.py first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 16 anchors total.
@@ -52,7 +52,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE;
 --    - Income tiers: <$50K, $50K-$150K, $150K-$250K, >=$250K
 --    - States: CA, NY, TX, FL, MA, IL
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE AS
 SELECT
     'PLAID-FIX-R-01'::VARCHAR AS ACCOUNT_ID,
     'Avery Stone'::VARCHAR     AS ACCOUNT_NAME,
@@ -89,10 +89,10 @@ UNION ALL SELECT 'PLAID-FIX-B-02', 'Mariposa Cleaners LLC', '2026-05-28'::DATE, 
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.PLAID_HELD_AWAY but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE
-LIKE FINS.PUBLIC.PLAID_HELD_AWAY;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_PLAID_HELD_AWAY into ..._FIXTURE with FQN swaps:
@@ -110,7 +110,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'PLAID_HELD_AWAY_STAGING',     '__PHA_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_PLAID_HELD_AWAY', '__PHA_SP__');
@@ -131,13 +131,13 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct ACCOUNT_ID == audience size (14).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE) = 14
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) = 14
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE  (14 audience-eligible anchors all emit at least one row)
 
@@ -145,7 +145,7 @@ SELECT
 -- 7. Row-count band assertion #2: COUNT(*) in [14, 70] (audience to 5*audience).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE) BETWEEN 14 AND 70
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) BETWEEN 14 AND 70
     AS row_count_band_assertion_passes;
 -- Expected: TRUE
 
@@ -154,7 +154,7 @@ SELECT
 -- ---------------------------------------------------------------------------
 SELECT EXISTS (
     SELECT 1
-    FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE
+    FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
     GROUP BY ACCOUNT_ID
     HAVING COUNT(*) > 1
 ) AS multi_row_anchor_exists;
@@ -169,7 +169,7 @@ SELECT EXISTS (
 -- enough rows to make this stable across re-runs (deterministic seed).
 -- ---------------------------------------------------------------------------
 SELECT EXISTS (
-    SELECT 1 FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE WHERE IS_ACTIVE = FALSE
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE WHERE IS_ACTIVE = FALSE
 ) AS inactive_row_present;
 -- Expected: TRUE
 
@@ -177,7 +177,7 @@ SELECT EXISTS (
 -- 10. Audience-filter assertion #5: Small Business anchors must NOT leak.
 -- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
     WHERE ACCOUNT_ID IN ('PLAID-FIX-B-01', 'PLAID-FIX-B-02')
 ) AS audience_filter_passes;
 -- Expected: TRUE
@@ -187,7 +187,7 @@ SELECT NOT EXISTS (
 -- (one per anchor minimum, since slot 0 of each anchor is unique).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT HELD_AWAY_ACCOUNT_ID) FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE) >= 14
+    (SELECT COUNT(DISTINCT HELD_AWAY_ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) >= 14
     AS distinct_held_away_ids_assertion_passes;
 -- Expected: TRUE
 
@@ -197,7 +197,7 @@ SELECT
 -- we leave the floor loose at 1990 to absorb any future helper edits.
 -- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
     WHERE LAST_LINKED_DATE < '1990-01-01'
        OR LAST_LINKED_DATE > CURRENT_DATE()
 ) AS last_linked_date_in_range;
@@ -210,7 +210,7 @@ SELECT NOT EXISTS (
 -- helpers; we check the more critical inactive-side invariant.)
 -- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
     WHERE IS_ACTIVE = FALSE
       AND (LAST_TRANSACTION_DATE IS NOT NULL OR MONTHLY_NET_FLOW_USD IS NOT NULL)
 ) AS null_when_inactive_invariant;
@@ -222,7 +222,7 @@ SELECT NOT EXISTS (
 -- carry a risk tier).
 -- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
     WHERE ACCOUNT_TYPE NOT IN ('Brokerage','IRA','401k','HSA')
       AND INVESTMENT_RISK_TIER IS NOT NULL
 ) AS investment_tier_conditional_invariant;
@@ -232,18 +232,18 @@ SELECT NOT EXISTS (
 -- 15. Idempotency assertion #10: a second run leaves the row count unchanged
 -- (MERGE-not-INSERT).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE);
-CALL FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE);
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) = $row_count_before
     AS idempotency_assertion_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
 -- 16. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.PLAID_HELD_AWAY_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_PLAID_HELD_AWAY_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_PLAID_HELD_AWAY_FIXTURE';

@@ -2,7 +2,7 @@
 
 Shared infrastructure for the 13 Cumulus dataset pipelines. Owns:
 
-- `FINS.PUBLIC.V_ACCOUNT_ANCHORS` — the shared anchor view (`schemas/v_account_anchors.sql`)
+- `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS` — the shared anchor view (`schemas/v_account_anchors.sql`)
 - `cumulus_common.seed` — deterministic per-row seed function used by all 13 generators
 - `cumulus_common.coverage` — coverage-assertion helper used by all 13 generators
 - `tests/fixtures/sample_anchors.py` — 100-row pytest fixture (50 person + 50 business) used by every dataset's L1 tests

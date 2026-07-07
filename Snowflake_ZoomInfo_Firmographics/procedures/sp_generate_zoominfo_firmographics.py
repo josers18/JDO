@@ -1,7 +1,7 @@
 """ZoomInfo-style synthetic B2B firmographics generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS.
+DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS.
 
 The most boring plan structurally in the Cumulus rollout: same audience
 predicate as Plans 2 (MSCI) and 3 (DnB), same monthly cadence, same 1:1 row
@@ -50,14 +50,14 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
 TASK_NAME    = "TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS"
 DATASET_SALT = "zoominfo"
 
 # Audience predicate — single source of truth for AUDIENCE_SQL plus COVERAGE_SQL.
 _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'BUSINESS'"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
@@ -81,7 +81,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset(ROW_KEYS)
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -151,7 +151,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -599,7 +599,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
         USING (
             SELECT
                 ORG_ID,
@@ -611,7 +611,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 WEBSITE_DOMAIN, LINKEDIN_FOLLOWERS, TECH_STACK_FLAGS,
                 LAST_DATA_REFRESH_DATE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID

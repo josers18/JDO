@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_MSCI_ESG_SCORES into FINS.PUBLIC.
+"""Deploy SP_GENERATE_MSCI_ESG_SCORES into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 1's `Snowflake_Claritas_Demographics/scripts/deploy_sp.py`.
 Plan 1 hand-built `procedures/sp_create_procedure.sql` once; Plan 2 automates that
@@ -55,8 +55,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_MSCI_ESG_SCORES"
-TABLE_FQN = "FINS.PUBLIC.MSCI_ESG_SCORES"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MSCI_ESG_SCORES"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES"
 TASK_NAME = "TASK_MONTHLY_MSCI_ESG_SCORES"
 DATASET_SALT = "msci"
 
@@ -231,7 +231,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MSCI_ESG_SCORES' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MSCI_ESG_SCORES' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

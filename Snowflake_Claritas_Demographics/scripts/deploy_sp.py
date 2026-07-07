@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_CLARITAS_DEMOGRAPHICS into FINS.PUBLIC.
+"""Deploy SP_GENERATE_CLARITAS_DEMOGRAPHICS into DATA_JEDAIS.FINS__PUBLIC.
 
 This wrapper exists primarily as documentation of the canonical Cumulus
 Snowpark Python SP deploy path. It runs the inline-source SQL produced by
@@ -64,7 +64,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_CLARITAS_DEMOGRAPHICS' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_CLARITAS_DEMOGRAPHICS' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

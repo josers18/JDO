@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.PLAID_HELD_AWAY
+-- DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY
 -- Plaid-style synthetic held-away financial accounts (external brokerages,
 -- banks, credit unions, robo-advisors, crypto exchanges) per Retail/Wealth
 -- anchor — Cumulus's customer footprint.
@@ -15,7 +15,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-6-plaid-held-away-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.PLAID_HELD_AWAY (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY (
     ORG_ID                     VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'v1.x multi-org-additive: ORG_ID stamped from V_ACCOUNT_ANCHORS; default JDO is the backward-compat backstop. Leads the PK so two orgs holding the same SF ACCOUNT_ID + slot never clobber each other.',
     ACCOUNT_ID                 VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus customer that owns this held-away account. FK to ssot__Account__dlm. PK component.',
     HELD_AWAY_ACCOUNT_ID       VARCHAR(64)       NOT NULL  COMMENT 'sha256(account_id + "_slot" + slot_index + "_plaid")[:16] hex — deterministic per (anchor, slot, salt). Identity-stable across months. PK component (single-column DC DMO PK).',

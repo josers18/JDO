@@ -3,7 +3,7 @@
 50 person anchors x age bands x income bands x client categories.
 50 business anchors x industry x revenue band x employee band x client categories.
 
-Each anchor matches the schema of FINS.PUBLIC.V_ACCOUNT_ANCHORS (spec section 3).
+Each anchor matches the schema of DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS (spec section 3).
 ACCOUNT_IDs follow the convention TEST-PERSON-NN / TEST-BIZ-NN so they
 sort cleanly and never collide with real Salesforce IDs.
 

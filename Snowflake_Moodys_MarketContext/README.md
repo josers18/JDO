@@ -6,7 +6,7 @@ Synthetic Moody's Investors Service / Moody's Analytics-style credit-rating + ma
 
 **Plan 13 is the FINAL Cumulus plan in the rollout (13 of 13).** It is **instrument-scoped (not account-scoped)** with **daily cadence** — the second non-account-scoped plan after Plan 4 (Esri / branch-scoped) and the second daily-cadence plan after Plan 7 (WorldCheck AML). With four structural deviations from the Plan 8 baseline (instrument-scoped audience, daily cadence, two-salt model, hybrid year-stable + daily field model), it is the most-divergent instantiation of the dataset template.
 
-Each instrument in `FINS.PUBLIC.INSTRUMENT_UNIVERSE` produces one market-context row per day. Rows are keyed by composite PK `(TICKER, PROFILE_DATE)` (~2,004 rows/day at 1:1 instrument:row). Re-runs same calendar day MERGE-replace in place — no daily history retained, so live storage stays at ~2,004 rows year-round. The DMO is **not** joinable to `ssot__Account__dlm` (instrument-scoped, like Plan 4 was branch-scoped); `TICKER` is the canonical join key for downstream queries, and account ↔ instrument joins go through the existing trades-pipeline `(account, ticker, position)` graph. DC PK collapses to single-column `profileDate__c` with `ticker__c` as a KQ qualifier (single-column-PK rule from Plan 4).
+Each instrument in `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` produces one market-context row per day. Rows are keyed by composite PK `(TICKER, PROFILE_DATE)` (~2,004 rows/day at 1:1 instrument:row). Re-runs same calendar day MERGE-replace in place — no daily history retained, so live storage stays at ~2,004 rows year-round. The DMO is **not** joinable to `ssot__Account__dlm` (instrument-scoped, like Plan 4 was branch-scoped); `TICKER` is the canonical join key for downstream queries, and account ↔ instrument joins go through the existing trades-pipeline `(account, ticker, position)` graph. DC PK collapses to single-column `profileDate__c` with `ticker__c` as a KQ qualifier (single-column-PK rule from Plan 4).
 
 ## Plan
 - Plan 13 (the final plan), instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -15,16 +15,16 @@ Each instrument in `FINS.PUBLIC.INSTRUMENT_UNIVERSE` produces one market-context
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.MOODYS_MARKET_CONTEXT`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()`
-- Task: `FINS.PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT` (DAILY, `0 1 * * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT` (DAILY, `0 1 * * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusMoodysMarketContext__dll` → DMO `CumulusMoodysMarketContext__dlm`
 
 ## Audience
-**Instrument-scoped, all-rows** — every instrument in `FINS.PUBLIC.INSTRUMENT_UNIVERSE` is profiled daily. The audience SQL is the simplest in the Cumulus rollout:
+**Instrument-scoped, all-rows** — every instrument in `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` is profiled daily. The audience SQL is the simplest in the Cumulus rollout:
 
 ```sql
-SELECT * FROM FINS.PUBLIC.INSTRUMENT_UNIVERSE
+SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE
 ```
 
 Live cardinality (probed 2026-05-28): **2,004 distinct instruments**. Each instrument emits exactly one market-context row per day → **~2,004 rows/day**.

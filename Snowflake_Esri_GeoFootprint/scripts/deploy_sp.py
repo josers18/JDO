@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_ESRI_GEO_FOOTPRINT into FINS.PUBLIC.
+"""Deploy SP_GENERATE_ESRI_GEO_FOOTPRINT into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 3's `Snowflake_DnB_BusinessCredit/scripts/deploy_sp.py`.
 Plan 1 hand-built `procedures/sp_create_procedure.sql` once; Plan 2 automated
@@ -66,8 +66,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT"
-TABLE_FQN = "FINS.PUBLIC.ESRI_GEO_FOOTPRINT"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT"
 TASK_NAME = "TASK_MONTHLY_ESRI_GEO_FOOTPRINT"
 DATASET_SALT = "esri"
 
@@ -246,7 +246,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_ESRI_GEO_FOOTPRINT' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_ESRI_GEO_FOOTPRINT' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

@@ -8,7 +8,7 @@
 --
 -- Strategy:
 --   Same fixture-cloning pattern as Plan 6: clone the deployed SP into
---   FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE via GET_DDL + REPLACE,
+--   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE via GET_DDL + REPLACE,
 --   redirecting the audience view, dataset table, and staging table FQNs
 --   to fixture-scoped names. Sentinel-based ordering avoids substring
 --   collision when WORLD_CHECK_AML expands to WORLD_CHECK_AML_FIXTURE
@@ -33,16 +33,16 @@
 --   1. SP_GENERATE_WORLD_CHECK_AML deployed (run scripts/deploy_sp.py first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 14 anchors total.
@@ -55,7 +55,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE;
 --    diversity is cosmetic — but kept for column-contract symmetry with
 --    V_ACCOUNT_ANCHORS.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE AS
 SELECT
     'WCAML-FIX-P-01'::VARCHAR AS ACCOUNT_ID,
     'Avery Stone'::VARCHAR     AS ACCOUNT_NAME,
@@ -89,10 +89,10 @@ UNION ALL SELECT 'WCAML-FIX-B-04', 'Northwind Holdings LLC',  '2026-05-28'::DATE
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.WORLD_CHECK_AML but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
-LIKE FINS.PUBLIC.WORLD_CHECK_AML;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_WORLD_CHECK_AML into ..._FIXTURE with FQN swaps:
@@ -110,7 +110,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'WORLD_CHECK_AML_STAGING',     '__WCA_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_WORLD_CHECK_AML', '__WCA_SP__');
@@ -131,13 +131,13 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct ACCOUNT_ID == audience size (14).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE) = 14
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE) = 14
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
@@ -146,7 +146,7 @@ SELECT
 -- All-accounts audience + 1:1 emit rate ⇒ row count = audience size.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE) = 14
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE) = 14
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
@@ -155,7 +155,7 @@ SELECT
 -- every row (no surprise NULLs in NOT NULL columns).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE ACCOUNT_ID             IS NULL
           OR PROFILE_DATE            IS NULL
           OR OVERALL_RISK_RATING     IS NULL
@@ -176,7 +176,7 @@ SELECT
 -- (length=2 + in known set.)
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE LENGTH(RISK_JURISDICTION_CODE) <> 2
           OR RISK_JURISDICTION_CODE NOT IN (
               -- Prohibited (4)
@@ -194,7 +194,7 @@ SELECT
 -- 10. Jurisdiction-tier assertion #5: all values in the 3-tier vocabulary.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE RISK_JURISDICTION_TIER NOT IN ('Standard','Enhanced','Prohibited')) = 0
     AS jurisdiction_tier_vocabulary_ok;
 -- Expected: TRUE
@@ -205,7 +205,7 @@ SELECT
 -- presence of every value, just vocabulary-bounded membership.)
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE OVERALL_RISK_RATING NOT IN ('Low','Medium','High','Severe')) = 0
     AS overall_rating_vocabulary_ok;
 -- Expected: TRUE
@@ -215,7 +215,7 @@ SELECT
 -- vocabulary {New, Unchanged, Risk Increased, Risk Decreased, Cleared}.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE CHANGE_SINCE_LAST_RUN NOT IN
            ('New','Unchanged','Risk Increased','Risk Decreased','Cleared')) = 0
     AS change_since_last_run_vocabulary_ok;
@@ -229,19 +229,19 @@ SELECT
 -- write_pandas int8 inference if the staging table is ever truncated.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE SANCTIONS_HIT NOT IN (TRUE, FALSE)) = 0
     AS sanctions_hit_boolean_typed;
 -- Expected: TRUE
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE PEP_HIT NOT IN (TRUE, FALSE)) = 0
     AS pep_hit_boolean_typed;
 -- Expected: TRUE
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE ADVERSE_MEDIA_HIT NOT IN (TRUE, FALSE)) = 0
     AS adverse_media_hit_boolean_typed;
 -- Expected: TRUE
@@ -251,7 +251,7 @@ SELECT
 -- column MUST be NULL (rowspec invariant).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE ADVERSE_MEDIA_HIT = FALSE
          AND ADVERSE_MEDIA_CATEGORIES IS NOT NULL) = 0
     AS adverse_media_categories_null_when_no_hit;
@@ -263,7 +263,7 @@ SELECT
 -- accounts get a vendor case ID).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE OVERALL_RISK_RATING IN ('Low','Medium')
          AND CASE_REFERENCE IS NOT NULL) = 0
     AS case_reference_null_when_below_high;
@@ -273,26 +273,26 @@ SELECT
 -- 16. Idempotency assertion #10: a second run leaves the row count unchanged
 -- (MERGE-not-INSERT) and produces byte-identical output (deterministic seed).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE);
-SET hash_before      = (SELECT HASH_AGG(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE);
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE);
+SET hash_before      = (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE);
 
-CALL FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
 SELECT
-    (SELECT HASH_AGG(*) FROM FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE) = $hash_before
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE  (same calendar day → byte-identical output)
 
 -- ---------------------------------------------------------------------------
 -- 17. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.WORLD_CHECK_AML_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_DAILY_WORLD_CHECK_AML_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_DAILY_WORLD_CHECK_AML_FIXTURE';

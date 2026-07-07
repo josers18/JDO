@@ -8,7 +8,7 @@
 --
 -- Strategy:
 --   Same fixture-cloning pattern as Plans 6, 7, 8: clone the deployed SP into
---   FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE via GET_DDL plus
+--   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE via GET_DDL plus
 --   REPLACE, redirecting the audience view, dataset table, staging table,
 --   and task-name FQNs to fixture-scoped names. Sentinel-based ordering
 --   avoids substring collision when ZOOMINFO_FIRMOGRAPHICS expands to
@@ -39,16 +39,16 @@
 --   1. SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS deployed (run scripts/deploy_sp.py first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 14 anchors total.
@@ -78,7 +78,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE;
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly (15 columns) so the
 --    cloned SP's audience SELECT compiles unchanged.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE AS
 -- 5 BUSINESS anchors -- IN AUDIENCE.
 SELECT
     'ZOOMINFO-FIX-BU-01'::VARCHAR     AS ACCOUNT_ID,
@@ -121,10 +121,10 @@ UNION ALL SELECT 'ZOOMINFO-FIX-NW-C1', 'Jordan Vega',    '2026-05-28'::DATE, 'Co
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
-LIKE FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS into ..._FIXTURE with FQN swaps:
@@ -142,7 +142,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'ZOOMINFO_FIRMOGRAPHICS_STAGING',     '__ZI_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS', '__ZI_SP__');
@@ -163,7 +163,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct ACCOUNT_ID == post-filter audience size.
@@ -171,7 +171,7 @@ CALL FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
 -- non-BUSINESS out, leaving exactly 5 distinct accounts in the dataset.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = 5
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = 5
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
@@ -180,7 +180,7 @@ SELECT
 -- BUSINESS audience (5) + 1:1 emit per anchor per month -> row count = 5.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = 5
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = 5
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
@@ -190,7 +190,7 @@ SELECT
 -- excluded the 9 'ZOOMINFO-FIX-NW-%' anchors.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE ACCOUNT_ID LIKE 'ZOOMINFO-FIX-NW-%') = 0
     AS audience_filter_excludes_non_business;
 -- Expected: TRUE
@@ -203,7 +203,7 @@ SELECT
 -- at L1 over a multi-month roll, not at L2.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE ACCOUNT_ID                    IS NULL
           OR PROFILE_MONTH                 IS NULL
           OR EMPLOYEE_BAND                 IS NULL
@@ -228,7 +228,7 @@ SELECT
 -- This is the load-bearing assertion for v1.5 finding #5 in Plan 11.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE HQ_COUNTRY_CODE NOT IN ('US')) = 0
     AS hq_country_code_literal_us;
 -- Expected: TRUE
@@ -240,7 +240,7 @@ SELECT
 -- This is the load-bearing assertion for v1.5 finding #4 in Plan 11.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE LENGTH(HQ_POSTAL_CODE) <> 5) = 0
     AS hq_postal_code_length_5;
 -- Expected: TRUE
@@ -253,7 +253,7 @@ SELECT
 -- branch of v1.5 finding #4 in Plan 11.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE LENGTH(HQ_STATE_CODE) <> 2) = 0
     AS hq_state_code_length_2;
 -- Expected: TRUE
@@ -262,7 +262,7 @@ SELECT
 -- 13. EMPLOYEE_BAND vocabulary assertion #6a: all values in the 7-bucket set.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE EMPLOYEE_BAND NOT IN
            ('1-10','11-50','51-200','201-1000','1001-5000','5001-25000','25001+')) = 0
     AS employee_band_vocabulary_ok;
@@ -272,7 +272,7 @@ SELECT
 -- 14. REVENUE_BAND vocabulary assertion #6b: all values in the 6-bucket set.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE REVENUE_BAND NOT IN
            ('<$1M','$1M-$10M','$10M-$50M','$50M-$200M','$200M-$1B','$1B+')) = 0
     AS revenue_band_vocabulary_ok;
@@ -287,8 +287,8 @@ SELECT
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*)
-     FROM   FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE             d
-     JOIN   FINS.PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE          a
+     FROM   DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE             d
+     JOIN   DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE          a
        ON   d.ACCOUNT_ID = a.ACCOUNT_ID
      WHERE  d.EMPLOYEE_BAND <> CASE
                 WHEN a.EMPLOYEE_COUNT IS NULL OR a.EMPLOYEE_COUNT = 0 THEN '1-10'
@@ -309,7 +309,7 @@ SELECT
 -- businesses leak through.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE FOUNDED_YEAR > EXTRACT(YEAR FROM CURRENT_DATE())) = 0
     AS founded_year_not_future;
 -- Expected: TRUE
@@ -318,7 +318,7 @@ SELECT
 -- 17. Range invariant #8b: LINKEDIN_FOLLOWERS in [0, 5_000_000].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE LINKEDIN_FOLLOWERS NOT BETWEEN 0 AND 5000000) = 0
     AS linkedin_followers_in_range;
 -- Expected: TRUE
@@ -328,7 +328,7 @@ SELECT
 -- for every row (no leading-zero loss; VARCHAR storage holds shape).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE NOT REGEXP_LIKE(INDUSTRY_NAICS_CODE, '^[0-9]{6}$')) = 0
     AS naics_code_six_digits;
 -- Expected: TRUE
@@ -338,7 +338,7 @@ SELECT
 -- for every row.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE NOT REGEXP_LIKE(INDUSTRY_SIC_CODE, '^[0-9]{4}$')) = 0
     AS sic_code_four_digits;
 -- Expected: TRUE
@@ -349,7 +349,7 @@ SELECT
 -- refresh dates leak through.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE
        WHERE LAST_DATA_REFRESH_DATE > CURRENT_DATE()) = 0
     AS last_data_refresh_not_future;
 -- Expected: TRUE
@@ -359,13 +359,13 @@ SELECT
 -- unchanged (MERGE-not-INSERT) and produces byte-identical output
 -- (deterministic seed bucketed on month_start).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE);
-SET hash_before      = (SELECT HASH_AGG(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE);
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE);
+SET hash_before      = (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE);
 
-CALL FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
@@ -374,15 +374,15 @@ SELECT
 -- across the two runs -- same calendar month -> byte-identical output.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT HASH_AGG(*) FROM FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = $hash_before
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE  (same calendar month -> byte-identical output)
 
 -- ---------------------------------------------------------------------------
 -- 23. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ZOOMINFO_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS_FIXTURE';

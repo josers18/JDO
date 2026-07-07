@@ -8,7 +8,7 @@
 --
 -- Strategy:
 --   Same fixture-cloning pattern as Plans 6 & 7: clone the deployed SP into
---   FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE via GET_DDL + REPLACE,
+--   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE via GET_DDL + REPLACE,
 --   redirecting the audience view, dataset table, and staging table FQNs to
 --   fixture-scoped names. Sentinel-based ordering avoids substring collision
 --   when MGP_FINANCIAL_PLANS expands to MGP_FINANCIAL_PLANS_FIXTURE (otherwise
@@ -34,16 +34,16 @@
 --   1. SP_GENERATE_MGP_FINANCIAL_PLANS deployed (run scripts/deploy_sp.py first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 14 anchors total.
@@ -67,7 +67,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE;
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly (15 columns) so the
 --    cloned SP's audience SELECT compiles unchanged.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE AS
 -- 4 Wealth Management anchors — IN AUDIENCE.
 SELECT
     'MGPFP-FIX-WM-01'::VARCHAR  AS ACCOUNT_ID,
@@ -102,10 +102,10 @@ UNION ALL SELECT 'MGPFP-FIX-NW-C2', 'Northwind Holdings LLC', '2026-05-28'::DATE
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.MGP_FINANCIAL_PLANS but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
-LIKE FINS.PUBLIC.MGP_FINANCIAL_PLANS;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_MGP_FINANCIAL_PLANS into ..._FIXTURE with FQN swaps:
@@ -123,7 +123,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'MGP_FINANCIAL_PLANS_STAGING',     '__MGP_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_MGP_FINANCIAL_PLANS', '__MGP_SP__');
@@ -144,7 +144,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct ACCOUNT_ID == post-filter audience size.
@@ -152,7 +152,7 @@ CALL FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
 -- 10 non-Wealth out, leaving exactly 4 distinct accounts in the dataset.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 4
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 4
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
@@ -161,7 +161,7 @@ SELECT
 -- Wealth audience (4) + 1:1 emit per anchor per month ⇒ row count = 4.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 4
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 4
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
@@ -171,7 +171,7 @@ SELECT
 -- predicate excluded the 10 `MGPFP-FIX-NW-%` anchors.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE ACCOUNT_ID LIKE 'MGPFP-FIX-NW-%') = 0
     AS audience_filter_excludes_non_wealth;
 -- Expected: TRUE
@@ -183,7 +183,7 @@ SELECT
 -- the NULL-semantics block (#11a-c) governs them.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE ACCOUNT_ID                    IS NULL
           OR PROFILE_MONTH                  IS NULL
           OR PLAN_STATUS                    IS NULL
@@ -203,7 +203,7 @@ SELECT
 -- 10. PLAN_STATUS vocabulary assertion #5: all values in {Active, Draft, Stale}.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE PLAN_STATUS NOT IN ('Active','Draft','Stale')) = 0
     AS plan_status_vocabulary_ok;
 -- Expected: TRUE
@@ -215,7 +215,7 @@ SELECT
 -- asserting ≥1 just confirms the column is producing recognised values.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT PLAN_STATUS) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) >= 1
+    (SELECT COUNT(DISTINCT PLAN_STATUS) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) >= 1
     AS plan_status_variety_ok;
 -- Expected: TRUE
 
@@ -226,7 +226,7 @@ SELECT
 -- dataset where NULL semantics depend on a non-Boolean enum.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE PLAN_STATUS = 'Draft'
          AND LAST_REVIEW_DATE IS NOT NULL) = 0
     AS draft_has_null_last_review;
@@ -237,7 +237,7 @@ SELECT
 -- MUST be NULL (rowspec invariant — no review scheduled).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE PLAN_STATUS = 'Stale'
          AND NEXT_REVIEW_DATE IS NOT NULL) = 0
     AS stale_has_null_next_review;
@@ -249,7 +249,7 @@ SELECT
 -- dates set).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE PLAN_STATUS = 'Active'
          AND (LAST_REVIEW_DATE IS NULL OR NEXT_REVIEW_DATE IS NULL)) = 0
     AS active_has_both_reviews_populated;
@@ -259,7 +259,7 @@ SELECT
 -- 15. Date-coherence #8a: PLAN_LAST_UPDATED_DATE must not be future-dated.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE PLAN_LAST_UPDATED_DATE > CURRENT_DATE()) = 0
     AS plan_last_updated_not_future;
 -- Expected: TRUE
@@ -270,7 +270,7 @@ SELECT
 -- to month_start - randint(7, 90).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE LAST_REVIEW_DATE IS NOT NULL
          AND LAST_REVIEW_DATE > CURRENT_DATE()) = 0
     AS last_review_not_future;
@@ -281,7 +281,7 @@ SELECT
 -- the future (> today). The SP draws 30-540 days ahead of month_start.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE NEXT_REVIEW_DATE IS NOT NULL
          AND NEXT_REVIEW_DATE <= CURRENT_DATE()) = 0
     AS next_review_in_future;
@@ -291,7 +291,7 @@ SELECT
 -- 18. Range invariant #9a: RETIREMENT_TARGET_AGE in [55, 80].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE RETIREMENT_TARGET_AGE NOT BETWEEN 55 AND 80) = 0
     AS retirement_target_age_in_range;
 -- Expected: TRUE
@@ -300,7 +300,7 @@ SELECT
 -- 19. Range invariant #9b: MONTHLY_INCOME_TARGET_USD in [10000, 200000].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE MONTHLY_INCOME_TARGET_USD NOT BETWEEN 10000 AND 200000) = 0
     AS monthly_income_target_in_range;
 -- Expected: TRUE
@@ -309,7 +309,7 @@ SELECT
 -- 20. Range invariant #9c: TOTAL_GOAL_AMOUNT_USD in [500000, 50000000].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE TOTAL_GOAL_AMOUNT_USD NOT BETWEEN 500000 AND 50000000) = 0
     AS total_goal_amount_in_range;
 -- Expected: TRUE
@@ -318,7 +318,7 @@ SELECT
 -- 21. Range invariant #9d: GOAL_COUNT in [1, 6].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE GOAL_COUNT NOT BETWEEN 1 AND 6) = 0
     AS goal_count_in_range;
 -- Expected: TRUE
@@ -327,7 +327,7 @@ SELECT
 -- 22. Range invariant #9e: MONTE_CARLO_SUCCESS_PCT in [30.00, 99.00].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE MONTE_CARLO_SUCCESS_PCT NOT BETWEEN 30.00 AND 99.00) = 0
     AS monte_carlo_success_pct_in_range;
 -- Expected: TRUE
@@ -337,7 +337,7 @@ SELECT
 -- the 5-tier glide-path set.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE RECOMMENDED_ASSET_ALLOCATION NOT IN
            ('Conservative','Moderate Conservative','Moderate','Moderate Aggressive','Aggressive')) = 0
     AS recommended_asset_allocation_vocabulary_ok;
@@ -351,7 +351,7 @@ SELECT
 -- truncated (Plan 5 finding).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
        WHERE ADVISOR_NOTES_FLAG NOT IN (TRUE, FALSE)) = 0
     AS advisor_notes_flag_boolean_typed;
 -- Expected: TRUE
@@ -361,26 +361,26 @@ SELECT
 -- unchanged (MERGE-not-INSERT) and produces byte-identical output
 -- (deterministic seed bucketed on month_start).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE);
-SET hash_before      = (SELECT HASH_AGG(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE);
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE);
+SET hash_before      = (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE);
 
-CALL FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
 SELECT
-    (SELECT HASH_AGG(*) FROM FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = $hash_before
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE  (same calendar month → byte-identical output)
 
 -- ---------------------------------------------------------------------------
 -- 26. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_MGP_FINANCIAL_PLANS_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_MGP_FINANCIAL_PLANS_FIXTURE';

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Procedure: GENERATE_HISTORICAL_TRADES(START_DATE DATE, END_DATE DATE)
--- Database:  FINS.PUBLIC
+-- Database:  DATA_JEDAIS.FINS__PUBLIC
 -- Purpose:   Backfills historical trades for a given date range. Supports
 --            resume capability by reading existing trade dates per account
 --            to initialize frequency gating state. Logs progress every 50
@@ -141,7 +141,7 @@ def generate_historical(session, START_DATE, END_DATE):
         # Load instruments
         inst_rows = session.sql(
             ""SELECT SECTOR, TICKER, INSTRUMENT_NAME, BASE_PRICE ""
-            ""FROM FINS.PUBLIC.INSTRUMENT_UNIVERSE""
+            ""FROM DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE""
         ).collect()
         instruments = [(r[""SECTOR""], r[""TICKER""], r[""INSTRUMENT_NAME""], float(r[""BASE_PRICE""])) for r in inst_rows]
 
@@ -149,7 +149,7 @@ def generate_historical(session, START_DATE, END_DATE):
         acct_rows = session.sql(
             ""SELECT ACCOUNT_ID, ACCOUNT_NAME, FREQUENCY, TRADES_PER_PERIOD, ""
             ""PREFERRED_SECTORS, RISK_PROFILE, MAX_TRADE_VALUE ""
-            ""FROM FINS.PUBLIC.TRADE_GENERATION_CONFIG WHERE ACTIVE = TRUE""
+            ""FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG WHERE ACTIVE = TRUE""
         ).collect()
         accounts = []
         for r in acct_rows:
@@ -166,7 +166,7 @@ def generate_historical(session, START_DATE, END_DATE):
         last_gen = {a[""id""]: None for a in accounts}
         resume_rows = session.sql(
             f""SELECT ACCOUNT_ID, MAX(TRADE_DATE)::DATE AS LAST_DATE ""
-            f""FROM FINS.PUBLIC.FINANCIAL_TRADES ""
+            f""FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ""
             f""WHERE TRADE_DATE < ''{start_d.isoformat()}''::TIMESTAMP_TZ ""
             f""GROUP BY ACCOUNT_ID""
         ).collect()
@@ -210,7 +210,7 @@ def generate_historical(session, START_DATE, END_DATE):
             params = []
             for row in batch:
                 params.extend(row)
-            sql = f""INSERT INTO FINS.PUBLIC.FINANCIAL_TRADES ({cols}) VALUES {'', ''.join(values_clauses)}""
+            sql = f""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ({cols}) VALUES {'', ''.join(values_clauses)}""
             session.sql(sql, params=params).collect()
             total_inserted += len(batch)
             flush_count += 1
@@ -276,7 +276,7 @@ def generate_historical(session, START_DATE, END_DATE):
             if (day_idx + 1) % 50 == 0:
                 elapsed = int((time.time() - start_time) * 1000)
                 session.sql(
-                    ""INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG ""
+                    ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
                     ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
                     ""VALUES (?, ?, ?, ?, ?, ?)"",
                     params=[task_name, ""IN_PROGRESS"", total_inserted, len(accounts),
@@ -287,7 +287,7 @@ def generate_historical(session, START_DATE, END_DATE):
         duration_ms = int((time.time() - start_time) * 1000)
 
         session.sql(
-            ""INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG ""
+            ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
             ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
             ""VALUES (?, ?, ?, ?, ?, ?)"",
             params=[task_name, ""SUCCEEDED"", total_inserted, len(accounts), None, duration_ms]
@@ -304,7 +304,7 @@ def generate_historical(session, START_DATE, END_DATE):
         err_msg = str(e)[:2000]
         try:
             session.sql(
-                ""INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG ""
+                ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
                 ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
                 ""VALUES (?, ?, ?, ?, ?, ?)"",
                 params=[task_name, ""FAILED"", total_inserted, len(accounts), err_msg, duration_ms]

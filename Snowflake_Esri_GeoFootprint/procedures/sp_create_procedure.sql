@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-4-esri-geo-footprint.md
 -- Task:    Plan 4 T6
@@ -12,11 +12,11 @@
 --           over V_ACCOUNT_ANCHORS where POSTAL_CODE IS NOT NULL.
 -- Cadence:  MONTHLY (TASK_MONTHLY_ESRI_GEO_FOOTPRINT)
 -- Salt:     "esri"
--- Table:    FINS.PUBLIC.ESRI_GEO_FOOTPRINT
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT
 -- Vendor:   Esri-style (Tapestry shape) — README uses canonical name
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -99,7 +99,7 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.ESRI_GEO_FOOTPRINT"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT"
 TASK_NAME    = "TASK_MONTHLY_ESRI_GEO_FOOTPRINT"
 DATASET_SALT = "esri"
 
@@ -122,7 +122,7 @@ DATASET_SALT = "esri"
 AUDIENCE_SQL = """
     SELECT ORG_ID, POSTAL_CODE, STATE_CODE, 'US' AS COUNTRY_CODE,
            COUNT(DISTINCT ACCOUNT_ID) AS CUSTOMER_COUNT
-    FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+    FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
     WHERE POSTAL_CODE IS NOT NULL
       AND POSTAL_CODE <> ''
     GROUP BY ORG_ID, POSTAL_CODE, STATE_CODE
@@ -132,7 +132,7 @@ AUDIENCE_SQL = """
 # Mirror the AUDIENCE_SQL filter + GROUP BY shape exactly (drift = silent coverage gap).
 COVERAGE_SQL = """
     SELECT COUNT(DISTINCT (ORG_ID || '|' || POSTAL_CODE))
-    FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+    FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
     WHERE POSTAL_CODE IS NOT NULL
       AND POSTAL_CODE <> ''
 """
@@ -152,7 +152,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -219,7 +219,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -526,7 +526,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.ESRI_GEO_FOOTPRINT tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT tgt
         USING (
             SELECT
                 ORG_ID,
@@ -538,7 +538,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 DISTANCE_TO_NEAREST_BRANCH_MI, MARKET_PENETRATION_PCT,
                 BRANCH_RECOMMENDATION,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.BRANCH_ZIP = src.BRANCH_ZIP

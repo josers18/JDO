@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Table:    TRADE_GENERATION_CONFIG
--- Database: FINS.PUBLIC
+-- Database: DATA_JEDAIS.FINS__PUBLIC
 -- Purpose:  Control table that defines per-account trade generation parameters.
 --           Each account has a frequency (DAILY/WEEKLY/MONTHLY), risk profile,
 --           and volume settings. Accounts are auto-imported from Salesforce
@@ -9,7 +9,7 @@
 -- PK:       ACCOUNT_ID
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.TRADE_GENERATION_CONFIG (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG (
     ACCOUNT_ID          VARCHAR(50)     NOT NULL,    -- Account identifier (TRD-xxx or 001%)
     ACCOUNT_NAME        VARCHAR(200),                -- Display name (from source or manual)
     ACCOUNT_TYPE        VARCHAR(20)     DEFAULT 'Retail',        -- Institutional or Retail

@@ -1,8 +1,8 @@
 # Architecture
 
-Detailed architecture of the Snowflake data pipelines in `FINS.PUBLIC`.
+Detailed architecture of the Snowflake data pipelines in `DATA_JEDAIS.FINS__PUBLIC`.
 
-> **Cumulus dataset family** (13 SPs, ~3.97M rows live as of 2026-05-29) is documented separately. See [`../../Snowflake_Cumulus_Common/AGENTS.md`](../../Snowflake_Cumulus_Common/AGENTS.md) and the multi-org rollout runbook at [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).
+> **Cumulus dataset family** (13 SPs, ~6.4M rows live as of 2026-07-07) is documented separately. See [`../../Snowflake_Cumulus_Common/AGENTS.md`](../../Snowflake_Cumulus_Common/AGENTS.md) and the multi-org rollout runbook at [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).
 >
 > **Phase A multi-org migration** (commit `c9119d32`, 2026-05-29) added `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the leading column on `MASTER_ACCOUNTS` and the 13 Cumulus dataset tables. `V_ACCOUNT_ANCHORS` is now v1.2 and exposes `ORG_ID` as its first column. PKs were promoted to lead with `ORG_ID`. JDO existing loaders continue working unchanged via the DEFAULT backstop.
 
@@ -99,13 +99,13 @@ flowchart TD
         DS[FINSDC3_DATASHARE<br/>ssot__Account__dlm]
     end
 
-    subgraph Tasks["Scheduled Tasks (CRON)"]
-        T_SYNC[DAILY_ACCOUNT_SYNC<br/>midnight ET]
-        T_TRADE[DAILY_TRADE_GENERATOR<br/>1 AM ET]
-        T_TXN[DAILY_TRANSACTION_GENERATOR<br/>midnight ET]
-        T_MA[TASK_LOAD_MASTER_ACCOUNTS<br/>6 AM UTC]
-        T_CSAT[TASK_MONTHLY_CSAT<br/>1st of month]
-        T_REPORT[DAILY_JOB_REPORT<br/>8 AM ET]
+    subgraph Tasks["Scheduled Tasks (CRON — America/New_York)"]
+        T_SYNC[DAILY_ACCOUNT_SYNC<br/>3:00 AM ET]
+        T_TRADE[DAILY_TRADE_GENERATOR<br/>3:10 AM ET]
+        T_TXN[DAILY_TRANSACTION_GENERATOR<br/>3:05 AM ET]
+        T_MA[TASK_LOAD_MASTER_ACCOUNTS<br/>3:25 AM ET]
+        T_CSAT[TASK_MONTHLY_CSAT<br/>1st of month 3:10 AM ET]
+        T_REPORT[DAILY_JOB_REPORT<br/>4:00 AM ET]
     end
 
     subgraph Procedures["Stored Procedures"]
@@ -118,14 +118,14 @@ flowchart TD
         SP_REPORT[SP_DAILY_JOB_REPORT<br/>Python · HTML email]
     end
 
-    subgraph Tables["FINS.PUBLIC Tables"]
-        MA[MASTER_ACCOUNTS<br/>36,813 rows]
+    subgraph Tables["DATA_JEDAIS.FINS__PUBLIC Tables"]
+        MA[MASTER_ACCOUNTS<br/>36,816 rows]
         TGC[TRADE_GENERATION_CONFIG<br/>36,756 rows]
-        FT[FINANCIAL_TRADES<br/>1.87M rows]
-        FTX[FINANCIAL_TRANSACTIONS<br/>16K rows]
-        CSAT[CSAT_NPS_DATA<br/>29,640 rows]
+        FT[FINANCIAL_TRADES<br/>3.28M rows]
+        FTX[FINANCIAL_TRANSACTIONS<br/>16.8K rows]
+        CSAT[CSAT_NPS_DATA<br/>103,269 rows]
         IU[INSTRUMENT_UNIVERSE<br/>2,004 rows]
-        LOG[TASK_EXECUTION_LOG<br/>184 rows]
+        LOG[TASK_EXECUTION_LOG<br/>549 rows]
     end
 
     subgraph Output["Outputs"]
@@ -175,7 +175,7 @@ sequenceDiagram
     participant FT as FINANCIAL_TRADES
     participant LOG as TASK_EXECUTION_LOG
 
-    CRON->>TASK: 1 AM ET trigger
+    CRON->>TASK: 3:10 AM ET trigger
     TASK->>RW: CALL SP_RETRY_WRAPPER('GENERATE_DAILY_TRADES()', 2)
     RW->>SP: Attempt 1
     SP->>TGC: Read active account configs
@@ -203,14 +203,14 @@ sequenceDiagram
     participant MA as MASTER_ACCOUNTS
     participant LOG as TASK_EXECUTION_LOG
 
-    CRON->>TASK: 6 AM UTC trigger
+    CRON->>TASK: 3:25 AM ET trigger
     TASK->>RW: CALL SP_RETRY_WRAPPER('SP_LOAD_MASTER_ACCOUNTS()', 2)
     RW->>SP: Attempt 1
     SP->>DS: SELECT with ROW_NUMBER() dedup
     Note over SP: ROW_NUMBER() OVER<br/>(PARTITION BY ssot__Id__c<br/>ORDER BY ssot__DataSourceId__c)<br/>WHERE rn = 1
     SP->>MA: MERGE (update existing + insert new)
-    SP->>LOG: INSERT (SUCCEEDED, 36813, duration)
-    SP-->>RW: Return "Merged 36813 rows on YYYY-MM-DD"
+    SP->>LOG: INSERT (SUCCEEDED, 36816, duration)
+    SP-->>RW: Return "Merged 36816 rows on YYYY-MM-DD"
     RW-->>TASK: Return "Succeeded on attempt 1: ..."
 ```
 
@@ -220,11 +220,9 @@ sequenceDiagram
 
 | Warehouse | Size | Auto-Suspend | Purpose | Tasks |
 |-----------|------|--------------|---------|-------|
-| MAIN_WH_XS | X-Small | 60s | Default; lightweight queries | TASK_LOAD_MASTER_ACCOUNTS, TASK_MONTHLY_CSAT |
-| TASK_WH | X-Small | 60s | General task execution | DAILY_ACCOUNT_SYNC, DAILY_TRANSACTION_GENERATOR, DAILY_JOB_REPORT_TASK |
-| LARGE_LOAD | X-Large | 300s | Heavy compute (trade gen) | DAILY_TRADE_GENERATOR |
-| DC_CONNECTION | X-Small | 600s | Data Cloud connector queries | Manual / ad-hoc |
-| LOAD_WH | X-Small | 60s | Legacy / one-time loads | Manual |
+| MAIN_WH_XS | X-Small | 60s | Cumulus data generation SPs; lightweight queries | TASK_LOAD_MASTER_ACCOUNTS, TASK_MONTHLY_CSAT, Cumulus daily/weekly/monthly |
+| TASK_WH | X-Small | 60s | General task execution | DAILY_ACCOUNT_SYNC, DAILY_TRANSACTION_GENERATOR, DAILY_JOB_REPORT_TASK, ENROLLMENTS_SNAPSHOT_TASK, WEEKLY_BALANCE_REPORT |
+| LARGE_LOAD | X-Large | 60s | Heavy compute (trade gen) | DAILY_TRADE_GENERATOR |
 
 ---
 
@@ -233,7 +231,7 @@ sequenceDiagram
 All scheduled tasks invoke their target procedure through `SP_RETRY_WRAPPER`:
 
 ```sql
-CALL FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.GENERATE_DAILY_TRADES()', 2);
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.GENERATE_DAILY_TRADES()', 2);
 ```
 
 | Attempt | Wait Before | Action |
@@ -260,11 +258,11 @@ The wrapper is **Snowpark Python** (`EXECUTE AS OWNER`) so it can call arbitrary
 | **One row per account** in MASTER_ACCOUNTS (not daily snapshots) | Historical tracking isn't needed — downstream consumers want "current state." MERGE in-place is simpler and eliminates table growth. |
 | **X-Large warehouse for trades only** | Trade generation processes 36K+ accounts with instrument filtering, price computation, and batch inserts. XS would take 10x longer and risk timeout. All other tasks are lightweight. |
 | **`ORG_ID` first column, additive backward-compat** (Phase A multi-org) | Adding `ORG_ID VARCHAR(18) DEFAULT 'JDO'` to every dataset table makes the schema multi-tenant-ready without invalidating existing JDO loaders. PKs were promoted to lead with ORG_ID; SP MERGE clauses now include `tgt.ORG_ID = src.ORG_ID` in their ON. The `V_ACCOUNT_ANCHORS` view is the single binding point — change the view's filter when adding org #2, no per-SP rewrites needed. See [`../../Snowflake_Cumulus_Common/docs/ROLLOUT.md`](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md). |
-| **JWT default for `snow sql`** (deploy_sp.py) | All 13 plan deploy scripts default to `snow sql -f <file>` (unflagged), which uses the active JWT connection at `~/.snowflake/connections.toml`. The OAuth-mode `GSB13421` connection still exists but is non-default — explicit `--connection GSB13421` is required to use it. JWT is service-account-friendly (no browser pop) and matches the production cron path that owns the SP runs. |
+| **Account migration (2026-06-29)** | All objects migrated from GSB13421 `FINS.PUBLIC` to SFDC_DC_TECH_ARCH `DATA_JEDAIS.FINS__PUBLIC`. Schema uses double-underscore convention to represent the logical database.schema pairing within the consolidated DATA_JEDAIS database. |
 
 ---
 
-## Cumulus dataset family (13 plans, ~3.97M rows)
+## Cumulus dataset family (13 plans, ~6.4M rows)
 
 The Cumulus pipelines live alongside this hub but are documented in their own packages. Architecture overview:
 
@@ -283,10 +281,10 @@ flowchart LR
         SP2[SP_GENERATE_MSCI_ESG_SCORES]
         SP3[...11 more SPs...]
     end
-    subgraph TABLES [13 dataset tables in FINS.PUBLIC]
-        T1[CLARITAS_DEMOGRAPHICS<br/>25,424 rows]
-        T8[MGP_FINANCIAL_PLANS<br/>883,512 rows]
-        T13[MOODYS_MARKET_CONTEXT<br/>1,025,010 rows]
+    subgraph TABLES [13 dataset tables in FINS__PUBLIC]
+        T1[CLARITAS_DEMOGRAPHICS<br/>76,272 rows]
+        T8[MGP_FINANCIAL_PLANS<br/>957,141 rows]
+        T13[MOODYS_MARKET_CONTEXT<br/>1,446,471 rows]
     end
     subgraph DC [Salesforce Data Cloud]
         DLO[13 DLOs<br/>__dll]

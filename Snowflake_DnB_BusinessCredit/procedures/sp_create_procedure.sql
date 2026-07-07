@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-3-dnb-business-credit.md
 -- Task:    Plan 3 T6
@@ -11,11 +11,11 @@
 -- Audience: ACCOUNT_TYPE_FLAG = 'BUSINESS'
 -- Cadence:  MONTHLY (TASK_MONTHLY_DNB_BUSINESS_CREDIT)
 -- Salt:     "dnb" (per-row), "duns_id" (year-stable DUNS)
--- Table:    FINS.PUBLIC.DNB_BUSINESS_CREDIT
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT
 -- Vendor:   DnB-style (Dun and Bradstreet shape) — README uses canonical name
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -98,14 +98,14 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.DNB_BUSINESS_CREDIT"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT"
 TASK_NAME    = "TASK_MONTHLY_DNB_BUSINESS_CREDIT"
 DATASET_SALT = "dnb"
 
 # Audience predicate — single source of truth for AUDIENCE_SQL + COVERAGE_SQL.
 _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'BUSINESS'"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
@@ -124,7 +124,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_DNB_BUSINESS_CREDIT
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_DNB_BUSINESS_CREDIT
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -194,7 +194,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -573,7 +573,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.DNB_BUSINESS_CREDIT tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT tgt
         USING (
             SELECT
                 ACCOUNT_ID, PROFILE_MONTH, DUNS_NUMBER, DNB_RATING,
@@ -583,7 +583,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 SUPPLIER_RISK_LEVEL, CORPORATE_FAMILY_SIZE,
                 ULTIMATE_PARENT_DUNS, VERIFICATION_STATUS,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH

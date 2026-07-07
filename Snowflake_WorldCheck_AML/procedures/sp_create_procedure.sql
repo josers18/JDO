@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-7-worldcheck-aml.md
 -- Task:    Plan 7 T6
@@ -17,7 +17,7 @@
 --           "worldcheck_case"          (year-stable; CASE_REFERENCE)
 --           THREE salts — most-multi-salt instantiation to date. Plan 5 had
 --           two ("corelogic" + "corelogic_year"); Plan 6 had one ("plaid").
--- Table:    FINS.PUBLIC.WORLD_CHECK_AML
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML
 --           Composite PK (ACCOUNT_ID, PROFILE_DATE).
 --           DC DMO collapses to single-column PK profileDate__c.
 -- 1:1:      Each anchor produces exactly one row per screening day.
@@ -25,7 +25,7 @@
 --           — README uses canonical name.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -108,7 +108,7 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE                       = "FINS.PUBLIC.WORLD_CHECK_AML"
+TABLE                       = "DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML"
 TASK_NAME                   = "TASK_DAILY_WORLD_CHECK_AML"
 DATASET_SALT                = "worldcheck"
 DATASET_SALT_JURISDICTION   = "worldcheck_jurisdiction"
@@ -116,8 +116,8 @@ DATASET_SALT_CASE           = "worldcheck_case"
 
 # Plan 7 has no audience predicate — every distinct account is screened daily.
 _AUDIENCE_PREDICATE = ""  # all-accounts; kept as empty string for symmetry
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 # 13-column output contract (kept in sync with the table DDL by the L1 schema test).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
@@ -507,7 +507,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_WORLD_CHECK_AML
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_WORLD_CHECK_AML
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -557,7 +557,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -615,7 +615,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.WORLD_CHECK_AML tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML tgt
         USING (
             SELECT
                 ACCOUNT_ID,
@@ -631,7 +631,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 CHANGE_SINCE_LAST_RUN,
                 CASE_REFERENCE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_DATE = src.PROFILE_DATE

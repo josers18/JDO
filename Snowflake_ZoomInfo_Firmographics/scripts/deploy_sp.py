@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS into FINS.PUBLIC.
+"""Deploy SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 8's `Snowflake_MoneyGuidePro_FinancialPlans/
 scripts/deploy_sp.py`. Plan 1 hand-built `procedures/sp_create_procedure.sql`
@@ -118,8 +118,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS"
-TABLE_FQN = "FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
 TASK_NAME = "TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS"
 DATASET_SALT = "zoominfo"
 
@@ -329,7 +329,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

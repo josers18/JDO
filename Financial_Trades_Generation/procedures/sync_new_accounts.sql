@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Procedure: SYNC_NEW_ACCOUNTS()
--- Database:  FINS.PUBLIC
+-- Database:  DATA_JEDAIS.FINS__PUBLIC
 -- Purpose:   Imports new accounts from the Salesforce Data Cloud shared table
 --            FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
 --            into TRADE_GENERATION_CONFIG. Filters for 001% IDs, maps source
@@ -27,12 +27,12 @@ def sync_accounts(session):
     try:
         # Get existing count before sync
         existing_count = session.sql(
-            ""SELECT COUNT(*) AS cnt FROM FINS.PUBLIC.TRADE_GENERATION_CONFIG""
+            ""SELECT COUNT(*) AS cnt FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG""
         ).collect()[0][""CNT""]
 
         # Get existing account IDs into a Python set for comparison
         existing_ids_rows = session.sql(
-            ""SELECT ACCOUNT_ID FROM FINS.PUBLIC.TRADE_GENERATION_CONFIG""
+            ""SELECT ACCOUNT_ID FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG""
         ).collect()
         existing_ids = {r[""ACCOUNT_ID""] for r in existing_ids_rows}
 
@@ -56,7 +56,7 @@ def sync_accounts(session):
         if new_count == 0:
             duration_ms = int((time.time() - start_time) * 1000)
             session.sql(
-                ""INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG ""
+                ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
                 ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
                 ""VALUES (?, ?, ?, ?, ?, ?)"",
                 params=[task_name, ""SUCCEEDED"", 0, source_count, ""No new accounts"", duration_ms]
@@ -99,7 +99,7 @@ def sync_accounts(session):
         for i in range(0, len(new_accounts), batch_size):
             batch_clauses = values_clauses[i:i+batch_size]
             batch_params = all_params[i*9:(i+batch_size)*9]
-            insert_sql = f""INSERT INTO FINS.PUBLIC.TRADE_GENERATION_CONFIG ({cols}) VALUES {'', ''.join(batch_clauses)}""
+            insert_sql = f""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG ({cols}) VALUES {'', ''.join(batch_clauses)}""
             session.sql(insert_sql, params=batch_params).collect()
             inserted += len(batch_clauses)
 
@@ -107,7 +107,7 @@ def sync_accounts(session):
         final_count = existing_count + inserted
 
         session.sql(
-            ""INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG ""
+            ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
             ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
             ""VALUES (?, ?, ?, ?, ?, ?)"",
             params=[task_name, ""SUCCEEDED"", inserted, source_count, None, duration_ms]
@@ -121,7 +121,7 @@ def sync_accounts(session):
         duration_ms = int((time.time() - start_time) * 1000)
         err_msg = str(e)[:2000]
         session.sql(
-            ""INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG ""
+            ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
             ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
             ""VALUES (?, ?, ?, ?, ?, ?)"",
             params=[task_name, ""FAILED"", 0, 0, err_msg, duration_ms]

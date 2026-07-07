@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.MSCI_ESG_SCORES
+-- DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES
 -- MSCI-style synthetic ESG ratings for Cumulus BUSINESS accounts.
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_MSCI_ESG_SCORES
@@ -16,7 +16,7 @@
 -- supplied by V_ACCOUNT_ANCHORS. See Snowflake_Cumulus_Common/docs/ROLLOUT.md.
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.MSCI_ESG_SCORES (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES (
     ORG_ID                                VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Tenant short identifier (JDO / ACME / WFB). Backward-compatible default; per-org SPs stamp explicitly.',
     ACCOUNT_ID                            VARCHAR(16777216) NOT NULL  COMMENT 'Salesforce Account ID (ssot__Id__c). FK to V_ACCOUNT_ANCHORS.',
     PROFILE_MONTH                         DATE              NOT NULL  COMMENT 'First-of-month for the run; PK component for monthly idempotency.',

@@ -11,14 +11,14 @@ Synthetic Claritas-style demographics data for Cumulus PERSON accounts. Mirrors
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.CLARITAS_DEMOGRAPHICS`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS()`
-- Task: `FINS.PUBLIC.TASK_MONTHLY_CLARITAS_DEMOGRAPHICS` (MONTHLY, `0 7 1 * * UTC`)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_CLARITAS_DEMOGRAPHICS` (MONTHLY, `0 7 1 * * UTC`)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusClaritasDemographics__dll` → DMO `CumulusClaritasDemographics__dlm`
 
 ## Audience
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'PERSON'
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'PERSON'
 ```
 
 ## Tests

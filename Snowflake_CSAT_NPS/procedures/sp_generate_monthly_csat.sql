@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_MONTHLY_CSAT
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MONTHLY_CSAT
 -- Monthly CSAT/NPS score generation procedure
 -- =============================================================================
 -- Schedule: Runs on the 1st of each month at 7 AM UTC via TASK_MONTHLY_CSAT.
@@ -19,7 +19,7 @@
 -- New accounts (no history): Default baseline of 65.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_MONTHLY_CSAT()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MONTHLY_CSAT()
 RETURNS STRING
 LANGUAGE SQL
 EXECUTE AS CALLER
@@ -31,23 +31,23 @@ BEGIN
     LET three_months_ago DATE := (SELECT DATEADD('MONTH', -3, :target_month)::DATE);
 
     -- Idempotent: remove any existing rows for this month
-    DELETE FROM FINS.PUBLIC.CSAT_NPS_DATA WHERE SCORE_DATE = :target_month;
+    DELETE FROM DATA_JEDAIS.FINS__PUBLIC.CSAT_NPS_DATA WHERE SCORE_DATE = :target_month;
 
     -- Generate scores
-    INSERT INTO FINS.PUBLIC.CSAT_NPS_DATA (ROWID, ACCOUNTID, CONTACTID, CSAT_SCORE, CSAT_DESCRIPTION, NPS_SCORE, NPS_DESCRIPTION, SCORE_DATE)
+    INSERT INTO DATA_JEDAIS.FINS__PUBLIC.CSAT_NPS_DATA (ROWID, ACCOUNTID, CONTACTID, CSAT_SCORE, CSAT_DESCRIPTION, NPS_SCORE, NPS_DESCRIPTION, SCORE_DATE)
     WITH recent_avg AS (
         SELECT
             ACCOUNTID,
             AVG(CSAT_SCORE) AS avg_csat
-        FROM FINS.PUBLIC.CSAT_NPS_DATA
+        FROM DATA_JEDAIS.FINS__PUBLIC.CSAT_NPS_DATA
         WHERE SCORE_DATE >= :three_months_ago
           AND SCORE_DATE < :target_month
         GROUP BY ACCOUNTID
     ),
     accounts AS (
         SELECT DISTINCT ACCOUNT_ID
-        FROM FINS.PUBLIC.MASTER_ACCOUNTS
-        WHERE SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM FINS.PUBLIC.MASTER_ACCOUNTS)
+        FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS
+        WHERE SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS)
     ),
     scored AS (
         SELECT
@@ -95,7 +95,7 @@ BEGIN
         FROM with_events
     )
     SELECT
-        (SELECT COALESCE(MAX(ROWID), 0) FROM FINS.PUBLIC.CSAT_NPS_DATA) + ROW_NUMBER() OVER (ORDER BY ACCOUNT_ID),
+        (SELECT COALESCE(MAX(ROWID), 0) FROM DATA_JEDAIS.FINS__PUBLIC.CSAT_NPS_DATA) + ROW_NUMBER() OVER (ORDER BY ACCOUNT_ID),
         ACCOUNT_ID,
         NULL,
         csat_score,

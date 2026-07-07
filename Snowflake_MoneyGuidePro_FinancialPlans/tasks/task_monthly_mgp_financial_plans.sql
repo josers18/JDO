@@ -1,12 +1,12 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS
 -- Scheduled task wrapping SP_GENERATE_MGP_FINANCIAL_PLANS via SP_RETRY_WRAPPER.
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-8-mgp-financial-plans.md
 -- Task:     Plan 8 T6
 -- Cadence:  MONTHLY (first of month at 07:00 UTC).
 -- Schedule: 0 7 1 * * UTC  (5-field cron: minute hour day-of-month month day-of-week)
--- Wrapper:  FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()', 2)
+-- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()', 2)
 -- Warehouse: MAIN_WH_XS
 --
 -- Pattern parity:
@@ -26,13 +26,13 @@
 --   models the real-world cadence for downstream-team education.)
 -- =============================================================================
 
-CREATE OR REPLACE TASK FINS.PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS
+CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS
     WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = 'USING CRON 0 7 1 * * UTC'
 AS
-    CALL FINS.PUBLIC.SP_RETRY_WRAPPER(
-        'FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()',
+    CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
+        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS()',
         2
     );
 
-ALTER TASK FINS.PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS RESUME;
+ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_MGP_FINANCIAL_PLANS RESUME;

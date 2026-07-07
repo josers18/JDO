@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-6-plaid-held-away.md
 -- Task:    Plan 6 T6
@@ -15,7 +15,7 @@
 --           variant (Plan 6 has no fields that hold across months).
 --           HELD_AWAY_ACCOUNT_ID IS identity-stable across months, but uses
 --           plain sha256 (NOT seed_for) to bypass month-bucketing.
--- Table:    FINS.PUBLIC.PLAID_HELD_AWAY
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY
 --           Composite PK (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH).
 --           DC DMO collapses to single-column PK heldAwayAccountId__c.
 -- 1:N:      First 1:N dataset in the rollout — each anchor produces 1-5
@@ -24,7 +24,7 @@
 --           canonical name.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -106,15 +106,15 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.PLAID_HELD_AWAY"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY"
 TASK_NAME    = "TASK_MONTHLY_PLAID_HELD_AWAY"
 DATASET_SALT = "plaid"
 
 # Audience predicate — repeated in 2 places (AUDIENCE_SQL + COVERAGE_SQL).
 # Both strings must match exactly to keep the coverage assertion meaningful.
 _AUDIENCE_PREDICATE = "CLIENT_CATEGORY IN ('Retail', 'Wealth Management')"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # 14-column output contract (kept in sync with table DDL by the L1 schema test).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
@@ -144,7 +144,7 @@ _LOAN_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_PLAID_HELD_AWAY
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_PLAID_HELD_AWAY
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -207,7 +207,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -539,7 +539,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.PLAID_HELD_AWAY tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY tgt
         USING (
             SELECT
                 ACCOUNT_ID,
@@ -556,7 +556,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 INVESTMENT_RISK_TIER,
                 INTEREST_RATE_PCT,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.HELD_AWAY_ACCOUNT_ID = src.HELD_AWAY_ACCOUNT_ID

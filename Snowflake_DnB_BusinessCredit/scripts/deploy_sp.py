@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_DNB_BUSINESS_CREDIT into FINS.PUBLIC.
+"""Deploy SP_GENERATE_DNB_BUSINESS_CREDIT into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 2's `Snowflake_MSCI_ESG/scripts/deploy_sp.py`.
 Plan 1 hand-built `procedures/sp_create_procedure.sql` once; Plan 2 automated
@@ -62,8 +62,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT"
-TABLE_FQN = "FINS.PUBLIC.DNB_BUSINESS_CREDIT"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT"
 TASK_NAME = "TASK_MONTHLY_DNB_BUSINESS_CREDIT"
 DATASET_SALT = "dnb"
 
@@ -246,7 +246,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_DNB_BUSINESS_CREDIT' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_DNB_BUSINESS_CREDIT' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

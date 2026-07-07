@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_GONG_CALL_SENTIMENT into FINS.PUBLIC.
+"""Deploy SP_GENERATE_GONG_CALL_SENTIMENT into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 6's `Snowflake_Plaid_HeldAway/scripts/deploy_sp.py`
 and Plan 8's `Snowflake_Mgp_FinancialPlans/scripts/deploy_sp.py`. Plan 1 hand-built
@@ -102,8 +102,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT"
-TABLE_FQN = "FINS.PUBLIC.GONG_CALL_SENTIMENT"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT"
 TASK_NAME = "TASK_WEEKLY_GONG_CALL_SENTIMENT"
 DATASET_SALT = "gong"
 
@@ -298,7 +298,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_GONG_CALL_SENTIMENT' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_GONG_CALL_SENTIMENT' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

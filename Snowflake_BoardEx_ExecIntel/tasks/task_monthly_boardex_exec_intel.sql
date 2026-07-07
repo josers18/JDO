@@ -1,12 +1,12 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL
 -- Scheduled task wrapping SP_GENERATE_BOARDEX_EXEC_INTEL via SP_RETRY_WRAPPER.
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-10-boardex-exec-intel.md
 -- Task:     Plan 10 T6
 -- Cadence:  MONTHLY (first of month at 07:00 UTC).
 -- Schedule: 0 7 1 * * UTC  (5-field cron: minute hour day-of-month month day-of-week)
--- Wrapper:  FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()', 2)
+-- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()', 2)
 -- Warehouse: MAIN_WH_XS
 --
 -- Pattern parity:
@@ -37,13 +37,13 @@
 --   (idempotent MERGE on composite PK ACCOUNT_ID, PROFILE_MONTH).
 -- =============================================================================
 
-CREATE OR REPLACE TASK FINS.PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL
+CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL
     WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = 'USING CRON 0 7 1 * * UTC'
 AS
-    CALL FINS.PUBLIC.SP_RETRY_WRAPPER(
-        'FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()',
+    CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
+        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()',
         2
     );
 
-ALTER TASK FINS.PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL RESUME;
+ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL RESUME;

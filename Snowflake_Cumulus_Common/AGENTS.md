@@ -9,16 +9,16 @@ Pattern mirrors `Snowflake_CSAT_NPS/`.
 
 ## Boundaries
 
-- Owns: `FINS.PUBLIC.V_ACCOUNT_ANCHORS`, `cumulus_common` Python pkg, shared anchor fixture.
+- Owns: `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`, `cumulus_common` Python pkg, shared anchor fixture.
 - Does NOT own: any dataset table, any generator SP, any TASK definition. Those live in the per-dataset sister-projects.
-- Does NOT own any outbound Snowflake share. DC ingests each `FINS.PUBLIC.<DATASET_TABLE>` via the existing "Snowflake (Federate / Zero Copy)" connector — per-dataset DC stream setup lives in each per-dataset plan's Task 8.
+- Does NOT own any outbound Snowflake share. DC ingests each `DATA_JEDAIS.FINS__PUBLIC.<DATASET_TABLE>` via the existing "Snowflake (Federate / Zero Copy)" connector — per-dataset DC stream setup lives in each per-dataset plan's Task 8.
 
 ## Conventions
 
 - DDL for shared objects goes in `schemas/` (views).
 - Python helpers go under `cumulus_common/` and are importable as `from cumulus_common.seed import seed_for`.
 - Every helper has a pytest test alongside in `tests/`.
-- Snowflake objects use the schema-qualified form `FINS.PUBLIC.<NAME>` in DDL — never rely on session schema.
+- Snowflake objects use the schema-qualified form `DATA_JEDAIS.FINS__PUBLIC.<NAME>` in DDL — never rely on session schema.
 
 ## Gotchas
 

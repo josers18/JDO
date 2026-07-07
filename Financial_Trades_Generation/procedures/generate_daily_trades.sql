@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Procedure: GENERATE_DAILY_TRADES()
--- Database:  FINS.PUBLIC
+-- Database:  DATA_JEDAIS.FINS__PUBLIC
 -- Purpose:   Generates synthetic trades for all active accounts that are due
 --            based on their configured frequency (DAILY/WEEKLY/MONTHLY).
 --            Reads from INSTRUMENT_UNIVERSE and TRADE_GENERATION_CONFIG,
@@ -198,7 +198,7 @@ def generate_trade(rng, account_id, trade_day, instrument, risk, max_val, avail_
 def log_execution(session, task_name, status, rows_inserted=0,
                   accounts_processed=0, error_message=None, duration_ms=0):
     session.sql(
-        ""INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG ""
+        ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
         ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
         ""VALUES (?, ?, ?, ?, ?, ?)"",
         params=[task_name, status, rows_inserted, accounts_processed,
@@ -216,7 +216,7 @@ def generate_trades(session):
         # Load instruments from reference table
         inst_rows = session.sql(
             ""SELECT SECTOR, TICKER, INSTRUMENT_NAME, BASE_PRICE ""
-            ""FROM FINS.PUBLIC.INSTRUMENT_UNIVERSE""
+            ""FROM DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE""
         ).collect()
         INSTRUMENTS = [
             (r[""SECTOR""], r[""TICKER""], r[""INSTRUMENT_NAME""], float(r[""BASE_PRICE""]))
@@ -232,7 +232,7 @@ def generate_trades(session):
             ""SELECT ACCOUNT_ID, ACCOUNT_NAME, ACCOUNT_TYPE, FREQUENCY, ""
             ""TRADES_PER_PERIOD, PREFERRED_SECTORS, PREFERRED_EXCHANGES, ""
             ""RISK_PROFILE, MAX_TRADE_VALUE, LAST_GENERATED_DATE ""
-            ""FROM FINS.PUBLIC.TRADE_GENERATION_CONFIG ""
+            ""FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG ""
             ""WHERE ACTIVE = TRUE""
         ).collect()
 
@@ -273,7 +273,7 @@ def generate_trades(session):
                 all_trades.append(trade)
 
             session.sql(
-                ""UPDATE FINS.PUBLIC.TRADE_GENERATION_CONFIG ""
+                ""UPDATE DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG ""
                 ""SET LAST_GENERATED_DATE = ?, LAST_UPDATED = CURRENT_TIMESTAMP() ""
                 ""WHERE ACCOUNT_ID = ?"",
                 params=[str(today), acct_id]
@@ -292,7 +292,7 @@ def generate_trades(session):
             col_list = "", "".join(cols)
             values_sql = "", "".join(values_clauses)
             insert_sql = (
-                f""INSERT INTO FINS.PUBLIC.FINANCIAL_TRADES ({col_list}) ""
+                f""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ({col_list}) ""
                 f""VALUES {values_sql}""
             )
             session.sql(insert_sql, params=all_params).collect()

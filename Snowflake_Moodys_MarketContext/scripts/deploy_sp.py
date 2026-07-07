@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_MOODYS_MARKET_CONTEXT into FINS.PUBLIC.
+"""Deploy SP_GENERATE_MOODYS_MARKET_CONTEXT into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 7's `Snowflake_WorldCheck_AML/scripts/deploy_sp.py`
 (closest analog: only other live daily-cadence plan). Plan 1 hand-built
@@ -27,7 +27,7 @@ This is the FINAL Cumulus plan in the rollout (13 of 13):
     structural-deviation count peaks here.
 
   - **Instrument-scoped, NOT account-scoped.** Reads
-    `FINS.PUBLIC.INSTRUMENT_UNIVERSE` directly — no V_ACCOUNT_ANCHORS
+    `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` directly — no V_ACCOUNT_ANCHORS
     read; no `_anchor_in_audience` predicate. Row factory takes an
     instrument record `(TICKER, INSTRUMENT_NAME, SECTOR, BASE_PRICE)`
     rather than an account anchor. Composite PK is `(TICKER, PROFILE_DATE)`
@@ -127,8 +127,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT"
-TABLE_FQN = "FINS.PUBLIC.MOODYS_MARKET_CONTEXT"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT"
 TASK_NAME = "TASK_DAILY_MOODYS_MARKET_CONTEXT"
 DATASET_SALT = "moodys"
 
@@ -341,7 +341,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MOODYS_MARKET_CONTEXT' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MOODYS_MARKET_CONTEXT' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

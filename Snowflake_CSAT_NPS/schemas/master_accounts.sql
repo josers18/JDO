@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.MASTER_ACCOUNTS
+-- DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS
 -- Current state of Salesforce Data Cloud accounts (one row per account)
 -- =============================================================================
 -- Maintained by SP_LOAD_MASTER_ACCOUNTS() via daily MERGE from the inbound
@@ -11,7 +11,7 @@
 -- updated in place.
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.MASTER_ACCOUNTS (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS (
     ACCOUNT_ID     VARCHAR(16777216) NOT NULL  COMMENT 'Salesforce Account ID (ssot__Id__c). Natural key — one row per account.',
     ACCOUNT_NAME   VARCHAR(16777216)           COMMENT 'Account display name (ssot__Name__c)',
     DATA_SOURCE    VARCHAR(16777216)           COMMENT 'Originating data source (ssot__DataSourceId__c)',

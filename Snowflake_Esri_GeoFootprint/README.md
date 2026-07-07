@@ -13,9 +13,9 @@ Synthetic Esri-style geographic enrichment per ZIP for Cumulus's customer footpr
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.ESRI_GEO_FOOTPRINT`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT()`
-- Task: `FINS.PUBLIC.TASK_MONTHLY_ESRI_GEO_FOOTPRINT` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_ESRI_GEO_FOOTPRINT` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusEsriGeoFootprint__dll` → DMO `CumulusEsriGeoFootprint__dlm`
 
 ## Audience
@@ -24,7 +24,7 @@ Synthetic Esri-style geographic enrichment per ZIP for Cumulus's customer footpr
 ```sql
 SELECT POSTAL_CODE, STATE_CODE, COUNTRY_CODE,
        COUNT(DISTINCT ACCOUNT_ID) AS CUSTOMER_COUNT
-FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 WHERE POSTAL_CODE IS NOT NULL
 GROUP BY POSTAL_CODE, STATE_CODE, COUNTRY_CODE
 ```
