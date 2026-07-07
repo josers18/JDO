@@ -116,6 +116,14 @@ const JULIE_FULL: Full360 = {
     case: { key: 'case', title: 'Case Summary', text: 'Four cases in the last quarter, mostly resolved. One mobile-deposit issue is in progress. No systemic service risk; fraud dispute was handled well and likely aided the CSAT recovery.' },
     campaign: { key: 'campaign', title: 'Campaign Summary', text: 'Julie responded to the Summer CD Promo and Refi Rate Alert — reinforcing CD and refinance intent. She was invited to the Wealth Advisory Webinar (no response yet) and is queued for the New Parent guide.' },
   },
+  property: {
+    estimatedValue: 2144601, equity: 2144601, mortgageBalance: 0, helocOpportunityScore: 96,
+    propertyType: 'Condo', floodZone: 'X', wildfireRiskScore: 55, isOwner: true, asOf: 'Jul 2026',
+  },
+  financialPlan: {
+    status: 'Stale', retirementTargetAge: 65, monthlyIncomeTarget: 10801, totalGoalAmount: 6408956,
+    goalCount: 3, recommendedAllocation: 'Moderate Conservative', nextReviewDate: '—', asOf: 'Jul 2026',
+  },
 };
 
 export function fetchFull360(accountId: string | null): Promise<Full360 | null> {

@@ -22,7 +22,7 @@ const curC = (n: number) => formatValue(n, 'currencyCompact');
 const SENT = { positive: 'var(--wp-pos)', neutral: 'var(--wp-text-faint)', negative: 'var(--wp-neg)' };
 const PRI = { High: 'var(--wp-neg)', Medium: 'var(--wp-warn)', Low: 'var(--wp-text-faint)' };
 
-export const FULL_TABS = ['Overview', 'Details', 'Journey', 'Money', 'Engagement', 'Cases', 'Opportunities', 'Campaigns', 'Notes', 'Tearsheet'] as const;
+export const FULL_TABS = ['Overview', 'Details', 'Journey', 'Money', 'Property', 'Engagement', 'Cases', 'Opportunities', 'Campaigns', 'Notes', 'Tearsheet'] as const;
 export type FullTab = (typeof FULL_TABS)[number];
 
 /**
@@ -41,9 +41,11 @@ export function Full360Tabs({
     case 'Details':
       return <GlassCard title="Details"><DetailsPanel fields={full.details} /></GlassCard>;
     case 'Journey':
-      return <GlassCard title="Journey & Goals"><JourneyGoals journey={detail.journey} goals={detail.goalRings} /></GlassCard>;
+      return <JourneyTab full={full} detail={detail} />;
     case 'Money':
       return <MoneyTab full={full} />;
+    case 'Property':
+      return <PropertyTab full={full} />;
     case 'Engagement':
       return <EngagementTab full={full} />;
     case 'Cases':
@@ -120,6 +122,94 @@ function MoneyTab({ full }: { full: Full360 }) {
       <GlassCard title="Financial Trades" action={<span style={sub}>Last 90 days</span>}>
         <DataTable columns={trCols} rows={full.trades} getRowId={r => r.id} />
       </GlassCard>
+    </div>
+  );
+}
+
+/* ---------- Journey & Goals + MoneyGuidePro financial plan ---------- */
+function JourneyTab({ full, detail }: { full: Full360; detail: Customer360Detail }) {
+  const plan = full.financialPlan;
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      {plan && (
+        <GlassCard
+          title="Financial Plan"
+          action={<span style={{ ...sub, color: /stale|overdue/i.test(plan.status) ? 'var(--wp-warn)' : 'var(--wp-pos)' }}>✦ MoneyGuidePro · {plan.status}</span>}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.85rem' }}>
+            {[
+              ['Total Goal', curC(plan.totalGoalAmount)],
+              ['Goals', String(plan.goalCount)],
+              ['Retirement Age', String(plan.retirementTargetAge)],
+              ['Monthly Income Target', cur(plan.monthlyIncomeTarget)],
+              ['Allocation', plan.recommendedAllocation],
+              ['Next Review', plan.nextReviewDate],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--wp-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
+                <div style={{ fontSize: '0.98rem', fontWeight: 700, marginTop: 2 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
+      <GlassCard title="Journey & Goals">
+        <JourneyGoals journey={detail.journey} goals={detail.goalRings} />
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ---------- Property (CoreLogic) ---------- */
+function PropertyTab({ full }: { full: Full360 }) {
+  const p = full.property;
+  if (!p) {
+    return <GlassCard title="Property"><p style={{ color: 'var(--wp-text-muted)', fontSize: '0.88rem', margin: 0 }}>No property data on file for this client.</p></GlassCard>;
+  }
+  const riskColor = (n: number) => (n >= 66 ? 'var(--wp-neg)' : n >= 33 ? 'var(--wp-warn)' : 'var(--wp-pos)');
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      <GlassCard title="Property Value & Equity" action={<span style={sub}>CoreLogic · {p.asOf}</span>}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+          {[
+            ['Estimated Value', cur(p.estimatedValue)],
+            ['Home Equity', cur(p.equity)],
+            ['Mortgage Balance', cur(p.mortgageBalance)],
+            ['Property Type', p.propertyType],
+            ['Owner-Occupied', p.isOwner ? 'Yes' : 'No'],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--wp-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: 2 }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+        <GlassCard title="HELOC Opportunity" action={<span style={sub}>✦ lending signal</span>}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: p.helocOpportunityScore >= 66 ? 'var(--wp-pos)' : 'var(--wp-text)' }}>{p.helocOpportunityScore}</span>
+            <span style={{ color: 'var(--wp-text-muted)', fontSize: '0.85rem' }}>/ 100 propensity</span>
+          </div>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '0.82rem', color: 'var(--wp-text-muted)', lineHeight: 1.5 }}>
+            {p.helocOpportunityScore >= 66
+              ? `Strong HELOC candidate — ${cur(p.equity)} in tappable equity with ${p.mortgageBalance === 0 ? 'no outstanding mortgage' : cur(p.mortgageBalance) + ' remaining'}.`
+              : 'Moderate HELOC fit based on current equity and property profile.'}
+          </p>
+        </GlassCard>
+        <GlassCard title="Property Risk">
+          <div style={{ display: 'grid', gap: '0.7rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--wp-text-muted)' }}>Flood Zone</span>
+              <span style={{ fontWeight: 700 }}>{p.floodZone}{p.floodZone === 'X' ? ' (minimal)' : ''}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--wp-text-muted)' }}>Wildfire Risk</span>
+              <span style={{ fontWeight: 700, color: riskColor(p.wildfireRiskScore) }}>{p.wildfireRiskScore} / 100</span>
+            </div>
+          </div>
+        </GlassCard>
+      </div>
     </div>
   );
 }

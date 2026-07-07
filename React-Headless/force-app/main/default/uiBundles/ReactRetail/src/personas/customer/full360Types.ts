@@ -134,6 +134,29 @@ export interface AgentforceSummary {
   text: string;
 }
 
+/* ---------- Property (CoreLogic) & Financial Plan (MoneyGuidePro) ---------- */
+export interface PropertyInfo {
+  estimatedValue: number;
+  equity: number;
+  mortgageBalance: number;
+  helocOpportunityScore: number; // 0..100
+  propertyType: string;
+  floodZone: string;
+  wildfireRiskScore: number; // 0..100
+  isOwner: boolean;
+  asOf: string;
+}
+export interface FinancialPlan {
+  status: string;            // e.g. Active / Stale
+  retirementTargetAge: number;
+  monthlyIncomeTarget: number;
+  totalGoalAmount: number;
+  goalCount: number;
+  recommendedAllocation: string;
+  nextReviewDate: string;
+  asOf: string;
+}
+
 /* ---------- The full bundle ---------- */
 export interface Full360 {
   details: DetailField[];
@@ -150,4 +173,8 @@ export interface Full360 {
   kyc: KycSummary;
   predictions: MlPrediction[];
   agentforce: Record<string, AgentforceSummary>;
+  /** CoreLogic property enrichment (null when the account has no property row). */
+  property: PropertyInfo | null;
+  /** MoneyGuidePro financial plan (null when no plan on file). */
+  financialPlan: FinancialPlan | null;
 }

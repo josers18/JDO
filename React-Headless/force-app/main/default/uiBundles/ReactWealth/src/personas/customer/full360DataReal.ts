@@ -99,7 +99,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
   if (!accountId) return null;
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
 
-  const [core, txns, tradeRows, inters, notes, csatRows, camps, gong, aml, attr, pcsat] = await Promise.all([
+  const [core, txns, tradeRows, inters, notes, csatRows, camps, gong, aml, attr, pcsat, propRows, planRows] = await Promise.all([
     executeGraphQL<CoreShape>(coreQuery(acct)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT ssot__TransactionDate__c dt, ssot__FinancialTransactionCategory__c cat, ssot__FinancialAccountTransactionType__c typ, ssot__TransactionAmount__c amt FROM ssot__FinancialAccountTransaction__dlm WHERE SFAccountID__c = '${acct}' ORDER BY ssot__TransactionDate__c DESC LIMIT 12`, 12)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT TradeDate__c dt, TradeSide__c side, InstrumentName__c inst, InstrumentIdentifier__c sym, Quantity__c qty, Price__c px, Total_Trade__c tot FROM Financial_Trades__dlm WHERE AccountID__c = '${acct}' ORDER BY TradeDate__c DESC LIMIT 10`, 10)),
@@ -111,6 +111,8 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     rows(queryDataCloud<Record<string, unknown>>(`SELECT overallRiskRating__c rating, sanctionsHit__c sanc, pepHit__c pep, adverseMediaHit__c media, lastScreenedAt__c dt FROM CumulusWorldCheckAml__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileDate__c DESC LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Churned_c__c churned FROM Attrition_Prediction__dlm WHERE PrimaryObjectPk__c = '${acct}' LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT CSAT_Score_prediction__c pred, Cross_Sell_Score__c xsell, Digital_Engagement__c dig, Complaint_Count__c comp, Segment__c seg FROM Predicted_CSAT_Output__dlm WHERE accountid__c = '${acct}' LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT estimatedPropertyValue__c val, equityUsd__c eq, outstandingMortgageBalance__c mtg, helocOpportunityScore__c heloc, primaryPropertyType__c ptype, floodZoneCode__c flood, wildfireRiskScore__c fire, isOwner__c owner, profileQuarter__c q FROM CumulusCoreLogicProperty__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileQuarter__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT planStatus__c st, retirementTargetAge__c age, monthlyIncomeTargetUsd__c inc, totalGoalAmountUsd__c goal, goalCount__c gc, recommendedAssetAllocation__c alloc, nextReviewDate__c review, profileMonth__c m FROM CumulusMgpFinancialPlans__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
   ]);
 
   const q = core.uiapi?.query;
@@ -325,8 +327,36 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     campaign: af('campaign', 'Campaign Summary', campaigns.length ? `${campaigns.length} campaign touches, ${responded} engaged. Recent interest: ${[...new Set(campaigns.filter(c => c.responded).map(c => c.type))].slice(0, 3).join(', ') || 'none yet'}.` : 'No campaign history.'),
   };
 
+  /* ---- CoreLogic property (real, per-account) ---- */
+  const p = propRows[0];
+  const property = p ? {
+    estimatedValue: dcNum(p.val),
+    equity: dcNum(p.eq),
+    mortgageBalance: dcNum(p.mtg),
+    helocOpportunityScore: Math.round(dcNum(p.heloc)),
+    propertyType: String(p.ptype ?? '—'),
+    floodZone: String(p.flood ?? '—'),
+    wildfireRiskScore: Math.round(dcNum(p.fire)),
+    isOwner: p.owner === true || String(p.owner) === 'true',
+    asOf: shortDate(p.q),
+  } : null;
+
+  /* ---- MoneyGuidePro financial plan (real, per-account) ---- */
+  const pl = planRows[0];
+  const financialPlan = pl ? {
+    status: String(pl.st ?? '—'),
+    retirementTargetAge: Math.round(dcNum(pl.age)),
+    monthlyIncomeTarget: dcNum(pl.inc),
+    totalGoalAmount: dcNum(pl.goal),
+    goalCount: Math.round(dcNum(pl.gc)),
+    recommendedAllocation: String(pl.alloc ?? '—'),
+    nextReviewDate: pl.review ? shortDate(pl.review) : '—',
+    asOf: shortDate(pl.m),
+  } : null;
+
   return {
     details, finAccounts, transactions, trades, interactions, cases, csatNps,
     opportunities, campaigns, meetingNotes, callSummaries, kyc, predictions, agentforce,
+    property, financialPlan,
   };
 }
