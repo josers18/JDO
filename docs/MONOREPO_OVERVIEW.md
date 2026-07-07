@@ -33,7 +33,7 @@ flowchart TB
     H --> |Bulk API 2.0 + Apex post-load + Data Cloud REST| SF
     D --> |ReportLab PDF generation| PDF[(Generated customer documents)]
     SC --> |V_ACCOUNT_ANCHORS feeds 13 SPs| SD
-    SD --> |Snowpark MERGE| SNOW[(FINS.PUBLIC<br/>3.97M rows · 13 tables)]
+    SD --> |Snowpark MERGE| SNOW[(DATA_JEDAIS.FINS__PUBLIC<br/>3.97M rows · 13 tables)]
     SNOW --> |Direct_Access federate / zero-copy| DC[(Salesforce Data Cloud<br/>13 DLO/DMO pairs)]
     DC --> SF
 ```

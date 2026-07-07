@@ -8,7 +8,7 @@
 --
 -- Strategy:
 --   Same fixture-cloning pattern as Plans 6, 7, 8: clone the deployed SP into
---   FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE via GET_DDL + REPLACE,
+--   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE via GET_DDL + REPLACE,
 --   redirecting the audience view, dataset table, and staging table FQNs to
 --   fixture-scoped names. Sentinel-based ordering avoids substring-collision
 --   when GONG_CALL_SENTIMENT expands to GONG_CALL_SENTIMENT_FIXTURE (otherwise
@@ -64,16 +64,16 @@
 --   1. SP_GENERATE_GONG_CALL_SENTIMENT deployed (run scripts/deploy_sp.py first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 14 anchors total.
@@ -95,7 +95,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE;
 --    cloned SP's audience SELECT compiles unchanged. ACCOUNT_ID prefix
 --    `GONG-FIX-` keeps the audience-filter assertion easy to express.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE AS
 -- 3 Wealth Management PERSON anchors -- IN AUDIENCE.
 SELECT
     'GONG-FIX-WM-01'::VARCHAR    AS ACCOUNT_ID,
@@ -139,10 +139,10 @@ UNION ALL SELECT 'GONG-FIX-SB-02', 'Mariposa Cleaners LLC',  '2026-05-28'::DATE,
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.GONG_CALL_SENTIMENT but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
-LIKE FINS.PUBLIC.GONG_CALL_SENTIMENT;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_GONG_CALL_SENTIMENT into ..._FIXTURE with FQN swaps:
@@ -160,7 +160,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'GONG_CALL_SENTIMENT_STAGING',     '__GONG_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_GONG_CALL_SENTIMENT', '__GONG_SP__');
@@ -181,7 +181,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct ACCOUNT_ID == post-filter audience size.
@@ -191,7 +191,7 @@ CALL FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
 -- (empty ACCOUNT_ID drops it). Net: exactly 5 distinct accounts emit rows.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 5
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 5
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
@@ -200,7 +200,7 @@ SELECT
 -- Audience size 5 + 1:1 weekly emit per anchor => row count = 5.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 5
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 5
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
@@ -211,7 +211,7 @@ SELECT
 -- the defensive filter dropped the 1 empty-ACCOUNT_ID Wealth edge.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE ACCOUNT_ID LIKE 'GONG-FIX-RT-%'
           OR ACCOUNT_ID LIKE 'GONG-FIX-HH-%'
           OR ACCOUNT_ID LIKE 'GONG-FIX-SB-%') = 0
@@ -226,7 +226,7 @@ SELECT
 -- - the cascade-NULL block (#11-16) and independent-gate block (#17) govern them.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE ACCOUNT_ID                IS NULL
           OR PROFILE_WEEK               IS NULL
           OR CALL_COUNT_LAST_7D         IS NULL
@@ -248,7 +248,7 @@ SELECT
 -- week_start.date(). Monday is the universal anchor.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE EXTRACT(DAYOFWEEK_ISO FROM PROFILE_WEEK) <> 1) = 0
     AS profile_week_is_monday;
 -- Expected: TRUE
@@ -267,7 +267,7 @@ SELECT
 -- 11. Cascade-NULL #6a: zero rows where CALL_COUNT_LAST_7D = 0
 -- AND TOTAL_TALK_TIME_MINUTES <> 0.
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D = 0
          AND TOTAL_TALK_TIME_MINUTES <> 0) = 0
     AS cascade_null_talk_time_invariant;
@@ -276,7 +276,7 @@ SELECT
 -- 12. Cascade-NULL #6b: zero rows where CALL_COUNT_LAST_7D = 0
 -- AND CUSTOMER_TALK_RATIO_PCT <> 0.
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D = 0
          AND CUSTOMER_TALK_RATIO_PCT <> 0) = 0
     AS cascade_null_talk_ratio_invariant;
@@ -287,7 +287,7 @@ SELECT
 -- to 'Neutral' on no-call weeks (rowspec invariant -- there's no signal
 -- to bias sentiment one way or another).
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D = 0
          AND OVERALL_SENTIMENT <> 'Neutral') = 0
     AS cascade_null_sentiment_invariant;
@@ -298,7 +298,7 @@ SELECT
 -- to NULL on no-call weeks (we never listened). NULL semantics are
 -- meaningful here -- distinct from a date 0 days ago.
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D = 0
          AND LAST_CALL_DATE IS NOT NULL) = 0
     AS cascade_null_last_call_date_invariant;
@@ -310,7 +310,7 @@ SELECT
 -- distinction is meaningful per rowspec: '' = we listened, nothing
 -- crossed threshold; NULL = we never listened.
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D = 0
          AND KEY_TOPICS_FLAGS IS NOT NULL) = 0
     AS cascade_null_key_topics_invariant;
@@ -320,7 +320,7 @@ SELECT
 -- AND ACTION_ITEMS_COUNT <> 0. The cascade gate zeros out ACTION_ITEMS_COUNT
 -- on no-call weeks.
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D = 0
          AND ACTION_ITEMS_COUNT <> 0) = 0
     AS cascade_null_action_items_invariant;
@@ -331,7 +331,7 @@ SELECT
 -- {Very Positive, Positive, Neutral, Negative, Very Negative}.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE OVERALL_SENTIMENT NOT IN
            ('Very Positive', 'Positive', 'Neutral', 'Negative', 'Very Negative')) = 0
     AS overall_sentiment_vocabulary_ok;
@@ -342,7 +342,7 @@ SELECT
 -- {Improving, Stable, Declining}.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE SENTIMENT_TREND NOT IN ('Improving', 'Stable', 'Declining')) = 0
     AS sentiment_trend_vocabulary_ok;
 -- Expected: TRUE
@@ -353,7 +353,7 @@ SELECT
 -- tail); rowspec invariant is [0, 15].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D NOT BETWEEN 0 AND 15) = 0
     AS call_count_in_range;
 -- Expected: TRUE
@@ -363,7 +363,7 @@ SELECT
 -- Capped at 600 (10h/wk) by the `_total_talk_time_minutes` helper.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE TOTAL_TALK_TIME_MINUTES NOT BETWEEN 0 AND 600) = 0
     AS total_talk_time_in_range;
 -- Expected: TRUE
@@ -372,7 +372,7 @@ SELECT
 -- 21. Range invariant #8c: CUSTOMER_TALK_RATIO_PCT in [0, 100].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CUSTOMER_TALK_RATIO_PCT NOT BETWEEN 0 AND 100) = 0
     AS customer_talk_ratio_in_range;
 -- Expected: TRUE
@@ -381,7 +381,7 @@ SELECT
 -- 22. Range invariant #8d: DEAL_RISK_SCORE in [0, 100].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE DEAL_RISK_SCORE NOT BETWEEN 0 AND 100) = 0
     AS deal_risk_score_in_range;
 -- Expected: TRUE
@@ -390,7 +390,7 @@ SELECT
 -- 23. Range invariant #8e: ACTION_ITEMS_COUNT in [0, 10].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE ACTION_ITEMS_COUNT NOT BETWEEN 0 AND 10) = 0
     AS action_items_count_in_range;
 -- Expected: TRUE
@@ -402,7 +402,7 @@ SELECT
 -- Always <= CURRENT_DATE() since week_start <= CURRENT_DATE() at run time.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE LAST_CALL_DATE IS NOT NULL
          AND LAST_CALL_DATE > CURRENT_DATE()) = 0
     AS last_call_date_not_future;
@@ -415,7 +415,7 @@ SELECT
 -- run during the calendar week.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE NEXT_SCHEDULED_CALL_DATE IS NOT NULL
          AND NEXT_SCHEDULED_CALL_DATE <= CURRENT_DATE()) = 0
     AS next_scheduled_call_date_in_future;
@@ -431,7 +431,7 @@ SELECT
 -- either widen the fixture cohort or freeze a known-good run-timestamp.
 -- ---------------------------------------------------------------------------
 SELECT EXISTS (
-    SELECT 1 FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
     WHERE CALL_COUNT_LAST_7D = 0
 ) AS at_least_one_zero_call_row_exists;
 -- Expected: TRUE (~98% chance per run; observational)
@@ -441,26 +441,26 @@ SELECT EXISTS (
 -- unchanged (MERGE-not-INSERT) and produces byte-identical output
 -- (deterministic seed bucketed on week_start).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE);
-SET hash_before      = (SELECT HASH_AGG(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE);
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE);
+SET hash_before      = (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE);
 
-CALL FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
 SELECT
-    (SELECT HASH_AGG(*) FROM FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = $hash_before
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE  (same calendar week -> byte-identical output)
 
 -- ---------------------------------------------------------------------------
 -- 28. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.GONG_CALL_SENTIMENT_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_WEEKLY_GONG_CALL_SENTIMENT_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_WEEKLY_GONG_CALL_SENTIMENT_FIXTURE';

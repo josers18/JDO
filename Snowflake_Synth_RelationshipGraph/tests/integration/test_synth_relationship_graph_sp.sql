@@ -8,7 +8,7 @@
 --
 -- Strategy:
 --   Same fixture-cloning pattern as Plans 6, 7, 8: clone the deployed SP into
---   FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE via GET_DDL +
+--   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE via GET_DDL +
 --   sentinel-ordered REPLACE, redirecting the audience view, dataset table,
 --   staging table, and task name to fixture-scoped names. Sentinel-based
 --   ordering avoids substring collision when SYNTH_RELATIONSHIP_GRAPH expands
@@ -45,16 +45,16 @@
 --   1. SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH deployed (run scripts/deploy_sp.py first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 14 anchors total.
@@ -71,7 +71,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE;
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly (15 columns) so the
 --    cloned SP's audience SELECT compiles unchanged.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE AS
 -- 6 base PERSON anchors -- mix of Retail / Wealth / Household.
 SELECT
     'SYNTH-FIX-P-01'::VARCHAR     AS ACCOUNT_ID,
@@ -107,10 +107,10 @@ UNION ALL SELECT 'SYNTH-FIX-P-10', 'Alex Brennan',    '2026-05-28'::DATE, 'House
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
-LIKE FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH into ..._FIXTURE with FQN swaps:
@@ -127,7 +127,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'SYNTH_RELATIONSHIP_GRAPH_STAGING',     '__SRG_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH', '__SRG_SP__');
@@ -148,7 +148,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct SRC_ACCOUNT_ID == 14.
@@ -156,7 +156,7 @@ CALL FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
 -- one row (SELF-fallback guarantees this regardless of cross-plan tables).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT SRC_ACCOUNT_ID) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) = 14
+    (SELECT COUNT(DISTINCT SRC_ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) = 14
     AS distinct_src_accounts_assertion_passes;
 -- Expected: TRUE
 
@@ -167,7 +167,7 @@ SELECT
 -- Upper bound is unbounded but in practice ~15-20 with this fixture.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) >= 14
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) >= 14
     AS row_count_floor_assertion_passes;
 -- Expected: TRUE
 
@@ -178,8 +178,8 @@ SELECT
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(DISTINCT a.ACCOUNT_ID)
-       FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE a
-       LEFT JOIN FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE g
+       FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE a
+       LEFT JOIN DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE g
               ON g.SRC_ACCOUNT_ID = a.ACCOUNT_ID
        WHERE g.SRC_ACCOUNT_ID IS NULL) = 0
     AS every_anchor_has_at_least_one_row;
@@ -195,7 +195,7 @@ SELECT
 -- have no entries in the cross-plan tables.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE EDGE_TYPE NOT IN
            ('HOUSEHOLD','CORPORATE_PARENT','BOARD_MEMBER',
             'ADVISOR_BOOK','REFERRAL','BUSINESS_OWNER','SELF')) = 0
@@ -211,7 +211,7 @@ SELECT
 -- is capped 10 percent dice). Asserting >= 1 is robust to seed variance.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE EDGE_TYPE = 'SELF') >= 1
     AS self_fallback_present;
 -- Expected: TRUE
@@ -222,7 +222,7 @@ SELECT
 -- CONFIDENCE_PCT == 100.00. The rowspec fixed-value contract.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE EDGE_TYPE = 'SELF'
          AND (SRC_ACCOUNT_ID <> DST_ACCOUNT_ID
               OR EDGE_WEIGHT <> 1.000
@@ -236,7 +236,7 @@ SELECT
 -- CONFIDENCE_PCT in [30.00, 99.99] (clamp range from _confidence_pct).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE EDGE_TYPE <> 'SELF'
          AND (SRC_ACCOUNT_ID = DST_ACCOUNT_ID
               OR EDGE_WEIGHT NOT BETWEEN 0.000 AND 1.000
@@ -249,7 +249,7 @@ SELECT
 -- for every row. Chronological coherence across the discovered/last-seen pair.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE EDGE_DISCOVERED_DATE > EDGE_LAST_SEEN_DATE) = 0
     AS discovered_le_last_seen;
 -- Expected: TRUE
@@ -259,7 +259,7 @@ SELECT
 -- every row. No future-dated last-seen.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE EDGE_LAST_SEEN_DATE > CURRENT_DATE()) = 0
     AS last_seen_not_future;
 -- Expected: TRUE
@@ -271,7 +271,7 @@ SELECT
 -- context).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE SRC_ACCOUNT_ID       IS NULL
           OR DST_ACCOUNT_ID       IS NULL
           OR EDGE_TYPE            IS NULL
@@ -291,7 +291,7 @@ SELECT
 -- without coupling to the test runner's calendar.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE
        WHERE EDGE_TYPE = 'SELF'
          AND EDGE_DISCOVERED_DATE <> EDGE_LAST_SEEN_DATE) = 0
     AS self_dates_collapsed_to_week_start;
@@ -302,13 +302,13 @@ SELECT
 -- unchanged (MERGE-not-INSERT) and produces byte-identical output
 -- (deterministic seed bucketed on week_start).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*)     FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE);
-SET hash_before      = (SELECT HASH_AGG(*)  FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE);
+SET row_count_before = (SELECT COUNT(*)     FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE);
+SET hash_before      = (SELECT HASH_AGG(*)  FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE);
 
-CALL FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
@@ -317,15 +317,15 @@ SELECT
 -- Same week -> same week_start -> same seed -> byte-identical edge dicts.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT HASH_AGG(*) FROM FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) = $hash_before
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE  (same calendar week -> byte-identical output)
 
 -- ---------------------------------------------------------------------------
 -- 19. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH_FIXTURE';

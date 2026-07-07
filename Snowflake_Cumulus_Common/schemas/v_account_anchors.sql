@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.V_ACCOUNT_ANCHORS
+-- DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 -- Shared anchor view — joins MASTER_ACCOUNTS to the inbound DC datashare
 -- so all 13 Cumulus generators read live anchor fields without a sync task.
 -- =============================================================================
@@ -25,7 +25,7 @@
 -- SELECTs source ORG_ID from this column to stamp dataset rows.
 -- =============================================================================
 
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS AS
 SELECT
     ma.ORG_ID,
     ma.ACCOUNT_ID,
@@ -55,10 +55,10 @@ SELECT
     -- Namespace flag
     a."External_ID_c__c"                        AS EXTERNAL_ID
 
-FROM FINS.PUBLIC.MASTER_ACCOUNTS ma
+FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS ma
 INNER JOIN FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" a
         ON a."ssot__Id__c" = ma.ACCOUNT_ID
-WHERE ma.SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM FINS.PUBLIC.MASTER_ACCOUNTS);
+WHERE ma.SNAPSHOT_DATE = (SELECT MAX(SNAPSHOT_DATE) FROM DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS);
 
-COMMENT ON VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS IS
+COMMENT ON VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS IS
 'Shared anchor view for the 13 Cumulus dataset generators. One row per active account from MASTER_ACCOUNTS, joined to the inbound FINSDC3_DATASHARE share so anchor fields stay live without a sync task. v1.2 (multi-org-additive): exposes ORG_ID column for downstream stamping; no filter yet. v1.1: address fields denormalized off Account; CPA DMO not in share. See Snowflake_Cumulus_Common/docs/ROLLOUT.md.';

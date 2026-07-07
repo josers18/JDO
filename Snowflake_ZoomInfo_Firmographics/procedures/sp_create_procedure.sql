@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-11-zoominfo-firmographics.md
 -- Task:    Plan 11 T6
@@ -22,7 +22,7 @@
 -- Salt:     "zoominfo"  (month-bucketed; SINGLE salt -- no year-stable
 --           subfields. Same shape as Plans 2/3/6/8; simpler than Plan 7's
 --           three-salt arrangement).
--- Table:    FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS
 --           Composite PK (ACCOUNT_ID, PROFILE_MONTH).
 --           DC DMO collapses to single-column PK profileMonth__c.
 -- 1:1:      Each BUSINESS anchor produces exactly one row per calendar month
@@ -51,7 +51,7 @@
 --           No ampersand-to-n sanitize needed; "ZoomInfo" is path-clean.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -135,14 +135,14 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
 TASK_NAME    = "TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS"
 DATASET_SALT = "zoominfo"
 
 # Audience predicate — single source of truth for AUDIENCE_SQL plus COVERAGE_SQL.
 _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'BUSINESS'"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
@@ -161,7 +161,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -231,7 +231,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -673,7 +673,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
         USING (
             SELECT
                 ACCOUNT_ID, PROFILE_MONTH,
@@ -684,7 +684,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 WEBSITE_DOMAIN, LINKEDIN_FOLLOWERS, TECH_STACK_FLAGS,
                 LAST_DATA_REFRESH_DATE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH

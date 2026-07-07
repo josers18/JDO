@@ -1,7 +1,7 @@
 """BoardEx / Equilar / ISS-style synthetic board-and-exec intelligence generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL. **Rebroadcast — all-accounts
+DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL. **Rebroadcast — all-accounts
 audience** (~36,813 anchors) with a 24-month history backfill companion
 SP. The original Plan 10 design narrowed to Commercial Banking only; the
 rebroadcast widens to every distinct anchor and emits one row per anchor
@@ -55,14 +55,14 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment + DDL
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.BOARDEX_EXEC_INTEL"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL"
 TASK_NAME    = "TASK_MONTHLY_BOARDEX_EXEC_INTEL"
 DATASET_SALT = "boardex"
 
 # Rebroadcast: no audience predicate. Every distinct anchor contributes.
 _AUDIENCE_PREDICATE = ""  # all-accounts
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 # 16-column output contract — v1.x multi-org-additive (ORG_ID prepended).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
@@ -419,7 +419,7 @@ def _rows_for(anchor: dict, profile_month: datetime) -> list[dict]:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
 # -------------------------------------------------------------------
 
 def main(session: Any, num_months: int = 1) -> str:
@@ -486,7 +486,7 @@ def main(session: Any, num_months: int = 1) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -543,7 +543,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.BOARDEX_EXEC_INTEL tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL tgt
         USING (
             SELECT
                 ORG_ID,
@@ -562,7 +562,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 RECENT_GOVERNANCE_EVENT_DATE,
                 LAST_DATA_REFRESH_DATE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH

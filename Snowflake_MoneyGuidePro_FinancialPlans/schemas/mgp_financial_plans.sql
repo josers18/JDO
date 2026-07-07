@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.MGP_FINANCIAL_PLANS
+-- DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS
 -- MoneyGuidePro / eMoney / NaviPlan-style synthetic financial-plan dataset
 -- per Wealth Management Cumulus customer.
 -- =============================================================================
@@ -22,7 +22,7 @@
 -- Phase A6.
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.MGP_FINANCIAL_PLANS (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS (
     ORG_ID                        VARCHAR(18)       NOT NULL DEFAULT 'JDO'  COMMENT 'Logical-tenant identifier (e.g. JDO, ACME, WFB). Stable short id chosen per org — NOT the 18-char SF Org Id, since that rotates per sandbox refresh. DEFAULT JDO keeps single-org loaders backward-compatible. PK component.',
     ACCOUNT_ID                    VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus Wealth Management customer whose plan this is. FK to ssot__Account__dlm. PK component.',
     PROFILE_MONTH                 DATE              NOT NULL  COMMENT 'First-of-month for the run (UTC). Month-bucketed for determinism — mid-month re-runs are byte-identical. PK component.',

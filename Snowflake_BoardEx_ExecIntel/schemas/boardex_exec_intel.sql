@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.BOARDEX_EXEC_INTEL
+-- DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL
 -- BoardEx / Equilar / ISS-style synthetic board director and executive
 -- intelligence dataset per Commercial Banking Cumulus customer.
 -- =============================================================================
@@ -17,7 +17,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-10-boardex-exec-intel-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.BOARDEX_EXEC_INTEL (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL (
     ORG_ID                        VARCHAR(18)       NOT NULL  DEFAULT 'JDO'
         COMMENT 'Multi-org tenant discriminator (v1.x multi-org-additive). Salesforce 18-char Org ID; defaults to JDO for the seed tenant. First component of composite PK so the same (ACCOUNT_ID, PROFILE_MONTH) can co-exist across tenants. Backward-compatible: pre-migration rows back-stamp to JDO via DEFAULT.',
     ACCOUNT_ID                    VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus Commercial Banking customer whose board / exec intelligence this is. FK to ssot__Account__dlm. PK component.',

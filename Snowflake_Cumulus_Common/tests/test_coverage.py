@@ -25,8 +25,8 @@ def test_assert_coverage_passes_when_actual_equals_expected():
     session = _mock_session([100, 100])  # expected_sql returns 100, actual_sql returns 100
     assert_coverage(
         session,
-        expected_sql="SELECT COUNT(*) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG='PERSON'",
-        actual_sql="SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.CLARITAS_DEMOGRAPHICS",
+        expected_sql="SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG='PERSON'",
+        actual_sql="SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS",
     )  # no raise
 
 
@@ -35,8 +35,8 @@ def test_assert_coverage_passes_when_actual_exceeds_expected():
     session = _mock_session([100, 250])
     assert_coverage(
         session,
-        expected_sql="SELECT COUNT(*) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE ...",
-        actual_sql="SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.PLAID_HELD_AWAY",
+        expected_sql="SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE ...",
+        actual_sql="SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY",
     )  # no raise
 
 
@@ -46,8 +46,8 @@ def test_assert_coverage_fails_with_canonical_message_format():
     with pytest.raises(RuntimeError, match=r"^coverage gap: 5 missing rows"):
         assert_coverage(
             session,
-            expected_sql="SELECT COUNT(*) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG='PERSON'",
-            actual_sql="SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.CLARITAS_DEMOGRAPHICS",
+            expected_sql="SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG='PERSON'",
+            actual_sql="SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS",
         )
 
 

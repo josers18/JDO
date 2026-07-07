@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_LOAD_MASTER_ACCOUNTS
+-- DATA_JEDAIS.FINS__PUBLIC.SP_LOAD_MASTER_ACCOUNTS
 -- Daily master accounts sync from Salesforce Data Cloud
 -- =============================================================================
 -- Schedule: Runs daily at 6 AM UTC via TASK_LOAD_MASTER_ACCOUNTS.
@@ -11,10 +11,10 @@
 -- for existing accounts and inserts any new ones. Duplicate source rows are
 -- collapsed via ROW_NUMBER() before reaching the MERGE.
 --
--- Logging: Writes execution outcome to FINS.PUBLIC.TASK_EXECUTION_LOG.
+-- Logging: Writes execution outcome to DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_LOAD_MASTER_ACCOUNTS()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_LOAD_MASTER_ACCOUNTS()
 RETURNS VARCHAR
 LANGUAGE SQL
 EXECUTE AS CALLER
@@ -29,7 +29,7 @@ BEGIN
         -- MERGE with source deduplication: ROW_NUMBER collapses duplicate
         -- ssot__Id__c rows that appear in the Data Cloud secure view due to
         -- multi-source ingestion or replication lag.
-        MERGE INTO FINS.PUBLIC.MASTER_ACCOUNTS AS tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS AS tgt
         USING (
             SELECT ACCOUNT_ID, ACCOUNT_NAME, DATA_SOURCE
             FROM (
@@ -57,7 +57,7 @@ BEGIN
 
         LET duration_ms INTEGER := (SELECT DATEDIFF('millisecond', :start_ts, CURRENT_TIMESTAMP()));
 
-        INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+        INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
             (TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
         VALUES ('LOAD_MASTER_ACCOUNTS', 'SUCCEEDED', :row_ct, :row_ct, NULL, :duration_ms);
 
@@ -67,7 +67,7 @@ BEGIN
         WHEN OTHER THEN
             LET err_msg VARCHAR := SQLERRM;
             LET duration_ms INTEGER := (SELECT DATEDIFF('millisecond', :start_ts, CURRENT_TIMESTAMP()));
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES ('LOAD_MASTER_ACCOUNTS', 'FAILED', 0, 0, :err_msg, :duration_ms);
             RAISE;

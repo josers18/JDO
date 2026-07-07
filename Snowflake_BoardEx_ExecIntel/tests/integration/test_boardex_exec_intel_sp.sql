@@ -8,7 +8,7 @@
 --
 -- Strategy:
 --   Same fixture-cloning pattern as Plans 6, 7, 8: clone the deployed SP into
---   FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE via GET_DDL + REPLACE,
+--   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE via GET_DDL + REPLACE,
 --   redirecting the audience view, dataset table, and staging table FQNs to
 --   fixture-scoped names. Sentinel-based ordering avoids substring collision
 --   when BOARDEX_EXEC_INTEL expands to BOARDEX_EXEC_INTEL_FIXTURE (otherwise
@@ -38,16 +38,16 @@
 --   1. SP_GENERATE_BOARDEX_EXEC_INTEL deployed (run scripts/deploy_sp.py first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 14 anchors total.
@@ -79,7 +79,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE;
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly so the cloned SP's
 --    audience SELECT compiles unchanged.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE AS
 -- 5 Commercial Banking anchors -- IN AUDIENCE.
 -- Archetype 1: mid-market enterprise (~8000 employees, mid-market BOARD_SIZE band).
 SELECT
@@ -119,10 +119,10 @@ UNION ALL SELECT 'BOARDEX-FIX-NCB-H2', 'Alex Brennan',            '2026-05-28'::
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.BOARDEX_EXEC_INTEL but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
-LIKE FINS.PUBLIC.BOARDEX_EXEC_INTEL;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_BOARDEX_EXEC_INTEL into ..._FIXTURE with FQN swaps:
@@ -140,7 +140,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'BOARDEX_EXEC_INTEL_STAGING',     '__BX_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_BOARDEX_EXEC_INTEL', '__BX_SP__');
@@ -161,7 +161,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct ACCOUNT_ID == post-filter audience size.
@@ -169,7 +169,7 @@ CALL FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
 -- 9 non-CB out, leaving exactly 5 distinct accounts in the dataset.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 5
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 5
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
@@ -179,7 +179,7 @@ SELECT
 -- count = 5.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 5
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 5
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
@@ -190,7 +190,7 @@ SELECT
 -- `BOARDEX-FIX-NCB-%` anchors. Equivalent: every row has the CB prefix.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE ACCOUNT_ID NOT LIKE 'BOARDEX-FIX-CB-%') = 0
     AS audience_filter_excludes_non_cb;
 -- Expected: TRUE
@@ -203,7 +203,7 @@ SELECT
 -- date-coherence block (#16).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE ACCOUNT_ID                IS NULL
           OR PROFILE_MONTH              IS NULL
           OR BOARD_SIZE                 IS NULL
@@ -227,7 +227,7 @@ SELECT
 -- smallest 5-8.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE BOARD_SIZE NOT BETWEEN 5 AND 15) = 0
     AS board_size_in_range;
 -- Expected: TRUE
@@ -238,7 +238,7 @@ SELECT
 -- is the wider [0,100] band.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE BOARD_INDEPENDENCE_PCT NOT BETWEEN 0.00 AND 100.00) = 0
     AS board_independence_pct_in_range;
 -- Expected: TRUE
@@ -247,7 +247,7 @@ SELECT
 -- 12. Range invariant #6b: WOMEN_BOARD_PCT in [0.00, 100.00].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE WOMEN_BOARD_PCT NOT BETWEEN 0.00 AND 100.00) = 0
     AS women_board_pct_in_range;
 -- Expected: TRUE
@@ -256,7 +256,7 @@ SELECT
 -- 13. Range invariant #6c: MINORITY_BOARD_PCT in [0.00, 100.00].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE MINORITY_BOARD_PCT NOT BETWEEN 0.00 AND 100.00) = 0
     AS minority_board_pct_in_range;
 -- Expected: TRUE
@@ -266,7 +266,7 @@ SELECT
 -- 5-tier set {Excellent, Strong, Adequate, Weak, Concerning}.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE GOVERNANCE_RATING NOT IN
            ('Excellent','Strong','Adequate','Weak','Concerning')) = 0
     AS governance_rating_vocabulary_ok;
@@ -280,7 +280,7 @@ SELECT
 -- truncated (Plan 5 / Plan 8 finding).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE EXEC_TURNOVER_FLAG NOT IN (TRUE, FALSE)) = 0
     AS exec_turnover_flag_boolean_typed;
 -- Expected: TRUE
@@ -290,7 +290,7 @@ SELECT
 -- _interlock_count distribution clamps to {0,1,2,3,4,5}.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE INTERLOCK_COUNT NOT BETWEEN 0 AND 5) = 0
     AS interlock_count_in_range;
 -- Expected: TRUE
@@ -300,7 +300,7 @@ SELECT
 -- Per rowspec the SP draws 1-30 days before run_ts.date().
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE LAST_DATA_REFRESH_DATE > CURRENT_DATE()) = 0
     AS last_data_refresh_not_future;
 -- Expected: TRUE
@@ -311,7 +311,7 @@ SELECT
 -- run_ts.date() with an independent 30%/70% Bernoulli; NULLs are exempt.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
        WHERE RECENT_GOVERNANCE_EVENT_DATE IS NOT NULL
          AND RECENT_GOVERNANCE_EVENT_DATE > CURRENT_DATE()) = 0
     AS recent_governance_event_not_future;
@@ -321,13 +321,13 @@ SELECT
 -- 19. Idempotency assertion #11a: a second run leaves the row count
 -- unchanged (MERGE-not-INSERT).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE);
-SET hash_before      = (SELECT HASH_AGG(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE);
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE);
+SET hash_before      = (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE);
 
-CALL FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
 
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
@@ -336,15 +336,15 @@ SELECT
 -- bucketed on month_start).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT HASH_AGG(*) FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = $hash_before
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE  (same calendar month -> byte-identical output)
 
 -- ---------------------------------------------------------------------------
 -- 21. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_BOARDEX_EXEC_INTEL_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_BOARDEX_EXEC_INTEL_FIXTURE';

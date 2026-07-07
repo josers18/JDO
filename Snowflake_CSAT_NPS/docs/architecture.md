@@ -30,7 +30,7 @@ flowchart LR
     subgraph Source
         DC["Salesforce Data Cloud<br/>FINSDC3_DATASHARE"]
     end
-    subgraph "FINS.PUBLIC"
+    subgraph "DATA_JEDAIS.FINS__PUBLIC"
         MA["MASTER_ACCOUNTS<br/>(daily snapshot)"]
         CSAT["CSAT_NPS_DATA<br/>(monthly scores)"]
     end

@@ -13,16 +13,16 @@ Synthetic BoardEx / Equilar / ISS-style board director and executive intelligenc
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.BOARDEX_EXEC_INTEL`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()`
-- Task: `FINS.PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusBoardExExecIntel__dll` → DMO `CumulusBoardExExecIntel__dlm`
 
 ## Audience
 **Commercial Banking only** — every distinct anchor in `V_ACCOUNT_ANCHORS` whose `CLIENT_CATEGORY = 'Commercial Banking'`. BoardEx-style governance intelligence is a Commercial / Corporate Banking product: Retail customers don't have boards, Wealth clients are individuals, and Small Business is too small to maintain formal governance structures. Commercial Banking is the only audience where every anchor is plausibly an enterprise with a board. The audience predicate:
 
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 WHERE CLIENT_CATEGORY = 'Commercial Banking'
 ```
 

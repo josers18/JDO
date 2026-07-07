@@ -1,6 +1,6 @@
 """MSCI-style synthetic ESG ratings generator.
 
-Snowpark Python stored procedure registered as FINS.PUBLIC.SP_GENERATE_MSCI_ESG_SCORES.
+Snowpark Python stored procedure registered as DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MSCI_ESG_SCORES.
 Mirrors the canonical 5-step pattern from the Cumulus umbrella spec §5.1.
 
 Audience: ACCOUNT_TYPE_FLAG = 'BUSINESS'  (~12K rows; over-count vs CRM ~5K
@@ -27,7 +27,7 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.MSCI_ESG_SCORES"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES"
 TASK_NAME    = "TASK_MONTHLY_MSCI_ESG_SCORES"
 DATASET_SALT = "msci"
 
@@ -35,8 +35,8 @@ DATASET_SALT = "msci"
 # A drift between the two would silently produce a coverage gap; we keep them
 # both anchored on this single string.
 _AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'BUSINESS'"
-AUDIENCE_SQL = f"SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
-COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
+COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 # Long-term fix: backfill PersonBirthdate__c upstream so the Person Account
@@ -58,7 +58,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_MSCI_ESG_SCORES
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_MSCI_ESG_SCORES
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -131,7 +131,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -400,7 +400,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.MSCI_ESG_SCORES tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES tgt
         USING (
             SELECT
                 ORG_ID,
@@ -411,7 +411,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 CONTROVERSY_FLAG_COUNT, TOP_CONTROVERSY_CATEGORY,
                 MATERIALITY_TAGS, LAST_RATING_CHANGE_DIRECTION,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID

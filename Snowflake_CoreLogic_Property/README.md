@@ -13,9 +13,9 @@ Synthetic CoreLogic-style property records per PERSON account for Cumulus's cust
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.CORELOGIC_PROPERTY`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY()`
-- Task: `FINS.PUBLIC.TASK_QUARTERLY_CORELOGIC_PROPERTY` (QUARTERLY, `0 8 1 1,4,7,10 * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_QUARTERLY_CORELOGIC_PROPERTY` (QUARTERLY, `0 8 1 1,4,7,10 * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusCoreLogicProperty__dll` → DMO `CumulusCoreLogicProperty__dlm`
 
 ## Audience
@@ -23,7 +23,7 @@ Synthetic CoreLogic-style property records per PERSON account for Cumulus's cust
 
 ```sql
 SELECT DISTINCT ACCOUNT_ID
-FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 WHERE ACCOUNT_TYPE_FLAG = 'PERSON'
   AND POSTAL_CODE IS NOT NULL
   AND POSTAL_CODE <> ''

@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_LOAD_MASTER_ACCOUNTS
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_LOAD_MASTER_ACCOUNTS
 -- Daily account snapshot from Salesforce Data Cloud
 -- =============================================================================
 -- Runs every day at 6 AM UTC.
@@ -7,10 +7,10 @@
 -- from the FINSDC3_DATASHARE inbound datashare.
 -- =============================================================================
 
-CREATE OR REPLACE TASK FINS.PUBLIC.TASK_LOAD_MASTER_ACCOUNTS
+CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_LOAD_MASTER_ACCOUNTS
     WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = 'USING CRON 0 6 * * * UTC'
-AS CALL FINS.PUBLIC.SP_LOAD_MASTER_ACCOUNTS();
+AS CALL DATA_JEDAIS.FINS__PUBLIC.SP_LOAD_MASTER_ACCOUNTS();
 
 -- Enable the task
-ALTER TASK FINS.PUBLIC.TASK_LOAD_MASTER_ACCOUNTS RESUME;
+ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_LOAD_MASTER_ACCOUNTS RESUME;

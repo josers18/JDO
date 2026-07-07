@@ -1,7 +1,7 @@
 """MoneyGuidePro / eMoney / NaviPlan-style synthetic financial-plan generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS. Cumulus rebroadcast (v2):
+DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS. Cumulus rebroadcast (v2):
 all-accounts audience (~36,813 anchors, PERSON + BUSINESS) with current-month
 emission. The companion backfill SP (sp_backfill_mgp_financial_plans) iterates
 the same row-factory across 24 months for ~884K rows — eliminating the 89%
@@ -47,15 +47,15 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.MGP_FINANCIAL_PLANS"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS"
 TASK_NAME    = "TASK_MONTHLY_MGP_FINANCIAL_PLANS"
 DATASET_SALT = "mgp"
 
 # All-accounts audience — no predicate. Empty string kept for symmetry with
 # Plans 1-7 (where this slot held a CLIENT_CATEGORY filter).
 _AUDIENCE_PREDICATE = ""
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "ORG_ID", "ACCOUNT_ID", "PROFILE_MONTH",
@@ -411,7 +411,7 @@ def _rows_for(anchor: dict, profile_month: date | datetime) -> list[dict]:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MGP_FINANCIAL_PLANS
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_MGP_FINANCIAL_PLANS
 # -------------------------------------------------------------------
 
 def main(session: Any, num_months: int = 1) -> str:
@@ -490,7 +490,7 @@ def main(session: Any, num_months: int = 1) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -547,7 +547,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.MGP_FINANCIAL_PLANS tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS tgt
         USING (
             SELECT
                 ORG_ID,
@@ -565,7 +565,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 NEXT_REVIEW_DATE,
                 ADVISOR_NOTES_FLAG::BOOLEAN AS ADVISOR_NOTES_FLAG,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID

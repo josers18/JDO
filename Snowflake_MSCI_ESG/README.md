@@ -11,14 +11,14 @@ Synthetic MSCI-style ESG ratings for Cumulus BUSINESS accounts. Mirrors
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.MSCI_ESG_SCORES`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_MSCI_ESG_SCORES()`
-- Task: `FINS.PUBLIC.TASK_MONTHLY_MSCI_ESG_SCORES` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MSCI_ESG_SCORES()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_MSCI_ESG_SCORES` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusMSCIESG__dll` → DMO `CumulusMSCIESG__dlm`
 
 ## Audience
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'
 ```
 
 ## Tests

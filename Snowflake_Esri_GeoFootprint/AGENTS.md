@@ -5,7 +5,7 @@ Synthetic Esri-style geographic enrichment dataset for the Cumulus FSC demo. One
 > **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(BRANCH_ZIP, PROFILE_MONTH)` to `(ORG_ID, BRANCH_ZIP, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). **AUDIENCE_SQL also updated**: `GROUP BY` adds ORG_ID alongside POSTAL_CODE/STATE_CODE/COUNTRY_CODE, and coverage uses `COUNT(DISTINCT (ORG_ID || '|' || BRANCH_ZIP))` so ZIPs across orgs don't collide. Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
 
 ## Boundaries
-- Owns: `FINS.PUBLIC.ESRI_GEO_FOOTPRINT`, `SP_GENERATE_ESRI_GEO_FOOTPRINT`, `TASK_MONTHLY_ESRI_GEO_FOOTPRINT`, and the DC Data Stream / DLO / DMO that federates this table.
+- Owns: `DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT`, `SP_GENERATE_ESRI_GEO_FOOTPRINT`, `TASK_MONTHLY_ESRI_GEO_FOOTPRINT`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
 - **Branch-scoped, not account-scoped** — rows are keyed by `BRANCH_ZIP`, NOT `ACCOUNT_ID`. The geo metadata stands alone in DC; **no FK from `BRANCH_ZIP` to `ssot__Account__dlm`**. Downstream joins are soft (`branchZip__c = postalCode__c`).

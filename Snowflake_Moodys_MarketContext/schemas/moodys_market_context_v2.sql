@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.MOODYS_MARKET_CONTEXT (v2 — re-scoped to per-BUSINESS-account)
+-- DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT (v2 — re-scoped to per-BUSINESS-account)
 -- Moody''s Investors Service / Moody''s Analytics-style synthetic credit-rating
 -- + market-context dataset per Cumulus BUSINESS account, daily snapshot.
 -- =============================================================================
@@ -29,10 +29,10 @@
 
 -- Drop the old instrument-scoped table (and its staging) before recreating.
 -- T7 owns the DC stream / DLO / DMO teardown — handled separately.
-DROP TABLE IF EXISTS FINS.PUBLIC.MOODYS_MARKET_CONTEXT_STAGING;
-DROP TABLE IF EXISTS FINS.PUBLIC.MOODYS_MARKET_CONTEXT;
+DROP TABLE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_STAGING;
+DROP TABLE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT;
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.MOODYS_MARKET_CONTEXT (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT (
     ACCOUNT_ID                   VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID from V_ACCOUNT_ANCHORS — the Cumulus BUSINESS account this market-context tile describes. PK component. Joinable to ssot__Account__dlm.ssot__Id__c for downstream queries.',
     PROFILE_DATE                 DATE              NOT NULL  COMMENT 'Snapshot date (UTC). Day-bucketed for determinism — mid-day re-runs are byte-identical. PK component. Backfill emits one row per (ACCOUNT_ID, PROFILE_DATE) over the prior 90 days; daily SP appends one new PROFILE_DATE per run.',
     CREDIT_RATING                VARCHAR(10)       NOT NULL  COMMENT 'Moody''s-style 22-rating + NR taxonomy: Aaa..C plus NR. Year-stable per ACCOUNT_ID via salt "moodys_year". INDUSTRY-biased distribution (Banking clusters A/Baa, Technology spans Aaa..Caa1, Energy clusters Baa/Ba, etc.). Default fallback distribution applied when INDUSTRY is None / unknown.',

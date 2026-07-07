@@ -13,16 +13,16 @@ Synthetic LSEG World-Check / Dow Jones Risk & Compliance / ComplyAdvantage-style
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.WORLD_CHECK_AML`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML()`
-- Task: `FINS.PUBLIC.TASK_DAILY_WORLD_CHECK_AML` (DAILY, `0 6 * * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_WORLD_CHECK_AML` (DAILY, `0 6 * * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusWorldCheckAml__dll` → DMO `CumulusWorldCheckAml__dlm`
 
 ## Audience
 **All-accounts** — every distinct anchor in `V_ACCOUNT_ANCHORS` is screened daily, regardless of CLIENT_CATEGORY. AML has no opt-out cohort (legal posture):
 
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 ```
 
 Live cardinality (probed 2026-05-28): **36,813 distinct accounts** (37,445 raw rows with 1.7% MASTER_ACCOUNTS duplicates collapsed by `DISTINCT`). Each anchor emits exactly one screening row per day → **~36,813 rows/day**.

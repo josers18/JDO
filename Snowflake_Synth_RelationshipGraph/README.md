@@ -14,16 +14,16 @@ Synthesized directed relationship-graph dataset stitching together household mem
 - SOFT-depends on: [Snowflake_Claritas_Demographics](../Snowflake_Claritas_Demographics) (Plan 1, HOUSEHOLD edges), [Snowflake_DnB_BusinessCredit](../Snowflake_DnB_BusinessCredit) (Plan 3, CORPORATE_PARENT edges), [Snowflake_BoardEx_ExecIntel](../Snowflake_BoardEx_ExecIntel) (Plan 10, BOARD_MEMBER edges) — each absorbed by the SELF-fallback if absent
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH()`
-- Task: `FINS.PUBLIC.TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH` (WEEKLY, `0 5 * * 1 UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH` (WEEKLY, `0 5 * * 1 UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusRelationshipGraph__dll` → DMO `CumulusRelationshipGraph__dlm`
 
 ## Audience
 **All accounts** — every distinct anchor in `V_ACCOUNT_ANCHORS`. A relationship graph that excludes any account is a graph with holes. The audience predicate is the most permissive in the rollout:
 
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 ```
 
 Live cardinality (probed 2026-05-28): **36,813 distinct anchors** (37,445 raw `V_ACCOUNT_ANCHORS` rows due to the known 1.7% MASTER_ACCOUNTS dup discovered in Plan 0 v1.5). Audience SQL must use `SELECT DISTINCT` defensively until the upstream MASTER_ACCOUNTS dedup ships. Second all-accounts audience in the rollout (Plan 7 World-Check AML was first); same dedup caveat applies.

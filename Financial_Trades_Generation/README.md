@@ -8,8 +8,8 @@
 [![Data Cloud](https://img.shields.io/badge/Data_Cloud-Account_Sync-7F56D9?style=for-the-badge)](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/query-guide-get-started.html)
 
 [![Scheduled Tasks](https://img.shields.io/badge/Tasks-CRON_Scheduled-5865F2?style=for-the-badge)](https://docs.snowflake.com/en/user-guide/tasks-intro)
-[![Trades](https://img.shields.io/badge/Trades-1.5M+-04844B?style=for-the-badge)](schemas/financial_trades.sql)
-[![Accounts](https://img.shields.io/badge/Accounts-645-032D60?style=for-the-badge)](schemas/trade_generation_config.sql)
+[![Trades](https://img.shields.io/badge/Trades-3.28M+-04844B?style=for-the-badge)](schemas/financial_trades.sql)
+[![Accounts](https://img.shields.io/badge/Accounts-36,756-032D60?style=for-the-badge)](schemas/trade_generation_config.sql)
 [![Instruments](https://img.shields.io/badge/Instruments-2%2C004-111111?style=for-the-badge)](schemas/instrument_universe.sql)
 
 [![GitHub](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
@@ -18,19 +18,17 @@
 
 </div>
 
-A Snowflake-native automated trade generation pipeline that produces realistic synthetic financial trade data for 645 accounts across 2,004 instruments, with configurable frequency, risk profiles, and volume controls.
+A Snowflake-native automated trade generation pipeline that produces realistic synthetic financial trade data for 36,756 accounts across 2,004 instruments, with configurable frequency, risk profiles, and volume controls.
 
 ## Data at a Glance
 
 | Metric | Value |
 |---|---|
-| Total trades | 1,531,879 |
-| Active accounts | 645 |
+| Total trades | 3,279,536 |
+| Active accounts | 36,756 |
 | Instrument universe | 2,004 tickers |
 | Date range | June 2024 -- present |
-| Trading days covered | 489 |
-| Avg trade value | $95,226 |
-| Price range | $8.65 -- $802.69 |
+| Avg trade value | ~$95,000 |
 
 ## Architecture
 
@@ -42,12 +40,12 @@ graph LR
     end
 
     subgraph "Configuration"
-        C["TRADE_GENERATION_CONFIG<br/>(645 accounts)"]
+        C["TRADE_GENERATION_CONFIG<br/>(36,756 accounts)"]
     end
 
     subgraph "Scheduled Tasks"
-        T1["DAILY_ACCOUNT_SYNC<br/>Midnight ET"]
-        T2["DAILY_TRADE_GENERATOR<br/>1:00 AM ET"]
+        T1["DAILY_ACCOUNT_SYNC<br/>3:00 AM ET"]
+        T2["DAILY_TRADE_GENERATOR<br/>3:10 AM ET"]
     end
 
     subgraph "Procedures"
@@ -57,7 +55,7 @@ graph LR
     end
 
     subgraph "Output"
-        D["FINANCIAL_TRADES<br/>(1.5M+ rows)"]
+        D["FINANCIAL_TRADES<br/>(3.28M+ rows)"]
         E["TASK_EXECUTION_LOG"]
     end
 
@@ -78,10 +76,10 @@ graph LR
 
 | Time (ET) | Task | Procedure | Purpose |
 |---|---|---|---|
-| 12:00 AM | `DAILY_ACCOUNT_SYNC` | `SYNC_NEW_ACCOUNTS()` | Check for new org accounts, add to config |
-| 1:00 AM | `DAILY_TRADE_GENERATOR` | `GENERATE_DAILY_TRADES()` | Generate trades for all active accounts |
+| 3:00 AM | `DAILY_ACCOUNT_SYNC` | `SYNC_NEW_ACCOUNTS()` | Check for new org accounts, add to config |
+| 3:10 AM | `DAILY_TRADE_GENERATOR` | `GENERATE_DAILY_TRADES()` | Generate trades for all active accounts |
 
-The 1-hour gap ensures newly synced accounts are available before trade generation runs.
+The 10-minute gap ensures newly synced accounts are available before trade generation runs.
 
 ## Database Objects
 
@@ -89,10 +87,10 @@ The 1-hour gap ensures newly synced accounts are available before trade generati
 
 | Table | Rows | Purpose |
 |---|---|---|
-| [`FINANCIAL_TRADES`](schemas/financial_trades.sql) | 1,531,879 | Primary output -- all generated trades (25 columns) |
-| [`TRADE_GENERATION_CONFIG`](schemas/trade_generation_config.sql) | 645 | Per-account generation settings (frequency, risk, volume) |
+| [`FINANCIAL_TRADES`](schemas/financial_trades.sql) | 3,279,536 | Primary output -- all generated trades (25 columns) |
+| [`TRADE_GENERATION_CONFIG`](schemas/trade_generation_config.sql) | 36,756 | Per-account generation settings (frequency, risk, volume) |
 | [`INSTRUMENT_UNIVERSE`](schemas/instrument_universe.sql) | 2,004 | Reference table of tradeable instruments |
-| [`TASK_EXECUTION_LOG`](schemas/task_execution_log.sql) | 53+ | Execution audit trail for all procedures |
+| [`TASK_EXECUTION_LOG`](schemas/task_execution_log.sql) | 549+ | Execution audit trail for all procedures |
 
 ### Stored Procedures
 
@@ -106,8 +104,8 @@ The 1-hour gap ensures newly synced accounts are available before trade generati
 
 | Task | Schedule | Definition |
 |---|---|---|
-| [`DAILY_ACCOUNT_SYNC`](tasks/daily_account_sync.sql) | Midnight ET daily | `CALL SYNC_NEW_ACCOUNTS()` |
-| [`DAILY_TRADE_GENERATOR`](tasks/daily_trade_generator.sql) | 1:00 AM ET daily | `CALL GENERATE_DAILY_TRADES()` |
+| [`DAILY_ACCOUNT_SYNC`](tasks/daily_account_sync.sql) | 3:00 AM ET daily | `CALL SYNC_NEW_ACCOUNTS()` |
+| [`DAILY_TRADE_GENERATOR`](tasks/daily_trade_generator.sql) | 3:10 AM ET daily | `CALL GENERATE_DAILY_TRADES()` |
 
 ## Account Configuration
 
@@ -144,19 +142,19 @@ Accounts are sourced from the Salesforce Data Cloud shared table `FINSDC3_DATASH
 
 ```sql
 -- Generate today's trades
-CALL FINS.PUBLIC.GENERATE_DAILY_TRADES();
+CALL DATA_JEDAIS.FINS__PUBLIC.GENERATE_DAILY_TRADES();
 
 -- Sync new accounts from org
-CALL FINS.PUBLIC.SYNC_NEW_ACCOUNTS();
+CALL DATA_JEDAIS.FINS__PUBLIC.SYNC_NEW_ACCOUNTS();
 
 -- Backfill historical trades for a date range
-CALL FINS.PUBLIC.GENERATE_HISTORICAL_TRADES('2024-06-01'::DATE, '2024-12-31'::DATE);
+CALL DATA_JEDAIS.FINS__PUBLIC.GENERATE_HISTORICAL_TRADES('2024-06-01'::DATE, '2024-12-31'::DATE);
 
 -- Check execution history
-SELECT * FROM FINS.PUBLIC.TASK_EXECUTION_LOG ORDER BY EXECUTION_TIME DESC LIMIT 10;
+SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ORDER BY EXECUTION_TIME DESC LIMIT 10;
 
 -- Verify task schedules
-SHOW TASKS IN SCHEMA FINS.PUBLIC;
+SHOW TASKS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 ```
 
 ## Detailed Documentation
@@ -170,8 +168,8 @@ SHOW TASKS IN SCHEMA FINS.PUBLIC;
 
 | Setting | Value |
 |---|---|
-| Database | `FINS` |
-| Schema | `PUBLIC` |
+| Database | `DATA_JEDAIS` |
+| Schema | `FINS__PUBLIC` |
 | Task Warehouse | `TASK_WH` (X-Small) |
 | Backfill Warehouse | `LARGE_LOAD` (X-Large, recommended) |
 | Role | `SYSADMIN` |

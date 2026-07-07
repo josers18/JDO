@@ -1,7 +1,7 @@
 """LSEG World-Check / Dow Jones / ComplyAdvantage-style synthetic AML generator.
 
 Snowpark Python stored procedure registered as
-FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML. **First daily-cadence Cumulus
+DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML. **First daily-cadence Cumulus
 dataset** AND **first all-accounts-audience dataset.** Emits exactly one
 row per distinct anchor per screening day (1:1, ~36,813 rows/day).
 
@@ -36,7 +36,7 @@ from cumulus_common import seed_for, assert_coverage
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE                       = "FINS.PUBLIC.WORLD_CHECK_AML"
+TABLE                       = "DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML"
 TASK_NAME                   = "TASK_DAILY_WORLD_CHECK_AML"
 DATASET_SALT                = "worldcheck"
 DATASET_SALT_JURISDICTION   = "worldcheck_jurisdiction"
@@ -44,8 +44,8 @@ DATASET_SALT_CASE           = "worldcheck_case"
 
 # Plan 7 has no audience predicate — every distinct account is screened daily.
 _AUDIENCE_PREDICATE = ""  # all-accounts; kept as empty string for symmetry
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 # 14-column output contract (v1.x multi-org-additive: ORG_ID added as
 # leading PK column; backward-compatible default 'JDO'). Kept in sync with
@@ -443,7 +443,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_WORLD_CHECK_AML
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_WORLD_CHECK_AML
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -493,7 +493,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -551,7 +551,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.WORLD_CHECK_AML tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML tgt
         USING (
             SELECT
                 ORG_ID,
@@ -568,7 +568,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 CHANGE_SINCE_LAST_RUN,
                 CASE_REFERENCE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID

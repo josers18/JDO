@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.MOODYS_MARKET_CONTEXT (v2.x — multi-org-additive)
+-- DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT (v2.x — multi-org-additive)
 -- Moody''s Investors Service / Moody''s Analytics-style synthetic credit-rating
 -- + market-context dataset per Cumulus BUSINESS account, daily snapshot.
 -- =============================================================================
@@ -30,7 +30,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-13-moodys-market-context-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.MOODYS_MARKET_CONTEXT (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT (
     ORG_ID                       VARCHAR(18)       NOT NULL  DEFAULT 'JDO'  COMMENT 'Tenant / org identifier. NOT NULL with DEFAULT ''JDO'' for backward-compatible additive multi-org migration — existing rows back-fill via DEFAULT; future second-org rows stamp their own ORG_ID. PK first component.',
     ACCOUNT_ID                   VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID from V_ACCOUNT_ANCHORS — the Cumulus BUSINESS account this market-context tile describes. PK component. Joinable to ssot__Account__dlm.ssot__Id__c for downstream queries.',
     PROFILE_DATE                 DATE              NOT NULL  COMMENT 'Snapshot date (UTC). Day-bucketed for determinism — mid-day re-runs are byte-identical. PK component. Backfill emits one row per (ACCOUNT_ID, PROFILE_DATE) over the prior 90 days; daily SP appends one new PROFILE_DATE per run.',

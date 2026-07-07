@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.CLARITAS_DEMOGRAPHICS
+-- DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS
 -- Claritas-style synthetic demographics for Cumulus PERSON accounts.
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_CLARITAS_DEMOGRAPHICS
@@ -10,7 +10,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-1-claritas-demographics-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.CLARITAS_DEMOGRAPHICS (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS (
     ORG_ID                        VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'v1.x multi-org-additive: ORG_ID stamped from V_ACCOUNT_ANCHORS; default JDO is the backward-compat backstop. Leads the PK so two orgs holding the same SF ACCOUNT_ID never clobber each other.',
     ACCOUNT_ID                    VARCHAR(16777216) NOT NULL  COMMENT 'Salesforce Account ID (ssot__Id__c). FK to V_ACCOUNT_ANCHORS.',
     PROFILE_MONTH                 DATE              NOT NULL  COMMENT 'First-of-month for the run; PK component for monthly idempotency.',

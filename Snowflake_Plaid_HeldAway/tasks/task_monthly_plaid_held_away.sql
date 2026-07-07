@@ -1,12 +1,12 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY
 -- Scheduled task wrapping SP_GENERATE_PLAID_HELD_AWAY via SP_RETRY_WRAPPER.
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-6-plaid-held-away.md
 -- Task:     Plan 6 T6
 -- Cadence:  MONTHLY (1st of every month at 07:00 UTC)
 -- Schedule: 0 7 1 * * UTC
--- Wrapper:  FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()', 2)
+-- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()', 2)
 -- Warehouse: MAIN_WH_XS
 --
 -- Pattern parity:
@@ -16,13 +16,13 @@
 --   Only the cron differs from Plan 5.
 -- =============================================================================
 
-CREATE OR REPLACE TASK FINS.PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY
+CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY
     WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = 'USING CRON 0 7 1 * * UTC'
 AS
-    CALL FINS.PUBLIC.SP_RETRY_WRAPPER(
-        'FINS.PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()',
+    CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
+        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()',
         2
     );
 
-ALTER TASK FINS.PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY RESUME;
+ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY RESUME;

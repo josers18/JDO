@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_WORLD_CHECK_AML into FINS.PUBLIC.
+"""Deploy SP_GENERATE_WORLD_CHECK_AML into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 6's `Snowflake_Plaid_HeldAway/scripts/deploy_sp.py`.
 Plan 1 hand-built `procedures/sp_create_procedure.sql` once; Plan 2 automated
@@ -127,8 +127,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_WORLD_CHECK_AML"
-TABLE_FQN = "FINS.PUBLIC.WORLD_CHECK_AML"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML"
 TASK_NAME = "TASK_DAILY_WORLD_CHECK_AML"
 DATASET_SALT = "worldcheck"
 
@@ -319,7 +319,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_WORLD_CHECK_AML' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_WORLD_CHECK_AML' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

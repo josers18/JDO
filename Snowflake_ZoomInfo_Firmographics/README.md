@@ -13,14 +13,14 @@ Synthetic ZoomInfo / DiscoverOrg / Crunchbase-style company-level firmographics 
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.ZOOMINFO_FIRMOGRAPHICS`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()`
-- Task: `FINS.PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusZoomInfoFirmographics__dll` → DMO `CumulusZoomInfoFirmographics__dlm`
 
 ## Audience
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'
 ```
 
 Live cardinality (probed 2026-05-28): **12,021 distinct BUSINESS anchors** — same predicate and same volume class as Plans 2 (MSCI ESG, 11,389 rows) and 3 (D&B Business Credit, 11,389 rows). Each anchor emits exactly one firmographics row per month → **~12,021 rows/month**.

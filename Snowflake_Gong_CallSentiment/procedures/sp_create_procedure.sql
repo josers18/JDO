@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-12-gong-call-sentiment.md
 -- Task:    Plan 12 T6
@@ -17,7 +17,7 @@
 --           SENTIMENT_TREND base trajectory; both are inlined as plain string
 --           constants in the SP body so they appear in the generated SQL
 --           automatically.
--- Table:    FINS.PUBLIC.GONG_CALL_SENTIMENT
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT
 --           Composite PK (ACCOUNT_ID, PROFILE_WEEK).
 --           DC DMO collapses to single-column PK profileWeek__c with
 --           ssot__AccountId__c as a KQ qualifier (single-column-PK rule
@@ -31,7 +31,7 @@
 --           canonical name. No ampersand sanitize ("Gong" is clean).
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT(NUM_WEEKS INT DEFAULT 1)
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT(NUM_WEEKS INT DEFAULT 1)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -114,7 +114,7 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE                = "FINS.PUBLIC.GONG_CALL_SENTIMENT"
+TABLE                = "DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT"
 TASK_NAME            = "TASK_WEEKLY_GONG_CALL_SENTIMENT"
 DATASET_SALT         = "gong"      # week-bucketed; primary rng stream
 DATASET_SALT_RM      = "gong_rm"   # year-stable; RM_NAME stickiness
@@ -123,8 +123,8 @@ DATASET_SALT_TREND   = "gong_trend"  # year-stable helper for trend base traject
 # Audience predicate — empty after rebroadcast. Repeated for symmetry with
 # Plans 1-9; both AUDIENCE_SQL and COVERAGE_SQL must match.
 _AUDIENCE_PREDICATE = ""  # all-accounts
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 # 15-column output contract (kept in sync with the table DDL by the L1 schema test).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
@@ -515,7 +515,7 @@ def _rows_for(anchor: dict, profile_week: date) -> list[dict]:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_GONG_CALL_SENTIMENT
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_GONG_CALL_SENTIMENT
 # -------------------------------------------------------------------
 
 def main(session: Any, num_weeks: int = 1) -> str:
@@ -579,7 +579,7 @@ def main(session: Any, num_weeks: int = 1) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -645,7 +645,7 @@ def _merge(session: Any, records: list[dict],
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.GONG_CALL_SENTIMENT tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT tgt
         USING (
             SELECT
                 ACCOUNT_ID,
@@ -663,7 +663,7 @@ def _merge(session: Any, records: list[dict],
                 RM_NAME,
                 RM_LAST_LOGGED_NOTE_DATE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_WEEK = src.PROFILE_WEEK

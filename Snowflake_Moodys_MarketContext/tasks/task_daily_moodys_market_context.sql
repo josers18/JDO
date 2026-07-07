@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT
 -- Scheduled task wrapping SP_GENERATE_MOODYS_MARKET_CONTEXT via SP_RETRY_WRAPPER.
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-13-moodys-market-context.md
@@ -7,7 +7,7 @@
 -- Cadence:  DAILY (every day at 01:00 UTC, pre-Asia-open). Synthetic data, but
 --           the timing models the real-world Moody's publishing schedule.
 -- Schedule: 0 1 * * * UTC  (5-field cron: minute hour day-of-month month day-of-week)
--- Wrapper:  FINS.PUBLIC.SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()', 2)
+-- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()', 2)
 -- Warehouse: MAIN_WH_XS
 --
 -- Pattern parity:
@@ -38,13 +38,13 @@
 --   open.)
 -- =============================================================================
 
-CREATE OR REPLACE TASK FINS.PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT
+CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT
     WAREHOUSE = MAIN_WH_XS
     SCHEDULE  = 'USING CRON 0 1 * * * UTC'
 AS
-    CALL FINS.PUBLIC.SP_RETRY_WRAPPER(
-        'FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()',
+    CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
+        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()',
         2
     );
 
-ALTER TASK FINS.PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT RESUME;
+ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT RESUME;

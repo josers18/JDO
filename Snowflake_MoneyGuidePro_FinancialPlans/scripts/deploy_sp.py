@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_MGP_FINANCIAL_PLANS into FINS.PUBLIC.
+"""Deploy SP_GENERATE_MGP_FINANCIAL_PLANS into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 7's `Snowflake_WorldCheck_AML/scripts/deploy_sp.py`.
 Plan 1 hand-built `procedures/sp_create_procedure.sql` once; Plan 2 automated
@@ -112,8 +112,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS"
-TABLE_FQN = "FINS.PUBLIC.MGP_FINANCIAL_PLANS"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS"
 TASK_NAME = "TASK_MONTHLY_MGP_FINANCIAL_PLANS"
 DATASET_SALT = "mgp"
 
@@ -305,7 +305,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MGP_FINANCIAL_PLANS' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MGP_FINANCIAL_PLANS' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

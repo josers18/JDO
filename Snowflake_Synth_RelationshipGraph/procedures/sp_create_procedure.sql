@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH  (Snowpark Python SP)
+-- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH  (Snowpark Python SP)
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-9-synth-relationship-graph.md
 -- Task:    Plan 9 T6
@@ -20,7 +20,7 @@
 --           configurations. Re-running mid-week is byte-identical because
 --           seed and GENERATED_AT both anchor on the week's Monday via
 --           _week_start(run_ts).
--- Table:    FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH
+-- Table:    DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH
 --           Composite 3-column PK (SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE).
 --           DC DMO collapses to single-column PK edgeId__c (sha256 hash of
 --           the 3 columns) with KQ qualifiers srcAccountId__c,
@@ -39,7 +39,7 @@
 --           plans plus internally-generated structure. Brainstorm doc s17.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE FINS.PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH()
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -123,15 +123,15 @@ def assert_coverage(session: Any, expected_sql: str, actual_sql: str) -> None:
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
 
-TABLE        = "FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH"
+TABLE        = "DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH"
 TASK_NAME    = "TASK_WEEKLY_SYNTH_RELATIONSHIP_GRAPH"
 DATASET_SALT = "synth-graph"
 
 # Plan 9 has no audience predicate — every distinct account contributes.
 # Kept as empty string for symmetry with Plans 1-8.
 _AUDIENCE_PREDICATE = ""  # all-accounts
-AUDIENCE_SQL = "SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS"
+AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 # 9-column output contract (kept in sync with the table DDL by the L1 schema test).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
@@ -164,9 +164,9 @@ _EDGE_TYPE_CONFIDENCE_BASE: dict[str, float] = {
 
 # Cross-plan dependency table -> edge_type. Probed via try/except in main().
 _CROSS_PLAN_TABLES: list[tuple[str, str]] = [
-    ("FINS.PUBLIC.CLARITAS_DEMOGRAPHICS", "HOUSEHOLD"),
-    ("FINS.PUBLIC.DNB_BUSINESS_CREDIT",   "CORPORATE_PARENT"),
-    ("FINS.PUBLIC.BOARDEX_EXEC_INTEL",    "BOARD_MEMBER"),
+    ("DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS", "HOUSEHOLD"),
+    ("DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT",   "CORPORATE_PARENT"),
+    ("DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL",    "BOARD_MEMBER"),
 ]
 
 # Always-on edge types — no upstream table required.
@@ -544,7 +544,7 @@ def _build_household_pool(session: Any) -> dict[str, list[str]]:
     try:
         sql = """
             SELECT ACCOUNT_ID, HOUSEHOLD_COMPOSITION, POSTAL_CODE
-            FROM FINS.PUBLIC.CLARITAS_DEMOGRAPHICS
+            FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS
             WHERE HOUSEHOLD_COMPOSITION IN ('Family', 'Couple')
         """
         rows = session.sql(sql).collect()
@@ -563,7 +563,7 @@ def _build_dnb_parents(session: Any) -> dict[str, str]:
     try:
         sql = """
             SELECT ACCOUNT_ID, PARENT_ACCOUNT_ID
-            FROM FINS.PUBLIC.DNB_BUSINESS_CREDIT
+            FROM DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT
             WHERE PARENT_ACCOUNT_ID IS NOT NULL
         """
         rows = session.sql(sql).collect()
@@ -581,7 +581,7 @@ def _build_boardex_seats(session: Any) -> dict[str, list[str]]:
     try:
         sql = """
             SELECT ACCOUNT_ID, COMPANY_ACCOUNT_ID
-            FROM FINS.PUBLIC.BOARDEX_EXEC_INTEL
+            FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL
             WHERE COMPANY_ACCOUNT_ID IS NOT NULL
         """
         rows = session.sql(sql).collect()
@@ -624,7 +624,7 @@ _anchor_to_dict = _row_to_dict
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by FINS.PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH.
+# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH.
 # -------------------------------------------------------------------
 
 def main(session: Any) -> str:
@@ -730,7 +730,7 @@ def main(session: Any) -> str:
         duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
         session.sql(
             """
-            INSERT INTO FINS.PUBLIC.TASK_EXECUTION_LOG
+            INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -780,7 +780,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     )
 
     merge_sql = f"""
-        MERGE INTO FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH tgt
+        MERGE INTO DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH tgt
         USING (
             SELECT
                 SRC_ACCOUNT_ID,
@@ -792,7 +792,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 EDGE_LAST_SEEN_DATE::DATE         AS EDGE_LAST_SEEN_DATE,
                 METADATA::VARCHAR(500)            AS METADATA,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
-            FROM FINS.PUBLIC.{staging}
+            FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.SRC_ACCOUNT_ID = src.SRC_ACCOUNT_ID
            AND tgt.DST_ACCOUNT_ID = src.DST_ACCOUNT_ID

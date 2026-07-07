@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.WORLD_CHECK_AML  (v1.x — multi-org-additive)
+-- DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML  (v1.x — multi-org-additive)
 -- LSEG World-Check / Dow Jones Risk and Compliance / ComplyAdvantage-style
 -- synthetic AML / sanctions / PEP screening per Cumulus customer.
 -- =============================================================================
@@ -23,8 +23,8 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-7-worldcheck-aml-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.WORLD_CHECK_AML (
-    ORG_ID                     VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'Logical-tenant tag (e.g. JDO, ACME, WFB). NOT the 18-char SF Org Id. Leading PK component for multi-org sharing of FINS.PUBLIC. Defaults to JDO for backward compatibility with single-org callers.',
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML (
+    ORG_ID                     VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'Logical-tenant tag (e.g. JDO, ACME, WFB). NOT the 18-char SF Org Id. Leading PK component for multi-org sharing of DATA_JEDAIS.FINS__PUBLIC. Defaults to JDO for backward compatibility with single-org callers.',
     ACCOUNT_ID                 VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the Cumulus customer being screened. FK to ssot__Account__dlm. PK component.',
     PROFILE_DATE               DATE              NOT NULL  COMMENT 'Screening run date (UTC). Day-bucketed for determinism — mid-day re-runs are byte-identical. PK component.',
     OVERALL_RISK_RATING        VARCHAR(10)       NOT NULL  COMMENT 'Rolled-up flag: Low (~92%), Medium (~6%), High (~1.7%), Severe (~0.3%). Derived from component flags + jurisdiction tier.',
@@ -40,4 +40,4 @@ CREATE OR REPLACE TABLE FINS.PUBLIC.WORLD_CHECK_AML (
     GENERATED_AT               TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Day-bucketed for byte-identical mid-day re-runs (audit time -> TASK_EXECUTION_LOG).',
     CONSTRAINT pk_world_check_aml PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_DATE)
 )
-COMMENT = 'v1.x multi-org-additive. LSEG World-Check / Dow Jones / ComplyAdvantage-style synthetic AML / sanctions / PEP screening per Cumulus customer. Daily generation. 1:1 — one row per distinct anchor per screening day (~36,813 rows/day per org). First daily-cadence AND first all-accounts-audience dataset in the Cumulus rollout. Composite PK (ORG_ID, ACCOUNT_ID, PROFILE_DATE) — leading ORG_ID lets a single FINS.PUBLIC schema serve N orgs; DC DMO still collapses to single-column PK profileDate__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable fields conditional on ADVERSE_MEDIA_HIT / OVERALL_RISK_RATING. 3 BOOLEAN columns. Re-runs same day MERGE-replace; no daily history retained. See Snowflake_WorldCheck_AML/README.md, Snowflake_Cumulus_Common/docs/ROLLOUT.md, and the umbrella spec.';
+COMMENT = 'v1.x multi-org-additive. LSEG World-Check / Dow Jones / ComplyAdvantage-style synthetic AML / sanctions / PEP screening per Cumulus customer. Daily generation. 1:1 — one row per distinct anchor per screening day (~36,813 rows/day per org). First daily-cadence AND first all-accounts-audience dataset in the Cumulus rollout. Composite PK (ORG_ID, ACCOUNT_ID, PROFILE_DATE) — leading ORG_ID lets a single DATA_JEDAIS.FINS__PUBLIC schema serve N orgs; DC DMO still collapses to single-column PK profileDate__c with ssot__AccountId__c as a KQ qualifier. 2 NULLable fields conditional on ADVERSE_MEDIA_HIT / OVERALL_RISK_RATING. 3 BOOLEAN columns. Re-runs same day MERGE-replace; no daily history retained. See Snowflake_WorldCheck_AML/README.md, Snowflake_Cumulus_Common/docs/ROLLOUT.md, and the umbrella spec.';

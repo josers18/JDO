@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH
+-- DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH
 -- Synthesized directed relationship-graph dataset stitching prior Cumulus plans
 -- (Claritas households, DnB corporate parents, BoardEx board seats) plus
 -- internally-synthesized advisor-book / referral / business-owner / SELF edges.
@@ -26,7 +26,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-9-synth-relationship-graph-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.SYNTH_RELATIONSHIP_GRAPH (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH (
     ORG_ID                        VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'Tenant identifier stamped from the anchor row (V_ACCOUNT_ANCHORS.ORG_ID). PK component. Cross-org edges are not modeled — both endpoints share ORG_ID by construction (DST anchors are drawn from the same audience).',
     SRC_ACCOUNT_ID                VARCHAR(16777216) NOT NULL  COMMENT 'Anchor.ACCOUNT_ID — the "from" side of the directed edge. FK to ssot__Account__dlm. PK component.',
     DST_ACCOUNT_ID                VARCHAR(16777216) NOT NULL  COMMENT 'The "to" side of the directed edge. For SELF edges, equals SRC_ACCOUNT_ID. PK component.',

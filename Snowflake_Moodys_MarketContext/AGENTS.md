@@ -5,7 +5,7 @@ Synthetic Moody's Investors Service / Moody's Analytics-style credit-rating + ma
 > **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(TICKER, PROFILE_DATE)` to `(ORG_ID, TICKER, PROFILE_DATE)`. SP row factory stamps `"ORG_ID": instrument.get("ORG_ID", "JDO")` as the first key (instrument record rather than account anchor — Plan 13 is instrument-scoped); MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). **OUTLOOK_LAST_CHANGED_DATE defensive casts preserved** through the Phase A change — `pd.to_datetime(df[col])` coercion on the Pandas side and `TO_DATE(TO_TIMESTAMP_NTZ(col / 1e9))` in the MERGE source SELECT (the all-NULL date mistype guard from commit `64812af`). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
 
 ## Boundaries
-- Owns: `FINS.PUBLIC.MOODYS_MARKET_CONTEXT`, `SP_GENERATE_MOODYS_MARKET_CONTEXT`, `TASK_DAILY_MOODYS_MARKET_CONTEXT`, and the DC Data Stream / DLO / DMO that federates this table.
+- Owns: `DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT`, `SP_GENERATE_MOODYS_MARKET_CONTEXT`, `TASK_DAILY_MOODYS_MARKET_CONTEXT`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `INSTRUMENT_UNIVERSE`, the seed/coverage helpers — see `Snowflake_Cumulus_Common` (seed helpers) and the existing trades pipeline (which populates `INSTRUMENT_UNIVERSE`).
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
 - **Instrument-scoped** — rows are keyed by composite PK `(TICKER, PROFILE_DATE)`. **There is NO `ACCOUNT_ID` column.** The DMO is not joinable to `ssot__Account__dlm`; `TICKER` is the canonical join key for downstream queries, and account ↔ instrument joins go through the existing trades-pipeline `(account, ticker, position)` graph (the same shape as Plan 4 / Esri being branch-scoped, not account-scoped).
@@ -26,7 +26,7 @@ Synthetic Moody's Investors Service / Moody's Analytics-style credit-rating + ma
   Plan 7 and Plan 13 are the only two daily-cadence plans; both inline the same wrapper — no need to promote it to Cumulus_Common.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` for the standard 1:1 audience-vs-actual coverage check. **Coverage rule:** `COUNT(DISTINCT TICKER) = 2,004` from `INSTRUMENT_UNIVERSE` — every distinct instrument must produce exactly one row per profile day.
 - The MERGE replaces on composite PK `(TICKER, PROFILE_DATE)`. Re-runs same calendar day are idempotent (byte-identical). Re-runs on a later day INSERT new rows for that day's profile.
-- Audience SQL is `SELECT * FROM FINS.PUBLIC.INSTRUMENT_UNIVERSE` — **no WHERE clause**. The IS_ACTIVE filter from the umbrella spec doesn't apply since the column doesn't exist on `INSTRUMENT_UNIVERSE` (see schema-drift note below).
+- Audience SQL is `SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` — **no WHERE clause**. The IS_ACTIVE filter from the umbrella spec doesn't apply since the column doesn't exist on `INSTRUMENT_UNIVERSE` (see schema-drift note below).
 - `accounts_processed` in `TASK_EXECUTION_LOG` (despite the column's name being account-flavored) equals `len(audience)` — for Plan 13 this is the **distinct instrument count** AND the row count (1:1 emit per instrument per day).
 
 ## Tests

@@ -6,7 +6,7 @@ For user-facing install / quick-start / data shape, see [README.md](README.md). 
 
 # Tech stack
 
-- **Snowflake** — `FINS.PUBLIC` schema. SQL stored procedures (`procedures/*.sql`), scheduled tasks (`tasks/*.sql`), table DDL (`schemas/*.sql`).
+- **Snowflake** — `DATA_JEDAIS.FINS__PUBLIC` schema. SQL stored procedures (`procedures/*.sql`), scheduled tasks (`tasks/*.sql`), table DDL (`schemas/*.sql`).
 - **SQL only** — unlike the sibling `Financial_Trades_Generation` (which uses Snowpark Python for stochastic generation), this project's score logic is pure SQL with deterministic-pseudo-random hashing (`HASH(ACCOUNT_ID || month)`). No Snowpark dependency.
 - **Salesforce Data Cloud** — accounts sourced from the inbound datashare `FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"`, snapshotted daily into `MASTER_ACCOUNTS`.
 - **No Salesforce DX, no Apex, no LWC.** This project is `force-app/`-free; everything lives in `.sql` files organized by purpose.
@@ -36,21 +36,21 @@ Snowflake_CSAT_NPS/
 
 # Commands
 
-All Snowflake commands run via Snowsight worksheet against `FINS.PUBLIC` as `SYSADMIN`.
+All Snowflake commands run via Snowsight worksheet against `DATA_JEDAIS.FINS__PUBLIC` as `SYSADMIN`.
 
 ```sql
 -- Score generation (monthly, idempotent)
-CALL FINS.PUBLIC.SP_GENERATE_MONTHLY_CSAT();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MONTHLY_CSAT();
 
 -- Refresh account list from Data Cloud
-CALL FINS.PUBLIC.SP_LOAD_MASTER_ACCOUNTS();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_LOAD_MASTER_ACCOUNTS();
 
 -- Verification
-SELECT * FROM FINS.PUBLIC.CSAT_NPS_DATA ORDER BY SCORE_DATE DESC LIMIT 20;
-SHOW TASKS IN SCHEMA FINS.PUBLIC;
+SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.CSAT_NPS_DATA ORDER BY SCORE_DATE DESC LIMIT 20;
+SHOW TASKS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 ```
 
-To re-deploy a procedure or task after editing the `.sql`, execute the file's CREATE OR REPLACE in Snowsight against `FINS.PUBLIC`. There's no migration tool — last-write-wins.
+To re-deploy a procedure or task after editing the `.sql`, execute the file's CREATE OR REPLACE in Snowsight against `DATA_JEDAIS.FINS__PUBLIC`. There's no migration tool — last-write-wins.
 
 # Architecture
 
@@ -78,10 +78,10 @@ The historical-backfill script (`procedures/historical_backfill.sql`) is **refer
 
 ## Logging
 
-Both `SP_LOAD_MASTER_ACCOUNTS()` and `SP_GENERATE_MONTHLY_CSAT()` write execution outcomes (status, row counts, duration, errors) to `FINS.PUBLIC.TASK_EXECUTION_LOG`. Query this table for recent failures:
+Both `SP_LOAD_MASTER_ACCOUNTS()` and `SP_GENERATE_MONTHLY_CSAT()` write execution outcomes (status, row counts, duration, errors) to `DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG`. Query this table for recent failures:
 
 ```sql
-SELECT * FROM FINS.PUBLIC.TASK_EXECUTION_LOG ORDER BY EXECUTION_TIME DESC LIMIT 20;
+SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ORDER BY EXECUTION_TIME DESC LIMIT 20;
 ```
 
 ## Score model
@@ -99,12 +99,12 @@ When changing the model, regenerate a single month first (`MERGE`-style) and ins
 - **Re-running `historical_backfill.sql`.** It creates duplicate rows in `CSAT_NPS_DATA` — there's no gate. Treat the file as reference-only after the initial seed.
 - **Editing the score model without regenerating one month first.** Distribution shifts can happen instantly across all accounts on the next monthly run. Always preview against one month before letting the schedule pick up the change.
 - **Dropping the inbound datashare reference (`FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__Account__dlm`).** That's the canonical link to the Salesforce demo org's account list. If the datashare is recreated, the schema-name segment may change — verify with `SHOW SHARES INBOUND` before assuming it's stable.
-- **Editing `procedures/*.sql` without re-deploying.** The repo file is the source of truth, but Snowflake holds the deployed object. Always `CREATE OR REPLACE` against `FINS.PUBLIC` after editing.
+- **Editing `procedures/*.sql` without re-deploying.** The repo file is the source of truth, but Snowflake holds the deployed object. Always `CREATE OR REPLACE` against `DATA_JEDAIS.FINS__PUBLIC` after editing.
 - **Treating `MASTER_ACCOUNTS` as the score table.** The score table is `CSAT_NPS_DATA` — `MASTER_ACCOUNTS` is just the daily account-list snapshot the score generator reads from.
 
 # Sibling project
 
-`Financial_Trades_Generation` shares the **identical project shape** (docs/, schemas/, procedures/, tasks/) and uses the **same Snowflake environment** (`FINS.PUBLIC`, `SYSADMIN`, `FINSDC3_DATASHARE` inbound). Conventions, idempotency rules, and SQL style transfer 1:1. **Notable differences:**
+`Financial_Trades_Generation` shares the **identical project shape** (docs/, schemas/, procedures/, tasks/) and uses the **same Snowflake environment** (`DATA_JEDAIS.FINS__PUBLIC`, `SYSADMIN`, `FINSDC3_DATASHARE` inbound). Conventions, idempotency rules, and SQL style transfer 1:1. **Notable differences:**
 
 | Aspect | This project | `Financial_Trades_Generation` |
 |---|---|---|

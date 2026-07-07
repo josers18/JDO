@@ -5,7 +5,7 @@ Synthetic CoreLogic-style property records dataset for the Cumulus FSC demo. One
 > **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_QUARTER)` to `(ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
 
 ## Boundaries
-- Owns: `FINS.PUBLIC.CORELOGIC_PROPERTY`, `SP_GENERATE_CORELOGIC_PROPERTY`, `TASK_QUARTERLY_CORELOGIC_PROPERTY`, and the DC Data Stream / DLO / DMO that federates this table.
+- Owns: `DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY`, `SP_GENERATE_CORELOGIC_PROPERTY`, `TASK_QUARTERLY_CORELOGIC_PROPERTY`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
 - **Account-scoped** — rows are keyed by `ACCOUNT_ID`, with FK to `ssot__Account__dlm`. One row per PERSON account per quarter.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_CORELOGIC_PROPERTY into FINS.PUBLIC.
+"""Deploy SP_GENERATE_CORELOGIC_PROPERTY into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 4's `Snowflake_Esri_GeoFootprint/scripts/deploy_sp.py`.
 Plan 1 hand-built `procedures/sp_create_procedure.sql` once; Plan 2 automated
@@ -70,8 +70,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY"
-TABLE_FQN = "FINS.PUBLIC.CORELOGIC_PROPERTY"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY"
 TASK_NAME = "TASK_QUARTERLY_CORELOGIC_PROPERTY"
 DATASET_SALT = "corelogic"
 
@@ -252,7 +252,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_CORELOGIC_PROPERTY' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_CORELOGIC_PROPERTY' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

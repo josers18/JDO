@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.TASK_EXECUTION_LOG
+-- DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
 -- Execution history for scheduled tasks
 -- =============================================================================
 -- Written to by SP_LOAD_MASTER_ACCOUNTS() (and potentially other task
@@ -7,7 +7,7 @@
 -- and execution duration for observability and alerting.
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.TASK_EXECUTION_LOG (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG (
     LOG_ID              VARCHAR(16777216) NOT NULL DEFAULT UUID_STRING()  COMMENT 'Unique log entry ID (auto-generated UUID)',
     TASK_NAME           VARCHAR(16777216) NOT NULL                       COMMENT 'Name of the task/procedure that ran',
     EXECUTION_TIME      TIMESTAMP_NTZ(9)          DEFAULT CURRENT_TIMESTAMP() COMMENT 'When the execution started',

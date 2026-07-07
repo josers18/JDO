@@ -1,8 +1,10 @@
 # Artifacts
 
-Complete inventory of all database objects in `FINS.PUBLIC`.
+Complete inventory of all database objects in `DATA_JEDAIS.FINS__PUBLIC`.
 
 > **Multi-org Phase A live as of 2026-05-29.** `MASTER_ACCOUNTS` and the 13 Cumulus dataset tables now carry `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the leading column with PKs promoted to lead with ORG_ID. See [ROLLOUT.md](../../Snowflake_Cumulus_Common/docs/ROLLOUT.md).
+>
+> **Account migration (2026-06-29).** All objects migrated from GSB13421 `FINS.PUBLIC` to SFDC_DC_TECH_ARCH `DATA_JEDAIS.FINS__PUBLIC`.
 
 ---
 
@@ -10,57 +12,73 @@ Complete inventory of all database objects in `FINS.PUBLIC`.
 
 | Table | Rows | Owner | Purpose | Pipeline |
 |-------|------|-------|---------|----------|
-| MASTER_ACCOUNTS | 36,813 | SYSADMIN | Current Salesforce Data Cloud account master list (now with ORG_ID) | CSAT/NPS · Cumulus |
-| TRADE_GENERATION_CONFIG | 36,756 | SYSADMIN | Per-account trade generation parameters (frequency, risk, sectors) | Trades |
-| FINANCIAL_TRADES | 1,876,216 | SYSADMIN | Synthetic instrument trades (BUY/SELL) | Trades |
-| INSTRUMENT_UNIVERSE | 2,004 | SYSADMIN | Reference: tradeable instruments (stocks, bonds, ETFs) | Trades |
-| CSAT_NPS_DATA | 29,640 | SYSADMIN | Monthly CSAT + NPS scores per account | CSAT/NPS |
-| TASK_EXECUTION_LOG | 184 | SYSADMIN | Centralized execution log for all scheduled tasks | Shared |
-| FINANCIAL_TRANSACTIONS | 16,007 | SYSADMIN | Synthetic bank transactions (credits/debits) | Transactions |
-| FINANCIAL_TRANSACTIONS_XL | 100,000,000 | SYSADMIN | Large-scale transaction dataset (demo/testing) | Legacy |
-| ACCOUNT_BALANCE_TRACKER | 10 | SYSADMIN | Monthly balance tracking for active accounts | Transactions |
-| ACCOUNT_CREDIT_CONFIG | 2 | SYSADMIN | Direct deposit / bonus configuration for transaction gen | Transactions |
-| ACCOUNT_DAILY_BALANCE | 2,047 | SYSADMIN | Daily balance snapshots for account tracking | Transactions |
-| FINANCIAL_TRANSACTION_ACCOUNTS | 2 | SYSADMIN | Active accounts for transaction generation | Transactions |
-| FINANCIAL_ACCOUNT_MASTER | 65 | SYSADMIN | Master list of financial account types | Reference |
+| MASTER_ACCOUNTS | 36,816 | ACCOUNTADMIN | Current Salesforce Data Cloud account master list (now with ORG_ID) | CSAT/NPS · Cumulus |
+| TRADE_GENERATION_CONFIG | 36,756 | ACCOUNTADMIN | Per-account trade generation parameters (frequency, risk, sectors) | Trades |
+| FINANCIAL_TRADES | 3,279,536 | ACCOUNTADMIN | Synthetic instrument trades (BUY/SELL) | Trades |
+| INSTRUMENT_UNIVERSE | 2,004 | ACCOUNTADMIN | Reference: tradeable instruments (stocks, bonds, ETFs) | Trades |
+| CSAT_NPS_DATA | 103,269 | ACCOUNTADMIN | Monthly CSAT + NPS scores per account | CSAT/NPS |
+| TASK_EXECUTION_LOG | 549 | ACCOUNTADMIN | Centralized execution log for all scheduled tasks | Shared |
+| FINANCIAL_TRANSACTIONS | 16,819 | ACCOUNTADMIN | Synthetic bank transactions (credits/debits) | Transactions |
+| FINANCIAL_TRANSACTIONS_XL | 100,000,000 | ACCOUNTADMIN | Large-scale transaction dataset (demo/testing) | Legacy |
+| ACCOUNT_BALANCE_TRACKER | 10 | ACCOUNTADMIN | Monthly balance tracking for active accounts | Transactions |
+| ACCOUNT_CREDIT_CONFIG | 2 | ACCOUNTADMIN | Direct deposit / bonus configuration for transaction gen | Transactions |
+| ACCOUNT_DAILY_BALANCE | 2,127 | ACCOUNTADMIN | Daily balance snapshots for account tracking | Transactions |
+| FINANCIAL_TRANSACTION_ACCOUNTS | 2 | ACCOUNTADMIN | Active accounts for transaction generation | Transactions |
+| FINANCIAL_ACCOUNT_MASTER | 65 | ACCOUNTADMIN | Master list of financial account types | Reference |
 | CUSTOMER | 50,000 | ACCOUNTADMIN | Legacy customer reference table | Legacy |
-| ACCOUNT | 0 | ACCOUNTADMIN | Legacy account table (empty) | Legacy |
-| ATTRITION_INPUTS | 741 | SYSADMIN | Attrition model input features | ML / Prediction |
-| CSAT_ATTRITION_INPUTS | 741 | SYSADMIN | Combined CSAT + attrition inputs for modeling | ML / Prediction |
-| RETAIL_ATTRITION_TRAINING_DATA | 10,000 | SYSADMIN | Training dataset for retail attrition model | ML / Prediction |
-| BUSINESS_PRODUCT_RECOMMENDATION_SET | 3,500 | SYSADMIN | Business product recommendation training data | ML / Prediction |
-| BUSINESS_PRODUCT_RECOMMENDATION_SUBSET | 4,240 | SYSADMIN | Business product recommendation subset | ML / Prediction |
-| PERSONAL_PRODUCT_RECOMMENDATION_TRAINING_SET | 7,500 | SYSADMIN | Personal product recommendation training data | ML / Prediction |
-| PERSONAL_PRODUCT_RECOMMENDATION_SUBSET | 8,240 | SYSADMIN | Personal product recommendation subset | ML / Prediction |
-| ENROLLMENTS | 741 | SYSADMIN | Account enrollment tracking (stream-driven) | Enrollments |
-| LOAN_DELINQUENCIES_RECOVERIES | 750 | SYSADMIN | Loan delinquency + recovery data | Reference |
-| LOAN_CHARGEOFFS | 201 | SYSADMIN | Loan charge-off events | Reference |
-| SEC_FILINGS | 11 | SYSADMIN | SEC filing reference data | Reference |
-| WEBSITE_PROSPECTS | 1,000 | SYSADMIN | Web prospect lead data | Reference |
-| WEB_ENGAGEMENTS | 157 | SYSADMIN | Web engagement event data | Reference |
-| LEADS_TABLE | 107 | SYSADMIN | Lead records | Reference |
-| ACTIVITIES | 100 | SYSADMIN | Activity records | Reference |
-| TASKS | 100 | SYSADMIN | Task records | Reference |
-| MCC | 324 | SYSADMIN | Merchant Category Codes reference | Transactions |
-| MDPROVIDER | 1,000 | SYSADMIN | Market data provider reference | Reference |
-| PROFILE_MAIN | 2 | SYSADMIN | Profile configuration | Reference |
-| FINANCIAL_MASKING_DATASET | 20 | SYSADMIN | Data masking reference dataset | Reference |
-| TRANSACTIONS_CLONE | 8,748 | SYSADMIN | Transaction table clone (testing) | Legacy |
-| FINANCIAL_TRADES_EXT | — | SYSADMIN | External table for trades (external stage) | Trades |
-| TEST | 1 | SYSADMIN | Scratch/test table | — |
-| **CLARITAS_DEMOGRAPHICS** | 25,424 | SYSADMIN | Cumulus Plan 1 — synthetic Claritas PRIZM segment demographics, ORG_ID-tagged | Cumulus |
-| **MSCI_ESG_SCORES** | 11,389 | SYSADMIN | Cumulus Plan 2 — BUSINESS-only ESG scores | Cumulus |
-| **DNB_BUSINESS_CREDIT** | 11,389 | SYSADMIN | Cumulus Plan 3 — DnB-style business credit ratings | Cumulus |
-| **ESRI_GEO_FOOTPRINT** | 13,327 | SYSADMIN | Cumulus Plan 4 — geo-keyed (BRANCH_ZIP, PROFILE_MONTH) demographics | Cumulus |
-| **CORELOGIC_PROPERTY** | 25,424 | SYSADMIN | Cumulus Plan 5 — quarterly property records (PERSON-only) | Cumulus |
-| **PLAID_HELD_AWAY** | 55,274 | SYSADMIN | Cumulus Plan 6 — 1:N held-away financial accounts per anchor | Cumulus |
-| **WORLD_CHECK_AML** | 73,626 | SYSADMIN | Cumulus Plan 7 — AML screening daily snapshots | Cumulus |
-| **MGP_FINANCIAL_PLANS** | 883,512 | SYSADMIN | Cumulus Plan 8 — MoneyGuidePro-style monthly financial plans (24-cycle backfill) | Cumulus |
-| **SYNTH_RELATIONSHIP_GRAPH** | 38,099 | SYSADMIN | Cumulus Plan 9 — directed-edge relationship graph (only edge-scoped plan) | Cumulus |
-| **BOARDEX_EXEC_INTEL** | 883,512 | SYSADMIN | Cumulus Plan 10 — BUSINESS executive intelligence (24-cycle backfill) | Cumulus |
-| **ZOOMINFO_FIRMOGRAPHICS** | 11,389 | SYSADMIN | Cumulus Plan 11 — BUSINESS firmographics | Cumulus |
-| **GONG_CALL_SENTIMENT** | 883,512 | SYSADMIN | Cumulus Plan 12 — weekly call sentiment (24-cycle backfill) | Cumulus |
-| **MOODYS_MARKET_CONTEXT** | 1,025,010 | SYSADMIN | Cumulus Plan 13 — daily commercial credit risk × 90-day history | Cumulus |
+| ATTRITION_INPUTS | 741 | ACCOUNTADMIN | Attrition model input features | ML / Prediction |
+| CSAT_ATTRITION_INPUTS | 741 | ACCOUNTADMIN | Combined CSAT + attrition inputs for modeling | ML / Prediction |
+| RETAIL_ATTRITION_TRAINING_DATA | 10,000 | ACCOUNTADMIN | Training dataset for retail attrition model | ML / Prediction |
+| BUSINESS_PRODUCT_RECOMMENDATION_SET | 3,500 | ACCOUNTADMIN | Business product recommendation training data | ML / Prediction |
+| BUSINESS_PRODUCT_RECOMMENDATION_SUBSET | 4,240 | ACCOUNTADMIN | Business product recommendation subset | ML / Prediction |
+| PERSONAL_PRODUCT_RECOMMENDATION_TRAINING_SET | 7,500 | ACCOUNTADMIN | Personal product recommendation training data | ML / Prediction |
+| PERSONAL_PRODUCT_RECOMMENDATION_SUBSET | 8,240 | ACCOUNTADMIN | Personal product recommendation subset | ML / Prediction |
+| ENROLLMENTS | 741 | ACCOUNTADMIN | Account enrollment tracking (stream-driven) | Enrollments |
+| LOAN_DELINQUENCIES_RECOVERIES | 750 | ACCOUNTADMIN | Loan delinquency + recovery data | Reference |
+| LOAN_CHARGEOFFS | 201 | ACCOUNTADMIN | Loan charge-off events | Reference |
+| SEC_FILINGS | 11 | ACCOUNTADMIN | SEC filing reference data | Reference |
+| WEBSITE_PROSPECTS | 1,000 | ACCOUNTADMIN | Web prospect lead data | Reference |
+| WEB_ENGAGEMENTS | 157 | ACCOUNTADMIN | Web engagement event data | Reference |
+| LEADS_TABLE | 107 | ACCOUNTADMIN | Lead records | Reference |
+| ACTIVITIES | 100 | ACCOUNTADMIN | Activity records | Reference |
+| TASKS | 100 | ACCOUNTADMIN | Task records | Reference |
+| MCC | 324 | ACCOUNTADMIN | Merchant Category Codes reference | Transactions |
+| MDPROVIDER | 1,000 | ACCOUNTADMIN | Market data provider reference | Reference |
+| PROFILE_MAIN | 2 | ACCOUNTADMIN | Profile configuration | Reference |
+| FINANCIAL_MASKING_DATASET | 20 | ACCOUNTADMIN | Data masking reference dataset | Reference |
+| TRANSACTIONS_CLONE | 8,748 | ACCOUNTADMIN | Transaction table clone (testing) | Legacy |
+| TEST | 1 | ACCOUNTADMIN | Scratch/test table | — |
+| **CLARITAS_DEMOGRAPHICS** | 76,272 | ACCOUNTADMIN | Cumulus Plan 1 — synthetic Claritas PRIZM segment demographics, ORG_ID-tagged | Cumulus |
+| **MSCI_ESG_SCORES** | 34,170 | ACCOUNTADMIN | Cumulus Plan 2 — BUSINESS-only ESG scores | Cumulus |
+| **DNB_BUSINESS_CREDIT** | 34,170 | ACCOUNTADMIN | Cumulus Plan 3 — DnB-style business credit ratings | Cumulus |
+| **ESRI_GEO_FOOTPRINT** | 39,981 | ACCOUNTADMIN | Cumulus Plan 4 — geo-keyed (BRANCH_ZIP, PROFILE_MONTH) demographics | Cumulus |
+| **CORELOGIC_PROPERTY** | 50,848 | ACCOUNTADMIN | Cumulus Plan 5 — quarterly property records (PERSON-only) | Cumulus |
+| **PLAID_HELD_AWAY** | 165,680 | ACCOUNTADMIN | Cumulus Plan 6 — 1:N held-away financial accounts per anchor | Cumulus |
+| **WORLD_CHECK_AML** | 1,472,592 | ACCOUNTADMIN | Cumulus Plan 7 — AML screening daily snapshots | Cumulus |
+| **MGP_FINANCIAL_PLANS** | 957,141 | ACCOUNTADMIN | Cumulus Plan 8 — MoneyGuidePro-style monthly financial plans | Cumulus |
+| **SYNTH_RELATIONSHIP_GRAPH** | 70,897 | ACCOUNTADMIN | Cumulus Plan 9 — directed-edge relationship graph | Cumulus |
+| **BOARDEX_EXEC_INTEL** | 957,141 | ACCOUNTADMIN | Cumulus Plan 10 — BUSINESS executive intelligence | Cumulus |
+| **ZOOMINFO_FIRMOGRAPHICS** | 34,170 | ACCOUNTADMIN | Cumulus Plan 11 — BUSINESS firmographics | Cumulus |
+| **GONG_CALL_SENTIMENT** | 1,104,401 | ACCOUNTADMIN | Cumulus Plan 12 — weekly call sentiment | Cumulus |
+| **MOODYS_MARKET_CONTEXT** | 1,446,471 | ACCOUNTADMIN | Cumulus Plan 13 — daily commercial credit risk × 90-day history | Cumulus |
+
+### Staging Tables (Cumulus)
+
+| Table | Rows | Purpose |
+|-------|------|---------|
+| BOARDEX_EXEC_INTEL_STAGING | 36,816 | Staging for Plan 10 SP |
+| CLARITAS_DEMOGRAPHICS_STAGING | 25,424 | Staging for Plan 1 SP |
+| CORELOGIC_PROPERTY_STAGING | 25,424 | Staging for Plan 5 SP |
+| DNB_BUSINESS_CREDIT_STAGING | 11,392 | Staging for Plan 3 SP |
+| ESRI_GEO_FOOTPRINT_STAGING | 13,327 | Staging for Plan 4 SP |
+| GONG_CALL_SENTIMENT_STAGING | 36,816 | Staging for Plan 12 SP |
+| MGP_FINANCIAL_PLANS_STAGING | 36,816 | Staging for Plan 8 SP |
+| MOODYS_MARKET_CONTEXT_STAGING | 11,392 | Staging for Plan 13 SP |
+| MSCI_ESG_SCORES_STAGING | 11,392 | Staging for Plan 2 SP |
+| PLAID_HELD_AWAY_STAGING | 55,082 | Staging for Plan 6 SP |
+| SYNTH_RELATIONSHIP_GRAPH_STAGING | 38,089 | Staging for Plan 9 SP |
+| WORLD_CHECK_AML_STAGING | 36,816 | Staging for Plan 7 SP |
+| ZOOMINFO_FIRMOGRAPHICS_STAGING | 11,392 | Staging for Plan 11 SP |
 
 ---
 
@@ -96,14 +114,14 @@ Complete inventory of all database objects in `FINS.PUBLIC`.
 
 | Task | Schedule | Warehouse | Calls | State |
 |------|----------|-----------|-------|-------|
-| DAILY_ACCOUNT_SYNC | `0 0 * * * America/New_York` | TASK_WH | SP_RETRY_WRAPPER('SYNC_NEW_ACCOUNTS()', 2) | started |
-| DAILY_TRADE_GENERATOR | `0 1 * * * America/New_York` | LARGE_LOAD | SP_RETRY_WRAPPER('GENERATE_DAILY_TRADES()', 2) | started |
-| DAILY_TRANSACTION_GENERATOR | `0 0 * * * America/New_York` | TASK_WH | SP_RETRY_WRAPPER('GENERATE_DAILY_TRANSACTIONS(10)', 2) | started |
-| TASK_LOAD_MASTER_ACCOUNTS | `0 6 * * * UTC` | MAIN_WH_XS | SP_RETRY_WRAPPER('SP_LOAD_MASTER_ACCOUNTS()', 2) | started |
-| TASK_MONTHLY_CSAT | `0 7 1 * * UTC` | MAIN_WH_XS | SP_RETRY_WRAPPER('SP_GENERATE_MONTHLY_CSAT()', 2) | started |
-| DAILY_JOB_REPORT_TASK | `0 8 * * * America/New_York` | TASK_WH | SP_DAILY_JOB_REPORT() | started |
+| DAILY_ACCOUNT_SYNC | `0 3 * * * America/New_York` | TASK_WH | SP_RETRY_WRAPPER('SYNC_NEW_ACCOUNTS()', 2) | started |
+| DAILY_TRADE_GENERATOR | `10 3 * * * America/New_York` | LARGE_LOAD | SP_RETRY_WRAPPER('GENERATE_DAILY_TRADES()', 2) | started |
+| DAILY_TRANSACTION_GENERATOR | `5 3 * * * America/New_York` | TASK_WH | SP_RETRY_WRAPPER('GENERATE_DAILY_TRANSACTIONS(10)', 2) | started |
+| TASK_LOAD_MASTER_ACCOUNTS | `25 3 * * * America/New_York` | MAIN_WH_XS | SP_RETRY_WRAPPER('SP_LOAD_MASTER_ACCOUNTS()', 2) | started |
+| TASK_MONTHLY_CSAT | `10 3 1 * * America/New_York` | MAIN_WH_XS | SP_RETRY_WRAPPER('SP_GENERATE_MONTHLY_CSAT()', 2) | started |
+| DAILY_JOB_REPORT_TASK | `0 4 * * * America/New_York` | TASK_WH | SP_DAILY_JOB_REPORT() | started |
 | ENROLLMENTS_SNAPSHOT_TASK | `1 MINUTE` (stream-driven) | TASK_WH | Inline MERGE on ENROLLMENTS_STREAM | started |
-| WEEKLY_BALANCE_REPORT | `0 9 * * 1 America/New_York` | TASK_WH | SELECT from VW_ACCOUNT_SUMMARY | suspended |
+| WEEKLY_BALANCE_REPORT | `10 3 * * 1 America/New_York` | TASK_WH | SELECT from VW_ACCOUNT_SUMMARY | started |
 
 ---
 
@@ -120,10 +138,10 @@ Complete inventory of all database objects in `FINS.PUBLIC`.
 
 | Warehouse | Size | Auto-Suspend | Auto-Resume | Owner | Primary Use |
 |-----------|------|--------------|-------------|-------|-------------|
-| MAIN_WH_XS | X-Small | 60s | Yes | SYSADMIN | Default; lightweight SPs |
-| TASK_WH | X-Small | 60s | Yes | SYSADMIN | Scheduled task execution |
-| LARGE_LOAD | X-Large | 300s | Yes | SYSADMIN | Trade generation (heavy compute) |
-| DC_CONNECTION | X-Small | 600s | Yes | SYSADMIN | Data Cloud connector queries |
-| LOAD_WH | X-Small | 60s | Yes | SYSADMIN | One-time data loads |
+| MAIN_WH_XS | X-Small | 60s | Yes | ACCOUNTADMIN | Cumulus data generation SPs |
+| TASK_WH | X-Small | 60s | Yes | ACCOUNTADMIN | Scheduled task execution |
+| LARGE_LOAD | X-Large | 60s | Yes | ACCOUNTADMIN | Trade generation (heavy compute) |
+| PRONTO_DATACLOUD_WH | X-Small | 60s | Yes | ACCOUNTADMIN | Data Cloud zero-copy queries |
+| TABLEAU_WH | Medium | 60s | Yes | ACCOUNTADMIN | Tableau analytics |
+| COMPUTE_WH | X-Small | 60s | Yes | ACCOUNTADMIN | General compute (default) |
 | SNOWFLAKE_LEARNING_WH | X-Small | 300s | Yes | ACCOUNTADMIN | Snowflake provisioning |
-| SYSTEM$STREAMLIT_NOTEBOOK_WH | X-Small | 60s | Yes | ACCOUNTADMIN | Streamlit / Notebooks |

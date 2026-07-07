@@ -24,7 +24,7 @@ graph LR
         DMO[Account_demo__dlm<br/>Unified entity]
     end
 
-    subgraph "Snowflake (FINS.PUBLIC)"
+    subgraph "Snowflake (DATA_JEDAIS.FINS__PUBLIC)"
         DS[FINSDC3_DATASHARE<br/>Inbound secure share]
         MA[MASTER_ACCOUNTS]
         TGC[TRADE_GENERATION_CONFIG]

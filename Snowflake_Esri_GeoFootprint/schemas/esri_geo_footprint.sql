@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.ESRI_GEO_FOOTPRINT
+-- DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT
 -- Esri-style synthetic geographic enrichment per ZIP for Cumulus's footprint.
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_ESRI_GEO_FOOTPRINT
@@ -11,7 +11,7 @@
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-4-esri-geo-footprint-rowspec.md
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.ESRI_GEO_FOOTPRINT (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT (
     ORG_ID                         VARCHAR(18)       NOT NULL DEFAULT 'JDO' COMMENT 'Owning org code. Sourced from V_ACCOUNT_ANCHORS.ORG_ID via the audience GROUP BY. ORG_ID required because two orgs may have the same BRANCH_ZIP. PK component for cross-org isolation.',
     BRANCH_ZIP                     VARCHAR(10)       NOT NULL  COMMENT 'US ZIP this row covers. Derived from V_ACCOUNT_ANCHORS distinct POSTAL_CODE. PK component. NOT an FK to ssot__Account__dlm.',
     STATE_CODE                     VARCHAR(2)        NOT NULL  COMMENT 'US state code from V_ACCOUNT_ANCHORS.',

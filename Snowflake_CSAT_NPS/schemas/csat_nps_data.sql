@@ -1,5 +1,5 @@
 -- =============================================================================
--- FINS.PUBLIC.CSAT_NPS_DATA
+-- DATA_JEDAIS.FINS__PUBLIC.CSAT_NPS_DATA
 -- Customer Satisfaction (CSAT) and Net Promoter Score (NPS) tracking table
 -- =============================================================================
 -- Contains monthly CSAT and NPS scores per account. Populated by:
@@ -7,7 +7,7 @@
 --   2. Monthly auto-generation via SP_GENERATE_MONTHLY_CSAT()
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.CSAT_NPS_DATA (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.CSAT_NPS_DATA (
     ROWID              NUMBER(38,0)         COMMENT 'Monotonically increasing row identifier',
     ACCOUNTID          VARCHAR(16777216)    COMMENT 'Salesforce Account ID from Data Cloud',
     CONTACTID          VARCHAR(16777216)    COMMENT 'Reserved for future use (currently NULL)',

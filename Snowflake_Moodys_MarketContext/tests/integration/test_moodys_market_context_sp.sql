@@ -8,7 +8,7 @@
 --
 -- Strategy:
 --   Same fixture-cloning pattern as Plans 6 + 7: clone the deployed SP into
---   FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE via GET_DDL +
+--   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE via GET_DDL +
 --   REPLACE, redirecting the audience source, dataset table, and staging
 --   table FQNs to fixture-scoped names. Sentinel-based ordering avoids
 --   substring collision when MOODYS_MARKET_CONTEXT expands to
@@ -17,7 +17,7 @@
 --
 -- Plan 13 differences from Plans 1-12:
 --   - INSTRUMENT-SCOPED, not account-scoped. Reads
---     FINS.PUBLIC.INSTRUMENT_UNIVERSE directly (4 columns: TICKER PK,
+--     DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE directly (4 columns: TICKER PK,
 --     INSTRUMENT_NAME, SECTOR, BASE_PRICE) -- there is no V_ACCOUNT_ANCHORS
 --     dependency. Second non-account-scoped Cumulus plan after Plan 4 (Esri
 --     branch-scoped). Fixture is INSTRUMENT_UNIVERSE_MOODYS_FIXTURE, not a
@@ -51,16 +51,16 @@
 --      first).
 -- =============================================================================
 
-USE SCHEMA FINS.PUBLIC;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop any leftover objects from a prior failed run so the test is
 --    idempotent end-to-end.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE;
-DROP TABLE     IF EXISTS FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
-DROP VIEW      IF EXISTS FINS.PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE_STAGING;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE;
 
 -- ---------------------------------------------------------------------------
 -- 2. Materialise the L2 fixture audience view: 8 instruments.
@@ -82,7 +82,7 @@ DROP VIEW      IF EXISTS FINS.PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE;
 --      - 8 distinct TICKER values -> COUNT(DISTINCT TICKER) = 8 and
 --        COUNT(*) = 8 (1:1 daily emit; no audience filter).
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW FINS.PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE AS
 SELECT
     'MFIX01'::VARCHAR(10)            AS TICKER,
     'Acme Industrials Corp'::VARCHAR AS INSTRUMENT_NAME,
@@ -98,10 +98,10 @@ UNION ALL SELECT 'MFIX08', 'MegaCap MF',           'Financials',  4500.00;
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
---    FINS.PUBLIC.MOODYS_MARKET_CONTEXT but renamed.
+--    DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT but renamed.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-LIKE FINS.PUBLIC.MOODYS_MARKET_CONTEXT;
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT;
 
 -- ---------------------------------------------------------------------------
 -- 4. Clone SP_GENERATE_MOODYS_MARKET_CONTEXT into ..._FIXTURE with FQN swaps:
@@ -123,7 +123,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'MOODYS_MARKET_CONTEXT_STAGING',     '__MDY_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_MOODYS_MARKET_CONTEXT', '__MDY_SP__');
@@ -144,7 +144,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 5. First run (CALL #1).
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 6. Coverage assertion #1: distinct TICKER == fixture instrument count (8).
@@ -152,7 +152,7 @@ CALL FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
 --    must emit a row.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT TICKER) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 8
+    (SELECT COUNT(DISTINCT TICKER) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 8
     AS distinct_tickers_assertion_passes;
 -- Expected: TRUE
 
@@ -161,7 +161,7 @@ SELECT
 --    1:1 daily emit + no audience filter -> row count = audience size.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 8
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 8
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
@@ -170,7 +170,7 @@ SELECT
 --    13 NOT NULL columns (OUTLOOK_LAST_CHANGED_DATE is the lone NULLable).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE TICKER                       IS NULL
           OR PROFILE_DATE                 IS NULL
           OR CREDIT_RATING                IS NULL
@@ -192,7 +192,7 @@ SELECT
 --    (22 Moody's grades Aaa..C plus NR).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE CREDIT_RATING NOT IN (
            'Aaa','Aa1','Aa2','Aa3','A1','A2','A3',
            'Baa1','Baa2','Baa3','Ba1','Ba2','Ba3',
@@ -208,7 +208,7 @@ SELECT
 --     every value, just vocabulary-bounded membership.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE RATING_OUTLOOK NOT IN
            ('Stable','Positive','Negative','Developing','Watch')) = 0
     AS rating_outlook_vocabulary_ok;
@@ -218,7 +218,7 @@ SELECT
 -- 11. Vocabulary assertion #6: LIQUIDITY_TIER in the 4-value set.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE LIQUIDITY_TIER NOT IN ('Tier 1','Tier 2','Tier 3','Illiquid')) = 0
     AS liquidity_tier_vocabulary_ok;
 -- Expected: TRUE
@@ -227,7 +227,7 @@ SELECT
 -- 12. Range assertion #7: DAILY_VOLATILITY_PCT in [0, 25].
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE DAILY_VOLATILITY_PCT < 0
           OR DAILY_VOLATILITY_PCT > 25) = 0
     AS daily_volatility_in_range;
@@ -237,7 +237,7 @@ SELECT
 -- 13. Range assertion #8: MARKET_CAP_USD strictly positive.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE MARKET_CAP_USD <= 0) = 0
     AS market_cap_usd_positive;
 -- Expected: TRUE
@@ -248,7 +248,7 @@ SELECT
 --     the wider rowspec safety bound to catch any future bias drift.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE THIRTY_DAY_PRICE_CHANGE_PCT < -50
           OR THIRTY_DAY_PRICE_CHANGE_PCT > 50) = 0
     AS thirty_day_change_in_range;
@@ -261,7 +261,7 @@ SELECT
 --     expansion without forcing a test rewrite for benign drift.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE RATING_AGENCY_FLAG_COUNT < 0
           OR RATING_AGENCY_FLAG_COUNT > 5) = 0
     AS rating_agency_flag_count_in_range;
@@ -275,7 +275,7 @@ SELECT
 --     either leg's RNG range).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE FIFTY_TWO_WEEK_HIGH_PRICE < FIFTY_TWO_WEEK_LOW_PRICE) = 0
     AS high_geq_low_invariant;
 -- Expected: TRUE
@@ -286,7 +286,7 @@ SELECT
 --     byte-identical because both fields snap to day_start.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE LAST_DATA_REFRESH_AT::DATE <> PROFILE_DATE) = 0
     AS refresh_date_matches_profile_date;
 -- Expected: TRUE
@@ -297,7 +297,7 @@ SELECT
 --     session). Daily cadence -> all rows share one PROFILE_DATE.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE PROFILE_DATE <> CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE) = 0
     AS profile_date_is_run_date;
 -- Expected: TRUE
@@ -336,7 +336,7 @@ SET year_stable_hash_before = (
         RATING_AGENCY_FLAG_COUNT,
         LIQUIDITY_TIER
     )
-    FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
 );
 
 -- ---------------------------------------------------------------------------
@@ -345,17 +345,17 @@ SET year_stable_hash_before = (
 --     deterministic seed).
 -- ---------------------------------------------------------------------------
 SET row_count_before = (
-    SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
 );
 SET hash_before = (
-    SELECT HASH_AGG(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
 );
 
 -- ---------------------------------------------------------------------------
 -- 21. Second run (CALL #2) -- same-calendar-day re-run for both
 --     idempotency and year-stable invariants.
 -- ---------------------------------------------------------------------------
-CALL FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
 
 -- ---------------------------------------------------------------------------
 -- 22. Year-stable invariants assertion (continued from #19): the year-stable
@@ -372,7 +372,7 @@ SET year_stable_hash_after = (
         RATING_AGENCY_FLAG_COUNT,
         LIQUIDITY_TIER
     )
-    FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+    FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
 );
 
 SELECT
@@ -384,7 +384,7 @@ SELECT
 -- 23. Idempotency row-count assertion #15: row count unchanged after CALL #2.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = $row_count_before
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
@@ -393,7 +393,7 @@ SELECT
 --     Same calendar day -> byte-identical output across the entire row.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT HASH_AGG(*) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = $hash_before
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE
 
@@ -401,8 +401,8 @@ SELECT
 -- 25. Cleanup -- drop fixture procedure, staging, table, view; remove
 --     fixture task-execution-log entries.
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS FINS.PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
-DROP TABLE     IF EXISTS FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE_STAGING;
-DROP TABLE     IF EXISTS FINS.PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE;
-DROP VIEW      IF EXISTS FINS.PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE;
-DELETE FROM FINS.PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_DAILY_MOODYS_MARKET_CONTEXT_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_DAILY_MOODYS_MARKET_CONTEXT_FIXTURE';

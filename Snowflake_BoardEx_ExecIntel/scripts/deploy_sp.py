@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy SP_GENERATE_BOARDEX_EXEC_INTEL into FINS.PUBLIC.
+"""Deploy SP_GENERATE_BOARDEX_EXEC_INTEL into DATA_JEDAIS.FINS__PUBLIC.
 
 Generator-style sibling of Plan 8's `Snowflake_MoneyGuidePro_FinancialPlans/scripts/deploy_sp.py`.
 Plan 1 hand-built `procedures/sp_create_procedure.sql` once; Plan 2 automated
@@ -106,8 +106,8 @@ CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_c
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
 
-PROCEDURE_FQN = "FINS.PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL"
-TABLE_FQN = "FINS.PUBLIC.BOARDEX_EXEC_INTEL"
+PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL"
+TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL"
 TASK_NAME = "TASK_MONTHLY_BOARDEX_EXEC_INTEL"
 DATASET_SALT = "boardex"
 
@@ -309,7 +309,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_BOARDEX_EXEC_INTEL' IN SCHEMA FINS.PUBLIC\""
+        + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_BOARDEX_EXEC_INTEL' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
     print(f"  {verify_cmd}")

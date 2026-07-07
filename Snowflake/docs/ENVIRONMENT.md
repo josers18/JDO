@@ -10,35 +10,29 @@ Snowflake connection details, warehouse configuration, permissions, and external
 
 | Setting | Value |
 |---------|-------|
-| **Account** | GSB13421 (`eob55465.us-east-1.snowflakecomputing.com`) |
-| **Region** | us-east-1 |
-| **Database** | FINS |
-| **Schema** | PUBLIC |
+| **Account** | SKJADZG-SFDC_DC_TECH_ARCH |
+| **Region** | us-west-2 (default) |
+| **Database** | DATA_JEDAIS |
+| **Schema** | FINS__PUBLIC |
 | **Role** | SYSADMIN |
+| **User** | JOSE |
 | **Default Warehouse** | MAIN_WH_XS |
-| **Default `snow` connection** | `GSB13421_jwt` (RSA key-pair JWT auth) |
-| **OAuth fallback** | `GSB13421` (browser-based; non-default; explicit `--connection GSB13421` to use) |
+| **Cortex Code connection** | `SFDC_DC_TECH_ARCH` (JWT auth) |
 
 ### Connection String (SnowSQL / CLI)
 
 ```bash
-# Modern Snowflake CLI (preferred — auto-uses default JWT connection from ~/.snowflake/connections.toml)
+# Modern Snowflake CLI (preferred)
 snow sql -q "SELECT CURRENT_USER(), CURRENT_ROLE();"
 
-# Snow CLI listing both connections:
+# Snow CLI listing connections:
 snow connection list
 
-# Explicit connection selection:
-snow sql -c GSB13421_jwt -q "SELECT 1;"      # JWT (default)
-snow sql -c GSB13421     -q "SELECT 1;"      # OAuth — browser opens
-
 # Legacy SnowSQL CLI:
-snowsql -a GSB13421 -u <username> -d FINS -s PUBLIC -w MAIN_WH_XS -r SYSADMIN
+snowsql -a SKJADZG-SFDC_DC_TECH_ARCH -u JOSE -d DATA_JEDAIS -s FINS__PUBLIC -w MAIN_WH_XS -r SYSADMIN
 ```
 
-> **Why JWT is default:** OAuth opens a browser for re-auth, which breaks unattended cron/CI flows. JWT (RSA key-pair) is service-account-friendly, stable across sessions, and matches the production cron path that owns the SP runs.
->
-> **deploy_sp.py uniform default:** All 13 Cumulus plans' `scripts/deploy_sp.py` default to unflagged `snow sql -f <file>` (active JWT connection). The `--connection NAME` argument is opt-in for the rare ad-hoc OAuth case. Hardcoding `default="GSB13421"` was a regression caught and fixed on 2026-05-29.
+> **Migration note (2026-06-29):** All FINS.PUBLIC objects from the original GSB13421 account were migrated to `DATA_JEDAIS.FINS__PUBLIC` on the SFDC_DC_TECH_ARCH account. The schema uses Snowflake's double-underscore naming convention (`FINS__PUBLIC`) to represent the logical database.schema pairing within the consolidated `DATA_JEDAIS` database.
 
 ---
 
@@ -46,11 +40,12 @@ snowsql -a GSB13421 -u <username> -d FINS -s PUBLIC -w MAIN_WH_XS -r SYSADMIN
 
 | Warehouse | Size | Auto-Suspend | Auto-Resume | Purpose | Monthly Use |
 |-----------|------|--------------|-------------|---------|-------------|
-| MAIN_WH_XS | X-Small | 60s | Yes | Default queries, lightweight SPs (CSAT, Master Accounts) | Low |
+| MAIN_WH_XS | X-Small | 60s | Yes | Cumulus data generation procedures, lightweight SPs | Low |
 | TASK_WH | X-Small | 60s | Yes | Scheduled task execution (account sync, transactions, reports) | Medium |
-| LARGE_LOAD | X-Large | 300s | Yes | Trade generation (processes 36K+ accounts per run) | High |
-| DC_CONNECTION | X-Small | 600s | Yes | Data Cloud connector / ad-hoc datashare queries | Low |
-| LOAD_WH | X-Small | 60s | Yes | One-time bulk data loads | Occasional |
+| LARGE_LOAD | X-Large | 60s | Yes | Trade generation (processes 36K+ accounts per run) | High |
+| PRONTO_DATACLOUD_WH | X-Small | 60s | Yes | Salesforce Data Cloud zero-copy queries | Low |
+| TABLEAU_WH | Medium | 60s | Yes | Tableau analytics | Medium |
+| COMPUTE_WH | X-Small | 60s | Yes | General compute (default account warehouse) | Low |
 
 **Cost note:** LARGE_LOAD is the primary credit consumer. It runs once daily for ~5 minutes. TASK_WH runs 3-4 tasks/day at ~1 minute each. MAIN_WH_XS handles 2 daily tasks at <10 seconds each.
 
@@ -61,8 +56,8 @@ snowsql -a GSB13421 -u <username> -d FINS -s PUBLIC -w MAIN_WH_XS -r SYSADMIN
 ### Role Hierarchy
 
 ```
-ACCOUNTADMIN
-  └── SYSADMIN (owns all FINS.PUBLIC objects)
+ACCOUNTADMIN (owns all DATA_JEDAIS.FINS__PUBLIC objects)
+  └── SYSADMIN
         └── (task execution context)
 ```
 
@@ -70,11 +65,11 @@ ACCOUNTADMIN
 
 | Object Type | Owner | Notes |
 |-------------|-------|-------|
-| All tables | SYSADMIN | Except ACCOUNT, CUSTOMER (ACCOUNTADMIN — legacy) |
-| All procedures | SYSADMIN | All user-defined SPs |
-| All tasks | SYSADMIN | Created by JSIFONTES |
-| Notification integrations | SYSADMIN | TASK_EMAIL_ALERTS, TASK_ERROR_NOTIFICATIONS |
-| Warehouses | SYSADMIN | Except SNOWFLAKE_LEARNING_WH, SYSTEM$STREAMLIT_NOTEBOOK_WH (ACCOUNTADMIN) |
+| All tables | ACCOUNTADMIN | All FINS__PUBLIC tables |
+| All procedures | ACCOUNTADMIN | All user-defined SPs |
+| All tasks | ACCOUNTADMIN | Created by JOSE |
+| Notification integrations | ACCOUNTADMIN | TASK_EMAIL_ALERTS, TASK_ERROR_NOTIFICATIONS |
+| Warehouses | ACCOUNTADMIN | Most warehouses; DEMO_WH and WH_DEMO owned by SYSADMIN |
 
 ### Execution Context
 
@@ -99,7 +94,7 @@ ACCOUNTADMIN
 | Provider | Salesforce Data Cloud org (JDO demo org) |
 | Schema path | `FINSDC3_DATASHARE."schema_Jedi_Snowflake"` |
 | Primary object | `"ssot__Account__dlm"` (Account DMO) |
-| Row count | ~37,445 (includes duplicates; 36,813 distinct accounts) |
+| Row count | ~37,500+ (includes duplicates; 36,816 distinct accounts) |
 | Refresh | Near-real-time via Data Cloud streaming; visible in Snowflake within hours |
 
 **Caveats:**
@@ -180,6 +175,6 @@ CALL SYSTEM$SEND_EMAIL(
 ## Maintenance Notes
 
 - **Warehouse sizing:** Monitor LARGE_LOAD execution time in TASK_EXECUTION_LOG. If avg exceeds 10 minutes, consider upgrading to 2X-Large.
-- **Storage growth:** FINANCIAL_TRADES grows ~5K rows/day (~150K/month). At current rate, it will reach ~3.5M rows by end of 2026. No pruning strategy yet.
+- **Storage growth:** FINANCIAL_TRADES grows ~5K rows/day (~150K/month). Currently at ~3.28M rows. No pruning strategy yet.
 - **Time Travel:** Default 1-day retention. Sufficient for error recovery but not for compliance auditing.
 - **Datashare stability:** If FINSDC3_DATASHARE stops refreshing, check Data Cloud data stream status in the Salesforce org. Use `python hydrate.py dc-status --target-org X` from the Customer_Hydration project.

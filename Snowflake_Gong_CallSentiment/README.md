@@ -13,16 +13,16 @@ Synthetic Gong / Chorus.ai / ExecVision-style weekly conversation-intelligence r
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
 
 ## Snowflake objects
-- Table: `FINS.PUBLIC.GONG_CALL_SENTIMENT`
-- Stored procedure: `FINS.PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT()`
-- Task: `FINS.PUBLIC.TASK_WEEKLY_GONG_CALL_SENTIMENT` (WEEKLY, `0 5 * * 1 UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Table: `DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT()`
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_WEEKLY_GONG_CALL_SENTIMENT` (WEEKLY, `0 5 * * 1 UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusGongCallSentiment__dll` → DMO `CumulusGongCallSentiment__dlm`
 
 ## Audience
 **Wealth Management + Commercial Banking** — every distinct anchor in `V_ACCOUNT_ANCHORS` whose `CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')`. Gong's revenue-intelligence product targets high-touch relationship segments where RM call activity matters — Wealth advisors covering HNW clients, and Commercial Bankers covering corporate-treasury accounts. Retail self-serves through digital channels (no RM calls); Small Business and Household are below the call-volume threshold where conversation analytics earn their keep:
 
 ```sql
-SELECT DISTINCT * FROM FINS.PUBLIC.V_ACCOUNT_ANCHORS
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 WHERE CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')
 ```
 

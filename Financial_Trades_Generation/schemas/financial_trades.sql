@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Table:    FINANCIAL_TRADES
--- Database: FINS.PUBLIC
+-- Database: DATA_JEDAIS.FINS__PUBLIC
 -- Purpose:  Primary output table for all generated synthetic trades.
 --           Each row represents a single trade execution with full market
 --           metadata including price, quantity, fees, exchange, and settlement.
@@ -8,7 +8,7 @@
 -- PK:       TRADE_ID (UUID)
 -- =============================================================================
 
-CREATE OR REPLACE TABLE FINS.PUBLIC.FINANCIAL_TRADES (
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES (
     TRADE_ID               VARCHAR(36)     NOT NULL,    -- UUID, unique trade identifier
     ORDER_ID               VARCHAR(36)     NOT NULL,    -- UUID, groups related trades
     ACCOUNT_ID             VARCHAR(50)     NOT NULL,    -- FK to TRADE_GENERATION_CONFIG
