@@ -59,9 +59,11 @@
   --wp-surface-glass-strong: rgba(255, 255, 255, 0.86);
   --wp-border: rgba(255, 255, 255, 0.9);
   --wp-border-strong: rgba(40, 50, 90, 0.12);
-  --wp-text: #1e2233;
-  --wp-text-muted: #6b7290;
-  --wp-text-faint: #9aa2bd;
+  --wp-text: #1a1f2e;
+  /* Darkened for pure-white surfaces (was #6b7290 / #9aa2bd, tuned for the
+     tinted aurora wash and too pale on white — secondary text vanished). */
+  --wp-text-muted: #454c66;
+  --wp-text-faint: #697089;
   --wp-radius: 20px;
   --wp-radius-sm: 14px;
   --wp-shadow: 0 18px 50px rgba(40, 50, 90, 0.14);
