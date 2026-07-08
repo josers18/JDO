@@ -8,7 +8,7 @@ This file orients AI coding agents working in `React-Headless`. It is the tracke
 
 - **ReactRetail** — retail banker morning home + customer 360 (runs on live data).
 - **ReactWealth** — wealth-management advisory desk.
-- **ReactCommercial** — commercial-banking relationship command center.
+- **ReactCommercial** — commercial-banking relationship command center; customer 360 includes a **Company Intel** tab (ZoomInfo firmographics, BoardEx governance, MSCI ESG, SEC filings) and the home dashboard carries a book-level **Delinquency Watch** panel.
 
 Plus a `ReactHeadless` review harness (all three personas as routes for local preview) and a `_shared` source library. Each cockpit is a full-page app: navigation, KPI strips, tables, charts, AI/ML tiles, and a customer-360 drill-in, styled with the **Aurora Glass** design system (light mode, frosted glass, one blue→violet accent, per-persona accent colors).
 
@@ -30,8 +30,8 @@ force-app/main/default/
 │   │   └── src/{theme,data,hooks,components,charts}/   # tokens+ThemeProvider, graphqlClient,
 │   │                                                   #   dataCloudClient, useAsyncData, primitives
 │   ├── ReactRetail/      # src/{home,client,data}/ — live-data cockpit
-│   ├── ReactWealth/      # mock-data cockpit
-│   ├── ReactCommercial/  # mock-data cockpit
+│   ├── ReactWealth/      # live-data cockpit (real default, mock fallback)
+│   ├── ReactCommercial/  # live-data cockpit + Company Intel tab + Delinquency Watch
 │   └── ReactHeadless/    # review harness (personas as routes)
 ├── applications/         # <App>.app-meta.xml — CustomApplication, binds <uiBundle>c__<Name>
 ├── permissionsets/       # <App>_Access — applicationVisibilities
@@ -70,7 +70,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 - **Entry & routing** — `src/app.tsx` mounts `createBrowserRouter`; the basename comes from `globalThis.SFDC_ENV.basePath` (platform-injected), trailing slash stripped. Do not hardcode it. Routes live in `src/routes.tsx` as a `RouteObject[]` under `AppLayout`; nav auto-builds from routes carrying `handle: { showInNavigation, label }`.
 - **Data-access rule** — origin decides the client: **SalesforceDotCom → GraphQL** (`executeGraphQL`), **Snowflake/Databricks → Apex bridge** (`queryDataCloud` → `DcBridgeRest` → `ConnectApi.CdpQuery.queryAnsiSqlV2`). Both are exposed from `@shared`.
-- **Mock/real toggle** — `src/data/dataSource.ts` per app: `resolve(domain, mockFn, realFn)` with `modeFor` / `setDomainMode`. ReactRetail runs `core` + `dataCloud` real; Wealth/Commercial are mock. This keeps mock↔real a body-only swap behind identical fetcher signatures.
+- **Mock/real toggle** — `src/data/dataSource.ts` per app: `resolve(domain, mockFn, realFn)` with `modeFor` / `setDomainMode`. All three apps default to real for `core` / `dataCloud` / `agentforce`, with per-domain mock fallback. This keeps mock↔real a body-only swap behind identical fetcher signatures.
 - **In-org surface** — a UIBundle becomes a Lightning app via a `CustomApplication` (`<uiType>Lightning</uiType>`, `<uiBundle>c__<Name></uiBundle>`) with `<target>CustomApplication</target>` on the bundle meta. It serves at the **Salesforce App Domain** (`…--c.<host>.my.salesforce.app/app/c__<Name>`), NOT `/lightning/app/<name>`.
 
 # Conventions

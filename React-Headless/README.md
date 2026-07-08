@@ -14,7 +14,7 @@ It now hosts a three-persona banking cockpit suite — **React Retail**, **React
 - **Bundles:**
   - `uiBundles/ReactRetail/` — Retail banker home + customer 360 (live GraphQL + Data Cloud data)
   - `uiBundles/ReactWealth/` — Wealth advisory desk
-  - `uiBundles/ReactCommercial/` — Commercial relationship command
+  - `uiBundles/ReactCommercial/` — Commercial relationship command (Company Intel 360 tab + book-level Delinquency Watch)
   - `uiBundles/ReactHeadless/` — review harness (all personas as routes)
   - `uiBundles/_shared/` — non-deployed source library, inlined into each bundle via the `@shared` alias
 - **In-org:** all three persona apps are deployed as `CustomApplication`s and render at the Salesforce App Domain (see [Deployed apps](#deployed-apps)).
@@ -81,7 +81,7 @@ All three render in-org at the Salesforce App Domain (org `jdo-1lrnov` / `storm-
 | React Wealth | `https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactWealth` |
 | React Commercial | `https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactCommercial` |
 
-Retail runs on live GraphQL + Data Cloud data; Wealth and Commercial currently render on mock fixtures.
+All three apps default to live data (GraphQL for CRM, the `DcBridgeRest` Apex bridge for Data Cloud, and prompt-flow-backed Einstein/Agentforce summaries), with a per-domain mock fallback via `dataSource.ts`. Commercial adds a Company Intel 360 tab (ZoomInfo firmographics, BoardEx governance, MSCI ESG, SEC filings) and a book-level Delinquency Watch home panel.
 
 ## Layout
 
