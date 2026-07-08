@@ -28,19 +28,15 @@ interface ThemeProviderProps {
  */
 export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProviderProps) {
   const theme = PERSONA_THEMES[persona];
-  // Light mode IS the Aurora Glass system (blue→violet accent from tokens.css).
-  // Only inject the per-persona accent overrides in dark mode, so Aurora wins
-  // in light mode. Font is always applied.
+  // Persona accent tokens are injected in BOTH modes, so light mode is
+  // persona-themed too (not fixed to the Aurora blue→violet default).
   const style = {
-    fontFamily: 'var(--wp-font)',
-    ...(mode === 'dark'
-      ? {
-          '--wp-accent': theme.accent,
-          '--wp-accent-soft': theme.accentSoft,
-          '--wp-gradient': theme.gradient,
-          '--wp-glow': theme.glow,
-        }
-      : {}),
+    fontFamily: 'var(--font-sans)',
+    '--wp-accent': theme.accent,
+    '--wp-accent-2': theme.accentSoft,
+    '--wp-accent-soft': theme.accentSoft,
+    '--wp-gradient': theme.gradient,
+    '--wp-glow': theme.glow,
   } as CSSProperties;
 
   return (

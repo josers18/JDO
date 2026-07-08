@@ -1,5 +1,65 @@
 @import 'tailwindcss';
 
+/* ── Cumulus Aurora fonts ─────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+
+/* ── Cumulus Aurora token scale (Tailwind v4 auto-generates utilities) ──
+   These map to the runtime --wp-* vars injected by ThemeProvider, so
+   persona + light/dark swaps propagate without per-component branching. */
+@theme {
+  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  --color-bg: var(--wp-surface);
+  --color-surface: var(--wp-surface-raised);
+  --color-surface-muted: var(--wp-surface-muted);
+  --color-fg: var(--wp-text);
+  --color-muted: var(--wp-text-muted);
+  --color-faint: var(--wp-text-faint);
+  --color-line: var(--wp-border);
+  --color-line-strong: var(--wp-border-strong);
+
+  --color-accent: var(--wp-accent);
+  --color-accent-2: var(--wp-accent-2);
+  --color-accent-bg: var(--wp-accent-bg);
+  --color-accent-border: var(--wp-accent-border);
+
+  --color-ok: var(--wp-pos);
+  --color-ok-bg: var(--wp-pos-bg);
+  --color-warn: var(--wp-warn);
+  --color-warn-bg: var(--wp-warn-bg);
+  --color-risk: var(--wp-neg);
+  --color-risk-bg: var(--wp-neg-bg);
+
+  --color-pink: #ec4899;
+  --color-pink-soft: #fde7f3;
+
+  --color-track: var(--wp-track);
+
+  --radius-card: 20px;
+  --radius-sub: 14px;
+
+  --shadow-card: var(--wp-shadow-sm);
+  --shadow-pop: var(--wp-shadow);
+}
+
+.bg-gradient-brand { background: var(--wp-gradient); }
+.text-gradient-accent {
+  background: var(--wp-gradient);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.bg-surface-glass {
+  background: var(--wp-surface-glass);
+  backdrop-filter: saturate(160%) blur(18px);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+}
+
+@keyframes wp-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
 @layer base {
   html,
   body,

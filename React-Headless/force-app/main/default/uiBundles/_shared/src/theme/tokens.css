@@ -37,6 +37,15 @@
   --wp-gradient: linear-gradient(120deg, #0d9488 0%, #115e59 100%);
   --wp-glow: radial-gradient(60% 120% at 15% 0%, rgba(20, 184, 166, 0.35) 0%, rgba(20, 184, 166, 0) 60%);
   --wp-aurora: radial-gradient(60% 50% at 20% 0%, rgba(20, 184, 166, 0.15), transparent 60%);
+
+  --wp-surface-muted: #0c1220;
+  --wp-accent-2: #0ea5e9;
+  --wp-accent-bg: color-mix(in srgb, var(--wp-accent) 16%, transparent);
+  --wp-accent-border: color-mix(in srgb, var(--wp-accent) 40%, transparent);
+  --wp-pos-bg: rgba(52,211,153,0.12);
+  --wp-warn-bg: rgba(251,191,36,0.12);
+  --wp-neg-bg: rgba(251,113,133,0.12);
+  --wp-track: rgba(148,163,184,0.14);
 }
 
 /* ── AURORA GLASS (light, primary) ─────────────────────────────
@@ -72,6 +81,15 @@
     radial-gradient(50% 45% at 12% 8%, rgba(91, 141, 239, 0.30), transparent 60%),
     radial-gradient(45% 40% at 90% 10%, rgba(155, 109, 255, 0.26), transparent 55%),
     radial-gradient(60% 50% at 70% 100%, rgba(45, 212, 191, 0.18), transparent 60%);
+
+  --wp-surface-muted: #fafbff;
+  --wp-accent-2: #0ea5e9;
+  --wp-accent-bg: color-mix(in srgb, var(--wp-accent) 12%, transparent);
+  --wp-accent-border: color-mix(in srgb, var(--wp-accent) 34%, transparent);
+  --wp-pos-bg: #e3f7ef;
+  --wp-warn-bg: #fdf0dd;
+  --wp-neg-bg: #fde8ec;
+  --wp-track: #eef1fb;
 }
 
 @keyframes wp-fade-up {
