@@ -17,6 +17,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [July 2026]
 
+### 2026-07-07 — App Launcher tiles + Dependabot cleanup
+
+#### Added
+
+- **App Launcher tiles for all three apps** (`pages/` + `tabs/`). A UIBundle `CustomApplication` tile can't open the app directly — it lands on `one:noNavItems` because the app renders only at the Salesforce App Domain, which can't be iframed (`frame-ancestors 'self'`) and blocks scripted top-nav out of the LEX tab. Each app now has a Visualforce "launch card" (`<App>Launcher.page`) exposed as a `CustomTab` (`<App>App`); its `target="_top"` button navigates the top window to the App Domain URL — the one browser-sanctioned launch path. Permsets gained matching `pageAccesses` + `tabSettings`.
+
+#### Security
+
+- **Cleared all 60 open Dependabot npm advisories (8 critical, 20 high, 24 medium, 8 low)** via `overrides` across 8 projects. All were transitive: `protobufjs → ^7.6.3` and `esbuild → ^0.28.1` in the four React bundles (protobufjs pulled by the `o11y` telemetry SDK; 2 critical + 5 high); `@babel/core → ^7.29.6` and a scoped `@istanbuljs/load-nyc-config` → `js-yaml ^3.15.0` in the four sibling LWC projects. Runtime `dist/` unaffected — telemetry/build/test deps only; bundles rebuild to identical output hashes.
+
 ### 2026-07-07 — live data across all three cockpits + Commercial Company Intel
 
 #### Added

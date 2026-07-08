@@ -23,7 +23,9 @@ A UIBundle renders as a Lightning app only when all three exist and agree:
 |-------|------|-------------|
 | Bundle | `uiBundles/ReactRetail/ReactRetail.uibundle-meta.xml` | `<isActive>true</isActive>`, **`<target>CustomApplication</target>`** |
 | App | `applications/ReactRetail.app-meta.xml` | `<uiType>Lightning</uiType>`, **`<uiBundle>c__ReactRetail</uiBundle>`** |
-| Access | `permissionsets/ReactRetail_Access.permissionset-meta.xml` | `applicationVisibilities` → `ReactRetail`, `visible=true` |
+| Access | `permissionsets/ReactRetail_Access.permissionset-meta.xml` | `applicationVisibilities` → `ReactRetail`, `visible=true`; plus `pageAccesses` + `tabSettings` for the launcher tile |
+| Launcher page | `pages/ReactRetailLauncher.page` | VF "launch card"; `target="_top"` button → App Domain URL (see [App Launcher tile](#app-launcher-tile)) |
+| Launcher tab | `tabs/ReactRetailApp.tab-meta.xml` | `visualforcePage`-type CustomTab → the launcher page; this is the waffle-menu tile |
 
 Use the `c__` prefix on the `<uiBundle>` binding for no-namespace orgs (this org). `<target>CustomApplication</target>` is required — a bundle scaffolded during the beta defaults to `AppLauncher`, which is what breaks post-GA.
 
@@ -41,6 +43,8 @@ sf project deploy start \
   --source-dir force-app/main/default/permissionsets/ReactRetail_Access.permissionset-meta.xml \
   -o jdo-1lrnov --json
 ```
+
+The launcher tile (`pages/` + `tabs/`) can deploy in the same command or separately — the tab depends on the page, and the permset's `tabSettings`/`pageAccesses` depend on both, so if deploying piecemeal, order is pages → tabs → permsets.
 
 Always read `result.status` and `result.numberComponentErrors` from the `--json`. Never use `--ignore-conflicts` blindly — it has masked a hard failure as exit code 0.
 
@@ -61,6 +65,17 @@ https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactRetail
 Note the `--c` segment and the `.my.salesforce.app` App Domain. Client/detail routes append to it, e.g. `/app/c__ReactRetail/client/<accountId>`.
 
 **Do NOT judge success by `/lightning/app/ReactRetail`.** That Lightning path shows *"The app you're trying to view is invalid or inaccessible. We're taking you to your default app instead"* and redirects to the org default (e.g. `qbranch__Q_Home_Lightning`) — even when the app is fine. This is the single biggest red herring; it cost hours of misdiagnosis.
+
+## App Launcher tile
+
+The App Domain URL is the canonical launch path, but users expect a tile in the Lightning App Launcher (waffle). Clicking the raw `CustomApplication` tile does **not** work — it lands on `one:noNavItems`, because:
+
+1. The App Domain sends `frame-ancestors 'self'`, so LEX can't iframe it — and LEX's own `frame-src` CSP omits `*.my.salesforce.app` anyway.
+2. A scripted redirect out of the LEX tab iframe is blocked by the browser (cross-origin top-navigation without a user gesture).
+
+The only browser-sanctioned launch is a **user click on a `target="_top"` link**. So each app ships a Visualforce "launch card" page (`pages/<App>Launcher.page`) exposed as a `CustomTab` (`tabs/<App>App.tab-meta.xml`); the card's Open button carries the click gesture and navigates the top window to the App Domain URL. The permission set grants `pageAccesses` (the VF page) + `tabSettings` (Visible) so the tile appears for assigned users.
+
+**VF gotcha:** a `.page` source may **not** contain `<!DOCTYPE html>` — the compiler errors with *"A DOCTYPE is not allowed in content."* Omit it.
 
 ## Beta migration (delete + redeploy)
 
@@ -117,7 +132,9 @@ Then open the App Domain URL in a browser. **Do not** try to confirm the `<uiBun
 | `Invalid Target value 'AppLauncher'` | Beta bundle metadata, gate now on | Set `<target>CustomApplication</target>` |
 | `no UIBundle named X found` | App deployed before bundle existed | Deploy bundle + app together (one command) |
 | "invalid or inaccessible… default app instead" / redirect to org home | Opened `/lightning/app/<name>` | Use the App Domain URL (`…my.salesforce.app/app/c__<Name>`) |
-| App opens blank / `one:noNavItems` | Stale beta AppMenuItem | Full delete + redeploy (above) |
+| App opens blank / `one:noNavItems` after a correct deploy | Stale beta AppMenuItem | Full delete + redeploy (above) |
+| Clicking the App Launcher tile → `one:noNavItems` | Opened the raw `CustomApplication` tile (can't render in LEX) | Use the launcher-tile bridge (see [App Launcher tile](#app-launcher-tile)); click that tile, not the app |
+| VF page deploy: `A DOCTYPE is not allowed in content` | `<!DOCTYPE html>` in a `.page` source | Remove the DOCTYPE line |
 | `ExpectedSourceFilesError … _shared.uibundle-meta.xml` | `delete source`/`retrieve` scanned the non-deployable `_shared` bundle | Use a destructiveChanges manifest deploy |
 | `Not available for deploy for this API version` | `sourceApiVersion` below v67 | Align `sfdx-project.json` to 67.0 |
 | App still broken after correct redeploy | Running on a 1P pod (`cs*`/`na*`/`eu*`/`ap*`) | Feature not available until ~v264 (Oct 2026); this org (`USA844`) is Hyperforce and works now |

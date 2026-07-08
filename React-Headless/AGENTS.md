@@ -34,8 +34,10 @@ force-app/main/default/
 │   ├── ReactCommercial/  # live-data cockpit + Company Intel tab + Delinquency Watch
 │   └── ReactHeadless/    # review harness (personas as routes)
 ├── applications/         # <App>.app-meta.xml — CustomApplication, binds <uiBundle>c__<Name>
-├── permissionsets/       # <App>_Access — applicationVisibilities
-└── classes/              # DcBridgeRest.cls (+ test) — the only Apex
+├── pages/                # <App>Launcher.page — VF "launch card", App Launcher bridge to the App Domain
+├── tabs/                 # <App>App.tab — CustomTab (waffle-menu tile) targeting the launcher page
+├── permissionsets/       # <App>_Access — applicationVisibilities + tabSettings + pageAccesses
+└── classes/              # DcBridgeRest.cls, DcPromptRest.cls (+ tests) — the only Apex
 docs/                     # DEPLOYMENT_GUIDE.md, customer-360-inventory-and-gaps.md, plans/
 ```
 
@@ -92,11 +94,13 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 ## Tests
 
-- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. Apex: `DcBridgeRestTest` (5 tests).
+- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. Apex: `DcBridgeRestTest` (5 tests) + `DcPromptRestTest` (6 tests).
 
 # Common mistakes
 
 - **Deploying to `/lightning/app/<name>` and concluding it's broken.** That path always redirects to the org default; the real URL is the App Domain (`…my.salesforce.app/app/c__<Name>`).
+- **Expecting the App Launcher (waffle) tile to open the app.** The raw `CustomApplication` tile lands on `one:noNavItems` — the App Domain can't be iframed (`frame-ancestors 'self'`) and scripted top-nav out of the LEX tab is blocked. Bridge via a VF launch-card `CustomTab` with a `target="_top"` button (see `pages/<App>Launcher.page`). A `.page` source must not contain `<!DOCTYPE html>`.
+- **Dependabot alerts are transitive** — they won't clear from a direct bump or range-widen. Fix via `overrides` in the bundle `package.json` + regen lockfile; use a *scoped* override when only a nested copy is vulnerable (see `docs/DEPENDENCY_MANAGEMENT.md`).
 - **Plain-redeploying a beta bundle** and expecting the binding to take — the stale AppMenuItem survives. Delete + redeploy.
 - **Reading `CustomApplication.Metadata` to check the `uiBundle` binding** — Tooling doesn't surface that field; it looks dropped even when correct. Verify in the browser.
 - **`sf project delete source` on this repo** — errors on the non-deployable `_shared` bundle. Use a destructiveChanges manifest from a throwaway DX project.
@@ -106,7 +110,8 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 # Related docs
 
 - `README.md` — quick start, deployed-app URLs, layout.
-- `docs/DEPLOYMENT_GUIDE.md` — full deploy runbook + beta migration.
+- `docs/DEPLOYMENT_GUIDE.md` — full deploy runbook + beta migration + App Launcher tile bridge.
+- `docs/DEPENDENCY_MANAGEMENT.md` — npm advisory handling via `overrides` (transitive-dep fix pattern + scoped-override rule).
 - `docs/customer-360-inventory-and-gaps.md` — the live-page parity floor + Data Cloud gap analysis + settled content contract.
 - `docs/superpowers/plans/` — the foundation + persona implementation plans.
 - Sibling JDO projects (`DC_*_LWC`, `Cumulus_Assistant`, etc.) are reference context only.

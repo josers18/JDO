@@ -37,6 +37,7 @@ Confirmed against `jdo-0pz8au` on 2026-06-25 — these override stale public doc
 4. **`graphql:schema` introspection is NOT required to build/deploy.** Generated GraphQL types live in the source tree once committed. Only re-run introspection after adding new GraphQL operations — and note it can hang for minutes against a full production-org schema.
 5. **A UIBundle DOES become a Lightning app** — pair it with a `CustomApplication` that has `<uiType>Lightning</uiType>` and `<uiBundle>c__<Name></uiBundle>`, and add `<target>CustomApplication</target>` to the `.uibundle-meta.xml`. Two gotchas: (a) the app renders at the **Salesforce App Domain** (`https://<myDomain>--c.<...>.my.salesforce.app/app/c__<Name>`), **not** at `/lightning/app/<name>` (that path shows "invalid or inaccessible" and redirects to the org default). (b) A bundle deployed during the beta carries a stale AppMenuItem — a plain redeploy won't fix it; you must **delete + redeploy** (see [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)).
 6. **Never deploy with `--ignore-conflicts` blindly** — it masked a hard failure as exit code 0. Always capture `--json` and read `status` / `numberComponentErrors`.
+7. **The App Launcher (waffle) tile can't open a UIBundle app directly.** Clicking the raw `CustomApplication` tile lands on `one:noNavItems`. The app renders only at the App Domain, which sends `frame-ancestors 'self'` (can't be iframed) and blocks scripted top-nav out of the LEX tab (no user gesture). The working bridge is a per-app **Visualforce "launch card"** (`<App>Launcher.page`) exposed as a **CustomTab** (`<App>App`), whose `target="_top"` button navigates to the App Domain URL — a user click is the one browser-sanctioned path. VF gotcha: a `.page` source may **not** contain `<!DOCTYPE html>` ("A DOCTYPE is not allowed in content").
 
 ## Build
 
@@ -96,7 +97,9 @@ React-Headless/
 │   │   ├── ReactCommercial/             # Commercial cockpit
 │   │   └── ReactHeadless/               # review harness
 │   ├── applications/                    # CustomApplication per persona (uiBundle binding)
-│   ├── permissionsets/                  # <App>_Access (applicationVisibilities)
+│   ├── pages/                           # <App>Launcher VF pages — App Launcher bridge to the App Domain
+│   ├── tabs/                            # <App>App CustomTabs — the waffle-menu tiles
+│   ├── permissionsets/                  # <App>_Access (applicationVisibilities + tab/page access)
 │   └── classes/                         # DcBridgeRest — Apex REST → Data Cloud bridge
 ├── docs/                                # DEPLOYMENT_GUIDE.md, customer-360 inventory, plans
 ├── AGENTS.md                            # project-context primer
