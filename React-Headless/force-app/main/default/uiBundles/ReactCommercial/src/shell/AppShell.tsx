@@ -1,5 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { Icon, type IconKey } from '@shared';
+import { AgentforceChat, Icon, type IconKey } from '@shared';
+
+/** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
+const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
 
 export interface NavItem {
   id: string;
@@ -150,27 +153,9 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
             <span style={{ fontSize: '0.7rem', border: '1px solid var(--wp-border)', borderRadius: 5, padding: '0 0.3rem' }}>⌘K</span>
           </div>
 
-          {/* native Agentforce launcher — pink = the AI entry point */}
-          <button
-            type="button"
-            title="Ask Agentforce"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.85rem',
-              borderRadius: 999,
-              border: 'none',
-              background: 'var(--color-pink)',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Icon name="sparkle" size={14} /> Agentforce
-          </button>
+          {/* The pink AI entry point is the Agentforce Conversation Client's
+              own floating FAB (mounted below via <AgentforceChat/>), so the
+              header no longer carries a duplicate Agentforce button. */}
 
           <button type="button" aria-label="Notifications" style={iconBtn}>
             <Icon name="alerts" size={16} />
@@ -184,6 +169,9 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
 
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: 1600, width: '100%', margin: '0 auto' }}>{children}</main>
       </div>
+
+      {/* Real Agentforce chat (Lightning Out 2.0) — self-managed pink FAB. */}
+      <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" />
     </div>
   );
 }

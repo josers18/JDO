@@ -20,3 +20,4 @@ export { Panel } from './Panel';
 export { Meter } from './Meter';
 export { EntityRow } from './EntityRow';
 export { HeroBand } from './HeroBand';
+export { AgentforceChat } from './AgentforceChat';
