@@ -6,4 +6,12 @@
         <application>ReactRetail</application>
         <visible>true</visible>
     </applicationVisibilities>
+    <pageAccesses>
+        <apexPage>ReactRetailLauncher</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+    <tabSettings>
+        <tab>ReactRetailApp</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>

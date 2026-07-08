@@ -6,4 +6,12 @@
         <application>ReactCommercial</application>
         <visible>true</visible>
     </applicationVisibilities>
+    <pageAccesses>
+        <apexPage>ReactCommercialLauncher</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+    <tabSettings>
+        <tab>ReactCommercialApp</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>

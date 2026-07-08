@@ -6,4 +6,12 @@
         <application>ReactWealth</application>
         <visible>true</visible>
     </applicationVisibilities>
+    <pageAccesses>
+        <apexPage>ReactWealthLauncher</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+    <tabSettings>
+        <tab>ReactWealthApp</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>
