@@ -39,7 +39,6 @@
   --wp-aurora: radial-gradient(60% 50% at 20% 0%, rgba(20, 184, 166, 0.15), transparent 60%);
 
   --wp-surface-muted: #0c1220;
-  --wp-accent-2: #0ea5e9;
   --wp-accent-bg: color-mix(in srgb, var(--wp-accent) 16%, transparent);
   --wp-accent-border: color-mix(in srgb, var(--wp-accent) 40%, transparent);
   --wp-pos-bg: rgba(52,211,153,0.12);
@@ -83,7 +82,6 @@
     radial-gradient(60% 50% at 70% 100%, rgba(45, 212, 191, 0.18), transparent 60%);
 
   --wp-surface-muted: #fafbff;
-  --wp-accent-2: #0ea5e9;
   --wp-accent-bg: color-mix(in srgb, var(--wp-accent) 12%, transparent);
   --wp-accent-border: color-mix(in srgb, var(--wp-accent) 34%, transparent);
   --wp-pos-bg: #e3f7ef;

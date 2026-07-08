@@ -1,7 +1,7 @@
-@import 'tailwindcss';
-
 /* ── Cumulus Aurora fonts ─────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+
+@import 'tailwindcss';
 
 /* ── Cumulus Aurora token scale (Tailwind v4 auto-generates utilities) ──
    These map to the runtime --wp-* vars injected by ThemeProvider, so
