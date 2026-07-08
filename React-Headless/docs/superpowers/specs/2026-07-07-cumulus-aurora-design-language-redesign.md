@@ -34,7 +34,7 @@ apps feel cutting-edge and unmistakably part of the JDO family.
 
 | Source | What we adopt |
 |---|---|
-| **VDP Studio** (`docs/DESIGN_LANGUAGE_LLM_ARTIFACT.md`) | Mono eyebrows (uppercase, wide-tracked, IBM Plex Mono); `tabular-nums` on every metric; committed two-tone gradient **for action only**; accent-top-border stat cards; drill-through `›` rows; hairline `border-line` + `shadow-card` → `shadow-pop` on hover; **pink `#ec4899` reserved for the AI entry point only**; teal/violet track accents; portal-to-body for fixed overlays; `print:` neutralizers on gradient surfaces |
+| **VDP Studio** (`docs/DESIGN_LANGUAGE_LLM_ARTIFACT.md`) | Uppercase wide-tracked eyebrows; `tabular-nums` on every metric; committed two-tone gradient **for action only**; accent-top-border stat cards; drill-through `›` rows; hairline `border-line` + `shadow-card` → `shadow-pop` on hover; **pink `#ec4899` reserved for the AI entry point only**; teal/violet track accents; portal-to-body for fixed overlays; `print:` neutralizers on gradient surfaces |
 | **Goals Cockpit / Profile Widgets** (LWC DNA) | Icon chips (rounded, accent-wash fill); timeline rails with node dots + connector lines; hover-lift (`-translate-y-0.5` + accent border + shadow); count badges; header radial-glow; avatar tiles + tier bars |
 | **Aurora Glass** (current `_shared`) | Frosted-glass surfaces + subtle motion as the *signature* (additive, not the only depth cue); persona theming (retail teal / commercial copper / wealth gold); staggered fade-up entrances |
 
@@ -59,8 +59,8 @@ apps feel cutting-edge and unmistakably part of the JDO family.
 - **Status is semantic** — green = ok/ready, amber = attention, red = risk. Kept visually
   distinct from the persona gradient.
 - **Pink = AI only** — the Ask-AI pill + Assistant FAB. Nothing else uses pink.
-- **Mono eyebrows + `tabular-nums`** — uppercase wide-tracked micro-labels above sections;
-  tabular numerals on every metric.
+- **Eyebrows + `tabular-nums`** — uppercase wide-tracked micro-labels (humanist sans, not
+  mono) above sections; tabular numerals on every metric.
 - **Fixed overlays portal to `document.body`** (a `backdrop-blur` ancestor traps
   `position: fixed` children — the glass nav would otherwise break the FAB/drawer).
 - **`print:` neutralize** any gradient surface (hero → white with dark text).
@@ -82,10 +82,13 @@ Plan:
    (e.g. `--color-brand-600: var(--wp-accent)`, `--gradient-brand: var(--wp-gradient)`),
    so `ThemeProvider persona=… mode=…` still swaps persona accent + light/dark live while
    components reference clean utilities.
-3. **Typography.** Load **Plus Jakarta Sans** (UI) + **IBM Plex Mono** (eyebrows, metrics,
-   meta chips) and set `--font-sans` / `--font-mono`. Replaces Inter — the single biggest
-   "designed" upgrade. (Prefer `@fontsource` packages for offline/CI determinism; Google
-   `@import` acceptable fallback.)
+3. **Typography.** Load **Fraunces** (elegant optical-size serif → `--font-display`, used for
+   the hero title + big stat numbers) + **Hanken Grotesk** (warm humanist sans → `--font-sans`,
+   all UI/body/eyebrows). **No monospace** — eyebrows and readouts use the humanist sans;
+   figures keep `tabular-nums` for alignment without the robotic terminal feel. Replaces
+   Inter — the single biggest "designed" upgrade. (Prefer `@fontsource` packages for
+   offline/CI determinism; Google Fonts `@import` acceptable fallback.) Decision validated
+   against the interactive mockup (`output/journey-designs/cumulus-aurora-mockup.html`).
 4. **Dark mode.** The dark-luxe values (deep ink shell, glass-that-reads-as-glass, glowing
    rails) live in the `[data-mode='dark']` token set; utilities reference bridged tokens so
    both modes work with **no per-component branching**.
@@ -95,9 +98,9 @@ Plan:
 Highest leverage: `_shared` is Vite-inlined into all three bundles via `@shared`, so
 rebuilding these primitives once propagates everywhere.
 
-- **`StatTile`** (replaces flat `KpiTile`) — 3px persona-accent top-bar; mono eyebrow;
-  big `tabular-nums` count-up value; semantic delta chip (▲/▼); optional sparkline;
-  hover-lift. *This is the core fix for the flat KPI boxes.*
+- **`StatTile`** (replaces flat `KpiTile`) — 3px persona-accent top-bar; eyebrow label;
+  big `tabular-nums` count-up value in the display serif; semantic delta chip (▲/▼);
+  optional sparkline; hover-lift. *This is the core fix for the flat KPI boxes.*
 - **`Panel`** (replaces `GlassCard`) — hairline border + `shadow-card`; mono-uppercase
   header with optional count badge + action slot; additive glass blur; left-accent-rail
   variant for secondary panels.
