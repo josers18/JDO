@@ -1,4 +1,4 @@
-import { GlassCard, PredictionCard } from '@shared';
+import { Panel, PredictionCard } from '@shared';
 import { AgentforceSummaryCard } from './AgentforceSummaryCard';
 import type { Full360, MlPrediction } from './full360Types';
 
@@ -34,9 +34,9 @@ export function ContextSidebar({ data, tab, accountId }: { data: Full360; tab: s
   return (
     <div style={{ display: 'grid', gap: '1rem', position: 'sticky', top: 16 }}>
       {predictions.map(p => (
-        <GlassCard key={p.key} title={p.title} index={0}>
+        <Panel key={p.key} title={p.title} index={0}>
           <PredictionCard title={p.title} score={p.score} scoreLabel={p.scoreLabel} outcome={p.outcome} drivers={p.drivers} color={PRED_COLOR[p.tone]} />
-        </GlassCard>
+        </Panel>
       ))}
       {summaries.map(s => (
         <AgentforceSummaryCard key={s.key} summary={s} accountId={accountId} />
