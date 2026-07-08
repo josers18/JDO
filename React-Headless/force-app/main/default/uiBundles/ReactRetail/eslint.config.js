@@ -124,6 +124,7 @@ const config = [
       globals: {
         ...globals.browser,
         ...globals.node,
+        ...globals.vitest,
         global: 'writable',
         JSX: 'readonly',
       },

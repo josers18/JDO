@@ -11,3 +11,4 @@ export { HeroPulseBar, type PulseStat } from './HeroPulseBar';
 export { AssistantDock, type AssistantMessage } from './AssistantDock';
 export { DataList, type DataListRow } from './DataList';
 export { DataTable, type TableColumn } from './DataTable';
+export { Icon, type IconKey } from './iconMap';
