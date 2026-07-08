@@ -9,7 +9,6 @@
   --wp-font: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-:root,
 [data-mode='dark'] {
   --wp-surface: #070b14;
   --wp-surface-raised: #101827;
@@ -49,7 +48,10 @@
 
 /* ── AURORA GLASS (light, primary) ─────────────────────────────
    Frosted panels over one ambient gradient wash. Near-invisible borders,
-   soft depth, blue→violet accent. Seamless via shared background, not lines. */
+   soft depth, blue→violet accent. Seamless via shared background, not lines.
+   Light is the :root baseline so nothing can fall back to dark; dark mode is
+   opt-in via an explicit [data-mode='dark'] wrapper. */
+:root,
 [data-mode='light'] {
   --wp-surface: #eef1fb;
   --wp-surface-raised: #ffffff;
