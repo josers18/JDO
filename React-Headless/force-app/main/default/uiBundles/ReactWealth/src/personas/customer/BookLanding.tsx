@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { useAsyncData, GlassCard, KpiTile, AttentionQueue, formatValue, type AttentionItem } from '@shared';
+import { useAsyncData, Panel, StatTile, Eyebrow, AttentionQueue, formatValue, type AttentionItem } from '@shared';
 import { fetchBookClients } from './customerData';
 import type { BookClient } from './customerTypes';
 
@@ -27,20 +27,21 @@ export default function BookLanding() {
   return (
     <div style={{ display: 'grid', gap: '1.25rem' }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Good morning, Alex</h1>
+        <Eyebrow>Advisory Desk</Eyebrow>
+        <h1 className="mt-1.5 font-display text-[1.6rem] font-semibold tracking-tight">Good morning, Alex</h1>
         <p style={{ margin: '0.25rem 0 0', color: 'var(--wp-text-muted)' }}>
           {highRisk} clients need attention today across your book. Ranked by AI priority.
         </p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem' }}>
-        <KpiTile index={0} label="Book Value" value={totalValue} format="currencyCompact" trend={[18, 20, 19, 22, 24, 26, 28]} deltaPct={0.084} />
-        <KpiTile index={1} label="Households" value={clients.data?.length ?? 0} format="number" trend={[3, 4, 4, 5, 5, 6, 6]} />
-        <KpiTile index={2} label="Needs Attention" value={highRisk} format="number" deltaPct={0.12} trend={[2, 2, 3, 2, 3, 2, 2]} />
-        <KpiTile index={3} label="Avg AI Confidence" value={0.87} format="percent" trend={[80, 82, 84, 83, 85, 86, 87]} />
+        <StatTile index={0} label="Book Value" value={totalValue} format="currencyCompact" trend={[18, 20, 19, 22, 24, 26, 28]} deltaPct={0.084} />
+        <StatTile index={1} label="Households" value={clients.data?.length ?? 0} format="number" trend={[3, 4, 4, 5, 5, 6, 6]} />
+        <StatTile index={2} label="Needs Attention" value={highRisk} format="number" deltaPct={0.12} trend={[2, 2, 3, 2, 3, 2, 2]} tone="risk" />
+        <StatTile index={3} label="Avg AI Confidence" value={0.87} format="percent" trend={[80, 82, 84, 83, 85, 86, 87]} />
       </div>
 
-      <GlassCard
+      <Panel
         title="Today’s Priorities"
         action={<span style={{ fontSize: '0.72rem', color: 'var(--wp-text-faint)' }}>Click a client to open their 360</span>}
       >
@@ -49,7 +50,7 @@ export default function BookLanding() {
         ) : (
           <AttentionQueue items={items} onSelect={(i: AttentionItem) => navigate(`/client/${i.id}`)} />
         )}
-      </GlassCard>
+      </Panel>
     </div>
   );
 }

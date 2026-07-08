@@ -37,7 +37,8 @@
       "@salesforce/platform-sdk": [
         "../../../../../../../../../../packages/sdk/platform-sdk/src/index.ts",
         "./node_modules/@salesforce/platform-sdk/dist/index.d.ts"
-      ]
+      ],
+      "lucide-react": ["./node_modules/lucide-react/dist/lucide-react.d.ts"]
     }
   },
   "include": [

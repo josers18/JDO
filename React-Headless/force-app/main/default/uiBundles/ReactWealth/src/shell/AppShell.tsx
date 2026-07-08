@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
+import { Icon, type IconKey } from '@shared';
 
 export interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: IconKey;
   active?: boolean;
   onClick?: () => void;
 }
@@ -82,8 +83,8 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
                 background: item.active ? 'color-mix(in srgb, var(--wp-accent) 12%, transparent)' : 'transparent',
               }}
             >
-              <span aria-hidden="true" style={{ fontSize: '1.05rem', width: 20, textAlign: 'center', flexShrink: 0 }}>
-                {item.icon}
+              <span aria-hidden="true" className="grid w-5 flex-none place-items-center">
+                <Icon name={item.icon} size={18} />
               </span>
               {!collapsed && <span>{item.label}</span>}
             </button>
@@ -139,7 +140,7 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
               color: 'var(--wp-text-faint)',
             }}
           >
-            <span aria-hidden="true">⌕</span>
+            <Icon name="search" size={16} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -149,7 +150,7 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
             <span style={{ fontSize: '0.7rem', border: '1px solid var(--wp-border)', borderRadius: 5, padding: '0 0.3rem' }}>⌘K</span>
           </div>
 
-          {/* native Agentforce launcher */}
+          {/* native Agentforce launcher — pink = the AI entry point */}
           <button
             type="button"
             title="Ask Agentforce"
@@ -159,20 +160,20 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
               gap: '0.4rem',
               padding: '0.45rem 0.85rem',
               borderRadius: 999,
-              border: '1px solid color-mix(in srgb, var(--wp-accent) 45%, transparent)',
-              background: 'color-mix(in srgb, var(--wp-accent) 12%, transparent)',
-              color: 'var(--wp-accent)',
+              border: 'none',
+              background: 'var(--color-pink)',
+              color: '#fff',
               fontWeight: 700,
               fontSize: '0.84rem',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
           >
-            <span aria-hidden="true">✦</span> Agentforce
+            <Icon name="sparkle" size={14} /> Agentforce
           </button>
 
           <button type="button" aria-label="Notifications" style={iconBtn}>
-            <span aria-hidden="true">🔔</span>
+            <Icon name="alerts" size={16} />
           </button>
           <div
             style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--wp-gradient)', color: 'var(--wp-on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}
