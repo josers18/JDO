@@ -56,6 +56,8 @@ export default defineConfig(function (_a) {
                 // _shared lives outside this bundle's node_modules walk-up, so point the
                 // SDK import at the installed package explicitly for Vite/Rollup.
                 '@salesforce/platform-sdk': path.resolve(__dirname, './node_modules/@salesforce/platform-sdk/dist/index.js'),
+                // Same walk-up problem: _shared's iconMap imports lucide-react; pin it to this bundle's copy.
+                'lucide-react': path.resolve(__dirname, './node_modules/lucide-react/dist/esm/lucide-react.js'),
             },
         },
         // Vitest configuration
