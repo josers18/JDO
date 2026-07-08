@@ -3,7 +3,7 @@ import { Eyebrow, Pill } from '@shared';
 
 describe('Eyebrow', () => {
   it('renders its text uppercased-by-css and applies tracking class', () => {
-    const { container } = render(<Eyebrow>Total VDPs</Eyebrow>);
+    render(<Eyebrow>Total VDPs</Eyebrow>);
     const el = screen.getByText('Total VDPs');
     expect(el).toBeInTheDocument();
     expect(el.className).toContain('tracking-[0.14em]');
