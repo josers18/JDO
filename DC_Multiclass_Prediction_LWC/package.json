@@ -4,7 +4,11 @@
   "version": "1.0.0",
   "description": "Salesforce App",
   "overrides": {
-    "@tootallnate/once": "3.0.1"
+    "@tootallnate/once": "3.0.1",
+    "@babel/core": "^7.29.6",
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^3.15.0"
+    }
   },
   "scripts": {
     "lint": "eslint **/{aura,lwc}/**/*.js",

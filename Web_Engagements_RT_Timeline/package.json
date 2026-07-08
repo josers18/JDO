@@ -4,7 +4,11 @@
   "private": true,
   "description": "Salesforce DX project: real-time Data Cloud web engagement timeline LWC + Apex.",
   "overrides": {
-    "@tootallnate/once": "3.0.1"
+    "@tootallnate/once": "3.0.1",
+    "@babel/core": "^7.29.6",
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^3.15.0"
+    }
   },
   "scripts": {
     "test": "sfdx-lwc-jest"
