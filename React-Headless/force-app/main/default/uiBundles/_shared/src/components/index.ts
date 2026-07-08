@@ -12,3 +12,5 @@ export { AssistantDock, type AssistantMessage } from './AssistantDock';
 export { DataList, type DataListRow } from './DataList';
 export { DataTable, type TableColumn } from './DataTable';
 export { Icon, type IconKey } from './iconMap';
+export { Eyebrow } from './Eyebrow';
+export { Pill, type PillTone } from './Pill';
