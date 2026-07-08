@@ -69,6 +69,8 @@
     "vitest": "^4.0.17"
   },
   "overrides": {
-    "lodash": "^4.18.1"
+    "lodash": "^4.18.1",
+    "protobufjs": "^7.6.3",
+    "esbuild": "^0.28.1"
   }
 }

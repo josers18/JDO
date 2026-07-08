@@ -4,7 +4,11 @@
   "private": true,
   "description": "Salesforce DX project: markdown renderer LWC + Lightning Type for Agentforce GenAI output.",
   "overrides": {
-    "@tootallnate/once": "3.0.1"
+    "@tootallnate/once": "3.0.1",
+    "@babel/core": "^7.29.6",
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^3.15.0"
+    }
   },
   "scripts": {
     "test": "sfdx-lwc-jest",
