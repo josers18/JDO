@@ -24,7 +24,7 @@ import { executeGraphQL, queryDataCloud } from '@shared';
 import type {
   Full360, DetailField, FinAccount, Transaction, Trade, Interaction, CaseRow,
   CsatNps, Opportunity, Campaign, MeetingNote, CallSummary, KycSummary,
-  MlPrediction, AgentforceSummary,
+  MlPrediction, AgentforceSummary, Firmographics, Governance, EsgProfile, SecFiling,
 } from './full360Types';
 
 /* ------------------------------- helpers -------------------------------- */
@@ -99,7 +99,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
   if (!accountId) return null;
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
 
-  const [core, txns, tradeRows, inters, notes, csatRows, camps, gong, aml, attr, pcsat, propRows, planRows] = await Promise.all([
+  const [core, txns, tradeRows, inters, notes, csatRows, camps, gong, aml, attr, pcsat, propRows, planRows, ziRows, bxRows, esgRows, secRows] = await Promise.all([
     executeGraphQL<CoreShape>(coreQuery(acct)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT ssot__TransactionDate__c dt, ssot__FinancialTransactionCategory__c cat, ssot__FinancialAccountTransactionType__c typ, ssot__TransactionAmount__c amt FROM ssot__FinancialAccountTransaction__dlm WHERE SFAccountID__c = '${acct}' ORDER BY ssot__TransactionDate__c DESC LIMIT 12`, 12)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT TradeDate__c dt, TradeSide__c side, InstrumentName__c inst, InstrumentIdentifier__c sym, Quantity__c qty, Price__c px, Total_Trade__c tot FROM Financial_Trades__dlm WHERE AccountID__c = '${acct}' ORDER BY TradeDate__c DESC LIMIT 10`, 10)),
@@ -113,6 +113,10 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     rows(queryDataCloud<Record<string, unknown>>(`SELECT CSAT_Score_prediction__c pred, Cross_Sell_Score__c xsell, Digital_Engagement__c dig, Complaint_Count__c comp, Segment__c seg FROM Predicted_CSAT_Output__dlm WHERE accountid__c = '${acct}' LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT estimatedPropertyValue__c val, equityUsd__c eq, outstandingMortgageBalance__c mtg, helocOpportunityScore__c heloc, primaryPropertyType__c ptype, floodZoneCode__c flood, wildfireRiskScore__c fire, isOwner__c owner, profileQuarter__c q FROM CumulusCoreLogicProperty__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileQuarter__c DESC LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT planStatus__c st, retirementTargetAge__c age, monthlyIncomeTargetUsd__c inc, totalGoalAmountUsd__c goal, goalCount__c gc, recommendedAssetAllocation__c alloc, nextReviewDate__c review, profileMonth__c m FROM CumulusMgpFinancialPlans__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT revenueBand__c rev, employeeBand__c emp, industryNaicsCode__c naics, industrySicCode__c sic, foundedYear__c founded, websiteDomain__c web, hqStateCode__c state, hqCountryCode__c country, linkedinFollowers__c li, techStackFlags__c tech, profileMonth__c m FROM CumulusZoomInfoFirmographics__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT boardSize__c size, ceoTenureYears__c ceo, boardAvgTenureYears__c avg, governanceRating__c rating, keyDirectorName__c dir, interlockCount__c interlock, execTurnoverFlag__c turnover, recentGovernanceEventDate__c evt, profileMonth__c m FROM CumulusBoardExExecIntel__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT esgScoreOverall__c overall, environmentalScore__c env, socialScore__c soc, governanceScore__c gov, msciEsgRating__c rating, carbonIntensityTonsPerMRevenue__c carbon, controversyFlagCount__c ctrl, topControversyCategory__c topc, lastRatingChangeDirection__c dir, profileMonth__c m FROM CumulusMSCIESG__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT filingtype__c ftype, section__c sect, section_text__c txt, uniqueid__c uid FROM SEC_Filings__dlm WHERE accountid__c = '${acct}' LIMIT 40`, 40)),
   ]);
 
   const q = core.uiapi?.query;
@@ -354,9 +358,63 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     asOf: shortDate(pl.m),
   } : null;
 
+  /* ---- ZoomInfo firmographics (real, per-account) ---- */
+  const zi = ziRows[0];
+  const firmographics: Firmographics | null = zi ? {
+    revenueBand: decode(zi.rev) || '—',
+    employeeBand: decode(zi.emp) || '—',
+    industryNaics: String(zi.naics ?? '—'),
+    industrySic: String(zi.sic ?? '—'),
+    foundedYear: Math.round(dcNum(zi.founded)),
+    website: decode(zi.web) || '—',
+    hq: [String(zi.state ?? ''), String(zi.country ?? '')].filter(Boolean).join(', ') || '—',
+    linkedinFollowers: Math.round(dcNum(zi.li)),
+    techStack: decode(zi.tech).split(/[,;|]/).map(t => t.trim()).filter(Boolean),
+    asOf: shortDate(zi.m),
+  } : null;
+
+  /* ---- BoardEx governance (real, per-account) ---- */
+  const bx = bxRows[0];
+  const governance: Governance | null = bx ? {
+    boardSize: Math.round(dcNum(bx.size)),
+    ceoTenureYears: Math.round(dcNum(bx.ceo)),
+    boardAvgTenureYears: Math.round(dcNum(bx.avg)),
+    governanceRating: decode(bx.rating) || '—',
+    keyDirector: decode(bx.dir) || '—',
+    interlockCount: Math.round(dcNum(bx.interlock)),
+    execTurnover: bx.turnover === true || String(bx.turnover).toLowerCase() === 'true',
+    recentEventDate: bx.evt ? shortDate(bx.evt) : '—',
+    asOf: shortDate(bx.m),
+  } : null;
+
+  /* ---- MSCI ESG (real, per-account) ---- */
+  const eg = esgRows[0];
+  const esg: EsgProfile | null = eg ? {
+    overall: Math.round(dcNum(eg.overall) * 10) / 10,
+    environmental: Math.round(dcNum(eg.env) * 10) / 10,
+    social: Math.round(dcNum(eg.soc) * 10) / 10,
+    governance: Math.round(dcNum(eg.gov) * 10) / 10,
+    rating: decode(eg.rating) || '—',
+    carbonIntensity: Math.round(dcNum(eg.carbon) * 10) / 10,
+    controversyCount: Math.round(dcNum(eg.ctrl)),
+    topControversy: decode(eg.topc) || 'None',
+    ratingChangeDirection: decode(eg.dir) || '—',
+    asOf: shortDate(eg.m),
+  } : null;
+
+  /* ---- SEC filings grouped by filing type (real, per-account) ---- */
+  const secByType = new Map<string, { id: string; section: string; text: string }[]>();
+  secRows.forEach((r, i) => {
+    const ftype = decode(r.ftype) || '10-Q';
+    const arr = secByType.get(ftype) ?? [];
+    arr.push({ id: `sec${i}`, section: decode(r.sect) || 'Section', text: decode(r.txt) });
+    secByType.set(ftype, arr);
+  });
+  const secFilings: SecFiling[] = [...secByType.entries()].map(([filingType, sections]) => ({ filingType, sections }));
+
   return {
     details, finAccounts, transactions, trades, interactions, cases, csatNps,
     opportunities, campaigns, meetingNotes, callSummaries, kyc, predictions, agentforce,
-    property, financialPlan,
+    property, financialPlan, firmographics, governance, esg, secFilings,
   };
 }

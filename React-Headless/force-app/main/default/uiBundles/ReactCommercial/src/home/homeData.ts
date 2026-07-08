@@ -72,6 +72,16 @@ const DASH: HomeDashboard = {
     { id: 'l3', name: 'Summit Aggregates', source: 'RFP', status: 'New', value: 9500000 },
     { id: 'l4', name: 'Orion Freight', source: 'Industry Event', status: 'New', value: 6400000 },
   ],
+  delinquency: {
+    totalDelinquentBalance: 4820000,
+    totalRecovered: 1130000,
+    byStatus: [
+      { status: '90 days late', count: 38, balance: 2740000 },
+      { status: '60 days late', count: 71, balance: 1520000 },
+      { status: '30 days late', count: 96, balance: 560000 },
+    ],
+    asOf: 'Latest',
+  },
 };
 
 /**

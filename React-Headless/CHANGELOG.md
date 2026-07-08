@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_6_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_7_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [July 2026]
+
+### 2026-07-07 — live data across all three cockpits + Commercial Company Intel
+
+#### Added
+
+- **Full Customer-360 wired to real org data across all three apps** — the §3b content contract (`full360DataReal.ts`) now fetches accounts / transactions / trades / interactions / cases / CSAT-NPS / opportunities / campaigns / notes from GraphQL + the Data Cloud bridge. All three apps default `core` / `dataCloud` / `agentforce` to real, with per-domain mock fallback via `dataSource.ts`.
+- **Live Einstein/Agentforce summaries** — per-section AI briefs via a prompt-flow bridge (`promptClient`), replacing static mock text.
+- **CoreLogic Property + MoneyGuidePro plan** on the Commercial 360 (§2 gap closure) — property value / equity / HELOC propensity / risk, and a MoneyGuidePro financial-plan card.
+- **Company Intel tab on the Commercial 360** — one tab fusing four corporate signals for business accounts: ZoomInfo firmographics, BoardEx board/governance intel, MSCI ESG profile, and SEC filings. Null-safe with a graceful empty state for non-business accounts. Wired to `CumulusZoomInfoFirmographics__dlm`, `CumulusBoardExExecIntel__dlm`, `CumulusMSCIESG__dlm`, and `SEC_Filings__dlm` via the DC bridge.
+- **Book-level Delinquency Watch panel** on the Commercial home dashboard — a `Loan_Delinquencies__dlm` aggregate (delinquent balance + status breakdown). Book-level rather than per-client because the data is not customer-joinable in this org.
+- **Design spec + implementation plan** under `docs/superpowers/` for the Commercial Company Intel + Delinquency Watch work.
+
+#### Fixed
+
+- **Stale deployed bundle.** The Company Intel feature commits changed `src/` only; since a UIBundle deploys `dist/` (not `src/`), the committed `ReactCommercial` bundle did not contain the feature. Rebuilt `dist/` so the deployed artifact actually renders Company Intel + Delinquency Watch.
+
+#### Changed
+
+- **`docs/customer-360-inventory-and-gaps.md`** corrected: MSCI ESG is a Commercial corporate-entity signal (not per-holding Wealth); loan delinquency is book-level (not customer-joinable). ZoomInfo / BoardEx / SEC / MSCI / delinquency gaps marked shipped.
 
 ### 2026-07-06 — three cockpits live in-org
 

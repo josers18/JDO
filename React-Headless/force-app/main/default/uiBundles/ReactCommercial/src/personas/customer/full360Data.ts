@@ -124,6 +124,26 @@ const JULIE_FULL: Full360 = {
     status: 'Stale', retirementTargetAge: 65, monthlyIncomeTarget: 10801, totalGoalAmount: 6408956,
     goalCount: 3, recommendedAllocation: 'Moderate Conservative', nextReviewDate: '—', asOf: 'Jul 2026',
   },
+  firmographics: {
+    revenueBand: '$10M-$50M', employeeBand: '201-1000', industryNaics: '541511', industrySic: '7372',
+    foundedYear: 1998, website: 'omega-inc.example.com', hq: 'CA, US', linkedinFollowers: 48200,
+    techStack: ['Salesforce', 'AWS', 'Snowflake', 'Workday'], asOf: 'Jul 2026',
+  },
+  governance: {
+    boardSize: 11, ceoTenureYears: 6, boardAvgTenureYears: 7, governanceRating: 'Adequate',
+    keyDirector: 'Morgan Ellery', interlockCount: 3, execTurnover: false, recentEventDate: 'Apr 2026', asOf: 'Jul 2026',
+  },
+  esg: {
+    overall: 6.3, environmental: 5.8, social: 6.9, governance: 6.1, rating: 'BBB',
+    carbonIntensity: 142.5, controversyCount: 1, topControversy: 'Labor Management', ratingChangeDirection: 'Upgrade', asOf: 'Jul 2026',
+  },
+  secFilings: [{
+    filingType: '10-Q',
+    sections: [
+      { id: 'sec0', section: 'Part 1 - Management Discussion and Analysis', text: 'Revenue grew 8% year over year driven by expansion in the commercial segment. Operating margins remained stable amid disciplined cost management.' },
+      { id: 'sec1', section: 'Part 2 - Risk Factors', text: 'Macroeconomic conditions and interest-rate volatility present ongoing risk to the loan portfolio and net interest margin.' },
+    ],
+  }],
 };
 
 export function fetchFull360(accountId: string | null): Promise<Full360 | null> {

@@ -22,7 +22,7 @@ const curC = (n: number) => formatValue(n, 'currencyCompact');
 const SENT = { positive: 'var(--wp-pos)', neutral: 'var(--wp-text-faint)', negative: 'var(--wp-neg)' };
 const PRI = { High: 'var(--wp-neg)', Medium: 'var(--wp-warn)', Low: 'var(--wp-text-faint)' };
 
-export const FULL_TABS = ['Overview', 'Details', 'Journey', 'Money', 'Property', 'Engagement', 'Cases', 'Opportunities', 'Campaigns', 'Notes', 'Tearsheet'] as const;
+export const FULL_TABS = ['Overview', 'Details', 'Journey', 'Money', 'Property', 'Company Intel', 'Engagement', 'Cases', 'Opportunities', 'Campaigns', 'Notes', 'Tearsheet'] as const;
 export type FullTab = (typeof FULL_TABS)[number];
 
 /**
@@ -46,6 +46,8 @@ export function Full360Tabs({
       return <MoneyTab full={full} />;
     case 'Property':
       return <PropertyTab full={full} />;
+    case 'Company Intel':
+      return <CompanyIntelTab full={full} />;
     case 'Engagement':
       return <EngagementTab full={full} />;
     case 'Cases':
@@ -210,6 +212,114 @@ function PropertyTab({ full }: { full: Full360 }) {
           </div>
         </GlassCard>
       </div>
+    </div>
+  );
+}
+
+/* ---------- Company Intel (ZoomInfo / BoardEx / MSCI / SEC) ---------- */
+function CompanyIntelTab({ full }: { full: Full360 }) {
+  const { firmographics: fg, governance: gv, esg, secFilings } = full;
+  if (!fg && !gv && !esg && secFilings.length === 0) {
+    return (
+      <GlassCard title="Company Intel">
+        <p style={{ color: 'var(--wp-text-muted)', fontSize: '0.88rem', margin: 0 }}>
+          No corporate-intelligence data on file for this client. (Available for business accounts.)
+        </p>
+      </GlassCard>
+    );
+  }
+  const fact = (k: string, v: string) => (
+    <div key={k}>
+      <div style={{ fontSize: '0.7rem', color: 'var(--wp-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
+      <div style={{ fontSize: '1.02rem', fontWeight: 800, marginTop: 2 }}>{v}</div>
+    </div>
+  );
+  const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' };
+  const esgBar = (label: string, val: number) => (
+    <div key={label} style={{ display: 'grid', gap: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+        <span style={{ color: 'var(--wp-text-muted)' }}>{label}</span>
+        <span style={{ fontWeight: 700 }}>{val.toFixed(1)}</span>
+      </div>
+      <div style={{ height: 6, borderRadius: 999, background: 'var(--wp-border)' }}>
+        <div style={{ width: `${Math.min(100, (val / 10) * 100)}%`, height: '100%', borderRadius: 999, background: 'var(--wp-accent)' }} />
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      {fg && (
+        <GlassCard title="Firmographics" action={<span style={sub}>ZoomInfo · {fg.asOf}</span>}>
+          <div style={grid}>
+            {fact('Revenue Band', fg.revenueBand)}
+            {fact('Employees', fg.employeeBand)}
+            {fact('Founded', fg.foundedYear ? String(fg.foundedYear) : '—')}
+            {fact('Industry (NAICS)', fg.industryNaics)}
+            {fact('Website', fg.website)}
+            {fact('HQ', fg.hq)}
+            {fact('LinkedIn Followers', fg.linkedinFollowers ? fg.linkedinFollowers.toLocaleString() : '—')}
+          </div>
+          {fg.techStack.length > 0 && (
+            <div style={{ marginTop: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {fg.techStack.map(t => (
+                <span key={t} style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--wp-accent)', background: 'color-mix(in srgb, var(--wp-accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--wp-accent) 34%, transparent)', borderRadius: 999, padding: '0.15rem 0.65rem' }}>{t}</span>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+        {gv && (
+          <GlassCard title="Board & Governance" action={<span style={sub}>BoardEx · {gv.asOf}</span>}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.85rem' }}>
+              {fact('Board Size', String(gv.boardSize))}
+              {fact('CEO Tenure', `${gv.ceoTenureYears} yrs`)}
+              {fact('Avg Board Tenure', `${gv.boardAvgTenureYears} yrs`)}
+              {fact('Governance', gv.governanceRating)}
+              {fact('Key Director', gv.keyDirector)}
+              {fact('Interlocks', String(gv.interlockCount))}
+            </div>
+            <p style={{ margin: '0.75rem 0 0', fontSize: '0.82rem', color: gv.execTurnover ? 'var(--wp-warn)' : 'var(--wp-text-muted)' }}>
+              {gv.execTurnover ? '⚠ Recent executive turnover flagged' : 'No recent executive turnover'} · last governance event {gv.recentEventDate}
+            </p>
+          </GlassCard>
+        )}
+        {esg && (
+          <GlassCard title="ESG Profile" action={<span style={sub}>MSCI · {esg.rating}{esg.ratingChangeDirection !== '—' ? ` (${esg.ratingChangeDirection})` : ''}</span>}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '2.2rem', fontWeight: 800 }}>{esg.overall.toFixed(1)}</span>
+              <span style={{ color: 'var(--wp-text-muted)', fontSize: '0.85rem' }}>/ 10 overall</span>
+            </div>
+            <div style={{ display: 'grid', gap: '0.55rem' }}>
+              {esgBar('Environmental', esg.environmental)}
+              {esgBar('Social', esg.social)}
+              {esgBar('Governance', esg.governance)}
+            </div>
+            <p style={{ margin: '0.75rem 0 0', fontSize: '0.8rem', color: 'var(--wp-text-muted)' }}>
+              Carbon intensity {esg.carbonIntensity} t/$M rev · {esg.controversyCount} controversy flag{esg.controversyCount === 1 ? '' : 's'}{esg.controversyCount > 0 ? ` (top: ${esg.topControversy})` : ''}
+            </p>
+          </GlassCard>
+        )}
+      </div>
+      {secFilings.length > 0 && (
+        <GlassCard title="SEC Filings" action={<span style={sub}>{secFilings.map(f => f.filingType).join(', ')}</span>}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {secFilings.map(f => (
+              <div key={f.filingType}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, marginBottom: '0.5rem' }}>{f.filingType}</div>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                  {f.sections.map(s => (
+                    <details key={s.id} style={{ background: 'var(--wp-surface-glass)', border: '1px solid var(--wp-border)', borderRadius: 'var(--wp-radius-sm)', padding: '0.6rem 0.85rem' }}>
+                      <summary style={{ cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>{s.section}</summary>
+                      {s.text && <p style={{ margin: '0.5rem 0 0', fontSize: '0.82rem', color: 'var(--wp-text-muted)', lineHeight: 1.55 }}>{s.text}</p>}
+                    </details>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@
  * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch } from './homeTypes';
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -63,6 +63,18 @@ const CREDIT_RISK_SQL = `
 `;
 
 interface CreditRow { account_id: string; paydex: number; composite_risk: number; delinquency: number; rating: string; days_beyond: number; }
+
+/* ── Data Cloud: book-level loan delinquency (NOT account-joinable —
+   all rows belong to a synthetic loan book, so this is an aggregate metric). */
+const DELINQUENCY_SQL = `
+  SELECT delinquency_status__c AS status, COUNT(uniqueid__c) AS cnt,
+         SUM(loan_balance__c) AS balance, SUM(recovered_amount__c) AS recovered
+  FROM Loan_Delinquencies__dlm
+  WHERE delinquency_status__c IS NOT NULL
+  GROUP BY delinquency_status__c
+  ORDER BY SUM(loan_balance__c) DESC
+`;
+interface DelinqRow { status: string; cnt: number; balance: number; recovered: number; }
 type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
@@ -86,9 +98,10 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
-  const [core, credit] = await Promise.all([
+  const [core, credit, delinq] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     queryDataCloud<CreditRow>(CREDIT_RISK_SQL, 8),
+    queryDataCloud<DelinqRow>(DELINQUENCY_SQL, 20).catch(() => ({ rows: [] as DelinqRow[] })),
   ]);
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
@@ -145,6 +158,14 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   const highRisk = callList.filter(c => c.severity === 'high').length;
 
+  const delinqRows = delinq.rows ?? [];
+  const delinquency: DelinquencyWatch | null = delinqRows.length ? {
+    totalDelinquentBalance: delinqRows.reduce((s, r) => s + Number(r.balance || 0), 0),
+    totalRecovered: delinqRows.reduce((s, r) => s + Number(r.recovered || 0), 0),
+    byStatus: delinqRows.map(r => ({ status: String(r.status || '—'), count: Math.round(Number(r.cnt || 0)), balance: Number(r.balance || 0) })),
+    asOf: 'Latest',
+  } : null;
+
   return {
     bankerName: 'Alex',
     dateLabel: 'Today',
@@ -169,5 +190,6 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
     })),
     leads: [],
+    delinquency,
   };
 }

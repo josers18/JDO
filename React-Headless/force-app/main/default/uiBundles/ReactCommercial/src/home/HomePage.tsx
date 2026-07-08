@@ -156,6 +156,28 @@ export default function HomePage() {
         </div>
       </GlassCard>
 
+      {/* Loan delinquency watch (book-level aggregate) */}
+      {data.delinquency && (
+        <GlassCard title="Delinquency Watch" action={<span style={{ fontSize: '0.72rem', color: 'var(--wp-text-faint)' }}>Book-level · loan portfolio</span>}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '1.5rem', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--wp-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Delinquent Balance</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--wp-neg)' }}>{formatValue(data.delinquency.totalDelinquentBalance, 'currencyCompact')}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--wp-text-muted)', marginTop: 2 }}>{formatValue(data.delinquency.totalRecovered, 'currencyCompact')} recovered</div>
+            </div>
+            <div style={{ display: 'grid', gap: '0.55rem' }}>
+              {data.delinquency.byStatus.map(b => (
+                <div key={b.status} style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: '0.75rem', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--wp-text-muted)' }}>{b.status}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{b.count} loans</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, textAlign: 'right' }}>{formatValue(b.balance, 'currencyCompact')}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
       {/* Pipeline + alerts + leads */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
         <GlassCard title="Pipeline">
