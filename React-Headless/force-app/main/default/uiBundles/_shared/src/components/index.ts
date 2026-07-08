@@ -21,3 +21,6 @@ export { Meter } from './Meter';
 export { EntityRow } from './EntityRow';
 export { HeroBand } from './HeroBand';
 export { AgentforceChat } from './AgentforceChat';
+export { AppLauncher } from './AppLauncher';
+export { UserMenu } from './UserMenu';
+export { GlobalSearch, type SearchHit } from './GlobalSearch';

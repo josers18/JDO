@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { AgentforceChat, Icon, type IconKey } from '@shared';
+import { useNavigate } from 'react-router';
+import { AgentforceChat, AppLauncher, GlobalSearch, Icon, UserMenu, type IconKey } from '@shared';
 
 /** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
 const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
@@ -31,7 +32,7 @@ interface AppShellProps {
  */
 export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   const railW = collapsed ? 64 : 232;
 
   return (
@@ -123,35 +124,16 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
             WebkitBackdropFilter: 'blur(14px)',
           }}
         >
+          {/* Waffle / App Launcher — persona switch + native org apps */}
+          <AppLauncher />
+
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', minWidth: 0 }}>
             <span style={{ fontWeight: 800, fontSize: '1.05rem', whiteSpace: 'nowrap' }}>{title}</span>
             {titleAside}
           </div>
 
-          <div
-            style={{
-              marginLeft: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flex: 1,
-              maxWidth: 440,
-              background: 'var(--wp-surface)',
-              border: '1px solid var(--wp-border)',
-              borderRadius: 999,
-              padding: '0.45rem 0.9rem',
-              color: 'var(--wp-text-faint)',
-            }}
-          >
-            <Icon name="search" size={16} />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search clients, accounts, insights…"
-              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--wp-text)', fontSize: '0.86rem' }}
-            />
-            <span style={{ fontSize: '0.7rem', border: '1px solid var(--wp-border)', borderRadius: 5, padding: '0 0.3rem' }}>⌘K</span>
-          </div>
+          {/* Multi-object global search (Account/Contact/Opportunity via GraphQL) */}
+          <GlobalSearch onSelectAccount={id => navigate(`/client/${id}`)} />
 
           {/* The pink AI entry point is the Agentforce Conversation Client's
               own floating FAB (mounted below via <AgentforceChat/>), so the
@@ -160,11 +142,9 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
           <button type="button" aria-label="Notifications" style={iconBtn}>
             <Icon name="alerts" size={16} />
           </button>
-          <div
-            style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--wp-gradient)', color: 'var(--wp-on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}
-          >
-            AM
-          </div>
+
+          {/* User menu — profile / settings / log out (live identity via GraphQL) */}
+          <UserMenu />
         </header>
 
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: 1600, width: '100%', margin: '0 auto' }}>{children}</main>

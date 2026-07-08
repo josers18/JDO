@@ -49,3 +49,42 @@ export function orgCoreOrigin(): string {
   }
   return origin;
 }
+
+/**
+ * LEX deep link to a native org app, e.g. Sales or Service Console.
+ * Lives at the CORE origin — must open in the top frame (`target="_top"`);
+ * scripted redirects out of the App Domain are browser-blocked.
+ */
+export function lexAppUrl(appName: string): string {
+  return `${orgCoreOrigin()}/lightning/app/${appName}`;
+}
+
+/** LEX record page for a standard object (Contact, Opportunity, …). */
+export function lexRecordUrl(objectApiName: string, recordId: string): string {
+  return `${orgCoreOrigin()}/lightning/r/${objectApiName}/${recordId}/view`;
+}
+
+/**
+ * URL of a sibling React persona bundle. These UIBundles only render at the
+ * App Domain origin (LEX `/lightning/app/...` is a dead end for them — see
+ * CLAUDE.md), so switch on the CURRENT origin, changing only the app segment.
+ */
+export function personaAppUrl(customApplicationDevName: string): string {
+  return `${window.location.origin}/app/c__${customApplicationDevName}`;
+}
+
+/** LEX personal-settings page (`home`, `PersonalInformation`, …). */
+export function personalSettingsUrl(page = 'home'): string {
+  return `${orgCoreOrigin()}/lightning/settings/personal/${page}`;
+}
+
+/** Org logout endpoint (top-frame navigation). */
+export function logoutUrl(): string {
+  return `${orgCoreOrigin()}/secur/logout.jsp`;
+}
+
+/** Which React persona bundle is currently rendering (from the URL), if any. */
+export function currentPersonaDevName(): string | null {
+  const m = window.location.pathname.match(/c__React(Retail|Wealth|Commercial|Headless)/i);
+  return m ? `React${m[1]}` : null;
+}
