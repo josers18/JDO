@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
         '@salesforce/platform-sdk': path.resolve(__dirname, './node_modules/@salesforce/platform-sdk/dist/index.js'),
         // Same walk-up problem: _shared's iconMap imports lucide-react; pin it to this bundle's copy.
         'lucide-react': path.resolve(__dirname, './node_modules/lucide-react/dist/esm/lucide-react.js'),
+        '@salesforce/agentforce-conversation-client': path.resolve(__dirname, './node_modules/@salesforce/agentforce-conversation-client/dist/index.js'),
       },
     },
 

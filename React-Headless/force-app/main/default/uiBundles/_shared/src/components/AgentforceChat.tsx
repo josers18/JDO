@@ -41,6 +41,11 @@ export function AgentforceChat({
           agentLabel,
           renderingConfig: {
             mode: 'floating',
+            // Roomier than the default panel so long, formatted answers
+            // (product overviews, tables) have space to breathe. Floating
+            // mode has no fullscreen flag — width/height is the supported lever.
+            width: 460,
+            height: 680,
             showHeaderIcon: true,
             headerIconName: 'utility:agent',
           },

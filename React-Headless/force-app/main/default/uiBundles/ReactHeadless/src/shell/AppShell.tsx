@@ -1,4 +1,8 @@
 import { useState, type ReactNode } from 'react';
+import { AgentforceChat } from '@shared';
+
+/** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
+const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
 
 export interface NavItem {
   id: string;
@@ -149,27 +153,9 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
             <span style={{ fontSize: '0.7rem', border: '1px solid var(--wp-border)', borderRadius: 5, padding: '0 0.3rem' }}>⌘K</span>
           </div>
 
-          {/* native Agentforce launcher */}
-          <button
-            type="button"
-            title="Ask Agentforce"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.85rem',
-              borderRadius: 999,
-              border: '1px solid color-mix(in srgb, var(--wp-accent) 45%, transparent)',
-              background: 'color-mix(in srgb, var(--wp-accent) 12%, transparent)',
-              color: 'var(--wp-accent)',
-              fontWeight: 700,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span aria-hidden="true">✦</span> Agentforce
-          </button>
+          {/* The pink AI entry point is the Agentforce Conversation Client's
+              own floating FAB (mounted below via <AgentforceChat/>), so the
+              header no longer carries a duplicate Agentforce button. */}
 
           <button type="button" aria-label="Notifications" style={iconBtn}>
             <span aria-hidden="true">🔔</span>
@@ -183,6 +169,9 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
 
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: 1600, width: '100%', margin: '0 auto' }}>{children}</main>
       </div>
+
+      {/* Real Agentforce chat (Lightning Out 2.0) — self-managed pink FAB. */}
+      <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" />
     </div>
   );
 }

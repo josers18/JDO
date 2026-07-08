@@ -38,7 +38,10 @@
         "../../../../../../../../../../packages/sdk/platform-sdk/src/index.ts",
         "./node_modules/@salesforce/platform-sdk/dist/index.d.ts"
       ],
-      "lucide-react": ["./node_modules/lucide-react/dist/lucide-react.d.ts"]
+      "lucide-react": ["./node_modules/lucide-react/dist/lucide-react.d.ts"],
+      "@salesforce/agentforce-conversation-client": [
+        "./node_modules/@salesforce/agentforce-conversation-client/dist/index.d.ts"
+      ]
     }
   },
   "include": [

@@ -18,6 +18,7 @@
     "graphql:schema": "node scripts/get-graphql-schema.mjs"
   },
   "dependencies": {
+    "@salesforce/agentforce-conversation-client": "^11.4.5",
     "@salesforce/platform-sdk": "^10.6.0",
     "@salesforce/ui-bundle": "^10.6.0",
     "@tailwindcss/vite": "^4.1.17",
