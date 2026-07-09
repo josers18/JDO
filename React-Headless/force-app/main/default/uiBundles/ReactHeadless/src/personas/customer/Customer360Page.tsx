@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
-import { useAsyncData, GlassCard } from '@shared';
+import { useAsyncData, GlassCard, AgentforceChat } from '@shared';
 import { fetchCustomer360, fetchCustomer360Detail } from './customerData';
 import { fetchFull360 } from './full360Data';
 import { ClientIdentityRail } from './ClientIdentityRail';
@@ -8,12 +8,16 @@ import { HighlightStrip } from './HighlightStrip';
 import { ContextSidebar } from './ContextSidebar';
 import { Full360Tabs, FULL_TABS, type FullTab } from './Full360Tabs';
 
+/** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
+const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
+
 /**
  * Customer 360 command center (Aurora Glass) — three columns:
  *  · LEFT  identity rail (sticky)
  *  · CENTER AI headline + highlight strip + full §3b tabbed content
  *  · RIGHT contextual AI/ML sidebar (swaps per tab)
- * Embedded on the Account record page (/client/:id).
+ * Embedded on the Account record page (/client/:id). Client-scoped Agentforce
+ * FAB is mounted here, primed with the current client's name.
  */
 export default function Customer360Page() {
   const { id } = useParams();
@@ -78,6 +82,9 @@ export default function Customer360Page() {
 
       {/* RIGHT — contextual AI/ML */}
       {full.data && <ContextSidebar data={full.data} tab={tab} />}
+
+      {/* Client-scoped Agentforce FAB — primed with the current client's name. */}
+      <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" contextLabel={c.name} />
     </div>
   );
 }

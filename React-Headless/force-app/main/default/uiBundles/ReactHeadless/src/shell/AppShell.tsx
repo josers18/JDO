@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { AgentforceChat, AppLauncher, GlobalSearch, UserMenu } from '@shared';
+import { AgentforceChat, AppLauncher, GlobalSearch, NotificationBell, UserMenu } from '@shared';
 
 /** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
 const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
@@ -139,9 +139,9 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
               own floating FAB (mounted below via <AgentforceChat/>), so the
               header no longer carries a duplicate Agentforce button. */}
 
-          <button type="button" aria-label="Notifications" style={iconBtn}>
-            <span aria-hidden="true">🔔</span>
-          </button>
+          {/* Notifications — actionable alert feed (high-priority Cases +
+              opportunities closing soon), the App-Domain stand-in for the LEX bell */}
+          <NotificationBell />
 
           {/* User menu — profile / settings / log out (live identity via GraphQL) */}
           <UserMenu />
@@ -155,13 +155,3 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
     </div>
   );
 }
-
-const iconBtn: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: '50%',
-  border: '1px solid var(--wp-border)',
-  background: 'transparent',
-  cursor: 'pointer',
-  fontSize: '0.9rem',
-};

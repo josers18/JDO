@@ -24,3 +24,4 @@ export { AgentforceChat } from './AgentforceChat';
 export { AppLauncher } from './AppLauncher';
 export { UserMenu } from './UserMenu';
 export { GlobalSearch, type SearchHit } from './GlobalSearch';
+export { NotificationBell, type Alert } from './NotificationBell';

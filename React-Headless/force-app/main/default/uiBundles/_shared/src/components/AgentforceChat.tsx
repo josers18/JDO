@@ -18,12 +18,23 @@ import { orgCoreOrigin } from '../data/orgEnv';
 export function AgentforceChat({
   agentId,
   agentLabel = 'Cumulus Assistant',
+  contextLabel,
 }: {
   agentId: string;
   agentLabel?: string;
+  /**
+   * Optional record context (e.g. the current client's name on Customer 360).
+   * The ACC embed API has NO context-injection field, so we can't silently
+   * tell the agent which record is open. What we CAN do is prime the visible
+   * chrome — header label + input placeholder — so the panel opens scoped to
+   * the record, and re-mount when it changes (the effect deps include it).
+   */
+  contextLabel?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(false);
+  const headerLabel = contextLabel ? `${agentLabel} · ${contextLabel}` : agentLabel;
+  const placeholder = contextLabel ? `Ask about ${contextLabel}…` : undefined;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -38,7 +49,8 @@ export function AgentforceChat({
         salesforceOrigin: orgCoreOrigin(),
         agentforceClientConfig: {
           agentId,
-          agentLabel,
+          agentLabel: headerLabel,
+          ...(placeholder ? { messageInputPlaceholderText: placeholder } : {}),
           renderingConfig: {
             mode: 'floating',
             // Roomier than the default panel so long, formatted answers
@@ -82,7 +94,7 @@ export function AgentforceChat({
       }
       container?.replaceChildren();
     };
-  }, [agentId, agentLabel]);
+  }, [agentId, headerLabel, placeholder]);
 
   return <div ref={containerRef} data-testid="agentforce-chat" />;
 }

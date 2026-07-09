@@ -150,7 +150,8 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
     ],
     unifiedProfiles: [{ sourceOrg: 'Retail', accountId, name }],
     aiSignals,
-    aiBriefHeadline: `${name.split(' ')[0]}’s relationship at a glance`,
+    // Predicate phrase — the page renders "{name}'s relationship is {headline}."
+    aiBriefHeadline: healthScore >= 80 ? 'strong and gaining momentum' : healthScore >= 65 ? 'steady and healthy' : attritionTone === 'risk' ? 'at risk and needs attention' : 'stable with room to grow',
     aiBrief: `${name} holds ${money.map(m => `${m.label.toLowerCase()} of ${m.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}`).join(', ')} across ${fins.length} financial accounts. ${opp?.totalCount ?? 0} open opportunities worth ${oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.${cl ? ` Claritas segment: ${cl.segment} (${cl.life_stage}).` : ''}${csatScore != null ? ` Latest CSAT ${Math.round(csatScore)} / NPS ${Math.round(Number(cs!.nps))}.` : ''}`,
     nextBestActions: [
       ...(buckets.Lending > 0 ? [{ id: 'nba1', title: 'Review lending relationship', detail: `${buckets.Lending.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in loans/cards`, impact: 'Medium' as const }] : []),

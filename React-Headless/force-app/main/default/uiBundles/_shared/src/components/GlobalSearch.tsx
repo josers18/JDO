@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { executeGraphQL } from '../data/graphqlClient';
-import { lexRecordUrl } from '../data/orgEnv';
+import { lexRecordUrl, lexSearchUrl } from '../data/orgEnv';
 import { Icon } from './iconMap';
 
 /**
@@ -20,27 +20,49 @@ export interface SearchHit {
   id: string;
   label: string;
   sublabel: string;
-  object: 'Account' | 'Contact' | 'Opportunity';
+  object: 'Account' | 'Contact' | 'Opportunity' | 'Lead';
 }
 
 type GqlNode = Record<string, { value?: unknown } | undefined> & { Id?: string };
 const val = (n: GqlNode, k: string) => String((n[k] as { value?: unknown } | undefined)?.value ?? '');
 
-/** One parallel query per object; `%term%` contains-match on the name field. */
+/**
+ * Build the `where` filter as a token-wise AND of `like` clauses on `Name`.
+ *
+ * A single `Name like "%julie morris%"` fails on Person Accounts and Contacts:
+ * their `Name` is the COMPUTED compound ("Mrs. Julie E Morris" — salutation +
+ * middle initial), so the contiguous substring "julie morris" never appears.
+ * Splitting on whitespace and requiring each token to match independently
+ * ("%julie%" AND "%morris%") tolerates interleaved salutations/initials and is
+ * what makes people searchable. `extra` appends object-specific clauses
+ * (e.g. Lead's IsConverted filter) into the same AND group.
+ */
+function nameWhere(term: string, extra = ''): string {
+  const tokens = term
+    .replace(/["\\]/g, '') // strip quotes/backslashes for the inline literal
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 4); // cap clause count; more tokens rarely help and cost query size
+  const clauses = tokens.map(t => `{ Name: { like: "%${t}%" } }`).join(' ');
+  return `{ and: [ ${clauses}${extra ? ' ' + extra : ''} ] }`;
+}
+
+/** One parallel query per object; token-wise contains-match on the name field. */
 function buildQuery(term: string): string {
-  const safe = term.replace(/["\\]/g, ''); // strip quotes/backslashes for the inline literal
-  const like = `"%${safe}%"`;
   return `query GlobalSearch {
     uiapi {
       query {
-        Account(first: 6, where: { Name: { like: ${like} } }) {
+        Account(first: 6, where: ${nameWhere(term)}) {
           edges { node { Id Name @optional { value } Type @optional { value } } }
         }
-        Contact(first: 6, where: { Name: { like: ${like} } }) {
+        Contact(first: 6, where: ${nameWhere(term)}) {
           edges { node { Id Name @optional { value } Title @optional { value } } }
         }
-        Opportunity(first: 6, where: { Name: { like: ${like} } }) {
+        Opportunity(first: 6, where: ${nameWhere(term)}) {
           edges { node { Id Name @optional { value } StageName @optional { value } } }
+        }
+        Lead(first: 6, where: ${nameWhere(term, '{ IsConverted: { eq: false } }')}) {
+          edges { node { Id Name @optional { value } Company @optional { value } } }
         }
       }
     }
@@ -53,6 +75,7 @@ interface SearchShape {
       Account?: { edges?: { node: GqlNode }[] };
       Contact?: { edges?: { node: GqlNode }[] };
       Opportunity?: { edges?: { node: GqlNode }[] };
+      Lead?: { edges?: { node: GqlNode }[] };
     };
   };
 }
@@ -69,7 +92,10 @@ async function runSearch(term: string): Promise<SearchHit[]> {
   const opps: SearchHit[] = (q?.Opportunity?.edges ?? []).map(e => ({
     id: e.node.Id ?? '', label: val(e.node, 'Name'), sublabel: val(e.node, 'StageName') || 'Opportunity', object: 'Opportunity',
   }));
-  return [...accounts, ...contacts, ...opps].filter(h => h.id && h.label);
+  const leads: SearchHit[] = (q?.Lead?.edges ?? []).map(e => ({
+    id: e.node.Id ?? '', label: val(e.node, 'Name'), sublabel: val(e.node, 'Company') || 'Lead', object: 'Lead',
+  }));
+  return [...accounts, ...contacts, ...opps, ...leads].filter(h => h.id && h.label);
 }
 
 export function GlobalSearch({
@@ -127,7 +153,7 @@ export function GlobalSearch({
   }, []);
 
   const grouped = useMemo(() => {
-    const g: Record<SearchHit['object'], SearchHit[]> = { Account: [], Contact: [], Opportunity: [] };
+    const g: Record<SearchHit['object'], SearchHit[]> = { Account: [], Contact: [], Opportunity: [], Lead: [] };
     for (const h of hits) g[h.object].push(h);
     return g;
   }, [hits]);
@@ -196,7 +222,7 @@ export function GlobalSearch({
         >
           {!loading && hits.length === 0 && (
             <div style={{ padding: '0.7rem 0.65rem', fontSize: '0.84rem', color: 'var(--wp-text-muted)' }}>
-              No matches for “{term.trim()}”.
+              No quick matches for “{term.trim()}”.
             </div>
           )}
           {(Object.keys(grouped) as SearchHit['object'][]).map(obj =>
@@ -243,6 +269,33 @@ export function GlobalSearch({
                 ))}
               </div>
             ) : null
+          )}
+
+          {/* Escape hatch — the quick search only spans Account/Contact/
+              Opportunity/Lead by name; hand anything broader to the org's
+              full SOSL global search in a new tab. */}
+          {!loading && (
+            <a
+              href={lexSearchUrl(term.trim())}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginTop: '0.35rem',
+                padding: '0.55rem 0.65rem',
+                borderTop: '1px solid var(--wp-border)',
+                borderRadius: 'var(--wp-radius-sm)',
+                textDecoration: 'none',
+                color: 'var(--wp-accent)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+              }}
+            >
+              <Icon name="search" size={14} />
+              Search all of Salesforce for “{term.trim()}” →
+            </a>
           )}
         </div>
       )}

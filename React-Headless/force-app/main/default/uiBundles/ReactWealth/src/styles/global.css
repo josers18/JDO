@@ -88,9 +88,13 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
+  /* NOTE: --color-muted and --color-accent are intentionally NOT redefined
+     here. Aurora's earlier @theme block owns them as TEXT colors
+     (--wp-text-muted / --wp-accent); shadcn's near-white oklch surfaces would
+     otherwise win by cascade order and turn every text-accent / text-muted
+     (headline emphasis, sublabels, action chips) into invisible ghost text.
+     shadcn components only need the *-foreground pairings + bg-* below. */
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);

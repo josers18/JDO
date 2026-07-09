@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { executeGraphQL } from '../data/graphqlClient';
-import { personalSettingsUrl, logoutUrl, lexRecordUrl } from '../data/orgEnv';
+import { personalSettingsUrl, logoutUrl, lexRecordUrl, setupUrl, dataCloudSetupUrl } from '../data/orgEnv';
 
 /**
  * User menu for the React shell (Profile + Settings + Log Out).
@@ -149,6 +149,20 @@ export function UserMenu() {
           <a href={personalSettingsUrl()} target="_top" style={menuLink}>
             Settings
           </a>
+
+          <div style={menuDivider} />
+
+          {/* Admin escape hatches — mirror the native LEX gear menu. These are
+              the two the user asked for; both open in the top frame. */}
+          <a href={setupUrl()} target="_top" style={menuLink}>
+            Setup
+          </a>
+          <a href={dataCloudSetupUrl()} target="_top" style={menuLink}>
+            Data Cloud Setup
+          </a>
+
+          <div style={menuDivider} />
+
           <a
             href={logoutUrl()}
             target="_top"
@@ -171,4 +185,10 @@ const menuLink: React.CSSProperties = {
   textDecoration: 'none',
   color: 'var(--wp-text)',
   fontSize: '0.86rem',
+};
+
+const menuDivider: React.CSSProperties = {
+  height: 1,
+  background: 'var(--wp-border)',
+  margin: '0.35rem 0',
 };
