@@ -7,7 +7,7 @@
 import { mockResolve, series } from '../mock/mockUtil';
 import { resolve } from '../../data/dataSource';
 import { fetchCustomer360Real, fetchCustomer360DetailReal } from './customerDataReal';
-import type { Customer360, Customer360Detail, BookClient } from './customerTypes';
+import type { Customer360, Customer360Detail } from './customerTypes';
 
 const JULIE: Customer360 = {
   id: '001am00000qvjsAAAQ',
@@ -204,15 +204,4 @@ export function fetchCustomer360Detail(accountId: string | null): Promise<Custom
     () => mockResolve(JULIE_DETAIL, 400),
     () => fetchCustomer360DetailReal(accountId),
   );
-}
-
-export function fetchBookClients(): Promise<BookClient[]> {
-  return mockResolve([
-    { id: '001am00000qvjsAAAQ', name: 'Julie E Morris', segment: 'Mass Affluent', headline: 'Held-away consolidation + CD ladder', reason: '$1.2M held-away detected; CDs next-best-product', score: 0.91, severity: 'high', relationshipValue: 921073 },
-    { id: '001B', name: 'Marcus Chen', segment: 'Emerging Affluent', headline: 'Mortgage rate-shopping detected', reason: 'Refi calculator visits ×5 this week', score: 0.84, severity: 'high', relationshipValue: 540000 },
-    { id: '001C', name: 'Priya Natarajan', segment: 'Mass Affluent', headline: 'Life event — new child', reason: 'Eligible for 529 + term life', score: 0.77, severity: 'medium', relationshipValue: 310000 },
-    { id: '001D', name: 'Diego Ramirez', segment: 'Retail', headline: 'Idle cash sweep opportunity', reason: '$48k idle in checking >90 days', score: 0.63, severity: 'medium', relationshipValue: 190000 },
-    { id: '001E', name: 'Sofia Rossi', segment: 'Mass Affluent', headline: 'Service recovery needed', reason: 'CSAT dropped 9→6 after branch visit', score: 0.55, severity: 'medium', relationshipValue: 420000 },
-    { id: '001F', name: 'Tom Becker', segment: 'Retail', headline: 'Auto loan cross-sell', reason: 'Recurring auto spend, no loan on file', score: 0.41, severity: 'low', relationshipValue: 150000 },
-  ]);
 }
