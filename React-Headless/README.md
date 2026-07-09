@@ -84,6 +84,8 @@ All three render in-org at the Salesforce App Domain (org `jdo-1lrnov` / `storm-
 
 All three apps default to live data (GraphQL for CRM, the `DcBridgeRest` Apex bridge for Data Cloud, and prompt-flow-backed Einstein/Agentforce summaries), with a per-domain mock fallback via `dataSource.ts`. Commercial adds a Company Intel 360 tab (ZoomInfo firmographics, BoardEx governance, MSCI ESG, SEC filings) and a book-level Delinquency Watch home panel.
 
+Each cockpit is styled with the **Cumulus Aurora** design language (Fraunces + Hanken Grotesk typography, light-mode Aurora Glass) and renders native-style Salesforce chrome inside the React shell — an app-launcher waffle, multi-object global search, user menu, and notifications. Every persona also embeds **real Agentforce chat** via the Agentforce Conversation Client (a floating AI assistant), with an in-panel switcher across four employee agents (Cumulus Assistant, Financial Advisor, Data Cloud Agent, Analytics & Visualization).
+
 ## Layout
 
 ```

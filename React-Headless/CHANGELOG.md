@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_7_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_9_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [July 2026]
+
+### 2026-07-09 — Agentforce agent switcher: correct switch mechanism
+
+#### Fixed
+
+- **Agent switching now genuinely re-initializes the conversation.** The in-panel agent picker switches between the org's four employee agents by **re-embedding** the Agentforce Conversation Client (teardown + re-mount, keyed on the active agent id), with one `requestAnimationFrame` between teardown and re-embed so Lightning Out's global component registry settles. Verified live: switching Cumulus Assistant → Data Cloud Agent flips both the panel header AND the greeting ("Hi, I'm Agentforce!…" → "Welcome to Data Cloud Agent!…"), and the choice persists across a refresh.
+- **Reverted the in-place `configuration` prop-swap regression** (shipped intra-day): reassigning the mounted frame's `configuration` only relabels the chrome — ACC's inner LWC reads `configuration` once at mount, so the running conversation never switched. The "already registered to another App" console error during re-embed is non-fatal; the fresh session loads regardless.
+
+#### Changed
+
+- Agent-picker chip **docks to the chat panel's top-right edge** when the panel is open (no overlap with the conversation body) and collapses to a small accent dot by the FAB when closed.
+
+### 2026-07-08 — Cumulus Aurora redesign + native chrome + real Agentforce chat
+
+#### Added
+
+- **Cumulus Aurora design language** across all four bundles — a light-mode `:root` token baseline (Fraunces display + Hanken Grotesk body typography), and a set of shared primitives: `ScoreRing`, `StatTile`, `Panel`, `Meter`, `EntityRow`, `HeroBand`, `Eyebrow`, `Pill`, plus a lucide `iconMap` + `Icon` helper. All three cockpits (Retail / Wealth / Commercial) recomposed on the new system.
+- **Native Salesforce chrome baked into the React shell** — `AppLauncher` (33-icon waffle), `GlobalSearch` (multi-object), `UserMenu` (Setup / Data Cloud links), and `NotificationBell` (Cases / Opps) as `_shared` components, so each cockpit reads like a first-class in-org app.
+- **Real Agentforce chat via the Agentforce Conversation Client (ACC)** on Retail / Wealth / Commercial / Headless — embedded through `@salesforce/agentforce-conversation-client` (Lightning Out 2.0), themed to the Aurora pink AI accent, with a roomier floating panel. Reuses the app's authenticated Salesforce session (no Connected App / OAuth dance).
+
+#### Fixed
+
+- **Waffle nav tiles opened the wrong app.** App Launcher tiles now link by `AppDefinition.DurableId` (the LEX router id), not `DeveloperName`, fixing the "invalid or inaccessible" redirect.
+- **Readability on white surfaces** — made light the `:root` token baseline (nothing falls back to dark) and darkened the muted/faint text tokens for WCAG-adequate contrast.
 
 ### 2026-07-07 — App Launcher tiles + Dependabot cleanup
 

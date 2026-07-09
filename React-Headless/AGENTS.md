@@ -16,6 +16,7 @@ Plus a `ReactHeadless` review harness (all three personas as routes for local pr
 
 - React 19 + Vite 7 + TypeScript, Tailwind v4 (`@tailwindcss/vite`), shadcn/ui ("new-york", lucide icons).
 - `@salesforce/sdk-data` ^10.6 — `sdk.graphql` for record data, `sdk.fetch` for Apex REST.
+- `@salesforce/agentforce-conversation-client` — real Agentforce chat embedded via Lightning Out 2.0 (`embedAgentforceClient`); reuses the app's authenticated session.
 - React Router (`createBrowserRouter`).
 - Vitest for unit tests; Playwright for e2e.
 - Apex: `DcBridgeRest` (`@RestResource`) bridges React → Data Cloud.
@@ -74,6 +75,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 - **Data-access rule** — origin decides the client: **SalesforceDotCom → GraphQL** (`executeGraphQL`), **Snowflake/Databricks → Apex bridge** (`queryDataCloud` → `DcBridgeRest` → `ConnectApi.CdpQuery.queryAnsiSqlV2`). Both are exposed from `@shared`.
 - **Mock/real toggle** — `src/data/dataSource.ts` per app: `resolve(domain, mockFn, realFn)` with `modeFor` / `setDomainMode`. All three apps default to real for `core` / `dataCloud` / `agentforce`, with per-domain mock fallback. This keeps mock↔real a body-only swap behind identical fetcher signatures.
 - **In-org surface** — a UIBundle becomes a Lightning app via a `CustomApplication` (`<uiType>Lightning</uiType>`, `<uiBundle>c__<Name></uiBundle>`) with `<target>CustomApplication</target>` on the bundle meta. It serves at the **Salesforce App Domain** (`…--c.<host>.my.salesforce.app/app/c__<Name>`), NOT `/lightning/app/<name>`.
+- **In-app chrome & AI** — each cockpit renders native-style Salesforce chrome inside the React shell (`_shared` `AppLauncher` 33-icon waffle, `GlobalSearch` multi-object, `UserMenu`, `NotificationBell`), plus real Agentforce chat via the Conversation Client (`AgentforceChat`, floating pink FAB). `AgentforceChat` also carries a 4-agent switcher — see Common mistakes for the re-embed rule.
 
 # Conventions
 
@@ -90,7 +92,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 ## CSS
 
-- Aurora Glass tokens live in `_shared/src/theme/tokens.css`; light mode IS Aurora. `ThemeProvider` only injects persona-accent overrides. Inter font. One ambient `--wp-aurora` gradient — don't add competing gradients.
+- Aurora Glass tokens live in `_shared/src/theme/tokens.css`; light mode IS Aurora. `ThemeProvider` only injects persona-accent overrides. Typography is **Fraunces** (display/headings) + **Hanken Grotesk** (body), imported per-bundle in each app's `src/styles/global.css`. One ambient `--wp-aurora` gradient — don't add competing gradients.
 
 ## Tests
 
@@ -106,6 +108,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 - **`sf project delete source` on this repo** — errors on the non-deployable `_shared` bundle. Use a destructiveChanges manifest from a throwaway DX project.
 - **Treating `Id` as `{ value }`-wrapped** — it isn't; you'll get empty strings.
 - **Assuming `PERSONAL_PRODUCT_RECOMMENDATION__dlm` exists** — only the `_INPU` feature-input DMO does; next-best-product must be derived. `Bank_Churner__dlm` keys on email/Id, not Account — use `CSAT_Snowflake__dlm` (account-joinable) for per-client signals.
+- **Switching Agentforce agents by mutating the mounted frame's `configuration`** — it only relabels the chrome. ACC's inner LWC reads `configuration` once at mount, so the running conversation stays on the original agent. Switch by **re-embedding** (`embedAgentforceClient` teardown + re-mount keyed on the agent id) with one `requestAnimationFrame` between teardown and re-embed so Lightning Out's global registry settles. The "already registered to another App" console error during re-embed is **non-fatal** — the fresh session loads regardless; don't "fix" it by abandoning re-embed.
 
 # Related docs
 
