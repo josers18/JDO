@@ -1,5 +1,4 @@
 /* ── Cumulus Aurora fonts ─────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
 
 @import 'tailwindcss';
 
@@ -7,8 +6,8 @@
    These map to the runtime --wp-* vars injected by ThemeProvider, so
    persona + light/dark swaps propagate without per-component branching. */
 @theme {
-  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
 
   --color-bg: var(--wp-surface);
   --color-surface: var(--wp-surface-raised);

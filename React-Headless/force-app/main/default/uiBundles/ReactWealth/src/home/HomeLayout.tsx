@@ -1,27 +1,22 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { ThemeProvider } from '@shared';
-import { AppShell, type NavItem } from '../shell/AppShell';
+import { AppShell } from '../shell/AppShell';
+import { APP_PERSONA, APP_TITLE, buildNav } from '../shell/appChrome';
 
 /**
  * HOME app layout — the advisor's landing experience that REPLACES the standard
- * Salesforce home page. Full-page chrome: left nav rail + top bar with the
- * native Agentforce launcher. Light-mode wealth theme (gold accent).
+ * Salesforce home page. Full-page chrome (left nav rail + top bar with the
+ * waffle, global search, notifications, user menu, and Agentforce) comes from
+ * the shared `appChrome` config, so it matches the Customer 360 exactly.
+ * Light-mode wealth theme (gold accent).
  */
 export default function HomeLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const nav: NavItem[] = [
-    { id: 'home', label: 'Home', icon: 'home', active: location.pathname === '/', onClick: () => navigate('/') },
-    { id: 'clients', label: 'Clients', icon: 'clients', onClick: () => navigate('/client/001am00000qvjsAAAQ') },
-    { id: 'portfolios', label: 'Portfolios', icon: 'pipeline', onClick: () => navigate('/') },
-    { id: 'plans', label: 'Plans', icon: 'tasks', onClick: () => navigate('/') },
-    { id: 'alerts', label: 'Alerts', icon: 'alerts', onClick: () => navigate('/') },
-  ];
-
   return (
-    <ThemeProvider persona="wealth" mode="light">
-      <AppShell nav={nav} title="Advisory Desk">
+    <ThemeProvider persona={APP_PERSONA} mode="light">
+      <AppShell nav={buildNav(navigate, location.pathname)} title={APP_TITLE}>
         <Outlet />
       </AppShell>
     </ThemeProvider>

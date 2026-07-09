@@ -60,7 +60,7 @@ function buildAccConfig(agentId: string, agentLabel: string, placeholder?: strin
       headerBlockBackground: '#ec4899',
       headerBlockTextColor: '#ffffff',
       headerBlockIconColor: '#ffffff',
-      headerBlockFontFamily: "'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif",
+      headerBlockFontFamily: "'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif",
     },
   };
 }
@@ -283,7 +283,7 @@ function AgentPicker({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
-        fontFamily: "'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif",
         transition: 'bottom 300ms ease',
       }}
     >

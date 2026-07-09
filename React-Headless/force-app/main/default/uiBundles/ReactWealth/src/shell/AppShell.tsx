@@ -19,6 +19,13 @@ interface AppShellProps {
   title: string;
   /** optional right-of-title slot (e.g. persona pill) */
   titleAside?: ReactNode;
+  /**
+   * Whether the shell mounts its own Agentforce FAB. Default true (home).
+   * Set false on routes that mount their OWN record-scoped `AgentforceChat`
+   * (the Customer 360) — Lightning Out allows only one ACC embed per page, so
+   * two would collide.
+   */
+  agentforce?: boolean;
   children: ReactNode;
 }
 
@@ -30,7 +37,7 @@ interface AppShellProps {
  * The Agentforce button here is the NATIVE header entry point (mirrors the
  * in-org `sentos_common-ask-agentforce-button`) — no floating dock.
  */
-export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
+export function AppShell({ nav, title, titleAside, agentforce = true, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const railW = collapsed ? 64 : 232;
@@ -150,8 +157,10 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: 1600, width: '100%', margin: '0 auto' }}>{children}</main>
       </div>
 
-      {/* Real Agentforce chat (Lightning Out 2.0) — self-managed pink FAB. */}
-      <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" />
+      {/* Real Agentforce chat (Lightning Out 2.0) — self-managed pink FAB.
+          Suppressed on routes that mount their own record-scoped embed (the
+          Customer 360), since Lightning Out allows one ACC embed per page. */}
+      {agentforce && <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" />}
     </div>
   );
 }

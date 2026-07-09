@@ -163,14 +163,3 @@ export interface Customer360Detail {
   network: { id: string; label: string; sublabel?: string; weight?: number; color?: string }[];
 }
 
-/** A row in the book-landing priority list (drills into a Customer360). */
-export interface BookClient {
-  id: string;
-  name: string;
-  segment: string;
-  headline: string;
-  reason: string;
-  score: number;
-  severity: 'high' | 'medium' | 'low';
-  relationshipValue: number;
-}

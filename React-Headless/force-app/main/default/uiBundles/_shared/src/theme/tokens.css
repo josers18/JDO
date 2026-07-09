@@ -3,11 +3,6 @@
  * Structural tokens live per-mode; accent tokens can still be overridden
  * per-persona by ThemeProvider. Light mode is the primary Aurora surface.
  */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-:root {
-  --wp-font: 'Inter', system-ui, -apple-system, sans-serif;
-}
 
 [data-mode='dark'] {
   --wp-surface: #070b14;
