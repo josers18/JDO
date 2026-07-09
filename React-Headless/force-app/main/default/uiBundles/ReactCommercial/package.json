@@ -18,6 +18,8 @@
     "graphql:schema": "node scripts/get-graphql-schema.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/fraunces": "^5.2.9",
+    "@fontsource-variable/hanken-grotesk": "^5.2.8",
     "@salesforce/agentforce-conversation-client": "^11.4.5",
     "@salesforce/platform-sdk": "^10.6.0",
     "@salesforce/ui-bundle": "^10.6.0",
