@@ -1,21 +1,25 @@
-import { Outlet } from 'react-router';
+import { Outlet, useNavigate, useLocation } from 'react-router';
 import { ThemeProvider } from '@shared';
+import { AppShell } from '../../shell/AppShell';
+import { APP_PERSONA, APP_TITLE, buildNav } from '../../shell/appChrome';
 
 /**
- * CLIENT app layout — the embedded Customer 360 that lives ON a Salesforce
- * Account record page. NO in-app chrome (no left nav, no own Agentforce): the
- * Salesforce Lightning shell + its top-nav Agentforce provide that. Renders
- * full-bleed so it fills the record-page canvas. Light-mode retail theme.
+ * CLIENT app layout — the Customer 360. These bundles render standalone at the
+ * Salesforce App Domain (NOT embedded in a LEX record page), so no Lightning
+ * shell supplies the waffle / top-level menus — the app must. Wraps the 360 in
+ * the same `AppShell` chrome as the home page (via the shared `appChrome`
+ * config) so the waffle, global search, notifications, user menu, left-nav, and
+ * Agentforce are identical on every route.
  */
 export default function ClientLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   return (
-    <ThemeProvider persona="retail" mode="light">
-      <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--wp-surface)', color: 'var(--wp-text)', overflow: 'hidden' }}>
-        <div aria-hidden="true" style={{ position: 'fixed', inset: 0, background: 'var(--wp-aurora)', pointerEvents: 'none', zIndex: 0 }} />
-        <main style={{ position: 'relative', zIndex: 1, maxWidth: 1600, margin: '0 auto', padding: '1.5rem' }}>
-          <Outlet />
-        </main>
-      </div>
+    <ThemeProvider persona={APP_PERSONA} mode="light">
+      <AppShell nav={buildNav(navigate, location.pathname)} title={APP_TITLE} agentforce={false}>
+        <Outlet />
+      </AppShell>
     </ThemeProvider>
   );
 }
