@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { runPromptFlow, stripHtml } from '@shared';
+import { runPromptFlow, stripHtml, Icon } from '@shared';
 import { modeFor } from '../../data/dataSource';
 import { AGENTFORCE_FLOWS } from './agentforceFlows';
 import type { AgentforceSummary } from './full360Types';
@@ -70,8 +70,8 @@ export function AgentforceSummaryCard({
     <div
       style={{
         borderRadius: 'var(--wp-radius-sm)',
-        border: '1px solid color-mix(in srgb, var(--wp-accent) 28%, var(--wp-border))',
-        background: 'linear-gradient(160deg, color-mix(in srgb, var(--wp-accent) 8%, transparent), color-mix(in srgb, var(--wp-accent-2) 6%, transparent)), var(--wp-surface-glass)',
+        border: '1px solid var(--color-pink-soft)',
+        background: 'linear-gradient(160deg, var(--color-pink-soft), transparent), var(--wp-surface-glass)',
         overflow: 'hidden',
       }}
     >
@@ -80,10 +80,12 @@ export function AgentforceSummaryCard({
         onClick={() => setOpen(o => !o)}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.7rem 0.85rem', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--wp-text)' }}
       >
-        <span aria-hidden="true" style={{ color: 'var(--wp-accent)', opacity: live ? 1 : 0.55 }}>✦</span>
+        <span style={{ color: 'var(--color-pink)', opacity: live ? 1 : 0.55, display: 'inline-flex' }}>
+          <Icon name="sparkle" size={14} />
+        </span>
         <span style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.03em' }}>{summary.title}</span>
         {loading && <span style={{ fontSize: '0.62rem', color: 'var(--wp-text-faint)', animation: 'wp-pulse 1.2s ease infinite' }}>generating…</span>}
-        {live && !loading && <span style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--wp-accent)', letterSpacing: '0.04em' }}>LIVE</span>}
+        {live && !loading && <span style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--color-pink)', letterSpacing: '0.04em' }}>LIVE</span>}
         <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: 'var(--wp-text-faint)' }}>{open ? '▾' : '▸'}</span>
       </button>
       {open && (
@@ -105,9 +107,9 @@ export function AgentforceSummaryCard({
 const miniBtn: React.CSSProperties = {
   fontSize: '0.7rem',
   fontWeight: 600,
-  color: 'var(--wp-accent)',
-  background: 'color-mix(in srgb, var(--wp-accent) 10%, transparent)',
-  border: '1px solid color-mix(in srgb, var(--wp-accent) 30%, transparent)',
+  color: 'var(--color-pink)',
+  background: 'var(--color-pink-soft)',
+  border: '1px solid var(--color-pink-soft)',
   borderRadius: 999,
   padding: '0.2rem 0.6rem',
   cursor: 'pointer',

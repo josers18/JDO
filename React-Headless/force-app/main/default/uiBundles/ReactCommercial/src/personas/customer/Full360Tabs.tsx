@@ -1,5 +1,5 @@
 import {
-  GlassCard,
+  Panel,
   DataTable,
   Sparkline,
   AreaChart,
@@ -7,6 +7,8 @@ import {
   RelationshipMap,
   Timeline,
   formatValue,
+  Pill,
+  Eyebrow,
   type TableColumn,
 } from '@shared';
 import type {
@@ -39,7 +41,7 @@ export function Full360Tabs({
     case 'Overview':
       return <OverviewTab customer={customer} detail={detail} />;
     case 'Details':
-      return <GlassCard title="Details"><DetailsPanel fields={full.details} /></GlassCard>;
+      return <Panel title="Details"><DetailsPanel fields={full.details} /></Panel>;
     case 'Journey':
       return <JourneyTab full={full} detail={detail} />;
     case 'Money':
@@ -59,7 +61,7 @@ export function Full360Tabs({
     case 'Notes':
       return <NotesTab full={full} />;
     case 'Tearsheet':
-      return <GlassCard title="Tearsheet Builder"><TearsheetBuilder data={full} clientName={customer.name} /></GlassCard>;
+      return <Panel title="Tearsheet Builder"><TearsheetBuilder data={full} clientName={customer.name} /></Panel>;
     default:
       return null;
   }
@@ -70,21 +72,21 @@ function OverviewTab({ customer, detail }: { customer: Customer360; detail: Cust
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
-        <GlassCard title="Relationship Map">
+        <Panel title="Relationship Map">
           <RelationshipMap centerLabel={customer.photoInitials} nodes={detail.network} width={460} height={270} />
-        </GlassCard>
-        <GlassCard title="Relationship Timeline">
+        </Panel>
+        <Panel title="Relationship Timeline">
           <Timeline events={detail.timeline} />
-        </GlassCard>
+        </Panel>
       </div>
-      <GlassCard title="Assets & Momentum">
+      <Panel title="Assets & Momentum">
         <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <DonutChart slices={detail.productMix} centerValue={curC(customer.money.reduce((s, m) => s + Math.abs(m.amount), 0))} centerLabel="Total" />
           <div style={{ flex: 1, minWidth: 280 }}>
             <AreaChart series={detail.aumTrend} startLabel="Jan" endLabel="Today" width={480} />
           </div>
         </div>
-      </GlassCard>
+      </Panel>
     </div>
   );
 }
@@ -115,15 +117,15 @@ function MoneyTab({ full }: { full: Full360 }) {
   ];
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
-      <GlassCard title="Financial Accounts" action={<span style={sub}>{full.finAccounts.length} accounts</span>}>
+      <Panel title="Financial Accounts" action={<span style={sub}>{full.finAccounts.length} accounts</span>}>
         <DataTable columns={accCols} rows={full.finAccounts} getRowId={r => r.id} />
-      </GlassCard>
-      <GlassCard title="Financial Transactions" action={<span style={sub}>Recent</span>}>
+      </Panel>
+      <Panel title="Financial Transactions" action={<span style={sub}>Recent</span>}>
         <DataTable columns={txCols} rows={full.transactions} getRowId={r => r.id} />
-      </GlassCard>
-      <GlassCard title="Financial Trades" action={<span style={sub}>Last 90 days</span>}>
+      </Panel>
+      <Panel title="Financial Trades" action={<span style={sub}>Last 90 days</span>}>
         <DataTable columns={trCols} rows={full.trades} getRowId={r => r.id} />
-      </GlassCard>
+      </Panel>
     </div>
   );
 }
@@ -134,7 +136,7 @@ function JourneyTab({ full, detail }: { full: Full360; detail: Customer360Detail
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
       {plan && (
-        <GlassCard
+        <Panel
           title="Financial Plan"
           action={<span style={{ ...sub, color: /stale|overdue/i.test(plan.status) ? 'var(--wp-warn)' : 'var(--wp-pos)' }}>✦ MoneyGuidePro · {plan.status}</span>}
         >
@@ -153,11 +155,11 @@ function JourneyTab({ full, detail }: { full: Full360; detail: Customer360Detail
               </div>
             ))}
           </div>
-        </GlassCard>
+        </Panel>
       )}
-      <GlassCard title="Journey & Goals">
+      <Panel title="Journey & Goals">
         <JourneyGoals journey={detail.journey} goals={detail.goalRings} />
-      </GlassCard>
+      </Panel>
     </div>
   );
 }
@@ -166,12 +168,12 @@ function JourneyTab({ full, detail }: { full: Full360; detail: Customer360Detail
 function PropertyTab({ full }: { full: Full360 }) {
   const p = full.property;
   if (!p) {
-    return <GlassCard title="Property"><p style={{ color: 'var(--wp-text-muted)', fontSize: '0.88rem', margin: 0 }}>No property data on file for this client.</p></GlassCard>;
+    return <Panel title="Property"><p style={{ color: 'var(--wp-text-muted)', fontSize: '0.88rem', margin: 0 }}>No property data on file for this client.</p></Panel>;
   }
   const riskColor = (n: number) => (n >= 66 ? 'var(--wp-neg)' : n >= 33 ? 'var(--wp-warn)' : 'var(--wp-pos)');
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
-      <GlassCard title="Property Value & Equity" action={<span style={sub}>CoreLogic · {p.asOf}</span>}>
+      <Panel title="Property Value & Equity" action={<span style={sub}>CoreLogic · {p.asOf}</span>}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
           {[
             ['Estimated Value', cur(p.estimatedValue)],
@@ -186,9 +188,9 @@ function PropertyTab({ full }: { full: Full360 }) {
             </div>
           ))}
         </div>
-      </GlassCard>
+      </Panel>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
-        <GlassCard title="HELOC Opportunity" action={<span style={sub}>✦ lending signal</span>}>
+        <Panel title="HELOC Opportunity" action={<span style={sub}>✦ lending signal</span>}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
             <span style={{ fontSize: '2.4rem', fontWeight: 800, color: p.helocOpportunityScore >= 66 ? 'var(--wp-pos)' : 'var(--wp-text)' }}>{p.helocOpportunityScore}</span>
             <span style={{ color: 'var(--wp-text-muted)', fontSize: '0.85rem' }}>/ 100 propensity</span>
@@ -198,8 +200,8 @@ function PropertyTab({ full }: { full: Full360 }) {
               ? `Strong HELOC candidate — ${cur(p.equity)} in tappable equity with ${p.mortgageBalance === 0 ? 'no outstanding mortgage' : cur(p.mortgageBalance) + ' remaining'}.`
               : 'Moderate HELOC fit based on current equity and property profile.'}
           </p>
-        </GlassCard>
-        <GlassCard title="Property Risk">
+        </Panel>
+        <Panel title="Property Risk">
           <div style={{ display: 'grid', gap: '0.7rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.85rem', color: 'var(--wp-text-muted)' }}>Flood Zone</span>
@@ -210,7 +212,7 @@ function PropertyTab({ full }: { full: Full360 }) {
               <span style={{ fontWeight: 700, color: riskColor(p.wildfireRiskScore) }}>{p.wildfireRiskScore} / 100</span>
             </div>
           </div>
-        </GlassCard>
+        </Panel>
       </div>
     </div>
   );
@@ -221,17 +223,17 @@ function CompanyIntelTab({ full }: { full: Full360 }) {
   const { firmographics: fg, governance: gv, esg, secFilings } = full;
   if (!fg && !gv && !esg && secFilings.length === 0) {
     return (
-      <GlassCard title="Company Intel">
+      <Panel title="Company Intel">
         <p style={{ color: 'var(--wp-text-muted)', fontSize: '0.88rem', margin: 0 }}>
           No corporate-intelligence data on file for this client. (Available for business accounts.)
         </p>
-      </GlassCard>
+      </Panel>
     );
   }
   const fact = (k: string, v: string) => (
     <div key={k}>
-      <div style={{ fontSize: '0.7rem', color: 'var(--wp-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
-      <div style={{ fontSize: '1.02rem', fontWeight: 800, marginTop: 2 }}>{v}</div>
+      <Eyebrow>{k}</Eyebrow>
+      <div className="font-display" style={{ fontSize: '1.02rem', fontWeight: 800, marginTop: 2 }}>{v}</div>
     </div>
   );
   const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' };
@@ -249,7 +251,7 @@ function CompanyIntelTab({ full }: { full: Full360 }) {
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
       {fg && (
-        <GlassCard title="Firmographics" action={<span style={sub}>ZoomInfo · {fg.asOf}</span>}>
+        <Panel title="Firmographics" action={<span style={sub}>ZoomInfo · {fg.asOf}</span>}>
           <div style={grid}>
             {fact('Revenue Band', fg.revenueBand)}
             {fact('Employees', fg.employeeBand)}
@@ -262,15 +264,15 @@ function CompanyIntelTab({ full }: { full: Full360 }) {
           {fg.techStack.length > 0 && (
             <div style={{ marginTop: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
               {fg.techStack.map(t => (
-                <span key={t} style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--wp-accent)', background: 'color-mix(in srgb, var(--wp-accent) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--wp-accent) 34%, transparent)', borderRadius: 999, padding: '0.15rem 0.65rem' }}>{t}</span>
+                <Pill key={t} tone="accent">{t}</Pill>
               ))}
             </div>
           )}
-        </GlassCard>
+        </Panel>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
         {gv && (
-          <GlassCard title="Board & Governance" action={<span style={sub}>BoardEx · {gv.asOf}</span>}>
+          <Panel title="Board & Governance" action={<span style={sub}>BoardEx · {gv.asOf}</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.85rem' }}>
               {fact('Board Size', String(gv.boardSize))}
               {fact('CEO Tenure', `${gv.ceoTenureYears} yrs`)}
@@ -282,10 +284,10 @@ function CompanyIntelTab({ full }: { full: Full360 }) {
             <p style={{ margin: '0.75rem 0 0', fontSize: '0.82rem', color: gv.execTurnover ? 'var(--wp-warn)' : 'var(--wp-text-muted)' }}>
               {gv.execTurnover ? '⚠ Recent executive turnover flagged' : 'No recent executive turnover'} · last governance event {gv.recentEventDate}
             </p>
-          </GlassCard>
+          </Panel>
         )}
         {esg && (
-          <GlassCard title="ESG Profile" action={<span style={sub}>MSCI · {esg.rating}{esg.ratingChangeDirection !== '—' ? ` (${esg.ratingChangeDirection})` : ''}</span>}>
+          <Panel title="ESG Profile" action={<span style={sub}>MSCI · {esg.rating}{esg.ratingChangeDirection !== '—' ? ` (${esg.ratingChangeDirection})` : ''}</span>}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.75rem' }}>
               <span style={{ fontSize: '2.2rem', fontWeight: 800 }}>{esg.overall.toFixed(1)}</span>
               <span style={{ color: 'var(--wp-text-muted)', fontSize: '0.85rem' }}>/ 10 overall</span>
@@ -298,11 +300,11 @@ function CompanyIntelTab({ full }: { full: Full360 }) {
             <p style={{ margin: '0.75rem 0 0', fontSize: '0.8rem', color: 'var(--wp-text-muted)' }}>
               Carbon intensity {esg.carbonIntensity} t/$M rev · {esg.controversyCount} controversy flag{esg.controversyCount === 1 ? '' : 's'}{esg.controversyCount > 0 ? ` (top: ${esg.topControversy})` : ''}
             </p>
-          </GlassCard>
+          </Panel>
         )}
       </div>
       {secFilings.length > 0 && (
-        <GlassCard title="SEC Filings" action={<span style={sub}>{secFilings.map(f => f.filingType).join(', ')}</span>}>
+        <Panel title="SEC Filings" action={<span style={sub}>{secFilings.map(f => f.filingType).join(', ')}</span>}>
           <div style={{ display: 'grid', gap: '1rem' }}>
             {secFilings.map(f => (
               <div key={f.filingType}>
@@ -318,7 +320,7 @@ function CompanyIntelTab({ full }: { full: Full360 }) {
               </div>
             ))}
           </div>
-        </GlassCard>
+        </Panel>
       )}
     </div>
   );
@@ -330,22 +332,22 @@ function EngagementTab({ full }: { full: Full360 }) {
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
-        <GlassCard title="CSAT">
+        <Panel title="CSAT">
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem' }}>
             <span style={{ fontSize: '2rem', fontWeight: 800 }}>{csatNps.csatScore}</span>
             <span style={{ color: 'var(--wp-text-muted)', fontSize: '0.85rem' }}>/ 100</span>
           </div>
           <Sparkline points={csatNps.csatTrend} width={240} height={40} />
-        </GlassCard>
-        <GlassCard title="NPS">
+        </Panel>
+        <Panel title="NPS">
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem' }}>
             <span style={{ fontSize: '2rem', fontWeight: 800 }}>{csatNps.npsScore}</span>
             <span style={{ color: 'var(--wp-text-muted)', fontSize: '0.85rem' }}>promoter-leaning</span>
           </div>
           <Sparkline points={csatNps.npsTrend} width={240} height={40} />
-        </GlassCard>
+        </Panel>
       </div>
-      <GlassCard title="Interactions & Engagements">
+      <Panel title="Interactions & Engagements">
         <ul style={list}>
           {full.interactions.map((i: Interaction, idx) => (
             <li key={i.id} style={{ ...row, borderTop: idx === 0 ? 'none' : '1px solid var(--wp-border-strong)' }}>
@@ -358,8 +360,8 @@ function EngagementTab({ full }: { full: Full360 }) {
             </li>
           ))}
         </ul>
-      </GlassCard>
-      <GlassCard title="Call Summaries" action={<span style={sub}>✦ Agentforce-generated</span>}>
+      </Panel>
+      <Panel title="Call Summaries" action={<span style={sub}>✦ Agentforce-generated</span>}>
         <div style={{ display: 'grid', gap: '0.85rem' }}>
           {full.callSummaries.map(c => (
             <div key={c.id} style={{ padding: '0.75rem 0.9rem', background: 'var(--wp-surface-raised)', borderRadius: 'var(--wp-radius-sm)', border: '1px solid var(--wp-border-strong)' }}>
@@ -371,8 +373,8 @@ function EngagementTab({ full }: { full: Full360 }) {
             </div>
           ))}
         </div>
-      </GlassCard>
-      <GlassCard title="Recent Survey Verbatims">
+      </Panel>
+      <Panel title="Recent Survey Verbatims">
         <ul style={list}>
           {csatNps.recent.map((s, idx) => (
             <li key={s.id} style={{ ...row, borderTop: idx === 0 ? 'none' : '1px solid var(--wp-border-strong)' }}>
@@ -382,7 +384,7 @@ function EngagementTab({ full }: { full: Full360 }) {
             </li>
           ))}
         </ul>
-      </GlassCard>
+      </Panel>
     </div>
   );
 }
@@ -396,7 +398,7 @@ function CasesTab({ full }: { full: Full360 }) {
     { key: 'status', header: 'Status' },
     { key: 'opened', header: 'Opened', align: 'right' },
   ];
-  return <GlassCard title="Cases" action={<span style={sub}>{full.cases.length} total</span>}><DataTable columns={cols} rows={full.cases} getRowId={r => r.id} /></GlassCard>;
+  return <Panel title="Cases" action={<span style={sub}>{full.cases.length} total</span>}><DataTable columns={cols} rows={full.cases} getRowId={r => r.id} /></Panel>;
 }
 
 /* ---------- Opportunities ---------- */
@@ -408,7 +410,7 @@ function OppsTab({ full }: { full: Full360 }) {
     { key: 'probability', header: 'Prob.', align: 'right', render: r => `${Math.round(r.probability * 100)}%` },
     { key: 'closeDate', header: 'Close', align: 'right' },
   ];
-  return <GlassCard title="Opportunities" action={<span style={sub}>{full.opportunities.length} open</span>}><DataTable columns={cols} rows={full.opportunities} getRowId={r => r.id} /></GlassCard>;
+  return <Panel title="Opportunities" action={<span style={sub}>{full.opportunities.length} open</span>}><DataTable columns={cols} rows={full.opportunities} getRowId={r => r.id} /></Panel>;
 }
 
 /* ---------- Campaigns ---------- */
@@ -420,14 +422,14 @@ function CampaignsTab({ full }: { full: Full360 }) {
     { key: 'responded', header: 'Responded', render: r => <span style={{ color: r.responded ? 'var(--wp-pos)' : 'var(--wp-text-faint)', fontWeight: 700 }}>{r.responded ? 'Yes' : '—'}</span> },
     { key: 'memberSince', header: 'Since', align: 'right' },
   ];
-  return <GlassCard title="Campaigns" action={<span style={sub}>{full.campaigns.length} memberships</span>}><DataTable columns={cols} rows={full.campaigns} getRowId={r => r.id} /></GlassCard>;
+  return <Panel title="Campaigns" action={<span style={sub}>{full.campaigns.length} memberships</span>}><DataTable columns={cols} rows={full.campaigns} getRowId={r => r.id} /></Panel>;
 }
 
 /* ---------- Notes: meeting notes + KYC ---------- */
 function NotesTab({ full }: { full: Full360 }) {
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
-      <GlassCard title="Meeting Notes">
+      <Panel title="Meeting Notes">
         <div style={{ display: 'grid', gap: '0.85rem' }}>
           {full.meetingNotes.map(n => (
             <div key={n.id} style={{ padding: '0.8rem 0.95rem', background: 'var(--wp-surface-raised)', borderRadius: 'var(--wp-radius-sm)', border: '1px solid var(--wp-border-strong)' }}>
@@ -439,8 +441,8 @@ function NotesTab({ full }: { full: Full360 }) {
             </div>
           ))}
         </div>
-      </GlassCard>
-      <GlassCard title="KYC Summary" action={<span style={{ ...sub, color: 'var(--wp-pos)' }}>● {full.kyc.status}</span>}>
+      </Panel>
+      <Panel title="KYC Summary" action={<span style={{ ...sub, color: 'var(--wp-pos)' }}>● {full.kyc.status}</span>}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.85rem' }}>
           {[['Status', full.kyc.status], ['Last Review', full.kyc.lastReview], ['Risk Rating', full.kyc.riskRating], ['AML Status', full.kyc.amlStatus]].map(([k, v]) => (
             <div key={k}>
@@ -450,7 +452,7 @@ function NotesTab({ full }: { full: Full360 }) {
           ))}
         </div>
         <p style={{ margin: '0.85rem 0 0', fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--wp-text-muted)' }}>{full.kyc.notes}</p>
-      </GlassCard>
+      </Panel>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { HealthRing, formatValue } from '@shared';
+import { HealthRing, formatValue, Eyebrow, Pill } from '@shared';
 import type { Customer360 } from './customerTypes';
 
 const DIM_COLORS = ['var(--wp-accent)', '#60a5fa', '#a78bfa', '#f59e0b'];
@@ -14,43 +14,15 @@ export function ClientIdentityRail({ customer }: { customer: Customer360 }) {
     <div style={{ display: 'grid', gap: '1.1rem' }}>
       {/* identity header */}
       <div style={{ display: 'flex', gap: '0.9rem', alignItems: 'center' }}>
-        <div
-          style={{
-            width: 58,
-            height: 58,
-            borderRadius: '50%',
-            background: 'var(--wp-gradient)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--wp-on-accent)',
-            fontWeight: 800,
-            fontSize: '1.2rem',
-            boxShadow: '0 0 0 3px var(--wp-surface-raised), 0 0 18px var(--wp-accent)',
-          }}
-        >
+        <div className="grid h-[58px] w-[58px] flex-none place-items-center rounded-[16px] bg-accent-bg text-[1.2rem] font-bold text-accent">
           {customer.photoInitials}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>{customer.name}</div>
-          <div style={{ color: 'var(--wp-text-muted)', fontSize: '0.82rem' }}>
+          <div className="font-display text-[1.15rem] font-semibold tracking-tight">{customer.name}</div>
+          <Eyebrow className="mt-1 !tracking-normal !text-[0.72rem] !normal-case">
             {customer.location} · Since {customer.customerSince}
-          </div>
-          <span
-            style={{
-              display: 'inline-block',
-              marginTop: '0.35rem',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              color: 'var(--wp-accent)',
-              background: 'color-mix(in srgb, var(--wp-accent) 14%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--wp-accent) 40%, transparent)',
-              borderRadius: 999,
-              padding: '0.12rem 0.6rem',
-            }}
-          >
-            {customer.segment}
-          </span>
+          </Eyebrow>
+          <Pill tone="accent" className="mt-1.5">{customer.segment}</Pill>
         </div>
       </div>
 

@@ -157,7 +157,8 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
     ],
     unifiedProfiles: [{ sourceOrg: 'Retail', accountId, name }],
     aiSignals,
-    aiBriefHeadline: `${name.split(' ')[0]}’s relationship at a glance`,
+    // Predicate phrase — the page renders "{name}'s relationship is {headline}."
+    aiBriefHeadline: healthScore >= 80 ? 'strong and gaining momentum' : healthScore >= 65 ? 'steady and healthy' : attritionTone === 'risk' ? 'at risk and needs attention' : 'stable with room to grow',
     aiBrief: `${name} holds ${money.map(m => `${m.label.toLowerCase()} of ${m.amount.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}`).join(', ')} across ${fins.length} financial accounts. ${opp?.totalCount ?? 0} open opportunities worth ${oppValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.${!isNaN(paydex) ? ` D&B PAYDEX ${Math.round(paydex)}${db!.rating ? ` (rating ${db!.rating})` : ''}, delinquency-predictor ${Math.round(Number(db!.delinq))}/100.` : ''}${csatScore != null ? ` Latest CSAT ${Math.round(csatScore)} / NPS ${Math.round(Number(cs!.nps))}.` : ''}`,
     nextBestActions: [
       ...(!isNaN(paydex) && paydex < 60 ? [{ id: 'nba0', title: 'Review credit exposure', detail: `PAYDEX ${Math.round(paydex)}${db!.rating ? ` (D&B ${db!.rating})` : ''} — below covenant threshold`, impact: 'High' as const }] : []),

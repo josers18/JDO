@@ -51,8 +51,10 @@ export default defineConfig(({ mode }) => {
         '@assets': path.resolve(__dirname, './src/assets'),
         '@shared': path.resolve(__dirname, '../_shared/src'),
         // _shared lives outside this bundle's node_modules walk-up, so point the
-        // SDK import at the installed package explicitly for Vite/Rollup.
+        // SDK / icon-library imports at the installed packages explicitly for Vite/Rollup.
         '@salesforce/platform-sdk': path.resolve(__dirname, './node_modules/@salesforce/platform-sdk/dist/index.js'),
+        'lucide-react': path.resolve(__dirname, './node_modules/lucide-react/dist/esm/lucide-react.js'),
+        '@salesforce/agentforce-conversation-client': path.resolve(__dirname, './node_modules/@salesforce/agentforce-conversation-client/dist/index.js'),
       },
     },
 

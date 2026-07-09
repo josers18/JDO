@@ -12,11 +12,11 @@ export default function HomeLayout() {
   const location = useLocation();
 
   const nav: NavItem[] = [
-    { id: 'home', label: 'Home', icon: '⌂', active: location.pathname === '/', onClick: () => navigate('/') },
-    { id: 'relationships', label: 'Relationships', icon: '🏢', onClick: () => navigate('/client/001am00000qvjsAAAQ') },
-    { id: 'credit', label: 'Credit', icon: '📊', onClick: () => navigate('/') },
-    { id: 'treasury', label: 'Treasury', icon: '💵', onClick: () => navigate('/') },
-    { id: 'alerts', label: 'Alerts', icon: '🔔', onClick: () => navigate('/') },
+    { id: 'home', label: 'Home', icon: 'home', active: location.pathname === '/', onClick: () => navigate('/') },
+    { id: 'relationships', label: 'Relationships', icon: 'clients', onClick: () => navigate('/client/001am00000qvjsAAAQ') },
+    { id: 'credit', label: 'Credit', icon: 'pipeline', onClick: () => navigate('/') },
+    { id: 'treasury', label: 'Treasury', icon: 'tasks', onClick: () => navigate('/') },
+    { id: 'alerts', label: 'Alerts', icon: 'alerts', onClick: () => navigate('/') },
   ];
 
   return (

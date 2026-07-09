@@ -9,7 +9,6 @@
   --wp-font: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-:root,
 [data-mode='dark'] {
   --wp-surface: #070b14;
   --wp-surface-raised: #101827;
@@ -37,11 +36,22 @@
   --wp-gradient: linear-gradient(120deg, #0d9488 0%, #115e59 100%);
   --wp-glow: radial-gradient(60% 120% at 15% 0%, rgba(20, 184, 166, 0.35) 0%, rgba(20, 184, 166, 0) 60%);
   --wp-aurora: radial-gradient(60% 50% at 20% 0%, rgba(20, 184, 166, 0.15), transparent 60%);
+
+  --wp-surface-muted: #0c1220;
+  --wp-accent-bg: color-mix(in srgb, var(--wp-accent) 16%, transparent);
+  --wp-accent-border: color-mix(in srgb, var(--wp-accent) 40%, transparent);
+  --wp-pos-bg: rgba(52,211,153,0.12);
+  --wp-warn-bg: rgba(251,191,36,0.12);
+  --wp-neg-bg: rgba(251,113,133,0.12);
+  --wp-track: rgba(148,163,184,0.14);
 }
 
 /* ── AURORA GLASS (light, primary) ─────────────────────────────
    Frosted panels over one ambient gradient wash. Near-invisible borders,
-   soft depth, blue→violet accent. Seamless via shared background, not lines. */
+   soft depth, blue→violet accent. Seamless via shared background, not lines.
+   Light is the :root baseline so nothing can fall back to dark; dark mode is
+   opt-in via an explicit [data-mode='dark'] wrapper. */
+:root,
 [data-mode='light'] {
   --wp-surface: #eef1fb;
   --wp-surface-raised: #ffffff;
@@ -49,9 +59,11 @@
   --wp-surface-glass-strong: rgba(255, 255, 255, 0.86);
   --wp-border: rgba(255, 255, 255, 0.9);
   --wp-border-strong: rgba(40, 50, 90, 0.12);
-  --wp-text: #1e2233;
-  --wp-text-muted: #6b7290;
-  --wp-text-faint: #9aa2bd;
+  --wp-text: #1a1f2e;
+  /* Darkened for pure-white surfaces (was #6b7290 / #9aa2bd, tuned for the
+     tinted aurora wash and too pale on white — secondary text vanished). */
+  --wp-text-muted: #454c66;
+  --wp-text-faint: #697089;
   --wp-radius: 20px;
   --wp-radius-sm: 14px;
   --wp-shadow: 0 18px 50px rgba(40, 50, 90, 0.14);
@@ -72,6 +84,14 @@
     radial-gradient(50% 45% at 12% 8%, rgba(91, 141, 239, 0.30), transparent 60%),
     radial-gradient(45% 40% at 90% 10%, rgba(155, 109, 255, 0.26), transparent 55%),
     radial-gradient(60% 50% at 70% 100%, rgba(45, 212, 191, 0.18), transparent 60%);
+
+  --wp-surface-muted: #fafbff;
+  --wp-accent-bg: color-mix(in srgb, var(--wp-accent) 12%, transparent);
+  --wp-accent-border: color-mix(in srgb, var(--wp-accent) 34%, transparent);
+  --wp-pos-bg: #e3f7ef;
+  --wp-warn-bg: #fdf0dd;
+  --wp-neg-bg: #fde8ec;
+  --wp-track: #eef1fb;
 }
 
 @keyframes wp-fade-up {

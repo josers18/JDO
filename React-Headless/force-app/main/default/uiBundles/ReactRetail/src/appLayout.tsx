@@ -13,11 +13,11 @@ export default function AppLayout() {
 
   const isClient = location.pathname.startsWith('/client');
   const nav: NavItem[] = [
-    { id: 'home', label: 'Home', icon: '⌂', active: location.pathname === '/', onClick: () => navigate('/') },
-    { id: 'clients', label: 'Clients', icon: '👥', active: isClient, onClick: () => navigate('/client/001am00000qvjsAAAQ') },
-    { id: 'analytics', label: 'Analytics', icon: '📊', onClick: () => navigate('/') },
-    { id: 'tasks', label: 'Tasks', icon: '✓', onClick: () => navigate('/') },
-    { id: 'alerts', label: 'Alerts', icon: '🔔', onClick: () => navigate('/') },
+    { id: 'home', label: 'Home', icon: 'home', active: location.pathname === '/', onClick: () => navigate('/') },
+    { id: 'clients', label: 'Clients', icon: 'clients', active: isClient, onClick: () => navigate('/client/001am00000qvjsAAAQ') },
+    { id: 'analytics', label: 'Analytics', icon: 'pipeline', onClick: () => navigate('/') },
+    { id: 'tasks', label: 'Tasks', icon: 'tasks', onClick: () => navigate('/') },
+    { id: 'alerts', label: 'Alerts', icon: 'alerts', onClick: () => navigate('/') },
   ];
 
   const title = isClient ? 'Customer 360' : 'Relationship Command Center';

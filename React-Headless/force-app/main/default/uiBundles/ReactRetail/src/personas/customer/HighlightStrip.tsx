@@ -1,36 +1,39 @@
+import clsx from 'clsx';
+import { Eyebrow } from '@shared';
 import type { Highlight } from './customerTypes';
 
-const TONE: Record<Highlight['tone'], string> = {
-  positive: 'var(--wp-pos)',
-  opportunity: 'var(--wp-accent)',
-  risk: 'var(--wp-warn)',
-  neutral: 'var(--wp-text-faint)',
+const TONE_TEXT: Record<Highlight['tone'], string> = {
+  positive: 'text-ok',
+  opportunity: 'text-accent',
+  risk: 'text-risk',
+  neutral: 'text-muted',
+};
+const TONE_RAIL: Record<Highlight['tone'], string> = {
+  positive: 'bg-ok',
+  opportunity: 'bg-gradient-brand',
+  risk: 'bg-risk',
+  neutral: 'bg-track',
 };
 
-/** Horizontal "what's changed" chip strip under the AI headline. */
+/**
+ * Highlight strip under the AI headline — StatTile-styled, but adapted to the
+ * `Highlight` shape: its `value`/`sub` are already display-formatted strings
+ * (e.g. "+$8,240" / "+12% YoY"), so this renders them directly instead of
+ * routing through StatTile's numeric `useCountUp` pipeline.
+ */
 export function HighlightStrip({ highlights }: { highlights: Highlight[] }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${highlights.length}, minmax(0, 1fr))`, gap: '0.75rem' }}>
       {highlights.map((h, i) => (
         <div
           key={h.label}
-          style={{
-            display: 'flex',
-            gap: '0.65rem',
-            alignItems: 'center',
-            padding: '0.75rem 0.85rem',
-            background: 'var(--wp-surface-glass)',
-            border: '1px solid var(--wp-border)',
-            borderRadius: 'var(--wp-radius-sm)',
-            animation: `wp-fade-up 0.4s ease ${i * 0.05}s both`,
-          }}
+          className="relative overflow-hidden rounded-sub border border-line bg-surface p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-pop hover:border-accent-border"
+          style={{ animation: `wp-fade-up 0.5s ease ${i * 0.05}s both` }}
         >
-          <span aria-hidden="true" style={{ fontSize: '1.3rem' }}>{h.icon}</span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.68rem', color: 'var(--wp-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h.label}</div>
-            <div style={{ fontWeight: 800, fontSize: '0.98rem' }}>{h.value}</div>
-            <div style={{ fontSize: '0.72rem', color: TONE[h.tone] }}>{h.sub}</div>
-          </div>
+          <span aria-hidden="true" className={clsx('absolute inset-x-0 top-0 h-[3px] opacity-95', TONE_RAIL[h.tone])} />
+          <Eyebrow>{h.label}</Eyebrow>
+          <div data-testid="stat-value" className="mt-3 font-display text-[22px] font-semibold leading-none tracking-tight">{h.value}</div>
+          <div className={clsx('mt-1.5 text-[11px] font-semibold', TONE_TEXT[h.tone])}>{h.sub}</div>
         </div>
       ))}
     </div>

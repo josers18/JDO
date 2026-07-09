@@ -1,9 +1,14 @@
 import { useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router';
+import { AgentforceChat, AppLauncher, GlobalSearch, Icon, NotificationBell, UserMenu, type IconKey } from '@shared';
+
+/** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
+const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
 
 export interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: IconKey;
   active?: boolean;
   onClick?: () => void;
 }
@@ -27,7 +32,7 @@ interface AppShellProps {
  */
 export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   const railW = collapsed ? 64 : 232;
 
   return (
@@ -82,8 +87,8 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
                 background: item.active ? 'color-mix(in srgb, var(--wp-accent) 12%, transparent)' : 'transparent',
               }}
             >
-              <span aria-hidden="true" style={{ fontSize: '1.05rem', width: 20, textAlign: 'center', flexShrink: 0 }}>
-                {item.icon}
+              <span aria-hidden="true" className="grid w-5 flex-none place-items-center">
+                <Icon name={item.icon} size={18} />
               </span>
               {!collapsed && <span>{item.label}</span>}
             </button>
@@ -119,80 +124,34 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
             WebkitBackdropFilter: 'blur(14px)',
           }}
         >
+          {/* Waffle / App Launcher — persona switch + native org apps */}
+          <AppLauncher />
+
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', minWidth: 0 }}>
             <span style={{ fontWeight: 800, fontSize: '1.05rem', whiteSpace: 'nowrap' }}>{title}</span>
             {titleAside}
           </div>
 
-          <div
-            style={{
-              marginLeft: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flex: 1,
-              maxWidth: 440,
-              background: 'var(--wp-surface)',
-              border: '1px solid var(--wp-border)',
-              borderRadius: 999,
-              padding: '0.45rem 0.9rem',
-              color: 'var(--wp-text-faint)',
-            }}
-          >
-            <span aria-hidden="true">⌕</span>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search clients, accounts, insights…"
-              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--wp-text)', fontSize: '0.86rem' }}
-            />
-            <span style={{ fontSize: '0.7rem', border: '1px solid var(--wp-border)', borderRadius: 5, padding: '0 0.3rem' }}>⌘K</span>
-          </div>
+          {/* Multi-object global search (Account/Contact/Opportunity via GraphQL) */}
+          <GlobalSearch onSelectAccount={id => navigate(`/client/${id}`)} />
 
-          {/* native Agentforce launcher */}
-          <button
-            type="button"
-            title="Ask Agentforce"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.85rem',
-              borderRadius: 999,
-              border: '1px solid color-mix(in srgb, var(--wp-accent) 45%, transparent)',
-              background: 'color-mix(in srgb, var(--wp-accent) 12%, transparent)',
-              color: 'var(--wp-accent)',
-              fontWeight: 700,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span aria-hidden="true">✦</span> Agentforce
-          </button>
+          {/* The pink AI entry point is the Agentforce Conversation Client's
+              own floating FAB (mounted below via <AgentforceChat/>), so the
+              header no longer carries a duplicate Agentforce button. */}
 
-          <button type="button" aria-label="Notifications" style={iconBtn}>
-            <span aria-hidden="true">🔔</span>
-          </button>
-          <div
-            style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--wp-gradient)', color: 'var(--wp-on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem' }}
-          >
-            AM
-          </div>
+          {/* Notifications — actionable alert feed (high-priority Cases +
+              opportunities closing soon), the App-Domain stand-in for the LEX bell */}
+          <NotificationBell />
+
+          {/* User menu — profile / settings / log out (live identity via GraphQL) */}
+          <UserMenu />
         </header>
 
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: 1600, width: '100%', margin: '0 auto' }}>{children}</main>
       </div>
+
+      {/* Real Agentforce chat (Lightning Out 2.0) — self-managed pink FAB. */}
+      <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" />
     </div>
   );
 }
-
-const iconBtn: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: '50%',
-  border: '1px solid var(--wp-border)',
-  background: 'transparent',
-  cursor: 'pointer',
-  fontSize: '0.9rem',
-};
