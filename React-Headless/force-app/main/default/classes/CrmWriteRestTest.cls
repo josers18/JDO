@@ -127,4 +127,56 @@ private class CrmWriteRestTest {
         System.assertEquals(400, RestContext.response.statusCode, 'email without recipient should 400');
         System.assertEquals(false, parseBody().get('success'), 'success false');
     }
+
+    @IsTest
+    static void updatesTask() {
+        Task t = new Task(Subject = 'Old subject', Status = 'Not Started', Priority = 'Normal', ActivityDate = Date.today());
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Task","recordId":"' + t.Id + '","subject":"New subject","status":"Completed","priority":"High","dueDate":"2026-09-01"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update task should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        Task after = [SELECT Subject, Status, Priority, ActivityDate FROM Task WHERE Id = :t.Id];
+        System.assertEquals('New subject', after.Subject, 'subject updated');
+        System.assertEquals('Completed', after.Status, 'status updated');
+        System.assertEquals('High', after.Priority, 'priority updated');
+        System.assertEquals(Date.valueOf('2026-09-01'), after.ActivityDate, 'date updated');
+    }
+
+    @IsTest
+    static void updatesEvent() {
+        Event ev = new Event(Subject = 'Old meeting', ActivityDateTime = Datetime.now(), DurationInMinutes = 30);
+        insert ev;
+        setupRequest('{"action":"update","sobjectType":"Event","recordId":"' + ev.Id + '","subject":"New meeting","activityDateTime":"2026-09-05T16:00:00Z"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update event should 200');
+        Event after = [SELECT Subject FROM Event WHERE Id = :ev.Id];
+        System.assertEquals('New meeting', after.Subject, 'subject updated');
+    }
+
+    @IsTest
+    static void rejectsUpdateWithoutRecordId() {
+        setupRequest('{"action":"update","sobjectType":"Task","subject":"No id"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing recordId should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsUpdateWithBadSobjectType() {
+        Task t = new Task(Subject = 'x', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Contact","recordId":"' + t.Id + '","subject":"nope"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'bad sobjectType should 400');
+        System.assert(((String) parseBody().get('error')).containsIgnoreCase('sobjecttype'), 'error mentions sobjectType');
+    }
 }
