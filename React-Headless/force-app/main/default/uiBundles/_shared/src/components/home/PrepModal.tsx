@@ -78,7 +78,7 @@ export function PrepModal({
       subtitle="Generated from CRM · Data Cloud · recent activity"
       footer={
         <>
-          <span className="flex-1 font-mono text-[10px] tracking-[0.04em] text-faint">Summary via runPromptFlow (Einstein)</span>
+          <span className="flex-1 font-mono text-[10px] tracking-[0.04em] text-faint">Summary via runPromptFlow (Agentforce)</span>
           <Button variant="ghost" onClick={onClose}>Close</Button>
           <Button variant="accent" onClick={onSchedule}>Schedule call</Button>
         </>

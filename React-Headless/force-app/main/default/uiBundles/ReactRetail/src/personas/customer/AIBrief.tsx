@@ -8,7 +8,7 @@ const IMPACT_COLOR: Record<string, string> = {
 
 /**
  * Right intelligence panel for the Customer 360 — the prompt-generated
- * relationship brief, Einstein next-best-actions, and the confidence /
+ * relationship brief, Agentforce next-best-actions, and the confidence /
  * data-source provenance footer. This is the "single intelligent view" seam
  * that fuses CRM + Data Cloud + predictions into one narrative.
  */

@@ -19,7 +19,7 @@ interface EditableRow extends DraftRow {
 
 /**
  * Review-then-create follow-up drafts. Composed drafts come in via `drafts`;
- * `enrich` (optional) best-effort rewrites the bodies via Einstein. The banker
+ * `enrich` (optional) best-effort rewrites the bodies via Agentforce. The banker
  * edits subjects, unchecks any to skip, then "Create N tasks" writes a real
  * Task per checked row through crmWrite. Per-row try/catch → reports
  * created/failed counts, never a half-state.
@@ -50,7 +50,7 @@ export function DraftFollowupsModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Best-effort enrichment: rewrite each body if Einstein returns per-line text.
+  // Best-effort enrichment: rewrite each body if Agentforce returns per-line text.
   useEffect(() => {
     if (!open || !enrich) return;
     let cancelled = false;

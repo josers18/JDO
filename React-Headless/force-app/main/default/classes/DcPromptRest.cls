@@ -1,5 +1,5 @@
 /**
- * Agentforce / Einstein prompt bridge for React UI bundles.
+ * Agentforce prompt bridge for React UI bundles.
  *
  * WHY REST: like DcBridgeRest, @AuraEnabled Apex is unreachable from a
  * Multi-Framework UI bundle, AND the deployed bundle's app-domain session is
@@ -7,7 +7,7 @@
  * (/services/data/vXX/actions/custom/flow/*) — that path 401s in-org even
  * though sdk.graphql and /services/apexrest/* work. So this re-exposes the SAME
  * mechanism the working DcAgentforceOutputController LWC uses today —
- * Flow.Interview running an autolaunched Flow that wraps an Einstein Prompt
+ * Flow.Interview running an autolaunched Flow that wraps an Agentforce Prompt
  * Template — as an apexrest resource React CAN reach.
  *
  *   POST /services/apexrest/dc/prompt

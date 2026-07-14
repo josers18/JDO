@@ -1,9 +1,9 @@
 /**
- * Einstein text-generation path for React UI bundles.
+ * Agentforce text-generation path for React UI bundles.
  *
  * Same apexrest-bridge constraint as promptClient / crmWriteClient: the bundle's
  * app-domain session can only reach /services/apexrest/*. So generative chips
- * post to AiGenerateRest, which runs the Einstein Models API server-side.
+ * post to AiGenerateRest, which runs the Agentforce Models API server-side.
  *
  * RESILIENCE CONTRACT: generateText NEVER rejects for "feature off". If the
  * server reports source:'unavailable' (Models API not enabled) it resolves with
@@ -28,7 +28,7 @@ export interface AiGenerateInput {
 
 export interface AiGenerateResult {
   text: string;
-  /** 'model' = Einstein generated it; 'unavailable' = feature off (empty text); 'composed' is set by callers, never by this client. */
+  /** 'model' = Agentforce generated it; 'unavailable' = feature off (empty text); 'composed' is set by callers, never by this client. */
   source: 'model' | 'composed' | 'unavailable';
 }
 

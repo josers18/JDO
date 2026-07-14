@@ -1,11 +1,11 @@
 /**
- * Einstein text-generation bridge for React UI bundles.
+ * Agentforce text-generation bridge for React UI bundles.
  *
  * WHY REST (same constraint as DcPromptRest / CrmWriteRest): a Multi-Framework
  * UI bundle's app-domain session cannot call @AuraEnabled Apex or the generic
- * Einstein REST APIs — only /services/apexrest/* is reachable via the SDK
+ * Agentforce REST APIs — only /services/apexrest/* is reachable via the SDK
  * fetch() path. So generative chips post here and this resource runs the
- * Einstein Models API server-side.
+ * Agentforce Models API server-side.
  *
  * Models API is NOT guaranteed enabled (jdo-1lrnov currently throws
  * System.TypeException: Missing dependent object at runtime). This resource
@@ -79,7 +79,7 @@ global with sharing class AiGenerateRest {
     }
 
     /**
-     * Best-effort Einstein Models API call. Returns '' (never throws) when the
+     * Best-effort Agentforce Models API call. Returns '' (never throws) when the
      * Models API is not provisioned in this org, so run() reports 'unavailable'
      * rather than 500. The prompt already carries the composed context blob.
      */

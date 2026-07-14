@@ -11,7 +11,7 @@
 import type { PromptFlow } from '@shared';
 
 export const AGENTFORCE_FLOWS: Record<string, PromptFlow> = {
-  // ✦ live Einstein prompt templates (confirmed running in-org)
+  // ✦ live Agentforce prompt templates (confirmed running in-org)
   account: { flowApiName: 'DC_AccountSummary_Widget', recordVar: 'recordId', sobjectType: 'Account' },
   transaction: { flowApiName: 'DC_Financial_Transaction_Summary_ALF', recordVar: 'recordID', sobjectType: 'Account' },
   // Note: trade / interaction / csat / opportunity / case / campaign have no
