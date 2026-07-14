@@ -32,8 +32,11 @@ global with sharing class CrmWriteRest {
         public String status;           // Task/Case
         public String toAddress;        // email
         public String htmlBody;         // email
-        public String sobjectType;      // 'Task' | 'Event'  (required for update)
-        public String recordId;         // Id of the record to update
+        public String sobjectType;      // 'Task' | 'Event'  (required for update/delete)
+        public String recordId;         // Id of the record to update/delete
+        public String type;             // Task/Event Type picklist
+        public String location;         // Event location
+        public String showAs;           // Event ShowAs (Busy|OutOfOffice|Free)
     }
 
     @HttpPost
@@ -68,8 +71,10 @@ global with sharing class CrmWriteRest {
                 handleEmail(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
+            } else if (action == 'delete') {
+                handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, or update.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, update, or delete.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -161,37 +166,50 @@ global with sharing class CrmWriteRest {
         writeSuccess(res, null);
     }
 
-    private static void handleUpdate(RestResponse res, WriteRequest req) {
+    /**
+     * Validate recordId + sobjectType for an update/delete and return the Id.
+     * Writes the appropriate 400 and returns null on any failure (blank id,
+     * unsupported/absent sobjectType, malformed Id, or an Id whose object type
+     * does not match the declared sobjectType — e.g. a Task Id sent as an
+     * Event, which would otherwise surface as an opaque 500).
+     */
+    private static Id resolveVerifiedId(RestResponse res, WriteRequest req) {
         if (String.isBlank(req.recordId)) {
-            writeError(res, 400, 'A recordId is required to update a record.');
-            return;
+            writeError(res, 400, 'A recordId is required.');
+            return null;
         }
         String sot = req.sobjectType == null ? '' : req.sobjectType.trim();
         if (sot != 'Task' && sot != 'Event') {
             writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task or Event.');
-            return;
+            return null;
         }
         Id recId;
         try {
             recId = (Id) req.recordId;
         } catch (Exception e) {
             writeError(res, 400, 'recordId is not a valid Id.');
-            return;
+            return null;
         }
-        // Reject a well-formed Id whose object type does not match the declared
-        // sobjectType (e.g. a Task Id sent as an Event). Without this, the
-        // mismatched SObject constructor throws and surfaces as an opaque 500.
         String recPrefix = recId.getSObjectType().getDescribe().getName();
         if (recPrefix != sot) {
             writeError(res, 400, 'recordId is a ' + recPrefix + ', not a ' + sot + '.');
-            return;
+            return null;
         }
+        return recId;
+    }
+
+    private static void handleUpdate(RestResponse res, WriteRequest req) {
+        Id recId = resolveVerifiedId(res, req);
+        if (recId == null) { return; } // error already written
+        String sot = req.sobjectType.trim();
         if (sot == 'Task') {
             Task t = new Task(Id = recId);
-            if (!String.isBlank(req.subject))  { t.Subject = req.subject; }
-            if (!String.isBlank(req.status))   { t.Status = req.status; }
-            if (!String.isBlank(req.priority)) { t.Priority = req.priority; }
-            if (!String.isBlank(req.dueDate))  { t.ActivityDate = Date.valueOf(req.dueDate); }
+            if (!String.isBlank(req.subject))     { t.Subject = req.subject; }
+            if (!String.isBlank(req.status))      { t.Status = req.status; }
+            if (!String.isBlank(req.priority))    { t.Priority = req.priority; }
+            if (!String.isBlank(req.dueDate))     { t.ActivityDate = Date.valueOf(req.dueDate); }
+            if (!String.isBlank(req.type))        { t.Type = req.type; }
+            if (!String.isBlank(req.description)) { t.Description = req.description; }
             update t;
         } else {
             Event ev = new Event(Id = recId);
@@ -199,7 +217,22 @@ global with sharing class CrmWriteRest {
             if (!String.isBlank(req.activityDateTime)) {
                 ev.ActivityDateTime = (Datetime) JSON.deserialize('"' + req.activityDateTime + '"', Datetime.class);
             }
+            if (!String.isBlank(req.type))        { ev.Type = req.type; }
+            if (!String.isBlank(req.description)) { ev.Description = req.description; }
+            if (!String.isBlank(req.location))    { ev.Location = req.location; }
+            if (!String.isBlank(req.showAs))      { ev.ShowAs = req.showAs; }
             update ev;
+        }
+        writeSuccess(res, recId);
+    }
+
+    private static void handleDelete(RestResponse res, WriteRequest req) {
+        Id recId = resolveVerifiedId(res, req);
+        if (recId == null) { return; } // error already written
+        if (req.sobjectType.trim() == 'Task') {
+            delete new Task(Id = recId);
+        } else {
+            delete new Event(Id = recId);
         }
         writeSuccess(res, recId);
     }

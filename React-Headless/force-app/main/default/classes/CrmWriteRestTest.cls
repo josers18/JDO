@@ -214,4 +214,84 @@ private class CrmWriteRestTest {
         System.assertEquals(400, RestContext.response.statusCode, 'bad sobjectType should 400');
         System.assert(((String) parseBody().get('error')).containsIgnoreCase('sobjecttype'), 'error mentions sobjectType');
     }
+
+    @IsTest
+    static void updateSetsTypeAndDescription() {
+        Task t = new Task(Subject = 'Typed task', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Task","recordId":"' + t.Id + '","type":"Meeting","description":"call notes"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update task type/desc should 200');
+        Task after = [SELECT Type, Description FROM Task WHERE Id = :t.Id];
+        System.assertEquals('Meeting', after.Type, 'type set');
+        System.assertEquals('call notes', after.Description, 'description set');
+    }
+
+    @IsTest
+    static void updateSetsEventShowAsAndLocation() {
+        Event ev = new Event(Subject = 'Typed event', ActivityDateTime = Datetime.now(), DurationInMinutes = 30);
+        insert ev;
+        setupRequest('{"action":"update","sobjectType":"Event","recordId":"' + ev.Id + '","type":"Call","location":"HQ","showAs":"Free","description":"agenda"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update event fields should 200');
+        Event after = [SELECT Type, Location, ShowAs, Description FROM Event WHERE Id = :ev.Id];
+        System.assertEquals('Call', after.Type, 'type set');
+        System.assertEquals('HQ', after.Location, 'location set');
+        System.assertEquals('Free', after.ShowAs, 'showAs set');
+        System.assertEquals('agenda', after.Description, 'description set');
+    }
+
+    @IsTest
+    static void deletesTask() {
+        Task t = new Task(Subject = 'Doomed task', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"delete","sobjectType":"Task","recordId":"' + t.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'delete task should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        System.assertEquals(0, [SELECT COUNT() FROM Task WHERE Id = :t.Id], 'task deleted');
+    }
+
+    @IsTest
+    static void deletesEvent() {
+        Event ev = new Event(Subject = 'Doomed event', ActivityDateTime = Datetime.now(), DurationInMinutes = 30);
+        insert ev;
+        setupRequest('{"action":"delete","sobjectType":"Event","recordId":"' + ev.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'delete event should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        System.assertEquals(0, [SELECT COUNT() FROM Event WHERE Id = :ev.Id], 'event deleted');
+    }
+
+    @IsTest
+    static void rejectsDeleteWithoutRecordId() {
+        setupRequest('{"action":"delete","sobjectType":"Task"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'delete without recordId should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsDeleteWhenIdTypeMismatches() {
+        // A real Task Id declared as an Event — must 400, not surface a 500.
+        Task t = new Task(Subject = 'x', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"delete","sobjectType":"Event","recordId":"' + t.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'delete Id/type mismatch should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+        System.assertEquals(1, [SELECT COUNT() FROM Task WHERE Id = :t.Id], 'task not deleted');
+    }
 }
