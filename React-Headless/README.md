@@ -86,6 +86,8 @@ All three apps default to live data (GraphQL for CRM, the `DcBridgeRest` Apex br
 
 Each cockpit is styled with the **Cumulus Aurora** design language (Fraunces + Hanken Grotesk typography, light-mode Aurora Glass) and renders native-style Salesforce chrome inside the React shell — an app-launcher waffle, multi-object global search, user menu, and notifications. Every persona also embeds **real Agentforce chat** via the Agentforce Conversation Client (a floating AI assistant), with an in-panel switcher across four employee agents (Cumulus Assistant, Financial Advisor, Data Cloud Agent, Analytics & Visualization).
 
+The banker home turns AI briefs into **one-click actions**: generate/draft with Einstein (`AiGenerateRest` → `/ai/generate`, composed-first with a graceful fallback), and create records — tasks, meetings, emails, cases, follow-ups — through `CrmWriteRest` (`/crm/*`). Writes **refetch in place** (no spinner), so a task or meeting created from the page shows up immediately in its Overdue / Today / Upcoming bucket; the email recipient auto-fills from the client's Account record.
+
 ## Layout
 
 ```
@@ -102,7 +104,7 @@ React-Headless/
 │   ├── pages/                           # <App>Launcher VF pages — App Launcher bridge to the App Domain
 │   ├── tabs/                            # <App>App CustomTabs — the waffle-menu tiles
 │   ├── permissionsets/                  # <App>_Access (applicationVisibilities + tab/page access)
-│   └── classes/                         # DcBridgeRest — Apex REST → Data Cloud bridge
+│   └── classes/                         # Apex REST bridges: DcBridgeRest (/dc/query), DcPromptRest (/dc/prompt), AiGenerateRest (/ai/generate), CrmWriteRest (/crm/*)
 ├── docs/                                # DEPLOYMENT_GUIDE.md, customer-360 inventory, plans
 ├── AGENTS.md                            # project-context primer
 ├── CHANGELOG.md

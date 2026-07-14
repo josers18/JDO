@@ -15,11 +15,11 @@ Plus a `ReactHeadless` review harness (all three personas as routes for local pr
 # Tech stack
 
 - React 19 + Vite 7 + TypeScript, Tailwind v4 (`@tailwindcss/vite`), shadcn/ui ("new-york", lucide icons).
-- `@salesforce/sdk-data` ^10.6 — `sdk.graphql` for record data, `sdk.fetch` for Apex REST.
+- `@salesforce/platform-sdk` ^10.6 + `@salesforce/ui-bundle` ^10.6 — `createDataSDK()` gives `sdk.graphql` for record data and `sdk.fetch` for Apex REST.
 - `@salesforce/agentforce-conversation-client` — real Agentforce chat embedded via Lightning Out 2.0 (`embedAgentforceClient`); reuses the app's authenticated session.
 - React Router (`createBrowserRouter`).
 - Vitest for unit tests; Playwright for e2e.
-- Apex: `DcBridgeRest` (`@RestResource`) bridges React → Data Cloud.
+- Apex REST bridges React → the platform (all `@RestResource`): `DcBridgeRest` (`/dc/query`, Data Cloud SQL), `DcPromptRest` (`/dc/prompt`, prompt flows), `AiGenerateRest` (`/ai/generate`, Einstein text generation), `CrmWriteRest` (`/crm/*`, record writes).
 - SFDX project, `sourceApiVersion` 67.0. Target org `jdo-1lrnov` (== `storm-16a17dc388fbe6`).
 
 # Project structure
@@ -38,7 +38,7 @@ force-app/main/default/
 ├── pages/                # <App>Launcher.page — VF "launch card", App Launcher bridge to the App Domain
 ├── tabs/                 # <App>App.tab — CustomTab (waffle-menu tile) targeting the launcher page
 ├── permissionsets/       # <App>_Access — applicationVisibilities + tabSettings + pageAccesses
-└── classes/              # DcBridgeRest.cls, DcPromptRest.cls (+ tests) — the only Apex
+└── classes/              # DcBridgeRest, DcPromptRest, AiGenerateRest, CrmWriteRest (+ tests) — the only Apex
 docs/                     # DEPLOYMENT_GUIDE.md, customer-360-inventory-and-gaps.md, plans/
 ```
 
@@ -76,6 +76,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 - **Mock/real toggle** — `src/data/dataSource.ts` per app: `resolve(domain, mockFn, realFn)` with `modeFor` / `setDomainMode`. All three apps default to real for `core` / `dataCloud` / `agentforce`, with per-domain mock fallback. This keeps mock↔real a body-only swap behind identical fetcher signatures.
 - **In-org surface** — a UIBundle becomes a Lightning app via a `CustomApplication` (`<uiType>Lightning</uiType>`, `<uiBundle>c__<Name></uiBundle>`) with `<target>CustomApplication</target>` on the bundle meta. It serves at the **Salesforce App Domain** (`…--c.<host>.my.salesforce.app/app/c__<Name>`), NOT `/lightning/app/<name>`.
 - **In-app chrome & AI** — each cockpit renders native-style Salesforce chrome inside the React shell (`_shared` `AppLauncher` 33-icon waffle, `GlobalSearch` multi-object, `UserMenu`, `NotificationBell`), plus real Agentforce chat via the Conversation Client (`AgentforceChat`, floating pink FAB). `AgentforceChat` also carries a 4-agent switcher — see Common mistakes for the re-embed rule.
+- **Banker AI actions & CRM writes** — the home surface turns AI briefs into one-click actions through `_shared/src/components/home/` modals (Task, Schedule, Email, Case, Prep, Why, QuickView, DraftFollowups, AiResult). Two client/bridge pairs back them: `aiGenerateClient` → `AiGenerateRest` (`/ai/generate`, Einstein text — composed-first with a graceful fallback so a model miss never blanks the UI) and `crmWriteClient` → `CrmWriteRest` (`/crm/*`, record inserts). Write modals take an `onSaved` hook (fires only after a successful `crmWrite`, before close) wired to `useAsyncData`'s `refetch()`, which bumps the fetch generation WITHOUT flipping `loading` so a newly-created task/meeting appears in place without a spinner. `accountLookup` auto-fills the email recipient straight from the client's Account record (`PersonEmail`, falling back to the primary Contact).
 
 # Conventions
 
@@ -96,7 +97,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 ## Tests
 
-- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. Apex: `DcBridgeRestTest` (5 tests) + `DcPromptRestTest` (6 tests).
+- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. Apex tests: `DcBridgeRestTest`, `DcPromptRestTest`, `AiGenerateRestTest`, `CrmWriteRestTest`.
 
 # Common mistakes
 

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **React-Headless** — the Salesforce DX project that ships the three-persona React banking cockpit suite (Retail / Wealth / Commercial) on the Salesforce Multi-Framework UI Bundle feature, plus the `_shared` design + data library and the `DcBridgeRest` Apex bridge.
+All notable changes to **React-Headless** — the Salesforce DX project that ships the three-persona React banking cockpit suite (Retail / Wealth / Commercial) on the Salesforce Multi-Framework UI Bundle feature, plus the `_shared` design + data library and the Apex REST bridges (`DcBridgeRest`, `DcPromptRest`, `AiGenerateRest`, `CrmWriteRest`).
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions are grouped by date since the project is delivered as rolling demo metadata rather than a released library. Newest entries appear first.
 
@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_9_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_14_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [July 2026]
+
+### 2026-07-14 — banker home AI actions + CRM writes
+
+#### Added
+
+- **Einstein text generation** via a new `AiGenerateRest` Apex bridge (`@RestResource /ai/generate`, + test class) and the `aiGenerateClient` shared client. Generation is **composed-first**: the UI renders a locally-composed draft immediately and only enriches it if the model responds, so a model miss or timeout never blanks the surface. Surfaced through an `AiResultModal` with Regenerate.
+- **CRM record writes** via a new `CrmWriteRest` Apex bridge (`@RestResource /crm/*`, + test class) and the `crmWriteClient` shared client. Backs a set of home action modals in `_shared/src/components/home/` — Task, Schedule, Email, Case, Prep, Why, QuickView, and a review-then-create **DraftFollowups** flow.
+- **Refetch-after-write.** `useAsyncData` gained `refetch()` — it bumps the fetch generation WITHOUT flipping `loading`, so current data stays on screen during the background re-query. Write modals take an `onSaved` hook (fires only after a successful `crmWrite`, before close; Cancel bypasses it) wired to `refetch`, so a task or meeting created from the page appears without a manual reload.
+- **Tasks & Schedule home section** — the banker's open tasks + meetings, book-wide, bucketed **Overdue / Today / Upcoming**, placed right after the AI brief. Created items surface immediately via the refetch loop above.
+- **Email recipient auto-fill** — `accountLookup` pulls the recipient straight from the client's Account record (`PersonEmail`, falling back to the primary related Contact), so the banker never types it.
+- **Speech** — a `useSpeech` hook over the browser SpeechSynthesis API for reading AI briefs aloud.
+
+#### Fixed
+
+- **Backlog-window starvation in the schedule query.** A single ascending `first: N` Task query over a large overdue backlog returned only the oldest rows, so a task dated today (sorting thousands deep) was never fetched and the Today/Upcoming buckets stayed empty even though the write succeeded. Split into two date-windowed aliased queries — overdue (`lt TODAY`, DESC) + today/future (`gte TODAY`, ASC) — merged and re-bucketed client-side.
+- **`DraftFollowupsModal` reseed wiped edits** on parent re-render; **`approveRec` email routing** and the dismiss-after-write ordering corrected.
 
 ### 2026-07-09 — Agentforce agent switcher: correct switch mechanism
 
