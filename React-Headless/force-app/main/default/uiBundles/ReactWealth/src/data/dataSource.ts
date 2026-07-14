@@ -24,13 +24,13 @@ interface DataConfig {
 // ReactWealth runs LIVE. Core (GraphQL: Opportunity/Case/Task/Event/
 // FinancialGoal) + Data Cloud (held-away via CumulusPlaidHeldAway__dlm) are
 // verified against jdo-1lrnov, so both are 'real'. Agentforce summaries stay
-// 'mock' until the Einstein/Agentforce prompt path is wired.
+// 'mock' until the Agentforce prompt path is wired.
 const config: DataConfig = {
   mode: 'mock',
   overrides: {
     core: 'real',
     dataCloud: 'real',
-    // Live Einstein prompt flows via the Flow Actions REST API; slots with no
+    // Live Agentforce prompt flows via the Flow Actions REST API; slots with no
     // runnable org flow fall back to the composed summary (see agentforceFlows.ts).
     agentforce: 'real',
   },

@@ -14,7 +14,7 @@ export interface NavItem {
 }
 
 interface AppShellProps {
-  nav: NavItem[];
+  nav?: NavItem[];
   /** breadcrumb / page title shown in the top bar */
   title: string;
   /** optional right-of-title slot (e.g. persona pill) */
@@ -26,6 +26,12 @@ interface AppShellProps {
    * two would collide.
    */
   agentforce?: boolean;
+  /**
+   * When provided, this replaces the built-in icon nav rail entirely (e.g. the
+   * home page's CommandRail). Everything else — top bar, main, Agentforce FAB,
+   * aurora wash — is unchanged.
+   */
+  sidebar?: ReactNode;
   children: ReactNode;
 }
 
@@ -37,7 +43,7 @@ interface AppShellProps {
  * The Agentforce button here is the NATIVE header entry point (mirrors the
  * in-org `sentos_common-ask-agentforce-button`) — no floating dock.
  */
-export function AppShell({ nav, title, titleAside, agentforce = true, children }: AppShellProps) {
+export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const railW = collapsed ? 64 : 232;
@@ -46,7 +52,9 @@ export function AppShell({ nav, title, titleAside, agentforce = true, children }
     <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--wp-surface)', color: 'var(--wp-text)', display: 'flex' }}>
       {/* AURORA WASH — one ambient gradient behind the whole app */}
       <div aria-hidden="true" style={{ position: 'fixed', inset: 0, background: 'var(--wp-aurora)', pointerEvents: 'none', zIndex: 0 }} />
-      {/* LEFT NAV RAIL */}
+      {/* LEFT RAIL — a custom sidebar (e.g. CommandRail) fully replaces the
+          built-in icon nav when provided. */}
+      {sidebar ?? (
       <aside
         style={{
           width: railW,
@@ -73,7 +81,7 @@ export function AppShell({ nav, title, titleAside, agentforce = true, children }
         </div>
 
         <nav style={{ flex: 1, padding: '0.5rem', display: 'grid', gap: '0.15rem', alignContent: 'start' }}>
-          {nav.map(item => (
+          {(nav ?? []).map(item => (
             <button
               key={item.id}
               type="button"
@@ -111,6 +119,7 @@ export function AppShell({ nav, title, titleAside, agentforce = true, children }
           {collapsed ? '»' : '«'}
         </button>
       </aside>
+      )}
 
       {/* MAIN COLUMN */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>

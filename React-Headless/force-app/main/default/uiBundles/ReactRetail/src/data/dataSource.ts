@@ -23,13 +23,13 @@ interface DataConfig {
 
 // ReactRetail runs LIVE. Core (GraphQL: Opportunity/Case) + Data Cloud (CSAT via
 // DcBridgeRest) are verified against the org, so both are 'real'. Agentforce
-// summaries stay 'mock' until the Einstein/Agentforce prompt path is wired.
+// summaries stay 'mock' until the Agentforce prompt path is wired.
 const config: DataConfig = {
   mode: 'mock',
   overrides: {
     core: 'real',
     dataCloud: 'real',
-    // Agentforce = live Einstein prompt flows (DcAgentforce flows via the Flow
+    // Agentforce = live Agentforce prompt flows (DcAgentforce flows via the Flow
     // Actions REST API). Slots without a runnable org flow fall back to the
     // locally-composed summary automatically (see agentforceFlows.ts).
     agentforce: 'real',

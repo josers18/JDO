@@ -9,7 +9,7 @@
  * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem } from './homeTypes';
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -21,10 +21,13 @@ const HOME_CORE_QUERY = /* GraphQL */ `
           edges { node { Id Name @optional { value } StageName @optional { value } Amount @optional { value } CloseDate @optional { value } Probability @optional { value } Account @optional { Name @optional { value } } } }
         }
         Case(first: 1, where: { IsClosed: { eq: false } }) { totalCount }
-        Task(first: 8, where: { IsClosed: { eq: false } }, orderBy: { ActivityDate: { order: ASC } }) {
+        TaskOverdue: Task(first: 15, where: { IsClosed: { eq: false }, ActivityDate: { lt: { literal: TODAY } } }, orderBy: { ActivityDate: { order: DESC } }) {
           edges { node { Id Subject @optional { value } ActivityDate @optional { value } } }
         }
-        Event(first: 6, orderBy: { ActivityDateTime: { order: ASC } }) {
+        TaskUpcoming: Task(first: 25, where: { IsClosed: { eq: false }, ActivityDate: { gte: { literal: TODAY } } }, orderBy: { ActivityDate: { order: ASC } }) {
+          edges { node { Id Subject @optional { value } ActivityDate @optional { value } } }
+        }
+        Event(first: 15, where: { ActivityDateTime: { gte: { literal: TODAY } } }, orderBy: { ActivityDateTime: { order: ASC } }) {
           edges { node { Id Subject @optional { value } ActivityDateTime @optional { value } } }
         }
         FinancialGoal(first: 6) {
@@ -87,11 +90,17 @@ function severityForPaydex(paydex: number): CallItem['severity'] {
   return 'low';
 }
 
+/** Map a call item's severity to its priority-queue tier. */
+function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
+  return sev === 'high' ? 'today' : sev === 'medium' ? 'week' : 'watch';
+}
+
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
     Case?: { totalCount?: number };
-    Task?: { edges?: { node: Node }[] };
+    TaskOverdue?: { edges?: { node: Node }[] };
+    TaskUpcoming?: { edges?: { node: Node }[] };
     Event?: { edges?: { node: Node }[] };
     FinancialGoal?: { edges?: { node: Node }[] };
   } };
@@ -134,13 +143,19 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       severity: severityForPaydex(paydex),
       source: 'D&B credit',
       relationshipValue: 0,
+      tier: tierForSeverity(severityForPaydex(paydex)),
     };
   });
 
+  // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
+  // buried under the thousands-deep overdue backlog a single ASC window returns.
+  // Events are scoped to today-and-future (a past meeting isn't actionable).
+  // bucketSchedule() on the page re-sorts the merged feed into Overdue/Today/Upcoming.
   const schedule: ScheduleItem[] = [
-    ...(q?.Task?.edges ?? []).map((e, i) => ({ id: `t${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
+    ...(q?.TaskOverdue?.edges ?? []).map((e, i) => ({ id: `to${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
+    ...(q?.TaskUpcoming?.edges ?? []).map((e, i) => ({ id: `tu${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
     ...(q?.Event?.edges ?? []).map((e, i) => ({ id: `e${i}`, time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const })),
-  ].slice(0, 8);
+  ];
 
   const bankerGoals: BankerGoal[] = (q?.FinancialGoal?.edges ?? []).map((e, i) => ({
     id: `g${i}`, name: s(e.node, 'Name') || 'Goal',
@@ -166,6 +181,65 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     asOf: 'Latest',
   } : null;
 
+  // ── Recommendations — derived defensively (never throws). Sources:
+  //   open Task · top Opportunity · top Account · weakest-credit borrower.
+  const recommendations: Recommendation[] = [];
+  const firstTask = q?.TaskOverdue?.edges?.[0]?.node;
+  if (firstTask) {
+    const subj = s(firstTask, 'Subject') || 'Follow-up task';
+    const due = s(firstTask, 'ActivityDate');
+    recommendations.push({
+      id: 'rec-task', kind: 'task', objectLabel: 'Task', clientName: subj, clientId: '',
+      title: `Complete open task: ${subj}`,
+      body: `This task${due ? ` (due ${due})` : ''} is still open. Close the loop with the borrower and log the next credit or treasury step.`,
+      evidence: `Open Task${due ? ` with ActivityDate ${due}` : ''} — from your overdue relationship queue`,
+    });
+  }
+  const topOpp = opp?.edges?.[0]?.node;
+  if (topOpp) {
+    const oppName = s(topOpp, 'Name') || 'Opportunity';
+    const acct = topOpp.Account?.Name?.value ?? oppName;
+    recommendations.push({
+      id: 'rec-call', kind: 'call', objectLabel: 'Opportunity', clientName: acct, clientId: '',
+      title: `Advance the ${acct} lending deal`,
+      body: `Your largest open opportunity (${oppName}, ${num(topOpp, 'Amount').toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) needs a next step. Schedule a call to confirm structure and lock a funding date.`,
+      evidence: `Highest-value open opportunity at ${Math.round(num(topOpp, 'Probability'))}% probability`,
+    });
+  }
+  const topAcct = (opp?.edges ?? []).find(e => e.node.Account?.Name?.value)?.node.Account?.Name?.value;
+  if (topAcct) {
+    recommendations.push({
+      id: 'rec-email', kind: 'email', objectLabel: 'Account', clientName: topAcct, clientId: '',
+      title: `Pitch treasury management to ${topAcct}`,
+      body: 'A top relationship has limited recent activity. Reach out on treasury-management and liquidity-sweep opportunities to capture idle balances.',
+      evidence: 'High-value relationship with sparse recent engagement history',
+    });
+  }
+  const weakestCredit = callList[0];
+  if (weakestCredit) {
+    const delinqNote = delinquency
+      ? ` Book delinquency stands at ${delinquency.totalDelinquentBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.`
+      : '';
+    recommendations.push({
+      id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: weakestCredit.clientName, clientId: weakestCredit.clientId,
+      title: `Open a credit-review case for ${weakestCredit.clientName}`,
+      body: `The weakest business-credit signal in your book warrants a covenant and credit review before it deteriorates further.${delinqNote}`,
+      evidence: weakestCredit.reason,
+    });
+  }
+
+  // ── Right Now — the single first move, from the top-priority call item.
+  const top = callList[0];
+  const rightNow: RightNowItem | undefined = top
+    ? {
+        clientId: top.clientId,
+        clientName: top.clientName,
+        headline: `Reach out to ${top.clientName} — ${top.action.toLowerCase()}.`,
+        detail: top.reason,
+        taskSubject: top.action,
+      }
+    : undefined;
+
   return {
     bankerName: 'Alex',
     dateLabel: 'Today',
@@ -190,6 +264,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
     })),
     leads: [],
+    recommendations,
+    rightNow,
     delinquency,
   };
 }

@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="en" data-mode="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cumulus · Relationship Command Center — redesign prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   AURORA GLASS · DARK — Relationship Command Center
+   Color language:  teal = YOU act (CRM writes) · violet = AI acts
+   Type language:   serif = human/narrative · mono = machine/data
+   ============================================================ */
+:root{
+  --font:'Inter',system-ui,-apple-system,sans-serif;
+  --serif:'Newsreader',Georgia,serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+
+  --bg:#070b14;
+  --surface:#101827;
+  --glass:rgba(16,24,39,.66);
+  --glass-strong:rgba(16,24,39,.9);
+  --raised:rgba(30,41,61,.5);
+  --border:rgba(148,163,184,.16);
+  --border-strong:rgba(148,163,184,.30);
+  --text:#e6edf6;
+  --muted:#8ea0b8;
+  --faint:#5b6b83;
+
+  /* teal — action / you / CRM */
+  --teal:#14b8a6;
+  --teal-soft:#5eead4;
+  --teal-bg:rgba(20,184,166,.14);
+  --teal-border:rgba(20,184,166,.4);
+
+  /* violet→blue — agentic / AI */
+  --ai:#7c6cff;
+  --ai-2:#4f8dff;
+  --ai-grad:linear-gradient(120deg,#7c6cff 0%,#4f8dff 100%);
+  --ai-bg:rgba(124,108,255,.14);
+  --ai-border:rgba(124,108,255,.4);
+
+  --warn:#fbbf24;
+  --warn-bg:rgba(251,191,36,.13);
+  --neg:#f87171;
+  --neg-bg:rgba(248,113,113,.13);
+  --pos:#34d399;
+
+  --track:rgba(148,163,184,.14);
+  --radius:18px;
+  --radius-sm:12px;
+  --shadow:0 18px 50px rgba(0,0,0,.45);
+  --rail-w:264px;
+  --rail-w-collapsed:74px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+  min-height:100vh;
+}
+/* ambient aurora wash */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(48% 42% at 18% 4%, rgba(20,184,166,.16), transparent 60%),
+    radial-gradient(42% 40% at 88% 2%, rgba(124,108,255,.16), transparent 58%),
+    radial-gradient(60% 55% at 72% 108%, rgba(79,141,255,.10), transparent 60%);
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+::selection{background:rgba(94,234,212,.28)}
+
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+.mono{font-family:var(--mono)}
+.serif{font-family:var(--serif)}
+
+/* ---------- App shell ---------- */
+.app{position:relative;z-index:1;display:grid;grid-template-columns:var(--rail-w) 1fr;transition:grid-template-columns .28s ease}
+.app.rail-collapsed{grid-template-columns:var(--rail-w-collapsed) 1fr}
+
+/* ================= COMMAND RAIL (signature) ================= */
+.rail{
+  position:sticky;top:0;height:100vh;padding:20px 14px;
+  display:flex;flex-direction:column;gap:18px;
+  background:linear-gradient(180deg,rgba(16,24,39,.72),rgba(7,11,20,.72));
+  border-right:1px solid var(--border);
+  backdrop-filter:blur(18px);overflow:hidden;
+}
+.rail-brand{display:flex;align-items:center;gap:11px;padding:2px 8px;min-height:34px}
+.rail-logo{width:32px;height:32px;border-radius:9px;flex:0 0 auto;background:conic-gradient(from 210deg,#14b8a6,#4f8dff,#7c6cff,#14b8a6);position:relative}
+.rail-logo::after{content:'';position:absolute;inset:5px;border-radius:5px;background:var(--bg)}
+.rail-brand b{font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+.rail-brand span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase}
+.collapsed .rail-brand .rail-brand-txt{display:none}
+
+.rail-collapse{position:absolute;top:22px;right:-11px;width:22px;height:22px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border-strong);display:grid;place-items:center;color:var(--muted);font-size:11px;z-index:5}
+.rail-collapse:hover{color:var(--text);border-color:var(--teal-border)}
+
+.rail-nav{display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto;scrollbar-width:none}
+.rail-nav::-webkit-scrollbar{display:none}
+.rail-sec-label{padding:12px 12px 5px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.collapsed .rail-sec-label{opacity:0;height:8px;padding:0}
+.nav-item{
+  display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:11px;
+  color:var(--muted);font-size:13.5px;font-weight:500;position:relative;transition:.16s;
+}
+.nav-item .ni-ico{width:20px;flex:0 0 auto;text-align:center;font-size:15px}
+.nav-item .ni-txt{white-space:nowrap;flex:1}
+.nav-item .ni-badge{
+  font-family:var(--mono);font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:20px;
+  background:var(--track);color:var(--muted)
+}
+.nav-item .ni-badge.warn{background:var(--warn-bg);color:var(--warn)}
+.nav-item .ni-badge.neg{background:var(--neg-bg);color:var(--neg)}
+.nav-item .ni-badge.ai{background:var(--ai-bg);color:#b6acff}
+.nav-item:hover{color:var(--text);background:var(--raised)}
+.nav-item.active{color:var(--text);background:linear-gradient(90deg,rgba(20,184,166,.16),transparent)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--teal)}
+.collapsed .nav-item{justify-content:center;padding:10px 0}
+.collapsed .nav-item .ni-txt{display:none}
+.collapsed .nav-item .ni-badge{position:absolute;top:3px;right:9px;padding:0;min-width:16px;height:16px;display:grid;place-items:center;font-size:9px}
+
+/* day arc footer */
+.rail-arc{border-top:1px solid var(--border);padding-top:14px}
+.rail-arc h4{margin:0 0 10px;padding:0 8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.collapsed .rail-arc h4,.collapsed .arc-list,.collapsed .rail-user .ru-txt{display:none}
+.arc-list{display:flex;flex-direction:column;gap:2px;position:relative;padding-left:8px}
+.arc-step{display:flex;align-items:center;gap:10px;padding:5px 8px;font-size:12px;color:var(--muted);position:relative}
+.arc-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;border:2px solid var(--faint)}
+.arc-step.done .arc-dot{background:var(--teal);border-color:var(--teal)}
+.arc-step.now .arc-dot{background:var(--warn);border-color:var(--warn);box-shadow:0 0 0 4px var(--warn-bg)}
+.arc-step.now{color:var(--text)}
+.arc-step .arc-t{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.rail-user{display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:12px;background:var(--raised)}
+.rail-user .ru-av{width:30px;height:30px;border-radius:9px;background:var(--ai-grad);display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;flex:0 0 auto}
+.collapsed .rail-user{justify-content:center;padding:9px 0}
+.rail-user .ru-txt small{display:block;font-size:11px;color:var(--faint)}
+.rail-user .ru-txt b{font-size:13px;font-weight:600}
+
+/* ================= MAIN ================= */
+.main{min-width:0}
+.topbar{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;
+  padding:14px 30px;background:rgba(7,11,20,.72);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.tb-title{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.tb-title small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;font-weight:400}
+.tb-search{flex:1;max-width:420px;margin-left:8px;display:flex;align-items:center;gap:9px;
+  padding:9px 14px;border-radius:12px;background:var(--raised);border:1px solid var(--border);color:var(--faint);font-size:13px}
+.tb-search:hover{border-color:var(--border-strong)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.tb-clock{text-align:right}
+.tb-clock b{font-family:var(--mono);font-size:13px;font-weight:600}
+.tb-clock small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+.tb-ai-chip{display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:20px;
+  border:1px solid var(--ai-border);background:var(--ai-bg);font-size:12px;color:#c3bcff;font-weight:500}
+.tb-ai-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--ai);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+.icon-btn{width:38px;height:38px;border-radius:11px;background:var(--raised);border:1px solid var(--border);display:grid;place-items:center;color:var(--muted);font-size:15px;position:relative}
+.icon-btn:hover{color:var(--text);border-color:var(--border-strong)}
+.icon-btn .nd{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--neg);border:1.5px solid var(--surface)}
+
+.content{padding:30px 30px 120px;max-width:1320px}
+section{scroll-margin-top:82px}
+
+/* section header */
+.sec-head{display:flex;align-items:flex-end;gap:14px;margin:44px 0 18px}
+.sec-head:first-child{margin-top:8px}
+.sec-head .sh-txt h2{margin:2px 0 0;font-family:var(--serif);font-size:25px;font-weight:500;letter-spacing:-.01em}
+.sec-head .sh-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.ask-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:22px;
+  border:1px solid var(--ai-border);background:transparent;font-size:12.5px;color:#c3bcff;transition:.16s}
+.ask-chip::before{content:'✦';color:var(--ai)}
+.ask-chip:hover{background:var(--ai-bg)}
+.link-btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.link-btn:hover{color:var(--teal-soft)}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;border-radius:26px;overflow:hidden;border:1px solid var(--border);
+  background:
+    radial-gradient(80% 140% at 100% 0%,rgba(124,108,255,.16),transparent 55%),
+    radial-gradient(70% 120% at 0% 0%,rgba(20,184,166,.14),transparent 55%),
+    var(--glass);
+  padding:34px 38px;backdrop-filter:blur(16px)}
+.hero-grid{display:grid;grid-template-columns:1fr 380px;gap:34px}
+.hero-brief .eyebrow{display:flex;align-items:center;gap:10px}
+.hero-brief h1{font-family:var(--serif);font-weight:500;font-size:40px;line-height:1.08;letter-spacing:-.02em;margin:14px 0 16px}
+.hero-brief h1 .accent{background:linear-gradient(120deg,#5eead4,#4f8dff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero-brief p{font-size:15.5px;color:#c3cfe0;max-width:56ch;margin:0 0 22px}
+.hero-brief p b{color:var(--text);font-weight:600}
+.hero-meta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.conf{display:flex;align-items:center;gap:10px}
+.conf-bar{width:120px;height:5px;border-radius:5px;background:var(--track);overflow:hidden}
+.conf-bar i{display:block;height:100%;width:87%;background:var(--ai-grad);border-radius:5px}
+.conf small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.hero-listen{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:22px;border:1px solid var(--border-strong);font-size:12.5px;color:var(--muted)}
+.hero-listen:hover{color:var(--text);border-color:var(--teal-border)}
+
+/* Right Now card */
+.rightnow{border-radius:20px;background:var(--glass-strong);border:1px solid var(--ai-border);
+  padding:22px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.rightnow::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:var(--ai-bg);filter:blur(30px)}
+.rn-tag{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#b6acff;display:flex;align-items:center;gap:7px}
+.rn-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--ai)}
+.rightnow h3{font-family:var(--serif);font-size:20px;font-weight:500;line-height:1.25;margin:12px 0 8px}
+.rightnow .rn-sub{font-size:13px;color:var(--muted);margin:0 0 18px}
+.rightnow .rn-sub a{color:var(--teal-soft);border-bottom:1px solid rgba(94,234,212,.3)}
+.rn-actions{display:flex;gap:9px;margin-top:auto}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 15px;border-radius:11px;font-size:12.5px;font-weight:600;transition:.15s;white-space:nowrap;border:1px solid transparent}
+.btn-ai{background:var(--ai-grad);color:#fff;box-shadow:0 6px 18px rgba(124,108,255,.35)}
+.btn-ai:hover{filter:brightness(1.08)}
+.btn-teal{background:var(--teal);color:#04121a}
+.btn-teal:hover{background:var(--teal-soft)}
+.btn-ghost{border-color:var(--border-strong);color:var(--muted)}
+.btn-ghost:hover{color:var(--text);border-color:var(--teal-border)}
+.btn-sm{padding:6px 11px;font-size:11.5px;border-radius:9px}
+
+/* ---------- KPI pulse strip ---------- */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:16px}
+.kpi{border-radius:16px;background:var(--glass);border:1px solid var(--border);padding:16px 17px;position:relative;transition:.16s;cursor:pointer;overflow:hidden}
+.kpi:hover{border-color:var(--teal-border);transform:translateY(-2px)}
+.kpi .k-top{border-radius:16px 16px 0 0;position:absolute;top:0;left:0;right:0;height:3px;background:var(--teal)}
+.kpi.risk .k-top{background:var(--neg)}
+.kpi .eyebrow{display:block;margin-bottom:9px}
+.kpi .k-val{font-family:var(--serif);font-size:29px;font-weight:500;letter-spacing:-.01em}
+.kpi.risk .k-val{color:var(--neg)}
+.kpi .k-delta{font-family:var(--mono);font-size:11px;margin-top:5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.kpi .k-delta.up{color:var(--pos)}
+.kpi .k-spark{position:absolute;bottom:12px;right:14px;opacity:.5}
+
+/* ---------- Priority queue ---------- */
+.q-group{border-radius:18px;background:var(--glass);border:1px solid var(--border);overflow:hidden;margin-bottom:14px}
+.q-gh{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--raised)}
+.q-gh .g-ico{color:var(--muted);font-size:12px}
+.q-gh b{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.q-gh .g-count{font-family:var(--mono);font-size:11px;width:20px;height:20px;border-radius:50%;background:var(--track);display:grid;place-items:center;color:var(--muted)}
+.q-gh .g-tier{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em}
+.tier-critical{color:var(--neg)}.tier-important{color:var(--warn)}.tier-watch{color:var(--muted)}
+.q-gh .prep-all{margin-left:12px}
+
+.qrow{display:grid;grid-template-columns:44px 1fr auto;gap:16px;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);transition:.14s;cursor:pointer}
+.qrow:last-child{border-bottom:none}
+.qrow:hover{background:var(--raised)}
+.score-ring{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;position:relative;flex:0 0 auto}
+.score-ring::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--rc) calc(var(--v)*1%),var(--track) 0)}
+.score-ring::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--surface)}
+.score-ring span{position:relative;z-index:1;font-family:var(--mono);font-size:13px;font-weight:600}
+.q-main .q-name{font-size:15px;font-weight:600;display:flex;align-items:center;gap:9px}
+.q-name .chev{color:var(--faint);font-size:12px}
+.seg{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--track);color:var(--muted)}
+.q-why{font-size:13px;color:var(--muted);margin:5px 0 0;max-width:64ch}
+.q-src{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin-top:7px;display:inline-block}
+.q-actions{display:flex;align-items:center;gap:7px}
+.act-ico{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);color:var(--muted);display:grid;place-items:center;font-size:14px;transition:.14s}
+.act-ico:hover{color:var(--teal-soft);border-color:var(--teal-border);background:var(--teal-bg)}
+.chip-why{padding:7px 12px;border-radius:9px;border:1px solid var(--border);font-size:11.5px;color:var(--muted)}
+.chip-why:hover{color:var(--text);border-color:var(--border-strong)}
+
+/* ---------- Recommendation cards ---------- */
+.rec-grid{display:grid;gap:14px}
+.rec{border-radius:18px;background:var(--glass);border:1px solid var(--border);padding:20px 22px;position:relative;transition:.16s}
+.rec:hover{border-color:var(--ai-border)}
+.rec-head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.rec-kind{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:15px}
+.rec-kind.task{background:var(--teal-bg);color:var(--teal-soft)}
+.rec-kind.email{background:var(--ai-bg);color:#b6acff}
+.rec-kind.call{background:var(--warn-bg);color:var(--warn)}
+.rec-kind.case{background:var(--neg-bg);color:var(--neg)}
+.rec-head .rk-label{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.rec-head .rk-obj{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--faint);border-bottom:1px dotted var(--faint)}
+.rec h4{font-size:15.5px;font-weight:600;margin:0 0 7px}
+.rec h4 a{color:var(--teal-soft)}
+.rec p{font-size:13.5px;color:var(--muted);margin:0 0 12px;max-width:80ch}
+.rec .rec-ev{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--faint);font-style:italic;margin-bottom:16px}
+.rec .rec-ev::before{content:'✦';font-style:normal;color:var(--ai);flex:0 0 auto}
+.rec-foot{display:flex;align-items:center;gap:9px}
+.rec-foot .spacer{flex:1}
+
+/* ---------- two-col ---------- */
+.cols{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
+.panel{border-radius:18px;background:var(--glass);border:1px solid var(--border);overflow:hidden}
+.panel-h{display:flex;align-items:center;gap:10px;padding:15px 20px;border-bottom:1px solid var(--border)}
+.panel-h b{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.panel-h .ph-right{margin-left:auto}
+
+/* life events */
+.le-row{display:flex;align-items:center;gap:14px;padding:15px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:.14s}
+.le-row:last-child{border-bottom:none}
+.le-row:hover{background:var(--raised)}
+.le-ico{width:38px;height:38px;border-radius:11px;background:var(--warn-bg);color:var(--warn);display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+.le-row .le-b{font-size:14px;font-weight:600}
+.le-row .le-s{font-size:12.5px;color:var(--muted);margin-top:3px}
+.le-row .le-meta{margin-left:auto;text-align:right;flex:0 0 auto}
+.le-row .le-date{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.le-row .le-kind{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+
+/* alerts */
+.al-row{display:flex;align-items:flex-start;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:.14s}
+.al-row:last-child{border-bottom:none}
+.al-row:hover{background:var(--raised)}
+.al-dot{width:8px;height:8px;border-radius:50%;background:var(--neg);margin-top:5px;flex:0 0 auto}
+.al-row .al-b{font-size:13.5px;font-weight:600}
+.al-row .al-s{font-size:12px;color:var(--faint);margin-top:2px}
+.al-row .al-t{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint);text-transform:uppercase}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);text-align:left;padding:12px 20px;border-bottom:1px solid var(--border);font-weight:500}
+thead th.num,tbody td.num{text-align:right}
+tbody td{padding:13px 20px;border-bottom:1px solid var(--border);color:var(--muted)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:.14s;cursor:pointer}
+tbody tr:hover{background:var(--raised)}
+tbody td .t-name{color:var(--text);font-weight:600}
+.stage{font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:6px;background:var(--track);color:var(--muted)}
+.stage.hot{background:var(--teal-bg);color:var(--teal-soft)}
+.prop{display:inline-flex;align-items:center;gap:7px}
+.prop-bar{width:46px;height:5px;border-radius:5px;background:var(--track);overflow:hidden}
+.prop-bar i{display:block;height:100%;background:var(--teal)}
+.status-pill{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em}
+.status-new{background:var(--ai-bg);color:#b6acff}
+.status-working{background:var(--warn-bg);color:var(--warn)}
+.status-unqual{background:var(--track);color:var(--faint)}
+
+/* portfolio pulse */
+.pulse-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.pulse-card{border-radius:16px;background:var(--glass);border:1px solid var(--border);padding:20px}
+.pulse-card .eyebrow{display:block;margin-bottom:8px}
+.pulse-card .p-val{font-family:var(--serif);font-size:30px;font-weight:500}
+.pulse-card .p-note{font-size:12.5px;color:var(--muted);margin-top:8px}
+.pulse-card .p-link{margin-top:14px;display:inline-block}
+.pulse-narr{font-size:14.5px;color:#c3cfe0;line-height:1.6;max-width:80ch;margin:0 0 18px}
+.pulse-narr b{color:var(--text)}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(4,7,13,.68);backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto}
+.overlay.open{display:flex;animation:fade .2s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{width:100%;max-width:600px;border-radius:22px;background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow);animation:rise .26s cubic-bezier(.2,.8,.2,1);overflow:hidden}
+.modal.wide{max-width:720px}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:none}}
+.m-head{display:flex;align-items:flex-start;gap:14px;padding:22px 24px;border-bottom:1px solid var(--border)}
+.m-head .m-ico{width:40px;height:40px;border-radius:12px;background:var(--ai-bg);color:#b6acff;display:grid;place-items:center;font-size:18px;flex:0 0 auto}
+.m-head .m-ico.teal{background:var(--teal-bg);color:var(--teal-soft)}
+.m-head h3{font-family:var(--serif);font-size:20px;font-weight:500;margin:0}
+.m-head .m-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.m-close{margin-left:auto;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--muted);font-size:16px}
+.m-close:hover{background:var(--raised);color:var(--text)}
+.m-body{padding:22px 24px;max-height:60vh;overflow-y:auto}
+.m-foot{display:flex;align-items:center;gap:10px;padding:16px 24px;border-top:1px solid var(--border);background:var(--raised)}
+.m-foot .crm-note{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.04em;flex:1;display:flex;align-items:center;gap:7px}
+.m-foot .crm-note::before{content:'⛁';color:var(--teal)}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.field input,.field textarea,.field select{width:100%;padding:11px 13px;border-radius:11px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:13.5px}
+.field textarea{min-height:120px;resize:vertical;line-height:1.55}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--teal-border)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* prep sheet */
+.prep-block{margin-bottom:20px}
+.prep-block h5{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 9px;display:flex;align-items:center;gap:8px}
+.prep-block h5 .b{color:var(--ai)}
+.prep-block p{font-size:13.5px;color:#c3cfe0;margin:0;line-height:1.6}
+.prep-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pf{border-radius:11px;background:var(--bg);border:1px solid var(--border);padding:12px 14px}
+.pf .eyebrow{display:block;margin-bottom:5px}
+.pf b{font-size:15px}
+.nba-list{display:flex;flex-direction:column;gap:8px}
+.nba{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.nba .nba-n{font-family:var(--mono);font-size:11px;color:var(--faint);width:18px}
+.nba .nba-t{font-size:13.5px;flex:1}
+.gen-line{display:flex;align-items:center;gap:9px;font-size:12px;color:#b6acff;margin-bottom:14px;font-family:var(--mono)}
+.gen-line .sp{width:13px;height:13px;border-radius:50%;border:2px solid var(--ai-border);border-top-color:var(--ai);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 360 quick view */
+.qv-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.qv-av{width:52px;height:52px;border-radius:14px;background:var(--ai-grad);display:grid;place-items:center;font-weight:700;font-size:20px;color:#fff}
+.qv-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.qv-tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.qv-tab{padding:9px 13px;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.qv-tab.active{color:var(--text);border-color:var(--teal)}
+
+/* toast */
+.toasts{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:10px;align-items:center}
+.toast{display:flex;align-items:center;gap:12px;padding:13px 18px;border-radius:13px;background:var(--glass-strong);border:1px solid var(--teal-border);box-shadow:var(--shadow);backdrop-filter:blur(14px);font-size:13.5px;animation:rise .3s cubic-bezier(.2,.8,.2,1);max-width:420px}
+.toast .t-ico{width:24px;height:24px;border-radius:7px;background:var(--teal-bg);color:var(--teal-soft);display:grid;place-items:center;font-size:13px;flex:0 0 auto}
+.toast b{font-weight:600}
+.toast small{color:var(--muted);font-family:var(--mono);font-size:10.5px}
+
+/* AI dock FAB */
+.fab{position:fixed;bottom:26px;right:26px;z-index:60;display:flex;align-items:center;gap:10px;padding:13px 18px;border-radius:26px;background:var(--ai-grad);color:#fff;font-weight:600;font-size:13.5px;box-shadow:0 10px 30px rgba(124,108,255,.4)}
+.fab:hover{filter:brightness(1.08)}
+.fab .fab-dot{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 2s infinite}
+
+/* design notes drawer */
+.notes-toggle{position:fixed;bottom:26px;left:26px;z-index:60;display:flex;align-items:center;gap:8px;padding:10px 15px;border-radius:22px;background:var(--glass-strong);border:1px solid var(--border-strong);color:var(--muted);font-size:12px;backdrop-filter:blur(12px)}
+.notes-toggle:hover{color:var(--text);border-color:var(--ai-border)}
+.notes-panel{position:fixed;top:0;right:0;bottom:0;width:440px;max-width:92vw;z-index:120;background:var(--surface);border-left:1px solid var(--border-strong);box-shadow:var(--shadow);transform:translateX(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);overflow-y:auto;padding:26px}
+.notes-panel.open{transform:none}
+.notes-panel h3{font-family:var(--serif);font-size:22px;font-weight:500;margin:0 0 6px}
+.notes-panel .np-sub{font-size:13px;color:var(--muted);margin:0 0 22px}
+.np-block{margin-bottom:24px}
+.np-block h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-soft);margin:0 0 10px}
+.np-block.ai h4{color:#b6acff}
+.np-block p{font-size:13px;color:#c3cfe0;line-height:1.6;margin:0 0 8px}
+.np-block ul{margin:0;padding-left:18px;font-size:12.5px;color:var(--muted);line-height:1.7}
+.np-map{width:100%;font-size:11.5px;border-collapse:collapse}
+.np-map td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+.np-map td:first-child{color:var(--text);font-weight:600;white-space:nowrap}
+.np-map td:last-child{font-family:var(--mono);font-size:10.5px;color:var(--teal-soft)}
+.np-close{position:absolute;top:22px;right:22px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--muted)}
+.np-close:hover{background:var(--raised);color:var(--text)}
+
+@media (max-width:1100px){
+  .hero-grid{grid-template-columns:1fr}
+  .kpi-strip{grid-template-columns:repeat(2,1fr)}
+  .cols{grid-template-columns:1fr}
+  .pulse-grid{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .app{grid-template-columns:0 1fr}.rail{display:none}
+  .content{padding:20px 16px 120px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ==================== COMMAND RAIL ==================== -->
+  <aside class="rail" id="rail">
+    <button class="rail-collapse" onclick="toggleRail()" title="Collapse">‹</button>
+    <div class="rail-brand">
+      <div class="rail-logo"></div>
+      <div class="rail-brand-txt"><b>Cumulus</b><span>Command Center</span></div>
+    </div>
+
+    <nav class="rail-nav" id="railNav">
+      <div class="rail-sec-label">Today</div>
+      <a class="nav-item" href="#brief"><span class="ni-ico">◎</span><span class="ni-txt">Daily brief</span></a>
+      <a class="nav-item" href="#queue"><span class="ni-ico">◆</span><span class="ni-txt">Priority queue</span><span class="ni-badge neg">5</span></a>
+      <a class="nav-item" href="#actions"><span class="ni-ico">✦</span><span class="ni-txt">Recommended actions</span><span class="ni-badge ai">4</span></a>
+
+      <div class="rail-sec-label">Book</div>
+      <a class="nav-item" href="#kpis"><span class="ni-ico">▚</span><span class="ni-txt">Pulse metrics</span></a>
+      <a class="nav-item" href="#events"><span class="ni-ico">✷</span><span class="ni-txt">Life events</span><span class="ni-badge warn">3</span></a>
+      <a class="nav-item" href="#alerts"><span class="ni-ico">◈</span><span class="ni-txt">Alerts &amp; signals</span><span class="ni-badge neg">8</span></a>
+
+      <div class="rail-sec-label">Growth</div>
+      <a class="nav-item" href="#pipeline"><span class="ni-ico">≣</span><span class="ni-txt">Pipeline</span></a>
+      <a class="nav-item" href="#leads"><span class="ni-ico">◷</span><span class="ni-txt">Leads &amp; referrals</span><span class="ni-badge">6</span></a>
+      <a class="nav-item" href="#pulse"><span class="ni-ico">∿</span><span class="ni-txt">Portfolio pulse</span></a>
+    </nav>
+
+    <div class="rail-arc">
+      <h4>Today's arc</h4>
+      <div class="arc-list">
+        <div class="arc-step done"><span class="arc-dot"></span>Morning review<span class="arc-t">done</span></div>
+        <div class="arc-step now"><span class="arc-dot"></span>Morris rollover call<span class="arc-t">2:30</span></div>
+        <div class="arc-step"><span class="arc-dot"></span>Bennett mortgage<span class="arc-t">3:15</span></div>
+        <div class="arc-step"><span class="arc-dot"></span>Prep Omega close<span class="arc-t">4:00</span></div>
+      </div>
+    </div>
+
+    <div class="rail-user">
+      <div class="ru-av">J</div>
+      <div class="ru-txt"><b>Jose Sifontes</b><small>Retail · Cumulus FS</small></div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN ==================== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="tb-title">Relationship Command Center<small>Retail · Daily book</small></div>
+      <button class="tb-search" onclick="toast('Search','Global search across clients, accounts &amp; insights')">
+        <span>⌕</span><span>Search clients, accounts, insights…</span>
+      </button>
+      <div class="tb-right">
+        <div class="tb-ai-chip"><span class="dot"></span>AI ready · 24 sources</div>
+        <button class="icon-btn" onclick="toast('Notifications','8 alerts across your book')">◔<span class="nd"></span></button>
+        <div class="tb-clock"><b id="clock">2:44 PM</b><small>Thu · Jul 9</small></div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ---------- HERO / DAILY BRIEF ---------- -->
+      <section id="brief">
+        <div class="hero">
+          <div class="hero-grid">
+            <div class="hero-brief">
+              <div class="eyebrow"><span>Today · AI daily brief</span></div>
+              <h1>Good afternoon, Jose — <span class="accent">eight clients need you</span> before the day closes.</h1>
+              <p><b>8 clients are flagged at-risk on CSAT</b> and <b>2 tasks are overdue</b>, including Julie Morris' 401k rollover sitting 270 days idle next to a $150K loan. Pipeline holds <b>$20.3B across 19,011 opportunities</b>; three households have November life events worth planning around now.</p>
+              <div class="hero-meta">
+                <div class="conf"><div class="conf-bar"><i></i></div><small>AI confidence 87%</small></div>
+                <button class="hero-listen">▷ Listen to brief</button>
+                <button class="ask-chip" onclick="toast('Agentforce','Opening assistant with today\'s brief in context')">Ask why this order</button>
+              </div>
+            </div>
+
+            <div class="rightnow">
+              <div class="rn-tag"><span class="dot"></span>Right now · your first move</div>
+              <h3>Call Julie Morris — a $150K loan is stalling behind a 270-day-overdue rollover task.</h3>
+              <p class="rn-sub">She also has <a onclick="openQuickView('Julie E Morris')">5 open cases including a lost card</a>. One call clears the task, de-risks the relationship, and reopens the loan.</p>
+              <div class="rn-actions">
+                <button class="btn btn-ai" onclick="openPrep('Julie E Morris')">✦ Prep me</button>
+                <button class="btn btn-teal" onclick="openSchedule('Julie E Morris','401k rollover call')">Schedule call</button>
+                <button class="btn btn-ghost" onclick="toast('Snoozed','Right Now item snoozed for 1 hour')">Snooze</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- KPI PULSE ---------- -->
+      <section id="kpis">
+        <div class="kpi-strip">
+          <div class="kpi" onclick="scrollToId('pipeline')"><div class="k-top"></div><span class="eyebrow">Pipeline</span><div class="k-val">$20.3B</div><div class="k-delta up">▲ 4.1% wk</div></div>
+          <div class="kpi" onclick="scrollToId('pipeline')"><div class="k-top"></div><span class="eyebrow">Open opps</span><div class="k-val">19,011</div><div class="k-delta">632 closing 30d</div></div>
+          <div class="kpi" onclick="scrollToId('alerts')"><div class="k-top"></div><span class="eyebrow">Open cases</span><div class="k-val">5,355</div><div class="k-delta">14 high priority</div></div>
+          <div class="kpi" onclick="scrollToId('pulse')"><div class="k-top"></div><span class="eyebrow">Active goals</span><div class="k-val">6</div><div class="k-delta up">2 on track</div></div>
+          <div class="kpi risk" onclick="scrollToId('alerts')"><div class="k-top"></div><span class="eyebrow">At-risk · CSAT</span><div class="k-val">8</div><div class="k-delta">needs outreach</div></div>
+        </div>
+      </section>
+
+      <!-- ---------- PRIORITY QUEUE ---------- -->
+      <section id="queue">
+        <div class="sec-head">
+          <div class="sh-txt"><div class="eyebrow">Ranked · click to open 360</div><h2>Who to act on today</h2></div>
+          <div class="sh-right"><button class="ask-chip" onclick="toast('Batch prep','Drafting follow-ups for all 5 queued clients…')">Draft all follow-ups</button></div>
+        </div>
+
+        <div class="q-group">
+          <div class="q-gh"><span class="g-ico">▾</span><b>Today</b><span class="g-count">1</span><span class="g-tier tier-critical">Critical</span></div>
+          <div id="qToday"></div>
+        </div>
+        <div class="q-group">
+          <div class="q-gh"><span class="g-ico">▾</span><b>This week</b><span class="g-count">2</span><span class="g-tier tier-important">Important</span><button class="btn btn-ghost btn-sm prep-all" onclick="toast('Prep queued','Prepping 2 clients — sheets ready in your dock')">Prep all 2</button></div>
+          <div id="qWeek"></div>
+        </div>
+        <div class="q-group">
+          <div class="q-gh"><span class="g-ico">▾</span><b>Watch</b><span class="g-count">2</span><span class="g-tier tier-watch">Lower urgency</span></div>
+          <div id="qWatch"></div>
+        </div>
+      </section>
+
+      <!-- ---------- RECOMMENDED ACTIONS ---------- -->
+      <section id="actions">
+        <div class="sec-head">
+          <div class="sh-txt"><div class="eyebrow">Agentforce · pre-drafted · you approve</div><h2>Recommended actions</h2></div>
+          <div class="sh-right"><span class="link-btn">4 pending</span></div>
+        </div>
+        <div class="rec-grid" id="recGrid"></div>
+      </section>
+
+      <!-- ---------- LIFE EVENTS + ALERTS ---------- -->
+      <section id="events">
+        <div class="sec-head">
+          <div class="sh-txt"><div class="eyebrow">Data Cloud signals → opportunities</div><h2>Life events &amp; live signals</h2></div>
+        </div>
+        <div class="cols">
+          <div class="panel">
+            <div class="panel-h"><span>✷</span><b>Life events across your book</b><span class="ph-right link-btn">Next 30 days</span></div>
+            <div id="lifeEvents"></div>
+          </div>
+          <div class="panel" id="alerts">
+            <div class="panel-h"><span>◈</span><b>Alerts &amp; signals</b><span class="ph-right link-btn">8 open</span></div>
+            <div id="alertList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PIPELINE ---------- -->
+      <section id="pipeline">
+        <div class="sec-head">
+          <div class="sh-txt"><div class="eyebrow">Open opportunities · sorted by value</div><h2>Pipeline</h2></div>
+          <div class="sh-right"><button class="ask-chip" onclick="toast('Pipeline insight','Summarizing the 5 largest stalled deals…')">Summarize stalled deals</button></div>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Client</th><th>Opportunity</th><th>Stage</th><th>Propensity</th><th class="num">Amount</th></tr></thead>
+            <tbody id="pipeBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ---------- LEADS + PORTFOLIO PULSE ---------- -->
+      <section id="leads">
+        <div class="sec-head">
+          <div class="sh-txt"><div class="eyebrow">Inbound · routed to you</div><h2>Leads &amp; referrals</h2></div>
+        </div>
+        <div class="cols">
+          <div class="panel">
+            <table>
+              <thead><tr><th>Name</th><th>Source</th><th>Status</th><th class="num">Value</th></tr></thead>
+              <tbody id="leadBody"></tbody>
+            </table>
+          </div>
+          <div class="panel" id="pulse" style="scroll-margin-top:82px">
+            <div class="panel-h"><span>∿</span><b>Portfolio pulse</b><span class="ph-right link-btn">▷ Listen</span></div>
+            <div style="padding:20px">
+              <p class="pulse-narr">Your book holds <b>$18.9B open pipeline</b> across 229 opportunities with <b>no wins closed in 30 days</b> — focus on what can still close this quarter. Recent flow totals <b>$440M across 562K transactions</b>; only 1 task was created this week, so client touchpoints are running light.</p>
+              <div class="pulse-grid">
+                <div class="pulse-card"><span class="eyebrow">Wins · 30d</span><div class="p-val" style="color:var(--warn)">$0</div><div class="p-note">Nothing closed this period.</div></div>
+                <div class="pulse-card"><span class="eyebrow">Activity · 7d</span><div class="p-val">1</div><div class="p-note">Low volume — schedule touchpoints.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ==================== OVERLAY / MODAL ==================== -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<!-- toasts -->
+<div class="toasts" id="toasts"></div>
+
+<!-- AI dock FAB -->
+<button class="fab" onclick="toast('Agentforce','Assistant opening with your full book in context')"><span class="fab-dot"></span>Ask Agentforce</button>
+
+<!-- design notes -->
+<button class="notes-toggle" onclick="toggleNotes()">✦ Design notes</button>
+<aside class="notes-panel" id="notesPanel">
+  <button class="np-close" onclick="toggleNotes()">✕</button>
+  <h3>How this home page thinks</h3>
+  <p class="np-sub">Two colors carry the whole model — <b style="color:var(--teal-soft)">teal = you act</b> (CRM writes), <b style="color:#b6acff">violet = AI acts</b> (summarize / recommend).</p>
+
+  <div class="np-block ai">
+    <h4>When we use agentic summarization</h4>
+    <p>To <b>compress</b> the book into something a banker can read in seconds — never to invent, always cite sources &amp; confidence.</p>
+    <ul>
+      <li>Daily brief hero — synthesizes 24 data sources into one paragraph + confidence</li>
+      <li>"Prep me" sheet — relationship recap, talk track, key facts</li>
+      <li>"Why?" reasoning — the evidence behind a ranking</li>
+      <li>Portfolio pulse narrative &amp; email draft generation</li>
+    </ul>
+  </div>
+
+  <div class="np-block">
+    <h4>When we use recommendations</h4>
+    <p>To <b>prescribe a specific next move</b> the banker can execute or dismiss — always with a reason and a one-click action.</p>
+    <ul>
+      <li>Priority queue — ranked "who to act on &amp; why"</li>
+      <li>Recommended actions — pre-drafted task / email / call / case</li>
+      <li>Life events → suggested plays</li>
+      <li>Per-row next-best-action chips</li>
+    </ul>
+  </div>
+
+  <div class="np-block">
+    <h4>CRM actionability → real writes</h4>
+    <p>Every teal action maps to a concrete Salesforce write (GraphQL mutation or the Apex bridge) so the prototype drops straight into the bundle.</p>
+    <table class="np-map">
+      <tr><td>Create task</td><td>Task (GraphQL)</td></tr>
+      <tr><td>Schedule call</td><td>Event (GraphQL)</td></tr>
+      <tr><td>Draft &amp; send email</td><td>EmailMessage + prompt flow</td></tr>
+      <tr><td>Log case</td><td>Case (GraphQL)</td></tr>
+      <tr><td>Approve &amp; execute</td><td>routes to write above</td></tr>
+      <tr><td>Open 360 / account</td><td>nav /client/:id</td></tr>
+      <tr><td>Prep / brief / summary</td><td>runPromptFlow (Einstein)</td></tr>
+    </table>
+  </div>
+
+  <div class="np-block">
+    <h4>The side panel, reimagined</h4>
+    <p>No longer decorative icons. It's a sectioned navigator with live counts, scroll-spy highlighting, a collapsible rail, and a "Today's arc" that tracks your day's milestones.</p>
+  </div>
+</aside>
+
+<script>
+/* ============================================================
+   DATA — mirrors the ReactRetail HomeDashboard view-model.
+   In the real bundle these arrays come from fetchHomeDashboard()
+   (executeGraphQL + queryDataCloud). Shapes kept 1:1.
+   ============================================================ */
+const QUEUE = {
+  today:[
+    {id:'julie',name:'Julie E Morris',seg:'Retail',score:96,tier:'critical',
+     why:'270-day overdue task on 401k rollover · $150K personal loan stalled with no activity · 5 open cases including a lost card',
+     src:'SALESFORCE_CRM'}
+  ],
+  week:[
+    {id:'ajc',name:'AJC Corporation',seg:'Commercial',score:88,tier:'important',
+     why:'$3M commercial real-estate deal at 80% probability in Closing/Funding with no recent activity logged',src:'SALESFORCE_CRM'},
+    {id:'aims',name:'Aims Social, Inc.',seg:'SMB',score:81,tier:'important',
+     why:'$99K corporate-card opportunity at Proposal/Quote with no activity recorded — needs a follow-up to close',src:'SALESFORCE_CRM'}
+  ],
+  watch:[
+    {id:'cooper',name:'Cooper Household',seg:'Retail',score:79,tier:'watch',
+     why:'CSAT trending Poor across last 3 surveys — candidate for service-recovery outreach',src:'DATA_CLOUD'},
+    {id:'wang',name:'Sherry F Wang',seg:'Retail',score:75,tier:'watch',
+     why:'CSAT flagged Poor · no touchpoint in 90 days',src:'DATA_CLOUD'}
+  ]
+};
+const RECS = [
+  {kind:'task',label:'Task',obj:'Task',title:'Complete overdue call: Julie Morris 401k rollover advice',
+   body:'Task from Jul 15, 2024 is 270+ days overdue. Julie has a $150K personal loan opportunity in Interested stage. Call to walk the rollover and cross-sell the loan.',
+   ev:'Task ActivityDate 2024-07-15 is 270+ days overdue with an open $150K opportunity on the same account',
+   name:'Julie E Morris'},
+  {kind:'email',label:'Email',obj:'Account',title:'Re-engage SteelWorks Inc — $75M revenue, no recent activity',
+   body:'Your largest account by revenue has zero recorded activity. Reach out on treasury-management needs and explore commercial lending.',
+   ev:'Highest-revenue account ($75M) with a null LastActivityDate indicates no engagement history',
+   name:'SteelWorks Inc'},
+  {kind:'call',label:'Call',obj:'Opportunity',title:'Push AJC Corporation $3M CRE deal across the finish line',
+   body:'Opportunity is in Closing/Funding with no recent activity. Schedule a call to confirm final docs, clear blockers, and lock a funding date.',
+   ev:'Largest open opportunity at 80% probability, stalled 12 days with no next step set',
+   name:'AJC Corporation'},
+  {kind:'case',label:'Case',obj:'Case',title:'Escalate Cooper Household lost-card case before churn',
+   body:'Low CSAT plus an open lost-card case is a churn signal. Escalate to priority handling and log a service-recovery outreach.',
+   ev:'Poor CSAT (3 surveys) co-occurring with an open high-priority case predicts attrition',
+   name:'Cooper Household'}
+];
+const LIFE=[
+  {name:'Dennis Q Schwartz',ico:'💼',kind:'Job change',date:'Nov 16',sub:'Job change — align income transition & benefits rollover.'},
+  {name:'Christopher N Hernandez',ico:'🎓',kind:'Graduation',date:'Nov 16',sub:'Graduation — coordinate 529 final distribution & next steps.'},
+  {name:'Kristine B Moran',ico:'🎓',kind:'Graduation',date:'Nov 16',sub:'Graduation — finalize education funding & transition plan.'}
+];
+const ALERTS=[
+  {b:'Low CSAT — Cooper Household',s:'Poor · 3 surveys trending down',t:'recent'},
+  {b:'Low CSAT — Cervantes-Fowler Retail',s:'Poor · service-recovery candidate',t:'recent'},
+  {b:'Low CSAT — Jaime R Parsons',s:'Poor · no touchpoint 90d',t:'recent'},
+  {b:'Low CSAT — Sherry F Wang',s:'Poor · flagged today',t:'recent'}
+];
+const PIPE=[
+  {c:'United Partners',o:'Innovation Pipeline',s:'Qualification',p:35,a:'$5.3B'},
+  {c:'Jim Morris Estate',o:'Innovation Pipeline',s:'Qualification',p:40,a:'$3.4B'},
+  {c:'IDO House Account',o:'Cumulus Syndicated Loan',s:'Negotiation',hot:1,p:72,a:'$94.8M'},
+  {c:'Frank Household',o:'Innovation Pipeline',s:'Qualification',p:38,a:'$1.7B'},
+  {c:'Wellspring, Inc.',o:'Innovation Pipeline',s:'Qualification',p:44,a:'$141.2M'},
+  {c:'AJC Corporation',o:'CRE Term Loan',s:'Closing/Funding',hot:1,p:80,a:'$3.0M'}
+];
+const LEADS=[
+  {n:'Dan Hawes',src:'Marketing Event',st:'new',stl:'New',v:'$56M'},
+  {n:'Mellissa Lavender',src:'Social Media',st:'unqual',stl:'Unqualified',v:'$54M'},
+  {n:'Pearl Willson',src:'Website',st:'working',stl:'Working',v:'$8M'},
+  {n:'James Barker',src:'Sales Bot',st:'new',stl:'New',v:'$0'},
+  {n:'Assa Barak',src:'Sales Bot',st:'new',stl:'New',v:'$0'},
+  {n:'Daragh Dennehy',src:'—',st:'new',stl:'New',v:'$0'}
+];
+/* per-client detail for prep + quick view */
+const CLIENTS={
+  'Julie E Morris':{init:'JM',tier:'Retail household',csat:'Poor · 62',aum:'$1.24M',since:'2016',
+    facts:[['Open opp','$150K personal loan'],['Overdue task','270 days'],['Open cases','5'],['Last contact','9 mo ago']],
+    recap:'Julie has banked with Cumulus for 9 years across a mortgage, two deposit accounts, and a brokerage link. Engagement dropped after a branch closure near her; CSAT slid to Poor over the last three surveys. A 401k rollover conversation started in 2024 was never closed, and a $150K personal-loan opportunity is sitting in Interested. Five open cases — most notably a lost debit card — are the likely CSAT driver.',
+    talk:'Lead by resolving the lost-card case live on the call — that rebuilds trust before any product talk. Then reframe the idle rollover as a simple, guided next step and connect it to the personal-loan need she already raised.',
+    nba:['Resolve lost-card case & confirm replacement shipped','Walk the 401k rollover, offer to e-sign on the call','Re-open the $150K personal-loan quote at today\'s rate']},
+  'AJC Corporation':{init:'AJ',tier:'Commercial',csat:'Good · 81',aum:'$3.0M deal',since:'2021',
+    facts:[['Deal','$3.0M CRE term loan'],['Stage','Closing/Funding'],['Probability','80%'],['Idle','12 days']],
+    recap:'AJC is a commercial real-estate borrower with a $3M term loan at the funding stage. Everything is verbally agreed but no activity has been logged in 12 days, and no funding date is set — the classic way an 80% deal slips a quarter.',
+    talk:'Keep it operational and short: confirm the final documents received, name any open blocker, and put a funding date on the calendar before you hang up.',
+    nba:['Confirm final docs & appraisal received','Set a hard funding date','Send DocuSign package for signatures']}
+};
+const _default=k=>CLIENTS[k]||{init:(k||'?').slice(0,2).toUpperCase(),tier:'Client',csat:'—',aum:'—',since:'—',
+  facts:[['Segment','Retail'],['CSAT','Poor'],['Open cases','—'],['Last contact','—']],
+  recap:'Relationship summary is generated on open from the client\'s CRM record, Data Cloud CSAT history, and recent transactions.',
+  talk:'Talk track is generated live via an Einstein prompt flow when you open this sheet against the real org.',
+  nba:['Review recent activity','Schedule a check-in call','Log outreach note']};
+
+/* ---------- render ---------- */
+const rc=t=>t==='critical'?'var(--neg)':t==='important'?'var(--warn)':'var(--teal)';
+function qrow(x){return `<div class="qrow" onclick="openQuickView('${x.name}')">
+  <div class="score-ring" style="--v:${x.score};--rc:${rc(x.tier)}"><span>${x.score}</span></div>
+  <div class="q-main">
+    <div class="q-name">${x.name} <span class="seg">${x.seg}</span> <span class="chev">›</span></div>
+    <p class="q-why">${x.why}</p>
+    <span class="q-src">${x.src}</span>
+  </div>
+  <div class="q-actions" onclick="event.stopPropagation()">
+    <button class="chip-why" onclick="openWhy('${x.name}')">Why?</button>
+    <button class="act-ico" title="Prep me" onclick="openPrep('${x.name}')" style="color:#b6acff;border-color:var(--ai-border)">✦</button>
+    <button class="act-ico" title="Call" onclick="openSchedule('${x.name}','Call')">☏</button>
+    <button class="act-ico" title="Email" onclick="openEmail('${x.name}')">✉</button>
+    <button class="act-ico" title="Task" onclick="openTask('${x.name}')">✓</button>
+  </div></div>`}
+document.getElementById('qToday').innerHTML=QUEUE.today.map(qrow).join('');
+document.getElementById('qWeek').innerHTML=QUEUE.week.map(qrow).join('');
+document.getElementById('qWatch').innerHTML=QUEUE.watch.map(qrow).join('');
+
+document.getElementById('recGrid').innerHTML=RECS.map((r,i)=>`<div class="rec" id="rec${i}">
+  <div class="rec-head"><div class="rec-kind ${r.kind}">${({task:'✓',email:'✉',call:'☏',case:'◈'})[r.kind]}</div>
+    <span class="rk-label">${r.label}</span><span class="rk-obj">${r.obj}</span></div>
+  <h4>${r.title.replace(r.name,`<a onclick="openQuickView('${r.name}')">${r.name}</a>`)}</h4>
+  <p>${r.body}</p>
+  <div class="rec-ev">${r.ev}</div>
+  <div class="rec-foot">
+    <button class="btn btn-ghost btn-sm" onclick="dismissRec(${i})">✕ Dismiss</button>
+    <button class="btn btn-ghost btn-sm" onclick="editRec(${i})">Edit</button>
+    <span class="spacer"></span>
+    <button class="btn btn-teal btn-sm" onclick="approveRec(${i})">✓ Approve &amp; execute</button>
+  </div></div>`).join('');
+
+document.getElementById('lifeEvents').innerHTML=LIFE.map(e=>`<div class="le-row" onclick="openQuickView('${e.name}')">
+  <div class="le-ico">${e.ico}</div>
+  <div><div class="le-b">${e.name}</div><div class="le-s">${e.sub}</div></div>
+  <div class="le-meta"><div class="le-date">${e.date}</div><div class="le-kind">${e.kind}</div></div></div>`).join('');
+
+document.getElementById('alertList').innerHTML=ALERTS.map(a=>`<div class="al-row" onclick="openQuickView('${a.b.split('— ')[1]||a.b}')">
+  <span class="al-dot"></span><div><div class="al-b">${a.b}</div><div class="al-s">${a.s}</div></div><span class="al-t">${a.t}</span></div>`).join('');
+
+document.getElementById('pipeBody').innerHTML=PIPE.map(p=>`<tr onclick="openQuickView('${p.c}')">
+  <td class="t-name">${p.c}</td><td>${p.o}</td>
+  <td><span class="stage ${p.hot?'hot':''}">${p.s}</span></td>
+  <td><span class="prop"><span class="prop-bar"><i style="width:${p.p}%"></i></span>${p.p}%</span></td>
+  <td class="num" style="color:var(--text);font-weight:600">${p.a}</td></tr>`).join('');
+
+document.getElementById('leadBody').innerHTML=LEADS.map(l=>`<tr onclick="openEmail('${l.n}')">
+  <td class="t-name">${l.n}</td><td>${l.src}</td>
+  <td><span class="status-pill status-${l.st}">${l.stl}</span></td>
+  <td class="num" style="color:var(--text)">${l.v}</td></tr>`).join('');
+
+/* ============================================================
+   CRM WRITE SEAM — the single place real Salesforce writes go.
+   Today it optimistically toasts; in the bundle each case calls
+   executeGraphQL(mutation) or the Apex bridge, then toasts on success.
+   ============================================================ */
+function crmWrite(kind,payload){
+  const map={task:['Task created','Task · GraphQL mutation'],event:['Call scheduled','Event · GraphQL mutation'],
+    email:['Email sent','EmailMessage · Apex bridge'],case:['Case logged','Case · GraphQL mutation']};
+  const [msg,note]=map[kind]||['Done',''];
+  toast(msg,`${payload.name} · writes to ${note}`);
+  closeModal();
+}
+
+/* ---------- modal engine ---------- */
+const ov=document.getElementById('overlay'),md=document.getElementById('modal');
+function show(html){md.innerHTML=html;ov.classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(){ov.classList.remove('open');document.body.style.overflow=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+const foot=(primary,note)=>`<div class="m-foot"><span class="crm-note">${note}</span>
+  <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>${primary}</div>`;
+
+function openTask(name){show(`
+  <div class="m-head"><div class="m-ico teal">✓</div><div><h3>Create task</h3><div class="m-sub">${name}</div></div><button class="m-close" onclick="closeModal()">✕</button></div>
+  <div class="m-body">
+    <div class="field"><label>Subject</label><input value="Follow up — ${name}"></div>
+    <div class="field-row"><div class="field"><label>Due date</label><input type="date" value="2026-07-10"></div>
+      <div class="field"><label>Priority</label><select><option>High</option><option>Normal</option></select></div></div>
+    <div class="field"><label>Comments</label><textarea>Discuss next steps and confirm outstanding items.</textarea></div>
+  </div>
+  ${foot('<button class="btn btn-teal" onclick="crmWrite(\'task\',{name:\''+name+'\'})">Create task</button>','Writes to Salesforce Task via GraphQL')}`)}
+
+function openSchedule(name,subj){show(`
+  <div class="m-head"><div class="m-ico teal">☏</div><div><h3>Schedule ${subj.toLowerCase().includes('call')?'call':'meeting'}</h3><div class="m-sub">${name} · ${subj}</div></div><button class="m-close" onclick="closeModal()">✕</button></div>
+  <div class="m-body">
+    <div class="field"><label>Subject</label><input value="${subj} — ${name}"></div>
+    <div class="field-row"><div class="field"><label>Date</label><input type="date" value="2026-07-09"></div>
+      <div class="field"><label>Time</label><input type="time" value="14:30"></div></div>
+    <div class="field"><label>Agenda</label><textarea>Resolve open items, review opportunity, set next step.</textarea></div>
+  </div>
+  ${foot('<button class="btn btn-teal" onclick="crmWrite(\'event\',{name:\''+name+'\'})">Add to calendar</button>','Writes to Salesforce Event via GraphQL')}`)}
+
+function openEmail(name){show(`
+  <div class="m-head"><div class="m-ico">✉</div><div><h3>Draft email</h3><div class="m-sub">${name}</div></div><button class="m-close" onclick="closeModal()">✕</button></div>
+  <div class="m-body">
+    <div class="field"><label>Subject</label><input id="emSubj" value="Checking in — a couple of quick next steps"></div>
+    <button class="btn btn-ai btn-sm" style="margin-bottom:14px" onclick="genEmail('${name}')">✦ Generate draft with Agentforce</button>
+    <div class="field"><label>Body</label><textarea id="emBody" placeholder="Write, or generate a draft from the client's history…"></textarea></div>
+  </div>
+  ${foot('<button class="btn btn-teal" onclick="crmWrite(\'email\',{name:\''+name+'\'})">Send email</button>','Draft via prompt flow · sends as EmailMessage')}`)}
+function genEmail(name){const t=document.getElementById('emBody');
+  const gl=document.createElement('div');gl.className='gen-line';gl.innerHTML='<span class="sp"></span>Generating from CRM history & recent activity…';
+  t.parentNode.insertBefore(gl,t);
+  setTimeout(()=>{gl.remove();t.value=`Hi ${name.split(' ')[0]},\n\nI wanted to reach out personally. I noticed a few items open on your account and want to make sure we get them fully resolved for you.\n\nDo you have 15 minutes this week for a quick call? I can walk through everything and take care of it in one go.\n\nBest,\nJose Sifontes\nCumulus Financial Services`},1100)}
+
+function openWhy(name){const q=[...QUEUE.today,...QUEUE.week,...QUEUE.watch].find(x=>x.name===name)||{why:'',score:80,src:'CRM'};
+  show(`<div class="m-head"><div class="m-ico">✦</div><div><h3>Why ${name} is ranked here</h3><div class="m-sub">AI priority score ${q.score}/100 · source ${q.src}</div></div><button class="m-close" onclick="closeModal()">✕</button></div>
+  <div class="m-body">
+    <div class="prep-block"><h5><span class="b">✦</span> Signals the model weighed</h5><p>${q.why}.</p></div>
+    <div class="prep-block"><h5><span class="b">✦</span> How the score was formed</h5>
+      <div class="prep-facts">
+        <div class="pf"><span class="eyebrow">Recency</span><b>+38</b></div>
+        <div class="pf"><span class="eyebrow">Revenue at risk</span><b>+29</b></div>
+        <div class="pf"><span class="eyebrow">Open cases</span><b>+18</b></div>
+        <div class="pf"><span class="eyebrow">Sentiment</span><b>+11</b></div>
+      </div></div>
+    <div class="prep-block"><h5><span class="b">✦</span> Confidence</h5><p>87% — based on ${q.src==='DATA_CLOUD'?'Data Cloud CSAT history and transaction flow':'CRM task, opportunity and case records'}. Rankings refresh hourly.</p></div>
+  </div>
+  ${foot('<button class="btn btn-ai" onclick="openPrep(\''+name+'\')">✦ Prep me</button>','Reasoning generated by Einstein — read only')}`)}
+
+function openPrep(name){const c=_default(name);
+  show(`<div class="m-head"><div class="m-ico">✦</div><div><h3>Prep sheet · ${name}</h3><div class="m-sub">Generated from CRM · Data Cloud · recent activity</div></div><button class="m-close" onclick="closeModal()">✕</button></div>
+  <div class="m-body">
+    <div class="gen-line"><span class="sp"></span>Synthesizing relationship history…</div>
+    <div id="prepInner" style="opacity:0;transition:opacity .3s">
+      <div class="prep-facts" style="margin-bottom:20px">${c.facts.map(f=>`<div class="pf"><span class="eyebrow">${f[0]}</span><b>${f[1]}</b></div>`).join('')}</div>
+      <div class="prep-block"><h5><span class="b">✦</span> Relationship recap</h5><p>${c.recap}</p></div>
+      <div class="prep-block"><h5><span class="b">✦</span> Suggested talk track</h5><p>${c.talk}</p></div>
+      <div class="prep-block"><h5><span class="b">✦</span> Next best actions</h5>
+        <div class="nba-list">${c.nba.map((n,i)=>`<div class="nba"><span class="nba-n">${i+1}</span><span class="nba-t">${n}</span><button class="btn btn-ghost btn-sm" onclick="openTask('${name}')">Make task</button></div>`).join('')}</div>
+      </div>
+    </div>
+  </div>
+  ${foot('<button class="btn btn-teal" onclick="openSchedule(\''+name+'\',\'Call\')">Schedule call</button>','Summary via runPromptFlow (Einstein)')}`);
+  const inner=document.getElementById('prepInner');
+  setTimeout(()=>{md.querySelector('.gen-line').remove();inner.style.opacity=1},900)}
+
+function openQuickView(name){const c=_default(name);
+  show(`<div class="m-head" style="border-bottom:none;padding-bottom:0"><button class="m-close" style="margin-left:auto" onclick="closeModal()">✕</button></div>
+  <div class="m-body" style="padding-top:6px">
+    <div class="qv-head"><div class="qv-av">${c.init}</div>
+      <div><h3 style="font-family:var(--serif);font-size:22px;margin:0">${name}</h3><div class="m-sub">${c.tier} · client since ${c.since}</div></div></div>
+    <div class="qv-stats">
+      <div class="pf"><span class="eyebrow">CSAT</span><b>${c.csat}</b></div>
+      <div class="pf"><span class="eyebrow">Value</span><b>${c.aum}</b></div>
+      <div class="pf"><span class="eyebrow">Open cases</span><b>${(c.facts.find(f=>f[0]==='Open cases')||[])[1]||'—'}</b></div>
+    </div>
+    <div class="qv-tabs"><div class="qv-tab active">Overview</div><div class="qv-tab">Opportunities</div><div class="qv-tab">Cases</div><div class="qv-tab">Activity</div></div>
+    <div class="prep-block"><h5><span class="b">✦</span> AI summary</h5><p>${c.recap}</p></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:16px">
+      <button class="btn btn-ai btn-sm" onclick="openPrep('${name}')">✦ Prep me</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSchedule('${name}','Call')">☏ Schedule</button>
+      <button class="btn btn-ghost btn-sm" onclick="openTask('${name}')">✓ Task</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEmail('${name}')">✉ Email</button>
+    </div>
+  </div>
+  ${foot('<button class="btn btn-teal" onclick="toast(\'Open 360\',\'Navigating to /client/'+name.split(' ')[0].toLowerCase()+'\')">Open full 360 →</button>','Quick view · full record at /client/:id')}`)}
+
+/* ---------- recommendation actions ---------- */
+function approveRec(i){const r=RECS[i];crmWrite(r.kind==='call'?'event':r.kind,{name:r.name});const el=document.getElementById('rec'+i);if(el){el.style.transition='.3s';el.style.opacity='0';setTimeout(()=>el.remove(),300)}}
+function dismissRec(i){const el=document.getElementById('rec'+i);if(el){el.style.transition='.3s';el.style.opacity='.3';el.style.filter='grayscale(1)';}toast('Dismissed','Recommendation removed — model will learn from this')}
+function editRec(i){const r=RECS[i];({task:openTask,email:openEmail,call:(n)=>openSchedule(n,'Call'),case:openTask})[r.kind](r.name)}
+
+/* ---------- toasts ---------- */
+function toast(title,sub){const w=document.getElementById('toasts');const t=document.createElement('div');t.className='toast';
+  t.innerHTML=`<span class="t-ico">✓</span><div><b>${title}</b>${sub?`<br><small>${sub}</small>`:''}</div>`;
+  w.appendChild(t);setTimeout(()=>{t.style.transition='.4s';t.style.opacity='0';t.style.transform='translateY(8px)';setTimeout(()=>t.remove(),400)},3200)}
+
+/* ---------- rail: collapse, scroll-spy, smooth nav ---------- */
+function toggleRail(){const a=document.getElementById('app'),r=document.getElementById('rail');a.classList.toggle('rail-collapsed');r.classList.toggle('collapsed');
+  document.querySelector('.rail-collapse').textContent=a.classList.contains('rail-collapsed')?'›':'‹'}
+function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'})}
+document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();scrollToId(a.getAttribute('href').slice(1))}));
+const navMap={};document.querySelectorAll('.nav-item').forEach(a=>navMap[a.getAttribute('href').slice(1)]=a);
+const spy=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const id=en.target.id;(navMap[id]||navMap[({events:'events',alerts:'alerts'})[id]])?.classList.add('active')}})},
+  {rootMargin:'-45% 0px -50% 0px'});
+document.querySelectorAll('section[id]').forEach(s=>spy.observe(s));
+
+/* ---------- notes drawer + clock ---------- */
+function toggleNotes(){document.getElementById('notesPanel').classList.toggle('open')}
+function tick(){const d=new Date();let h=d.getHours(),m=String(d.getMinutes()).padStart(2,'0'),ap=h>=12?'PM':'AM';h=h%12||12;
+  document.getElementById('clock').textContent=`${h}:${m} ${ap}`}
+tick();setInterval(tick,30000);
+</script>
+</body>
+</html>

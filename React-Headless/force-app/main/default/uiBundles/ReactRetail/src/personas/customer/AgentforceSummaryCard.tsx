@@ -6,7 +6,7 @@ import type { AgentforceSummary } from './full360Types';
 
 /**
  * Agentforce summary card. Renders the locally-composed summary instantly, then
- * (when the org has a live Einstein prompt flow for this slot and the data mode
+ * (when the org has a live Agentforce prompt flow for this slot and the data mode
  * is 'real') fetches the genuine generated narrative and swaps it in. The ✦ mark
  * turns solid once real AI text is showing. Regenerate re-runs the flow; Copy
  * copies the current text.

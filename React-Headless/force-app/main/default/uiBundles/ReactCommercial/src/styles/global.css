@@ -8,6 +8,7 @@
 @theme {
   --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   --color-bg: var(--wp-surface);
   --color-surface: var(--wp-surface-raised);
@@ -22,6 +23,12 @@
   --color-accent-2: var(--wp-accent-2);
   --color-accent-bg: var(--wp-accent-bg);
   --color-accent-border: var(--wp-accent-border);
+
+  /* AI / agentic accent (violet→blue) — constant across personas */
+  --color-ai: var(--wp-ai);
+  --color-ai-2: var(--wp-ai-2);
+  --color-ai-bg: var(--wp-ai-bg);
+  --color-ai-border: var(--wp-ai-border);
 
   --color-ok: var(--wp-pos);
   --color-ok-bg: var(--wp-pos-bg);
@@ -43,6 +50,12 @@
 }
 
 .bg-gradient-brand { background: var(--wp-gradient); }
+.bg-gradient-ai { background: var(--wp-ai-grad); }
+.text-gradient-ai {
+  background: var(--wp-ai-grad);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
 .text-gradient-accent {
   background: var(--wp-gradient);
   -webkit-background-clip: text; background-clip: text;

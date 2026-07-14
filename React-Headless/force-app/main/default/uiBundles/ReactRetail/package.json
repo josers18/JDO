@@ -20,6 +20,7 @@
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.2.9",
     "@fontsource-variable/hanken-grotesk": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@salesforce/agentforce-conversation-client": "^11.4.5",
     "@salesforce/platform-sdk": "^10.6.0",
     "@salesforce/ui-bundle": "^10.6.0",
