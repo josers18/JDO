@@ -9,7 +9,7 @@
  * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem } from './homeTypes';
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -87,6 +87,11 @@ function severityForPaydex(paydex: number): CallItem['severity'] {
   return 'low';
 }
 
+/** Map a call item's severity to its priority-queue tier. */
+function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
+  return sev === 'high' ? 'today' : sev === 'medium' ? 'week' : 'watch';
+}
+
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
@@ -134,6 +139,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       severity: severityForPaydex(paydex),
       source: 'D&B credit',
       relationshipValue: 0,
+      tier: tierForSeverity(severityForPaydex(paydex)),
     };
   });
 
@@ -166,6 +172,65 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     asOf: 'Latest',
   } : null;
 
+  // ── Recommendations — derived defensively (never throws). Sources:
+  //   open Task · top Opportunity · top Account · weakest-credit borrower.
+  const recommendations: Recommendation[] = [];
+  const firstTask = q?.Task?.edges?.[0]?.node;
+  if (firstTask) {
+    const subj = s(firstTask, 'Subject') || 'Follow-up task';
+    const due = s(firstTask, 'ActivityDate');
+    recommendations.push({
+      id: 'rec-task', kind: 'task', objectLabel: 'Task', clientName: subj, clientId: '',
+      title: `Complete open task: ${subj}`,
+      body: `This task${due ? ` (due ${due})` : ''} is still open. Close the loop with the borrower and log the next credit or treasury step.`,
+      evidence: `Open Task${due ? ` with ActivityDate ${due}` : ''} — oldest in your relationship queue`,
+    });
+  }
+  const topOpp = opp?.edges?.[0]?.node;
+  if (topOpp) {
+    const oppName = s(topOpp, 'Name') || 'Opportunity';
+    const acct = topOpp.Account?.Name?.value ?? oppName;
+    recommendations.push({
+      id: 'rec-call', kind: 'call', objectLabel: 'Opportunity', clientName: acct, clientId: '',
+      title: `Advance the ${acct} lending deal`,
+      body: `Your largest open opportunity (${oppName}, ${num(topOpp, 'Amount').toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) needs a next step. Schedule a call to confirm structure and lock a funding date.`,
+      evidence: `Highest-value open opportunity at ${Math.round(num(topOpp, 'Probability'))}% probability`,
+    });
+  }
+  const topAcct = (opp?.edges ?? []).find(e => e.node.Account?.Name?.value)?.node.Account?.Name?.value;
+  if (topAcct) {
+    recommendations.push({
+      id: 'rec-email', kind: 'email', objectLabel: 'Account', clientName: topAcct, clientId: '',
+      title: `Pitch treasury management to ${topAcct}`,
+      body: 'A top relationship has limited recent activity. Reach out on treasury-management and liquidity-sweep opportunities to capture idle balances.',
+      evidence: 'High-value relationship with sparse recent engagement history',
+    });
+  }
+  const weakestCredit = callList[0];
+  if (weakestCredit) {
+    const delinqNote = delinquency
+      ? ` Book delinquency stands at ${delinquency.totalDelinquentBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.`
+      : '';
+    recommendations.push({
+      id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: weakestCredit.clientName, clientId: weakestCredit.clientId,
+      title: `Open a credit-review case for ${weakestCredit.clientName}`,
+      body: `The weakest business-credit signal in your book warrants a covenant and credit review before it deteriorates further.${delinqNote}`,
+      evidence: weakestCredit.reason,
+    });
+  }
+
+  // ── Right Now — the single first move, from the top-priority call item.
+  const top = callList[0];
+  const rightNow: RightNowItem | undefined = top
+    ? {
+        clientId: top.clientId,
+        clientName: top.clientName,
+        headline: `Reach out to ${top.clientName} — ${top.action.toLowerCase()}.`,
+        detail: top.reason,
+        taskSubject: top.action,
+      }
+    : undefined;
+
   return {
     bankerName: 'Alex',
     dateLabel: 'Today',
@@ -190,6 +255,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
     })),
     leads: [],
+    recommendations,
+    rightNow,
     delinquency,
   };
 }

@@ -9,7 +9,7 @@
  * (storm-16a17dc388fbe6, 2026-07-07) via uiapi + ssot/queryv2 probes.
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, Recommendation, RightNowItem } from './homeTypes';
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -75,6 +75,11 @@ function severityForBalance(balance: number): CallItem['severity'] {
   return 'low';
 }
 
+/** Map a call item's severity to its priority-queue tier. */
+function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
+  return sev === 'high' ? 'today' : sev === 'medium' ? 'week' : 'watch';
+}
+
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
@@ -122,6 +127,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       severity: severityForBalance(bal),
       source: 'Plaid held-away',
       relationshipValue: bal,
+      tier: tierForSeverity(severityForBalance(bal)),
     };
   });
 
@@ -145,6 +151,62 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   }));
 
   const highValue = callList.filter(c => c.severity === 'high').length;
+
+  // ── Recommendations — derived defensively (never throws). Sources:
+  //   open Task · top Opportunity · highest-value Account · largest held-away.
+  const recommendations: Recommendation[] = [];
+  const firstTask = q?.Task?.edges?.[0]?.node;
+  if (firstTask) {
+    const subj = s(firstTask, 'Subject') || 'Follow-up task';
+    const due = s(firstTask, 'ActivityDate');
+    recommendations.push({
+      id: 'rec-task', kind: 'task', objectLabel: 'Task', clientName: subj, clientId: '',
+      title: `Complete open task: ${subj}`,
+      body: `This planning task${due ? ` (due ${due})` : ''} is still open. Close the loop with the client and confirm the next review step.`,
+      evidence: `Open Task${due ? ` with ActivityDate ${due}` : ''} — oldest in your advisory queue`,
+    });
+  }
+  const topOpp = opp?.edges?.[0]?.node;
+  if (topOpp) {
+    const oppName = s(topOpp, 'Name') || 'Opportunity';
+    const acct = topOpp.Account?.Name?.value ?? oppName;
+    recommendations.push({
+      id: 'rec-call', kind: 'call', objectLabel: 'Opportunity', clientName: acct, clientId: '',
+      title: `Advance ${acct} toward close`,
+      body: `Your largest open opportunity (${oppName}, ${num(topOpp, 'Amount').toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) needs a next step. Schedule a planning call to confirm scope and lock a date.`,
+      evidence: `Highest-value open opportunity at ${Math.round(num(topOpp, 'Probability'))}% probability`,
+    });
+  }
+  const topAcct = (opp?.edges ?? []).find(e => e.node.Account?.Name?.value)?.node.Account?.Name?.value;
+  if (topAcct) {
+    recommendations.push({
+      id: 'rec-email', kind: 'email', objectLabel: 'Account', clientName: topAcct, clientId: '',
+      title: `Re-engage ${topAcct} on their plan`,
+      body: 'A top relationship has limited recent activity. Reach out to schedule a portfolio review and explore held-away consolidation.',
+      evidence: 'High-value household with sparse recent engagement history',
+    });
+  }
+  const topHeldAway = callList[0];
+  if (topHeldAway) {
+    recommendations.push({
+      id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: topHeldAway.clientName, clientId: topHeldAway.clientId,
+      title: `Open a consolidation case for ${topHeldAway.clientName}`,
+      body: 'The largest held-away balance in your book is a live consolidation opportunity. Log a case to track the outreach and required paperwork.',
+      evidence: topHeldAway.reason,
+    });
+  }
+
+  // ── Right Now — the single first move, from the top-priority call item.
+  const top = callList[0];
+  const rightNow: RightNowItem | undefined = top
+    ? {
+        clientId: top.clientId,
+        clientName: top.clientName,
+        headline: `Reach out to ${top.clientName} — ${top.action.toLowerCase()}.`,
+        detail: top.reason,
+        taskSubject: top.action,
+      }
+    : undefined;
 
   return {
     bankerName: 'Alex',
@@ -170,5 +232,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
     })),
     leads: [],
+    recommendations,
+    rightNow,
   };
 }

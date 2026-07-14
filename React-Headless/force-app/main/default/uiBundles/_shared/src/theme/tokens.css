@@ -39,6 +39,14 @@
   --wp-warn-bg: rgba(251,191,36,0.12);
   --wp-neg-bg: rgba(251,113,133,0.12);
   --wp-track: rgba(148,163,184,0.14);
+
+  /* AI / agentic accent — violet→blue, constant across personas.
+     Language: persona --wp-accent = "you act", --wp-ai = "AI acts". */
+  --wp-ai: #8b7bff;
+  --wp-ai-2: #4f8dff;
+  --wp-ai-grad: linear-gradient(120deg, #7c6cff 0%, #4f8dff 100%);
+  --wp-ai-bg: rgba(124,108,255,0.16);
+  --wp-ai-border: rgba(124,108,255,0.42);
 }
 
 /* ── AURORA GLASS (light, primary) ─────────────────────────────
@@ -87,6 +95,14 @@
   --wp-warn-bg: #fdf0dd;
   --wp-neg-bg: #fde8ec;
   --wp-track: #eef1fb;
+
+  /* AI / agentic accent — violet→blue, constant across personas.
+     Language: persona --wp-accent = "you act", --wp-ai = "AI acts". */
+  --wp-ai: #6d5cff;
+  --wp-ai-2: #4f8dff;
+  --wp-ai-grad: linear-gradient(120deg, #6d5cff 0%, #4f8dff 100%);
+  --wp-ai-bg: rgba(109,92,255,0.10);
+  --wp-ai-border: rgba(109,92,255,0.32);
 }
 
 @keyframes wp-fade-up {
@@ -116,5 +132,11 @@
   }
   100% {
     background-position: 200% 0;
+  }
+}
+
+@keyframes wp-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

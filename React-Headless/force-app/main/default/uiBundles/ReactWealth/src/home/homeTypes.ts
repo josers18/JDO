@@ -11,6 +11,8 @@ export interface HomeKpi {
   format: 'currency' | 'currencyCompact' | 'number' | 'percent' | 'plain';
   trend?: number[];
   deltaPct?: number;
+  /** Short sub-line under the value (e.g. "632 closing 30d"). */
+  note?: string;
 }
 
 /** "Who to call today & why" — the centerpiece ranked action list. */
@@ -25,6 +27,35 @@ export interface CallItem {
   severity: 'high' | 'medium' | 'low';
   source: string;
   relationshipValue: number;
+  /** Priority-queue grouping used by the command-center home. */
+  tier?: 'today' | 'week' | 'watch';
+}
+
+/**
+ * A pre-drafted next move the banker can approve/edit/dismiss. Maps 1:1 to a
+ * CRM write (Task / Email / Event / Case).
+ */
+export interface Recommendation {
+  id: string;
+  kind: 'task' | 'email' | 'call' | 'case';
+  /** SObject label surfaced on the card (Task / Account / Opportunity / Case). */
+  objectLabel: string;
+  title: string;
+  body: string;
+  /** The evidence line the model cites (rendered after the AI mark). */
+  evidence: string;
+  clientName: string;
+  clientId: string;
+}
+
+/** The single "your first move right now" item that anchors the hero. */
+export interface RightNowItem {
+  clientId: string;
+  clientName: string;
+  headline: string;
+  detail: string;
+  /** Subject to pre-fill when scheduling the first move. */
+  taskSubject: string;
 }
 
 export interface PipelineItem {
@@ -95,6 +126,8 @@ export interface HomeDashboard {
   schedule: ScheduleItem[];
   alerts: AlertSignal[];
   leads: LeadReferral[];
+  recommendations: Recommendation[];
+  rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;
 }
