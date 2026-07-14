@@ -88,13 +88,8 @@ export interface LifeEventSignal {
   icon: string;
 }
 
-export interface ScheduleItem {
-  id: string;
-  time: string;
-  title: string;
-  kind: 'call' | 'meeting' | 'task' | 'event';
-  clientName?: string;
-}
+import type { ScheduleItem } from '@shared';
+export type { ScheduleItem };
 
 export interface AlertSignal {
   id: string;
