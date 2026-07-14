@@ -579,7 +579,7 @@ export function ScheduleTable({
                     <span className="flex-none rounded-full bg-risk-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-risk">High</span>
                   )}
                   <span className="flex-none font-mono text-[11px] text-muted">{it.time}</span>
-                  <Icon name="chevron-right" size={14} className="flex-none text-faint" />
+                  <Icon name="arrow" size={14} className="flex-none text-faint" />
                 </button>
               </li>
             );
@@ -591,7 +591,7 @@ export function ScheduleTable({
 }
 ```
 
-> Note: verify `chevron-right` exists in `iconMap`. Run `grep -n "chevron" force-app/main/default/uiBundles/_shared/src/components/iconMap.tsx`. If absent, use an existing arrow icon name from that file (e.g. `arrow-right`) — do not invent a name.
+> Icon note (pre-resolved): `IconKey` in `iconMap.tsx` is a **closed union** — the trailing affordance uses `name="arrow"` (ArrowRight) and the row icon uses `name="call"` (meetings) / `name="task"` (tasks), all of which exist in the union. Do NOT introduce a new key like `chevron-right` — it would be a TypeScript compile error.
 
 - [ ] **Step 4: Export from the shared barrel**
 
@@ -700,7 +700,7 @@ describe('ScheduleDetailModal', () => {
 });
 ```
 
-> Verify the deep-import path works: `@shared/data/crmWriteClient` resolves via the `@shared/*` tsconfig alias to `_shared/src/data/crmWriteClient`. If the vitest resolver rejects it, import `crmWrite` from `@shared` instead and `vi.spyOn` the module object — confirm `crmWrite` is re-exported from the `@shared` barrel (it is exported from `_shared/src/data/index.ts`; ensure the top-level `_shared/src/index.ts` re-exports `./data` — if it does NOT (see barrel note "data layer intentionally NOT re-exported"), keep the deep `@shared/data/crmWriteClient` import).
+> Mock path (pre-verified — use exactly as written): the vitest `@shared` string alias prefix-matches, so `@shared/data/crmWriteClient` resolves to the absolute file `_shared/src/data/crmWriteClient.ts`. `useCrmAction` imports `crmWrite` from that **same** absolute file (`../../data/crmWriteClient`), and Vitest dedupes modules by resolved path — so `vi.spyOn(client, 'crmWrite')` intercepts the call the hook makes. This is the correct strategy; do not switch to mocking the `@shared` barrel object (spying a re-export star can miss the live binding).
 
 - [ ] **Step 3: Run test to verify it fails**
 
