@@ -22,10 +22,10 @@ const HOME_CORE_QUERY = /* GraphQL */ `
         }
         Case(first: 1, where: { IsClosed: { eq: false } }) { totalCount }
         TaskOverdue: Task(first: 15, where: { IsClosed: { eq: false }, ActivityDate: { lt: { literal: TODAY } } }, orderBy: { ActivityDate: { order: DESC } }) {
-          edges { node { Id Subject @optional { value } ActivityDate @optional { value } } }
+          edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } } }
         }
         TaskUpcoming: Task(first: 25, where: { IsClosed: { eq: false }, ActivityDate: { gte: { literal: TODAY } } }, orderBy: { ActivityDate: { order: ASC } }) {
-          edges { node { Id Subject @optional { value } ActivityDate @optional { value } } }
+          edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } } }
         }
         Event(first: 15, where: { ActivityDateTime: { gte: { literal: TODAY } } }, orderBy: { ActivityDateTime: { order: ASC } }) {
           edges { node { Id Subject @optional { value } ActivityDateTime @optional { value } } }
@@ -152,9 +152,20 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // Events are scoped to today-and-future (a past meeting isn't actionable).
   // bucketSchedule() on the page re-sorts the merged feed into Overdue/Today/Upcoming.
   const schedule: ScheduleItem[] = [
-    ...(q?.TaskOverdue?.edges ?? []).map((e, i) => ({ id: `to${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
-    ...(q?.TaskUpcoming?.edges ?? []).map((e, i) => ({ id: `tu${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
-    ...(q?.Event?.edges ?? []).map((e, i) => ({ id: `e${i}`, time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const })),
+    ...(q?.TaskOverdue?.edges ?? []).map((e, i) => ({
+      id: `to${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Task' as const,
+      time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const,
+      status: s(e.node, 'Status') || undefined, priority: s(e.node, 'Priority') || undefined,
+    })),
+    ...(q?.TaskUpcoming?.edges ?? []).map((e, i) => ({
+      id: `tu${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Task' as const,
+      time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const,
+      status: s(e.node, 'Status') || undefined, priority: s(e.node, 'Priority') || undefined,
+    })),
+    ...(q?.Event?.edges ?? []).map((e, i) => ({
+      id: `e${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Event' as const,
+      time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', startDateTime: s(e.node, 'ActivityDateTime') || undefined, title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const,
+    })),
   ];
 
   const bankerGoals: BankerGoal[] = (q?.FinancialGoal?.edges ?? []).map((e, i) => ({

@@ -32,6 +32,8 @@ global with sharing class CrmWriteRest {
         public String status;           // Task/Case
         public String toAddress;        // email
         public String htmlBody;         // email
+        public String sobjectType;      // 'Task' | 'Event'  (required for update)
+        public String recordId;         // Id of the record to update
     }
 
     @HttpPost
@@ -64,8 +66,10 @@ global with sharing class CrmWriteRest {
                 handleCase(res, reqBody);
             } else if (action == 'email') {
                 handleEmail(res, reqBody);
+            } else if (action == 'update') {
+                handleUpdate(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, or email.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, or update.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -155,6 +159,49 @@ global with sharing class CrmWriteRest {
             Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ msg });
         }
         writeSuccess(res, null);
+    }
+
+    private static void handleUpdate(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.recordId)) {
+            writeError(res, 400, 'A recordId is required to update a record.');
+            return;
+        }
+        String sot = req.sobjectType == null ? '' : req.sobjectType.trim();
+        if (sot != 'Task' && sot != 'Event') {
+            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task or Event.');
+            return;
+        }
+        Id recId;
+        try {
+            recId = (Id) req.recordId;
+        } catch (Exception e) {
+            writeError(res, 400, 'recordId is not a valid Id.');
+            return;
+        }
+        // Reject a well-formed Id whose object type does not match the declared
+        // sobjectType (e.g. a Task Id sent as an Event). Without this, the
+        // mismatched SObject constructor throws and surfaces as an opaque 500.
+        String recPrefix = recId.getSObjectType().getDescribe().getName();
+        if (recPrefix != sot) {
+            writeError(res, 400, 'recordId is a ' + recPrefix + ', not a ' + sot + '.');
+            return;
+        }
+        if (sot == 'Task') {
+            Task t = new Task(Id = recId);
+            if (!String.isBlank(req.subject))  { t.Subject = req.subject; }
+            if (!String.isBlank(req.status))   { t.Status = req.status; }
+            if (!String.isBlank(req.priority)) { t.Priority = req.priority; }
+            if (!String.isBlank(req.dueDate))  { t.ActivityDate = Date.valueOf(req.dueDate); }
+            update t;
+        } else {
+            Event ev = new Event(Id = recId);
+            if (!String.isBlank(req.subject)) { ev.Subject = req.subject; }
+            if (!String.isBlank(req.activityDateTime)) {
+                ev.ActivityDateTime = (Datetime) JSON.deserialize('"' + req.activityDateTime + '"', Datetime.class);
+            }
+            update ev;
+        }
+        writeSuccess(res, recId);
     }
 
     private static void writeSuccess(RestResponse res, Id recordId) {
