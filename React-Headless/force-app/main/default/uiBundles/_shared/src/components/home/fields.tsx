@@ -30,6 +30,18 @@ export function SelectInput(props: React.SelectHTMLAttributes<HTMLSelectElement>
   return <select {...props} className={clsx(CONTROL, props.className)} />;
 }
 
+/** Read-only label/value row for the modal's System Information section.
+ *  Mirrors Field's mono label; renders nothing when the value is empty. */
+export function DisplayRow({ label, value }: { label: string; value: ReactNode }) {
+  if (value == null || value === '') return null;
+  return (
+    <div className="mb-3">
+      <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</span>
+      <span className="text-[13px] text-fg">{value}</span>
+    </div>
+  );
+}
+
 /** Inline "generating…" line with a violet spinner (AI work in progress). */
 export function GenLine({ children }: { children: ReactNode }) {
   return (

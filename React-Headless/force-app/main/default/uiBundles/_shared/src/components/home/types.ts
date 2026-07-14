@@ -36,6 +36,15 @@ export interface ScheduleItem {
   priority?: string;                       // Task.Priority
   whatId?: string;                         // related record Id
   bucket?: 'overdue' | 'today' | 'upcoming';
+  type?: string;                           // Task/Event Type picklist
+  description?: string;                    // Comments / Description
+  location?: string;                       // Event only
+  showAs?: string;                         // Event only
+  ownerName?: string;                      // Assigned To (display)
+  createdByName?: string;
+  createdDate?: string;                    // ISO
+  lastModifiedByName?: string;
+  lastModifiedDate?: string;               // ISO
 }
 
 export type ScheduleBucketKey = 'overdue' | 'today' | 'upcoming';
@@ -45,3 +54,14 @@ export const TASK_STATUS_OPTIONS: string[] = [
   'Not Started', 'In Progress', 'Completed', 'Waiting on someone else', 'Deferred', 'Open',
 ];
 export const TASK_PRIORITY_OPTIONS: string[] = ['High', 'Normal', 'Low'];
+
+/** Task/Event Type picklist — verified live (label == value). */
+export const TASK_TYPE_OPTIONS: string[] = ['Call', 'Email', 'Meeting', 'Prep', 'Other'];
+export const EVENT_TYPE_OPTIONS: string[] = ['Call', 'Email', 'Meeting', 'Prep', 'Other'];
+
+/** Event.ShowAs — stored value differs from display label for "Out of Office". */
+export const EVENT_SHOWAS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Busy', label: 'Busy' },
+  { value: 'OutOfOffice', label: 'Out of Office' },
+  { value: 'Free', label: 'Free' },
+];
