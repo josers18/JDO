@@ -83,6 +83,8 @@ export function ScheduleTable({
             return (
               <li key={it.id}>
                 <div
+                  role="button"
+                  aria-label={`Open ${it.title}`}
                   onClick={() => onOpen(it)}
                   onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {

@@ -20,7 +20,7 @@ describe('ScheduleTable', () => {
 
   it('filters to a single bucket when its chip is clicked', async () => {
     render(<ScheduleTable items={items} onOpen={() => {}} />);
-    await userEvent.click(screen.getByRole('button', { name: /Overdue/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Overdue/ }));
     expect(screen.getByText('Overdue call')).toBeInTheDocument();
     expect(screen.queryByText('Today task')).not.toBeInTheDocument();
   });
