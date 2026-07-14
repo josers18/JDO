@@ -58,9 +58,9 @@ const JULIE: Customer360 = {
   ],
   aiBriefHeadline: 'Strong and gaining momentum',
   aiBrief:
-    'Julie’s relationship spans Retail, Wealth, and Small Business. Deposits are up 12% YoY and engagement is trending positive after a recent branch meeting. Einstein flags CDs as the next best product and detects ~$1.2M in held-away assets — a consolidation opportunity. Attrition risk is medium and improving.',
+    'Julie’s relationship spans Retail, Wealth, and Small Business. Deposits are up 12% YoY and engagement is trending positive after a recent branch meeting. Agentforce flags CDs as the next best product and detects ~$1.2M in held-away assets — a consolidation opportunity. Attrition risk is medium and improving.',
   nextBestActions: [
-    { id: 'nba1', title: 'Pitch CD ladder', detail: 'Einstein next-best-product · high propensity', impact: 'High' },
+    { id: 'nba1', title: 'Pitch CD ladder', detail: 'Agentforce next-best-product · high propensity', impact: 'High' },
     { id: 'nba2', title: 'Held-away consolidation', detail: '$1.2M detected across outside accounts', impact: 'High' },
     { id: 'nba3', title: 'Schedule portfolio review', detail: 'Aggressive risk profile · last review 90d ago', impact: 'Medium' },
   ],

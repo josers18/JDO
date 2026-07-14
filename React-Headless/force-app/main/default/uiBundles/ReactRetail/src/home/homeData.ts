@@ -25,7 +25,7 @@ const DASH: HomeDashboard = {
     { key: 'confidence', label: 'Avg AI Confidence', value: 0.87, format: 'percent', trend: series(5, 12, 84, 6) },
   ],
   callList: [
-    { id: 'c1', clientId: '001am00000qvjsAAAQ', clientName: 'Julie E Morris', segment: 'Mass Affluent', reason: '$1.2M held-away detected; CDs flagged as next-best-product; deposits +12% YoY', action: 'Held-away consolidation + CD ladder', score: 0.91, severity: 'high', source: 'Plaid + Einstein', relationshipValue: 921073 },
+    { id: 'c1', clientId: '001am00000qvjsAAAQ', clientName: 'Julie E Morris', segment: 'Mass Affluent', reason: '$1.2M held-away detected; CDs flagged as next-best-product; deposits +12% YoY', action: 'Held-away consolidation + CD ladder', score: 0.91, severity: 'high', source: 'Plaid + Agentforce', relationshipValue: 921073 },
     { id: 'c2', clientId: '001B', clientName: 'Marcus Chen', segment: 'Emerging Affluent', reason: 'Visited the refi calculator 5× this week — active rate-shopping', action: 'Offer HELOC / mortgage refi', score: 0.84, severity: 'high', source: 'Web Engagement', relationshipValue: 540000 },
     { id: 'c3', clientId: '001C', clientName: 'Priya Natarajan', segment: 'Mass Affluent', reason: 'New-child life event; eligible for 529 + term life', action: 'Open 529 plan', score: 0.77, severity: 'medium', source: 'PersonLifeEvent', relationshipValue: 310000 },
     { id: 'c4', clientId: '001E', clientName: 'Sofia Rossi', segment: 'Mass Affluent', reason: 'CSAT fell 9→6 after last branch visit; complaint logged', action: 'Service-recovery call', score: 0.62, severity: 'medium', source: 'CSAT / NPS', relationshipValue: 420000 },

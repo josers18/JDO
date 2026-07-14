@@ -5,7 +5,7 @@ import type { Full360 } from './full360Types';
  * Tearsheet builder — a prompt-builder UI: the banker toggles which sections to
  * include + a tone, which assembles a live prompt preview; "Generate" produces a
  * one-page tearsheet (mock composes from the 360 data; real impl → Agentforce
- * prompt-template / Einstein LLM).
+ * prompt-template / Agentforce LLM).
  */
 const SECTIONS = [
   { key: 'summary', label: 'Relationship summary' },

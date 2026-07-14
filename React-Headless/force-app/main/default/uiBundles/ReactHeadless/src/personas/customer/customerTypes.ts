@@ -1,7 +1,7 @@
 /**
  * Customer 360 view model — mirrors the REAL fields on the live Salesforce
  * Retail account (Julie E Morris, 001am00000qvjsAAAQ) so swapping mock → live
- * data is 1:1. Sourced from c-customer-profile-widget + Einstein AI Signals +
+ * data is 1:1. Sourced from c-customer-profile-widget + Agentforce AI Signals +
  * the Unified Relationships (Data Cloud identity resolution) panel.
  */
 

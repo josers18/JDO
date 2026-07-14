@@ -1,8 +1,8 @@
 /**
- * Agentforce / Einstein prompt path.
+ * Agentforce prompt path.
  *
  * Ports the WORKING org mechanism used by the DC_AgentForce_Output_LWC + the
- * profile widgets: an autolaunched Flow that wraps an Einstein Prompt Template
+ * profile widgets: an autolaunched Flow that wraps an Agentforce Prompt Template
  * action, takes an SObject record as input, and returns the generated text in a
  * `PromptResponse` output variable.
  *
