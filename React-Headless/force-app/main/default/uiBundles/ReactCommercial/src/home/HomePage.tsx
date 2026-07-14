@@ -28,7 +28,7 @@ import {
   type AiGenerateResult,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation } from './homeTypes';
+import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 
@@ -113,7 +113,7 @@ export default function HomePage() {
 function HomeContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data, loading } = useAsyncData(fetchHomeDashboard, []);
+  const { data, loading, refetch } = useAsyncData(fetchHomeDashboard, []);
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const speech = useSpeech();
@@ -299,6 +299,25 @@ function HomeContent() {
         </div>
       </section>
 
+      {/* ---------- TASKS & SCHEDULE ---------- */}
+      <section id="schedule" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
+          <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
+          <Button size="sm" variant="ghost" onClick={() => open('schedule', data.bankerName, undefined, 'Meeting')}>+ Meeting</Button>
+        </SectionHead>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {bucketSchedule(data.schedule).map(b => (
+            <SectionPanel key={b.label} icon="task" label={b.label} right={<span className={`font-mono text-[11px] ${b.tone}`}>{b.items.length}</span>}>
+              {b.items.length ? (
+                b.items.map(it => <ScheduleRow key={it.id} item={it} />)
+              ) : (
+                <p className="px-5 py-4 text-[12.5px] text-muted">Nothing {b.label.toLowerCase()}.</p>
+              )}
+            </SectionPanel>
+          ))}
+        </div>
+      </section>
+
       {/* ---------- KPI PULSE ---------- */}
       <section id="kpis" className="mt-8 scroll-mt-[82px]">
         <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5">
@@ -480,10 +499,10 @@ function HomeContent() {
 
       {/* ---------- MODALS ---------- */}
       {modal.type === 'task' && (
-        <TaskModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} />
+        <TaskModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} onSaved={refetch} />
       )}
       {modal.type === 'schedule' && (
-        <ScheduleModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject ?? 'Call'} />
+        <ScheduleModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject ?? 'Call'} onSaved={refetch} />
       )}
       {modal.type === 'case' && (
         <CaseModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} />
@@ -789,4 +808,62 @@ function PulseCard({ label, value, note, tone }: { label: string; value: string;
 function clientFromAlert(title: string): string {
   const idx = title.indexOf('— ');
   return idx >= 0 ? title.slice(idx + 2) : title;
+}
+
+/* ── Tasks & schedule bucketing ───────────────────────────────────── */
+interface ScheduleBucket {
+  label: string;
+  tone: string;
+  items: ScheduleItem[];
+}
+
+/**
+ * Split the merged Task+Event feed into Overdue / Today / Upcoming by comparing
+ * each item's ISO date-string against today. ISO dates (YYYY-MM-DD) sort
+ * chronologically as plain strings, so no timezone math is needed. Items with
+ * no parseable date ("—") fall into Upcoming so nothing is silently dropped.
+ */
+function bucketSchedule(items: ScheduleItem[]): ScheduleBucket[] {
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const overdue: ScheduleItem[] = [];
+  const today: ScheduleItem[] = [];
+  const upcoming: ScheduleItem[] = [];
+  for (const it of items) {
+    const d = (it.time || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      upcoming.push(it);
+    } else if (d < todayISO) {
+      overdue.push(it);
+    } else if (d === todayISO) {
+      today.push(it);
+    } else {
+      upcoming.push(it);
+    }
+  }
+  const byDate = (a: ScheduleItem, b: ScheduleItem) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0);
+  return [
+    { label: 'Overdue', tone: 'text-risk', items: overdue.sort(byDate) },
+    { label: 'Today', tone: 'text-accent', items: today.sort(byDate) },
+    { label: 'Upcoming', tone: 'text-muted', items: upcoming.sort(byDate) },
+  ];
+}
+
+function ScheduleRow({ item }: { item: ScheduleItem }) {
+  const isMeeting = item.kind === 'meeting' || item.kind === 'call';
+  return (
+    <div className="flex items-center gap-3 border-b border-line px-5 py-3 last:border-b-0">
+      <span
+        className={`grid h-8 w-8 flex-none place-items-center rounded-[9px] ${
+          isMeeting ? 'bg-accent-bg text-accent' : 'bg-track text-muted'
+        }`}
+      >
+        <Icon name={isMeeting ? 'call' : 'task'} size={14} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-medium text-fg">{item.title}</span>
+        {item.clientName && <span className="block truncate text-[12px] text-muted">{item.clientName}</span>}
+      </span>
+      <span className="flex-none font-mono text-[11px] text-muted">{item.time}</span>
+    </div>
+  );
 }

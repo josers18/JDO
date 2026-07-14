@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseAsyncDataResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+  /** Re-run the fetcher on demand (e.g. after a CRM write). */
+  refetch: () => void;
 }
 
 /**
@@ -34,6 +36,12 @@ export function useAsyncData<T>(
     if (error !== null) setError(null);
   }
 
+  // Re-run the fetcher without flipping `loading` back to true: the current
+  // data stays on screen while the fresh query runs in the background, then
+  // swaps in. This is what lets a newly-created task/event appear without the
+  // whole page collapsing to a spinner for the ~20s of a live refetch.
+  const refetch = useCallback(() => setGeneration(g => g + 1), []);
+
   useEffect(() => {
     let cancelled = false;
     fetcherRef
@@ -54,5 +62,5 @@ export function useAsyncData<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [generation]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 }

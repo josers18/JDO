@@ -21,10 +21,13 @@ const HOME_CORE_QUERY = /* GraphQL */ `
           edges { node { Id Name @optional { value } StageName @optional { value } Amount @optional { value } CloseDate @optional { value } Probability @optional { value } Account @optional { Name @optional { value } } } }
         }
         Case(first: 1, where: { IsClosed: { eq: false } }) { totalCount }
-        Task(first: 8, where: { IsClosed: { eq: false } }, orderBy: { ActivityDate: { order: ASC } }) {
+        TaskOverdue: Task(first: 15, where: { IsClosed: { eq: false }, ActivityDate: { lt: { literal: TODAY } } }, orderBy: { ActivityDate: { order: DESC } }) {
           edges { node { Id Subject @optional { value } ActivityDate @optional { value } } }
         }
-        Event(first: 6, orderBy: { ActivityDateTime: { order: ASC } }) {
+        TaskUpcoming: Task(first: 25, where: { IsClosed: { eq: false }, ActivityDate: { gte: { literal: TODAY } } }, orderBy: { ActivityDate: { order: ASC } }) {
+          edges { node { Id Subject @optional { value } ActivityDate @optional { value } } }
+        }
+        Event(first: 15, where: { ActivityDateTime: { gte: { literal: TODAY } } }, orderBy: { ActivityDateTime: { order: ASC } }) {
           edges { node { Id Subject @optional { value } ActivityDateTime @optional { value } } }
         }
         FinancialGoal(first: 6) {
@@ -88,7 +91,8 @@ interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
     Case?: { totalCount?: number };
-    Task?: { edges?: { node: Node }[] };
+    TaskOverdue?: { edges?: { node: Node }[] };
+    TaskUpcoming?: { edges?: { node: Node }[] };
     Event?: { edges?: { node: Node }[] };
     FinancialGoal?: { edges?: { node: Node }[] };
     Lead?: { edges?: { node: Node }[] };
@@ -135,10 +139,15 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     tier: tierForSeverity(severityForCsat(Number(row.csat) || 0)),
   }));
 
+  // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
+  // buried under the thousands-deep overdue backlog a single ASC window returns.
+  // Events are scoped to today-and-future (a past meeting isn't actionable).
+  // bucketSchedule() on the page re-sorts the merged feed into Overdue/Today/Upcoming.
   const schedule: ScheduleItem[] = [
-    ...(q?.Task?.edges ?? []).map((e, i) => ({ id: `t${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
+    ...(q?.TaskOverdue?.edges ?? []).map((e, i) => ({ id: `to${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
+    ...(q?.TaskUpcoming?.edges ?? []).map((e, i) => ({ id: `tu${i}`, time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const })),
     ...(q?.Event?.edges ?? []).map((e, i) => ({ id: `e${i}`, time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const })),
-  ].slice(0, 8);
+  ];
 
   const bankerGoals: BankerGoal[] = (q?.FinancialGoal?.edges ?? []).map((e, i) => ({
     id: `g${i}`, name: s(e.node, 'Name') || 'Goal',
@@ -165,7 +174,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // ── Recommendations — derived defensively (never throws). Sources:
   //   overdue Task · top Opportunity · highest-value Account · a low-CSAT case.
   const recommendations: Recommendation[] = [];
-  const firstTask = q?.Task?.edges?.[0]?.node;
+  const firstTask = q?.TaskOverdue?.edges?.[0]?.node;
   if (firstTask) {
     const subj = s(firstTask, 'Subject') || 'Follow-up task';
     const due = s(firstTask, 'ActivityDate');
@@ -173,7 +182,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       id: 'rec-task', kind: 'task', objectLabel: 'Task', clientName: subj, clientId: '',
       title: `Complete overdue task: ${subj}`,
       body: `This task${due ? ` (due ${due})` : ''} is still open. Close the loop with the client and log the next step.`,
-      evidence: `Open Task${due ? ` with ActivityDate ${due}` : ''} — oldest in your queue`,
+      evidence: `Open Task${due ? ` with ActivityDate ${due}` : ''} — from your overdue queue`,
     });
   }
   const topOpp = opp?.edges?.[0]?.node;

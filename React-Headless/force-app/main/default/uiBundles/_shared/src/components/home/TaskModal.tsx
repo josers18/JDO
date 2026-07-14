@@ -18,14 +18,20 @@ export function TaskModal({
   clientName,
   clientId,
   subjectDefault,
+  onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   clientName: string;
   clientId?: string;
   subjectDefault?: string;
+  /** Fired only after a successful write (before close) — e.g. to refetch. */
+  onSaved?: () => void;
 }) {
-  const { submit, loading, error } = useCrmAction(onClose);
+  const { submit, loading, error } = useCrmAction(() => {
+    onSaved?.();
+    onClose();
+  });
   const [subject, setSubject] = useState(subjectDefault ?? `Follow up — ${clientName}`);
   const [dueDate, setDueDate] = useState(tomorrow());
   const [priority, setPriority] = useState('High');

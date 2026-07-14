@@ -16,14 +16,20 @@ export function ScheduleModal({
   clientName,
   clientId,
   subjectDefault = 'Call',
+  onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   clientName: string;
   clientId?: string;
   subjectDefault?: string;
+  /** Fired only after a successful write (before close) — e.g. to refetch. */
+  onSaved?: () => void;
 }) {
-  const { submit, loading, error } = useCrmAction(onClose);
+  const { submit, loading, error } = useCrmAction(() => {
+    onSaved?.();
+    onClose();
+  });
   const isCall = subjectDefault.toLowerCase().includes('call');
   const [subject, setSubject] = useState(`${subjectDefault} — ${clientName}`);
   const [date, setDate] = useState(today());
