@@ -8,7 +8,10 @@ import type { ScheduleItem, ScheduleBucketKey } from './types';
  * group first (most-overdue on top, DESC), then today (ASC), then upcoming (ASC).
  */
 export function tagSchedule(items: ScheduleItem[], todayISO?: string): ScheduleItem[] {
-  const today = todayISO ?? new Date().toISOString().slice(0, 10);
+  // Default to the LOCAL calendar date, not UTC — toISOString() would shift a
+  // late-evening date forward in negative-offset zones and mis-bucket
+  // today's items as overdue. 'en-CA' formats as YYYY-MM-DD.
+  const today = todayISO ?? new Date().toLocaleDateString('en-CA');
   const bucketOf = (it: ScheduleItem): ScheduleBucketKey => {
     const d = (it.time || '').slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return 'upcoming';

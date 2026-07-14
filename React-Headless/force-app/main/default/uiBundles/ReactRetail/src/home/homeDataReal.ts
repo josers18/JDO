@@ -156,7 +156,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     })),
     ...(q?.Event?.edges ?? []).map((e, i) => ({
       id: `e${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Event' as const,
-      time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const,
+      time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', startDateTime: s(e.node, 'ActivityDateTime') || undefined, title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const,
     })),
   ];
 

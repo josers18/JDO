@@ -154,8 +154,43 @@ private class CrmWriteRestTest {
         CrmWriteRest.write();
         Test.stopTest();
         System.assertEquals(200, RestContext.response.statusCode, 'update event should 200');
-        Event after = [SELECT Subject FROM Event WHERE Id = :ev.Id];
+        Event after = [SELECT Subject, ActivityDateTime FROM Event WHERE Id = :ev.Id];
         System.assertEquals('New meeting', after.Subject, 'subject updated');
+        System.assertEquals(
+            (Datetime) JSON.deserialize('"2026-09-05T16:00:00Z"', Datetime.class),
+            after.ActivityDateTime,
+            'activityDateTime updated'
+        );
+    }
+
+    @IsTest
+    static void updateLeavesOmittedFieldsUntouched() {
+        // Only the subject is sent; Status/Priority/ActivityDate must survive.
+        Task t = new Task(Subject = 'Before', Status = 'In Progress', Priority = 'High', ActivityDate = Date.valueOf('2026-08-15'));
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Task","recordId":"' + t.Id + '","subject":"After"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'subject-only update should 200');
+        Task after = [SELECT Subject, Status, Priority, ActivityDate FROM Task WHERE Id = :t.Id];
+        System.assertEquals('After', after.Subject, 'subject updated');
+        System.assertEquals('In Progress', after.Status, 'status left untouched');
+        System.assertEquals('High', after.Priority, 'priority left untouched');
+        System.assertEquals(Date.valueOf('2026-08-15'), after.ActivityDate, 'date left untouched');
+    }
+
+    @IsTest
+    static void rejectsUpdateWhenIdTypeMismatchesSobjectType() {
+        // A real Task Id declared as an Event — must 400, not surface a 500.
+        Task t = new Task(Subject = 'x', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Event","recordId":"' + t.Id + '","subject":"nope"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'Id/type mismatch should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
     }
 
     @IsTest

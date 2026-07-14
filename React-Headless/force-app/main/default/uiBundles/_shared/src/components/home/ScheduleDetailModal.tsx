@@ -45,7 +45,10 @@ function ScheduleDetailModalContent({
 }) {
   const editable = !!item.recordId && !!item.sobjectType;
   const isEvent = item.sobjectType === 'Event';
-  const init = splitDateTime(item.time ?? '');
+  // Events carry the full clock time in startDateTime; `time` is date-only (for
+  // the table + bucketing). Seed the edit form from startDateTime so a
+  // subject-only save doesn't silently reschedule the meeting.
+  const init = splitDateTime(item.startDateTime || item.time || '');
 
   const [subject, setSubject] = useState(item.title ?? '');
   const [date, setDate] = useState(init.date);
@@ -55,7 +58,7 @@ function ScheduleDetailModalContent({
 
   // Reseed local fields whenever a different row is opened.
   useEffect(() => {
-    const s = splitDateTime(item.time);
+    const s = splitDateTime(item.startDateTime || item.time || '');
     setSubject(item.title);
     setDate(s.date);
     setTime(s.time || '14:30');
@@ -72,7 +75,12 @@ function ScheduleDetailModalContent({
     if (!editable) return;
     const base = { action: 'update' as const, sobjectType: item.sobjectType, recordId: item.recordId, subject };
     if (isEvent) {
-      const activityDateTime = new Date(`${date}T${time || '00:00'}`).toISOString();
+      // A meeting must have a date; a blank one would make `new Date(...)`
+      // invalid and toISOString() throw. Only send the datetime when we have a
+      // real date, so a bad state surfaces as an inline validation, not a crash.
+      const parsed = date ? new Date(`${date}T${time || '00:00'}`) : null;
+      const activityDateTime =
+        parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : undefined;
       void submit({ ...base, activityDateTime }, 'Meeting updated', `${item.title} · Salesforce Event`);
     } else {
       void submit({ ...base, dueDate: date || undefined, status, priority }, 'Task updated', `${item.title} · Salesforce Task`);

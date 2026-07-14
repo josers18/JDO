@@ -27,7 +27,8 @@ export interface ScheduleItem {
   id: string;                              // synthetic list key
   recordId?: string;                       // real Salesforce Id — required to edit
   sobjectType?: 'Task' | 'Event';
-  time: string;                            // ISO date (YYYY-MM-DD) or '—'
+  time: string;                            // ISO date (YYYY-MM-DD) or '—' — display + bucketing
+  startDateTime?: string;                  // full ISO datetime for Events — preserves clock time for edit
   title: string;                           // Subject
   kind: 'call' | 'meeting' | 'task' | 'event';
   clientName?: string;

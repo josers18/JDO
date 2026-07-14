@@ -178,6 +178,14 @@ global with sharing class CrmWriteRest {
             writeError(res, 400, 'recordId is not a valid Id.');
             return;
         }
+        // Reject a well-formed Id whose object type does not match the declared
+        // sobjectType (e.g. a Task Id sent as an Event). Without this, the
+        // mismatched SObject constructor throws and surfaces as an opaque 500.
+        String recPrefix = recId.getSObjectType().getDescribe().getName();
+        if (recPrefix != sot) {
+            writeError(res, 400, 'recordId is a ' + recPrefix + ', not a ' + sot + '.');
+            return;
+        }
         if (sot == 'Task') {
             Task t = new Task(Id = recId);
             if (!String.isBlank(req.subject))  { t.Subject = req.subject; }
