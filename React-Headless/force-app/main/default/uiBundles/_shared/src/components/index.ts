@@ -37,6 +37,9 @@ export { RecommendationCard, type RecommendationCardItem, type RecommendationKin
 export { type ClientProfile } from './home/types';
 export { TaskModal } from './home/TaskModal';
 export { ScheduleModal } from './home/ScheduleModal';
+export { tagSchedule, scheduleCounts } from './home/schedule';
+export type { ScheduleItem, ScheduleBucketKey } from './home/types';
+export { TASK_STATUS_OPTIONS, TASK_PRIORITY_OPTIONS } from './home/types';
 export { CaseModal } from './home/CaseModal';
 export { EmailModal } from './home/EmailModal';
 export { PrepModal } from './home/PrepModal';
