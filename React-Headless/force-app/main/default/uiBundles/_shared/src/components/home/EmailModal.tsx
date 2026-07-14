@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, CrmNote } from '../Modal';
 import { Button } from '../Button';
 import { Icon } from '../iconMap';
 import { Field, TextInput, TextArea, GenLine } from './fields';
 import { useCrmAction } from './useCrmAction';
 import { runPromptFlow, stripHtml, type PromptFlow } from '../../data/promptClient';
+import { fetchAccountEmail } from '../../data/accountLookup';
 
 const bankerSignOff = 'Best,\nJose Sifontes\nCumulus Financial Services';
 
@@ -38,6 +39,22 @@ export function EmailModal({
   const [subject, setSubject] = useState('Checking in — a couple of quick next steps');
   const [body, setBody] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+
+  // Pull the recipient straight from the client's Account record when the modal
+  // opens, so the banker never types it. Keyed on `open`+`clientId` only; skips
+  // when a caller already supplied `toAddress` or the banker has started editing
+  // the field. Best-effort: a miss leaves the field editable (never worse than
+  // typing by hand). See fetchAccountEmail for the Person/Contact fallback.
+  useEffect(() => {
+    if (!open || toAddress || !clientId) return;
+    let cancelled = false;
+    setLookingUp(true);
+    fetchAccountEmail(clientId)
+      .then(email => { if (!cancelled && email) setTo(prev => prev || email); })
+      .finally(() => { if (!cancelled) setLookingUp(false); });
+    return () => { cancelled = true; };
+  }, [open, clientId, toAddress]);
 
   const generate = async () => {
     // Composed-first: show a useful draft immediately.
@@ -81,7 +98,12 @@ export function EmailModal({
       }
     >
       <Field label="To">
-        <TextInput type="email" placeholder="client@email.com" value={to} onChange={e => setTo(e.target.value)} />
+        <TextInput
+          type="email"
+          placeholder={lookingUp ? 'Looking up from account record…' : 'client@email.com'}
+          value={to}
+          onChange={e => setTo(e.target.value)}
+        />
       </Field>
       <Field label="Subject">
         <TextInput value={subject} onChange={e => setSubject(e.target.value)} />
