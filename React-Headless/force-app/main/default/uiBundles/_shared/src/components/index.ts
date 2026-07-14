@@ -42,5 +42,6 @@ export { EmailModal } from './home/EmailModal';
 export { PrepModal } from './home/PrepModal';
 export { AiResultModal } from './home/AiResultModal';
 export { DraftFollowupsModal, type DraftRow } from './home/DraftFollowupsModal';
+export { useSpeech } from './home/useSpeech';
 export { QuickViewModal } from './home/QuickViewModal';
 export { WhyModal } from './home/WhyModal';
