@@ -25,3 +25,21 @@ export { AppLauncher } from './AppLauncher';
 export { UserMenu } from './UserMenu';
 export { GlobalSearch, type SearchHit } from './GlobalSearch';
 export { NotificationBell, type Alert } from './NotificationBell';
+
+// ── Command-center home system ─────────────────────────────────
+export { Button, type ButtonVariant, type ButtonSize } from './Button';
+export { Modal, CrmNote } from './Modal';
+export { ToastProvider, useToast } from './Toast';
+export { CommandRail, type CommandRailSection, type CommandRailArcStep } from './CommandRail';
+export { RightNowCard, type RightNowCardItem } from './RightNowCard';
+export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
+export { RecommendationCard, type RecommendationCardItem, type RecommendationKind } from './RecommendationCard';
+export { type ClientProfile } from './home/types';
+export { TaskModal } from './home/TaskModal';
+export { ScheduleModal } from './home/ScheduleModal';
+export { CaseModal } from './home/CaseModal';
+export { EmailModal } from './home/EmailModal';
+export { PrepModal } from './home/PrepModal';
+export { AiResultModal } from './home/AiResultModal';
+export { QuickViewModal } from './home/QuickViewModal';
+export { WhyModal } from './home/WhyModal';
