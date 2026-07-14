@@ -40,11 +40,15 @@ export function DraftFollowupsModal({
   const [enriching, setEnriching] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Seed rows from composed drafts each time the modal opens.
+  // Seed rows from composed drafts each time the modal OPENS. Keyed on `open`
+  // only: `drafts` is rebuilt every parent render, so including it would reseed
+  // (wiping the banker's edits and re-checking skipped rows) on any HomePage
+  // re-render — a toast firing, speech toggling — while the modal is open.
   useEffect(() => {
     if (!open) return;
     setRows(drafts.map(d => ({ ...d, checked: true })));
-  }, [open, drafts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Best-effort enrichment: rewrite each body if Einstein returns per-line text.
   useEffect(() => {
@@ -66,7 +70,11 @@ export function DraftFollowupsModal({
     return () => {
       cancelled = true;
     };
-  }, [open, enrich]);
+    // `enrich` is a fresh closure each parent render; key on `open` only so
+    // enrichment runs once per open, not on every re-render (which would also
+    // clobber edits made after the first enrichment landed).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const setSubject = (i: number, subject: string) =>
     setRows(prev => prev.map((r, idx) => (idx === i ? { ...r, subject } : r)));
