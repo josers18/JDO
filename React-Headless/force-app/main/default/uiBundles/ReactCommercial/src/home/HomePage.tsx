@@ -152,7 +152,14 @@ function HomeContent() {
   const visibleRecs = data.recommendations.filter(r => !dismissed.has(r.id));
 
   const approveRec = async (rec: Recommendation) => {
-    setDismissed(s => new Set(s).add(rec.id));
+    // Email has no unattended path: CrmWriteRest requires a recipient address
+    // and a Recommendation carries none, so a blind send always 400s. Route to
+    // the EmailModal (same as Edit) where the banker enters the recipient and
+    // sends — the card is dismissed there on a successful send, not here.
+    if (rec.kind === 'email') {
+      open('email', rec.clientName, rec.clientId, rec.title);
+      return;
+    }
     try {
       await crmWrite({
         action: KIND_TO_ACTION[rec.kind],
@@ -161,6 +168,9 @@ function HomeContent() {
         whatId: rec.clientId || undefined,
         accountId: rec.kind === 'case' ? rec.clientId || undefined : undefined,
       });
+      // Dismiss only AFTER the write lands, so a failed write leaves the card
+      // in place to retry rather than silently vanishing.
+      setDismissed(s => new Set(s).add(rec.id));
       toast('Executed', `${rec.clientName} · ${rec.objectLabel}`);
     } catch (e) {
       toast('Could not execute', e instanceof Error ? e.message : 'CRM write failed');
