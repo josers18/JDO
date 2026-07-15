@@ -38,7 +38,7 @@ import {
   type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem } from './homeTypes';
+import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, BankerGoal } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -309,6 +309,16 @@ function HomeContent() {
     </div>
   );
 
+  const goalsBody = (
+    <SectionPanel icon="metrics" label="Goals & attainment" right={<LinkBtn>Quarter to date</LinkBtn>} padded>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+        {data.bankerGoals.map(g => (
+          <GoalMeter key={g.id} goal={g} />
+        ))}
+      </div>
+    </SectionPanel>
+  );
+
   const scheduleControls = (
     <>
       <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
@@ -534,10 +544,13 @@ function HomeContent() {
       {view === 'cockpit' ? (
         /* ==================== COCKPIT VIEW ==================== */
         <>
-          {/* Vitals: 5 KPIs + Portfolio pulse side by side */}
+          {/* Vitals: 5 KPIs (with goals beneath) + Portfolio pulse side by side */}
           <section id="kpis" className="mt-5 scroll-mt-[82px]">
-            <div className="grid gap-3.5 xl:grid-cols-[1.55fr_1fr]">
-              <div className="min-w-0">{kpiGrid}</div>
+            <div className="grid items-stretch gap-3.5 xl:grid-cols-[1.55fr_1fr]">
+              <div id="goals" className="flex min-w-0 flex-col gap-3.5 scroll-mt-[82px]">
+                {kpiGrid}
+                <div className="min-h-0 flex-1">{goalsBody}</div>
+              </div>
               <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
             </div>
           </section>
@@ -577,6 +590,11 @@ function HomeContent() {
           {/* ---------- KPI PULSE ---------- */}
           <section id="kpis" className="mt-8 scroll-mt-[82px]">
             {kpiGrid}
+          </section>
+
+          {/* ---------- GOALS & ATTAINMENT ---------- */}
+          <section id="goals" className="mt-4 scroll-mt-[82px]">
+            {goalsBody}
           </section>
 
           {/* ---------- TASKS & SCHEDULE ---------- */}
@@ -727,7 +745,7 @@ const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
   openCases: 'events',
-  goals: 'pulse',
+  goals: 'goals',
   atRisk: 'events',
 };
 
@@ -968,6 +986,33 @@ function LeadRow({ lead, onClick }: { lead: LeadReferral; onClick: () => void })
       </td>
       <td className="px-5 py-3 text-right text-fg">{formatValue(lead.value, 'currencyCompact')}</td>
     </tr>
+  );
+}
+
+/**
+ * One banker goal as a labeled attainment meter: name + value/target on top,
+ * a filled progress track below tinted by how close to target it is (on-track
+ * ≥70% accent, mid ≥40% warn, behind risk). Fills the cockpit vitals column
+ * under the KPI cards.
+ */
+function GoalMeter({ goal }: { goal: BankerGoal }) {
+  const pct = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0;
+  const tone = pct >= 70 ? 'accent' : pct >= 40 ? 'warn' : 'risk';
+  const bar = tone === 'accent' ? 'bg-accent' : tone === 'warn' ? 'bg-warn' : 'bg-risk';
+  const pctText = tone === 'accent' ? 'text-accent' : tone === 'warn' ? 'text-warn' : 'text-risk';
+  return (
+    <div className="min-w-0">
+      <div className="mb-1.5 flex items-baseline gap-2">
+        <span className="truncate text-[13px] font-semibold text-fg">{goal.name}</span>
+        <span className={`ml-auto flex-none font-mono text-[11px] font-semibold ${pctText}`}>{pct}%</span>
+      </div>
+      <div className="h-[6px] w-full overflow-hidden rounded-full bg-track">
+        <span className={`block h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-1.5 font-mono text-[11px] text-muted">
+        {formatValue(goal.current, goal.format)} <span className="text-faint">/ {formatValue(goal.target, goal.format)}</span>
+      </div>
+    </div>
   );
 }
 
