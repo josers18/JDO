@@ -1,10 +1,11 @@
-# Change Log
+# Changelog
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+This bundle has no separate change history. All notable changes to the
+React-Headless cockpit suite — including the React Commercial cockpit and the
+shared `_shared` library it builds on — are recorded in the project-level
+changelog:
 
-# [1.59.0](https://github.com/salesforce-experience-platform-emu/webapps/compare/v1.58.2...v1.59.0) (2026-02-27)
+**→ [React-Headless CHANGELOG](../../../../../CHANGELOG.md)**
 
-### Features
-
-- auto bump base react app versions and fix issue with base ui-bundle json ([#175](https://github.com/salesforce-experience-platform-emu/webapps/issues/175)) ([048b5a8](https://github.com/salesforce-experience-platform-emu/webapps/commit/048b5a8449c899fc923aeebc3c76bc5bf1c5e0d4))
+(The bundle scaffold's own upstream release history lived here previously; it
+described the `reactbasic` template, not this project, so it was removed.)
