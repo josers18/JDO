@@ -181,13 +181,35 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     } catch { /* names are best-effort; fall back to undefined */ }
   }
 
+  // Resolve related Account WhatIds -> "Related To" customer names (Account
+  // whats only, 001 prefix). The polymorphic What field can't expose Name in
+  // uiapi, so a follow-up Account lookup ties each activity back to its customer.
+  const whatAcctIds = [...new Set(
+    [q?.TaskOverdue, q?.TaskUpcoming, q?.Event]
+      .flatMap(feed => feed?.edges ?? [])
+      .map(e => s(e.node, 'WhatId'))
+      .filter(id => id.startsWith('001')),
+  )];
+  const whatNameById: Record<string, string> = {};
+  if (whatAcctIds.length) {
+    try {
+      const accts = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(
+        accountNamesQuery(whatAcctIds),
+      );
+      for (const e of accts.uiapi?.query?.Account?.edges ?? []) {
+        const id = (e.node as { Id?: string }).Id ?? '';
+        if (id) whatNameById[id] = s(e.node, 'Name');
+      }
+    } catch { /* related-to names are best-effort; leave blank on failure */ }
+  }
+
   const schedule: ScheduleItem[] = [
     ...(q?.TaskOverdue?.edges ?? []).map((e, i) => ({
       id: `to${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Task' as const,
       time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const,
       status: s(e.node, 'Status') || undefined, priority: s(e.node, 'Priority') || undefined,
       type: s(e.node, 'Type') || undefined, description: s(e.node, 'Description') || undefined,
-      whatId: s(e.node, 'WhatId') || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
+      whatId: s(e.node, 'WhatId') || undefined, clientName: whatNameById[s(e.node, 'WhatId')] || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
       createdByName: relName(e.node, 'CreatedBy') || undefined, createdDate: s(e.node, 'CreatedDate') || undefined,
       lastModifiedByName: relName(e.node, 'LastModifiedBy') || undefined, lastModifiedDate: s(e.node, 'LastModifiedDate') || undefined,
     })),
@@ -196,7 +218,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const,
       status: s(e.node, 'Status') || undefined, priority: s(e.node, 'Priority') || undefined,
       type: s(e.node, 'Type') || undefined, description: s(e.node, 'Description') || undefined,
-      whatId: s(e.node, 'WhatId') || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
+      whatId: s(e.node, 'WhatId') || undefined, clientName: whatNameById[s(e.node, 'WhatId')] || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
       createdByName: relName(e.node, 'CreatedBy') || undefined, createdDate: s(e.node, 'CreatedDate') || undefined,
       lastModifiedByName: relName(e.node, 'LastModifiedBy') || undefined, lastModifiedDate: s(e.node, 'LastModifiedDate') || undefined,
     })),
@@ -204,7 +226,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       id: `e${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Event' as const,
       time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', startDateTime: s(e.node, 'ActivityDateTime') || undefined, title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const,
       type: s(e.node, 'Type') || undefined, description: s(e.node, 'Description') || undefined,
-      whatId: s(e.node, 'WhatId') || undefined, location: s(e.node, 'Location') || undefined,
+      whatId: s(e.node, 'WhatId') || undefined, clientName: whatNameById[s(e.node, 'WhatId')] || undefined, location: s(e.node, 'Location') || undefined,
       showAs: s(e.node, 'ShowAs') || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
       createdByName: relName(e.node, 'CreatedBy') || undefined, createdDate: s(e.node, 'CreatedDate') || undefined,
       lastModifiedByName: relName(e.node, 'LastModifiedBy') || undefined, lastModifiedDate: s(e.node, 'LastModifiedDate') || undefined,
