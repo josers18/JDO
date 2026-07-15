@@ -553,16 +553,21 @@ function HomeContent() {
               />
             )}
           </div>
+
+          {/* Portfolio pulse lives inside the today block in the cockpit view —
+              a slim strip across the foot of the daily brief. */}
+          {view === 'cockpit' && (
+            <div id="pulse" className="mt-6 scroll-mt-[82px] border-t border-line pt-6">{pulseStrip}</div>
+          )}
         </div>
       </section>
 
       {view === 'cockpit' ? (
         /* ==================== COCKPIT VIEW ==================== */
         <>
-          {/* Vitals: 5 KPIs full-width, Portfolio pulse as a slim strip beneath */}
+          {/* Vitals: 5 KPIs full-width (Portfolio pulse now lives in the today block) */}
           <section id="kpis" className="mt-5 scroll-mt-[82px]">
             {kpiGrid}
-            <div id="pulse" className="mt-3.5 scroll-mt-[82px]">{pulseStrip}</div>
           </section>
 
           {/* Row A: Tasks & schedule · Who to act on today · Recommended actions */}
