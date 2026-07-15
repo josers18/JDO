@@ -38,7 +38,7 @@ import {
   type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, BankerGoal } from './homeTypes';
+import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -309,16 +309,6 @@ function HomeContent() {
     </div>
   );
 
-  const goalsBody = (
-    <SectionPanel icon="metrics" label="Goals & attainment" right={<LinkBtn>Quarter to date</LinkBtn>} padded>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-        {data.bankerGoals.map(g => (
-          <GoalMeter key={g.id} goal={g} />
-        ))}
-      </div>
-    </SectionPanel>
-  );
-
   const scheduleControls = (
     <>
       <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
@@ -482,6 +472,31 @@ function HomeContent() {
     </SectionPanel>
   );
 
+  // Slim full-width variant for the cockpit vitals row — narrative on the left,
+  // the two pulse stats inline on the right, so it reads as a single strip
+  // under the KPI cards instead of a tall side panel.
+  const pulseStrip = (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-card border border-line bg-surface px-5 py-4 shadow-card">
+      <div className="flex items-center gap-2 flex-none">
+        <Icon name="pulse" size={15} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Portfolio pulse</b>
+      </div>
+      <p className="min-w-[280px] flex-1 text-[13.5px] leading-snug text-muted">{pipelineNarrative()}</p>
+      <div className="flex flex-none items-center gap-5">
+        <PulseStat label="Wins · 30d" value="$0" tone="warn" />
+        <span className="h-8 w-px bg-line" />
+        <PulseStat label="Activity · 7d" value={String(data.schedule.length)} />
+        <button
+          type="button"
+          onClick={() => speakOrToast(pipelineNarrative())}
+          className="ml-1 font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
+        >
+          {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="pb-24">
       {/* ---------- DAILY BRIEF (shared across both views) ---------- */}
@@ -544,15 +559,10 @@ function HomeContent() {
       {view === 'cockpit' ? (
         /* ==================== COCKPIT VIEW ==================== */
         <>
-          {/* Vitals: 5 KPIs (with goals beneath) + Portfolio pulse side by side */}
+          {/* Vitals: 5 KPIs full-width, Portfolio pulse as a slim strip beneath */}
           <section id="kpis" className="mt-5 scroll-mt-[82px]">
-            <div className="grid items-stretch gap-3.5 xl:grid-cols-[1.55fr_1fr]">
-              <div id="goals" className="flex min-w-0 flex-col gap-3.5 scroll-mt-[82px]">
-                {kpiGrid}
-                <div className="min-h-0 flex-1">{goalsBody}</div>
-              </div>
-              <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
-            </div>
+            {kpiGrid}
+            <div id="pulse" className="mt-3.5 scroll-mt-[82px]">{pulseStrip}</div>
           </section>
 
           {/* Row A: Tasks & schedule · Who to act on today · Recommended actions */}
@@ -590,11 +600,6 @@ function HomeContent() {
           {/* ---------- KPI PULSE ---------- */}
           <section id="kpis" className="mt-8 scroll-mt-[82px]">
             {kpiGrid}
-          </section>
-
-          {/* ---------- GOALS & ATTAINMENT ---------- */}
-          <section id="goals" className="mt-4 scroll-mt-[82px]">
-            {goalsBody}
           </section>
 
           {/* ---------- TASKS & SCHEDULE ---------- */}
@@ -745,7 +750,7 @@ const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
   openCases: 'events',
-  goals: 'goals',
+  goals: 'pulse',
   atRisk: 'events',
 };
 
@@ -989,29 +994,12 @@ function LeadRow({ lead, onClick }: { lead: LeadReferral; onClick: () => void })
   );
 }
 
-/**
- * One banker goal as a labeled attainment meter: name + value/target on top,
- * a filled progress track below tinted by how close to target it is (on-track
- * ≥70% accent, mid ≥40% warn, behind risk). Fills the cockpit vitals column
- * under the KPI cards.
- */
-function GoalMeter({ goal }: { goal: BankerGoal }) {
-  const pct = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0;
-  const tone = pct >= 70 ? 'accent' : pct >= 40 ? 'warn' : 'risk';
-  const bar = tone === 'accent' ? 'bg-accent' : tone === 'warn' ? 'bg-warn' : 'bg-risk';
-  const pctText = tone === 'accent' ? 'text-accent' : tone === 'warn' ? 'text-warn' : 'text-risk';
+/** Compact label-over-value stat for the slim Portfolio-pulse strip. */
+function PulseStat({ label, value, tone }: { label: string; value: string; tone?: 'warn' }) {
   return (
-    <div className="min-w-0">
-      <div className="mb-1.5 flex items-baseline gap-2">
-        <span className="truncate text-[13px] font-semibold text-fg">{goal.name}</span>
-        <span className={`ml-auto flex-none font-mono text-[11px] font-semibold ${pctText}`}>{pct}%</span>
-      </div>
-      <div className="h-[6px] w-full overflow-hidden rounded-full bg-track">
-        <span className={`block h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
-      </div>
-      <div className="mt-1.5 font-mono text-[11px] text-muted">
-        {formatValue(goal.current, goal.format)} <span className="text-faint">/ {formatValue(goal.target, goal.format)}</span>
-      </div>
+    <div className="flex-none text-right">
+      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</span>
+      <span className={`font-display text-[22px] font-medium leading-tight ${tone === 'warn' ? 'text-warn' : 'text-fg'}`}>{value}</span>
     </div>
   );
 }
