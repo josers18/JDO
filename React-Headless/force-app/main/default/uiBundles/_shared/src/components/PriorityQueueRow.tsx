@@ -71,12 +71,14 @@ export function PriorityQueueRow({
         }
       }}
       className={clsx(
-        'group relative grid cursor-pointer grid-cols-[44px_1fr] items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted',
+        'group relative flex cursor-pointer items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted',
         emphasis && 'bg-accent-bg/40 ring-1 ring-inset ring-accent-border',
       )}
     >
-      <ScoreRing value={Math.round(item.score * 100)} tone={TIER_TONE[item.tier ?? 'watch']} size={44} />
-      <div className="min-w-0">
+      <div className="flex-none">
+        <ScoreRing value={Math.round(item.score * 100)} tone={TIER_TONE[item.tier ?? 'watch']} size={44} />
+      </div>
+      <div className="min-w-0 flex-1">
         <div className={clsx('flex items-center gap-2.5 font-semibold', emphasis ? 'text-[16px]' : 'text-[15px]')}>
           {rank != null && (
             <span className="flex-none font-mono text-[11px] tabular-nums text-faint">{rank}</span>
