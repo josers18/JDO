@@ -2,6 +2,14 @@
 
 @import 'tailwindcss';
 
+/* Shared components live outside this bundle (pulled in via the @shared
+   alias), so Tailwind v4's auto content-detection — rooted at this bundle —
+   doesn't reliably scan them. This makes _shared an explicit scan source so
+   classes used ONLY in shared components (e.g. group-hover:flex on the
+   priority-queue action rail) always generate. Without it, cold builds
+   silently drop those utilities. Path is relative to this CSS file. */
+@source '../../../_shared/src';
+
 /* ── Cumulus Aurora token scale (Tailwind v4 auto-generates utilities) ──
    These map to the runtime --wp-* vars injected by ThemeProvider, so
    persona + light/dark swaps propagate without per-component branching. */

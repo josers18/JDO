@@ -97,14 +97,14 @@ export function PriorityQueueRow({
         <p className="mt-1.5 truncate text-[13px] text-muted" title={item.reason}>{item.reason}</p>
         <span className="mt-1.5 inline-block font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">{item.source}</span>
       </div>
-      {/* Action rail floats over the row's right edge instead of occupying a grid
-          track — so the name column keeps the full row width. Hidden until
-          hover/focus (persistent on the emphasized #1 row); the backdrop keeps
-          the buttons legible over any text they overlap. */}
+      {/* Per-row action rail — inline at the row's right edge. Uses display
+          none/flex (not opacity) so it reserves ZERO width while hidden: the
+          name column gets the full row until you hover. Always shown on the
+          emphasized #1 row; hover/focus reveals it on the rest. */}
       <div
         className={clsx(
-          'absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-line bg-surface/95 px-2 py-1.5 shadow-card backdrop-blur transition-opacity focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100',
-          !emphasis && 'pointer-events-none opacity-0',
+          'ml-auto flex-none items-center gap-1.5',
+          emphasis ? 'flex' : 'hidden group-hover:flex group-focus-within:flex',
         )}
       >
         <button
