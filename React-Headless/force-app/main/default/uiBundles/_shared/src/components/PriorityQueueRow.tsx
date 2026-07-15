@@ -97,13 +97,17 @@ export function PriorityQueueRow({
         <p className="mt-1.5 truncate text-[13px] text-muted" title={item.reason}>{item.reason}</p>
         <span className="mt-1.5 inline-block font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">{item.source}</span>
       </div>
-      {/* Per-row action rail — inline at the row's right edge. Uses display
-          none/flex (not opacity) so it reserves ZERO width while hidden: the
-          name column gets the full row until you hover. Always shown on the
+      {/* Per-row action rail — inline at the row's right edge. The content box
+          above is `flex-1`, so it grows to fill all free space and pushes this
+          flex-none rail hard against the right margin on its own — NO ml-auto.
+          (An auto margin would eat the free space BEFORE the content's flex-grow
+          could, collapsing the name to zero width on the always-visible #1 row.)
+          Uses display none/flex, not opacity, so it reserves ZERO width while
+          hidden: the name gets the full row until you hover. Always shown on the
           emphasized #1 row; hover/focus reveals it on the rest. */}
       <div
         className={clsx(
-          'ml-auto flex-none items-center gap-1.5',
+          'flex-none items-center gap-1.5',
           emphasis ? 'flex' : 'hidden group-hover:flex group-focus-within:flex',
         )}
       >
