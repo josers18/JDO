@@ -86,6 +86,9 @@ const PROFILES: Record<string, ClientProfile> = {
   },
 };
 
+/* ── Home layout mode ─────────────────────────────────────────────── */
+type HomeView = 'current' | 'cockpit';
+
 /* ── Modal state ──────────────────────────────────────────────────── */
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
 type ModalState =
@@ -135,6 +138,26 @@ function HomeContent() {
   } | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
+
+  // Home layout mode. "current" = the classic stacked sections; "cockpit" =
+  // a compact, column-dense grid. Persisted per-persona in sessionStorage so
+  // the choice survives a refresh but doesn't leak across browser sessions;
+  // a locked-down browser degrades to the default rather than throwing.
+  const [view, setView] = useState<HomeView>(() => {
+    try {
+      return (sessionStorage.getItem(`home-view-${APP_PERSONA}`) as HomeView) || 'current';
+    } catch {
+      return 'current';
+    }
+  });
+  const setViewPersist = (v: HomeView) => {
+    setView(v);
+    try {
+      sessionStorage.setItem(`home-view-${APP_PERSONA}`, v);
+    } catch {
+      /* sessionStorage unavailable — keep the in-memory choice, skip persistence */
+    }
+  };
 
   // Org-level command-center config (model per AI action + generation params).
   // Cached module-side; failures degrade to DEFAULT_CONFIG so an AI action is
@@ -274,9 +297,208 @@ function HomeContent() {
   const openAi = (task: 'queue_rationale' | 'pipeline_summary', title: string, prompt: string, context: string, fallback: string) =>
     setAiModal({ open: true, title, task, prompt, context, fallback });
 
+  /* ── Section bodies (defined once, arranged differently per view) ──
+     Each body is the section's content WITHOUT its heading, so the two
+     layout branches below can wrap it in either a full-width <SectionHead>
+     block (current) or a compact column card (cockpit) without duplicating
+     any markup. */
+
+  const kpiGrid = (
+    <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5">
+      {data.kpis.map(k => (
+        <KpiCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          risk={k.key === 'atRisk'}
+          onClick={() => scrollToId(KPI_TARGET[k.key] ?? 'pipeline')}
+        />
+      ))}
+    </div>
+  );
+
+  const scheduleControls = (
+    <>
+      <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
+      <Button size="sm" variant="ghost" onClick={() => open('schedule', data.bankerName, undefined, 'Meeting')}>+ Meeting</Button>
+    </>
+  );
+  const scheduleBody = <ScheduleTable items={tagSchedule(data.schedule)} onOpen={setDetailItem} />;
+
+  const queueControls = <AskChip onClick={() => setDraftsOpen(true)}>Draft all follow-ups</AskChip>;
+  const queueBody = (
+    <>
+      <QueueGroup label="Today" count={today.length} tier="Critical" tierClass="text-risk">
+        {today.map(c => (
+          <QRow key={c.id} item={c} onOpen={open} />
+        ))}
+      </QueueGroup>
+      <QueueGroup
+        label="This week"
+        count={week.length}
+        tier="Important"
+        tierClass="text-warn"
+        action={
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={!week.length}
+            onClick={() => week[0] && open('prep', week[0].clientName, week[0].clientId)}
+          >
+            Prep all {week.length}
+          </Button>
+        }
+      >
+        {week.map(c => (
+          <QRow key={c.id} item={c} onOpen={open} />
+        ))}
+      </QueueGroup>
+      <QueueGroup label="Watch" count={watch.length} tier="Lower urgency" tierClass="text-muted">
+        {watch.map(c => (
+          <QRow key={c.id} item={c} onOpen={open} />
+        ))}
+      </QueueGroup>
+    </>
+  );
+
+  const actionsControls = (
+    <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">{visibleRecs.length} pending</span>
+  );
+  const actionsBody = (
+    <div className="grid gap-3.5">
+      {visibleRecs.map(rec => (
+        <RecommendationCard
+          key={rec.id}
+          rec={rec}
+          onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
+          onDismiss={() => {
+            setDismissed(s => new Set(s).add(rec.id));
+            toast('Dismissed', 'Recommendation removed — model will learn from this');
+          }}
+          onEdit={() => editRec(rec)}
+          onApprove={() => void approveRec(rec)}
+        />
+      ))}
+      {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
+    </div>
+  );
+
+  const lifeEventsBody = (
+    <SectionPanel icon="lifeEvent" label="Life events across your book" right={<LinkBtn>Next 30 days</LinkBtn>}>
+      {data.lifeEvents.map(e => (
+        <LifeRow key={e.id} event={e} onClick={() => open('quickview', e.clientName, e.clientId)} />
+      ))}
+    </SectionPanel>
+  );
+
+  const alertsBody = (
+    <SectionPanel icon="alerts" label="Alerts & signals" right={<LinkBtn>{data.alerts.length} open</LinkBtn>}>
+      {data.alerts.map(a => (
+        <AlertRow key={a.id} alert={a} onClick={() => open('quickview', clientFromAlert(a.title))} />
+      ))}
+    </SectionPanel>
+  );
+
+  const pipelineControls = (
+    <AskChip
+      onClick={() =>
+        openAi(
+          'pipeline_summary',
+          'Stalled deals',
+          'Summarize the largest stalled deals below in 3-4 sentences and suggest the single next move for each.',
+          stalledContext(),
+          stalledFallback(),
+        )
+      }
+    >
+      Summarize stalled deals
+    </AskChip>
+  );
+  const pipelineBody = (
+    <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      <table className="w-full text-[13px]">
+        <thead>
+          <tr>
+            <Th>Client</Th>
+            <Th>Opportunity</Th>
+            <Th>Stage</Th>
+            <Th>Propensity</Th>
+            <Th align="right">Amount</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.pipeline.map(p => (
+            <PipeRow key={p.id} item={p} onClick={() => open('quickview', p.clientName)} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const leadsBody = (
+    <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      <table className="w-full text-[13px]">
+        <thead>
+          <tr>
+            <Th>Name</Th>
+            <Th>Source</Th>
+            <Th>Status</Th>
+            <Th align="right">Value</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.leads.map(l => (
+            <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name)} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const pulseBody = (
+    <SectionPanel
+      icon="pulse"
+      label="Portfolio pulse"
+      right={
+        <button
+          type="button"
+          onClick={() => speakOrToast(pipelineNarrative())}
+          className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
+        >
+          {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
+        </button>
+      }
+      padded
+    >
+      <p className="mb-4 max-w-[80ch] text-[14.5px] leading-relaxed text-fg">{pipelineNarrative()}</p>
+      <div className="grid grid-cols-2 gap-3.5">
+        <PulseCard label="Wins · 30d" value="$0" note="Nothing closed this period." tone="warn" />
+        <PulseCard label="Activity · 7d" value={String(data.schedule.length)} note="Low volume — schedule touchpoints." />
+      </div>
+    </SectionPanel>
+  );
+
+  const viewToggle = (
+    <div className="inline-flex items-center rounded-full border border-line bg-surface p-1 shadow-card">
+      {(['current', 'cockpit'] as const).map(v => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => setViewPersist(v)}
+          className={`rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
+            view === v ? 'bg-fg text-bg' : 'text-muted hover:text-fg'
+          }`}
+        >
+          {v === 'current' ? 'Current' : 'Cockpit'}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="pb-24">
-      {/* ---------- DAILY BRIEF ---------- */}
+      {/* ---------- DAILY BRIEF (shared across both views) ---------- */}
       <section id="brief" className="scroll-mt-[82px]">
         <div className="relative overflow-hidden rounded-[26px] border border-line bg-surface-glass p-8 shadow-card">
           <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -333,193 +555,108 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* ---------- KPI PULSE ---------- */}
-      <section id="kpis" className="mt-8 scroll-mt-[82px]">
-        <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5">
-          {data.kpis.map(k => (
-            <KpiCard
-              key={k.key}
-              label={k.label}
-              value={formatValue(k.value, k.format)}
-              note={k.note}
-              risk={k.key === 'atRisk'}
-              onClick={() => scrollToId(KPI_TARGET[k.key] ?? 'pipeline')}
-            />
-          ))}
-        </div>
-      </section>
+      {/* ---------- VIEW TOGGLE ---------- */}
+      <div className="mt-6 flex items-center justify-end">{viewToggle}</div>
 
-      {/* ---------- TASKS & SCHEDULE ---------- */}
-      <section id="schedule" className="mt-8 scroll-mt-[82px]">
-        <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
-          <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
-          <Button size="sm" variant="ghost" onClick={() => open('schedule', data.bankerName, undefined, 'Meeting')}>+ Meeting</Button>
-        </SectionHead>
-        <ScheduleTable items={tagSchedule(data.schedule)} onOpen={setDetailItem} />
-      </section>
+      {view === 'cockpit' ? (
+        /* ==================== COCKPIT VIEW ==================== */
+        <>
+          {/* Vitals: 5 KPIs + Portfolio pulse side by side */}
+          <section id="kpis" className="mt-5 scroll-mt-[82px]">
+            <div className="grid gap-3.5 xl:grid-cols-[1.55fr_1fr]">
+              <div className="min-w-0">{kpiGrid}</div>
+              <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
+            </div>
+          </section>
 
-      {/* ---------- PRIORITY QUEUE ---------- */}
-      <section id="queue" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
-          <AskChip onClick={() => setDraftsOpen(true)}>Draft all follow-ups</AskChip>
-        </SectionHead>
-
-        <QueueGroup label="Today" count={today.length} tier="Critical" tierClass="text-risk">
-          {today.map(c => (
-            <QRow key={c.id} item={c} onOpen={open} />
-          ))}
-        </QueueGroup>
-        <QueueGroup
-          label="This week"
-          count={week.length}
-          tier="Important"
-          tierClass="text-warn"
-          action={
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={!week.length}
-              onClick={() => week[0] && open('prep', week[0].clientName, week[0].clientId)}
-            >
-              Prep all {week.length}
-            </Button>
-          }
-        >
-          {week.map(c => (
-            <QRow key={c.id} item={c} onOpen={open} />
-          ))}
-        </QueueGroup>
-        <QueueGroup label="Watch" count={watch.length} tier="Lower urgency" tierClass="text-muted">
-          {watch.map(c => (
-            <QRow key={c.id} item={c} onOpen={open} />
-          ))}
-        </QueueGroup>
-      </section>
-
-      {/* ---------- RECOMMENDED ACTIONS ---------- */}
-      <section id="actions" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
-          <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">{visibleRecs.length} pending</span>
-        </SectionHead>
-        <div className="grid gap-3.5">
-          {visibleRecs.map(rec => (
-            <RecommendationCard
-              key={rec.id}
-              rec={rec}
-              onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
-              onDismiss={() => {
-                setDismissed(s => new Set(s).add(rec.id));
-                toast('Dismissed', 'Recommendation removed — model will learn from this');
-              }}
-              onEdit={() => editRec(rec)}
-              onApprove={() => void approveRec(rec)}
-            />
-          ))}
-          {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
-        </div>
-      </section>
-
-      {/* ---------- LIFE EVENTS + ALERTS ---------- */}
-      <section id="events" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
-        <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-          <SectionPanel icon="lifeEvent" label="Life events across your book" right={<LinkBtn>Next 30 days</LinkBtn>}>
-            {data.lifeEvents.map(e => (
-              <LifeRow key={e.id} event={e} onClick={() => open('quickview', e.clientName, e.clientId)} />
-            ))}
-          </SectionPanel>
-          <div id="alerts" className="scroll-mt-[82px]">
-            <SectionPanel icon="alerts" label="Alerts & signals" right={<LinkBtn>{data.alerts.length} open</LinkBtn>}>
-              {data.alerts.map(a => (
-                <AlertRow key={a.id} alert={a} onClick={() => open('quickview', clientFromAlert(a.title))} />
-              ))}
-            </SectionPanel>
+          {/* Row A: Tasks & schedule · Who to act on today · Recommended actions */}
+          <div className="mt-5 grid gap-3.5 xl:grid-cols-3">
+            <ColumnCard id="schedule" eyebrow="Tasks & meetings · book-wide" title="Tasks & schedule" controls={scheduleControls}>
+              {scheduleBody}
+            </ColumnCard>
+            <ColumnCard id="queue" eyebrow="Ranked · click to open 360" title="Who to act on today" controls={queueControls}>
+              {queueBody}
+            </ColumnCard>
+            <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended actions" controls={actionsControls}>
+              {actionsBody}
+            </ColumnCard>
           </div>
-        </div>
-      </section>
 
-      {/* ---------- PIPELINE ---------- */}
-      <section id="pipeline" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
-          <AskChip
-            onClick={() =>
-              openAi(
-                'pipeline_summary',
-                'Stalled deals',
-                'Summarize the largest stalled deals below in 3-4 sentences and suggest the single next move for each.',
-                stalledContext(),
-                stalledFallback(),
-              )
-            }
-          >
-            Summarize stalled deals
-          </AskChip>
-        </SectionHead>
-        <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr>
-                <Th>Client</Th>
-                <Th>Opportunity</Th>
-                <Th>Stage</Th>
-                <Th>Propensity</Th>
-                <Th align="right">Amount</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.pipeline.map(p => (
-                <PipeRow key={p.id} item={p} onClick={() => open('quickview', p.clientName)} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+          {/* Row B: Life events (+ Alerts under it) · Pipeline · Leads */}
+          <div className="mt-5 grid items-start gap-3.5 xl:grid-cols-3">
+            <div id="events" className="min-w-0 scroll-mt-[82px]">
+              <ColumnCard eyebrow="Data Cloud signals → opportunities" title="Life events">
+                {lifeEventsBody}
+                <div id="alerts" className="mt-3.5 scroll-mt-[82px]">{alertsBody}</div>
+              </ColumnCard>
+            </div>
+            <ColumnCard id="pipeline" eyebrow="Open opportunities · by value" title="Pipeline" controls={pipelineControls}>
+              {pipelineBody}
+            </ColumnCard>
+            <ColumnCard id="leads" eyebrow="Inbound · routed to you" title="Leads & referrals">
+              {leadsBody}
+            </ColumnCard>
+          </div>
+        </>
+      ) : (
+        /* ==================== CURRENT VIEW (classic stacked) ==================== */
+        <>
+          {/* ---------- KPI PULSE ---------- */}
+          <section id="kpis" className="mt-8 scroll-mt-[82px]">
+            {kpiGrid}
+          </section>
 
-      {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
-      <section id="leads" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
-        <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
-          <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr>
-                  <Th>Name</Th>
-                  <Th>Source</Th>
-                  <Th>Status</Th>
-                  <Th align="right">Value</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.leads.map(l => (
-                  <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name)} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div id="pulse" className="scroll-mt-[82px]">
-            <SectionPanel
-              icon="pulse"
-              label="Portfolio pulse"
-              right={
-                <button
-                  type="button"
-                  onClick={() => speakOrToast(pipelineNarrative())}
-                  className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
-                >
-                  {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
-                </button>
-              }
-              padded
-            >
-              <p className="mb-4 max-w-[80ch] text-[14.5px] leading-relaxed text-fg">{pipelineNarrative()}</p>
-              <div className="grid grid-cols-2 gap-3.5">
-                <PulseCard label="Wins · 30d" value="$0" note="Nothing closed this period." tone="warn" />
-                <PulseCard label="Activity · 7d" value={String(data.schedule.length)} note="Low volume — schedule touchpoints." />
-              </div>
-            </SectionPanel>
-          </div>
-        </div>
-      </section>
+          {/* ---------- TASKS & SCHEDULE ---------- */}
+          <section id="schedule" className="mt-8 scroll-mt-[82px]">
+            <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
+              {scheduleControls}
+            </SectionHead>
+            {scheduleBody}
+          </section>
+
+          {/* ---------- PRIORITY QUEUE ---------- */}
+          <section id="queue" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
+              {queueControls}
+            </SectionHead>
+            {queueBody}
+          </section>
+
+          {/* ---------- RECOMMENDED ACTIONS ---------- */}
+          <section id="actions" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
+              {actionsControls}
+            </SectionHead>
+            {actionsBody}
+          </section>
+
+          {/* ---------- LIFE EVENTS + ALERTS ---------- */}
+          <section id="events" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
+            <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+              <div className="min-w-0">{lifeEventsBody}</div>
+              <div id="alerts" className="min-w-0 scroll-mt-[82px]">{alertsBody}</div>
+            </div>
+          </section>
+
+          {/* ---------- PIPELINE ---------- */}
+          <section id="pipeline" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
+              {pipelineControls}
+            </SectionHead>
+            {pipelineBody}
+          </section>
+
+          {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
+          <section id="leads" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
+            <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+              <div className="min-w-0">{leadsBody}</div>
+              <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ---------- MODALS ---------- */}
       {modal.type === 'task' && (
@@ -648,6 +785,39 @@ function SectionHead({ eyebrow, title, children }: { eyebrow: string; title: str
       </div>
       {children && <div className="ml-auto flex items-center gap-2.5">{children}</div>}
     </div>
+  );
+}
+
+/**
+ * Cockpit-view column wrapper: a compact heading (eyebrow + title + optional
+ * controls) over the section body, sized to sit in a ⅓-width grid track.
+ * `min-w-0` lets a wide table shrink to the column instead of blowing out the
+ * grid — the project's canonical grid-child rule.
+ */
+function ColumnCard({
+  id,
+  eyebrow,
+  title,
+  controls,
+  children,
+}: {
+  id?: string;
+  eyebrow: string;
+  title: string;
+  controls?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section id={id} className="min-w-0 scroll-mt-[82px]">
+      <div className="mb-3 flex items-end gap-2.5">
+        <div className="min-w-0">
+          <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">{eyebrow}</div>
+          <h2 className="mt-0.5 font-display text-[19px] font-medium tracking-tight">{title}</h2>
+        </div>
+        {controls && <div className="ml-auto flex flex-none items-center gap-2">{controls}</div>}
+      </div>
+      {children}
+    </section>
   );
 }
 
