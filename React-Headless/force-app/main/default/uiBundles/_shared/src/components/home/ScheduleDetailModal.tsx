@@ -2,8 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Modal, CrmNote } from '../Modal';
 import { Button } from '../Button';
 import { Icon } from '../iconMap';
-import { Field, FieldRow, TextInput, TextArea, SelectInput, DisplayRow } from './fields';
+import { Field, FieldRow, TextInput, TextArea, SelectInput, LookupField, DisplayRow } from './fields';
 import { useCrmAction } from './useCrmAction';
+import { searchUsers, searchAccounts, type LookupHit } from '../../data';
 import {
   TASK_STATUS_OPTIONS,
   TASK_PRIORITY_OPTIONS,
@@ -99,6 +100,12 @@ function ScheduleDetailModalContent({
   const [description, setDescription] = useState(item.description ?? '');
   const [location, setLocation] = useState(item.location ?? '');
   const [showAs, setShowAs] = useState(item.showAs ?? 'Busy');
+  // Editable polymorphic references (native "Assigned To" / "Related To").
+  // {id:'', name:''} = untouched OR explicitly cleared; save() only reassigns
+  // when a non-empty id was actively picked, so an untouched field never
+  // rewrites the reference on the server.
+  const [owner, setOwner] = useState<LookupHit>({ id: item.ownerId ?? '', name: item.ownerName ?? '' });
+  const [relatedTo, setRelatedTo] = useState<LookupHit>({ id: item.whatId ?? '', name: item.clientName ?? '' });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Reseed local fields whenever a different row is opened.
@@ -113,6 +120,8 @@ function ScheduleDetailModalContent({
     setDescription(item.description ?? '');
     setLocation(item.location ?? '');
     setShowAs(item.showAs ?? 'Busy');
+    setOwner({ id: item.ownerId ?? '', name: item.ownerName ?? '' });
+    setRelatedTo({ id: item.whatId ?? '', name: item.clientName ?? '' });
     setConfirmDelete(false);
   }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -123,6 +132,13 @@ function ScheduleDetailModalContent({
 
   const save = () => {
     if (!editable) return;
+    // Reassign the polymorphic refs only when a value was actively picked
+    // (non-empty id) — an untouched or cleared field is omitted so the server
+    // leaves the existing Owner/What in place.
+    const refs = {
+      ...(owner.id ? { ownerId: owner.id } : {}),
+      ...(relatedTo.id ? { whatId: relatedTo.id } : {}),
+    };
     const base = { action: 'update' as const, sobjectType: item.sobjectType, recordId: item.recordId, subject };
     if (isEvent) {
       // A meeting must have a date; a blank one would make `new Date(...)`
@@ -132,13 +148,13 @@ function ScheduleDetailModalContent({
       const activityDateTime =
         parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : undefined;
       void submit(
-        { ...base, activityDateTime, type, description, location, showAs },
+        { ...base, activityDateTime, type, description, location, showAs, ...refs },
         'Meeting updated',
         `${item.title} · Salesforce Event`,
       );
     } else {
       void submit(
-        { ...base, dueDate: date || undefined, status, priority, type, description },
+        { ...base, dueDate: date || undefined, status, priority, type, description, ...refs },
         'Task updated',
         `${item.title} · Salesforce Task`,
       );
@@ -242,7 +258,26 @@ function ScheduleDetailModalContent({
         <Field label="Subject">
           <TextInput value={subject} onChange={e => setSubject(e.target.value)} disabled={!editable} />
         </Field>
-        <DisplayRow label="Related To" value={item.clientName} />
+        <FieldRow>
+          <Field label="Related To">
+            <LookupField
+              value={relatedTo}
+              onChange={setRelatedTo}
+              search={searchAccounts}
+              placeholder="Search accounts…"
+              disabled={!editable}
+            />
+          </Field>
+          <Field label="Assigned To">
+            <LookupField
+              value={owner}
+              onChange={setOwner}
+              search={searchUsers}
+              placeholder="Search users…"
+              disabled={!editable}
+            />
+          </Field>
+        </FieldRow>
         <FieldRow>
           <Field label={isEvent ? 'Date' : 'Due Date'}>
             <TextInput type="date" value={date} onChange={e => setDate(e.target.value)} disabled={!editable} />
@@ -299,9 +334,8 @@ function ScheduleDetailModalContent({
         )}
       </Section>
 
-      {(item.ownerName || item.createdByName || item.createdDate || item.lastModifiedByName || item.lastModifiedDate) && (
+      {(item.createdByName || item.createdDate || item.lastModifiedByName || item.lastModifiedDate) && (
         <Section title="System Information">
-          <DisplayRow label="Assigned To" value={item.ownerName} />
           <DisplayRow label="Created By" value={byLine(item.createdByName, item.createdDate)} />
           <DisplayRow label="Last Modified By" value={byLine(item.lastModifiedByName, item.lastModifiedDate)} />
         </Section>

@@ -3,6 +3,7 @@ export { queryDataCloud, type DataCloudColumn, type DataCloudResult } from './da
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, type CrmAction, type CrmWriteInput, type CrmWriteResult } from './crmWriteClient';
 export { fetchAccountEmail } from './accountLookup';
+export { searchUsers, searchAccounts, type LookupHit } from './lookupSearch';
 export { generateText, type AiGenerateTask, type AiGenerateInput, type AiGenerateResult } from './aiGenerateClient';
 export {
   orgCoreOrigin,

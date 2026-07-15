@@ -246,6 +246,55 @@ private class CrmWriteRestTest {
     }
 
     @IsTest
+    static void updateReassignsTaskOwnerAndWhat() {
+        Account acct = new Account(Name = 'Reassign Co');
+        insert acct;
+        User owner = buildTestUser('crmwrite.reassign.task@example.com.invalid');
+        insert owner;
+        Task t = new Task(Subject = 'Reassign task', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Task","recordId":"' + t.Id
+            + '","ownerId":"' + owner.Id + '","whatId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update task owner/what should 200');
+        Task after = [SELECT OwnerId, WhatId FROM Task WHERE Id = :t.Id];
+        System.assertEquals(owner.Id, after.OwnerId, 'owner reassigned');
+        System.assertEquals(acct.Id, after.WhatId, 'related-to set');
+    }
+
+    @IsTest
+    static void updateReassignsEventOwnerAndWhat() {
+        Account acct = new Account(Name = 'Reassign Event Co');
+        insert acct;
+        User owner = buildTestUser('crmwrite.reassign.event@example.com.invalid');
+        insert owner;
+        Event ev = new Event(Subject = 'Reassign event', ActivityDateTime = Datetime.now(), DurationInMinutes = 30);
+        insert ev;
+        setupRequest('{"action":"update","sobjectType":"Event","recordId":"' + ev.Id
+            + '","ownerId":"' + owner.Id + '","whatId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update event owner/what should 200');
+        Event after = [SELECT OwnerId, WhatId FROM Event WHERE Id = :ev.Id];
+        System.assertEquals(owner.Id, after.OwnerId, 'owner reassigned');
+        System.assertEquals(acct.Id, after.WhatId, 'related-to set');
+    }
+
+    /** A minimal active standard-user for owner-reassignment assertions. */
+    private static User buildTestUser(String uname) {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        return new User(
+            FirstName = 'Crm', LastName = 'Owner', Email = 'crmwrite.owner@example.com.invalid',
+            Username = uname, Alias = 'crmown', ProfileId = p.Id,
+            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US', IsActive = true
+        );
+    }
+
+    @IsTest
     static void deletesTask() {
         Task t = new Task(Subject = 'Doomed task', Status = 'Not Started', Priority = 'Normal');
         insert t;

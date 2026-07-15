@@ -40,6 +40,7 @@ export interface ScheduleItem {
   description?: string;                    // Comments / Description
   location?: string;                       // Event only
   showAs?: string;                         // Event only
+  ownerId?: string;                        // Assigned To (Owner Id — seeds the lookup)
   ownerName?: string;                      // Assigned To (display)
   createdByName?: string;
   createdDate?: string;                    // ISO

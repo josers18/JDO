@@ -23,7 +23,8 @@ global with sharing class CrmWriteRest {
         public String subject;          // required for all
         public String description;
         public String whoId;            // Contact/Lead Id (Task/Event)
-        public String whatId;           // related record Id (Task/Event)
+        public String whatId;           // related record Id (Task/Event) — Related To
+        public String ownerId;          // Owner Id (Task/Event) — Assigned To
         public String accountId;        // for Case
         public String dueDate;          // 'YYYY-MM-DD' for Task.ActivityDate
         public String activityDateTime; // ISO for Event.ActivityDateTime
@@ -210,6 +211,8 @@ global with sharing class CrmWriteRest {
             if (!String.isBlank(req.dueDate))     { t.ActivityDate = Date.valueOf(req.dueDate); }
             if (!String.isBlank(req.type))        { t.Type = req.type; }
             if (!String.isBlank(req.description)) { t.Description = req.description; }
+            if (!String.isBlank(req.whatId))      { t.WhatId = req.whatId; }
+            if (!String.isBlank(req.ownerId))     { t.OwnerId = req.ownerId; }
             update t;
         } else {
             Event ev = new Event(Id = recId);
@@ -221,6 +224,8 @@ global with sharing class CrmWriteRest {
             if (!String.isBlank(req.description)) { ev.Description = req.description; }
             if (!String.isBlank(req.location))    { ev.Location = req.location; }
             if (!String.isBlank(req.showAs))      { ev.ShowAs = req.showAs; }
+            if (!String.isBlank(req.whatId))      { ev.WhatId = req.whatId; }
+            if (!String.isBlank(req.ownerId))     { ev.OwnerId = req.ownerId; }
             update ev;
         }
         writeSuccess(res, recId);

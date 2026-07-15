@@ -25,8 +25,10 @@ export interface CrmWriteInput {
   description?: string;
   /** Contact/Lead the activity is about (Task/Event). */
   whoId?: string;
-  /** Related record the activity is on (Task/Event). */
+  /** Related record the activity is on (Task/Event) — Related To. */
   whatId?: string;
+  /** Owner (Assigned To) — reassign a Task/Event on update. */
+  ownerId?: string;
   /** Account for a Case. */
   accountId?: string;
   /** SObject to update/delete (required when action === 'update' | 'delete'). */
