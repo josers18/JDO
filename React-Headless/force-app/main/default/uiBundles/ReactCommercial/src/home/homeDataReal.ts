@@ -9,7 +9,19 @@
  * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal } from './homeTypes';
+
+/* ── Life-event signals ───────────────────────────────────────────
+   Representative commercial-book signals. No live Data Cloud life-event feed is
+   wired yet, so these are seeded here (like the derived `alerts`) rather than
+   returned empty — an empty array renders the panel as a bare header with no
+   rows. Swap for a queryDataCloud call once the life-event stream is mapped. */
+const LIFE_EVENTS: LifeEventSignal[] = [
+  { id: 'le1', clientId: '001D', clientName: 'Delta Foods Inc', event: 'Acquired a competitor', when: '4 days ago', opportunity: 'Acquisition financing + integration treasury', icon: '🤝' },
+  { id: 'le2', clientId: '001E', clientName: 'Emerald Construction', event: 'Won a major contract', when: '1 week ago', opportunity: 'Working-capital line + performance bonds', icon: '📈' },
+  { id: 'le3', clientId: '001F', clientName: 'Frontier Freight', event: 'CFO transition', when: 'Last week', opportunity: 'Re-engage on treasury + refinance', icon: '👔' },
+  { id: 'le4', clientId: '001G', clientName: 'Granite Materials', event: 'Opened a new facility', when: '2 weeks ago', opportunity: 'Equipment finance + expansion capital', icon: '🏗️' },
+];
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -341,7 +353,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     callList,
     pipeline,
     bankerGoals,
-    lifeEvents: [],
+    lifeEvents: LIFE_EVENTS,
     schedule,
     alerts: callList.slice(0, 4).map((c, i) => ({
       id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,

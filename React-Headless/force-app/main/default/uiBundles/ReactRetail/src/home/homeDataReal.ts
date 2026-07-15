@@ -9,7 +9,19 @@
  * the uiapi endpoint and the ssot/queryv2 probe. Not guessed.
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal } from './homeTypes';
+
+/* ── Life-event signals ───────────────────────────────────────────
+   Representative retail-book signals. There is no live Data Cloud life-event
+   feed wired yet, so these are seeded here (like `alerts`, which are derived)
+   rather than returned empty — an empty array renders the panel as a bare
+   header with no rows, which reads as broken. Swap for a queryDataCloud call
+   against the life-event DMO once that stream is mapped. */
+const LIFE_EVENTS: LifeEventSignal[] = [
+  { id: 'le1', clientId: '001DENN000000000', clientName: 'Dennis Q Schwartz', event: 'Job change', when: 'Nov 16', opportunity: 'Align income transition & benefits rollover.', icon: '💼' },
+  { id: 'le2', clientId: '001CHRI000000000', clientName: 'Christopher N Hernandez', event: 'Graduation', when: 'Nov 16', opportunity: 'Coordinate 529 final distribution & next steps.', icon: '🎓' },
+  { id: 'le3', clientId: '001KRIS000000000', clientName: 'Kristine B Moran', event: 'Graduation', when: 'Nov 16', opportunity: 'Finalize education funding & transition plan.', icon: '🎓' },
+];
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -328,7 +340,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     callList,
     pipeline,
     bankerGoals,
-    lifeEvents: [],
+    lifeEvents: LIFE_EVENTS,
     schedule,
     alerts: callList.slice(0, 4).map((c, i) => ({
       id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,

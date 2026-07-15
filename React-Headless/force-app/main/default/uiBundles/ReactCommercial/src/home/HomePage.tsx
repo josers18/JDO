@@ -176,10 +176,20 @@ function HomeContent() {
     return map;
   }, [data]);
 
-  // Progressive reveal for the two long tables — hooks must run before the
-  // loading guard, so they read the data optionally and settle once it lands.
+  // Progressive reveal for the long lists — hooks must run before the loading
+  // guard, so they read the data optionally and settle once it lands. The queue
+  // and recommended-actions reveals also serve a layout goal: capping the two
+  // tall cockpit columns near the height of the shorter schedule column keeps
+  // the 3-up grid from stranding a large void under the short cell. Nothing is
+  // hidden — every capped row is one "Show more" click away.
   const pipelineReveal = useReveal(data?.pipeline ?? [], 6);
   const leadsReveal = useReveal(data?.leads ?? [], 6);
+  const visibleRecs = useMemo(
+    () => (data?.recommendations ?? []).filter(r => !dismissed.has(r.id)),
+    [data, dismissed],
+  );
+  const recsReveal = useReveal(visibleRecs, 3);
+  const queueReveal = useReveal(data?.callList ?? [], 6);
 
   if (loading || !data) {
     return <div className="animate-pulse p-8 text-muted">Loading your book…</div>;
@@ -197,7 +207,9 @@ function HomeContent() {
   const today = data.callList.filter(c => c.tier === 'today');
   const week = data.callList.filter(c => c.tier === 'week');
   const watch = data.callList.filter(c => (c.tier ?? 'watch') === 'watch');
-  const visibleRecs = data.recommendations.filter(r => !dismissed.has(r.id));
+  // 1-based rank across the whole ranked queue (callList is score-ordered), so
+  // each grouped row can show its global position and the #1 item gets emphasis.
+  const rankOf = (c: CallItem) => data.callList.indexOf(c) + 1;
 
   const approveRec = async (rec: Recommendation) => {
     // Email has no unattended path: CrmWriteRest requires a recipient address
@@ -322,58 +334,86 @@ function HomeContent() {
     <>
       <QueueGroup label="Today" count={today.length} tier="Critical" tierClass="text-risk">
         {today.map(c => (
-          <QRow key={c.id} item={c} onOpen={open} />
+          <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={open} />
         ))}
       </QueueGroup>
-      <QueueGroup
-        label="This week"
-        count={week.length}
-        tier="Important"
-        tierClass="text-warn"
-        action={
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={!week.length}
-            onClick={() => week[0] && open('prep', week[0].clientName, week[0].clientId)}
-          >
-            Prep all {week.length}
-          </Button>
-        }
-      >
-        {week.map(c => (
-          <QRow key={c.id} item={c} onOpen={open} />
-        ))}
-      </QueueGroup>
-      <QueueGroup label="Watch" count={watch.length} tier="Lower urgency" tierClass="text-muted">
-        {watch.map(c => (
-          <QRow key={c.id} item={c} onOpen={open} />
-        ))}
-      </QueueGroup>
+      {week.length > 0 && (
+        <QueueGroup
+          label="This week"
+          count={week.length}
+          tier="Important"
+          tierClass="text-warn"
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => week[0] && open('prep', week[0].clientName, week[0].clientId)}
+            >
+              Prep all {week.length}
+            </Button>
+          }
+        >
+          {week.map(c => (
+            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={open} />
+          ))}
+        </QueueGroup>
+      )}
+      {watch.length > 0 && (
+        <QueueGroup label="Watch" count={watch.length} tier="Lower urgency" tierClass="text-muted">
+          {watch.map(c => (
+            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={open} />
+          ))}
+        </QueueGroup>
+      )}
     </>
+  );
+
+  // Flat, ranked, capped queue for the dense cockpit column. A single 1..N list
+  // reads as ranked more clearly than three restarting groups, and it caps via
+  // the shared reveal so the middle column ends near the schedule column's
+  // height instead of running long. The grouped `queueBody` above stays for the
+  // classic stacked view where vertical room is not contended.
+  const queueBodyRanked = (
+    <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      {queueReveal.visible.map((c, i) => (
+        <QRow key={c.id} item={c} rank={i + 1} onOpen={open} />
+      ))}
+      <RevealFooter reveal={queueReveal} noun="clients" />
+    </div>
   );
 
   const actionsControls = (
     <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">{visibleRecs.length} pending</span>
   );
-  const actionsBody = (
-    <div className="grid gap-3.5">
-      {visibleRecs.map(rec => (
-        <RecommendationCard
-          key={rec.id}
-          rec={rec}
-          onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
-          onDismiss={() => {
-            setDismissed(s => new Set(s).add(rec.id));
-            toast('Dismissed', 'Recommendation removed — model will learn from this');
-          }}
-          onEdit={() => editRec(rec)}
-          onApprove={() => void approveRec(rec)}
-        />
-      ))}
-      {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
-    </div>
-  );
+  // `capped` trims the card list to the reveal window and appends a footer — used
+  // in the cockpit column to hold its height; the classic view passes all cards.
+  const buildActionsBody = (capped: boolean) => {
+    const recs = capped ? recsReveal.visible : visibleRecs;
+    return (
+      <div className="grid gap-3.5">
+        {recs.map(rec => (
+          <RecommendationCard
+            key={rec.id}
+            rec={rec}
+            onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
+            onDismiss={() => {
+              setDismissed(s => new Set(s).add(rec.id));
+              toast('Dismissed', 'Recommendation removed — model will learn from this');
+            }}
+            onEdit={() => editRec(rec)}
+            onApprove={() => void approveRec(rec)}
+          />
+        ))}
+        {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
+        {capped && (recsReveal.hasMore || recsReveal.expanded) && (
+          <div className="overflow-hidden rounded-card border border-line bg-surface">
+            <RevealFooter reveal={recsReveal} noun="actions" />
+          </div>
+        )}
+      </div>
+    );
+  };
+  const actionsBody = buildActionsBody(false);
 
   const lifeEventsBody = (
     <SectionPanel icon="lifeEvent" label="Life events across your book" right={<LinkBtn>Next 30 days</LinkBtn>}>
@@ -408,7 +448,14 @@ function HomeContent() {
   );
   const pipelineBody = (
     <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-      <table className="w-full text-[13px]">
+      <table className="w-full table-fixed text-[13px]">
+        <colgroup>
+          <col className="w-[24%]" />
+          <col className="w-[30%]" />
+          <col className="w-[18%]" />
+          <col className="w-[16%]" />
+          <col className="w-[12%]" />
+        </colgroup>
         <thead>
           <tr>
             <Th>Client</Th>
@@ -430,7 +477,13 @@ function HomeContent() {
 
   const leadsBody = (
     <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-      <table className="w-full text-[13px]">
+      <table className="w-full table-fixed text-[13px]">
+        <colgroup>
+          <col className="w-[34%]" />
+          <col className="w-[28%]" />
+          <col className="w-[22%]" />
+          <col className="w-[16%]" />
+        </colgroup>
         <thead>
           <tr>
             <Th>Name</Th>
@@ -576,10 +629,10 @@ function HomeContent() {
               {scheduleBody}
             </ColumnCard>
             <ColumnCard id="queue" eyebrow="Ranked · click to open 360" title="Who to act on today" controls={queueControls}>
-              {queueBody}
+              {queueBodyRanked}
             </ColumnCard>
             <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended actions" controls={actionsControls}>
-              {actionsBody}
+              {buildActionsBody(true)}
             </ColumnCard>
           </div>
 
@@ -865,10 +918,11 @@ function QueueGroup({
   );
 }
 
-function QRow({ item, onOpen }: { item: CallItem; onOpen: (t: ModalKind, name: string, id?: string, subject?: string) => void }) {
+function QRow({ item, rank, onOpen }: { item: CallItem; rank?: number; onOpen: (t: ModalKind, name: string, id?: string, subject?: string) => void }) {
   return (
     <PriorityQueueRow
       item={item}
+      rank={rank}
       onOpenQuickView={() => onOpen('quickview', item.clientName, item.clientId)}
       onWhy={() => onOpen('why', item.clientName, item.clientId)}
       onPrep={() => onOpen('prep', item.clientName, item.clientId)}
@@ -957,22 +1011,22 @@ function PipeRow({ item, onClick }: { item: PipelineItem; onClick: () => void })
   const hot = item.propensity >= 0.7;
   return (
     <tr onClick={onClick} className="cursor-pointer border-b border-line transition last:border-b-0 hover:bg-surface-muted">
-      <td className="px-5 py-3 font-semibold text-fg">{item.clientName}</td>
-      <td className="px-5 py-3 text-muted">{item.name}</td>
+      <td className="truncate px-5 py-3 font-semibold text-fg" title={item.clientName}>{item.clientName}</td>
+      <td className="truncate px-5 py-3 text-muted" title={item.name}>{item.name}</td>
       <td className="px-5 py-3">
-        <span className={`rounded-[6px] px-2.5 py-1 font-mono text-[10.5px] ${hot ? 'bg-accent-bg text-accent' : 'bg-track text-muted'}`}>
+        <span className={`inline-block max-w-full truncate rounded-[6px] px-2.5 py-1 align-middle font-mono text-[10.5px] ${hot ? 'bg-accent-bg text-accent' : 'bg-track text-muted'}`} title={item.stage}>
           {item.stage}
         </span>
       </td>
       <td className="px-5 py-3">
         <span className="inline-flex items-center gap-2 text-muted">
-          <span className="h-[5px] w-[46px] overflow-hidden rounded-full bg-track">
+          <span className="h-[5px] w-[46px] flex-none overflow-hidden rounded-full bg-track">
             <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.round(item.propensity * 100)}%` }} />
           </span>
           {Math.round(item.propensity * 100)}%
         </span>
       </td>
-      <td className="px-5 py-3 text-right font-semibold text-fg">{formatValue(item.amount, 'currencyCompact')}</td>
+      <td className="whitespace-nowrap px-5 py-3 text-right font-semibold text-fg">{formatValue(item.amount, 'currencyCompact')}</td>
     </tr>
   );
 }
@@ -987,14 +1041,14 @@ const LEAD_STATUS: Record<string, string> = {
 function LeadRow({ lead, onClick }: { lead: LeadReferral; onClick: () => void }) {
   return (
     <tr onClick={onClick} className="cursor-pointer border-b border-line transition last:border-b-0 hover:bg-surface-muted">
-      <td className="px-5 py-3 font-semibold text-fg">{lead.name}</td>
-      <td className="px-5 py-3 text-muted">{lead.source}</td>
+      <td className="truncate px-5 py-3 font-semibold text-fg" title={lead.name}>{lead.name}</td>
+      <td className="truncate px-5 py-3 text-muted" title={lead.source}>{lead.source}</td>
       <td className="px-5 py-3">
-        <span className={`rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.06em] ${LEAD_STATUS[lead.status] ?? 'bg-track text-muted'}`}>
+        <span className={`inline-block max-w-full truncate rounded-full px-2.5 py-1 align-middle font-mono text-[10px] uppercase tracking-[0.06em] ${LEAD_STATUS[lead.status] ?? 'bg-track text-muted'}`} title={lead.status}>
           {lead.status}
         </span>
       </td>
-      <td className="px-5 py-3 text-right text-fg">{formatValue(lead.value, 'currencyCompact')}</td>
+      <td className="whitespace-nowrap px-5 py-3 text-right text-fg">{formatValue(lead.value, 'currencyCompact')}</td>
     </tr>
   );
 }

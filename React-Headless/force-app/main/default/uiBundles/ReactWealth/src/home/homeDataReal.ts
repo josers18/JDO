@@ -9,7 +9,19 @@
  * (storm-16a17dc388fbe6, 2026-07-07) via uiapi + ssot/queryv2 probes.
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, Recommendation, RightNowItem } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, Recommendation, RightNowItem, LifeEventSignal } from './homeTypes';
+
+/* ── Life-event signals ───────────────────────────────────────────
+   Representative advisory-book signals. No live Data Cloud life-event feed is
+   wired yet, so these are seeded here (like the derived `alerts`) rather than
+   returned empty — an empty array renders the panel as a bare header with no
+   rows. Swap for a queryDataCloud call once the life-event stream is mapped. */
+const LIFE_EVENTS: LifeEventSignal[] = [
+  { id: 'le1', clientId: '001am00000qvjsAAAQ', clientName: 'Julie E Morris', event: 'Appointed CEO — Morris Roasters', when: '5 days ago', opportunity: 'Concentrated-stock plan + wealth transfer', icon: '💼' },
+  { id: 'le2', clientId: '001R', clientName: 'Robert Kessler', event: 'Reached retirement age', when: '1 week ago', opportunity: 'Drawdown strategy + Social Security timing', icon: '🎓' },
+  { id: 'le3', clientId: '001D', clientName: 'David Osei', event: 'Sold a business', when: 'Last week', opportunity: 'Liquidity event → diversified portfolio + trust', icon: '💰' },
+  { id: 'le4', clientId: '001A', clientName: 'Aisha Khan', event: 'Inheritance received', when: '2 weeks ago', opportunity: 'Estate consolidation + charitable giving', icon: '🏛️' },
+];
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -318,7 +330,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     callList,
     pipeline,
     bankerGoals,
-    lifeEvents: [],
+    lifeEvents: LIFE_EVENTS,
     schedule,
     alerts: callList.slice(0, 4).map((c, i) => ({
       id: `a${i}`, title: `Held-away — ${c.clientName}`, detail: c.reason,
