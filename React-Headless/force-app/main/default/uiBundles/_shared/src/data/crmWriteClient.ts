@@ -16,7 +16,7 @@
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 
-export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update';
+export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete';
 
 export interface CrmWriteInput {
   action: CrmAction;
@@ -29,10 +29,16 @@ export interface CrmWriteInput {
   whatId?: string;
   /** Account for a Case. */
   accountId?: string;
-  /** SObject to update (required when action === 'update'). */
+  /** SObject to update/delete (required when action === 'update' | 'delete'). */
   sobjectType?: 'Task' | 'Event';
-  /** Id of the record to update (required when action === 'update'). */
+  /** Id of the record to update/delete (required when action === 'update' | 'delete'). */
   recordId?: string;
+  /** Task/Event Type picklist value. */
+  type?: string;
+  /** Event location (text). */
+  location?: string;
+  /** Event ShowAs (Busy | OutOfOffice | Free). */
+  showAs?: string;
   /** Task ActivityDate, 'YYYY-MM-DD'. */
   dueDate?: string;
   /** Event start, ISO-8601. Defaults server-side to now + 1h. */
