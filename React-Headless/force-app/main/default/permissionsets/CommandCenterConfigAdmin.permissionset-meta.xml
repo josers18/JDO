@@ -27,4 +27,9 @@
         <field>CommandCenterConfig__c.Commercial_Config__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>CommandCenterConfig__c.Model_Catalog_Cache__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
 </PermissionSet>

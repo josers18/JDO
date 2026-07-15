@@ -28,6 +28,14 @@ global with sharing class CommandCenterConfigRest {
         'queue_rationale', 'pipeline_summary', 'followups', 'freeform'
     };
 
+    /** How long a probed catalog is considered fresh. After this the next
+     *  /models read serves the cached list AND kicks off a background refresh
+     *  (stale-while-revalidate). 24 hours. */
+    private static final Long CACHE_TTL_MS = 24L * 60L * 60L * 1000L;
+    /** Debounce so concurrent page loads in the stale window don't stack probe
+     *  jobs (each probe = ~20 billable generations). 10 minutes. */
+    private static final Long PROBE_DEBOUNCE_MS = 10L * 60L * 1000L;
+
     /** Curated model allowlist — the validation set AND the fallback catalog
      *  when the live Einstein catalog callout is unavailable. Label order is the
      *  dropdown order. Blank ('') is always accepted too: it means "use the
@@ -59,10 +67,13 @@ global with sharing class CommandCenterConfigRest {
             String uri = req == null || req.requestURI == null ? '' : req.requestURI;
             // The models sub-path is a suffix on the mapped URL: /config/models
             if (uri.endsWith('/models')) {
-                Map<String, Object> catalog = modelCatalog();
+                Boolean forceRefresh = req != null && req.params != null
+                    && '1'.equals(req.params.get('refresh'));
+                Map<String, Object> catalog = modelCatalog(forceRefresh);
                 writeRaw(res, 200, new Map<String, Object>{
-                    'models' => catalog.get('models'),
-                    'source' => catalog.get('source')
+                    'models'     => catalog.get('models'),
+                    'source'     => catalog.get('source'),
+                    'refreshing' => catalog.get('refreshing')
                 });
                 return;
             }
@@ -200,12 +211,21 @@ global with sharing class CommandCenterConfigRest {
 
     private static CommandCenterConfig__c loadSingleton() {
         List<CommandCenterConfig__c> rows = [
-            SELECT Id, Name, Retail_Config__c, Wealth_Config__c, Commercial_Config__c
+            SELECT Id, Name, Retail_Config__c, Wealth_Config__c, Commercial_Config__c, Model_Catalog_Cache__c
             FROM CommandCenterConfig__c
             WHERE Name = :SINGLETON_NAME
             LIMIT 1
         ];
         return rows.isEmpty() ? null : rows[0];
+    }
+
+    /** The singleton, or a fresh unsaved one if none exists yet — never null.
+     *  ModelCatalogProbe.writeCache() uses this to persist probed results into
+     *  Model_Catalog_Cache__c without having to duplicate the singleton lookup
+     *  and the 'GLOBAL' naming convention. */
+    public static CommandCenterConfig__c loadOrNewSingleton() {
+        CommandCenterConfig__c rec = loadSingleton();
+        return rec == null ? new CommandCenterConfig__c(Name = SINGLETON_NAME) : rec;
     }
 
     /** Upsert the singleton, setting only the target center's field. */
@@ -224,71 +244,108 @@ global with sharing class CommandCenterConfigRest {
         upsert rec;
     }
 
-    /** Live Einstein model catalog with curated fallback. Never throws. During
-     *  tests the callout is skipped and the fallback is returned. */
-    private static Map<String, Object> modelCatalog() {
-        if (!Test.isRunningTest()) {
-            try {
-                HttpRequest hr = new HttpRequest();
-                hr.setEndpoint(Url.getOrgDomainUrl().toExternalForm()
-                    + '/services/data/v62.0/einstein/platform/models');
-                hr.setMethod('GET');
-                hr.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
-                hr.setHeader('Content-Type', 'application/json');
-                hr.setTimeout(10000);
-                HttpResponse resp = new Http().send(hr);
-                if (resp.getStatusCode() == 200) {
-                    List<Map<String, String>> parsed = parseCatalog(resp.getBody());
-                    if (!parsed.isEmpty()) {
-                        return new Map<String, Object>{ 'models' => parsed, 'source' => 'catalog' };
-                    }
-                }
-            } catch (Exception e) {
-                System.debug(LoggingLevel.WARN, 'Model catalog callout failed: ' + e.getMessage());
-            }
+    /**
+     * Self-updating model catalog (stale-while-revalidate).
+     *
+     * The org exposes NO API that *lists* foundation models, so the only way to
+     * know a model is live is to call it — which is slow (~16s for ~20 models)
+     * and billable, far too costly for a page-load GET. So discovery is done
+     * asynchronously by ModelCatalogProbe, which caches survivors onto the
+     * singleton's Model_Catalog_Cache__c field. This method just SERVES that
+     * cache and decides whether a background refresh is due:
+     *
+     *   - Fresh cache (< CACHE_TTL_MS old): serve it, no probe.
+     *   - Stale/missing cache: serve last-known (or FALLBACK_MODELS) AND enqueue
+     *     a probe so the next load is current. Debounced by probeStartedAt so
+     *     concurrent loads don't stack jobs.
+     *   - forceRefresh (manual "Refresh models" button): always enqueue
+     *     (respecting the debounce), serve whatever we have now.
+     *
+     * Never throws — a discovery failure degrades to the fallback catalog.
+     * During tests no job is enqueued and the fallback is returned.
+     */
+    private static Map<String, Object> modelCatalog(Boolean forceRefresh) {
+        Map<String, Object> cached = readCache();
+        List<Object> models = cached == null ? null : (List<Object>) cached.get('models');
+        Long discoveredAt   = cached == null ? 0 : asLong(cached.get('discoveredAt'));
+        Long probeStartedAt = cached == null ? 0 : asLong(cached.get('probeStartedAt'));
+
+        Long nowMs = System.now().getTime();
+        Boolean haveCache = models != null && !models.isEmpty();
+        Boolean stale = !haveCache || (nowMs - discoveredAt) > CACHE_TTL_MS;
+        // Debounce: only enqueue if no probe has started within the debounce window.
+        Boolean probeInFlight = (nowMs - probeStartedAt) < PROBE_DEBOUNCE_MS;
+        Boolean wantProbe = (forceRefresh || stale) && !probeInFlight;
+
+        Boolean enqueued = false;
+        if (wantProbe && !Test.isRunningTest()) {
+            enqueued = enqueueProbe();
         }
-        return new Map<String, Object>{ 'models' => FALLBACK_MODELS, 'source' => 'fallback' };
+
+        if (haveCache) {
+            return new Map<String, Object>{
+                'models'     => models,
+                'source'     => cached.get('source') == null ? 'probed' : cached.get('source'),
+                'refreshing' => enqueued || (probeInFlight && stale)
+            };
+        }
+        // No cache yet: serve the curated fallback while the first probe runs.
+        return new Map<String, Object>{
+            'models'     => FALLBACK_MODELS,
+            'source'     => 'fallback',
+            'refreshing' => enqueued
+        };
     }
 
-    /** Best-effort extraction of {name,label} pairs from the catalog response.
-     *  The Einstein models endpoint shape varies by release, so we probe a few
-     *  common list keys and identifier fields; anything unrecognized yields an
-     *  empty list (→ caller uses the fallback). */
-    private static List<Map<String, String>> parseCatalog(String bodyJson) {
-        List<Map<String, String>> out = new List<Map<String, String>>();
+    /** Parse the cache JSON off the singleton. Returns null if unset/unparseable. */
+    private static Map<String, Object> readCache() {
+        CommandCenterConfig__c rec = loadSingleton();
+        if (rec == null || String.isBlank(rec.Model_Catalog_Cache__c)) {
+            return null;
+        }
         try {
-            Object root = JSON.deserializeUntyped(bodyJson);
-            if (!(root instanceof Map<String, Object>)) return out;
-            Map<String, Object> m = (Map<String, Object>) root;
-            List<Object> items = null;
-            for (String key : new List<String>{ 'models', 'data', 'items', 'modelList' }) {
-                if (m.get(key) instanceof List<Object>) {
-                    items = (List<Object>) m.get(key);
-                    break;
-                }
-            }
-            if (items == null) return out;
-            for (Object o : items) {
-                if (!(o instanceof Map<String, Object>)) continue;
-                Map<String, Object> row = (Map<String, Object>) o;
-                String name = firstNonBlank(row, new List<String>{ 'name', 'modelName', 'id', 'apiName' });
-                if (String.isBlank(name)) continue;
-                String label = firstNonBlank(row, new List<String>{ 'label', 'displayName', 'title' });
-                out.add(new Map<String, String>{ 'name' => name, 'label' => String.isBlank(label) ? name : label });
-            }
+            Object root = JSON.deserializeUntyped(rec.Model_Catalog_Cache__c);
+            return (root instanceof Map<String, Object>) ? (Map<String, Object>) root : null;
         } catch (Exception e) {
-            System.debug(LoggingLevel.WARN, 'parseCatalog failed: ' + e.getMessage());
+            System.debug(LoggingLevel.WARN, 'readCache parse failed: ' + e.getMessage());
+            return null;
         }
-        return out;
     }
 
-    private static String firstNonBlank(Map<String, Object> row, List<String> keys) {
-        for (String k : keys) {
-            if (row.get(k) != null && !String.isBlank(String.valueOf(row.get(k)))) {
-                return String.valueOf(row.get(k));
-            }
+    /** Stamp probeStartedAt on the cache (so the debounce holds) and enqueue the
+     *  probe. Returns true if the job was enqueued. Never throws. */
+    private static Boolean enqueueProbe() {
+        try {
+            stampProbeStarted();
+            System.enqueueJob(new ModelCatalogProbe());
+            return true;
+        } catch (Exception e) {
+            // e.g. async job limit hit this transaction — serve cache, try later.
+            System.debug(LoggingLevel.WARN, 'ModelCatalogProbe enqueue failed: ' + e.getMessage());
+            return false;
         }
-        return null;
+    }
+
+    /** Record that a probe just started, preserving any existing cached models.
+     *  This is what makes the debounce durable across separate GET requests. */
+    private static void stampProbeStarted() {
+        CommandCenterConfig__c rec = loadOrNewSingleton();
+        Map<String, Object> payload = readCache();
+        if (payload == null) {
+            payload = new Map<String, Object>{ 'models' => new List<Object>(), 'source' => 'fallback' };
+        }
+        payload.put('probeStartedAt', System.now().getTime());
+        rec.Model_Catalog_Cache__c = JSON.serialize(payload);
+        upsert rec;
+    }
+
+    private static Long asLong(Object v) {
+        if (v == null) return 0;
+        try {
+            return Long.valueOf(String.valueOf(v));
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private static String paramCenter(RestRequest req) {

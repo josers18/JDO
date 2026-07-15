@@ -31,6 +31,11 @@ import { primeCenterConfig } from '../../data/configCache';
  * settings without a reload. Each center is independent — this page only ever
  * reads/writes `center`.
  *
+ * SELF-UPDATING CATALOG: the model list is discovered by the server probing the
+ * live Models API and cached; a stale cache refreshes in the background. When a
+ * refresh is in flight the page shows a "checking for new models…" hint, and
+ * "Refresh models" forces a fresh probe (results appear on the next load).
+ *
  * HONESTY NOTE (rendered in the UI too): this org's Apex Models API binding
  * exposes only a per-request model name — no temperature/max-tokens field. The
  * parameters are stored and validated (they round-trip and clamp) but are NOT
@@ -40,7 +45,8 @@ export function ConfigPage({ center, onBack }: { center: PersonaKey; onBack?: ()
   const { toast } = useToast();
   const [config, setConfig] = useState<CommandCenterConfig>(DEFAULT_CONFIG);
   const [models, setModels] = useState<ModelOption[]>([]);
-  const [catalogSource, setCatalogSource] = useState<'catalog' | 'fallback'>('fallback');
+  const [catalogSource, setCatalogSource] = useState<'probed' | 'fallback'>('fallback');
+  const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +61,7 @@ export function ConfigPage({ center, onBack }: { center: PersonaKey; onBack?: ()
         setConfig(cfg);
         setModels(catalog.models);
         setCatalogSource(catalog.source);
+        setRefreshing(catalog.refreshing);
       })
       .catch((e: unknown) => {
         if (!alive) return;
@@ -67,6 +74,33 @@ export function ConfigPage({ center, onBack }: { center: PersonaKey; onBack?: ()
       alive = false;
     };
   }, [center]);
+
+  /** Force a fresh discovery probe. The probe runs async server-side (~16s), so
+   *  we kick it off, show that we're refreshing, then re-read shortly after to
+   *  pick up newly-discovered models without making the user reload. */
+  async function onRefreshModels() {
+    setRefreshing(true);
+    try {
+      const kicked = await fetchModelCatalog({ refresh: true });
+      setModels(kicked.models);
+      setCatalogSource(kicked.source);
+      toast('Checking for new models', 'Discovering live models in the background…');
+      // Re-read after the probe has had time to land and update the cache.
+      window.setTimeout(async () => {
+        try {
+          const fresh = await fetchModelCatalog();
+          setModels(fresh.models);
+          setCatalogSource(fresh.source);
+          setRefreshing(fresh.refreshing);
+        } catch {
+          setRefreshing(false);
+        }
+      }, 20000);
+    } catch (e) {
+      setRefreshing(false);
+      toast('Refresh failed', e instanceof Error ? e.message : 'Could not refresh models.');
+    }
+  }
 
   function setModel(action: AiActionKey, name: string) {
     setConfig(c => ({ ...c, models: { ...c.models, [action]: name } }));
@@ -119,12 +153,33 @@ export function ConfigPage({ center, onBack }: { center: PersonaKey; onBack?: ()
       )}
 
       <GlassCard title="Model per AI action" index={0}>
-        <p className="mb-4 text-[12.5px] text-muted">
-          Choose which model powers each generative action. “Server default” lets the org decide.
-          {catalogSource === 'fallback' && (
-            <span className="ml-1 text-warn">Live catalog unavailable — showing a curated list.</span>
-          )}
-        </p>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <p className="text-[12.5px] text-muted">
+            Choose which model powers each generative action. “Server default” lets the org decide.
+            {catalogSource === 'fallback' && (
+              <span className="ml-1 text-warn">
+                Discovering live models — showing a curated list until the first check completes.
+              </span>
+            )}
+            {refreshing ? (
+              <span className="ml-1 text-accent">Checking for new models…</span>
+            ) : (
+              catalogSource === 'probed' && (
+                <span className="ml-1 text-muted">Discovered live from this org.</span>
+              )
+            )}
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRefreshModels}
+            disabled={loading || refreshing}
+            className="shrink-0"
+          >
+            <Icon name="refresh" size={13} className={refreshing ? 'animate-spin' : undefined} />
+            {refreshing ? 'Checking…' : 'Refresh models'}
+          </Button>
+        </div>
         {loading ? (
           <p className="text-[13px] text-muted">Loading…</p>
         ) : (

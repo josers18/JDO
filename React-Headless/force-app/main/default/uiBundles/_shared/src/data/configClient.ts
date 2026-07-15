@@ -48,8 +48,12 @@ export interface CommandCenterConfig {
 /** Catalog response: the selectable models plus where they came from. */
 export interface ModelCatalog {
   models: ModelOption[];
-  /** 'catalog' = live Einstein list; 'fallback' = curated built-in list. */
-  source: 'catalog' | 'fallback';
+  /** 'probed' = discovered live by calling each model (self-updating);
+   *  'fallback' = curated built-in list served while the first probe runs. */
+  source: 'probed' | 'fallback';
+  /** True when a background discovery probe is currently running — the list
+   *  shown is last-known and a fresher one will be available on next load. */
+  refreshing: boolean;
 }
 
 /** The AI actions, in dropdown order, with their human labels. */
@@ -144,18 +148,40 @@ export async function saveConfig(
   return normalizeConfig(json.config);
 }
 
-/** Fetch the selectable-model catalog (live Einstein list, or curated
- *  fallback). Never rejects for "catalog unavailable" — the server returns the
- *  fallback with source:'fallback' instead. */
-export async function fetchModelCatalog(): Promise<ModelCatalog> {
+/**
+ * Fetch the selectable-model catalog.
+ *
+ * The catalog is self-updating: the server caches models discovered by probing
+ * the live Models API and refreshes that cache in the background when it goes
+ * stale. This GET always returns instantly with the last-known list; if a
+ * refresh was kicked off, `refreshing` is true and a fresher list will be
+ * available on the next load.
+ *
+ * Pass `{ refresh: true }` to force a fresh discovery probe (the "Refresh
+ * models" button). Never rejects for "catalog unavailable" — the server serves
+ * the curated fallback with source:'fallback' until the first probe lands.
+ */
+export async function fetchModelCatalog(opts?: { refresh?: boolean }): Promise<ModelCatalog> {
   const fetch = await sdkFetch();
-  const res = await fetch('/services/apexrest/config/models', {
+  const url = opts?.refresh
+    ? '/services/apexrest/config/models?refresh=1'
+    : '/services/apexrest/config/models';
+  const res = await fetch(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
   });
-  const json = (await res.json()) as { models?: ModelOption[]; source?: ModelCatalog['source']; error?: string };
+  const json = (await res.json()) as {
+    models?: ModelOption[];
+    source?: ModelCatalog['source'];
+    refreshing?: boolean;
+    error?: string;
+  };
   if (!res.ok) {
     throw new Error(json?.error ?? `Failed to read model catalog (HTTP ${res.status})`);
   }
-  return { models: json.models ?? [], source: json.source ?? 'fallback' };
+  return {
+    models: json.models ?? [],
+    source: json.source ?? 'fallback',
+    refreshing: json.refreshing ?? false,
+  };
 }
