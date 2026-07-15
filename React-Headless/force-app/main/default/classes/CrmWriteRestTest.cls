@@ -100,7 +100,7 @@ private class CrmWriteRestTest {
 
     @IsTest
     static void rejectsUnknownAction() {
-        setupRequest('{"action":"delete","subject":"nope"}');
+        setupRequest('{"action":"frobnicate","subject":"nope"}');
         Test.startTest();
         CrmWriteRest.write();
         Test.stopTest();
