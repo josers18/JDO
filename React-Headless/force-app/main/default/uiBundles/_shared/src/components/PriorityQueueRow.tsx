@@ -71,7 +71,7 @@ export function PriorityQueueRow({
         }
       }}
       className={clsx(
-        'group relative grid cursor-pointer grid-cols-[44px_minmax(0,1fr)] items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted',
+        'group relative grid cursor-pointer grid-cols-[44px_1fr] items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted',
         emphasis && 'bg-accent-bg/40 ring-1 ring-inset ring-accent-border',
       )}
     >
