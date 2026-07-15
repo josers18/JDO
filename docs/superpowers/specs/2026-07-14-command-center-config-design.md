@@ -94,11 +94,25 @@ new AI action later needs no schema change — just a new key.
     allowlist with `source:"fallback"`. Never throws.
 
 **Curated fallback allowlist** (also the validation set when catalog is
-unavailable) — confirmed against the org where possible:
-`sfdc_ai__DefaultGPT4Omni`, `sfdc_ai__DefaultGPT4OmniMini`,
+unavailable). This org's `einstein/platform/models` REST endpoint returns
+NOT_FOUND, so the catalog **always** falls back to this list — meaning it must
+carry the current models. Every name below was verified empirically by calling
+`aiplatform.ModelsAPI.createGenerations` with it and confirming a `Code200`
+(a resolved name is guaranteed usable at generation time; a catalog listing is
+not — e.g. `…Gemini25Flash` throws but `…Gemini25Flash001` works). Newest first:
+`sfdc_ai__DefaultOpenAIGPT5`, `sfdc_ai__DefaultOpenAIGPT5Mini`,
+`sfdc_ai__DefaultOpenAIGPT5Nano`, `sfdc_ai__DefaultOpenAIGPT41`,
+`sfdc_ai__DefaultOpenAIGPT41Mini`,
+`sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet`,
+`sfdc_ai__DefaultBedrockAnthropicClaude4Sonnet`,
+`sfdc_ai__DefaultBedrockAnthropicClaude37Sonnet`,
+`sfdc_ai__DefaultVertexAIGemini25Flash001`,
+`sfdc_ai__DefaultVertexAIGemini20Flash001`, `sfdc_ai__DefaultGPT4Omni`,
+`sfdc_ai__DefaultGPT4OmniMini`,
 `sfdc_ai__DefaultBedrockAnthropicClaude35Sonnet`,
-`sfdc_ai__DefaultBedrockAnthropicClaude3Haiku`,
-`sfdc_ai__DefaultVertexAIGemini25Flash`, `sfdc_ai__DefaultOpenAIGPT4`.
+`sfdc_ai__DefaultBedrockAnthropicClaude3Haiku`, `sfdc_ai__DefaultOpenAIGPT4`.
+`AiGenerateRest.ALLOWED_MODELS` mirrors this set exactly (config allowlists on
+save; the generator re-validates — the two must stay in lockstep).
 
 ### Modified: `AiGenerateRest.cls`
 
@@ -130,18 +144,22 @@ unavailable) — confirmed against the org where possible:
   forwarded in the POST body.
 
 ### New: `components/config/ConfigPage.tsx` (+ small field helpers reused from `home/fields.tsx`)
-- Props `{ center: PersonaKey }`.
+- Props `{ center: PersonaKey; onBack?: () => void }`. Router-agnostic (lives in
+  `_shared`, which has no react-router dep) — navigation is injected by the
+  per-bundle route, same pattern as `UserMenu.onNavigate`.
 - On mount: `fetchConfig(center)` + `fetchModelCatalog()` in parallel.
 - Renders one model `<select>` per AI action (options = catalog, plus the
   current value if not in catalog, plus an explicit "Default" = `""`), and
   temperature / maxTokens inputs.
+- When `onBack` is supplied, a "Back to command center" ghost button (rotated
+  `arrow` icon) sits above the header.
 - Save button → `saveConfig`; toast on success (reuses Toast); inline error on
   failure. Aurora-glass styling consistent with the modals.
 
 ### Modified per bundle (×3): `routes.tsx` + nav
 - Add `{ path: 'config', element: <ConfigRoute />, handle: { showInNavigation:true, label:'Configuration' } }`
-  under the Home layout. `ConfigRoute` is a 3-line per-bundle wrapper that renders
-  `<ConfigPage center={APP_PERSONA} />`.
+  under the Home layout. `ConfigRoute` is a small per-bundle wrapper that calls
+  `useNavigate` and renders `<ConfigPage center={APP_PERSONA} onBack={() => navigate('/')} />`.
 
 ### Modified per bundle (×3): `home/HomePage.tsx`
 - Load center config once (via `configCache`) and pass the resolved

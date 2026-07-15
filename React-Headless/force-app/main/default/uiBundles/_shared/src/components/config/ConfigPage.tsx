@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GlassCard } from '../GlassCard';
 import { Button } from '../Button';
+import { Icon } from '../iconMap';
 import { Field, SelectInput, TextInput } from '../home/fields';
 import { useToast } from '../Toast';
 import type { PersonaKey } from '../../theme/themes';
@@ -35,7 +36,7 @@ import { primeCenterConfig } from '../../data/configCache';
  * parameters are stored and validated (they round-trip and clamp) but are NOT
  * yet applied to generation. The model selection IS applied per action.
  */
-export function ConfigPage({ center }: { center: PersonaKey }) {
+export function ConfigPage({ center, onBack }: { center: PersonaKey; onBack?: () => void }) {
   const { toast } = useToast();
   const [config, setConfig] = useState<CommandCenterConfig>(DEFAULT_CONFIG);
   const [models, setModels] = useState<ModelOption[]>([]);
@@ -94,6 +95,13 @@ export function ConfigPage({ center }: { center: PersonaKey }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
+      {onBack && (
+        <Button variant="ghost" size="sm" onClick={onBack} className="mb-5">
+          <Icon name="arrow" size={14} className="rotate-180" />
+          Back to command center
+        </Button>
+      )}
+
       <header className="mb-6">
         <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
           {centerLabel(center)} command center

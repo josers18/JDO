@@ -31,11 +31,20 @@ global with sharing class AiGenerateRest {
      *  modelName falls back to DEFAULT_MODEL so a stale/typo'd config never
      *  breaks generation. */
     private static final Set<String> ALLOWED_MODELS = new Set<String>{
+        'sfdc_ai__DefaultOpenAIGPT5',
+        'sfdc_ai__DefaultOpenAIGPT5Mini',
+        'sfdc_ai__DefaultOpenAIGPT5Nano',
+        'sfdc_ai__DefaultOpenAIGPT41',
+        'sfdc_ai__DefaultOpenAIGPT41Mini',
+        'sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet',
+        'sfdc_ai__DefaultBedrockAnthropicClaude4Sonnet',
+        'sfdc_ai__DefaultBedrockAnthropicClaude37Sonnet',
+        'sfdc_ai__DefaultVertexAIGemini25Flash001',
+        'sfdc_ai__DefaultVertexAIGemini20Flash001',
         'sfdc_ai__DefaultGPT4Omni',
         'sfdc_ai__DefaultGPT4OmniMini',
         'sfdc_ai__DefaultBedrockAnthropicClaude35Sonnet',
         'sfdc_ai__DefaultBedrockAnthropicClaude3Haiku',
-        'sfdc_ai__DefaultVertexAIGemini25Flash',
         'sfdc_ai__DefaultOpenAIGPT4'
     };
 

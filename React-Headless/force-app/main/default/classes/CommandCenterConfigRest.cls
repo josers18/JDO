@@ -33,12 +33,21 @@ global with sharing class CommandCenterConfigRest {
      *  dropdown order. Blank ('') is always accepted too: it means "use the
      *  server default model". */
     private static final List<Map<String, String>> FALLBACK_MODELS = new List<Map<String, String>>{
-        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultGPT4Omni',                    'label' => 'GPT-4o (default)' },
-        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultGPT4OmniMini',                'label' => 'GPT-4o mini' },
-        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultBedrockAnthropicClaude35Sonnet', 'label' => 'Claude 3.5 Sonnet' },
-        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultBedrockAnthropicClaude3Haiku',   'label' => 'Claude 3 Haiku' },
-        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultVertexAIGemini25Flash',       'label' => 'Gemini 2.5 Flash' },
-        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultOpenAIGPT4',                   'label' => 'GPT-4' }
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultOpenAIGPT5',                       'label' => 'GPT-5' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultOpenAIGPT5Mini',                   'label' => 'GPT-5 mini' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultOpenAIGPT5Nano',                   'label' => 'GPT-5 nano' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultOpenAIGPT41',                      'label' => 'GPT-4.1' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultOpenAIGPT41Mini',                  'label' => 'GPT-4.1 mini' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet',   'label' => 'Claude 4.5 Sonnet' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultBedrockAnthropicClaude4Sonnet',    'label' => 'Claude 4 Sonnet' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultBedrockAnthropicClaude37Sonnet',   'label' => 'Claude 3.7 Sonnet' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultVertexAIGemini25Flash001',         'label' => 'Gemini 2.5 Flash' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultVertexAIGemini20Flash001',         'label' => 'Gemini 2.0 Flash' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultGPT4Omni',                         'label' => 'GPT-4o (default)' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultGPT4OmniMini',                     'label' => 'GPT-4o mini' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultBedrockAnthropicClaude35Sonnet',   'label' => 'Claude 3.5 Sonnet' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultBedrockAnthropicClaude3Haiku',     'label' => 'Claude 3 Haiku' },
+        new Map<String, String>{ 'name' => 'sfdc_ai__DefaultOpenAIGPT4',                       'label' => 'GPT-4' }
     };
 
     // ── GET ────────────────────────────────────────────────────────────────
