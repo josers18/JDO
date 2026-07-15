@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   useAsyncData,
@@ -25,15 +25,20 @@ import {
   DraftFollowupsModal,
   useSpeech,
   generateText,
+  loadCenterConfig,
+  DEFAULT_CONFIG,
   type ClientProfile,
   type CrmWriteInput,
   type DraftRow,
   type AiGenerateResult,
+  type AiActionKey,
+  type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
 import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
+import { APP_PERSONA } from '../shell/appChrome';
 
 /* ── Rich mock profiles for prep / quick view (retail book) ───────── */
 const PROFILES: Record<string, ClientProfile> = {
@@ -130,6 +135,31 @@ function HomeContent() {
   } | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
+
+  // Org-level command-center config (model per AI action + generation params).
+  // Cached module-side; failures degrade to DEFAULT_CONFIG so an AI action is
+  // never blocked by a config hiccup.
+  const [config, setConfig] = useState<CommandCenterConfig>(DEFAULT_CONFIG);
+  useEffect(() => {
+    let alive = true;
+    loadCenterConfig(APP_PERSONA).then(cfg => {
+      if (alive) setConfig(cfg);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Merge the configured model + params into an AI request for a given action.
+  const withConfig = (
+    action: AiActionKey,
+    input: { task: AiActionKey; prompt: string; context: string }
+  ) => ({
+    ...input,
+    modelName: config.models[action] || undefined,
+    temperature: config.params.temperature,
+    maxTokens: config.params.maxTokens,
+  });
 
   const callByName = useMemo(() => {
     const map = new Map<string, CallItem>();
@@ -554,7 +584,9 @@ function HomeContent() {
           onClose={() => setAiModal(null)}
           title={aiModal.title}
           generate={(): Promise<AiGenerateResult> =>
-            generateText({ task: aiModal.task, prompt: aiModal.prompt, context: aiModal.context })
+            generateText(
+              withConfig(aiModal.task, { task: aiModal.task, prompt: aiModal.prompt, context: aiModal.context })
+            )
           }
           fallbackText={aiModal.fallback}
         />
@@ -565,12 +597,14 @@ function HomeContent() {
           onClose={() => setDraftsOpen(false)}
           drafts={draftRows()}
           enrich={(): Promise<AiGenerateResult> =>
-            generateText({
-              task: 'followups',
-              prompt:
-                'Rewrite each follow-up below as one concise, warm sentence. Return one line per client, in the same order, no numbering.',
-              context: draftsContext(),
-            })
+            generateText(
+              withConfig('followups', {
+                task: 'followups',
+                prompt:
+                  'Rewrite each follow-up below as one concise, warm sentence. Return one line per client, in the same order, no numbering.',
+                context: draftsContext(),
+              })
+            )
           }
         />
       )}

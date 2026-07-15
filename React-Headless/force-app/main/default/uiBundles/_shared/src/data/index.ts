@@ -6,6 +6,25 @@ export { fetchAccountEmail } from './accountLookup';
 export { searchUsers, searchAccounts, type LookupHit } from './lookupSearch';
 export { generateText, type AiGenerateTask, type AiGenerateInput, type AiGenerateResult } from './aiGenerateClient';
 export {
+  fetchConfig,
+  saveConfig,
+  fetchModelCatalog,
+  AI_ACTION_LABELS,
+  AI_ACTION_KEYS,
+  DEFAULT_CONFIG,
+  type AiActionKey,
+  type ModelOption,
+  type ModelCatalog,
+  type GenerationParams,
+  type CommandCenterConfig,
+} from './configClient';
+export {
+  loadCenterConfig,
+  primeCenterConfig,
+  peekCenterConfig,
+  clearConfigCache,
+} from './configCache';
+export {
   orgCoreOrigin,
   lexAppUrl,
   lexRecordUrl,

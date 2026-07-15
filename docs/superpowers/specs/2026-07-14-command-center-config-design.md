@@ -24,7 +24,7 @@ per-command-center configuration surface.
 | Question | Decision |
 |---|---|
 | Persistence scope | Org-level, shared |
-| Edit model / save latency | Edit in-app, **instant save** via Apex bridge (Custom Setting, not literal CMDT) |
+| Edit model / save latency | Edit in-app, **instant save** via Apex bridge (Custom **Object** singleton — see implementation note) |
 | v1 scope | **Model per AI action** + **generation parameters** (temperature, maxTokens) |
 | Per-center vs shared | **Independent per center** |
 | Model catalog source | **Live-queried** from the org, with a curated fallback when the catalog call fails |
@@ -37,16 +37,29 @@ per-command-center configuration surface.
   component lives in `_shared` and is rendered by a per-bundle route that passes
   its own center key (`APP_PERSONA` from `shell/appChrome.ts` — already
   `'retail' | 'wealth' | 'commercial'`).
-- Config data lives in a single org-default hierarchy **Custom Setting**
-  `CommandCenterConfig__c` with three LongTextArea fields, one JSON blob per
-  center. Independent per center; one shared record; synchronous read via
-  `getOrgDefaults()`; instant write via plain DML.
+- Config data lives in a single **Custom Object** singleton
+  `CommandCenterConfig__c` (DeveloperName `GLOBAL`) with three LongTextArea
+  fields, one JSON blob per center. Independent per center; one shared record;
+  read via `SOQL … LIMIT 1`; instant write via `upsert`.
+
+> **Implementation note (changed from the original CMDT/Custom-Setting plan):**
+> Custom **Settings** cap text fields at 255 chars and reject LongTextArea, so
+> the per-center JSON blobs (up to 32 KB) forced a pivot to a normal Custom
+> Object singleton. Read is `SELECT … WHERE Name='GLOBAL' LIMIT 1` (not
+> `getOrgDefaults()`); write is `upsert`.
+>
+> **FLS gotcha:** newly deployed LongTextArea fields grant **no** field-level
+> security by default — not even to System Administrator — so a metadata-only
+> deploy left the fields present but unreadable, and every SOQL/DML against them
+> threw (surfacing as REST 500s). Fixed with the `CommandCenterConfigAdmin`
+> permission set (object CRUD + field R/W), assigned to the app-domain user.
 
 ```
-CommandCenterConfig__c  (Custom Setting, Hierarchy, Visibility=Public)
+CommandCenterConfig__c  (Custom Object, singleton Name='GLOBAL', Visibility=Public)
   Retail_Config__c     : LongTextArea(32768)
   Wealth_Config__c     : LongTextArea(32768)
   Commercial_Config__c : LongTextArea(32768)
+Permission set: CommandCenterConfigAdmin (grants FLS the deploy does not)
 ```
 
 JSON per center:
@@ -142,7 +155,7 @@ ConfigPage (per bundle, center=APP_PERSONA)
   ├─ GET /config/models  ──► catalog | fallback  ──► dropdown options
   ├─ GET /config/?center ──► current config       ──► form state
   └─ Save ─ PUT /config/ {center,config} ─► CommandCenterConfigRest
-                                              └─ validate + DML upsert Custom Setting
+                                              └─ validate + DML upsert Custom Object singleton
 
 HomePage generative chip
   └─ generateText({ task, prompt, context, modelName: cfg.models[task], ...cfg.params })

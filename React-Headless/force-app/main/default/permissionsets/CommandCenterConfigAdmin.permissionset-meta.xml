@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Grants read/write on CommandCenterConfig__c and its per-center JSON fields for CommandCenterConfigRest. Required because new LongTextArea fields grant no FLS by default.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Command Center Config Admin</label>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>CommandCenterConfig__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>CommandCenterConfig__c.Retail_Config__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>CommandCenterConfig__c.Wealth_Config__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>CommandCenterConfig__c.Commercial_Config__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+</PermissionSet>

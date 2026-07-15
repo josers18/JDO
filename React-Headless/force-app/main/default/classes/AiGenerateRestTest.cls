@@ -49,4 +49,34 @@ private class AiGenerateRestTest {
         RestResponse res = invoke('');
         System.assertEquals(400, res.statusCode, 'empty body should be 400');
     }
+
+    @IsTest
+    static void acceptsOptionalModelAndParams() {
+        // The Configuration page forwards modelName + generation params. They
+        // must deserialize into GenRequest and be accepted without error.
+        // (Model-fallback validation lives past the Test.isRunningTest branch,
+        //  so it is exercised by CommandCenterConfigRestTest, not here.)
+        RestResponse res = invoke(
+            '{"task":"queue_rationale","prompt":"hi","modelName":"sfdc_ai__DefaultGPT4OmniMini","temperature":0.4,"maxTokens":256}'
+        );
+        System.assertEquals(200, res.statusCode, 'request with model + params should be 200');
+        Map<String, Object> out = (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
+        System.assertEquals('TEST_AI_TEXT', out.get('text'), 'still returns deterministic test text');
+    }
+
+    @IsTest
+    static void acceptsBogusModelNameWithoutError() {
+        // A stale/typo'd model must not break the request contract — the server
+        // silently falls back to the default at generation time.
+        RestResponse res = invoke('{"task":"freeform","prompt":"hi","modelName":"totally_made_up_model"}');
+        System.assertEquals(200, res.statusCode, 'bogus model should not 400/500');
+    }
+
+    @IsTest
+    static void acceptsBlankModelName() {
+        // Blank modelName = "use server default" — the common case from an
+        // unconfigured action.
+        RestResponse res = invoke('{"task":"followups","prompt":"hi","modelName":""}');
+        System.assertEquals(200, res.statusCode, 'blank model should be accepted');
+    }
 }

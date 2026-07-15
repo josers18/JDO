@@ -159,8 +159,8 @@ export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, c
               opportunities closing soon), the App-Domain stand-in for the LEX bell */}
           <NotificationBell />
 
-          {/* User menu — profile / settings / log out (live identity via GraphQL) */}
-          <UserMenu />
+          {/* User menu — profile / settings / configuration / log out (live identity via GraphQL) */}
+          <UserMenu onNavigate={navigate} />
         </header>
 
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: 1600, width: '100%', margin: '0 auto' }}>{children}</main>
