@@ -22,13 +22,13 @@ const HOME_CORE_QUERY = /* GraphQL */ `
         }
         Case(first: 1, where: { IsClosed: { eq: false } }) { totalCount }
         TaskOverdue: Task(first: 15, where: { IsClosed: { eq: false }, ActivityDate: { lt: { literal: TODAY } } }, orderBy: { ActivityDate: { order: DESC } }) {
-          edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } } }
+          edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } Type @optional { value } Description @optional { value } WhatId @optional { value } OwnerId @optional { value } CreatedBy @optional { Name @optional { value } } CreatedDate @optional { value } LastModifiedBy @optional { Name @optional { value } } LastModifiedDate @optional { value } } }
         }
         TaskUpcoming: Task(first: 25, where: { IsClosed: { eq: false }, ActivityDate: { gte: { literal: TODAY } } }, orderBy: { ActivityDate: { order: ASC } }) {
-          edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } } }
+          edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } Type @optional { value } Description @optional { value } WhatId @optional { value } OwnerId @optional { value } CreatedBy @optional { Name @optional { value } } CreatedDate @optional { value } LastModifiedBy @optional { Name @optional { value } } LastModifiedDate @optional { value } } }
         }
         Event(first: 15, where: { ActivityDateTime: { gte: { literal: TODAY } } }, orderBy: { ActivityDateTime: { order: ASC } }) {
-          edges { node { Id Subject @optional { value } ActivityDateTime @optional { value } } }
+          edges { node { Id Subject @optional { value } ActivityDateTime @optional { value } Type @optional { value } Description @optional { value } WhatId @optional { value } OwnerId @optional { value } Location @optional { value } ShowAs @optional { value } CreatedBy @optional { Name @optional { value } } CreatedDate @optional { value } LastModifiedBy @optional { Name @optional { value } } LastModifiedDate @optional { value } } }
         }
         FinancialGoal(first: 6) {
           edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
@@ -58,6 +58,21 @@ function accountNamesQuery(ids: string[]): string {
   }`;
 }
 
+/** Batch User-name lookup for Owner Ids → "Assigned To". Same inline-literal
+ *  approach as accountNamesQuery (SDK list-variable forwarding is unreliable). */
+function userNamesQuery(ids: string[]): string {
+  const list = ids.map(id => `"${id.replace(/[^A-Za-z0-9]/g, '')}"`).join(', ');
+  return `query UserNames {
+    uiapi {
+      query {
+        User(first: 50, where: { Id: { in: [${list}] } }) {
+          edges { node { Id Name @optional { value } } }
+        }
+      }
+    }
+  }`;
+}
+
 /* ── Data Cloud: lowest-CSAT accounts = "who to call" (verified) ──
    CSAT_Snowflake__dlm spans multiple source orgs in the unified profile; scope
    to THIS org's account prefix (001am%) so every row resolves to a local
@@ -75,6 +90,9 @@ type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
 const num = (n: Node, k: string) => Number(v(n, k) ?? 0);
+/** Extract a relationship's Name.value (CreatedBy/LastModifiedBy) — '' if absent. */
+const relName = (n: Node, k: string): string =>
+  String((n as Record<string, { Name?: { value?: unknown } } | undefined>)[k]?.Name?.value ?? '');
 
 function severityForCsat(csat: number): CallItem['severity'] {
   if (csat < 50) return 'high';
@@ -143,20 +161,53 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // buried under the thousands-deep overdue backlog a single ASC window returns.
   // Events are scoped to today-and-future (a past meeting isn't actionable).
   // bucketSchedule() on the page re-sorts the merged feed into Overdue/Today/Upcoming.
+  // Resolve Owner Ids → "Assigned To" names in one batch lookup (best-effort).
+  const ownerIds = [...new Set(
+    [q?.TaskOverdue, q?.TaskUpcoming, q?.Event]
+      .flatMap(feed => feed?.edges ?? [])
+      .map(e => s(e.node, 'OwnerId'))
+      .filter(Boolean),
+  )];
+  const ownerNameById: Record<string, string> = {};
+  if (ownerIds.length) {
+    try {
+      const users = await executeGraphQL<{ uiapi?: { query?: { User?: { edges?: { node: Node }[] } } } }>(
+        userNamesQuery(ownerIds),
+      );
+      for (const e of users.uiapi?.query?.User?.edges ?? []) {
+        const id = (e.node as { Id?: string }).Id ?? '';
+        if (id) ownerNameById[id] = s(e.node, 'Name');
+      }
+    } catch { /* names are best-effort; fall back to undefined */ }
+  }
+
   const schedule: ScheduleItem[] = [
     ...(q?.TaskOverdue?.edges ?? []).map((e, i) => ({
       id: `to${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Task' as const,
       time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const,
       status: s(e.node, 'Status') || undefined, priority: s(e.node, 'Priority') || undefined,
+      type: s(e.node, 'Type') || undefined, description: s(e.node, 'Description') || undefined,
+      whatId: s(e.node, 'WhatId') || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
+      createdByName: relName(e.node, 'CreatedBy') || undefined, createdDate: s(e.node, 'CreatedDate') || undefined,
+      lastModifiedByName: relName(e.node, 'LastModifiedBy') || undefined, lastModifiedDate: s(e.node, 'LastModifiedDate') || undefined,
     })),
     ...(q?.TaskUpcoming?.edges ?? []).map((e, i) => ({
       id: `tu${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Task' as const,
       time: s(e.node, 'ActivityDate') || '—', title: s(e.node, 'Subject') || 'Task', kind: 'task' as const,
       status: s(e.node, 'Status') || undefined, priority: s(e.node, 'Priority') || undefined,
+      type: s(e.node, 'Type') || undefined, description: s(e.node, 'Description') || undefined,
+      whatId: s(e.node, 'WhatId') || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
+      createdByName: relName(e.node, 'CreatedBy') || undefined, createdDate: s(e.node, 'CreatedDate') || undefined,
+      lastModifiedByName: relName(e.node, 'LastModifiedBy') || undefined, lastModifiedDate: s(e.node, 'LastModifiedDate') || undefined,
     })),
     ...(q?.Event?.edges ?? []).map((e, i) => ({
       id: `e${i}`, recordId: (e.node as { Id?: string }).Id ?? '', sobjectType: 'Event' as const,
       time: (s(e.node, 'ActivityDateTime') || '').slice(0, 10) || '—', startDateTime: s(e.node, 'ActivityDateTime') || undefined, title: s(e.node, 'Subject') || 'Event', kind: 'meeting' as const,
+      type: s(e.node, 'Type') || undefined, description: s(e.node, 'Description') || undefined,
+      whatId: s(e.node, 'WhatId') || undefined, location: s(e.node, 'Location') || undefined,
+      showAs: s(e.node, 'ShowAs') || undefined, ownerName: ownerNameById[s(e.node, 'OwnerId')] || undefined,
+      createdByName: relName(e.node, 'CreatedBy') || undefined, createdDate: s(e.node, 'CreatedDate') || undefined,
+      lastModifiedByName: relName(e.node, 'LastModifiedBy') || undefined, lastModifiedDate: s(e.node, 'LastModifiedDate') || undefined,
     })),
   ];
 
