@@ -101,16 +101,16 @@ export function PriorityQueueRow({
           above is `flex-1`, so it grows to fill all free space and pushes this
           flex-none rail hard against the right margin on its own — NO ml-auto.
           (An auto margin would eat the free space BEFORE the content's flex-grow
-          could, collapsing the name to zero width on the always-visible #1 row.)
+          could, collapsing the name to zero width.)
+
+          Hover/focus-reveal on EVERY row, including the emphasized #1. In the
+          narrow cockpit column the rail is ~200px of flex-none buttons; keeping
+          it always-on for #1 starved the (shrinkable, truncating) name to zero
+          width. The #1 row still reads as ranked via its accent wash, colored
+          ring, and TOP PRIORITY pill — it doesn't need the buttons pinned open.
           Uses display none/flex, not opacity, so it reserves ZERO width while
-          hidden: the name gets the full row until you hover. Always shown on the
-          emphasized #1 row; hover/focus reveals it on the rest. */}
-      <div
-        className={clsx(
-          'flex-none items-center gap-1.5',
-          emphasis ? 'flex' : 'hidden group-hover:flex group-focus-within:flex',
-        )}
-      >
+          hidden: the name gets the full row until you hover. */}
+      <div className="hidden flex-none items-center gap-1.5 group-hover:flex group-focus-within:flex">
         <button
           type="button"
           onClick={stop(onWhy)}
