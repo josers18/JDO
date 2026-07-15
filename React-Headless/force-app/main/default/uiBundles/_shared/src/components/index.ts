@@ -40,6 +40,13 @@ export { ScheduleModal } from './home/ScheduleModal';
 export { ScheduleDetailModal } from './home/ScheduleDetailModal';
 export { tagSchedule, scheduleCounts } from './home/schedule';
 export { ScheduleTable } from './home/ScheduleTable';
+export { useReveal, RevealFooter, type RevealState } from './home/Reveal';
+export {
+  HomeViewProvider,
+  HomeViewToggle,
+  useHomeView,
+  type HomeView,
+} from './home/HomeView';
 export type { ScheduleItem, ScheduleBucketKey } from './home/types';
 export { TASK_STATUS_OPTIONS, TASK_PRIORITY_OPTIONS } from './home/types';
 export { CaseModal } from './home/CaseModal';

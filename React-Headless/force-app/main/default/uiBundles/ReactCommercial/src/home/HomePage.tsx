@@ -13,6 +13,9 @@ import {
   ScheduleTable,
   ScheduleDetailModal,
   tagSchedule,
+  useHomeView,
+  useReveal,
+  RevealFooter,
   CaseModal,
   EmailModal,
   PrepModal,
@@ -86,9 +89,6 @@ const PROFILES: Record<string, ClientProfile> = {
   },
 };
 
-/* ── Home layout mode ─────────────────────────────────────────────── */
-type HomeView = 'current' | 'cockpit';
-
 /* ── Modal state ──────────────────────────────────────────────────── */
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
 type ModalState =
@@ -139,25 +139,11 @@ function HomeContent() {
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
 
-  // Home layout mode. "current" = the classic stacked sections; "cockpit" =
-  // a compact, column-dense grid. Persisted per-persona in sessionStorage so
-  // the choice survives a refresh but doesn't leak across browser sessions;
-  // a locked-down browser degrades to the default rather than throwing.
-  const [view, setView] = useState<HomeView>(() => {
-    try {
-      return (sessionStorage.getItem(`home-view-${APP_PERSONA}`) as HomeView) || 'current';
-    } catch {
-      return 'current';
-    }
-  });
-  const setViewPersist = (v: HomeView) => {
-    setView(v);
-    try {
-      sessionStorage.setItem(`home-view-${APP_PERSONA}`, v);
-    } catch {
-      /* sessionStorage unavailable — keep the in-memory choice, skip persistence */
-    }
-  };
+  // Home layout mode. "current" = the classic stacked sections; "cockpit" = a
+  // compact, column-dense grid. The selection lives in the app chrome (top-bar
+  // segmented control) and is shared down through HomeViewProvider — see
+  // HomeLayout — persisted per-persona in sessionStorage there.
+  const { view } = useHomeView();
 
   // Org-level command-center config (model per AI action + generation params).
   // Cached module-side; failures degrade to DEFAULT_CONFIG so an AI action is
@@ -189,6 +175,11 @@ function HomeContent() {
     (data?.callList ?? []).forEach(c => map.set(c.clientName, c));
     return map;
   }, [data]);
+
+  // Progressive reveal for the two long tables — hooks must run before the
+  // loading guard, so they read the data optionally and settle once it lands.
+  const pipelineReveal = useReveal(data?.pipeline ?? [], 6);
+  const leadsReveal = useReveal(data?.leads ?? [], 6);
 
   if (loading || !data) {
     return <div className="animate-pulse p-8 text-muted">Loading your book…</div>;
@@ -428,11 +419,12 @@ function HomeContent() {
           </tr>
         </thead>
         <tbody>
-          {data.pipeline.map(p => (
+          {pipelineReveal.visible.map(p => (
             <PipeRow key={p.id} item={p} onClick={() => open('quickview', p.clientName)} />
           ))}
         </tbody>
       </table>
+      <RevealFooter reveal={pipelineReveal} noun="deals" />
     </div>
   );
 
@@ -448,11 +440,12 @@ function HomeContent() {
           </tr>
         </thead>
         <tbody>
-          {data.leads.map(l => (
+          {leadsReveal.visible.map(l => (
             <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name)} />
           ))}
         </tbody>
       </table>
+      <RevealFooter reveal={leadsReveal} noun="leads" />
     </div>
   );
 
@@ -477,23 +470,6 @@ function HomeContent() {
         <PulseCard label="Activity · 7d" value={String(data.schedule.length)} note="Low volume — schedule touchpoints." />
       </div>
     </SectionPanel>
-  );
-
-  const viewToggle = (
-    <div className="inline-flex items-center rounded-full border border-line bg-surface p-1 shadow-card">
-      {(['current', 'cockpit'] as const).map(v => (
-        <button
-          key={v}
-          type="button"
-          onClick={() => setViewPersist(v)}
-          className={`rounded-full px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
-            view === v ? 'bg-fg text-bg' : 'text-muted hover:text-fg'
-          }`}
-        >
-          {v === 'current' ? 'Current' : 'Cockpit'}
-        </button>
-      ))}
-    </div>
   );
 
   return (
@@ -554,9 +530,6 @@ function HomeContent() {
           </div>
         </div>
       </section>
-
-      {/* ---------- VIEW TOGGLE ---------- */}
-      <div className="mt-6 flex items-center justify-end">{viewToggle}</div>
 
       {view === 'cockpit' ? (
         /* ==================== COCKPIT VIEW ==================== */

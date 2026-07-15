@@ -1,6 +1,14 @@
 import { Outlet } from 'react-router';
-import { ThemeProvider, CommandRail, type CommandRailSection, type CommandRailArcStep } from '@shared';
+import {
+  ThemeProvider,
+  CommandRail,
+  HomeViewProvider,
+  HomeViewToggle,
+  type CommandRailSection,
+  type CommandRailArcStep,
+} from '@shared';
 import { AppShell } from '../shell/AppShell';
+import { APP_PERSONA } from '../shell/appChrome';
 
 /**
  * Command-center sections — ids match the section anchors rendered by HomePage
@@ -33,18 +41,21 @@ const RAIL_ARC: CommandRailArcStep[] = [
 export default function HomeLayout() {
   return (
     <ThemeProvider persona="retail" mode="light">
-      <AppShell
-        title="Relationship Command Center"
-        sidebar={
-          <CommandRail
-            sections={RAIL_SECTIONS}
-            arc={RAIL_ARC}
-            user={{ name: 'Jose Sifontes', sub: 'Retail · Cumulus FS' }}
-          />
-        }
-      >
-        <Outlet />
-      </AppShell>
+      <HomeViewProvider persona={APP_PERSONA}>
+        <AppShell
+          title="Relationship Command Center"
+          titleAside={<HomeViewToggle />}
+          sidebar={
+            <CommandRail
+              sections={RAIL_SECTIONS}
+              arc={RAIL_ARC}
+              user={{ name: 'Jose Sifontes', sub: 'Retail · Cumulus FS' }}
+            />
+          }
+        >
+          <Outlet />
+        </AppShell>
+      </HomeViewProvider>
     </ThemeProvider>
   );
 }
