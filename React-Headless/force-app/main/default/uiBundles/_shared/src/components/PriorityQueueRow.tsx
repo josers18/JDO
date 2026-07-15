@@ -71,7 +71,7 @@ export function PriorityQueueRow({
         }
       }}
       className={clsx(
-        'group grid cursor-pointer grid-cols-[44px_1fr_auto] items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted',
+        'group relative grid cursor-pointer grid-cols-[44px_minmax(0,1fr)] items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted',
         emphasis && 'bg-accent-bg/40 ring-1 ring-inset ring-accent-border',
       )}
     >
@@ -81,7 +81,7 @@ export function PriorityQueueRow({
           {rank != null && (
             <span className="flex-none font-mono text-[11px] tabular-nums text-faint">{rank}</span>
           )}
-          <span className="truncate">{item.clientName}</span>
+          <span className="truncate" title={item.clientName}>{item.clientName}</span>
           {emphasis && (
             <span className="flex-none rounded-full bg-accent px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white">
               Top priority
@@ -92,13 +92,17 @@ export function PriorityQueueRow({
           </span>
           <span className="flex-none text-[12px] text-faint">›</span>
         </div>
-        <p className="mt-1.5 max-w-[64ch] text-[13px] text-muted">{item.reason}</p>
+        <p className="mt-1.5 truncate text-[13px] text-muted" title={item.reason}>{item.reason}</p>
         <span className="mt-1.5 inline-block font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">{item.source}</span>
       </div>
+      {/* Action rail floats over the row's right edge instead of occupying a grid
+          track — so the name column keeps the full row width. Hidden until
+          hover/focus (persistent on the emphasized #1 row); the backdrop keeps
+          the buttons legible over any text they overlap. */}
       <div
         className={clsx(
-          'flex items-center gap-1.5 transition-opacity focus-within:opacity-100 group-hover:opacity-100',
-          !emphasis && 'opacity-0',
+          'absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-line bg-surface/95 px-2 py-1.5 shadow-card backdrop-blur transition-opacity focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100',
+          !emphasis && 'pointer-events-none opacity-0',
         )}
       >
         <button
