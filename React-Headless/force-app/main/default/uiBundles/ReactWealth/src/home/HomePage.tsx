@@ -936,6 +936,12 @@ function HomeContent() {
     const base = c.severity === 'high' ? 60 : c.severity === 'medium' ? 68 : 78;
     return Math.max(40, Math.min(82, base - (rankOf(c) - 1) * 3));
   };
+  // Week-over-week health drop shown as a red "↓ N" beside the score (mockup).
+  // Derived deterministically from severity + rank — no CallItem field yet.
+  const healthDropFor = (c: CallItem) => {
+    const base = c.severity === 'high' ? 8 : c.severity === 'medium' ? 5 : 6;
+    return base + (rankOf(c) % 3);
+  };
   const supportingBand = (
     <div className="grid gap-px overflow-hidden rounded-card border border-line bg-line shadow-card md:grid-cols-2 xl:grid-cols-5">
       {/* Recent Activity */}
@@ -967,7 +973,7 @@ function HomeContent() {
               <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-fg">{m.label}</span>
               <span className="flex-none text-right font-semibold text-[12.5px] text-fg">{formatValue(m.amount, 'currencyCompact')}</span>
               <span className={`flex-none font-mono text-[11px] ${up ? 'text-ok' : 'text-risk'}`}>
-                {up ? '▲' : '▼'} {Math.abs(Math.round(m.deltaPct * 100))}%
+                {up ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%
               </span>
               <Sparkline points={m.trend} width={44} height={20} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="flex-none opacity-90" />
             </div>
@@ -989,7 +995,10 @@ function HomeContent() {
               <ScoreRing value={h} tone={h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok'} size={38} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[12.5px] font-semibold text-fg">{c.clientName}</span>
-                <span className="mt-0.5 block text-[11px] text-faint">Health score {h}</span>
+                <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-faint">
+                  Health score <b className="font-semibold text-fg">{h}</b>
+                  <span className="font-mono text-risk">↓ {healthDropFor(c)}</span>
+                </span>
               </span>
               <Icon name="arrow" size={14} className="flex-none text-faint" />
             </button>
@@ -997,29 +1006,54 @@ function HomeContent() {
         })}
       </BandCard>
 
-      {/* Today's Agenda */}
-      <BandCard title="Today's Agenda" onViewAll={() => scrollToId('schedule')}>
-        {tagSchedule(data.schedule).slice(0, 5).map(s => (
+      {/* Today's Agenda — a timeline rail (dots + connector), matching the 360
+          panel's Activity idiom. Header carries a calendar glyph; footer links
+          to the full calendar. */}
+      <BandCard
+        title="Today's Agenda"
+        onViewAll={() => scrollToId('schedule')}
+        headerIcon={<Icon name="event" size={14} />}
+        divided={false}
+        footer={
           <button
-            key={s.id}
             type="button"
-            onClick={() => onScheduleOpen(s)}
-            className="flex w-full items-start gap-2.5 py-2.5 text-left transition hover:opacity-80"
+            onClick={() => scrollToId('schedule')}
+            className="font-mono text-[11px] font-medium text-accent transition hover:opacity-80"
           >
-            <span className="mt-0.5 w-[52px] flex-none font-mono text-[11px] text-muted">{s.time === 'done' ? '✓' : s.time}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12.5px] font-medium text-fg">{s.title}</span>
-              {s.clientName && <span className="mt-0.5 block truncate text-[11px] text-faint">{s.clientName}</span>}
-            </span>
+            View full calendar →
           </button>
-        ))}
+        }
+      >
+        <ol className="relative ml-[6px] mt-1 border-l border-line">
+          {tagSchedule(data.schedule).slice(0, 5).map(s => (
+            <li key={s.id} className="relative pl-3.5 pb-3.5 last:pb-0">
+              <span
+                aria-hidden="true"
+                className={`absolute -left-[5px] top-[5px] h-2.5 w-2.5 rounded-full ring-2 ring-surface ${AGENDA_DOT[s.bucket ?? 'upcoming']}`}
+              />
+              <button
+                type="button"
+                onClick={() => onScheduleOpen(s)}
+                className="flex w-full items-start gap-2.5 text-left transition hover:opacity-80"
+              >
+                <span className="mt-px w-[54px] flex-none font-mono text-[11px] text-muted">{s.time === 'done' ? '✓' : s.time}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12.5px] font-semibold text-fg">{s.title}</span>
+                  {s.clientName && <span className="mt-0.5 block truncate text-[11px] text-faint">{s.clientName}</span>}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
       </BandCard>
 
-      {/* Top Opportunities */}
+      {/* Top Opportunities — leading colored icon chip, "client – opp name",
+          value + probability, and a Hot/Warm/Cool heat pill. */}
       <BandCard title="Top Opportunities" onViewAll={() => scrollToId('pipeline')}>
         {data.pipeline.slice(0, 4).map(p => {
           const heat = p.propensity >= 0.7 ? 'Hot' : p.propensity >= 0.45 ? 'Warm' : 'Cool';
           const heatClass = p.propensity >= 0.7 ? 'bg-risk-bg text-risk' : p.propensity >= 0.45 ? 'bg-warn-bg text-warn' : 'bg-accent-bg text-accent';
+          const chipClass = p.propensity >= 0.7 ? 'bg-ok-bg text-ok' : p.propensity >= 0.45 ? 'bg-warn-bg text-warn' : 'bg-accent-bg text-accent';
           return (
             <button
               key={p.id}
@@ -1027,9 +1061,12 @@ function HomeContent() {
               onClick={() => selectOpportunityPanel(p)}
               className="flex w-full items-center gap-2.5 py-2.5 text-left transition hover:opacity-80"
             >
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${chipClass}`}>
+                <Icon name="pipeline" size={13} />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-semibold text-fg">{p.clientName}</span>
-                <span className="mt-0.5 block truncate text-[11px] text-faint">{formatValue(p.amount, 'currencyCompact')} · {Math.round(p.propensity * 100)}%</span>
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{p.clientName} – {p.name}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">{formatValue(p.amount, 'currencyCompact')} · {Math.round(p.propensity * 100)}% probability</span>
               </span>
               <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${heatClass}`}>{heat}</span>
             </button>
@@ -1674,22 +1711,43 @@ const ACTIVITY_CHIP: Record<'positive' | 'opportunity' | 'risk' | 'neutral', str
   neutral: 'bg-track text-muted',
 };
 
+/** Schedule bucket → dot color for the Today's Agenda timeline rail. */
+const AGENDA_DOT: Record<'overdue' | 'today' | 'upcoming', string> = {
+  overdue: 'bg-risk',
+  today: 'bg-accent',
+  upcoming: 'bg-muted',
+};
+
 /**
  * A single column of the full-width supporting band — a titled card with a
  * "View all →" link and divided rows. The band renders five of these side by
  * side (2-up on md, 5-up on xl); the outer grid's `gap-px` on a `bg-line`
  * background draws the hairline separators between columns.
  */
-function BandCard({ title, onViewAll, children }: { title: string; onViewAll: () => void; children: ReactNode }) {
+function BandCard({
+  title, onViewAll, children, headerIcon, footer, divided = true,
+}: {
+  title: string;
+  onViewAll: () => void;
+  children: ReactNode;
+  /** Optional glyph rendered to the right of the "View all →" link (e.g. a calendar). */
+  headerIcon?: ReactNode;
+  /** Optional footer row below the rows (e.g. "View full calendar →"). */
+  footer?: ReactNode;
+  /** Hairline dividers between rows. Off for the timeline-rail columns. */
+  divided?: boolean;
+}) {
   return (
-    <section className="min-w-0 bg-surface px-4 py-4">
+    <section className="flex min-w-0 flex-col bg-surface px-4 py-4">
       <div className="mb-1 flex items-center gap-2">
         <b className="truncate text-[12.5px] font-semibold">{title}</b>
         <button type="button" onClick={onViewAll} className="ml-auto flex-none font-mono text-[10.5px] text-accent transition hover:opacity-80">
           View all →
         </button>
+        {headerIcon && <span className="flex-none text-faint">{headerIcon}</span>}
       </div>
-      <div className="divide-y divide-line">{children}</div>
+      <div className={divided ? 'divide-y divide-line' : ''}>{children}</div>
+      {footer && <div className="mt-auto pt-3">{footer}</div>}
     </section>
   );
 }
