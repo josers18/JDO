@@ -21,6 +21,8 @@ import {
   PrepModal,
   QuickViewModal,
   WhyModal,
+  DetailModal,
+  type DetailModalData,
   Icon,
   formatValue,
   crmWrite,
@@ -138,6 +140,10 @@ function HomeContent() {
   } | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
+  // Read-only detail popup for non-CRM-editable list rows (pipeline
+  // opportunities, life events, alerts). Structured content lives in the
+  // slot, so one <DetailModal> at the page root serves every list.
+  const [detailView, setDetailView] = useState<DetailModalData | null>(null);
 
   // Home layout mode. "current" = the classic stacked sections; "cockpit" = a
   // compact, column-dense grid. The selection lives in the app chrome (top-bar
@@ -202,6 +208,63 @@ function HomeContent() {
   const openFull = (id?: string) => {
     if (id) navigate(`/client/${id}`);
     else toast('Full 360', 'Open the client record for the complete view');
+  };
+
+  // ── Read-only detail popups for list rows. Each builds a structured
+  //    DetailModalData and drops it into the detailView slot; the single
+  //    <DetailModal> at the page root renders it.
+  const showPipelineDetail = (p: PipelineItem) => {
+    setDetailView({
+      title: p.name || 'Opportunity',
+      subtitle: p.clientName,
+      icon: <Icon name="pipeline" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Amount', value: formatValue(p.amount, 'currencyCompact') },
+        { label: 'Propensity', value: `${Math.round(p.propensity * 100)}%` },
+        { label: 'Stage', value: p.stage || '—' },
+      ],
+      sectionTitle: 'Opportunity',
+      fields: [
+        { label: 'Client', value: p.clientName },
+        { label: 'Opportunity', value: p.name },
+        { label: 'Stage', value: p.stage },
+        { label: 'Close Date', value: p.closeDate || '—' },
+      ],
+      actions: [{ label: 'View client →', variant: 'accent', onClick: () => { setDetailView(null); open('quickview', p.clientName); } }],
+    });
+  };
+
+  const showLifeEventDetail = (e: LifeEventSignal) => {
+    setDetailView({
+      title: e.event,
+      subtitle: `${e.clientName} · ${e.when}`,
+      icon: <span>{e.icon}</span>,
+      tone: 'accent',
+      sectionTitle: 'Signal',
+      fields: [
+        { label: 'Client', value: e.clientName },
+        { label: 'Event', value: e.event },
+        { label: 'When', value: e.when },
+        { label: 'Opportunity', value: e.opportunity },
+      ],
+      actions: [{ label: 'Open client 360 →', variant: 'accent', onClick: () => { setDetailView(null); openFull(e.clientId); } }],
+    });
+  };
+
+  const showAlertDetail = (a: AlertSignal) => {
+    setDetailView({
+      title: a.title,
+      subtitle: a.when,
+      icon: <Icon name="alerts" size={17} />,
+      tone: a.tone === 'risk' ? 'accent' : 'ai',
+      facts: [
+        { label: 'Severity', value: a.severity },
+        { label: 'When', value: a.when },
+      ],
+      note: a.detail,
+      actions: [{ label: 'View client →', variant: 'accent', onClick: () => { setDetailView(null); open('quickview', clientFromAlert(a.title)); } }],
+    });
   };
 
   const today = data.callList.filter(c => c.tier === 'today');
@@ -418,7 +481,7 @@ function HomeContent() {
   const lifeEventsBody = (
     <SectionPanel icon="lifeEvent" label="Life events across your book" right={<LinkBtn>Next 30 days</LinkBtn>}>
       {data.lifeEvents.map(e => (
-        <LifeRow key={e.id} event={e} onClick={() => open('quickview', e.clientName, e.clientId)} />
+        <LifeRow key={e.id} event={e} onClick={() => showLifeEventDetail(e)} />
       ))}
     </SectionPanel>
   );
@@ -426,7 +489,7 @@ function HomeContent() {
   const alertsBody = (
     <SectionPanel icon="alerts" label="Alerts & signals" right={<LinkBtn>{data.alerts.length} open</LinkBtn>}>
       {data.alerts.map(a => (
-        <AlertRow key={a.id} alert={a} onClick={() => open('quickview', clientFromAlert(a.title))} />
+        <AlertRow key={a.id} alert={a} onClick={() => showAlertDetail(a)} />
       ))}
     </SectionPanel>
   );
@@ -467,7 +530,7 @@ function HomeContent() {
         </thead>
         <tbody>
           {pipelineReveal.visible.map(p => (
-            <PipeRow key={p.id} item={p} onClick={() => open('quickview', p.clientName)} />
+            <PipeRow key={p.id} item={p} onClick={() => showPipelineDetail(p)} />
           ))}
         </tbody>
       </table>
@@ -725,6 +788,7 @@ function HomeContent() {
         item={detailItem}
         onSaved={refetch}
       />
+      <DetailModal data={detailView} onClose={() => setDetailView(null)} />
       {modal.type === 'case' && (
         <CaseModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} />
       )}

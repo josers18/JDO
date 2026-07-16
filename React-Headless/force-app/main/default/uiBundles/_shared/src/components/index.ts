@@ -57,6 +57,7 @@ export { DraftFollowupsModal, type DraftRow } from './home/DraftFollowupsModal';
 export { useSpeech } from './home/useSpeech';
 export { QuickViewModal } from './home/QuickViewModal';
 export { WhyModal } from './home/WhyModal';
+export { DetailModal, type DetailModalData } from './home/DetailModal';
 
 // ── Command-center configuration page ──────────────────────────
 export { ConfigPage } from './config/ConfigPage';
