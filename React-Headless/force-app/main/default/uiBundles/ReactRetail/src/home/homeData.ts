@@ -102,6 +102,18 @@ const DASH: HomeDashboard = {
     { id: 'l5', name: 'Assa Barak', source: 'Sales Bot', status: 'New', value: 0, email: 'assa.barak@gmail.com' },
     { id: 'l6', name: 'Daragh Dennehy', source: '—', status: 'New', value: 0, email: 'ddennehy@salesforce.com' },
   ],
+  activity: [
+    { id: 'ac1', clientName: 'Cooper Household', clientId: '001COOP000000000', title: 'Payment declined on credit card', when: 'May 14, 10:25 AM', icon: 'alerts', tone: 'risk' },
+    { id: 'ac2', clientName: 'United Partners', title: 'Opened secure message', when: 'May 13, 4:05 PM', icon: 'email', tone: 'neutral' },
+    { id: 'ac3', clientName: 'Sherry F Wang', clientId: '001WANG000000000', title: 'Website login', when: 'May 12, 10:11 AM', icon: 'event', tone: 'neutral' },
+    { id: 'ac4', clientName: 'United Partners', title: 'Direct deposit updated', when: 'May 12, 9:31 AM', icon: 'pipeline', tone: 'positive' },
+  ],
+  pipelineMovement: [
+    { id: 'pm1', label: 'Innovation Pipeline', amount: 2_400_000, deltaPct: 0.12, trend: series(4, 8, 2_000_000, 120_000) },
+    { id: 'pm2', label: 'Commercial Lending', amount: 8_700_000, deltaPct: 0.08, trend: series(6, 8, 8_000_000, 300_000) },
+    { id: 'pm3', label: 'Treasury Solutions', amount: 4_600_000, deltaPct: 0.16, trend: series(9, 8, 4_000_000, 220_000) },
+    { id: 'pm4', label: 'Wealth Management', amount: 3_200_000, deltaPct: -0.04, trend: series(2, 8, 3_400_000, 140_000) },
+  ],
 };
 
 /**

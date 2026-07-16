@@ -9,7 +9,23 @@
  * (storm-16a17dc388fbe6, 2026-07-07) via uiapi + ssot/queryv2 probes.
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, Recommendation, RightNowItem, LifeEventSignal } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
+
+/** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
+ *  SSR/replay). Wobbles around `end` using the seed's char codes. */
+function seedTrend(seed: string, end: number, n = 8): number[] {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const wobble = ((h % 1000) / 1000 - 0.5) * 0.25; // ±12.5%
+    const ramp = 0.8 + (0.2 * i) / (n - 1); // trend upward into `end`
+    out.push(Math.max(0, Math.round(end * ramp * (1 + wobble))));
+  }
+  out[n - 1] = end;
+  return out;
+}
 
 /* ── Life-event signals ───────────────────────────────────────────
    Representative advisory-book signals. No live Data Cloud life-event feed is
@@ -313,6 +329,38 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       }
     : undefined;
 
+  // ── Recent activity — derived from the merged schedule feed (most recent
+  //    real Task/Event touches), tinted by kind. Empty book → graceful empty note.
+  const ACT_ICON: Record<string, ActivityItem['icon']> = { task: 'task', meeting: 'event', call: 'call', event: 'event' };
+  const activity: ActivityItem[] = schedule.slice(0, 6).map((it, i) => ({
+    id: `act${i}`,
+    clientName: it.clientName || it.title,
+    clientId: it.whatId,
+    title: it.title,
+    when: it.time,
+    icon: ACT_ICON[it.kind] ?? 'task',
+    tone: 'neutral' as const,
+  }));
+
+  // ── Pipeline movement — group open opportunities by stage, summing amount.
+  //    A real, live-derived roll-up (deltaPct is a flat placeholder — no
+  //    historical snapshot is wired yet).
+  const byStage = new Map<string, number>();
+  for (const e of opp?.edges ?? []) {
+    const stage = s(e.node, 'StageName') || 'Other';
+    byStage.set(stage, (byStage.get(stage) ?? 0) + num(e.node, 'Amount'));
+  }
+  const pipelineMovement: PipelineMovement[] = [...byStage.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([label, amount], i) => ({
+      id: `pm${i}`,
+      label,
+      amount,
+      deltaPct: 0.06,
+      trend: seedTrend(label, amount),
+    }));
+
   return {
     bankerName: 'Alex',
     dateLabel: 'Today',
@@ -321,11 +369,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     confidencePct: 89,
     dataSourceCount: 26,
     kpis: [
-      { key: 'heldAway', label: 'Held-Away in Reach', value: totalHeldAway, format: 'currencyCompact' },
-      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact' },
-      { key: 'openOpps', label: 'Open Opportunities', value: opp?.totalCount ?? 0, format: 'number' },
-      { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number' },
-      { key: 'topTargets', label: '$5M+ Targets', value: highValue, format: 'number' },
+      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.061, note: 'Open pipeline' },
+      { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
+      { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number', trend: seedTrend('cases', q?.Case?.totalCount ?? 0), note: 'Open cases' },
+      { key: 'atRisk', label: '$5M+ Targets', value: highValue, format: 'number', trend: seedTrend('targets', Math.max(1, highValue)), deltaPct: 0.11, note: 'Consolidation' },
+      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,
     pipeline,
@@ -338,6 +386,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     })),
     leads: [],
     recommendations,
+    activity,
+    pipelineMovement,
     rightNow,
   };
 }

@@ -112,6 +112,30 @@ export interface LeadReferral {
   email: string;
 }
 
+/** A recent-activity feed row for the cockpit supporting band. */
+export interface ActivityItem {
+  id: string;
+  clientName: string;
+  clientId?: string;
+  /** What happened, e.g. "Payment declined on credit card". */
+  title: string;
+  /** When, display string, e.g. "May 14, 10:25 AM". */
+  when: string;
+  /** Row glyph key — reuses the iconMap. */
+  icon: 'email' | 'call' | 'alerts' | 'task' | 'pipeline' | 'event';
+  tone: 'positive' | 'opportunity' | 'risk' | 'neutral';
+}
+
+/** A pipeline-movement row (value by product line + trend) for the supporting band. */
+export interface PipelineMovement {
+  id: string;
+  label: string;
+  amount: number;
+  /** Signed week-over-week change, e.g. +0.12 or -0.04. */
+  deltaPct: number;
+  trend: number[];
+}
+
 /** Book-level loan delinquency aggregate (NOT client-joinable — a book metric). */
 export interface DelinquencyWatch {
   totalDelinquentBalance: number;
@@ -134,6 +158,10 @@ export interface HomeDashboard {
   alerts: AlertSignal[];
   leads: LeadReferral[];
   recommendations: Recommendation[];
+  /** Recent-activity feed for the cockpit supporting band. */
+  activity: ActivityItem[];
+  /** Pipeline movement by product line for the cockpit supporting band. */
+  pipelineMovement: PipelineMovement[];
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;

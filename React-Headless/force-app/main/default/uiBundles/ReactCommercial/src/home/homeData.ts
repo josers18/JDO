@@ -105,6 +105,18 @@ const DASH: HomeDashboard = {
     { id: 'l3', name: 'Summit Aggregates', source: 'RFP', status: 'New', value: 9500000, email: 'finance@summitaggregates.com' },
     { id: 'l4', name: 'Orion Freight', source: 'Industry Event', status: 'New', value: 6400000, email: 'ap@orionfreight.com' },
   ],
+  activity: [
+    { id: 'ac1', clientName: 'Acme Manufacturing', clientId: '001C', title: 'Covenant DSCR breached threshold', when: 'May 14, 10:25 AM', icon: 'alerts', tone: 'risk' },
+    { id: 'ac2', clientName: 'Northwind Logistics', title: 'Treasury proposal opened', when: 'May 13, 4:05 PM', icon: 'email', tone: 'opportunity' },
+    { id: 'ac3', clientName: 'Meridian Health', title: 'Operating balance +$3.1M', when: 'May 12, 10:11 AM', icon: 'pipeline', tone: 'positive' },
+    { id: 'ac4', clientName: 'Sterling Foods Group', title: 'D&B score downgraded 1 tier', when: 'May 12, 9:31 AM', icon: 'alerts', tone: 'risk' },
+  ],
+  pipelineMovement: [
+    { id: 'pm1', label: 'Treasury Management', amount: 18_400_000, deltaPct: 0.14, trend: series(4, 8, 16_000_000, 700_000) },
+    { id: 'pm2', label: 'Commercial Lending', amount: 69_000_000, deltaPct: 0.09, trend: series(6, 8, 64_000_000, 2_400_000) },
+    { id: 'pm3', label: 'Equipment Finance', amount: 12_600_000, deltaPct: 0.18, trend: series(9, 8, 10_500_000, 620_000) },
+    { id: 'pm4', label: 'Debt Restructure', amount: 42_000_000, deltaPct: -0.05, trend: series(2, 8, 45_000_000, 1_800_000) },
+  ],
   delinquency: {
     totalDelinquentBalance: 4820000,
     totalRecovered: 1130000,

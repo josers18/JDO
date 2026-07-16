@@ -15,6 +15,41 @@ export interface ClientProfile {
   recap?: string;
   talk?: string;
   nba?: string[];
+  // ── Rich Client-360 panel fields (all optional; the panel composes
+  //    sensible fallbacks from the base fields when absent). ──
+  /** 0..100 relationship-health score for the ring. */
+  healthScore?: number;
+  /** Word for the score, e.g. "Fair" / "Excellent". */
+  healthLabel?: string;
+  /** Signed month-over-month health delta, e.g. -8 or +3. */
+  healthDeltaPts?: number;
+  /** Segment/tier word rendered as a chip, e.g. "Platinum". */
+  tier?: string;
+  /** Priority flag rendered as a header chip, e.g. "High Priority". */
+  priorityLabel?: string;
+  /** Signed relationship-value trend for the quarter, e.g. +6. */
+  valueDeltaPct?: number;
+  /** Recent signals for the panel's "Recent Signals" list. */
+  signals?: ClientSignal[];
+  /** The single Next Best Action headline (renders as the primary button). */
+  nbaHeadline?: string;
+  /** Chronological relationship timeline for the panel's Timeline section. */
+  timeline?: ClientTimelineEntry[];
+}
+
+/** One row in the Client-360 "Recent Signals" list. */
+export interface ClientSignal {
+  label: string;
+  when: string;
+  tone: 'risk' | 'warn' | 'ok' | 'neutral';
+}
+
+/** One entry in the Client-360 relationship timeline. */
+export interface ClientTimelineEntry {
+  when: string;
+  title: string;
+  detail?: string;
+  tone: 'risk' | 'warn' | 'ok' | 'neutral';
 }
 
 /**

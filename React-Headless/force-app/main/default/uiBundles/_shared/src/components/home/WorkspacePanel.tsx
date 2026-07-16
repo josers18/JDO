@@ -1,6 +1,7 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Button } from '../Button';
+import { HealthRing } from '../HealthRing';
 import { Icon, type IconKey } from '../iconMap';
 
 /* ── Data contract ────────────────────────────────────────────────
@@ -45,16 +46,49 @@ export interface WorkspaceBrief {
   prompts: { key: string; label: string }[];
 }
 
+/** A signal row in the 360 panel (tinted dot + label + timestamp). */
+export interface PanelSignal {
+  label: string;
+  when: string;
+  tone: 'risk' | 'warn' | 'ok' | 'neutral';
+}
+
+/** A relationship-timeline entry in the 360 panel. */
+export interface PanelTimelineEntry {
+  when: string;
+  title: string;
+  detail?: string;
+  tone: 'risk' | 'warn' | 'ok' | 'neutral';
+}
+
 export interface ClientSelection {
   kind: 'client';
   id?: string;
   name: string;
   subtitle?: string;
   initials?: string;
+  /** Header chip, e.g. "High Priority". */
+  priorityLabel?: string;
+  /** Segment/tier chip, e.g. "Platinum". */
+  tier?: string;
+  /** 0..100 relationship-health score for the ring; omit to hide the ring. */
+  healthScore?: number;
+  healthLabel?: string;
+  healthDeltaPts?: number;
+  /** Total relationship value string, e.g. "$4.2M". */
+  relationshipValue?: string;
+  valueDeltaPct?: number;
   facts: WorkspaceFact[];
   summary: string;
+  /** Tinted recent-signals list (preferred). Falls back to `signalItems`. */
+  signalRows?: PanelSignal[];
+  /** Legacy plain signal list (used when signalRows is absent). */
   signals: WorkspaceListItem[];
   nba: string[];
+  /** The single headline Next Best Action (primary button label). */
+  nbaHeadline?: string;
+  /** Relationship timeline for the Timeline section. */
+  timeline?: PanelTimelineEntry[];
 }
 
 export interface TaskSelection {
@@ -207,6 +241,64 @@ const KIND_ICON: Record<WorkspaceAgendaItem['kind'], IconKey> = {
   event: 'event',
 };
 
+/** Signal / timeline tone → dot color class. */
+const DOT_TONE: Record<PanelSignal['tone'], string> = {
+  risk: 'bg-risk',
+  warn: 'bg-warn',
+  ok: 'bg-ok',
+  neutral: 'bg-accent',
+};
+
+/** Map a 0..100 health score to a ring tone + label fallback. */
+function healthTone(score: number): { color: string; label: string } {
+  if (score >= 80) return { color: 'var(--wp-pos)', label: 'Excellent' };
+  if (score >= 65) return { color: 'var(--wp-accent)', label: 'Good' };
+  if (score >= 50) return { color: 'var(--wp-warn)', label: 'Fair' };
+  return { color: 'var(--wp-neg)', label: 'At risk' };
+}
+
+/** A tinted list of signals — dot + label + timestamp (Client-360 "Recent Signals"). */
+function PanelSignalList({ items }: { items: PanelSignal[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="overflow-hidden rounded-[12px] border border-line">
+      {items.map((s, i) => (
+        <div key={i} className="flex items-center gap-3 border-b border-line px-3.5 py-2.5 last:border-b-0">
+          <span aria-hidden="true" className={clsx('h-2 w-2 flex-none rounded-full', DOT_TONE[s.tone])} />
+          <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-fg">{s.label}</span>
+          <span className="flex-none font-mono text-[10px] uppercase tracking-[0.08em] text-faint">{s.when}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The relationship timeline — a dotted rail of dated entries. */
+function PanelTimeline({ items }: { items: PanelTimelineEntry[] }) {
+  if (!items.length) return null;
+  return (
+    <ol className="relative ml-1 border-l border-line">
+      {items.map((t, i) => (
+        <li key={i} className="relative pl-4 pb-3.5 last:pb-0">
+          <span
+            aria-hidden="true"
+            className={clsx('absolute -left-[5px] top-[3px] h-2.5 w-2.5 rounded-full ring-2 ring-surface', DOT_TONE[t.tone])}
+          />
+          <div className="flex items-baseline gap-2">
+            <span className="text-[12.5px] font-semibold text-fg">{t.title}</span>
+            <span className="ml-auto flex-none font-mono text-[10px] uppercase tracking-[0.08em] text-faint">{t.when}</span>
+          </div>
+          {t.detail && <p className="mt-0.5 text-[11.5px] leading-snug text-muted">{t.detail}</p>}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** The Client-360 tab bar. */
+const CLIENT_TABS = ['Overview', 'Signals', 'Activity', 'Relationship'] as const;
+type ClientTab = (typeof CLIENT_TABS)[number];
+
 /* ── The panel ──────────────────────────────────────────────────── */
 
 /**
@@ -327,40 +419,167 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
   );
 }
 
-/* ── State 2: client selected (compact 360) ─────────────────────── */
+/* ── State 2: client selected (tabbed Client 360) ───────────────── */
 function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: WorkspacePanelHandlers }) {
+  const [tab, setTab] = useState<ClientTab>('Overview');
+  const health = sel.healthScore;
+  const tone = health != null ? healthTone(health) : null;
+  const signalRows = sel.signalRows ?? [];
+  const nbaHeadline = sel.nbaHeadline ?? sel.nba[0];
+  const restNba = sel.nbaHeadline ? sel.nba : sel.nba.slice(1);
+
   return (
     <div>
+      {/* Identity row: avatar · name · priority chip */}
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 flex-none place-items-center rounded-[13px] bg-gradient-ai text-[15px] font-bold text-white">
           {sel.initials ?? sel.name.trim().charAt(0).toUpperCase()}
         </span>
-        <div className="min-w-0">
-          <h3 className="truncate font-display text-[18px] font-medium leading-tight tracking-tight" title={sel.name}>{sel.name}</h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate font-display text-[18px] font-medium leading-tight tracking-tight" title={sel.name}>{sel.name}</h3>
+            {sel.priorityLabel && (
+              <span className="flex-none rounded-full bg-risk-bg px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-risk">
+                {sel.priorityLabel}
+              </span>
+            )}
+          </div>
           {sel.subtitle && <div className="mt-0.5 truncate text-[12px] text-muted">{sel.subtitle}</div>}
         </div>
       </div>
 
-      <div className="mt-4">
-        <FactGrid facts={sel.facts} />
+      {/* Tab bar */}
+      <div className="mt-3.5 flex gap-4 border-b border-line">
+        {CLIENT_TABS.map(t => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={clsx(
+              'relative -mb-px pb-2 text-[12.5px] font-medium transition',
+              tab === t ? 'text-fg' : 'text-muted hover:text-fg',
+            )}
+          >
+            {t}
+            {tab === t && <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-accent" />}
+          </button>
+        ))}
       </div>
 
-      <PanelSection title="AI summary">
-        <p className="whitespace-pre-line text-[13px] leading-relaxed text-fg">{sel.summary}</p>
-      </PanelSection>
+      {/* ── OVERVIEW ── */}
+      {tab === 'Overview' && (
+        <div>
+          {/* Health ring + relationship value */}
+          {(health != null || sel.relationshipValue) && (
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {health != null && tone && (
+                <div className="rounded-[13px] border border-line bg-bg px-3.5 py-3">
+                  <span className="mb-1.5 block font-mono text-[9.5px] uppercase tracking-[0.12em] text-faint">Health score</span>
+                  <div className="flex items-center gap-2.5">
+                    <HealthRing score={health} size={52} label="" segments={[{ value: health, color: tone.color }]} />
+                    <div className="min-w-0">
+                      <b className="block text-[13px] font-semibold text-fg">{sel.healthLabel ?? tone.label}</b>
+                      {sel.healthDeltaPts != null && (
+                        <span className={clsx('font-mono text-[10.5px]', sel.healthDeltaPts < 0 ? 'text-risk' : 'text-ok')}>
+                          {sel.healthDeltaPts < 0 ? '▼' : '▲'} {Math.abs(sel.healthDeltaPts)} pts
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {sel.relationshipValue && (
+                <div className="rounded-[13px] border border-line bg-bg px-3.5 py-3">
+                  <span className="mb-1.5 block font-mono text-[9.5px] uppercase tracking-[0.12em] text-faint">Relationship value</span>
+                  <b className="block font-display text-[22px] font-medium leading-none tracking-tight text-fg">{sel.relationshipValue}</b>
+                  {sel.valueDeltaPct != null && (
+                    <span className={clsx('mt-1.5 block font-mono text-[10.5px]', sel.valueDeltaPct < 0 ? 'text-risk' : 'text-ok')}>
+                      {sel.valueDeltaPct < 0 ? '▼' : '▲'} {Math.abs(sel.valueDeltaPct)}% vs last quarter
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-      {sel.signals.length > 0 && (
-        <PanelSection title="Recent signals">
-          <SignalList items={sel.signals} />
-        </PanelSection>
+          <div className="mt-3">
+            <FactGrid facts={sel.facts} />
+          </div>
+
+          {/* Next Best Action */}
+          {(nbaHeadline || restNba.length > 0) && (
+            <PanelSection title="Next best action">
+              {nbaHeadline && (
+                <Button size="sm" variant="accent" className="w-full justify-center" onClick={() => handlers.onSchedule(sel.name, sel.id, nbaHeadline)}>
+                  {nbaHeadline}
+                </Button>
+              )}
+              {restNba.length > 0 && (
+                <div className="mt-2">
+                  <MarkedList items={restNba} marker="✦" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => handlers.onAsk('nba_rationale')}
+                className="mt-2 text-[11.5px] text-ai transition hover:underline"
+              >
+                Why this action? →
+              </button>
+            </PanelSection>
+          )}
+
+          {/* AI summary */}
+          <PanelSection title="AI summary">
+            <div className="rounded-[12px] border border-ai-border bg-ai-bg/30 px-3.5 py-3">
+              <p className="whitespace-pre-line text-[12.5px] leading-relaxed text-fg">{sel.summary}</p>
+              <button
+                type="button"
+                onClick={() => handlers.onAsk('client_summary')}
+                className="mt-2 inline-flex items-center gap-1 text-[11.5px] text-ai transition hover:underline"
+              >
+                <span aria-hidden="true">✦</span> View explanation →
+              </button>
+            </div>
+          </PanelSection>
+        </div>
       )}
 
-      {sel.nba.length > 0 && (
-        <PanelSection title="Recommended next actions">
-          <MarkedList items={sel.nba} marker="✦" />
-        </PanelSection>
+      {/* ── SIGNALS ── */}
+      {tab === 'Signals' && (
+        <div className="mt-4">
+          {signalRows.length > 0 ? (
+            <PanelSignalList items={signalRows} />
+          ) : sel.signals.length > 0 ? (
+            <SignalList items={sel.signals} />
+          ) : (
+            <p className="rounded-[12px] border border-line bg-bg px-3.5 py-4 text-[12.5px] text-muted">No recent signals on this relationship.</p>
+          )}
+        </div>
       )}
 
+      {/* ── ACTIVITY (timeline) ── */}
+      {tab === 'Activity' && (
+        <div className="mt-4">
+          {sel.timeline && sel.timeline.length > 0 ? (
+            <PanelTimeline items={sel.timeline} />
+          ) : (
+            <p className="rounded-[12px] border border-line bg-bg px-3.5 py-4 text-[12.5px] text-muted">No recent activity recorded.</p>
+          )}
+        </div>
+      )}
+
+      {/* ── RELATIONSHIP (facts + summary) ── */}
+      {tab === 'Relationship' && (
+        <div className="mt-4">
+          <FactGrid facts={sel.facts} />
+          <PanelSection title="Overview">
+            <p className="whitespace-pre-line text-[12.5px] leading-relaxed text-fg">{sel.summary}</p>
+          </PanelSection>
+        </div>
+      )}
+
+      {/* Quick actions (persistent under every tab) */}
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Button size="sm" variant="accent" onClick={() => handlers.onSchedule(sel.name, sel.id, 'Call')}>Call</Button>
         <Button size="sm" variant="ghost" onClick={() => handlers.onEmail(sel.name, sel.id)}>Email</Button>

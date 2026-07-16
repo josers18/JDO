@@ -104,6 +104,18 @@ const DASH: HomeDashboard = {
     { id: 'l3', name: 'Marcus Chen', source: 'Liquidity Event', status: 'New', value: 950000, email: 'marcus.chen@example.com' },
     { id: 'l4', name: 'Thomas Ferrand', source: 'Seminar', status: 'New', value: 640000, email: 'thomas.ferrand@example.com' },
   ],
+  activity: [
+    { id: 'ac1', clientName: 'Whitfield Family Trust', clientId: '001W', title: 'Portfolio drift exceeded IPS target', when: 'May 14, 10:25 AM', icon: 'alerts', tone: 'risk' },
+    { id: 'ac2', clientName: 'Julie E Morris', title: 'Linked $1.2M held-away brokerage', when: 'May 13, 4:05 PM', icon: 'pipeline', tone: 'opportunity' },
+    { id: 'ac3', clientName: 'David Osei', title: 'Retirement readiness hit 94%', when: 'May 12, 10:11 AM', icon: 'event', tone: 'positive' },
+    { id: 'ac4', clientName: 'Priya Natarajan', title: 'ESG downgrade on 2 holdings', when: 'May 12, 9:31 AM', icon: 'alerts', tone: 'risk' },
+  ],
+  pipelineMovement: [
+    { id: 'pm1', label: 'Managed Rebalance', amount: 18_600_000, deltaPct: 0.12, trend: series(4, 8, 16_000_000, 700_000) },
+    { id: 'pm2', label: 'Held-Away Consolidation', amount: 5_800_000, deltaPct: 0.22, trend: series(8, 8, 4_600_000, 320_000) },
+    { id: 'pm3', label: 'Annuity & Income', amount: 2_100_000, deltaPct: 0.08, trend: series(6, 8, 1_900_000, 90_000) },
+    { id: 'pm4', label: 'ESG SMA Transition', amount: 1_450_000, deltaPct: -0.04, trend: series(2, 8, 1_550_000, 60_000) },
+  ],
 };
 
 /**

@@ -34,7 +34,7 @@ export { CommandRail, type CommandRailSection, type CommandRailArcStep, type Com
 export { RightNowCard, type RightNowCardItem } from './RightNowCard';
 export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
 export { RecommendationCard, type RecommendationCardItem, type RecommendationKind } from './RecommendationCard';
-export { type ClientProfile } from './home/types';
+export { type ClientProfile, type ClientSignal, type ClientTimelineEntry } from './home/types';
 export { TaskModal } from './home/TaskModal';
 export { ScheduleModal } from './home/ScheduleModal';
 export { ScheduleDetailModal } from './home/ScheduleDetailModal';
@@ -67,6 +67,8 @@ export {
   type WorkspaceFact,
   type WorkspaceListItem,
   type WorkspaceAgendaItem,
+  type PanelSignal,
+  type PanelTimelineEntry,
   type ClientSelection,
   type TaskSelection,
   type OpportunitySelection,

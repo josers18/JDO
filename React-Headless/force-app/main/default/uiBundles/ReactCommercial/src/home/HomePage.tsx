@@ -5,6 +5,8 @@ import {
   ToastProvider,
   useToast,
   Button,
+  Sparkline,
+  ScoreRing,
   RightNowCard,
   PriorityQueueRow,
   RecommendationCard,
@@ -59,16 +61,34 @@ const PROFILES: Record<string, ClientProfile> = {
     csat: 'Poor · 62',
     value: '$1.24M',
     openCases: '5',
+    tier: 'Platinum',
+    priorityLabel: 'High Priority',
+    healthScore: 62,
+    healthLabel: 'Fair',
+    healthDeltaPts: -8,
+    valueDeltaPct: 6,
     facts: [
       ['Open opp', '$150K personal loan'],
       ['Overdue task', '270 days'],
       ['Open cases', '5'],
       ['Last contact', '9 mo ago'],
     ],
+    signals: [
+      { label: 'CSAT dropped below threshold', when: 'Today', tone: 'risk' },
+      { label: 'Complaint ticket opened', when: 'Yesterday', tone: 'risk' },
+      { label: 'Digital banking login', when: 'Yesterday', tone: 'ok' },
+    ],
+    timeline: [
+      { when: 'Yesterday', title: 'Complaint opened', detail: 'Service issue logged by client', tone: 'risk' },
+      { when: '3 days ago', title: 'Wire completed', detail: '$250,000 outgoing wire', tone: 'neutral' },
+      { when: '7 days ago', title: 'Rollover discussion', detail: 'Exploring 401k options', tone: 'neutral' },
+      { when: '2 wks ago', title: 'Login detected', detail: 'Digital banking login', tone: 'ok' },
+    ],
     recap:
       'Julie has banked with Cumulus for 9 years across a mortgage, two deposit accounts, and a brokerage link. Engagement dropped after a branch closure near her; CSAT slid to Poor over the last three surveys. A 401k rollover conversation started in 2024 was never closed, and a $150K personal-loan opportunity is sitting in Interested. Five open cases — most notably a lost debit card — are the likely CSAT driver.',
     talk:
       'Lead by resolving the lost-card case live on the call — that rebuilds trust before any product talk. Then reframe the idle rollover as a simple, guided next step and connect it to the personal-loan need she already raised.',
+    nbaHeadline: 'Schedule service recovery call',
     nba: [
       'Resolve lost-card case & confirm replacement shipped',
       'Walk the 401k rollover, offer to e-sign on the call',
@@ -82,16 +102,31 @@ const PROFILES: Record<string, ClientProfile> = {
     csat: 'Good · 81',
     value: '$3.0M deal',
     openCases: '—',
+    tier: 'Commercial',
+    healthScore: 81,
+    healthLabel: 'Good',
+    healthDeltaPts: 2,
+    valueDeltaPct: 12,
     facts: [
       ['Deal', '$3.0M CRE term loan'],
       ['Stage', 'Closing/Funding'],
       ['Probability', '80%'],
       ['Idle', '12 days'],
     ],
+    signals: [
+      { label: 'Deal stalled 12 days', when: '12d', tone: 'warn' },
+      { label: 'Appraisal received', when: '2 wks', tone: 'ok' },
+    ],
+    timeline: [
+      { when: '12 days ago', title: 'Terms agreed', detail: 'Verbal agreement on rate', tone: 'ok' },
+      { when: '2 wks ago', title: 'Appraisal received', detail: 'Collateral valued', tone: 'ok' },
+      { when: '3 wks ago', title: 'Application submitted', detail: '$3M CRE term loan', tone: 'neutral' },
+    ],
     recap:
       'AJC is a commercial real-estate borrower with a $3M term loan at the funding stage. Everything is verbally agreed but no activity has been logged in 12 days, and no funding date is set — the classic way an 80% deal slips a quarter.',
     talk:
       'Keep it operational and short: confirm the final documents received, name any open blocker, and put a funding date on the calendar before you hang up.',
+    nbaHeadline: 'Confirm docs & set funding date',
     nba: ['Confirm final docs & appraisal received', 'Set a hard funding date', 'Send DocuSign package for signatures'],
   },
 };
@@ -144,6 +179,11 @@ function HomeContent() {
     fallback: string;
   } | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
+  // Cockpit "Show more / Show less" — the mockup's footer toggle. The compact
+  // supporting band is always shown; expanding reveals the full detail modules
+  // (pipeline table, life events, leads, portfolio pulse) below it, which also
+  // keep the CommandRail nav anchors (#pipeline / #events / #leads / #pulse) live.
+  const [bandExpanded, setBandExpanded] = useState(false);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
@@ -249,20 +289,33 @@ function HomeContent() {
       ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
       ...opps.map(o => ({ label: o.name, sub: `${o.stage} · ${Math.round(o.propensity * 100)}%`, meta: formatValue(o.amount, 'currencyCompact') })),
     ].slice(0, 5);
+    const subtitleBits = [p?.descriptor ?? call?.segment ?? 'Client'];
+    if (p?.since) subtitleBits.push(`Since ${p.since}`);
+    if (p?.tier) subtitleBits.push(p.tier);
     return {
       kind: 'client',
       id: id ?? call?.clientId,
       name,
-      subtitle: `${p?.descriptor ?? call?.segment ?? 'Client'}${p?.since ? ` · since ${p.since}` : ''}`,
+      subtitle: subtitleBits.join(' · '),
       initials: p?.initials,
+      priorityLabel: p?.priorityLabel ?? (call?.severity === 'high' ? 'High Priority' : undefined),
+      tier: p?.tier,
+      healthScore: p?.healthScore,
+      healthLabel: p?.healthLabel,
+      healthDeltaPts: p?.healthDeltaPts,
+      relationshipValue: p?.value ?? (call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined),
+      valueDeltaPct: p?.valueDeltaPct,
       facts: [
         { label: 'CSAT', value: p?.csat ?? '—', tone: (p?.csat ?? '').startsWith('Poor') ? 'risk' : undefined },
         { label: 'Value', value: p?.value ?? (call ? formatValue(call.relationshipValue, 'currencyCompact') : '—') },
         { label: 'Open cases', value: p?.openCases ?? '—' },
       ],
       summary: p?.recap ?? call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
+      signalRows: p?.signals,
       signals,
+      nbaHeadline: p?.nbaHeadline,
       nba: p?.nba ?? (call ? [call.action] : []),
+      timeline: p?.timeline,
     };
   }
 
@@ -584,6 +637,28 @@ function HomeContent() {
     </div>
   );
 
+  // Cockpit vitals: the four headline metrics as sparkline cards (mockup order:
+  // Pipeline · Opportunities · At-Risk · Active Goals). Chosen from data.kpis by
+  // key so it survives a KPI-set change; falls back to the first four.
+  const VITAL_KEYS = ['pipeline', 'openOpps', 'atRisk', 'goals'];
+  const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
+  const kpiGridVitals = (
+    <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+      {(vitalKpis.length ? vitalKpis : data.kpis.slice(0, 4)).map(k => (
+        <VitalCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          deltaPct={k.deltaPct}
+          trend={k.trend}
+          risk={k.key === 'atRisk'}
+          onClick={() => scrollToId(KPI_TARGET[k.key] ?? 'pipeline')}
+        />
+      ))}
+    </div>
+  );
+
   const scheduleControls = (
     <>
       <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
@@ -813,126 +888,312 @@ function HomeContent() {
     </div>
   );
 
+  // ── Compact AI Daily Brief strip (cockpit only) ──
+  // The mockup's brief is a single dense line — icon + "AI Daily Brief" +
+  // "Updated" chip + one sentence + "View full insights →" — NOT the tall hero
+  // headline. The hero stays for the classic view; this strip replaces it at the
+  // top of the cockpit grid's left column.
+  const briefStrip = (
+    <div className="rounded-card border border-line bg-surface-glass px-5 py-4 shadow-card">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Icon name="sparkle" size={15} className="text-ai" />
+        <b className="text-[14px] font-semibold">AI Daily Brief</b>
+        <span className="rounded-full bg-track px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
+          Updated {data.dateLabel}
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            openAi(
+              'queue_rationale',
+              'Full insights',
+              "Give the banker a full morning briefing on this book in 4-6 sentences: the clients needing attention today, the emerging risks, and the opportunities worth acting on now.",
+              queueContext(),
+              queueFallback(),
+            )
+          }
+          className="ml-auto inline-flex items-center gap-1 font-mono text-[11.5px] text-accent transition hover:opacity-80"
+        >
+          View full insights →
+        </button>
+      </div>
+      <p className="mt-2.5 max-w-[92ch] text-[13.5px] leading-relaxed text-fg">
+        <b className="font-semibold">{data.aiBriefHeadline}.</b> {data.aiBrief}
+      </p>
+    </div>
+  );
+
+  // ── Full-width supporting band (cockpit only) ──
+  // The five secondary modules from the mockup, in a single responsive row:
+  // Recent Activity · Pipeline Movement · At-Risk Clients · Today's Agenda ·
+  // Top Opportunities. Each is a slim card with a "View all →" head and clickable
+  // rows that drive the right context panel. Health scores for at-risk clients
+  // are derived deterministically from severity + rank (no CallItem field yet).
+  const atRiskClients = data.callList.filter(c => (c.tier ?? 'watch') === 'watch' || c.severity !== 'low').slice(0, 3);
+  const healthFor = (c: CallItem) => {
+    // High severity → low score; medium → mid; low → higher. Nudge by rank so
+    // rows differ. Clamped to a plausible 40..82 "needs attention" band.
+    const base = c.severity === 'high' ? 60 : c.severity === 'medium' ? 68 : 78;
+    return Math.max(40, Math.min(82, base - (rankOf(c) - 1) * 3));
+  };
+  const supportingBand = (
+    <div className="grid gap-px overflow-hidden rounded-card border border-line bg-line shadow-card md:grid-cols-2 xl:grid-cols-5">
+      {/* Recent Activity */}
+      <BandCard title="Recent Activity" onViewAll={() => scrollToId('events')}>
+        {data.activity.slice(0, 4).map(a => (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => (a.clientId || a.clientName ? selectClientPanel(a.clientName, a.clientId) : undefined)}
+            className="flex w-full items-start gap-2.5 py-2.5 text-left transition hover:opacity-80"
+          >
+            <span className={`mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px] ${ACTIVITY_CHIP[a.tone]}`}>
+              <Icon name={a.icon} size={13} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12.5px] font-medium text-fg">{a.title}</span>
+              <span className="mt-0.5 block truncate text-[11px] text-faint">{a.clientName} · {a.when}</span>
+            </span>
+          </button>
+        ))}
+      </BandCard>
+
+      {/* Pipeline Movement */}
+      <BandCard title="Pipeline Movement" onViewAll={() => scrollToId('pipeline')}>
+        {data.pipelineMovement.slice(0, 4).map(m => {
+          const up = m.deltaPct >= 0;
+          return (
+            <div key={m.id} className="flex items-center gap-2.5 py-2.5">
+              <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-fg">{m.label}</span>
+              <span className="flex-none text-right font-semibold text-[12.5px] text-fg">{formatValue(m.amount, 'currencyCompact')}</span>
+              <span className={`flex-none font-mono text-[11px] ${up ? 'text-ok' : 'text-risk'}`}>
+                {up ? '▲' : '▼'} {Math.abs(Math.round(m.deltaPct * 100))}%
+              </span>
+              <Sparkline points={m.trend} width={44} height={20} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="flex-none opacity-90" />
+            </div>
+          );
+        })}
+      </BandCard>
+
+      {/* At-Risk Clients */}
+      <BandCard title="At-Risk Clients" onViewAll={() => scrollToId('queue')}>
+        {atRiskClients.map(c => {
+          const h = healthFor(c);
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => selectClientPanel(c.clientName, c.clientId)}
+              className="flex w-full items-center gap-3 py-2.5 text-left transition hover:opacity-80"
+            >
+              <ScoreRing value={h} tone={h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok'} size={38} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{c.clientName}</span>
+                <span className="mt-0.5 block text-[11px] text-faint">Health score {h}</span>
+              </span>
+              <Icon name="arrow" size={14} className="flex-none text-faint" />
+            </button>
+          );
+        })}
+      </BandCard>
+
+      {/* Today's Agenda */}
+      <BandCard title="Today's Agenda" onViewAll={() => scrollToId('schedule')}>
+        {tagSchedule(data.schedule).slice(0, 5).map(s => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => onScheduleOpen(s)}
+            className="flex w-full items-start gap-2.5 py-2.5 text-left transition hover:opacity-80"
+          >
+            <span className="mt-0.5 w-[52px] flex-none font-mono text-[11px] text-muted">{s.time === 'done' ? '✓' : s.time}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12.5px] font-medium text-fg">{s.title}</span>
+              {s.clientName && <span className="mt-0.5 block truncate text-[11px] text-faint">{s.clientName}</span>}
+            </span>
+          </button>
+        ))}
+      </BandCard>
+
+      {/* Top Opportunities */}
+      <BandCard title="Top Opportunities" onViewAll={() => scrollToId('pipeline')}>
+        {data.pipeline.slice(0, 4).map(p => {
+          const heat = p.propensity >= 0.7 ? 'Hot' : p.propensity >= 0.45 ? 'Warm' : 'Cool';
+          const heatClass = p.propensity >= 0.7 ? 'bg-risk-bg text-risk' : p.propensity >= 0.45 ? 'bg-warn-bg text-warn' : 'bg-accent-bg text-accent';
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => selectOpportunityPanel(p)}
+              className="flex w-full items-center gap-2.5 py-2.5 text-left transition hover:opacity-80"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{p.clientName}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">{formatValue(p.amount, 'currencyCompact')} · {Math.round(p.propensity * 100)}%</span>
+              </span>
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${heatClass}`}>{heat}</span>
+            </button>
+          );
+        })}
+      </BandCard>
+    </div>
+  );
+
   return (
     <div className="pb-24">
-      {/* ---------- DAILY BRIEF (shared across both views) ---------- */}
-      <section id="brief" className="scroll-mt-[82px]">
-        <div className="relative overflow-hidden rounded-[26px] border border-line bg-surface-glass p-8 shadow-card">
-          <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-            <div>
-              <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
-                <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
-              </div>
-              <h1 className="mb-4 mt-3.5 font-display text-[40px] font-medium leading-[1.08] tracking-tight">
-                Good afternoon, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
-              </h1>
-              <p className="mb-6 max-w-[56ch] text-[15.5px] leading-relaxed text-fg">{data.aiBrief}</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
-                    <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
-                  </div>
-                  <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
+      {/* ---------- DAILY BRIEF (classic view only — the cockpit uses a compact
+           strip inside its left column so the context panel can align to the top) ---------- */}
+      {view !== 'cockpit' && (
+        <section id="brief" className="scroll-mt-[82px]">
+          <div className="relative overflow-hidden rounded-[26px] border border-line bg-surface-glass p-8 shadow-card">
+            <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+              <div>
+                <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
+                  <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
                 </div>
-                <button
-                  type="button"
-                  onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
-                  className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
-                >
-                  {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
-                </button>
-                <AskChip
-                  onClick={() =>
-                    openAi(
-                      'queue_rationale',
-                      'Why this order',
-                      "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
-                      queueContext(),
-                      queueFallback(),
-                    )
-                  }
-                >
-                  Ask why this order
-                </AskChip>
+                <h1 className="mb-4 mt-3.5 font-display text-[40px] font-medium leading-[1.08] tracking-tight">
+                  Good afternoon, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+                </h1>
+                <p className="mb-6 max-w-[56ch] text-[15.5px] leading-relaxed text-fg">{data.aiBrief}</p>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
+                      <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
+                    </div>
+                    <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
+                    className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
+                  >
+                    {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
+                  </button>
+                  <AskChip
+                    onClick={() =>
+                      openAi(
+                        'queue_rationale',
+                        'Why this order',
+                        "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
+                        queueContext(),
+                        queueFallback(),
+                      )
+                    }
+                  >
+                    Ask why this order
+                  </AskChip>
+                </div>
               </div>
+              {data.rightNow && !dismissed.has('rightNow') && (
+                <RightNowCard
+                  item={data.rightNow}
+                  onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
+                  onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
+                  onSnooze={() => {
+                    setDismissed(s => new Set(s).add('rightNow'));
+                    toast('Snoozed', 'Right Now item hidden for this session');
+                  }}
+                  onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
+                />
+              )}
             </div>
-            {data.rightNow && !dismissed.has('rightNow') && (
-              <RightNowCard
-                item={data.rightNow}
-                onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
-                onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
-                onSnooze={() => {
-                  setDismissed(s => new Set(s).add('rightNow'));
-                  toast('Snoozed', 'Right Now item hidden for this session');
-                }}
-                onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
-              />
-            )}
           </div>
-
-          {/* Portfolio pulse lives inside the today block in the cockpit view —
-              a slim strip across the foot of the daily brief. */}
-          {view === 'cockpit' && (
-            <div id="pulse" className="mt-6 scroll-mt-[82px] border-t border-line pt-6">{pulseStrip}</div>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
 
       {view === 'cockpit' ? (
         /* ==================== COCKPIT WORKSPACE ====================
-           An adaptive master-detail workspace: a center column carrying the
-           primary workflow (KPIs → the dominant priority queue → secondary
-           supporting modules) beside a sticky right context panel that changes
-           with whatever the banker selects. Left nav + pinned accounts live in
-           the CommandRail (see HomeLayout). */
-        <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-          {/* ---- CENTER: the primary workflow ---- */}
-          <div className="min-w-0">
-            {/* Vitals: compact KPI row */}
-            <section id="kpis" className="scroll-mt-[82px]">
-              {kpiGrid}
-            </section>
+           Master-detail command center matching the design mockup:
+             • left column: compact AI brief → 4 KPI vitals → Priority Queue +
+               Recommended Actions side-by-side
+             • right column: a sticky context panel (AI brief until a row is
+               clicked, then a tabbed Client-360)
+             • full-width supporting band (5 glance modules) with a
+               "Customize widgets / Show less" footer
+             • always-rendered detail modules below carry the CommandRail nav
+               anchors (#pipeline / #events / #leads / #pulse / #schedule).
+           Left nav + pinned accounts live in the CommandRail (see HomeLayout). */
+        <>
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_384px]">
+            {/* ---- LEFT: the primary workflow ---- */}
+            <div className="min-w-0">
+              {/* Compact AI Daily Brief strip */}
+              <section id="brief" className="scroll-mt-[82px]">
+                {briefStrip}
+              </section>
 
-            {/* THE dominant area — the ranked priority queue */}
-            <section id="queue" className="mt-5 scroll-mt-[82px]">
-              <div className="mb-3 flex items-end gap-2.5">
-                <div className="min-w-0">
-                  <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">Ranked · click to open context →</div>
-                  <h2 className="mt-0.5 font-display text-[22px] font-medium tracking-tight">Priority queue</h2>
-                </div>
-                <div className="ml-auto flex flex-none items-center gap-2">{queueControls}</div>
-              </div>
-              {queueBodyRanked}
-            </section>
+              {/* Vitals: four sparkline KPI cards */}
+              <section id="kpis" className="mt-4 scroll-mt-[82px]">
+                {kpiGridVitals}
+              </section>
 
-            {/* Supporting modules — secondary, in a 2-up grid */}
-            <div className="mt-5 grid items-start gap-3.5 lg:grid-cols-2">
-              <ColumnCard id="schedule" eyebrow="Tasks & meetings · book-wide" title="Tasks & schedule" controls={scheduleControls}>
-                {scheduleBody}
-              </ColumnCard>
-              <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended actions" controls={actionsControls}>
-                {buildActionsBody(true)}
-              </ColumnCard>
-              <ColumnCard id="pipeline" eyebrow="Open opportunities · by value" title="Pipeline" controls={pipelineControls}>
-                {pipelineBody}
-              </ColumnCard>
-              <div id="events" className="min-w-0 scroll-mt-[82px]">
-                <ColumnCard eyebrow="Data Cloud signals → opportunities" title="Life events">
-                  {lifeEventsBody}
-                  <div id="alerts" className="mt-3.5 scroll-mt-[82px]">{alertsBody}</div>
+              {/* Priority Queue + Recommended Actions, side by side */}
+              <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+                <section id="queue" className="min-w-0 scroll-mt-[82px]">
+                  <div className="mb-3 flex items-end gap-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">Ranked · click to open context →</div>
+                      <h2 className="mt-0.5 font-display text-[20px] font-medium tracking-tight">Priority Queue</h2>
+                    </div>
+                    <div className="ml-auto flex flex-none items-center gap-2">{queueControls}</div>
+                  </div>
+                  {queueBodyRanked}
+                </section>
+
+                <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended Actions" controls={actionsControls}>
+                  {buildActionsBody(true)}
                 </ColumnCard>
               </div>
-              <ColumnCard id="leads" eyebrow="Inbound · routed to you" title="Leads & referrals">
-                {leadsBody}
-              </ColumnCard>
+            </div>
+
+            {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
+            <div className="sticky top-[92px] min-w-0">
+              <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
             </div>
           </div>
 
-          {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
-          <div className="sticky top-[92px] min-w-0">
-            <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
+          {/* ---- Full-width supporting band + footer ---- */}
+          {bandExpanded && <div className="mt-4">{supportingBand}</div>}
+          <div className="mt-3 flex items-center">
+            <button
+              type="button"
+              onClick={() => toast('Customize widgets', 'Widget customization is coming soon')}
+              className="inline-flex items-center gap-2 font-mono text-[11.5px] text-muted transition hover:text-fg"
+            >
+              <Icon name="metrics" size={14} /> Customize widgets
+            </button>
+            <button
+              type="button"
+              onClick={() => setBandExpanded(v => !v)}
+              className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-1.5 text-[12px] text-muted transition hover:border-accent-border hover:text-fg"
+            >
+              {bandExpanded ? '⌃ Show less' : '⌄ Show more'}
+            </button>
+            <span className="w-[140px]" aria-hidden="true" />
           </div>
-        </div>
+
+          {/* ---- Detail modules — full-fidelity, and the home of the remaining
+               CommandRail nav anchors. Always rendered so #schedule / #pipeline /
+               #events / #leads / #pulse always resolve. ---- */}
+          <div className="mt-6 grid items-start gap-3.5 lg:grid-cols-2">
+            <ColumnCard id="schedule" eyebrow="Tasks & meetings · book-wide" title="Tasks & schedule" controls={scheduleControls}>
+              {scheduleBody}
+            </ColumnCard>
+            <ColumnCard id="pipeline" eyebrow="Open opportunities · by value" title="Pipeline" controls={pipelineControls}>
+              {pipelineBody}
+            </ColumnCard>
+            <div id="events" className="min-w-0 scroll-mt-[82px]">
+              <ColumnCard eyebrow="Data Cloud signals → opportunities" title="Life events">
+                {lifeEventsBody}
+                <div id="alerts" className="mt-3.5 scroll-mt-[82px]">{alertsBody}</div>
+              </ColumnCard>
+            </div>
+            <ColumnCard id="leads" eyebrow="Inbound · routed to you" title="Leads & referrals">
+              {leadsBody}
+            </ColumnCard>
+          </div>
+          <section id="pulse" className="mt-3.5 scroll-mt-[82px]">{pulseStrip}</section>
+        </>
       ) : (
         /* ==================== CURRENT VIEW (classic stacked) ==================== */
         <>
@@ -1172,6 +1433,56 @@ function KpiCard({ label, value, note, risk, onClick }: { label: string; value: 
   );
 }
 
+/**
+ * Cockpit vitals card — matches the mockup: label, big value, a sub-note, a
+ * signed delta row (green up / red down; red arrow for a risk metric even when
+ * the count rose), and a sparkline pinned to the card's foot. Trend/delta come
+ * from the KPI view model; both are optional so a bare metric still renders.
+ */
+function VitalCard({
+  label,
+  value,
+  note,
+  deltaPct,
+  trend,
+  risk,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  deltaPct?: number;
+  trend?: number[];
+  risk?: boolean;
+  onClick: () => void;
+}) {
+  const up = (deltaPct ?? 0) >= 0;
+  // For a risk metric a rise is bad, so tint the delta red regardless of sign.
+  const deltaClass = risk ? 'text-risk' : up ? 'text-ok' : 'text-risk';
+  const stroke = risk ? 'var(--wp-neg)' : 'var(--wp-accent)';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative flex flex-col overflow-hidden rounded-[16px] border border-line bg-surface p-4 text-left shadow-card transition hover:-translate-y-0.5 hover:border-accent-border"
+    >
+      <span className={`mb-2 block font-mono text-[10.5px] uppercase tracking-[0.14em] ${risk ? 'text-risk' : 'text-faint'}`}>{label}</span>
+      <div className={`font-display text-[27px] font-medium leading-none tracking-tight ${risk ? 'text-risk' : 'text-fg'}`}>{value}</div>
+      {note && <div className="mt-1.5 text-[11.5px] text-muted">{note}</div>}
+      <div className="mt-2.5 flex items-end justify-between gap-2">
+        {deltaPct != null ? (
+          <span className={`inline-flex items-center gap-1 font-mono text-[11px] ${deltaClass}`}>
+            {up ? '▲' : '▼'} {Math.abs(Math.round(deltaPct * 1000) / 10)}% <span className="text-faint">vs last</span>
+          </span>
+        ) : <span />}
+        {trend && trend.length > 0 && (
+          <Sparkline points={trend} width={68} height={26} stroke={stroke} fill className="flex-none opacity-90" />
+        )}
+      </div>
+    </button>
+  );
+}
+
 function QueueGroup({
   label,
   count,
@@ -1352,6 +1663,34 @@ function PulseCard({ label, value, note, tone }: { label: string; value: string;
       <div className={`font-display text-[30px] font-medium ${tone === 'warn' ? 'text-warn' : ''}`}>{value}</div>
       <div className="mt-2 text-[12.5px] text-muted">{note}</div>
     </div>
+  );
+}
+
+/** Tone → chip color for the Recent Activity glyphs in the supporting band. */
+const ACTIVITY_CHIP: Record<'positive' | 'opportunity' | 'risk' | 'neutral', string> = {
+  positive: 'bg-ok-bg text-ok',
+  opportunity: 'bg-accent-bg text-accent',
+  risk: 'bg-risk-bg text-risk',
+  neutral: 'bg-track text-muted',
+};
+
+/**
+ * A single column of the full-width supporting band — a titled card with a
+ * "View all →" link and divided rows. The band renders five of these side by
+ * side (2-up on md, 5-up on xl); the outer grid's `gap-px` on a `bg-line`
+ * background draws the hairline separators between columns.
+ */
+function BandCard({ title, onViewAll, children }: { title: string; onViewAll: () => void; children: ReactNode }) {
+  return (
+    <section className="min-w-0 bg-surface px-4 py-4">
+      <div className="mb-1 flex items-center gap-2">
+        <b className="truncate text-[12.5px] font-semibold">{title}</b>
+        <button type="button" onClick={onViewAll} className="ml-auto flex-none font-mono text-[10.5px] text-accent transition hover:opacity-80">
+          View all →
+        </button>
+      </div>
+      <div className="divide-y divide-line">{children}</div>
+    </section>
   );
 }
 
