@@ -4,8 +4,10 @@ import {
   CommandRail,
   HomeViewProvider,
   HomeViewToggle,
+  WorkspaceSelectionProvider,
   type CommandRailSection,
   type CommandRailArcStep,
+  type CommandRailPinned,
 } from '@shared';
 import { AppShell } from '../shell/AppShell';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -33,6 +35,13 @@ const RAIL_ARC: CommandRailArcStep[] = [
   { label: 'Cascade renewal terms', time: '16:00', state: 'todo' },
 ];
 
+/** Pinned accounts — clicking one selects it into the workspace right panel. */
+const RAIL_PINNED: CommandRailPinned[] = [
+  { name: 'Acme Manufacturing', sub: 'Middle Market · $42M' },
+  { name: 'Northwind Logistics', sub: 'Treasury · $61M' },
+  { name: 'Vertex Industrial', sub: 'Commercial · $35M' },
+];
+
 /**
  * HOME app layout — the relationship manager's landing experience that REPLACES
  * the standard Salesforce home page. The signature CommandRail replaces the
@@ -42,19 +51,22 @@ export default function HomeLayout() {
   return (
     <ThemeProvider persona="commercial" mode="light">
       <HomeViewProvider persona={APP_PERSONA}>
-        <AppShell
-          title="Relationship Command"
-          titleAside={<HomeViewToggle />}
-          sidebar={
-            <CommandRail
-              sections={RAIL_SECTIONS}
-              arc={RAIL_ARC}
-              user={{ name: 'Jose Sifontes', sub: 'Commercial · Cumulus FS' }}
-            />
-          }
-        >
-          <Outlet />
-        </AppShell>
+        <WorkspaceSelectionProvider>
+          <AppShell
+            title="Relationship Command"
+            titleAside={<HomeViewToggle />}
+            sidebar={
+              <CommandRail
+                sections={RAIL_SECTIONS}
+                arc={RAIL_ARC}
+                pinned={RAIL_PINNED}
+                user={{ name: 'Jose Sifontes', sub: 'Commercial · Cumulus FS' }}
+              />
+            }
+          >
+            <Outlet />
+          </AppShell>
+        </WorkspaceSelectionProvider>
       </HomeViewProvider>
     </ThemeProvider>
   );

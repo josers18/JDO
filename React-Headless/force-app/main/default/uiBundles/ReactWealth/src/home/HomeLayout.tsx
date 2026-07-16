@@ -4,8 +4,10 @@ import {
   CommandRail,
   HomeViewProvider,
   HomeViewToggle,
+  WorkspaceSelectionProvider,
   type CommandRailSection,
   type CommandRailArcStep,
+  type CommandRailPinned,
 } from '@shared';
 import { AppShell } from '../shell/AppShell';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -33,6 +35,13 @@ const RAIL_ARC: CommandRailArcStep[] = [
   { label: 'Priya ESG proposal', time: '16:00', state: 'todo' },
 ];
 
+/** Pinned accounts — clicking one selects it into the workspace right panel. */
+const RAIL_PINNED: CommandRailPinned[] = [
+  { name: 'Whitfield Family Trust', sub: 'UHNW · $18.6M' },
+  { name: 'Julie E Morris', sub: 'Private Wealth · $4.21M' },
+  { name: 'Robert Kessler', sub: 'Retiree · $5.6M' },
+];
+
 /**
  * HOME app layout — the advisor's landing experience that REPLACES the standard
  * Salesforce home page. The signature CommandRail replaces the built-in nav
@@ -42,19 +51,22 @@ export default function HomeLayout() {
   return (
     <ThemeProvider persona="wealth" mode="light">
       <HomeViewProvider persona={APP_PERSONA}>
-        <AppShell
-          title="Advisory Desk"
-          titleAside={<HomeViewToggle />}
-          sidebar={
-            <CommandRail
-              sections={RAIL_SECTIONS}
-              arc={RAIL_ARC}
-              user={{ name: 'Jose Sifontes', sub: 'Wealth · Cumulus FS' }}
-            />
-          }
-        >
-          <Outlet />
-        </AppShell>
+        <WorkspaceSelectionProvider>
+          <AppShell
+            title="Advisory Desk"
+            titleAside={<HomeViewToggle />}
+            sidebar={
+              <CommandRail
+                sections={RAIL_SECTIONS}
+                arc={RAIL_ARC}
+                pinned={RAIL_PINNED}
+                user={{ name: 'Jose Sifontes', sub: 'Wealth · Cumulus FS' }}
+              />
+            }
+          >
+            <Outlet />
+          </AppShell>
+        </WorkspaceSelectionProvider>
       </HomeViewProvider>
     </ThemeProvider>
   );

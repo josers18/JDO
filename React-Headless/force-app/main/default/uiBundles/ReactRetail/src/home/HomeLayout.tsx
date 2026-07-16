@@ -4,8 +4,10 @@ import {
   CommandRail,
   HomeViewProvider,
   HomeViewToggle,
+  WorkspaceSelectionProvider,
   type CommandRailSection,
   type CommandRailArcStep,
+  type CommandRailPinned,
 } from '@shared';
 import { AppShell } from '../shell/AppShell';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -33,6 +35,13 @@ const RAIL_ARC: CommandRailArcStep[] = [
   { label: 'Prep Omega close', time: '4:00', state: 'todo' },
 ];
 
+/** Pinned accounts — clicking one selects it into the workspace right panel. */
+const RAIL_PINNED: CommandRailPinned[] = [
+  { name: 'Julie E Morris', sub: 'Retail household · $1.24M' },
+  { name: 'Cooper Household', sub: 'Retail · at risk' },
+  { name: 'Bennett Family', sub: 'Mortgage · in progress' },
+];
+
 /**
  * HOME app layout — the banker's landing experience that REPLACES the standard
  * Salesforce home page. The signature CommandRail replaces the built-in nav
@@ -42,19 +51,22 @@ export default function HomeLayout() {
   return (
     <ThemeProvider persona="retail" mode="light">
       <HomeViewProvider persona={APP_PERSONA}>
-        <AppShell
-          title="Relationship Command Center"
-          titleAside={<HomeViewToggle />}
-          sidebar={
-            <CommandRail
-              sections={RAIL_SECTIONS}
-              arc={RAIL_ARC}
-              user={{ name: 'Jose Sifontes', sub: 'Retail · Cumulus FS' }}
-            />
-          }
-        >
-          <Outlet />
-        </AppShell>
+        <WorkspaceSelectionProvider>
+          <AppShell
+            title="Relationship Command Center"
+            titleAside={<HomeViewToggle />}
+            sidebar={
+              <CommandRail
+                sections={RAIL_SECTIONS}
+                arc={RAIL_ARC}
+                pinned={RAIL_PINNED}
+                user={{ name: 'Jose Sifontes', sub: 'Retail · Cumulus FS' }}
+              />
+            }
+          >
+            <Outlet />
+          </AppShell>
+        </WorkspaceSelectionProvider>
       </HomeViewProvider>
     </ThemeProvider>
   );

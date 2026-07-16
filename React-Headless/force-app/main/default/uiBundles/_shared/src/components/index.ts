@@ -30,7 +30,7 @@ export { NotificationBell, type Alert } from './NotificationBell';
 export { Button, type ButtonVariant, type ButtonSize } from './Button';
 export { Modal, CrmNote } from './Modal';
 export { ToastProvider, useToast } from './Toast';
-export { CommandRail, type CommandRailSection, type CommandRailArcStep } from './CommandRail';
+export { CommandRail, type CommandRailSection, type CommandRailArcStep, type CommandRailPinned } from './CommandRail';
 export { RightNowCard, type RightNowCardItem } from './RightNowCard';
 export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
 export { RecommendationCard, type RecommendationCardItem, type RecommendationKind } from './RecommendationCard';
@@ -58,6 +58,25 @@ export { useSpeech } from './home/useSpeech';
 export { QuickViewModal } from './home/QuickViewModal';
 export { WhyModal } from './home/WhyModal';
 export { DetailModal, type DetailModalData } from './home/DetailModal';
+export {
+  WorkspacePanel,
+  type WorkspaceSelection,
+  type WorkspaceSelectionKind,
+  type WorkspacePanelHandlers,
+  type WorkspaceBrief,
+  type WorkspaceFact,
+  type WorkspaceListItem,
+  type WorkspaceAgendaItem,
+  type ClientSelection,
+  type TaskSelection,
+  type OpportunitySelection,
+  type MeetingSelection,
+} from './home/WorkspacePanel';
+export {
+  WorkspaceSelectionProvider,
+  useWorkspaceSelection,
+  type PinnedClientRequest,
+} from './home/WorkspaceSelection';
 
 // ── Command-center configuration page ──────────────────────────
 export { ConfigPage } from './config/ConfigPage';

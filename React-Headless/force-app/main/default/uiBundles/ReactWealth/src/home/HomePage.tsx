@@ -23,6 +23,11 @@ import {
   WhyModal,
   DetailModal,
   type DetailModalData,
+  WorkspacePanel,
+  useWorkspaceSelection,
+  type WorkspaceSelection,
+  type WorkspaceBrief,
+  type WorkspacePanelHandlers,
   Icon,
   formatValue,
   crmWrite,
@@ -145,6 +150,15 @@ function HomeContent() {
   // slot, so one <DetailModal> at the page root serves every list.
   const [detailView, setDetailView] = useState<DetailModalData | null>(null);
 
+  // Right context panel selection for the cockpit workspace. Clicking any
+  // center row (client / task / opportunity / meeting) sets this; the panel
+  // renders the matching state, and `{ kind: 'none' }` shows the default brief.
+  const [selection, setSelection] = useState<WorkspaceSelection>({ kind: 'none' });
+  // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
+  // outside this component). A pin click bumps `pinnedRequest`; we resolve it
+  // into a full client selection below.
+  const { pinnedRequest } = useWorkspaceSelection();
+
   // Home layout mode. "current" = the classic stacked sections; "cockpit" = a
   // compact, column-dense grid. The selection lives in the app chrome (top-bar
   // segmented control) and is shared down through HomeViewProvider — see
@@ -164,6 +178,17 @@ function HomeContent() {
       alive = false;
     };
   }, []);
+
+  // A pinned-account click in the sidebar selects that client into the right
+  // panel. We resolve the name against the book here (the page owns the data)
+  // and build the compact-360 payload. Keyed on the request nonce so clicking
+  // the same account twice re-fires. Runs before the loading guard as a hook.
+  useEffect(() => {
+    if (!pinnedRequest || !data) return;
+    const call = data.callList.find(c => c.clientName === pinnedRequest.name);
+    setSelection(buildClientSelection(pinnedRequest.name, pinnedRequest.id ?? call?.clientId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedRequest?.nonce, data]);
 
   // Merge the configured model + params into an AI request for a given action.
   const withConfig = (
@@ -208,6 +233,101 @@ function HomeContent() {
   const openFull = (id?: string) => {
     if (id) navigate(`/client/${id}`);
     else toast('Full 360', 'Open the client record for the complete view');
+  };
+
+  // ── Right context panel: build a selection payload for each entity kind.
+  //    The panel is presentational; these builders turn a clicked row into the
+  //    render-ready shape the panel expects.
+  function buildClientSelection(name: string, id?: string): WorkspaceSelection {
+    const p = PROFILES[name];
+    // May be invoked from the pinnedRequest effect (which runs before the
+    // loading guard), so re-narrow the book optionally rather than assuming it.
+    const call = data?.callList.find(c => c.clientName === name);
+    const opps = data?.pipeline.filter(o => o.clientName === name) ?? [];
+    const events = data?.lifeEvents.filter(e => e.clientName === name) ?? [];
+    const signals = [
+      ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
+      ...opps.map(o => ({ label: o.name, sub: `${o.stage} · ${Math.round(o.propensity * 100)}%`, meta: formatValue(o.amount, 'currencyCompact') })),
+    ].slice(0, 5);
+    return {
+      kind: 'client',
+      id: id ?? call?.clientId,
+      name,
+      subtitle: `${p?.descriptor ?? call?.segment ?? 'Client'}${p?.since ? ` · since ${p.since}` : ''}`,
+      initials: p?.initials,
+      facts: [
+        { label: 'CSAT', value: p?.csat ?? '—', tone: (p?.csat ?? '').startsWith('Poor') ? 'risk' : undefined },
+        { label: 'Value', value: p?.value ?? (call ? formatValue(call.relationshipValue, 'currencyCompact') : '—') },
+        { label: 'Open cases', value: p?.openCases ?? '—' },
+      ],
+      summary: p?.recap ?? call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
+      signals,
+      nba: p?.nba ?? (call ? [call.action] : []),
+    };
+  }
+
+  const selectClientPanel = (name: string, id?: string) => setSelection(buildClientSelection(name, id));
+
+  const selectTaskPanel = (item: ScheduleItem) => {
+    const call = item.clientName ? data.callList.find(c => c.clientName === item.clientName) : undefined;
+    setSelection({
+      kind: 'task',
+      title: item.title,
+      client: item.clientName,
+      clientId: item.whatId ?? call?.clientId,
+      facts: [
+        { label: 'Type', value: item.kind[0].toUpperCase() + item.kind.slice(1) },
+        { label: 'Due', value: item.time || '—', tone: item.bucket === 'overdue' ? 'risk' : undefined },
+        { label: 'Priority', value: item.priority ?? (call?.severity === 'high' ? 'High' : 'Normal'), tone: (item.priority === 'High' || call?.severity === 'high') ? 'warn' : undefined },
+      ],
+      reason: call?.reason ?? item.description ?? 'Scheduled item on your book — no additional signal attached.',
+      steps: call ? [call.action, `Log the outcome against ${item.clientName}.`] : ['Review the record.', 'Log the outcome.'],
+    });
+  };
+
+  const selectOpportunityPanel = (o: PipelineItem) => {
+    const call = data.callList.find(c => c.clientName === o.clientName);
+    const events = data.lifeEvents.filter(e => e.clientName === o.clientName);
+    const hot = o.propensity >= 0.7;
+    setSelection({
+      kind: 'opportunity',
+      title: o.name,
+      client: o.clientName,
+      clientId: call?.clientId,
+      facts: [
+        { label: 'Amount', value: formatValue(o.amount, 'currencyCompact') },
+        { label: 'Propensity', value: `${Math.round(o.propensity * 100)}%`, tone: hot ? 'ok' : 'warn' },
+        { label: 'Stage', value: o.stage || '—' },
+      ],
+      signals: [
+        { label: 'Close date', sub: o.closeDate || 'Not set', meta: hot ? 'On track' : 'Watch' },
+        ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
+      ].slice(0, 5),
+      risks: hot ? undefined : `Propensity is ${Math.round(o.propensity * 100)}% — below the 70% confidence line. This deal is at risk of aging out without a next touch.`,
+      nextAction: call?.action ?? `Advance ${o.clientName} from ${o.stage}: confirm the next milestone and set a firm date.`,
+    });
+  };
+
+  const selectMeetingPanel = (item: ScheduleItem) => {
+    const call = item.clientName ? data.callList.find(c => c.clientName === item.clientName) : undefined;
+    const p = item.clientName ? PROFILES[item.clientName] : undefined;
+    setSelection({
+      kind: 'meeting',
+      title: item.title,
+      client: item.clientName,
+      clientId: item.whatId ?? call?.clientId,
+      facts: [
+        { label: 'Time', value: item.time || '—' },
+        { label: 'Type', value: item.kind[0].toUpperCase() + item.kind.slice(1) },
+        { label: 'Client', value: item.clientName ?? 'Internal' },
+      ],
+      agenda: p?.nba ?? (call ? [call.action] : ['Review relationship status', 'Confirm next steps']),
+      talkingPoints: p?.talk ? [p.talk] : (call ? [call.reason] : ['Open with the client’s most recent signal.']),
+      questions: [
+        'What has changed since we last spoke?',
+        call ? `How can we help with ${call.action.toLowerCase()}?` : 'What are your priorities this quarter?',
+      ],
+    });
   };
 
   // ── Read-only detail popups for list rows. Each builds a structured
@@ -363,6 +483,86 @@ function HomeContent() {
   const openAi = (task: 'queue_rationale' | 'pipeline_summary', title: string, prompt: string, context: string, fallback: string) =>
     setAiModal({ open: true, title, task, prompt, context, fallback });
 
+  // ── Row-click routing. In the cockpit view every center row drives the
+  //    right context panel; in the classic stacked view it opens the existing
+  //    modal/popup. Keeping both behaviors behind these helpers lets the body
+  //    fragments below stay single-sourced across the two layouts.
+  const onScheduleOpen = (item: ScheduleItem) => {
+    if (view === 'cockpit') {
+      if (item.kind === 'meeting' || item.kind === 'call') selectMeetingPanel(item);
+      else selectTaskPanel(item);
+      return;
+    }
+    setDetailItem(item);
+  };
+
+  // Intercept the queue row's "open quick view" in cockpit mode → select the
+  // client into the panel instead of opening the modal. The action-rail buttons
+  // (why/prep/call/email/task) still flow through `open` as normal.
+  const queueOpen = (type: ModalKind, name: string, id?: string, subject?: string, toAddress?: string) => {
+    if (view === 'cockpit' && type === 'quickview') {
+      selectClientPanel(name, id);
+      return;
+    }
+    open(type, name, id, subject, toAddress);
+  };
+
+  // Quick-prompt routing for the panel's default-state "Ask Agentforce" chips.
+  const askPrompt = (key: string) => {
+    if (key === 'overnight') {
+      openAi('queue_rationale', 'What changed overnight',
+        'Summarize what changed across this book overnight in 3-4 sentences: new signals, emerging risks, and fresh opportunities.',
+        queueContext(), queueFallback());
+    } else if (key === 'prep') {
+      openAi('pipeline_summary', 'Meetings needing prep',
+        'Which of today’s meetings and deals need the most preparation, and what should I focus on for each? 3-4 sentences.',
+        stalledContext(), stalledFallback());
+    } else {
+      openAi('queue_rationale', 'Which accounts need attention',
+        'Which accounts need attention today and why? List the top 3-4 with the single most important reason for each.',
+        queueContext(), queueFallback());
+    }
+  };
+
+  const panelHandlers: WorkspacePanelHandlers = {
+    onClear: () => setSelection({ kind: 'none' }),
+    onOpenClient: id => openFull(id),
+    onPrep: (name, id) => open('prep', name, id),
+    onSchedule: (name, id, subject) => open('schedule', name, id, subject ?? 'Call'),
+    onTask: (name, id, subject) => open('task', name, id, subject),
+    onEmail: (name, id) => open('email', name, id),
+    onAsk: askPrompt,
+    onAgenda: id => {
+      const item = data.schedule.find(s => s.id === id);
+      if (item) onScheduleOpen(item);
+    },
+    onSoft: (title, message) => toast(title, message),
+  };
+
+  // Default-state payload for the right panel — AI brief + pulse + agenda +
+  // top focus + quick prompts. Rebuilt each render from the live dashboard.
+  const workspaceBrief: WorkspaceBrief = {
+    greeting: `Today · ${data.dateLabel}`,
+    headline: data.aiBriefHeadline,
+    narrative: data.aiBrief,
+    confidencePct: data.confidencePct,
+    pulse: [
+      { label: 'Wins · 30d', value: '$0', tone: 'warn' },
+      { label: 'Activity · 7d', value: String(data.schedule.length) },
+    ],
+    agenda: data.schedule.map(s => ({ id: s.id, time: s.time, title: s.title, kind: s.kind, client: s.clientName })),
+    focus: data.callList.slice(0, 4).map(c => ({
+      label: c.clientName,
+      sub: c.reason,
+      meta: `${Math.round((c.score ?? 0) * 100)}%`,
+    })),
+    prompts: [
+      { key: 'overnight', label: 'What changed overnight?' },
+      { key: 'attention', label: 'Which accounts need attention?' },
+      { key: 'prep', label: 'What meetings need prep?' },
+    ],
+  };
+
   /* ── Section bodies (defined once, arranged differently per view) ──
      Each body is the section's content WITHOUT its heading, so the two
      layout branches below can wrap it in either a full-width <SectionHead>
@@ -390,14 +590,14 @@ function HomeContent() {
       <Button size="sm" variant="ghost" onClick={() => open('schedule', data.bankerName, undefined, 'Meeting')}>+ Meeting</Button>
     </>
   );
-  const scheduleBody = <ScheduleTable items={tagSchedule(data.schedule)} onOpen={setDetailItem} />;
+  const scheduleBody = <ScheduleTable items={tagSchedule(data.schedule)} onOpen={onScheduleOpen} />;
 
   const queueControls = <AskChip onClick={() => setDraftsOpen(true)}>Draft all follow-ups</AskChip>;
   const queueBody = (
     <>
       <QueueGroup label="Today" count={today.length} tier="Critical" tierClass="text-risk">
         {today.map(c => (
-          <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={open} />
+          <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={queueOpen} />
         ))}
       </QueueGroup>
       {week.length > 0 && (
@@ -417,14 +617,14 @@ function HomeContent() {
           }
         >
           {week.map(c => (
-            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={open} />
+            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={queueOpen} />
           ))}
         </QueueGroup>
       )}
       {watch.length > 0 && (
         <QueueGroup label="Watch" count={watch.length} tier="Lower urgency" tierClass="text-muted">
           {watch.map(c => (
-            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={open} />
+            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={queueOpen} />
           ))}
         </QueueGroup>
       )}
@@ -439,7 +639,7 @@ function HomeContent() {
   const queueBodyRanked = (
     <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
       {queueReveal.visible.map((c, i) => (
-        <QRow key={c.id} item={c} rank={i + 1} onOpen={open} />
+        <QRow key={c.id} item={c} rank={i + 1} onOpen={queueOpen} />
       ))}
       <RevealFooter reveal={queueReveal} noun="clients" />
     </div>
@@ -481,7 +681,7 @@ function HomeContent() {
   const lifeEventsBody = (
     <SectionPanel icon="lifeEvent" label="Life events across your book" right={<LinkBtn>Next 30 days</LinkBtn>}>
       {data.lifeEvents.map(e => (
-        <LifeRow key={e.id} event={e} onClick={() => showLifeEventDetail(e)} />
+        <LifeRow key={e.id} event={e} onClick={() => (view === 'cockpit' ? selectClientPanel(e.clientName, e.clientId) : showLifeEventDetail(e))} />
       ))}
     </SectionPanel>
   );
@@ -489,7 +689,7 @@ function HomeContent() {
   const alertsBody = (
     <SectionPanel icon="alerts" label="Alerts & signals" right={<LinkBtn>{data.alerts.length} open</LinkBtn>}>
       {data.alerts.map(a => (
-        <AlertRow key={a.id} alert={a} onClick={() => showAlertDetail(a)} />
+        <AlertRow key={a.id} alert={a} onClick={() => (view === 'cockpit' ? selectClientPanel(clientFromAlert(a.title)) : showAlertDetail(a))} />
       ))}
     </SectionPanel>
   );
@@ -530,7 +730,7 @@ function HomeContent() {
         </thead>
         <tbody>
           {pipelineReveal.visible.map(p => (
-            <PipeRow key={p.id} item={p} onClick={() => showPipelineDetail(p)} />
+            <PipeRow key={p.id} item={p} onClick={() => (view === 'cockpit' ? selectOpportunityPanel(p) : showPipelineDetail(p))} />
           ))}
         </tbody>
       </table>
@@ -679,42 +879,60 @@ function HomeContent() {
       </section>
 
       {view === 'cockpit' ? (
-        /* ==================== COCKPIT VIEW ==================== */
-        <>
-          {/* Vitals: 5 KPIs full-width (Portfolio pulse now lives in the today block) */}
-          <section id="kpis" className="mt-5 scroll-mt-[82px]">
-            {kpiGrid}
-          </section>
+        /* ==================== COCKPIT WORKSPACE ====================
+           An adaptive master-detail workspace: a center column carrying the
+           primary workflow (KPIs → the dominant priority queue → secondary
+           supporting modules) beside a sticky right context panel that changes
+           with whatever the banker selects. Left nav + pinned accounts live in
+           the CommandRail (see HomeLayout). */
+        <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+          {/* ---- CENTER: the primary workflow ---- */}
+          <div className="min-w-0">
+            {/* Vitals: compact KPI row */}
+            <section id="kpis" className="scroll-mt-[82px]">
+              {kpiGrid}
+            </section>
 
-          {/* Row A: Tasks & schedule · Who to act on today · Recommended actions */}
-          <div className="mt-5 grid gap-3.5 xl:grid-cols-3">
-            <ColumnCard id="schedule" eyebrow="Tasks & meetings · book-wide" title="Tasks & schedule" controls={scheduleControls}>
-              {scheduleBody}
-            </ColumnCard>
-            <ColumnCard id="queue" eyebrow="Ranked · click to open 360" title="Who to act on today" controls={queueControls}>
+            {/* THE dominant area — the ranked priority queue */}
+            <section id="queue" className="mt-5 scroll-mt-[82px]">
+              <div className="mb-3 flex items-end gap-2.5">
+                <div className="min-w-0">
+                  <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">Ranked · click to open context →</div>
+                  <h2 className="mt-0.5 font-display text-[22px] font-medium tracking-tight">Priority queue</h2>
+                </div>
+                <div className="ml-auto flex flex-none items-center gap-2">{queueControls}</div>
+              </div>
               {queueBodyRanked}
-            </ColumnCard>
-            <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended actions" controls={actionsControls}>
-              {buildActionsBody(true)}
-            </ColumnCard>
-          </div>
+            </section>
 
-          {/* Row B: Life events (+ Alerts under it) · Pipeline · Leads */}
-          <div className="mt-5 grid items-start gap-3.5 xl:grid-cols-3">
-            <div id="events" className="min-w-0 scroll-mt-[82px]">
-              <ColumnCard eyebrow="Data Cloud signals → opportunities" title="Life events">
-                {lifeEventsBody}
-                <div id="alerts" className="mt-3.5 scroll-mt-[82px]">{alertsBody}</div>
+            {/* Supporting modules — secondary, in a 2-up grid */}
+            <div className="mt-5 grid items-start gap-3.5 lg:grid-cols-2">
+              <ColumnCard id="schedule" eyebrow="Tasks & meetings · book-wide" title="Tasks & schedule" controls={scheduleControls}>
+                {scheduleBody}
+              </ColumnCard>
+              <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended actions" controls={actionsControls}>
+                {buildActionsBody(true)}
+              </ColumnCard>
+              <ColumnCard id="pipeline" eyebrow="Open opportunities · by value" title="Pipeline" controls={pipelineControls}>
+                {pipelineBody}
+              </ColumnCard>
+              <div id="events" className="min-w-0 scroll-mt-[82px]">
+                <ColumnCard eyebrow="Data Cloud signals → opportunities" title="Life events">
+                  {lifeEventsBody}
+                  <div id="alerts" className="mt-3.5 scroll-mt-[82px]">{alertsBody}</div>
+                </ColumnCard>
+              </div>
+              <ColumnCard id="leads" eyebrow="Inbound · routed to you" title="Leads & referrals">
+                {leadsBody}
               </ColumnCard>
             </div>
-            <ColumnCard id="pipeline" eyebrow="Open opportunities · by value" title="Pipeline" controls={pipelineControls}>
-              {pipelineBody}
-            </ColumnCard>
-            <ColumnCard id="leads" eyebrow="Inbound · routed to you" title="Leads & referrals">
-              {leadsBody}
-            </ColumnCard>
           </div>
-        </>
+
+          {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
+          <div className="sticky top-[92px] min-w-0">
+            <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
+          </div>
+        </div>
       ) : (
         /* ==================== CURRENT VIEW (classic stacked) ==================== */
         <>
