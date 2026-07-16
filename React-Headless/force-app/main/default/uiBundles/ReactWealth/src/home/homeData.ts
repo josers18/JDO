@@ -99,10 +99,10 @@ const DASH: HomeDashboard = {
     { id: 'a4', title: 'Plan on track', detail: 'David Osei — retirement readiness 94%', tone: 'positive', severity: 'Low', when: 'Yesterday' },
   ],
   leads: [
-    { id: 'l1', name: 'Eleanor Vance', source: 'Client Referral', status: 'Qualified', value: 3200000 },
-    { id: 'l2', name: 'Grace Liu', source: 'COI — Estate Attorney', status: 'Working', value: 1800000 },
-    { id: 'l3', name: 'Marcus Chen', source: 'Liquidity Event', status: 'New', value: 950000 },
-    { id: 'l4', name: 'Thomas Ferrand', source: 'Seminar', status: 'New', value: 640000 },
+    { id: 'l1', name: 'Eleanor Vance', source: 'Client Referral', status: 'Qualified', value: 3200000, email: 'eleanor.vance@example.com' },
+    { id: 'l2', name: 'Grace Liu', source: 'COI — Estate Attorney', status: 'Working', value: 1800000, email: 'grace.liu@example.com' },
+    { id: 'l3', name: 'Marcus Chen', source: 'Liquidity Event', status: 'New', value: 950000, email: 'marcus.chen@example.com' },
+    { id: 'l4', name: 'Thomas Ferrand', source: 'Seminar', status: 'New', value: 640000, email: 'thomas.ferrand@example.com' },
   ],
 };
 

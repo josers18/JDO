@@ -100,10 +100,10 @@ const DASH: HomeDashboard = {
     { id: 'a4', title: 'Deposit inflow', detail: 'Meridian Health — +$3.1M operating balance', tone: 'positive', severity: 'Low', when: 'Yesterday' },
   ],
   leads: [
-    { id: 'l1', name: 'Halcyon Robotics', source: 'COI — CPA Firm', status: 'Qualified', value: 22000000 },
-    { id: 'l2', name: 'Pinnacle Foods', source: 'Referral', status: 'Working', value: 14000000 },
-    { id: 'l3', name: 'Summit Aggregates', source: 'RFP', status: 'New', value: 9500000 },
-    { id: 'l4', name: 'Orion Freight', source: 'Industry Event', status: 'New', value: 6400000 },
+    { id: 'l1', name: 'Halcyon Robotics', source: 'COI — CPA Firm', status: 'Qualified', value: 22000000, email: 'treasury@halcyonrobotics.com' },
+    { id: 'l2', name: 'Pinnacle Foods', source: 'Referral', status: 'Working', value: 14000000, email: 'cfo@pinnaclefoods.com' },
+    { id: 'l3', name: 'Summit Aggregates', source: 'RFP', status: 'New', value: 9500000, email: 'finance@summitaggregates.com' },
+    { id: 'l4', name: 'Orion Freight', source: 'Industry Event', status: 'New', value: 6400000, email: 'ap@orionfreight.com' },
   ],
   delinquency: {
     totalDelinquentBalance: 4820000,

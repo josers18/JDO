@@ -95,12 +95,12 @@ const DASH: HomeDashboard = {
     { id: 'a4', title: 'Low CSAT — Sherry F Wang', detail: 'Poor · flagged today', tone: 'risk', severity: 'Medium', when: 'recent' },
   ],
   leads: [
-    { id: 'l1', name: 'Dan Hawes', source: 'Marketing Event', status: 'New', value: 56_000_000 },
-    { id: 'l2', name: 'Mellissa Lavender', source: 'Social Media', status: 'Unqualified', value: 54_000_000 },
-    { id: 'l3', name: 'Pearl Willson', source: 'Website', status: 'Working', value: 8_000_000 },
-    { id: 'l4', name: 'James Barker', source: 'Sales Bot', status: 'New', value: 0 },
-    { id: 'l5', name: 'Assa Barak', source: 'Sales Bot', status: 'New', value: 0 },
-    { id: 'l6', name: 'Daragh Dennehy', source: '—', status: 'New', value: 0 },
+    { id: 'l1', name: 'Dan Hawes', source: 'Marketing Event', status: 'New', value: 56_000_000, email: 'dhawes@example.com' },
+    { id: 'l2', name: 'Mellissa Lavender', source: 'Social Media', status: 'Unqualified', value: 54_000_000, email: 'mlavender@example.com' },
+    { id: 'l3', name: 'Pearl Willson', source: 'Website', status: 'Working', value: 8_000_000, email: 'pwillson@example.com' },
+    { id: 'l4', name: 'James Barker', source: 'Sales Bot', status: 'New', value: 0, email: 'james.barker@email.com' },
+    { id: 'l5', name: 'Assa Barak', source: 'Sales Bot', status: 'New', value: 0, email: 'assa.barak@gmail.com' },
+    { id: 'l6', name: 'Daragh Dennehy', source: '—', status: 'New', value: 0, email: 'ddennehy@salesforce.com' },
   ],
 };
 

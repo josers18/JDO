@@ -106,6 +106,10 @@ export interface LeadReferral {
   source: string;
   status: string;
   value: number;
+  /** Lead.Email — the recipient for the "email this lead" action. A Lead is
+   *  not an Account, so the EmailModal's Account-email lookup can't resolve it;
+   *  the address must ride along on the referral itself. '' when the Lead has none. */
+  email: string;
 }
 
 export interface HomeDashboard {

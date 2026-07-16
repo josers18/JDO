@@ -46,7 +46,7 @@ const HOME_CORE_QUERY = /* GraphQL */ `
           edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
         }
         Lead(first: 6, where: { IsConverted: { eq: false } }) {
-          edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } } }
+          edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
         }
       }
     }
@@ -255,6 +255,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     id: `l${i}`, name: s(e.node, 'Name') || s(e.node, 'Company') || 'Lead',
     source: s(e.node, 'LeadSource') || '—', status: s(e.node, 'Status') || 'New',
     value: num(e.node, 'AnnualRevenue'),
+    email: s(e.node, 'Email'),
   }));
 
   const pipeline: PipelineItem[] = (opp?.edges ?? []).slice(0, 8).map((e, i) => ({

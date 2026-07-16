@@ -93,7 +93,7 @@ const PROFILES: Record<string, ClientProfile> = {
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
 type ModalState =
   | { type: 'none' }
-  | { type: ModalKind; name: string; id?: string; subject?: string };
+  | { type: ModalKind; name: string; id?: string; subject?: string; toAddress?: string };
 
 const KIND_TO_ACTION: Record<Recommendation['kind'], CrmWriteInput['action']> = {
   task: 'task',
@@ -195,7 +195,7 @@ function HomeContent() {
     return <div className="animate-pulse p-8 text-muted">Loading your book…</div>;
   }
 
-  const open = (type: ModalKind, name: string, id?: string, subject?: string) => setModal({ type, name, id, subject });
+  const open = (type: ModalKind, name: string, id?: string, subject?: string, toAddress?: string) => setModal({ type, name, id, subject, toAddress });
   const close = () => setModal({ type: 'none' });
   const flowFor = (id?: string) => (modeFor('agentforce') === 'real' && id ? AGENTFORCE_FLOWS.account : undefined);
   const profileFor = (name: string) => PROFILES[name];
@@ -494,7 +494,7 @@ function HomeContent() {
         </thead>
         <tbody>
           {leadsReveal.visible.map(l => (
-            <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name)} />
+            <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name, undefined, undefined, l.email)} />
           ))}
         </tbody>
       </table>
@@ -729,7 +729,7 @@ function HomeContent() {
         <CaseModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} />
       )}
       {modal.type === 'email' && (
-        <EmailModal open onClose={close} clientName={modal.name} clientId={modal.id} promptFlow={flowFor(modal.id)} />
+        <EmailModal open onClose={close} clientName={modal.name} clientId={modal.id} toAddress={modal.toAddress} promptFlow={flowFor(modal.id)} />
       )}
       {modal.type === 'prep' && (
         <PrepModal
