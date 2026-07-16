@@ -943,7 +943,7 @@ function HomeContent() {
     return base + (rankOf(c) % 3);
   };
   const supportingBand = (
-    <div className="grid gap-px overflow-hidden rounded-card border border-line bg-line shadow-card md:grid-cols-2 xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line bg-line shadow-card sm:grid-cols-3 lg:grid-cols-5">
       {/* Recent Activity */}
       <BandCard title="Recent Activity" onViewAll={() => scrollToId('events')}>
         {data.activity.slice(0, 4).map(a => (
