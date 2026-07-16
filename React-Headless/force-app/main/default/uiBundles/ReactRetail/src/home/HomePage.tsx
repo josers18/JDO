@@ -179,11 +179,12 @@ function HomeContent() {
     fallback: string;
   } | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
-  // Cockpit "Show more / Show less" — the mockup's footer toggle. The compact
-  // supporting band is always shown; expanding reveals the full detail modules
-  // (pipeline table, life events, leads, portfolio pulse) below it, which also
-  // keep the CommandRail nav anchors (#pipeline / #events / #leads / #pulse) live.
-  const [bandExpanded, setBandExpanded] = useState(false);
+  // Cockpit "Show more / Show less" — the mockup's footer toggle. Defaults to
+  // EXPANDED so the five-column supporting band is visible on load (matching the
+  // design's "Show less" state); collapsing hides the band. The detail modules
+  // below (pipeline table, life events, leads, portfolio pulse) always render so
+  // the CommandRail nav anchors (#pipeline / #events / #leads / #pulse) stay live.
+  const [bandExpanded, setBandExpanded] = useState(true);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
@@ -943,7 +944,8 @@ function HomeContent() {
     return base + (rankOf(c) % 3);
   };
   const supportingBand = (
-    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line bg-line shadow-card sm:grid-cols-3 lg:grid-cols-5">
+    <div className="@container/band">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line bg-line shadow-card @[560px]/band:grid-cols-3 @[900px]/band:grid-cols-5">
       {/* Recent Activity */}
       <BandCard title="Recent Activity" onViewAll={() => scrollToId('events')}>
         {data.activity.slice(0, 4).map(a => (
@@ -1073,6 +1075,7 @@ function HomeContent() {
           );
         })}
       </BandCard>
+    </div>
     </div>
   );
 
