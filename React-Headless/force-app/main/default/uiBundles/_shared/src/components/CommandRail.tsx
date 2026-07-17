@@ -43,18 +43,16 @@ export function CommandRail({
   sections,
   arc,
   user,
-  pinned = [],
 }: {
   sections: CommandRailSection[];
   arc: CommandRailArcStep[];
   user: { name: string; sub: string };
-  /** Pinned accounts for quick access; clicking one selects it into the
-   *  workspace right panel via the shared selection bridge. */
-  pinned?: CommandRailPinned[];
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [active, setActive] = useState(sections[0]?.id ?? '');
-  const { selectClient } = useWorkspaceSelection();
+  // Pinned accounts + selection both come from the shared bridge; the list is
+  // owned there (seeded + persisted per persona) so pin/unpin stays live.
+  const { selectClient, pinned, togglePin } = useWorkspaceSelection();
 
   useEffect(() => {
     // The observed sections live in the main column and may not be in the DOM
@@ -166,28 +164,42 @@ export function CommandRail({
         })}
       </nav>
 
-      {/* Pinned accounts — quick jump into the right context panel */}
+      {/* Pinned accounts — quick jump into the right context panel. Pinning is
+          driven from the client panel (togglePin); each row can be unpinned via
+          the × that appears on hover. */}
       {!collapsed && pinned.length > 0 && (
         <div className="border-t border-line pt-3.5">
           <h4 className="mb-2 px-2 font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">Pinned accounts</h4>
           <div className="flex flex-col gap-0.5">
             {pinned.map(p => (
-              <button
+              <div
                 key={p.id ?? p.name}
-                type="button"
-                onClick={() => selectClient(p.name, p.id)}
-                title={`Open ${p.name}`}
-                className="group flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left transition hover:bg-surface-muted"
+                className="group flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition hover:bg-surface-muted"
               >
-                <span className="grid h-6 w-6 flex-none place-items-center rounded-[7px] bg-accent-bg text-[10px] font-bold text-accent">
-                  {p.name.trim().charAt(0).toUpperCase()}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-medium text-fg">{p.name}</span>
-                  {p.sub && <span className="block truncate text-[10.5px] text-faint">{p.sub}</span>}
-                </span>
-                <span aria-hidden="true" className="flex-none text-[11px] text-faint opacity-0 transition group-hover:opacity-100">›</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => selectClient(p.name, p.id)}
+                  title={`Open ${p.name}`}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  <span className="grid h-6 w-6 flex-none place-items-center rounded-[7px] bg-accent-bg text-[10px] font-bold text-accent">
+                    {p.name.trim().charAt(0).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12.5px] font-medium text-fg">{p.name}</span>
+                    {p.sub && <span className="block truncate text-[10.5px] text-faint">{p.sub}</span>}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => togglePin(p)}
+                  title={`Unpin ${p.name}`}
+                  aria-label={`Unpin ${p.name}`}
+                  className="grid h-5 w-5 flex-none place-items-center rounded-[6px] text-[12px] leading-none text-faint opacity-0 transition hover:bg-risk-bg hover:text-risk group-hover:opacity-100"
+                >
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
         </div>

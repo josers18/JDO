@@ -19,10 +19,12 @@ import { APP_PERSONA } from '../shell/appChrome';
  */
 const RAIL_SECTIONS: CommandRailSection[] = [
   { id: 'brief', label: 'Daily brief', icon: 'sparkle' },
+  { id: 'kpis', label: 'Key metrics', icon: 'metrics' },
+  { id: 'schedule', label: 'Tasks & schedule', icon: 'meeting' },
   { id: 'queue', label: 'Priority queue', icon: 'tasks', count: 5, tone: 'risk' },
   { id: 'actions', label: 'Recommended actions', icon: 'wand', count: 4, tone: 'ai' },
-  { id: 'kpis', label: 'Pulse metrics', icon: 'metrics' },
   { id: 'events', label: 'Life events', icon: 'lifeEvent', count: 4, tone: 'warn' },
+  { id: 'alerts', label: 'Risk alerts', icon: 'alerts', tone: 'risk' },
   { id: 'pipeline', label: 'Pipeline', icon: 'pipeline' },
   { id: 'leads', label: 'Leads & referrals', icon: 'leads', count: 4 },
   { id: 'pulse', label: 'Portfolio pulse', icon: 'pulse' },
@@ -51,7 +53,7 @@ export default function HomeLayout() {
   return (
     <ThemeProvider persona="commercial" mode="light">
       <HomeViewProvider persona={APP_PERSONA}>
-        <WorkspaceSelectionProvider>
+        <WorkspaceSelectionProvider initialPinned={RAIL_PINNED} storageKey="cumulus.pinned.commercial">
           <AppShell
             title="Relationship Command"
             titleAside={<HomeViewToggle />}
@@ -59,7 +61,6 @@ export default function HomeLayout() {
               <CommandRail
                 sections={RAIL_SECTIONS}
                 arc={RAIL_ARC}
-                pinned={RAIL_PINNED}
                 user={{ name: 'Jose Sifontes', sub: 'Commercial · Cumulus FS' }}
               />
             }

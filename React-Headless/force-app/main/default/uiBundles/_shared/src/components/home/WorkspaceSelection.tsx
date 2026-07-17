@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { CommandRailPinned } from '../CommandRail';
 
 /**
  * A pinned-account request raised from the sidebar. The sidebar knows only a
@@ -15,20 +16,83 @@ export interface PinnedClientRequest {
 
 interface WorkspaceSelectionValue {
   pinnedRequest: PinnedClientRequest | null;
+  /** Select a client into the right context panel (does NOT add to the rail). */
   selectClient: (name: string, id?: string) => void;
   clear: () => void;
+  /** The live pinned-accounts list shown in the CommandRail. */
+  pinned: CommandRailPinned[];
+  /** Whether an account (matched by id when present, else name) is pinned. */
+  isPinned: (item: { id?: string; name: string }) => boolean;
+  /** Add the account to the rail if absent, remove it if present. Persisted. */
+  togglePin: (item: CommandRailPinned) => void;
 }
 
 const WorkspaceSelectionContext = createContext<WorkspaceSelectionValue | null>(null);
 
+/** Two accounts are the same pin when their ids match, or (id absent) names match. */
+const samePin = (a: { id?: string; name: string }, b: { id?: string; name: string }) =>
+  a.id && b.id ? a.id === b.id : a.name === b.name;
+
 /**
  * Bridges the left sidebar's pinned-accounts block (which lives in the
- * per-persona layout, outside HomePage) to HomePage's right context panel.
- * Keeping the bridge in a shared context lets HomePage stay byte-identical
- * across the three persona bundles — neither side imports the other.
+ * per-persona layout, outside HomePage) to HomePage's right context panel, and
+ * OWNS the pinned-accounts list. Keeping both in a shared context lets HomePage
+ * stay byte-identical across the three persona bundles — neither side imports
+ * the other.
+ *
+ * The pinned list seeds from `initialPinned` and persists to localStorage under
+ * `storageKey` (persona-scoped), so a banker's pins survive reloads. A pin's
+ * identity is its id (or name when id-less), so re-seeding never duplicates a
+ * pin the user already toggled.
  */
-export function WorkspaceSelectionProvider({ children }: { children: ReactNode }) {
+export function WorkspaceSelectionProvider({
+  children,
+  initialPinned = [],
+  storageKey,
+}: {
+  children: ReactNode;
+  initialPinned?: CommandRailPinned[];
+  /** localStorage key for this persona's pins. Omit to disable persistence. */
+  storageKey?: string;
+}) {
   const [pinnedRequest, setPinnedRequest] = useState<PinnedClientRequest | null>(null);
+
+  // Hydrate from localStorage once (falling back to the seed), then persist on
+  // change. Reads are guarded — storage can throw in sandboxed frames.
+  const [pinned, setPinned] = useState<CommandRailPinned[]>(() => {
+    if (storageKey && typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          const parsed = JSON.parse(raw) as CommandRailPinned[];
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {
+        /* corrupt/unavailable storage → fall through to the seed */
+      }
+    }
+    return initialPinned;
+  });
+
+  useEffect(() => {
+    if (!storageKey || typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(pinned));
+    } catch {
+      /* quota/unavailable → in-memory only for this session */
+    }
+  }, [storageKey, pinned]);
+
+  const isPinned = useCallback(
+    (item: { id?: string; name: string }) => pinned.some(p => samePin(p, item)),
+    [pinned],
+  );
+
+  const togglePin = useCallback((item: CommandRailPinned) => {
+    setPinned(prev =>
+      prev.some(p => samePin(p, item)) ? prev.filter(p => !samePin(p, item)) : [...prev, item],
+    );
+  }, []);
 
   const value = useMemo<WorkspaceSelectionValue>(
     () => ({
@@ -36,8 +100,11 @@ export function WorkspaceSelectionProvider({ children }: { children: ReactNode }
       selectClient: (name, id) =>
         setPinnedRequest(prev => ({ id, name, nonce: (prev?.nonce ?? 0) + 1 })),
       clear: () => setPinnedRequest(null),
+      pinned,
+      isPinned,
+      togglePin,
     }),
-    [pinnedRequest],
+    [pinnedRequest, pinned, isPinned, togglePin],
   );
 
   return <WorkspaceSelectionContext.Provider value={value}>{children}</WorkspaceSelectionContext.Provider>;
@@ -54,6 +121,9 @@ export function useWorkspaceSelection(): WorkspaceSelectionValue {
       pinnedRequest: null,
       selectClient: () => {},
       clear: () => {},
+      pinned: [],
+      isPinned: () => false,
+      togglePin: () => {},
     }
   );
 }

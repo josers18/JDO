@@ -1168,7 +1168,7 @@ function HomeContent() {
                 <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
                   <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
                 </div>
-                <h1 className="mb-4 mt-3.5 font-display text-[40px] font-medium leading-[1.08] tracking-tight">
+                <h1 className="mb-4 mt-3.5 font-display text-[40px] font-semibold leading-[1.08] tracking-tight">
                   Good afternoon, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
                 </h1>
                 <p className="mb-6 max-w-[56ch] text-[15.5px] leading-relaxed text-fg">{data.aiBrief}</p>
@@ -1250,7 +1250,7 @@ function HomeContent() {
                   <div className="mb-3 flex items-end gap-2.5">
                     <div className="min-w-0">
                       <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">Ranked · click to open context →</div>
-                      <h2 className="mt-0.5 font-display text-[20px] font-medium tracking-tight">Priority Queue</h2>
+                      <h2 className="mt-0.5 font-display text-[20px] font-semibold tracking-tight">Priority Queue</h2>
                     </div>
                     <div className="ml-auto flex flex-none items-center gap-2">{queueControls}</div>
                   </div>
@@ -1649,7 +1649,7 @@ function SectionHead({ eyebrow, title, children }: { eyebrow: string; title: str
     <div className="mb-4 mt-11 flex items-end gap-3.5">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-faint">{eyebrow}</div>
-        <h2 className="mt-0.5 font-display text-[25px] font-medium tracking-tight">{title}</h2>
+        <h2 className="mt-0.5 font-display text-[25px] font-semibold tracking-tight">{title}</h2>
       </div>
       {children && <div className="ml-auto flex items-center gap-2.5">{children}</div>}
     </div>
@@ -1680,7 +1680,7 @@ function ColumnCard({
       <div className="mb-3 flex items-end gap-2.5">
         <div className="min-w-0">
           <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">{eyebrow}</div>
-          <h2 className="mt-0.5 font-display text-[19px] font-medium tracking-tight">{title}</h2>
+          <h2 className="mt-0.5 font-display text-[19px] font-semibold tracking-tight">{title}</h2>
         </div>
         {controls && <div className="ml-auto flex flex-none items-center gap-2">{controls}</div>}
       </div>
@@ -1698,7 +1698,7 @@ function KpiCard({ label, value, note, risk, onClick }: { label: string; value: 
     >
       <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-[3px] ${risk ? 'bg-risk' : 'bg-accent'}`} />
       <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-faint">{label}</span>
-      <div className={`font-display text-[29px] font-medium leading-none tracking-tight ${risk ? 'text-risk' : ''}`}>{value}</div>
+      <div className={`font-display text-[29px] font-semibold leading-none tracking-tight ${risk ? 'text-risk' : ''}`}>{value}</div>
       {note && <div className="mt-1.5 font-mono text-[11px] text-muted">{note}</div>}
     </button>
   );
@@ -1738,7 +1738,7 @@ function VitalCard({
       className="group relative flex flex-col overflow-hidden rounded-[16px] border border-line bg-surface p-4 text-left shadow-card transition hover:-translate-y-0.5 hover:border-accent-border"
     >
       <span className={`mb-2 block font-mono text-[10.5px] uppercase tracking-[0.14em] ${risk ? 'text-risk' : 'text-faint'}`}>{label}</span>
-      <div className={`font-display text-[27px] font-medium leading-none tracking-tight ${risk ? 'text-risk' : 'text-fg'}`}>{value}</div>
+      <div className={`font-display text-[27px] font-semibold leading-none tracking-tight ${risk ? 'text-risk' : 'text-fg'}`}>{value}</div>
       {note && <div className="mt-1.5 text-[11.5px] text-muted">{note}</div>}
       <div className="mt-2.5 flex items-end justify-between gap-2">
         {deltaPct != null ? (
@@ -1922,7 +1922,7 @@ function PulseStat({ label, value, tone }: { label: string; value: string; tone?
   return (
     <div className="flex-none text-right">
       <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</span>
-      <span className={`font-display text-[22px] font-medium leading-tight ${tone === 'warn' ? 'text-warn' : 'text-fg'}`}>{value}</span>
+      <span className={`font-display text-[22px] font-semibold leading-tight ${tone === 'warn' ? 'text-warn' : 'text-fg'}`}>{value}</span>
     </div>
   );
 }
@@ -1931,7 +1931,7 @@ function PulseCard({ label, value, note, tone }: { label: string; value: string;
   return (
     <div className="rounded-[16px] border border-line bg-surface p-5">
       <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-faint">{label}</span>
-      <div className={`font-display text-[30px] font-medium ${tone === 'warn' ? 'text-warn' : ''}`}>{value}</div>
+      <div className={`font-display text-[30px] font-semibold ${tone === 'warn' ? 'text-warn' : ''}`}>{value}</div>
       <div className="mt-2 text-[12.5px] text-muted">{note}</div>
     </div>
   );

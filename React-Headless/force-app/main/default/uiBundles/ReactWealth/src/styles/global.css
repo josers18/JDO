@@ -15,7 +15,7 @@
    persona + light/dark swaps propagate without per-component branching. */
 @theme {
   --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces Variable', Georgia, 'Times New Roman', serif;
+  --font-display: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   --color-bg: var(--wp-surface);

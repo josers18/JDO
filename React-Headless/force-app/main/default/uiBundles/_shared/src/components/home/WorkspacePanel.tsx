@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Button } from '../Button';
 import { HealthRing } from '../HealthRing';
 import { Icon, type IconKey } from '../iconMap';
+import { useWorkspaceSelection } from './WorkspaceSelection';
 
 /* ── Data contract ────────────────────────────────────────────────
    The right context panel is purely presentational: the page builds a
@@ -361,7 +362,7 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
   return (
     <div>
       <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">{brief.greeting}</div>
-      <h3 className="mt-1.5 font-display text-[19px] font-medium leading-snug tracking-tight">
+      <h3 className="mt-1.5 font-display text-[19px] font-semibold leading-snug tracking-tight">
         <span className="text-gradient-ai">{brief.headline}</span>
       </h3>
       <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{brief.narrative}</p>
@@ -419,9 +420,23 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
   );
 }
 
+/** A pushpin glyph — outline when unpinned, filled when pinned. */
+function PinGlyph({ filled }: { filled: boolean }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"
+      fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 4h6l-1 6 3 3H7l3-3-1-6z" />
+      <line x1="12" y1="13" x2="12" y2="20" />
+    </svg>
+  );
+}
+
 /* ── State 2: client selected (tabbed Client 360) ───────────────── */
 function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: WorkspacePanelHandlers }) {
   const [tab, setTab] = useState<ClientTab>('Overview');
+  const { isPinned, togglePin } = useWorkspaceSelection();
+  const pinned = isPinned({ id: sel.id, name: sel.name });
   const health = sel.healthScore;
   const tone = health != null ? healthTone(health) : null;
   const signalRows = sel.signalRows ?? [];
@@ -430,14 +445,14 @@ function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: Worksp
 
   return (
     <div>
-      {/* Identity row: avatar · name · priority chip */}
+      {/* Identity row: avatar · name · priority chip · pin toggle */}
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 flex-none place-items-center rounded-[13px] bg-gradient-ai text-[15px] font-bold text-white">
           {sel.initials ?? sel.name.trim().charAt(0).toUpperCase()}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate font-display text-[18px] font-medium leading-tight tracking-tight" title={sel.name}>{sel.name}</h3>
+            <h3 className="truncate font-display text-[18px] font-semibold leading-tight tracking-tight" title={sel.name}>{sel.name}</h3>
             {sel.priorityLabel && (
               <span className="flex-none rounded-full bg-risk-bg px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-risk">
                 {sel.priorityLabel}
@@ -446,6 +461,21 @@ function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: Worksp
           </div>
           {sel.subtitle && <div className="mt-0.5 truncate text-[12px] text-muted">{sel.subtitle}</div>}
         </div>
+        <button
+          type="button"
+          onClick={() => togglePin({ id: sel.id, name: sel.name, sub: sel.subtitle ?? sel.tier })}
+          title={pinned ? `Unpin ${sel.name} from sidebar` : `Pin ${sel.name} to sidebar`}
+          aria-label={pinned ? `Unpin ${sel.name}` : `Pin ${sel.name}`}
+          aria-pressed={pinned}
+          className={clsx(
+            'grid h-8 w-8 flex-none place-items-center rounded-[9px] border transition',
+            pinned
+              ? 'border-accent-border bg-accent-bg text-accent'
+              : 'border-line text-muted hover:border-accent-border hover:text-fg',
+          )}
+        >
+          <PinGlyph filled={pinned} />
+        </button>
       </div>
 
       {/* Tab bar */}
@@ -491,7 +521,7 @@ function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: Worksp
               {sel.relationshipValue && (
                 <div className="rounded-[13px] border border-line bg-bg px-3.5 py-3">
                   <span className="mb-1.5 block font-mono text-[9.5px] uppercase tracking-[0.12em] text-faint">Relationship value</span>
-                  <b className="block font-display text-[22px] font-medium leading-none tracking-tight text-fg">{sel.relationshipValue}</b>
+                  <b className="block font-display text-[22px] font-semibold leading-none tracking-tight text-fg">{sel.relationshipValue}</b>
                   {sel.valueDeltaPct != null && (
                     <span className={clsx('mt-1.5 block font-mono text-[10.5px]', sel.valueDeltaPct < 0 ? 'text-risk' : 'text-ok')}>
                       {sel.valueDeltaPct < 0 ? '▼' : '▲'} {Math.abs(sel.valueDeltaPct)}% vs last quarter
@@ -601,7 +631,7 @@ function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: Worksp
 function TaskState({ sel, handlers }: { sel: TaskSelection; handlers: WorkspacePanelHandlers }) {
   return (
     <div>
-      <h3 className="font-display text-[18px] font-medium leading-snug tracking-tight">{sel.title}</h3>
+      <h3 className="font-display text-[18px] font-semibold leading-snug tracking-tight">{sel.title}</h3>
       {sel.client && (
         <button
           type="button"
@@ -644,7 +674,7 @@ function TaskState({ sel, handlers }: { sel: TaskSelection; handlers: WorkspaceP
 function OpportunityState({ sel, handlers }: { sel: OpportunitySelection; handlers: WorkspacePanelHandlers }) {
   return (
     <div>
-      <h3 className="font-display text-[18px] font-medium leading-snug tracking-tight">{sel.title}</h3>
+      <h3 className="font-display text-[18px] font-semibold leading-snug tracking-tight">{sel.title}</h3>
       {sel.client && (
         <button
           type="button"
@@ -695,7 +725,7 @@ function OpportunityState({ sel, handlers }: { sel: OpportunitySelection; handle
 function MeetingState({ sel, handlers }: { sel: MeetingSelection; handlers: WorkspacePanelHandlers }) {
   return (
     <div>
-      <h3 className="font-display text-[18px] font-medium leading-snug tracking-tight">{sel.title}</h3>
+      <h3 className="font-display text-[18px] font-semibold leading-snug tracking-tight">{sel.title}</h3>
       {sel.client && (
         <button
           type="button"
