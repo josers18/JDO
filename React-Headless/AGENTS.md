@@ -19,7 +19,7 @@ Plus a `ReactHeadless` review harness (all three personas as routes for local pr
 - `@salesforce/agentforce-conversation-client` — real Agentforce chat embedded via Lightning Out 2.0 (`embedAgentforceClient`); reuses the app's authenticated session.
 - React Router (`createBrowserRouter`).
 - Vitest for unit tests; Playwright for e2e.
-- Apex REST bridges React → the platform (all `@RestResource`): `DcBridgeRest` (`/dc/query`, Data Cloud SQL), `DcPromptRest` (`/dc/prompt`, prompt flows), `AiGenerateRest` (`/ai/generate`, Einstein text generation), `CrmWriteRest` (`/crm/*`, record writes).
+- Apex REST bridges React → the platform (all `@RestResource`): `DcBridgeRest` (`/dc/query`, Data Cloud SQL), `DcPromptRest` (`/dc/prompt`, prompt flows), `AiGenerateRest` (`/ai/generate`, Einstein text generation), `CrmWriteRest` (`/crm/*`, record writes), `CommandCenterConfigRest` (`/config/*`, per-center AI config + model catalog). Plus `ModelCatalogProbe` — a `Queueable` that discovers live foundation models by probing them (no listing API exists) and caches survivors.
 - SFDX project, `sourceApiVersion` 67.0. Target org `jdo-1lrnov` (== `storm-16a17dc388fbe6`).
 
 # Project structure
@@ -29,17 +29,22 @@ force-app/main/default/
 ├── uiBundles/
 │   ├── _shared/          # NON-DEPLOYED source library, imported via the @shared alias.
 │   │   └── src/{theme,data,hooks,components,charts}/   # tokens+ThemeProvider, graphqlClient,
-│   │                                                   #   dataCloudClient, useAsyncData, primitives
+│   │                                                   #   dataCloudClient, useAsyncData, primitives,
+│   │                                                   #   components/config/ + data/{configClient,configCache},
+│   │                                                   #   components/home/{WorkspacePanel,DataExplorerModal,…}
+│   │                                                   #   + data/priorityQueue (queue blender)
 │   ├── ReactRetail/      # src/{home,client,data}/ — live-data cockpit
 │   ├── ReactWealth/      # live-data cockpit (real default, mock fallback)
 │   ├── ReactCommercial/  # live-data cockpit + Company Intel tab + Delinquency Watch
 │   └── ReactHeadless/    # review harness (personas as routes)
 ├── applications/         # <App>.app-meta.xml — CustomApplication, binds <uiBundle>c__<Name>
+├── objects/              # CommandCenterConfig__c — the config singleton (per-center JSON + model cache)
 ├── pages/                # <App>Launcher.page — VF "launch card", App Launcher bridge to the App Domain
 ├── tabs/                 # <App>App.tab — CustomTab (waffle-menu tile) targeting the launcher page
-├── permissionsets/       # <App>_Access — applicationVisibilities + tabSettings + pageAccesses
-└── classes/              # DcBridgeRest, DcPromptRest, AiGenerateRest, CrmWriteRest (+ tests) — the only Apex
-docs/                     # DEPLOYMENT_GUIDE.md, customer-360-inventory-and-gaps.md, plans/
+├── permissionsets/       # <App>_Access + CommandCenterConfigAdmin (config-field FLS)
+└── classes/              # DcBridgeRest, DcPromptRest, AiGenerateRest, CrmWriteRest, CommandCenterConfigRest,
+                          #   ModelCatalogProbe (+ tests) — the only Apex
+docs/                     # DEPLOYMENT_GUIDE.md, DEPENDENCY_MANAGEMENT.md, customer-360-inventory-and-gaps.md, plans/, specs/
 ```
 
 `_shared` is not a deployable UIBundle — it has a `.uibundle-meta.xml` but no `dist/`, so any source-scanning `sf` command (`delete source`, `retrieve start`) errors on it. Work around with manifest-based deploys.
@@ -77,6 +82,8 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 - **In-org surface** — a UIBundle becomes a Lightning app via a `CustomApplication` (`<uiType>Lightning</uiType>`, `<uiBundle>c__<Name></uiBundle>`) with `<target>CustomApplication</target>` on the bundle meta. It serves at the **Salesforce App Domain** (`…--c.<host>.my.salesforce.app/app/c__<Name>`), NOT `/lightning/app/<name>`.
 - **In-app chrome & AI** — each cockpit renders native-style Salesforce chrome inside the React shell (`_shared` `AppLauncher` 33-icon waffle, `GlobalSearch` multi-object, `UserMenu`, `NotificationBell`), plus real Agentforce chat via the Conversation Client (`AgentforceChat`, floating pink FAB). `AgentforceChat` also carries a 4-agent switcher — see Common mistakes for the re-embed rule.
 - **Banker AI actions & CRM writes** — the home surface turns AI briefs into one-click actions through `_shared/src/components/home/` modals (Task, Schedule, Email, Case, Prep, Why, QuickView, DraftFollowups, AiResult). Two client/bridge pairs back them: `aiGenerateClient` → `AiGenerateRest` (`/ai/generate`, Einstein text — composed-first with a graceful fallback so a model miss never blanks the UI) and `crmWriteClient` → `CrmWriteRest` (`/crm/*`, record inserts). Write modals take an `onSaved` hook (fires only after a successful `crmWrite`, before close) wired to `useAsyncData`'s `refetch()`, which bumps the fetch generation WITHOUT flipping `loading` so a newly-created task/meeting appears in place without a spinner. `accountLookup` auto-fills the email recipient straight from the client's Account record (`PersonEmail`, falling back to the primary Contact).
+- **Command-center cockpit view** — the banker home has two layouts behind a top-bar `HomeViewToggle` (`HomeViewProvider`, persisted per persona): the original stacked **Current list** and a **Cockpit** command center (compact AI brief → four-KPI sparkline **vitals** → **Priority Queue + Recommended Actions** side by side → tabbed customer-360 **`WorkspacePanel`** → full-width **supporting band**). Selection is master-detail: clicking a client/task/opp/meeting anywhere drives the sticky `WorkspacePanel` (`WorkspaceSelection` context; a localStorage `WorkspaceSelectionProvider` holds pinned accounts). Supporting-band cells open a `DataExplorerModal` (search/filter/table); a row there opens a stacked read-only `DetailModal`. The Priority Queue renders through `PriorityQueueCard`, fed by the shared **`buildPriorityQueue`** blender (`_shared/src/data/priorityQueue.ts`) — it merges the persona's signature risk feed with opportunity- and overdue-task-derived items, each carrying a signal-native `dueDate` so severities interleave when sorted by due date rather than clustering by severity.
+- **In-app Configuration & self-updating model catalog** — each cockpit carries a `/config` route (`ConfigPage`, `handle.label` "Configuration") where an admin picks, per generative AI action, which Agentforce Models API model runs it, plus generation params (temperature/max-tokens; *stored & clamped but not yet applied* — the Apex Models API binding exposes only a per-request model name). Settings are **org-level and shared**: one `CommandCenterConfig__c` singleton (DeveloperName `GLOBAL`), one JSON blob per center, read/written through `CommandCenterConfigRest` (`/config/*`) by `configClient`, and primed into `configCache` so the home page's next action uses them without a reload. The **model catalog is genuinely self-updating**: the org exposes no API that *lists* foundation models, so `ModelCatalogProbe` (Queueable) discovers live ones by *calling* a forward-looking candidate superset (a live model returns `Code200`, a retired one throws) and caches survivors onto `Model_Catalog_Cache__c`. `GET /config/models` serves that cache instantly and enqueues a background refresh when stale (24h TTL) or force-requested (`?refresh=1`, the "Refresh models" button), debounced 10 min so concurrent loads don't stack billable probe jobs — falling back to a curated list until the first probe lands.
 
 # Conventions
 
@@ -97,7 +104,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 ## Tests
 
-- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. Apex tests: `DcBridgeRestTest`, `DcPromptRestTest`, `AiGenerateRestTest`, `CrmWriteRestTest`.
+- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. Apex tests: `DcBridgeRestTest`, `DcPromptRestTest`, `AiGenerateRestTest`, `CrmWriteRestTest`, `CommandCenterConfigRestTest`.
 
 # Common mistakes
 
@@ -118,4 +125,5 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 - `docs/DEPENDENCY_MANAGEMENT.md` — npm advisory handling via `overrides` (transitive-dep fix pattern + scoped-override rule).
 - `docs/customer-360-inventory-and-gaps.md` — the live-page parity floor + Data Cloud gap analysis + settled content contract.
 - `docs/superpowers/plans/` — the foundation + persona implementation plans.
+- `docs/superpowers/specs/` — design specs (Aurora redesign, Company Intel, home AI actions, schedule modal, command-center configuration).
 - Sibling JDO projects (`DC_*_LWC`, `Cumulus_Assistant`, etc.) are reference context only.

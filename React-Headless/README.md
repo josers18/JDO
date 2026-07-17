@@ -88,6 +88,10 @@ Each cockpit is styled with the **Cumulus Aurora** design language (Fraunces + H
 
 The banker home turns AI briefs into **one-click actions**: generate/draft with Einstein (`AiGenerateRest` → `/ai/generate`, composed-first with a graceful fallback), and create records — tasks, meetings, emails, cases, follow-ups — through `CrmWriteRest` (`/crm/*`). Writes **refetch in place** (no spinner), so a task or meeting created from the page shows up immediately in its Overdue / Today / Upcoming bucket; the email recipient auto-fills from the client's Account record.
 
+Each cockpit also carries an in-app **Configuration** page (`/config`) where an admin picks which Agentforce model runs each generative action — from a **self-updating catalog** discovered by probing the org's live foundation models (there is no listing API) and cached on a `CommandCenterConfig__c` singleton via `CommandCenterConfigRest` (`/config/*`). Settings are org-level and shared; a "Refresh models" button forces a fresh discovery probe.
+
+The banker home ships **two layouts** behind a top-bar toggle: the original **Current** stacked list and a **Cockpit** command center (compact AI brief, sparkline KPI vitals, side-by-side Priority Queue + Recommended Actions, a tabbed customer-360 workspace panel that master-details off any row you click, and a supporting band whose cells drill into search/filter/table explorers). The **Priority Queue** is blended and dated — it merges each persona's signature risk signal (CSAT / credit / held-away) with open-opportunity and overdue-task items, each with a real due date, so it sorts into a genuinely mixed, ranked worklist.
+
 ## Layout
 
 ```
@@ -101,10 +105,11 @@ React-Headless/
 │   │   ├── ReactCommercial/             # Commercial cockpit
 │   │   └── ReactHeadless/               # review harness
 │   ├── applications/                    # CustomApplication per persona (uiBundle binding)
+│   ├── objects/                         # CommandCenterConfig__c — org-level AI config singleton
 │   ├── pages/                           # <App>Launcher VF pages — App Launcher bridge to the App Domain
 │   ├── tabs/                            # <App>App CustomTabs — the waffle-menu tiles
-│   ├── permissionsets/                  # <App>_Access (applicationVisibilities + tab/page access)
-│   └── classes/                         # Apex REST bridges: DcBridgeRest (/dc/query), DcPromptRest (/dc/prompt), AiGenerateRest (/ai/generate), CrmWriteRest (/crm/*)
+│   ├── permissionsets/                  # <App>_Access (app/tab/page access) + CommandCenterConfigAdmin (config FLS)
+│   └── classes/                         # Apex REST bridges: DcBridgeRest (/dc/query), DcPromptRest (/dc/prompt), AiGenerateRest (/ai/generate), CrmWriteRest (/crm/*), CommandCenterConfigRest (/config/*) + ModelCatalogProbe
 ├── docs/                                # DEPLOYMENT_GUIDE.md, customer-360 inventory, plans
 ├── AGENTS.md                            # project-context primer
 ├── CHANGELOG.md
