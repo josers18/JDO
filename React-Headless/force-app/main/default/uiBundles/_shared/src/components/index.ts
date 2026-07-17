@@ -58,6 +58,7 @@ export { useSpeech } from './home/useSpeech';
 export { QuickViewModal } from './home/QuickViewModal';
 export { WhyModal } from './home/WhyModal';
 export { DetailModal, type DetailModalData } from './home/DetailModal';
+export { DataExplorerModal, type ExplorerColumn, type ExplorerFilter } from './home/DataExplorerModal';
 export {
   WorkspacePanel,
   type WorkspaceSelection,

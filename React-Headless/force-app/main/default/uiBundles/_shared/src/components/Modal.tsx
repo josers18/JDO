@@ -17,6 +17,7 @@ export function Modal({
   tone = 'ai',
   footer,
   wide = false,
+  size,
   children,
 }: {
   open: boolean;
@@ -26,7 +27,10 @@ export function Modal({
   icon?: ReactNode;
   tone?: 'ai' | 'accent';
   footer?: ReactNode;
+  /** Legacy 720px width flag; prefer `size`. `size` wins when both are set. */
   wide?: boolean;
+  /** Panel width. 'sm'=600, 'md'=720, 'xl'=980 (data explorers). */
+  size?: 'sm' | 'md' | 'xl';
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -59,7 +63,7 @@ export function Modal({
         aria-label={title}
         className={clsx(
           'w-full overflow-hidden rounded-card border border-line-strong bg-surface shadow-pop',
-          wide ? 'max-w-[720px]' : 'max-w-[600px]',
+          (size ?? (wide ? 'md' : 'sm')) === 'xl' ? 'max-w-[980px]' : (size ?? (wide ? 'md' : 'sm')) === 'md' ? 'max-w-[720px]' : 'max-w-[600px]',
         )}
         style={{ animation: 'wp-fade-up 0.26s cubic-bezier(0.2,0.8,0.2,1) both' }}
       >

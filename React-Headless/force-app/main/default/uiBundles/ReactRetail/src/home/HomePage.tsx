@@ -25,6 +25,8 @@ import {
   WhyModal,
   DetailModal,
   type DetailModalData,
+  DataExplorerModal,
+  Pill,
   WorkspacePanel,
   useWorkspaceSelection,
   type WorkspaceSelection,
@@ -47,7 +49,7 @@ import {
   type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem } from './homeTypes';
+import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -185,6 +187,9 @@ function HomeContent() {
   // below (pipeline table, life events, leads, portfolio pulse) always render so
   // the CommandRail nav anchors (#pipeline / #events / #leads / #pulse) stay live.
   const [bandExpanded, setBandExpanded] = useState(true);
+  // Which supporting-band module is drilled into (its "View all →" was clicked).
+  // Null = no explorer open. One <DataExplorerModal> renders per key below.
+  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'agenda' | 'opportunities' | null>(null);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
@@ -945,15 +950,15 @@ function HomeContent() {
   };
   const supportingBand = (
     <div className="@container/band">
-    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line bg-line shadow-card @[560px]/band:grid-cols-3 @[900px]/band:grid-cols-5">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line-strong bg-line-strong shadow-card @[560px]/band:grid-cols-3 @[900px]/band:grid-cols-5">
       {/* Recent Activity */}
-      <BandCard title="Recent Activity" onViewAll={() => scrollToId('events')}>
+      <BandCard title="Recent Activity" onViewAll={() => setExplorer('activity')}>
         {data.activity.slice(0, 4).map(a => (
           <button
             key={a.id}
             type="button"
             onClick={() => (a.clientId || a.clientName ? selectClientPanel(a.clientName, a.clientId) : undefined)}
-            className="flex w-full items-start gap-2.5 py-2.5 text-left transition hover:opacity-80"
+            className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
           >
             <span className={`mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px] ${ACTIVITY_CHIP[a.tone]}`}>
               <Icon name={a.icon} size={13} />
@@ -967,24 +972,29 @@ function HomeContent() {
       </BandCard>
 
       {/* Pipeline Movement */}
-      <BandCard title="Pipeline Movement" onViewAll={() => scrollToId('pipeline')}>
+      <BandCard title="Pipeline Movement" onViewAll={() => setExplorer('pipelineMovement')}>
         {data.pipelineMovement.slice(0, 4).map(m => {
           const up = m.deltaPct >= 0;
           return (
-            <div key={m.id} className="flex items-center gap-2.5 py-2.5">
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setExplorer('pipelineMovement')}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
               <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-fg">{m.label}</span>
               <span className="flex-none text-right font-semibold text-[12.5px] text-fg">{formatValue(m.amount, 'currencyCompact')}</span>
               <span className={`flex-none font-mono text-[11px] ${up ? 'text-ok' : 'text-risk'}`}>
                 {up ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%
               </span>
               <Sparkline points={m.trend} width={44} height={20} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="flex-none opacity-90" />
-            </div>
+            </button>
           );
         })}
       </BandCard>
 
       {/* At-Risk Clients */}
-      <BandCard title="At-Risk Clients" onViewAll={() => scrollToId('queue')}>
+      <BandCard title="At-Risk Clients" onViewAll={() => setExplorer('atRisk')}>
         {atRiskClients.map(c => {
           const h = healthFor(c);
           return (
@@ -992,7 +1002,7 @@ function HomeContent() {
               key={c.id}
               type="button"
               onClick={() => selectClientPanel(c.clientName, c.clientId)}
-              className="flex w-full items-center gap-3 py-2.5 text-left transition hover:opacity-80"
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
             >
               <ScoreRing value={h} tone={h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok'} size={38} />
               <span className="min-w-0 flex-1">
@@ -1013,13 +1023,13 @@ function HomeContent() {
           to the full calendar. */}
       <BandCard
         title="Today's Agenda"
-        onViewAll={() => scrollToId('schedule')}
+        onViewAll={() => setExplorer('agenda')}
         headerIcon={<Icon name="event" size={14} />}
         divided={false}
         footer={
           <button
             type="button"
-            onClick={() => scrollToId('schedule')}
+            onClick={() => setExplorer('agenda')}
             className="font-mono text-[11px] font-medium text-accent transition hover:opacity-80"
           >
             View full calendar →
@@ -1036,7 +1046,7 @@ function HomeContent() {
               <button
                 type="button"
                 onClick={() => onScheduleOpen(s)}
-                className="flex w-full items-start gap-2.5 text-left transition hover:opacity-80"
+                className="-mr-2 flex w-[calc(100%+0.5rem)] items-start gap-2.5 rounded-[9px] px-2 py-1 text-left transition hover:bg-surface-muted"
               >
                 <span className="mt-px w-[54px] flex-none font-mono text-[11px] text-muted">{s.time === 'done' ? '✓' : s.time}</span>
                 <span className="min-w-0 flex-1">
@@ -1051,7 +1061,7 @@ function HomeContent() {
 
       {/* Top Opportunities — leading colored icon chip, "client – opp name",
           value + probability, and a Hot/Warm/Cool heat pill. */}
-      <BandCard title="Top Opportunities" onViewAll={() => scrollToId('pipeline')}>
+      <BandCard title="Top Opportunities" onViewAll={() => setExplorer('opportunities')}>
         {data.pipeline.slice(0, 4).map(p => {
           const heat = p.propensity >= 0.7 ? 'Hot' : p.propensity >= 0.45 ? 'Warm' : 'Cool';
           const heatClass = p.propensity >= 0.7 ? 'bg-risk-bg text-risk' : p.propensity >= 0.45 ? 'bg-warn-bg text-warn' : 'bg-accent-bg text-accent';
@@ -1061,7 +1071,7 @@ function HomeContent() {
               key={p.id}
               type="button"
               onClick={() => selectOpportunityPanel(p)}
-              className="flex w-full items-center gap-2.5 py-2.5 text-left transition hover:opacity-80"
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
             >
               <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${chipClass}`}>
                 <Icon name="pipeline" size={13} />
@@ -1308,6 +1318,154 @@ function HomeContent() {
         onSaved={refetch}
       />
       <DetailModal data={detailView} onClose={() => setDetailView(null)} />
+
+      {/* ---- Supporting-band drill-in explorers (one per "View all →") ---- */}
+      <DataExplorerModal<ActivityItem>
+        open={explorer === 'activity'}
+        onClose={() => setExplorer(null)}
+        title="Recent Activity"
+        subtitle="All account activity across your book"
+        icon={<Icon name="pulse" size={17} />}
+        rows={data.activity}
+        searchPlaceholder="Search activity, clients…"
+        searchText={a => `${a.title} ${a.clientName} ${a.tone}`}
+        rowKey={a => a.id}
+        onRowClick={a => { setExplorer(null); if (a.clientId || a.clientName) selectClientPanel(a.clientName, a.clientId); }}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'risk', label: 'Risk', test: a => a.tone === 'risk' },
+          { key: 'opportunity', label: 'Opportunity', test: a => a.tone === 'opportunity' },
+          { key: 'positive', label: 'Positive', test: a => a.tone === 'positive' },
+        ]}
+        columns={[
+          { key: 'act', label: 'Activity', render: a => (
+            <span className="flex items-center gap-2.5">
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${ACTIVITY_CHIP[a.tone]}`}><Icon name={a.icon} size={13} /></span>
+              <span className="font-medium text-fg">{a.title}</span>
+            </span>
+          ) },
+          { key: 'client', label: 'Client', render: a => a.clientName, hideBelow: 'sm' },
+          { key: 'when', label: 'When', align: 'right', render: a => <span className="font-mono text-[11px] text-faint">{a.when}</span> },
+        ]}
+        footNote="Source · Data Cloud"
+      />
+
+      <DataExplorerModal<PipelineMovement>
+        open={explorer === 'pipelineMovement'}
+        onClose={() => setExplorer(null)}
+        title="Pipeline Movement"
+        subtitle="Week-over-week change by product line"
+        icon={<Icon name="metrics" size={17} />}
+        rows={data.pipelineMovement}
+        searchPlaceholder="Search product lines…"
+        searchText={m => m.label}
+        rowKey={m => m.id}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'up', label: 'Gaining', test: m => m.deltaPct >= 0 },
+          { key: 'down', label: 'Declining', test: m => m.deltaPct < 0 },
+        ]}
+        columns={[
+          { key: 'label', label: 'Product line', render: m => <span className="font-medium text-fg">{m.label}</span> },
+          { key: 'amount', label: 'Value', align: 'right', render: m => <span className="font-semibold">{formatValue(m.amount, 'currencyCompact')}</span> },
+          { key: 'delta', label: 'Change', align: 'right', render: m => (
+            <span className={`font-mono ${m.deltaPct >= 0 ? 'text-ok' : 'text-risk'}`}>{m.deltaPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%</span>
+          ) },
+          { key: 'trend', label: 'Trend', align: 'right', hideBelow: 'sm', render: m => (
+            <Sparkline points={m.trend} width={70} height={22} stroke={m.deltaPct >= 0 ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="ml-auto" />
+          ) },
+        ]}
+        footNote="Source · CRM pipeline"
+      />
+
+      <DataExplorerModal<CallItem>
+        open={explorer === 'atRisk'}
+        onClose={() => setExplorer(null)}
+        title="At-Risk Clients"
+        subtitle="Health scores and attention drivers"
+        icon={<Icon name="alerts" size={17} />}
+        rows={data.callList}
+        searchPlaceholder="Search clients, reasons…"
+        searchText={c => `${c.clientName} ${c.segment} ${c.reason} ${c.severity}`}
+        rowKey={c => c.id}
+        onRowClick={c => { setExplorer(null); selectClientPanel(c.clientName, c.clientId); }}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'high', label: 'High', test: c => c.severity === 'high' },
+          { key: 'medium', label: 'Medium', test: c => c.severity === 'medium' },
+          { key: 'low', label: 'Low', test: c => c.severity === 'low' },
+        ]}
+        columns={[
+          { key: 'health', label: 'Health', render: c => { const h = healthFor(c); return <ScoreRing value={h} tone={h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok'} size={34} />; }, className: 'w-[70px]' },
+          { key: 'client', label: 'Client', render: c => (
+            <span className="min-w-0"><span className="block font-semibold text-fg">{c.clientName}</span><span className="block text-[11px] text-faint">{c.segment}</span></span>
+          ) },
+          { key: 'reason', label: 'Driver', render: c => <span className="text-muted">{c.reason}</span>, hideBelow: 'md' },
+          { key: 'sev', label: 'Severity', align: 'right', render: c => (
+            <Pill tone={c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'neutral'}>{c.severity}</Pill>
+          ) },
+        ]}
+        footNote="Source · CSAT + Data Cloud signals"
+      />
+
+      <DataExplorerModal<ScheduleItem>
+        open={explorer === 'agenda'}
+        onClose={() => setExplorer(null)}
+        title="Calendar & Agenda"
+        subtitle="Tasks and meetings across your book"
+        icon={<Icon name="event" size={17} />}
+        rows={tagSchedule(data.schedule)}
+        searchPlaceholder="Search tasks, meetings…"
+        searchText={s => `${s.title} ${s.clientName ?? ''} ${s.kind} ${s.bucket ?? ''}`}
+        rowKey={(s, i) => s.id ?? String(i)}
+        onRowClick={s => { setExplorer(null); onScheduleOpen(s); }}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'overdue', label: 'Overdue', test: s => s.bucket === 'overdue' },
+          { key: 'today', label: 'Today', test: s => s.bucket === 'today' },
+          { key: 'upcoming', label: 'Upcoming', test: s => s.bucket === 'upcoming' },
+        ]}
+        columns={[
+          { key: 'when', label: 'When', render: s => <span className="font-mono text-[11px] text-muted">{s.time === 'done' ? '✓' : s.time}</span>, className: 'w-[110px]' },
+          { key: 'title', label: 'Item', render: s => (
+            <span className="min-w-0"><span className="block font-semibold text-fg">{s.title}</span>{s.clientName && <span className="block text-[11px] text-faint">{s.clientName}</span>}</span>
+          ) },
+          { key: 'kind', label: 'Type', align: 'right', hideBelow: 'sm', render: s => <Pill tone="accent">{s.kind}</Pill> },
+          { key: 'bucket', label: 'Status', align: 'right', render: s => (
+            <Pill tone={s.bucket === 'overdue' ? 'risk' : s.bucket === 'today' ? 'accent' : 'neutral'}>{s.bucket ?? 'upcoming'}</Pill>
+          ) },
+        ]}
+        footNote="Source · CRM tasks & events"
+      />
+
+      <DataExplorerModal<PipelineItem>
+        open={explorer === 'opportunities'}
+        onClose={() => setExplorer(null)}
+        title="Top Opportunities"
+        subtitle="Open pipeline by value and propensity"
+        icon={<Icon name="pipeline" size={17} />}
+        rows={data.pipeline}
+        searchPlaceholder="Search opportunities, clients…"
+        searchText={p => `${p.clientName} ${p.name} ${p.stage}`}
+        rowKey={p => p.id}
+        onRowClick={p => { setExplorer(null); selectOpportunityPanel(p); }}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'hot', label: 'Hot', test: p => p.propensity >= 0.7 },
+          { key: 'warm', label: 'Warm', test: p => p.propensity >= 0.45 && p.propensity < 0.7 },
+          { key: 'cool', label: 'Cool', test: p => p.propensity < 0.45 },
+        ]}
+        columns={[
+          { key: 'client', label: 'Client', render: p => <span className="font-semibold text-fg">{p.clientName}</span> },
+          { key: 'opp', label: 'Opportunity', render: p => <span className="text-muted">{p.name}</span>, hideBelow: 'sm' },
+          { key: 'stage', label: 'Stage', render: p => <Pill tone="neutral">{p.stage || '—'}</Pill>, hideBelow: 'md' },
+          { key: 'prop', label: 'Propensity', align: 'right', render: p => (
+            <Pill tone={p.propensity >= 0.7 ? 'ok' : p.propensity >= 0.45 ? 'warn' : 'accent'}>{Math.round(p.propensity * 100)}%</Pill>
+          ) },
+          { key: 'amount', label: 'Amount', align: 'right', render: p => <span className="font-semibold">{formatValue(p.amount, 'currencyCompact')}</span> },
+        ]}
+        footNote="Source · CRM pipeline"
+      />
       {modal.type === 'case' && (
         <CaseModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} />
       )}
