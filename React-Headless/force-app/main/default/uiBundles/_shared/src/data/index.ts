@@ -1,4 +1,10 @@
 export { executeGraphQL } from './graphqlClient';
+export {
+  buildPriorityQueue,
+  type QueueSignalItem,
+  type QueueOppInput,
+  type QueueTaskInput,
+} from './priorityQueue';
 export { queryDataCloud, type DataCloudColumn, type DataCloudResult } from './dataCloudClient';
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, type CrmAction, type CrmWriteInput, type CrmWriteResult } from './crmWriteClient';

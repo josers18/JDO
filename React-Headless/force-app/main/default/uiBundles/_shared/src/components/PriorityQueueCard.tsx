@@ -20,17 +20,25 @@ export interface PriorityQueueCardItem {
   severity: QueueSeverity;
   /** 0..1 AI priority score — the default sort key. */
   score: number;
-  /** Drives the "Due …" label + its urgency tone. */
+  /** Coarse tier — retained for callers/consumers that still read it. */
   tier?: QueueDueTier;
+  /** Signal-native ISO due date (YYYY-MM-DD). Drives the "Due …" label +
+   *  the "Due date" sort. When present it supersedes `tier`. */
+  dueDate?: string;
 }
 
 type SortKey = 'priority' | 'due';
 
-/** Severity → the shared token family (badge bg, pill, emphasis bar). */
+/**
+ * Severity → ONE color family, shared by the numbered badge AND the pill so the
+ * number's color always corresponds to its severity chip (Request C3). The badge
+ * is the solid fill; the pill is the soft-bg/foreground pair of the SAME hue.
+ *   high → risk (red) · medium → warn (amber) · low → accent (persona blue)
+ */
 const SEV_BADGE: Record<QueueSeverity, string> = {
   high: 'bg-risk text-white',
   medium: 'bg-warn text-white',
-  low: 'bg-ok text-white',
+  low: 'bg-accent text-white',
 };
 const SEV_PILL: Record<QueueSeverity, string> = {
   high: 'bg-risk-bg text-risk',
@@ -39,14 +47,56 @@ const SEV_PILL: Record<QueueSeverity, string> = {
 };
 const SEV_LABEL: Record<QueueSeverity, string> = { high: 'High', medium: 'Medium', low: 'Low' };
 const SEV_RANK: Record<QueueSeverity, number> = { high: 0, medium: 1, low: 2 };
-
-/** Tier → due label + tone. Honest to the data we have (no per-row due date). */
-const DUE: Record<QueueDueTier, { label: string; tone: string }> = {
-  today: { label: 'Due today', tone: 'text-risk' },
-  week: { label: 'Due this week', tone: 'text-muted' },
-  watch: { label: 'Later', tone: 'text-faint' },
+/** Top-item emphasis (left bar + tint) — SAME hue as the badge/pill. */
+const SEV_BAR: Record<QueueSeverity, string> = { high: 'bg-risk', medium: 'bg-warn', low: 'bg-accent' };
+const SEV_TINT: Record<QueueSeverity, string> = {
+  high: 'bg-risk-bg/40',
+  medium: 'bg-warn-bg/40',
+  low: 'bg-accent-bg/30',
 };
-const DUE_RANK: Record<QueueDueTier, number> = { today: 0, week: 1, watch: 2 };
+
+const DAY = 86_400_000;
+const startOfToday = () => {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+};
+
+/** Whole-day delta from today (negative = overdue), or null if no date. */
+function daysUntil(dueDate: string | undefined, today: Date): number | null {
+  if (!dueDate) return null;
+  const d = new Date(dueDate + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.round((d.getTime() - today.getTime()) / DAY);
+}
+
+/**
+ * Signal-native due label + urgency tone (Request C4). Prefers the real
+ * `dueDate`; falls back to the coarse `tier` only when no date is present.
+ */
+function dueLabelFor(item: PriorityQueueCardItem, today: Date): { label: string; tone: string } {
+  const diff = daysUntil(item.dueDate, today);
+  if (diff === null) {
+    // Legacy fallback — tier-only rows.
+    if (item.tier === 'today') return { label: 'Due today', tone: 'text-risk' };
+    if (item.tier === 'week') return { label: 'Due this week', tone: 'text-muted' };
+    return { label: 'Later', tone: 'text-faint' };
+  }
+  if (diff < 0) {
+    const n = Math.abs(diff);
+    return { label: n === 1 ? 'Overdue 1 day' : `Overdue ${n} days`, tone: 'text-risk' };
+  }
+  if (diff === 0) return { label: 'Due today', tone: 'text-risk' };
+  if (diff === 1) return { label: 'Due tomorrow', tone: 'text-warn' };
+  if (diff <= 7) return { label: `Due in ${diff} days`, tone: 'text-muted' };
+  const d = new Date(item.dueDate! + 'T00:00:00');
+  return { label: `Due ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, tone: 'text-faint' };
+}
+
+/** Sort key for "Due date" — real date ascending (overdue first), undated last. */
+function dueSortValue(item: PriorityQueueCardItem, today: Date): number {
+  const diff = daysUntil(item.dueDate, today);
+  return diff === null ? Number.MAX_SAFE_INTEGER : diff;
+}
 
 /**
  * The command-center Priority Queue card. Owns its header (title + count-labeled
@@ -74,6 +124,7 @@ export function PriorityQueueCard<T extends PriorityQueueCardItem>({
 }) {
   const [filter, setFilter] = useState<'all' | QueueSeverity>('all');
   const [sort, setSort] = useState<SortKey>('priority');
+  const today = useMemo(() => startOfToday(), []);
 
   const counts = useMemo(() => {
     const c = { all: items.length, high: 0, medium: 0, low: 0 };
@@ -85,7 +136,9 @@ export function PriorityQueueCard<T extends PriorityQueueCardItem>({
     const filtered = filter === 'all' ? items : items.filter(it => it.severity === filter);
     const sorted = [...filtered].sort((a, b) => {
       if (sort === 'due') {
-        const d = DUE_RANK[a.tier ?? 'watch'] - DUE_RANK[b.tier ?? 'watch'];
+        // Real dates ascending — a Medium due today outranks a High due next week,
+        // so severities interleave ("mixed") instead of clustering.
+        const d = dueSortValue(a, today) - dueSortValue(b, today);
         if (d !== 0) return d;
       }
       // Priority: severity first, then score — keeps High above a high-scoring Low.
@@ -94,7 +147,7 @@ export function PriorityQueueCard<T extends PriorityQueueCardItem>({
       return (b.score ?? 0) - (a.score ?? 0);
     });
     return sorted;
-  }, [items, filter, sort]);
+  }, [items, filter, sort, today]);
 
   const CHIPS: Array<{ key: 'all' | QueueSeverity; label: string; n: number }> = [
     { key: 'all', label: 'All', n: counts.all },
@@ -158,7 +211,7 @@ export function PriorityQueueCard<T extends PriorityQueueCardItem>({
         ) : (
           rows.map((item, i) => {
             const emphasis = i === 0;
-            const due = DUE[item.tier ?? 'watch'];
+            const due = dueLabelFor(item, today);
             return (
               <div
                 key={item.id}
@@ -173,16 +226,13 @@ export function PriorityQueueCard<T extends PriorityQueueCardItem>({
                 }}
                 className={clsx(
                   'group relative flex cursor-pointer items-center gap-3.5 border-b border-line px-5 py-3.5 transition last:border-b-0 hover:bg-surface-muted',
-                  emphasis && (item.severity === 'high' ? 'bg-risk-bg/40' : 'bg-accent-bg/30'),
+                  emphasis && SEV_TINT[item.severity],
                 )}
               >
                 {emphasis && (
                   <span
                     aria-hidden="true"
-                    className={clsx(
-                      'absolute inset-y-0 left-0 w-[3px]',
-                      item.severity === 'high' ? 'bg-risk' : 'bg-accent',
-                    )}
+                    className={clsx('absolute inset-y-0 left-0 w-[3px]', SEV_BAR[item.severity])}
                   />
                 )}
                 {/* Numbered severity-colored badge */}

@@ -10,6 +10,7 @@ import {
   RightNowCard,
   PriorityQueueRow,
   PriorityQueueCard,
+  buildPriorityQueue,
   RecommendationCard,
   TaskModal,
   ScheduleModal,
@@ -253,6 +254,21 @@ function HomeContent() {
     (data?.callList ?? []).forEach(c => map.set(c.clientName, c));
     return map;
   }, [data]);
+
+  // Blended, dated priority queue (Request C): the signature risk feed
+  // (`callList`) merged with opportunity- and overdue-task-derived items, each
+  // carrying a signal-native `dueDate`. Decouples due date from severity so the
+  // "Due date" sort interleaves severities instead of clustering them. Only the
+  // PriorityQueueCard reads this; callList stays intact for the rest of the page.
+  const queueItems = useMemo(
+    () =>
+      buildPriorityQueue({
+        primary: data?.callList ?? [],
+        opportunities: data?.pipeline ?? [],
+        tasks: (data?.schedule ?? []).filter(it => it.bucket === 'overdue' || it.kind === 'task'),
+      }) as CallItem[],
+    [data],
+  );
 
   // Progressive reveal for the long lists — hooks must run before the loading
   // guard, so they read the data optionally and settle once it lands. The queue
@@ -1234,7 +1250,7 @@ function HomeContent() {
               <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
                 <section id="queue" className="min-w-0 scroll-mt-[82px]">
                   <PriorityQueueCard
-                    items={data.callList}
+                    items={queueItems}
                     controls={queueControls}
                     onOpen={c => queueOpen('quickview', c.clientName, c.clientId)}
                     onViewAll={() => setExplorer('atRisk')}

@@ -29,6 +29,9 @@ export interface CallItem {
   relationshipValue: number;
   /** Priority-queue grouping used by the command-center home. */
   tier?: 'today' | 'week' | 'watch';
+  /** Signal-native ISO due date (YYYY-MM-DD) — set by the priority-queue
+   *  blender so the card can sort/label by real dates, not severity. */
+  dueDate?: string;
 }
 
 /**
