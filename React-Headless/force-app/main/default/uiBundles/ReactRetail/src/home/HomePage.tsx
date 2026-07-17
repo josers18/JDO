@@ -414,6 +414,73 @@ function HomeContent() {
     });
   };
 
+  const showActivityDetail = (a: ActivityItem) => {
+    setDetailView({
+      title: a.title,
+      subtitle: `${a.clientName} · ${a.when}`,
+      icon: <Icon name={a.icon} size={17} />,
+      tone: a.tone === 'risk' ? 'accent' : 'ai',
+      sectionTitle: 'Activity',
+      fields: [
+        { label: 'Client', value: a.clientName },
+        { label: 'Activity', value: a.title },
+        { label: 'When', value: a.when },
+        { label: 'Channel', value: a.icon[0].toUpperCase() + a.icon.slice(1) },
+      ],
+      actions: (a.clientId || a.clientName)
+        ? [{ label: 'Open client 360 →', variant: 'accent', onClick: () => { setDetailView(null); setExplorer(null); a.clientId ? openFull(a.clientId) : open('quickview', a.clientName); } }]
+        : [],
+    });
+  };
+
+  const showClientDetail = (c: CallItem) => {
+    const h = healthFor(c);
+    setDetailView({
+      title: c.clientName,
+      subtitle: c.segment,
+      icon: <Icon name="alerts" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Health', value: `${h}` },
+        { label: 'Severity', value: c.severity[0].toUpperCase() + c.severity.slice(1) },
+        { label: 'Relationship', value: formatValue(c.relationshipValue, 'currencyCompact') },
+      ],
+      note: c.reason,
+      sectionTitle: 'Client',
+      fields: [
+        { label: 'Client', value: c.clientName },
+        { label: 'Segment', value: c.segment },
+        { label: 'Driver', value: c.reason },
+        { label: 'Recommended action', value: c.action },
+        { label: 'Source', value: c.source },
+      ],
+      actions: [{ label: 'Open client 360 →', variant: 'accent', onClick: () => { setDetailView(null); setExplorer(null); openFull(c.clientId); } }],
+    });
+  };
+
+  const showPipelineMovementDetail = (m: PipelineMovement) => {
+    const up = m.deltaPct >= 0;
+    const pct = Math.abs(Math.round(m.deltaPct * 100));
+    setDetailView({
+      title: m.label,
+      subtitle: 'Pipeline movement · week over week',
+      icon: <Icon name="metrics" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Value', value: formatValue(m.amount, 'currencyCompact') },
+        { label: 'Change', value: <span className={up ? 'text-ok' : 'text-risk'}>{up ? '↑' : '↓'} {pct}%</span> },
+        { label: 'Trend', value: <Sparkline points={m.trend} width={80} height={24} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} /> },
+      ],
+      note: `${m.label} pipeline ${up ? 'grew' : 'declined'} ${pct}% week over week, now at ${formatValue(m.amount, 'currencyCompact')}.`,
+      sectionTitle: 'Product line',
+      fields: [
+        { label: 'Product line', value: m.label },
+        { label: 'Current value', value: formatValue(m.amount, 'currencyCompact') },
+        { label: 'WoW change', value: `${up ? '+' : '−'}${pct}%` },
+      ],
+    });
+  };
+
   const showLifeEventDetail = (e: LifeEventSignal) => {
     setDetailView({
       title: e.event,
@@ -1311,13 +1378,6 @@ function HomeContent() {
       {modal.type === 'schedule' && (
         <ScheduleModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject ?? 'Call'} onSaved={refetch} />
       )}
-      <ScheduleDetailModal
-        open={detailItem !== null}
-        onClose={() => setDetailItem(null)}
-        item={detailItem}
-        onSaved={refetch}
-      />
-      <DetailModal data={detailView} onClose={() => setDetailView(null)} />
 
       {/* ---- Supporting-band drill-in explorers (one per "View all →") ---- */}
       <DataExplorerModal<ActivityItem>
@@ -1330,7 +1390,7 @@ function HomeContent() {
         searchPlaceholder="Search activity, clients…"
         searchText={a => `${a.title} ${a.clientName} ${a.tone}`}
         rowKey={a => a.id}
-        onRowClick={a => { setExplorer(null); if (a.clientId || a.clientName) selectClientPanel(a.clientName, a.clientId); }}
+        onRowClick={a => showActivityDetail(a)}
         filters={[
           { key: 'all', label: 'All' },
           { key: 'risk', label: 'Risk', test: a => a.tone === 'risk' },
@@ -1360,6 +1420,7 @@ function HomeContent() {
         searchPlaceholder="Search product lines…"
         searchText={m => m.label}
         rowKey={m => m.id}
+        onRowClick={m => showPipelineMovementDetail(m)}
         filters={[
           { key: 'all', label: 'All' },
           { key: 'up', label: 'Gaining', test: m => m.deltaPct >= 0 },
@@ -1388,7 +1449,7 @@ function HomeContent() {
         searchPlaceholder="Search clients, reasons…"
         searchText={c => `${c.clientName} ${c.segment} ${c.reason} ${c.severity}`}
         rowKey={c => c.id}
-        onRowClick={c => { setExplorer(null); selectClientPanel(c.clientName, c.clientId); }}
+        onRowClick={c => showClientDetail(c)}
         filters={[
           { key: 'all', label: 'All' },
           { key: 'high', label: 'High', test: c => c.severity === 'high' },
@@ -1418,7 +1479,7 @@ function HomeContent() {
         searchPlaceholder="Search tasks, meetings…"
         searchText={s => `${s.title} ${s.clientName ?? ''} ${s.kind} ${s.bucket ?? ''}`}
         rowKey={(s, i) => s.id ?? String(i)}
-        onRowClick={s => { setExplorer(null); onScheduleOpen(s); }}
+        onRowClick={s => setDetailItem(s)}
         filters={[
           { key: 'all', label: 'All' },
           { key: 'overdue', label: 'Overdue', test: s => s.bucket === 'overdue' },
@@ -1448,7 +1509,7 @@ function HomeContent() {
         searchPlaceholder="Search opportunities, clients…"
         searchText={p => `${p.clientName} ${p.name} ${p.stage}`}
         rowKey={p => p.id}
-        onRowClick={p => { setExplorer(null); selectOpportunityPanel(p); }}
+        onRowClick={p => showPipelineDetail(p)}
         filters={[
           { key: 'all', label: 'All' },
           { key: 'hot', label: 'Hot', test: p => p.propensity >= 0.7 },
@@ -1466,6 +1527,18 @@ function HomeContent() {
         ]}
         footNote="Source · CRM pipeline"
       />
+
+      {/* Row-detail popups render AFTER the explorers so they stack on top of
+          the open list (both use the z-[100] Modal; later-in-DOM wins). Closing
+          the detail returns the user to the list behind it. */}
+      <ScheduleDetailModal
+        open={detailItem !== null}
+        onClose={() => setDetailItem(null)}
+        item={detailItem}
+        onSaved={refetch}
+      />
+      <DetailModal data={detailView} onClose={() => setDetailView(null)} />
+
       {modal.type === 'case' && (
         <CaseModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} />
       )}
