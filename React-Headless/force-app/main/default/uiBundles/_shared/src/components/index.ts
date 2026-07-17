@@ -33,6 +33,12 @@ export { ToastProvider, useToast } from './Toast';
 export { CommandRail, type CommandRailSection, type CommandRailArcStep, type CommandRailPinned } from './CommandRail';
 export { RightNowCard, type RightNowCardItem } from './RightNowCard';
 export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
+export {
+  PriorityQueueCard,
+  type PriorityQueueCardItem,
+  type QueueSeverity,
+  type QueueDueTier,
+} from './PriorityQueueCard';
 export { RecommendationCard, type RecommendationCardItem, type RecommendationKind } from './RecommendationCard';
 export { type ClientProfile, type ClientSignal, type ClientTimelineEntry } from './home/types';
 export { TaskModal } from './home/TaskModal';

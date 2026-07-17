@@ -9,6 +9,7 @@ import {
   ScoreRing,
   RightNowCard,
   PriorityQueueRow,
+  PriorityQueueCard,
   RecommendationCard,
   TaskModal,
   ScheduleModal,
@@ -266,7 +267,6 @@ function HomeContent() {
     [data, dismissed],
   );
   const recsReveal = useReveal(visibleRecs, 3);
-  const queueReveal = useReveal(data?.callList ?? [], 6);
 
   if (loading || !data) {
     return <div className="animate-pulse p-8 text-muted">Loading your book…</div>;
@@ -779,20 +779,6 @@ function HomeContent() {
     </>
   );
 
-  // Flat, ranked, capped queue for the dense cockpit column. A single 1..N list
-  // reads as ranked more clearly than three restarting groups, and it caps via
-  // the shared reveal so the middle column ends near the schedule column's
-  // height instead of running long. The grouped `queueBody` above stays for the
-  // classic stacked view where vertical room is not contended.
-  const queueBodyRanked = (
-    <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-      {queueReveal.visible.map((c, i) => (
-        <QRow key={c.id} item={c} rank={i + 1} onOpen={queueOpen} />
-      ))}
-      <RevealFooter reveal={queueReveal} noun="clients" />
-    </div>
-  );
-
   const actionsControls = (
     <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">{visibleRecs.length} pending</span>
   );
@@ -1247,14 +1233,12 @@ function HomeContent() {
               {/* Priority Queue + Recommended Actions, side by side */}
               <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
                 <section id="queue" className="min-w-0 scroll-mt-[82px]">
-                  <div className="mb-3 flex items-end gap-2.5">
-                    <div className="min-w-0">
-                      <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">Ranked · click to open context →</div>
-                      <h2 className="mt-0.5 font-display text-[20px] font-semibold tracking-tight">Priority Queue</h2>
-                    </div>
-                    <div className="ml-auto flex flex-none items-center gap-2">{queueControls}</div>
-                  </div>
-                  {queueBodyRanked}
+                  <PriorityQueueCard
+                    items={data.callList}
+                    controls={queueControls}
+                    onOpen={c => queueOpen('quickview', c.clientName, c.clientId)}
+                    onViewAll={() => setExplorer('atRisk')}
+                  />
                 </section>
 
                 <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended Actions" controls={actionsControls}>
