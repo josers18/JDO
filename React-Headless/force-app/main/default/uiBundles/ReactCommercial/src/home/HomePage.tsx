@@ -977,8 +977,10 @@ function HomeContent() {
           the "Right Now · your first move" card embedded on the right. Drops to
           one column (card below) when there's no room. */}
       <div className={`grid gap-6 ${showRightNow ? 'lg:grid-cols-[1fr_340px]' : ''}`}>
-        {/* ---- Left: welcome greeting + dense AI brief line ---- */}
-        <div className="min-w-0">
+        {/* ---- Left: welcome greeting + dense AI brief line, with the Portfolio
+             Pulse strip pinned to the bottom (mt-auto) so it fills the space the
+             taller Right Now card opens up beside it. ---- */}
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
             <Icon name="sparkle" size={13} className="text-ai" /> Today · {data.dateLabel}
           </div>
@@ -1010,6 +1012,7 @@ function HomeContent() {
           <p className="mt-2.5 text-[13.5px] leading-relaxed text-fg">
             <b className="font-semibold">{data.aiBriefHeadline}.</b> {data.aiBrief}
           </p>
+          <div id="pulse" className="mt-auto scroll-mt-[82px] pt-5">{pulseStrip}</div>
         </div>
 
         {/* ---- Right: the embedded Right Now · your first move card ---- */}
@@ -1341,7 +1344,6 @@ function HomeContent() {
               {leadsBody}
             </ColumnCard>
           </div>
-          <section id="pulse" className="mt-3.5 scroll-mt-[82px]">{pulseStrip}</section>
         </>
       ) : (
         /* ==================== CURRENT VIEW (classic stacked) ==================== */
