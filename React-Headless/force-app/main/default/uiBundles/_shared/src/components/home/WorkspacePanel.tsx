@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Button } from '../Button';
 import { HealthRing } from '../HealthRing';
+import { ScoreRing, type RingTone } from '../ScoreRing';
 import { Icon, type IconKey } from '../iconMap';
 import { useWorkspaceSelection } from './WorkspaceSelection';
 
@@ -28,6 +29,11 @@ export interface WorkspaceListItem {
   icon?: IconKey;
   /** Row tone — tints the icon chip / dot and (for focus rows) the meta chip. */
   tone?: 'risk' | 'warn' | 'ok' | 'accent' | 'ai';
+  /** Leading health ScoreRing (0..100). Takes precedence over `icon` — used by
+   *  the "Top risks & opportunities" list so its rows match the bottom-band
+   *  At-Risk Clients card. When set, the row leads with the ring instead of an
+   *  icon chip / dot. */
+  ring?: { value: number; tone: RingTone };
   /** When set, the row becomes a button that opens a drill-in. */
   onClick?: () => void;
 }
@@ -152,6 +158,10 @@ export interface WorkspacePanelHandlers {
   onAsk: (key: string) => void;
   /** A default-state agenda row was clicked — page re-selects the schedule item by id. */
   onAgenda: (id: string) => void;
+  /** "+ Add → Task" from the agenda header — page opens the TaskModal (no client). */
+  onNewTask: () => void;
+  /** "+ Add → Schedule item" from the agenda header — page opens the ScheduleModal. */
+  onNewSchedule: () => void;
   /** Soft actions with no CRM write yet (complete / snooze / assign) — page toasts. */
   onSoft: (title: string, message: string) => void;
 }
@@ -187,10 +197,13 @@ function FactGrid({ facts }: { facts: WorkspaceFact[] }) {
   );
 }
 
-function PanelSection({ title, children, first }: { title: string; children: ReactNode; first?: boolean }) {
+function PanelSection({ title, children, first, action }: { title: string; children: ReactNode; first?: boolean; action?: ReactNode }) {
   return (
     <div className={first ? '' : 'mt-5'}>
-      <h4 className="mb-2.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-faint">{title}</h4>
+      <div className="mb-2.5 flex items-center gap-2">
+        <h4 className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-faint">{title}</h4>
+        {action && <span className="ml-auto flex-none">{action}</span>}
+      </div>
       {children}
     </div>
   );
@@ -226,8 +239,13 @@ function SignalList({ items }: { items: WorkspaceListItem[] }) {
     <div className="overflow-hidden rounded-[12px] border border-line">
       {items.map((s, i) => {
         const tone = LIST_TONE[s.tone ?? 'accent'];
-        // A leading icon chip when an icon is given; otherwise a tinted dot.
-        const lead = s.icon ? (
+        // Lead priority: a health ring (at-risk rows) > an icon chip > a tinted
+        // dot. The ring mirrors the bottom-band At-Risk Clients card.
+        const lead = s.ring ? (
+          <span className="mt-0.5 flex-none">
+            <ScoreRing value={s.ring.value} tone={s.ring.tone} size={34} />
+          </span>
+        ) : s.icon ? (
           <span className={clsx('mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px]', tone.chip)}>
             <Icon name={s.icon} size={13} />
           </span>
@@ -287,6 +305,76 @@ const KIND_ICON: Record<WorkspaceAgendaItem['kind'], IconKey> = {
   task: 'task',
   event: 'event',
 };
+
+/** Agenda item kind → tinted icon-chip classes, so each activity type reads at
+ *  a glance (call = accent, meeting = ai, task = warn, event = ok). */
+const KIND_CHIP: Record<WorkspaceAgendaItem['kind'], string> = {
+  call: 'bg-accent-bg text-accent',
+  meeting: 'bg-ai-bg text-ai',
+  task: 'bg-warn-bg text-warn',
+  event: 'bg-ok-bg text-ok',
+};
+
+/**
+ * The "+ Add" control beside the Today's-agenda header — a tiny popover that
+ * lets the banker choose whether the new item is a Task or a Schedule item,
+ * routing to the matching modal. Closes on either choice or an outside click.
+ */
+function AddMenu({ onTask, onSchedule }: { onTask: () => void; onSchedule: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted transition hover:border-accent-border hover:text-fg"
+      >
+        + Add
+      </button>
+      {open && (
+        <>
+          {/* Click-away scrim (transparent) so a click anywhere closes the menu. */}
+          <button
+            type="button"
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-[60] cursor-default"
+          />
+          <div
+            role="menu"
+            className="absolute right-0 top-[calc(100%+6px)] z-[61] w-40 overflow-hidden rounded-[10px] border border-line bg-surface shadow-card"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { setOpen(false); onTask(); }}
+              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[12.5px] text-fg transition hover:bg-surface-muted"
+            >
+              <span className={clsx('grid h-6 w-6 flex-none place-items-center rounded-[7px]', KIND_CHIP.task)}>
+                <Icon name="task" size={12} />
+              </span>
+              New task
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { setOpen(false); onSchedule(); }}
+              className="flex w-full items-center gap-2.5 border-t border-line px-3 py-2.5 text-left text-[12.5px] text-fg transition hover:bg-surface-muted"
+            >
+              <span className={clsx('grid h-6 w-6 flex-none place-items-center rounded-[7px]', KIND_CHIP.meeting)}>
+                <Icon name="event" size={12} />
+              </span>
+              Schedule item
+            </button>
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
 
 /** Signal / timeline tone → dot color class. */
 const DOT_TONE: Record<PanelSignal['tone'], string> = {
@@ -424,7 +512,10 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
       )}
 
       {brief.agenda.length > 0 && (
-        <PanelSection title="Today's agenda">
+        <PanelSection
+          title="Today's agenda"
+          action={<AddMenu onTask={handlers.onNewTask} onSchedule={handlers.onNewSchedule} />}
+        >
           <div className="overflow-hidden rounded-[12px] border border-line">
             {brief.agenda.map(a => (
               <button
@@ -433,7 +524,8 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
                 onClick={() => handlers.onAgenda(a.id)}
                 className="flex w-full items-center gap-3 border-b border-line px-3.5 py-2.5 text-left transition last:border-b-0 hover:bg-surface-muted"
               >
-                <span className="grid h-7 w-7 flex-none place-items-center rounded-[8px] bg-track text-muted">
+                {/* Per-type colored chip so the activity kind reads at a glance. */}
+                <span className={clsx('grid h-7 w-7 flex-none place-items-center rounded-[8px]', KIND_CHIP[a.kind])}>
                   <Icon name={KIND_ICON[a.kind]} size={13} />
                 </span>
                 <span className="min-w-0 flex-1">

@@ -35,6 +35,8 @@ import {
   type WorkspaceBrief,
   type WorkspacePanelHandlers,
   Icon,
+  type IconKey,
+  type RingTone,
   formatValue,
   crmWrite,
   AiResultModal,
@@ -595,6 +597,25 @@ function HomeContent() {
   // each grouped row can show its global position and the #1 item gets emphasis.
   const rankOf = (c: CallItem) => data.callList.indexOf(c) + 1;
 
+  // ── Relationship-health helpers (shared by the supporting band, the At-Risk
+  //    explorer, AND the right-panel "Top risks & opportunities" ring). Defined
+  //    here (above workspaceBrief) so the brief can read them eagerly — a `const`
+  //    arrow is not hoisted, so a later definition would throw a TDZ error.
+  const healthFor = (c: CallItem) => {
+    // High severity → low score; medium → mid; low → higher. Nudge by rank so
+    // rows differ. Clamped to a plausible 40..82 "needs attention" band.
+    const base = c.severity === 'high' ? 60 : c.severity === 'medium' ? 68 : 78;
+    return Math.max(40, Math.min(82, base - (rankOf(c) - 1) * 3));
+  };
+  // Week-over-week health drop shown as a red "↓ N" beside the score (mockup).
+  // Derived deterministically from severity + rank — no CallItem field yet.
+  const healthDropFor = (c: CallItem) => {
+    const base = c.severity === 'high' ? 8 : c.severity === 'medium' ? 5 : 6;
+    return base + (rankOf(c) % 3);
+  };
+  // Health score → ScoreRing tone (matches the band's At-Risk card thresholds).
+  const healthTone = (h: number): RingTone => (h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok');
+
   const approveRec = async (rec: Recommendation) => {
     // Email has no unattended path: CrmWriteRest requires a recipient address
     // and a Recommendation carries none, so a blind send always 400s. Route to
@@ -748,6 +769,11 @@ function HomeContent() {
       const item = data.schedule.find(s => s.id === id);
       if (item) onScheduleOpen(item);
     },
+    // "+ Add" beside the agenda header — open the matching create modal, keyed
+    // off the banker (no client preselected). Same entry points as the classic
+    // view's "+ Task" / "+ Meeting" schedule controls.
+    onNewTask: () => open('task', data.bankerName),
+    onNewSchedule: () => open('schedule', data.bankerName, undefined, 'Meeting'),
     onSoft: (title, message) => toast(title, message),
   };
 
@@ -763,17 +789,20 @@ function HomeContent() {
       { label: 'Activity · 7d', value: String(data.schedule.length) },
     ],
     agenda: data.schedule.map(s => ({ id: s.id, time: s.time, title: s.title, kind: s.kind, client: s.clientName })),
-    // Top risks & opportunities — each row carries a severity-tinted icon, a
-    // one-line reason (the "why it's here"), the AI score, and a click that
-    // selects the client into this same panel's 360 view.
-    focus: data.callList.slice(0, 4).map(c => ({
-      label: c.clientName,
-      sub: c.reason,
-      meta: `${Math.round((c.score ?? 0) * 100)}%`,
-      icon: c.severity === 'high' ? 'alerts' : c.severity === 'medium' ? 'tasks' : 'clients',
-      tone: c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'accent',
-      onClick: () => selectClientPanel(c.clientName, c.clientId),
-    } as const)),
+    // Top risks & opportunities — each row leads with the client's health
+    // ScoreRing (same as the bottom-band At-Risk Clients card), a one-line
+    // reason (the "why it's here"), and a click that selects the client into
+    // this same panel's 360 view.
+    focus: data.callList.slice(0, 4).map(c => {
+      const h = healthFor(c);
+      return {
+        label: c.clientName,
+        sub: c.reason,
+        ring: { value: h, tone: healthTone(h) },
+        tone: c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'accent',
+        onClick: () => selectClientPanel(c.clientName, c.clientId),
+      } as const;
+    }),
     // Life events → planning opportunities, so they surface even though the
     // cockpit's Life events detail box is gone. Click opens the client 360.
     lifeEvents: data.lifeEvents.slice(0, 4).map(e => ({
@@ -1137,39 +1166,32 @@ function HomeContent() {
   // rows that drive the right context panel. Health scores for at-risk clients
   // are derived deterministically from severity + rank (no CallItem field yet).
   const atRiskClients = data.callList.filter(c => (c.tier ?? 'watch') === 'watch' || c.severity !== 'low').slice(0, 3);
-  const healthFor = (c: CallItem) => {
-    // High severity → low score; medium → mid; low → higher. Nudge by rank so
-    // rows differ. Clamped to a plausible 40..82 "needs attention" band.
-    const base = c.severity === 'high' ? 60 : c.severity === 'medium' ? 68 : 78;
-    return Math.max(40, Math.min(82, base - (rankOf(c) - 1) * 3));
-  };
-  // Week-over-week health drop shown as a red "↓ N" beside the score (mockup).
-  // Derived deterministically from severity + rank — no CallItem field yet.
-  const healthDropFor = (c: CallItem) => {
-    const base = c.severity === 'high' ? 8 : c.severity === 'medium' ? 5 : 6;
-    return base + (rankOf(c) % 3);
-  };
   const supportingBand = (
     <div className="@container/band">
     <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line-strong bg-line-strong shadow-card @[560px]/band:grid-cols-3 @[900px]/band:grid-cols-5">
-      {/* Recent Activity */}
-      <BandCard title="Recent Activity" onViewAll={() => setExplorer('activity')}>
-        {data.activity.slice(0, 4).map(a => (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => (a.clientId || a.clientName ? selectClientPanel(a.clientName, a.clientId) : undefined)}
-            className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
-          >
-            <span className={`mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px] ${ACTIVITY_CHIP[a.tone]}`}>
-              <Icon name={a.icon} size={13} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12.5px] font-medium text-fg">{a.title}</span>
-              <span className="mt-0.5 block truncate text-[11px] text-faint">{a.clientName} · {a.when}</span>
-            </span>
-          </button>
-        ))}
+      {/* Life events — Data Cloud life-event signals across the book, each with
+          its own colored Lucide glyph. Click opens the read-only detail modal
+          (showLifeEventDetail); "View all →" opens the Life Events explorer. */}
+      <BandCard title="Life events" onViewAll={() => setExplorer('lifeEvents')}>
+        {data.lifeEvents.slice(0, 4).map(e => {
+          const st = lifeEventStyle(e.event);
+          return (
+            <button
+              key={e.id}
+              type="button"
+              onClick={() => showLifeEventDetail(e)}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
+              <span className={`mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
+                <Icon name={st.icon} size={13} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-medium text-fg">{e.clientName}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">{e.event} · {e.when}</span>
+              </span>
+            </button>
+          );
+        })}
       </BandCard>
 
       {/* Pipeline Movement */}
@@ -2166,6 +2188,23 @@ const ACTIVITY_CHIP: Record<'positive' | 'opportunity' | 'risk' | 'neutral', str
   risk: 'bg-risk-bg text-risk',
   neutral: 'bg-track text-muted',
 };
+
+/**
+ * Life-event type → a dedicated Lucide glyph + a tinted chip color, so each
+ * event reads at a glance in the supporting band's Life events card (crisp icon
+ * per type rather than a single amber emoji chip). Keyed on the lowercased
+ * `event` label; falls back to the generic life-event glyph for anything new.
+ */
+const LIFE_EVENT_STYLE: Record<string, { icon: IconKey; chip: string }> = {
+  'job change': { icon: 'jobChange', chip: 'bg-accent-bg text-accent' },
+  graduation: { icon: 'graduation', chip: 'bg-ai-bg text-ai' },
+  'new child': { icon: 'newChild', chip: 'bg-ok-bg text-ok' },
+  'home purchase': { icon: 'homePurchase', chip: 'bg-warn-bg text-warn' },
+  retirement: { icon: 'retirement', chip: 'bg-ok-bg text-ok' },
+  marriage: { icon: 'marriage', chip: 'bg-risk-bg text-risk' },
+};
+const lifeEventStyle = (event: string) =>
+  LIFE_EVENT_STYLE[event.trim().toLowerCase()] ?? { icon: 'lifeEvent' as IconKey, chip: 'bg-accent-bg text-accent' };
 
 /** Schedule bucket → dot color for the Today's Agenda timeline rail. */
 const AGENDA_DOT: Record<'overdue' | 'today' | 'upcoming', string> = {
