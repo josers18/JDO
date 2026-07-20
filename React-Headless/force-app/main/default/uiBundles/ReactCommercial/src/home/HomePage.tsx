@@ -942,23 +942,27 @@ function HomeContent() {
   // the two pulse stats inline on the right, so it reads as a single strip
   // under the KPI cards instead of a tall side panel.
   const pulseStrip = (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-card border border-line bg-surface px-5 py-4 shadow-card">
-      <div className="flex items-center gap-2 flex-none">
-        <Icon name="pulse" size={15} className="text-muted" />
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      {/* Label as a header row on top so the narrative + metrics get the full
+          container width on a single line below it (fewer wraps, less height). */}
+      <div className="flex items-center gap-2">
+        <Icon name="pulse" size={14} className="text-muted" />
         <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Portfolio pulse</b>
       </div>
-      <p className="min-w-[280px] flex-1 text-[13.5px] leading-snug text-muted">{pipelineNarrative()}</p>
-      <div className="flex flex-none items-center gap-5">
-        <PulseStat label="Wins · 30d" value="$0" tone="warn" />
-        <span className="h-8 w-px bg-line" />
-        <PulseStat label="Activity · 7d" value={String(data.schedule.length)} />
-        <button
-          type="button"
-          onClick={() => speakOrToast(pipelineNarrative())}
-          className="ml-1 font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
-        >
-          {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
-        </button>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">{pipelineNarrative()}</p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Wins · 30d" value="$0" tone="warn" />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Activity · 7d" value={String(data.schedule.length)} />
+          <button
+            type="button"
+            onClick={() => speakOrToast(pipelineNarrative())}
+            className="ml-1 font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
+          >
+            {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
+          </button>
+        </div>
       </div>
     </div>
   );
