@@ -970,44 +970,62 @@ function HomeContent() {
   // classic hero, then the dense brief line below it.
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const showRightNow = !!data.rightNow && !dismissed.has('rightNow');
   const briefStrip = (
-    <div className="rounded-card border border-line bg-surface-glass px-5 py-4 shadow-card">
-      {/* Welcome greeting — the personalized hero that anchored the classic
-          view, restored here so the cockpit still opens with a named welcome
-          before the dense AI brief line. */}
-      <div className="mb-3.5 border-b border-line pb-3">
-        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
-          <Icon name="sparkle" size={13} className="text-ai" /> Today · {data.dateLabel}
+    <div className="rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
+      {/* Two columns like the classic hero: greeting + AI brief on the left,
+          the "Right Now · your first move" card embedded on the right. Drops to
+          one column (card below) when there's no room. */}
+      <div className={`grid gap-6 ${showRightNow ? 'lg:grid-cols-[1fr_340px]' : ''}`}>
+        {/* ---- Left: welcome greeting + dense AI brief line ---- */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
+            <Icon name="sparkle" size={13} className="text-ai" /> Today · {data.dateLabel}
+          </div>
+          <h1 className="mt-2 font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
+            {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+          </h1>
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Icon name="sparkle" size={15} className="text-ai" />
+            <b className="text-[14px] font-semibold">AI Daily Brief</b>
+            <span className="rounded-full bg-track px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
+              Updated {data.dateLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                openAi(
+                  'queue_rationale',
+                  'Full insights',
+                  "Give the banker a full morning briefing on this book in 4-6 sentences: the clients needing attention today, the emerging risks, and the opportunities worth acting on now.",
+                  queueContext(),
+                  queueFallback(),
+                )
+              }
+              className="ml-auto inline-flex items-center gap-1 font-mono text-[11.5px] text-accent transition hover:opacity-80"
+            >
+              View full insights →
+            </button>
+          </div>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-fg">
+            <b className="font-semibold">{data.aiBriefHeadline}.</b> {data.aiBrief}
+          </p>
         </div>
-        <h1 className="mt-2 font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
-          {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
-        </h1>
+
+        {/* ---- Right: the embedded Right Now · your first move card ---- */}
+        {showRightNow && (
+          <RightNowCard
+            item={data.rightNow!}
+            onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
+            onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
+            onSnooze={() => {
+              setDismissed(s => new Set(s).add('rightNow'));
+              toast('Snoozed', 'Right Now item hidden for this session');
+            }}
+            onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
+          />
+        )}
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Icon name="sparkle" size={15} className="text-ai" />
-        <b className="text-[14px] font-semibold">AI Daily Brief</b>
-        <span className="rounded-full bg-track px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
-          Updated {data.dateLabel}
-        </span>
-        <button
-          type="button"
-          onClick={() =>
-            openAi(
-              'queue_rationale',
-              'Full insights',
-              "Give the banker a full morning briefing on this book in 4-6 sentences: the clients needing attention today, the emerging risks, and the opportunities worth acting on now.",
-              queueContext(),
-              queueFallback(),
-            )
-          }
-          className="ml-auto inline-flex items-center gap-1 font-mono text-[11.5px] text-accent transition hover:opacity-80"
-        >
-          View full insights →
-        </button>
-      </div>
-      <p className="mt-2.5 max-w-[92ch] text-[13.5px] leading-relaxed text-fg">
-        <b className="font-semibold">{data.aiBriefHeadline}.</b> {data.aiBrief}
-      </p>
     </div>
   );
 
@@ -1249,28 +1267,11 @@ function HomeContent() {
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_384px]">
             {/* ---- LEFT: the primary workflow ---- */}
             <div className="min-w-0">
-              {/* Compact AI Daily Brief strip */}
+              {/* AI Daily Brief strip — greeting + brief with the Right Now
+                  card embedded on the right (see briefStrip). */}
               <section id="brief" className="scroll-mt-[82px]">
                 {briefStrip}
               </section>
-
-              {/* Right Now · your first move — the single top-priority action,
-                  restored into the cockpit so it anchors the workflow the same
-                  way it does the classic hero. */}
-              {data.rightNow && !dismissed.has('rightNow') && (
-                <div className="mt-4">
-                  <RightNowCard
-                    item={data.rightNow}
-                    onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
-                    onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
-                    onSnooze={() => {
-                      setDismissed(s => new Set(s).add('rightNow'));
-                      toast('Snoozed', 'Right Now item hidden for this session');
-                    }}
-                    onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
-                  />
-                </div>
-              )}
 
               {/* Vitals: four sparkline KPI cards */}
               <section id="kpis" className="mt-4 scroll-mt-[82px]">
