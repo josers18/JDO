@@ -14,11 +14,29 @@ export interface PinnedClientRequest {
   nonce: number;
 }
 
+/**
+ * A section-navigation request raised from the CommandRail. In the cockpit view
+ * some rail targets (schedule / pipeline / life events / leads / alerts) no
+ * longer exist as scroll anchors — their content moved into drill-in modals. So
+ * the rail raises the *intent* ("navigate to leads") and the page decides how to
+ * honor it (open the matching DataExplorerModal). Classic view still has the
+ * anchors, so the rail scrolls there and this channel never fires.
+ */
+export interface SectionNavRequest {
+  id: string;
+  /** Bumped on every click so re-requesting the same section re-fires. */
+  nonce: number;
+}
+
 interface WorkspaceSelectionValue {
   pinnedRequest: PinnedClientRequest | null;
   /** Select a client into the right context panel (does NOT add to the rail). */
   selectClient: (name: string, id?: string) => void;
   clear: () => void;
+  /** A rail nav target with no on-page anchor (cockpit) — page opens a modal. */
+  navRequest: SectionNavRequest | null;
+  /** Raise a nav request for a section id (bumps the nonce). */
+  requestNav: (id: string) => void;
   /** The live pinned-accounts list shown in the CommandRail. */
   pinned: CommandRailPinned[];
   /** Whether an account (matched by id when present, else name) is pinned. */
@@ -56,6 +74,7 @@ export function WorkspaceSelectionProvider({
   storageKey?: string;
 }) {
   const [pinnedRequest, setPinnedRequest] = useState<PinnedClientRequest | null>(null);
+  const [navRequest, setNavRequest] = useState<SectionNavRequest | null>(null);
 
   // Hydrate from localStorage once (falling back to the seed), then persist on
   // change. Reads are guarded — storage can throw in sandboxed frames.
@@ -100,11 +119,13 @@ export function WorkspaceSelectionProvider({
       selectClient: (name, id) =>
         setPinnedRequest(prev => ({ id, name, nonce: (prev?.nonce ?? 0) + 1 })),
       clear: () => setPinnedRequest(null),
+      navRequest,
+      requestNav: id => setNavRequest(prev => ({ id, nonce: (prev?.nonce ?? 0) + 1 })),
       pinned,
       isPinned,
       togglePin,
     }),
-    [pinnedRequest, pinned, isPinned, togglePin],
+    [pinnedRequest, navRequest, pinned, isPinned, togglePin],
   );
 
   return <WorkspaceSelectionContext.Provider value={value}>{children}</WorkspaceSelectionContext.Provider>;
@@ -121,6 +142,8 @@ export function useWorkspaceSelection(): WorkspaceSelectionValue {
       pinnedRequest: null,
       selectClient: () => {},
       clear: () => {},
+      navRequest: null,
+      requestNav: () => {},
       pinned: [],
       isPinned: () => false,
       togglePin: () => {},

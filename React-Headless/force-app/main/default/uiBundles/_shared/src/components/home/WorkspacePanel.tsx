@@ -24,6 +24,12 @@ export interface WorkspaceListItem {
   label: string;
   sub?: string;
   meta?: string;
+  /** Leading glyph. Falls back to a tinted dot when absent. */
+  icon?: IconKey;
+  /** Row tone — tints the icon chip / dot and (for focus rows) the meta chip. */
+  tone?: 'risk' | 'warn' | 'ok' | 'accent' | 'ai';
+  /** When set, the row becomes a button that opens a drill-in. */
+  onClick?: () => void;
 }
 
 /** One row in the default-state "today's agenda" list. */
@@ -44,6 +50,8 @@ export interface WorkspaceBrief {
   pulse: WorkspaceFact[];
   agenda: WorkspaceAgendaItem[];
   focus: WorkspaceListItem[];
+  /** Life-event signals across the book (job change, graduation, retirement…). */
+  lifeEvents: WorkspaceListItem[];
   prompts: { key: string; label: string }[];
 }
 
@@ -203,20 +211,58 @@ function MarkedList({ items, marker = '•' }: { items: string[]; marker?: strin
   );
 }
 
+/** Tone → tinted icon-chip / meta-chip classes for the SignalList rows. */
+const LIST_TONE: Record<NonNullable<WorkspaceListItem['tone']>, { chip: string; meta: string; dot: string }> = {
+  risk: { chip: 'bg-risk-bg text-risk', meta: 'bg-risk-bg text-risk', dot: 'bg-risk' },
+  warn: { chip: 'bg-warn-bg text-warn', meta: 'bg-warn-bg text-warn', dot: 'bg-warn' },
+  ok: { chip: 'bg-ok-bg text-ok', meta: 'bg-ok-bg text-ok', dot: 'bg-ok' },
+  accent: { chip: 'bg-accent-bg text-accent', meta: 'bg-accent-bg text-accent', dot: 'bg-accent' },
+  ai: { chip: 'bg-ai-bg text-ai', meta: 'bg-ai-bg text-ai', dot: 'bg-ai' },
+};
+
 function SignalList({ items }: { items: WorkspaceListItem[] }) {
   if (!items.length) return null;
   return (
     <div className="overflow-hidden rounded-[12px] border border-line">
-      {items.map((s, i) => (
-        <div key={i} className="flex items-start gap-3 border-b border-line px-3.5 py-2.5 last:border-b-0">
-          <span aria-hidden="true" className="mt-[6px] h-1.5 w-1.5 flex-none rounded-full bg-accent" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[12.5px] font-medium text-fg">{s.label}</span>
-            {s.sub && <span className="mt-0.5 block text-[11.5px] text-muted">{s.sub}</span>}
+      {items.map((s, i) => {
+        const tone = LIST_TONE[s.tone ?? 'accent'];
+        // A leading icon chip when an icon is given; otherwise a tinted dot.
+        const lead = s.icon ? (
+          <span className={clsx('mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px]', tone.chip)}>
+            <Icon name={s.icon} size={13} />
           </span>
-          {s.meta && <span className="flex-none font-mono text-[10px] uppercase text-faint">{s.meta}</span>}
-        </div>
-      ))}
+        ) : (
+          <span aria-hidden="true" className={clsx('mt-[7px] h-2 w-2 flex-none rounded-full', tone.dot)} />
+        );
+        const inner = (
+          <>
+            {lead}
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12.5px] font-semibold text-fg">{s.label}</span>
+              {s.sub && <span className="mt-0.5 block text-[11.5px] leading-snug text-muted">{s.sub}</span>}
+            </span>
+            {s.meta && (
+              <span className={clsx('mt-0.5 flex-none rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.04em]', tone.meta)}>
+                {s.meta}
+              </span>
+            )}
+          </>
+        );
+        return s.onClick ? (
+          <button
+            key={i}
+            type="button"
+            onClick={s.onClick}
+            className="flex w-full items-start gap-3 border-b border-line px-3.5 py-3 text-left transition last:border-b-0 hover:bg-surface-muted"
+          >
+            {inner}
+          </button>
+        ) : (
+          <div key={i} className="flex items-start gap-3 border-b border-line px-3.5 py-3 last:border-b-0">
+            {inner}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -320,7 +366,7 @@ export function WorkspacePanel({
 }) {
   const eyebrow =
     selection.kind === 'none'
-      ? 'AI daily brief'
+      ? 'Your day'
       : selection.kind === 'client'
         ? 'Client 360'
         : selection.kind === 'task'
@@ -368,6 +414,12 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
       {brief.focus.length > 0 && (
         <PanelSection title="Top risks & opportunities" first>
           <SignalList items={brief.focus} />
+        </PanelSection>
+      )}
+
+      {brief.lifeEvents.length > 0 && (
+        <PanelSection title="Life events across your book">
+          <SignalList items={brief.lifeEvents} />
         </PanelSection>
       )}
 

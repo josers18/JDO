@@ -51,7 +51,7 @@ import {
   type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement } from './homeTypes';
+import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -191,7 +191,7 @@ function HomeContent() {
   const [bandExpanded, setBandExpanded] = useState(true);
   // Which supporting-band module is drilled into (its "View all →" was clicked).
   // Null = no explorer open. One <DataExplorerModal> renders per key below.
-  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'agenda' | 'opportunities' | null>(null);
+  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
@@ -205,7 +205,7 @@ function HomeContent() {
   // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
   // outside this component). A pin click bumps `pinnedRequest`; we resolve it
   // into a full client selection below.
-  const { pinnedRequest } = useWorkspaceSelection();
+  const { pinnedRequest, navRequest } = useWorkspaceSelection();
 
   // Home layout mode. "current" = the classic stacked sections; "cockpit" = a
   // compact, column-dense grid. The selection lives in the app chrome (top-bar
@@ -237,6 +237,18 @@ function HomeContent() {
     setSelection(buildClientSelection(pinnedRequest.name, pinnedRequest.id ?? call?.clientId));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pinnedRequest?.nonce, data]);
+
+  // A CommandRail click on a cockpit section with no on-page anchor (schedule /
+  // pipeline / events / leads / alerts) arrives here as a nav request. Map the
+  // rail's section id to the drill-in explorer that now holds that content, so
+  // the nav still lands somewhere. Anchored sections (brief / kpis / queue /
+  // actions / pulse) never raise a request — the rail scrolls to them directly.
+  useEffect(() => {
+    if (!navRequest) return;
+    const target = NAV_TO_EXPLORER[navRequest.id];
+    if (target) setExplorer(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navRequest?.nonce]);
 
   // Merge the configured model + params into an AI request for a given action.
   const withConfig = (
@@ -529,6 +541,53 @@ function HomeContent() {
     });
   };
 
+  const showLeadDetail = (l: LeadReferral) => {
+    setDetailView({
+      title: l.name,
+      subtitle: l.source,
+      icon: <Icon name="leads" size={17} />,
+      tone: 'ai',
+      facts: [
+        { label: 'Status', value: l.status },
+        { label: 'Est. value', value: formatValue(l.value, 'currencyCompact') },
+        { label: 'Source', value: l.source },
+      ],
+      sectionTitle: 'Lead',
+      fields: [
+        { label: 'Name', value: l.name },
+        { label: 'Source', value: l.source },
+        { label: 'Status', value: l.status },
+        { label: 'Email', value: l.email || '—' },
+      ],
+      actions: l.email
+        ? [{ label: 'Email lead →', variant: 'accent', onClick: () => { setDetailView(null); setExplorer(null); open('email', l.name, undefined, undefined, l.email); } }]
+        : [],
+    });
+  };
+
+  const showGoalDetail = (g: BankerGoal) => {
+    const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+    setDetailView({
+      title: g.name,
+      subtitle: 'Goal attainment',
+      icon: <Icon name="metrics" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Current', value: formatValue(g.current, g.format) },
+        { label: 'Target', value: formatValue(g.target, g.format) },
+        { label: 'Attainment', value: `${pct}%` },
+      ],
+      note: `${g.name} is at ${pct}% of target (${formatValue(g.current, g.format)} of ${formatValue(g.target, g.format)}).`,
+      sectionTitle: 'Goal',
+      fields: [
+        { label: 'Goal', value: g.name },
+        { label: 'Current', value: formatValue(g.current, g.format) },
+        { label: 'Target', value: formatValue(g.target, g.format) },
+        { label: 'Attainment', value: `${pct}%` },
+      ],
+    });
+  };
+
   const today = data.callList.filter(c => c.tier === 'today');
   const week = data.callList.filter(c => c.tier === 'week');
   const watch = data.callList.filter(c => (c.tier ?? 'watch') === 'watch');
@@ -629,6 +688,17 @@ function HomeContent() {
   //    right context panel; in the classic stacked view it opens the existing
   //    modal/popup. Keeping both behaviors behind these helpers lets the body
   //    fragments below stay single-sourced across the two layouts.
+  // KPI / pulse click routing. In the cockpit the detail boxes are gone, so a
+  // KPI card (or the pulse inlay) opens the matching drill-in explorer; in the
+  // classic stacked view it smooth-scrolls to the full-page section as before.
+  const kpiClick = (key: string) => {
+    if (view === 'cockpit') {
+      const target = KPI_EXPLORER[key];
+      if (target) { setExplorer(target); return; }
+    }
+    scrollToId(KPI_TARGET[key] ?? 'pipeline');
+  };
+
   const onScheduleOpen = (item: ScheduleItem) => {
     if (view === 'cockpit') {
       if (item.kind === 'meeting' || item.kind === 'call') selectMeetingPanel(item);
@@ -693,11 +763,27 @@ function HomeContent() {
       { label: 'Activity · 7d', value: String(data.schedule.length) },
     ],
     agenda: data.schedule.map(s => ({ id: s.id, time: s.time, title: s.title, kind: s.kind, client: s.clientName })),
+    // Top risks & opportunities — each row carries a severity-tinted icon, a
+    // one-line reason (the "why it's here"), the AI score, and a click that
+    // selects the client into this same panel's 360 view.
     focus: data.callList.slice(0, 4).map(c => ({
       label: c.clientName,
       sub: c.reason,
       meta: `${Math.round((c.score ?? 0) * 100)}%`,
-    })),
+      icon: c.severity === 'high' ? 'alerts' : c.severity === 'medium' ? 'tasks' : 'clients',
+      tone: c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'accent',
+      onClick: () => selectClientPanel(c.clientName, c.clientId),
+    } as const)),
+    // Life events → planning opportunities, so they surface even though the
+    // cockpit's Life events detail box is gone. Click opens the client 360.
+    lifeEvents: data.lifeEvents.slice(0, 4).map(e => ({
+      label: `${e.clientName} · ${e.event}`,
+      sub: e.opportunity,
+      meta: e.when,
+      icon: 'lifeEvent',
+      tone: 'ai',
+      onClick: () => selectClientPanel(e.clientName, e.clientId),
+    } as const)),
     prompts: [
       { key: 'overnight', label: 'What changed overnight?' },
       { key: 'attention', label: 'Which accounts need attention?' },
@@ -720,7 +806,7 @@ function HomeContent() {
           value={formatValue(k.value, k.format)}
           note={k.note}
           risk={k.key === 'atRisk'}
-          onClick={() => scrollToId(KPI_TARGET[k.key] ?? 'pipeline')}
+          onClick={() => kpiClick(k.key)}
         />
       ))}
     </div>
@@ -746,7 +832,7 @@ function HomeContent() {
           deltaPct={k.deltaPct}
           trend={k.trend}
           risk={k.key === 'atRisk'}
-          onClick={() => scrollToId(KPI_TARGET[k.key] ?? 'pipeline')}
+          onClick={() => kpiClick(k.key)}
         />
       ))}
     </div>
@@ -948,11 +1034,18 @@ function HomeContent() {
   const pulseStrip = (
     <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
       {/* Label as a header row on top so the narrative + metrics get the full
-          container width on a single line below it (fewer wraps, less height). */}
-      <div className="flex items-center gap-2">
+          container width on a single line below it (fewer wraps, less height).
+          The header is a button in the cockpit → opens the Pipeline Movement
+          explorer (the pulse's drill-in), matching the KPI-card behavior. */}
+      <button
+        type="button"
+        onClick={() => setExplorer('pipelineMovement')}
+        className="flex items-center gap-2 text-left transition hover:opacity-80"
+      >
         <Icon name="pulse" size={14} className="text-muted" />
         <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Portfolio pulse</b>
-      </div>
+        <span className="font-mono text-[10.5px] text-accent">View all →</span>
+      </button>
       <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
         <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">{pipelineNarrative()}</p>
         <div className="flex flex-none items-center gap-5">
@@ -1329,26 +1422,11 @@ function HomeContent() {
             <span className="w-[140px]" aria-hidden="true" />
           </div>
 
-          {/* ---- Detail modules — full-fidelity, and the home of the remaining
-               CommandRail nav anchors. Always rendered so #schedule / #pipeline /
-               #events / #leads / #pulse always resolve. ---- */}
-          <div className="mt-6 grid items-start gap-3.5 lg:grid-cols-2">
-            <ColumnCard id="schedule" eyebrow="Tasks & meetings · book-wide" title="Tasks & schedule" controls={scheduleControls}>
-              {scheduleBody}
-            </ColumnCard>
-            <ColumnCard id="pipeline" eyebrow="Open opportunities · by value" title="Pipeline" controls={pipelineControls}>
-              {pipelineBody}
-            </ColumnCard>
-            <div id="events" className="min-w-0 scroll-mt-[82px]">
-              <ColumnCard eyebrow="Data Cloud signals → opportunities" title="Life events">
-                {lifeEventsBody}
-                <div id="alerts" className="mt-3.5 scroll-mt-[82px]">{alertsBody}</div>
-              </ColumnCard>
-            </div>
-            <ColumnCard id="leads" eyebrow="Inbound · routed to you" title="Leads & referrals">
-              {leadsBody}
-            </ColumnCard>
-          </div>
+          {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
+              Life events + Alerts / Leads) were removed — they duplicated the
+              right panel and the supporting band. Their content is one click away
+              via the KPI cards, supporting-band "View all →", and the CommandRail
+              (which now opens a DataExplorerModal for anchor-less sections). */}
         </>
       ) : (
         /* ==================== CURRENT VIEW (classic stacked) ==================== */
@@ -1567,6 +1645,87 @@ function HomeContent() {
         footNote="Source · CRM pipeline"
       />
 
+      <DataExplorerModal<LeadReferral>
+        open={explorer === 'leads'}
+        onClose={() => setExplorer(null)}
+        title="Leads & Referrals"
+        subtitle="Inbound leads routed to you"
+        icon={<Icon name="leads" size={17} />}
+        rows={data.leads}
+        searchPlaceholder="Search leads, sources…"
+        searchText={l => `${l.name} ${l.source} ${l.status}`}
+        rowKey={l => l.id}
+        onRowClick={l => showLeadDetail(l)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'new', label: 'New', test: l => l.status === 'New' },
+          { key: 'working', label: 'Working', test: l => l.status === 'Working' },
+          { key: 'qualified', label: 'Qualified', test: l => l.status === 'Qualified' },
+        ]}
+        columns={[
+          { key: 'name', label: 'Name', render: l => <span className="font-semibold text-fg">{l.name}</span> },
+          { key: 'source', label: 'Source', render: l => <span className="text-muted">{l.source}</span>, hideBelow: 'sm' },
+          { key: 'status', label: 'Status', render: l => (
+            <Pill tone={l.status === 'Qualified' ? 'ok' : l.status === 'Working' ? 'warn' : l.status === 'Unqualified' ? 'neutral' : 'accent'}>{l.status}</Pill>
+          ) },
+          { key: 'value', label: 'Value', align: 'right', render: l => <span className="font-semibold">{formatValue(l.value, 'currencyCompact')}</span> },
+        ]}
+        footNote="Source · CRM leads"
+      />
+
+      <DataExplorerModal<BankerGoal>
+        open={explorer === 'goals'}
+        onClose={() => setExplorer(null)}
+        title="Active Goals"
+        subtitle="Your quota and attainment"
+        icon={<Icon name="metrics" size={17} />}
+        rows={data.bankerGoals}
+        searchPlaceholder="Search goals…"
+        searchText={g => g.name}
+        rowKey={g => g.id}
+        onRowClick={g => showGoalDetail(g)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'onTrack', label: 'On track', test: g => g.target > 0 && g.current / g.target >= 0.7 },
+          { key: 'behind', label: 'Behind', test: g => g.target > 0 && g.current / g.target < 0.7 },
+        ]}
+        columns={[
+          { key: 'name', label: 'Goal', render: g => <span className="font-semibold text-fg">{g.name}</span> },
+          { key: 'current', label: 'Current', align: 'right', render: g => <span className="text-muted">{formatValue(g.current, g.format)}</span>, hideBelow: 'sm' },
+          { key: 'target', label: 'Target', align: 'right', render: g => <span className="text-muted">{formatValue(g.target, g.format)}</span>, hideBelow: 'sm' },
+          { key: 'pct', label: 'Attainment', align: 'right', render: g => {
+            const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+            return <Pill tone={pct >= 70 ? 'ok' : pct >= 40 ? 'warn' : 'accent'}>{pct}%</Pill>;
+          } },
+        ]}
+        footNote="Source · CRM goals"
+      />
+
+      <DataExplorerModal<LifeEventSignal>
+        open={explorer === 'lifeEvents'}
+        onClose={() => setExplorer(null)}
+        title="Life Events"
+        subtitle="Data Cloud signals → planning opportunities"
+        icon={<Icon name="lifeEvent" size={17} />}
+        rows={data.lifeEvents}
+        searchPlaceholder="Search clients, events…"
+        searchText={e => `${e.clientName} ${e.event} ${e.opportunity}`}
+        rowKey={e => e.id}
+        onRowClick={e => showLifeEventDetail(e)}
+        columns={[
+          { key: 'event', label: 'Event', render: e => (
+            <span className="flex items-center gap-2.5">
+              <span className="grid h-7 w-7 flex-none place-items-center rounded-[8px] bg-warn-bg text-[15px]">{e.icon}</span>
+              <span className="font-semibold text-fg">{e.event}</span>
+            </span>
+          ) },
+          { key: 'client', label: 'Client', render: e => <span className="text-muted">{e.clientName}</span>, hideBelow: 'sm' },
+          { key: 'opp', label: 'Opportunity', render: e => <span className="text-muted">{e.opportunity}</span>, hideBelow: 'md' },
+          { key: 'when', label: 'When', align: 'right', render: e => <span className="font-mono text-[11px] text-faint">{e.when}</span> },
+        ]}
+        footNote="Source · Data Cloud life-event signals"
+      />
+
       {/* Row-detail popups render AFTER the explorers so they stack on top of
           the open list (both use the z-[100] Modal; later-in-DOM wins). Closing
           the detail returns the user to the list behind it. */}
@@ -1656,7 +1815,7 @@ function HomeContent() {
   );
 }
 
-/* ── KPI → scroll-target section ─────────────────────────────────── */
+/* ── KPI → scroll-target section (classic view) ──────────────────── */
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
@@ -1664,6 +1823,29 @@ const KPI_TARGET: Record<string, string> = {
   openCases: 'events',
   goals: 'pulse',
   atRisk: 'events',
+};
+
+/* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
+type ExplorerKey = 'activity' | 'pipelineMovement' | 'atRisk' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents';
+const KPI_EXPLORER: Record<string, ExplorerKey> = {
+  pipeline: 'opportunities',
+  openOpps: 'opportunities',
+  leads: 'leads',
+  goals: 'goals',
+  atRisk: 'atRisk',
+  openCases: 'atRisk',
+};
+
+/* ── CommandRail section id → drill-in explorer (cockpit view) ─────
+   The anchor-less cockpit sections map to the modal that now holds their
+   content. Sections that still have an on-page anchor (brief / kpis / queue /
+   actions / pulse) never reach here — the rail scrolls to them directly. */
+const NAV_TO_EXPLORER: Record<string, ExplorerKey> = {
+  schedule: 'agenda',
+  pipeline: 'opportunities',
+  events: 'lifeEvents',
+  alerts: 'atRisk',
+  leads: 'leads',
 };
 
 /* ── Small local presentational helpers ──────────────────────────── */

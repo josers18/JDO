@@ -52,7 +52,7 @@ export function CommandRail({
   const [active, setActive] = useState(sections[0]?.id ?? '');
   // Pinned accounts + selection both come from the shared bridge; the list is
   // owned there (seeded + persisted per persona) so pin/unpin stays live.
-  const { selectClient, pinned, togglePin } = useWorkspaceSelection();
+  const { selectClient, pinned, togglePin, requestNav } = useWorkspaceSelection();
 
   useEffect(() => {
     // The observed sections live in the main column and may not be in the DOM
@@ -87,8 +87,17 @@ export function CommandRail({
   }, [sections]);
 
   const go = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setActive(id);
+    const el = document.getElementById(id);
+    if (el) {
+      // Classic view (and cockpit sections that still have an on-page anchor):
+      // scroll to it.
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActive(id);
+    } else {
+      // Cockpit view: the section's content lives in a drill-in modal, not an
+      // on-page anchor. Raise the nav intent; HomePage opens the matching modal.
+      requestNav(id);
+    }
   };
 
   return (
