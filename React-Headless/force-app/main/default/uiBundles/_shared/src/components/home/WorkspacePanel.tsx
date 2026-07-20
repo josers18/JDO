@@ -179,9 +179,9 @@ function FactGrid({ facts }: { facts: WorkspaceFact[] }) {
   );
 }
 
-function PanelSection({ title, children }: { title: string; children: ReactNode }) {
+function PanelSection({ title, children, first }: { title: string; children: ReactNode; first?: boolean }) {
   return (
-    <div className="mt-5">
+    <div className={first ? '' : 'mt-5'}>
       <h4 className="mb-2.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-faint">{title}</h4>
       {children}
     </div>
@@ -359,26 +359,14 @@ export function WorkspacePanel({
 
 /* ── State 1: default (nothing selected) ────────────────────────── */
 function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: WorkspacePanelHandlers }) {
+  // The greeting / headline / narrative / confidence + pulse that used to head
+  // this panel duplicated the top-banner AI Daily Brief verbatim, so they're
+  // gone. The panel now leads straight into the signals the banner doesn't show:
+  // top risks & opportunities, today's agenda, and the Ask Agentforce prompts.
   return (
     <div>
-      <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-faint">{brief.greeting}</div>
-      <h3 className="mt-1.5 font-display text-[19px] font-semibold leading-snug tracking-tight">
-        <span className="text-gradient-ai">{brief.headline}</span>
-      </h3>
-      <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{brief.narrative}</p>
-      <div className="mt-3 flex items-center gap-2.5">
-        <div className="h-[5px] w-[110px] overflow-hidden rounded-full bg-track">
-          <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${brief.confidencePct}%` }} />
-        </div>
-        <small className="font-mono text-[10.5px] text-muted">AI confidence {brief.confidencePct}%</small>
-      </div>
-
-      <PanelSection title="Portfolio pulse">
-        <FactGrid facts={brief.pulse} />
-      </PanelSection>
-
       {brief.focus.length > 0 && (
-        <PanelSection title="Top risks & opportunities">
+        <PanelSection title="Top risks & opportunities" first>
           <SignalList items={brief.focus} />
         </PanelSection>
       )}

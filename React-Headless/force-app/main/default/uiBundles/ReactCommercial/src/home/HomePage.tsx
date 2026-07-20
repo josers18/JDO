@@ -989,10 +989,7 @@ function HomeContent() {
              Pulse strip pinned to the bottom (mt-auto) so it fills the space the
              taller Right Now card opens up beside it. ---- */}
         <div className="flex min-w-0 flex-col">
-          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
-            <Icon name="sparkle" size={13} className="text-ai" /> Today · {data.dateLabel}
-          </div>
-          <h1 className="mt-2 font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
+          <h1 className="font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
             {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
           </h1>
           <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
