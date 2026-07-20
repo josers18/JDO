@@ -27,6 +27,10 @@ export interface WorkspaceListItem {
   meta?: string;
   /** Leading glyph. Falls back to a tinted dot when absent. */
   icon?: IconKey;
+  /** Per-row icon-chip background/text classes (e.g. "bg-ok-bg text-ok"). When
+   *  set, overrides the tone-derived chip color — used by the life-events list
+   *  so each event type gets its own color, matching the bottom-band card. */
+  iconChip?: string;
   /** Row tone — tints the icon chip / dot and (for focus rows) the meta chip. */
   tone?: 'risk' | 'warn' | 'ok' | 'accent' | 'ai';
   /** Leading health ScoreRing (0..100). Takes precedence over `icon` — used by
@@ -250,7 +254,7 @@ function SignalList({ items }: { items: WorkspaceListItem[] }) {
             <ScoreRing value={s.ring.value} tone={s.ring.tone} size={34} />
           </span>
         ) : s.icon ? (
-          <span className={clsx('mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px]', tone.chip)}>
+          <span className={clsx('mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px]', s.iconChip ?? tone.chip)}>
             <Icon name={s.icon} size={13} />
           </span>
         ) : (

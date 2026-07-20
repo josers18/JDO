@@ -808,14 +808,20 @@ function HomeContent() {
     }),
     // Life events → planning opportunities, so they surface even though the
     // cockpit's Life events detail box is gone. Click opens the client 360.
-    lifeEvents: data.lifeEvents.slice(0, 4).map(e => ({
-      label: `${e.clientName} · ${e.event}`,
-      sub: e.opportunity,
-      meta: e.when,
-      icon: 'lifeEvent',
-      tone: 'ai',
-      onClick: () => selectClientPanel(e.clientName, e.clientId),
-    } as const)),
+    lifeEvents: data.lifeEvents.slice(0, 4).map(e => {
+      // Per-event-type icon + color, matching the bottom-band Life events card
+      // (job change / graduation / new child / home purchase / retirement / marriage).
+      const st = lifeEventStyle(e.event);
+      return {
+        label: `${e.clientName} · ${e.event}`,
+        sub: e.opportunity,
+        meta: e.when,
+        icon: st.icon,
+        iconChip: st.chip,
+        tone: 'ai',
+        onClick: () => selectClientPanel(e.clientName, e.clientId),
+      } as const;
+    }),
     prompts: [
       { key: 'overnight', label: 'What changed overnight?' },
       { key: 'attention', label: 'Which accounts need attention?' },
@@ -1924,7 +1930,10 @@ function ColumnCard({
 }) {
   return (
     <section id={id} className="min-w-0 scroll-mt-[82px]">
-      <div className="mb-3 flex items-end gap-2.5">
+      {/* Header sits in its own white card (same chrome as the Priority Queue
+          header) so the two column titles read as the same "level" instead of
+          this one floating on the gray page background. */}
+      <div className="mb-3 flex items-end gap-2.5 rounded-card border border-line bg-surface px-5 pb-3.5 pt-4 shadow-card">
         <div className="min-w-0">
           <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">{eyebrow}</div>
           <h2 className="mt-0.5 font-display text-[19px] font-semibold tracking-tight">{title}</h2>
