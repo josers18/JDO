@@ -1177,16 +1177,16 @@ function HomeContent() {
            strip inside its left column so the context panel can align to the top) ---------- */}
       {view !== 'cockpit' && (
         <section id="brief" className="scroll-mt-[82px]">
-          <div className="relative overflow-hidden rounded-[26px] border border-line bg-surface-glass p-8 shadow-card">
-            <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+          <div className="relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
+            <div className="grid gap-7 lg:grid-cols-[1fr_380px]">
               <div>
                 <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
                   <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
                 </div>
-                <h1 className="mb-4 mt-3.5 font-display text-[40px] font-semibold leading-[1.08] tracking-tight">
-                  Good afternoon, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+                <h1 className="mb-2.5 mt-2 font-display text-[30px] font-semibold leading-[1.1] tracking-tight">
+                  {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
                 </h1>
-                <p className="mb-6 max-w-[56ch] text-[15.5px] leading-relaxed text-fg">{data.aiBrief}</p>
+                <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2.5">
                     <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
