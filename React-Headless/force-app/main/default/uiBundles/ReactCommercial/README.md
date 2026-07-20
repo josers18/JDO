@@ -33,14 +33,14 @@ The production build is written to `dist/` in this folder. **A UIBundle deploys 
 
 ## Deploy
 
-From the **SFDX project root** (the directory that contains `force-app/`), deploy the bundle, its `CustomApplication`, and its access permission set **together** (deploying the app before the bundle exists fails). Target org `jdo-1lrnov`:
+From the **SFDX project root** (the directory that contains `force-app/`), deploy the bundle, its `CustomApplication`, and its access permission set **together** (deploying the app before the bundle exists fails). Target org `jdo-oe0sdd`:
 
 ```bash
 sf project deploy start \
   --source-dir force-app/main/default/uiBundles/ReactCommercial \
   --source-dir force-app/main/default/applications/ReactCommercial.app-meta.xml \
   --source-dir force-app/main/default/permissionsets/ReactCommercial_Access.permissionset-meta.xml \
-  -o jdo-1lrnov --json
+  -o jdo-oe0sdd --json
 ```
 
 Always capture `--json` and read `status` / `numberComponentErrors`. The app renders at the **Salesforce App Domain** (`https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactCommercial`), **not** `/lightning/app/<name>`. See the project [DEPLOYMENT_GUIDE.md](../../../../../docs/DEPLOYMENT_GUIDE.md) for the App Launcher tile bridge and the beta delete-and-redeploy migration.

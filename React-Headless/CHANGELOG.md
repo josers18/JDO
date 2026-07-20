@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_17_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_20_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [July 2026]
+
+### 2026-07-18 → 2026-07-20 — cockpit brief polish + sidebar-first de-duplication
+
+#### Added
+
+- **Personalized welcome greeting on the cockpit AI brief** — the command-center brief opens with a time-of-day greeting (`Good morning/afternoon/evening, {bankerName}`) ahead of the AI headline, matching the classic hero. (`bankerName` is still a data-layer value, not yet the running Salesforce user.)
+- **Right Now card embedded in the brief** — the single most-urgent next action renders as a compact card *inside* the AI brief, side by side with the headline (a conditional `lg:grid-cols-[1fr_340px]` split), plus a "book at a glance" line; it dismisses in place.
+- **Portfolio Pulse strip** fills the brief's open space — a slim full-width variant (label on top, narrative + inline metrics) docked at the bottom of the brief column. Its header is a button that opens the pipeline-movement explorer.
+- **Leads & Referrals KPI vital** added to the cockpit vitals row; the four headline metrics now open drill-in `DataExplorerModal`s on click (new **leads**, **goals**, and **lifeEvents** explorers alongside opportunities / at-risk / agenda / activity / pipeline-movement).
+- **Life events surfaced across the book** — a "Life events across your book" section in the `WorkspacePanel` default state, plus a browsable `lifeEvents` explorer reachable from the CommandRail's Life-events nav (life events are no longer only a per-client 360 signal).
+- **`SectionNavRequest` nav bridge** (`WorkspaceSelection`) — removing the cockpit's on-page anchors would have made the CommandRail's schedule / pipeline / life-events / leads / alerts links dead. The rail now scrolls when an anchor exists (classic view) and otherwise raises a nav *intent* the page maps to the matching explorer modal (`NAV_TO_EXPLORER`). Mirrors the existing pinned-account request channel; keeps `HomePage.tsx` byte-identical across the three personas.
+
+#### Changed
+
+- **Pipeline + Open-opportunities KPIs consolidated** into a single Pipeline vital (value + open-opp count as a sub-note), freeing a slot for the Leads & Referrals vital.
+- **Portfolio Pulse compacted** — label moved on top, summary and metrics laid out inline, so the strip fits the brief's residual height.
+- **Cockpit de-duplicated, sidebar-first.** The four bottom detail boxes (Tasks & schedule / Pipeline / Life events + Alerts / Leads) that re-rendered content already shown in the right panel and supporting band were removed; the classic **Current** view keeps its full-page sections unchanged. The `WorkspacePanel`'s "AI daily brief" eyebrow was dropped (now "Your day"), its top-risk rows gained severity-tinted icon chips, bold client names, the reason each client is flagged, and a click that drives the 360 panel.
+- **Classic-view AI brief hero compacted** (padding / font-size / measure) and the redundant "Today · Today" eyebrow removed.
 
 ### 2026-07-16 → 2026-07-17 — cockpit command-center redesign
 

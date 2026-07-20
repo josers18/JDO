@@ -9,7 +9,7 @@ It now hosts a three-persona banking cockpit suite — **React Retail**, **React
 ## Status
 
 - **Created:** 2026-06-25
-- **Target org:** `jdo-1lrnov` (Cumulus Financial Services, Enterprise Edition — same org as the former `jdo-0pz8au` alias / `storm-16a17dc388fbe6`)
+- **Target org:** `jdo-oe0sdd` (Cumulus Financial Services, Enterprise Edition — org id `00Dam00000Uo32qEAB` / `storm-16a17dc388fbe6`; the former `jdo-1lrnov` and `jdo-0pz8au` aliases pointed at this same org but no longer resolve)
 - **API version:** 67.0 (see "Critical: API version" below)
 - **Bundles:**
   - `uiBundles/ReactRetail/` — Retail banker home + customer 360 (live GraphQL + Data Cloud data)
@@ -54,12 +54,12 @@ npm run build      # tsc -b && vite build -> dist/
 The `.uibundle-meta.xml`, `CustomApplication`, and access permission set must deploy **together** (deploying the app before the bundle exists fails):
 
 ```bash
-# from project root, with target-org = jdo-1lrnov
+# from project root, with target-org = jdo-oe0sdd
 sf project deploy start \
   --source-dir force-app/main/default/uiBundles/ReactRetail \
   --source-dir force-app/main/default/applications/ReactRetail.app-meta.xml \
   --source-dir force-app/main/default/permissionsets/ReactRetail_Access.permissionset-meta.xml \
-  -o jdo-1lrnov --json
+  -o jdo-oe0sdd --json
 ```
 
 For a bundle first deployed during the beta, a plain redeploy leaves a stale AppMenuItem — follow the delete-and-redeploy migration in [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md).
@@ -69,12 +69,12 @@ Verify it landed:
 ```bash
 sf data query --use-tooling-api \
   -q "SELECT Id, DeveloperName, MasterLabel FROM UIBundle WHERE DeveloperName='ReactRetail' WITH USER_MODE" \
-  -o jdo-1lrnov
+  -o jdo-oe0sdd
 ```
 
 ## Deployed apps
 
-All three render in-org at the Salesforce App Domain (org `jdo-1lrnov` / `storm-16a17dc388fbe6`):
+All three render in-org at the Salesforce App Domain (org `jdo-oe0sdd` / `storm-16a17dc388fbe6`):
 
 | App | Serving URL |
 |-----|-------------|
@@ -90,7 +90,7 @@ The banker home turns AI briefs into **one-click actions**: generate/draft with 
 
 Each cockpit also carries an in-app **Configuration** page (`/config`) where an admin picks which Agentforce model runs each generative action — from a **self-updating catalog** discovered by probing the org's live foundation models (there is no listing API) and cached on a `CommandCenterConfig__c` singleton via `CommandCenterConfigRest` (`/config/*`). Settings are org-level and shared; a "Refresh models" button forces a fresh discovery probe.
 
-The banker home ships **two layouts** behind a top-bar toggle: the original **Current** stacked list and a **Cockpit** command center (compact AI brief, sparkline KPI vitals, side-by-side Priority Queue + Recommended Actions, a tabbed customer-360 workspace panel that master-details off any row you click, and a supporting band whose cells drill into search/filter/table explorers). The **Priority Queue** is blended and dated — it merges each persona's signature risk signal (CSAT / credit / held-away) with open-opportunity and overdue-task items, each with a real due date, so it sorts into a genuinely mixed, ranked worklist.
+The banker home ships **two layouts** behind a top-bar toggle: the original **Current** stacked list and a **Cockpit** command center. The cockpit brief opens with a personalized time-of-day greeting, an embedded **Right Now** next-action card, and a **Portfolio Pulse** strip; below it sit sparkline KPI vitals (Pipeline, Leads & Referrals, at-risk, active goals), a side-by-side Priority Queue + Recommended Actions, a tabbed customer-360 workspace panel that master-details off any row you click, and a supporting band. The cockpit is **de-duplicated and sidebar-first** — the KPI vitals, the Portfolio-Pulse header, and the left rail's section links all open search/filter/table **explorer modals** (rather than repeating content in bottom detail boxes); the classic view keeps its full-page sections. The **Priority Queue** is blended and dated — it merges each persona's signature risk signal (CSAT / credit / held-away) with open-opportunity and overdue-task items, each with a real due date, so it sorts into a genuinely mixed, ranked worklist.
 
 ## Layout
 
