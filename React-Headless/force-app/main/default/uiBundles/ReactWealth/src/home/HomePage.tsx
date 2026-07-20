@@ -966,10 +966,23 @@ function HomeContent() {
   // ── Compact AI Daily Brief strip (cockpit only) ──
   // The mockup's brief is a single dense line — icon + "AI Daily Brief" +
   // "Updated" chip + one sentence + "View full insights →" — NOT the tall hero
-  // headline. The hero stays for the classic view; this strip replaces it at the
-  // top of the cockpit grid's left column.
+  // headline. It opens with the personalized welcome greeting restored from the
+  // classic hero, then the dense brief line below it.
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const briefStrip = (
     <div className="rounded-card border border-line bg-surface-glass px-5 py-4 shadow-card">
+      {/* Welcome greeting — the personalized hero that anchored the classic
+          view, restored here so the cockpit still opens with a named welcome
+          before the dense AI brief line. */}
+      <div className="mb-3.5 border-b border-line pb-3">
+        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
+          <Icon name="sparkle" size={13} className="text-ai" /> Today · {data.dateLabel}
+        </div>
+        <h1 className="mt-2 font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
+          {greeting}, {data.bankerName}
+        </h1>
+      </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Icon name="sparkle" size={15} className="text-ai" />
         <b className="text-[14px] font-semibold">AI Daily Brief</b>
