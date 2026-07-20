@@ -980,7 +980,7 @@ function HomeContent() {
           <Icon name="sparkle" size={13} className="text-ai" /> Today · {data.dateLabel}
         </div>
         <h1 className="mt-2 font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
-          {greeting}, {data.bankerName}
+          {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
         </h1>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -1253,6 +1253,24 @@ function HomeContent() {
               <section id="brief" className="scroll-mt-[82px]">
                 {briefStrip}
               </section>
+
+              {/* Right Now · your first move — the single top-priority action,
+                  restored into the cockpit so it anchors the workflow the same
+                  way it does the classic hero. */}
+              {data.rightNow && !dismissed.has('rightNow') && (
+                <div className="mt-4">
+                  <RightNowCard
+                    item={data.rightNow}
+                    onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
+                    onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
+                    onSnooze={() => {
+                      setDismissed(s => new Set(s).add('rightNow'));
+                      toast('Snoozed', 'Right Now item hidden for this session');
+                    }}
+                    onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
+                  />
+                </div>
+              )}
 
               {/* Vitals: four sparkline KPI cards */}
               <section id="kpis" className="mt-4 scroll-mt-[82px]">
