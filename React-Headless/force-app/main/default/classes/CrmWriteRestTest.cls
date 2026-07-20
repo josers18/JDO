@@ -14,6 +14,24 @@ private class CrmWriteRestTest {
     }
 
     @IsTest
+    static void whoamiReturnsRunningUser() {
+        RestRequest req = new RestRequest();
+        req.requestURI = '/services/apexrest/crm/whoami';
+        req.httpMethod = 'GET';
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        Test.startTest();
+        CrmWriteRest.whoami();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'whoami should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertEquals(UserInfo.getUserId(), out.get('userId'), 'running user id');
+        System.assertEquals(UserInfo.getName(), out.get('name'), 'running user name');
+        System.assertEquals(UserInfo.getFirstName(), out.get('firstName'), 'running user first name');
+    }
+
+    @IsTest
     static void createsTask() {
         setupRequest('{"action":"task","subject":"Follow up call","description":"Ring the client","dueDate":"2026-08-01","priority":"High"}');
         Test.startTest();

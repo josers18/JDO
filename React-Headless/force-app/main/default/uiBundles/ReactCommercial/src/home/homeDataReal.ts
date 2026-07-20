@@ -8,7 +8,7 @@
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
  */
-import { executeGraphQL, queryDataCloud } from '@shared';
+import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
 import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -157,11 +157,15 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
-  const [core, credit, delinq] = await Promise.all([
+  const [core, credit, delinq, currentUser] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     queryDataCloud<CreditRow>(CREDIT_RISK_SQL, 8),
     queryDataCloud<DelinqRow>(DELINQUENCY_SQL, 20).catch(() => ({ rows: [] as DelinqRow[] })),
+    fetchCurrentUser(),
   ]);
+  // Greet the logged-in banker by first name; fall back to full name, then a
+  // demo default if the identity call is unavailable (e.g. mock/offline).
+  const bankerName = currentUser?.firstName || currentUser?.name || 'Alex';
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
@@ -396,7 +400,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     }));
 
   return {
-    bankerName: 'Alex',
+    bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
     aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${opp?.totalCount ?? 0} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,

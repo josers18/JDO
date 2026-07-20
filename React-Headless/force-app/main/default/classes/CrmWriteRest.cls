@@ -40,6 +40,35 @@ global with sharing class CrmWriteRest {
         public String showAs;           // Event ShowAs (Busy|OutOfOffice|Free)
     }
 
+    /**
+     * Identity of the running user — the session the bundle already runs under.
+     *
+     *   GET /services/apexrest/crm/whoami
+     *     200: { "success": true, "userId": "005...", "name": "Jane Banker",
+     *            "firstName": "Jane", "lastName": "Banker" }
+     *
+     * Used by the banker home to greet the logged-in user by name instead of a
+     * hardcoded placeholder. UserInfo reflects the caller (REST Apex runs as the
+     * authenticated user), so no query or FLS is involved.
+     */
+    @HttpGet
+    global static void whoami() {
+        RestResponse res = RestContext.response;
+        if (res == null) {
+            res = new RestResponse();
+            RestContext.response = res;
+        }
+        res.addHeader('Content-Type', 'application/json');
+        res.statusCode = 200;
+        res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'success' => true,
+            'userId' => UserInfo.getUserId(),
+            'name' => UserInfo.getName(),
+            'firstName' => UserInfo.getFirstName(),
+            'lastName' => UserInfo.getLastName()
+        }));
+    }
+
     @HttpPost
     global static void write() {
         RestResponse res = RestContext.response;

@@ -82,3 +82,37 @@ export async function crmWrite(input: CrmWriteInput): Promise<CrmWriteResult> {
   }
   return { success: true, id: json.id ?? null };
 }
+
+/** Identity of the logged-in Salesforce user (the session the bundle runs as). */
+export interface CurrentUser {
+  userId: string;
+  /** Full display name, e.g. "Jane Banker". */
+  name: string;
+  firstName: string;
+  lastName: string;
+}
+
+/**
+ * Read the running user from the Apex bridge (`GET /crm/whoami`, backed by
+ * `UserInfo`). Lets the banker home greet the logged-in user by name instead of
+ * a hardcoded placeholder. Returns `null` on any failure (unavailable fetch
+ * surface, non-OK response) so callers can fall back to a default name without a
+ * try/catch — the greeting must never break the page.
+ */
+export async function fetchCurrentUser(): Promise<CurrentUser | null> {
+  try {
+    const sdk = await createDataSDK();
+    if (!sdk.fetch) return null;
+    const res = await sdk.fetch('/services/apexrest/crm/whoami', { method: 'GET' });
+    const json = (await res.json()) as Partial<CurrentUser> & { success?: boolean };
+    if (!res.ok || json.success === false || !json.userId) return null;
+    return {
+      userId: json.userId,
+      name: json.name ?? '',
+      firstName: json.firstName ?? '',
+      lastName: json.lastName ?? '',
+    };
+  } catch {
+    return null;
+  }
+}

@@ -8,7 +8,7 @@
  * (jdo-1lrnov / storm-16a17dc388fbe6, 2026-07-06) by running each query through
  * the uiapi endpoint and the ssot/queryv2 probe. Not guessed.
  */
-import { executeGraphQL, queryDataCloud } from '@shared';
+import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
 import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -146,10 +146,14 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
-  const [core, csat] = await Promise.all([
+  const [core, csat, currentUser] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     queryDataCloud<CsatRow>(LOW_CSAT_SQL, 8),
+    fetchCurrentUser(),
   ]);
+  // Greet the logged-in banker by first name; fall back to full name, then a
+  // demo default if the identity call is unavailable (e.g. mock/offline).
+  const bankerName = currentUser?.firstName || currentUser?.name || 'Alex';
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
@@ -373,7 +377,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     }));
 
   return {
-    bankerName: 'Alex',
+    bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'your book at a glance',
     aiBrief: `${callList.length} clients flagged by CSAT, ${highRisk} high-risk. ${opp?.totalCount ?? 0} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
