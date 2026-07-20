@@ -799,6 +799,9 @@ function HomeContent() {
         label: c.clientName,
         sub: c.reason,
         ring: { value: h, tone: healthTone(h) },
+        // Same readout as the bottom-band At-Risk Clients card: the score
+        // number + red week-over-week drop, both derived in healthFor/healthDropFor.
+        health: { score: h, drop: healthDropFor(c) },
         tone: c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'accent',
         onClick: () => selectClientPanel(c.clientName, c.clientId),
       } as const;

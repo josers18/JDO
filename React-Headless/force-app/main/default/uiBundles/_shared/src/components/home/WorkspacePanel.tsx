@@ -34,6 +34,10 @@ export interface WorkspaceListItem {
    *  At-Risk Clients card. When set, the row leads with the ring instead of an
    *  icon chip / dot. */
   ring?: { value: number; tone: RingTone };
+  /** Relationship-health readout shown beneath the reason — mirrors the
+   *  bottom-band At-Risk Clients card ("Health score {score}  ↓ {drop}").
+   *  `drop` is the week-over-week decline; omit to hide the health line. */
+  health?: { score: number; drop: number };
   /** When set, the row becomes a button that opens a drill-in. */
   onClick?: () => void;
 }
@@ -258,6 +262,12 @@ function SignalList({ items }: { items: WorkspaceListItem[] }) {
             <span className="min-w-0 flex-1">
               <span className="block text-[12.5px] font-semibold text-fg">{s.label}</span>
               {s.sub && <span className="mt-0.5 block text-[11.5px] leading-snug text-muted">{s.sub}</span>}
+              {s.health && (
+                <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-faint">
+                  Health score <b className="font-semibold text-fg">{s.health.score}</b>
+                  <span className="font-mono text-risk">↓ {s.health.drop}</span>
+                </span>
+              )}
             </span>
             {s.meta && (
               <span className={clsx('mt-0.5 flex-none rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.04em]', tone.meta)}>
