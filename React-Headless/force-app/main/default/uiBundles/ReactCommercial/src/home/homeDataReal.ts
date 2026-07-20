@@ -9,7 +9,7 @@
  * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
  */
 import { executeGraphQL, queryDataCloud } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
+import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
  *  SSR/replay). Wobbles around `end` using the seed's char codes. */
@@ -60,6 +60,9 @@ const HOME_CORE_QUERY = /* GraphQL */ `
         }
         FinancialGoal(first: 6) {
           edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
+        }
+        Lead(first: 6, where: { IsConverted: { eq: false } }) {
+          edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
         }
       }
     }
@@ -149,6 +152,7 @@ interface CoreShape {
     TaskUpcoming?: { edges?: { node: Node }[] };
     Event?: { edges?: { node: Node }[] };
     FinancialGoal?: { edges?: { node: Node }[] };
+    Lead?: { edges?: { node: Node }[] };
   } };
 }
 
@@ -275,6 +279,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     format: 'currencyCompact' as const,
   }));
 
+  const leads: LeadReferral[] = (q?.Lead?.edges ?? []).map((e, i) => ({
+    id: `l${i}`, name: s(e.node, 'Name') || s(e.node, 'Company') || 'Lead',
+    source: s(e.node, 'LeadSource') || '—', status: s(e.node, 'Status') || 'New',
+    value: num(e.node, 'AnnualRevenue'),
+    email: s(e.node, 'Email'),
+  }));
+
   const pipeline: PipelineItem[] = (opp?.edges ?? []).slice(0, 8).map((e, i) => ({
     id: `o${i}`,
     clientName: e.node.Account?.Name?.value ?? '—',
@@ -392,8 +403,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     confidencePct: 86,
     dataSourceCount: 25,
     kpis: [
-      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.051, note: 'Open pipeline' },
+      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.051, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
       { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
+      { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
       { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number', trend: seedTrend('cases', q?.Case?.totalCount ?? 0), note: 'Open cases' },
       { key: 'atRisk', label: 'Credit Watch', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: 'PAYDEX < 60' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
@@ -407,7 +419,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,
       tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
     })),
-    leads: [],
+    leads,
     recommendations,
     activity,
     pipelineMovement,

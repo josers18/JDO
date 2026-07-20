@@ -727,9 +727,13 @@ function HomeContent() {
   );
 
   // Cockpit vitals: the four headline metrics as sparkline cards (mockup order:
-  // Pipeline · Opportunities · At-Risk · Active Goals). Chosen from data.kpis by
-  // key so it survives a KPI-set change; falls back to the first four.
-  const VITAL_KEYS = ['pipeline', 'openOpps', 'atRisk', 'goals'];
+  // Pipeline · Leads & referrals · At-Risk · Active Goals). Chosen from data.kpis
+  // by key so it survives a KPI-set change; falls back to the first four.
+  // Pipeline & Opportunities are consolidated into one card here (the pipeline
+  // card carries the open-opportunity count in its note), freeing a slot for the
+  // Leads & referrals vital. `openOpps` still lives in data.kpis for the classic
+  // 5-KPI grid and pipelineNarrative().
+  const VITAL_KEYS = ['pipeline', 'leads', 'atRisk', 'goals'];
   const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridVitals = (
     <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
@@ -1659,6 +1663,7 @@ function HomeContent() {
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
+  leads: 'leads',
   openCases: 'events',
   goals: 'pulse',
   atRisk: 'events',

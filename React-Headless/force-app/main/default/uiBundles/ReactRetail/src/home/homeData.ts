@@ -17,8 +17,9 @@ const DASH: HomeDashboard = {
   confidencePct: 87,
   dataSourceCount: 24,
   kpis: [
-    { key: 'pipeline', label: 'Pipeline', value: 20_300_000_000, format: 'currencyCompact', trend: series(8, 12, 19, 1.2), deltaPct: 0.041, note: '▲ 4.1% wk' },
+    { key: 'pipeline', label: 'Pipeline', value: 20_300_000_000, format: 'currencyCompact', trend: series(8, 12, 19, 1.2), deltaPct: 0.041, note: '19,011 open opportunities' },
     { key: 'openOpps', label: 'Open opps', value: 19_011, format: 'number', trend: series(3, 12, 18000, 900), note: '632 closing 30d' },
+    { key: 'leads', label: 'Leads & Referrals', value: 6, format: 'number', trend: series(2, 12, 5, 1), deltaPct: 0.08, note: 'Open leads' },
     { key: 'openCases', label: 'Open cases', value: 5_355, format: 'number', trend: series(5, 12, 5200, 200), note: '14 high priority' },
     { key: 'goals', label: 'Active goals', value: 6, format: 'number', note: '2 on track' },
     { key: 'atRisk', label: 'At-risk · CSAT', value: 8, format: 'number', note: 'needs outreach' },
