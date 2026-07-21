@@ -116,6 +116,12 @@ const DASH: HomeDashboard = {
     { id: 'pm3', label: 'Annuity & Income', amount: 2_100_000, deltaPct: 0.08, trend: series(6, 8, 1_900_000, 90_000) },
     { id: 'pm4', label: 'ESG SMA Transition', amount: 1_450_000, deltaPct: -0.04, trend: series(2, 8, 1_550_000, 60_000) },
   ],
+  cases: [
+    { id: 'cs1', caseNumber: '00003051', subject: 'RMD distribution not processed', priority: 'High', status: 'Escalated', clientName: 'The Whitfield Family Trust', clientId: '001W', ageDays: 4 },
+    { id: 'cs2', caseNumber: '00003047', subject: 'Held-away transfer stalled at custodian', priority: 'High', status: 'Working', clientName: 'Dr. Alan Pierce', clientId: '001P', ageDays: 7 },
+    { id: 'cs3', caseNumber: '00003040', subject: 'Cost-basis correction on SMA', priority: 'Medium', status: 'New', clientName: 'Margaret & Roy Nguyen', ageDays: 3 },
+    { id: 'cs4', caseNumber: '00003032', subject: 'Beneficiary designation update', priority: 'Low', status: 'Working', clientName: 'The Okafor Foundation', ageDays: 12 },
+  ],
 };
 
 /**

@@ -117,6 +117,12 @@ const DASH: HomeDashboard = {
     { id: 'pm3', label: 'Equipment Finance', amount: 12_600_000, deltaPct: 0.18, trend: series(9, 8, 10_500_000, 620_000) },
     { id: 'pm4', label: 'Debt Restructure', amount: 42_000_000, deltaPct: -0.05, trend: series(2, 8, 45_000_000, 1_800_000) },
   ],
+  cases: [
+    { id: 'cs1', caseNumber: '00002087', subject: 'Covenant breach review — Q3 filing', priority: 'High', status: 'Escalated', clientName: 'Delta Foods Inc', clientId: '001D', ageDays: 5 },
+    { id: 'cs2', caseNumber: '00002081', subject: 'ACH batch rejected — treasury portal', priority: 'High', status: 'Working', clientName: 'Frontier Freight', clientId: '001F', ageDays: 2 },
+    { id: 'cs3', caseNumber: '00002074', subject: 'Line-of-credit draw dispute', priority: 'Medium', status: 'New', clientName: 'Granite Materials', clientId: '001G', ageDays: 4 },
+    { id: 'cs4', caseNumber: '00002066', subject: 'Lockbox remittance mismatch', priority: 'Low', status: 'Working', clientName: 'Emerald Construction', clientId: '001E', ageDays: 11 },
+  ],
   delinquency: {
     totalDelinquentBalance: 4820000,
     totalRecovered: 1130000,

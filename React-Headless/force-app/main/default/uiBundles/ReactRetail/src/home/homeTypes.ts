@@ -139,6 +139,23 @@ export interface PipelineMovement {
   trend: number[];
 }
 
+/** An open service Case row for the cockpit supporting band + explorer. */
+export interface CaseItem {
+  id: string;
+  /** Case.CaseNumber, e.g. "00001234". */
+  caseNumber: string;
+  subject: string;
+  /** Case.Priority — 'High' | 'Medium' | 'Low' (or org values); '' when unset. */
+  priority: string;
+  /** Case.Status, e.g. "New" / "Working" / "Escalated". */
+  status: string;
+  /** Related Account name; '' when the case has no account. */
+  clientName: string;
+  clientId?: string;
+  /** Whole days since Case.CreatedDate (age). 0 when unknown. */
+  ageDays: number;
+}
+
 export interface HomeDashboard {
   bankerName: string;
   dateLabel: string;
@@ -157,6 +174,8 @@ export interface HomeDashboard {
   activity: ActivityItem[];
   /** Pipeline movement by product line for the cockpit supporting band. */
   pipelineMovement: PipelineMovement[];
+  /** Open service cases for the cockpit supporting band + explorer. */
+  cases: CaseItem[];
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;

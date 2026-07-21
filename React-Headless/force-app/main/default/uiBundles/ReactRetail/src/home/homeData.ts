@@ -115,6 +115,12 @@ const DASH: HomeDashboard = {
     { id: 'pm3', label: 'Treasury Solutions', amount: 4_600_000, deltaPct: 0.16, trend: series(9, 8, 4_000_000, 220_000) },
     { id: 'pm4', label: 'Wealth Management', amount: 3_200_000, deltaPct: -0.04, trend: series(2, 8, 3_400_000, 140_000) },
   ],
+  cases: [
+    { id: 'cs1', caseNumber: '00001042', subject: 'Disputed card transaction — $2,410', priority: 'High', status: 'Escalated', clientName: 'Cooper Household', clientId: '001COOP000000000', ageDays: 6 },
+    { id: 'cs2', caseNumber: '00001038', subject: 'Wire transfer delayed past cutoff', priority: 'High', status: 'Working', clientName: 'Sherry F Wang', clientId: '001WANG000000000', ageDays: 3 },
+    { id: 'cs3', caseNumber: '00001031', subject: 'Online banking login lockout', priority: 'Medium', status: 'New', clientName: 'Cervantes-Fowler Retail', ageDays: 2 },
+    { id: 'cs4', caseNumber: '00001024', subject: 'Statement address update request', priority: 'Low', status: 'Working', clientName: 'Julie E Morris', ageDays: 9 },
+  ],
 };
 
 /**

@@ -9,7 +9,7 @@
  * the uiapi endpoint and the ssot/queryv2 probe. Not guessed.
  */
 import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
-import type { HomeDashboard, CallItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
+import type { HomeDashboard, CallItem, CaseItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
  *  it breaks SSR/replay). Wobbles around `end` using the id's char codes. */
@@ -48,7 +48,10 @@ const HOME_CORE_QUERY = /* GraphQL */ `
           totalCount
           edges { node { Id Name @optional { value } StageName @optional { value } Amount @optional { value } CloseDate @optional { value } Probability @optional { value } Account @optional { Name @optional { value } } } }
         }
-        Case(first: 1, where: { IsClosed: { eq: false } }) { totalCount }
+        Case(first: 8, where: { IsClosed: { eq: false } }, orderBy: { CreatedDate: { order: DESC } }) {
+          totalCount
+          edges { node { Id CaseNumber @optional { value } Subject @optional { value } Priority @optional { value } Status @optional { value } CreatedDate @optional { value } AccountId @optional { value } Account @optional { Name @optional { value } } } }
+        }
         TaskOverdue: Task(first: 15, where: { IsClosed: { eq: false }, ActivityDate: { lt: { literal: TODAY } } }, orderBy: { ActivityDate: { order: DESC } }) {
           edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } Type @optional { value } Description @optional { value } WhatId @optional { value } OwnerId @optional { value } CreatedBy @optional { Name @optional { value } } CreatedDate @optional { value } LastModifiedBy @optional { Name @optional { value } } LastModifiedDate @optional { value } } }
         }
@@ -136,7 +139,7 @@ function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
-    Case?: { totalCount?: number };
+    Case?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
     TaskOverdue?: { edges?: { node: Node }[] };
     TaskUpcoming?: { edges?: { node: Node }[] };
     Event?: { edges?: { node: Node }[] };
@@ -286,6 +289,25 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     propensity: Math.min(1, num(e.node, 'Probability') / 100) || 0.5,
   }));
 
+  // Open service cases → the supporting-band Cases card + explorer. CaseNumber,
+  // Subject, Priority, Status are standard Case fields (present in every org);
+  // age is whole days since CreatedDate. Account name rides along via the
+  // Case → Account relationship (falls back to '' when the case has no account).
+  const cases: CaseItem[] = (q?.Case?.edges ?? []).map((e, i) => {
+    const created = s(e.node, 'CreatedDate');
+    const ageDays = created ? Math.max(0, Math.floor((Date.now() - new Date(created).getTime()) / 86_400_000)) : 0;
+    return {
+      id: (e.node as { Id?: string }).Id ?? `cs${i}`,
+      caseNumber: s(e.node, 'CaseNumber') || '—',
+      subject: s(e.node, 'Subject') || 'Case',
+      priority: s(e.node, 'Priority') || '',
+      status: s(e.node, 'Status') || '',
+      clientName: e.node.Account?.Name?.value ?? '',
+      clientId: s(e.node, 'AccountId') || undefined,
+      ageDays,
+    };
+  });
+
   const highRisk = callList.filter(c => c.severity === 'high').length;
 
   // ── Recommendations — derived defensively (never throws). Sources:
@@ -404,6 +426,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     recommendations,
     activity,
     pipelineMovement,
+    cases,
     rightNow,
   };
 }

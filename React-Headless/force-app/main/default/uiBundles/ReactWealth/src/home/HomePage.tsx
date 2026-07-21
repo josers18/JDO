@@ -53,7 +53,7 @@ import {
   type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
+import type { CallItem, CaseItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -193,7 +193,7 @@ function HomeContent() {
   const [bandExpanded, setBandExpanded] = useState(true);
   // Which supporting-band module is drilled into (its "View all →" was clicked).
   // Null = no explorer open. One <DataExplorerModal> renders per key below.
-  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
+  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'cases' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
@@ -1170,11 +1170,10 @@ function HomeContent() {
 
   // ── Full-width supporting band (cockpit only) ──
   // The five secondary modules from the mockup, in a single responsive row:
-  // Recent Activity · Pipeline Movement · At-Risk Clients · Today's Agenda ·
+  // Life events · Pipeline Movement · Open Cases · Today's Agenda ·
   // Top Opportunities. Each is a slim card with a "View all →" head and clickable
-  // rows that drive the right context panel. Health scores for at-risk clients
-  // are derived deterministically from severity + rank (no CallItem field yet).
-  const atRiskClients = data.callList.filter(c => (c.tier ?? 'watch') === 'watch' || c.severity !== 'low').slice(0, 3);
+  // rows that drive the right context panel. (At-risk clients moved to the right
+  // context panel, so this band now surfaces open service cases instead.)
   const supportingBand = (
     <div className="@container/band">
     <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line-strong bg-line-strong shadow-card @[560px]/band:grid-cols-3 @[900px]/band:grid-cols-5">
@@ -1225,26 +1224,31 @@ function HomeContent() {
         })}
       </BandCard>
 
-      {/* At-Risk Clients */}
-      <BandCard title="At-Risk Clients" onViewAll={() => setExplorer('atRisk')}>
-        {atRiskClients.map(c => {
-          const h = healthFor(c);
+      {/* Open Cases — at-risk clients moved to the right context panel, so this
+          slot now surfaces open service cases: a leading priority chip, the
+          subject, and "Account · N days open". Click opens the client 360. */}
+      <BandCard title="Open Cases" onViewAll={() => setExplorer('cases')}>
+        {data.cases.slice(0, 4).map(cs => {
+          const st = casePriorityStyle(cs.priority);
           return (
             <button
-              key={c.id}
+              key={cs.id}
               type="button"
-              onClick={() => selectClientPanel(c.clientName, c.clientId)}
-              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+              onClick={() => selectClientPanel(cs.clientName || cs.subject, cs.clientId)}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
             >
-              <ScoreRing value={h} tone={h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok'} size={38} />
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
+                <Icon name="alerts" size={13} />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-semibold text-fg">{c.clientName}</span>
-                <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-faint">
-                  Health score <b className="font-semibold text-fg">{h}</b>
-                  <span className="font-mono text-risk">↓ {healthDropFor(c)}</span>
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{cs.subject}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">
+                  {cs.clientName || 'Unassigned'} · {cs.ageDays}{cs.ageDays === 1 ? ' day' : ' days'} open
                 </span>
               </span>
-              <Icon name="arrow" size={14} className="flex-none text-faint" />
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${st.chip}`}>
+                {cs.priority || '—'}
+              </span>
             </button>
           );
         })}
@@ -1615,6 +1619,37 @@ function HomeContent() {
           ) },
         ]}
         footNote="Source · CSAT + Data Cloud signals"
+      />
+
+      <DataExplorerModal<CaseItem>
+        open={explorer === 'cases'}
+        onClose={() => setExplorer(null)}
+        title="Open Cases"
+        subtitle="Open service cases across your book"
+        icon={<Icon name="alerts" size={17} />}
+        rows={data.cases}
+        searchPlaceholder="Search cases, clients…"
+        searchText={cs => `${cs.caseNumber} ${cs.subject} ${cs.clientName} ${cs.priority} ${cs.status}`}
+        rowKey={cs => cs.id}
+        onRowClick={cs => cs.clientId ? openFull(cs.clientId) : open('quickview', cs.clientName || cs.subject)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'high', label: 'High', test: cs => cs.priority.toLowerCase() === 'high' },
+          { key: 'medium', label: 'Medium', test: cs => cs.priority.toLowerCase() === 'medium' },
+          { key: 'low', label: 'Low', test: cs => !['high', 'medium'].includes(cs.priority.toLowerCase()) },
+        ]}
+        columns={[
+          { key: 'case', label: 'Case', render: cs => (
+            <span className="min-w-0"><span className="block font-semibold text-fg">{cs.subject}</span><span className="block font-mono text-[11px] text-faint">#{cs.caseNumber}</span></span>
+          ) },
+          { key: 'client', label: 'Client', render: cs => <span className="text-muted">{cs.clientName || 'Unassigned'}</span>, hideBelow: 'md' },
+          { key: 'age', label: 'Age', align: 'right', hideBelow: 'sm', render: cs => <span className="font-mono text-[11px] text-muted">{cs.ageDays}d</span> },
+          { key: 'status', label: 'Status', align: 'right', hideBelow: 'sm', render: cs => <Pill tone="neutral">{cs.status || '—'}</Pill> },
+          { key: 'priority', label: 'Priority', align: 'right', render: cs => (
+            <Pill tone={casePriorityStyle(cs.priority).tone}>{cs.priority || '—'}</Pill>
+          ) },
+        ]}
+        footNote="Source · CRM cases"
       />
 
       <DataExplorerModal<ScheduleItem>
@@ -2217,6 +2252,17 @@ const LIFE_EVENT_STYLE: Record<string, { icon: IconKey; chip: string }> = {
 };
 const lifeEventStyle = (event: string) =>
   LIFE_EVENT_STYLE[event.trim().toLowerCase()] ?? { icon: 'lifeEvent' as IconKey, chip: 'bg-accent-bg text-accent' };
+
+/** Case.Priority → chip classes + Pill tone. High = red, Medium = amber,
+ *  everything else (Low / unset) = neutral. Keyed on the lowercased value so
+ *  org variants like "high" / "High" both resolve. */
+const CASE_PRIORITY_STYLE: Record<string, { chip: string; tone: 'risk' | 'warn' | 'neutral' }> = {
+  high: { chip: 'bg-risk-bg text-risk', tone: 'risk' },
+  medium: { chip: 'bg-warn-bg text-warn', tone: 'warn' },
+  low: { chip: 'bg-surface-muted text-muted', tone: 'neutral' },
+};
+const casePriorityStyle = (priority: string) =>
+  CASE_PRIORITY_STYLE[priority.trim().toLowerCase()] ?? { chip: 'bg-surface-muted text-muted', tone: 'neutral' as const };
 
 /** Schedule bucket → dot color for the Today's Agenda timeline rail. */
 const AGENDA_DOT: Record<'overdue' | 'today' | 'upcoming', string> = {
