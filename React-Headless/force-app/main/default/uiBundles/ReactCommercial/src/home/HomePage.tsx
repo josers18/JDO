@@ -185,12 +185,6 @@ function HomeContent() {
     fallback: string;
   } | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
-  // Cockpit "Show more / Show less" — the mockup's footer toggle. Defaults to
-  // EXPANDED so the five-column supporting band is visible on load (matching the
-  // design's "Show less" state); collapsing hides the band. The detail modules
-  // below (pipeline table, life events, leads, portfolio pulse) always render so
-  // the CommandRail nav anchors (#pipeline / #events / #leads / #pulse) stay live.
-  const [bandExpanded, setBandExpanded] = useState(true);
   // Which supporting-band module is drilled into (its "View all →" was clicked).
   // Null = no explorer open. One <DataExplorerModal> renders per key below.
   const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'cases' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
@@ -1438,7 +1432,7 @@ function HomeContent() {
           </div>
 
           {/* ---- Full-width supporting band + footer ---- */}
-          {bandExpanded && <div className="mt-4">{supportingBand}</div>}
+          <div className="mt-4">{supportingBand}</div>
           <div className="mt-3 flex items-center">
             <button
               type="button"
@@ -1447,14 +1441,6 @@ function HomeContent() {
             >
               <Icon name="metrics" size={14} /> Customize widgets
             </button>
-            <button
-              type="button"
-              onClick={() => setBandExpanded(v => !v)}
-              className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-line px-4 py-1.5 text-[12px] text-muted transition hover:border-accent-border hover:text-fg"
-            >
-              {bandExpanded ? '⌃ Show less' : '⌄ Show more'}
-            </button>
-            <span className="w-[140px]" aria-hidden="true" />
           </div>
 
           {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
