@@ -850,6 +850,11 @@ function HomeContent() {
     onNewSchedule: () => open('schedule', data.bankerName, undefined, 'Meeting'),
     // "View all →" beside the panel's Life events section — open the explorer.
     onViewLifeEvents: () => setExplorer('lifeEvents'),
+    // "+ New" beside the panel's Life events section — open the create modal.
+    onNewLifeEvent: showNewLifeEvent,
+    // "View all →" beside Top risks & opportunities — open the at-risk explorer
+    // (same target as the Priority Queue card's "View all →").
+    onViewAtRisk: () => setExplorer('atRisk'),
     onSoft: (title, message) => toast(title, message),
   };
 

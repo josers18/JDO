@@ -172,6 +172,10 @@ export interface WorkspacePanelHandlers {
   onNewSchedule: () => void;
   /** "View all →" beside the Life events section title — page opens the Life Events explorer. */
   onViewLifeEvents: () => void;
+  /** "+ New" beside the Life events section title — page opens the LifeEventModal in create mode. */
+  onNewLifeEvent: () => void;
+  /** "View all →" beside the Top risks & opportunities title — page opens the at-risk explorer. */
+  onViewAtRisk: () => void;
   /** Soft actions with no CRM write yet (complete / snooze / assign) — page toasts. */
   onSoft: (title: string, message: string) => void;
 }
@@ -516,7 +520,19 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
   return (
     <div>
       {brief.focus.length > 0 && (
-        <PanelSection title="Top risks & opportunities" first>
+        <PanelSection
+          title="Top risks & opportunities"
+          first
+          action={
+            <button
+              type="button"
+              onClick={handlers.onViewAtRisk}
+              className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
+            >
+              View all →
+            </button>
+          }
+        >
           <SignalList items={brief.focus} />
         </PanelSection>
       )}
@@ -525,13 +541,22 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
         <PanelSection
           title="Life events across your book"
           action={
-            <button
-              type="button"
-              onClick={handlers.onViewLifeEvents}
-              className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
-            >
-              View all →
-            </button>
+            <span className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handlers.onNewLifeEvent}
+                className="font-mono text-[10.5px] font-medium text-muted transition hover:text-fg"
+              >
+                + New
+              </button>
+              <button
+                type="button"
+                onClick={handlers.onViewLifeEvents}
+                className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
+              >
+                View all →
+              </button>
+            </span>
           }
         >
           <SignalList items={brief.lifeEvents} />
