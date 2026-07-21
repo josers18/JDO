@@ -21,6 +21,8 @@ import {
   LifeEventModal,
   type LifeEventItem,
   LIFE_EVENT_TYPE_OPTIONS,
+  LeadModal,
+  type LeadItem,
   type ExplorerFilter,
   tagSchedule,
   useHomeView,
@@ -201,6 +203,9 @@ function HomeContent() {
   // Create/editable life-event (PersonLifeEvent) popup. Set by a Life Events row
   // click or the "+ New" button; the <LifeEventModal> writes back via crmWrite.
   const [lifeEventItem, setLifeEventItem] = useState<LifeEventItem | null>(null);
+  // Create/editable lead (Lead) popup. Set by a Leads & Referrals row click or
+  // the "+ New" button; the <LeadModal> at the page root writes back via crmWrite.
+  const [leadItem, setLeadItem] = useState<LeadItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
   // slot, so one <DetailModal> at the page root serves every list.
@@ -571,6 +576,35 @@ function HomeContent() {
     });
   };
 
+  // Open a lead/referral in the editable modal. A real Lead (recordId present)
+  // opens editable; a mock row falls back to the read-only detail popup so the
+  // demo data still renders something sensible. The modal writes LastName /
+  // FirstName / Company / Status / LeadSource / Email / AnnualRevenue back
+  // through crmWrite; onSaved refetches so the card reflects the edit.
+  const showLead = (l: LeadReferral) => {
+    if (!l.recordId) { showLeadDetail(l); return; }
+    setLeadItem({
+      recordId: l.recordId,
+      firstName: l.firstName,
+      // Fall back to the compound Name when the query returned no LastName.
+      lastName: l.lastName || l.name || undefined,
+      company: l.company,
+      status: l.status || undefined,
+      leadSource: l.source && l.source !== '—' ? l.source : undefined,
+      email: l.email || undefined,
+      annualRevenue: l.value || undefined,
+    });
+  };
+
+  // Open the lead modal in CREATE mode — a blank template with `create: true`.
+  // The modal captures name + company (the two required fields) plus status,
+  // source, email and est. value, then inserts via crmWrite; onSaved refetches
+  // so the new lead appears on the Leads & Referrals card.
+  const showNewLead = () => {
+    setLeadItem({ create: true });
+  };
+
+  // Read-only fallback for mock lead rows (no recordId → nothing to edit).
   const showLeadDetail = (l: LeadReferral) => {
     setDetailView({
       title: l.name,
@@ -1362,45 +1396,48 @@ function HomeContent() {
         })}
       </BandCard>
 
-      {/* Today's Agenda — a timeline rail (dots + connector), matching the 360
-          panel's Activity idiom. Header carries a calendar glyph; footer links
-          to the full calendar. */}
+      {/* Leads & Referrals — inbound leads routed to the banker. Leading icon
+          chip, name, "company/source · status", and est. value. "+ New" opens
+          the create modal; a row opens the editable Lead modal; "View all →"
+          opens the Leads explorer. */}
       <BandCard
-        title="Today's Agenda"
-        onViewAll={() => setExplorer('agenda')}
-        headerIcon={<Icon name="event" size={14} />}
-        divided={false}
-        footer={
+        title="Leads & Referrals"
+        onViewAll={() => setExplorer('leads')}
+        headerIcon={<Icon name="leads" size={14} />}
+        headerAction={
           <button
             type="button"
-            onClick={() => setExplorer('agenda')}
-            className="font-mono text-[11px] font-medium text-accent transition hover:opacity-80"
+            onClick={showNewLead}
+            className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted transition hover:border-accent-border hover:text-fg"
           >
-            View full calendar →
+            + New
           </button>
         }
       >
-        <ol className="relative ml-[6px] mt-1 border-l border-line">
-          {tagSchedule(data.schedule).slice(0, 5).map(s => (
-            <li key={s.id} className="relative pl-3.5 pb-3.5 last:pb-0">
-              <span
-                aria-hidden="true"
-                className={`absolute -left-[5px] top-[5px] h-2.5 w-2.5 rounded-full ring-2 ring-surface ${AGENDA_DOT[s.bucket ?? 'upcoming']}`}
-              />
-              <button
-                type="button"
-                onClick={() => onScheduleOpen(s)}
-                className="-mr-2 flex w-[calc(100%+0.5rem)] items-start gap-2.5 rounded-[9px] px-2 py-1 text-left transition hover:bg-surface-muted"
-              >
-                <span className="mt-px w-[54px] flex-none font-mono text-[11px] text-muted">{s.time === 'done' ? '✓' : s.time}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-semibold text-fg">{s.title}</span>
-                  {s.clientName && <span className="mt-0.5 block truncate text-[11px] text-faint">{s.clientName}</span>}
+        {data.leads.slice(0, 4).map(l => {
+          const st = leadStatusStyle(l.status);
+          return (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => showLead(l)}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
+                <Icon name="leads" size={13} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{l.name}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">
+                  {(l.company || l.source) ? `${l.company || l.source} · ` : ''}{l.status}
                 </span>
-              </button>
-            </li>
-          ))}
-        </ol>
+              </span>
+              {l.value > 0 && (
+                <span className="flex-none text-right font-semibold text-[12px] text-fg">{formatValue(l.value, 'currencyCompact')}</span>
+              )}
+            </button>
+          );
+        })}
       </BandCard>
 
       {/* Top Opportunities — leading colored icon chip, "client – opp name",
@@ -1821,7 +1858,16 @@ function HomeContent() {
         searchPlaceholder="Search leads, sources…"
         searchText={l => `${l.name} ${l.source} ${l.status}`}
         rowKey={l => l.id}
-        onRowClick={l => showLeadDetail(l)}
+        onRowClick={l => showLead(l)}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewLead}
+            className="flex items-center gap-1 rounded-full border border-accent-border bg-accent px-3 py-1.5 text-[11.5px] font-medium text-white transition hover:opacity-90"
+          >
+            + New lead
+          </button>
+        }
         filters={[
           { key: 'all', label: 'All' },
           { key: 'new', label: 'New', test: l => l.status === 'New' },
@@ -1969,6 +2015,12 @@ function HomeContent() {
         open={lifeEventItem !== null}
         onClose={() => setLifeEventItem(null)}
         event={lifeEventItem}
+        onSaved={refetch}
+      />
+      <LeadModal
+        open={leadItem !== null}
+        onClose={() => setLeadItem(null)}
+        lead={leadItem}
         onSaved={refetch}
       />
       <DetailModal data={detailView} onClose={() => setDetailView(null)} />
@@ -2465,12 +2517,16 @@ function customerGoalStyle(daysUntil: number | null): { chip: string; tone: 'ris
   return { chip: 'bg-surface-muted text-muted', tone: 'neutral' };
 }
 
-/** Schedule bucket → dot color for the Today's Agenda timeline rail. */
-const AGENDA_DOT: Record<'overdue' | 'today' | 'upcoming', string> = {
-  overdue: 'bg-risk',
-  today: 'bg-accent',
-  upcoming: 'bg-muted',
-};
+/** Lead.Status → chip tone for the Leads & Referrals card. Qualified reads as
+ *  positive (green), Working as in-progress (amber), Unqualified as muted, and
+ *  everything else (New / Nurturing / …) as accent. */
+function leadStatusStyle(status: string): { chip: string } {
+  const s = (status || '').trim().toLowerCase();
+  if (s === 'qualified' || s === 'converted') return { chip: 'bg-ok-bg text-ok' };
+  if (s.startsWith('working') || s === 'contacted') return { chip: 'bg-warn-bg text-warn' };
+  if (s === 'unqualified' || s === 'rejected') return { chip: 'bg-surface-muted text-muted' };
+  return { chip: 'bg-accent-bg text-accent' };
+}
 
 /**
  * A single column of the full-width supporting band — a titled card with a

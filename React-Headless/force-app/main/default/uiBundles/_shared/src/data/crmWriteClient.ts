@@ -17,7 +17,7 @@
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 
-export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent';
+export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent' | 'lead';
 
 export interface CrmWriteInput {
   action: CrmAction;
@@ -33,7 +33,7 @@ export interface CrmWriteInput {
   /** Account for a Case. */
   accountId?: string;
   /** SObject to update/delete (required when action === 'update' | 'delete'). */
-  sobjectType?: 'Task' | 'Event' | 'FinancialGoal' | 'PersonLifeEvent';
+  sobjectType?: 'Task' | 'Event' | 'FinancialGoal' | 'PersonLifeEvent' | 'Lead';
   /** Id of the record to update/delete (required when action === 'update' | 'delete'). */
   recordId?: string;
   /** Task/Event Type picklist value, or FinancialGoal.Type. */
@@ -61,6 +61,20 @@ export interface CrmWriteInput {
   eventType?: string;
   /** PersonLifeEvent.EventDate, 'YYYY-MM-DD' (datetime field, anchored to midnight server-side). */
   eventDate?: string;
+  /** Lead.LastName — the editable surname (required when action === 'lead').
+   *  Lead.Name is a compound read-only field, so name edits go through
+   *  firstName / lastName. */
+  lastName?: string;
+  /** Lead.FirstName. */
+  firstName?: string;
+  /** Lead.Company (required when action === 'lead'). */
+  company?: string;
+  /** Lead.LeadSource picklist (Website | Referral | Partner | …). */
+  leadSource?: string;
+  /** Lead.Email — also the recipient for the "email this lead" action. */
+  email?: string;
+  /** Lead.AnnualRevenue — the lead's estimated value. */
+  annualRevenue?: number;
   /** Task ActivityDate, 'YYYY-MM-DD'. */
   dueDate?: string;
   /** Event start, ISO-8601. Defaults server-side to now + 1h. */

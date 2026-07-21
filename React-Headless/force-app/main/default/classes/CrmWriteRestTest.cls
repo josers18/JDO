@@ -573,6 +573,92 @@ private class CrmWriteRestTest {
         );
     }
 
+    // ---- Lead (lead / referral) create + update ----------------------------
+
+    @IsTest
+    static void createsLead() {
+        setupRequest('{"action":"lead","firstName":"Dana","lastName":"Whitfield","company":"Aperture Capital"'
+            + ',"status":"Working","leadSource":"Referral","email":"dana@aperture.example.com","annualRevenue":250000}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create lead should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertNotEquals(null, out.get('id'), 'new lead id returned');
+        Lead ld = [
+            SELECT FirstName, LastName, Company, Status, LeadSource, Email, AnnualRevenue
+            FROM Lead WHERE Id = :(Id) out.get('id')
+        ];
+        System.assertEquals('Dana', ld.FirstName, 'first name set');
+        System.assertEquals('Whitfield', ld.LastName, 'last name set');
+        System.assertEquals('Aperture Capital', ld.Company, 'company set');
+        System.assertEquals('Working', ld.Status, 'status set');
+        System.assertEquals('Referral', ld.LeadSource, 'lead source set');
+        System.assertEquals('dana@aperture.example.com', ld.Email, 'email set');
+        System.assertEquals(250000, ld.AnnualRevenue, 'annual revenue set');
+    }
+
+    @IsTest
+    static void createsLeadWithDefaults() {
+        // Only the two required fields — Status should default to 'New'.
+        setupRequest('{"action":"lead","lastName":"Soloman","company":"Bridge Partners"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'minimal lead should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        Lead ld = [SELECT LastName, Company, Status FROM Lead WHERE Id = :(Id) out.get('id')];
+        System.assertEquals('Soloman', ld.LastName, 'last name set');
+        System.assertEquals('Bridge Partners', ld.Company, 'company set');
+        System.assertEquals('New', ld.Status, 'status defaults to New');
+    }
+
+    @IsTest
+    static void rejectsLeadWithoutLastName() {
+        setupRequest('{"action":"lead","firstName":"Nameless","company":"Acme"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'lead without last name should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLeadWithoutCompany() {
+        setupRequest('{"action":"lead","lastName":"Orphan"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'lead without company should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void updatesLead() {
+        Lead ld = new Lead(FirstName = 'Old', LastName = 'Name', Company = 'Old Co', Status = 'New');
+        insert ld;
+        setupRequest('{"action":"update","sobjectType":"Lead","recordId":"' + ld.Id + '"'
+            + ',"firstName":"New","lastName":"Name","company":"New Co","status":"Qualified"'
+            + ',"leadSource":"Partner","email":"new@newco.example.com","annualRevenue":500000}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update lead should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        Lead updated = [
+            SELECT FirstName, Company, Status, LeadSource, Email, AnnualRevenue
+            FROM Lead WHERE Id = :ld.Id
+        ];
+        System.assertEquals('New', updated.FirstName, 'first name updated');
+        System.assertEquals('New Co', updated.Company, 'company updated');
+        System.assertEquals('Qualified', updated.Status, 'status updated');
+        System.assertEquals('Partner', updated.LeadSource, 'lead source updated');
+        System.assertEquals('new@newco.example.com', updated.Email, 'email updated');
+        System.assertEquals(500000, updated.AnnualRevenue, 'annual revenue updated');
+    }
+
     /** A minimal active standard-user for owner-reassignment assertions. */
     private static User buildTestUser(String uname) {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];

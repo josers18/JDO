@@ -122,6 +122,15 @@ export interface LeadReferral {
    *  not an Account, so the EmailModal's Account-email lookup can't resolve it;
    *  the address must ride along on the referral itself. '' when the Lead has none. */
   email: string;
+  /** Real Lead Id — required to open the row into the editable LeadModal.
+   *  Absent on mock rows, which stay read-only. */
+  recordId?: string;
+  /** Lead.FirstName / LastName — the editable name parts (Lead.Name is a
+   *  compound read-only field, so edits go through these). */
+  firstName?: string;
+  lastName?: string;
+  /** Lead.Company — required to edit/create; the org the lead belongs to. */
+  company?: string;
 }
 
 /** A recent-activity feed row for the cockpit supporting band. */

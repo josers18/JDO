@@ -99,7 +99,7 @@ const HOME_CORE_QUERY = /* GraphQL */ `
           edges { node { Id Name @optional { value } Status @optional { value } Priority @optional { value } Type @optional { value } Description @optional { value } TargetDate @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } FinancialPlan @optional { Name @optional { value } AccountId @optional { value } Account @optional { Name @optional { value } } } } }
         }
         Lead(first: 6, where: { IsConverted: { eq: false } }) {
-          edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
+          edges { node { Id Name @optional { value } FirstName @optional { value } LastName @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
         }
         PersonLifeEvent(first: 200, orderBy: { EventDate: { order: DESC } }) {
           edges { node { Id Name @optional { value } EventType @optional { value } EventDate @optional { value } PrimaryPersonId @optional { value } PrimaryPerson @optional { Name @optional { value } Account @optional { Name @optional { value } } } } }
@@ -381,6 +381,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     source: s(e.node, 'LeadSource') || '—', status: s(e.node, 'Status') || 'New',
     value: num(e.node, 'AnnualRevenue'),
     email: s(e.node, 'Email'),
+    recordId: s(e.node, 'Id') || undefined,
+    firstName: s(e.node, 'FirstName') || undefined,
+    lastName: s(e.node, 'LastName') || undefined,
+    company: s(e.node, 'Company') || undefined,
   }));
 
   const pipeline: PipelineItem[] = (opp?.edges ?? []).slice(0, 8).map((e, i) => ({

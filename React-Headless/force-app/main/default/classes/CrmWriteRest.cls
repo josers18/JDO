@@ -48,6 +48,13 @@ global with sharing class CrmWriteRest {
         public String primaryPersonId;  // PersonLifeEvent.PrimaryPersonId (Contact — the person link, create)
         public String eventType;        // PersonLifeEvent.EventType picklist (Birth|Graduation|Job|…)
         public String eventDate;        // PersonLifeEvent.EventDate 'YYYY-MM-DD' (datetime field, midnight)
+        // Lead (lead / referral) create/edit fields —
+        public String lastName;         // Lead.LastName (required for create)
+        public String firstName;        // Lead.FirstName
+        public String company;          // Lead.Company (required for create)
+        public String leadSource;       // Lead.LeadSource picklist
+        public String email;            // Lead.Email
+        public Decimal annualRevenue;   // Lead.AnnualRevenue (est. value)
     }
 
     /**
@@ -113,12 +120,14 @@ global with sharing class CrmWriteRest {
                 handleGoal(res, reqBody);
             } else if (action == 'lifeevent') {
                 handleLifeEvent(res, reqBody);
+            } else if (action == 'lead') {
+                handleLead(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
             } else if (action == 'delete') {
                 handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, update, or delete.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, update, or delete.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -313,6 +322,34 @@ global with sharing class CrmWriteRest {
     }
 
     /**
+     * Create a Lead from the home "Leads & referrals" flow. LastName and Company
+     * are the two create-required fields on Lead (both non-nillable); Status
+     * defaults to 'New' when omitted. Optional fields (firstName, leadSource,
+     * email, annualRevenue) are set only when provided. Unlike PersonLifeEvent,
+     * every Lead field here is both createable and updateable.
+     */
+    private static void handleLead(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.lastName)) {
+            writeError(res, 400, 'A last name is required for a lead.');
+            return;
+        }
+        if (String.isBlank(req.company)) {
+            writeError(res, 400, 'A company is required for a lead.');
+            return;
+        }
+        Lead ld = new Lead();
+        ld.LastName = req.lastName;
+        ld.Company = req.company;
+        ld.Status = String.isBlank(req.status) ? 'New' : req.status;
+        if (!String.isBlank(req.firstName))  { ld.FirstName = req.firstName; }
+        if (!String.isBlank(req.leadSource)) { ld.LeadSource = req.leadSource; }
+        if (!String.isBlank(req.email))      { ld.Email = req.email; }
+        if (req.annualRevenue != null)       { ld.AnnualRevenue = req.annualRevenue; }
+        insert ld;
+        writeSuccess(res, ld.Id);
+    }
+
+    /**
      * Validate recordId + sobjectType for an update/delete and return the Id.
      * Writes the appropriate 400 and returns null on any failure (blank id,
      * unsupported/absent sobjectType, malformed Id, or an Id whose object type
@@ -325,8 +362,8 @@ global with sharing class CrmWriteRest {
             return null;
         }
         String sot = req.sobjectType == null ? '' : req.sobjectType.trim();
-        if (sot != 'Task' && sot != 'Event' && sot != 'FinancialGoal' && sot != 'PersonLifeEvent') {
-            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task, Event, FinancialGoal, or PersonLifeEvent.');
+        if (sot != 'Task' && sot != 'Event' && sot != 'FinancialGoal' && sot != 'PersonLifeEvent' && sot != 'Lead') {
+            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task, Event, FinancialGoal, PersonLifeEvent, or Lead.');
             return null;
         }
         Id recId;
@@ -386,6 +423,20 @@ global with sharing class CrmWriteRest {
             if (!String.isBlank(req.name))      { ple.Name = req.name; }
             if (!String.isBlank(req.eventDate)) { ple.EventDate = toEventDatetime(req.eventDate); }
             update ple;
+        } else if (sot == 'Lead') {
+            // Lead edit from the home Leads & referrals card. Only the fields the
+            // modal exposes are written; a blank/absent field leaves the server
+            // value untouched. Lead.Name is a compound read-only field, so the
+            // editable name is FirstName/LastName. All fields here are updateable.
+            Lead ld = new Lead(Id = recId);
+            if (!String.isBlank(req.lastName))   { ld.LastName = req.lastName; }
+            if (!String.isBlank(req.firstName))  { ld.FirstName = req.firstName; }
+            if (!String.isBlank(req.company))    { ld.Company = req.company; }
+            if (!String.isBlank(req.status))     { ld.Status = req.status; }
+            if (!String.isBlank(req.leadSource)) { ld.LeadSource = req.leadSource; }
+            if (!String.isBlank(req.email))      { ld.Email = req.email; }
+            if (req.annualRevenue != null)       { ld.AnnualRevenue = req.annualRevenue; }
+            update ld;
         } else {
             Event ev = new Event(Id = recId);
             if (!String.isBlank(req.subject)) { ev.Subject = req.subject; }

@@ -166,3 +166,34 @@ export interface LifeEventItem {
 export const LIFE_EVENT_TYPE_OPTIONS: string[] = [
   'Birth', 'Baby', 'Graduation', 'Job', 'Marriage', 'Relocation', 'Home', 'Car', 'Diagnosis', 'Retirement',
 ];
+
+/**
+ * An inbound Lead / referral surfaced on the banker home, openable into a
+ * create/edit modal. Lead.Name is a compound read-only field, so the editable
+ * name is firstName/lastName. LastName and Company are the two create-required
+ * fields. This is the lead analogue of CustomerGoalItem / LifeEventItem.
+ */
+export interface LeadItem {
+  /** True when opening the modal to CREATE a new lead (no recordId yet). */
+  create?: boolean;
+  recordId?: string;                       // real Lead Id — required to edit
+  firstName?: string;                      // Lead.FirstName
+  lastName?: string;                       // Lead.LastName (required)
+  company?: string;                        // Lead.Company (required)
+  status?: string;                         // Lead.Status
+  leadSource?: string;                     // Lead.LeadSource
+  email?: string;                          // Lead.Email
+  annualRevenue?: number;                  // Lead.AnnualRevenue (est. value)
+}
+
+/** Lead.Status picklist — verified live (label == value). Banker-relevant
+ *  early-funnel values first; the long tail (Converted/Draft/…) is omitted from
+ *  the modal picker since those transitions happen elsewhere. */
+export const LEAD_STATUS_OPTIONS: string[] = [
+  'New', 'Working', 'Nurturing - Contacted', 'Qualified', 'Unqualified',
+];
+
+/** Lead.LeadSource picklist — verified live (label == value). */
+export const LEAD_SOURCE_OPTIONS: string[] = [
+  'Website', 'Social Media', 'Marketing Event', 'Referral', 'Cold Call', 'Partner', 'Community', 'Inbound Call',
+];
