@@ -38,8 +38,9 @@ global with sharing class CrmWriteRest {
         public String type;             // Task/Event/FinancialGoal Type picklist
         public String location;         // Event location
         public String showAs;           // Event ShowAs (Busy|OutOfOffice|Free)
-        // FinancialGoal (customer goal) edit fields —
+        // FinancialGoal (customer goal) edit/create fields —
         public String name;             // FinancialGoal.Name
+        public String financialPlanId;  // FinancialGoal.FinancialPlanId (customer link, create)
         public String targetDate;       // FinancialGoal.TargetDate 'YYYY-MM-DD'
         public Decimal targetAmount;    // FinancialGoal.TargetAmount
         public Decimal actualAmount;    // FinancialGoal.ActualAmount
@@ -104,12 +105,14 @@ global with sharing class CrmWriteRest {
                 handleCase(res, reqBody);
             } else if (action == 'email') {
                 handleEmail(res, reqBody);
+            } else if (action == 'goal') {
+                handleGoal(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
             } else if (action == 'delete') {
                 handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, update, or delete.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, update, or delete.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -199,6 +202,52 @@ global with sharing class CrmWriteRest {
             Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ msg });
         }
         writeSuccess(res, null);
+    }
+
+    /**
+     * Create a customer FinancialGoal from the home "New goal" flow. Requires
+     * Name, Type, Status (verified via describe as the create-required trio) and
+     * a FinancialPlanId — the goal's only customer link (FinancialGoal has no
+     * Account field), so the new goal attributes to a household and shows up on
+     * the plan-linked Customer Goals card after refetch. Optional fields
+     * (priority, description, targetDate, amounts) are set only when provided.
+     */
+    private static void handleGoal(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.name)) {
+            writeError(res, 400, 'A goal name is required.');
+            return;
+        }
+        if (String.isBlank(req.type)) {
+            writeError(res, 400, 'A goal type is required.');
+            return;
+        }
+        if (String.isBlank(req.financialPlanId)) {
+            writeError(res, 400, 'Select a customer (financial plan) for the goal.');
+            return;
+        }
+        Id planId;
+        try {
+            planId = (Id) req.financialPlanId;
+        } catch (Exception e) {
+            writeError(res, 400, 'financialPlanId is not a valid Id.');
+            return;
+        }
+        if (planId.getSObjectType() != FinancialPlan.SObjectType) {
+            writeError(res, 400, 'financialPlanId is not a FinancialPlan Id.');
+            return;
+        }
+        FinancialGoal g = new FinancialGoal();
+        g.Name = req.name;
+        g.Type = req.type;
+        g.Status = String.isBlank(req.status) ? 'NOT_STARTED' : req.status;
+        g.FinancialPlanId = planId;
+        if (!String.isBlank(req.priority))    { g.Priority = req.priority; }
+        if (!String.isBlank(req.description)) { g.Description = req.description; }
+        if (!String.isBlank(req.targetDate))  { g.TargetDate = Date.valueOf(req.targetDate); }
+        if (req.targetAmount != null)         { g.TargetAmount = req.targetAmount; }
+        if (req.actualAmount != null)         { g.ActualAmount = req.actualAmount; }
+        insert g;
+        writeSuccess(res, g.Id);
     }
 
     /**

@@ -352,6 +352,107 @@ private class CrmWriteRestTest {
         System.assertEquals(90000, after.TargetAmount, 'target amount left untouched');
     }
 
+    /** A FinancialPlan with an Account — the customer link a new goal attaches to.
+     *  Type/Status are required on FinancialPlan; the values are the live-org
+     *  picklist API values (PascalCase — distinct from FinancialGoal's snake case). */
+    private static FinancialPlan buildTestPlan(String planName) {
+        Account acct = new Account(Name = planName + ' Household');
+        insert acct;
+        FinancialPlan fp = new FinancialPlan(
+            Name = planName, AccountId = acct.Id, Type = 'Retirement', Status = 'InProgress'
+        );
+        insert fp;
+        return fp;
+    }
+
+    @IsTest
+    static void createsFinancialGoal() {
+        FinancialPlan fp = buildTestPlan('Rachel Morris - Home Ownership Plan');
+        setupRequest('{"action":"goal","name":"New home down payment","type":"Home"'
+            + ',"financialPlanId":"' + fp.Id + '","status":"IN_PROGRESS","priority":"HIGH"'
+            + ',"targetDate":"2027-06-30","targetAmount":75000,"actualAmount":10000'
+            + ',"description":"Save for the down payment"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create goal should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertNotEquals(null, out.get('id'), 'new goal id returned');
+        FinancialGoal g = [
+            SELECT Name, Type, Status, Priority, FinancialPlanId, TargetDate, TargetAmount, ActualAmount, Description
+            FROM FinancialGoal WHERE Id = :(Id) out.get('id')
+        ];
+        System.assertEquals('New home down payment', g.Name, 'name set');
+        System.assertEquals('Home', g.Type, 'type set');
+        System.assertEquals('IN_PROGRESS', g.Status, 'status set');
+        System.assertEquals('HIGH', g.Priority, 'priority set');
+        System.assertEquals(fp.Id, g.FinancialPlanId, 'plan (customer) link set');
+        System.assertEquals(Date.valueOf('2027-06-30'), g.TargetDate, 'target date set');
+        System.assertEquals(75000, g.TargetAmount, 'target amount set');
+        System.assertEquals(10000, g.ActualAmount, 'actual amount set');
+        System.assertEquals('Save for the down payment', g.Description, 'description set');
+    }
+
+    @IsTest
+    static void createGoalDefaultsStatus() {
+        // No status sent — must default to NOT_STARTED.
+        FinancialPlan fp = buildTestPlan('Jen Hartley - Retirement Plan');
+        setupRequest('{"action":"goal","name":"Retire early","type":"Retirement","financialPlanId":"' + fp.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create goal defaults should 200');
+        FinancialGoal g = [SELECT Status, FinancialPlanId FROM FinancialGoal WHERE Name = 'Retire early' LIMIT 1];
+        System.assertEquals('NOT_STARTED', g.Status, 'status defaulted');
+        System.assertEquals(fp.Id, g.FinancialPlanId, 'plan link set');
+    }
+
+    @IsTest
+    static void rejectsGoalWithoutName() {
+        FinancialPlan fp = buildTestPlan('No Name Plan');
+        setupRequest('{"action":"goal","type":"Home","financialPlanId":"' + fp.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'goal without name should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsGoalWithoutType() {
+        FinancialPlan fp = buildTestPlan('No Type Plan');
+        setupRequest('{"action":"goal","name":"Typeless goal","financialPlanId":"' + fp.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'goal without type should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsGoalWithoutPlan() {
+        setupRequest('{"action":"goal","name":"Orphan goal","type":"Home"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'goal without plan should 400');
+        System.assert(((String) parseBody().get('error')).containsIgnoreCase('plan'), 'error mentions plan');
+    }
+
+    @IsTest
+    static void rejectsGoalWithNonPlanId() {
+        // A real Account Id sent as the plan — must 400, not surface a 500.
+        Account acct = new Account(Name = 'Not a plan');
+        insert acct;
+        setupRequest('{"action":"goal","name":"Bad plan goal","type":"Home","financialPlanId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'non-plan id should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
     /** A minimal active standard-user for owner-reassignment assertions. */
     private static User buildTestUser(String uname) {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];

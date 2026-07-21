@@ -9,7 +9,7 @@ export { queryDataCloud, type DataCloudColumn, type DataCloudResult } from './da
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';
 export { fetchAccountEmail } from './accountLookup';
-export { searchUsers, searchAccounts, type LookupHit } from './lookupSearch';
+export { searchUsers, searchAccounts, searchFinancialPlans, type LookupHit } from './lookupSearch';
 export { generateText, type AiGenerateTask, type AiGenerateInput, type AiGenerateResult } from './aiGenerateClient';
 export {
   fetchConfig,

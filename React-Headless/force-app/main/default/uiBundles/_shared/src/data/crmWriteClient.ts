@@ -5,7 +5,8 @@
  * UI bundle's app-domain session cannot call @AuraEnabled Apex or the generic
  * record/write REST APIs — only /services/apexrest/* is reachable via the SDK
  * fetch() path. So writes go through the custom `CrmWriteRest` Apex resource,
- * which performs the DML (Task / Event / Case) or sends the email server-side.
+ * which performs the DML (Task / Event / Case / FinancialGoal) or sends the
+ * email server-side.
  *
  *   POST /services/apexrest/crm/write
  *     body: { action, subject, description?, whoId?, whatId?, accountId?,
@@ -16,7 +17,7 @@
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 
-export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete';
+export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal';
 
 export interface CrmWriteInput {
   action: CrmAction;
@@ -41,8 +42,11 @@ export interface CrmWriteInput {
   location?: string;
   /** Event ShowAs (Busy | OutOfOffice | Free). */
   showAs?: string;
-  /** FinancialGoal.Name (customer goal edit). */
+  /** FinancialGoal.Name (customer goal edit/create). */
   name?: string;
+  /** FinancialPlan the new goal attributes to (required when action === 'goal').
+   *  A FinancialGoal has no Account field — the plan is the customer link. */
+  financialPlanId?: string;
   /** FinancialGoal.TargetDate, 'YYYY-MM-DD'. */
   targetDate?: string;
   /** FinancialGoal.TargetAmount. */

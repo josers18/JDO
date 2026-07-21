@@ -28,6 +28,9 @@ interface UserShape {
 interface AccountShape {
   uiapi?: { query?: { Account?: { edges?: { node: { Id?: string; Name?: { value?: string } } }[] } } };
 }
+interface FinancialPlanShape {
+  uiapi?: { query?: { FinancialPlan?: { edges?: { node: { Id?: string; Name?: { value?: string } } }[] } } };
+}
 
 /** Search active Users by name for the Assigned To lookup. */
 export async function searchUsers(term: string, limit = 8): Promise<LookupHit[]> {
@@ -64,6 +67,34 @@ export async function searchAccounts(term: string, limit = 8): Promise<LookupHit
   try {
     const data = await executeGraphQL<AccountShape>(query);
     return (data.uiapi?.query?.Account?.edges ?? [])
+      .map(e => ({ id: e.node.Id ?? '', name: e.node.Name?.value ?? '' }))
+      .filter(h => h.id && h.name);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Search FinancialPlans by name for the "select the customer" lookup on the
+ * new-goal flow. A FinancialGoal has no direct Account field — its only customer
+ * link is FinancialPlanId → FinancialPlan.AccountId — and the plan Name embeds
+ * the household (e.g. "Rachel Morris - Home Ownership Plan"), so picking a plan
+ * IS picking the customer. Filtered to plans that have an Account so the created
+ * goal always attributes to a client (and appears on the plan-linked card).
+ */
+export async function searchFinancialPlans(term: string, limit = 8): Promise<LookupHit[]> {
+  const t = escapeTerm(term);
+  if (t.length < 2) return [];
+  const query = `query FinancialPlanSearch {
+    uiapi { query {
+      FinancialPlan(first: ${limit}, where: { and: [ { Name: { like: "%${t}%" } }, { AccountId: { ne: null } } ] }, orderBy: { Name: { order: ASC } }) {
+        edges { node { Id Name @optional { value } } }
+      }
+    } }
+  }`;
+  try {
+    const data = await executeGraphQL<FinancialPlanShape>(query);
+    return (data.uiapi?.query?.FinancialPlan?.edges ?? [])
       .map(e => ({ id: e.node.Id ?? '', name: e.node.Name?.value ?? '' }))
       .filter(h => h.id && h.name);
   } catch {

@@ -50,6 +50,7 @@ export function DataExplorerModal<T>({
   onRowClick,
   rowKey,
   footNote,
+  headerAction,
 }: {
   open: boolean;
   onClose: () => void;
@@ -67,6 +68,9 @@ export function DataExplorerModal<T>({
   rowKey: (row: T, index: number) => string;
   /** Optional line shown bottom-left (e.g. "Source: Data Cloud"). */
   footNote?: ReactNode;
+  /** Optional action control (e.g. a "+ New goal" button) rendered at the right
+   *  end of the search/filter toolbar row. */
+  headerAction?: ReactNode;
 }) {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(filters?.[0]?.key ?? 'all');
@@ -123,6 +127,7 @@ export function DataExplorerModal<T>({
               })}
             </div>
           )}
+          {headerAction && <span className="flex-none @[560px]/explorer:ml-auto">{headerAction}</span>}
         </div>
 
         {/* Table */}

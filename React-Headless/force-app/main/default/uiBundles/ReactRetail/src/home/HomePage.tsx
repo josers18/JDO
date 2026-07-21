@@ -609,6 +609,14 @@ function HomeContent() {
     });
   };
 
+  // Open the goal modal in CREATE mode — a blank template with `create: true`.
+  // The modal shows a FinancialPlan lookup ("select the customer", the goal's
+  // only account link) plus the goal fields, then inserts via crmWrite; onSaved
+  // refetches so the new goal appears on the plan-linked card.
+  const showNewGoal = () => {
+    setGoalItem({ create: true, name: '' });
+  };
+
   const today = data.callList.filter(c => c.tier === 'today');
   const week = data.callList.filter(c => c.tier === 'week');
   const watch = data.callList.filter(c => (c.tier ?? 'watch') === 'watch');
@@ -1202,7 +1210,19 @@ function HomeContent() {
       {/* Customer Goals — upcoming FinancialGoals across the book (soonest due
           first), each with an urgency-colored chip. Click opens the read-only
           goal detail; "View all →" opens the Customer Goals explorer. */}
-      <BandCard title="Customer Goals" onViewAll={() => setExplorer('customerGoals')}>
+      <BandCard
+        title="Customer Goals"
+        onViewAll={() => setExplorer('customerGoals')}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewGoal}
+            className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted transition hover:border-accent-border hover:text-fg"
+          >
+            + New
+          </button>
+        }
+      >
         {data.customerGoals.slice(0, 4).map(g => {
           const st = customerGoalStyle(g.daysUntil);
           return (
@@ -1794,6 +1814,15 @@ function HomeContent() {
         searchText={g => `${g.name} ${g.clientName} ${g.planName ?? ''} ${g.status}`}
         rowKey={g => g.id}
         onRowClick={g => showCustomerGoalDetail(g)}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewGoal}
+            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[11.5px] font-medium text-white transition hover:opacity-90"
+          >
+            + New goal
+          </button>
+        }
         filters={[
           { key: 'all', label: 'All' },
           { key: 'soon', label: 'Due ≤ 90d', test: g => g.daysUntil != null && g.daysUntil >= 0 && g.daysUntil <= 90 },
@@ -2370,13 +2399,15 @@ const AGENDA_DOT: Record<'overdue' | 'today' | 'upcoming', string> = {
  * background draws the hairline separators between columns.
  */
 function BandCard({
-  title, onViewAll, children, headerIcon, footer, divided = true,
+  title, onViewAll, children, headerIcon, headerAction, footer, divided = true,
 }: {
   title: string;
   onViewAll: () => void;
   children: ReactNode;
   /** Optional glyph rendered to the right of the "View all →" link (e.g. a calendar). */
   headerIcon?: ReactNode;
+  /** Optional action control (e.g. a "+ New" button) rendered left of "View all →". */
+  headerAction?: ReactNode;
   /** Optional footer row below the rows (e.g. "View full calendar →"). */
   footer?: ReactNode;
   /** Hairline dividers between rows. Off for the timeline-rail columns. */
@@ -2386,7 +2417,8 @@ function BandCard({
     <section className="flex min-w-0 flex-col bg-surface px-4 py-4">
       <div className="mb-1 flex items-center gap-2">
         <b className="truncate text-[12.5px] font-semibold">{title}</b>
-        <button type="button" onClick={onViewAll} className="ml-auto flex-none font-mono text-[10.5px] text-accent transition hover:opacity-80">
+        {headerAction && <span className="ml-auto flex-none">{headerAction}</span>}
+        <button type="button" onClick={onViewAll} className={`${headerAction ? '' : 'ml-auto '}flex-none font-mono text-[10.5px] text-accent transition hover:opacity-80`}>
           View all →
         </button>
         {headerIcon && <span className="flex-none text-faint">{headerIcon}</span>}

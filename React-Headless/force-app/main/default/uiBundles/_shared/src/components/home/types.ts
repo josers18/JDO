@@ -108,6 +108,9 @@ export const EVENT_SHOWAS_OPTIONS: { value: string; label: string }[] = [
  * recordId drives the CRM write, planName is the household attribution line.
  */
 export interface CustomerGoalItem {
+  /** True when opening the modal to CREATE a new goal (no recordId yet). Drives
+   *  the customer/plan picker + insert path instead of the edit/read-only path. */
+  create?: boolean;
   recordId?: string;                       // real FinancialGoal Id — required to edit
   name: string;                            // FinancialGoal.Name
   clientName?: string;                     // via FinancialPlan → Account ('' when none)
