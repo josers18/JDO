@@ -162,13 +162,23 @@ export interface CaseItem {
  *  → Account. */
 export interface CustomerGoal {
   id: string;
+  /** Real FinancialGoal Id — required to open the editable modal ('' for mock rows). */
+  recordId?: string;
   /** FinancialGoal.Name, e.g. "Nakamura Tax Optimization". */
   name: string;
   /** Related household/client (via FinancialPlan → Account); '' when the goal has no plan link. */
   clientName: string;
   clientId?: string;
-  /** FinancialGoal.Status — 'IN_PROGRESS' | 'NOT_STARTED' (org values); '' when unset. */
+  /** FinancialPlan.Name — attribution line, e.g. "Rachel Morris - Home Ownership Plan". */
+  planName?: string;
+  /** FinancialGoal.Status — 'IN_PROGRESS' | 'NOT_STARTED' | 'COMPLETED' (org values); '' when unset. */
   status: string;
+  /** FinancialGoal.Priority — 'LOW' | 'MEDIUM' | 'HIGH'; '' when unset. */
+  priority?: string;
+  /** FinancialGoal.Type picklist value; '' when unset. */
+  type?: string;
+  /** FinancialGoal.Description (free text); '' when unset. */
+  description?: string;
   /** FinancialGoal.TargetDate (ISO yyyy-mm-dd); '' when unset. */
   targetDate: string;
   /** Whole days until targetDate (negative if past). null when no date. */

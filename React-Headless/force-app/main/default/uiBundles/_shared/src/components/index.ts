@@ -44,6 +44,13 @@ export { type ClientProfile, type ClientSignal, type ClientTimelineEntry } from 
 export { TaskModal } from './home/TaskModal';
 export { ScheduleModal } from './home/ScheduleModal';
 export { ScheduleDetailModal } from './home/ScheduleDetailModal';
+export { CustomerGoalModal } from './home/CustomerGoalModal';
+export type { CustomerGoalItem } from './home/types';
+export {
+  GOAL_STATUS_OPTIONS,
+  GOAL_PRIORITY_OPTIONS,
+  GOAL_TYPE_OPTIONS,
+} from './home/types';
 export { tagSchedule, scheduleCounts } from './home/schedule';
 export { ScheduleTable } from './home/ScheduleTable';
 export { useReveal, RevealFooter, type RevealState } from './home/Reveal';

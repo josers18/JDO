@@ -101,3 +101,37 @@ export const EVENT_SHOWAS_OPTIONS: { value: string; label: string }[] = [
   { value: 'OutOfOffice', label: 'Out of Office' },
   { value: 'Free', label: 'Free' },
 ];
+
+/**
+ * A customer's financial goal (FSC FinancialGoal) surfaced on the banker home,
+ * openable into an editable modal. Only the fields the modal writes are carried;
+ * recordId drives the CRM write, planName is the household attribution line.
+ */
+export interface CustomerGoalItem {
+  recordId?: string;                       // real FinancialGoal Id — required to edit
+  name: string;                            // FinancialGoal.Name
+  clientName?: string;                     // via FinancialPlan → Account ('' when none)
+  planName?: string;                       // FinancialPlan.Name — attribution line
+  status?: string;                         // FinancialGoal.Status
+  priority?: string;                       // FinancialGoal.Priority
+  type?: string;                           // FinancialGoal.Type
+  description?: string;                    // FinancialGoal.Description
+  targetDate?: string;                     // FinancialGoal.TargetDate (YYYY-MM-DD)
+  target?: number;                         // FinancialGoal.TargetAmount
+  current?: number;                        // FinancialGoal.ActualAmount
+}
+
+/** FinancialGoal picklist API values — verified live (value stored, not label). */
+export const GOAL_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'NOT_STARTED', label: 'Not Started' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'COMPLETED', label: 'Completed' },
+];
+export const GOAL_PRIORITY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' },
+];
+export const GOAL_TYPE_OPTIONS: string[] = [
+  'Education', 'Emergency', 'Home', 'Pay off Debt', 'Retirement', 'Vacation', 'Vehicle', 'Other',
+];

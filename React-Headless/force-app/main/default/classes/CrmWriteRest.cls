@@ -33,11 +33,16 @@ global with sharing class CrmWriteRest {
         public String status;           // Task/Case
         public String toAddress;        // email
         public String htmlBody;         // email
-        public String sobjectType;      // 'Task' | 'Event'  (required for update/delete)
+        public String sobjectType;      // 'Task' | 'Event' | 'FinancialGoal'  (required for update/delete)
         public String recordId;         // Id of the record to update/delete
-        public String type;             // Task/Event Type picklist
+        public String type;             // Task/Event/FinancialGoal Type picklist
         public String location;         // Event location
         public String showAs;           // Event ShowAs (Busy|OutOfOffice|Free)
+        // FinancialGoal (customer goal) edit fields —
+        public String name;             // FinancialGoal.Name
+        public String targetDate;       // FinancialGoal.TargetDate 'YYYY-MM-DD'
+        public Decimal targetAmount;    // FinancialGoal.TargetAmount
+        public Decimal actualAmount;    // FinancialGoal.ActualAmount
     }
 
     /**
@@ -209,8 +214,8 @@ global with sharing class CrmWriteRest {
             return null;
         }
         String sot = req.sobjectType == null ? '' : req.sobjectType.trim();
-        if (sot != 'Task' && sot != 'Event') {
-            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task or Event.');
+        if (sot != 'Task' && sot != 'Event' && sot != 'FinancialGoal') {
+            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task, Event, or FinancialGoal.');
             return null;
         }
         Id recId;
@@ -243,6 +248,21 @@ global with sharing class CrmWriteRest {
             if (!String.isBlank(req.whatId))      { t.WhatId = req.whatId; }
             if (!String.isBlank(req.ownerId))     { t.OwnerId = req.ownerId; }
             update t;
+        } else if (sot == 'FinancialGoal') {
+            // Customer goal edit from the home Customer Goals card. Only the
+            // fields the modal exposes are written; a blank/absent field leaves
+            // the server value untouched (targetAmount/actualAmount are non-null
+            // Decimals so they update whenever the client sends them).
+            FinancialGoal g = new FinancialGoal(Id = recId);
+            if (!String.isBlank(req.name))       { g.Name = req.name; }
+            if (!String.isBlank(req.status))     { g.Status = req.status; }
+            if (!String.isBlank(req.priority))   { g.Priority = req.priority; }
+            if (!String.isBlank(req.type))       { g.Type = req.type; }
+            if (!String.isBlank(req.description)){ g.Description = req.description; }
+            if (!String.isBlank(req.targetDate)) { g.TargetDate = Date.valueOf(req.targetDate); }
+            if (req.targetAmount != null)        { g.TargetAmount = req.targetAmount; }
+            if (req.actualAmount != null)        { g.ActualAmount = req.actualAmount; }
+            update g;
         } else {
             Event ev = new Event(Id = recId);
             if (!String.isBlank(req.subject)) { ev.Subject = req.subject; }

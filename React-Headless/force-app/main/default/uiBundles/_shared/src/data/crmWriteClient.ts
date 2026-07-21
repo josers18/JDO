@@ -32,15 +32,23 @@ export interface CrmWriteInput {
   /** Account for a Case. */
   accountId?: string;
   /** SObject to update/delete (required when action === 'update' | 'delete'). */
-  sobjectType?: 'Task' | 'Event';
+  sobjectType?: 'Task' | 'Event' | 'FinancialGoal';
   /** Id of the record to update/delete (required when action === 'update' | 'delete'). */
   recordId?: string;
-  /** Task/Event Type picklist value. */
+  /** Task/Event Type picklist value, or FinancialGoal.Type. */
   type?: string;
   /** Event location (text). */
   location?: string;
   /** Event ShowAs (Busy | OutOfOffice | Free). */
   showAs?: string;
+  /** FinancialGoal.Name (customer goal edit). */
+  name?: string;
+  /** FinancialGoal.TargetDate, 'YYYY-MM-DD'. */
+  targetDate?: string;
+  /** FinancialGoal.TargetAmount. */
+  targetAmount?: number;
+  /** FinancialGoal.ActualAmount (amount saved so far). */
+  actualAmount?: number;
   /** Task ActivityDate, 'YYYY-MM-DD'. */
   dueDate?: string;
   /** Event start, ISO-8601. Defaults server-side to now + 1h. */

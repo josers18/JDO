@@ -64,8 +64,8 @@ const HOME_CORE_QUERY = /* GraphQL */ `
         FinancialGoal(first: 6) {
           edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
         }
-        CustomerGoal: FinancialGoal(first: 8, where: { TargetDate: { gte: { literal: TODAY } }, Status: { ne: "COMPLETE" } }, orderBy: { TargetDate: { order: ASC } }) {
-          edges { node { Id Name @optional { value } Status @optional { value } TargetDate @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } FinancialPlan @optional { AccountId @optional { value } Account @optional { Name @optional { value } } } } }
+        CustomerGoal: FinancialGoal(first: 8, where: { and: [ { TargetDate: { gte: { literal: TODAY } } }, { Status: { ne: "COMPLETED" } }, { FinancialPlanId: { ne: null } } ] }, orderBy: { TargetDate: { order: ASC } }) {
+          edges { node { Id Name @optional { value } Status @optional { value } Priority @optional { value } Type @optional { value } Description @optional { value } TargetDate @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } FinancialPlan @optional { Name @optional { value } AccountId @optional { value } Account @optional { Name @optional { value } } } } }
         }
         Lead(first: 6, where: { IsConverted: { eq: false } }) {
           edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
@@ -134,6 +134,16 @@ type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
 const num = (n: Node, k: string) => Number(v(n, k) ?? 0);
+/** Decode the HTML entities uiapi returns in string values (e.g. "Olivia&#39;s
+ *  College" → "Olivia's College"). Handles the numeric + named entities that
+ *  appear in free-text FSC fields; leaves plain text untouched. */
+const decodeHtml = (str: string): string =>
+  str.replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(Number(d)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'");
+/** String field, HTML-decoded — for human-facing free text. */
+const sd = (n: Node, k: string) => decodeHtml(s(n, k));
 /** Extract a relationship's Name.value (CreatedBy/LastModifiedBy) — '' if absent. */
 const relName = (n: Node, k: string): string =>
   String((n as Record<string, { Name?: { value?: unknown } } | undefined>)[k]?.Name?.value ?? '');
@@ -158,7 +168,7 @@ interface CoreShape {
     TaskUpcoming?: { edges?: { node: Node }[] };
     Event?: { edges?: { node: Node }[] };
     FinancialGoal?: { edges?: { node: Node }[] };
-    CustomerGoal?: { edges?: { node: Node & { FinancialPlan?: { AccountId?: { value?: string }; Account?: { Name?: { value?: string } } } } }[] };
+    CustomerGoal?: { edges?: { node: Node & { FinancialPlan?: { Name?: { value?: string }; AccountId?: { value?: string }; Account?: { Name?: { value?: string } } } } }[] };
     Lead?: { edges?: { node: Node }[] };
   } };
 }
@@ -291,9 +301,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   }));
 
   // Upcoming customer goals → the supporting-band Customer Goals card + explorer.
-  // Sourced from FinancialGoal (TargetDate ≥ TODAY, not COMPLETE, soonest first).
-  // Client name traverses FinancialGoal → FinancialPlan → Account; falls back to
-  // '' when the goal isn't plan-linked (the goal name usually names the household).
+  // Plan-linked only (FinancialPlanId ≠ null), TargetDate ≥ TODAY, not COMPLETED,
+  // soonest first. Attribution: clientName from FinancialPlan → Account when the
+  // plan has an account; planName (FinancialPlan.Name, e.g. "Rachel Morris - Home
+  // Ownership Plan") always carries the household. recordId powers the edit modal.
   const customerGoals: CustomerGoal[] = (q?.CustomerGoal?.edges ?? []).map((e, i) => {
     const targetDate = s(e.node, 'TargetDate');
     const daysUntil = targetDate
@@ -302,10 +313,15 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     const fp = e.node.FinancialPlan;
     return {
       id: `cg${i}`,
-      name: s(e.node, 'Name') || 'Goal',
-      clientName: fp?.Account?.Name?.value ?? '',
+      recordId: (e.node as { Id?: string }).Id || undefined,
+      name: sd(e.node, 'Name') || 'Goal',
+      clientName: decodeHtml(fp?.Account?.Name?.value ?? ''),
       clientId: fp?.AccountId?.value || undefined,
+      planName: decodeHtml(fp?.Name?.value ?? '') || undefined,
       status: s(e.node, 'Status'),
+      priority: s(e.node, 'Priority') || undefined,
+      type: s(e.node, 'Type') || undefined,
+      description: sd(e.node, 'Description') || undefined,
       targetDate,
       daysUntil,
       target: num(e.node, 'TargetAmount'),

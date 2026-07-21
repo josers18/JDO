@@ -16,6 +16,8 @@ import {
   ScheduleModal,
   ScheduleTable,
   ScheduleDetailModal,
+  CustomerGoalModal,
+  type CustomerGoalItem,
   tagSchedule,
   useHomeView,
   useReveal,
@@ -189,6 +191,9 @@ function HomeContent() {
   // Null = no explorer open. One <DataExplorerModal> renders per key below.
   const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'cases' | 'customerGoals' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
+  // Editable customer-goal (FinancialGoal) popup. Set by a Customer Goals row
+  // click; the <CustomerGoalModal> at the page root writes back via crmWrite.
+  const [goalItem, setGoalItem] = useState<CustomerGoalItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
   // slot, so one <DetailModal> at the page root serves every list.
@@ -584,29 +589,23 @@ function HomeContent() {
     });
   };
 
-  // Read-only detail for an upcoming CUSTOMER goal (FinancialGoal), distinct
-  // from the banker-quota goal above. Surfaces the client, due date, and
-  // progress toward the target amount.
+  // Open an upcoming CUSTOMER goal (FinancialGoal) in the editable modal —
+  // distinct from the banker-quota goal above. The modal writes Name / Status /
+  // Priority / Type / TargetDate / amounts back through crmWrite; onSaved
+  // refetches the dashboard so the card reflects the edit.
   const showCustomerGoalDetail = (g: CustomerGoal) => {
-    const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
-    setDetailView({
-      title: g.name,
-      subtitle: g.clientName || 'Customer goal',
-      icon: <Icon name="metrics" size={17} />,
-      tone: 'accent',
-      facts: [
-        { label: 'Progress', value: formatValue(g.current, 'currencyCompact') },
-        { label: 'Target', value: formatValue(g.target, 'currencyCompact') },
-        { label: 'Due', value: customerGoalDueLabel(g.daysUntil) },
-      ],
-      note: `${g.clientName || 'This client'} is at ${pct}% of "${g.name}" (${formatValue(g.current, 'currencyCompact')} of ${formatValue(g.target, 'currencyCompact')}), due ${customerGoalDueLabel(g.daysUntil).toLowerCase()}.`,
-      sectionTitle: 'Goal',
-      fields: [
-        { label: 'Client', value: g.clientName || '—' },
-        { label: 'Status', value: prettyGoalStatus(g.status) },
-        { label: 'Target date', value: g.targetDate || '—' },
-        { label: 'Progress', value: `${formatValue(g.current, 'currencyCompact')} of ${formatValue(g.target, 'currencyCompact')} (${pct}%)` },
-      ],
+    setGoalItem({
+      recordId: g.recordId,
+      name: g.name,
+      clientName: g.clientName || undefined,
+      planName: g.planName,
+      status: g.status || undefined,
+      priority: g.priority,
+      type: g.type,
+      description: g.description,
+      targetDate: g.targetDate || undefined,
+      target: g.target,
+      current: g.current,
     });
   };
 
@@ -1219,7 +1218,7 @@ function HomeContent() {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[12.5px] font-medium text-fg">{g.name}</span>
                 <span className="mt-0.5 block truncate text-[11px] text-faint">
-                  {g.clientName ? `${g.clientName} · ` : ''}{customerGoalDueLabel(g.daysUntil)}
+                  {(g.clientName || g.planName) ? `${g.clientName || g.planName} · ` : ''}{customerGoalDueLabel(g.daysUntil)}
                 </span>
               </span>
             </button>
@@ -1792,7 +1791,7 @@ function HomeContent() {
         icon={<Icon name="metrics" size={17} />}
         rows={data.customerGoals}
         searchPlaceholder="Search goals, clients…"
-        searchText={g => `${g.name} ${g.clientName} ${g.status}`}
+        searchText={g => `${g.name} ${g.clientName} ${g.planName ?? ''} ${g.status}`}
         rowKey={g => g.id}
         onRowClick={g => showCustomerGoalDetail(g)}
         filters={[
@@ -1810,7 +1809,8 @@ function HomeContent() {
               <span className="font-semibold text-fg">{g.name}</span>
             </span>
           ) },
-          { key: 'client', label: 'Client', render: g => <span className="text-muted">{g.clientName || '—'}</span>, hideBelow: 'sm' },
+          { key: 'client', label: 'Client / Plan', render: g => <span className="text-muted">{g.clientName || g.planName || '—'}</span>, hideBelow: 'sm' },
+          { key: 'status', label: 'Status', render: g => <span className="text-muted">{prettyGoalStatus(g.status)}</span>, hideBelow: 'md' },
           { key: 'progress', label: 'Progress', align: 'right', render: g => {
             const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
             return <span className="text-muted">{formatValue(g.current, 'currencyCompact')} / {formatValue(g.target, 'currencyCompact')} ({pct}%)</span>;
@@ -1819,7 +1819,7 @@ function HomeContent() {
             <Pill tone={customerGoalStyle(g.daysUntil).tone === 'neutral' ? 'accent' : customerGoalStyle(g.daysUntil).tone}>{customerGoalDueLabel(g.daysUntil)}</Pill>
           ) },
         ]}
-        footNote="Source · CRM FinancialGoal (target date ≥ today)"
+        footNote="Source · CRM FinancialGoal (plan-linked, target date ≥ today)"
       />
 
       <DataExplorerModal<LifeEventSignal>
@@ -1854,6 +1854,12 @@ function HomeContent() {
         open={detailItem !== null}
         onClose={() => setDetailItem(null)}
         item={detailItem}
+        onSaved={refetch}
+      />
+      <CustomerGoalModal
+        open={goalItem !== null}
+        onClose={() => setGoalItem(null)}
+        goal={goalItem}
         onSaved={refetch}
       />
       <DetailModal data={detailView} onClose={() => setDetailView(null)} />

@@ -124,10 +124,10 @@ const DASH: HomeDashboard = {
     { id: 'cs4', caseNumber: '00002066', subject: 'Lockbox remittance mismatch', priority: 'Low', status: 'Working', clientName: 'Emerald Construction', clientId: '001E', ageDays: 11 },
   ],
   customerGoals: [
-    { id: 'cg1', name: 'Working-capital reserve target', clientName: 'Frontier Freight', clientId: '001F', status: 'IN_PROGRESS', targetDate: '2026-09-30', daysUntil: 71, target: 12000000, current: 8400000 },
-    { id: 'cg2', name: 'Expansion capex — new facility', clientName: 'Granite Materials', clientId: '001G', status: 'IN_PROGRESS', targetDate: '2026-11-30', daysUntil: 132, target: 25000000, current: 9600000 },
-    { id: 'cg3', name: 'Debt-to-EBITDA below 3.0x', clientName: 'Delta Foods Inc', clientId: '001D', status: 'NOT_STARTED', targetDate: '2026-12-31', daysUntil: 163, target: 3, current: 4.1 },
-    { id: 'cg4', name: 'Treasury sweep automation', clientName: 'Emerald Construction', clientId: '001E', status: 'IN_PROGRESS', targetDate: '2027-01-31', daysUntil: 194, target: 40000000, current: 22000000 },
+    { id: 'cg1', name: 'Working-capital reserve target', clientName: 'Frontier Freight', clientId: '001F', planName: 'Frontier Freight - Liquidity Plan', status: 'IN_PROGRESS', priority: 'HIGH', type: 'Emergency', targetDate: '2026-09-30', daysUntil: 71, target: 12000000, current: 8400000, description: 'Build a working-capital reserve to cover two quarters of operating expense.' },
+    { id: 'cg2', name: 'Expansion capex — new facility', clientName: 'Granite Materials', clientId: '001G', planName: 'Granite Materials - Growth Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Other', targetDate: '2026-11-30', daysUntil: 132, target: 25000000, current: 9600000, description: 'Fund the new distribution facility build-out.' },
+    { id: 'cg3', name: 'Debt-to-EBITDA below 3.0x', clientName: 'Delta Foods Inc', clientId: '001D', planName: 'Delta Foods - Deleveraging Plan', status: 'NOT_STARTED', priority: 'HIGH', type: 'Pay off Debt', targetDate: '2026-12-31', daysUntil: 163, target: 3, current: 4.1, description: 'Reduce leverage ratio below the 3.0x covenant threshold.' },
+    { id: 'cg4', name: 'Treasury sweep automation', clientName: 'Emerald Construction', clientId: '001E', planName: 'Emerald Construction - Treasury Plan', status: 'IN_PROGRESS', priority: 'LOW', type: 'Other', targetDate: '2027-01-31', daysUntil: 194, target: 40000000, current: 22000000, description: 'Automate end-of-day cash sweeps across operating accounts.' },
   ],
   delinquency: {
     totalDelinquentBalance: 4820000,

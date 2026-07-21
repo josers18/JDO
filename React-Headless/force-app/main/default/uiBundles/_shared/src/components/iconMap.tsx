@@ -2,7 +2,7 @@ import {
   Home, Users, BarChart3, CheckCircle2, Bell, Phone, Handshake, ListChecks,
   Calendar, ArrowRight, Sparkles, Search, House, Baby, Briefcase, PalmtreeIcon,
   HeartHandshake, Circle, Activity, CalendarHeart, UserPlus, TrendingUp, Wand2,
-  Mail, GraduationCap, RefreshCw, type LucideIcon,
+  Mail, GraduationCap, RefreshCw, Target, type LucideIcon,
 } from 'lucide-react';
 
 export type IconKey =
@@ -10,7 +10,8 @@ export type IconKey =
   | 'call' | 'meeting' | 'task' | 'event' | 'email'
   | 'arrow' | 'sparkle' | 'search' | 'wand' | 'refresh'
   | 'metrics' | 'lifeEvent' | 'leads' | 'pulse' | 'graduation'
-  | 'homePurchase' | 'newChild' | 'jobChange' | 'retirement' | 'marriage';
+  | 'homePurchase' | 'newChild' | 'jobChange' | 'retirement' | 'marriage'
+  | 'goal';
 
 const MAP: Record<IconKey, LucideIcon> = {
   home: Home, clients: Users, pipeline: BarChart3, tasks: CheckCircle2, alerts: Bell,
@@ -20,6 +21,7 @@ const MAP: Record<IconKey, LucideIcon> = {
   graduation: GraduationCap,
   homePurchase: House, newChild: Baby, jobChange: Briefcase,
   retirement: PalmtreeIcon, marriage: HeartHandshake,
+  goal: Target,
 };
 
 export function Icon({ name, size = 18, className }: { name: IconKey; size?: number; className?: string }) {

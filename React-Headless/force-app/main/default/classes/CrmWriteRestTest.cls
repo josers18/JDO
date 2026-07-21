@@ -301,6 +301,57 @@ private class CrmWriteRestTest {
         System.assertEquals(acct.Id, after.WhatId, 'related-to set');
     }
 
+    @IsTest
+    static void updatesFinancialGoal() {
+        FinancialGoal g = new FinancialGoal(
+            Name = 'Old goal', Status = 'NOT_STARTED', Priority = 'LOW',
+            Type = 'Vacation', TargetAmount = 1000, ActualAmount = 100
+        );
+        insert g;
+        setupRequest('{"action":"update","sobjectType":"FinancialGoal","recordId":"' + g.Id
+            + '","name":"Dream home","status":"IN_PROGRESS","priority":"HIGH","type":"Home"'
+            + ',"targetDate":"2027-01-15","targetAmount":50000,"actualAmount":12500'
+            + ',"description":"Down payment fund"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update goal should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        FinancialGoal after = [
+            SELECT Name, Status, Priority, Type, TargetDate, TargetAmount, ActualAmount, Description
+            FROM FinancialGoal WHERE Id = :g.Id
+        ];
+        System.assertEquals('Dream home', after.Name, 'name updated');
+        System.assertEquals('IN_PROGRESS', after.Status, 'status updated');
+        System.assertEquals('HIGH', after.Priority, 'priority updated');
+        System.assertEquals('Home', after.Type, 'type updated');
+        System.assertEquals(Date.valueOf('2027-01-15'), after.TargetDate, 'target date updated');
+        System.assertEquals(50000, after.TargetAmount, 'target amount updated');
+        System.assertEquals(12500, after.ActualAmount, 'actual amount updated');
+        System.assertEquals('Down payment fund', after.Description, 'description updated');
+    }
+
+    @IsTest
+    static void updateGoalLeavesOmittedFieldsUntouched() {
+        // Only actualAmount is sent; Name/Status/Priority/TargetAmount must survive.
+        FinancialGoal g = new FinancialGoal(
+            Name = 'Keep me', Status = 'IN_PROGRESS', Priority = 'MEDIUM',
+            Type = 'Retirement', TargetAmount = 90000, ActualAmount = 5000
+        );
+        insert g;
+        setupRequest('{"action":"update","sobjectType":"FinancialGoal","recordId":"' + g.Id + '","actualAmount":8000}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'amount-only goal update should 200');
+        FinancialGoal after = [SELECT Name, Status, Priority, TargetAmount, ActualAmount FROM FinancialGoal WHERE Id = :g.Id];
+        System.assertEquals(8000, after.ActualAmount, 'actual amount updated');
+        System.assertEquals('Keep me', after.Name, 'name left untouched');
+        System.assertEquals('IN_PROGRESS', after.Status, 'status left untouched');
+        System.assertEquals('MEDIUM', after.Priority, 'priority left untouched');
+        System.assertEquals(90000, after.TargetAmount, 'target amount left untouched');
+    }
+
     /** A minimal active standard-user for owner-reassignment assertions. */
     private static User buildTestUser(String uname) {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];

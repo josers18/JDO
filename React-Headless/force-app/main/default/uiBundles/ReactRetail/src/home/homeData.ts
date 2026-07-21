@@ -122,10 +122,10 @@ const DASH: HomeDashboard = {
     { id: 'cs4', caseNumber: '00001024', subject: 'Statement address update request', priority: 'Low', status: 'Working', clientName: 'Julie E Morris', ageDays: 9 },
   ],
   customerGoals: [
-    { id: 'cg1', name: 'Down payment — first home', clientName: 'Sherry F Wang', clientId: '001WANG000000000', status: 'IN_PROGRESS', targetDate: '2026-09-15', daysUntil: 56, target: 80000, current: 61500 },
-    { id: 'cg2', name: 'College fund — 529 top-up', clientName: 'Cooper Household', clientId: '001COOP000000000', status: 'IN_PROGRESS', targetDate: '2026-10-31', daysUntil: 102, target: 120000, current: 74000 },
-    { id: 'cg3', name: 'Emergency fund — 6 months', clientName: 'Cervantes-Fowler Retail', status: 'NOT_STARTED', targetDate: '2026-12-31', daysUntil: 163, target: 30000, current: 8200 },
-    { id: 'cg4', name: 'Debt payoff — auto loan', clientName: 'Julie E Morris', status: 'IN_PROGRESS', targetDate: '2027-02-28', daysUntil: 222, target: 18500, current: 12300 },
+    { id: 'cg1', name: 'Down payment — first home', clientName: 'Sherry F Wang', clientId: '001WANG000000000', planName: 'Sherry F Wang - Home Ownership Plan', status: 'IN_PROGRESS', priority: 'HIGH', type: 'Home', targetDate: '2026-09-15', daysUntil: 56, target: 80000, current: 61500, description: 'Saving toward a 20% down payment on a first home.' },
+    { id: 'cg2', name: 'College fund — 529 top-up', clientName: 'Cooper Household', clientId: '001COOP000000000', planName: 'Cooper Household - Education Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Education', targetDate: '2026-10-31', daysUntil: 102, target: 120000, current: 74000, description: 'Annual 529 contribution to reach the four-year tuition target.' },
+    { id: 'cg3', name: 'Emergency fund — 6 months', clientName: 'Cervantes-Fowler Retail', planName: 'Cervantes-Fowler - Financial Wellness Plan', status: 'NOT_STARTED', priority: 'MEDIUM', type: 'Emergency', targetDate: '2026-12-31', daysUntil: 163, target: 30000, current: 8200, description: 'Build a six-month expense reserve.' },
+    { id: 'cg4', name: 'Debt payoff — auto loan', clientName: 'Julie E Morris', planName: 'Julie E Morris - Debt Reduction Plan', status: 'IN_PROGRESS', priority: 'LOW', type: 'Pay off Debt', targetDate: '2027-02-28', daysUntil: 222, target: 18500, current: 12300, description: 'Accelerated payoff of the remaining auto-loan balance.' },
   ],
 };
 

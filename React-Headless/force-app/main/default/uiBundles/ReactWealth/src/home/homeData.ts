@@ -123,10 +123,10 @@ const DASH: HomeDashboard = {
     { id: 'cs4', caseNumber: '00003032', subject: 'Beneficiary designation update', priority: 'Low', status: 'Working', clientName: 'The Okafor Foundation', ageDays: 12 },
   ],
   customerGoals: [
-    { id: 'cg1', name: 'Wealth-transfer to next generation', clientName: 'The Whitfield Family Trust', clientId: '001W', status: 'IN_PROGRESS', targetDate: '2026-09-30', daysUntil: 71, target: 20000000, current: 12500000 },
-    { id: 'cg2', name: 'Charitable giving — DAF funding', clientName: 'The Okafor Foundation', status: 'IN_PROGRESS', targetDate: '2026-11-15', daysUntil: 117, target: 5000000, current: 3100000 },
-    { id: 'cg3', name: 'Retirement income — drawdown plan', clientName: 'Robert Kessler', clientId: '001R', status: 'NOT_STARTED', targetDate: '2026-12-31', daysUntil: 163, target: 8000000, current: 5600000 },
-    { id: 'cg4', name: 'Concentrated-stock diversification', clientName: 'Julie E Morris', clientId: '001am00000qvjsAAAQ', status: 'IN_PROGRESS', targetDate: '2027-03-31', daysUntil: 253, target: 4000000, current: 1200000 },
+    { id: 'cg1', name: 'Wealth-transfer to next generation', clientName: 'The Whitfield Family Trust', clientId: '001W', planName: 'Whitfield Family - Estate Plan', status: 'IN_PROGRESS', priority: 'HIGH', type: 'Other', targetDate: '2026-09-30', daysUntil: 71, target: 20000000, current: 12500000, description: 'Structure a tax-efficient transfer of assets to the next generation.' },
+    { id: 'cg2', name: 'Charitable giving — DAF funding', clientName: 'The Okafor Foundation', planName: 'Okafor Foundation - Philanthropy Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Other', targetDate: '2026-11-15', daysUntil: 117, target: 5000000, current: 3100000, description: 'Fund the donor-advised fund to the target endowment level.' },
+    { id: 'cg3', name: 'Retirement income — drawdown plan', clientName: 'Robert Kessler', clientId: '001R', planName: 'Robert Kessler - Retirement Plan', status: 'NOT_STARTED', priority: 'HIGH', type: 'Retirement', targetDate: '2026-12-31', daysUntil: 163, target: 8000000, current: 5600000, description: 'Design a sustainable drawdown strategy for retirement income.' },
+    { id: 'cg4', name: 'Concentrated-stock diversification', clientName: 'Julie E Morris', clientId: '001am00000qvjsAAAQ', planName: 'Julie E Morris - Portfolio Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Other', targetDate: '2027-03-31', daysUntil: 253, target: 4000000, current: 1200000, description: 'Diversify out of a concentrated equity position over time.' },
   ],
 };
 
