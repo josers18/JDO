@@ -170,6 +170,8 @@ export interface WorkspacePanelHandlers {
   onNewTask: () => void;
   /** "+ Add → Schedule item" from the agenda header — page opens the ScheduleModal. */
   onNewSchedule: () => void;
+  /** "View all →" beside the Life events section title — page opens the Life Events explorer. */
+  onViewLifeEvents: () => void;
   /** Soft actions with no CRM write yet (complete / snooze / assign) — page toasts. */
   onSoft: (title: string, message: string) => void;
 }
@@ -520,7 +522,18 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
       )}
 
       {brief.lifeEvents.length > 0 && (
-        <PanelSection title="Life events across your book">
+        <PanelSection
+          title="Life events across your book"
+          action={
+            <button
+              type="button"
+              onClick={handlers.onViewLifeEvents}
+              className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
+            >
+              View all →
+            </button>
+          }
+        >
           <SignalList items={brief.lifeEvents} />
         </PanelSection>
       )}

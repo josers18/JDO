@@ -9,7 +9,7 @@
  * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
  */
 import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
-import type { HomeDashboard, CallItem, CaseItem, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
+import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
  *  SSR/replay). Wobbles around `end` using the seed's char codes. */
@@ -63,6 +63,9 @@ const HOME_CORE_QUERY = /* GraphQL */ `
         }
         FinancialGoal(first: 6) {
           edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
+        }
+        CustomerGoal: FinancialGoal(first: 8, where: { TargetDate: { gte: { literal: TODAY } }, Status: { ne: "COMPLETE" } }, orderBy: { TargetDate: { order: ASC } }) {
+          edges { node { Id Name @optional { value } Status @optional { value } TargetDate @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } FinancialPlan @optional { AccountId @optional { value } Account @optional { Name @optional { value } } } } }
         }
         Lead(first: 6, where: { IsConverted: { eq: false } }) {
           edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
@@ -155,6 +158,7 @@ interface CoreShape {
     TaskUpcoming?: { edges?: { node: Node }[] };
     Event?: { edges?: { node: Node }[] };
     FinancialGoal?: { edges?: { node: Node }[] };
+    CustomerGoal?: { edges?: { node: Node & { FinancialPlan?: { AccountId?: { value?: string }; Account?: { Name?: { value?: string } } } } }[] };
     Lead?: { edges?: { node: Node }[] };
   } };
 }
@@ -285,6 +289,29 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     current: num(e.node, 'ActualAmount'), target: num(e.node, 'TargetAmount') || 1,
     format: 'currencyCompact' as const,
   }));
+
+  // Upcoming customer goals → the supporting-band Customer Goals card + explorer.
+  // Sourced from FinancialGoal (TargetDate ≥ TODAY, not COMPLETE, soonest first).
+  // Client name traverses FinancialGoal → FinancialPlan → Account; falls back to
+  // '' when the goal isn't plan-linked (the goal name usually names the household).
+  const customerGoals: CustomerGoal[] = (q?.CustomerGoal?.edges ?? []).map((e, i) => {
+    const targetDate = s(e.node, 'TargetDate');
+    const daysUntil = targetDate
+      ? Math.round((new Date(targetDate).getTime() - Date.now()) / 86_400_000)
+      : null;
+    const fp = e.node.FinancialPlan;
+    return {
+      id: `cg${i}`,
+      name: s(e.node, 'Name') || 'Goal',
+      clientName: fp?.Account?.Name?.value ?? '',
+      clientId: fp?.AccountId?.value || undefined,
+      status: s(e.node, 'Status'),
+      targetDate,
+      daysUntil,
+      target: num(e.node, 'TargetAmount'),
+      current: num(e.node, 'ActualAmount'),
+    };
+  });
 
   const leads: LeadReferral[] = (q?.Lead?.edges ?? []).map((e, i) => ({
     id: `l${i}`, name: s(e.node, 'Name') || s(e.node, 'Company') || 'Lead',
@@ -450,6 +477,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     activity,
     pipelineMovement,
     cases,
+    customerGoals,
     rightNow,
     delinquency,
   };

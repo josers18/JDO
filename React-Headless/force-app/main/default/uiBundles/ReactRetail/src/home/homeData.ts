@@ -121,6 +121,12 @@ const DASH: HomeDashboard = {
     { id: 'cs3', caseNumber: '00001031', subject: 'Online banking login lockout', priority: 'Medium', status: 'New', clientName: 'Cervantes-Fowler Retail', ageDays: 2 },
     { id: 'cs4', caseNumber: '00001024', subject: 'Statement address update request', priority: 'Low', status: 'Working', clientName: 'Julie E Morris', ageDays: 9 },
   ],
+  customerGoals: [
+    { id: 'cg1', name: 'Down payment — first home', clientName: 'Sherry F Wang', clientId: '001WANG000000000', status: 'IN_PROGRESS', targetDate: '2026-09-15', daysUntil: 56, target: 80000, current: 61500 },
+    { id: 'cg2', name: 'College fund — 529 top-up', clientName: 'Cooper Household', clientId: '001COOP000000000', status: 'IN_PROGRESS', targetDate: '2026-10-31', daysUntil: 102, target: 120000, current: 74000 },
+    { id: 'cg3', name: 'Emergency fund — 6 months', clientName: 'Cervantes-Fowler Retail', status: 'NOT_STARTED', targetDate: '2026-12-31', daysUntil: 163, target: 30000, current: 8200 },
+    { id: 'cg4', name: 'Debt payoff — auto loan', clientName: 'Julie E Morris', status: 'IN_PROGRESS', targetDate: '2027-02-28', daysUntil: 222, target: 18500, current: 12300 },
+  ],
 };
 
 /**

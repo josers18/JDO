@@ -123,6 +123,12 @@ const DASH: HomeDashboard = {
     { id: 'cs3', caseNumber: '00002074', subject: 'Line-of-credit draw dispute', priority: 'Medium', status: 'New', clientName: 'Granite Materials', clientId: '001G', ageDays: 4 },
     { id: 'cs4', caseNumber: '00002066', subject: 'Lockbox remittance mismatch', priority: 'Low', status: 'Working', clientName: 'Emerald Construction', clientId: '001E', ageDays: 11 },
   ],
+  customerGoals: [
+    { id: 'cg1', name: 'Working-capital reserve target', clientName: 'Frontier Freight', clientId: '001F', status: 'IN_PROGRESS', targetDate: '2026-09-30', daysUntil: 71, target: 12000000, current: 8400000 },
+    { id: 'cg2', name: 'Expansion capex — new facility', clientName: 'Granite Materials', clientId: '001G', status: 'IN_PROGRESS', targetDate: '2026-11-30', daysUntil: 132, target: 25000000, current: 9600000 },
+    { id: 'cg3', name: 'Debt-to-EBITDA below 3.0x', clientName: 'Delta Foods Inc', clientId: '001D', status: 'NOT_STARTED', targetDate: '2026-12-31', daysUntil: 163, target: 3, current: 4.1 },
+    { id: 'cg4', name: 'Treasury sweep automation', clientName: 'Emerald Construction', clientId: '001E', status: 'IN_PROGRESS', targetDate: '2027-01-31', daysUntil: 194, target: 40000000, current: 22000000 },
+  ],
   delinquency: {
     totalDelinquentBalance: 4820000,
     totalRecovered: 1130000,

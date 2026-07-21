@@ -53,7 +53,7 @@ import {
   type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, CaseItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
+import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -187,7 +187,7 @@ function HomeContent() {
   const [draftsOpen, setDraftsOpen] = useState(false);
   // Which supporting-band module is drilled into (its "View all →" was clicked).
   // Null = no explorer open. One <DataExplorerModal> renders per key below.
-  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'cases' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
+  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'cases' | 'customerGoals' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
@@ -584,6 +584,32 @@ function HomeContent() {
     });
   };
 
+  // Read-only detail for an upcoming CUSTOMER goal (FinancialGoal), distinct
+  // from the banker-quota goal above. Surfaces the client, due date, and
+  // progress toward the target amount.
+  const showCustomerGoalDetail = (g: CustomerGoal) => {
+    const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+    setDetailView({
+      title: g.name,
+      subtitle: g.clientName || 'Customer goal',
+      icon: <Icon name="metrics" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Progress', value: formatValue(g.current, 'currencyCompact') },
+        { label: 'Target', value: formatValue(g.target, 'currencyCompact') },
+        { label: 'Due', value: customerGoalDueLabel(g.daysUntil) },
+      ],
+      note: `${g.clientName || 'This client'} is at ${pct}% of "${g.name}" (${formatValue(g.current, 'currencyCompact')} of ${formatValue(g.target, 'currencyCompact')}), due ${customerGoalDueLabel(g.daysUntil).toLowerCase()}.`,
+      sectionTitle: 'Goal',
+      fields: [
+        { label: 'Client', value: g.clientName || '—' },
+        { label: 'Status', value: prettyGoalStatus(g.status) },
+        { label: 'Target date', value: g.targetDate || '—' },
+        { label: 'Progress', value: `${formatValue(g.current, 'currencyCompact')} of ${formatValue(g.target, 'currencyCompact')} (${pct}%)` },
+      ],
+    });
+  };
+
   const today = data.callList.filter(c => c.tier === 'today');
   const week = data.callList.filter(c => c.tier === 'week');
   const watch = data.callList.filter(c => (c.tier ?? 'watch') === 'watch');
@@ -768,6 +794,8 @@ function HomeContent() {
     // view's "+ Task" / "+ Meeting" schedule controls.
     onNewTask: () => open('task', data.bankerName),
     onNewSchedule: () => open('schedule', data.bankerName, undefined, 'Meeting'),
+    // "View all →" beside the panel's Life events section — open the explorer.
+    onViewLifeEvents: () => setExplorer('lifeEvents'),
     onSoft: (title, message) => toast(title, message),
   };
 
@@ -1164,32 +1192,35 @@ function HomeContent() {
 
   // ── Full-width supporting band (cockpit only) ──
   // The five secondary modules from the mockup, in a single responsive row:
-  // Life events · Pipeline Movement · Open Cases · Today's Agenda ·
+  // Customer Goals · Pipeline Movement · Open Cases · Today's Agenda ·
   // Top Opportunities. Each is a slim card with a "View all →" head and clickable
-  // rows that drive the right context panel. (At-risk clients moved to the right
-  // context panel, so this band now surfaces open service cases instead.)
+  // rows that drive the right context panel. (Life events moved to the right
+  // context panel — its explorer opens from the panel's section link — so this
+  // band now surfaces upcoming customer goals instead.)
   const supportingBand = (
     <div className="@container/band">
     <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line-strong bg-line-strong shadow-card @[560px]/band:grid-cols-3 @[900px]/band:grid-cols-5">
-      {/* Life events — Data Cloud life-event signals across the book, each with
-          its own colored Lucide glyph. Click opens the read-only detail modal
-          (showLifeEventDetail); "View all →" opens the Life Events explorer. */}
-      <BandCard title="Life events" onViewAll={() => setExplorer('lifeEvents')}>
-        {data.lifeEvents.slice(0, 4).map(e => {
-          const st = lifeEventStyle(e.event);
+      {/* Customer Goals — upcoming FinancialGoals across the book (soonest due
+          first), each with an urgency-colored chip. Click opens the read-only
+          goal detail; "View all →" opens the Customer Goals explorer. */}
+      <BandCard title="Customer Goals" onViewAll={() => setExplorer('customerGoals')}>
+        {data.customerGoals.slice(0, 4).map(g => {
+          const st = customerGoalStyle(g.daysUntil);
           return (
             <button
-              key={e.id}
+              key={g.id}
               type="button"
-              onClick={() => showLifeEventDetail(e)}
+              onClick={() => showCustomerGoalDetail(g)}
               className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
             >
               <span className={`mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
-                <Icon name={st.icon} size={13} />
+                <Icon name="metrics" size={13} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-medium text-fg">{e.clientName}</span>
-                <span className="mt-0.5 block truncate text-[11px] text-faint">{e.event} · {e.when}</span>
+                <span className="block truncate text-[12.5px] font-medium text-fg">{g.name}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">
+                  {g.clientName ? `${g.clientName} · ` : ''}{customerGoalDueLabel(g.daysUntil)}
+                </span>
               </span>
             </button>
           );
@@ -1753,6 +1784,44 @@ function HomeContent() {
         footNote="Source · CRM goals"
       />
 
+      <DataExplorerModal<CustomerGoal>
+        open={explorer === 'customerGoals'}
+        onClose={() => setExplorer(null)}
+        title="Customer Goals"
+        subtitle="Upcoming client financial goals"
+        icon={<Icon name="metrics" size={17} />}
+        rows={data.customerGoals}
+        searchPlaceholder="Search goals, clients…"
+        searchText={g => `${g.name} ${g.clientName} ${g.status}`}
+        rowKey={g => g.id}
+        onRowClick={g => showCustomerGoalDetail(g)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'soon', label: 'Due ≤ 90d', test: g => g.daysUntil != null && g.daysUntil >= 0 && g.daysUntil <= 90 },
+          { key: 'inProgress', label: 'In progress', test: g => g.status.trim().toUpperCase() === 'IN_PROGRESS' },
+          { key: 'notStarted', label: 'Not started', test: g => g.status.trim().toUpperCase() === 'NOT_STARTED' },
+        ]}
+        columns={[
+          { key: 'name', label: 'Goal', render: g => (
+            <span className="flex items-center gap-2.5">
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${customerGoalStyle(g.daysUntil).chip}`}>
+                <Icon name="metrics" size={13} />
+              </span>
+              <span className="font-semibold text-fg">{g.name}</span>
+            </span>
+          ) },
+          { key: 'client', label: 'Client', render: g => <span className="text-muted">{g.clientName || '—'}</span>, hideBelow: 'sm' },
+          { key: 'progress', label: 'Progress', align: 'right', render: g => {
+            const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+            return <span className="text-muted">{formatValue(g.current, 'currencyCompact')} / {formatValue(g.target, 'currencyCompact')} ({pct}%)</span>;
+          }, hideBelow: 'md' },
+          { key: 'due', label: 'Due', align: 'right', render: g => (
+            <Pill tone={customerGoalStyle(g.daysUntil).tone === 'neutral' ? 'accent' : customerGoalStyle(g.daysUntil).tone}>{customerGoalDueLabel(g.daysUntil)}</Pill>
+          ) },
+        ]}
+        footNote="Source · CRM FinancialGoal (target date ≥ today)"
+      />
+
       <DataExplorerModal<LifeEventSignal>
         open={explorer === 'lifeEvents'}
         onClose={() => setExplorer(null)}
@@ -2249,6 +2318,37 @@ const CASE_PRIORITY_STYLE: Record<string, { chip: string; tone: 'risk' | 'warn' 
 };
 const casePriorityStyle = (priority: string) =>
   CASE_PRIORITY_STYLE[priority.trim().toLowerCase()] ?? { chip: 'bg-surface-muted text-muted', tone: 'neutral' as const };
+
+/** FinancialGoal.Status (UPPER_SNAKE org value) → a readable label. */
+function prettyGoalStatus(status: string): string {
+  if (!status) return '—';
+  return status
+    .toLowerCase()
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/** Days-until-target → a short due label. Negative = overdue, 0 = today. */
+function customerGoalDueLabel(daysUntil: number | null): string {
+  if (daysUntil == null) return 'No date';
+  if (daysUntil < 0) return `${Math.abs(daysUntil)}d overdue`;
+  if (daysUntil === 0) return 'Due today';
+  if (daysUntil < 45) return `Due in ${daysUntil}d`;
+  const months = Math.round(daysUntil / 30);
+  return `Due in ~${months}mo`;
+}
+
+/** Urgency chip tone for an upcoming customer goal, by proximity of its due
+ *  date: ≤30d = warn (amber), ≤90d = accent, further out = neutral. Overdue
+ *  reads as risk (red). */
+function customerGoalStyle(daysUntil: number | null): { chip: string; tone: 'risk' | 'warn' | 'accent' | 'neutral' } {
+  if (daysUntil == null) return { chip: 'bg-surface-muted text-muted', tone: 'neutral' };
+  if (daysUntil < 0) return { chip: 'bg-risk-bg text-risk', tone: 'risk' };
+  if (daysUntil <= 30) return { chip: 'bg-warn-bg text-warn', tone: 'warn' };
+  if (daysUntil <= 90) return { chip: 'bg-accent-bg text-accent', tone: 'accent' };
+  return { chip: 'bg-surface-muted text-muted', tone: 'neutral' };
+}
 
 /** Schedule bucket → dot color for the Today's Agenda timeline rail. */
 const AGENDA_DOT: Record<'overdue' | 'today' | 'upcoming', string> = {

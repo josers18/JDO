@@ -164,6 +164,29 @@ export interface DelinquencyWatch {
   asOf: string;
 }
 
+/** An upcoming customer financial goal (FSC FinancialGoal) for the supporting
+ *  band + explorer. Distinct from BankerGoal (the banker's own quota): these
+ *  are the client's goals coming due, sourced from FinancialGoal → FinancialPlan
+ *  → Account. */
+export interface CustomerGoal {
+  id: string;
+  /** FinancialGoal.Name, e.g. "Nakamura Tax Optimization". */
+  name: string;
+  /** Related household/client (via FinancialPlan → Account); '' when the goal has no plan link. */
+  clientName: string;
+  clientId?: string;
+  /** FinancialGoal.Status — 'IN_PROGRESS' | 'NOT_STARTED' (org values); '' when unset. */
+  status: string;
+  /** FinancialGoal.TargetDate (ISO yyyy-mm-dd); '' when unset. */
+  targetDate: string;
+  /** Whole days until targetDate (negative if past). null when no date. */
+  daysUntil: number | null;
+  /** FinancialGoal.TargetAmount — the amount the client is working toward. */
+  target: number;
+  /** FinancialGoal.ActualAmount — progress toward the target. */
+  current: number;
+}
+
 export interface HomeDashboard {
   bankerName: string;
   dateLabel: string;
@@ -184,6 +207,8 @@ export interface HomeDashboard {
   pipelineMovement: PipelineMovement[];
   /** Open service cases for the cockpit supporting band + explorer. */
   cases: CaseItem[];
+  /** Upcoming customer financial goals for the cockpit supporting band + explorer. */
+  customerGoals: CustomerGoal[];
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;
