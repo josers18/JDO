@@ -31,6 +31,9 @@ interface AccountShape {
 interface FinancialPlanShape {
   uiapi?: { query?: { FinancialPlan?: { edges?: { node: { Id?: string; Name?: { value?: string } } }[] } } };
 }
+interface ContactShape {
+  uiapi?: { query?: { Contact?: { edges?: { node: { Id?: string; Name?: { value?: string } } }[] } } };
+}
 
 /** Search active Users by name for the Assigned To lookup. */
 export async function searchUsers(term: string, limit = 8): Promise<LookupHit[]> {
@@ -95,6 +98,33 @@ export async function searchFinancialPlans(term: string, limit = 8): Promise<Loo
   try {
     const data = await executeGraphQL<FinancialPlanShape>(query);
     return (data.uiapi?.query?.FinancialPlan?.edges ?? [])
+      .map(e => ({ id: e.node.Id ?? '', name: e.node.Name?.value ?? '' }))
+      .filter(h => h.id && h.name);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Search Contacts by name for the "select the person" lookup on the life-event
+ * flow. A PersonLifeEvent's only person link is PrimaryPersonId → Contact, and
+ * for person accounts the contact name equals the account name — so picking a
+ * Contact IS picking the customer. This is the life-event analogue of
+ * searchFinancialPlans on the goal flow.
+ */
+export async function searchContacts(term: string, limit = 8): Promise<LookupHit[]> {
+  const t = escapeTerm(term);
+  if (t.length < 2) return [];
+  const query = `query ContactSearch {
+    uiapi { query {
+      Contact(first: ${limit}, where: { Name: { like: "%${t}%" } }, orderBy: { Name: { order: ASC } }) {
+        edges { node { Id Name @optional { value } } }
+      }
+    } }
+  }`;
+  try {
+    const data = await executeGraphQL<ContactShape>(query);
+    return (data.uiapi?.query?.Contact?.edges ?? [])
       .map(e => ({ id: e.node.Id ?? '', name: e.node.Name?.value ?? '' }))
       .filter(h => h.id && h.name);
   } catch {

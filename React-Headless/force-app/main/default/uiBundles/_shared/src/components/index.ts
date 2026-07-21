@@ -51,6 +51,9 @@ export {
   GOAL_PRIORITY_OPTIONS,
   GOAL_TYPE_OPTIONS,
 } from './home/types';
+export { LifeEventModal } from './home/LifeEventModal';
+export type { LifeEventItem } from './home/types';
+export { LIFE_EVENT_TYPE_OPTIONS } from './home/types';
 export { tagSchedule, scheduleCounts } from './home/schedule';
 export { ScheduleTable } from './home/ScheduleTable';
 export { useReveal, RevealFooter, type RevealState } from './home/Reveal';

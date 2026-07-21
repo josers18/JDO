@@ -453,6 +453,126 @@ private class CrmWriteRestTest {
         System.assertEquals(false, parseBody().get('success'), 'success false');
     }
 
+    // ─── PersonLifeEvent (life-event create / edit) ─────────────────────────
+
+    /** A Contact — the primary-person link a PersonLifeEvent attaches to.
+     *  PersonLifeEvent.PrimaryPersonId is a reference to Contact (person
+     *  accounts share the Account name, but the FK is the Contact Id). */
+    private static Contact buildTestContact(String lastName) {
+        Contact c = new Contact(FirstName = 'Test', LastName = lastName);
+        insert c;
+        return c;
+    }
+
+    @IsTest
+    static void createsLifeEvent() {
+        Contact person = buildTestContact('Nakamura');
+        setupRequest('{"action":"lifeEvent","name":"New baby - Nakamura","eventType":"Baby"'
+            + ',"eventDate":"2026-09-15","primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create life event should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertNotEquals(null, out.get('id'), 'new life-event id returned');
+        PersonLifeEvent ple = [
+            SELECT Name, EventType, EventDate, PrimaryPersonId
+            FROM PersonLifeEvent WHERE Id = :(Id) out.get('id')
+        ];
+        System.assertEquals('New baby - Nakamura', ple.Name, 'name set');
+        System.assertEquals('Baby', ple.EventType, 'event type set');
+        System.assertEquals(person.Id, ple.PrimaryPersonId, 'primary person (Contact) link set');
+        System.assertEquals(
+            Datetime.newInstance(Date.valueOf('2026-09-15'), Time.newInstance(0, 0, 0, 0)),
+            ple.EventDate, 'event date set at local midnight'
+        );
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutName() {
+        Contact person = buildTestContact('NoName');
+        setupRequest('{"action":"lifeEvent","eventType":"Baby","eventDate":"2026-09-15"'
+            + ',"primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without name should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutType() {
+        Contact person = buildTestContact('NoType');
+        setupRequest('{"action":"lifeEvent","name":"Typeless event","eventDate":"2026-09-15"'
+            + ',"primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without type should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutDate() {
+        Contact person = buildTestContact('NoDate');
+        setupRequest('{"action":"lifeEvent","name":"Dateless event","eventType":"Baby"'
+            + ',"primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without date should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutPerson() {
+        setupRequest('{"action":"lifeEvent","name":"Orphan event","eventType":"Baby","eventDate":"2026-09-15"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without person should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithNonContactId() {
+        // A real Account Id sent as the primary person — must 400, not surface a 500.
+        Account acct = new Account(Name = 'Not a contact');
+        insert acct;
+        setupRequest('{"action":"lifeEvent","name":"Bad person event","eventType":"Baby"'
+            + ',"eventDate":"2026-09-15","primaryPersonId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'non-Contact id should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void updatesLifeEvent() {
+        Contact person = buildTestContact('Editable');
+        PersonLifeEvent ple = new PersonLifeEvent(
+            Name = 'Original event', EventType = 'Job', PrimaryPersonId = person.Id,
+            EventDate = Datetime.newInstance(Date.valueOf('2026-01-01'), Time.newInstance(0, 0, 0, 0))
+        );
+        insert ple;
+        setupRequest('{"action":"update","sobjectType":"PersonLifeEvent","recordId":"' + ple.Id + '"'
+            + ',"name":"Promotion","eventType":"Job","eventDate":"2026-10-01"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update life event should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        PersonLifeEvent updated = [SELECT Name, EventType, EventDate FROM PersonLifeEvent WHERE Id = :ple.Id];
+        System.assertEquals('Promotion', updated.Name, 'name updated');
+        System.assertEquals('Job', updated.EventType, 'event type retained');
+        System.assertEquals(
+            Datetime.newInstance(Date.valueOf('2026-10-01'), Time.newInstance(0, 0, 0, 0)),
+            updated.EventDate, 'event date updated'
+        );
+    }
+
     /** A minimal active standard-user for owner-reassignment assertions. */
     private static User buildTestUser(String uname) {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];

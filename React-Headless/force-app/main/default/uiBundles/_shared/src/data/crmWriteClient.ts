@@ -17,7 +17,7 @@
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 
-export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal';
+export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent';
 
 export interface CrmWriteInput {
   action: CrmAction;
@@ -33,7 +33,7 @@ export interface CrmWriteInput {
   /** Account for a Case. */
   accountId?: string;
   /** SObject to update/delete (required when action === 'update' | 'delete'). */
-  sobjectType?: 'Task' | 'Event' | 'FinancialGoal';
+  sobjectType?: 'Task' | 'Event' | 'FinancialGoal' | 'PersonLifeEvent';
   /** Id of the record to update/delete (required when action === 'update' | 'delete'). */
   recordId?: string;
   /** Task/Event Type picklist value, or FinancialGoal.Type. */
@@ -53,6 +53,14 @@ export interface CrmWriteInput {
   targetAmount?: number;
   /** FinancialGoal.ActualAmount (amount saved so far). */
   actualAmount?: number;
+  /** PersonLifeEvent.PrimaryPersonId — the Contact (person) the life event is
+   *  about (required when action === 'lifeEvent'). A PersonLifeEvent has no
+   *  Account field; the primary person Contact is the customer link. */
+  primaryPersonId?: string;
+  /** PersonLifeEvent.EventType picklist (Birth | Graduation | Job | …). */
+  eventType?: string;
+  /** PersonLifeEvent.EventDate, 'YYYY-MM-DD' (datetime field, anchored to midnight server-side). */
+  eventDate?: string;
   /** Task ActivityDate, 'YYYY-MM-DD'. */
   dueDate?: string;
   /** Event start, ISO-8601. Defaults server-side to now + 1h. */

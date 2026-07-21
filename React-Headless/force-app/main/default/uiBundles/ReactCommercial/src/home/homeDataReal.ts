@@ -28,16 +28,47 @@ function seedTrend(seed: string, end: number, n = 8): number[] {
 }
 
 /* ── Life-event signals ───────────────────────────────────────────
-   Representative commercial-book signals. No live Data Cloud life-event feed is
-   wired yet, so these are seeded here (like the derived `alerts`) rather than
-   returned empty — an empty array renders the panel as a bare header with no
-   rows. Swap for a queryDataCloud call once the life-event stream is mapped. */
-const LIFE_EVENTS: LifeEventSignal[] = [
-  { id: 'le1', clientId: '001D', clientName: 'Delta Foods Inc', event: 'Acquired a competitor', when: '4 days ago', opportunity: 'Acquisition financing + integration treasury', icon: '🤝' },
-  { id: 'le2', clientId: '001E', clientName: 'Emerald Construction', event: 'Won a major contract', when: '1 week ago', opportunity: 'Working-capital line + performance bonds', icon: '📈' },
-  { id: 'le3', clientId: '001F', clientName: 'Frontier Freight', event: 'CFO transition', when: 'Last week', opportunity: 'Re-engage on treasury + refinance', icon: '👔' },
-  { id: 'le4', clientId: '001G', clientName: 'Granite Materials', event: 'Opened a new facility', when: '2 weeks ago', opportunity: 'Equipment finance + expansion capital', icon: '🏗️' },
-];
+   Now LIVE against the org's native PersonLifeEvent object (see the
+   PersonLifeEvent block in HOME_CORE_QUERY). The banker's book carries
+   thousands of these; we window to the 200 most-recent by EventDate and map
+   each to a signal row. EventType drives a per-type icon + a suggested
+   next-best-action ("opportunity"); the primary person's Account name is the
+   client. recordId/contactId power the edit modal. */
+
+/** PersonLifeEvent.EventType → display icon. Falls back to a generic marker. */
+const LIFE_EVENT_ICONS: Record<string, string> = {
+  Birth: '👶', Baby: '👶', Graduation: '🎓', Job: '💼', Marriage: '💍',
+  Relocation: '📦', Home: '🏡', Car: '🚗', Diagnosis: '🩺', Retirement: '🌅',
+};
+const lifeEventIcon = (type: string): string => LIFE_EVENT_ICONS[type] ?? '📌';
+
+/** PersonLifeEvent.EventType → a banker's suggested next-best-action line. */
+const LIFE_EVENT_PLAYS: Record<string, string> = {
+  Birth: 'Review education savings (529) & guardianship coverage.',
+  Baby: 'Review education savings (529) & guardianship coverage.',
+  Graduation: 'Coordinate 529 final distribution & next steps.',
+  Job: 'Align income transition & benefits rollover.',
+  Marriage: 'Revisit joint accounts, beneficiaries & coverage.',
+  Relocation: 'Reassess mortgage, local banking & insurance.',
+  Home: 'Explore mortgage, HELOC & homeowner coverage.',
+  Car: 'Review financing options & insurance.',
+  Diagnosis: 'Check emergency reserves & protection coverage.',
+  Retirement: 'Build the income-drawdown & rollover plan.',
+};
+const lifeEventPlay = (type: string): string =>
+  LIFE_EVENT_PLAYS[type] ?? 'Reach out to discuss what this means for their plan.';
+
+/** Datetime 'YYYY-MM-DDThh:mm:ss…' or date-only → 'YYYY-MM-DD' for the modal. */
+const dateOnly = (dt: string): string => (dt ? dt.slice(0, 10) : '');
+
+/** Short human date for the row's "when", e.g. "Nov 16". '' → '—'. */
+const shortWhen = (dt: string): string => {
+  const d = dateOnly(dt);
+  if (!d) return '—';
+  const parsed = new Date(`${d}T00:00:00`);
+  if (isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
 
 /* ── Core/FSC via GraphQL (verified fields) ────────────────── */
 const HOME_CORE_QUERY = /* GraphQL */ `
@@ -69,6 +100,9 @@ const HOME_CORE_QUERY = /* GraphQL */ `
         }
         Lead(first: 6, where: { IsConverted: { eq: false } }) {
           edges { node { Id Name @optional { value } Company @optional { value } Status @optional { value } LeadSource @optional { value } AnnualRevenue @optional { value } Email @optional { value } } }
+        }
+        PersonLifeEvent(first: 200, orderBy: { EventDate: { order: DESC } }) {
+          edges { node { Id Name @optional { value } EventType @optional { value } EventDate @optional { value } PrimaryPersonId @optional { value } PrimaryPerson @optional { Name @optional { value } Account @optional { Name @optional { value } } } } }
         }
       }
     }
@@ -170,6 +204,7 @@ interface CoreShape {
     FinancialGoal?: { edges?: { node: Node }[] };
     CustomerGoal?: { edges?: { node: Node & { FinancialPlan?: { Name?: { value?: string }; AccountId?: { value?: string }; Account?: { Name?: { value?: string } } } } }[] };
     Lead?: { edges?: { node: Node }[] };
+    PersonLifeEvent?: { edges?: { node: Node & { PrimaryPerson?: { Name?: { value?: string }; Account?: { Name?: { value?: string } } } } }[] };
   } };
 }
 
@@ -329,6 +364,30 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     };
   });
 
+  // Live life events → the supporting-band Life Events panel + explorer. The
+  // primary person is a Contact; for person accounts its Account.Name is the
+  // client. EventType drives icon + next-best-action. recordId/contactId let
+  // the modal edit the record; eventType/eventDate seed its fields.
+  const lifeEvents: LifeEventSignal[] = (q?.PersonLifeEvent?.edges ?? []).map((e, i) => {
+    const type = s(e.node, 'EventType');
+    const pp = e.node.PrimaryPerson;
+    const clientName = decodeHtml(pp?.Account?.Name?.value ?? pp?.Name?.value ?? '');
+    const rawDate = s(e.node, 'EventDate');
+    return {
+      id: `le${i}`,
+      clientId: s(e.node, 'PrimaryPersonId'),
+      clientName: clientName || 'Client',
+      event: type || 'Life event',
+      when: shortWhen(rawDate),
+      opportunity: lifeEventPlay(type),
+      icon: lifeEventIcon(type),
+      recordId: (e.node as { Id?: string }).Id || undefined,
+      eventType: type || undefined,
+      eventDate: dateOnly(rawDate) || undefined,
+      contactId: s(e.node, 'PrimaryPersonId') || undefined,
+    };
+  });
+
   const leads: LeadReferral[] = (q?.Lead?.edges ?? []).map((e, i) => ({
     id: `l${i}`, name: s(e.node, 'Name') || s(e.node, 'Company') || 'Lead',
     source: s(e.node, 'LeadSource') || '—', status: s(e.node, 'Status') || 'New',
@@ -482,7 +541,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     callList,
     pipeline,
     bankerGoals,
-    lifeEvents: LIFE_EVENTS,
+    lifeEvents,
     schedule,
     alerts: callList.slice(0, 4).map((c, i) => ({
       id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,

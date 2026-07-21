@@ -89,6 +89,15 @@ export interface LifeEventSignal {
   when: string;
   opportunity: string;
   icon: string;
+  // ── Live PersonLifeEvent fields (optional; absent on any seeded/mock rows) ──
+  /** Real PersonLifeEvent Id — required to open the edit modal. */
+  recordId?: string;
+  /** PersonLifeEvent.EventType picklist value (Birth | Graduation | …). */
+  eventType?: string;
+  /** PersonLifeEvent.EventDate as 'YYYY-MM-DD' — seeds the modal date field. */
+  eventDate?: string;
+  /** Contact Id of the primary person — seeds the lookup on edit. */
+  contactId?: string;
 }
 
 import type { ScheduleItem } from '@shared';

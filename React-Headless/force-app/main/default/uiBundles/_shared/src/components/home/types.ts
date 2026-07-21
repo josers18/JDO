@@ -138,3 +138,31 @@ export const GOAL_PRIORITY_OPTIONS: { value: string; label: string }[] = [
 export const GOAL_TYPE_OPTIONS: string[] = [
   'Education', 'Emergency', 'Home', 'Pay off Debt', 'Retirement', 'Vacation', 'Vehicle', 'Other',
 ];
+
+/**
+ * A customer's life event (native PersonLifeEvent) surfaced on the banker home,
+ * openable into a create/edit modal. The person link is a Contact
+ * (PrimaryPersonId) — a PersonLifeEvent has no Account field — so the modal's
+ * "select the customer" control is a Contact lookup. This is the life-event
+ * analogue of CustomerGoalItem on the goal flow.
+ */
+export interface LifeEventItem {
+  /** True when opening the modal to CREATE a new life event (no recordId yet).
+   *  Drives the person picker + insert path instead of the edit path. */
+  create?: boolean;
+  recordId?: string;                       // real PersonLifeEvent Id — required to edit
+  name: string;                            // PersonLifeEvent.Name
+  eventType?: string;                      // PersonLifeEvent.EventType
+  eventDate?: string;                      // PersonLifeEvent.EventDate (YYYY-MM-DD)
+  clientName?: string;                     // via PrimaryPerson → Account ('' when none)
+  /** Contact Id of the primary person — seeds the lookup on edit. */
+  contactId?: string;
+}
+
+/**
+ * PersonLifeEvent.EventType picklist — verified live (label == value). Ordering
+ * roughly by relationship-relevance for a banker: milestones first.
+ */
+export const LIFE_EVENT_TYPE_OPTIONS: string[] = [
+  'Birth', 'Baby', 'Graduation', 'Job', 'Marriage', 'Relocation', 'Home', 'Car', 'Diagnosis', 'Retirement',
+];

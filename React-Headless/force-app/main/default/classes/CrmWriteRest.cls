@@ -33,17 +33,21 @@ global with sharing class CrmWriteRest {
         public String status;           // Task/Case
         public String toAddress;        // email
         public String htmlBody;         // email
-        public String sobjectType;      // 'Task' | 'Event' | 'FinancialGoal'  (required for update/delete)
+        public String sobjectType;      // 'Task' | 'Event' | 'FinancialGoal' | 'PersonLifeEvent'  (required for update/delete)
         public String recordId;         // Id of the record to update/delete
         public String type;             // Task/Event/FinancialGoal Type picklist
         public String location;         // Event location
         public String showAs;           // Event ShowAs (Busy|OutOfOffice|Free)
         // FinancialGoal (customer goal) edit/create fields —
-        public String name;             // FinancialGoal.Name
+        public String name;             // FinancialGoal.Name / PersonLifeEvent.Name
         public String financialPlanId;  // FinancialGoal.FinancialPlanId (customer link, create)
         public String targetDate;       // FinancialGoal.TargetDate 'YYYY-MM-DD'
         public Decimal targetAmount;    // FinancialGoal.TargetAmount
         public Decimal actualAmount;    // FinancialGoal.ActualAmount
+        // PersonLifeEvent (life event) create/edit fields —
+        public String primaryPersonId;  // PersonLifeEvent.PrimaryPersonId (Contact — the person link, create)
+        public String eventType;        // PersonLifeEvent.EventType picklist (Birth|Graduation|Job|…)
+        public String eventDate;        // PersonLifeEvent.EventDate 'YYYY-MM-DD' (datetime field, midnight)
     }
 
     /**
@@ -107,12 +111,14 @@ global with sharing class CrmWriteRest {
                 handleEmail(res, reqBody);
             } else if (action == 'goal') {
                 handleGoal(res, reqBody);
+            } else if (action == 'lifeevent') {
+                handleLifeEvent(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
             } else if (action == 'delete') {
                 handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, update, or delete.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, update, or delete.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -251,6 +257,62 @@ global with sharing class CrmWriteRest {
     }
 
     /**
+     * Create a PersonLifeEvent from the home "Life events" flow. Requires Name,
+     * EventType, EventDate, and PrimaryPersonId (verified via describe as the
+     * create-required set). PrimaryPersonId is a Contact reference — for person
+     * accounts the contact name equals the account name, so picking a Contact IS
+     * picking the customer. EventDate is a Datetime field but the modal supplies
+     * a date-only string, so it's anchored to midnight. RelatedPersonId (also a
+     * Contact) is optional.
+     */
+    private static void handleLifeEvent(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.name)) {
+            writeError(res, 400, 'A life event name is required.');
+            return;
+        }
+        if (String.isBlank(req.eventType)) {
+            writeError(res, 400, 'A life event type is required.');
+            return;
+        }
+        if (String.isBlank(req.eventDate)) {
+            writeError(res, 400, 'A life event date is required.');
+            return;
+        }
+        if (String.isBlank(req.primaryPersonId)) {
+            writeError(res, 400, 'Select a customer (person) for the life event.');
+            return;
+        }
+        Id personId;
+        try {
+            personId = (Id) req.primaryPersonId;
+        } catch (Exception e) {
+            writeError(res, 400, 'primaryPersonId is not a valid Id.');
+            return;
+        }
+        if (personId.getSObjectType() != Contact.SObjectType) {
+            writeError(res, 400, 'primaryPersonId is not a Contact Id.');
+            return;
+        }
+        PersonLifeEvent ple = new PersonLifeEvent();
+        ple.Name = req.name;
+        ple.EventType = req.eventType;
+        ple.PrimaryPersonId = personId;
+        ple.EventDate = toEventDatetime(req.eventDate);
+        insert ple;
+        writeSuccess(res, ple.Id);
+    }
+
+    /**
+     * Coerce a modal 'YYYY-MM-DD' string into the Datetime that
+     * PersonLifeEvent.EventDate expects, anchored to local midnight. Direct
+     * assignment of a Date to a Datetime field won't compile, so we build it.
+     */
+    private static Datetime toEventDatetime(String ymd) {
+        Date d = Date.valueOf(ymd);
+        return Datetime.newInstance(d, Time.newInstance(0, 0, 0, 0));
+    }
+
+    /**
      * Validate recordId + sobjectType for an update/delete and return the Id.
      * Writes the appropriate 400 and returns null on any failure (blank id,
      * unsupported/absent sobjectType, malformed Id, or an Id whose object type
@@ -263,8 +325,8 @@ global with sharing class CrmWriteRest {
             return null;
         }
         String sot = req.sobjectType == null ? '' : req.sobjectType.trim();
-        if (sot != 'Task' && sot != 'Event' && sot != 'FinancialGoal') {
-            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task, Event, or FinancialGoal.');
+        if (sot != 'Task' && sot != 'Event' && sot != 'FinancialGoal' && sot != 'PersonLifeEvent') {
+            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task, Event, FinancialGoal, or PersonLifeEvent.');
             return null;
         }
         Id recId;
@@ -312,6 +374,18 @@ global with sharing class CrmWriteRest {
             if (req.targetAmount != null)        { g.TargetAmount = req.targetAmount; }
             if (req.actualAmount != null)        { g.ActualAmount = req.actualAmount; }
             update g;
+        } else if (sot == 'PersonLifeEvent') {
+            // Life event edit from the home Life Events flow. Only Name and
+            // EventDate are written: EventType and PrimaryPersonId are
+            // createable-but-NOT-updateable on PersonLifeEvent (assigning either
+            // on update throws "Field is not writeable"), so they are fixed at
+            // creation and silently ignored here even if the client sends them.
+            // A blank/absent field leaves the server value untouched. EventDate
+            // is a datetime anchored to midnight.
+            PersonLifeEvent ple = new PersonLifeEvent(Id = recId);
+            if (!String.isBlank(req.name))      { ple.Name = req.name; }
+            if (!String.isBlank(req.eventDate)) { ple.EventDate = toEventDatetime(req.eventDate); }
+            update ple;
         } else {
             Event ev = new Event(Id = recId);
             if (!String.isBlank(req.subject)) { ev.Subject = req.subject; }
@@ -332,10 +406,17 @@ global with sharing class CrmWriteRest {
     private static void handleDelete(RestResponse res, WriteRequest req) {
         Id recId = resolveVerifiedId(res, req);
         if (recId == null) { return; } // error already written
-        if (req.sobjectType.trim() == 'Task') {
+        String sot = req.sobjectType.trim();
+        if (sot == 'Task') {
             delete new Task(Id = recId);
-        } else {
+        } else if (sot == 'Event') {
             delete new Event(Id = recId);
+        } else {
+            // resolveVerifiedId also permits FinancialGoal / PersonLifeEvent for
+            // update, but delete is only wired for activities. Reject cleanly
+            // rather than attempting a mismatched-type DML.
+            writeError(res, 400, 'Delete is only supported for Task and Event.');
+            return;
         }
         writeSuccess(res, recId);
     }

@@ -18,6 +18,10 @@ import {
   ScheduleDetailModal,
   CustomerGoalModal,
   type CustomerGoalItem,
+  LifeEventModal,
+  type LifeEventItem,
+  LIFE_EVENT_TYPE_OPTIONS,
+  type ExplorerFilter,
   tagSchedule,
   useHomeView,
   useReveal,
@@ -194,6 +198,9 @@ function HomeContent() {
   // Editable customer-goal (FinancialGoal) popup. Set by a Customer Goals row
   // click; the <CustomerGoalModal> at the page root writes back via crmWrite.
   const [goalItem, setGoalItem] = useState<CustomerGoalItem | null>(null);
+  // Create/editable life-event (PersonLifeEvent) popup. Set by a Life Events row
+  // click or the "+ New" button; the <LifeEventModal> writes back via crmWrite.
+  const [lifeEventItem, setLifeEventItem] = useState<LifeEventItem | null>(null);
   // Read-only detail popup for non-CRM-editable list rows (pipeline
   // opportunities, life events, alerts). Structured content lives in the
   // slot, so one <DetailModal> at the page root serves every list.
@@ -510,7 +517,21 @@ function HomeContent() {
     });
   };
 
+  // Open a life event. Live PersonLifeEvent rows (recordId present) open the
+  // editable modal so the banker can revise the event; a seeded row without a
+  // recordId falls back to the read-only signal detail with a Client-360 jump.
   const showLifeEventDetail = (e: LifeEventSignal) => {
+    if (e.recordId) {
+      setLifeEventItem({
+        recordId: e.recordId,
+        name: e.event,
+        eventType: e.eventType,
+        eventDate: e.eventDate,
+        clientName: e.clientName || undefined,
+        contactId: e.contactId,
+      });
+      return;
+    }
     setDetailView({
       title: e.event,
       subtitle: `${e.clientName} · ${e.when}`,
@@ -525,6 +546,14 @@ function HomeContent() {
       ],
       actions: [{ label: 'Open client 360 →', variant: 'accent', onClick: () => { setDetailView(null); openFull(e.clientId); } }],
     });
+  };
+
+  // Open the life-event modal in CREATE mode — a blank template with
+  // `create: true`. The modal shows a Contact lookup ("select the customer", the
+  // event's only person link) plus the event fields, then inserts via crmWrite;
+  // onSaved refetches so the new event appears on the Life Events panel.
+  const showNewLifeEvent = () => {
+    setLifeEventItem({ create: true, name: '' });
   };
 
   const showAlertDetail = (a: AlertSignal) => {
@@ -620,6 +649,24 @@ function HomeContent() {
   const today = data.callList.filter(c => c.tier === 'today');
   const week = data.callList.filter(c => c.tier === 'week');
   const watch = data.callList.filter(c => (c.tier ?? 'watch') === 'watch');
+
+  // Life-event explorer filter chips: "All" + one per EventType present in the
+  // data (canonical order from LIFE_EVENT_TYPE_OPTIONS; unknown types appended).
+  // Only types that actually appear get a chip, so the toolbar stays tight.
+  const lifeEventTypesPresent = (() => {
+    const seen = new Set(data.lifeEvents.map(e => e.eventType || e.event).filter(Boolean));
+    const ordered = LIFE_EVENT_TYPE_OPTIONS.filter(t => seen.has(t));
+    const extras = [...seen].filter(t => !LIFE_EVENT_TYPE_OPTIONS.includes(t)).sort();
+    return [...ordered, ...extras];
+  })();
+  const lifeEventFilters: ExplorerFilter<LifeEventSignal>[] = [
+    { key: 'all', label: 'All' },
+    ...lifeEventTypesPresent.map(t => ({
+      key: t,
+      label: t,
+      test: (e: LifeEventSignal) => (e.eventType || e.event) === t,
+    })),
+  ];
   // 1-based rank across the whole ranked queue (callList is score-ordered), so
   // each grouped row can show its global position and the #1 item gets emphasis.
   const rankOf = (c: CallItem) => data.callList.indexOf(c) + 1;
@@ -986,7 +1033,19 @@ function HomeContent() {
   const actionsBody = buildActionsBody(false);
 
   const lifeEventsBody = (
-    <SectionPanel icon="lifeEvent" label="Life events across your book" right={<LinkBtn>Next 30 days</LinkBtn>}>
+    <SectionPanel
+      icon="lifeEvent"
+      label="Life events across your book"
+      right={
+        <button
+          type="button"
+          onClick={showNewLifeEvent}
+          className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted transition hover:border-accent-border hover:text-fg"
+        >
+          + New
+        </button>
+      }
+    >
       {data.lifeEvents.map(e => (
         <LifeRow key={e.id} event={e} onClick={() => (view === 'cockpit' ? selectClientPanel(e.clientName, e.clientId) : showLifeEventDetail(e))} />
       ))}
@@ -1855,13 +1914,23 @@ function HomeContent() {
         open={explorer === 'lifeEvents'}
         onClose={() => setExplorer(null)}
         title="Life Events"
-        subtitle="Data Cloud signals → planning opportunities"
+        subtitle="Customer milestones → planning opportunities"
         icon={<Icon name="lifeEvent" size={17} />}
         rows={data.lifeEvents}
         searchPlaceholder="Search clients, events…"
         searchText={e => `${e.clientName} ${e.event} ${e.opportunity}`}
         rowKey={e => e.id}
         onRowClick={e => showLifeEventDetail(e)}
+        filters={lifeEventFilters}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewLifeEvent}
+            className="flex items-center gap-1 rounded-full border border-accent-border bg-accent px-3 py-1.5 text-[11.5px] font-medium text-white transition hover:opacity-90"
+          >
+            + New life event
+          </button>
+        }
         columns={[
           { key: 'event', label: 'Event', render: e => (
             <span className="flex items-center gap-2.5">
@@ -1873,7 +1942,7 @@ function HomeContent() {
           { key: 'opp', label: 'Opportunity', render: e => <span className="text-muted">{e.opportunity}</span>, hideBelow: 'md' },
           { key: 'when', label: 'When', align: 'right', render: e => <span className="font-mono text-[11px] text-faint">{e.when}</span> },
         ]}
-        footNote="Source · Data Cloud life-event signals"
+        footNote="Source · CRM PersonLifeEvent (most recent across your book)"
       />
 
       {/* Row-detail popups render AFTER the explorers so they stack on top of
@@ -1889,6 +1958,12 @@ function HomeContent() {
         open={goalItem !== null}
         onClose={() => setGoalItem(null)}
         goal={goalItem}
+        onSaved={refetch}
+      />
+      <LifeEventModal
+        open={lifeEventItem !== null}
+        onClose={() => setLifeEventItem(null)}
+        event={lifeEventItem}
         onSaved={refetch}
       />
       <DetailModal data={detailView} onClose={() => setDetailView(null)} />
