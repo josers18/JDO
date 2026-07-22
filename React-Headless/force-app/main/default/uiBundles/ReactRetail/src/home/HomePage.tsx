@@ -1539,8 +1539,7 @@ function HomeContent() {
                Recommended Actions side-by-side
              • right column: a sticky context panel (AI brief until a row is
                clicked, then a tabbed Client-360)
-             • full-width supporting band (5 glance modules) with a
-               "Customize widgets / Show less" footer
+             • full-width supporting band (5 glance modules)
              • always-rendered detail modules below carry the CommandRail nav
                anchors (#pipeline / #events / #leads / #pulse / #schedule).
            Left nav + pinned accounts live in the CommandRail (see HomeLayout). */
@@ -1582,17 +1581,8 @@ function HomeContent() {
             </div>
           </div>
 
-          {/* ---- Full-width supporting band + footer ---- */}
+          {/* ---- Full-width supporting band ---- */}
           <div className="mt-4">{supportingBand}</div>
-          <div className="mt-3 flex items-center">
-            <button
-              type="button"
-              onClick={() => toast('Customize widgets', 'Widget customization is coming soon')}
-              className="inline-flex items-center gap-2 font-mono text-[11.5px] text-muted transition hover:text-fg"
-            >
-              <Icon name="metrics" size={14} /> Customize widgets
-            </button>
-          </div>
 
           {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
               Life events + Alerts / Leads) were removed — they duplicated the
