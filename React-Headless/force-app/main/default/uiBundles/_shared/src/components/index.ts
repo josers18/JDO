@@ -102,3 +102,4 @@ export {
 
 // ── Command-center configuration page ──────────────────────────
 export { ConfigPage } from './config/ConfigPage';
+export { BrandThemeSection } from './config/BrandThemeSection';

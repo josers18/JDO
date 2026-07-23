@@ -17,6 +17,7 @@ import {
   type AiActionKey,
 } from '../../data/configClient';
 import { primeCenterConfig } from '../../data/configCache';
+import { BrandThemeSection } from './BrandThemeSection';
 
 /**
  * Command-center Configuration page.
@@ -235,6 +236,9 @@ export function ConfigPage({ center, onBack }: { center: PersonaKey; onBack?: ()
           </Field>
         </div>
       </GlassCard>
+
+      <div className="h-5" />
+      <BrandThemeSection index={2} />
 
       <div className="mt-6 flex justify-end">
         <Button variant="accent" onClick={onSave} disabled={saving || loading}>
