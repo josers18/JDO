@@ -431,9 +431,10 @@ global with sharing class CommandCenterConfigRest {
     }
 
     /** Coerce an inbound theme into the validated shape (D1): keeps ONLY the
-     *  7 whitelisted fields — id, name, sourceUrl, logoBase64, logoContentType,
-     *  accent, accentSoft. gradient/glow (or any other key) are dropped by
-     *  omission; they are derived client-side from accent and never stored. */
+     *  8 whitelisted fields — id, name, sourceUrl, logoBase64, logoContentType,
+     *  accent, accentSoft, brandName. gradient/glow/aurora/ai* (or any other
+     *  key) are dropped by omission; they are derived client-side from accent
+     *  and never stored. */
     private static Map<String, Object> sanitizeTheme(Map<String, Object> t) {
         String id = t.get('id') == null ? '' : String.valueOf(t.get('id')).trim();
         if (String.isBlank(id)) {
@@ -441,6 +442,10 @@ global with sharing class CommandCenterConfigRest {
         }
         String name = t.get('name') == null ? '' : String.valueOf(t.get('name')).trim();
         if (name.length() > 255) name = name.substring(0, 255);
+        // brandName is the wordmark shown in the app chrome; falls back to name.
+        String brandName = t.get('brandName') == null ? '' : String.valueOf(t.get('brandName')).trim();
+        if (String.isBlank(brandName)) brandName = name;
+        if (brandName.length() > 255) brandName = brandName.substring(0, 255);
         String sourceUrl = t.get('sourceUrl') == null ? '' : String.valueOf(t.get('sourceUrl')).trim();
         if (sourceUrl.length() > 255) sourceUrl = sourceUrl.substring(0, 255);
         String logoContentType = t.get('logoContentType') == null ? '' : String.valueOf(t.get('logoContentType')).trim();
@@ -453,6 +458,7 @@ global with sharing class CommandCenterConfigRest {
         return new Map<String, Object>{
             'id' => id,
             'name' => name,
+            'brandName' => brandName,
             'sourceUrl' => sourceUrl,
             'logoBase64' => logo,
             'logoContentType' => logoContentType,

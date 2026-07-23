@@ -35,6 +35,7 @@ export async function applyActiveThemeOnLoad(): Promise<void> {
         accent: active.accent,
         accentSoft: active.accentSoft,
         logoBase64: active.logoBase64,
+        brandName: active.brandName?.trim() || active.name,
       });
     } else {
       setBrandOverride(null);

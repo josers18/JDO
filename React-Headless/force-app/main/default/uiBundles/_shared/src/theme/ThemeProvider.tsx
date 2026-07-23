@@ -1,6 +1,6 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { PERSONA_THEMES, type PersonaKey, type PersonaTheme } from './themes';
-import { buildGradient, buildGlow } from './brandThemes';
+import { buildGradient, buildGlow, buildAurora, buildAiFamily } from './brandThemes';
 import { useBrandOverride } from './activeBrand';
 import './tokens.css';
 
@@ -49,6 +49,15 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
   // mode and inherits the app's own `mode` prop. With no override at all this
   // is byte-identical to the persona default that rendered before theming.
   const effectiveMode: ThemeMode = override?.mode ?? mode;
+  // A CUSTOM brand override (one with no explicit `mode` — the fixed Dark/Light
+  // defaults set `mode`) makes the theme HOLISTIC: it retints not just the
+  // accent but the AI/agentic family and the ambient aurora wash, so agentic
+  // surfaces (the "Prep me" AI button, the Agentforce FAB) and the page
+  // background all move with the brand. The fixed defaults deliberately keep
+  // the constant violet→blue AI family and the mode's own aurora — baseline
+  // stays baseline. All derived, never stored (D1).
+  const isCustomBrand = !!override && !override.mode;
+  const ai = isCustomBrand ? buildAiFamily(theme.accent) : null;
   // Persona accent tokens are injected in BOTH modes, so light mode is
   // persona-themed too (not fixed to the Aurora blue→violet default).
   const style = {
@@ -58,6 +67,16 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
     '--wp-accent-soft': theme.accentSoft,
     '--wp-gradient': theme.gradient,
     '--wp-glow': theme.glow,
+    ...(isCustomBrand
+      ? {
+          '--wp-aurora': buildAurora(theme.accent, theme.accentSoft),
+          '--wp-ai': ai!.ai,
+          '--wp-ai-2': ai!.ai2,
+          '--wp-ai-grad': ai!.aiGrad,
+          '--wp-ai-bg': ai!.aiBg,
+          '--wp-ai-border': ai!.aiBorder,
+        }
+      : {}),
   } as CSSProperties;
 
   return (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Icon, type IconKey } from './iconMap';
 import { useWorkspaceSelection } from './home/WorkspaceSelection';
+import { useBrandOverride, useBrandName } from '../theme/activeBrand';
 
 export interface CommandRailSection {
   id: string;
@@ -53,6 +54,10 @@ export function CommandRail({
   // Pinned accounts + selection both come from the shared bridge; the list is
   // owned there (seeded + persisted per persona) so pin/unpin stays live.
   const { selectClient, pinned, togglePin, requestNav } = useWorkspaceSelection();
+  // Brand wordmark + logo come from the active theme (falls back to "Cumulus"
+  // and the built-in conic mark when no custom brand is applied).
+  const brand = useBrandOverride();
+  const brandName = useBrandName();
 
   useEffect(() => {
     // The observed sections live in the main column and may not be in the DOM
@@ -114,18 +119,38 @@ export function CommandRail({
         {collapsed ? '›' : '‹'}
       </button>
 
-      {/* Brand */}
+      {/* Brand — logo + wordmark come from the active theme. A custom brand
+          swaps in its fetched logo and name; baseline shows the conic mark +
+          "Cumulus". */}
       <div className="flex min-h-[34px] items-center gap-3 px-2">
-        <span
-          aria-hidden="true"
-          className="relative h-8 w-8 flex-none rounded-[9px]"
-          style={{ background: 'conic-gradient(from 210deg, #14b8a6, #4f8dff, #7c6cff, #14b8a6)' }}
-        >
-          <span className="absolute inset-[5px] rounded-[5px] bg-surface" />
-        </span>
+        {brand?.logoBase64 ? (
+          <img
+            src={`data:image/png;base64,${brand.logoBase64}`}
+            alt=""
+            aria-hidden="true"
+            className="h-8 w-8 flex-none rounded-[9px] object-contain"
+            style={{ boxShadow: '0 0 14px var(--wp-accent)' }}
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="relative h-8 w-8 flex-none rounded-[9px]"
+            style={{
+              // Baseline + fixed Dark/Light defaults (which carry `mode`) keep
+              // the signature conic mark; only a CUSTOM brand (no `mode`) with
+              // no fetched logo falls back to its themed accent gradient.
+              background:
+                brand && !brand.mode
+                  ? 'var(--wp-gradient)'
+                  : 'conic-gradient(from 210deg, #14b8a6, #4f8dff, #7c6cff, #14b8a6)',
+            }}
+          >
+            <span className="absolute inset-[5px] rounded-[5px] bg-surface" />
+          </span>
+        )}
         {!collapsed && (
           <span className="min-w-0">
-            <b className="block text-[15px] font-bold tracking-tight">Cumulus</b>
+            <b className="block truncate text-[15px] font-bold tracking-tight">{brandName}</b>
             <span className="block font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">Command Center</span>
           </span>
         )}

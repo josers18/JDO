@@ -1,6 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import { embedAgentforceClient } from '@salesforce/agentforce-conversation-client';
 import { orgCoreOrigin } from '../data/orgEnv';
+import { useBrandOverride } from '../theme/activeBrand';
+import { buildAiFamily } from '../theme/brandThemes';
+
+/** Baseline Aurora AI accent (pink) — the reserved agentic color when no
+ *  custom brand is applied. A custom brand overrides it with its own accent. */
+const DEFAULT_AGENT_COLOR = '#ec4899';
+
+/** `#rrggbb` → `{r,g,b}`; falls back to the pink baseline on a malformed hex. */
+function agentRgb(hex: string): { r: number; g: number; b: number } {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
+  if (!m) return { r: 236, g: 72, b: 153 };
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+
+/** A translucent tint of `accent` at the given alpha, for backgrounds/borders. */
+function agentTint(accent: string, alpha: number): string {
+  const { r, g, b } = agentRgb(accent);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** A legible-on-white text shade of `accent` (darkened ~35% toward black), for
+ *  the selected agent label in the picker (baseline used a dark pink #be185d). */
+function agentTextColor(accent: string): string {
+  const { r, g, b } = agentRgb(accent);
+  const dark = (c: number) => Math.round(c * 0.65);
+  return `#${[dark(r), dark(g), dark(b)].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
 
 /** A selectable Agentforce agent (Employee Agent) in jdo-1lrnov. */
 export interface AgentOption {
@@ -35,8 +62,10 @@ function readSavedAgentId(): string | null {
 
 /** Build the ACC client config for a given agent. Extracted so the initial
  *  embed and a re-embed on switch produce byte-identical shape (only agentId /
- *  labels differ). */
-function buildAccConfig(agentId: string, agentLabel: string, placeholder?: string) {
+ *  labels / accent differ). `accent` themes the FAB + header (ACC's styleTokens
+ *  take flat hex strings, not CSS vars, since the panel is a cross-origin
+ *  iframe — so the brand color is passed in, not read from the cascade). */
+function buildAccConfig(agentId: string, agentLabel: string, accent: string, placeholder?: string) {
   return {
     agentId,
     agentLabel,
@@ -53,11 +82,12 @@ function buildAccConfig(agentId: string, agentLabel: string, placeholder?: strin
     },
     floatingButtonLabel: 'Agentforce',
     floatingButtonIcon: 'utility:agent',
-    // Theme the FAB + header to the Aurora pink AI accent.
+    // Theme the FAB + header to the agentic accent (pink baseline, or the
+    // active custom brand's accent).
     styleTokens: {
-      fabBackground: '#ec4899',
+      fabBackground: accent,
       fabForegroundColor: '#ffffff',
-      headerBlockBackground: '#ec4899',
+      headerBlockBackground: accent,
       headerBlockTextColor: '#ffffff',
       headerBlockIconColor: '#ffffff',
       headerBlockFontFamily: "'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif",
@@ -120,6 +150,12 @@ export function AgentforceChat({
   contextLabel?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Agentic accent for the FAB + header. A CUSTOM brand (override with no
+  // `mode` — the fixed Dark/Light defaults set `mode`) retints the agent to its
+  // accent; baseline and the fixed defaults keep the reserved Aurora pink.
+  const brand = useBrandOverride();
+  const agentColor =
+    brand && !brand.mode ? buildAiFamily(brand.accent).bubble : DEFAULT_AGENT_COLOR;
   // A persisted user choice (from a prior switch) wins over the page default.
   const savedId = readSavedAgentId();
   const initialId =
@@ -162,7 +198,7 @@ export function AgentforceChat({
         const result = embedAgentforceClient({
           container: el,
           salesforceOrigin: orgCoreOrigin(),
-          agentforceClientConfig: buildAccConfig(activeId, headerLabel, placeholder),
+          agentforceClientConfig: buildAccConfig(activeId, headerLabel, agentColor, placeholder),
           onError: (err: { type: string; detail: unknown }) => {
             // Keep failures quiet in the UI; surface in console for debugging.
             // eslint-disable-next-line no-console
@@ -186,7 +222,7 @@ export function AgentforceChat({
       }
       container?.replaceChildren();
     };
-  }, [activeId, headerLabel, placeholder]);
+  }, [activeId, headerLabel, placeholder, agentColor]);
 
   // Track the ACC panel's open/closed state so the picker can dock to the
   // panel's top edge when open and shrink to the FAB dot when closed. ACC fires
@@ -213,6 +249,7 @@ export function AgentforceChat({
         <AgentPicker
           agents={agents}
           activeId={activeId}
+          accent={agentColor}
           open={pickerOpen}
           panelOpen={panelOpen}
           onToggle={() => setPickerOpen(o => !o)}
@@ -249,6 +286,7 @@ export function AgentforceChat({
 function AgentPicker({
   agents,
   activeId,
+  accent,
   open,
   panelOpen,
   onToggle,
@@ -256,6 +294,8 @@ function AgentPicker({
 }: {
   agents: AgentOption[];
   activeId: string;
+  /** Agentic accent (pink baseline or the active custom brand's accent). */
+  accent: string;
   open: boolean;
   /** True while the ACC chat panel is maximized (drives docked positioning). */
   panelOpen: boolean;
@@ -264,6 +304,7 @@ function AgentPicker({
 }) {
   const [hover, setHover] = useState(false);
   const active = agents.find(a => a.id === activeId);
+  const textColor = agentTextColor(accent);
   // Expanded (pill vs. dot) whenever docked to the panel, the list is open,
   // or the user is hovering the collapsed dot.
   const expanded = panelOpen || open || hover;
@@ -330,8 +371,8 @@ function AgentPicker({
                     textAlign: 'left',
                     fontSize: '0.86rem',
                     fontWeight: isActive ? 700 : 500,
-                    color: isActive ? '#be185d' : '#1f2937',
-                    background: isActive ? 'rgba(236,72,153,0.12)' : 'transparent',
+                    color: isActive ? textColor : '#1f2937',
+                    background: isActive ? agentTint(accent, 0.12) : 'transparent',
                   }}
                 >
                   <span
@@ -341,7 +382,7 @@ function AgentPicker({
                       height: 8,
                       borderRadius: 999,
                       flexShrink: 0,
-                      background: isActive ? '#ec4899' : 'rgba(0,0,0,0.2)',
+                      background: isActive ? accent : 'rgba(0,0,0,0.2)',
                     }}
                   />
                   {a.label}
@@ -367,11 +408,11 @@ function AgentPicker({
           padding: expanded ? '0 10px 0 8px' : 0,
           width: expanded ? 'auto' : 26,
           justifyContent: 'center',
-          border: `1px solid rgba(236,72,153,${expanded ? 0.35 : 0.55})`,
+          border: `1px solid ${agentTint(accent, expanded ? 0.35 : 0.55)}`,
           borderRadius: 999,
           cursor: 'pointer',
           background: expanded ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.9)',
-          color: '#be185d',
+          color: textColor,
           fontSize: '0.76rem',
           fontWeight: 700,
           whiteSpace: 'nowrap',
@@ -384,7 +425,7 @@ function AgentPicker({
       >
         <span
           aria-hidden="true"
-          style={{ width: 9, height: 9, borderRadius: 999, background: '#ec4899', flexShrink: 0 }}
+          style={{ width: 9, height: 9, borderRadius: 999, background: accent, flexShrink: 0 }}
         />
         {expanded && (
           <>

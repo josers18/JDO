@@ -93,6 +93,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
   const [accent, setAccent] = useState(DEFAULT_ACCENT);
   const [accentSoft, setAccentSoft] = useState(DEFAULT_ACCENT_SOFT);
   const [name, setName] = useState('');
+  // The wordmark shown in the app chrome (replaces "Cumulus"). Defaults to the
+  // theme name when left blank.
+  const [brandName, setBrandName] = useState('');
   const [themes, setThemes] = useState<BrandTheme[]>([]);
   const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -137,6 +140,10 @@ export function BrandThemeSection({ index }: { index?: number }) {
         const guess = nameFromUrl(trimmed);
         if (guess) setName(guess);
       }
+      if (!brandName.trim()) {
+        const guess = nameFromUrl(trimmed);
+        if (guess) setBrandName(guess);
+      }
     } finally {
       setExtracting(false);
     }
@@ -153,6 +160,8 @@ export function BrandThemeSection({ index }: { index?: number }) {
         logoContentType,
         accent,
         accentSoft,
+        // Fall back to the theme name so the wordmark is never blank.
+        brandName: brandName.trim() || name.trim(),
       };
       const res = await saveTheme(theme);
       setThemes(res.themes);
@@ -170,7 +179,12 @@ export function BrandThemeSection({ index }: { index?: number }) {
     try {
       await setActiveTheme(theme.id);
       setActiveThemeId(theme.id);
-      setBrandOverride({ accent: theme.accent, accentSoft: theme.accentSoft, logoBase64: theme.logoBase64 });
+      setBrandOverride({
+        accent: theme.accent,
+        accentSoft: theme.accentSoft,
+        logoBase64: theme.logoBase64,
+        brandName: theme.brandName?.trim() || theme.name,
+      });
       toast('Theme applied', theme.name);
     } catch (e) {
       toast('Apply failed', e instanceof Error ? e.message : 'Could not apply theme.');
@@ -269,6 +283,16 @@ export function BrandThemeSection({ index }: { index?: number }) {
           <TextInput type="color" value={accentSoft} onChange={e => setAccentSoft(e.target.value)} />
         </Field>
       </FieldRow>
+
+      <Field label="Brand name (shown in the app)">
+        <TextInput
+          type="text"
+          placeholder="Acmebank"
+          value={brandName}
+          onChange={e => setBrandName(e.target.value)}
+          disabled={saving}
+        />
+      </Field>
 
       <Field label="Theme name">
         <div className="flex items-center gap-2.5">
