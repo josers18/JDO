@@ -307,7 +307,10 @@ global with sharing class CommandCenterConfigRest {
         }
         try {
             HttpRequest hReq = new HttpRequest();
-            hReq.setEndpoint('https://www.google.com/s2/favicons?domain=' + EncodingUtil.urlEncode(host, 'UTF-8') + '&sz=128');
+            // Google's legacy /s2/favicons endpoint now 301-redirects to the
+            // gstatic faviconV2 service, and Apex Http.send does not follow
+            // redirects — so call faviconV2 directly (returns image bytes, 200).
+            hReq.setEndpoint('https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=128&url=' + EncodingUtil.urlEncode('https://' + host, 'UTF-8'));
             hReq.setMethod('GET');
             hReq.setTimeout(10000);
             HttpResponse hRes = new Http().send(hReq);
