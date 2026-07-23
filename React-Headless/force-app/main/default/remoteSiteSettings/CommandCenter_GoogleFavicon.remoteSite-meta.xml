@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RemoteSiteSetting xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Favicon lookup for the brand-theming feature only. CommandCenterConfigRest GET /config/brand-logo calls the Google S2 favicon service (https://www.google.com/s2/favicons?domain=&lt;host&gt;&amp;sz=128) to fetch a brand logo by domain. No other use.</description>
+    <description>Favicon lookup for the brand-theming feature only. CommandCenterConfigRest GET /config/brand-logo calls the Google gstatic faviconV2 service (https://t0.gstatic.com/faviconV2?...&amp;url=&lt;host&gt;) to fetch a brand logo by domain. No other use.</description>
     <disableProtocolSecurity>false</disableProtocolSecurity>
     <isActive>true</isActive>
-    <url>https://www.google.com</url>
+    <url>https://t0.gstatic.com</url>
 </RemoteSiteSetting>
