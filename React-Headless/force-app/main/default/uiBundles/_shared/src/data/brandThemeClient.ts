@@ -15,13 +15,13 @@ import { createDataSDK } from '@salesforce/platform-sdk';
 import type { BrandTheme } from '../theme/brandThemes';
 
 /** The themes list plus which one (if any) is currently active. */
-export interface ThemesResult {
+interface ThemesResult {
   themes: BrandTheme[];
   activeThemeId: string | null;
 }
 
 /** The logo fetched for a given source URL, base64-encoded. */
-export interface BrandLogoResult {
+interface BrandLogoResult {
   logoBase64: string | null;
   logoContentType: string;
 }
