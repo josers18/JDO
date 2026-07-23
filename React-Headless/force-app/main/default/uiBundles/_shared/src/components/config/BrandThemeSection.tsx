@@ -12,7 +12,7 @@ import {
   setActiveTheme,
 } from '../../data/brandThemeClient';
 import { buildGradient, buildGlow, type BrandTheme } from '../../theme/brandThemes';
-import { extractPalette } from '../../theme/paletteExtract';
+import { extractPalette, extractPaletteCandidates, complementOf } from '../../theme/paletteExtract';
 import { setBrandOverride } from '../../theme/activeBrand';
 import { DEFAULT_THEMES, type DefaultTheme } from '../../theme/defaultThemes';
 
@@ -27,7 +27,7 @@ const DEFAULT_ACCENT_SOFT = '#5eead4';
 async function paletteFromLogo(
   dataBody: string,
   contentType: string,
-): Promise<{ accent: string; accentSoft: string } | null> {
+): Promise<{ accent: string; accentSoft: string; candidates: string[] } | null> {
   try {
     const src = 'data:' + (contentType || 'image/png') + ';base64,' + dataBody;
     const img = new Image();
@@ -52,7 +52,8 @@ async function paletteFromLogo(
     ctx.drawImage(img, 0, 0, w, h);
 
     const { data } = ctx.getImageData(0, 0, w, h);
-    return extractPalette(data);
+    const { accent, accentSoft } = extractPalette(data);
+    return { accent, accentSoft, candidates: extractPaletteCandidates(data) };
   } catch {
     return null;
   }
@@ -92,6 +93,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
   const [logoError, setLogoError] = useState(false);
   const [accent, setAccent] = useState(DEFAULT_ACCENT);
   const [accentSoft, setAccentSoft] = useState(DEFAULT_ACCENT_SOFT);
+  // Dominant colors pulled from the logo (most frequent first), offered as
+  // clickable swatches so the user can choose which brand color is the accent.
+  const [candidates, setCandidates] = useState<string[]>([]);
   const [name, setName] = useState('');
   // The wordmark shown in the app chrome (replaces "Cumulus"). Defaults to the
   // theme name when left blank.
@@ -132,6 +136,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
         if (palette) {
           setAccent(palette.accent);
           setAccentSoft(palette.accentSoft);
+          setCandidates(palette.candidates);
         }
       } else {
         setLogoError(true);
@@ -228,6 +233,14 @@ export function BrandThemeSection({ index }: { index?: number }) {
     }
   }
 
+  // Pick a logo color as the accent and auto-suggest a harmonious partner as
+  // the accent-soft (split-complementary hue). The user can still override the
+  // soft color with the picker afterward.
+  function pickAccent(hex: string) {
+    setAccent(hex);
+    setAccentSoft(complementOf(hex));
+  }
+
   const logoDataUrl = logoBase64 ? `data:${logoContentType || 'image/png'};base64,${logoBase64}` : null;
 
   return (
@@ -275,6 +288,33 @@ export function BrandThemeSection({ index }: { index?: number }) {
         />
       </div>
 
+      {candidates.length > 0 && (
+        <div className="mb-4">
+          <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+            Colors from logo · click to set accent
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {candidates.map(c => {
+              const isAccent = c.toLowerCase() === accent.toLowerCase();
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => pickAccent(c)}
+                  title={`${c} — set as accent (soft auto-paired)`}
+                  aria-label={`Set accent to ${c}`}
+                  aria-pressed={isAccent}
+                  className={`h-8 w-8 flex-none rounded-[8px] border transition-transform hover:scale-110 ${
+                    isAccent ? 'border-fg ring-2 ring-accent ring-offset-1 ring-offset-bg' : 'border-line'
+                  }`}
+                  style={{ background: c }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <FieldRow>
         <Field label="Accent">
           <TextInput type="color" value={accent} onChange={e => setAccent(e.target.value)} />
@@ -283,6 +323,16 @@ export function BrandThemeSection({ index }: { index?: number }) {
           <TextInput type="color" value={accentSoft} onChange={e => setAccentSoft(e.target.value)} />
         </Field>
       </FieldRow>
+
+      <div className="mb-4 -mt-1">
+        <button
+          type="button"
+          onClick={() => setAccentSoft(complementOf(accent))}
+          className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-accent hover:brightness-110"
+        >
+          ↻ Suggest complementary soft color
+        </button>
+      </div>
 
       <Field label="Brand name (shown in the app)">
         <TextInput

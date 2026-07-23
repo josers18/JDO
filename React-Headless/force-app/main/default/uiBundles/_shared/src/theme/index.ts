@@ -13,7 +13,7 @@ export {
   resolveActiveTheme,
   type BrandTheme,
 } from './brandThemes';
-export { extractPalette } from './paletteExtract';
+export { extractPalette, extractPaletteCandidates, complementOf } from './paletteExtract';
 export {
   setBrandOverride,
   getBrandOverride,
