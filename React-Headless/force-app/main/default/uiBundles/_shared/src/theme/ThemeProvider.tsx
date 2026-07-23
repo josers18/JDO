@@ -66,6 +66,10 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
   // persona-themed too (not fixed to the Aurora blue→violet default).
   const style = {
     fontFamily: 'var(--font-sans)',
+    // Tell the UA to render native control chrome (select popups, number
+    // spinners, the type=color swatch, scrollbars) in the matching scheme, so a
+    // dark surface doesn't get a white OS dropdown / spinner.
+    colorScheme: effectiveMode,
     '--wp-accent': theme.accent,
     '--wp-accent-2': theme.accentSoft,
     '--wp-accent-soft': theme.accentSoft,
@@ -92,6 +96,34 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
     '--color-accent-2': 'var(--wp-accent-2)',
     '--color-accent-bg': 'var(--wp-accent-bg)',
     '--color-accent-border': 'var(--wp-accent-border)',
+    // STRUCTURAL tokens have the SAME frozen-at-:root problem as accent. Tailwind
+    // emits `--color-bg: var(--wp-surface)` (and the rest of the structural set)
+    // only at :root, so each resolves against :root's LIGHT --wp-* and freezes
+    // there. Setting data-mode='dark' on this wrapper flips the --wp-* values for
+    // descendants, but the --color-* utilities (bg-bg, bg-surface, text-fg,
+    // text-muted, border-line, text-ok/warn/risk …) keep inheriting the frozen
+    // light values — which is why form controls (bg-bg) rendered WHITE and other
+    // `bg-surface` boxes stayed light while GlassCards (which read --wp-surface-glass
+    // directly) went dark. Re-emit the whole structural set HERE so every utility
+    // re-resolves against THIS wrapper's mode-correct --wp-*. Applies in both modes,
+    // so switching to the Dark base theme now themes the entire surface, not just
+    // the panels that happen to read --wp-* directly.
+    '--color-bg': 'var(--wp-surface)',
+    '--color-surface': 'var(--wp-surface-raised)',
+    '--color-surface-muted': 'var(--wp-surface-muted)',
+    '--color-fg': 'var(--wp-text)',
+    '--color-muted': 'var(--wp-text-muted)',
+    '--color-faint': 'var(--wp-text-faint)',
+    '--color-line': 'var(--wp-border)',
+    '--color-line-strong': 'var(--wp-border-strong)',
+    '--color-track': 'var(--wp-track)',
+    '--color-ok': 'var(--wp-pos)',
+    '--color-ok-bg': 'var(--wp-pos-bg)',
+    '--color-warn': 'var(--wp-warn)',
+    '--color-warn-bg': 'var(--wp-warn-bg)',
+    '--color-risk': 'var(--wp-neg)',
+    '--color-risk-bg': 'var(--wp-neg-bg)',
+    '--color-link': 'var(--wp-link)',
     ...(isCustomBrand
       ? {
           // Background wash: an explicit bgAccent seeds the aurora from that
