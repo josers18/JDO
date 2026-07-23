@@ -44,6 +44,11 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
         glow: buildGlow(override.accent),
       }
     : base;
+  // A fixed default theme (Dark/Light) carries an explicit `mode` that
+  // switches the structural surface palette; a custom brand override has no
+  // mode and inherits the app's own `mode` prop. With no override at all this
+  // is byte-identical to the persona default that rendered before theming.
+  const effectiveMode: ThemeMode = override?.mode ?? mode;
   // Persona accent tokens are injected in BOTH modes, so light mode is
   // persona-themed too (not fixed to the Aurora blue→violet default).
   const style = {
@@ -56,8 +61,8 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
   } as CSSProperties;
 
   return (
-    <ThemeContext.Provider value={{ ...theme, mode }}>
-      <div data-theme={persona} data-mode={mode} style={style}>
+    <ThemeContext.Provider value={{ ...theme, mode: effectiveMode }}>
+      <div data-theme={persona} data-mode={effectiveMode} style={style}>
         {children}
       </div>
     </ThemeContext.Provider>

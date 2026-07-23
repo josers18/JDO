@@ -14,6 +14,13 @@ export interface BrandOverride {
   accent: string;
   accentSoft: string;
   logoBase64: string | null;
+  /**
+   * Structural surface palette to force (dark|light). Set by the fixed
+   * default themes so activating "Dark"/"Light" switches the whole surface,
+   * not just the accent. Custom brand themes leave this undefined — they only
+   * retint the accent and inherit the app's own mode.
+   */
+  mode?: 'dark' | 'light';
 }
 
 let current: BrandOverride | null = null;

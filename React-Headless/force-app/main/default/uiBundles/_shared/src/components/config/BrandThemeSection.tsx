@@ -14,6 +14,7 @@ import {
 import { buildGradient, buildGlow, type BrandTheme } from '../../theme/brandThemes';
 import { extractPalette } from '../../theme/paletteExtract';
 import { setBrandOverride } from '../../theme/activeBrand';
+import { DEFAULT_THEMES, type DefaultTheme } from '../../theme/defaultThemes';
 
 const DEFAULT_ACCENT = '#14b8a6';
 const DEFAULT_ACCENT_SOFT = '#5eead4';
@@ -178,6 +179,26 @@ export function BrandThemeSection({ index }: { index?: number }) {
     }
   }
 
+  async function onApplyDefault(theme: DefaultTheme) {
+    setBusyId(theme.id);
+    try {
+      await setActiveTheme(theme.id);
+      setActiveThemeId(theme.id);
+      // Defaults carry a structural mode (dark|light) and no logo.
+      setBrandOverride({
+        accent: theme.accent,
+        accentSoft: theme.accentSoft,
+        logoBase64: null,
+        mode: theme.mode,
+      });
+      toast('Theme applied', theme.name);
+    } catch (e) {
+      toast('Apply failed', e instanceof Error ? e.message : 'Could not apply theme.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function onDelete(theme: BrandTheme) {
     setBusyId(theme.id);
     try {
@@ -264,6 +285,47 @@ export function BrandThemeSection({ index }: { index?: number }) {
           </Button>
         </div>
       </Field>
+
+      <div className="mt-5">
+        <span className="mb-2.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+          Base themes
+        </span>
+        <div className="flex flex-col gap-2.5">
+          {DEFAULT_THEMES.map(t => {
+            const isActive = t.id === activeThemeId;
+            const isBusy = busyId === t.id;
+            return (
+              <div
+                key={t.id}
+                className="flex items-center gap-3 rounded-[11px] border border-line bg-bg px-3.5 py-2.5"
+              >
+                <span
+                  className="h-8 w-8 flex-none rounded-[7px]"
+                  style={{ background: buildGradient(t.accent) }}
+                  aria-hidden="true"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <b className="truncate text-[13.5px] font-semibold text-fg">{t.name}</b>
+                    {isActive && <Pill tone="accent">Active</Pill>}
+                  </div>
+                  <div className="truncate font-mono text-[10.5px] text-muted">
+                    Standard {t.mode} · always available
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onApplyDefault(t)}
+                  disabled={isBusy || isActive}
+                >
+                  Apply
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="mt-5">
         <span className="mb-2.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">

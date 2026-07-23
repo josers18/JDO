@@ -52,3 +52,4 @@ $RECYCLE.BIN/
 /*.jpeg
 .playwright-mcp/
 .remember/
+**/tsconfig.tsbuildinfo

@@ -8,3 +8,10 @@ export { buildGradient, buildGlow, brandThemeToVars, resolveActiveTheme, type Br
 export { extractPalette } from './paletteExtract';
 export { setBrandOverride, getBrandOverride, useBrandOverride, type BrandOverride } from './activeBrand';
 export { applyActiveThemeOnLoad } from './applyActiveTheme';
+export {
+  DEFAULT_THEMES,
+  DEFAULT_DARK_ID,
+  DEFAULT_LIGHT_ID,
+  findDefaultTheme,
+  type DefaultTheme,
+} from './defaultThemes';
