@@ -87,6 +87,14 @@ function buildAccConfig(agentId: string, agentLabel: string, accent: string, pla
     styleTokens: {
       fabBackground: accent,
       fabForegroundColor: '#ffffff',
+      // The `containerBackground` is the chat container's backdrop. It defaults
+      // to #ffffff, which in the MINIMIZED state shows as a white box peeking
+      // out behind the pink FAB pill — jarring on a dark surface. Make it
+      // transparent so the page (dark or light) shows through around the FAB;
+      // the OPEN panel still gets its readable white surface from ACC's own
+      // `.acc-frame.maximize { background:#fff }` host rule + message tokens.
+      containerBackground: 'transparent',
+      headerBackground: accent,
       headerBlockBackground: accent,
       headerBlockTextColor: '#ffffff',
       headerBlockIconColor: '#ffffff',
