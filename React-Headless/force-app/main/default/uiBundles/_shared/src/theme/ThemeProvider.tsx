@@ -67,6 +67,27 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
     '--wp-accent-soft': theme.accentSoft,
     '--wp-gradient': theme.gradient,
     '--wp-glow': theme.glow,
+    // --wp-accent-bg / --wp-accent-border are color-mix()es of --wp-accent
+    // declared at :root, so they too froze against the root default. Re-derive
+    // them here against this wrapper's accent so accent-tinted fills/borders
+    // (Pills, chips, active states) track the persona/brand.
+    '--wp-accent-bg': `color-mix(in srgb, ${theme.accent} 14%, transparent)`,
+    '--wp-accent-border': `color-mix(in srgb, ${theme.accent} 38%, transparent)`,
+    // Tailwind's @theme block declares `--color-accent: var(--wp-accent)` ONLY
+    // at :root, so that var() resolves against :root's --wp-accent (the fixed
+    // mode default) and FREEZES there — descendants inherit the frozen default,
+    // never this wrapper's overridden --wp-accent. That's why solid `bg-accent`
+    // buttons ("Schedule call", "Approve & execute") stayed the default blue
+    // while `bg-gradient-ai` buttons (which read var(--wp-ai-grad) directly on
+    // the element) tracked the brand. Re-emit the --color-* accent tokens HERE
+    // so they re-resolve against THIS wrapper's --wp-* and inherit the themed
+    // value down to every bg-accent / text-accent / *-accent consumer. This
+    // also finally themes the persona defaults (teal/amber), which had the same
+    // frozen-blue accent buttons.
+    '--color-accent': 'var(--wp-accent)',
+    '--color-accent-2': 'var(--wp-accent-2)',
+    '--color-accent-bg': 'var(--wp-accent-bg)',
+    '--color-accent-border': 'var(--wp-accent-border)',
     ...(isCustomBrand
       ? {
           '--wp-aurora': buildAurora(theme.accent, theme.accentSoft),
@@ -75,6 +96,12 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
           '--wp-ai-grad': ai!.aiGrad,
           '--wp-ai-bg': ai!.aiBg,
           '--wp-ai-border': ai!.aiBorder,
+          // Same frozen-at-:root problem for the AI --color-* family — rebind
+          // so text-ai / bg-ai / border-ai track the brand's derived AI family.
+          '--color-ai': 'var(--wp-ai)',
+          '--color-ai-2': 'var(--wp-ai-2)',
+          '--color-ai-bg': 'var(--wp-ai-bg)',
+          '--color-ai-border': 'var(--wp-ai-border)',
         }
       : {}),
   } as CSSProperties;

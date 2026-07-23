@@ -367,11 +367,20 @@ export function BrandThemeSection({ index }: { index?: number }) {
                   key={t.id}
                   className="flex items-center gap-3 rounded-[11px] border border-line bg-bg px-3.5 py-2.5"
                 >
-                  <span
-                    className="h-8 w-8 flex-none rounded-[7px]"
-                    style={{ background: buildGradient(t.accent) }}
-                    aria-hidden="true"
-                  />
+                  {t.logoBase64 ? (
+                    <img
+                      src={`data:${t.logoContentType || 'image/png'};base64,${t.logoBase64}`}
+                      alt=""
+                      aria-hidden="true"
+                      className="h-8 w-8 flex-none rounded-[7px] border border-line bg-white object-contain p-0.5"
+                    />
+                  ) : (
+                    <span
+                      className="h-8 w-8 flex-none rounded-[7px]"
+                      style={{ background: buildGradient(t.accent) }}
+                      aria-hidden="true"
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <b className="truncate text-[13.5px] font-semibold text-fg">{t.name}</b>
