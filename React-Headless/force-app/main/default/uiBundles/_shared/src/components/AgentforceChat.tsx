@@ -154,8 +154,13 @@ export function AgentforceChat({
   // `mode` — the fixed Dark/Light defaults set `mode`) retints the agent to its
   // accent; baseline and the fixed defaults keep the reserved Aurora pink.
   const brand = useBrandOverride();
+  // A custom brand with a dedicated aiAccent tints the agent to THAT color;
+  // without one it derives from the brand accent; baseline/fixed defaults keep
+  // the reserved Aurora pink.
   const agentColor =
-    brand && !brand.mode ? buildAiFamily(brand.accent).bubble : DEFAULT_AGENT_COLOR;
+    brand && !brand.mode
+      ? buildAiFamily(brand.aiAccent?.trim() || brand.accent).bubble
+      : DEFAULT_AGENT_COLOR;
   // A persisted user choice (from a prior switch) wins over the page default.
   const savedId = readSavedAgentId();
   const initialId =

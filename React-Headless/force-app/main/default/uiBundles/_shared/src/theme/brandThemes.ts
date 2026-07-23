@@ -15,8 +15,16 @@ export interface BrandTheme {
   sourceUrl: string;
   logoBase64: string | null; // data-URL body, no prefix
   logoContentType: string; // e.g. 'image/png'
-  accent: string; // #rrggbb — the ONLY color state persisted
-  accentSoft: string; // #rrggbb
+  accent: string; // #rrggbb — the primary "you act" color
+  accentSoft: string; // #rrggbb — the accent's soft/highlight partner
+  /**
+   * Optional dedicated "AI / agentic accent" (#rrggbb) — the "AI acts" color
+   * that themes the Prep-me button, Agentforce FAB/bubble, and other agentic
+   * surfaces. When omitted, the AI family is derived from `accent` (so agentic
+   * surfaces share the brand hue). Set it to give AI its own color, restoring
+   * the "you act" vs "AI acts" split for a custom brand.
+   */
+  aiAccent?: string;
   /**
    * The brand display name shown in the app chrome (sidebar wordmark) in place
    * of "Cumulus". Optional — falls back to `name` (then "Cumulus") when blank,
@@ -107,7 +115,9 @@ export function buildAiFamily(accent: string): {
  * no stored gradient/glow field to read (see D1 above).
  */
 export function brandThemeToVars(theme: BrandTheme): CSSProperties {
-  const ai = buildAiFamily(theme.accent);
+  // An explicit aiAccent gives the agentic family its own hue; otherwise it is
+  // derived from the primary accent (agentic surfaces share the brand color).
+  const ai = buildAiFamily(theme.aiAccent?.trim() || theme.accent);
   return {
     '--wp-accent': theme.accent,
     '--wp-accent-2': theme.accentSoft,

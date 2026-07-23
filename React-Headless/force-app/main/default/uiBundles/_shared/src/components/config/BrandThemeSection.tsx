@@ -93,9 +93,14 @@ export function BrandThemeSection({ index }: { index?: number }) {
   const [logoError, setLogoError] = useState(false);
   const [accent, setAccent] = useState(DEFAULT_ACCENT);
   const [accentSoft, setAccentSoft] = useState(DEFAULT_ACCENT_SOFT);
+  // Optional dedicated AI/agentic accent — empty string means "derive from
+  // accent" (agentic surfaces share the brand hue). A #rrggbb gives AI its own.
+  const [aiAccent, setAiAccent] = useState('');
   // Dominant colors pulled from the logo (most frequent first), offered as
-  // clickable swatches so the user can choose which brand color is the accent.
+  // clickable swatches. `swatchRole` selects which role a swatch click fills:
+  // the primary accent (auto-pairs a soft), the soft directly, or the AI accent.
   const [candidates, setCandidates] = useState<string[]>([]);
+  const [swatchRole, setSwatchRole] = useState<'accent' | 'accentSoft' | 'aiAccent'>('accent');
   const [name, setName] = useState('');
   // The wordmark shown in the app chrome (replaces "Cumulus"). Defaults to the
   // theme name when left blank.
@@ -168,7 +173,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
     setLogoError(false);
     setAccent(DEFAULT_ACCENT);
     setAccentSoft(DEFAULT_ACCENT_SOFT);
+    setAiAccent('');
     setCandidates([]);
+    setSwatchRole('accent');
     setName('');
     setBrandName('');
   }
@@ -182,7 +189,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
     setLogoError(false);
     setAccent(theme.accent);
     setAccentSoft(theme.accentSoft);
+    setAiAccent(theme.aiAccent?.trim() || '');
     setCandidates([]);
+    setSwatchRole('accent');
     setName(theme.name);
     setBrandName(theme.brandName?.trim() || theme.name);
   }
@@ -200,6 +209,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
         logoContentType,
         accent,
         accentSoft,
+        // Only send aiAccent when explicitly set — empty means "derive from
+        // accent" and is stored as absent.
+        ...(aiAccent.trim() ? { aiAccent: aiAccent.trim() } : {}),
         // Fall back to the theme name so the wordmark is never blank.
         brandName: brandName.trim() || name.trim(),
       };
@@ -213,6 +225,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
         setBrandOverride({
           accent: theme.accent,
           accentSoft: theme.accentSoft,
+          aiAccent: theme.aiAccent?.trim() || undefined,
           logoBase64: theme.logoBase64,
           brandName: theme.brandName?.trim() || theme.name,
         });
@@ -234,6 +247,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
       setBrandOverride({
         accent: theme.accent,
         accentSoft: theme.accentSoft,
+        aiAccent: theme.aiAccent?.trim() || undefined,
         logoBase64: theme.logoBase64,
         brandName: theme.brandName?.trim() || theme.name,
       });
@@ -283,12 +297,23 @@ export function BrandThemeSection({ index }: { index?: number }) {
     }
   }
 
-  // Pick a logo color as the accent and auto-suggest a harmonious partner as
-  // the accent-soft (split-complementary hue). The user can still override the
-  // soft color with the picker afterward.
-  function pickAccent(hex: string) {
-    setAccent(hex);
-    setAccentSoft(complementOf(hex));
+  // Assign a clicked logo color to the currently-selected role. Picking the
+  // primary accent also auto-pairs a harmonious soft (split-complementary);
+  // soft and AI are set directly. All remain overridable via the pickers.
+  function pickSwatch(hex: string) {
+    if (swatchRole === 'accent') {
+      setAccent(hex);
+      setAccentSoft(complementOf(hex));
+    } else if (swatchRole === 'accentSoft') {
+      setAccentSoft(hex);
+    } else {
+      setAiAccent(hex);
+    }
+  }
+
+  /** The current color occupying a given role (for the swatch selected-ring). */
+  function roleValue(role: 'accent' | 'accentSoft' | 'aiAccent'): string {
+    return role === 'accent' ? accent : role === 'accentSoft' ? accentSoft : aiAccent;
   }
 
   const logoDataUrl = logoBase64 ? `data:${logoContentType || 'image/png'};base64,${logoBase64}` : null;
@@ -357,21 +382,40 @@ export function BrandThemeSection({ index }: { index?: number }) {
       {candidates.length > 0 && (
         <div className="mb-4">
           <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
-            Colors from logo · click to set accent
+            Colors from logo · click a swatch to fill the selected role
           </span>
+          <div className="mb-2.5 inline-flex rounded-[9px] border border-line bg-bg p-0.5">
+            {([
+              ['accent', 'Accent'],
+              ['accentSoft', 'Accent soft'],
+              ['aiAccent', 'AI accent'],
+            ] as const).map(([role, label]) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() => setSwatchRole(role)}
+                aria-pressed={swatchRole === role}
+                className={`rounded-[7px] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors ${
+                  swatchRole === role ? 'bg-accent text-white' : 'text-muted hover:text-fg'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {candidates.map(c => {
-              const isAccent = c.toLowerCase() === accent.toLowerCase();
+              const isSelected = c.toLowerCase() === roleValue(swatchRole).toLowerCase();
               return (
                 <button
                   key={c}
                   type="button"
-                  onClick={() => pickAccent(c)}
-                  title={`${c} — set as accent (soft auto-paired)`}
-                  aria-label={`Set accent to ${c}`}
-                  aria-pressed={isAccent}
+                  onClick={() => pickSwatch(c)}
+                  title={`${c} — set as ${swatchRole}`}
+                  aria-label={`Set ${swatchRole} to ${c}`}
+                  aria-pressed={isSelected}
                   className={`h-8 w-8 flex-none rounded-[8px] border transition-transform hover:scale-110 ${
-                    isAccent ? 'border-fg ring-2 ring-accent ring-offset-1 ring-offset-bg' : 'border-line'
+                    isSelected ? 'border-fg ring-2 ring-accent ring-offset-1 ring-offset-bg' : 'border-line'
                   }`}
                   style={{ background: c }}
                 />
@@ -399,6 +443,31 @@ export function BrandThemeSection({ index }: { index?: number }) {
           ↻ Suggest complementary soft color
         </button>
       </div>
+
+      <Field label="AI accent (Agentforce chat, AI buttons)">
+        <div className="flex items-center gap-2.5">
+          <TextInput
+            type="color"
+            value={aiAccent || complementOf(accent)}
+            onChange={e => setAiAccent(e.target.value)}
+            className="flex-1"
+          />
+          {aiAccent ? (
+            <Button variant="ghost" size="sm" onClick={() => setAiAccent('')}>
+              Derive from accent
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setAiAccent(complementOf(accent))}>
+              Use distinct color
+            </Button>
+          )}
+        </div>
+        <p className="mt-1 text-[11.5px] text-muted">
+          {aiAccent
+            ? 'AI surfaces use this dedicated color.'
+            : 'AI surfaces derive from the accent. Set a distinct color to separate “you act” from “AI acts”.'}
+        </p>
+      </Field>
 
       <Field label="Brand name (shown in the app)">
         <TextInput

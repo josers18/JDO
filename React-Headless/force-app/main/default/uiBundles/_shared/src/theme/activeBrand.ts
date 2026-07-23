@@ -13,6 +13,12 @@ import { useSyncExternalStore } from 'react';
 export interface BrandOverride {
   accent: string;
   accentSoft: string;
+  /**
+   * Optional dedicated AI/agentic accent (#rrggbb). When set, agentic surfaces
+   * (Prep-me, Agentforce FAB/bubble) use it instead of deriving from `accent`,
+   * restoring the "you act" vs "AI acts" color split for a custom brand.
+   */
+  aiAccent?: string;
   logoBase64: string | null;
   /**
    * Structural surface palette to force (dark|light). Set by the fixed

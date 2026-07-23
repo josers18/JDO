@@ -431,10 +431,11 @@ global with sharing class CommandCenterConfigRest {
     }
 
     /** Coerce an inbound theme into the validated shape (D1): keeps ONLY the
-     *  8 whitelisted fields — id, name, sourceUrl, logoBase64, logoContentType,
-     *  accent, accentSoft, brandName. gradient/glow/aurora/ai* (or any other
-     *  key) are dropped by omission; they are derived client-side from accent
-     *  and never stored. */
+     *  whitelisted fields — id, name, sourceUrl, logoBase64, logoContentType,
+     *  accent, accentSoft, brandName, and the OPTIONAL aiAccent (stored only
+     *  when it is a valid #rrggbb). gradient/glow/aurora/ai-family (or any other
+     *  key) are dropped by omission; they are derived client-side from the
+     *  stored scalar colors and never stored. */
     private static Map<String, Object> sanitizeTheme(Map<String, Object> t) {
         String id = t.get('id') == null ? '' : String.valueOf(t.get('id')).trim();
         if (String.isBlank(id)) {
@@ -455,7 +456,7 @@ global with sharing class CommandCenterConfigRest {
             logo = null; // oversize → drop rather than store a truncated (broken) image.
         }
 
-        return new Map<String, Object>{
+        Map<String, Object> clean = new Map<String, Object>{
             'id' => id,
             'name' => name,
             'brandName' => brandName,
@@ -465,6 +466,14 @@ global with sharing class CommandCenterConfigRest {
             'accent' => hexOrDefault(t.get('accent'), DEFAULT_ACCENT),
             'accentSoft' => hexOrDefault(t.get('accentSoft'), DEFAULT_ACCENT_SOFT)
         };
+        // aiAccent is OPTIONAL: persist it only when it is a valid #rrggbb, so a
+        // theme without a dedicated AI color simply derives the AI family from
+        // accent client-side (and pre-existing themes are unaffected).
+        String aiAccent = t.get('aiAccent') == null ? '' : String.valueOf(t.get('aiAccent')).trim();
+        if (hexValid(aiAccent)) {
+            clean.put('aiAccent', aiAccent);
+        }
+        return clean;
     }
 
     /** Accept a #rrggbb hex string; anything else coerces to the given default. */

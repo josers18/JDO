@@ -34,6 +34,7 @@ export async function applyActiveThemeOnLoad(): Promise<void> {
       setBrandOverride({
         accent: active.accent,
         accentSoft: active.accentSoft,
+        aiAccent: active.aiAccent?.trim() || undefined,
         logoBase64: active.logoBase64,
         brandName: active.brandName?.trim() || active.name,
       });

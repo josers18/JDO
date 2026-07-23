@@ -57,7 +57,11 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
   // the constant violet→blue AI family and the mode's own aurora — baseline
   // stays baseline. All derived, never stored (D1).
   const isCustomBrand = !!override && !override.mode;
-  const ai = isCustomBrand ? buildAiFamily(theme.accent) : null;
+  // An explicit aiAccent gives agentic surfaces their own hue ("AI acts");
+  // otherwise the AI family derives from the primary accent (shares the brand
+  // color). Only custom brands carry an AI family — the fixed defaults keep the
+  // constant violet→blue.
+  const ai = isCustomBrand ? buildAiFamily(override!.aiAccent?.trim() || theme.accent) : null;
   // Persona accent tokens are injected in BOTH modes, so light mode is
   // persona-themed too (not fixed to the Aurora blue→violet default).
   const style = {
