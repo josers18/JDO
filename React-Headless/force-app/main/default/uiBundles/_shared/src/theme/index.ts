@@ -6,3 +6,5 @@ export {
 export { ThemeProvider, useTheme, type ThemeMode } from './ThemeProvider';
 export { buildGradient, buildGlow, brandThemeToVars, resolveActiveTheme, type BrandTheme } from './brandThemes';
 export { extractPalette } from './paletteExtract';
+export { setBrandOverride, getBrandOverride, useBrandOverride, type BrandOverride } from './activeBrand';
+export { applyActiveThemeOnLoad } from './applyActiveTheme';

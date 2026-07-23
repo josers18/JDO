@@ -1,5 +1,7 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { PERSONA_THEMES, type PersonaKey, type PersonaTheme } from './themes';
+import { buildGradient, buildGlow } from './brandThemes';
+import { useBrandOverride } from './activeBrand';
 import './tokens.css';
 
 export type ThemeMode = 'dark' | 'light';
@@ -27,7 +29,21 @@ interface ThemeProviderProps {
  * prop-drilling. `mode` switches the structural token palette (dark|light).
  */
 export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProviderProps) {
-  const theme = PERSONA_THEMES[persona];
+  const base = PERSONA_THEMES[persona];
+  const override = useBrandOverride();
+  // When a custom brand override is active, swap in its accent tokens and
+  // RE-DERIVE gradient/glow from that accent (D1 — gradient/glow are never
+  // stored/read as fields). With no override, this is byte-identical to the
+  // persona default that rendered before brand theming existed.
+  const theme = override
+    ? {
+        ...base,
+        accent: override.accent,
+        accentSoft: override.accentSoft,
+        gradient: buildGradient(override.accent),
+        glow: buildGlow(override.accent),
+      }
+    : base;
   // Persona accent tokens are injected in BOTH modes, so light mode is
   // persona-themed too (not fixed to the Aurora blue→violet default).
   const style = {
