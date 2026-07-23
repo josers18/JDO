@@ -19,8 +19,13 @@ private class CommandCenterConfigRestTest {
     }
 
     private static RestResponse doPost(String body) {
+        return doPostUri('/services/apexrest/config/', body);
+    }
+
+    /** POST to an arbitrary config sub-path (e.g. /themes, /active-theme). */
+    private static RestResponse doPostUri(String uri, String body) {
         RestRequest req = new RestRequest();
-        req.requestUri = '/services/apexrest/config/';
+        req.requestUri = uri;
         req.httpMethod = 'POST';
         req.requestBody = body == null ? null : Blob.valueOf(body);
         RestContext.request = req;
@@ -32,6 +37,25 @@ private class CommandCenterConfigRestTest {
     @SuppressWarnings('PMD.ApexAssertionsShouldIncludeMessage')
     private static Map<String, Object> body(RestResponse res) {
         return (Map<String, Object>) JSON.deserializeUntyped(res.responseBody.toString());
+    }
+
+    /** Configurable favicon-callout stub for the /brand-logo endpoint. */
+    private class FaviconMock implements HttpCalloutMock {
+        Integer status;
+        Blob bodyBlob;
+        String contentType;
+        FaviconMock(Integer s, Blob b, String ct) {
+            status = s;
+            bodyBlob = b;
+            contentType = ct;
+        }
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse r = new HttpResponse();
+            r.setStatusCode(status);
+            if (bodyBlob != null) r.setBodyAsBlob(bodyBlob);
+            if (contentType != null) r.setHeader('Content-Type', contentType);
+            return r;
+        }
     }
 
     @IsTest
@@ -129,5 +153,113 @@ private class CommandCenterConfigRestTest {
         Map<String, Object> cfg = (Map<String, Object>) body(res).get('config');
         Map<String, Object> models = (Map<String, Object>) cfg.get('models');
         System.assertEquals('sfdc_ai__DefaultGPT4OmniMini', models.get('freeform'), 'second save wins');
+    }
+
+    // ── brand theming ─────────────────────────────────────────────────────
+
+    @IsTest
+    static void brandLogoSuccessReturnsBase64() {
+        Test.setMock(HttpCalloutMock.class, new FaviconMock(200, Blob.valueOf('PNGDATA'), 'image/png'));
+        Test.startTest();
+        RestResponse res = doGet('/services/apexrest/config/brand-logo?url=acmebank.com');
+        Test.stopTest();
+        System.assertEquals(200, res.statusCode, 'brand-logo should be 200');
+        Map<String, Object> out = body(res);
+        String b64 = (String) out.get('logoBase64');
+        System.assert(String.isNotBlank(b64), 'a successful callout returns a non-blank base64 string');
+        System.assert(((String) out.get('logoContentType')).startsWith('image/'), 'content type is an image type');
+    }
+
+    @IsTest
+    static void brandLogoFailureReturnsNullNever500() {
+        Test.setMock(HttpCalloutMock.class, new FaviconMock(404, null, null));
+        Test.startTest();
+        RestResponse res = doGet('/services/apexrest/config/brand-logo?url=acmebank.com');
+        Test.stopTest();
+        System.assertEquals(200, res.statusCode, 'a non-200 callout still returns 200, never 500');
+        System.assertEquals(null, body(res).get('logoBase64'), 'non-200 callout degrades to null logo');
+    }
+
+    @IsTest
+    static void brandLogoOversizeReturnsNull() {
+        // 24001 raw bytes → base64 is ~4/3 larger (~32001 chars) > the 32000 cap.
+        String raw = ''.leftPad(24001, 'x');
+        Test.setMock(HttpCalloutMock.class, new FaviconMock(200, Blob.valueOf(raw), 'image/png'));
+        Test.startTest();
+        RestResponse res = doGet('/services/apexrest/config/brand-logo?url=acmebank.com');
+        Test.stopTest();
+        System.assertEquals(200, res.statusCode, 'oversize logo still returns 200, never 500');
+        System.assertEquals(null, body(res).get('logoBase64'), 'oversize base64 degrades to null logo');
+    }
+
+    @IsTest
+    static void themesUpsertReadDelete() {
+        String upsertBody = '{"op":"upsert","theme":{"id":"t1","name":"Acme","sourceUrl":"acme.com",' +
+            '"logoBase64":null,"logoContentType":"","accent":"#123abc","accentSoft":"#abcdef"}}';
+        RestResponse up = doPostUri('/services/apexrest/config/themes', upsertBody);
+        System.assertEquals(200, up.statusCode, 'upsert should be 200');
+        List<Object> upThemes = (List<Object>) body(up).get('themes');
+        Boolean found = false;
+        for (Object t : upThemes) {
+            if (t instanceof Map<String, Object> && 't1'.equals(((Map<String, Object>) t).get('id'))) {
+                found = true;
+            }
+        }
+        System.assert(found, 'upsert response themes array contains the new theme');
+
+        RestResponse res = doGet('/services/apexrest/config/themes');
+        System.assertEquals(200, res.statusCode, 'themes read should be 200');
+        Map<String, Object> out = body(res);
+        List<Object> themes = (List<Object>) out.get('themes');
+        System.assertEquals(1, themes.size(), 'one theme in the library after upsert');
+        System.assertEquals(null, out.get('activeThemeId'), 'not yet active for the running user');
+
+        RestResponse del = doPostUri('/services/apexrest/config/themes', '{"op":"delete","id":"t1"}');
+        System.assertEquals(200, del.statusCode, 'delete should be 200');
+        System.assertEquals(0, ((List<Object>) body(del).get('themes')).size(), 'theme gone after delete');
+    }
+
+    @IsTest
+    static void themeSanitizeRejectsBadHexAndDropsGradient() {
+        String upsertBody = '{"op":"upsert","theme":{"id":"t1","name":"Bad","sourceUrl":"acme.com",' +
+            '"accent":"#zzz","accentSoft":"#445566","gradient":"linear-gradient(...)","glow":"radial(...)"}}';
+        doPostUri('/services/apexrest/config/themes', upsertBody);
+
+        RestResponse res = doGet('/services/apexrest/config/themes');
+        Map<String, Object> themeMap = (Map<String, Object>) ((List<Object>) body(res).get('themes'))[0];
+        System.assertEquals('#14b8a6', themeMap.get('accent'), 'invalid hex accent coerces to the safe default');
+        System.assertEquals('#445566', themeMap.get('accentSoft'), 'valid hex accentSoft is preserved');
+        System.assert(!themeMap.containsKey('gradient'), 'gradient is dropped from the stored theme (D1)');
+        System.assert(!themeMap.containsKey('glow'), 'glow is dropped from the stored theme (D1)');
+    }
+
+    @IsTest
+    static void activeThemePerUser() {
+        String upsertBody = '{"op":"upsert","theme":{"id":"t1","name":"Acme","sourceUrl":"acme.com",' +
+            '"accent":"#112233","accentSoft":"#445566"}}';
+        doPostUri('/services/apexrest/config/themes', upsertBody);
+
+        RestResponse setRes = doPostUri('/services/apexrest/config/active-theme', '{"themeId":"t1"}');
+        System.assertEquals(200, setRes.statusCode, 'setting active theme should be 200');
+
+        RestResponse res = doGet('/services/apexrest/config/themes');
+        System.assertEquals('t1', body(res).get('activeThemeId'), 'active theme resolves for the running user');
+
+        // Prove per-user keying by inspecting the persisted map directly.
+        CommandCenterConfig__c rec = [SELECT Active_Themes__c FROM CommandCenterConfig__c WHERE Name = 'GLOBAL' LIMIT 1];
+        Map<String, Object> activeMap = (Map<String, Object>) JSON.deserializeUntyped(rec.Active_Themes__c);
+        System.assertEquals('t1', activeMap.get(UserInfo.getUserId()), 'active map is keyed by the running UserId');
+    }
+
+    @IsTest
+    static void activeThemeFallbackWhenDeleted() {
+        String upsertBody = '{"op":"upsert","theme":{"id":"t1","name":"Acme","sourceUrl":"acme.com",' +
+            '"accent":"#112233","accentSoft":"#445566"}}';
+        doPostUri('/services/apexrest/config/themes', upsertBody);
+        doPostUri('/services/apexrest/config/active-theme', '{"themeId":"t1"}');
+        doPostUri('/services/apexrest/config/themes', '{"op":"delete","id":"t1"}');
+
+        RestResponse res = doGet('/services/apexrest/config/themes');
+        System.assertEquals(null, body(res).get('activeThemeId'), 'active id pointing at a deleted theme resolves to null');
     }
 }
