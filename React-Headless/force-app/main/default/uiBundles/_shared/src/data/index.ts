@@ -31,6 +31,13 @@ export {
   clearConfigCache,
 } from './configCache';
 export {
+  fetchBrandLogo,
+  listThemes,
+  saveTheme,
+  deleteTheme,
+  setActiveTheme,
+} from './brandThemeClient';
+export {
   orgCoreOrigin,
   lexAppUrl,
   lexRecordUrl,
