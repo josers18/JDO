@@ -55,4 +55,31 @@ describe('applyActiveThemeOnLoad', () => {
     await expect(applyActiveThemeOnLoad()).resolves.toBeUndefined();
     expect(getBrandOverride()).toBeNull();
   });
+
+  it('resolves the fixed Dark default sentinel with its structural mode', async () => {
+    // Default is NOT in the library, yet must still resolve (sentinel id).
+    listThemes.mockResolvedValue({ themes: [], activeThemeId: '__default_dark__' });
+
+    await applyActiveThemeOnLoad();
+
+    expect(getBrandOverride()).toEqual({
+      accent: '#14b8a6',
+      accentSoft: '#5eead4',
+      logoBase64: null,
+      mode: 'dark',
+    });
+  });
+
+  it('resolves the fixed Light default sentinel with its structural mode', async () => {
+    listThemes.mockResolvedValue({ themes: [], activeThemeId: '__default_light__' });
+
+    await applyActiveThemeOnLoad();
+
+    expect(getBrandOverride()).toEqual({
+      accent: '#5b8def',
+      accentSoft: '#a9c4fb',
+      logoBase64: null,
+      mode: 'light',
+    });
+  });
 });

@@ -522,6 +522,11 @@ global with sharing class CommandCenterConfigRest {
     private static String activeThemeIdForUser() {
         String id = (String) loadActiveMap().get(UserInfo.getUserId());
         if (id == null) return null;
+        // Fixed default themes (Dark/Light) are client-side sentinels that never
+        // live in the saved library — they are always valid selections.
+        if (id == '__default_dark__' || id == '__default_light__') {
+            return id;
+        }
         for (Object t : loadThemeList()) {
             if (t instanceof Map<String, Object> && id.equals(String.valueOf(((Map<String, Object>) t).get('id')))) {
                 return id;

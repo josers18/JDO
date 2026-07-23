@@ -12,10 +12,23 @@
 import { listThemes } from '../data/brandThemeClient';
 import { resolveActiveTheme } from './brandThemes';
 import { setBrandOverride } from './activeBrand';
+import { findDefaultTheme } from './defaultThemes';
 
 export async function applyActiveThemeOnLoad(): Promise<void> {
   try {
     const { themes, activeThemeId } = await listThemes();
+    // A fixed default (Dark/Light) is a sentinel id that never appears in the
+    // saved library — resolve it first so it survives reloads with its mode.
+    const dflt = findDefaultTheme(activeThemeId);
+    if (dflt) {
+      setBrandOverride({
+        accent: dflt.accent,
+        accentSoft: dflt.accentSoft,
+        logoBase64: null,
+        mode: dflt.mode,
+      });
+      return;
+    }
     const active = resolveActiveTheme(themes, activeThemeId);
     if (active) {
       setBrandOverride({
