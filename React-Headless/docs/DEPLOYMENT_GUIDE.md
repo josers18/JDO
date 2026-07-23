@@ -1,6 +1,6 @@
 # Deployment Guide — React-Headless UI Bundles
 
-How to deploy a React UI bundle in this project so it renders as a Lightning app in the org. Written against `jdo-1lrnov` (`storm-16a17dc388fbe6`, Enterprise Edition, API v67.0) on 2026-07-06. Substitute your bundle name for `ReactRetail` throughout.
+How to deploy a React UI bundle in this project so it renders as a Lightning app in the org. Written against `storm-16a17dc388fbe6` (Enterprise Edition, API v67.0) on 2026-07-06; the commands below use the current org alias `jdo-oe0sdd` (org id `00Dam00000Uo32qEAB` — the former `jdo-1lrnov` alias for this same org no longer resolves). Substitute your bundle name for `ReactRetail` throughout.
 
 ## TL;DR
 
@@ -11,7 +11,7 @@ How to deploy a React UI bundle in this project so it renders as a Lightning app
 
 ## Prerequisites
 
-- Target org authenticated (`sf org login web -o jdo-1lrnov`).
+- Target org authenticated (`sf org login web -o jdo-oe0sdd`).
 - `sourceApiVersion` in `sfdx-project.json` aligned to the org (**67.0**). Below ~v67 the `UIBundle` metadata type errors with *"Not available for deploy for this API version."*
 - The Salesforce App Domain is enabled. Confirm at Setup → **React Development with Agentforce Vibes and Salesforce Multi-Framework**: if there's no "Enable Domain" button, it's already on.
 
@@ -41,7 +41,7 @@ sf project deploy start \
   --source-dir force-app/main/default/uiBundles/ReactRetail \
   --source-dir force-app/main/default/applications/ReactRetail.app-meta.xml \
   --source-dir force-app/main/default/permissionsets/ReactRetail_Access.permissionset-meta.xml \
-  -o jdo-1lrnov --json
+  -o jdo-oe0sdd --json
 ```
 
 The launcher tile (`pages/` + `tabs/`) can deploy in the same command or separately — the tab depends on the page, and the permset's `tabSettings`/`pageAccesses` depend on both, so if deploying piecemeal, order is pages → tabs → permsets.
@@ -51,7 +51,7 @@ Always read `result.status` and `result.numberComponentErrors` from the `--json`
 Assign the permission set to yourself if not already:
 
 ```bash
-sf org assign permset -n ReactRetail_Access -o jdo-1lrnov
+sf org assign permset -n ReactRetail_Access -o jdo-oe0sdd
 ```
 
 ## Where the app actually renders
@@ -104,7 +104,7 @@ A bundle first deployed during the beta carries a stale `AppMenuItem` (target `A
    EOF
    sf project deploy start --manifest package.xml \
      --post-destructive-changes destructiveChangesPost.xml \
-     -o jdo-1lrnov --ignore-warnings --json
+     -o jdo-oe0sdd --ignore-warnings --json
    ```
 
 3. **Redeploy** the corrected bundle + app + permset together (the standard-deploy command above).
@@ -115,12 +115,12 @@ A bundle first deployed during the beta carries a stale `AppMenuItem` (target `A
 # Bundle exists and is active
 sf data query --use-tooling-api \
   -q "SELECT Id, DeveloperName, MasterLabel, IsActive FROM UIBundle WHERE DeveloperName='ReactRetail' WITH USER_MODE" \
-  -o jdo-1lrnov
+  -o jdo-oe0sdd
 
 # App Launcher entry is accessible (IsAccessible flips false→true after a correct deploy)
 sf data query \
   -q "SELECT Label, Type, IsAccessible, IsVisible FROM AppMenuItem WHERE Label='React Retail' WITH USER_MODE" \
-  -o jdo-1lrnov
+  -o jdo-oe0sdd
 ```
 
 Then open the App Domain URL in a browser. **Do not** try to confirm the `<uiBundle>` binding by reading `CustomApplication.Metadata` via the Tooling API — that field isn't surfaced (its `describe` has no `uiBundle` field), so it always looks dropped. The browser is the source of truth.

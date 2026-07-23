@@ -10,7 +10,7 @@
  * empty text + that source, so the caller keeps its locally-composed answer. It
  * rejects ONLY on a transport / 5xx error, which the caller surfaces quietly.
  *   POST /services/apexrest/ai/generate
- *     body: { task, prompt, context }
+ *     body: { task, prompt, context, modelName?, temperature?, maxTokens? }
  *     200:  { text, source }
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
@@ -24,6 +24,14 @@ export interface AiGenerateInput {
   prompt: string;
   /** List/aggregate blob (queue, pipeline, drafts) the model should ground on. */
   context?: string;
+  /** Optional model API name from the Configuration page. Blank/omitted → the
+   *  server's default model. Validated against the server allowlist. */
+  modelName?: string;
+  /** Optional generation parameters from the Configuration page. Forwarded and
+   *  validated server-side; see AiGenerateRest — this org's Apex Models API
+   *  binding does not yet apply them to the request. */
+  temperature?: number;
+  maxTokens?: number;
 }
 
 export interface AiGenerateResult {
@@ -45,7 +53,16 @@ export async function generateText(input: AiGenerateInput): Promise<AiGenerateRe
   const res = await sdk.fetch('/services/apexrest/ai/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task: input.task, prompt: input.prompt, context: input.context ?? '' }),
+    body: JSON.stringify({
+      task: input.task,
+      prompt: input.prompt,
+      context: input.context ?? '',
+      // Only include selection knobs when set, so a caller that doesn't use the
+      // Configuration page sends the same lean payload as before.
+      ...(input.modelName ? { modelName: input.modelName } : {}),
+      ...(input.temperature != null ? { temperature: input.temperature } : {}),
+      ...(input.maxTokens != null ? { maxTokens: input.maxTokens } : {}),
+    }),
   });
   const json = (await res.json()) as { text?: string; source?: AiGenerateResult['source']; error?: string };
   if (!res.ok) {

@@ -25,11 +25,36 @@ global with sharing class AiGenerateRest {
     private static final Set<String> ALLOWED_TASKS = new Set<String>{
         'queue_rationale', 'pipeline_summary', 'followups', 'freeform'
     };
+    private static final String DEFAULT_MODEL = 'sfdc_ai__DefaultGPT4Omni';
+    /** Models the Configuration page may select (mirror of
+     *  CommandCenterConfigRest's curated allowlist). A blank or unrecognized
+     *  modelName falls back to DEFAULT_MODEL so a stale/typo'd config never
+     *  breaks generation. */
+    private static final Set<String> ALLOWED_MODELS = new Set<String>{
+        'sfdc_ai__DefaultOpenAIGPT5',
+        'sfdc_ai__DefaultOpenAIGPT5Mini',
+        'sfdc_ai__DefaultOpenAIGPT5Nano',
+        'sfdc_ai__DefaultOpenAIGPT41',
+        'sfdc_ai__DefaultOpenAIGPT41Mini',
+        'sfdc_ai__DefaultBedrockAnthropicClaude45Sonnet',
+        'sfdc_ai__DefaultBedrockAnthropicClaude4Sonnet',
+        'sfdc_ai__DefaultBedrockAnthropicClaude37Sonnet',
+        'sfdc_ai__DefaultVertexAIGemini25Flash001',
+        'sfdc_ai__DefaultVertexAIGemini20Flash001',
+        'sfdc_ai__DefaultGPT4Omni',
+        'sfdc_ai__DefaultGPT4OmniMini',
+        'sfdc_ai__DefaultBedrockAnthropicClaude35Sonnet',
+        'sfdc_ai__DefaultBedrockAnthropicClaude3Haiku',
+        'sfdc_ai__DefaultOpenAIGPT4'
+    };
 
     global class GenRequest {
         public String task;
         public String prompt;
         public String context;
+        public String modelName;    // optional — from the Configuration page
+        public Double temperature;  // optional generation parameter
+        public Integer maxTokens;   // optional generation parameter
     }
 
     @HttpPost
@@ -65,7 +90,10 @@ global with sharing class AiGenerateRest {
             }
 
             String composed = req.context == null ? '' : req.context;
-            String generated = generate(prompt, composed);
+            String model = (String.isBlank(req.modelName) || !ALLOWED_MODELS.contains(req.modelName))
+                ? DEFAULT_MODEL
+                : req.modelName;
+            String generated = generate(prompt, composed, model, req.temperature, req.maxTokens);
             if (String.isBlank(generated)) {
                 // Models API unavailable / empty — caller keeps its composed answer.
                 writeResult(res, '', 'unavailable');
@@ -83,14 +111,17 @@ global with sharing class AiGenerateRest {
      * Models API is not provisioned in this org, so run() reports 'unavailable'
      * rather than 500. The prompt already carries the composed context blob.
      */
-    private static String generate(String prompt, String context) {
+    private static String generate(String prompt, String context, String model, Double temperature, Integer maxTokens) {
         String fullPrompt = String.isBlank(context) ? prompt : prompt + '\n\n' + context;
         try {
             aiplatform.ModelsAPI.createGenerations_Request gen = new aiplatform.ModelsAPI.createGenerations_Request();
             aiplatform.ModelsAPI_GenerationRequest reqBody = new aiplatform.ModelsAPI_GenerationRequest();
             reqBody.prompt = fullPrompt;
+            applyParams(reqBody, temperature, maxTokens);
             gen.body = reqBody;
-            gen.modelName = 'sfdc_ai__DefaultGPT4Omni';
+            // modelName is the one knob the Apex Models API binding exposes per
+            // request — the Configuration page's per-action model selection.
+            gen.modelName = model;
 
             aiplatform.ModelsAPI api = new aiplatform.ModelsAPI();
             aiplatform.ModelsAPI.createGenerations_Response resp = api.createGenerations(gen);
@@ -106,6 +137,24 @@ global with sharing class AiGenerateRest {
             System.debug(LoggingLevel.WARN, 'Models API call failed: ' + e.getMessage());
             return '';
         }
+    }
+
+    /**
+     * Apply generation parameters (temperature / maxTokens) to the request.
+     *
+     * NO-OP TODAY, BY DESIGN. This org's `aiplatform.ModelsAPI` Apex binding
+     * exposes only { prompt, modelName, contentModeration, localization, tags }
+     * on the generation request — it binds no temperature/maxTokens field
+     * (verified by reflecting the type). So the Configuration page still stores
+     * these params (they round-trip and are validated), but they cannot be
+     * pushed through the Apex path until the platform binding gains the fields.
+     * Keeping this hook — instead of dropping the params — means the day the
+     * binding adds them, only this method changes. The UI flags params as
+     * "stored, not yet applied" so the behavior is never misrepresented.
+     */
+    @SuppressWarnings('PMD.EmptyStatementBlock')
+    private static void applyParams(aiplatform.ModelsAPI_GenerationRequest reqBody, Double temperature, Integer maxTokens) {
+        // Intentionally empty — see method doc.
     }
 
     private static void writeResult(RestResponse res, String text, String source) {

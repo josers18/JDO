@@ -1,0 +1,288 @@
+import { useMemo, useState, type ReactNode } from 'react';
+import clsx from 'clsx';
+import { Icon } from './iconMap';
+
+export type QueueSeverity = 'high' | 'medium' | 'low';
+export type QueueDueTier = 'today' | 'week' | 'watch';
+
+/**
+ * One priority-queue entry. `CallItem` (per-bundle) is structurally a superset
+ * of this, so the page passes rows straight through with no mapping — the same
+ * duck-typing the older `PriorityQueueRow` relied on.
+ */
+export interface PriorityQueueCardItem {
+  id: string;
+  clientName: string;
+  /** The next move — rendered as the title suffix: "Name — Action". */
+  action: string;
+  /** The "why" line rendered as the muted subtitle. */
+  reason: string;
+  severity: QueueSeverity;
+  /** 0..1 AI priority score — the default sort key. */
+  score: number;
+  /** Coarse tier — retained for callers/consumers that still read it. */
+  tier?: QueueDueTier;
+  /** Signal-native ISO due date (YYYY-MM-DD). Drives the "Due …" label +
+   *  the "Due date" sort. When present it supersedes `tier`. */
+  dueDate?: string;
+}
+
+type SortKey = 'priority' | 'due';
+
+/**
+ * Severity → ONE color family, shared by the numbered badge AND the pill so the
+ * number's color always corresponds to its severity chip (Request C3). The badge
+ * is the solid fill; the pill is the soft-bg/foreground pair of the SAME hue.
+ *   high → risk (red) · medium → warn (amber) · low → accent (persona blue)
+ */
+const SEV_BADGE: Record<QueueSeverity, string> = {
+  high: 'bg-risk text-white',
+  medium: 'bg-warn text-white',
+  low: 'bg-accent text-white',
+};
+const SEV_PILL: Record<QueueSeverity, string> = {
+  high: 'bg-risk-bg text-risk',
+  medium: 'bg-warn-bg text-warn',
+  low: 'bg-accent-bg text-accent',
+};
+const SEV_LABEL: Record<QueueSeverity, string> = { high: 'High', medium: 'Medium', low: 'Low' };
+const SEV_RANK: Record<QueueSeverity, number> = { high: 0, medium: 1, low: 2 };
+/** Top-item emphasis (left bar + tint) — SAME hue as the badge/pill. */
+const SEV_BAR: Record<QueueSeverity, string> = { high: 'bg-risk', medium: 'bg-warn', low: 'bg-accent' };
+const SEV_TINT: Record<QueueSeverity, string> = {
+  high: 'bg-risk-bg/40',
+  medium: 'bg-warn-bg/40',
+  low: 'bg-accent-bg/30',
+};
+
+const DAY = 86_400_000;
+const startOfToday = () => {
+  const n = new Date();
+  return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+};
+
+/** Whole-day delta from today (negative = overdue), or null if no date. */
+function daysUntil(dueDate: string | undefined, today: Date): number | null {
+  if (!dueDate) return null;
+  const d = new Date(dueDate + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.round((d.getTime() - today.getTime()) / DAY);
+}
+
+/**
+ * Signal-native due label + urgency tone (Request C4). Prefers the real
+ * `dueDate`; falls back to the coarse `tier` only when no date is present.
+ */
+function dueLabelFor(item: PriorityQueueCardItem, today: Date): { label: string; tone: string } {
+  const diff = daysUntil(item.dueDate, today);
+  if (diff === null) {
+    // Legacy fallback — tier-only rows.
+    if (item.tier === 'today') return { label: 'Due today', tone: 'text-risk' };
+    if (item.tier === 'week') return { label: 'Due this week', tone: 'text-muted' };
+    return { label: 'Later', tone: 'text-faint' };
+  }
+  if (diff < 0) {
+    const n = Math.abs(diff);
+    return { label: n === 1 ? 'Overdue 1 day' : `Overdue ${n} days`, tone: 'text-risk' };
+  }
+  if (diff === 0) return { label: 'Due today', tone: 'text-risk' };
+  if (diff === 1) return { label: 'Due tomorrow', tone: 'text-warn' };
+  if (diff <= 7) return { label: `Due in ${diff} days`, tone: 'text-muted' };
+  const d = new Date(item.dueDate! + 'T00:00:00');
+  return { label: `Due ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, tone: 'text-faint' };
+}
+
+/** Sort key for "Due date" — real date ascending (overdue first), undated last. */
+function dueSortValue(item: PriorityQueueCardItem, today: Date): number {
+  const diff = daysUntil(item.dueDate, today);
+  return diff === null ? Number.MAX_SAFE_INTEGER : diff;
+}
+
+/**
+ * The command-center Priority Queue card. Owns its header (title + count-labeled
+ * filter chips + sort), a ranked list of rows (numbered severity-colored badge,
+ * avatar, "Name — Action" + reason, severity pill, due label, chevron), and a
+ * "View all →" footer. The top-ranked row is emphasized with a left bar + tint
+ * in its severity color so the list reads as ranked, not a flat wall.
+ *
+ * Filtering and sorting are local UI state; the page owns the data and the
+ * click/view-all handlers.
+ */
+export function PriorityQueueCard<T extends PriorityQueueCardItem>({
+  items,
+  onOpen,
+  onViewAll,
+  viewAllLabel = 'View all tasks & alerts',
+  controls,
+}: {
+  items: T[];
+  onOpen: (item: T) => void;
+  onViewAll: () => void;
+  viewAllLabel?: string;
+  /** Optional extra header control (e.g. a "Draft all follow-ups" chip). */
+  controls?: ReactNode;
+}) {
+  const [filter, setFilter] = useState<'all' | QueueSeverity>('all');
+  const [sort, setSort] = useState<SortKey>('priority');
+  const today = useMemo(() => startOfToday(), []);
+
+  const counts = useMemo(() => {
+    const c = { all: items.length, high: 0, medium: 0, low: 0 };
+    for (const it of items) c[it.severity]++;
+    return c;
+  }, [items]);
+
+  const rows = useMemo(() => {
+    const filtered = filter === 'all' ? items : items.filter(it => it.severity === filter);
+    const sorted = [...filtered].sort((a, b) => {
+      if (sort === 'due') {
+        // Real dates ascending — a Medium due today outranks a High due next week,
+        // so severities interleave ("mixed") instead of clustering.
+        const d = dueSortValue(a, today) - dueSortValue(b, today);
+        if (d !== 0) return d;
+      }
+      // Priority: severity first, then score — keeps High above a high-scoring Low.
+      const s = SEV_RANK[a.severity] - SEV_RANK[b.severity];
+      if (s !== 0) return s;
+      return (b.score ?? 0) - (a.score ?? 0);
+    });
+    return sorted;
+  }, [items, filter, sort, today]);
+
+  const CHIPS: Array<{ key: 'all' | QueueSeverity; label: string; n: number }> = [
+    { key: 'all', label: 'All', n: counts.all },
+    { key: 'high', label: 'High', n: counts.high },
+    { key: 'medium', label: 'Medium', n: counts.medium },
+    { key: 'low', label: 'Low', n: counts.low },
+  ];
+
+  return (
+    <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      {/* Header: title + filter chips + sort */}
+      <div className="border-b border-line px-5 pb-3.5 pt-4">
+        <div className="flex items-center gap-3">
+          <h2 className="font-display text-[19px] font-semibold tracking-tight">Priority Queue</h2>
+          <div className="ml-auto flex flex-none items-center gap-2">
+            {controls}
+            <label className="relative inline-flex items-center">
+              <span className="pointer-events-none absolute left-3 font-mono text-[10.5px] uppercase tracking-[0.08em] text-faint">
+                Sort:
+              </span>
+              <select
+                value={sort}
+                onChange={e => setSort(e.target.value as SortKey)}
+                aria-label="Sort priority queue"
+                className="cursor-pointer rounded-full border border-line bg-surface py-1.5 pl-[52px] pr-7 text-[12.5px] font-medium text-fg transition hover:border-line-strong focus:border-accent-border focus:outline-none"
+              >
+                <option value="priority">Priority</option>
+                <option value="due">Due date</option>
+              </select>
+              <span className="pointer-events-none absolute right-3 text-[10px] text-faint">▾</span>
+            </label>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {CHIPS.map(chip => {
+            const active = filter === chip.key;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setFilter(chip.key)}
+                aria-pressed={active}
+                className={clsx(
+                  'rounded-full px-3 py-1.5 text-[12.5px] font-semibold transition',
+                  active
+                    ? 'bg-accent text-white'
+                    : 'text-muted hover:bg-surface-muted hover:text-fg',
+                )}
+              >
+                {chip.label} <span className={clsx('font-mono text-[11px]', active ? 'text-white/80' : 'text-faint')}>({chip.n})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Rows */}
+      <div>
+        {rows.length === 0 ? (
+          <div className="px-5 py-10 text-center text-[13px] text-faint">No items match this filter.</div>
+        ) : (
+          rows.map((item, i) => {
+            const emphasis = i === 0;
+            const due = dueLabelFor(item, today);
+            return (
+              <div
+                key={item.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(item)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpen(item);
+                  }
+                }}
+                className={clsx(
+                  'group relative flex cursor-pointer items-center gap-3.5 border-b border-line px-5 py-3.5 transition last:border-b-0 hover:bg-surface-muted',
+                  emphasis && SEV_TINT[item.severity],
+                )}
+              >
+                {emphasis && (
+                  <span
+                    aria-hidden="true"
+                    className={clsx('absolute inset-y-0 left-0 w-[3px]', SEV_BAR[item.severity])}
+                  />
+                )}
+                {/* Numbered severity-colored badge */}
+                <span
+                  className={clsx(
+                    'grid h-7 w-7 flex-none place-items-center rounded-full text-[12px] font-bold tabular-nums',
+                    SEV_BADGE[item.severity],
+                  )}
+                >
+                  {i + 1}
+                </span>
+                {/* Avatar */}
+                <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-surface-muted text-muted">
+                  <Icon name="clients" size={15} />
+                </span>
+                {/* Title + reason */}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14.5px] font-semibold text-fg" title={`${item.clientName} — ${item.action}`}>
+                    {item.clientName} <span className="text-muted">— {item.action}</span>
+                  </span>
+                  <span className="mt-0.5 block truncate text-[12.5px] text-muted" title={item.reason}>
+                    {item.reason}
+                  </span>
+                </span>
+                {/* Severity pill */}
+                <span
+                  className={clsx(
+                    'flex-none rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                    SEV_PILL[item.severity],
+                  )}
+                >
+                  {SEV_LABEL[item.severity]}
+                </span>
+                {/* Due + chevron */}
+                <span className={clsx('hidden flex-none text-[12.5px] font-medium sm:inline', due.tone)}>{due.label}</span>
+                <span className="flex-none text-[15px] text-faint transition group-hover:text-muted">›</span>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* View all footer */}
+      <button
+        type="button"
+        onClick={onViewAll}
+        className="flex w-full items-center gap-2 px-5 py-4 text-left text-[13px] font-semibold text-accent transition hover:bg-surface-muted"
+      >
+        {viewAllLabel} <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  );
+}

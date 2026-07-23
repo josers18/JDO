@@ -100,10 +100,34 @@ const DASH: HomeDashboard = {
     { id: 'a4', title: 'Deposit inflow', detail: 'Meridian Health — +$3.1M operating balance', tone: 'positive', severity: 'Low', when: 'Yesterday' },
   ],
   leads: [
-    { id: 'l1', name: 'Halcyon Robotics', source: 'COI — CPA Firm', status: 'Qualified', value: 22000000 },
-    { id: 'l2', name: 'Pinnacle Foods', source: 'Referral', status: 'Working', value: 14000000 },
-    { id: 'l3', name: 'Summit Aggregates', source: 'RFP', status: 'New', value: 9500000 },
-    { id: 'l4', name: 'Orion Freight', source: 'Industry Event', status: 'New', value: 6400000 },
+    { id: 'l1', name: 'Halcyon Robotics', source: 'COI — CPA Firm', status: 'Qualified', value: 22000000, email: 'treasury@halcyonrobotics.com' },
+    { id: 'l2', name: 'Pinnacle Foods', source: 'Referral', status: 'Working', value: 14000000, email: 'cfo@pinnaclefoods.com' },
+    { id: 'l3', name: 'Summit Aggregates', source: 'RFP', status: 'New', value: 9500000, email: 'finance@summitaggregates.com' },
+    { id: 'l4', name: 'Orion Freight', source: 'Industry Event', status: 'New', value: 6400000, email: 'ap@orionfreight.com' },
+  ],
+  activity: [
+    { id: 'ac1', clientName: 'Acme Manufacturing', clientId: '001C', title: 'Covenant DSCR breached threshold', when: 'May 14, 10:25 AM', icon: 'alerts', tone: 'risk' },
+    { id: 'ac2', clientName: 'Northwind Logistics', title: 'Treasury proposal opened', when: 'May 13, 4:05 PM', icon: 'email', tone: 'opportunity' },
+    { id: 'ac3', clientName: 'Meridian Health', title: 'Operating balance +$3.1M', when: 'May 12, 10:11 AM', icon: 'pipeline', tone: 'positive' },
+    { id: 'ac4', clientName: 'Sterling Foods Group', title: 'D&B score downgraded 1 tier', when: 'May 12, 9:31 AM', icon: 'alerts', tone: 'risk' },
+  ],
+  pipelineMovement: [
+    { id: 'pm1', label: 'Treasury Management', amount: 18_400_000, deltaPct: 0.14, trend: series(4, 8, 16_000_000, 700_000) },
+    { id: 'pm2', label: 'Commercial Lending', amount: 69_000_000, deltaPct: 0.09, trend: series(6, 8, 64_000_000, 2_400_000) },
+    { id: 'pm3', label: 'Equipment Finance', amount: 12_600_000, deltaPct: 0.18, trend: series(9, 8, 10_500_000, 620_000) },
+    { id: 'pm4', label: 'Debt Restructure', amount: 42_000_000, deltaPct: -0.05, trend: series(2, 8, 45_000_000, 1_800_000) },
+  ],
+  cases: [
+    { id: 'cs1', caseNumber: '00002087', subject: 'Covenant breach review — Q3 filing', priority: 'High', status: 'Escalated', clientName: 'Delta Foods Inc', clientId: '001D', ageDays: 5 },
+    { id: 'cs2', caseNumber: '00002081', subject: 'ACH batch rejected — treasury portal', priority: 'High', status: 'Working', clientName: 'Frontier Freight', clientId: '001F', ageDays: 2 },
+    { id: 'cs3', caseNumber: '00002074', subject: 'Line-of-credit draw dispute', priority: 'Medium', status: 'New', clientName: 'Granite Materials', clientId: '001G', ageDays: 4 },
+    { id: 'cs4', caseNumber: '00002066', subject: 'Lockbox remittance mismatch', priority: 'Low', status: 'Working', clientName: 'Emerald Construction', clientId: '001E', ageDays: 11 },
+  ],
+  customerGoals: [
+    { id: 'cg1', name: 'Working-capital reserve target', clientName: 'Frontier Freight', clientId: '001F', planName: 'Frontier Freight - Liquidity Plan', status: 'IN_PROGRESS', priority: 'HIGH', type: 'Emergency', targetDate: '2026-09-30', daysUntil: 71, target: 12000000, current: 8400000, description: 'Build a working-capital reserve to cover two quarters of operating expense.' },
+    { id: 'cg2', name: 'Expansion capex — new facility', clientName: 'Granite Materials', clientId: '001G', planName: 'Granite Materials - Growth Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Other', targetDate: '2026-11-30', daysUntil: 132, target: 25000000, current: 9600000, description: 'Fund the new distribution facility build-out.' },
+    { id: 'cg3', name: 'Debt-to-EBITDA below 3.0x', clientName: 'Delta Foods Inc', clientId: '001D', planName: 'Delta Foods - Deleveraging Plan', status: 'NOT_STARTED', priority: 'HIGH', type: 'Pay off Debt', targetDate: '2026-12-31', daysUntil: 163, target: 3, current: 4.1, description: 'Reduce leverage ratio below the 3.0x covenant threshold.' },
+    { id: 'cg4', name: 'Treasury sweep automation', clientName: 'Emerald Construction', clientId: '001E', planName: 'Emerald Construction - Treasury Plan', status: 'IN_PROGRESS', priority: 'LOW', type: 'Other', targetDate: '2027-01-31', daysUntil: 194, target: 40000000, current: 22000000, description: 'Automate end-of-day cash sweeps across operating accounts.' },
   ],
   delinquency: {
     totalDelinquentBalance: 4820000,

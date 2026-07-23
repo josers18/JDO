@@ -29,6 +29,9 @@ export interface CallItem {
   relationshipValue: number;
   /** Priority-queue grouping used by the command-center home. */
   tier?: 'today' | 'week' | 'watch';
+  /** Signal-native ISO due date (YYYY-MM-DD) — set by the priority-queue
+   *  blender so the card can sort/label by real dates, not severity. */
+  dueDate?: string;
 }
 
 /**
@@ -86,6 +89,15 @@ export interface LifeEventSignal {
   when: string;
   opportunity: string;
   icon: string;
+  // ── Live PersonLifeEvent fields (optional; absent on any seeded/mock rows) ──
+  /** Real PersonLifeEvent Id — required to open the edit modal. */
+  recordId?: string;
+  /** PersonLifeEvent.EventType picklist value (Birth | Graduation | …). */
+  eventType?: string;
+  /** PersonLifeEvent.EventDate as 'YYYY-MM-DD' — seeds the modal date field. */
+  eventDate?: string;
+  /** Contact Id of the primary person — seeds the lookup on edit. */
+  contactId?: string;
 }
 
 import type { ScheduleItem } from '@shared';
@@ -106,6 +118,93 @@ export interface LeadReferral {
   source: string;
   status: string;
   value: number;
+  /** Lead.Email — the recipient for the "email this lead" action. A Lead is
+   *  not an Account, so the EmailModal's Account-email lookup can't resolve it;
+   *  the address must ride along on the referral itself. '' when the Lead has none. */
+  email: string;
+  /** Real Lead Id — required to open the row into the editable LeadModal.
+   *  Absent on mock rows, which stay read-only. */
+  recordId?: string;
+  /** Lead.FirstName / LastName — the editable name parts (Lead.Name is a
+   *  compound read-only field, so edits go through these). */
+  firstName?: string;
+  lastName?: string;
+  /** Lead.Company — required to edit/create; the org the lead belongs to. */
+  company?: string;
+}
+
+/** A recent-activity feed row for the cockpit supporting band. */
+export interface ActivityItem {
+  id: string;
+  clientName: string;
+  clientId?: string;
+  /** What happened, e.g. "Payment declined on credit card". */
+  title: string;
+  /** When, display string, e.g. "May 14, 10:25 AM". */
+  when: string;
+  /** Row glyph key — reuses the iconMap. */
+  icon: 'email' | 'call' | 'alerts' | 'task' | 'pipeline' | 'event';
+  tone: 'positive' | 'opportunity' | 'risk' | 'neutral';
+}
+
+/** A pipeline-movement row (value by product line + trend) for the supporting band. */
+export interface PipelineMovement {
+  id: string;
+  label: string;
+  amount: number;
+  /** Signed week-over-week change, e.g. +0.12 or -0.04. */
+  deltaPct: number;
+  trend: number[];
+}
+
+/** An open service Case row for the cockpit supporting band + explorer. */
+export interface CaseItem {
+  id: string;
+  /** Case.CaseNumber, e.g. "00001234". */
+  caseNumber: string;
+  subject: string;
+  /** Case.Priority — 'High' | 'Medium' | 'Low' (or org values); '' when unset. */
+  priority: string;
+  /** Case.Status, e.g. "New" / "Working" / "Escalated". */
+  status: string;
+  /** Related Account name; '' when the case has no account. */
+  clientName: string;
+  clientId?: string;
+  /** Whole days since Case.CreatedDate (age). 0 when unknown. */
+  ageDays: number;
+}
+
+/** An upcoming customer financial goal (FSC FinancialGoal) for the supporting
+ *  band + explorer. Distinct from BankerGoal (the banker's own quota): these
+ *  are the client's goals coming due, sourced from FinancialGoal → FinancialPlan
+ *  → Account. */
+export interface CustomerGoal {
+  id: string;
+  /** Real FinancialGoal Id — required to open the editable modal ('' for mock rows). */
+  recordId?: string;
+  /** FinancialGoal.Name, e.g. "Nakamura Tax Optimization". */
+  name: string;
+  /** Related household/client (via FinancialPlan → Account); '' when the goal has no plan link. */
+  clientName: string;
+  clientId?: string;
+  /** FinancialPlan.Name — attribution line, e.g. "Rachel Morris - Home Ownership Plan". */
+  planName?: string;
+  /** FinancialGoal.Status — 'IN_PROGRESS' | 'NOT_STARTED' | 'COMPLETED' (org values); '' when unset. */
+  status: string;
+  /** FinancialGoal.Priority — 'LOW' | 'MEDIUM' | 'HIGH'; '' when unset. */
+  priority?: string;
+  /** FinancialGoal.Type picklist value; '' when unset. */
+  type?: string;
+  /** FinancialGoal.Description (free text); '' when unset. */
+  description?: string;
+  /** FinancialGoal.TargetDate (ISO yyyy-mm-dd); '' when unset. */
+  targetDate: string;
+  /** Whole days until targetDate (negative if past). null when no date. */
+  daysUntil: number | null;
+  /** FinancialGoal.TargetAmount — the amount the client is working toward. */
+  target: number;
+  /** FinancialGoal.ActualAmount — progress toward the target. */
+  current: number;
 }
 
 export interface HomeDashboard {
@@ -122,6 +221,14 @@ export interface HomeDashboard {
   alerts: AlertSignal[];
   leads: LeadReferral[];
   recommendations: Recommendation[];
+  /** Recent-activity feed for the cockpit supporting band. */
+  activity: ActivityItem[];
+  /** Pipeline movement by product line for the cockpit supporting band. */
+  pipelineMovement: PipelineMovement[];
+  /** Open service cases for the cockpit supporting band + explorer. */
+  cases: CaseItem[];
+  /** Upcoming customer financial goals for the cockpit supporting band + explorer. */
+  customerGoals: CustomerGoal[];
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;

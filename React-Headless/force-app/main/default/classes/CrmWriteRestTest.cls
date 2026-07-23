@@ -14,6 +14,24 @@ private class CrmWriteRestTest {
     }
 
     @IsTest
+    static void whoamiReturnsRunningUser() {
+        RestRequest req = new RestRequest();
+        req.requestURI = '/services/apexrest/crm/whoami';
+        req.httpMethod = 'GET';
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        Test.startTest();
+        CrmWriteRest.whoami();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'whoami should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertEquals(UserInfo.getUserId(), out.get('userId'), 'running user id');
+        System.assertEquals(UserInfo.getName(), out.get('name'), 'running user name');
+        System.assertEquals(UserInfo.getFirstName(), out.get('firstName'), 'running user first name');
+    }
+
+    @IsTest
     static void createsTask() {
         setupRequest('{"action":"task","subject":"Follow up call","description":"Ring the client","dueDate":"2026-08-01","priority":"High"}');
         Test.startTest();
@@ -100,7 +118,7 @@ private class CrmWriteRestTest {
 
     @IsTest
     static void rejectsUnknownAction() {
-        setupRequest('{"action":"delete","subject":"nope"}');
+        setupRequest('{"action":"frobnicate","subject":"nope"}');
         Test.startTest();
         CrmWriteRest.write();
         Test.stopTest();
@@ -213,5 +231,492 @@ private class CrmWriteRestTest {
         Test.stopTest();
         System.assertEquals(400, RestContext.response.statusCode, 'bad sobjectType should 400');
         System.assert(((String) parseBody().get('error')).containsIgnoreCase('sobjecttype'), 'error mentions sobjectType');
+    }
+
+    @IsTest
+    static void updateSetsTypeAndDescription() {
+        Task t = new Task(Subject = 'Typed task', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Task","recordId":"' + t.Id + '","type":"Meeting","description":"call notes"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update task type/desc should 200');
+        Task after = [SELECT Type, Description FROM Task WHERE Id = :t.Id];
+        System.assertEquals('Meeting', after.Type, 'type set');
+        System.assertEquals('call notes', after.Description, 'description set');
+    }
+
+    @IsTest
+    static void updateSetsEventShowAsAndLocation() {
+        Event ev = new Event(Subject = 'Typed event', ActivityDateTime = Datetime.now(), DurationInMinutes = 30);
+        insert ev;
+        setupRequest('{"action":"update","sobjectType":"Event","recordId":"' + ev.Id + '","type":"Call","location":"HQ","showAs":"Free","description":"agenda"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update event fields should 200');
+        Event after = [SELECT Type, Location, ShowAs, Description FROM Event WHERE Id = :ev.Id];
+        System.assertEquals('Call', after.Type, 'type set');
+        System.assertEquals('HQ', after.Location, 'location set');
+        System.assertEquals('Free', after.ShowAs, 'showAs set');
+        System.assertEquals('agenda', after.Description, 'description set');
+    }
+
+    @IsTest
+    static void updateReassignsTaskOwnerAndWhat() {
+        Account acct = new Account(Name = 'Reassign Co');
+        insert acct;
+        User owner = buildTestUser('crmwrite.reassign.task@example.com.invalid');
+        insert owner;
+        Task t = new Task(Subject = 'Reassign task', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"update","sobjectType":"Task","recordId":"' + t.Id
+            + '","ownerId":"' + owner.Id + '","whatId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update task owner/what should 200');
+        Task after = [SELECT OwnerId, WhatId FROM Task WHERE Id = :t.Id];
+        System.assertEquals(owner.Id, after.OwnerId, 'owner reassigned');
+        System.assertEquals(acct.Id, after.WhatId, 'related-to set');
+    }
+
+    @IsTest
+    static void updateReassignsEventOwnerAndWhat() {
+        Account acct = new Account(Name = 'Reassign Event Co');
+        insert acct;
+        User owner = buildTestUser('crmwrite.reassign.event@example.com.invalid');
+        insert owner;
+        Event ev = new Event(Subject = 'Reassign event', ActivityDateTime = Datetime.now(), DurationInMinutes = 30);
+        insert ev;
+        setupRequest('{"action":"update","sobjectType":"Event","recordId":"' + ev.Id
+            + '","ownerId":"' + owner.Id + '","whatId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update event owner/what should 200');
+        Event after = [SELECT OwnerId, WhatId FROM Event WHERE Id = :ev.Id];
+        System.assertEquals(owner.Id, after.OwnerId, 'owner reassigned');
+        System.assertEquals(acct.Id, after.WhatId, 'related-to set');
+    }
+
+    @IsTest
+    static void updatesFinancialGoal() {
+        FinancialGoal g = new FinancialGoal(
+            Name = 'Old goal', Status = 'NOT_STARTED', Priority = 'LOW',
+            Type = 'Vacation', TargetAmount = 1000, ActualAmount = 100
+        );
+        insert g;
+        setupRequest('{"action":"update","sobjectType":"FinancialGoal","recordId":"' + g.Id
+            + '","name":"Dream home","status":"IN_PROGRESS","priority":"HIGH","type":"Home"'
+            + ',"targetDate":"2027-01-15","targetAmount":50000,"actualAmount":12500'
+            + ',"description":"Down payment fund"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update goal should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        FinancialGoal after = [
+            SELECT Name, Status, Priority, Type, TargetDate, TargetAmount, ActualAmount, Description
+            FROM FinancialGoal WHERE Id = :g.Id
+        ];
+        System.assertEquals('Dream home', after.Name, 'name updated');
+        System.assertEquals('IN_PROGRESS', after.Status, 'status updated');
+        System.assertEquals('HIGH', after.Priority, 'priority updated');
+        System.assertEquals('Home', after.Type, 'type updated');
+        System.assertEquals(Date.valueOf('2027-01-15'), after.TargetDate, 'target date updated');
+        System.assertEquals(50000, after.TargetAmount, 'target amount updated');
+        System.assertEquals(12500, after.ActualAmount, 'actual amount updated');
+        System.assertEquals('Down payment fund', after.Description, 'description updated');
+    }
+
+    @IsTest
+    static void updateGoalLeavesOmittedFieldsUntouched() {
+        // Only actualAmount is sent; Name/Status/Priority/TargetAmount must survive.
+        FinancialGoal g = new FinancialGoal(
+            Name = 'Keep me', Status = 'IN_PROGRESS', Priority = 'MEDIUM',
+            Type = 'Retirement', TargetAmount = 90000, ActualAmount = 5000
+        );
+        insert g;
+        setupRequest('{"action":"update","sobjectType":"FinancialGoal","recordId":"' + g.Id + '","actualAmount":8000}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'amount-only goal update should 200');
+        FinancialGoal after = [SELECT Name, Status, Priority, TargetAmount, ActualAmount FROM FinancialGoal WHERE Id = :g.Id];
+        System.assertEquals(8000, after.ActualAmount, 'actual amount updated');
+        System.assertEquals('Keep me', after.Name, 'name left untouched');
+        System.assertEquals('IN_PROGRESS', after.Status, 'status left untouched');
+        System.assertEquals('MEDIUM', after.Priority, 'priority left untouched');
+        System.assertEquals(90000, after.TargetAmount, 'target amount left untouched');
+    }
+
+    /** A FinancialPlan with an Account — the customer link a new goal attaches to.
+     *  Type/Status are required on FinancialPlan; the values are the live-org
+     *  picklist API values (PascalCase — distinct from FinancialGoal's snake case). */
+    private static FinancialPlan buildTestPlan(String planName) {
+        Account acct = new Account(Name = planName + ' Household');
+        insert acct;
+        FinancialPlan fp = new FinancialPlan(
+            Name = planName, AccountId = acct.Id, Type = 'Retirement', Status = 'InProgress'
+        );
+        insert fp;
+        return fp;
+    }
+
+    @IsTest
+    static void createsFinancialGoal() {
+        FinancialPlan fp = buildTestPlan('Rachel Morris - Home Ownership Plan');
+        setupRequest('{"action":"goal","name":"New home down payment","type":"Home"'
+            + ',"financialPlanId":"' + fp.Id + '","status":"IN_PROGRESS","priority":"HIGH"'
+            + ',"targetDate":"2027-06-30","targetAmount":75000,"actualAmount":10000'
+            + ',"description":"Save for the down payment"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create goal should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertNotEquals(null, out.get('id'), 'new goal id returned');
+        FinancialGoal g = [
+            SELECT Name, Type, Status, Priority, FinancialPlanId, TargetDate, TargetAmount, ActualAmount, Description
+            FROM FinancialGoal WHERE Id = :(Id) out.get('id')
+        ];
+        System.assertEquals('New home down payment', g.Name, 'name set');
+        System.assertEquals('Home', g.Type, 'type set');
+        System.assertEquals('IN_PROGRESS', g.Status, 'status set');
+        System.assertEquals('HIGH', g.Priority, 'priority set');
+        System.assertEquals(fp.Id, g.FinancialPlanId, 'plan (customer) link set');
+        System.assertEquals(Date.valueOf('2027-06-30'), g.TargetDate, 'target date set');
+        System.assertEquals(75000, g.TargetAmount, 'target amount set');
+        System.assertEquals(10000, g.ActualAmount, 'actual amount set');
+        System.assertEquals('Save for the down payment', g.Description, 'description set');
+    }
+
+    @IsTest
+    static void createGoalDefaultsStatus() {
+        // No status sent — must default to NOT_STARTED.
+        FinancialPlan fp = buildTestPlan('Jen Hartley - Retirement Plan');
+        setupRequest('{"action":"goal","name":"Retire early","type":"Retirement","financialPlanId":"' + fp.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create goal defaults should 200');
+        FinancialGoal g = [SELECT Status, FinancialPlanId FROM FinancialGoal WHERE Name = 'Retire early' LIMIT 1];
+        System.assertEquals('NOT_STARTED', g.Status, 'status defaulted');
+        System.assertEquals(fp.Id, g.FinancialPlanId, 'plan link set');
+    }
+
+    @IsTest
+    static void rejectsGoalWithoutName() {
+        FinancialPlan fp = buildTestPlan('No Name Plan');
+        setupRequest('{"action":"goal","type":"Home","financialPlanId":"' + fp.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'goal without name should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsGoalWithoutType() {
+        FinancialPlan fp = buildTestPlan('No Type Plan');
+        setupRequest('{"action":"goal","name":"Typeless goal","financialPlanId":"' + fp.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'goal without type should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsGoalWithoutPlan() {
+        setupRequest('{"action":"goal","name":"Orphan goal","type":"Home"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'goal without plan should 400');
+        System.assert(((String) parseBody().get('error')).containsIgnoreCase('plan'), 'error mentions plan');
+    }
+
+    @IsTest
+    static void rejectsGoalWithNonPlanId() {
+        // A real Account Id sent as the plan — must 400, not surface a 500.
+        Account acct = new Account(Name = 'Not a plan');
+        insert acct;
+        setupRequest('{"action":"goal","name":"Bad plan goal","type":"Home","financialPlanId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'non-plan id should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    // ─── PersonLifeEvent (life-event create / edit) ─────────────────────────
+
+    /** A Contact — the primary-person link a PersonLifeEvent attaches to.
+     *  PersonLifeEvent.PrimaryPersonId is a reference to Contact (person
+     *  accounts share the Account name, but the FK is the Contact Id). */
+    private static Contact buildTestContact(String lastName) {
+        Contact c = new Contact(FirstName = 'Test', LastName = lastName);
+        insert c;
+        return c;
+    }
+
+    @IsTest
+    static void createsLifeEvent() {
+        Contact person = buildTestContact('Nakamura');
+        setupRequest('{"action":"lifeEvent","name":"New baby - Nakamura","eventType":"Baby"'
+            + ',"eventDate":"2026-09-15","primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create life event should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertNotEquals(null, out.get('id'), 'new life-event id returned');
+        PersonLifeEvent ple = [
+            SELECT Name, EventType, EventDate, PrimaryPersonId
+            FROM PersonLifeEvent WHERE Id = :(Id) out.get('id')
+        ];
+        System.assertEquals('New baby - Nakamura', ple.Name, 'name set');
+        System.assertEquals('Baby', ple.EventType, 'event type set');
+        System.assertEquals(person.Id, ple.PrimaryPersonId, 'primary person (Contact) link set');
+        System.assertEquals(
+            Datetime.newInstance(Date.valueOf('2026-09-15'), Time.newInstance(0, 0, 0, 0)),
+            ple.EventDate, 'event date set at local midnight'
+        );
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutName() {
+        Contact person = buildTestContact('NoName');
+        setupRequest('{"action":"lifeEvent","eventType":"Baby","eventDate":"2026-09-15"'
+            + ',"primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without name should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutType() {
+        Contact person = buildTestContact('NoType');
+        setupRequest('{"action":"lifeEvent","name":"Typeless event","eventDate":"2026-09-15"'
+            + ',"primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without type should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutDate() {
+        Contact person = buildTestContact('NoDate');
+        setupRequest('{"action":"lifeEvent","name":"Dateless event","eventType":"Baby"'
+            + ',"primaryPersonId":"' + person.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without date should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithoutPerson() {
+        setupRequest('{"action":"lifeEvent","name":"Orphan event","eventType":"Baby","eventDate":"2026-09-15"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'life event without person should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLifeEventWithNonContactId() {
+        // A real Account Id sent as the primary person — must 400, not surface a 500.
+        Account acct = new Account(Name = 'Not a contact');
+        insert acct;
+        setupRequest('{"action":"lifeEvent","name":"Bad person event","eventType":"Baby"'
+            + ',"eventDate":"2026-09-15","primaryPersonId":"' + acct.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'non-Contact id should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void updatesLifeEvent() {
+        Contact person = buildTestContact('Editable');
+        PersonLifeEvent ple = new PersonLifeEvent(
+            Name = 'Original event', EventType = 'Job', PrimaryPersonId = person.Id,
+            EventDate = Datetime.newInstance(Date.valueOf('2026-01-01'), Time.newInstance(0, 0, 0, 0))
+        );
+        insert ple;
+        setupRequest('{"action":"update","sobjectType":"PersonLifeEvent","recordId":"' + ple.Id + '"'
+            + ',"name":"Promotion","eventType":"Job","eventDate":"2026-10-01"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update life event should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        PersonLifeEvent updated = [SELECT Name, EventType, EventDate FROM PersonLifeEvent WHERE Id = :ple.Id];
+        System.assertEquals('Promotion', updated.Name, 'name updated');
+        System.assertEquals('Job', updated.EventType, 'event type retained');
+        System.assertEquals(
+            Datetime.newInstance(Date.valueOf('2026-10-01'), Time.newInstance(0, 0, 0, 0)),
+            updated.EventDate, 'event date updated'
+        );
+    }
+
+    // ---- Lead (lead / referral) create + update ----------------------------
+
+    @IsTest
+    static void createsLead() {
+        setupRequest('{"action":"lead","firstName":"Dana","lastName":"Whitfield","company":"Aperture Capital"'
+            + ',"status":"Working","leadSource":"Referral","email":"dana@aperture.example.com","annualRevenue":250000}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create lead should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        System.assertNotEquals(null, out.get('id'), 'new lead id returned');
+        Lead ld = [
+            SELECT FirstName, LastName, Company, Status, LeadSource, Email, AnnualRevenue
+            FROM Lead WHERE Id = :(Id) out.get('id')
+        ];
+        System.assertEquals('Dana', ld.FirstName, 'first name set');
+        System.assertEquals('Whitfield', ld.LastName, 'last name set');
+        System.assertEquals('Aperture Capital', ld.Company, 'company set');
+        System.assertEquals('Working', ld.Status, 'status set');
+        System.assertEquals('Referral', ld.LeadSource, 'lead source set');
+        System.assertEquals('dana@aperture.example.com', ld.Email, 'email set');
+        System.assertEquals(250000, ld.AnnualRevenue, 'annual revenue set');
+    }
+
+    @IsTest
+    static void createsLeadWithDefaults() {
+        // Only the two required fields — Status should default to 'New'.
+        setupRequest('{"action":"lead","lastName":"Soloman","company":"Bridge Partners"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'minimal lead should 200');
+        Map<String, Object> out = parseBody();
+        System.assertEquals(true, out.get('success'), 'success flag');
+        Lead ld = [SELECT LastName, Company, Status FROM Lead WHERE Id = :(Id) out.get('id')];
+        System.assertEquals('Soloman', ld.LastName, 'last name set');
+        System.assertEquals('Bridge Partners', ld.Company, 'company set');
+        System.assertEquals('New', ld.Status, 'status defaults to New');
+    }
+
+    @IsTest
+    static void rejectsLeadWithoutLastName() {
+        setupRequest('{"action":"lead","firstName":"Nameless","company":"Acme"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'lead without last name should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsLeadWithoutCompany() {
+        setupRequest('{"action":"lead","lastName":"Orphan"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'lead without company should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void updatesLead() {
+        Lead ld = new Lead(FirstName = 'Old', LastName = 'Name', Company = 'Old Co', Status = 'New');
+        insert ld;
+        setupRequest('{"action":"update","sobjectType":"Lead","recordId":"' + ld.Id + '"'
+            + ',"firstName":"New","lastName":"Name","company":"New Co","status":"Qualified"'
+            + ',"leadSource":"Partner","email":"new@newco.example.com","annualRevenue":500000}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'update lead should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        Lead updated = [
+            SELECT FirstName, Company, Status, LeadSource, Email, AnnualRevenue
+            FROM Lead WHERE Id = :ld.Id
+        ];
+        System.assertEquals('New', updated.FirstName, 'first name updated');
+        System.assertEquals('New Co', updated.Company, 'company updated');
+        System.assertEquals('Qualified', updated.Status, 'status updated');
+        System.assertEquals('Partner', updated.LeadSource, 'lead source updated');
+        System.assertEquals('new@newco.example.com', updated.Email, 'email updated');
+        System.assertEquals(500000, updated.AnnualRevenue, 'annual revenue updated');
+    }
+
+    /** A minimal active standard-user for owner-reassignment assertions. */
+    private static User buildTestUser(String uname) {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1];
+        return new User(
+            FirstName = 'Crm', LastName = 'Owner', Email = 'crmwrite.owner@example.com.invalid',
+            Username = uname, Alias = 'crmown', ProfileId = p.Id,
+            TimeZoneSidKey = 'America/Los_Angeles', LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8', LanguageLocaleKey = 'en_US', IsActive = true
+        );
+    }
+
+    @IsTest
+    static void deletesTask() {
+        Task t = new Task(Subject = 'Doomed task', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"delete","sobjectType":"Task","recordId":"' + t.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'delete task should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        System.assertEquals(0, [SELECT COUNT() FROM Task WHERE Id = :t.Id], 'task deleted');
+    }
+
+    @IsTest
+    static void deletesEvent() {
+        Event ev = new Event(Subject = 'Doomed event', ActivityDateTime = Datetime.now(), DurationInMinutes = 30);
+        insert ev;
+        setupRequest('{"action":"delete","sobjectType":"Event","recordId":"' + ev.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'delete event should 200');
+        System.assertEquals(true, parseBody().get('success'), 'success flag');
+        System.assertEquals(0, [SELECT COUNT() FROM Event WHERE Id = :ev.Id], 'event deleted');
+    }
+
+    @IsTest
+    static void rejectsDeleteWithoutRecordId() {
+        setupRequest('{"action":"delete","sobjectType":"Task"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'delete without recordId should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+    }
+
+    @IsTest
+    static void rejectsDeleteWhenIdTypeMismatches() {
+        // A real Task Id declared as an Event — must 400, not surface a 500.
+        Task t = new Task(Subject = 'x', Status = 'Not Started', Priority = 'Normal');
+        insert t;
+        setupRequest('{"action":"delete","sobjectType":"Event","recordId":"' + t.Id + '"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(400, RestContext.response.statusCode, 'delete Id/type mismatch should 400');
+        System.assertEquals(false, parseBody().get('success'), 'success false');
+        System.assertEquals(1, [SELECT COUNT() FROM Task WHERE Id = :t.Id], 'task not deleted');
     }
 }

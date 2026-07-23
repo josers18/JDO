@@ -1,75 +1,47 @@
-# Base React App
+# React Headless — local review harness
 
-Base React App is a template application that demonstrates how to build a React UI Bundle on the Salesforce platform with Vite, TypeScript, Tailwind, shadcn/ui, and the Salesforce UI Bundle SDK. It provides a minimal shell (home, 404), routing, and GraphQL codegen support so feature apps can extend it via the patches pipeline.
+The **review harness** for the React-Headless cockpit suite: a local sandbox that renders the shared cockpit surfaces (Retail / Wealth / Commercial) as plain routes so you can eyeball changes to the `_shared` library without deploying to an org. Same tech as the persona bundles — React 19 + Vite 7 + TypeScript + Tailwind v4 / shadcn/ui on the **Cumulus Aurora** design language — but scoped to fast visual iteration.
 
-This UI Bundle lives inside an SFDX project. The project root is the directory that contains `force-app/` and `sfdx-project.json`. Run the commands in the sections below from the paths indicated.
+Unlike the three persona bundles, **this one is not a deployable in-org app.** It has no `CustomApplication`, permission set, `CustomTab`, or Visualforce launch card — nothing under `applications/`, `permissionsets/`, `tabs/`, or `pages/` references it. It exists to run `npm run dev` and look at the UI.
 
-## Table of contents
+It pulls the same `_shared/` source library (Aurora Glass theme, data clients, component primitives, the Configuration page) via the `@shared` alias, so what you see here is what the deployed cockpits render. Data defaults to the per-domain mock fallback (`src/data/dataSource.ts`) so it runs standalone with no org session; point it at live data the same way the persona bundles do when you need it.
 
-- [Run (development)](#run-development)
-- [Build](#build)
-- [Deploy](#deploy)
-- [Test](#test)
+## What's inside
+
+- **Home** (`/`) — the cockpit landing surface.
+- **Customer 360** (`/client/:id`) — the full customer-360 view for a given client id, the shared surface the persona apps reuse.
+- The shared Aurora chrome and component primitives, rendered exactly as the persona bundles compose them.
 
 ## Run (development)
 
-From the UI Bundle directory (`force-app/main/default/uiBundles/base-react-app`):
+From this bundle directory (`force-app/main/default/uiBundles/ReactHeadless`):
 
 ```bash
 npm install
-npm run dev
+npm run dev            # Vite dev server (~http://localhost:5173); dev:design for design mode
 ```
 
-This starts the Vite dev server (e.g. http://localhost:5173). Use `npm run dev:design` to run in design mode.
+Open `/` for the home surface and `/client/<id>` for the Customer 360 view.
 
 ## Build
 
-From the UI Bundle directory:
-
 ```bash
 npm install
-npm run build
+npm run build          # tsc -b && vite build -> dist/
 ```
 
-The production build is written to `dist/` inside the UI Bundle folder. Deploy using the steps in [Deploy](#deploy).
-
-## Deploy
-
-From the **SFDX project root** (the directory that contains `force-app/`):
-
-1. Build the UI Bundle:
-
-   ```bash
-   cd force-app/main/default/uiBundles/base-react-app && npm install && npm run build && cd -
-   ```
-
-2. Deploy the UI Bundle only:
-
-   ```bash
-   sf project deploy start --source-dir force-app/main/default/ui-bundles --target-org <alias>
-   ```
-
-   Or deploy all metadata:
-
-   ```bash
-   sf project deploy start --source-dir force-app --target-org <alias>
-   ```
-
-   Replace `<alias>` with your target org alias.
+The build is a sanity check that the harness (and the `_shared` code it exercises) compiles. There is **no deploy step** — this bundle intentionally ships nowhere. To put a change in front of users, make it in `_shared` and deploy one of the persona bundles (ReactRetail / ReactWealth / ReactCommercial); see their READMEs.
 
 ## Test
 
-From the UI Bundle directory:
-
 ```bash
-npm install
-npm run test
+npm run test -- run    # single Vitest pass (CI mode)
+npm run lint
 ```
 
-This runs the unit test suite (Vitest). For end-to-end tests from the **base-react-app package root**:
+## Related
 
-```bash
-npm run test:e2e
-```
-
-This installs dependencies, builds with E2E asset rewrites, and runs Playwright. Ensure Chromium is installed (`npx playwright install chromium` if needed).
+- [Project README](../../../../../README.md) — quick start, deployed-app URLs, verified deploy facts.
+- [AGENTS.md](../../../../../AGENTS.md) — project-context primer (architecture, conventions, common mistakes).
+- [CHANGELOG.md](../../../../../CHANGELOG.md) — rolling change history for the whole suite.
+- [ReactRetail](../ReactRetail/README.md) / [ReactWealth](../ReactWealth/README.md) / [ReactCommercial](../ReactCommercial/README.md) — the deployable persona cockpits.

@@ -1,6 +1,16 @@
 import { Outlet } from 'react-router';
-import { ThemeProvider, CommandRail, type CommandRailSection, type CommandRailArcStep } from '@shared';
+import {
+  ThemeProvider,
+  CommandRail,
+  HomeViewProvider,
+  HomeViewToggle,
+  WorkspaceSelectionProvider,
+  type CommandRailSection,
+  type CommandRailArcStep,
+  type CommandRailPinned,
+} from '@shared';
 import { AppShell } from '../shell/AppShell';
+import { APP_PERSONA } from '../shell/appChrome';
 
 /**
  * Command-center sections — ids match the section anchors rendered by HomePage
@@ -9,10 +19,12 @@ import { AppShell } from '../shell/AppShell';
  */
 const RAIL_SECTIONS: CommandRailSection[] = [
   { id: 'brief', label: 'Daily brief', icon: 'sparkle' },
+  { id: 'kpis', label: 'Key metrics', icon: 'metrics' },
+  { id: 'schedule', label: 'Tasks & schedule', icon: 'meeting' },
   { id: 'queue', label: 'Priority queue', icon: 'tasks', count: 5, tone: 'risk' },
   { id: 'actions', label: 'Recommended actions', icon: 'wand', count: 4, tone: 'ai' },
-  { id: 'kpis', label: 'Pulse metrics', icon: 'metrics' },
   { id: 'events', label: 'Life events', icon: 'lifeEvent', count: 4, tone: 'warn' },
+  { id: 'alerts', label: 'Risk alerts', icon: 'alerts', tone: 'risk' },
   { id: 'pipeline', label: 'Pipeline', icon: 'pipeline' },
   { id: 'leads', label: 'Leads & referrals', icon: 'leads', count: 4 },
   { id: 'pulse', label: 'Portfolio pulse', icon: 'pulse' },
@@ -25,6 +37,13 @@ const RAIL_ARC: CommandRailArcStep[] = [
   { label: 'Priya ESG proposal', time: '16:00', state: 'todo' },
 ];
 
+/** Pinned accounts — clicking one selects it into the workspace right panel. */
+const RAIL_PINNED: CommandRailPinned[] = [
+  { name: 'Whitfield Family Trust', sub: 'UHNW · $18.6M' },
+  { name: 'Julie E Morris', sub: 'Private Wealth · $4.21M' },
+  { name: 'Robert Kessler', sub: 'Retiree · $5.6M' },
+];
+
 /**
  * HOME app layout — the advisor's landing experience that REPLACES the standard
  * Salesforce home page. The signature CommandRail replaces the built-in nav
@@ -33,18 +52,23 @@ const RAIL_ARC: CommandRailArcStep[] = [
 export default function HomeLayout() {
   return (
     <ThemeProvider persona="wealth" mode="light">
-      <AppShell
-        title="Advisory Desk"
-        sidebar={
-          <CommandRail
-            sections={RAIL_SECTIONS}
-            arc={RAIL_ARC}
-            user={{ name: 'Jose Sifontes', sub: 'Wealth · Cumulus FS' }}
-          />
-        }
-      >
-        <Outlet />
-      </AppShell>
+      <HomeViewProvider persona={APP_PERSONA}>
+        <WorkspaceSelectionProvider initialPinned={RAIL_PINNED} storageKey="cumulus.pinned.wealth">
+          <AppShell
+            title="Advisory Desk"
+            titleAside={<HomeViewToggle />}
+            sidebar={
+              <CommandRail
+                sections={RAIL_SECTIONS}
+                arc={RAIL_ARC}
+                user={{ name: 'Jose Sifontes', sub: 'Wealth · Cumulus FS' }}
+              />
+            }
+          >
+            <Outlet />
+          </AppShell>
+        </WorkspaceSelectionProvider>
+      </HomeViewProvider>
     </ThemeProvider>
   );
 }

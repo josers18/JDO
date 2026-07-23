@@ -45,7 +45,13 @@ function initials(name: string): string {
   return (parts[0][0] + (parts[parts.length - 1][0] ?? '')).toUpperCase();
 }
 
-export function UserMenu() {
+/**
+ * @param onNavigate In-app SPA navigation (from the bundle's router). When
+ *   provided, the menu shows an in-frame "Configuration" item that calls it.
+ *   Omitted → the item is hidden. _shared stays router-agnostic (it has no
+ *   react-router dependency); the bundle supplies navigation.
+ */
+export function UserMenu({ onNavigate }: { onNavigate?: (path: string) => void } = {}) {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -150,6 +156,23 @@ export function UserMenu() {
             Settings
           </a>
 
+          {/* In-app command-center configuration (model per AI action + params).
+              A real SPA route, so it navigates in-frame — not a core-org link.
+              Only shown when the bundle wires up onNavigate. */}
+          {onNavigate && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onNavigate('/config');
+              }}
+              style={menuButton}
+            >
+              Configuration
+            </button>
+          )}
+
           <div style={menuDivider} />
 
           {/* Admin escape hatches — mirror the native LEX gear menu. These are
@@ -185,6 +208,17 @@ const menuLink: React.CSSProperties = {
   textDecoration: 'none',
   color: 'var(--wp-text)',
   fontSize: '0.86rem',
+};
+
+// A <button> that visually matches menuLink (for in-app SPA navigation items).
+const menuButton: React.CSSProperties = {
+  ...menuLink,
+  width: '100%',
+  border: 'none',
+  background: 'transparent',
+  cursor: 'pointer',
+  textAlign: 'left',
+  font: 'inherit',
 };
 
 const menuDivider: React.CSSProperties = {

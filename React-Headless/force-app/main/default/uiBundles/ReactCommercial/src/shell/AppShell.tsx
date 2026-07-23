@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { AgentforceChat, AppLauncher, GlobalSearch, Icon, NotificationBell, UserMenu, type IconKey } from '@shared';
+import { AgentforceChat, AppLauncher, GlobalSearch, Icon, NotificationBell, UserMenu, useBrandOverride, type IconKey } from '@shared';
 
 /** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
 const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
@@ -45,6 +45,7 @@ interface AppShellProps {
  */
 export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const brand = useBrandOverride();
   const navigate = useNavigate();
   const railW = collapsed ? 64 : 232;
 
@@ -73,10 +74,19 @@ export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, c
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '1rem 1.1rem', height: 60 }}>
-          <span
-            aria-hidden="true"
-            style={{ width: 28, height: 28, borderRadius: 9, background: 'var(--wp-gradient)', flexShrink: 0, boxShadow: '0 0 14px var(--wp-accent)' }}
-          />
+          {brand?.logoBase64 ? (
+            <img
+              src={`data:image/png;base64,${brand.logoBase64}`}
+              alt=""
+              aria-hidden="true"
+              style={{ width: 28, height: 28, borderRadius: 9, objectFit: 'cover', flexShrink: 0, boxShadow: '0 0 14px var(--wp-accent)' }}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              style={{ width: 28, height: 28, borderRadius: 9, background: 'var(--wp-gradient)', flexShrink: 0, boxShadow: '0 0 14px var(--wp-accent)' }}
+            />
+          )}
           {!collapsed && <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>Cumulus</span>}
         </div>
 
@@ -159,8 +169,8 @@ export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, c
               opportunities closing soon), the App-Domain stand-in for the LEX bell */}
           <NotificationBell />
 
-          {/* User menu — profile / settings / log out (live identity via GraphQL) */}
-          <UserMenu />
+          {/* User menu — profile / settings / configuration / log out (live identity via GraphQL) */}
+          <UserMenu onNavigate={navigate} />
         </header>
 
         <main style={{ flex: 1, padding: '1.5rem', maxWidth: 1600, width: '100%', margin: '0 auto' }}>{children}</main>

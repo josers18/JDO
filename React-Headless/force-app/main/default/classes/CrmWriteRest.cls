@@ -23,7 +23,8 @@ global with sharing class CrmWriteRest {
         public String subject;          // required for all
         public String description;
         public String whoId;            // Contact/Lead Id (Task/Event)
-        public String whatId;           // related record Id (Task/Event)
+        public String whatId;           // related record Id (Task/Event) — Related To
+        public String ownerId;          // Owner Id (Task/Event) — Assigned To
         public String accountId;        // for Case
         public String dueDate;          // 'YYYY-MM-DD' for Task.ActivityDate
         public String activityDateTime; // ISO for Event.ActivityDateTime
@@ -32,8 +33,57 @@ global with sharing class CrmWriteRest {
         public String status;           // Task/Case
         public String toAddress;        // email
         public String htmlBody;         // email
-        public String sobjectType;      // 'Task' | 'Event'  (required for update)
-        public String recordId;         // Id of the record to update
+        public String sobjectType;      // 'Task' | 'Event' | 'FinancialGoal' | 'PersonLifeEvent'  (required for update/delete)
+        public String recordId;         // Id of the record to update/delete
+        public String type;             // Task/Event/FinancialGoal Type picklist
+        public String location;         // Event location
+        public String showAs;           // Event ShowAs (Busy|OutOfOffice|Free)
+        // FinancialGoal (customer goal) edit/create fields —
+        public String name;             // FinancialGoal.Name / PersonLifeEvent.Name
+        public String financialPlanId;  // FinancialGoal.FinancialPlanId (customer link, create)
+        public String targetDate;       // FinancialGoal.TargetDate 'YYYY-MM-DD'
+        public Decimal targetAmount;    // FinancialGoal.TargetAmount
+        public Decimal actualAmount;    // FinancialGoal.ActualAmount
+        // PersonLifeEvent (life event) create/edit fields —
+        public String primaryPersonId;  // PersonLifeEvent.PrimaryPersonId (Contact — the person link, create)
+        public String eventType;        // PersonLifeEvent.EventType picklist (Birth|Graduation|Job|…)
+        public String eventDate;        // PersonLifeEvent.EventDate 'YYYY-MM-DD' (datetime field, midnight)
+        // Lead (lead / referral) create/edit fields —
+        public String lastName;         // Lead.LastName (required for create)
+        public String firstName;        // Lead.FirstName
+        public String company;          // Lead.Company (required for create)
+        public String leadSource;       // Lead.LeadSource picklist
+        public String email;            // Lead.Email
+        public Decimal annualRevenue;   // Lead.AnnualRevenue (est. value)
+    }
+
+    /**
+     * Identity of the running user — the session the bundle already runs under.
+     *
+     *   GET /services/apexrest/crm/whoami
+     *     200: { "success": true, "userId": "005...", "name": "Jane Banker",
+     *            "firstName": "Jane", "lastName": "Banker" }
+     *
+     * Used by the banker home to greet the logged-in user by name instead of a
+     * hardcoded placeholder. UserInfo reflects the caller (REST Apex runs as the
+     * authenticated user), so no query or FLS is involved.
+     */
+    @HttpGet
+    global static void whoami() {
+        RestResponse res = RestContext.response;
+        if (res == null) {
+            res = new RestResponse();
+            RestContext.response = res;
+        }
+        res.addHeader('Content-Type', 'application/json');
+        res.statusCode = 200;
+        res.responseBody = Blob.valueOf(JSON.serialize(new Map<String, Object>{
+            'success' => true,
+            'userId' => UserInfo.getUserId(),
+            'name' => UserInfo.getName(),
+            'firstName' => UserInfo.getFirstName(),
+            'lastName' => UserInfo.getLastName()
+        }));
     }
 
     @HttpPost
@@ -66,10 +116,18 @@ global with sharing class CrmWriteRest {
                 handleCase(res, reqBody);
             } else if (action == 'email') {
                 handleEmail(res, reqBody);
+            } else if (action == 'goal') {
+                handleGoal(res, reqBody);
+            } else if (action == 'lifeevent') {
+                handleLifeEvent(res, reqBody);
+            } else if (action == 'lead') {
+                handleLead(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
+            } else if (action == 'delete') {
+                handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, or update.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, update, or delete.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -161,45 +219,255 @@ global with sharing class CrmWriteRest {
         writeSuccess(res, null);
     }
 
-    private static void handleUpdate(RestResponse res, WriteRequest req) {
-        if (String.isBlank(req.recordId)) {
-            writeError(res, 400, 'A recordId is required to update a record.');
+    /**
+     * Create a customer FinancialGoal from the home "New goal" flow. Requires
+     * Name, Type, Status (verified via describe as the create-required trio) and
+     * a FinancialPlanId — the goal's only customer link (FinancialGoal has no
+     * Account field), so the new goal attributes to a household and shows up on
+     * the plan-linked Customer Goals card after refetch. Optional fields
+     * (priority, description, targetDate, amounts) are set only when provided.
+     */
+    private static void handleGoal(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.name)) {
+            writeError(res, 400, 'A goal name is required.');
             return;
         }
-        String sot = req.sobjectType == null ? '' : req.sobjectType.trim();
-        if (sot != 'Task' && sot != 'Event') {
-            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task or Event.');
+        if (String.isBlank(req.type)) {
+            writeError(res, 400, 'A goal type is required.');
             return;
+        }
+        if (String.isBlank(req.financialPlanId)) {
+            writeError(res, 400, 'Select a customer (financial plan) for the goal.');
+            return;
+        }
+        Id planId;
+        try {
+            planId = (Id) req.financialPlanId;
+        } catch (Exception e) {
+            writeError(res, 400, 'financialPlanId is not a valid Id.');
+            return;
+        }
+        if (planId.getSObjectType() != FinancialPlan.SObjectType) {
+            writeError(res, 400, 'financialPlanId is not a FinancialPlan Id.');
+            return;
+        }
+        FinancialGoal g = new FinancialGoal();
+        g.Name = req.name;
+        g.Type = req.type;
+        g.Status = String.isBlank(req.status) ? 'NOT_STARTED' : req.status;
+        g.FinancialPlanId = planId;
+        if (!String.isBlank(req.priority))    { g.Priority = req.priority; }
+        if (!String.isBlank(req.description)) { g.Description = req.description; }
+        if (!String.isBlank(req.targetDate))  { g.TargetDate = Date.valueOf(req.targetDate); }
+        if (req.targetAmount != null)         { g.TargetAmount = req.targetAmount; }
+        if (req.actualAmount != null)         { g.ActualAmount = req.actualAmount; }
+        insert g;
+        writeSuccess(res, g.Id);
+    }
+
+    /**
+     * Create a PersonLifeEvent from the home "Life events" flow. Requires Name,
+     * EventType, EventDate, and PrimaryPersonId (verified via describe as the
+     * create-required set). PrimaryPersonId is a Contact reference — for person
+     * accounts the contact name equals the account name, so picking a Contact IS
+     * picking the customer. EventDate is a Datetime field but the modal supplies
+     * a date-only string, so it's anchored to midnight. RelatedPersonId (also a
+     * Contact) is optional.
+     */
+    private static void handleLifeEvent(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.name)) {
+            writeError(res, 400, 'A life event name is required.');
+            return;
+        }
+        if (String.isBlank(req.eventType)) {
+            writeError(res, 400, 'A life event type is required.');
+            return;
+        }
+        if (String.isBlank(req.eventDate)) {
+            writeError(res, 400, 'A life event date is required.');
+            return;
+        }
+        if (String.isBlank(req.primaryPersonId)) {
+            writeError(res, 400, 'Select a customer (person) for the life event.');
+            return;
+        }
+        Id personId;
+        try {
+            personId = (Id) req.primaryPersonId;
+        } catch (Exception e) {
+            writeError(res, 400, 'primaryPersonId is not a valid Id.');
+            return;
+        }
+        if (personId.getSObjectType() != Contact.SObjectType) {
+            writeError(res, 400, 'primaryPersonId is not a Contact Id.');
+            return;
+        }
+        PersonLifeEvent ple = new PersonLifeEvent();
+        ple.Name = req.name;
+        ple.EventType = req.eventType;
+        ple.PrimaryPersonId = personId;
+        ple.EventDate = toEventDatetime(req.eventDate);
+        insert ple;
+        writeSuccess(res, ple.Id);
+    }
+
+    /**
+     * Coerce a modal 'YYYY-MM-DD' string into the Datetime that
+     * PersonLifeEvent.EventDate expects, anchored to local midnight. Direct
+     * assignment of a Date to a Datetime field won't compile, so we build it.
+     */
+    private static Datetime toEventDatetime(String ymd) {
+        Date d = Date.valueOf(ymd);
+        return Datetime.newInstance(d, Time.newInstance(0, 0, 0, 0));
+    }
+
+    /**
+     * Create a Lead from the home "Leads & referrals" flow. LastName and Company
+     * are the two create-required fields on Lead (both non-nillable); Status
+     * defaults to 'New' when omitted. Optional fields (firstName, leadSource,
+     * email, annualRevenue) are set only when provided. Unlike PersonLifeEvent,
+     * every Lead field here is both createable and updateable.
+     */
+    private static void handleLead(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.lastName)) {
+            writeError(res, 400, 'A last name is required for a lead.');
+            return;
+        }
+        if (String.isBlank(req.company)) {
+            writeError(res, 400, 'A company is required for a lead.');
+            return;
+        }
+        Lead ld = new Lead();
+        ld.LastName = req.lastName;
+        ld.Company = req.company;
+        ld.Status = String.isBlank(req.status) ? 'New' : req.status;
+        if (!String.isBlank(req.firstName))  { ld.FirstName = req.firstName; }
+        if (!String.isBlank(req.leadSource)) { ld.LeadSource = req.leadSource; }
+        if (!String.isBlank(req.email))      { ld.Email = req.email; }
+        if (req.annualRevenue != null)       { ld.AnnualRevenue = req.annualRevenue; }
+        insert ld;
+        writeSuccess(res, ld.Id);
+    }
+
+    /**
+     * Validate recordId + sobjectType for an update/delete and return the Id.
+     * Writes the appropriate 400 and returns null on any failure (blank id,
+     * unsupported/absent sobjectType, malformed Id, or an Id whose object type
+     * does not match the declared sobjectType — e.g. a Task Id sent as an
+     * Event, which would otherwise surface as an opaque 500).
+     */
+    private static Id resolveVerifiedId(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.recordId)) {
+            writeError(res, 400, 'A recordId is required.');
+            return null;
+        }
+        String sot = req.sobjectType == null ? '' : req.sobjectType.trim();
+        if (sot != 'Task' && sot != 'Event' && sot != 'FinancialGoal' && sot != 'PersonLifeEvent' && sot != 'Lead') {
+            writeError(res, 400, 'Unsupported sobjectType "' + req.sobjectType + '". Use Task, Event, FinancialGoal, PersonLifeEvent, or Lead.');
+            return null;
         }
         Id recId;
         try {
             recId = (Id) req.recordId;
         } catch (Exception e) {
             writeError(res, 400, 'recordId is not a valid Id.');
-            return;
+            return null;
         }
-        // Reject a well-formed Id whose object type does not match the declared
-        // sobjectType (e.g. a Task Id sent as an Event). Without this, the
-        // mismatched SObject constructor throws and surfaces as an opaque 500.
         String recPrefix = recId.getSObjectType().getDescribe().getName();
         if (recPrefix != sot) {
             writeError(res, 400, 'recordId is a ' + recPrefix + ', not a ' + sot + '.');
-            return;
+            return null;
         }
+        return recId;
+    }
+
+    private static void handleUpdate(RestResponse res, WriteRequest req) {
+        Id recId = resolveVerifiedId(res, req);
+        if (recId == null) { return; } // error already written
+        String sot = req.sobjectType.trim();
         if (sot == 'Task') {
             Task t = new Task(Id = recId);
-            if (!String.isBlank(req.subject))  { t.Subject = req.subject; }
-            if (!String.isBlank(req.status))   { t.Status = req.status; }
-            if (!String.isBlank(req.priority)) { t.Priority = req.priority; }
-            if (!String.isBlank(req.dueDate))  { t.ActivityDate = Date.valueOf(req.dueDate); }
+            if (!String.isBlank(req.subject))     { t.Subject = req.subject; }
+            if (!String.isBlank(req.status))      { t.Status = req.status; }
+            if (!String.isBlank(req.priority))    { t.Priority = req.priority; }
+            if (!String.isBlank(req.dueDate))     { t.ActivityDate = Date.valueOf(req.dueDate); }
+            if (!String.isBlank(req.type))        { t.Type = req.type; }
+            if (!String.isBlank(req.description)) { t.Description = req.description; }
+            if (!String.isBlank(req.whatId))      { t.WhatId = req.whatId; }
+            if (!String.isBlank(req.ownerId))     { t.OwnerId = req.ownerId; }
             update t;
+        } else if (sot == 'FinancialGoal') {
+            // Customer goal edit from the home Customer Goals card. Only the
+            // fields the modal exposes are written; a blank/absent field leaves
+            // the server value untouched (targetAmount/actualAmount are non-null
+            // Decimals so they update whenever the client sends them).
+            FinancialGoal g = new FinancialGoal(Id = recId);
+            if (!String.isBlank(req.name))       { g.Name = req.name; }
+            if (!String.isBlank(req.status))     { g.Status = req.status; }
+            if (!String.isBlank(req.priority))   { g.Priority = req.priority; }
+            if (!String.isBlank(req.type))       { g.Type = req.type; }
+            if (!String.isBlank(req.description)){ g.Description = req.description; }
+            if (!String.isBlank(req.targetDate)) { g.TargetDate = Date.valueOf(req.targetDate); }
+            if (req.targetAmount != null)        { g.TargetAmount = req.targetAmount; }
+            if (req.actualAmount != null)        { g.ActualAmount = req.actualAmount; }
+            update g;
+        } else if (sot == 'PersonLifeEvent') {
+            // Life event edit from the home Life Events flow. Only Name and
+            // EventDate are written: EventType and PrimaryPersonId are
+            // createable-but-NOT-updateable on PersonLifeEvent (assigning either
+            // on update throws "Field is not writeable"), so they are fixed at
+            // creation and silently ignored here even if the client sends them.
+            // A blank/absent field leaves the server value untouched. EventDate
+            // is a datetime anchored to midnight.
+            PersonLifeEvent ple = new PersonLifeEvent(Id = recId);
+            if (!String.isBlank(req.name))      { ple.Name = req.name; }
+            if (!String.isBlank(req.eventDate)) { ple.EventDate = toEventDatetime(req.eventDate); }
+            update ple;
+        } else if (sot == 'Lead') {
+            // Lead edit from the home Leads & referrals card. Only the fields the
+            // modal exposes are written; a blank/absent field leaves the server
+            // value untouched. Lead.Name is a compound read-only field, so the
+            // editable name is FirstName/LastName. All fields here are updateable.
+            Lead ld = new Lead(Id = recId);
+            if (!String.isBlank(req.lastName))   { ld.LastName = req.lastName; }
+            if (!String.isBlank(req.firstName))  { ld.FirstName = req.firstName; }
+            if (!String.isBlank(req.company))    { ld.Company = req.company; }
+            if (!String.isBlank(req.status))     { ld.Status = req.status; }
+            if (!String.isBlank(req.leadSource)) { ld.LeadSource = req.leadSource; }
+            if (!String.isBlank(req.email))      { ld.Email = req.email; }
+            if (req.annualRevenue != null)       { ld.AnnualRevenue = req.annualRevenue; }
+            update ld;
         } else {
             Event ev = new Event(Id = recId);
             if (!String.isBlank(req.subject)) { ev.Subject = req.subject; }
             if (!String.isBlank(req.activityDateTime)) {
                 ev.ActivityDateTime = (Datetime) JSON.deserialize('"' + req.activityDateTime + '"', Datetime.class);
             }
+            if (!String.isBlank(req.type))        { ev.Type = req.type; }
+            if (!String.isBlank(req.description)) { ev.Description = req.description; }
+            if (!String.isBlank(req.location))    { ev.Location = req.location; }
+            if (!String.isBlank(req.showAs))      { ev.ShowAs = req.showAs; }
+            if (!String.isBlank(req.whatId))      { ev.WhatId = req.whatId; }
+            if (!String.isBlank(req.ownerId))     { ev.OwnerId = req.ownerId; }
             update ev;
+        }
+        writeSuccess(res, recId);
+    }
+
+    private static void handleDelete(RestResponse res, WriteRequest req) {
+        Id recId = resolveVerifiedId(res, req);
+        if (recId == null) { return; } // error already written
+        String sot = req.sobjectType.trim();
+        if (sot == 'Task') {
+            delete new Task(Id = recId);
+        } else if (sot == 'Event') {
+            delete new Event(Id = recId);
+        } else {
+            // resolveVerifiedId also permits FinancialGoal / PersonLifeEvent for
+            // update, but delete is only wired for activities. Reject cleanly
+            // rather than attempting a mismatched-type DML.
+            writeError(res, 400, 'Delete is only supported for Task and Event.');
+            return;
         }
         writeSuccess(res, recId);
     }

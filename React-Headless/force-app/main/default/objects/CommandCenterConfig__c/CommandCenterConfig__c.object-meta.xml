@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Org-level configuration for the React command centers (Retail/Wealth/Commercial). A single singleton record holds one JSON blob per center with per-AI-action model selections and generation parameters. Read via SOQL LIMIT 1; written instantly via CommandCenterConfigRest.</description>
+    <enableActivities>false</enableActivities>
+    <enableBulkApi>true</enableBulkApi>
+    <enableFeeds>false</enableFeeds>
+    <enableHistory>false</enableHistory>
+    <enableReports>false</enableReports>
+    <enableSearch>false</enableSearch>
+    <enableSharing>true</enableSharing>
+    <enableStreamingApi>true</enableStreamingApi>
+    <label>Command Center Config</label>
+    <nameField>
+        <label>Config Name</label>
+        <type>Text</type>
+    </nameField>
+    <pluralLabel>Command Center Configs</pluralLabel>
+    <sharingModel>ReadWrite</sharingModel>
+    <visibility>Public</visibility>
+</CustomObject>

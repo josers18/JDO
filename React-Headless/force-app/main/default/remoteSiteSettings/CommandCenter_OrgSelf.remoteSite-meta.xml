@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RemoteSiteSetting xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Self-callout to this org's My Domain so CommandCenterConfigRest can query the Einstein Platform model catalog. Used only for the models-list dropdown; all generation runs through the aiplatform.ModelsAPI Apex namespace (no callout).</description>
+    <disableProtocolSecurity>false</disableProtocolSecurity>
+    <isActive>true</isActive>
+    <url>https://storm-16a17dc388fbe6.demo.my.salesforce.com</url>
+</RemoteSiteSetting>

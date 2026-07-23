@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Themes__c</fullName>
+    <description>JSON map { salesforceUserId: themeId } — each user's active brand theme selection.</description>
+    <externalId>false</externalId>
+    <label>Active Themes</label>
+    <length>32768</length>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>6</visibleLines>
+</CustomField>

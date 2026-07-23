@@ -25,9 +25,17 @@ const TIER_TONE: Record<QueueTier, RingTone> = {
  * per-row action rail (Why / Prep / Call / Email / Task). Presentational —
  * clicking the row opens the 360 quick view; the action buttons are wired by
  * the page and stop propagation so they don't also open the quick view.
+ *
+ * `rank` gives the row its 1-based position in the ranked queue. The top item
+ * (`rank === 1`) is emphasized — accent wash + "Top priority" flag + a persistent
+ * action rail — so the list reads as ranked rather than a wall of identical
+ * rows. Lower-ranked rows keep their action rail hidden until hover/focus, which
+ * quiets the column; the buttons stay in the DOM so keyboard/AT users still
+ * reach them via `focus-within`.
  */
 export function PriorityQueueRow({
   item,
+  rank,
   onOpenQuickView,
   onWhy,
   onPrep,
@@ -36,6 +44,7 @@ export function PriorityQueueRow({
   onTask,
 }: {
   item: PriorityQueueRowItem;
+  rank?: number;
   onOpenQuickView: () => void;
   onWhy: () => void;
   onPrep: () => void;
@@ -48,6 +57,8 @@ export function PriorityQueueRow({
     fn();
   };
 
+  const emphasis = rank === 1;
+
   return (
     <div
       role="button"
@@ -59,21 +70,47 @@ export function PriorityQueueRow({
           onOpenQuickView();
         }
       }}
-      className="grid cursor-pointer grid-cols-[44px_1fr_auto] items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted"
+      className={clsx(
+        'group relative flex cursor-pointer items-center gap-4 border-b border-line px-5 py-4 transition last:border-b-0 hover:bg-surface-muted',
+        emphasis && 'bg-accent-bg/40 ring-1 ring-inset ring-accent-border',
+      )}
     >
-      <ScoreRing value={Math.round(item.score * 100)} tone={TIER_TONE[item.tier ?? 'watch']} size={44} />
-      <div className="min-w-0">
-        <div className="flex items-center gap-2.5 text-[15px] font-semibold">
-          <span className="truncate">{item.clientName}</span>
-          <span className="rounded-[5px] bg-track px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted">
+      <div className="flex-none">
+        <ScoreRing value={Math.round(item.score * 100)} tone={TIER_TONE[item.tier ?? 'watch']} size={44} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className={clsx('flex items-center gap-2.5 font-semibold', emphasis ? 'text-[16px]' : 'text-[15px]')}>
+          {rank != null && (
+            <span className="flex-none font-mono text-[11px] tabular-nums text-faint">{rank}</span>
+          )}
+          <span className="truncate" title={item.clientName}>{item.clientName}</span>
+          {emphasis && (
+            <span className="flex-none rounded-full bg-accent px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white">
+              Top priority
+            </span>
+          )}
+          <span className="flex-none rounded-[5px] bg-track px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted">
             {item.segment}
           </span>
-          <span className="text-[12px] text-faint">›</span>
+          <span className="flex-none text-[12px] text-faint">›</span>
         </div>
-        <p className="mt-1.5 max-w-[64ch] text-[13px] text-muted">{item.reason}</p>
+        <p className="mt-1.5 truncate text-[13px] text-muted" title={item.reason}>{item.reason}</p>
         <span className="mt-1.5 inline-block font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">{item.source}</span>
       </div>
-      <div className="flex items-center gap-1.5">
+      {/* Per-row action rail — inline at the row's right edge. The content box
+          above is `flex-1`, so it grows to fill all free space and pushes this
+          flex-none rail hard against the right margin on its own — NO ml-auto.
+          (An auto margin would eat the free space BEFORE the content's flex-grow
+          could, collapsing the name to zero width.)
+
+          Hover/focus-reveal on EVERY row, including the emphasized #1. In the
+          narrow cockpit column the rail is ~200px of flex-none buttons; keeping
+          it always-on for #1 starved the (shrinkable, truncating) name to zero
+          width. The #1 row still reads as ranked via its accent wash, colored
+          ring, and TOP PRIORITY pill — it doesn't need the buttons pinned open.
+          Uses display none/flex, not opacity, so it reserves ZERO width while
+          hidden: the name gets the full row until you hover. */}
+      <div className="hidden flex-none items-center gap-1.5 group-hover:flex group-focus-within:flex">
         <button
           type="button"
           onClick={stop(onWhy)}

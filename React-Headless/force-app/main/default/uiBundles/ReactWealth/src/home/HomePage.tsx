@@ -1,39 +1,70 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   useAsyncData,
   ToastProvider,
   useToast,
   Button,
+  Sparkline,
+  ScoreRing,
   RightNowCard,
   PriorityQueueRow,
+  PriorityQueueCard,
+  buildPriorityQueue,
   RecommendationCard,
   TaskModal,
   ScheduleModal,
   ScheduleTable,
   ScheduleDetailModal,
+  CustomerGoalModal,
+  type CustomerGoalItem,
+  LifeEventModal,
+  type LifeEventItem,
+  LIFE_EVENT_TYPE_OPTIONS,
+  LeadModal,
+  type LeadItem,
+  type ExplorerFilter,
   tagSchedule,
+  useHomeView,
+  useReveal,
+  RevealFooter,
   CaseModal,
   EmailModal,
   PrepModal,
   QuickViewModal,
   WhyModal,
+  DetailModal,
+  type DetailModalData,
+  DataExplorerModal,
+  Pill,
+  WorkspacePanel,
+  useWorkspaceSelection,
+  type WorkspaceSelection,
+  type WorkspaceBrief,
+  type WorkspacePanelHandlers,
   Icon,
+  type IconKey,
+  type RingTone,
   formatValue,
   crmWrite,
   AiResultModal,
   DraftFollowupsModal,
   useSpeech,
   generateText,
+  loadCenterConfig,
+  DEFAULT_CONFIG,
   type ClientProfile,
   type CrmWriteInput,
   type DraftRow,
   type AiGenerateResult,
+  type AiActionKey,
+  type CommandCenterConfig,
 } from '@shared';
 import { fetchHomeDashboard } from './homeData';
-import type { CallItem, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem } from './homeTypes';
+import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
+import { APP_PERSONA } from '../shell/appChrome';
 
 /* ── Rich mock profiles for prep / quick view (retail book) ───────── */
 const PROFILES: Record<string, ClientProfile> = {
@@ -44,16 +75,34 @@ const PROFILES: Record<string, ClientProfile> = {
     csat: 'Poor · 62',
     value: '$1.24M',
     openCases: '5',
+    tier: 'Platinum',
+    priorityLabel: 'High Priority',
+    healthScore: 62,
+    healthLabel: 'Fair',
+    healthDeltaPts: -8,
+    valueDeltaPct: 6,
     facts: [
       ['Open opp', '$150K personal loan'],
       ['Overdue task', '270 days'],
       ['Open cases', '5'],
       ['Last contact', '9 mo ago'],
     ],
+    signals: [
+      { label: 'CSAT dropped below threshold', when: 'Today', tone: 'risk' },
+      { label: 'Complaint ticket opened', when: 'Yesterday', tone: 'risk' },
+      { label: 'Digital banking login', when: 'Yesterday', tone: 'ok' },
+    ],
+    timeline: [
+      { when: 'Yesterday', title: 'Complaint opened', detail: 'Service issue logged by client', tone: 'risk' },
+      { when: '3 days ago', title: 'Wire completed', detail: '$250,000 outgoing wire', tone: 'neutral' },
+      { when: '7 days ago', title: 'Rollover discussion', detail: 'Exploring 401k options', tone: 'neutral' },
+      { when: '2 wks ago', title: 'Login detected', detail: 'Digital banking login', tone: 'ok' },
+    ],
     recap:
       'Julie has banked with Cumulus for 9 years across a mortgage, two deposit accounts, and a brokerage link. Engagement dropped after a branch closure near her; CSAT slid to Poor over the last three surveys. A 401k rollover conversation started in 2024 was never closed, and a $150K personal-loan opportunity is sitting in Interested. Five open cases — most notably a lost debit card — are the likely CSAT driver.',
     talk:
       'Lead by resolving the lost-card case live on the call — that rebuilds trust before any product talk. Then reframe the idle rollover as a simple, guided next step and connect it to the personal-loan need she already raised.',
+    nbaHeadline: 'Schedule service recovery call',
     nba: [
       'Resolve lost-card case & confirm replacement shipped',
       'Walk the 401k rollover, offer to e-sign on the call',
@@ -67,16 +116,31 @@ const PROFILES: Record<string, ClientProfile> = {
     csat: 'Good · 81',
     value: '$3.0M deal',
     openCases: '—',
+    tier: 'Commercial',
+    healthScore: 81,
+    healthLabel: 'Good',
+    healthDeltaPts: 2,
+    valueDeltaPct: 12,
     facts: [
       ['Deal', '$3.0M CRE term loan'],
       ['Stage', 'Closing/Funding'],
       ['Probability', '80%'],
       ['Idle', '12 days'],
     ],
+    signals: [
+      { label: 'Deal stalled 12 days', when: '12d', tone: 'warn' },
+      { label: 'Appraisal received', when: '2 wks', tone: 'ok' },
+    ],
+    timeline: [
+      { when: '12 days ago', title: 'Terms agreed', detail: 'Verbal agreement on rate', tone: 'ok' },
+      { when: '2 wks ago', title: 'Appraisal received', detail: 'Collateral valued', tone: 'ok' },
+      { when: '3 wks ago', title: 'Application submitted', detail: '$3M CRE term loan', tone: 'neutral' },
+    ],
     recap:
       'AJC is a commercial real-estate borrower with a $3M term loan at the funding stage. Everything is verbally agreed but no activity has been logged in 12 days, and no funding date is set — the classic way an 80% deal slips a quarter.',
     talk:
       'Keep it operational and short: confirm the final documents received, name any open blocker, and put a funding date on the calendar before you hang up.',
+    nbaHeadline: 'Confirm docs & set funding date',
     nba: ['Confirm final docs & appraisal received', 'Set a hard funding date', 'Send DocuSign package for signatures'],
   },
 };
@@ -85,7 +149,7 @@ const PROFILES: Record<string, ClientProfile> = {
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
 type ModalState =
   | { type: 'none' }
-  | { type: ModalKind; name: string; id?: string; subject?: string };
+  | { type: ModalKind; name: string; id?: string; subject?: string; toAddress?: string };
 
 const KIND_TO_ACTION: Record<Recommendation['kind'], CrmWriteInput['action']> = {
   task: 'task',
@@ -129,7 +193,86 @@ function HomeContent() {
     fallback: string;
   } | null>(null);
   const [draftsOpen, setDraftsOpen] = useState(false);
+  // Which supporting-band module is drilled into (its "View all →" was clicked).
+  // Null = no explorer open. One <DataExplorerModal> renders per key below.
+  const [explorer, setExplorer] = useState<'activity' | 'pipelineMovement' | 'atRisk' | 'cases' | 'customerGoals' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents' | null>(null);
   const [detailItem, setDetailItem] = useState<ScheduleItem | null>(null);
+  // Editable customer-goal (FinancialGoal) popup. Set by a Customer Goals row
+  // click; the <CustomerGoalModal> at the page root writes back via crmWrite.
+  const [goalItem, setGoalItem] = useState<CustomerGoalItem | null>(null);
+  // Create/editable life-event (PersonLifeEvent) popup. Set by a Life Events row
+  // click or the "+ New" button; the <LifeEventModal> writes back via crmWrite.
+  const [lifeEventItem, setLifeEventItem] = useState<LifeEventItem | null>(null);
+  // Create/editable lead (Lead) popup. Set by a Leads & Referrals row click or
+  // the "+ New" button; the <LeadModal> at the page root writes back via crmWrite.
+  const [leadItem, setLeadItem] = useState<LeadItem | null>(null);
+  // Read-only detail popup for non-CRM-editable list rows (pipeline
+  // opportunities, life events, alerts). Structured content lives in the
+  // slot, so one <DetailModal> at the page root serves every list.
+  const [detailView, setDetailView] = useState<DetailModalData | null>(null);
+
+  // Right context panel selection for the cockpit workspace. Clicking any
+  // center row (client / task / opportunity / meeting) sets this; the panel
+  // renders the matching state, and `{ kind: 'none' }` shows the default brief.
+  const [selection, setSelection] = useState<WorkspaceSelection>({ kind: 'none' });
+  // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
+  // outside this component). A pin click bumps `pinnedRequest`; we resolve it
+  // into a full client selection below.
+  const { pinnedRequest, navRequest } = useWorkspaceSelection();
+
+  // Home layout mode. "current" = the classic stacked sections; "cockpit" = a
+  // compact, column-dense grid. The selection lives in the app chrome (top-bar
+  // segmented control) and is shared down through HomeViewProvider — see
+  // HomeLayout — persisted per-persona in sessionStorage there.
+  const { view } = useHomeView();
+
+  // Org-level command-center config (model per AI action + generation params).
+  // Cached module-side; failures degrade to DEFAULT_CONFIG so an AI action is
+  // never blocked by a config hiccup.
+  const [config, setConfig] = useState<CommandCenterConfig>(DEFAULT_CONFIG);
+  useEffect(() => {
+    let alive = true;
+    loadCenterConfig(APP_PERSONA).then(cfg => {
+      if (alive) setConfig(cfg);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // A pinned-account click in the sidebar selects that client into the right
+  // panel. We resolve the name against the book here (the page owns the data)
+  // and build the compact-360 payload. Keyed on the request nonce so clicking
+  // the same account twice re-fires. Runs before the loading guard as a hook.
+  useEffect(() => {
+    if (!pinnedRequest || !data) return;
+    const call = data.callList.find(c => c.clientName === pinnedRequest.name);
+    setSelection(buildClientSelection(pinnedRequest.name, pinnedRequest.id ?? call?.clientId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedRequest?.nonce, data]);
+
+  // A CommandRail click on a cockpit section with no on-page anchor (schedule /
+  // pipeline / events / leads / alerts) arrives here as a nav request. Map the
+  // rail's section id to the drill-in explorer that now holds that content, so
+  // the nav still lands somewhere. Anchored sections (brief / kpis / queue /
+  // actions / pulse) never raise a request — the rail scrolls to them directly.
+  useEffect(() => {
+    if (!navRequest) return;
+    const target = NAV_TO_EXPLORER[navRequest.id];
+    if (target) setExplorer(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navRequest?.nonce]);
+
+  // Merge the configured model + params into an AI request for a given action.
+  const withConfig = (
+    action: AiActionKey,
+    input: { task: AiActionKey; prompt: string; context: string }
+  ) => ({
+    ...input,
+    modelName: config.models[action] || undefined,
+    temperature: config.params.temperature,
+    maxTokens: config.params.maxTokens,
+  });
 
   const callByName = useMemo(() => {
     const map = new Map<string, CallItem>();
@@ -137,11 +280,40 @@ function HomeContent() {
     return map;
   }, [data]);
 
+  // Blended, dated priority queue (Request C): the signature risk feed
+  // (`callList`) merged with opportunity- and overdue-task-derived items, each
+  // carrying a signal-native `dueDate`. Decouples due date from severity so the
+  // "Due date" sort interleaves severities instead of clustering them. Only the
+  // PriorityQueueCard reads this; callList stays intact for the rest of the page.
+  const queueItems = useMemo(
+    () =>
+      buildPriorityQueue({
+        primary: data?.callList ?? [],
+        opportunities: data?.pipeline ?? [],
+        tasks: (data?.schedule ?? []).filter(it => it.bucket === 'overdue' || it.kind === 'task'),
+      }) as CallItem[],
+    [data],
+  );
+
+  // Progressive reveal for the long lists — hooks must run before the loading
+  // guard, so they read the data optionally and settle once it lands. The queue
+  // and recommended-actions reveals also serve a layout goal: capping the two
+  // tall cockpit columns near the height of the shorter schedule column keeps
+  // the 3-up grid from stranding a large void under the short cell. Nothing is
+  // hidden — every capped row is one "Show more" click away.
+  const pipelineReveal = useReveal(data?.pipeline ?? [], 6);
+  const leadsReveal = useReveal(data?.leads ?? [], 6);
+  const visibleRecs = useMemo(
+    () => (data?.recommendations ?? []).filter(r => !dismissed.has(r.id)),
+    [data, dismissed],
+  );
+  const recsReveal = useReveal(visibleRecs, 3);
+
   if (loading || !data) {
     return <div className="animate-pulse p-8 text-muted">Loading your book…</div>;
   }
 
-  const open = (type: ModalKind, name: string, id?: string, subject?: string) => setModal({ type, name, id, subject });
+  const open = (type: ModalKind, name: string, id?: string, subject?: string, toAddress?: string) => setModal({ type, name, id, subject, toAddress });
   const close = () => setModal({ type: 'none' });
   const flowFor = (id?: string) => (modeFor('agentforce') === 'real' && id ? AGENTFORCE_FLOWS.account : undefined);
   const profileFor = (name: string) => PROFILES[name];
@@ -150,10 +322,407 @@ function HomeContent() {
     else toast('Full 360', 'Open the client record for the complete view');
   };
 
+  // ── Right context panel: build a selection payload for each entity kind.
+  //    The panel is presentational; these builders turn a clicked row into the
+  //    render-ready shape the panel expects.
+  function buildClientSelection(name: string, id?: string): WorkspaceSelection {
+    const p = PROFILES[name];
+    // May be invoked from the pinnedRequest effect (which runs before the
+    // loading guard), so re-narrow the book optionally rather than assuming it.
+    const call = data?.callList.find(c => c.clientName === name);
+    const opps = data?.pipeline.filter(o => o.clientName === name) ?? [];
+    const events = data?.lifeEvents.filter(e => e.clientName === name) ?? [];
+    const signals = [
+      ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
+      ...opps.map(o => ({ label: o.name, sub: `${o.stage} · ${Math.round(o.propensity * 100)}%`, meta: formatValue(o.amount, 'currencyCompact') })),
+    ].slice(0, 5);
+    const subtitleBits = [p?.descriptor ?? call?.segment ?? 'Client'];
+    if (p?.since) subtitleBits.push(`Since ${p.since}`);
+    if (p?.tier) subtitleBits.push(p.tier);
+    return {
+      kind: 'client',
+      id: id ?? call?.clientId,
+      name,
+      subtitle: subtitleBits.join(' · '),
+      initials: p?.initials,
+      priorityLabel: p?.priorityLabel ?? (call?.severity === 'high' ? 'High Priority' : undefined),
+      tier: p?.tier,
+      healthScore: p?.healthScore,
+      healthLabel: p?.healthLabel,
+      healthDeltaPts: p?.healthDeltaPts,
+      relationshipValue: p?.value ?? (call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined),
+      valueDeltaPct: p?.valueDeltaPct,
+      facts: [
+        { label: 'CSAT', value: p?.csat ?? '—', tone: (p?.csat ?? '').startsWith('Poor') ? 'risk' : undefined },
+        { label: 'Value', value: p?.value ?? (call ? formatValue(call.relationshipValue, 'currencyCompact') : '—') },
+        { label: 'Open cases', value: p?.openCases ?? '—' },
+      ],
+      summary: p?.recap ?? call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
+      signalRows: p?.signals,
+      signals,
+      nbaHeadline: p?.nbaHeadline,
+      nba: p?.nba ?? (call ? [call.action] : []),
+      timeline: p?.timeline,
+    };
+  }
+
+  const selectClientPanel = (name: string, id?: string) => setSelection(buildClientSelection(name, id));
+
+  const selectTaskPanel = (item: ScheduleItem) => {
+    const call = item.clientName ? data.callList.find(c => c.clientName === item.clientName) : undefined;
+    setSelection({
+      kind: 'task',
+      title: item.title,
+      client: item.clientName,
+      clientId: item.whatId ?? call?.clientId,
+      facts: [
+        { label: 'Type', value: item.kind[0].toUpperCase() + item.kind.slice(1) },
+        { label: 'Due', value: item.time || '—', tone: item.bucket === 'overdue' ? 'risk' : undefined },
+        { label: 'Priority', value: item.priority ?? (call?.severity === 'high' ? 'High' : 'Normal'), tone: (item.priority === 'High' || call?.severity === 'high') ? 'warn' : undefined },
+      ],
+      reason: call?.reason ?? item.description ?? 'Scheduled item on your book — no additional signal attached.',
+      steps: call ? [call.action, `Log the outcome against ${item.clientName}.`] : ['Review the record.', 'Log the outcome.'],
+    });
+  };
+
+  const selectOpportunityPanel = (o: PipelineItem) => {
+    const call = data.callList.find(c => c.clientName === o.clientName);
+    const events = data.lifeEvents.filter(e => e.clientName === o.clientName);
+    const hot = o.propensity >= 0.7;
+    setSelection({
+      kind: 'opportunity',
+      title: o.name,
+      client: o.clientName,
+      clientId: call?.clientId,
+      facts: [
+        { label: 'Amount', value: formatValue(o.amount, 'currencyCompact') },
+        { label: 'Propensity', value: `${Math.round(o.propensity * 100)}%`, tone: hot ? 'ok' : 'warn' },
+        { label: 'Stage', value: o.stage || '—' },
+      ],
+      signals: [
+        { label: 'Close date', sub: o.closeDate || 'Not set', meta: hot ? 'On track' : 'Watch' },
+        ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
+      ].slice(0, 5),
+      risks: hot ? undefined : `Propensity is ${Math.round(o.propensity * 100)}% — below the 70% confidence line. This deal is at risk of aging out without a next touch.`,
+      nextAction: call?.action ?? `Advance ${o.clientName} from ${o.stage}: confirm the next milestone and set a firm date.`,
+    });
+  };
+
+  const selectMeetingPanel = (item: ScheduleItem) => {
+    const call = item.clientName ? data.callList.find(c => c.clientName === item.clientName) : undefined;
+    const p = item.clientName ? PROFILES[item.clientName] : undefined;
+    setSelection({
+      kind: 'meeting',
+      title: item.title,
+      client: item.clientName,
+      clientId: item.whatId ?? call?.clientId,
+      facts: [
+        { label: 'Time', value: item.time || '—' },
+        { label: 'Type', value: item.kind[0].toUpperCase() + item.kind.slice(1) },
+        { label: 'Client', value: item.clientName ?? 'Internal' },
+      ],
+      agenda: p?.nba ?? (call ? [call.action] : ['Review relationship status', 'Confirm next steps']),
+      talkingPoints: p?.talk ? [p.talk] : (call ? [call.reason] : ['Open with the client’s most recent signal.']),
+      questions: [
+        'What has changed since we last spoke?',
+        call ? `How can we help with ${call.action.toLowerCase()}?` : 'What are your priorities this quarter?',
+      ],
+    });
+  };
+
+  // ── Read-only detail popups for list rows. Each builds a structured
+  //    DetailModalData and drops it into the detailView slot; the single
+  //    <DetailModal> at the page root renders it.
+  const showPipelineDetail = (p: PipelineItem) => {
+    setDetailView({
+      title: p.name || 'Opportunity',
+      subtitle: p.clientName,
+      icon: <Icon name="pipeline" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Amount', value: formatValue(p.amount, 'currencyCompact') },
+        { label: 'Propensity', value: `${Math.round(p.propensity * 100)}%` },
+        { label: 'Stage', value: p.stage || '—' },
+      ],
+      sectionTitle: 'Opportunity',
+      fields: [
+        { label: 'Client', value: p.clientName },
+        { label: 'Opportunity', value: p.name },
+        { label: 'Stage', value: p.stage },
+        { label: 'Close Date', value: p.closeDate || '—' },
+      ],
+      actions: [{ label: 'View client →', variant: 'accent', onClick: () => { setDetailView(null); open('quickview', p.clientName); } }],
+    });
+  };
+
+  const showActivityDetail = (a: ActivityItem) => {
+    setDetailView({
+      title: a.title,
+      subtitle: `${a.clientName} · ${a.when}`,
+      icon: <Icon name={a.icon} size={17} />,
+      tone: a.tone === 'risk' ? 'accent' : 'ai',
+      sectionTitle: 'Activity',
+      fields: [
+        { label: 'Client', value: a.clientName },
+        { label: 'Activity', value: a.title },
+        { label: 'When', value: a.when },
+        { label: 'Channel', value: a.icon[0].toUpperCase() + a.icon.slice(1) },
+      ],
+      actions: (a.clientId || a.clientName)
+        ? [{ label: 'Open client 360 →', variant: 'accent', onClick: () => { setDetailView(null); setExplorer(null); a.clientId ? openFull(a.clientId) : open('quickview', a.clientName); } }]
+        : [],
+    });
+  };
+
+  const showClientDetail = (c: CallItem) => {
+    const h = healthFor(c);
+    setDetailView({
+      title: c.clientName,
+      subtitle: c.segment,
+      icon: <Icon name="alerts" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Health', value: `${h}` },
+        { label: 'Severity', value: c.severity[0].toUpperCase() + c.severity.slice(1) },
+        { label: 'Relationship', value: formatValue(c.relationshipValue, 'currencyCompact') },
+      ],
+      note: c.reason,
+      sectionTitle: 'Client',
+      fields: [
+        { label: 'Client', value: c.clientName },
+        { label: 'Segment', value: c.segment },
+        { label: 'Driver', value: c.reason },
+        { label: 'Recommended action', value: c.action },
+        { label: 'Source', value: c.source },
+      ],
+      actions: [{ label: 'Open client 360 →', variant: 'accent', onClick: () => { setDetailView(null); setExplorer(null); openFull(c.clientId); } }],
+    });
+  };
+
+  const showPipelineMovementDetail = (m: PipelineMovement) => {
+    const up = m.deltaPct >= 0;
+    const pct = Math.abs(Math.round(m.deltaPct * 100));
+    setDetailView({
+      title: m.label,
+      subtitle: 'Pipeline movement · week over week',
+      icon: <Icon name="metrics" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Value', value: formatValue(m.amount, 'currencyCompact') },
+        { label: 'Change', value: <span className={up ? 'text-ok' : 'text-risk'}>{up ? '↑' : '↓'} {pct}%</span> },
+        { label: 'Trend', value: <Sparkline points={m.trend} width={80} height={24} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} /> },
+      ],
+      note: `${m.label} pipeline ${up ? 'grew' : 'declined'} ${pct}% week over week, now at ${formatValue(m.amount, 'currencyCompact')}.`,
+      sectionTitle: 'Product line',
+      fields: [
+        { label: 'Product line', value: m.label },
+        { label: 'Current value', value: formatValue(m.amount, 'currencyCompact') },
+        { label: 'WoW change', value: `${up ? '+' : '−'}${pct}%` },
+      ],
+    });
+  };
+
+  // Open a life event. Live PersonLifeEvent rows (recordId present) open the
+  // editable modal so the banker can revise the event; a seeded row without a
+  // recordId falls back to the read-only signal detail with a Client-360 jump.
+  const showLifeEventDetail = (e: LifeEventSignal) => {
+    if (e.recordId) {
+      setLifeEventItem({
+        recordId: e.recordId,
+        name: e.event,
+        eventType: e.eventType,
+        eventDate: e.eventDate,
+        clientName: e.clientName || undefined,
+        contactId: e.contactId,
+      });
+      return;
+    }
+    setDetailView({
+      title: e.event,
+      subtitle: `${e.clientName} · ${e.when}`,
+      icon: <span>{e.icon}</span>,
+      tone: 'accent',
+      sectionTitle: 'Signal',
+      fields: [
+        { label: 'Client', value: e.clientName },
+        { label: 'Event', value: e.event },
+        { label: 'When', value: e.when },
+        { label: 'Opportunity', value: e.opportunity },
+      ],
+      actions: [{ label: 'Open client 360 →', variant: 'accent', onClick: () => { setDetailView(null); openFull(e.clientId); } }],
+    });
+  };
+
+  // Open the life-event modal in CREATE mode — a blank template with
+  // `create: true`. The modal shows a Contact lookup ("select the customer", the
+  // event's only person link) plus the event fields, then inserts via crmWrite;
+  // onSaved refetches so the new event appears on the Life Events panel.
+  const showNewLifeEvent = () => {
+    setLifeEventItem({ create: true, name: '' });
+  };
+
+  const showAlertDetail = (a: AlertSignal) => {
+    setDetailView({
+      title: a.title,
+      subtitle: a.when,
+      icon: <Icon name="alerts" size={17} />,
+      tone: a.tone === 'risk' ? 'accent' : 'ai',
+      facts: [
+        { label: 'Severity', value: a.severity },
+        { label: 'When', value: a.when },
+      ],
+      note: a.detail,
+      actions: [{ label: 'View client →', variant: 'accent', onClick: () => { setDetailView(null); open('quickview', clientFromAlert(a.title)); } }],
+    });
+  };
+
+  // Open a lead/referral in the editable modal. A real Lead (recordId present)
+  // opens editable; a mock row falls back to the read-only detail popup so the
+  // demo data still renders something sensible. The modal writes LastName /
+  // FirstName / Company / Status / LeadSource / Email / AnnualRevenue back
+  // through crmWrite; onSaved refetches so the card reflects the edit.
+  const showLead = (l: LeadReferral) => {
+    if (!l.recordId) { showLeadDetail(l); return; }
+    setLeadItem({
+      recordId: l.recordId,
+      firstName: l.firstName,
+      // Fall back to the compound Name when the query returned no LastName.
+      lastName: l.lastName || l.name || undefined,
+      company: l.company,
+      status: l.status || undefined,
+      leadSource: l.source && l.source !== '—' ? l.source : undefined,
+      email: l.email || undefined,
+      annualRevenue: l.value || undefined,
+    });
+  };
+
+  // Open the lead modal in CREATE mode — a blank template with `create: true`.
+  // The modal captures name + company (the two required fields) plus status,
+  // source, email and est. value, then inserts via crmWrite; onSaved refetches
+  // so the new lead appears on the Leads & Referrals card.
+  const showNewLead = () => {
+    setLeadItem({ create: true });
+  };
+
+  // Read-only fallback for mock lead rows (no recordId → nothing to edit).
+  const showLeadDetail = (l: LeadReferral) => {
+    setDetailView({
+      title: l.name,
+      subtitle: l.source,
+      icon: <Icon name="leads" size={17} />,
+      tone: 'ai',
+      facts: [
+        { label: 'Status', value: l.status },
+        { label: 'Est. value', value: formatValue(l.value, 'currencyCompact') },
+        { label: 'Source', value: l.source },
+      ],
+      sectionTitle: 'Lead',
+      fields: [
+        { label: 'Name', value: l.name },
+        { label: 'Source', value: l.source },
+        { label: 'Status', value: l.status },
+        { label: 'Email', value: l.email || '—' },
+      ],
+      actions: l.email
+        ? [{ label: 'Email lead →', variant: 'accent', onClick: () => { setDetailView(null); setExplorer(null); open('email', l.name, undefined, undefined, l.email); } }]
+        : [],
+    });
+  };
+
+  const showGoalDetail = (g: BankerGoal) => {
+    const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+    setDetailView({
+      title: g.name,
+      subtitle: 'Goal attainment',
+      icon: <Icon name="metrics" size={17} />,
+      tone: 'accent',
+      facts: [
+        { label: 'Current', value: formatValue(g.current, g.format) },
+        { label: 'Target', value: formatValue(g.target, g.format) },
+        { label: 'Attainment', value: `${pct}%` },
+      ],
+      note: `${g.name} is at ${pct}% of target (${formatValue(g.current, g.format)} of ${formatValue(g.target, g.format)}).`,
+      sectionTitle: 'Goal',
+      fields: [
+        { label: 'Goal', value: g.name },
+        { label: 'Current', value: formatValue(g.current, g.format) },
+        { label: 'Target', value: formatValue(g.target, g.format) },
+        { label: 'Attainment', value: `${pct}%` },
+      ],
+    });
+  };
+
+  // Open an upcoming CUSTOMER goal (FinancialGoal) in the editable modal —
+  // distinct from the banker-quota goal above. The modal writes Name / Status /
+  // Priority / Type / TargetDate / amounts back through crmWrite; onSaved
+  // refetches the dashboard so the card reflects the edit.
+  const showCustomerGoalDetail = (g: CustomerGoal) => {
+    setGoalItem({
+      recordId: g.recordId,
+      name: g.name,
+      clientName: g.clientName || undefined,
+      planName: g.planName,
+      status: g.status || undefined,
+      priority: g.priority,
+      type: g.type,
+      description: g.description,
+      targetDate: g.targetDate || undefined,
+      target: g.target,
+      current: g.current,
+    });
+  };
+
+  // Open the goal modal in CREATE mode — a blank template with `create: true`.
+  // The modal shows a FinancialPlan lookup ("select the customer", the goal's
+  // only account link) plus the goal fields, then inserts via crmWrite; onSaved
+  // refetches so the new goal appears on the plan-linked card.
+  const showNewGoal = () => {
+    setGoalItem({ create: true, name: '' });
+  };
+
   const today = data.callList.filter(c => c.tier === 'today');
   const week = data.callList.filter(c => c.tier === 'week');
   const watch = data.callList.filter(c => (c.tier ?? 'watch') === 'watch');
-  const visibleRecs = data.recommendations.filter(r => !dismissed.has(r.id));
+
+  // Life-event explorer filter chips: "All" + one per EventType present in the
+  // data (canonical order from LIFE_EVENT_TYPE_OPTIONS; unknown types appended).
+  // Only types that actually appear get a chip, so the toolbar stays tight.
+  const lifeEventTypesPresent = (() => {
+    const seen = new Set(data.lifeEvents.map(e => e.eventType || e.event).filter(Boolean));
+    const ordered = LIFE_EVENT_TYPE_OPTIONS.filter(t => seen.has(t));
+    const extras = [...seen].filter(t => !LIFE_EVENT_TYPE_OPTIONS.includes(t)).sort();
+    return [...ordered, ...extras];
+  })();
+  const lifeEventFilters: ExplorerFilter<LifeEventSignal>[] = [
+    { key: 'all', label: 'All' },
+    ...lifeEventTypesPresent.map(t => ({
+      key: t,
+      label: t,
+      test: (e: LifeEventSignal) => (e.eventType || e.event) === t,
+    })),
+  ];
+  // 1-based rank across the whole ranked queue (callList is score-ordered), so
+  // each grouped row can show its global position and the #1 item gets emphasis.
+  const rankOf = (c: CallItem) => data.callList.indexOf(c) + 1;
+
+  // ── Relationship-health helpers (shared by the supporting band, the At-Risk
+  //    explorer, AND the right-panel "Top risks & opportunities" ring). Defined
+  //    here (above workspaceBrief) so the brief can read them eagerly — a `const`
+  //    arrow is not hoisted, so a later definition would throw a TDZ error.
+  const healthFor = (c: CallItem) => {
+    // High severity → low score; medium → mid; low → higher. Nudge by rank so
+    // rows differ. Clamped to a plausible 40..82 "needs attention" band.
+    const base = c.severity === 'high' ? 60 : c.severity === 'medium' ? 68 : 78;
+    return Math.max(40, Math.min(82, base - (rankOf(c) - 1) * 3));
+  };
+  // Week-over-week health drop shown as a red "↓ N" beside the score (mockup).
+  // Derived deterministically from severity + rank — no CallItem field yet.
+  const healthDropFor = (c: CallItem) => {
+    const base = c.severity === 'high' ? 8 : c.severity === 'medium' ? 5 : 6;
+    return base + (rankOf(c) % 3);
+  };
+  // Health score → ScoreRing tone (matches the band's At-Risk card thresholds).
+  const healthTone = (h: number): RingTone => (h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok');
 
   const approveRec = async (rec: Recommendation) => {
     // Email has no unattended path: CrmWriteRest requires a recipient address
@@ -244,101 +813,201 @@ function HomeContent() {
   const openAi = (task: 'queue_rationale' | 'pipeline_summary', title: string, prompt: string, context: string, fallback: string) =>
     setAiModal({ open: true, title, task, prompt, context, fallback });
 
-  return (
-    <div className="pb-24">
-      {/* ---------- DAILY BRIEF ---------- */}
-      <section id="brief" className="scroll-mt-[82px]">
-        <div className="relative overflow-hidden rounded-[26px] border border-line bg-surface-glass p-8 shadow-card">
-          <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-            <div>
-              <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
-                <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
-              </div>
-              <h1 className="mb-4 mt-3.5 font-display text-[40px] font-medium leading-[1.08] tracking-tight">
-                Good afternoon, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
-              </h1>
-              <p className="mb-6 max-w-[56ch] text-[15.5px] leading-relaxed text-fg">{data.aiBrief}</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
-                    <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
-                  </div>
-                  <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
-                  className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
-                >
-                  {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
-                </button>
-                <AskChip
-                  onClick={() =>
-                    openAi(
-                      'queue_rationale',
-                      'Why this order',
-                      "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
-                      queueContext(),
-                      queueFallback(),
-                    )
-                  }
-                >
-                  Ask why this order
-                </AskChip>
-              </div>
-            </div>
-            {data.rightNow && !dismissed.has('rightNow') && (
-              <RightNowCard
-                item={data.rightNow}
-                onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
-                onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
-                onSnooze={() => {
-                  setDismissed(s => new Set(s).add('rightNow'));
-                  toast('Snoozed', 'Right Now item hidden for this session');
-                }}
-                onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
-              />
-            )}
-          </div>
-        </div>
-      </section>
+  // ── Row-click routing. In the cockpit view every center row drives the
+  //    right context panel; in the classic stacked view it opens the existing
+  //    modal/popup. Keeping both behaviors behind these helpers lets the body
+  //    fragments below stay single-sourced across the two layouts.
+  // KPI / pulse click routing. In the cockpit the detail boxes are gone, so a
+  // KPI card (or the pulse inlay) opens the matching drill-in explorer; in the
+  // classic stacked view it smooth-scrolls to the full-page section as before.
+  const kpiClick = (key: string) => {
+    if (view === 'cockpit') {
+      const target = KPI_EXPLORER[key];
+      if (target) { setExplorer(target); return; }
+    }
+    scrollToId(KPI_TARGET[key] ?? 'pipeline');
+  };
 
-      {/* ---------- KPI PULSE ---------- */}
-      <section id="kpis" className="mt-8 scroll-mt-[82px]">
-        <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5">
-          {data.kpis.map(k => (
-            <KpiCard
-              key={k.key}
-              label={k.label}
-              value={formatValue(k.value, k.format)}
-              note={k.note}
-              risk={k.key === 'atRisk'}
-              onClick={() => scrollToId(KPI_TARGET[k.key] ?? 'pipeline')}
-            />
-          ))}
-        </div>
-      </section>
+  const onScheduleOpen = (item: ScheduleItem) => {
+    if (view === 'cockpit') {
+      if (item.kind === 'meeting' || item.kind === 'call') selectMeetingPanel(item);
+      else selectTaskPanel(item);
+      return;
+    }
+    setDetailItem(item);
+  };
 
-      {/* ---------- TASKS & SCHEDULE ---------- */}
-      <section id="schedule" className="mt-8 scroll-mt-[82px]">
-        <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
-          <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
-          <Button size="sm" variant="ghost" onClick={() => open('schedule', data.bankerName, undefined, 'Meeting')}>+ Meeting</Button>
-        </SectionHead>
-        <ScheduleTable items={tagSchedule(data.schedule)} onOpen={setDetailItem} />
-      </section>
+  // Intercept the queue row's "open quick view" in cockpit mode → select the
+  // client into the panel instead of opening the modal. The action-rail buttons
+  // (why/prep/call/email/task) still flow through `open` as normal.
+  const queueOpen = (type: ModalKind, name: string, id?: string, subject?: string, toAddress?: string) => {
+    if (view === 'cockpit' && type === 'quickview') {
+      selectClientPanel(name, id);
+      return;
+    }
+    open(type, name, id, subject, toAddress);
+  };
 
-      {/* ---------- PRIORITY QUEUE ---------- */}
-      <section id="queue" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
-          <AskChip onClick={() => setDraftsOpen(true)}>Draft all follow-ups</AskChip>
-        </SectionHead>
+  // Quick-prompt routing for the panel's default-state "Ask Agentforce" chips.
+  const askPrompt = (key: string) => {
+    if (key === 'overnight') {
+      openAi('queue_rationale', 'What changed overnight',
+        'Summarize what changed across this book overnight in 3-4 sentences: new signals, emerging risks, and fresh opportunities.',
+        queueContext(), queueFallback());
+    } else if (key === 'prep') {
+      openAi('pipeline_summary', 'Meetings needing prep',
+        'Which of today’s meetings and deals need the most preparation, and what should I focus on for each? 3-4 sentences.',
+        stalledContext(), stalledFallback());
+    } else {
+      openAi('queue_rationale', 'Which accounts need attention',
+        'Which accounts need attention today and why? List the top 3-4 with the single most important reason for each.',
+        queueContext(), queueFallback());
+    }
+  };
 
-        <QueueGroup label="Today" count={today.length} tier="Critical" tierClass="text-risk">
-          {today.map(c => (
-            <QRow key={c.id} item={c} onOpen={open} />
-          ))}
-        </QueueGroup>
+  const panelHandlers: WorkspacePanelHandlers = {
+    onClear: () => setSelection({ kind: 'none' }),
+    onOpenClient: id => openFull(id),
+    onPrep: (name, id) => open('prep', name, id),
+    onSchedule: (name, id, subject) => open('schedule', name, id, subject ?? 'Call'),
+    onTask: (name, id, subject) => open('task', name, id, subject),
+    onEmail: (name, id) => open('email', name, id),
+    onAsk: askPrompt,
+    onAgenda: id => {
+      const item = data.schedule.find(s => s.id === id);
+      if (item) onScheduleOpen(item);
+    },
+    // "+ Add" beside the agenda header — open the matching create modal, keyed
+    // off the banker (no client preselected). Same entry points as the classic
+    // view's "+ Task" / "+ Meeting" schedule controls.
+    onNewTask: () => open('task', data.bankerName),
+    onNewSchedule: () => open('schedule', data.bankerName, undefined, 'Meeting'),
+    // "View all →" beside the panel's Life events section — open the explorer.
+    onViewLifeEvents: () => setExplorer('lifeEvents'),
+    // "+ New" beside the panel's Life events section — open the create modal.
+    onNewLifeEvent: showNewLifeEvent,
+    // "View all →" beside Top risks & opportunities — open the at-risk explorer
+    // (same target as the Priority Queue card's "View all →").
+    onViewAtRisk: () => setExplorer('atRisk'),
+    onSoft: (title, message) => toast(title, message),
+  };
+
+  // Default-state payload for the right panel — AI brief + pulse + agenda +
+  // top focus + quick prompts. Rebuilt each render from the live dashboard.
+  const workspaceBrief: WorkspaceBrief = {
+    greeting: `Today · ${data.dateLabel}`,
+    headline: data.aiBriefHeadline,
+    narrative: data.aiBrief,
+    confidencePct: data.confidencePct,
+    pulse: [
+      { label: 'Wins · 30d', value: '$0', tone: 'warn' },
+      { label: 'Activity · 7d', value: String(data.schedule.length) },
+    ],
+    agenda: data.schedule.map(s => ({ id: s.id, time: s.time, title: s.title, kind: s.kind, client: s.clientName })),
+    // Top risks & opportunities — each row leads with the client's health
+    // ScoreRing (same as the bottom-band At-Risk Clients card), a one-line
+    // reason (the "why it's here"), and a click that selects the client into
+    // this same panel's 360 view.
+    focus: data.callList.slice(0, 4).map(c => {
+      const h = healthFor(c);
+      return {
+        label: c.clientName,
+        sub: c.reason,
+        ring: { value: h, tone: healthTone(h) },
+        // Same readout as the bottom-band At-Risk Clients card: the score
+        // number + red week-over-week drop, both derived in healthFor/healthDropFor.
+        health: { score: h, drop: healthDropFor(c) },
+        tone: c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'accent',
+        onClick: () => selectClientPanel(c.clientName, c.clientId),
+      } as const;
+    }),
+    // Life events → planning opportunities, so they surface even though the
+    // cockpit's Life events detail box is gone. Click opens the client 360.
+    lifeEvents: data.lifeEvents.slice(0, 4).map(e => {
+      // Per-event-type icon + color, matching the bottom-band Life events card
+      // (job change / graduation / new child / home purchase / retirement / marriage).
+      const st = lifeEventStyle(e.event);
+      return {
+        label: `${e.clientName} · ${e.event}`,
+        sub: e.opportunity,
+        meta: e.when,
+        icon: st.icon,
+        iconChip: st.chip,
+        tone: 'ai',
+        onClick: () => selectClientPanel(e.clientName, e.clientId),
+      } as const;
+    }),
+    prompts: [
+      { key: 'overnight', label: 'What changed overnight?' },
+      { key: 'attention', label: 'Which accounts need attention?' },
+      { key: 'prep', label: 'What meetings need prep?' },
+    ],
+  };
+
+  /* ── Section bodies (defined once, arranged differently per view) ──
+     Each body is the section's content WITHOUT its heading, so the two
+     layout branches below can wrap it in either a full-width <SectionHead>
+     block (current) or a compact column card (cockpit) without duplicating
+     any markup. */
+
+  const kpiGrid = (
+    <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5">
+      {data.kpis.map(k => (
+        <KpiCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          risk={k.key === 'atRisk'}
+          onClick={() => kpiClick(k.key)}
+        />
+      ))}
+    </div>
+  );
+
+  // Cockpit vitals: the four headline metrics as sparkline cards (mockup order:
+  // Pipeline · Leads & referrals · At-Risk · Active Goals). Chosen from data.kpis
+  // by key so it survives a KPI-set change; falls back to the first four.
+  // Pipeline & Opportunities are consolidated into one card here (the pipeline
+  // card carries the open-opportunity count in its note), freeing a slot for the
+  // Leads & referrals vital. `openOpps` still lives in data.kpis for the classic
+  // 5-KPI grid and pipelineNarrative().
+  const VITAL_KEYS = ['pipeline', 'leads', 'atRisk', 'goals'];
+  const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
+  const kpiGridVitals = (
+    <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+      {(vitalKpis.length ? vitalKpis : data.kpis.slice(0, 4)).map(k => (
+        <VitalCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          deltaPct={k.deltaPct}
+          trend={k.trend}
+          risk={k.key === 'atRisk'}
+          onClick={() => kpiClick(k.key)}
+        />
+      ))}
+    </div>
+  );
+
+  const scheduleControls = (
+    <>
+      <Button size="sm" variant="ghost" onClick={() => open('task', data.bankerName)}>+ Task</Button>
+      <Button size="sm" variant="ghost" onClick={() => open('schedule', data.bankerName, undefined, 'Meeting')}>+ Meeting</Button>
+    </>
+  );
+  const scheduleBody = <ScheduleTable items={tagSchedule(data.schedule)} onOpen={onScheduleOpen} />;
+
+  const queueControls = <AskChip onClick={() => setDraftsOpen(true)}>Draft all follow-ups</AskChip>;
+  const queueBody = (
+    <>
+      <QueueGroup label="Today" count={today.length} tier="Critical" tierClass="text-risk">
+        {today.map(c => (
+          <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={queueOpen} />
+        ))}
+      </QueueGroup>
+      {week.length > 0 && (
         <QueueGroup
           label="This week"
           count={week.length}
@@ -348,7 +1017,6 @@ function HomeContent() {
             <Button
               size="sm"
               variant="ghost"
-              disabled={!week.length}
               onClick={() => week[0] && open('prep', week[0].clientName, week[0].clientId)}
             >
               Prep all {week.length}
@@ -356,140 +1024,631 @@ function HomeContent() {
           }
         >
           {week.map(c => (
-            <QRow key={c.id} item={c} onOpen={open} />
+            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={queueOpen} />
           ))}
         </QueueGroup>
+      )}
+      {watch.length > 0 && (
         <QueueGroup label="Watch" count={watch.length} tier="Lower urgency" tierClass="text-muted">
           {watch.map(c => (
-            <QRow key={c.id} item={c} onOpen={open} />
+            <QRow key={c.id} item={c} rank={rankOf(c)} onOpen={queueOpen} />
           ))}
         </QueueGroup>
-      </section>
+      )}
+    </>
+  );
 
-      {/* ---------- RECOMMENDED ACTIONS ---------- */}
-      <section id="actions" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
-          <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">{visibleRecs.length} pending</span>
-        </SectionHead>
-        <div className="grid gap-3.5">
-          {visibleRecs.map(rec => (
-            <RecommendationCard
-              key={rec.id}
-              rec={rec}
-              onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
-              onDismiss={() => {
-                setDismissed(s => new Set(s).add(rec.id));
-                toast('Dismissed', 'Recommendation removed — model will learn from this');
-              }}
-              onEdit={() => editRec(rec)}
-              onApprove={() => void approveRec(rec)}
-            />
+  const actionsControls = (
+    <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted">{visibleRecs.length} pending</span>
+  );
+  // `capped` trims the card list to the reveal window and appends a footer — used
+  // in the cockpit column to hold its height; the classic view passes all cards.
+  const buildActionsBody = (capped: boolean) => {
+    const recs = capped ? recsReveal.visible : visibleRecs;
+    return (
+      <div className="grid gap-3.5">
+        {recs.map(rec => (
+          <RecommendationCard
+            key={rec.id}
+            rec={rec}
+            onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
+            onDismiss={() => {
+              setDismissed(s => new Set(s).add(rec.id));
+              toast('Dismissed', 'Recommendation removed — model will learn from this');
+            }}
+            onEdit={() => editRec(rec)}
+            onApprove={() => void approveRec(rec)}
+          />
+        ))}
+        {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
+        {capped && (recsReveal.hasMore || recsReveal.expanded) && (
+          <div className="overflow-hidden rounded-card border border-line bg-surface">
+            <RevealFooter reveal={recsReveal} noun="actions" />
+          </div>
+        )}
+      </div>
+    );
+  };
+  const actionsBody = buildActionsBody(false);
+
+  const lifeEventsBody = (
+    <SectionPanel
+      icon="lifeEvent"
+      label="Life events across your book"
+      right={
+        <button
+          type="button"
+          onClick={showNewLifeEvent}
+          className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted transition hover:border-accent-border hover:text-fg"
+        >
+          + New
+        </button>
+      }
+    >
+      {data.lifeEvents.map(e => (
+        <LifeRow key={e.id} event={e} onClick={() => (view === 'cockpit' ? selectClientPanel(e.clientName, e.clientId) : showLifeEventDetail(e))} />
+      ))}
+    </SectionPanel>
+  );
+
+  const alertsBody = (
+    <SectionPanel icon="alerts" label="Alerts & signals" right={<LinkBtn>{data.alerts.length} open</LinkBtn>}>
+      {data.alerts.map(a => (
+        <AlertRow key={a.id} alert={a} onClick={() => (view === 'cockpit' ? selectClientPanel(clientFromAlert(a.title)) : showAlertDetail(a))} />
+      ))}
+    </SectionPanel>
+  );
+
+  const pipelineControls = (
+    <AskChip
+      onClick={() =>
+        openAi(
+          'pipeline_summary',
+          'Stalled deals',
+          'Summarize the largest stalled deals below in 3-4 sentences and suggest the single next move for each.',
+          stalledContext(),
+          stalledFallback(),
+        )
+      }
+    >
+      Summarize stalled deals
+    </AskChip>
+  );
+  const pipelineBody = (
+    <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      <table className="w-full table-fixed text-[13px]">
+        <colgroup>
+          <col className="w-[24%]" />
+          <col className="w-[30%]" />
+          <col className="w-[18%]" />
+          <col className="w-[16%]" />
+          <col className="w-[12%]" />
+        </colgroup>
+        <thead>
+          <tr>
+            <Th>Client</Th>
+            <Th>Opportunity</Th>
+            <Th>Stage</Th>
+            <Th>Propensity</Th>
+            <Th align="right">Amount</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {pipelineReveal.visible.map(p => (
+            <PipeRow key={p.id} item={p} onClick={() => (view === 'cockpit' ? selectOpportunityPanel(p) : showPipelineDetail(p))} />
           ))}
-          {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
-        </div>
-      </section>
+        </tbody>
+      </table>
+      <RevealFooter reveal={pipelineReveal} noun="deals" />
+    </div>
+  );
 
-      {/* ---------- LIFE EVENTS + ALERTS ---------- */}
-      <section id="events" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
-        <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-          <SectionPanel icon="lifeEvent" label="Life events across your book" right={<LinkBtn>Next 30 days</LinkBtn>}>
-            {data.lifeEvents.map(e => (
-              <LifeRow key={e.id} event={e} onClick={() => open('quickview', e.clientName, e.clientId)} />
-            ))}
-          </SectionPanel>
-          <div id="alerts" className="scroll-mt-[82px]">
-            <SectionPanel icon="alerts" label="Alerts & signals" right={<LinkBtn>{data.alerts.length} open</LinkBtn>}>
-              {data.alerts.map(a => (
-                <AlertRow key={a.id} alert={a} onClick={() => open('quickview', clientFromAlert(a.title))} />
-              ))}
-            </SectionPanel>
-          </div>
-        </div>
-      </section>
+  const leadsBody = (
+    <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      <table className="w-full table-fixed text-[13px]">
+        <colgroup>
+          <col className="w-[34%]" />
+          <col className="w-[28%]" />
+          <col className="w-[22%]" />
+          <col className="w-[16%]" />
+        </colgroup>
+        <thead>
+          <tr>
+            <Th>Name</Th>
+            <Th>Source</Th>
+            <Th>Status</Th>
+            <Th align="right">Value</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {leadsReveal.visible.map(l => (
+            <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name, undefined, undefined, l.email)} />
+          ))}
+        </tbody>
+      </table>
+      <RevealFooter reveal={leadsReveal} noun="leads" />
+    </div>
+  );
 
-      {/* ---------- PIPELINE ---------- */}
-      <section id="pipeline" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
-          <AskChip
-            onClick={() =>
-              openAi(
-                'pipeline_summary',
-                'Stalled deals',
-                'Summarize the largest stalled deals below in 3-4 sentences and suggest the single next move for each.',
-                stalledContext(),
-                stalledFallback(),
-              )
-            }
+  const pulseBody = (
+    <SectionPanel
+      icon="pulse"
+      label="Portfolio pulse"
+      right={
+        <button
+          type="button"
+          onClick={() => speakOrToast(pipelineNarrative())}
+          className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
+        >
+          {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
+        </button>
+      }
+      padded
+    >
+      <p className="mb-4 max-w-[80ch] text-[14.5px] leading-relaxed text-fg">{pipelineNarrative()}</p>
+      <div className="grid grid-cols-2 gap-3.5">
+        <PulseCard label="Wins · 30d" value="$0" note="Nothing closed this period." tone="warn" />
+        <PulseCard label="Activity · 7d" value={String(data.schedule.length)} note="Low volume — schedule touchpoints." />
+      </div>
+    </SectionPanel>
+  );
+
+  // Slim full-width variant for the cockpit vitals row — narrative on the left,
+  // the two pulse stats inline on the right, so it reads as a single strip
+  // under the KPI cards instead of a tall side panel.
+  const pulseStrip = (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      {/* Label as a header row on top so the narrative + metrics get the full
+          container width on a single line below it (fewer wraps, less height).
+          The header is a button in the cockpit → opens the Pipeline Movement
+          explorer (the pulse's drill-in), matching the KPI-card behavior. */}
+      <button
+        type="button"
+        onClick={() => setExplorer('pipelineMovement')}
+        className="flex items-center gap-2 text-left transition hover:opacity-80"
+      >
+        <Icon name="pulse" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Portfolio pulse</b>
+        <span className="font-mono text-[10.5px] text-accent">View all →</span>
+      </button>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">{pipelineNarrative()}</p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Wins · 30d" value="$0" tone="warn" />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Activity · 7d" value={String(data.schedule.length)} />
+          <button
+            type="button"
+            onClick={() => speakOrToast(pipelineNarrative())}
+            className="ml-1 font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
           >
-            Summarize stalled deals
-          </AskChip>
-        </SectionHead>
-        <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr>
-                <Th>Client</Th>
-                <Th>Opportunity</Th>
-                <Th>Stage</Th>
-                <Th>Propensity</Th>
-                <Th align="right">Amount</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.pipeline.map(p => (
-                <PipeRow key={p.id} item={p} onClick={() => open('quickview', p.clientName)} />
-              ))}
-            </tbody>
-          </table>
+            {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
+          </button>
         </div>
-      </section>
+      </div>
+    </div>
+  );
 
-      {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
-      <section id="leads" className="scroll-mt-[82px]">
-        <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
-        <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
-          <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr>
-                  <Th>Name</Th>
-                  <Th>Source</Th>
-                  <Th>Status</Th>
-                  <Th align="right">Value</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.leads.map(l => (
-                  <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name)} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div id="pulse" className="scroll-mt-[82px]">
-            <SectionPanel
-              icon="pulse"
-              label="Portfolio pulse"
-              right={
-                <button
-                  type="button"
-                  onClick={() => speakOrToast(pipelineNarrative())}
-                  className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted transition hover:text-fg"
-                >
-                  {speech.speaking ? '❚❚ Stop' : '▷ Listen'}
-                </button>
+  // ── Compact AI Daily Brief strip (cockpit only) ──
+  // The mockup's brief is a single dense line — icon + "AI Daily Brief" +
+  // "Updated" chip + one sentence + "View full insights →" — NOT the tall hero
+  // headline. It opens with the personalized welcome greeting restored from the
+  // classic hero, then the dense brief line below it.
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const showRightNow = !!data.rightNow && !dismissed.has('rightNow');
+  const briefStrip = (
+    <div className="rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
+      {/* Two columns like the classic hero: greeting + AI brief on the left,
+          the "Right Now · your first move" card embedded on the right. Drops to
+          one column (card below) when there's no room. */}
+      <div className={`grid gap-6 ${showRightNow ? 'lg:grid-cols-[1fr_340px]' : ''}`}>
+        {/* ---- Left: welcome greeting + dense AI brief line, with the Portfolio
+             Pulse strip pinned to the bottom (mt-auto) so it fills the space the
+             taller Right Now card opens up beside it. ---- */}
+        <div className="flex min-w-0 flex-col">
+          <h1 className="font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
+            {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+          </h1>
+          <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Icon name="sparkle" size={15} className="text-ai" />
+            <b className="text-[14px] font-semibold">AI Daily Brief</b>
+            <span className="rounded-full bg-track px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
+              Updated {data.dateLabel}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                openAi(
+                  'queue_rationale',
+                  'Full insights',
+                  "Give the banker a full morning briefing on this book in 4-6 sentences: the clients needing attention today, the emerging risks, and the opportunities worth acting on now.",
+                  queueContext(),
+                  queueFallback(),
+                )
               }
-              padded
+              className="ml-auto inline-flex items-center gap-1 font-mono text-[11.5px] text-accent transition hover:opacity-80"
             >
-              <p className="mb-4 max-w-[80ch] text-[14.5px] leading-relaxed text-fg">{pipelineNarrative()}</p>
-              <div className="grid grid-cols-2 gap-3.5">
-                <PulseCard label="Wins · 30d" value="$0" note="Nothing closed this period." tone="warn" />
-                <PulseCard label="Activity · 7d" value={String(data.schedule.length)} note="Low volume — schedule touchpoints." />
-              </div>
-            </SectionPanel>
+              View full insights →
+            </button>
           </div>
+          <p className="mt-2.5 text-[13.5px] leading-relaxed text-fg">
+            <b className="font-semibold">{data.aiBriefHeadline}.</b> {data.aiBrief}
+          </p>
+          <div id="pulse" className="mt-auto scroll-mt-[82px] pt-5">{pulseStrip}</div>
         </div>
-      </section>
+
+        {/* ---- Right: the embedded Right Now · your first move card ---- */}
+        {showRightNow && (
+          <RightNowCard
+            item={data.rightNow!}
+            onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
+            onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
+            onSnooze={() => {
+              setDismissed(s => new Set(s).add('rightNow'));
+              toast('Snoozed', 'Right Now item hidden for this session');
+            }}
+            onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  // ── Full-width supporting band (cockpit only) ──
+  // The five secondary modules from the mockup, in a single responsive row:
+  // Customer Goals · Pipeline Movement · Open Cases · Today's Agenda ·
+  // Top Opportunities. Each is a slim card with a "View all →" head and clickable
+  // rows that drive the right context panel. (Life events moved to the right
+  // context panel — its explorer opens from the panel's section link — so this
+  // band now surfaces upcoming customer goals instead.)
+  const supportingBand = (
+    <div className="@container/band">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-card border border-line-strong bg-line-strong shadow-card @[560px]/band:grid-cols-3 @[900px]/band:grid-cols-5">
+      {/* Customer Goals — upcoming FinancialGoals across the book (soonest due
+          first), each with an urgency-colored chip. Click opens the read-only
+          goal detail; "View all →" opens the Customer Goals explorer. */}
+      <BandCard
+        title="Customer Goals"
+        onViewAll={() => setExplorer('customerGoals')}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewGoal}
+            className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted transition hover:border-accent-border hover:text-fg"
+          >
+            + New
+          </button>
+        }
+      >
+        {data.customerGoals.slice(0, 4).map(g => {
+          const st = customerGoalStyle(g.daysUntil);
+          return (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => showCustomerGoalDetail(g)}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
+              <span className={`mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
+                <Icon name="metrics" size={13} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-medium text-fg">{g.name}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">
+                  {(g.clientName || g.planName) ? `${g.clientName || g.planName} · ` : ''}{customerGoalDueLabel(g.daysUntil)}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </BandCard>
+
+      {/* Pipeline Movement */}
+      <BandCard title="Pipeline Movement" onViewAll={() => setExplorer('pipelineMovement')}>
+        {data.pipelineMovement.slice(0, 4).map(m => {
+          const up = m.deltaPct >= 0;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setExplorer('pipelineMovement')}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
+              <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-fg">{m.label}</span>
+              <span className="flex-none text-right font-semibold text-[12.5px] text-fg">{formatValue(m.amount, 'currencyCompact')}</span>
+              <span className={`flex-none font-mono text-[11px] ${up ? 'text-ok' : 'text-risk'}`}>
+                {up ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%
+              </span>
+              <Sparkline points={m.trend} width={44} height={20} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="flex-none opacity-90" />
+            </button>
+          );
+        })}
+      </BandCard>
+
+      {/* Open Cases — at-risk clients moved to the right context panel, so this
+          slot now surfaces open service cases: a leading priority chip, the
+          subject, and "Account · N days open". Click opens the client 360. */}
+      <BandCard title="Open Cases" onViewAll={() => setExplorer('cases')}>
+        {data.cases.slice(0, 4).map(cs => {
+          const st = casePriorityStyle(cs.priority);
+          return (
+            <button
+              key={cs.id}
+              type="button"
+              onClick={() => selectClientPanel(cs.clientName || cs.subject, cs.clientId)}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
+                <Icon name="alerts" size={13} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{cs.subject}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">
+                  {cs.clientName || 'Unassigned'} · {cs.ageDays}{cs.ageDays === 1 ? ' day' : ' days'} open
+                </span>
+              </span>
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${st.chip}`}>
+                {cs.priority || '—'}
+              </span>
+            </button>
+          );
+        })}
+      </BandCard>
+
+      {/* Leads & Referrals — inbound leads routed to the banker. Leading icon
+          chip, name, "company/source · status", and est. value. "+ New" opens
+          the create modal; a row opens the editable Lead modal; "View all →"
+          opens the Leads explorer. */}
+      <BandCard
+        title="Leads & Referrals"
+        onViewAll={() => setExplorer('leads')}
+        headerIcon={<Icon name="leads" size={14} />}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewLead}
+            className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-muted transition hover:border-accent-border hover:text-fg"
+          >
+            + New
+          </button>
+        }
+      >
+        {data.leads.slice(0, 4).map(l => {
+          const st = leadStatusStyle(l.status);
+          return (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => showLead(l)}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${st.chip}`}>
+                <Icon name="leads" size={13} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{l.name}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">
+                  {(l.company || l.source) ? `${l.company || l.source} · ` : ''}{l.status}
+                </span>
+              </span>
+              {l.value > 0 && (
+                <span className="flex-none text-right font-semibold text-[12px] text-fg">{formatValue(l.value, 'currencyCompact')}</span>
+              )}
+            </button>
+          );
+        })}
+      </BandCard>
+
+      {/* Top Opportunities — leading colored icon chip, "client – opp name",
+          value + probability, and a Hot/Warm/Cool heat pill. */}
+      <BandCard title="Top Opportunities" onViewAll={() => setExplorer('opportunities')}>
+        {data.pipeline.slice(0, 4).map(p => {
+          const heat = p.propensity >= 0.7 ? 'Hot' : p.propensity >= 0.45 ? 'Warm' : 'Cool';
+          const heatClass = p.propensity >= 0.7 ? 'bg-risk-bg text-risk' : p.propensity >= 0.45 ? 'bg-warn-bg text-warn' : 'bg-accent-bg text-accent';
+          const chipClass = p.propensity >= 0.7 ? 'bg-ok-bg text-ok' : p.propensity >= 0.45 ? 'bg-warn-bg text-warn' : 'bg-accent-bg text-accent';
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => selectOpportunityPanel(p)}
+              className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-[9px] px-2 py-2.5 text-left transition hover:bg-surface-muted"
+            >
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${chipClass}`}>
+                <Icon name="pipeline" size={13} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[12.5px] font-semibold text-fg">{p.clientName} – {p.name}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-faint">{formatValue(p.amount, 'currencyCompact')} · {Math.round(p.propensity * 100)}% probability</span>
+              </span>
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${heatClass}`}>{heat}</span>
+            </button>
+          );
+        })}
+      </BandCard>
+    </div>
+    </div>
+  );
+
+  return (
+    <div className="pb-24">
+      {/* ---------- DAILY BRIEF (classic view only — the cockpit uses a compact
+           strip inside its left column so the context panel can align to the top) ---------- */}
+      {view !== 'cockpit' && (
+        <section id="brief" className="scroll-mt-[82px]">
+          <div className="relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
+            <div className="grid gap-7 lg:grid-cols-[1fr_380px]">
+              <div>
+                <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
+                  <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
+                </div>
+                <h1 className="mb-2.5 mt-2 font-display text-[30px] font-semibold leading-[1.1] tracking-tight">
+                  {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+                </h1>
+                <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
+                      <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
+                    </div>
+                    <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
+                    className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
+                  >
+                    {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
+                  </button>
+                  <AskChip
+                    onClick={() =>
+                      openAi(
+                        'queue_rationale',
+                        'Why this order',
+                        "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
+                        queueContext(),
+                        queueFallback(),
+                      )
+                    }
+                  >
+                    Ask why this order
+                  </AskChip>
+                </div>
+              </div>
+              {data.rightNow && !dismissed.has('rightNow') && (
+                <RightNowCard
+                  item={data.rightNow}
+                  onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
+                  onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
+                  onSnooze={() => {
+                    setDismissed(s => new Set(s).add('rightNow'));
+                    toast('Snoozed', 'Right Now item hidden for this session');
+                  }}
+                  onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
+                />
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {view === 'cockpit' ? (
+        /* ==================== COCKPIT WORKSPACE ====================
+           Master-detail command center matching the design mockup:
+             • left column: compact AI brief → 4 KPI vitals → Priority Queue +
+               Recommended Actions side-by-side
+             • right column: a sticky context panel (AI brief until a row is
+               clicked, then a tabbed Client-360)
+             • full-width supporting band (5 glance modules)
+             • always-rendered detail modules below carry the CommandRail nav
+               anchors (#pipeline / #events / #leads / #pulse / #schedule).
+           Left nav + pinned accounts live in the CommandRail (see HomeLayout). */
+        <>
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_384px]">
+            {/* ---- LEFT: the primary workflow ---- */}
+            <div className="min-w-0">
+              {/* AI Daily Brief strip — greeting + brief with the Right Now
+                  card embedded on the right (see briefStrip). */}
+              <section id="brief" className="scroll-mt-[82px]">
+                {briefStrip}
+              </section>
+
+              {/* Vitals: four sparkline KPI cards */}
+              <section id="kpis" className="mt-4 scroll-mt-[82px]">
+                {kpiGridVitals}
+              </section>
+
+              {/* Priority Queue + Recommended Actions, side by side */}
+              <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+                <section id="queue" className="min-w-0 scroll-mt-[82px]">
+                  <PriorityQueueCard
+                    items={queueItems}
+                    controls={queueControls}
+                    onOpen={c => queueOpen('quickview', c.clientName, c.clientId)}
+                    onViewAll={() => setExplorer('atRisk')}
+                  />
+                </section>
+
+                <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended Actions" controls={actionsControls}>
+                  {buildActionsBody(true)}
+                </ColumnCard>
+              </div>
+            </div>
+
+            {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
+            <div className="sticky top-[92px] min-w-0">
+              <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
+            </div>
+          </div>
+
+          {/* ---- Full-width supporting band ---- */}
+          <div className="mt-4">{supportingBand}</div>
+
+          {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
+              Life events + Alerts / Leads) were removed — they duplicated the
+              right panel and the supporting band. Their content is one click away
+              via the KPI cards, supporting-band "View all →", and the CommandRail
+              (which now opens a DataExplorerModal for anchor-less sections). */}
+        </>
+      ) : (
+        /* ==================== CURRENT VIEW (classic stacked) ==================== */
+        <>
+          {/* ---------- KPI PULSE ---------- */}
+          <section id="kpis" className="mt-8 scroll-mt-[82px]">
+            {kpiGrid}
+          </section>
+
+          {/* ---------- TASKS & SCHEDULE ---------- */}
+          <section id="schedule" className="mt-8 scroll-mt-[82px]">
+            <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
+              {scheduleControls}
+            </SectionHead>
+            {scheduleBody}
+          </section>
+
+          {/* ---------- PRIORITY QUEUE ---------- */}
+          <section id="queue" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
+              {queueControls}
+            </SectionHead>
+            {queueBody}
+          </section>
+
+          {/* ---------- RECOMMENDED ACTIONS ---------- */}
+          <section id="actions" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
+              {actionsControls}
+            </SectionHead>
+            {actionsBody}
+          </section>
+
+          {/* ---------- LIFE EVENTS + ALERTS ---------- */}
+          <section id="events" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
+            <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+              <div className="min-w-0">{lifeEventsBody}</div>
+              <div id="alerts" className="min-w-0 scroll-mt-[82px]">{alertsBody}</div>
+            </div>
+          </section>
+
+          {/* ---------- PIPELINE ---------- */}
+          <section id="pipeline" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
+              {pipelineControls}
+            </SectionHead>
+            {pipelineBody}
+          </section>
+
+          {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
+          <section id="leads" className="scroll-mt-[82px]">
+            <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
+            <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+              <div className="min-w-0">{leadsBody}</div>
+              <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ---------- MODALS ---------- */}
       {modal.type === 'task' && (
@@ -498,17 +1657,369 @@ function HomeContent() {
       {modal.type === 'schedule' && (
         <ScheduleModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject ?? 'Call'} onSaved={refetch} />
       )}
+
+      {/* ---- Supporting-band drill-in explorers (one per "View all →") ---- */}
+      <DataExplorerModal<ActivityItem>
+        open={explorer === 'activity'}
+        onClose={() => setExplorer(null)}
+        title="Recent Activity"
+        subtitle="All account activity across your book"
+        icon={<Icon name="pulse" size={17} />}
+        rows={data.activity}
+        searchPlaceholder="Search activity, clients…"
+        searchText={a => `${a.title} ${a.clientName} ${a.tone}`}
+        rowKey={a => a.id}
+        onRowClick={a => showActivityDetail(a)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'risk', label: 'Risk', test: a => a.tone === 'risk' },
+          { key: 'opportunity', label: 'Opportunity', test: a => a.tone === 'opportunity' },
+          { key: 'positive', label: 'Positive', test: a => a.tone === 'positive' },
+        ]}
+        columns={[
+          { key: 'act', label: 'Activity', render: a => (
+            <span className="flex items-center gap-2.5">
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${ACTIVITY_CHIP[a.tone]}`}><Icon name={a.icon} size={13} /></span>
+              <span className="font-medium text-fg">{a.title}</span>
+            </span>
+          ) },
+          { key: 'client', label: 'Client', render: a => a.clientName, hideBelow: 'sm' },
+          { key: 'when', label: 'When', align: 'right', render: a => <span className="font-mono text-[11px] text-faint">{a.when}</span> },
+        ]}
+        footNote="Source · Data Cloud"
+      />
+
+      <DataExplorerModal<PipelineMovement>
+        open={explorer === 'pipelineMovement'}
+        onClose={() => setExplorer(null)}
+        title="Pipeline Movement"
+        subtitle="Week-over-week change by product line"
+        icon={<Icon name="metrics" size={17} />}
+        rows={data.pipelineMovement}
+        searchPlaceholder="Search product lines…"
+        searchText={m => m.label}
+        rowKey={m => m.id}
+        onRowClick={m => showPipelineMovementDetail(m)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'up', label: 'Gaining', test: m => m.deltaPct >= 0 },
+          { key: 'down', label: 'Declining', test: m => m.deltaPct < 0 },
+        ]}
+        columns={[
+          { key: 'label', label: 'Product line', render: m => <span className="font-medium text-fg">{m.label}</span> },
+          { key: 'amount', label: 'Value', align: 'right', render: m => <span className="font-semibold">{formatValue(m.amount, 'currencyCompact')}</span> },
+          { key: 'delta', label: 'Change', align: 'right', render: m => (
+            <span className={`font-mono ${m.deltaPct >= 0 ? 'text-ok' : 'text-risk'}`}>{m.deltaPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%</span>
+          ) },
+          { key: 'trend', label: 'Trend', align: 'right', hideBelow: 'sm', render: m => (
+            <Sparkline points={m.trend} width={70} height={22} stroke={m.deltaPct >= 0 ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="ml-auto" />
+          ) },
+        ]}
+        footNote="Source · CRM pipeline"
+      />
+
+      <DataExplorerModal<CallItem>
+        open={explorer === 'atRisk'}
+        onClose={() => setExplorer(null)}
+        title="At-Risk Clients"
+        subtitle="Health scores and attention drivers"
+        icon={<Icon name="alerts" size={17} />}
+        rows={data.callList}
+        searchPlaceholder="Search clients, reasons…"
+        searchText={c => `${c.clientName} ${c.segment} ${c.reason} ${c.severity}`}
+        rowKey={c => c.id}
+        onRowClick={c => showClientDetail(c)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'high', label: 'High', test: c => c.severity === 'high' },
+          { key: 'medium', label: 'Medium', test: c => c.severity === 'medium' },
+          { key: 'low', label: 'Low', test: c => c.severity === 'low' },
+        ]}
+        columns={[
+          { key: 'health', label: 'Health', render: c => { const h = healthFor(c); return <ScoreRing value={h} tone={h < 55 ? 'risk' : h < 70 ? 'warn' : 'ok'} size={34} />; }, className: 'w-[70px]' },
+          { key: 'client', label: 'Client', render: c => (
+            <span className="min-w-0"><span className="block font-semibold text-fg">{c.clientName}</span><span className="block text-[11px] text-faint">{c.segment}</span></span>
+          ) },
+          { key: 'reason', label: 'Driver', render: c => <span className="text-muted">{c.reason}</span>, hideBelow: 'md' },
+          { key: 'sev', label: 'Severity', align: 'right', render: c => (
+            <Pill tone={c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'neutral'}>{c.severity}</Pill>
+          ) },
+        ]}
+        footNote="Source · CSAT + Data Cloud signals"
+      />
+
+      <DataExplorerModal<CaseItem>
+        open={explorer === 'cases'}
+        onClose={() => setExplorer(null)}
+        title="Open Cases"
+        subtitle="Open service cases across your book"
+        icon={<Icon name="alerts" size={17} />}
+        rows={data.cases}
+        searchPlaceholder="Search cases, clients…"
+        searchText={cs => `${cs.caseNumber} ${cs.subject} ${cs.clientName} ${cs.priority} ${cs.status}`}
+        rowKey={cs => cs.id}
+        onRowClick={cs => cs.clientId ? openFull(cs.clientId) : open('quickview', cs.clientName || cs.subject)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'high', label: 'High', test: cs => cs.priority.toLowerCase() === 'high' },
+          { key: 'medium', label: 'Medium', test: cs => cs.priority.toLowerCase() === 'medium' },
+          { key: 'low', label: 'Low', test: cs => !['high', 'medium'].includes(cs.priority.toLowerCase()) },
+        ]}
+        columns={[
+          { key: 'case', label: 'Case', render: cs => (
+            <span className="min-w-0"><span className="block font-semibold text-fg">{cs.subject}</span><span className="block font-mono text-[11px] text-faint">#{cs.caseNumber}</span></span>
+          ) },
+          { key: 'client', label: 'Client', render: cs => <span className="text-muted">{cs.clientName || 'Unassigned'}</span>, hideBelow: 'md' },
+          { key: 'age', label: 'Age', align: 'right', hideBelow: 'sm', render: cs => <span className="font-mono text-[11px] text-muted">{cs.ageDays}d</span> },
+          { key: 'status', label: 'Status', align: 'right', hideBelow: 'sm', render: cs => <Pill tone="neutral">{cs.status || '—'}</Pill> },
+          { key: 'priority', label: 'Priority', align: 'right', render: cs => (
+            <Pill tone={casePriorityStyle(cs.priority).tone}>{cs.priority || '—'}</Pill>
+          ) },
+        ]}
+        footNote="Source · CRM cases"
+      />
+
+      <DataExplorerModal<ScheduleItem>
+        open={explorer === 'agenda'}
+        onClose={() => setExplorer(null)}
+        title="Calendar & Agenda"
+        subtitle="Tasks and meetings across your book"
+        icon={<Icon name="event" size={17} />}
+        rows={tagSchedule(data.schedule)}
+        searchPlaceholder="Search tasks, meetings…"
+        searchText={s => `${s.title} ${s.clientName ?? ''} ${s.kind} ${s.bucket ?? ''}`}
+        rowKey={(s, i) => s.id ?? String(i)}
+        onRowClick={s => setDetailItem(s)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'overdue', label: 'Overdue', test: s => s.bucket === 'overdue' },
+          { key: 'today', label: 'Today', test: s => s.bucket === 'today' },
+          { key: 'upcoming', label: 'Upcoming', test: s => s.bucket === 'upcoming' },
+        ]}
+        columns={[
+          { key: 'when', label: 'When', render: s => <span className="font-mono text-[11px] text-muted">{s.time === 'done' ? '✓' : s.time}</span>, className: 'w-[110px]' },
+          { key: 'title', label: 'Item', render: s => (
+            <span className="min-w-0"><span className="block font-semibold text-fg">{s.title}</span>{s.clientName && <span className="block text-[11px] text-faint">{s.clientName}</span>}</span>
+          ) },
+          { key: 'kind', label: 'Type', align: 'right', hideBelow: 'sm', render: s => <Pill tone="accent">{s.kind}</Pill> },
+          { key: 'bucket', label: 'Status', align: 'right', render: s => (
+            <Pill tone={s.bucket === 'overdue' ? 'risk' : s.bucket === 'today' ? 'accent' : 'neutral'}>{s.bucket ?? 'upcoming'}</Pill>
+          ) },
+        ]}
+        footNote="Source · CRM tasks & events"
+      />
+
+      <DataExplorerModal<PipelineItem>
+        open={explorer === 'opportunities'}
+        onClose={() => setExplorer(null)}
+        title="Top Opportunities"
+        subtitle="Open pipeline by value and propensity"
+        icon={<Icon name="pipeline" size={17} />}
+        rows={data.pipeline}
+        searchPlaceholder="Search opportunities, clients…"
+        searchText={p => `${p.clientName} ${p.name} ${p.stage}`}
+        rowKey={p => p.id}
+        onRowClick={p => showPipelineDetail(p)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'hot', label: 'Hot', test: p => p.propensity >= 0.7 },
+          { key: 'warm', label: 'Warm', test: p => p.propensity >= 0.45 && p.propensity < 0.7 },
+          { key: 'cool', label: 'Cool', test: p => p.propensity < 0.45 },
+        ]}
+        columns={[
+          { key: 'client', label: 'Client', render: p => <span className="font-semibold text-fg">{p.clientName}</span> },
+          { key: 'opp', label: 'Opportunity', render: p => <span className="text-muted">{p.name}</span>, hideBelow: 'sm' },
+          { key: 'stage', label: 'Stage', render: p => <Pill tone="neutral">{p.stage || '—'}</Pill>, hideBelow: 'md' },
+          { key: 'prop', label: 'Propensity', align: 'right', render: p => (
+            <Pill tone={p.propensity >= 0.7 ? 'ok' : p.propensity >= 0.45 ? 'warn' : 'accent'}>{Math.round(p.propensity * 100)}%</Pill>
+          ) },
+          { key: 'amount', label: 'Amount', align: 'right', render: p => <span className="font-semibold">{formatValue(p.amount, 'currencyCompact')}</span> },
+        ]}
+        footNote="Source · CRM pipeline"
+      />
+
+      <DataExplorerModal<LeadReferral>
+        open={explorer === 'leads'}
+        onClose={() => setExplorer(null)}
+        title="Leads & Referrals"
+        subtitle="Inbound leads routed to you"
+        icon={<Icon name="leads" size={17} />}
+        rows={data.leads}
+        searchPlaceholder="Search leads, sources…"
+        searchText={l => `${l.name} ${l.source} ${l.status}`}
+        rowKey={l => l.id}
+        onRowClick={l => showLead(l)}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewLead}
+            className="flex items-center gap-1 rounded-full border border-accent-border bg-accent px-3 py-1.5 text-[11.5px] font-medium text-white transition hover:opacity-90"
+          >
+            + New lead
+          </button>
+        }
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'new', label: 'New', test: l => l.status === 'New' },
+          { key: 'working', label: 'Working', test: l => l.status === 'Working' },
+          { key: 'qualified', label: 'Qualified', test: l => l.status === 'Qualified' },
+        ]}
+        columns={[
+          { key: 'name', label: 'Name', render: l => <span className="font-semibold text-fg">{l.name}</span> },
+          { key: 'source', label: 'Source', render: l => <span className="text-muted">{l.source}</span>, hideBelow: 'sm' },
+          { key: 'status', label: 'Status', render: l => (
+            <Pill tone={l.status === 'Qualified' ? 'ok' : l.status === 'Working' ? 'warn' : l.status === 'Unqualified' ? 'neutral' : 'accent'}>{l.status}</Pill>
+          ) },
+          { key: 'value', label: 'Value', align: 'right', render: l => <span className="font-semibold">{formatValue(l.value, 'currencyCompact')}</span> },
+        ]}
+        footNote="Source · CRM leads"
+      />
+
+      <DataExplorerModal<BankerGoal>
+        open={explorer === 'goals'}
+        onClose={() => setExplorer(null)}
+        title="Active Goals"
+        subtitle="Your quota and attainment"
+        icon={<Icon name="metrics" size={17} />}
+        rows={data.bankerGoals}
+        searchPlaceholder="Search goals…"
+        searchText={g => g.name}
+        rowKey={g => g.id}
+        onRowClick={g => showGoalDetail(g)}
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'onTrack', label: 'On track', test: g => g.target > 0 && g.current / g.target >= 0.7 },
+          { key: 'behind', label: 'Behind', test: g => g.target > 0 && g.current / g.target < 0.7 },
+        ]}
+        columns={[
+          { key: 'name', label: 'Goal', render: g => <span className="font-semibold text-fg">{g.name}</span> },
+          { key: 'current', label: 'Current', align: 'right', render: g => <span className="text-muted">{formatValue(g.current, g.format)}</span>, hideBelow: 'sm' },
+          { key: 'target', label: 'Target', align: 'right', render: g => <span className="text-muted">{formatValue(g.target, g.format)}</span>, hideBelow: 'sm' },
+          { key: 'pct', label: 'Attainment', align: 'right', render: g => {
+            const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+            return <Pill tone={pct >= 70 ? 'ok' : pct >= 40 ? 'warn' : 'accent'}>{pct}%</Pill>;
+          } },
+        ]}
+        footNote="Source · CRM goals"
+      />
+
+      <DataExplorerModal<CustomerGoal>
+        open={explorer === 'customerGoals'}
+        onClose={() => setExplorer(null)}
+        title="Customer Goals"
+        subtitle="Upcoming client financial goals"
+        icon={<Icon name="metrics" size={17} />}
+        rows={data.customerGoals}
+        searchPlaceholder="Search goals, clients…"
+        searchText={g => `${g.name} ${g.clientName} ${g.planName ?? ''} ${g.status}`}
+        rowKey={g => g.id}
+        onRowClick={g => showCustomerGoalDetail(g)}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewGoal}
+            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[11.5px] font-medium text-white transition hover:opacity-90"
+          >
+            + New goal
+          </button>
+        }
+        filters={[
+          { key: 'all', label: 'All' },
+          { key: 'soon', label: 'Due ≤ 90d', test: g => g.daysUntil != null && g.daysUntil >= 0 && g.daysUntil <= 90 },
+          { key: 'inProgress', label: 'In progress', test: g => g.status.trim().toUpperCase() === 'IN_PROGRESS' },
+          { key: 'notStarted', label: 'Not started', test: g => g.status.trim().toUpperCase() === 'NOT_STARTED' },
+        ]}
+        columns={[
+          { key: 'name', label: 'Goal', render: g => (
+            <span className="flex items-center gap-2.5">
+              <span className={`grid h-7 w-7 flex-none place-items-center rounded-[8px] ${customerGoalStyle(g.daysUntil).chip}`}>
+                <Icon name="metrics" size={13} />
+              </span>
+              <span className="font-semibold text-fg">{g.name}</span>
+            </span>
+          ) },
+          { key: 'client', label: 'Client / Plan', render: g => <span className="text-muted">{g.clientName || g.planName || '—'}</span>, hideBelow: 'sm' },
+          { key: 'status', label: 'Status', render: g => <span className="text-muted">{prettyGoalStatus(g.status)}</span>, hideBelow: 'md' },
+          { key: 'progress', label: 'Progress', align: 'right', render: g => {
+            const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+            return <span className="text-muted">{formatValue(g.current, 'currencyCompact')} / {formatValue(g.target, 'currencyCompact')} ({pct}%)</span>;
+          }, hideBelow: 'md' },
+          { key: 'due', label: 'Due', align: 'right', render: g => (
+            <Pill tone={customerGoalStyle(g.daysUntil).tone === 'neutral' ? 'accent' : customerGoalStyle(g.daysUntil).tone}>{customerGoalDueLabel(g.daysUntil)}</Pill>
+          ) },
+        ]}
+        footNote="Source · CRM FinancialGoal (plan-linked, target date ≥ today)"
+      />
+
+      <DataExplorerModal<LifeEventSignal>
+        open={explorer === 'lifeEvents'}
+        onClose={() => setExplorer(null)}
+        title="Life Events"
+        subtitle="Customer milestones → planning opportunities"
+        icon={<Icon name="lifeEvent" size={17} />}
+        rows={data.lifeEvents}
+        searchPlaceholder="Search clients, events…"
+        searchText={e => `${e.clientName} ${e.event} ${e.opportunity}`}
+        rowKey={e => e.id}
+        onRowClick={e => showLifeEventDetail(e)}
+        filters={lifeEventFilters}
+        headerAction={
+          <button
+            type="button"
+            onClick={showNewLifeEvent}
+            className="flex items-center gap-1 rounded-full border border-accent-border bg-accent px-3 py-1.5 text-[11.5px] font-medium text-white transition hover:opacity-90"
+          >
+            + New life event
+          </button>
+        }
+        columns={[
+          { key: 'event', label: 'Event', render: e => (
+            <span className="flex items-center gap-2.5">
+              <span className="grid h-7 w-7 flex-none place-items-center rounded-[8px] bg-warn-bg text-[15px]">{e.icon}</span>
+              <span className="font-semibold text-fg">{e.event}</span>
+            </span>
+          ) },
+          { key: 'client', label: 'Client', render: e => <span className="text-muted">{e.clientName}</span>, hideBelow: 'sm' },
+          { key: 'opp', label: 'Opportunity', render: e => <span className="text-muted">{e.opportunity}</span>, hideBelow: 'md' },
+          { key: 'when', label: 'When', align: 'right', render: e => <span className="font-mono text-[11px] text-faint">{e.when}</span> },
+        ]}
+        footNote="Source · CRM PersonLifeEvent (most recent across your book)"
+      />
+
+      {/* Row-detail popups render AFTER the explorers so they stack on top of
+          the open list (both use the z-[100] Modal; later-in-DOM wins). Closing
+          the detail returns the user to the list behind it. */}
       <ScheduleDetailModal
         open={detailItem !== null}
         onClose={() => setDetailItem(null)}
         item={detailItem}
         onSaved={refetch}
       />
+      <CustomerGoalModal
+        open={goalItem !== null}
+        onClose={() => setGoalItem(null)}
+        goal={goalItem}
+        onSaved={refetch}
+      />
+      <LifeEventModal
+        open={lifeEventItem !== null}
+        onClose={() => setLifeEventItem(null)}
+        event={lifeEventItem}
+        onSaved={refetch}
+      />
+      <LeadModal
+        open={leadItem !== null}
+        onClose={() => setLeadItem(null)}
+        lead={leadItem}
+        onSaved={refetch}
+      />
+      <DetailModal data={detailView} onClose={() => setDetailView(null)} />
+
       {modal.type === 'case' && (
         <CaseModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} />
       )}
       {modal.type === 'email' && (
-        <EmailModal open onClose={close} clientName={modal.name} clientId={modal.id} promptFlow={flowFor(modal.id)} />
+        <EmailModal open onClose={close} clientName={modal.name} clientId={modal.id} toAddress={modal.toAddress} promptFlow={flowFor(modal.id)} />
       )}
       {modal.type === 'prep' && (
         <PrepModal
@@ -554,7 +2065,9 @@ function HomeContent() {
           onClose={() => setAiModal(null)}
           title={aiModal.title}
           generate={(): Promise<AiGenerateResult> =>
-            generateText({ task: aiModal.task, prompt: aiModal.prompt, context: aiModal.context })
+            generateText(
+              withConfig(aiModal.task, { task: aiModal.task, prompt: aiModal.prompt, context: aiModal.context })
+            )
           }
           fallbackText={aiModal.fallback}
         />
@@ -565,12 +2078,14 @@ function HomeContent() {
           onClose={() => setDraftsOpen(false)}
           drafts={draftRows()}
           enrich={(): Promise<AiGenerateResult> =>
-            generateText({
-              task: 'followups',
-              prompt:
-                'Rewrite each follow-up below as one concise, warm sentence. Return one line per client, in the same order, no numbering.',
-              context: draftsContext(),
-            })
+            generateText(
+              withConfig('followups', {
+                task: 'followups',
+                prompt:
+                  'Rewrite each follow-up below as one concise, warm sentence. Return one line per client, in the same order, no numbering.',
+                context: draftsContext(),
+              })
+            )
           }
         />
       )}
@@ -578,13 +2093,37 @@ function HomeContent() {
   );
 }
 
-/* ── KPI → scroll-target section ─────────────────────────────────── */
+/* ── KPI → scroll-target section (classic view) ──────────────────── */
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
+  leads: 'leads',
   openCases: 'events',
   goals: 'pulse',
   atRisk: 'events',
+};
+
+/* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
+type ExplorerKey = 'activity' | 'pipelineMovement' | 'atRisk' | 'agenda' | 'opportunities' | 'leads' | 'goals' | 'lifeEvents';
+const KPI_EXPLORER: Record<string, ExplorerKey> = {
+  pipeline: 'opportunities',
+  openOpps: 'opportunities',
+  leads: 'leads',
+  goals: 'goals',
+  atRisk: 'atRisk',
+  openCases: 'atRisk',
+};
+
+/* ── CommandRail section id → drill-in explorer (cockpit view) ─────
+   The anchor-less cockpit sections map to the modal that now holds their
+   content. Sections that still have an on-page anchor (brief / kpis / queue /
+   actions / pulse) never reach here — the rail scrolls to them directly. */
+const NAV_TO_EXPLORER: Record<string, ExplorerKey> = {
+  schedule: 'agenda',
+  pipeline: 'opportunities',
+  events: 'lifeEvents',
+  alerts: 'atRisk',
+  leads: 'leads',
 };
 
 /* ── Small local presentational helpers ──────────────────────────── */
@@ -610,10 +2149,46 @@ function SectionHead({ eyebrow, title, children }: { eyebrow: string; title: str
     <div className="mb-4 mt-11 flex items-end gap-3.5">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-faint">{eyebrow}</div>
-        <h2 className="mt-0.5 font-display text-[25px] font-medium tracking-tight">{title}</h2>
+        <h2 className="mt-0.5 font-display text-[25px] font-semibold tracking-tight">{title}</h2>
       </div>
       {children && <div className="ml-auto flex items-center gap-2.5">{children}</div>}
     </div>
+  );
+}
+
+/**
+ * Cockpit-view column wrapper: a compact heading (eyebrow + title + optional
+ * controls) over the section body, sized to sit in a ⅓-width grid track.
+ * `min-w-0` lets a wide table shrink to the column instead of blowing out the
+ * grid — the project's canonical grid-child rule.
+ */
+function ColumnCard({
+  id,
+  eyebrow,
+  title,
+  controls,
+  children,
+}: {
+  id?: string;
+  eyebrow: string;
+  title: string;
+  controls?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section id={id} className="min-w-0 scroll-mt-[82px]">
+      {/* Header sits in its own white card (same chrome as the Priority Queue
+          header) so the two column titles read as the same "level" instead of
+          this one floating on the gray page background. */}
+      <div className="mb-3 flex items-end gap-2.5 rounded-card border border-line bg-surface px-5 pb-3.5 pt-4 shadow-card">
+        <div className="min-w-0">
+          <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">{eyebrow}</div>
+          <h2 className="mt-0.5 font-display text-[19px] font-semibold tracking-tight">{title}</h2>
+        </div>
+        {controls && <div className="ml-auto flex flex-none items-center gap-2">{controls}</div>}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -626,8 +2201,58 @@ function KpiCard({ label, value, note, risk, onClick }: { label: string; value: 
     >
       <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-[3px] ${risk ? 'bg-risk' : 'bg-accent'}`} />
       <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-faint">{label}</span>
-      <div className={`font-display text-[29px] font-medium leading-none tracking-tight ${risk ? 'text-risk' : ''}`}>{value}</div>
+      <div className={`font-display text-[29px] font-semibold leading-none tracking-tight ${risk ? 'text-risk' : ''}`}>{value}</div>
       {note && <div className="mt-1.5 font-mono text-[11px] text-muted">{note}</div>}
+    </button>
+  );
+}
+
+/**
+ * Cockpit vitals card — matches the mockup: label, big value, a sub-note, a
+ * signed delta row (green up / red down; red arrow for a risk metric even when
+ * the count rose), and a sparkline pinned to the card's foot. Trend/delta come
+ * from the KPI view model; both are optional so a bare metric still renders.
+ */
+function VitalCard({
+  label,
+  value,
+  note,
+  deltaPct,
+  trend,
+  risk,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  deltaPct?: number;
+  trend?: number[];
+  risk?: boolean;
+  onClick: () => void;
+}) {
+  const up = (deltaPct ?? 0) >= 0;
+  // For a risk metric a rise is bad, so tint the delta red regardless of sign.
+  const deltaClass = risk ? 'text-risk' : up ? 'text-ok' : 'text-risk';
+  const stroke = risk ? 'var(--wp-neg)' : 'var(--wp-accent)';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative flex flex-col overflow-hidden rounded-[16px] border border-line bg-surface p-4 text-left shadow-card transition hover:-translate-y-0.5 hover:border-accent-border"
+    >
+      <span className={`mb-2 block font-mono text-[10.5px] uppercase tracking-[0.14em] ${risk ? 'text-risk' : 'text-faint'}`}>{label}</span>
+      <div className={`font-display text-[27px] font-semibold leading-none tracking-tight ${risk ? 'text-risk' : 'text-fg'}`}>{value}</div>
+      {note && <div className="mt-1.5 text-[11.5px] text-muted">{note}</div>}
+      <div className="mt-2.5 flex items-end justify-between gap-2">
+        {deltaPct != null ? (
+          <span className={`inline-flex items-center gap-1 font-mono text-[11px] ${deltaClass}`}>
+            {up ? '▲' : '▼'} {Math.abs(Math.round(deltaPct * 1000) / 10)}% <span className="text-faint">vs last</span>
+          </span>
+        ) : <span />}
+        {trend && trend.length > 0 && (
+          <Sparkline points={trend} width={68} height={26} stroke={stroke} fill className="flex-none opacity-90" />
+        )}
+      </div>
     </button>
   );
 }
@@ -660,10 +2285,11 @@ function QueueGroup({
   );
 }
 
-function QRow({ item, onOpen }: { item: CallItem; onOpen: (t: ModalKind, name: string, id?: string, subject?: string) => void }) {
+function QRow({ item, rank, onOpen }: { item: CallItem; rank?: number; onOpen: (t: ModalKind, name: string, id?: string, subject?: string) => void }) {
   return (
     <PriorityQueueRow
       item={item}
+      rank={rank}
       onOpenQuickView={() => onOpen('quickview', item.clientName, item.clientId)}
       onWhy={() => onOpen('why', item.clientName, item.clientId)}
       onPrep={() => onOpen('prep', item.clientName, item.clientId)}
@@ -752,22 +2378,22 @@ function PipeRow({ item, onClick }: { item: PipelineItem; onClick: () => void })
   const hot = item.propensity >= 0.7;
   return (
     <tr onClick={onClick} className="cursor-pointer border-b border-line transition last:border-b-0 hover:bg-surface-muted">
-      <td className="px-5 py-3 font-semibold text-fg">{item.clientName}</td>
-      <td className="px-5 py-3 text-muted">{item.name}</td>
+      <td className="truncate px-5 py-3 font-semibold text-fg" title={item.clientName}>{item.clientName}</td>
+      <td className="truncate px-5 py-3 text-muted" title={item.name}>{item.name}</td>
       <td className="px-5 py-3">
-        <span className={`rounded-[6px] px-2.5 py-1 font-mono text-[10.5px] ${hot ? 'bg-accent-bg text-accent' : 'bg-track text-muted'}`}>
+        <span className={`inline-block max-w-full truncate rounded-[6px] px-2.5 py-1 align-middle font-mono text-[10.5px] ${hot ? 'bg-accent-bg text-accent' : 'bg-track text-muted'}`} title={item.stage}>
           {item.stage}
         </span>
       </td>
       <td className="px-5 py-3">
         <span className="inline-flex items-center gap-2 text-muted">
-          <span className="h-[5px] w-[46px] overflow-hidden rounded-full bg-track">
+          <span className="h-[5px] w-[46px] flex-none overflow-hidden rounded-full bg-track">
             <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.round(item.propensity * 100)}%` }} />
           </span>
           {Math.round(item.propensity * 100)}%
         </span>
       </td>
-      <td className="px-5 py-3 text-right font-semibold text-fg">{formatValue(item.amount, 'currencyCompact')}</td>
+      <td className="whitespace-nowrap px-5 py-3 text-right font-semibold text-fg">{formatValue(item.amount, 'currencyCompact')}</td>
     </tr>
   );
 }
@@ -782,15 +2408,25 @@ const LEAD_STATUS: Record<string, string> = {
 function LeadRow({ lead, onClick }: { lead: LeadReferral; onClick: () => void }) {
   return (
     <tr onClick={onClick} className="cursor-pointer border-b border-line transition last:border-b-0 hover:bg-surface-muted">
-      <td className="px-5 py-3 font-semibold text-fg">{lead.name}</td>
-      <td className="px-5 py-3 text-muted">{lead.source}</td>
+      <td className="truncate px-5 py-3 font-semibold text-fg" title={lead.name}>{lead.name}</td>
+      <td className="truncate px-5 py-3 text-muted" title={lead.source}>{lead.source}</td>
       <td className="px-5 py-3">
-        <span className={`rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.06em] ${LEAD_STATUS[lead.status] ?? 'bg-track text-muted'}`}>
+        <span className={`inline-block max-w-full truncate rounded-full px-2.5 py-1 align-middle font-mono text-[10px] uppercase tracking-[0.06em] ${LEAD_STATUS[lead.status] ?? 'bg-track text-muted'}`} title={lead.status}>
           {lead.status}
         </span>
       </td>
-      <td className="px-5 py-3 text-right text-fg">{formatValue(lead.value, 'currencyCompact')}</td>
+      <td className="whitespace-nowrap px-5 py-3 text-right text-fg">{formatValue(lead.value, 'currencyCompact')}</td>
     </tr>
+  );
+}
+
+/** Compact label-over-value stat for the slim Portfolio-pulse strip. */
+function PulseStat({ label, value, tone }: { label: string; value: string; tone?: 'warn' }) {
+  return (
+    <div className="flex-none text-right">
+      <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{label}</span>
+      <span className={`font-display text-[22px] font-semibold leading-tight ${tone === 'warn' ? 'text-warn' : 'text-fg'}`}>{value}</span>
+    </div>
   );
 }
 
@@ -798,9 +2434,124 @@ function PulseCard({ label, value, note, tone }: { label: string; value: string;
   return (
     <div className="rounded-[16px] border border-line bg-surface p-5">
       <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-faint">{label}</span>
-      <div className={`font-display text-[30px] font-medium ${tone === 'warn' ? 'text-warn' : ''}`}>{value}</div>
+      <div className={`font-display text-[30px] font-semibold ${tone === 'warn' ? 'text-warn' : ''}`}>{value}</div>
       <div className="mt-2 text-[12.5px] text-muted">{note}</div>
     </div>
+  );
+}
+
+/** Tone → chip color for the Recent Activity glyphs in the supporting band. */
+const ACTIVITY_CHIP: Record<'positive' | 'opportunity' | 'risk' | 'neutral', string> = {
+  positive: 'bg-ok-bg text-ok',
+  opportunity: 'bg-accent-bg text-accent',
+  risk: 'bg-risk-bg text-risk',
+  neutral: 'bg-track text-muted',
+};
+
+/**
+ * Life-event type → a dedicated Lucide glyph + a tinted chip color, so each
+ * event reads at a glance in the supporting band's Life events card (crisp icon
+ * per type rather than a single amber emoji chip). Keyed on the lowercased
+ * `event` label; falls back to the generic life-event glyph for anything new.
+ */
+const LIFE_EVENT_STYLE: Record<string, { icon: IconKey; chip: string }> = {
+  'job change': { icon: 'jobChange', chip: 'bg-accent-bg text-accent' },
+  graduation: { icon: 'graduation', chip: 'bg-ai-bg text-ai' },
+  'new child': { icon: 'newChild', chip: 'bg-ok-bg text-ok' },
+  'home purchase': { icon: 'homePurchase', chip: 'bg-warn-bg text-warn' },
+  retirement: { icon: 'retirement', chip: 'bg-ok-bg text-ok' },
+  marriage: { icon: 'marriage', chip: 'bg-risk-bg text-risk' },
+};
+const lifeEventStyle = (event: string) =>
+  LIFE_EVENT_STYLE[event.trim().toLowerCase()] ?? { icon: 'lifeEvent' as IconKey, chip: 'bg-accent-bg text-accent' };
+
+/** Case.Priority → chip classes + Pill tone. High = red, Medium = amber,
+ *  everything else (Low / unset) = neutral. Keyed on the lowercased value so
+ *  org variants like "high" / "High" both resolve. */
+const CASE_PRIORITY_STYLE: Record<string, { chip: string; tone: 'risk' | 'warn' | 'neutral' }> = {
+  high: { chip: 'bg-risk-bg text-risk', tone: 'risk' },
+  medium: { chip: 'bg-warn-bg text-warn', tone: 'warn' },
+  low: { chip: 'bg-surface-muted text-muted', tone: 'neutral' },
+};
+const casePriorityStyle = (priority: string) =>
+  CASE_PRIORITY_STYLE[priority.trim().toLowerCase()] ?? { chip: 'bg-surface-muted text-muted', tone: 'neutral' as const };
+
+/** FinancialGoal.Status (UPPER_SNAKE org value) → a readable label. */
+function prettyGoalStatus(status: string): string {
+  if (!status) return '—';
+  return status
+    .toLowerCase()
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/** Days-until-target → a short due label. Negative = overdue, 0 = today. */
+function customerGoalDueLabel(daysUntil: number | null): string {
+  if (daysUntil == null) return 'No date';
+  if (daysUntil < 0) return `${Math.abs(daysUntil)}d overdue`;
+  if (daysUntil === 0) return 'Due today';
+  if (daysUntil < 45) return `Due in ${daysUntil}d`;
+  const months = Math.round(daysUntil / 30);
+  return `Due in ~${months}mo`;
+}
+
+/** Urgency chip tone for an upcoming customer goal, by proximity of its due
+ *  date: ≤30d = warn (amber), ≤90d = accent, further out = neutral. Overdue
+ *  reads as risk (red). */
+function customerGoalStyle(daysUntil: number | null): { chip: string; tone: 'risk' | 'warn' | 'accent' | 'neutral' } {
+  if (daysUntil == null) return { chip: 'bg-surface-muted text-muted', tone: 'neutral' };
+  if (daysUntil < 0) return { chip: 'bg-risk-bg text-risk', tone: 'risk' };
+  if (daysUntil <= 30) return { chip: 'bg-warn-bg text-warn', tone: 'warn' };
+  if (daysUntil <= 90) return { chip: 'bg-accent-bg text-accent', tone: 'accent' };
+  return { chip: 'bg-surface-muted text-muted', tone: 'neutral' };
+}
+
+/** Lead.Status → chip tone for the Leads & Referrals card. Qualified reads as
+ *  positive (green), Working as in-progress (amber), Unqualified as muted, and
+ *  everything else (New / Nurturing / …) as accent. */
+function leadStatusStyle(status: string): { chip: string } {
+  const s = (status || '').trim().toLowerCase();
+  if (s === 'qualified' || s === 'converted') return { chip: 'bg-ok-bg text-ok' };
+  if (s.startsWith('working') || s === 'contacted') return { chip: 'bg-warn-bg text-warn' };
+  if (s === 'unqualified' || s === 'rejected') return { chip: 'bg-surface-muted text-muted' };
+  return { chip: 'bg-accent-bg text-accent' };
+}
+
+/**
+ * A single column of the full-width supporting band — a titled card with a
+ * "View all →" link and divided rows. The band renders five of these side by
+ * side (2-up on md, 5-up on xl); the outer grid's `gap-px` on a `bg-line`
+ * background draws the hairline separators between columns.
+ */
+function BandCard({
+  title, onViewAll, children, headerIcon, headerAction, footer, divided = true,
+}: {
+  title: string;
+  onViewAll: () => void;
+  children: ReactNode;
+  /** Optional glyph rendered to the right of the "View all →" link (e.g. a calendar). */
+  headerIcon?: ReactNode;
+  /** Optional action control (e.g. a "+ New" button) rendered left of "View all →". */
+  headerAction?: ReactNode;
+  /** Optional footer row below the rows (e.g. "View full calendar →"). */
+  footer?: ReactNode;
+  /** Hairline dividers between rows. Off for the timeline-rail columns. */
+  divided?: boolean;
+}) {
+  return (
+    <section className="flex min-w-0 flex-col bg-surface px-4 py-4">
+      <div className="mb-1 flex items-center gap-2">
+        <b className="truncate text-[12.5px] font-semibold">{title}</b>
+        {headerAction && <span className="ml-auto flex-none">{headerAction}</span>}
+        <button type="button" onClick={onViewAll} className={`${headerAction ? '' : 'ml-auto '}flex-none font-mono text-[10.5px] text-accent transition hover:opacity-80`}>
+          View all →
+        </button>
+        {headerIcon && <span className="flex-none text-faint">{headerIcon}</span>}
+      </div>
+      <div className={divided ? 'divide-y divide-line' : ''}>{children}</div>
+      {footer && <div className="mt-auto pt-3">{footer}</div>}
+    </section>
   );
 }
 

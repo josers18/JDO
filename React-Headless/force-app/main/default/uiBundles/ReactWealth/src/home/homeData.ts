@@ -99,10 +99,34 @@ const DASH: HomeDashboard = {
     { id: 'a4', title: 'Plan on track', detail: 'David Osei — retirement readiness 94%', tone: 'positive', severity: 'Low', when: 'Yesterday' },
   ],
   leads: [
-    { id: 'l1', name: 'Eleanor Vance', source: 'Client Referral', status: 'Qualified', value: 3200000 },
-    { id: 'l2', name: 'Grace Liu', source: 'COI — Estate Attorney', status: 'Working', value: 1800000 },
-    { id: 'l3', name: 'Marcus Chen', source: 'Liquidity Event', status: 'New', value: 950000 },
-    { id: 'l4', name: 'Thomas Ferrand', source: 'Seminar', status: 'New', value: 640000 },
+    { id: 'l1', name: 'Eleanor Vance', source: 'Client Referral', status: 'Qualified', value: 3200000, email: 'eleanor.vance@example.com' },
+    { id: 'l2', name: 'Grace Liu', source: 'COI — Estate Attorney', status: 'Working', value: 1800000, email: 'grace.liu@example.com' },
+    { id: 'l3', name: 'Marcus Chen', source: 'Liquidity Event', status: 'New', value: 950000, email: 'marcus.chen@example.com' },
+    { id: 'l4', name: 'Thomas Ferrand', source: 'Seminar', status: 'New', value: 640000, email: 'thomas.ferrand@example.com' },
+  ],
+  activity: [
+    { id: 'ac1', clientName: 'Whitfield Family Trust', clientId: '001W', title: 'Portfolio drift exceeded IPS target', when: 'May 14, 10:25 AM', icon: 'alerts', tone: 'risk' },
+    { id: 'ac2', clientName: 'Julie E Morris', title: 'Linked $1.2M held-away brokerage', when: 'May 13, 4:05 PM', icon: 'pipeline', tone: 'opportunity' },
+    { id: 'ac3', clientName: 'David Osei', title: 'Retirement readiness hit 94%', when: 'May 12, 10:11 AM', icon: 'event', tone: 'positive' },
+    { id: 'ac4', clientName: 'Priya Natarajan', title: 'ESG downgrade on 2 holdings', when: 'May 12, 9:31 AM', icon: 'alerts', tone: 'risk' },
+  ],
+  pipelineMovement: [
+    { id: 'pm1', label: 'Managed Rebalance', amount: 18_600_000, deltaPct: 0.12, trend: series(4, 8, 16_000_000, 700_000) },
+    { id: 'pm2', label: 'Held-Away Consolidation', amount: 5_800_000, deltaPct: 0.22, trend: series(8, 8, 4_600_000, 320_000) },
+    { id: 'pm3', label: 'Annuity & Income', amount: 2_100_000, deltaPct: 0.08, trend: series(6, 8, 1_900_000, 90_000) },
+    { id: 'pm4', label: 'ESG SMA Transition', amount: 1_450_000, deltaPct: -0.04, trend: series(2, 8, 1_550_000, 60_000) },
+  ],
+  cases: [
+    { id: 'cs1', caseNumber: '00003051', subject: 'RMD distribution not processed', priority: 'High', status: 'Escalated', clientName: 'The Whitfield Family Trust', clientId: '001W', ageDays: 4 },
+    { id: 'cs2', caseNumber: '00003047', subject: 'Held-away transfer stalled at custodian', priority: 'High', status: 'Working', clientName: 'Dr. Alan Pierce', clientId: '001P', ageDays: 7 },
+    { id: 'cs3', caseNumber: '00003040', subject: 'Cost-basis correction on SMA', priority: 'Medium', status: 'New', clientName: 'Margaret & Roy Nguyen', ageDays: 3 },
+    { id: 'cs4', caseNumber: '00003032', subject: 'Beneficiary designation update', priority: 'Low', status: 'Working', clientName: 'The Okafor Foundation', ageDays: 12 },
+  ],
+  customerGoals: [
+    { id: 'cg1', name: 'Wealth-transfer to next generation', clientName: 'The Whitfield Family Trust', clientId: '001W', planName: 'Whitfield Family - Estate Plan', status: 'IN_PROGRESS', priority: 'HIGH', type: 'Other', targetDate: '2026-09-30', daysUntil: 71, target: 20000000, current: 12500000, description: 'Structure a tax-efficient transfer of assets to the next generation.' },
+    { id: 'cg2', name: 'Charitable giving — DAF funding', clientName: 'The Okafor Foundation', planName: 'Okafor Foundation - Philanthropy Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Other', targetDate: '2026-11-15', daysUntil: 117, target: 5000000, current: 3100000, description: 'Fund the donor-advised fund to the target endowment level.' },
+    { id: 'cg3', name: 'Retirement income — drawdown plan', clientName: 'Robert Kessler', clientId: '001R', planName: 'Robert Kessler - Retirement Plan', status: 'NOT_STARTED', priority: 'HIGH', type: 'Retirement', targetDate: '2026-12-31', daysUntil: 163, target: 8000000, current: 5600000, description: 'Design a sustainable drawdown strategy for retirement income.' },
+    { id: 'cg4', name: 'Concentrated-stock diversification', clientName: 'Julie E Morris', clientId: '001am00000qvjsAAAQ', planName: 'Julie E Morris - Portfolio Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Other', targetDate: '2027-03-31', daysUntil: 253, target: 4000000, current: 1200000, description: 'Diversify out of a concentrated equity position over time.' },
   ],
 };
 

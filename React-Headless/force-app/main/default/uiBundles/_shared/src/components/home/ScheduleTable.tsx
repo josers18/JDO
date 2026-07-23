@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../iconMap';
+import { useReveal, RevealFooter } from './Reveal';
 import { scheduleCounts } from './schedule';
 import type { ScheduleItem, ScheduleBucketKey } from './types';
 
@@ -19,20 +20,32 @@ function isMeeting(it: ScheduleItem): boolean {
 export function ScheduleTable({
   items,
   onOpen,
+  pageSize = 6,
 }: {
   items: ScheduleItem[];
   onOpen: (item: ScheduleItem) => void;
+  /** Rows shown before "Show more"; the rest reveal progressively. */
+  pageSize?: number;
 }) {
   const [bucket, setBucket] = useState<BucketFilter>('all');
   const [kind, setKind] = useState<KindFilter>('all');
   const counts = useMemo(() => scheduleCounts(items), [items]);
 
-  const rows = items.filter(it => {
-    if (bucket !== 'all' && it.bucket !== bucket) return false;
-    if (kind === 'tasks' && isMeeting(it)) return false;
-    if (kind === 'meetings' && !isMeeting(it)) return false;
-    return true;
-  });
+  const rows = useMemo(
+    () =>
+      items.filter(it => {
+        if (bucket !== 'all' && it.bucket !== bucket) return false;
+        if (kind === 'tasks' && isMeeting(it)) return false;
+        if (kind === 'meetings' && !isMeeting(it)) return false;
+        return true;
+      }),
+    [items, bucket, kind],
+  );
+
+  const reveal = useReveal(rows, pageSize);
+  // Collapse back to the first page whenever the filter changes, so switching
+  // buckets never lands the reader mid-way down a stale, expanded list.
+  useEffect(() => reveal.reset(), [bucket, kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const chip = (key: BucketFilter, label: string, count: number) => (
     <button
@@ -77,7 +90,7 @@ export function ScheduleTable({
         <p className="px-5 py-6 text-[13px] text-muted">Nothing in this view.</p>
       ) : (
         <ul>
-          {rows.map(it => {
+          {reveal.visible.map(it => {
             const b = it.bucket ?? 'upcoming';
             const meeting = isMeeting(it);
             return (
@@ -120,6 +133,8 @@ export function ScheduleTable({
           })}
         </ul>
       )}
+
+      {rows.length > 0 && <RevealFooter reveal={reveal} noun="more" />}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Icon, type IconKey } from './iconMap';
+import { useWorkspaceSelection } from './home/WorkspaceSelection';
 
 export interface CommandRailSection {
   id: string;
@@ -8,6 +9,14 @@ export interface CommandRailSection {
   icon: IconKey;
   count?: number;
   tone?: 'default' | 'warn' | 'risk' | 'ai';
+}
+
+/** A quick-access account pinned to the sidebar; clicking it selects the
+ *  client into the workspace's right context panel. */
+export interface CommandRailPinned {
+  id?: string;
+  name: string;
+  sub?: string;
 }
 
 export interface CommandRailArcStep {
@@ -41,6 +50,9 @@ export function CommandRail({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [active, setActive] = useState(sections[0]?.id ?? '');
+  // Pinned accounts + selection both come from the shared bridge; the list is
+  // owned there (seeded + persisted per persona) so pin/unpin stays live.
+  const { selectClient, pinned, togglePin, requestNav } = useWorkspaceSelection();
 
   useEffect(() => {
     // The observed sections live in the main column and may not be in the DOM
@@ -75,8 +87,17 @@ export function CommandRail({
   }, [sections]);
 
   const go = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setActive(id);
+    const el = document.getElementById(id);
+    if (el) {
+      // Classic view (and cockpit sections that still have an on-page anchor):
+      // scroll to it.
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActive(id);
+    } else {
+      // Cockpit view: the section's content lives in a drill-in modal, not an
+      // on-page anchor. Raise the nav intent; HomePage opens the matching modal.
+      requestNav(id);
+    }
   };
 
   return (
@@ -151,6 +172,47 @@ export function CommandRail({
           );
         })}
       </nav>
+
+      {/* Pinned accounts — quick jump into the right context panel. Pinning is
+          driven from the client panel (togglePin); each row can be unpinned via
+          the × that appears on hover. */}
+      {!collapsed && pinned.length > 0 && (
+        <div className="border-t border-line pt-3.5">
+          <h4 className="mb-2 px-2 font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">Pinned accounts</h4>
+          <div className="flex flex-col gap-0.5">
+            {pinned.map(p => (
+              <div
+                key={p.id ?? p.name}
+                className="group flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition hover:bg-surface-muted"
+              >
+                <button
+                  type="button"
+                  onClick={() => selectClient(p.name, p.id)}
+                  title={`Open ${p.name}`}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  <span className="grid h-6 w-6 flex-none place-items-center rounded-[7px] bg-accent-bg text-[10px] font-bold text-accent">
+                    {p.name.trim().charAt(0).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12.5px] font-medium text-fg">{p.name}</span>
+                    {p.sub && <span className="block truncate text-[10.5px] text-faint">{p.sub}</span>}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => togglePin(p)}
+                  title={`Unpin ${p.name}`}
+                  aria-label={`Unpin ${p.name}`}
+                  className="grid h-5 w-5 flex-none place-items-center rounded-[6px] text-[12px] leading-none text-faint opacity-0 transition hover:bg-risk-bg hover:text-risk group-hover:opacity-100"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Today's arc */}
       {!collapsed && (

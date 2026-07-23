@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **React-Headless** — the Salesforce DX project that ships the three-persona React banking cockpit suite (Retail / Wealth / Commercial) on the Salesforce Multi-Framework UI Bundle feature, plus the `_shared` design + data library and the Apex REST bridges (`DcBridgeRest`, `DcPromptRest`, `AiGenerateRest`, `CrmWriteRest`).
+All notable changes to **React-Headless** — the Salesforce DX project that ships the three-persona React banking cockpit suite (Retail / Wealth / Commercial) on the Salesforce Multi-Framework UI Bundle feature, plus the `_shared` design + data library and the Apex REST bridges (`DcBridgeRest`, `DcPromptRest`, `AiGenerateRest`, `CrmWriteRest`, `CommandCenterConfigRest`).
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions are grouped by date since the project is delivered as rolling demo metadata rather than a released library. Newest entries appear first.
 
@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_14_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_20_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,53 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [July 2026]
+
+### 2026-07-18 → 2026-07-20 — cockpit brief polish + sidebar-first de-duplication
+
+#### Added
+
+- **Personalized welcome greeting on the cockpit AI brief** — the command-center brief opens with a time-of-day greeting (`Good morning/afternoon/evening, {bankerName}`) ahead of the AI headline, matching the classic hero. (`bankerName` is still a data-layer value, not yet the running Salesforce user.)
+- **Right Now card embedded in the brief** — the single most-urgent next action renders as a compact card *inside* the AI brief, side by side with the headline (a conditional `lg:grid-cols-[1fr_340px]` split), plus a "book at a glance" line; it dismisses in place.
+- **Portfolio Pulse strip** fills the brief's open space — a slim full-width variant (label on top, narrative + inline metrics) docked at the bottom of the brief column. Its header is a button that opens the pipeline-movement explorer.
+- **Leads & Referrals KPI vital** added to the cockpit vitals row; the four headline metrics now open drill-in `DataExplorerModal`s on click (new **leads**, **goals**, and **lifeEvents** explorers alongside opportunities / at-risk / agenda / activity / pipeline-movement).
+- **Life events surfaced across the book** — a "Life events across your book" section in the `WorkspacePanel` default state, plus a browsable `lifeEvents` explorer reachable from the CommandRail's Life-events nav (life events are no longer only a per-client 360 signal).
+- **`SectionNavRequest` nav bridge** (`WorkspaceSelection`) — removing the cockpit's on-page anchors would have made the CommandRail's schedule / pipeline / life-events / leads / alerts links dead. The rail now scrolls when an anchor exists (classic view) and otherwise raises a nav *intent* the page maps to the matching explorer modal (`NAV_TO_EXPLORER`). Mirrors the existing pinned-account request channel; keeps `HomePage.tsx` byte-identical across the three personas.
+
+#### Changed
+
+- **Pipeline + Open-opportunities KPIs consolidated** into a single Pipeline vital (value + open-opp count as a sub-note), freeing a slot for the Leads & Referrals vital.
+- **Portfolio Pulse compacted** — label moved on top, summary and metrics laid out inline, so the strip fits the brief's residual height.
+- **Cockpit de-duplicated, sidebar-first.** The four bottom detail boxes (Tasks & schedule / Pipeline / Life events + Alerts / Leads) that re-rendered content already shown in the right panel and supporting band were removed; the classic **Current** view keeps its full-page sections unchanged. The `WorkspacePanel`'s "AI daily brief" eyebrow was dropped (now "Your day"), its top-risk rows gained severity-tinted icon chips, bold client names, the reason each client is flagged, and a click that drives the 360 panel.
+- **Classic-view AI brief hero compacted** (padding / font-size / measure) and the redundant "Today · Today" eyebrow removed.
+
+### 2026-07-16 → 2026-07-17 — cockpit command-center redesign
+
+#### Added
+
+- **Two home views — Current list + Cockpit command center** — a top-bar `HomeViewToggle` (state in a `HomeViewProvider`, persisted per persona) flips the banker home between the original stacked list and a new **command-center cockpit** laid out to match the design mockup: a compact AI daily-brief strip, a four-KPI **vitals** row (sparkline tiles), **Priority Queue + Recommended Actions side by side**, a tabbed **customer-360 workspace panel**, and a full-width **supporting band**. Long lists paginate/`useReveal` rather than run off the page.
+- **Master-detail workspace panel** (`WorkspacePanel` + `WorkspaceSelection` in `_shared`) — the cockpit's sticky right column. Selecting a client, task, opportunity, or meeting anywhere on the page drives a dynamic brief/detail panel; the rail carries a localStorage-persisted **pinned-accounts** list (`WorkspaceSelectionProvider`, per-persona `storageKey`).
+- **Supporting band with drill-in explorers** — the band's five cells (recent activity, pipeline movement, at-risk clients, agenda, opportunities) each open a `DataExplorerModal` (search + filter + table); a row inside an explorer opens a stacked read-only `DetailModal`. Pipeline, life-event, and alert rows on the page open the same detail popup.
+- **`buildPriorityQueue` blender** (`_shared/src/data/priorityQueue.ts`) — the Priority Queue is no longer a single-signal feed. The blender merges each persona's signature risk feed (CSAT / D&B credit / held-away balances) with **opportunity-derived** items (cross-sell / renewal / funding, due on `CloseDate`) and **overdue-task-derived** items (escalation / follow-up, due on `ActivityDate`), each carrying a signal-native `dueDate`. `CallItem` gained an optional `dueDate`.
+
+#### Changed
+
+- **Priority Queue card redesigned to match the mockup** (`PriorityQueueCard` in `_shared`) — count-labeled filter chips (All / High / Medium / Low), a Sort control (Priority / Due date), numbered severity-colored rank badges, avatar, "Name — Action" titles with reason subtitles, severity pills, signal-native due labels (Overdue N days / Due today / Due tomorrow / Due in N days), top-item emphasis, and a "View all tasks & alerts →" footer. The number badge, severity pill, and emphasis bar now all resolve from **one** severity→color family (high = risk, medium = warn, low = accent) so the number's color always matches its chip. Sorting by the real `dueDate` interleaves severities ("mixed") instead of clustering by tier.
+- **Cockpit polish** — Inter title font on the command-center headings; supporting band lays out five-across via container queries (App-Domain content width is viewport minus the CommandRail) and defaults expanded; `line-strong` column separators + row hover states; the left CommandRail's sections realigned to the actual page-widget anchors.
+
+### 2026-07-15 — in-app Configuration page + self-updating model catalog
+
+#### Added
+
+- **Command-center Configuration page** (`/config` route in each cockpit, `ConfigPage` in `_shared`). An admin picks, per generative AI action (queue rationale, pipeline summary, follow-ups, free-form), which Agentforce Models API model runs it, plus generation parameters. Backed by a new `CommandCenterConfigRest` Apex bridge (`@RestResource /config/*`, + `CommandCenterConfigRestTest`), the `configClient` shared client, and a `configCache` so the home page's next AI action uses the new settings without a reload. Settings are **org-level and shared** — one `CommandCenterConfig__c` singleton (DeveloperName `GLOBAL`), one JSON blob per center — with a `CommandCenterConfigAdmin` permission set granting the field FLS. Each center is independent; saving Retail never touches Wealth. A "Back to command center" button returns to the home route.
+- **Self-updating model catalog.** The org exposes no API that *lists* foundation models, so the catalog is discovered by **probing**: `ModelCatalogProbe` (a `Queueable`, `Database.AllowsCallouts`) calls a forward-looking candidate superset (GPT-5.x, Claude 4.x, Gemini 2.x) — a live model returns `Code200`, a retired/unprovisioned one throws — and caches the survivors onto a new `Model_Catalog_Cache__c` field. Newly provisioned models therefore appear the day they go live with no code change. `GET /config/models` serves the cache instantly (stale-while-revalidate): fresh (< 24h) is served as-is; stale/missing serves the last-known list (or a curated fallback) **and** enqueues a background refresh; `?refresh=1` (the "Refresh models" button) forces a fresh probe. Debounced 10 min via `probeStartedAt` so concurrent page loads don't stack billable probe jobs. The `refreshing` flag is threaded Apex → client → a spinning "Checking for new models…" hint.
+
+#### Changed
+
+- **Model catalog refreshed to current models** (GPT-5 / 5-mini / 5-nano, GPT-4.1 / 4.1-mini, Claude 4.5 / 4 / 3.7 Sonnet, Gemini 2.5 / 2.0 Flash, plus GPT-4o / 4o-mini / 4, Claude 3.5 Sonnet / 3 Haiku), each empirically verified against the live org. Notably `…Gemini25Flash` throws but `…Gemini25Flash001` works — the suffix matters.
+
+#### Notes
+
+- **Generation parameters are stored & clamped but not yet applied.** This org's `aiplatform.ModelsAPI` Apex binding accepts only a model name per request — no temperature/max-tokens field — so those round-trip and validate but do not yet reach the model. Model selection per action IS applied.
 
 ### 2026-07-14 — banker home AI actions + CRM writes
 

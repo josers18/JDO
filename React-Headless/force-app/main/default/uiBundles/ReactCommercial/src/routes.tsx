@@ -1,9 +1,23 @@
 import type { RouteObject } from 'react-router';
+import { useNavigate } from 'react-router';
+import { ConfigPage, ToastProvider } from '@shared';
 import HomeLayout from './home/HomeLayout';
 import HomePage from './home/HomePage';
+import { APP_PERSONA } from './shell/appChrome';
 import ClientLayout from './personas/customer/ClientLayout';
 import Customer360Page from './personas/customer/Customer360Page';
 import NotFound from './pages/NotFound';
+
+/** Configuration page route — this center's identity comes from APP_PERSONA.
+ *  Wrapped in its own ToastProvider (like HomePage) so save toasts render. */
+function ConfigRoute() {
+  const navigate = useNavigate();
+  return (
+    <ToastProvider>
+      <ConfigPage center={APP_PERSONA} onBack={() => navigate('/')} />
+    </ToastProvider>
+  );
+}
 
 export const routes: RouteObject[] = [
 
@@ -20,6 +34,7 @@ export const routes: RouteObject[] = [
     element: <HomeLayout />,
     children: [
       { index: true, element: <HomePage />, handle: { showInNavigation: true, label: 'Home' } },
+      { path: 'config', element: <ConfigRoute />, handle: { showInNavigation: true, label: 'Configuration' } },
       { path: '*', element: <NotFound /> },
     ],
   },

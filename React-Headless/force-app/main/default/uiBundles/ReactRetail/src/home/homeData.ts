@@ -17,8 +17,9 @@ const DASH: HomeDashboard = {
   confidencePct: 87,
   dataSourceCount: 24,
   kpis: [
-    { key: 'pipeline', label: 'Pipeline', value: 20_300_000_000, format: 'currencyCompact', trend: series(8, 12, 19, 1.2), deltaPct: 0.041, note: '▲ 4.1% wk' },
+    { key: 'pipeline', label: 'Pipeline', value: 20_300_000_000, format: 'currencyCompact', trend: series(8, 12, 19, 1.2), deltaPct: 0.041, note: '19,011 open opportunities' },
     { key: 'openOpps', label: 'Open opps', value: 19_011, format: 'number', trend: series(3, 12, 18000, 900), note: '632 closing 30d' },
+    { key: 'leads', label: 'Leads & Referrals', value: 6, format: 'number', trend: series(2, 12, 5, 1), deltaPct: 0.08, note: 'Open leads' },
     { key: 'openCases', label: 'Open cases', value: 5_355, format: 'number', trend: series(5, 12, 5200, 200), note: '14 high priority' },
     { key: 'goals', label: 'Active goals', value: 6, format: 'number', note: '2 on track' },
     { key: 'atRisk', label: 'At-risk · CSAT', value: 8, format: 'number', note: 'needs outreach' },
@@ -95,12 +96,36 @@ const DASH: HomeDashboard = {
     { id: 'a4', title: 'Low CSAT — Sherry F Wang', detail: 'Poor · flagged today', tone: 'risk', severity: 'Medium', when: 'recent' },
   ],
   leads: [
-    { id: 'l1', name: 'Dan Hawes', source: 'Marketing Event', status: 'New', value: 56_000_000 },
-    { id: 'l2', name: 'Mellissa Lavender', source: 'Social Media', status: 'Unqualified', value: 54_000_000 },
-    { id: 'l3', name: 'Pearl Willson', source: 'Website', status: 'Working', value: 8_000_000 },
-    { id: 'l4', name: 'James Barker', source: 'Sales Bot', status: 'New', value: 0 },
-    { id: 'l5', name: 'Assa Barak', source: 'Sales Bot', status: 'New', value: 0 },
-    { id: 'l6', name: 'Daragh Dennehy', source: '—', status: 'New', value: 0 },
+    { id: 'l1', name: 'Dan Hawes', source: 'Marketing Event', status: 'New', value: 56_000_000, email: 'dhawes@example.com' },
+    { id: 'l2', name: 'Mellissa Lavender', source: 'Social Media', status: 'Unqualified', value: 54_000_000, email: 'mlavender@example.com' },
+    { id: 'l3', name: 'Pearl Willson', source: 'Website', status: 'Working', value: 8_000_000, email: 'pwillson@example.com' },
+    { id: 'l4', name: 'James Barker', source: 'Sales Bot', status: 'New', value: 0, email: 'james.barker@email.com' },
+    { id: 'l5', name: 'Assa Barak', source: 'Sales Bot', status: 'New', value: 0, email: 'assa.barak@gmail.com' },
+    { id: 'l6', name: 'Daragh Dennehy', source: '—', status: 'New', value: 0, email: 'ddennehy@salesforce.com' },
+  ],
+  activity: [
+    { id: 'ac1', clientName: 'Cooper Household', clientId: '001COOP000000000', title: 'Payment declined on credit card', when: 'May 14, 10:25 AM', icon: 'alerts', tone: 'risk' },
+    { id: 'ac2', clientName: 'United Partners', title: 'Opened secure message', when: 'May 13, 4:05 PM', icon: 'email', tone: 'neutral' },
+    { id: 'ac3', clientName: 'Sherry F Wang', clientId: '001WANG000000000', title: 'Website login', when: 'May 12, 10:11 AM', icon: 'event', tone: 'neutral' },
+    { id: 'ac4', clientName: 'United Partners', title: 'Direct deposit updated', when: 'May 12, 9:31 AM', icon: 'pipeline', tone: 'positive' },
+  ],
+  pipelineMovement: [
+    { id: 'pm1', label: 'Innovation Pipeline', amount: 2_400_000, deltaPct: 0.12, trend: series(4, 8, 2_000_000, 120_000) },
+    { id: 'pm2', label: 'Commercial Lending', amount: 8_700_000, deltaPct: 0.08, trend: series(6, 8, 8_000_000, 300_000) },
+    { id: 'pm3', label: 'Treasury Solutions', amount: 4_600_000, deltaPct: 0.16, trend: series(9, 8, 4_000_000, 220_000) },
+    { id: 'pm4', label: 'Wealth Management', amount: 3_200_000, deltaPct: -0.04, trend: series(2, 8, 3_400_000, 140_000) },
+  ],
+  cases: [
+    { id: 'cs1', caseNumber: '00001042', subject: 'Disputed card transaction — $2,410', priority: 'High', status: 'Escalated', clientName: 'Cooper Household', clientId: '001COOP000000000', ageDays: 6 },
+    { id: 'cs2', caseNumber: '00001038', subject: 'Wire transfer delayed past cutoff', priority: 'High', status: 'Working', clientName: 'Sherry F Wang', clientId: '001WANG000000000', ageDays: 3 },
+    { id: 'cs3', caseNumber: '00001031', subject: 'Online banking login lockout', priority: 'Medium', status: 'New', clientName: 'Cervantes-Fowler Retail', ageDays: 2 },
+    { id: 'cs4', caseNumber: '00001024', subject: 'Statement address update request', priority: 'Low', status: 'Working', clientName: 'Julie E Morris', ageDays: 9 },
+  ],
+  customerGoals: [
+    { id: 'cg1', name: 'Down payment — first home', clientName: 'Sherry F Wang', clientId: '001WANG000000000', planName: 'Sherry F Wang - Home Ownership Plan', status: 'IN_PROGRESS', priority: 'HIGH', type: 'Home', targetDate: '2026-09-15', daysUntil: 56, target: 80000, current: 61500, description: 'Saving toward a 20% down payment on a first home.' },
+    { id: 'cg2', name: 'College fund — 529 top-up', clientName: 'Cooper Household', clientId: '001COOP000000000', planName: 'Cooper Household - Education Plan', status: 'IN_PROGRESS', priority: 'MEDIUM', type: 'Education', targetDate: '2026-10-31', daysUntil: 102, target: 120000, current: 74000, description: 'Annual 529 contribution to reach the four-year tuition target.' },
+    { id: 'cg3', name: 'Emergency fund — 6 months', clientName: 'Cervantes-Fowler Retail', planName: 'Cervantes-Fowler - Financial Wellness Plan', status: 'NOT_STARTED', priority: 'MEDIUM', type: 'Emergency', targetDate: '2026-12-31', daysUntil: 163, target: 30000, current: 8200, description: 'Build a six-month expense reserve.' },
+    { id: 'cg4', name: 'Debt payoff — auto loan', clientName: 'Julie E Morris', planName: 'Julie E Morris - Debt Reduction Plan', status: 'IN_PROGRESS', priority: 'LOW', type: 'Pay off Debt', targetDate: '2027-02-28', daysUntil: 222, target: 18500, current: 12300, description: 'Accelerated payoff of the remaining auto-loan balance.' },
   ],
 };
 
