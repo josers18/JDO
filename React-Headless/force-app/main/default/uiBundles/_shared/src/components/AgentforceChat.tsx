@@ -87,12 +87,17 @@ function buildAccConfig(agentId: string, agentLabel: string, accent: string, pla
     styleTokens: {
       fabBackground: accent,
       fabForegroundColor: '#ffffff',
-      // The `containerBackground` is the chat container's backdrop. It defaults
-      // to #ffffff, which in the MINIMIZED state shows as a white box peeking
-      // out behind the pink FAB pill — jarring on a dark surface. Make it
-      // transparent so the page (dark or light) shows through around the FAB;
-      // the OPEN panel still gets its readable white surface from ACC's own
-      // `.acc-frame.maximize { background:#fff }` host rule + message tokens.
+      // `containerBackground: transparent` keeps ACC from painting a backdrop
+      // BEHIND the chat panel body. NOTE: this does NOT fix the white box behind
+      // the MINIMIZED launcher pill — that white is a separate opaque launcher
+      // card ACC renders inside a CLOSED shadow root, unreachable by any
+      // styleToken/CSS-var (empirically swept 40+, incl. the SDK's real
+      // `--agentic-chat-*` prefix, `--dxp/--slds/--sds`, and `color-scheme`).
+      // Proof it's a distinct layer: with containerBackground ALREADY
+      // transparent, the card still renders WHITE (transparent would show the
+      // dark page through). The real fix is `clipLauncherCss()` below, which
+      // trims that card off the light-DOM wrapper. The OPEN panel keeps its
+      // readable white surface from ACC's own `.acc-frame.maximize{background:#fff}`.
       containerBackground: 'transparent',
       headerBackground: accent,
       headerBlockBackground: accent,
@@ -101,6 +106,42 @@ function buildAccConfig(agentId: string, agentLabel: string, accent: string, pla
       headerBlockFontFamily: "'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif",
     },
   };
+}
+
+/** <style> id for the one-time minimized-launcher clip rule (see clipLauncherCss). */
+const LAUNCHER_CLIP_STYLE_ID = 'acc-launcher-clip';
+
+/**
+ * Trim the white launcher card that ACC paints behind the minimized "Start a
+ * chat" pill. That card fills the fixed 180×70 minimized frame and is drawn by
+ * core CSS INSIDE a closed shadow root — no styleToken or CSS var reaches it
+ * (empirically verified: swept the SDK's real `--agentic-chat-*` family plus
+ * `--dxp/--slds/--sds` and `color-scheme`; none recolor it, and it renders
+ * white even though `containerBackground` is `transparent`, proving it's a
+ * distinct opaque layer, not the container). The ONE host-reachable surface is
+ * the light-DOM wrapper element (`runtime_copilot-acc-sdk-wrapper`); a
+ * `clip-path` on it clips the shadow content. ACC pins the minimized frame to a
+ * fixed 180×70 via its own `--minimized-iframe-*` vars, so these measured px
+ * insets are deterministic. The clip is scoped to the `.minimize`/`.initial`
+ * (collapsed) states ONLY — on `.maximize` (the open 450×700 panel) it computes
+ * to `none`, leaving the readable chat surface untouched (verified live).
+ * Injected once as a shared singleton; harmless if ACC's launcher geometry ever
+ * shifts (worst case a hairline of card peeks — never breaks the open panel).
+ */
+function clipLauncherCss(): void {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(LAUNCHER_CLIP_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = LAUNCHER_CLIP_STYLE_ID;
+  // Insets measured against the fixed 180×70 minimized frame (top/left trim the
+  // white margin above and left of the pill; the pill is flush right/bottom).
+  style.textContent = [
+    'runtime_copilot-acc-sdk-wrapper.acc-frame.minimize,',
+    'runtime_copilot-acc-sdk-wrapper.acc-frame.initial {',
+    '  clip-path: inset(13px 1px 0 42px round 28px) !important;',
+    '}',
+  ].join('\n');
+  document.head.appendChild(style);
 }
 
 /**
@@ -236,6 +277,13 @@ export function AgentforceChat({
       container?.replaceChildren();
     };
   }, [activeId, headerLabel, placeholder, agentColor]);
+
+  // Trim the white card ACC paints behind the minimized launcher pill (see
+  // clipLauncherCss). One-time shared injection; safe across every persona/app
+  // since the rule is scoped to the ACC wrapper's collapsed states.
+  useEffect(() => {
+    clipLauncherCss();
+  }, []);
 
   // Track the ACC panel's open/closed state so the picker can dock to the
   // panel's top edge when open and shrink to the FAB dot when closed. ACC fires
