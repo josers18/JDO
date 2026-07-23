@@ -466,12 +466,14 @@ global with sharing class CommandCenterConfigRest {
             'accent' => hexOrDefault(t.get('accent'), DEFAULT_ACCENT),
             'accentSoft' => hexOrDefault(t.get('accentSoft'), DEFAULT_ACCENT_SOFT)
         };
-        // aiAccent is OPTIONAL: persist it only when it is a valid #rrggbb, so a
-        // theme without a dedicated AI color simply derives the AI family from
-        // accent client-side (and pre-existing themes are unaffected).
-        String aiAccent = t.get('aiAccent') == null ? '' : String.valueOf(t.get('aiAccent')).trim();
-        if (hexValid(aiAccent)) {
-            clean.put('aiAccent', aiAccent);
+        // Optional per-role colors: persist each ONLY when it is a valid
+        // #rrggbb, so a theme that doesn't set one derives it client-side and
+        // pre-existing themes are unaffected. All still scalar-only (D1).
+        for (String key : new List<String>{ 'aiAccent', 'bgAccent', 'posColor', 'negColor', 'linkColor' }) {
+            String v = t.get(key) == null ? '' : String.valueOf(t.get(key)).trim();
+            if (hexValid(v)) {
+                clean.put(key, v);
+            }
         }
         return clean;
     }

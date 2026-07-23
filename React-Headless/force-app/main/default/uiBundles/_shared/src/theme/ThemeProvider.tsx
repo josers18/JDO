@@ -94,7 +94,11 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
     '--color-accent-border': 'var(--wp-accent-border)',
     ...(isCustomBrand
       ? {
-          '--wp-aurora': buildAurora(theme.accent, theme.accentSoft),
+          // Background wash: an explicit bgAccent seeds the aurora from that
+          // single color; otherwise it derives from accent+accentSoft.
+          '--wp-aurora': override!.bgAccent?.trim()
+            ? buildAurora(override!.bgAccent.trim(), theme.accentSoft)
+            : buildAurora(theme.accent, theme.accentSoft),
           '--wp-ai': ai!.ai,
           '--wp-ai-2': ai!.ai2,
           '--wp-ai-grad': ai!.aiGrad,
@@ -106,6 +110,19 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
           '--color-ai-2': 'var(--wp-ai-2)',
           '--color-ai-bg': 'var(--wp-ai-bg)',
           '--color-ai-border': 'var(--wp-ai-border)',
+          // Per-role overrides. Each --wp-* is only overridden when the brand
+          // set that color; the paired --color-* rebind lifts it out of the
+          // frozen-at-:root default so text-ok / text-risk / text-link track it.
+          ...(override!.posColor?.trim()
+            ? { '--wp-pos': override!.posColor.trim(), '--color-ok': 'var(--wp-pos)' }
+            : {}),
+          ...(override!.negColor?.trim()
+            ? { '--wp-neg': override!.negColor.trim(), '--color-risk': 'var(--wp-neg)' }
+            : {}),
+          // Link defaults to the accent when the brand didn't set one, so a
+          // custom brand's links track its accent rather than the mode default.
+          '--wp-link': override!.linkColor?.trim() || theme.accent,
+          '--color-link': 'var(--wp-link)',
         }
       : {}),
   } as CSSProperties;

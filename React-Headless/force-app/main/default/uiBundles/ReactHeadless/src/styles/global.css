@@ -31,6 +31,9 @@
   --color-risk: var(--wp-neg);
   --color-risk-bg: var(--wp-neg-bg);
 
+  /* Links / informational affordances — brand-overridable */
+  --color-link: var(--wp-link);
+
   --color-pink: #ec4899;
   --color-pink-soft: #fde7f3;
 

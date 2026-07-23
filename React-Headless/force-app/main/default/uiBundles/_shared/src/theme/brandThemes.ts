@@ -26,6 +26,18 @@ export interface BrandTheme {
    */
   aiAccent?: string;
   /**
+   * Optional per-role brand colors (all #rrggbb), each derived from a sensible
+   * default when absent so existing themes are unaffected:
+   *  - bgAccent  → the ambient background/aurora wash base (else accent+soft)
+   *  - posColor  → positive/success/up hue (else the mode default green)
+   *  - negColor  → negative/risk/down hue (else the mode default red)
+   *  - linkColor → links & informational chips (else the accent)
+   */
+  bgAccent?: string;
+  posColor?: string;
+  negColor?: string;
+  linkColor?: string;
+  /**
    * The brand display name shown in the app chrome (sidebar wordmark) in place
    * of "Cumulus". Optional — falls back to `name` (then "Cumulus") when blank,
    * so pre-existing saved themes keep working.

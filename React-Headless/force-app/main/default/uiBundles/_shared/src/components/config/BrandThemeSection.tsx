@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { GlassCard } from '../GlassCard';
 import { Button } from '../Button';
 import { Pill } from '../Pill';
+import { Modal } from '../Modal';
 import { Field, FieldRow, TextInput } from '../home/fields';
 import { useToast } from '../Toast';
 import {
@@ -13,11 +14,27 @@ import {
 } from '../../data/brandThemeClient';
 import { buildGradient, buildGlow, type BrandTheme } from '../../theme/brandThemes';
 import { extractPalette, extractPaletteCandidates, complementOf } from '../../theme/paletteExtract';
-import { setBrandOverride } from '../../theme/activeBrand';
+import { setBrandOverride, type BrandOverride } from '../../theme/activeBrand';
 import { DEFAULT_THEMES, type DefaultTheme } from '../../theme/defaultThemes';
 
 const DEFAULT_ACCENT = '#14b8a6';
 const DEFAULT_ACCENT_SOFT = '#5eead4';
+
+/** Build the live brand override from a saved theme, carrying every optional
+ *  per-role color (empty → undefined so the client derives its default). */
+function overrideFromTheme(t: BrandTheme): BrandOverride {
+  return {
+    accent: t.accent,
+    accentSoft: t.accentSoft,
+    aiAccent: t.aiAccent?.trim() || undefined,
+    bgAccent: t.bgAccent?.trim() || undefined,
+    posColor: t.posColor?.trim() || undefined,
+    negColor: t.negColor?.trim() || undefined,
+    linkColor: t.linkColor?.trim() || undefined,
+    logoBase64: t.logoBase64,
+    brandName: t.brandName?.trim() || t.name,
+  };
+}
 
 /**
  * Best-effort canvas palette extraction off a fetched logo. Pure DOM/canvas
@@ -96,11 +113,20 @@ export function BrandThemeSection({ index }: { index?: number }) {
   // Optional dedicated AI/agentic accent — empty string means "derive from
   // accent" (agentic surfaces share the brand hue). A #rrggbb gives AI its own.
   const [aiAccent, setAiAccent] = useState('');
+  // Optional per-role colors; '' means "derive default" (see BrandTheme).
+  const [bgAccent, setBgAccent] = useState('');
+  const [posColor, setPosColor] = useState('');
+  const [negColor, setNegColor] = useState('');
+  const [linkColor, setLinkColor] = useState('');
+  const [rolesOpen, setRolesOpen] = useState(false);
   // Dominant colors pulled from the logo (most frequent first), offered as
   // clickable swatches. `swatchRole` selects which role a swatch click fills:
   // the primary accent (auto-pairs a soft), the soft directly, or the AI accent.
   const [candidates, setCandidates] = useState<string[]>([]);
   const [swatchRole, setSwatchRole] = useState<'accent' | 'accentSoft' | 'aiAccent'>('accent');
+  // Inside the "Assign colors to elements" modal: the palette swatch the user
+  // has selected to fill into a role next (click-to-fill UX). '' = none picked.
+  const [modalSwatch, setModalSwatch] = useState('');
   const [name, setName] = useState('');
   // The wordmark shown in the app chrome (replaces "Cumulus"). Defaults to the
   // theme name when left blank.
@@ -174,6 +200,10 @@ export function BrandThemeSection({ index }: { index?: number }) {
     setAccent(DEFAULT_ACCENT);
     setAccentSoft(DEFAULT_ACCENT_SOFT);
     setAiAccent('');
+    setBgAccent('');
+    setPosColor('');
+    setNegColor('');
+    setLinkColor('');
     setCandidates([]);
     setSwatchRole('accent');
     setName('');
@@ -190,6 +220,10 @@ export function BrandThemeSection({ index }: { index?: number }) {
     setAccent(theme.accent);
     setAccentSoft(theme.accentSoft);
     setAiAccent(theme.aiAccent?.trim() || '');
+    setBgAccent(theme.bgAccent?.trim() || '');
+    setPosColor(theme.posColor?.trim() || '');
+    setNegColor(theme.negColor?.trim() || '');
+    setLinkColor(theme.linkColor?.trim() || '');
     setCandidates([]);
     setSwatchRole('accent');
     setName(theme.name);
@@ -209,9 +243,13 @@ export function BrandThemeSection({ index }: { index?: number }) {
         logoContentType,
         accent,
         accentSoft,
-        // Only send aiAccent when explicitly set — empty means "derive from
-        // accent" and is stored as absent.
+        // Only send optional role colors when explicitly set — empty means
+        // "derive default" and is stored as absent.
         ...(aiAccent.trim() ? { aiAccent: aiAccent.trim() } : {}),
+        ...(bgAccent.trim() ? { bgAccent: bgAccent.trim() } : {}),
+        ...(posColor.trim() ? { posColor: posColor.trim() } : {}),
+        ...(negColor.trim() ? { negColor: negColor.trim() } : {}),
+        ...(linkColor.trim() ? { linkColor: linkColor.trim() } : {}),
         // Fall back to the theme name so the wordmark is never blank.
         brandName: brandName.trim() || name.trim(),
       };
@@ -222,13 +260,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
       // colors/logo/wordmark into the live override so the edit is visible
       // immediately without re-applying.
       if (editingId && res.activeThemeId === theme.id) {
-        setBrandOverride({
-          accent: theme.accent,
-          accentSoft: theme.accentSoft,
-          aiAccent: theme.aiAccent?.trim() || undefined,
-          logoBase64: theme.logoBase64,
-          brandName: theme.brandName?.trim() || theme.name,
-        });
+        setBrandOverride(overrideFromTheme(theme));
       }
       toast(editingId ? 'Theme updated' : 'Theme saved', theme.name);
       resetForm();
@@ -244,13 +276,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
     try {
       await setActiveTheme(theme.id);
       setActiveThemeId(theme.id);
-      setBrandOverride({
-        accent: theme.accent,
-        accentSoft: theme.accentSoft,
-        aiAccent: theme.aiAccent?.trim() || undefined,
-        logoBase64: theme.logoBase64,
-        brandName: theme.brandName?.trim() || theme.name,
-      });
+      setBrandOverride(overrideFromTheme(theme));
       toast('Theme applied', theme.name);
     } catch (e) {
       toast('Apply failed', e instanceof Error ? e.message : 'Could not apply theme.');
@@ -317,6 +343,84 @@ export function BrandThemeSection({ index }: { index?: number }) {
   }
 
   const logoDataUrl = logoBase64 ? `data:${logoContentType || 'image/png'};base64,${logoBase64}` : null;
+
+  // The themeable "elements" shown in the Assign-colors modal. Each row maps a
+  // human element name to a color slot. `value` is the raw stored color (''
+  // means "not set — derive default"); `effective` is what actually renders so
+  // the chip always shows a real color even for an unset optional role.
+  // Optional roles show a "Reset" affordance; required ones (accent/soft) don't.
+  const roles: {
+    key: string;
+    label: string;
+    hint: string;
+    value: string;
+    effective: string;
+    set: (hex: string) => void;
+    reset?: () => void;
+  }[] = [
+    {
+      key: 'accent',
+      label: 'Buttons & primary actions',
+      hint: 'Schedule call, Approve, Save — the “you act” color',
+      value: accent,
+      effective: accent,
+      set: setAccent,
+    },
+    {
+      key: 'accentSoft',
+      label: 'Highlights & soft accents',
+      hint: 'Gradients, active states, hover glows',
+      value: accentSoft,
+      effective: accentSoft,
+      set: setAccentSoft,
+      reset: () => setAccentSoft(complementOf(accent)),
+    },
+    {
+      key: 'aiAccent',
+      label: 'AI & Agentforce chat',
+      hint: 'Prep me, the Agentforce bubble — the “AI acts” color',
+      value: aiAccent,
+      effective: aiAccent || accent,
+      set: setAiAccent,
+      reset: () => setAiAccent(''),
+    },
+    {
+      key: 'bgAccent',
+      label: 'Background wash',
+      hint: 'The ambient page aurora behind everything',
+      value: bgAccent,
+      effective: bgAccent || accent,
+      set: setBgAccent,
+      reset: () => setBgAccent(''),
+    },
+    {
+      key: 'posColor',
+      label: 'Positive / success',
+      hint: 'Up trends, healthy metrics, confirmations',
+      value: posColor,
+      effective: posColor || '#22c55e',
+      set: setPosColor,
+      reset: () => setPosColor(''),
+    },
+    {
+      key: 'negColor',
+      label: 'Negative / risk',
+      hint: 'Down trends, at-risk flags, errors',
+      value: negColor,
+      effective: negColor || '#ef4444',
+      set: setNegColor,
+      reset: () => setNegColor(''),
+    },
+    {
+      key: 'linkColor',
+      label: 'Links & info',
+      hint: 'View all →, + New, informational chips',
+      value: linkColor,
+      effective: linkColor || accent,
+      set: setLinkColor,
+      reset: () => setLinkColor(''),
+    },
+  ];
 
   return (
     <GlassCard title="Brand theme" index={index}>
@@ -469,6 +573,20 @@ export function BrandThemeSection({ index }: { index?: number }) {
         </p>
       </Field>
 
+      <div className="mb-4">
+        <Button variant="ghost" size="sm" onClick={() => setRolesOpen(true)}>
+          🎨 Assign colors to elements…
+        </Button>
+        {(bgAccent || posColor || negColor || linkColor) && (
+          <span className="ml-2 align-middle font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
+            {[bgAccent && 'bg', posColor && 'pos', negColor && 'neg', linkColor && 'link']
+              .filter(Boolean)
+              .join(' · ')}{' '}
+            set
+          </span>
+        )}
+      </div>
+
       <Field label="Brand name (shown in the app)">
         <TextInput
           type="text"
@@ -602,6 +720,110 @@ export function BrandThemeSection({ index }: { index?: number }) {
           </div>
         )}
       </div>
+
+      <Modal
+        open={rolesOpen}
+        onClose={() => setRolesOpen(false)}
+        title="Assign colors to elements"
+        subtitle="Pick a color from the palette, then click an element to fill it. Or use each element’s picker."
+        icon="🎨"
+        tone="accent"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end">
+            <Button variant="accent" onClick={() => setRolesOpen(false)}>
+              Done
+            </Button>
+          </div>
+        }
+      >
+        {candidates.length > 0 && (
+          <div className="mb-5">
+            <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+              Palette from logo · select a color, then click an element below
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {candidates.map(c => {
+                const isSelected = c.toLowerCase() === modalSwatch.toLowerCase();
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setModalSwatch(isSelected ? '' : c)}
+                    title={c}
+                    aria-label={`Select ${c} to fill an element`}
+                    aria-pressed={isSelected}
+                    className={`h-9 w-9 flex-none rounded-[8px] border transition-transform hover:scale-110 ${
+                      isSelected ? 'border-fg ring-2 ring-accent ring-offset-1 ring-offset-bg' : 'border-line'
+                    }`}
+                    style={{ background: c }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {roles.map(r => {
+            const isUnset = !r.value.trim();
+            const canFill = !!modalSwatch;
+            return (
+              <div
+                key={r.key}
+                className="flex items-center gap-3 rounded-[11px] border border-line bg-bg px-3.5 py-2.5"
+              >
+                <button
+                  type="button"
+                  onClick={() => canFill && r.set(modalSwatch)}
+                  disabled={!canFill}
+                  title={canFill ? `Fill with ${modalSwatch}` : 'Select a palette color first'}
+                  aria-label={`Fill ${r.label}${canFill ? ` with ${modalSwatch}` : ''}`}
+                  className={`h-9 w-9 flex-none rounded-[8px] border border-line transition-transform ${
+                    canFill ? 'cursor-pointer hover:scale-110' : 'cursor-default'
+                  }`}
+                  style={{ background: r.effective }}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <b className="truncate text-[13px] font-semibold text-fg">{r.label}</b>
+                    {isUnset && r.reset && (
+                      <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted">
+                        default
+                      </span>
+                    )}
+                  </div>
+                  <div className="truncate text-[11.5px] text-muted">{r.hint}</div>
+                </div>
+                <TextInput
+                  type="color"
+                  value={r.effective}
+                  onChange={e => r.set(e.target.value)}
+                  className="!w-11 flex-none"
+                />
+                {r.reset && (
+                  <button
+                    type="button"
+                    onClick={r.reset}
+                    disabled={isUnset}
+                    title="Reset to default"
+                    className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted hover:text-fg disabled:opacity-40"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {candidates.length === 0 && (
+          <p className="mt-4 text-[11.5px] text-muted">
+            Tip: extract a logo above to get a clickable palette here. You can still set any element
+            with its own color picker.
+          </p>
+        )}
+      </Modal>
     </GlassCard>
   );
 }

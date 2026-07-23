@@ -19,6 +19,15 @@ export interface BrandOverride {
    * restoring the "you act" vs "AI acts" color split for a custom brand.
    */
   aiAccent?: string;
+  /**
+   * Optional per-role brand colors (#rrggbb). Each falls back to a derived
+   * default when absent (see BrandTheme): bgAccent→aurora wash base,
+   * posColor→success, negColor→risk, linkColor→links/info.
+   */
+  bgAccent?: string;
+  posColor?: string;
+  negColor?: string;
+  linkColor?: string;
   logoBase64: string | null;
   /**
    * Structural surface palette to force (dark|light). Set by the fixed
