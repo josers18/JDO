@@ -104,6 +104,11 @@ export function BrandThemeSection({ index }: { index?: number }) {
   const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // The id of the saved theme currently loaded into the form for editing, or
+  // null when composing a brand-new theme. When set, Save reuses this id so the
+  // Apex `upsert` (which matches on id) REPLACES that row instead of adding a
+  // new one.
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -154,11 +159,41 @@ export function BrandThemeSection({ index }: { index?: number }) {
     }
   }
 
+  /** Clear the composer back to a fresh, empty "new theme" state. */
+  function resetForm() {
+    setEditingId(null);
+    setUrl('');
+    setLogoBase64(null);
+    setLogoContentType('');
+    setLogoError(false);
+    setAccent(DEFAULT_ACCENT);
+    setAccentSoft(DEFAULT_ACCENT_SOFT);
+    setCandidates([]);
+    setName('');
+    setBrandName('');
+  }
+
+  /** Load a saved theme into the composer for editing (Save will replace it). */
+  function startEdit(theme: BrandTheme) {
+    setEditingId(theme.id);
+    setUrl(theme.sourceUrl ?? '');
+    setLogoBase64(theme.logoBase64);
+    setLogoContentType(theme.logoContentType ?? '');
+    setLogoError(false);
+    setAccent(theme.accent);
+    setAccentSoft(theme.accentSoft);
+    setCandidates([]);
+    setName(theme.name);
+    setBrandName(theme.brandName?.trim() || theme.name);
+  }
+
   async function onSave() {
     setSaving(true);
     try {
       const theme: BrandTheme = {
-        id: makeThemeId(),
+        // Reuse the id when editing so the server upsert replaces that row;
+        // mint a fresh id for a brand-new theme.
+        id: editingId ?? makeThemeId(),
         name: name.trim(),
         sourceUrl: url.trim(),
         logoBase64,
@@ -171,7 +206,19 @@ export function BrandThemeSection({ index }: { index?: number }) {
       const res = await saveTheme(theme);
       setThemes(res.themes);
       setActiveThemeId(res.activeThemeId);
-      toast('Theme saved', theme.name);
+      // If we just edited the theme that's currently active, push the new
+      // colors/logo/wordmark into the live override so the edit is visible
+      // immediately without re-applying.
+      if (editingId && res.activeThemeId === theme.id) {
+        setBrandOverride({
+          accent: theme.accent,
+          accentSoft: theme.accentSoft,
+          logoBase64: theme.logoBase64,
+          brandName: theme.brandName?.trim() || theme.name,
+        });
+      }
+      toast(editingId ? 'Theme updated' : 'Theme saved', theme.name);
+      resetForm();
     } catch (e) {
       toast('Save failed', e instanceof Error ? e.message : 'Could not save theme.');
     } finally {
@@ -225,6 +272,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
       setThemes(res.themes);
       setActiveThemeId(res.activeThemeId);
       if (activeThemeId === theme.id) setBrandOverride(null);
+      // If the deleted theme was loaded in the composer, drop back to a fresh
+      // form so Save can't recreate it under the same (now-stale) id.
+      if (editingId === theme.id) resetForm();
       toast('Theme deleted', theme.name);
     } catch (e) {
       toast('Delete failed', e instanceof Error ? e.message : 'Could not delete theme.');
@@ -249,6 +299,22 @@ export function BrandThemeSection({ index }: { index?: number }) {
         Paste a site URL to extract a logo and suggested palette. Refine the colors, name it, and
         apply it across every surface.
       </p>
+
+      {editingId && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-[11px] border border-accent-border bg-accent-bg px-4 py-2.5">
+          <span className="text-[12.5px] text-fg">
+            Editing <b className="font-semibold">{name || 'theme'}</b> — Save replaces it.
+          </span>
+          <button
+            type="button"
+            onClick={resetForm}
+            disabled={saving}
+            className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-accent hover:brightness-110 disabled:opacity-50"
+          >
+            Cancel edit
+          </button>
+        </div>
+      )}
 
       {logoError && (
         <div className="mb-4 rounded-[11px] border border-risk bg-risk-bg px-4 py-3 text-[13px] text-risk">
@@ -355,7 +421,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
             className="flex-1"
           />
           <Button variant="accent" onClick={onSave} disabled={!name.trim() || saving}>
-            {saving ? 'Saving…' : 'Save theme'}
+            {saving ? 'Saving…' : editingId ? 'Update theme' : 'Save theme'}
           </Button>
         </div>
       </Field>
@@ -415,7 +481,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
               return (
                 <div
                   key={t.id}
-                  className="flex items-center gap-3 rounded-[11px] border border-line bg-bg px-3.5 py-2.5"
+                  className={`flex items-center gap-3 rounded-[11px] border bg-bg px-3.5 py-2.5 ${
+                    editingId === t.id ? 'border-accent ring-1 ring-accent-border' : 'border-line'
+                  }`}
                 >
                   {t.logoBase64 ? (
                     <img
@@ -447,6 +515,14 @@ export function BrandThemeSection({ index }: { index?: number }) {
                     disabled={isBusy || isActive}
                   >
                     Apply
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => startEdit(t)}
+                    disabled={isBusy || saving}
+                  >
+                    Edit
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => onDelete(t)} disabled={isBusy}>
                     Delete
