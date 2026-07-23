@@ -3,7 +3,7 @@ import { GlassCard } from '../GlassCard';
 import { Button } from '../Button';
 import { Pill } from '../Pill';
 import { Modal } from '../Modal';
-import { Field, FieldRow, TextInput } from '../home/fields';
+import { Field, TextInput } from '../home/fields';
 import { useToast } from '../Toast';
 import {
   fetchBrandLogo,
@@ -19,6 +19,117 @@ import { DEFAULT_THEMES, type DefaultTheme } from '../../theme/defaultThemes';
 
 const DEFAULT_ACCENT = '#14b8a6';
 const DEFAULT_ACCENT_SOFT = '#5eead4';
+
+/** Clamp to a 0–255 byte and 2-digit hex. */
+function byteHex(n: number): string {
+  const b = Math.max(0, Math.min(255, Math.round(n)));
+  return b.toString(16).padStart(2, '0');
+}
+
+/**
+ * Parse a user-typed color in hex (`#abc`, `abc`, `#aabbcc`, `aabbcc`) OR rgb
+ * (`rgb(12, 34, 56)`, `12,34,56`, `12 34 56`) into a canonical `#rrggbb`, or
+ * `null` when it isn't a complete/valid color yet (so the caller can keep the
+ * last good value while the user is mid-type).
+ */
+function parseColor(input: string): string | null {
+  const s = input.trim().toLowerCase();
+  if (!s) return null;
+  // hex, with or without leading '#'
+  const hex = s.replace(/^#/, '');
+  if (/^[0-9a-f]{6}$/.test(hex)) return `#${hex}`;
+  if (/^[0-9a-f]{3}$/.test(hex)) return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+  // rgb: pull the first three integers out of any "rgb(...)" / "r,g,b" / "r g b"
+  const nums = s.replace(/rgba?/, '').match(/\d{1,3}/g);
+  if (nums && nums.length >= 3) {
+    const [r, g, b] = nums.slice(0, 3).map(Number);
+    if ([r, g, b].every(n => n >= 0 && n <= 255)) return `#${byteHex(r)}${byteHex(g)}${byteHex(b)}`;
+  }
+  return null;
+}
+
+/** Format a `#rrggbb` for display in the chosen mode: hex passthrough or `rgb(r, g, b)`. */
+function formatColor(hex: string, mode: 'hex' | 'rgb'): string {
+  if (mode === 'hex') return hex;
+  const h = hex.replace(/^#/, '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * A color control that pairs the native OS swatch picker with a text field
+ * accepting BOTH hex and rgb, plus a HEX/RGB display toggle. `value` is always
+ * a canonical `#rrggbb`; `onChange` reports one back. Invalid/partial text is
+ * kept locally (so typing isn't clobbered) and only committed once it parses.
+ */
+function ColorInput({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (hex: string) => void;
+  className?: string;
+}) {
+  const [mode, setMode] = useState<'hex' | 'rgb'>('hex');
+  const [text, setText] = useState(() => formatColor(value, 'hex'));
+  const [focused, setFocused] = useState(false);
+
+  // Reseed the text from the canonical value when it changes externally (swatch
+  // pick, palette fill, reset) or when the display mode flips — but not while
+  // the user is actively editing, so we don't fight their keystrokes.
+  useEffect(() => {
+    if (!focused) setText(formatColor(value, mode));
+  }, [value, mode, focused]);
+
+  return (
+    <div className={`flex items-center gap-2 ${className ?? ''}`}>
+      <input
+        type="color"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="h-9 w-11 flex-none rounded-[9px] border border-line bg-bg"
+        aria-label="Color swatch"
+      />
+      <input
+        type="text"
+        value={text}
+        spellCheck={false}
+        placeholder={mode === 'hex' ? '#14b8a6' : 'rgb(20, 184, 166)'}
+        onFocus={() => setFocused(true)}
+        onChange={e => {
+          setText(e.target.value);
+          const parsed = parseColor(e.target.value);
+          if (parsed) onChange(parsed);
+        }}
+        onBlur={() => {
+          setFocused(false);
+          const parsed = parseColor(text);
+          setText(formatColor(parsed ?? value, mode));
+          if (parsed) onChange(parsed);
+        }}
+        className="min-w-0 flex-1 rounded-[11px] border border-line bg-bg px-3 py-2 font-mono text-[12.5px] text-fg outline-none focus:border-accent-border"
+      />
+      <div className="inline-flex flex-none rounded-[9px] border border-line bg-bg p-0.5">
+        {(['hex', 'rgb'] as const).map(m => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            aria-pressed={mode === m}
+            className={`rounded-[7px] px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.1em] transition-colors ${
+              mode === m ? 'bg-accent text-white' : 'text-muted hover:text-fg'
+            }`}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** Build the live brand override from a saved theme, carrying every optional
  *  per-role color (empty → undefined so the client derives its default). */
@@ -529,14 +640,12 @@ export function BrandThemeSection({ index }: { index?: number }) {
         </div>
       )}
 
-      <FieldRow>
-        <Field label="Accent">
-          <TextInput type="color" value={accent} onChange={e => setAccent(e.target.value)} />
-        </Field>
-        <Field label="Accent soft">
-          <TextInput type="color" value={accentSoft} onChange={e => setAccentSoft(e.target.value)} />
-        </Field>
-      </FieldRow>
+      <Field label="Accent">
+        <ColorInput value={accent} onChange={setAccent} />
+      </Field>
+      <Field label="Accent soft">
+        <ColorInput value={accentSoft} onChange={setAccentSoft} />
+      </Field>
 
       <div className="mb-4 -mt-1">
         <button
@@ -550,10 +659,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
 
       <Field label="AI accent (Agentforce chat, AI buttons)">
         <div className="flex items-center gap-2.5">
-          <TextInput
-            type="color"
+          <ColorInput
             value={aiAccent || complementOf(accent)}
-            onChange={e => setAiAccent(e.target.value)}
+            onChange={setAiAccent}
             className="flex-1"
           />
           {aiAccent ? (
@@ -795,12 +903,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
                   </div>
                   <div className="truncate text-[11.5px] text-muted">{r.hint}</div>
                 </div>
-                <TextInput
-                  type="color"
-                  value={r.effective}
-                  onChange={e => r.set(e.target.value)}
-                  className="!w-11 flex-none"
-                />
+                <ColorInput value={r.effective} onChange={r.set} className="flex-none" />
                 {r.reset && (
                   <button
                     type="button"
