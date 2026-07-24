@@ -42,4 +42,9 @@
         <field>CommandCenterConfig__c.Active_Themes__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>CommandCenterConfig__c.Display_Sizes__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
 </PermissionSet>
