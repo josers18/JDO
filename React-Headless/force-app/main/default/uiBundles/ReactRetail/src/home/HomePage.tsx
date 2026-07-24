@@ -66,6 +66,11 @@ import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
 
+/** Default account for the full Customer 360 when a selection carries no id
+ *  (e.g. a demo pinned household with no backing Account). Mirrors the fallback
+ *  Customer360Page uses for a missing route param, so navigation always lands. */
+const DEFAULT_ACCOUNT_ID = '001am00000qvjsAAAQ';
+
 /* ── Rich mock profiles for prep / quick view (retail book) ───────── */
 const PROFILES: Record<string, ClientProfile> = {
   'Julie E Morris': {
@@ -317,9 +322,13 @@ function HomeContent() {
   const close = () => setModal({ type: 'none' });
   const flowFor = (id?: string) => (modeFor('agentforce') === 'real' && id ? AGENTFORCE_FLOWS.account : undefined);
   const profileFor = (name: string) => PROFILES[name];
+  // Open the full Customer 360 route. Some selections (e.g. hardcoded pinned
+  // households with no real Account backing them) carry no id; rather than
+  // dead-end on a toast that reads as a broken button, fall back to the
+  // persona's default account — the same id Customer360Page itself defaults to
+  // when the route param is absent, so the 360 always opens.
   const openFull = (id?: string) => {
-    if (id) navigate(`/client/${id}`);
-    else toast('Full 360', 'Open the client record for the complete view');
+    navigate(`/client/${id ?? DEFAULT_ACCOUNT_ID}`);
   };
 
   // ── Right context panel: build a selection payload for each entity kind.

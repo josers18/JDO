@@ -40,7 +40,7 @@ const RAIL_ARC: CommandRailArcStep[] = [
 /** Pinned accounts — clicking one selects it into the workspace right panel. */
 const RAIL_PINNED: CommandRailPinned[] = [
   { name: 'Julie E Morris', sub: 'Retail household · $1.24M' },
-  { name: 'Cooper Household', sub: 'Retail · at risk' },
+  { id: '001am00000qvjtlAAA', name: 'Cooper Household', sub: 'Retail · at risk' },
   { name: 'Bennett Family', sub: 'Mortgage · in progress' },
 ];
 
