@@ -4,10 +4,34 @@ export {
   type PersonaTheme,
 } from './themes';
 export { ThemeProvider, useTheme, type ThemeMode } from './ThemeProvider';
-export { buildGradient, buildGlow, brandThemeToVars, resolveActiveTheme, type BrandTheme } from './brandThemes';
-export { extractPalette } from './paletteExtract';
-export { setBrandOverride, getBrandOverride, useBrandOverride, type BrandOverride } from './activeBrand';
+export {
+  buildGradient,
+  buildGlow,
+  buildAurora,
+  buildAiFamily,
+  brandThemeToVars,
+  resolveActiveTheme,
+  type BrandTheme,
+} from './brandThemes';
+export { extractPalette, extractPaletteCandidates, complementOf } from './paletteExtract';
+export {
+  setBrandOverride,
+  getBrandOverride,
+  useBrandOverride,
+  useBrandName,
+  DEFAULT_BRAND_NAME,
+  type BrandOverride,
+} from './activeBrand';
 export { applyActiveThemeOnLoad } from './applyActiveTheme';
+export {
+  DISPLAY_SIZE_PRESETS,
+  DEFAULT_DISPLAY_SIZE_ID,
+  scaleForDisplaySize,
+  setDisplaySize,
+  getDisplaySize,
+  useDisplaySize,
+  type DisplaySizePreset,
+} from './displaySize';
 export {
   DEFAULT_THEMES,
   DEFAULT_DARK_ID,

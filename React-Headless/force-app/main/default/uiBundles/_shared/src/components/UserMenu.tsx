@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { executeGraphQL } from '../data/graphqlClient';
 import { personalSettingsUrl, logoutUrl, lexRecordUrl, setupUrl, dataCloudSetupUrl } from '../data/orgEnv';
+import { DisplaySizeControl } from './config/DisplaySizeControl';
 
 /**
  * User menu for the React shell (Profile + Settings + Log Out).
@@ -155,6 +156,28 @@ export function UserMenu({ onNavigate }: { onNavigate?: (path: string) => void }
           <a href={personalSettingsUrl()} target="_top" style={menuLink}>
             Settings
           </a>
+
+          <div style={menuDivider} />
+
+          {/* Quick per-user display-size (font/UI scale). Same control as the
+              Configuration page's card; applies instantly and persists per user. */}
+          <div style={{ padding: '0.15rem 0.65rem 0.2rem' }}>
+            <div
+              style={{
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--wp-text-faint)',
+                marginBottom: '0.4rem',
+              }}
+            >
+              Display size
+            </div>
+            <DisplaySizeControl compact />
+          </div>
+
+          <div style={menuDivider} />
 
           {/* In-app command-center configuration (model per AI action + params).
               A real SPA route, so it navigates in-frame — not a core-org link.

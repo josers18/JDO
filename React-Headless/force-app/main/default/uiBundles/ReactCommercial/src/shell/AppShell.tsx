@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { AgentforceChat, AppLauncher, GlobalSearch, Icon, NotificationBell, UserMenu, useBrandOverride, type IconKey } from '@shared';
+import { AgentforceChat, AppLauncher, GlobalSearch, Icon, NotificationBell, UserMenu, useBrandOverride, useBrandName, type IconKey } from '@shared';
 
 /** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
 const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
@@ -46,6 +46,7 @@ interface AppShellProps {
 export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const brand = useBrandOverride();
+  const brandName = useBrandName();
   const navigate = useNavigate();
   const railW = collapsed ? 64 : 232;
 
@@ -87,7 +88,7 @@ export function AppShell({ nav, title, titleAside, agentforce = true, sidebar, c
               style={{ width: 28, height: 28, borderRadius: 9, background: 'var(--wp-gradient)', flexShrink: 0, boxShadow: '0 0 14px var(--wp-accent)' }}
             />
           )}
-          {!collapsed && <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>Cumulus</span>}
+          {!collapsed && <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>{brandName}</span>}
         </div>
 
         <nav style={{ flex: 1, padding: '0.5rem', display: 'grid', gap: '0.15rem', alignContent: 'start' }}>

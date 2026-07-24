@@ -27,6 +27,11 @@ global with sharing class CommandCenterConfigRest {
     private static final Set<String> ACTIONS = new Set<String>{
         'queue_rationale', 'pipeline_summary', 'followups', 'freeform'
     };
+    /** Valid display-size preset ids (mirrors DISPLAY_SIZE_PRESETS in the
+     *  client's displaySize.ts). An unknown id resets to baseline. */
+    private static final Set<String> DISPLAY_SIZE_IDS = new Set<String>{
+        'default', 'comfortable', 'large', 'xlarge'
+    };
 
     /** How long a probed catalog is considered fresh. After this the next
      *  /models read serves the cached list AND kicks off a background refresh
@@ -88,11 +93,12 @@ global with sharing class CommandCenterConfigRest {
                 writeRaw(res, 200, fetchBrandLogo(rawUrl));
                 return;
             }
-            // Theme library + this user's active theme: /config/themes.
+            // Theme library + this user's active theme + display size: /config/themes.
             if (path.endsWith('/themes')) {
                 writeRaw(res, 200, new Map<String, Object>{
                     'themes' => loadThemeList(),
-                    'activeThemeId' => activeThemeIdForUser()
+                    'activeThemeId' => activeThemeIdForUser(),
+                    'displaySize' => displaySizeForUser()
                 });
                 return;
             }
@@ -129,6 +135,11 @@ global with sharing class CommandCenterConfigRest {
             // This user's active theme selection: /config/active-theme { themeId }.
             if (uri.endsWith('/active-theme')) {
                 saveActiveTheme(res, parsed);
+                return;
+            }
+            // This user's display-size preset: /config/display-size { displaySize }.
+            if (uri.endsWith('/display-size')) {
+                saveDisplaySize(res, parsed);
                 return;
             }
 
@@ -430,10 +441,27 @@ global with sharing class CommandCenterConfigRest {
         writeRaw(res, 200, new Map<String, Object>{ 'activeThemeId' => activeThemeIdForUser() });
     }
 
+    /** POST /config/display-size { displaySize }. Writes the running user's
+     *  font/UI scale preset into the shared per-user map keyed by
+     *  UserInfo.getUserId(). A blank/unknown id removes the entry (baseline). */
+    private static void saveDisplaySize(RestResponse res, Map<String, Object> parsed) {
+        String sizeId = parsed.get('displaySize') == null ? '' : String.valueOf(parsed.get('displaySize')).trim();
+        Map<String, Object> sizeMap = loadDisplaySizeMap();
+        if (String.isBlank(sizeId) || !DISPLAY_SIZE_IDS.contains(sizeId)) {
+            sizeMap.remove(UserInfo.getUserId());
+        } else {
+            sizeMap.put(UserInfo.getUserId(), sizeId);
+        }
+        persistDisplaySizeMap(sizeMap);
+        writeRaw(res, 200, new Map<String, Object>{ 'displaySize' => displaySizeForUser() });
+    }
+
     /** Coerce an inbound theme into the validated shape (D1): keeps ONLY the
-     *  7 whitelisted fields — id, name, sourceUrl, logoBase64, logoContentType,
-     *  accent, accentSoft. gradient/glow (or any other key) are dropped by
-     *  omission; they are derived client-side from accent and never stored. */
+     *  whitelisted fields — id, name, sourceUrl, logoBase64, logoContentType,
+     *  accent, accentSoft, brandName, and the OPTIONAL aiAccent (stored only
+     *  when it is a valid #rrggbb). gradient/glow/aurora/ai-family (or any other
+     *  key) are dropped by omission; they are derived client-side from the
+     *  stored scalar colors and never stored. */
     private static Map<String, Object> sanitizeTheme(Map<String, Object> t) {
         String id = t.get('id') == null ? '' : String.valueOf(t.get('id')).trim();
         if (String.isBlank(id)) {
@@ -441,6 +469,10 @@ global with sharing class CommandCenterConfigRest {
         }
         String name = t.get('name') == null ? '' : String.valueOf(t.get('name')).trim();
         if (name.length() > 255) name = name.substring(0, 255);
+        // brandName is the wordmark shown in the app chrome; falls back to name.
+        String brandName = t.get('brandName') == null ? '' : String.valueOf(t.get('brandName')).trim();
+        if (String.isBlank(brandName)) brandName = name;
+        if (brandName.length() > 255) brandName = brandName.substring(0, 255);
         String sourceUrl = t.get('sourceUrl') == null ? '' : String.valueOf(t.get('sourceUrl')).trim();
         if (sourceUrl.length() > 255) sourceUrl = sourceUrl.substring(0, 255);
         String logoContentType = t.get('logoContentType') == null ? '' : String.valueOf(t.get('logoContentType')).trim();
@@ -450,15 +482,26 @@ global with sharing class CommandCenterConfigRest {
             logo = null; // oversize → drop rather than store a truncated (broken) image.
         }
 
-        return new Map<String, Object>{
+        Map<String, Object> clean = new Map<String, Object>{
             'id' => id,
             'name' => name,
+            'brandName' => brandName,
             'sourceUrl' => sourceUrl,
             'logoBase64' => logo,
             'logoContentType' => logoContentType,
             'accent' => hexOrDefault(t.get('accent'), DEFAULT_ACCENT),
             'accentSoft' => hexOrDefault(t.get('accentSoft'), DEFAULT_ACCENT_SOFT)
         };
+        // Optional per-role colors: persist each ONLY when it is a valid
+        // #rrggbb, so a theme that doesn't set one derives it client-side and
+        // pre-existing themes are unaffected. All still scalar-only (D1).
+        for (String key : new List<String>{ 'aiAccent', 'bgAccent', 'posColor', 'negColor', 'linkColor' }) {
+            String v = t.get(key) == null ? '' : String.valueOf(t.get(key)).trim();
+            if (hexValid(v)) {
+                clean.put(key, v);
+            }
+        }
+        return clean;
     }
 
     /** Accept a #rrggbb hex string; anything else coerces to the given default. */
@@ -533,6 +576,52 @@ global with sharing class CommandCenterConfigRest {
             }
         }
         return null;
+    }
+
+    /** Parse the per-user display-size map off the singleton. Empty map if
+     *  unset or unparseable.
+     *
+     *  Display_Sizes__c is read/written via DYNAMIC SOQL/assignment and wrapped
+     *  in try/catch ON PURPOSE: it is decoupled from the shared loadSingleton()
+     *  query so that if the field is momentarily unresolvable (e.g. describe-
+     *  cache lag right after the field is first created), display size degrades
+     *  to baseline WITHOUT taking down the whole /config/themes endpoint (which
+     *  also serves brand theming). Never throws. */
+    private static Map<String, Object> loadDisplaySizeMap() {
+        try {
+            List<SObject> rows = Database.query(
+                'SELECT Display_Sizes__c FROM CommandCenterConfig__c WHERE Name = :SINGLETON_NAME LIMIT 1'
+            );
+            if (rows.isEmpty()) return new Map<String, Object>();
+            Object raw = rows[0].get('Display_Sizes__c');
+            String mapJson = raw == null ? null : String.valueOf(raw);
+            if (String.isBlank(mapJson)) return new Map<String, Object>();
+            Object root = JSON.deserializeUntyped(mapJson);
+            return (root instanceof Map<String, Object>) ? (Map<String, Object>) root : new Map<String, Object>();
+        } catch (Exception e) {
+            return new Map<String, Object>();
+        }
+    }
+
+    /** Persist the per-user display-size map onto the singleton via dynamic
+     *  assignment (see loadDisplaySizeMap for why it's decoupled). Silently
+     *  no-ops if the field can't be set yet — the session change still holds
+     *  client-side; the next save after propagation persists it. */
+    private static void persistDisplaySizeMap(Map<String, Object> m) {
+        try {
+            CommandCenterConfig__c rec = loadOrNewSingleton();
+            rec.put('Display_Sizes__c', JSON.serialize(m));
+            upsert rec;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'persistDisplaySizeMap skipped: ' + e.getMessage());
+        }
+    }
+
+    /** The running user's display-size preset id — null if unset or no longer
+     *  a recognised preset (fallback-to-baseline). */
+    private static String displaySizeForUser() {
+        String id = (String) loadDisplaySizeMap().get(UserInfo.getUserId());
+        return (id != null && DISPLAY_SIZE_IDS.contains(id)) ? id : null;
     }
 
     /**

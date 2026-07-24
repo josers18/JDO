@@ -21,6 +21,9 @@
   --wp-pos: #34d399;
   --wp-neg: #f87171;
   --wp-warn: #fbbf24;
+  /* Links / informational affordances — defaults to the accent hue, overridable
+     per-brand via the theme's linkColor. */
+  --wp-link: #14b8a6;
   /* text that sits on a solid accent fill */
   --wp-on-accent: #04121a;
 
@@ -74,6 +77,7 @@
   --wp-pos: #12a594;
   --wp-neg: #e5544b;
   --wp-warn: #e0912f;
+  --wp-link: #5b8def;
   --wp-on-accent: #ffffff;
 
   /* Aurora accent — blue → violet, with the ambient page wash */

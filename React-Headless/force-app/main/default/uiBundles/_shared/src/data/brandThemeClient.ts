@@ -7,17 +7,20 @@
  * CommandCenterConfigRest's brand-theming endpoints:
  *
  *   GET  /services/apexrest/config/brand-logo?url=<url>  → { logoBase64, logoContentType }
- *   GET  /services/apexrest/config/themes                → { themes, activeThemeId }
+ *   GET  /services/apexrest/config/themes                → { themes, activeThemeId, displaySize }
  *   POST /services/apexrest/config/themes                → { themes, activeThemeId }
  *   POST /services/apexrest/config/active-theme          → { activeThemeId }
+ *   POST /services/apexrest/config/display-size          → { displaySize }
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 import type { BrandTheme } from '../theme/brandThemes';
 
-/** The themes list plus which one (if any) is currently active. */
+/** The themes list plus which one (if any) is currently active, and this
+ *  user's display-size preset id (font/UI scale). */
 interface ThemesResult {
   themes: BrandTheme[];
   activeThemeId: string | null;
+  displaySize: string | null;
 }
 
 /** The logo fetched for a given source URL, base64-encoded. */
@@ -41,6 +44,7 @@ function normalizeThemesResult(raw: unknown): ThemesResult {
   return {
     themes: Array.isArray(r.themes) ? r.themes : [],
     activeThemeId: r.activeThemeId ?? null,
+    displaySize: r.displaySize ?? null,
   };
 }
 
@@ -78,7 +82,12 @@ export async function listThemes(): Promise<ThemesResult> {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
   });
-  const json = (await res.json()) as { themes?: BrandTheme[]; activeThemeId?: string | null; error?: string };
+  const json = (await res.json()) as {
+    themes?: BrandTheme[];
+    activeThemeId?: string | null;
+    displaySize?: string | null;
+    error?: string;
+  };
   if (!res.ok) {
     throw new Error(json?.error ?? `Failed to load themes (HTTP ${res.status})`);
   }
@@ -128,4 +137,20 @@ export async function setActiveTheme(id: string | null): Promise<{ activeThemeId
     throw new Error(json?.error ?? `Failed to set active theme (HTTP ${res.status})`);
   }
   return { activeThemeId: json.activeThemeId ?? null };
+}
+
+/** Persist this user's display-size preset id (font/UI scale). Pass a blank/
+ *  unknown id to reset to the baseline. Returns the server-echoed id. */
+export async function saveDisplaySize(id: string): Promise<{ displaySize: string | null }> {
+  const fetch = await sdkFetch();
+  const res = await fetch('/services/apexrest/config/display-size', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displaySize: id }),
+  });
+  const json = (await res.json()) as { displaySize?: string | null; error?: string };
+  if (!res.ok) {
+    throw new Error(json?.error ?? `Failed to save display size (HTTP ${res.status})`);
+  }
+  return { displaySize: json.displaySize ?? null };
 }

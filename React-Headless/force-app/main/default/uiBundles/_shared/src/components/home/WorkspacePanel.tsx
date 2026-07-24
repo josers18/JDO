@@ -527,7 +527,7 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
             <button
               type="button"
               onClick={handlers.onViewAtRisk}
-              className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
+              className="font-mono text-[10.5px] font-medium text-link transition hover:opacity-80"
             >
               View all →
             </button>
@@ -552,7 +552,7 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
               <button
                 type="button"
                 onClick={handlers.onViewLifeEvents}
-                className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
+                className="font-mono text-[10.5px] font-medium text-link transition hover:opacity-80"
               >
                 View all →
               </button>
@@ -820,7 +820,7 @@ function TaskState({ sel, handlers }: { sel: TaskSelection; handlers: WorkspaceP
         <button
           type="button"
           onClick={() => handlers.onOpenClient(sel.clientId, sel.client)}
-          className="mt-1 text-[12.5px] text-accent transition hover:underline"
+          className="mt-1 text-[12.5px] text-link transition hover:underline"
         >
           {sel.client}
         </button>
@@ -863,7 +863,7 @@ function OpportunityState({ sel, handlers }: { sel: OpportunitySelection; handle
         <button
           type="button"
           onClick={() => handlers.onOpenClient(sel.clientId, sel.client)}
-          className="mt-1 text-[12.5px] text-accent transition hover:underline"
+          className="mt-1 text-[12.5px] text-link transition hover:underline"
         >
           {sel.client}
         </button>
@@ -914,7 +914,7 @@ function MeetingState({ sel, handlers }: { sel: MeetingSelection; handlers: Work
         <button
           type="button"
           onClick={() => handlers.onOpenClient(sel.clientId, sel.client)}
-          className="mt-1 text-[12.5px] text-accent transition hover:underline"
+          className="mt-1 text-[12.5px] text-link transition hover:underline"
         >
           {sel.client}
         </button>
