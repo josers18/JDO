@@ -2,6 +2,7 @@ import { createContext, useContext, type CSSProperties, type ReactNode } from 'r
 import { PERSONA_THEMES, type PersonaKey, type PersonaTheme } from './themes';
 import { buildGradient, buildGlow, buildAurora, buildAiFamily } from './brandThemes';
 import { useBrandOverride } from './activeBrand';
+import { useDisplaySize, scaleForDisplaySize } from './displaySize';
 import './tokens.css';
 
 export type ThemeMode = 'dark' | 'light';
@@ -20,6 +21,13 @@ interface ThemeProviderProps {
   persona: PersonaKey;
   mode?: ThemeMode;
   children: ReactNode;
+  /**
+   * Apply the user's display-size (`zoom`) to this wrapper. Default true — the
+   * app's top-level provider scales the whole UI. A NESTED provider used for a
+   * side-by-side preview (ThemeCompare) sets this false so the two zoom factors
+   * don't compound (the outer wrapper already applied it).
+   */
+  scaleDisplaySize?: boolean;
 }
 
 /**
@@ -28,9 +36,19 @@ interface ThemeProviderProps {
  * descendant can reference var(--wp-accent) / var(--wp-surface) etc. without
  * prop-drilling. `mode` switches the structural token palette (dark|light).
  */
-export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProviderProps) {
+export function ThemeProvider({
+  persona,
+  mode = 'dark',
+  children,
+  scaleDisplaySize = true,
+}: ThemeProviderProps) {
   const base = PERSONA_THEMES[persona];
   const override = useBrandOverride();
+  // Per-user display size (font/UI scale). Applied as CSS `zoom` on this single
+  // wrapper so every hardcoded-px descendant (labels, box text, padding, icons)
+  // scales together and reflows correctly. `default` → zoom 1 (baseline).
+  const displaySize = useDisplaySize();
+  const zoom = scaleDisplaySize ? scaleForDisplaySize(displaySize) : 1;
   // When a custom brand override is active, swap in its accent tokens and
   // RE-DERIVE gradient/glow from that accent (D1 — gradient/glow are never
   // stored/read as fields). With no override, this is byte-identical to the
@@ -66,6 +84,9 @@ export function ThemeProvider({ persona, mode = 'dark', children }: ThemeProvide
   // persona-themed too (not fixed to the Aurora blue→violet default).
   const style = {
     fontFamily: 'var(--font-sans)',
+    // Per-user display size. Omitted at baseline (zoom 1) so the default render
+    // is byte-identical to pre-feature; a larger preset zooms the whole subtree.
+    ...(zoom !== 1 ? { zoom } : {}),
     // Tell the UA to render native control chrome (select popups, number
     // spinners, the type=color swatch, scrollbars) in the matching scheme, so a
     // dark surface doesn't get a white OS dropdown / spinner.

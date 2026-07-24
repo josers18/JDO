@@ -12,11 +12,16 @@
 import { listThemes } from '../data/brandThemeClient';
 import { resolveActiveTheme } from './brandThemes';
 import { setBrandOverride } from './activeBrand';
+import { setDisplaySize } from './displaySize';
 import { findDefaultTheme } from './defaultThemes';
 
 export async function applyActiveThemeOnLoad(): Promise<void> {
   try {
-    const { themes, activeThemeId } = await listThemes();
+    const { themes, activeThemeId, displaySize } = await listThemes();
+    // Per-user display size (font/UI scale). Set FIRST so it applies regardless
+    // of which theme branch below runs. Unknown/blank → baseline (setDisplaySize
+    // guards this), so a user who never picked one renders at 100%.
+    setDisplaySize(displaySize);
     // A fixed default (Dark/Light) is a sentinel id that never appears in the
     // saved library — resolve it first so it survives reloads with its mode.
     const dflt = findDefaultTheme(activeThemeId);

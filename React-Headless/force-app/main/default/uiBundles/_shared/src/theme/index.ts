@@ -24,6 +24,15 @@ export {
 } from './activeBrand';
 export { applyActiveThemeOnLoad } from './applyActiveTheme';
 export {
+  DISPLAY_SIZE_PRESETS,
+  DEFAULT_DISPLAY_SIZE_ID,
+  scaleForDisplaySize,
+  setDisplaySize,
+  getDisplaySize,
+  useDisplaySize,
+  type DisplaySizePreset,
+} from './displaySize';
+export {
   DEFAULT_THEMES,
   DEFAULT_DARK_ID,
   DEFAULT_LIGHT_ID,
