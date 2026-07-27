@@ -41,6 +41,7 @@ export {
 } from './PriorityQueueCard';
 export { RecommendationCard, type RecommendationCardItem, type RecommendationKind } from './RecommendationCard';
 export { type ClientProfile, type ClientSignal, type ClientTimelineEntry } from './home/types';
+export { selectionToProfile } from './home/clientProfile';
 export { TaskModal } from './home/TaskModal';
 export { ScheduleModal } from './home/ScheduleModal';
 export { ScheduleDetailModal } from './home/ScheduleDetailModal';

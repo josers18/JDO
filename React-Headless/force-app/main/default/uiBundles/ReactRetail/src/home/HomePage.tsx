@@ -38,6 +38,8 @@ import {
   Pill,
   WorkspacePanel,
   useWorkspaceSelection,
+  selectionToProfile,
+  type ClientProfile,
   type WorkspaceSelection,
   type ClientSelection,
   type PanelSignal,
@@ -150,6 +152,11 @@ function HomeContent() {
   // Account id currently being enriched (phase 2 fetch in flight) — drives a
   // subtle "enriching…" affordance on the panel until the live 360 lands.
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  // Client profile driving the profile-bearing modals (QuickView / Prep). Built
+  // instant-then-enrich exactly like the side panel: phase 1 from in-memory
+  // dashboard data, phase 2 merged from the live Customer 360. Without this the
+  // modals render their CSAT / Value / Open-cases tiles as bare '—'.
+  const [modalProfile, setModalProfile] = useState<ClientProfile | undefined>(undefined);
   // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
   // outside this component). A pin click bumps `pinnedRequest`; we resolve it
   // into a full client selection below.
@@ -238,6 +245,45 @@ function HomeContent() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selClientId, selection.kind]);
+
+  // ── Profile-bearing modals (QuickView 360 / Prep sheet) instant-then-enrich.
+  //    A profile modal opens knowing only the client name/id; without a profile
+  //    its stat tiles render as bare '—'. Mirror the side panel: build the
+  //    Phase-1 profile instantly from in-memory data, then merge the live
+  //    Customer 360 (+ detail) — the same fetch the panel uses. Keyed on the
+  //    open modal's client id; race-guarded and graceful-degrading. Reset to
+  //    undefined when no profile modal is open so a stale profile never leaks
+  //    into the next client's modal.
+  const profileModalId =
+    modal.type === 'quickview' || modal.type === 'prep' ? modal.id : undefined;
+  const profileModalName =
+    modal.type === 'quickview' || modal.type === 'prep' ? modal.name : undefined;
+  useEffect(() => {
+    if (!profileModalName || !data) {
+      setModalProfile(undefined);
+      return;
+    }
+    // Phase 1 — instant profile from the in-memory book (reuses the panel's
+    // client-selection builder, then maps it onto the modal's ClientProfile).
+    const phase1 = buildClientSelection(profileModalName, profileModalId);
+    setModalProfile(phase1.kind === 'client' ? selectionToProfile(phase1) : undefined);
+    if (!profileModalId) return;
+    // Phase 2 — enrich from the live Customer 360, merged the same way the panel
+    // merges, then re-mapped onto the modal profile.
+    let cancelled = false;
+    Promise.all([fetchCustomer360(profileModalId), fetchCustomer360Detail(profileModalId)])
+      .then(([c360, detail]) => {
+        if (cancelled || !c360 || phase1.kind !== 'client') return;
+        setModalProfile(selectionToProfile(mergeEnrichment(phase1, c360, detail)));
+      })
+      .catch(() => {
+        /* graceful degrade — keep the Phase-1 profile, no toast */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileModalId, profileModalName, data]);
 
   // Merge the configured model + params into an AI request for a given action.
   const withConfig = (
@@ -2010,6 +2056,7 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
+          profile={modalProfile}
           promptFlow={flowFor(modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
           onMakeTask={n => open('task', modal.name, modal.id, n)}
@@ -2021,6 +2068,7 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
+          profile={modalProfile}
           promptFlow={flowFor(modal.id)}
           onPrep={() => open('prep', modal.name, modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}

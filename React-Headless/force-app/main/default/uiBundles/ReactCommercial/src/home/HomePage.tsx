@@ -38,6 +38,9 @@ import {
   Pill,
   WorkspacePanel,
   useWorkspaceSelection,
+  selectionToProfile,
+  type ClientProfile,
+  type ClientSelection,
   type WorkspaceSelection,
   type WorkspaceBrief,
   type WorkspacePanelHandlers,
@@ -61,6 +64,7 @@ import {
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
 import { fetchCustomer360, fetchCustomer360Detail } from '../personas/customer/customerData';
+import type { Customer360, Customer360Detail } from '../personas/customer/customerTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -106,6 +110,49 @@ function signalTone(tone: 'positive' | 'opportunity' | 'risk' | 'neutral'): 'ris
   if (tone === 'positive') return 'ok';
   if (tone === 'opportunity') return 'warn';
   return tone; // 'risk' | 'neutral'
+}
+
+/**
+ * Merge the live Customer 360 (+ detail) into a Phase-1 ClientSelection — the
+ * rich fields (health / tier / relationship value / AI recap / signals /
+ * timeline / NBAs) only override when the live value is meaningful, so a sparse
+ * 360 never blanks a Phase-1 fact. Shared by the side-panel enrich effect and
+ * the profile-bearing modals' enrich effect so both surface identical live data.
+ */
+function mergeEnrichment(
+  prev: ClientSelection,
+  c360: Customer360,
+  detail: Customer360Detail | null,
+): ClientSelection {
+  const score = c360.healthScore;
+  const signalRows = c360.aiSignals.slice(0, 5).map(s => ({
+    label: `${s.label}${s.value ? ` · ${s.value}` : ''}`,
+    when: '',
+    tone: signalTone(s.tone),
+  }));
+  const nba = c360.nextBestActions.map(a => a.title);
+  const timeline = (detail?.timeline ?? []).slice(0, 6).map(t => ({
+    when: t.when,
+    title: t.title,
+    detail: t.detail,
+    tone: signalTone(t.tone ?? 'neutral'),
+  }));
+  return {
+    ...prev,
+    healthScore: score || prev.healthScore,
+    healthLabel: score ? healthLabelFor(score) : prev.healthLabel,
+    tier: c360.segment || prev.tier,
+    relationshipValue:
+      c360.opportunitiesValue > 0 ? formatValue(c360.opportunitiesValue, 'currencyCompact') : prev.relationshipValue,
+    summary: c360.aiBrief || prev.summary,
+    signalRows: signalRows.length ? signalRows : prev.signalRows,
+    nba: nba.length ? nba : prev.nba,
+    nbaHeadline: nba[0] ?? prev.nbaHeadline,
+    timeline: timeline.length ? timeline : prev.timeline,
+    facts: prev.facts.map(f =>
+      f.label === 'Open cases' ? { ...f, value: String(c360.casesCount) } : f,
+    ),
+  };
 }
 
 /**
@@ -165,6 +212,11 @@ function HomeContent() {
   // client's live 360 is in flight (phase 2); cleared when the merge lands or
   // the fetch fails.
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  // Client profile driving the profile-bearing modals (QuickView / Prep). Built
+  // instant-then-enrich exactly like the side panel: phase 1 from in-memory
+  // dashboard data, phase 2 merged from the live Customer 360. Without this the
+  // modals render their CSAT / Value / Open-cases tiles as bare '—'.
+  const [modalProfile, setModalProfile] = useState<ClientProfile | undefined>(undefined);
   // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
   // outside this component). A pin click bumps `pinnedRequest`; we resolve it
   // into a full client selection below.
@@ -235,37 +287,7 @@ function HomeContent() {
           // Only merge if the same client is still selected (guards a fast
           // re-click onto a different account before this resolved).
           if (prev.kind !== 'client' || prev.id !== selectedClientId) return prev;
-          const score = c360.healthScore;
-          const signalRows = c360.aiSignals.slice(0, 5).map(s => ({
-            label: `${s.label}${s.value ? ` · ${s.value}` : ''}`,
-            when: '',
-            tone: signalTone(s.tone),
-          }));
-          const nba = c360.nextBestActions.map(a => a.title);
-          const timeline = (detail?.timeline ?? []).slice(0, 6).map(t => ({
-            when: t.when,
-            title: t.title,
-            detail: t.detail,
-            tone: signalTone(t.tone ?? 'neutral'),
-          }));
-          return {
-            ...prev,
-            // Rich fields — only override when the live value is meaningful, so a
-            // sparse 360 never blanks a Phase-1 fact.
-            healthScore: score || prev.healthScore,
-            healthLabel: score ? healthLabelFor(score) : prev.healthLabel,
-            tier: c360.segment || prev.tier,
-            relationshipValue:
-              c360.opportunitiesValue > 0 ? formatValue(c360.opportunitiesValue, 'currencyCompact') : prev.relationshipValue,
-            summary: c360.aiBrief || prev.summary,
-            signalRows: signalRows.length ? signalRows : prev.signalRows,
-            nba: nba.length ? nba : prev.nba,
-            nbaHeadline: nba[0] ?? prev.nbaHeadline,
-            timeline: timeline.length ? timeline : prev.timeline,
-            facts: prev.facts.map(f =>
-              f.label === 'Open cases' ? { ...f, value: String(c360.casesCount) } : f,
-            ),
-          };
+          return mergeEnrichment(prev, c360, detail);
         });
       })
       .catch(() => {
@@ -278,6 +300,45 @@ function HomeContent() {
       cancelled = true;
     };
   }, [selectedClientId]);
+
+  // ── Profile-bearing modals (QuickView 360 / Prep sheet) instant-then-enrich.
+  //    A profile modal opens knowing only the client name/id; without a profile
+  //    its stat tiles render as bare '—'. Mirror the side panel: build the
+  //    Phase-1 profile instantly from in-memory data, then merge the live
+  //    Customer 360 (+ detail) — the same fetch the panel uses. Keyed on the
+  //    open modal's client id; race-guarded and graceful-degrading. Reset to
+  //    undefined when no profile modal is open so a stale profile never leaks
+  //    into the next client's modal.
+  const profileModalId =
+    modal.type === 'quickview' || modal.type === 'prep' ? modal.id : undefined;
+  const profileModalName =
+    modal.type === 'quickview' || modal.type === 'prep' ? modal.name : undefined;
+  useEffect(() => {
+    if (!profileModalName || !data) {
+      setModalProfile(undefined);
+      return;
+    }
+    // Phase 1 — instant profile from the in-memory book (reuses the panel's
+    // client-selection builder, then maps it onto the modal's ClientProfile).
+    const phase1 = buildClientSelection(profileModalName, profileModalId);
+    setModalProfile(phase1.kind === 'client' ? selectionToProfile(phase1) : undefined);
+    if (!profileModalId) return;
+    // Phase 2 — enrich from the live Customer 360, merged the same way the panel
+    // merges, then re-mapped onto the modal profile.
+    let cancelled = false;
+    Promise.all([fetchCustomer360(profileModalId), fetchCustomer360Detail(profileModalId)])
+      .then(([c360, detail]) => {
+        if (cancelled || !c360 || phase1.kind !== 'client') return;
+        setModalProfile(selectionToProfile(mergeEnrichment(phase1, c360, detail)));
+      })
+      .catch(() => {
+        /* graceful degrade — keep the Phase-1 profile, no toast */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileModalId, profileModalName, data]);
 
   // Merge the configured model + params into an AI request for a given action.
   const withConfig = (
@@ -2047,6 +2108,7 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
+          profile={modalProfile}
           promptFlow={flowFor(modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
           onMakeTask={n => open('task', modal.name, modal.id, n)}
@@ -2058,6 +2120,7 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
+          profile={modalProfile}
           promptFlow={flowFor(modal.id)}
           onPrep={() => open('prep', modal.name, modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
