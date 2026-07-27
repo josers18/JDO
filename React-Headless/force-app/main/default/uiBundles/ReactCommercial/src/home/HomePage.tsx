@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  useAsyncData,
   ToastProvider,
   useToast,
   Button,
@@ -53,15 +52,15 @@ import {
   generateText,
   loadCenterConfig,
   DEFAULT_CONFIG,
-  type ClientProfile,
   type CrmWriteInput,
   type DraftRow,
   type AiGenerateResult,
   type AiActionKey,
   type CommandCenterConfig,
 } from '@shared';
-import { fetchHomeDashboard } from './homeData';
+import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
+import { fetchCustomer360, fetchCustomer360Detail } from '../personas/customer/customerData';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -70,85 +69,6 @@ import { APP_PERSONA } from '../shell/appChrome';
  *  (e.g. a demo pinned household with no backing Account). Mirrors the fallback
  *  Customer360Page uses for a missing route param, so navigation always lands. */
 const DEFAULT_ACCOUNT_ID = '001am00000qvjsAAAQ';
-
-/* ── Rich mock profiles for prep / quick view (retail book) ───────── */
-const PROFILES: Record<string, ClientProfile> = {
-  'Julie E Morris': {
-    initials: 'JM',
-    descriptor: 'Retail household',
-    since: '2016',
-    csat: 'Poor · 62',
-    value: '$1.24M',
-    openCases: '5',
-    tier: 'Platinum',
-    priorityLabel: 'High Priority',
-    healthScore: 62,
-    healthLabel: 'Fair',
-    healthDeltaPts: -8,
-    valueDeltaPct: 6,
-    facts: [
-      ['Open opp', '$150K personal loan'],
-      ['Overdue task', '270 days'],
-      ['Open cases', '5'],
-      ['Last contact', '9 mo ago'],
-    ],
-    signals: [
-      { label: 'CSAT dropped below threshold', when: 'Today', tone: 'risk' },
-      { label: 'Complaint ticket opened', when: 'Yesterday', tone: 'risk' },
-      { label: 'Digital banking login', when: 'Yesterday', tone: 'ok' },
-    ],
-    timeline: [
-      { when: 'Yesterday', title: 'Complaint opened', detail: 'Service issue logged by client', tone: 'risk' },
-      { when: '3 days ago', title: 'Wire completed', detail: '$250,000 outgoing wire', tone: 'neutral' },
-      { when: '7 days ago', title: 'Rollover discussion', detail: 'Exploring 401k options', tone: 'neutral' },
-      { when: '2 wks ago', title: 'Login detected', detail: 'Digital banking login', tone: 'ok' },
-    ],
-    recap:
-      'Julie has banked with Cumulus for 9 years across a mortgage, two deposit accounts, and a brokerage link. Engagement dropped after a branch closure near her; CSAT slid to Poor over the last three surveys. A 401k rollover conversation started in 2024 was never closed, and a $150K personal-loan opportunity is sitting in Interested. Five open cases — most notably a lost debit card — are the likely CSAT driver.',
-    talk:
-      'Lead by resolving the lost-card case live on the call — that rebuilds trust before any product talk. Then reframe the idle rollover as a simple, guided next step and connect it to the personal-loan need she already raised.',
-    nbaHeadline: 'Schedule service recovery call',
-    nba: [
-      'Resolve lost-card case & confirm replacement shipped',
-      'Walk the 401k rollover, offer to e-sign on the call',
-      "Re-open the $150K personal-loan quote at today's rate",
-    ],
-  },
-  'AJC Corporation': {
-    initials: 'AJ',
-    descriptor: 'Commercial',
-    since: '2021',
-    csat: 'Good · 81',
-    value: '$3.0M deal',
-    openCases: '—',
-    tier: 'Commercial',
-    healthScore: 81,
-    healthLabel: 'Good',
-    healthDeltaPts: 2,
-    valueDeltaPct: 12,
-    facts: [
-      ['Deal', '$3.0M CRE term loan'],
-      ['Stage', 'Closing/Funding'],
-      ['Probability', '80%'],
-      ['Idle', '12 days'],
-    ],
-    signals: [
-      { label: 'Deal stalled 12 days', when: '12d', tone: 'warn' },
-      { label: 'Appraisal received', when: '2 wks', tone: 'ok' },
-    ],
-    timeline: [
-      { when: '12 days ago', title: 'Terms agreed', detail: 'Verbal agreement on rate', tone: 'ok' },
-      { when: '2 wks ago', title: 'Appraisal received', detail: 'Collateral valued', tone: 'ok' },
-      { when: '3 wks ago', title: 'Application submitted', detail: '$3M CRE term loan', tone: 'neutral' },
-    ],
-    recap:
-      'AJC is a commercial real-estate borrower with a $3M term loan at the funding stage. Everything is verbally agreed but no activity has been logged in 12 days, and no funding date is set — the classic way an 80% deal slips a quarter.',
-    talk:
-      'Keep it operational and short: confirm the final documents received, name any open blocker, and put a funding date on the calendar before you hang up.',
-    nbaHeadline: 'Confirm docs & set funding date',
-    nba: ['Confirm final docs & appraisal received', 'Set a hard funding date', 'Send DocuSign package for signatures'],
-  },
-};
 
 /* ── Modal state ──────────────────────────────────────────────────── */
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
@@ -165,6 +85,27 @@ const KIND_TO_ACTION: Record<Recommendation['kind'], CrmWriteInput['action']> = 
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── Phase-2 enrichment mappers (Customer360 → ClientSelection fields) ──
+   Pure, module-level helpers so the enrichment effect (a hook, above the
+   loading guard) can call them without any TDZ risk on the in-component
+   const-arrow helpers. */
+
+/** Health score band → a readable label for the panel's ScoreRing caption. */
+function healthLabelFor(score: number): string {
+  if (score >= 80) return 'Excellent';
+  if (score >= 70) return 'Good';
+  if (score >= 55) return 'Fair';
+  return 'At risk';
+}
+
+/** Customer360 AiSignal tone → PanelSignal tone. The 360 uses a richer palette
+ *  (positive/opportunity/risk/neutral); the panel speaks risk/warn/ok/neutral. */
+function signalTone(tone: 'positive' | 'opportunity' | 'risk' | 'neutral'): 'risk' | 'warn' | 'ok' | 'neutral' {
+  if (tone === 'positive') return 'ok';
+  if (tone === 'opportunity') return 'warn';
+  return tone; // 'risk' | 'neutral'
 }
 
 /**
@@ -185,7 +126,7 @@ export default function HomePage() {
 function HomeContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data, loading, refetch } = useAsyncData(fetchHomeDashboard, []);
+  const { data, loading, refetch } = useHomeData();
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const speech = useSpeech();
@@ -220,6 +161,10 @@ function HomeContent() {
   // center row (client / task / opportunity / meeting) sets this; the panel
   // renders the matching state, and `{ kind: 'none' }` shows the default brief.
   const [selection, setSelection] = useState<WorkspaceSelection>({ kind: 'none' });
+  // Drives a subtle "enriching…" affordance on the panel while the selected
+  // client's live 360 is in flight (phase 2); cleared when the merge lands or
+  // the fetch fails.
+  const [enrichingId, setEnrichingId] = useState<string | null>(null);
   // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
   // outside this component). A pin click bumps `pinnedRequest`; we resolve it
   // into a full client selection below.
@@ -267,6 +212,72 @@ function HomeContent() {
     if (target) setExplorer(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navRequest?.nonce]);
+
+  // ── Two-phase Client-360 panel, phase 2 (enrich). Phase 1 (buildClientSelection)
+  //    renders instantly from in-memory dashboard data on click. Here we key on
+  //    the selected client's real Account id and pull the live Customer 360 +
+  //    detail (already the real path when core==='real'), then MERGE the rich
+  //    fields — health, tier, relationship value, AI recap, signals, timeline,
+  //    NBAs — into the selection. Race-guarded: a stale response (id changed or
+  //    component unmounted) is dropped; a fetch failure keeps the Phase-1 card.
+  const selectedClientId = selection.kind === 'client' ? selection.id : undefined;
+  useEffect(() => {
+    if (!selectedClientId) {
+      setEnrichingId(null);
+      return;
+    }
+    let cancelled = false;
+    setEnrichingId(selectedClientId);
+    Promise.all([fetchCustomer360(selectedClientId), fetchCustomer360Detail(selectedClientId)])
+      .then(([c360, detail]) => {
+        if (cancelled || !c360) return;
+        setSelection(prev => {
+          // Only merge if the same client is still selected (guards a fast
+          // re-click onto a different account before this resolved).
+          if (prev.kind !== 'client' || prev.id !== selectedClientId) return prev;
+          const score = c360.healthScore;
+          const signalRows = c360.aiSignals.slice(0, 5).map(s => ({
+            label: `${s.label}${s.value ? ` · ${s.value}` : ''}`,
+            when: '',
+            tone: signalTone(s.tone),
+          }));
+          const nba = c360.nextBestActions.map(a => a.title);
+          const timeline = (detail?.timeline ?? []).slice(0, 6).map(t => ({
+            when: t.when,
+            title: t.title,
+            detail: t.detail,
+            tone: signalTone(t.tone ?? 'neutral'),
+          }));
+          return {
+            ...prev,
+            // Rich fields — only override when the live value is meaningful, so a
+            // sparse 360 never blanks a Phase-1 fact.
+            healthScore: score || prev.healthScore,
+            healthLabel: score ? healthLabelFor(score) : prev.healthLabel,
+            tier: c360.segment || prev.tier,
+            relationshipValue:
+              c360.opportunitiesValue > 0 ? formatValue(c360.opportunitiesValue, 'currencyCompact') : prev.relationshipValue,
+            summary: c360.aiBrief || prev.summary,
+            signalRows: signalRows.length ? signalRows : prev.signalRows,
+            nba: nba.length ? nba : prev.nba,
+            nbaHeadline: nba[0] ?? prev.nbaHeadline,
+            timeline: timeline.length ? timeline : prev.timeline,
+            facts: prev.facts.map(f =>
+              f.label === 'Open cases' ? { ...f, value: String(c360.casesCount) } : f,
+            ),
+          };
+        });
+      })
+      .catch(() => {
+        /* graceful degrade — keep the Phase-1 card, no toast (per spec). */
+      })
+      .finally(() => {
+        if (!cancelled) setEnrichingId(id => (id === selectedClientId ? null : id));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClientId]);
 
   // Merge the configured model + params into an AI request for a given action.
   const withConfig = (
@@ -321,10 +332,8 @@ function HomeContent() {
   const open = (type: ModalKind, name: string, id?: string, subject?: string, toAddress?: string) => setModal({ type, name, id, subject, toAddress });
   const close = () => setModal({ type: 'none' });
   const flowFor = (id?: string) => (modeFor('agentforce') === 'real' && id ? AGENTFORCE_FLOWS.account : undefined);
-  const profileFor = (name: string) => PROFILES[name];
-  // Open the full Customer 360 route. Some selections (e.g. hardcoded pinned
-  // households with no real Account backing them) carry no id; rather than
-  // dead-end on a toast that reads as a broken button, fall back to the
+  // Open the full Customer 360 route. A selection with no id (rare — e.g. an
+  // alert row whose client name resolved to no account) falls back to the
   // persona's default account — the same id Customer360Page itself defaults to
   // when the route param is absent, so the 360 always opens.
   const openFull = (id?: string) => {
@@ -334,44 +343,36 @@ function HomeContent() {
   // ── Right context panel: build a selection payload for each entity kind.
   //    The panel is presentational; these builders turn a clicked row into the
   //    render-ready shape the panel expects.
+  // Phase 1 (instant): build the client selection PURELY from in-memory
+  // dashboard data — no mock profiles. Fields with no in-memory source render
+  // '—' or are omitted; the Phase-2 enrichment effect merges the rich 360
+  // fields (health/tier/value/recap/signals/timeline/NBAs) once they land.
   function buildClientSelection(name: string, id?: string): WorkspaceSelection {
-    const p = PROFILES[name];
     // May be invoked from the pinnedRequest effect (which runs before the
     // loading guard), so re-narrow the book optionally rather than assuming it.
     const call = data?.callList.find(c => c.clientName === name);
     const opps = data?.pipeline.filter(o => o.clientName === name) ?? [];
     const events = data?.lifeEvents.filter(e => e.clientName === name) ?? [];
+    const cases = data?.cases.filter(cs => cs.clientName === name) ?? [];
     const signals = [
       ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
       ...opps.map(o => ({ label: o.name, sub: `${o.stage} · ${Math.round(o.propensity * 100)}%`, meta: formatValue(o.amount, 'currencyCompact') })),
     ].slice(0, 5);
-    const subtitleBits = [p?.descriptor ?? call?.segment ?? 'Client'];
-    if (p?.since) subtitleBits.push(`Since ${p.since}`);
-    if (p?.tier) subtitleBits.push(p.tier);
     return {
       kind: 'client',
       id: id ?? call?.clientId,
       name,
-      subtitle: subtitleBits.join(' · '),
-      initials: p?.initials,
-      priorityLabel: p?.priorityLabel ?? (call?.severity === 'high' ? 'High Priority' : undefined),
-      tier: p?.tier,
-      healthScore: p?.healthScore,
-      healthLabel: p?.healthLabel,
-      healthDeltaPts: p?.healthDeltaPts,
-      relationshipValue: p?.value ?? (call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined),
-      valueDeltaPct: p?.valueDeltaPct,
+      subtitle: call?.segment ?? 'Client',
+      priorityLabel: call?.severity === 'high' ? 'High Priority' : undefined,
+      relationshipValue: call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined,
       facts: [
-        { label: 'CSAT', value: p?.csat ?? '—', tone: (p?.csat ?? '').startsWith('Poor') ? 'risk' : undefined },
-        { label: 'Value', value: p?.value ?? (call ? formatValue(call.relationshipValue, 'currencyCompact') : '—') },
-        { label: 'Open cases', value: p?.openCases ?? '—' },
+        { label: 'CSAT', value: '—' },
+        { label: 'Value', value: call ? formatValue(call.relationshipValue, 'currencyCompact') : '—' },
+        { label: 'Open cases', value: cases.length ? String(cases.length) : '—' },
       ],
-      summary: p?.recap ?? call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
-      signalRows: p?.signals,
+      summary: call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
       signals,
-      nbaHeadline: p?.nbaHeadline,
-      nba: p?.nba ?? (call ? [call.action] : []),
-      timeline: p?.timeline,
+      nba: call ? [call.action] : [],
     };
   }
 
@@ -419,7 +420,6 @@ function HomeContent() {
 
   const selectMeetingPanel = (item: ScheduleItem) => {
     const call = item.clientName ? data.callList.find(c => c.clientName === item.clientName) : undefined;
-    const p = item.clientName ? PROFILES[item.clientName] : undefined;
     setSelection({
       kind: 'meeting',
       title: item.title,
@@ -430,8 +430,8 @@ function HomeContent() {
         { label: 'Type', value: item.kind[0].toUpperCase() + item.kind.slice(1) },
         { label: 'Client', value: item.clientName ?? 'Internal' },
       ],
-      agenda: p?.nba ?? (call ? [call.action] : ['Review relationship status', 'Confirm next steps']),
-      talkingPoints: p?.talk ? [p.talk] : (call ? [call.reason] : ['Open with the client’s most recent signal.']),
+      agenda: call ? [call.action] : ['Review relationship status', 'Confirm next steps'],
+      talkingPoints: call ? [call.reason] : ['Open with the client’s most recent signal.'],
       questions: [
         'What has changed since we last spoke?',
         call ? `How can we help with ${call.action.toLowerCase()}?` : 'What are your priorities this quarter?',
@@ -1586,7 +1586,18 @@ function HomeContent() {
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
             <div className="sticky top-[92px] min-w-0">
-              <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
+              {/* Subtle phase-2 affordance: while the selected client's live 360
+                  is loading, a small pill floats over the panel. It vanishes the
+                  moment the rich fields land (or if the fetch fails). */}
+              <div className="relative">
+                {selection.kind === 'client' && enrichingId && selection.id === enrichingId && (
+                  <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-ai-border bg-ai-bg px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ai">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ai" />
+                    Enriching…
+                  </span>
+                )}
+                <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
+              </div>
             </div>
           </div>
 
@@ -2036,7 +2047,6 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
-          profile={profileFor(modal.name)}
           promptFlow={flowFor(modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
           onMakeTask={n => open('task', modal.name, modal.id, n)}
@@ -2048,7 +2058,6 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
-          profile={profileFor(modal.name)}
           promptFlow={flowFor(modal.id)}
           onPrep={() => open('prep', modal.name, modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  useAsyncData,
   ToastProvider,
   useToast,
   Button,
@@ -40,6 +39,9 @@ import {
   WorkspacePanel,
   useWorkspaceSelection,
   type WorkspaceSelection,
+  type ClientSelection,
+  type PanelSignal,
+  type PanelTimelineEntry,
   type WorkspaceBrief,
   type WorkspacePanelHandlers,
   Icon,
@@ -53,15 +55,16 @@ import {
   generateText,
   loadCenterConfig,
   DEFAULT_CONFIG,
-  type ClientProfile,
   type CrmWriteInput,
   type DraftRow,
   type AiGenerateResult,
   type AiActionKey,
   type CommandCenterConfig,
 } from '@shared';
-import { fetchHomeDashboard } from './homeData';
+import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
+import { fetchCustomer360, fetchCustomer360Detail } from '../personas/customer/customerData';
+import type { Customer360, Customer360Detail, AiSignal } from '../personas/customer/customerTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
@@ -70,85 +73,6 @@ import { APP_PERSONA } from '../shell/appChrome';
  *  (e.g. a demo pinned household with no backing Account). Mirrors the fallback
  *  Customer360Page uses for a missing route param, so navigation always lands. */
 const DEFAULT_ACCOUNT_ID = '001am00000qvjsAAAQ';
-
-/* ── Rich mock profiles for prep / quick view (retail book) ───────── */
-const PROFILES: Record<string, ClientProfile> = {
-  'Julie E Morris': {
-    initials: 'JM',
-    descriptor: 'Retail household',
-    since: '2016',
-    csat: 'Poor · 62',
-    value: '$1.24M',
-    openCases: '5',
-    tier: 'Platinum',
-    priorityLabel: 'High Priority',
-    healthScore: 62,
-    healthLabel: 'Fair',
-    healthDeltaPts: -8,
-    valueDeltaPct: 6,
-    facts: [
-      ['Open opp', '$150K personal loan'],
-      ['Overdue task', '270 days'],
-      ['Open cases', '5'],
-      ['Last contact', '9 mo ago'],
-    ],
-    signals: [
-      { label: 'CSAT dropped below threshold', when: 'Today', tone: 'risk' },
-      { label: 'Complaint ticket opened', when: 'Yesterday', tone: 'risk' },
-      { label: 'Digital banking login', when: 'Yesterday', tone: 'ok' },
-    ],
-    timeline: [
-      { when: 'Yesterday', title: 'Complaint opened', detail: 'Service issue logged by client', tone: 'risk' },
-      { when: '3 days ago', title: 'Wire completed', detail: '$250,000 outgoing wire', tone: 'neutral' },
-      { when: '7 days ago', title: 'Rollover discussion', detail: 'Exploring 401k options', tone: 'neutral' },
-      { when: '2 wks ago', title: 'Login detected', detail: 'Digital banking login', tone: 'ok' },
-    ],
-    recap:
-      'Julie has banked with Cumulus for 9 years across a mortgage, two deposit accounts, and a brokerage link. Engagement dropped after a branch closure near her; CSAT slid to Poor over the last three surveys. A 401k rollover conversation started in 2024 was never closed, and a $150K personal-loan opportunity is sitting in Interested. Five open cases — most notably a lost debit card — are the likely CSAT driver.',
-    talk:
-      'Lead by resolving the lost-card case live on the call — that rebuilds trust before any product talk. Then reframe the idle rollover as a simple, guided next step and connect it to the personal-loan need she already raised.',
-    nbaHeadline: 'Schedule service recovery call',
-    nba: [
-      'Resolve lost-card case & confirm replacement shipped',
-      'Walk the 401k rollover, offer to e-sign on the call',
-      "Re-open the $150K personal-loan quote at today's rate",
-    ],
-  },
-  'AJC Corporation': {
-    initials: 'AJ',
-    descriptor: 'Commercial',
-    since: '2021',
-    csat: 'Good · 81',
-    value: '$3.0M deal',
-    openCases: '—',
-    tier: 'Commercial',
-    healthScore: 81,
-    healthLabel: 'Good',
-    healthDeltaPts: 2,
-    valueDeltaPct: 12,
-    facts: [
-      ['Deal', '$3.0M CRE term loan'],
-      ['Stage', 'Closing/Funding'],
-      ['Probability', '80%'],
-      ['Idle', '12 days'],
-    ],
-    signals: [
-      { label: 'Deal stalled 12 days', when: '12d', tone: 'warn' },
-      { label: 'Appraisal received', when: '2 wks', tone: 'ok' },
-    ],
-    timeline: [
-      { when: '12 days ago', title: 'Terms agreed', detail: 'Verbal agreement on rate', tone: 'ok' },
-      { when: '2 wks ago', title: 'Appraisal received', detail: 'Collateral valued', tone: 'ok' },
-      { when: '3 wks ago', title: 'Application submitted', detail: '$3M CRE term loan', tone: 'neutral' },
-    ],
-    recap:
-      'AJC is a commercial real-estate borrower with a $3M term loan at the funding stage. Everything is verbally agreed but no activity has been logged in 12 days, and no funding date is set — the classic way an 80% deal slips a quarter.',
-    talk:
-      'Keep it operational and short: confirm the final documents received, name any open blocker, and put a funding date on the calendar before you hang up.',
-    nbaHeadline: 'Confirm docs & set funding date',
-    nba: ['Confirm final docs & appraisal received', 'Set a hard funding date', 'Send DocuSign package for signatures'],
-  },
-};
 
 /* ── Modal state ──────────────────────────────────────────────────── */
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
@@ -185,7 +109,10 @@ export default function HomePage() {
 function HomeContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data, loading, refetch } = useAsyncData(fetchHomeDashboard, []);
+  // Single shared dashboard fetch — provided by HomeLayout's HomeDataProvider
+  // and consumed here (the layout's CommandRail reads the same snapshot). All
+  // onSaved={refetch} modals re-run this one fetch.
+  const { data, loading, refetch } = useHomeData();
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const speech = useSpeech();
@@ -220,6 +147,10 @@ function HomeContent() {
   // center row (client / task / opportunity / meeting) sets this; the panel
   // renders the matching state, and `{ kind: 'none' }` shows the default brief.
   const [selection, setSelection] = useState<WorkspaceSelection>({ kind: 'none' });
+  // The real Account id whose Customer 360 enrichment (phase 2) is in flight.
+  // Drives a subtle "enriching…" affordance on the panel's rich fields until the
+  // live health/tier/value/recap/signals/timeline/NBA land and merge in.
+  const [enrichingId, setEnrichingId] = useState<string | null>(null);
   // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
   // outside this component). A pin click bumps `pinnedRequest`; we resolve it
   // into a full client selection below.
@@ -267,6 +198,43 @@ function HomeContent() {
     if (target) setExplorer(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navRequest?.nonce]);
+
+  // ── Phase 2: enrich the selected client's 360 card from live Data Cloud +
+  //    Agentforce signals. Phase 1 (buildClientSelection) renders instantly from
+  //    in-memory dashboard data; here we fetch the full Customer360 + detail for
+  //    the selected real Account and MERGE the rich fields (health / tier /
+  //    relationship value / AI recap / signals / timeline / NBA) into the
+  //    selection. Keyed on the selected client id; race-guarded so a fast
+  //    re-selection or an unmount discards a stale response, and a fetch failure
+  //    silently keeps the Phase-1 card (no toast) per the graceful-degrade spec.
+  const selectedClientId = selection.kind === 'client' ? selection.id : undefined;
+  useEffect(() => {
+    if (!selectedClientId) {
+      setEnrichingId(null);
+      return;
+    }
+    let cancelled = false;
+    setEnrichingId(selectedClientId);
+    Promise.all([fetchCustomer360(selectedClientId), fetchCustomer360Detail(selectedClientId)])
+      .then(([c360, detail]) => {
+        if (cancelled || !c360) return;
+        setSelection(prev => {
+          // Only merge if the selection is still this same client (guards a
+          // change that slipped through between fire and resolve).
+          if (prev.kind !== 'client' || prev.id !== selectedClientId) return prev;
+          return mergeEnrichment(prev, c360, detail);
+        });
+      })
+      .catch(() => {
+        /* graceful degrade — keep the Phase-1 card, no toast */
+      })
+      .finally(() => {
+        if (!cancelled) setEnrichingId(id => (id === selectedClientId ? null : id));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClientId]);
 
   // Merge the configured model + params into an AI request for a given action.
   const withConfig = (
@@ -321,9 +289,7 @@ function HomeContent() {
   const open = (type: ModalKind, name: string, id?: string, subject?: string, toAddress?: string) => setModal({ type, name, id, subject, toAddress });
   const close = () => setModal({ type: 'none' });
   const flowFor = (id?: string) => (modeFor('agentforce') === 'real' && id ? AGENTFORCE_FLOWS.account : undefined);
-  const profileFor = (name: string) => PROFILES[name];
-  // Open the full Customer 360 route. Some selections (e.g. hardcoded pinned
-  // households with no real Account backing them) carry no id; rather than
+  // Open the full Customer 360 route. Some selections carry no id; rather than
   // dead-end on a toast that reads as a broken button, fall back to the
   // persona's default account — the same id Customer360Page itself defaults to
   // when the route param is absent, so the 360 always opens.
@@ -334,44 +300,42 @@ function HomeContent() {
   // ── Right context panel: build a selection payload for each entity kind.
   //    The panel is presentational; these builders turn a clicked row into the
   //    render-ready shape the panel expects.
+  //
+  //    PHASE 1 (instant): built purely from in-memory dashboard data — the
+  //    ranked call, the client's open opportunities / life events / cases. No
+  //    external fetch, so this renders the moment a row is clicked. The rich
+  //    fields (healthScore, tier, relationshipValue, AI recap, tinted signal
+  //    rows, timeline, headline NBA) are intentionally left undefined here; the
+  //    phase-2 enrichment effect above fills them from the live Customer 360.
   function buildClientSelection(name: string, id?: string): WorkspaceSelection {
-    const p = PROFILES[name];
     // May be invoked from the pinnedRequest effect (which runs before the
     // loading guard), so re-narrow the book optionally rather than assuming it.
     const call = data?.callList.find(c => c.clientName === name);
     const opps = data?.pipeline.filter(o => o.clientName === name) ?? [];
     const events = data?.lifeEvents.filter(e => e.clientName === name) ?? [];
+    const cases = data?.cases.filter(cs => cs.clientName === name) ?? [];
     const signals = [
       ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
       ...opps.map(o => ({ label: o.name, sub: `${o.stage} · ${Math.round(o.propensity * 100)}%`, meta: formatValue(o.amount, 'currencyCompact') })),
     ].slice(0, 5);
-    const subtitleBits = [p?.descriptor ?? call?.segment ?? 'Client'];
-    if (p?.since) subtitleBits.push(`Since ${p.since}`);
-    if (p?.tier) subtitleBits.push(p.tier);
+    const relValue = call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined;
     return {
       kind: 'client',
       id: id ?? call?.clientId,
       name,
-      subtitle: subtitleBits.join(' · '),
-      initials: p?.initials,
-      priorityLabel: p?.priorityLabel ?? (call?.severity === 'high' ? 'High Priority' : undefined),
-      tier: p?.tier,
-      healthScore: p?.healthScore,
-      healthLabel: p?.healthLabel,
-      healthDeltaPts: p?.healthDeltaPts,
-      relationshipValue: p?.value ?? (call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined),
-      valueDeltaPct: p?.valueDeltaPct,
+      subtitle: call?.segment ?? 'Client',
+      priorityLabel: call?.severity === 'high' ? 'High Priority' : undefined,
+      relationshipValue: relValue,
       facts: [
-        { label: 'CSAT', value: p?.csat ?? '—', tone: (p?.csat ?? '').startsWith('Poor') ? 'risk' : undefined },
-        { label: 'Value', value: p?.value ?? (call ? formatValue(call.relationshipValue, 'currencyCompact') : '—') },
-        { label: 'Open cases', value: p?.openCases ?? '—' },
+        // CSAT has no in-memory source; phase 2 has no CSAT scalar either, so it
+        // stays a placeholder rather than fabricating a number.
+        { label: 'CSAT', value: '—' },
+        { label: 'Value', value: relValue ?? '—' },
+        { label: 'Open cases', value: cases.length ? String(cases.length) : '—' },
       ],
-      summary: p?.recap ?? call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
-      signalRows: p?.signals,
+      summary: call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
       signals,
-      nbaHeadline: p?.nbaHeadline,
-      nba: p?.nba ?? (call ? [call.action] : []),
-      timeline: p?.timeline,
+      nba: call ? [call.action] : [],
     };
   }
 
@@ -419,7 +383,6 @@ function HomeContent() {
 
   const selectMeetingPanel = (item: ScheduleItem) => {
     const call = item.clientName ? data.callList.find(c => c.clientName === item.clientName) : undefined;
-    const p = item.clientName ? PROFILES[item.clientName] : undefined;
     setSelection({
       kind: 'meeting',
       title: item.title,
@@ -430,8 +393,8 @@ function HomeContent() {
         { label: 'Type', value: item.kind[0].toUpperCase() + item.kind.slice(1) },
         { label: 'Client', value: item.clientName ?? 'Internal' },
       ],
-      agenda: p?.nba ?? (call ? [call.action] : ['Review relationship status', 'Confirm next steps']),
-      talkingPoints: p?.talk ? [p.talk] : (call ? [call.reason] : ['Open with the client’s most recent signal.']),
+      agenda: call ? [call.action] : ['Review relationship status', 'Confirm next steps'],
+      talkingPoints: call ? [call.reason] : ['Open with the client’s most recent signal.'],
       questions: [
         'What has changed since we last spoke?',
         call ? `How can we help with ${call.action.toLowerCase()}?` : 'What are your priorities this quarter?',
@@ -1585,7 +1548,16 @@ function HomeContent() {
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
-            <div className="sticky top-[92px] min-w-0">
+            <div className="relative sticky top-[92px] min-w-0">
+              {/* Subtle phase-2 affordance: while the live Customer 360 for the
+                  selected client is loading, a small pill signals the rich
+                  fields are still filling in. Vanishes the moment they merge. */}
+              {selection.kind === 'client' && enrichingId != null && selection.id === enrichingId && (
+                <span className="pointer-events-none absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-ai-border bg-ai-bg px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ai">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ai" />
+                  Enriching…
+                </span>
+              )}
               <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
             </div>
           </div>
@@ -2036,7 +2008,6 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
-          profile={profileFor(modal.name)}
           promptFlow={flowFor(modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
           onMakeTask={n => open('task', modal.name, modal.id, n)}
@@ -2048,7 +2019,6 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
-          profile={profileFor(modal.name)}
           promptFlow={flowFor(modal.id)}
           onPrep={() => open('prep', modal.name, modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
@@ -2568,4 +2538,77 @@ function BandCard({
 function clientFromAlert(title: string): string {
   const idx = title.indexOf('— ');
   return idx >= 0 ? title.slice(idx + 2) : title;
+}
+
+/* ── Phase-2 enrichment mapping (live Customer 360 → ClientSelection) ──
+   Turns the live Customer360 (+ detail) into the rich fields the workspace
+   panel renders. Kept as hoisted module functions so the enrichment effect can
+   reference them freely. Fields with no live source (healthDeltaPts,
+   valueDeltaPct, CSAT) are deliberately left off — no fabrication. */
+
+/** 0..100 health score → the short label the ring shows beneath the number. */
+function healthLabelFor(score: number): string {
+  if (score >= 80) return 'Excellent';
+  if (score >= 70) return 'Good';
+  if (score >= 55) return 'Fair';
+  return 'At risk';
+}
+
+/** Customer360 aiSignal tone → the panel's PanelSignal tone vocabulary. */
+function signalTone(tone: AiSignal['tone']): PanelSignal['tone'] {
+  return tone === 'positive' ? 'ok' : tone === 'opportunity' ? 'warn' : tone === 'risk' ? 'risk' : 'neutral';
+}
+
+/** Customer360Detail timeline tone → the panel's PanelTimelineEntry tone. */
+function timelineTone(tone: NonNullable<Customer360Detail['timeline'][number]['tone']>): PanelTimelineEntry['tone'] {
+  return tone === 'positive' ? 'ok' : tone === 'opportunity' ? 'warn' : tone === 'risk' ? 'risk' : 'neutral';
+}
+
+/**
+ * Merge the live Customer 360 (+ detail) into a Phase-1 ClientSelection. Rich
+ * fields overwrite the placeholders; the Phase-1 `facts`/`summary`/`signals`/
+ * `nba` are replaced with their richer live equivalents where available, but
+ * the required arrays always stay populated so the panel never renders empty.
+ */
+function mergeEnrichment(
+  prev: ClientSelection,
+  c360: Customer360,
+  detail: Customer360Detail | null,
+): ClientSelection {
+  const nbaTitles = c360.nextBestActions.map(a => a.title);
+  const signalRows: PanelSignal[] = c360.aiSignals.map(s => ({
+    label: `${s.label}: ${s.value}`,
+    when: '',
+    tone: signalTone(s.tone),
+  }));
+  const timeline: PanelTimelineEntry[] | undefined = detail?.timeline.length
+    ? detail.timeline.map(t => ({
+        when: t.when,
+        title: t.title,
+        detail: t.detail,
+        tone: timelineTone(t.tone ?? 'neutral'),
+      }))
+    : prev.timeline;
+  const relationshipValue = c360.opportunitiesValue
+    ? formatValue(c360.opportunitiesValue, 'currencyCompact')
+    : prev.relationshipValue;
+  return {
+    ...prev,
+    initials: c360.photoInitials || prev.initials,
+    tier: c360.segment || prev.tier,
+    healthScore: c360.healthScore,
+    healthLabel: healthLabelFor(c360.healthScore),
+    relationshipValue,
+    facts: [
+      // CSAT has no live scalar on Customer360 — keep the placeholder.
+      { label: 'CSAT', value: '—' },
+      { label: 'Value', value: relationshipValue ?? '—' },
+      { label: 'Open cases', value: c360.casesCount ? String(c360.casesCount) : '—' },
+    ],
+    summary: c360.aiBrief || prev.summary,
+    signalRows: signalRows.length ? signalRows : prev.signalRows,
+    nbaHeadline: nbaTitles[0] ?? prev.nbaHeadline,
+    nba: nbaTitles.length ? nbaTitles : prev.nba,
+    timeline,
+  };
 }
