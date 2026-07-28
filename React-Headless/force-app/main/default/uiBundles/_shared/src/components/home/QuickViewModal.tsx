@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Modal } from '../Modal';
 import { Button } from '../Button';
@@ -8,6 +8,54 @@ import { runPromptFlow, stripHtml, type PromptFlow } from '../../data/promptClie
 
 const TABS = ['Overview', 'Opportunities', 'Cases', 'Activity'] as const;
 type Tab = (typeof TABS)[number];
+
+/** Section markers the AI relationship summary emits inline (one flowing blob).
+ *  Splitting on them lets the modal render labeled subheads AND route each
+ *  section to its matching tab, so Opportunities / Cases / Activity carry real
+ *  content instead of a dead "open in the full 360 record" stub. */
+const SUMMARY_MARKERS = [
+  'Account Overview',
+  'Opportunities',
+  'Open Cases',
+  'Activity',
+  'Contacts',
+  'Recent Purchases',
+] as const;
+
+/** Which parsed section headings feed each tab. Overview also absorbs any lead
+ *  text before the first marker (heading ''), so nothing is ever dropped. */
+const TAB_MARKERS: Record<Tab, readonly string[]> = {
+  Overview: ['', 'Account Overview', 'Contacts', 'Recent Purchases'],
+  Opportunities: ['Opportunities'],
+  Cases: ['Open Cases'],
+  Activity: ['Activity'],
+};
+
+interface SummarySection {
+  heading: string;
+  body: string;
+}
+
+/** Split the summary blob into {heading, body} on the known markers. Text with
+ *  no markers (the seed copy, or a custom prompt-flow result) returns a single
+ *  untitled section, so the render path is identical either way. */
+function parseSummary(summary: string): SummarySection[] {
+  const escaped = SUMMARY_MARKERS.map(h => h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const re = new RegExp(`\\s*\\b(${escaped.join('|')})\\b[:.]?\\s*`, 'g');
+  const out: SummarySection[] = [];
+  let heading = '';
+  let from = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(summary)) !== null) {
+    const body = summary.slice(from, m.index).trim();
+    if (body || heading) out.push({ heading, body });
+    heading = m[1];
+    from = re.lastIndex;
+  }
+  const tail = summary.slice(from).trim();
+  if (tail || heading) out.push({ heading, body: tail });
+  return out;
+}
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -53,6 +101,12 @@ export function QuickViewModal({
   );
   const [enriching, setEnriching] = useState(false);
 
+  const sections = useMemo(() => parseSummary(summary), [summary]);
+  const tabSections = useMemo(
+    () => sections.filter(sec => TAB_MARKERS[tab].includes(sec.heading)),
+    [sections, tab],
+  );
+
   useEffect(() => {
     if (!open || !promptFlow || !clientId) return;
     let cancelled = false;
@@ -90,7 +144,15 @@ export function QuickViewModal({
       }
     >
       <div className="mb-4 grid grid-cols-3 gap-2.5">
-        <FactTile label="CSAT" value={profile?.csat ?? '—'} />
+        {profile?.csat ? (
+          <FactTile label="CSAT" value={profile.csat} />
+        ) : profile?.healthScore != null ? (
+          // No CSAT source (typical for commercial books) — surface the live
+          // relationship-health score instead of a permanently-blank CSAT tile.
+          <FactTile label="Health" value={`${profile.healthScore}${profile.healthLabel ? ` · ${profile.healthLabel}` : ''}`} />
+        ) : (
+          <FactTile label="CSAT" value="—" />
+        )}
         <FactTile label="Value" value={profile?.value ?? '—'} />
         <FactTile label="Open cases" value={profile?.openCases ?? '—'} />
       </div>
@@ -111,16 +173,25 @@ export function QuickViewModal({
         ))}
       </div>
 
-      {tab === 'Overview' ? (
-        <PrepBlock title="AI summary">
-          {enriching && <GenLine>Synthesizing relationship history…</GenLine>}
-          <p className="whitespace-pre-line text-[13.5px] leading-relaxed text-fg">{summary}</p>
-        </PrepBlock>
-      ) : (
-        <p className="py-6 text-center text-[13px] text-muted">
-          {tab} open in the full 360 record.
-        </p>
-      )}
+      <PrepBlock title={tab === 'Overview' ? 'AI summary' : tab}>
+        {enriching && <GenLine>Synthesizing relationship history…</GenLine>}
+        {!enriching && tabSections.length === 0 ? (
+          <p className="py-6 text-center text-[13px] text-muted">
+            No {tab.toLowerCase()} details in this brief — open the full 360 record.
+          </p>
+        ) : (
+          tabSections.map((sec, i) => (
+            <div key={`${sec.heading}-${i}`} className={i > 0 ? 'mt-3.5' : undefined}>
+              {sec.heading && (
+                <h6 className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-faint">
+                  {sec.heading}
+                </h6>
+              )}
+              <p className="whitespace-pre-line text-[13.5px] leading-relaxed text-fg">{sec.body}</p>
+            </div>
+          ))
+        )}
+      </PrepBlock>
 
       <div className="mt-4 flex flex-wrap gap-2.5">
         <Button size="sm" variant="ai" onClick={onPrep}>✦ Prep me</Button>

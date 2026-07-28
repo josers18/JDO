@@ -918,7 +918,7 @@ function HomeContent() {
     narrative: data.aiBrief,
     confidencePct: data.confidencePct,
     pulse: [
-      { label: 'Wins · 30d', value: '$0', tone: 'warn' },
+      { label: 'Wins · 30d', value: '$0' },
       { label: 'Activity · 7d', value: String(data.schedule.length) },
     ],
     agenda: data.schedule.map(s => ({ id: s.id, time: s.time, title: s.title, kind: s.kind, client: s.clientName })),
@@ -1205,7 +1205,7 @@ function HomeContent() {
     >
       <p className="mb-4 max-w-[80ch] text-[14.5px] leading-relaxed text-fg">{pipelineNarrative()}</p>
       <div className="grid grid-cols-2 gap-3.5">
-        <PulseCard label="Wins · 30d" value="$0" note="Nothing closed this period." tone="warn" />
+        <PulseCard label="Wins · 30d" value="$0" note="No closes logged in the last 30 days." />
         <PulseCard label="Activity · 7d" value={String(data.schedule.length)} note="Low volume — schedule touchpoints." />
       </div>
     </SectionPanel>
@@ -1232,7 +1232,7 @@ function HomeContent() {
       <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
         <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">{pipelineNarrative()}</p>
         <div className="flex flex-none items-center gap-5">
-          <PulseStat label="Wins · 30d" value="$0" tone="warn" />
+          <PulseStat label="Wins · 30d" value="$0" />
           <span className="h-8 w-px bg-line" />
           <PulseStat label="Activity · 7d" value={String(data.schedule.length)} />
           <button
