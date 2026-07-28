@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import clsx from 'clsx';
-import { useAsyncData, Panel, Eyebrow, AgentforceChat } from '@shared';
+import { useAsyncData, Panel, Eyebrow, AgentforceChat, SkeletonCard } from '@shared';
 import { fetchCustomer360, fetchCustomer360Detail } from './customerData';
 import { fetchFull360 } from './full360Data';
 import { ClientIdentityRail } from './ClientIdentityRail';
@@ -100,11 +100,28 @@ export default function Customer360Page() {
           </div>
         )}
 
-        {detail.data && full.data && <Full360Tabs tab={tab} full={full.data} customer={c} detail={detail.data} />}
+        {detail.data && full.data
+          ? <Full360Tabs tab={tab} full={full.data} customer={c} detail={detail.data} />
+          : (
+            <div style={{ display: 'grid', gap: '1rem' }} aria-busy="true" aria-label="Loading customer detail">
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1rem' }}>
+                <SkeletonCard lines={4} />
+                <SkeletonCard lines={4} />
+              </div>
+              <SkeletonCard lines={3} />
+            </div>
+          )}
       </div>
 
       {/* RIGHT — contextual AI/ML */}
-      {full.data && <ContextSidebar data={full.data} tab={tab} accountId={accountId} />}
+      {full.data
+        ? <ContextSidebar data={full.data} tab={tab} accountId={accountId} />
+        : (
+          <div style={{ display: 'grid', gap: '1rem', position: 'sticky', top: 16 }} aria-busy="true">
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={2} />
+          </div>
+        )}
 
       {/* Client-scoped Agentforce FAB — primed with the current client's name. */}
       <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" contextLabel={c.name} />

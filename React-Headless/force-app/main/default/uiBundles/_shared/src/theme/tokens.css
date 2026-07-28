@@ -158,3 +158,28 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── Staggered entry (cockpit card reveal) ─────────────────────────
+   Add `wp-stagger` to a container: each direct child fades+rises in
+   sequence via the existing wp-fade-up keyframe, so the command center
+   assembles top-to-bottom instead of popping in flat. CSS-only (nth-child
+   delays) — no per-card index prop threading. Capped at 8 steps so a long
+   list doesn't accumulate a visible late delay. Fully disabled under
+   prefers-reduced-motion (children render immediately, no transform). */
+.wp-stagger > * {
+  animation: wp-fade-up 0.5s ease both;
+}
+.wp-stagger > *:nth-child(1) { animation-delay: 0s; }
+.wp-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.wp-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.wp-stagger > *:nth-child(4) { animation-delay: 0.18s; }
+.wp-stagger > *:nth-child(5) { animation-delay: 0.24s; }
+.wp-stagger > *:nth-child(6) { animation-delay: 0.30s; }
+.wp-stagger > *:nth-child(7) { animation-delay: 0.36s; }
+.wp-stagger > *:nth-child(n + 8) { animation-delay: 0.42s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wp-stagger > * {
+    animation: none;
+  }
+}

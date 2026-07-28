@@ -1564,7 +1564,7 @@ function HomeContent() {
         <>
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_clamp(320px,26vw,384px)]">
             {/* ---- LEFT: the primary workflow ---- */}
-            <div className="min-w-0">
+            <div className="wp-stagger min-w-0">
               {/* AI Daily Brief strip — greeting + brief with the Right Now
                   card embedded on the right (see briefStrip). */}
               <section id="brief" className="scroll-mt-[82px]">

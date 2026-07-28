@@ -13,6 +13,7 @@ export { DataList, type DataListRow } from './DataList';
 export { DataTable, type TableColumn } from './DataTable';
 export { Icon, type IconKey } from './iconMap';
 export { Eyebrow } from './Eyebrow';
+export { Skeleton, SkeletonCard } from './Skeleton';
 export { Pill, type PillTone } from './Pill';
 export { ScoreRing, type RingTone } from './ScoreRing';
 export { StatTile, type StatTone } from './StatTile';
