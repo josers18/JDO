@@ -226,22 +226,22 @@ export function AgentforceChat({
   const headerLabel = contextLabel ? `${baseLabel} · ${contextLabel}` : baseLabel;
   const placeholder = contextLabel ? `Ask about ${contextLabel}…` : undefined;
 
-  // Latest cosmetic config (header label, agentic accent, input placeholder),
-  // captured in a ref so the embed effect can read current values WITHOUT
-  // listing them as deps. These are purely visual and, critically, the accent
-  // resolves ASYNC on load (applyActiveThemeOnLoad → setBrandOverride fires
-  // ~after the first paint). If the embed effect keyed on them, that async flip
-  // would tear down the still-initializing ACC embed and re-embed it — colliding
-  // with Lightning Out's GLOBAL registry singleton ("already registered to
-  // another App") and leaving the launcher stuck invisible. Re-embedding must
-  // happen ONLY on a real agent switch (activeId), never on a cosmetic change.
-  const cosmeticRef = useRef({ headerLabel, agentColor, placeholder });
-  cosmeticRef.current = { headerLabel, agentColor, placeholder };
-
-  // Embed the ACC client, re-embedding ONLY when the active agent changes.
-  // Re-embedding is what actually switches the agent's conversation — see the
-  // RE-EMBED note in the component doc above. Label/accent/placeholder are read
-  // live from cosmeticRef so an async brand-theme swap never forces a re-embed.
+  // Embed the ACC client, re-embedding whenever the active agent OR its cosmetic
+  // config (header label, agentic accent, input placeholder) changes. The
+  // re-embed is load-bearing for TWO reasons, not one:
+  //   1. Agent switch — re-embedding is what actually re-initializes the
+  //      conversation for the new agentId (see the RE-EMBED note above).
+  //   2. Brand accent — ACC's styleTokens (fabBackground/headerBackground) are
+  //      consumed ONCE at embed time into a cross-origin iframe; there is NO
+  //      post-embed recolor API. The active theme resolves ASYNC on load
+  //      (applyActiveThemeOnLoad → setBrandOverride fires ~after first paint),
+  //      flipping `agentColor` from the pink default to the brand accent. Keying
+  //      the effect on `agentColor` re-embeds with the resolved color — that
+  //      second embed is what themes the FAB (and, empirically, is the embed
+  //      that reliably renders the launcher). DO NOT drop these deps to avoid a
+  //      re-embed: an earlier attempt to do so left the FAB unthemed and hidden.
+  //      The async flip fires ~1.5s after mount, before any conversation has
+  //      started, so the re-embed is harmless to in-flight chat in practice.
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !activeId) return;
@@ -262,13 +262,10 @@ export function AgentforceChat({
 
     function embed() {
       try {
-        // Read cosmetic config live so the current label/accent/placeholder are
-        // used, without those values being embed-effect deps (see cosmeticRef).
-        const { headerLabel: label, agentColor: accent, placeholder: ph } = cosmeticRef.current;
         const result = embedAgentforceClient({
           container: el,
           salesforceOrigin: orgCoreOrigin(),
-          agentforceClientConfig: buildAccConfig(activeId, label, accent, ph),
+          agentforceClientConfig: buildAccConfig(activeId, headerLabel, agentColor, placeholder),
           onError: (err: { type: string; detail: unknown }) => {
             // Keep failures quiet in the UI; surface in console for debugging.
             // eslint-disable-next-line no-console
@@ -292,7 +289,7 @@ export function AgentforceChat({
       }
       container?.replaceChildren();
     };
-  }, [activeId]);
+  }, [activeId, headerLabel, placeholder, agentColor]);
 
   // Trim the white card ACC paints behind the minimized launcher pill (see
   // clipLauncherCss). One-time shared injection; safe across every persona/app
