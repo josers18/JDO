@@ -1406,7 +1406,7 @@ function HomeContent() {
                   {cs.clientName || 'Unassigned'} · {cs.ageDays}{cs.ageDays === 1 ? ' day' : ' days'} open
                 </span>
               </span>
-              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${st.chip}`}>
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${st.chip}`}>
                 {cs.priority || '—'}
               </span>
             </button>
@@ -1479,7 +1479,7 @@ function HomeContent() {
                 <span className="block truncate text-[12.5px] font-semibold text-fg">{p.clientName} – {p.name}</span>
                 <span className="mt-0.5 block truncate text-[11px] text-faint">{formatValue(p.amount, 'currencyCompact')} · {Math.round(p.propensity * 100)}% probability</span>
               </span>
-              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${heatClass}`}>{heat}</span>
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${heatClass}`}>{heat}</span>
             </button>
           );
         })}
@@ -1562,7 +1562,7 @@ function HomeContent() {
                anchors (#pipeline / #events / #leads / #pulse / #schedule).
            Left nav + pinned accounts live in the CommandRail (see HomeLayout). */
         <>
-          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_384px]">
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_clamp(320px,26vw,384px)]">
             {/* ---- LEFT: the primary workflow ---- */}
             <div className="min-w-0">
               {/* AI Daily Brief strip — greeting + brief with the Right Now
@@ -2366,7 +2366,7 @@ function LifeRow({ event, onClick }: { event: LifeEventSignal; onClick: () => vo
       </span>
       <span className="flex-none text-right">
         <span className="block font-mono text-[11px] text-muted">{event.when}</span>
-        <span className="block font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">{event.event}</span>
+        <span className="block font-mono text-[10px] uppercase tracking-[0.1em] text-faint">{event.event}</span>
       </span>
     </button>
   );
@@ -2392,7 +2392,7 @@ function AlertRow({ alert, onClick }: { alert: AlertSignal; onClick: () => void 
 function Th({ children, align = 'left' }: { children: ReactNode; align?: 'left' | 'right' }) {
   return (
     <th
-      className={`border-b border-line px-5 py-3 font-mono text-[9.5px] font-medium uppercase tracking-[0.12em] text-faint ${
+      className={`border-b border-line px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >

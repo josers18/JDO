@@ -151,7 +151,7 @@ export function CommandRail({
         {!collapsed && (
           <span className="min-w-0">
             <b className="block truncate text-[15px] font-bold tracking-tight">{brandName}</b>
-            <span className="block font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">Command Center</span>
+            <span className="block font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Command Center</span>
           </span>
         )}
       </div>
@@ -159,7 +159,7 @@ export function CommandRail({
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
         {!collapsed && (
-          <div className="px-3 pb-1.5 pt-3 font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">Sections</div>
+          <div className="px-3 pb-1.5 pt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Sections</div>
         )}
         {sections.map(sec => {
           const isActive = active === sec.id;
@@ -186,7 +186,7 @@ export function CommandRail({
                 <span
                   className={clsx(
                     'flex-none rounded-full font-mono text-[10.5px] font-semibold',
-                    collapsed ? 'absolute right-2 top-1 grid h-4 min-w-4 place-items-center px-1 text-[9px]' : 'px-1.5 py-0.5',
+                    collapsed ? 'absolute right-2 top-1 grid h-4 min-w-4 place-items-center px-1 text-[10px]' : 'px-1.5 py-0.5',
                     BADGE_TONE[sec.tone ?? 'default'],
                   )}
                 >
@@ -203,7 +203,7 @@ export function CommandRail({
           the × that appears on hover. */}
       {!collapsed && pinned.length > 0 && (
         <div className="border-t border-line pt-3.5">
-          <h4 className="mb-2 px-2 font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">Pinned accounts</h4>
+          <h4 className="mb-2 px-2 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Pinned accounts</h4>
           <div className="flex flex-col gap-0.5">
             {pinned.map(p => (
               <div
@@ -242,7 +242,7 @@ export function CommandRail({
       {/* Today's arc */}
       {!collapsed && (
         <div className="border-t border-line pt-3.5">
-          <h4 className="mb-2.5 px-2 font-mono text-[9.5px] uppercase tracking-[0.16em] text-faint">Today's arc</h4>
+          <h4 className="mb-2.5 px-2 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Today's arc</h4>
           <div className="flex flex-col gap-0.5">
             {arc.map((step, i) => (
               <div

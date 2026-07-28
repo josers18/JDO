@@ -119,7 +119,7 @@ function ColorInput({
             type="button"
             onClick={() => setMode(m)}
             aria-pressed={mode === m}
-            className={`rounded-[7px] px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.1em] transition-colors ${
+            className={`rounded-[7px] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors ${
               mode === m ? 'bg-accent text-white' : 'text-muted hover:text-fg'
             }`}
           >
@@ -896,7 +896,7 @@ export function BrandThemeSection({ index }: { index?: number }) {
                   <div className="flex items-center gap-2">
                     <b className="truncate text-[13px] font-semibold text-fg">{r.label}</b>
                     {isUnset && r.reset && (
-                      <span className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
                         default
                       </span>
                     )}

@@ -69,15 +69,29 @@
   /* Darkened for pure-white surfaces (was #6b7290 / #9aa2bd, tuned for the
      tinted aurora wash and too pale on white — secondary text vanished). */
   --wp-text-muted: #454c66;
-  --wp-text-faint: #697089;
+  /* Darkened from #697089 (4.35:1 on the tinted surface — just under AA) so
+     faint metadata clears 4.5:1 on white, surface, and glass alike. */
+  --wp-text-faint: #5f6683;
   --wp-radius: 20px;
   --wp-radius-sm: 14px;
   --wp-shadow: 0 18px 50px rgba(40, 50, 90, 0.14);
   --wp-shadow-sm: 0 10px 30px rgba(40, 50, 90, 0.10);
-  --wp-pos: #12a594;
-  --wp-neg: #e5544b;
-  --wp-warn: #e0912f;
-  --wp-link: #5b8def;
+  /* Status hues darkened for WCAG AA (2026-07-28). The prior brighter values
+     (#12a594 / #e5544b / #e0912f) failed 4.5:1 as text — worst on their own
+     soft-tint chips (bg-*-bg text-*): warn 2.26, ok 2.75, risk 3.14. These
+     deeper hues clear 4.5:1 on white, the tinted surface, glass, AND the soft
+     chips, while staying legible as solid fills/dots. Dark mode is unchanged
+     (its brighter hues already pass on the near-black surface). */
+  --wp-pos: #107569;
+  --wp-neg: #c2352c;
+  --wp-warn: #9a5b00;
+  /* Link/informational text darkened from the accent blue (#5b8def, 3.23:1 as
+     text — a large-text-only pass that fails for normal-size links) to a hue
+     that clears 4.5:1 on white/surface/glass. */
+  --wp-link: #3a67c9;
+  /* Fallback only. ThemeProvider recomputes --wp-on-accent per active accent
+     via luminance so text on the accent fill always meets contrast; this pins
+     the static default (white on the :root blue) used before that runs. */
   --wp-on-accent: #ffffff;
 
   /* Aurora accent — blue → violet, with the ambient page wash */

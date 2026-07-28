@@ -1,6 +1,6 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { PERSONA_THEMES, type PersonaKey, type PersonaTheme } from './themes';
-import { buildGradient, buildGlow, buildAurora, buildAiFamily } from './brandThemes';
+import { buildGradient, buildGlow, buildAurora, buildAiFamily, readableTextOn } from './brandThemes';
 import { useBrandOverride } from './activeBrand';
 import { useDisplaySize, scaleForDisplaySize } from './displaySize';
 import './tokens.css';
@@ -94,6 +94,12 @@ export function ThemeProvider({
     '--wp-accent': theme.accent,
     '--wp-accent-2': theme.accentSoft,
     '--wp-accent-soft': theme.accentSoft,
+    // Text/ink that sits on a SOLID accent fill (primary buttons, avatar
+    // initials, gauge center). Recomputed per active accent by luminance so a
+    // light/mid accent (the #5b8def default, teal, amber, gold, or any pale
+    // brand) flips to near-black instead of unreadable white. Overrides the
+    // static tokens.css fallback for every persona default and custom brand.
+    '--wp-on-accent': readableTextOn(theme.accent),
     '--wp-gradient': theme.gradient,
     '--wp-glow': theme.glow,
     // --wp-accent-bg / --wp-accent-border are color-mix()es of --wp-accent

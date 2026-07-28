@@ -54,6 +54,32 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return { r, g, b };
 }
 
+/**
+ * Picks a foreground (near-black vs white) that meets WCAG contrast on a solid
+ * `accent` fill — used for `--wp-on-accent` (primary-button text, avatar
+ * initials, gauge center, tearsheet chips). A fixed `#fff` fails on light/mid
+ * accents (white on the #5b8def default = 3.23:1; on teal #14b8a6 = 2.49:1),
+ * so this flips to near-black when that reads better. Uses the sRGB relative
+ * luminance formula (WCAG 2.x); returns whichever candidate wins the ratio,
+ * which for every hue we ship clears AA on the fill.
+ */
+export function readableTextOn(bgHex: string): string {
+  const { r, g, b } = hexToRgb(bgHex);
+  const chan = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = 0.2126 * chan(r) + 0.7152 * chan(g) + 0.0722 * chan(b);
+  // Contrast of a candidate (its luminance L2) against the fill (lum).
+  const ratio = (l2: number) => {
+    const [hi, lo] = lum > l2 ? [lum, l2] : [l2, lum];
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const white = 1; // luminance of #ffffff
+  const nearBlack = 0.0114; // luminance of #0a0f1a (our on-dark ink)
+  return ratio(white) >= ratio(nearBlack) ? '#ffffff' : '#0a0f1a';
+}
+
 /** Mirrors the persona `gradient` shape (135deg, accent → lightened accent). */
 export function buildGradient(accent: string): string {
   const { r, g, b } = hexToRgb(accent);
