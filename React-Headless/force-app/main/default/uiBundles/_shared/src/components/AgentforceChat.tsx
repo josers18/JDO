@@ -226,9 +226,22 @@ export function AgentforceChat({
   const headerLabel = contextLabel ? `${baseLabel} · ${contextLabel}` : baseLabel;
   const placeholder = contextLabel ? `Ask about ${contextLabel}…` : undefined;
 
-  // Embed the ACC client, re-embedding whenever the active agent (or its
-  // primed labels) change. Re-embedding is what actually switches the agent's
-  // conversation — see the RE-EMBED note in the component doc above.
+  // Latest cosmetic config (header label, agentic accent, input placeholder),
+  // captured in a ref so the embed effect can read current values WITHOUT
+  // listing them as deps. These are purely visual and, critically, the accent
+  // resolves ASYNC on load (applyActiveThemeOnLoad → setBrandOverride fires
+  // ~after the first paint). If the embed effect keyed on them, that async flip
+  // would tear down the still-initializing ACC embed and re-embed it — colliding
+  // with Lightning Out's GLOBAL registry singleton ("already registered to
+  // another App") and leaving the launcher stuck invisible. Re-embedding must
+  // happen ONLY on a real agent switch (activeId), never on a cosmetic change.
+  const cosmeticRef = useRef({ headerLabel, agentColor, placeholder });
+  cosmeticRef.current = { headerLabel, agentColor, placeholder };
+
+  // Embed the ACC client, re-embedding ONLY when the active agent changes.
+  // Re-embedding is what actually switches the agent's conversation — see the
+  // RE-EMBED note in the component doc above. Label/accent/placeholder are read
+  // live from cosmeticRef so an async brand-theme swap never forces a re-embed.
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !activeId) return;
@@ -249,10 +262,13 @@ export function AgentforceChat({
 
     function embed() {
       try {
+        // Read cosmetic config live so the current label/accent/placeholder are
+        // used, without those values being embed-effect deps (see cosmeticRef).
+        const { headerLabel: label, agentColor: accent, placeholder: ph } = cosmeticRef.current;
         const result = embedAgentforceClient({
           container: el,
           salesforceOrigin: orgCoreOrigin(),
-          agentforceClientConfig: buildAccConfig(activeId, headerLabel, agentColor, placeholder),
+          agentforceClientConfig: buildAccConfig(activeId, label, accent, ph),
           onError: (err: { type: string; detail: unknown }) => {
             // Keep failures quiet in the UI; surface in console for debugging.
             // eslint-disable-next-line no-console
@@ -276,7 +292,7 @@ export function AgentforceChat({
       }
       container?.replaceChildren();
     };
-  }, [activeId, headerLabel, placeholder, agentColor]);
+  }, [activeId]);
 
   // Trim the white card ACC paints behind the minimized launcher pill (see
   // clipLauncherCss). One-time shared injection; safe across every persona/app
