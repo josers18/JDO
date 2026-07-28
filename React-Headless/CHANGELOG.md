@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_20_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_28_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,41 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [July 2026]
+
+> Entries below from 2026-07-21 onward landed on branch `feat/overall-brand-theme` (PR #33) and deploy to org `jdo-oe0sdd`; they are not yet merged to `main`.
+
+### 2026-07-28 — frontend-design critique fixes
+
+Fixes from a `frontend-design` review of the live cockpit, applied across all three persona bundles (and the shared QuickView modal). Built + deployed to `jdo-oe0sdd` (437 components, 0 errors).
+
+#### Changed
+
+- **Neutralized the `$0 Wins · 30d` tile** — dropped the `warn` tone so a zero reads as a clean slate rather than an alert (`HomePage.tsx` ×3; `PulseStat`/`PulseCard` only tint `text-warn` when `tone === 'warn'`).
+- **Thousands-separated the opportunity count** in the AI brief (`.toLocaleString('en-US')`) — `homeDataReal.ts` ×3.
+- **Corrected the "Open 360" descriptor per persona** — Commercial and Wealth were falling back to the literal `'Retail'` segment default (`customerDataReal.ts`); the descriptor chain is `sel.tier ?? sel.subtitle`, `tier` derives from `mergeEnrichment(c360.segment)`, and `segment` defaulted to `'Retail'`. Fixed at the per-persona source; Retail was already correct.
+- **Deduped "Your day" life-event signals** on a `client|type|date` key — `homeDataReal.ts` ×3.
+- **Sectioned the QuickView AI summary** into labeled subheads and routed each parsed section to its matching tab (Overview / Opportunities / Cases / Activity) instead of a single wall of text on Overview and dead stubs elsewhere — `_shared/src/components/home/QuickViewModal.tsx` (`parseSummary` + `SUMMARY_MARKERS`/`TAB_MARKERS`).
+- **Stat grid falls back to a Health tile** when CSAT is absent, so the QuickView tile grid never renders an empty CSAT slot — same shared modal.
+
+#### Added
+
+- **Fraunces Variable wired as the display face** (headings only, via `--font-display`; body stays Hanken Grotesk). Self-hosted `@fontsource-variable/fraunces` woff2 imported in each bundle's `app.tsx` and bundled into `dist/` (App-Domain CSP blocks the Google Fonts CDN). This makes the long-standing "Fraunces + Hanken Grotesk" claim in the README/AGENTS true — the code had been shipping Inter for headings.
+
+### 2026-07-21 → 2026-07-27 — per-user brand theming, display size, and live data wiring
+
+#### Added
+
+- **Per-user brand theming system** — an in-app theming UI lets each user build, name, edit, and activate holistic **brand themes**: a multi-color logo palette (extracted from an uploaded/fetched logo via `paletteExtract`, with complementary-color suggestion), per-element/role color mapping (a role-mapping modal + hex/RGB `ColorInput`), an optional dedicated **AI accent** as a third brand color, agent-bubble and aurora-wash colors, plus always-available fixed **Light/Dark** baseline themes. Themes are org-shared definitions (`Theme_Library__c`); the active choice is **per user** (`Active_Themes__c`, a UserId→themeId map). Client lives in `_shared/src/theme/` (`brandThemes`, `activeBrand`, `applyActiveTheme`, `defaultThemes`, `paletteExtract`) + `_shared/src/data/brandThemeClient.ts`.
+- **Per-user app-wide display size** — a font/UI scale preset, stored per user (`Display_Sizes__c`, a UserId→sizeId map) and applied app-wide (`_shared/src/theme/displaySize.ts`).
+- **New `CommandCenterConfig__c` fields** backing the above — `Theme_Library__c` (org-shared theme defs), `Active_Themes__c` (per-user active-theme map), `Display_Sizes__c` (per-user display-size map). FLS granted via the `CommandCenterConfigAdmin` permission set.
+- **New brand-theming endpoints on `CommandCenterConfigRest`** (same apexrest-bridge constraint as the rest of the app — the App-Domain session only reaches `/services/apexrest/*`): `GET/POST /config/themes`, `POST /config/active-theme`, `POST /config/display-size`, and `GET /config/brand-logo?url=` (server-side logo fetch → base64, since gstatic faviconV2 replaced the now-301'ing google s2 favicon endpoint).
+- **Native-mirror Schedule detail modal** (`ScheduleDetailModal`) — Type/Comments/system fields with Mark Complete / Delete / Follow-Up actions (#25).
+
+#### Changed
+
+- **All three cockpits wired to live data end-to-end** and the profile modals (Open 360 / Prep) enriched with live Customer 360.
+- **"Open full 360" button now always navigates.**
+- **Dark-mode theming fixes** — re-emit structural tokens + `color-scheme` on dark; Agentforce FAB uses a transparent chat container and trims the white card behind the minimized launcher on dark surfaces.
 
 ### 2026-07-18 → 2026-07-20 — cockpit brief polish + sidebar-first de-duplication
 

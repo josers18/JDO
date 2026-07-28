@@ -90,6 +90,8 @@ The banker home turns AI briefs into **one-click actions**: generate/draft with 
 
 Each cockpit also carries an in-app **Configuration** page (`/config`) where an admin picks which Agentforce model runs each generative action — from a **self-updating catalog** discovered by probing the org's live foundation models (there is no listing API) and cached on a `CommandCenterConfig__c` singleton via `CommandCenterConfigRest` (`/config/*`). Settings are org-level and shared; a "Refresh models" button forces a fresh discovery probe.
 
+The app is also **brand-themable per user**. A theming UI lets each user build, name, edit, and activate holistic **brand themes** — a multi-color logo palette (extracted from an uploaded/fetched logo, with a complementary-color suggestion), per-element/role color mapping, an optional dedicated **AI accent** as a third brand color, agent-bubble and aurora-wash colors, plus always-available fixed **Light/Dark** baselines — and pick an app-wide **display size** (font/UI scale). Theme *definitions* are org-shared; the *active theme* and *display size* are stored **per user** (UserId-keyed maps on the same `CommandCenterConfig__c` singleton), applied on load without blocking paint. All of it reads/writes through `CommandCenterConfigRest` brand-theming routes (`/config/themes`, `/config/active-theme`, `/config/display-size`, `/config/brand-logo`); the theming client and token machinery live in `_shared/src/theme/`.
+
 The banker home ships **two layouts** behind a top-bar toggle: the original **Current** stacked list and a **Cockpit** command center. The cockpit brief opens with a personalized time-of-day greeting, an embedded **Right Now** next-action card, and a **Portfolio Pulse** strip; below it sit sparkline KPI vitals (Pipeline, Leads & Referrals, at-risk, active goals), a side-by-side Priority Queue + Recommended Actions, a tabbed customer-360 workspace panel that master-details off any row you click, and a supporting band. The cockpit is **de-duplicated and sidebar-first** — the KPI vitals, the Portfolio-Pulse header, and the left rail's section links all open search/filter/table **explorer modals** (rather than repeating content in bottom detail boxes); the classic view keeps its full-page sections. The **Priority Queue** is blended and dated — it merges each persona's signature risk signal (CSAT / credit / held-away) with open-opportunity and overdue-task items, each with a real due date, so it sorts into a genuinely mixed, ranked worklist.
 
 ## Layout
@@ -105,7 +107,7 @@ React-Headless/
 │   │   ├── ReactCommercial/             # Commercial cockpit
 │   │   └── ReactHeadless/               # review harness
 │   ├── applications/                    # CustomApplication per persona (uiBundle binding)
-│   ├── objects/                         # CommandCenterConfig__c — org-level AI config singleton
+│   ├── objects/                         # CommandCenterConfig__c — org-level AI config + model cache + per-user brand-theme / display-size maps
 │   ├── pages/                           # <App>Launcher VF pages — App Launcher bridge to the App Domain
 │   ├── tabs/                            # <App>App CustomTabs — the waffle-menu tiles
 │   ├── permissionsets/                  # <App>_Access (app/tab/page access) + CommandCenterConfigAdmin (config FLS)
