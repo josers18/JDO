@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_28_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_29_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -17,7 +17,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [July 2026]
 
-> Entries below from 2026-07-21 onward landed on branch `feat/overall-brand-theme` (PR #33) and deploy to org `jdo-oe0sdd`; they are not yet merged to `main`.
+> Entries below from 2026-07-21 onward landed on branch `feat/overall-brand-theme` (PR #33) and deploy to org `jdo-oe0sdd` (and `jdo-0pz8au`, the same org); they are not yet merged to `main`.
+
+### 2026-07-29 — Apple SF Pro typography + dead-webfont cleanup
+
+Reworked app typography to a sans-serif, apple.com-style system stack across all four bundles. Built + deployed to `jdo-0pz8au` (496 components, 0 errors).
+
+#### Changed
+
+- **Switched typography to the Apple SF Pro system stack** for both body and headings — `-apple-system, BlinkMacSystemFont, 'SF Pro Text'/'SF Pro Display', 'Helvetica Neue', Arial, sans-serif`. Set once via the `--font-sans` / `--font-display` tokens in each bundle's `global.css` `@theme` block, so Tailwind regenerates the `font-sans`/`font-display` utilities and every consumer flips without touching call sites. This replaces the previous Fraunces (display) + Hanken Grotesk (body) editorial pairing with one OS-native sans family — no serif, no webfont download, fully CSP-safe, and falls back cleanly to Helvetica Neue / Arial off-Apple. The ACC `headerBlockFontFamily` styleToken and the `AgentPicker` inline `fontFamily` in `AgentforceChat.tsx` were updated to the same stack.
+
+#### Removed
+
+- **Dropped now-dead webfont loads** — the three `@fontsource-variable` imports (Inter / Fraunces / Hanken Grotesk) from each non-headless `app.tsx`, and the CSP-blocked Google Fonts `@import` from `ReactHeadless/global.css`. Removes **39 woff2 files** (Inter ×21, Fraunces ×9, Hanken ×9) from the deployed bundles. `@fontsource/ibm-plex-mono` is retained for `--font-mono`.
+
+### 2026-07-28 — accessibility, Customer-360 nav, and load-state polish
+
+A11y contrast pass, Customer-360 navigation refactor, and load-state motion across the four bundles. Also a net-zero Agentforce fix (a wrong-headed change and its revert).
+
+#### Changed
+
+- **Collapsed the 11-tab Full Customer-360 nav into 5 grouped tabs + a secondary row** (`Full360Tabs.tsx`, `Customer360Page.tsx` across the three persona bundles) — reduces the top-level tab overload while preserving access to every section.
+- **WCAG contrast + control-edge + tiny-type fixes across all four bundles** — darkened form-control borders and focus rings to meet 3:1 (`--input` / `--ring` in each `global.css`), promoted sub-legible decorative type, and tightened low-contrast token pairings flagged in the audit.
+
+#### Added
+
+- **Skeleton loaders for Customer-360 phase-2 content + staggered cockpit entry** — new shared `Skeleton` primitive (`_shared/src/components/Skeleton.tsx`, exported from the barrel) and a `wp-fade-up` staggered reveal on cockpit mount, so async panels shimmer in rather than popping.
+
+#### Removed
+
+- **Deleted the dead `Customer360Body` component** (design-audit #11) — 208 lines removed from each persona bundle; the live path renders through `Customer360Page` + `Full360Tabs`.
+
+#### Fixed
+
+- **Agentforce chat FAB re-embed (net-zero).** A change that stopped re-embedding the ACC client on async brand-accent change (`1d3d3ac2`) was reverted (`737abd07`) — the async re-embed is load-bearing: it both re-themes the bubble to the resolved brand color AND is what renders the FAB in the first place. The `agentColor` dep must stay in the embed effect's dependency array.
 
 ### 2026-07-28 — frontend-design critique fixes
 

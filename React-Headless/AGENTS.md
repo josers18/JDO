@@ -101,7 +101,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 ## CSS
 
-- Aurora Glass tokens live in `_shared/src/theme/tokens.css`; light mode IS Aurora. `ThemeProvider` only injects persona-accent overrides. Typography is **Fraunces** (display/headings) + **Hanken Grotesk** (body), imported per-bundle in each app's `src/styles/global.css`. One ambient `--wp-aurora` gradient — don't add competing gradients.
+- Aurora Glass tokens live in `_shared/src/theme/tokens.css`; light mode IS Aurora. `ThemeProvider` only injects persona-accent overrides. Typography is the **Apple SF Pro system stack** for both body and headings (`-apple-system, BlinkMacSystemFont, 'SF Pro Text'/'SF Pro Display', 'Helvetica Neue', Arial, sans-serif`), set once via the `--font-sans` / `--font-display` tokens in each bundle's `src/styles/global.css` `@theme` block — Tailwind regenerates the `font-sans`/`font-display` utilities from the tokens, so consumers flip without touching call sites. It's OS-native (no webfont download, CSP-safe); no sans/serif webfont is imported, only `@fontsource/ibm-plex-mono` for `--font-mono`. One ambient `--wp-aurora` gradient — don't add competing gradients.
 
 ## Tests
 
