@@ -14,8 +14,11 @@
    These map to the runtime --wp-* vars injected by ThemeProvider, so
    persona + light/dark swaps propagate without per-component branching. */
 @theme {
-  --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces Variable', 'Inter Variable', ui-serif, Georgia, serif;
+  /* Apple system stack (SF Pro on macOS/iOS). apple.com uses ONE sans family for
+     both body and headings — no serif. Rendered natively by the OS, so no webfont
+     download and fully CSP-safe. Falls back cleanly to Helvetica/Arial elsewhere. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   /* Canonical type scale (added 2026-07-28). Replaces the ad-hoc text-[Npx]

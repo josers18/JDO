@@ -103,7 +103,7 @@ function buildAccConfig(agentId: string, agentLabel: string, accent: string, pla
       headerBlockBackground: accent,
       headerBlockTextColor: '#ffffff',
       headerBlockIconColor: '#ffffff',
-      headerBlockFontFamily: "'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif",
+      headerBlockFontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif",
     },
   };
 }
@@ -398,7 +398,7 @@ function AgentPicker({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
-        fontFamily: "'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif",
         transition: 'bottom 300ms ease',
       }}
     >

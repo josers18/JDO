@@ -1,5 +1,7 @@
-/* ── Cumulus Aurora fonts ─────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
+/* ── Cumulus Aurora fonts ─────────────────────────────────────────
+   No webfont import: body + display use the OS-native Apple SF Pro stack
+   (see --font-sans / --font-display below). The old Google Fonts @import was
+   dead anyway — App Domain CSP blocks fonts.googleapis.com. */
 
 @import 'tailwindcss';
 
@@ -7,8 +9,11 @@
    These map to the runtime --wp-* vars injected by ThemeProvider, so
    persona + light/dark swaps propagate without per-component branching. */
 @theme {
-  --font-sans: 'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  /* Apple system stack (SF Pro on macOS/iOS). apple.com uses ONE sans family for
+     both body and headings — no serif. Rendered natively by the OS, so no webfont
+     download and fully CSP-safe. Falls back cleanly to Helvetica/Arial elsewhere. */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
 
   /* Canonical type scale (added 2026-07-28). Replaces the ad-hoc text-[Npx]
      arbitraries that had accreted into 20+ one-off sizes. New / refactored
