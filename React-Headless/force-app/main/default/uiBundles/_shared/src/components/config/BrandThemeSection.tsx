@@ -12,10 +12,17 @@ import {
   deleteTheme,
   setActiveTheme,
 } from '../../data/brandThemeClient';
-import { buildGradient, buildGlow, type BrandTheme } from '../../theme/brandThemes';
+import {
+  buildGradient,
+  buildGlow,
+  type BrandTheme,
+  type StructuralPalette,
+  type SidebarPalette,
+} from '../../theme/brandThemes';
 import { extractPalette, extractPaletteCandidates, complementOf } from '../../theme/paletteExtract';
 import { setBrandOverride, type BrandOverride } from '../../theme/activeBrand';
-import { DEFAULT_THEMES, type DefaultTheme } from '../../theme/defaultThemes';
+import { DEFAULT_THEMES, type DefaultTheme, MODE_STRUCTURAL_SEED } from '../../theme/defaultThemes';
+import type { ThemeMode } from '../../theme/ThemeProvider';
 
 const DEFAULT_ACCENT = '#14b8a6';
 const DEFAULT_ACCENT_SOFT = '#5eead4';
@@ -144,7 +151,23 @@ function overrideFromTheme(t: BrandTheme): BrandOverride {
     linkColor: t.linkColor?.trim() || undefined,
     logoBase64: t.logoBase64,
     brandName: t.brandName?.trim() || t.name,
+    // A forked Light/Dark theme carries a structural mode; a URL-extracted
+    // brand leaves it undefined (stays holistic, inherits the app mode).
+    mode: t.mode,
+    structural: t.structural,
+    sidebar: t.sidebar,
   };
+}
+
+/** Drop empty/whitespace fields from a structural/sidebar palette; returns the
+ *  trimmed object, or `null` when nothing is set (so the caller omits the key
+ *  entirely — absent means "derive default" for every role). */
+function prunePalette<T extends StructuralPalette | SidebarPalette>(p: T): T | null {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(p)) {
+    if (typeof v === 'string' && v.trim()) out[k] = v.trim();
+  }
+  return Object.keys(out).length ? (out as unknown as T) : null;
 }
 
 /**
@@ -229,6 +252,13 @@ export function BrandThemeSection({ index }: { index?: number }) {
   const [posColor, setPosColor] = useState('');
   const [negColor, setNegColor] = useState('');
   const [linkColor, setLinkColor] = useState('');
+  // Structural (app-wide surfaces/text) + sidebar palettes. Each field '' means
+  // "derive default" (inherit the mode's tokens.css baseline). `mode` is set
+  // when this theme was FORKED from a base Light/Dark preset — it makes the
+  // theme structural (surfaces follow the mode) rather than holistic.
+  const [mode, setMode] = useState<ThemeMode | undefined>(undefined);
+  const [structural, setStructural] = useState<StructuralPalette>({});
+  const [sidebar, setSidebar] = useState<SidebarPalette>({});
   const [rolesOpen, setRolesOpen] = useState(false);
   // Dominant colors pulled from the logo (most frequent first), offered as
   // clickable swatches. `swatchRole` selects which role a swatch click fills:
@@ -315,6 +345,9 @@ export function BrandThemeSection({ index }: { index?: number }) {
     setPosColor('');
     setNegColor('');
     setLinkColor('');
+    setMode(undefined);
+    setStructural({});
+    setSidebar({});
     setCandidates([]);
     setSwatchRole('accent');
     setName('');
@@ -335,10 +368,44 @@ export function BrandThemeSection({ index }: { index?: number }) {
     setPosColor(theme.posColor?.trim() || '');
     setNegColor(theme.negColor?.trim() || '');
     setLinkColor(theme.linkColor?.trim() || '');
+    setMode(theme.mode);
+    setStructural(theme.structural ?? {});
+    setSidebar(theme.sidebar ?? {});
     setCandidates([]);
     setSwatchRole('accent');
     setName(theme.name);
     setBrandName(theme.brandName?.trim() || theme.name);
+  }
+
+  /**
+   * Fork a base Light/Dark preset into a NEW, editable saved theme (per the
+   * "edit forks a saved copy" decision — the pristine base stays untouched).
+   * Seeds the composer with that mode's accent + the solid-hex structural
+   * baseline so the pickers open at the true starting colors; `mode` is set so
+   * the fork behaves structurally like a base theme (surfaces follow the mode).
+   * editingId stays null so Save mints a fresh id (a copy, never a replace).
+   */
+  function startForkDefault(theme: DefaultTheme) {
+    setEditingId(null);
+    setUrl('');
+    setLogoBase64(null);
+    setLogoContentType('');
+    setLogoError(false);
+    setAccent(theme.accent);
+    setAccentSoft(theme.accentSoft);
+    setAiAccent('');
+    setBgAccent('');
+    setPosColor('');
+    setNegColor('');
+    setLinkColor('');
+    setMode(theme.mode);
+    setStructural({ ...MODE_STRUCTURAL_SEED[theme.mode] });
+    setSidebar({});
+    setCandidates([]);
+    setSwatchRole('accent');
+    setName(`${theme.name} (custom)`);
+    setBrandName('');
+    setRolesOpen(true);
   }
 
   async function onSave() {
@@ -363,6 +430,13 @@ export function BrandThemeSection({ index }: { index?: number }) {
         ...(linkColor.trim() ? { linkColor: linkColor.trim() } : {}),
         // Fall back to the theme name so the wordmark is never blank.
         brandName: brandName.trim() || name.trim(),
+        // Structural mode + surface/sidebar palettes. Mode is only carried by a
+        // fork; a URL-extracted brand leaves it undefined. Each palette is
+        // pruned to its set roles and omitted entirely when empty (absent →
+        // "derive default" everywhere).
+        ...(mode ? { mode } : {}),
+        ...(prunePalette(structural) ? { structural: prunePalette(structural)! } : {}),
+        ...(prunePalette(sidebar) ? { sidebar: prunePalette(sidebar)! } : {}),
       };
       const res = await saveTheme(theme);
       setThemes(res.themes);
@@ -533,6 +607,131 @@ export function BrandThemeSection({ index }: { index?: number }) {
     },
   ];
 
+  // Baseline palette to show for an unset structural/sidebar role. When this
+  // theme carries a mode (a fork), use that mode's real tokens.css seed;
+  // otherwise fall back to the light seed so the chips always show a real color.
+  const seed = MODE_STRUCTURAL_SEED[mode ?? 'light'];
+  // Immutable single-key updater for a palette state object. '' clears the key
+  // (back to "derive default"); a hex sets it.
+  const setPaletteKey = <T extends StructuralPalette | SidebarPalette>(
+    setter: (updater: (prev: T) => T) => void,
+    key: keyof T,
+  ) => (hex: string) => setter(prev => ({ ...prev, [key]: hex }));
+
+  // Row descriptor for a structural surface/text role, backed by the given
+  // palette state (app-wide `structural` or the `sidebar` copy).
+  const structuralRow = (
+    palette: StructuralPalette,
+    setter: (updater: (p: StructuralPalette) => StructuralPalette) => void,
+    key: keyof StructuralPalette,
+    label: string,
+    hint: string,
+  ) => {
+    const value = (palette[key] ?? '') as string;
+    return {
+      key: `${label}`,
+      label,
+      hint,
+      value,
+      effective: value || (seed[key] ?? '#eef1fb'),
+      set: setPaletteKey(setter, key),
+      reset: () => setPaletteKey(setter, key)(''),
+    };
+  };
+
+  // App-wide surfaces & text — only meaningful for a base-theme fork (mode set),
+  // where they override that mode's tokens.css. Borders stay inherited (their
+  // baselines are translucent rgba the #rrggbb picker can't represent).
+  const structuralRoles = [
+    structuralRow(structural, setStructural, 'surface', 'Page background', 'The app canvas behind all cards'),
+    structuralRow(structural, setStructural, 'surfaceRaised', 'Cards & panels', 'Raised surfaces — priority queue, action box'),
+    structuralRow(structural, setStructural, 'surfaceMuted', 'Inset wells', 'Hover fills, tracks, muted sub-surfaces'),
+    structuralRow(structural, setStructural, 'text', 'Primary text', 'Headlines and body copy'),
+    structuralRow(structural, setStructural, 'textMuted', 'Secondary text', 'Sublabels and secondary copy'),
+    structuralRow(structural, setStructural, 'textFaint', 'Faint text', 'Metadata, eyebrows, timestamps'),
+  ];
+
+  // Sidebar-scoped palette — independently themeable rail. Its own accent lets
+  // the active nav item differ from the workspace accent.
+  const sidebarRoles = [
+    {
+      key: 'sidebar.accent',
+      label: 'Sidebar accent',
+      hint: 'Active nav item, pinned-account initials',
+      value: (sidebar.accent ?? '') as string,
+      effective: sidebar.accent || accent,
+      set: setPaletteKey(setSidebar, 'accent'),
+      reset: () => setPaletteKey(setSidebar, 'accent')(''),
+    },
+    structuralRow(sidebar, setSidebar, 'surface', 'Sidebar background', 'The rail’s frosted surface'),
+    structuralRow(sidebar, setSidebar, 'surfaceMuted', 'Sidebar hover fill', 'Nav-item hover, user chip, pin rows'),
+    structuralRow(sidebar, setSidebar, 'text', 'Sidebar primary text', 'Active nav labels, brand wordmark'),
+    structuralRow(sidebar, setSidebar, 'textMuted', 'Sidebar secondary text', 'Inactive nav labels'),
+    structuralRow(sidebar, setSidebar, 'textFaint', 'Sidebar faint text', 'Section eyebrows, arc times'),
+  ];
+
+  // How many structural/sidebar roles are set (for the trigger-button summary).
+  const structuralSetCount = structuralRoles.filter(r => r.value.trim()).length;
+  const sidebarSetCount = sidebarRoles.filter(r => r.value.trim()).length;
+
+  // One editable role row: click-to-fill swatch (fills from the selected modal
+  // palette color) + label/hint + its own ColorInput + optional Reset. Shared
+  // by all three groups (accents, structural surfaces, sidebar) so the row
+  // markup stays identical everywhere.
+  const renderRoleRow = (r: {
+    key: string;
+    label: string;
+    hint: string;
+    value: string;
+    effective: string;
+    set: (hex: string) => void;
+    reset?: () => void;
+  }) => {
+    const isUnset = !r.value.trim();
+    const canFill = !!modalSwatch;
+    return (
+      <div
+        key={r.key}
+        className="flex items-center gap-3 rounded-[11px] border border-line bg-bg px-3.5 py-2.5"
+      >
+        <button
+          type="button"
+          onClick={() => canFill && r.set(modalSwatch)}
+          disabled={!canFill}
+          title={canFill ? `Fill with ${modalSwatch}` : 'Select a palette color first'}
+          aria-label={`Fill ${r.label}${canFill ? ` with ${modalSwatch}` : ''}`}
+          className={`h-9 w-9 flex-none rounded-[8px] border border-line transition-transform ${
+            canFill ? 'cursor-pointer hover:scale-110' : 'cursor-default'
+          }`}
+          style={{ background: r.effective }}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <b className="truncate text-[13px] font-semibold text-fg">{r.label}</b>
+            {isUnset && r.reset && (
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
+                default
+              </span>
+            )}
+          </div>
+          <div className="truncate text-[11.5px] text-muted">{r.hint}</div>
+        </div>
+        <ColorInput value={r.effective} onChange={r.set} className="flex-none" />
+        {r.reset && (
+          <button
+            type="button"
+            onClick={r.reset}
+            disabled={isUnset}
+            title="Reset to default"
+            className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted hover:text-fg disabled:opacity-40"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <GlassCard title="Brand theme" index={index}>
       <p className="mb-4 text-[12.5px] text-muted">
@@ -685,14 +884,21 @@ export function BrandThemeSection({ index }: { index?: number }) {
         <Button variant="ghost" size="sm" onClick={() => setRolesOpen(true)}>
           🎨 Assign colors to elements…
         </Button>
-        {(bgAccent || posColor || negColor || linkColor) && (
-          <span className="ml-2 align-middle font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
-            {[bgAccent && 'bg', posColor && 'pos', negColor && 'neg', linkColor && 'link']
-              .filter(Boolean)
-              .join(' · ')}{' '}
-            set
-          </span>
-        )}
+        {(() => {
+          const parts = [
+            bgAccent && 'bg',
+            posColor && 'pos',
+            negColor && 'neg',
+            linkColor && 'link',
+            structuralSetCount > 0 && `${structuralSetCount} surface`,
+            sidebarSetCount > 0 && `${sidebarSetCount} sidebar`,
+          ].filter(Boolean);
+          return parts.length ? (
+            <span className="ml-2 align-middle font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
+              {parts.join(' · ')} set
+            </span>
+          ) : null;
+        })()}
       </div>
 
       <Field label="Brand name (shown in the app)">
@@ -751,6 +957,15 @@ export function BrandThemeSection({ index }: { index?: number }) {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => startForkDefault(t)}
+                  disabled={saving}
+                  title={`Fork ${t.name} into an editable copy`}
+                >
+                  Customize
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => onApplyDefault(t)}
                   disabled={isBusy || isActive}
                 >
@@ -760,6 +975,10 @@ export function BrandThemeSection({ index }: { index?: number }) {
             );
           })}
         </div>
+        <p className="mt-2 text-[11.5px] text-muted">
+          Customize forks a base theme into an editable copy — its surfaces, text, and sidebar all
+          become tunable. The standard Light/Dark above always stay as reset baselines.
+        </p>
       </div>
 
       <div className="mt-5">
@@ -872,52 +1091,28 @@ export function BrandThemeSection({ index }: { index?: number }) {
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          {roles.map(r => {
-            const isUnset = !r.value.trim();
-            const canFill = !!modalSwatch;
-            return (
-              <div
-                key={r.key}
-                className="flex items-center gap-3 rounded-[11px] border border-line bg-bg px-3.5 py-2.5"
-              >
-                <button
-                  type="button"
-                  onClick={() => canFill && r.set(modalSwatch)}
-                  disabled={!canFill}
-                  title={canFill ? `Fill with ${modalSwatch}` : 'Select a palette color first'}
-                  aria-label={`Fill ${r.label}${canFill ? ` with ${modalSwatch}` : ''}`}
-                  className={`h-9 w-9 flex-none rounded-[8px] border border-line transition-transform ${
-                    canFill ? 'cursor-pointer hover:scale-110' : 'cursor-default'
-                  }`}
-                  style={{ background: r.effective }}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <b className="truncate text-[13px] font-semibold text-fg">{r.label}</b>
-                    {isUnset && r.reset && (
-                      <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
-                        default
-                      </span>
-                    )}
-                  </div>
-                  <div className="truncate text-[11.5px] text-muted">{r.hint}</div>
-                </div>
-                <ColorInput value={r.effective} onChange={r.set} className="flex-none" />
-                {r.reset && (
-                  <button
-                    type="button"
-                    onClick={r.reset}
-                    disabled={isUnset}
-                    title="Reset to default"
-                    className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted hover:text-fg disabled:opacity-40"
-                  >
-                    Reset
-                  </button>
-                )}
-              </div>
-            );
-          })}
+        <div className="flex flex-col gap-2">{roles.map(renderRoleRow)}</div>
+
+        {/* App-wide surfaces & text — the structural palette. Only relevant for
+            a base-theme fork (mode set); a URL-extracted brand keeps the mode's
+            own surfaces, so this group is hidden unless a mode is present. */}
+        {mode && (
+          <div className="mt-6">
+            <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+              Surfaces &amp; text · {mode} base
+            </span>
+            <div className="flex flex-col gap-2">{structuralRoles.map(renderRoleRow)}</div>
+          </div>
+        )}
+
+        {/* Sidebar — its own full palette. Independently themeable regardless of
+            whether a mode is set, so a URL-extracted brand can still recolor the
+            rail. */}
+        <div className="mt-6">
+          <span className="mb-2 block font-mono text-[10px] uppercase tracking-[0.12em] text-muted">
+            Sidebar · independently themed
+          </span>
+          <div className="flex flex-col gap-2">{sidebarRoles.map(renderRoleRow)}</div>
         </div>
 
         {candidates.length === 0 && (

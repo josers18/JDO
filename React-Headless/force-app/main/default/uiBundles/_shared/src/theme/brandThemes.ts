@@ -8,6 +8,37 @@
  * style tag).
  */
 import type { CSSProperties } from 'react';
+import type { ThemeMode } from './ThemeProvider';
+
+/**
+ * A structural surface palette — the page/card surfaces, text ink, and border
+ * hairlines that live per-mode in tokens.css. Every field is an OPTIONAL
+ * `#rrggbb`; an absent field inherits that mode's tokens.css baseline (the
+ * same "unset → derive default" contract the per-role accent colors use). This
+ * lets a theme override only the surfaces it cares about without freezing the
+ * rest. Used both app-wide (`BrandTheme.structural`) and, with two extra accent
+ * fields, scoped to the sidebar (`SidebarPalette`).
+ */
+export interface StructuralPalette {
+  surface?: string; // --wp-surface       (page background)
+  surfaceRaised?: string; // --wp-surface-raised (cards / raised panels)
+  surfaceMuted?: string; // --wp-surface-muted  (inset wells, hover fills)
+  text?: string; // --wp-text            (primary ink)
+  textMuted?: string; // --wp-text-muted     (secondary ink)
+  textFaint?: string; // --wp-text-faint     (metadata ink)
+  border?: string; // --wp-border         (raised-edge highlight)
+  borderStrong?: string; // --wp-border-strong  (internal dividers)
+}
+
+/**
+ * The sidebar's own palette — a full structural set PLUS its own accent, so a
+ * theme can pair (say) a dark rail with a light workspace and keep a distinct
+ * active-item color. Carried per-theme (travels when a theme is switched).
+ */
+export interface SidebarPalette extends StructuralPalette {
+  accent?: string; // --wp-accent      (active nav item, pin initials)
+  accentSoft?: string; // --wp-accent-2
+}
 
 export interface BrandTheme {
   id: string;
@@ -17,6 +48,26 @@ export interface BrandTheme {
   logoContentType: string; // e.g. 'image/png'
   accent: string; // #rrggbb — the primary "you act" color
   accentSoft: string; // #rrggbb — the accent's soft/highlight partner
+  /**
+   * Structural surface palette this theme forces (dark|light). Set when a theme
+   * is FORKED from a base Light/Dark preset (so it behaves structurally like a
+   * base theme — mode-driven surfaces + constant AI family), left undefined for
+   * a URL-extracted custom brand (which stays holistic and inherits the app's
+   * own mode). See ThemeProvider's `isCustomBrand`.
+   */
+  mode?: ThemeMode;
+  /**
+   * App-wide structural overrides (surfaces / text / borders). Absent roles
+   * inherit the mode's tokens.css baseline. Optional so existing saved themes
+   * are byte-identical.
+   */
+  structural?: StructuralPalette;
+  /**
+   * Sidebar-scoped palette. Independent of `structural` so the rail can be a
+   * different color from the workspace. Absent → the rail inherits the app
+   * palette exactly as before.
+   */
+  sidebar?: SidebarPalette;
   /**
    * Optional dedicated "AI / agentic accent" (#rrggbb) — the "AI acts" color
    * that themes the Prep-me button, Agentforce FAB/bubble, and other agentic
@@ -169,6 +220,83 @@ export function brandThemeToVars(theme: BrandTheme): CSSProperties {
     '--wp-ai-bg': ai.aiBg,
     '--wp-ai-border': ai.aiBorder,
   } as CSSProperties;
+}
+
+/**
+ * Emit the CSS custom properties for a partial STRUCTURAL palette (surfaces,
+ * text, borders, and — for the sidebar — accent). This is the one shared
+ * primitive for injecting a structural override into a scope; both the
+ * app-wide ThemeProvider and the sidebar's own `<aside>` use it so the
+ * "override --wp-* AND re-bind --color-* so it re-resolves" logic lives in ONE
+ * place (see the frozen-at-:root note in ThemeProvider — the same trap applies
+ * to any nested scope, so every --wp-* we set is paired with its --color-*
+ * rebind).
+ *
+ * Only roles the palette actually sets are emitted, so an absent role inherits
+ * the enclosing scope's value (the app palette, or tokens.css at the root). An
+ * empty/undefined palette returns `{}` — a no-op scope, byte-identical to
+ * having no override.
+ *
+ * `surface-glass` (the sidebar's frosted background, read directly by the
+ * `.bg-surface-glass` utility) is derived from an overridden `surface` at ~85%
+ * alpha so the rail's blur still reads against the page; when `surface` is
+ * unset it is left to inherit.
+ */
+export function buildStructuralVars(palette: StructuralPalette | SidebarPalette | undefined): CSSProperties {
+  const vars: Record<string, string> = {};
+  const set = (wp: string, color: string | null, value: string | undefined) => {
+    if (!value || !value.trim()) return;
+    const v = value.trim();
+    vars[wp] = v;
+    if (color) vars[color] = `var(${wp})`;
+  };
+  set('--wp-surface', '--color-bg', palette?.surface);
+  set('--wp-surface-raised', '--color-surface', palette?.surfaceRaised);
+  set('--wp-surface-muted', '--color-surface-muted', palette?.surfaceMuted);
+  set('--wp-text', '--color-fg', palette?.text);
+  set('--wp-text-muted', '--color-muted', palette?.textMuted);
+  set('--wp-text-faint', '--color-faint', palette?.textFaint);
+  set('--wp-border', '--color-line', palette?.border);
+  set('--wp-border-strong', '--color-line-strong', palette?.borderStrong);
+  // `.bg-surface-glass` reads --wp-surface-glass directly (no --color-* alias).
+  // Derive it from an overridden surface so the frosted rail keeps a translucent
+  // wash instead of falling back to the mode's default glass over a new surface.
+  if (palette?.surface?.trim()) {
+    vars['--wp-surface-glass'] = toGlass(palette.surface.trim());
+  }
+  // Sidebar-only: its own accent. Re-bind the same --color-* / derived accent
+  // tokens ThemeProvider re-emits so bg-accent / accent-bg / accent-border track
+  // the rail's accent, not the app's.
+  const sb = palette as SidebarPalette | undefined;
+  if (sb?.accent?.trim()) {
+    const a = sb.accent.trim();
+    vars['--wp-accent'] = a;
+    vars['--color-accent'] = 'var(--wp-accent)';
+    vars['--wp-on-accent'] = readableTextOn(a);
+    vars['--wp-accent-bg'] = `color-mix(in srgb, ${a} 14%, transparent)`;
+    vars['--wp-accent-border'] = `color-mix(in srgb, ${a} 38%, transparent)`;
+    vars['--color-accent-bg'] = 'var(--wp-accent-bg)';
+    vars['--color-accent-border'] = 'var(--wp-accent-border)';
+  }
+  if (sb?.accentSoft?.trim()) {
+    vars['--wp-accent-2'] = sb.accentSoft.trim();
+    vars['--wp-accent-soft'] = sb.accentSoft.trim();
+    vars['--color-accent-2'] = 'var(--wp-accent-2)';
+  }
+  return vars as CSSProperties;
+}
+
+/** A `#rrggbb` surface → a translucent `rgba(...,0.85)` for the frosted glass
+ *  rail. Keeps the sidebar's backdrop-blur legible over the page wash. */
+function toGlass(hex: string): string {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, 0.85)`;
+}
+
+/** True when a structural palette actually sets at least one role (so callers
+ *  can skip mounting an override scope entirely when nothing is customized). */
+export function hasStructural(palette: StructuralPalette | SidebarPalette | undefined): boolean {
+  return !!palette && Object.values(palette).some(v => typeof v === 'string' && v.trim().length > 0);
 }
 
 /**

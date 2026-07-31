@@ -1,6 +1,6 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
 import { PERSONA_THEMES, type PersonaKey, type PersonaTheme } from './themes';
-import { buildGradient, buildGlow, buildAurora, buildAiFamily, readableTextOn } from './brandThemes';
+import { buildGradient, buildGlow, buildAurora, buildAiFamily, readableTextOn, buildStructuralVars } from './brandThemes';
 import { useBrandOverride } from './activeBrand';
 import { useDisplaySize, scaleForDisplaySize } from './displaySize';
 import './tokens.css';
@@ -184,6 +184,12 @@ export function ThemeProvider({
           '--color-link': 'var(--wp-link)',
         }
       : {}),
+    // App-wide STRUCTURAL overrides (surfaces / text / borders) — a tuned
+    // Light/Dark fork carries these. Spread LAST so the overridden --wp-surface
+    // / --wp-text / --wp-border (+ their --color-* rebinds) win over the base
+    // values set above; absent roles fall through to the mode's tokens.css
+    // baseline. No override → {} → byte-identical to before.
+    ...buildStructuralVars(override?.structural),
   } as CSSProperties;
 
   return (

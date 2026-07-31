@@ -40,8 +40,18 @@ export async function applyActiveThemeOnLoad(): Promise<void> {
         accent: active.accent,
         accentSoft: active.accentSoft,
         aiAccent: active.aiAccent?.trim() || undefined,
+        bgAccent: active.bgAccent?.trim() || undefined,
+        posColor: active.posColor?.trim() || undefined,
+        negColor: active.negColor?.trim() || undefined,
+        linkColor: active.linkColor?.trim() || undefined,
         logoBase64: active.logoBase64,
         brandName: active.brandName?.trim() || active.name,
+        // A forked Light/Dark theme carries a structural mode + surface/sidebar
+        // palettes; a URL-extracted brand leaves them undefined (holistic,
+        // app-mode-inherited). Carry them all so a reload restores the full look.
+        mode: active.mode,
+        structural: active.structural,
+        sidebar: active.sidebar,
       });
     } else {
       setBrandOverride(null);

@@ -1,13 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import clsx from 'clsx';
 import { Icon, type IconKey } from './iconMap';
 import { useWorkspaceSelection } from './home/WorkspaceSelection';
 import { useBrandOverride, useBrandName } from '../theme/activeBrand';
+import { buildStructuralVars } from '../theme/brandThemes';
 
 export interface CommandRailSection {
   id: string;
   label: string;
   icon: IconKey;
+  count?: number;
+  tone?: 'default' | 'warn' | 'risk' | 'ai';
+}
+
+/**
+ * A top-level route group ("Today" / "Growth" / "Health"). When a `groups` list
+ * is supplied the rail renders these as its PRIMARY navigation, collapsing what
+ * used to be one long flat section list into a few grouped pages. The `sections`
+ * list then acts as a secondary "On this page" scroll-spy for the current route.
+ *
+ * `_shared` stays framework-agnostic (no react-router import): the owning bundle
+ * supplies `activeGroup` + `onNavigate` so the rail can render active state and
+ * raise navigation without depending on the router. The prop is optional and
+ * fully backward-compatible — bundles that pass only `sections` keep the
+ * original single-page rail unchanged.
+ */
+export interface CommandRailGroup {
+  /** route path, e.g. '/', '/growth', '/health' — passed back to onNavigate */
+  to: string;
+  label: string;
+  icon: IconKey;
+  /** live badge count (opportunities, alerts…) */
   count?: number;
   tone?: 'default' | 'warn' | 'risk' | 'ai';
 }
@@ -42,10 +65,19 @@ const BADGE_TONE: Record<NonNullable<CommandRailSection['tone']>, string> = {
  */
 export function CommandRail({
   sections,
+  groups,
+  activeGroup,
+  onNavigate,
   arc,
   user,
 }: {
   sections: CommandRailSection[];
+  /** optional top-level route groups; when present they become the primary nav */
+  groups?: CommandRailGroup[];
+  /** the currently-active group's `to` (drives active styling) */
+  activeGroup?: string;
+  /** raised with a group's `to` when clicked; the bundle wires this to its router */
+  onNavigate?: (to: string) => void;
   arc: CommandRailArcStep[];
   user: { name: string; sub: string };
 }) {
@@ -105,10 +137,20 @@ export function CommandRail({
     }
   };
 
+  // Sidebar-scoped palette. When the active theme carries a `sidebar` set, its
+  // surfaces/text/borders/accent are re-emitted on THIS <aside> only, so the
+  // rail can be a different color from the workspace (e.g. a dark rail beside a
+  // light book). buildStructuralVars returns {} when unset — the rail then
+  // inherits the app palette exactly as before. Merged with the width style.
+  const railStyle: CSSProperties = {
+    width: collapsed ? 74 : 264,
+    ...buildStructuralVars(brand?.sidebar),
+  };
+
   return (
     <aside
       className="sticky top-0 z-10 flex h-screen flex-col gap-4 border-r border-line bg-surface-glass px-3.5 py-5 backdrop-blur transition-[width] duration-300"
-      style={{ width: collapsed ? 74 : 264 }}
+      style={railStyle}
     >
       <button
         type="button"
@@ -156,10 +198,65 @@ export function CommandRail({
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-        {!collapsed && (
-          <div className="px-3 pb-1.5 pt-3 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Sections</div>
+      {/* PRIMARY nav — top-level route groups (Today / Growth / Health). Kept
+          OUTSIDE the scrollable list below (flex-none) so these route links are
+          ALWAYS visible: a long "On this page" list or a deep "Today's arc" can
+          never scroll-starve them to zero height (the bug that hid them once the
+          arc ballooned with overdue items). Active state + navigation come from
+          the bundle (activeGroup / onNavigate) so `_shared` stays router-free.
+          Falls through to the flat section list when no `groups` are supplied. */}
+      {groups && groups.length > 0 && (
+        <div className="flex flex-none flex-col gap-0.5">
+            {groups.map(g => {
+              const isActive = activeGroup === g.to;
+              return (
+                <button
+                  key={g.to}
+                  type="button"
+                  onClick={() => onNavigate?.(g.to)}
+                  title={g.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={clsx(
+                    'relative flex items-center gap-3 rounded-[11px] px-3 py-2.5 text-[13.5px] font-semibold transition',
+                    collapsed && 'justify-center px-0',
+                    isActive ? 'bg-accent-bg text-fg' : 'text-muted hover:bg-surface-muted hover:text-fg',
+                  )}
+                >
+                  {isActive && (
+                    <span aria-hidden="true" className="absolute bottom-2 left-0 top-2 w-[3px] rounded-r-[3px] bg-accent" />
+                  )}
+                  <span className="grid w-5 flex-none place-items-center">
+                    <Icon name={g.icon} size={17} />
+                  </span>
+                  {!collapsed && <span className="flex-1 truncate text-left">{g.label}</span>}
+                  {g.count != null && (
+                    <span
+                      className={clsx(
+                        'flex-none rounded-full font-mono text-[10.5px] font-semibold',
+                        collapsed ? 'absolute right-2 top-1 grid h-4 min-w-4 place-items-center px-1 text-[10px]' : 'px-1.5 py-0.5',
+                        BADGE_TONE[g.tone ?? 'default'],
+                      )}
+                    >
+                      {g.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          {!collapsed && sections.length > 0 && (
+            <div className="mx-3 my-2 border-t border-line" />
+          )}
+        </div>
+      )}
+
+      {/* SECONDARY nav — the scrollable "On this page" section list. This is the
+          only part allowed to grow/scroll (flex-1); the primary groups above and
+          the footers below stay pinned. */}
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        {!collapsed && sections.length > 0 && (
+          <div className="px-3 pb-1.5 pt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
+            {groups && groups.length > 0 ? 'On this page' : 'Sections'}
+          </div>
         )}
         {sections.map(sec => {
           const isActive = active === sec.id;
@@ -239,11 +336,14 @@ export function CommandRail({
         </div>
       )}
 
-      {/* Today's arc */}
+      {/* Today's arc — capped + scrollable. A book with many overdue items would
+          otherwise render 15+ rows here (~500px) and, as a flex-none footer,
+          starve the nav column above. Cap it and let it scroll internally so the
+          footer never grows past ~1/3 of the rail. */}
       {!collapsed && (
-        <div className="border-t border-line pt-3.5">
-          <h4 className="mb-2.5 px-2 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Today's arc</h4>
-          <div className="flex flex-col gap-0.5">
+        <div className="flex max-h-[34vh] flex-none flex-col border-t border-line pt-3.5">
+          <h4 className="mb-2.5 flex-none px-2 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Today's arc</h4>
+          <div className="flex min-h-0 flex-col gap-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
             {arc.map((step, i) => (
               <div
                 key={`${step.label}-${i}`}

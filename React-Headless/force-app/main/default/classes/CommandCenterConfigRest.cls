@@ -501,6 +501,55 @@ global with sharing class CommandCenterConfigRest {
                 clean.put(key, v);
             }
         }
+        // Structural mode (dark|light) — set on a theme FORKED from a base
+        // preset so its surface overrides layer onto the right tokens.css block.
+        // Anything other than the two valid values is dropped (theme stays
+        // holistic / app-mode-inherited).
+        String mode = t.get('mode') == null ? '' : String.valueOf(t.get('mode')).trim().toLowerCase();
+        if (mode == 'dark' || mode == 'light') {
+            clean.put('mode', mode);
+        }
+        // Nested STRUCTURAL palette (app-wide surfaces/text/borders) and the
+        // SIDEBAR palette (same set + its own accent). Each nested object is
+        // itself hex-whitelisted key-by-key (D1 extends to nesting — no raw
+        // string, no unknown key ever reaches storage), and only added when it
+        // carries at least one valid color.
+        Map<String, Object> structural = sanitizePalette(t.get('structural'), STRUCTURAL_KEYS);
+        if (!structural.isEmpty()) {
+            clean.put('structural', structural);
+        }
+        Map<String, Object> sidebar = sanitizePalette(t.get('sidebar'), SIDEBAR_KEYS);
+        if (!sidebar.isEmpty()) {
+            clean.put('sidebar', sidebar);
+        }
+        return clean;
+    }
+
+    /** The whitelisted keys of a structural surface palette (app-wide). */
+    private static final List<String> STRUCTURAL_KEYS = new List<String>{
+        'surface', 'surfaceRaised', 'surfaceMuted', 'text', 'textMuted', 'textFaint', 'border', 'borderStrong'
+    };
+    /** The sidebar palette adds its own accent pair to the structural set. */
+    private static final List<String> SIDEBAR_KEYS = new List<String>{
+        'surface', 'surfaceRaised', 'surfaceMuted', 'text', 'textMuted', 'textFaint', 'border', 'borderStrong',
+        'accent', 'accentSoft'
+    };
+
+    /** Coerce a nested palette object into a hex-only map: keeps only the
+     *  allowed keys whose values are valid #rrggbb. Non-object input → empty
+     *  map. Mirrors sanitizeTheme's per-role loop (D1) one level down. */
+    private static Map<String, Object> sanitizePalette(Object raw, List<String> allowedKeys) {
+        Map<String, Object> clean = new Map<String, Object>();
+        if (!(raw instanceof Map<String, Object>)) {
+            return clean;
+        }
+        Map<String, Object> p = (Map<String, Object>) raw;
+        for (String key : allowedKeys) {
+            String v = p.get(key) == null ? '' : String.valueOf(p.get(key)).trim();
+            if (hexValid(v)) {
+                clean.put(key, v);
+            }
+        }
         return clean;
     }
 

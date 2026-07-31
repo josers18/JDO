@@ -9,10 +9,22 @@
  * `null` means "no custom brand active" — render the persona default.
  */
 import { useSyncExternalStore } from 'react';
+import type { StructuralPalette, SidebarPalette } from './brandThemes';
 
 export interface BrandOverride {
   accent: string;
   accentSoft: string;
+  /**
+   * App-wide structural overrides (surfaces / text / borders). Absent → the
+   * mode's tokens.css baseline. Carried through so ThemeProvider can layer the
+   * user's tuned Light/Dark surfaces on top of the accent override.
+   */
+  structural?: StructuralPalette;
+  /**
+   * Sidebar-scoped palette (own surfaces / text / borders / accent). Applied
+   * only to the CommandRail `<aside>`, independent of the app palette.
+   */
+  sidebar?: SidebarPalette;
   /**
    * Optional dedicated AI/agentic accent (#rrggbb). When set, agentic surfaces
    * (Prep-me, Agentforce FAB/bubble) use it instead of deriving from `accent`,

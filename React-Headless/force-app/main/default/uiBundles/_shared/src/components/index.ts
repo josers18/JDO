@@ -31,7 +31,13 @@ export { NotificationBell, type Alert } from './NotificationBell';
 export { Button, type ButtonVariant, type ButtonSize } from './Button';
 export { Modal, CrmNote } from './Modal';
 export { ToastProvider, useToast } from './Toast';
-export { CommandRail, type CommandRailSection, type CommandRailArcStep, type CommandRailPinned } from './CommandRail';
+export {
+  CommandRail,
+  type CommandRailSection,
+  type CommandRailGroup,
+  type CommandRailArcStep,
+  type CommandRailPinned,
+} from './CommandRail';
 export { RightNowCard, type RightNowCardItem } from './RightNowCard';
 export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
 export {
@@ -101,6 +107,13 @@ export {
   useWorkspaceSelection,
   type PinnedClientRequest,
 } from './home/WorkspaceSelection';
+export {
+  CrossSellWhitespace,
+  type WhitespaceData,
+  type WhitespaceClient,
+  type WhitespaceProduct,
+  type WhitespaceCell,
+} from './home/CrossSellWhitespace';
 
 // ── Command-center configuration page ──────────────────────────
 export { ConfigPage } from './config/ConfigPage';

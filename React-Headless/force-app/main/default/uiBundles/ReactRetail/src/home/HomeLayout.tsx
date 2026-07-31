@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 import {
   ThemeProvider,
   CommandRail,
@@ -7,6 +7,7 @@ import {
   WorkspaceSelectionProvider,
   tagSchedule,
   type CommandRailSection,
+  type CommandRailGroup,
   type CommandRailArcStep,
   type CommandRailPinned,
 } from '@shared';
@@ -17,23 +18,57 @@ import { fetchHomeDashboard } from './homeData';
 import type { HomeDashboard, ScheduleItem, CallItem } from './homeTypes';
 
 /**
- * Command-center sections — ids match the section anchors rendered by HomePage
- * so the CommandRail's scroll-spy and smooth-scroll line up. Labels + icons +
- * tones are persona-static; the badge COUNTS are derived per-render from the
- * live dashboard (see deriveSections), so this list carries no hard counts.
+ * PRIMARY nav — the three top-level route groups. Collapsing the old flat
+ * 10-item section list into three pages is the density fix: each page holds an
+ * at-a-glance, laptop-fold-sized slice of the book. Counts are filled per-render
+ * from the live dashboard (see deriveGroups).
  */
-const RAIL_SECTIONS: CommandRailSection[] = [
-  { id: 'brief', label: 'Daily brief', icon: 'sparkle' },
-  { id: 'kpis', label: 'Key metrics', icon: 'metrics' },
-  { id: 'schedule', label: 'Tasks & schedule', icon: 'meeting' },
-  { id: 'queue', label: 'Priority queue', icon: 'tasks', tone: 'risk' },
-  { id: 'actions', label: 'Recommended actions', icon: 'wand', tone: 'ai' },
-  { id: 'events', label: 'Life events', icon: 'lifeEvent', tone: 'warn' },
-  { id: 'alerts', label: 'Risk alerts', icon: 'alerts', tone: 'risk' },
-  { id: 'pipeline', label: 'Pipeline', icon: 'pipeline' },
-  { id: 'leads', label: 'Leads & referrals', icon: 'leads' },
-  { id: 'pulse', label: 'Portfolio pulse', icon: 'pulse' },
+const RAIL_GROUPS: CommandRailGroup[] = [
+  { to: '/', label: 'Today', icon: 'sparkle' },
+  { to: '/growth', label: 'Growth', icon: 'pipeline', tone: 'ai' },
+  { to: '/health', label: 'Health', icon: 'pulse', tone: 'risk' },
 ];
+
+/** Map the current pathname to the active group's `to` for rail highlighting. */
+function activeGroupFor(pathname: string): string {
+  if (pathname.startsWith('/growth')) return '/growth';
+  if (pathname.startsWith('/health')) return '/health';
+  return '/';
+}
+
+/**
+ * SECONDARY nav — the per-route "On this page" section list. Ids match the
+ * section anchors HomePage renders for that mode, so the CommandRail's
+ * scroll-spy and smooth-scroll line up. Keyed by route path. Labels/icons/tones
+ * are static; badge COUNTS are derived per-render (see deriveSections).
+ */
+const SECTIONS_BY_PATH: Record<string, CommandRailSection[]> = {
+  '/': [
+    { id: 'brief', label: 'Daily brief', icon: 'sparkle' },
+    { id: 'kpis', label: 'Key metrics', icon: 'metrics' },
+    { id: 'schedule', label: 'Tasks & schedule', icon: 'meeting' },
+    { id: 'queue', label: 'Priority queue', icon: 'tasks', tone: 'risk' },
+    { id: 'actions', label: 'Recommended actions', icon: 'wand', tone: 'ai' },
+  ],
+  '/growth': [
+    { id: 'whitespace', label: 'Cross-sell white-space', icon: 'wand', tone: 'ai' },
+    { id: 'pipeline', label: 'Pipeline', icon: 'pipeline' },
+    { id: 'leads', label: 'Leads & referrals', icon: 'leads' },
+  ],
+  '/health': [
+    { id: 'kpis', label: 'Key metrics', icon: 'metrics' },
+    { id: 'pulse', label: 'Portfolio pulse', icon: 'pulse' },
+    { id: 'alerts', label: 'Risk alerts', icon: 'alerts', tone: 'risk' },
+    { id: 'events', label: 'Life events', icon: 'lifeEvent', tone: 'warn' },
+  ],
+};
+
+/** Section list for the active route (defaults to Today's for unknown paths). */
+function sectionsForPath(pathname: string): CommandRailSection[] {
+  if (pathname.startsWith('/growth')) return SECTIONS_BY_PATH['/growth'];
+  if (pathname.startsWith('/health')) return SECTIONS_BY_PATH['/health'];
+  return SECTIONS_BY_PATH['/'];
+}
 
 /** Fallback arc shown while the dashboard loads (no meetings resolved yet). */
 const FALLBACK_ARC: CommandRailArcStep[] = [
@@ -81,20 +116,36 @@ function deriveArc(schedule: ScheduleItem[]): CommandRailArcStep[] {
   });
 }
 
+const countOf = (n: number) => (n > 0 ? n : undefined);
+
 /**
- * Derive rail badge counts from live list lengths. Labels/icons/tones stay
- * static (persona identity); only `count` is filled — and left `undefined` for
- * an empty list so no "0" badge renders.
+ * Derive rail badge counts from live list lengths for the active route's
+ * section list. Labels/icons/tones stay static (persona identity); only `count`
+ * is filled — and left `undefined` for an empty list so no "0" badge renders.
  */
-function deriveSections(data: HomeDashboard | null): CommandRailSection[] {
-  const countOf = (n: number) => (n > 0 ? n : undefined);
+function deriveSections(data: HomeDashboard | null, pathname: string): CommandRailSection[] {
   const counts: Record<string, number | undefined> = {
     queue: countOf(data?.callList.length ?? 0),
     actions: countOf(data?.recommendations.length ?? 0),
     events: countOf(data?.lifeEvents.length ?? 0),
     leads: countOf(data?.leads.length ?? 0),
+    pipeline: countOf(data?.pipeline.length ?? 0),
+    alerts: countOf(data?.alerts.length ?? 0),
   };
-  return RAIL_SECTIONS.map(s => (s.id in counts ? { ...s, count: counts[s.id] } : s));
+  return sectionsForPath(pathname).map(s => (s.id in counts ? { ...s, count: counts[s.id] } : s));
+}
+
+/**
+ * Derive the top-level group badge counts. Growth carries the total growth
+ * surface (pipeline + leads); Health carries the at-risk count. Today stays
+ * badge-less — it's the default, not an alert.
+ */
+function deriveGroups(data: HomeDashboard | null): CommandRailGroup[] {
+  const counts: Record<string, number | undefined> = {
+    '/growth': countOf((data?.pipeline.length ?? 0) + (data?.leads.length ?? 0)),
+    '/health': countOf(data?.alerts.length ?? 0),
+  };
+  return RAIL_GROUPS.map(g => (g.to in counts ? { ...g, count: counts[g.to] } : g));
 }
 
 /**
@@ -135,6 +186,10 @@ export default function HomeLayout() {
 
 function HomeLayoutInner() {
   const { data, loading } = useHomeData();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const groups = deriveGroups(data);
+  const activeGroup = activeGroupFor(pathname);
 
   // Loading gate. The WorkspaceSelectionProvider only reads `initialPinned` in
   // its lazy useState initializer (it does NOT react to later prop changes), so
@@ -150,7 +205,14 @@ function HomeLayoutInner() {
         title="Relationship Command Center"
         titleAside={<HomeViewToggle />}
         sidebar={
-          <CommandRail sections={deriveSections(null)} arc={FALLBACK_ARC} user={RAIL_USER} />
+          <CommandRail
+            groups={groups}
+            activeGroup={activeGroup}
+            onNavigate={navigate}
+            sections={deriveSections(null, pathname)}
+            arc={FALLBACK_ARC}
+            user={RAIL_USER}
+          />
         }
       >
         <Outlet />
@@ -159,7 +221,7 @@ function HomeLayoutInner() {
   }
 
   const arc = deriveArc(data.schedule);
-  const sections = deriveSections(data);
+  const sections = deriveSections(data, pathname);
   const pins = derivePins(data);
 
   return (
@@ -167,7 +229,16 @@ function HomeLayoutInner() {
       <AppShell
         title="Relationship Command Center"
         titleAside={<HomeViewToggle />}
-        sidebar={<CommandRail sections={sections} arc={arc} user={RAIL_USER} />}
+        sidebar={
+          <CommandRail
+            groups={groups}
+            activeGroup={activeGroup}
+            onNavigate={navigate}
+            sections={sections}
+            arc={arc}
+            user={RAIL_USER}
+          />
+        }
       >
         <Outlet />
       </AppShell>

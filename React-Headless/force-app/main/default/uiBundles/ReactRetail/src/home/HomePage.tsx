@@ -35,6 +35,7 @@ import {
   DetailModal,
   type DetailModalData,
   DataExplorerModal,
+  CrossSellWhitespace,
   Pill,
   WorkspacePanel,
   useWorkspaceSelection,
@@ -100,15 +101,27 @@ function scrollToId(id: string) {
  * with modals that perform real CRM writes. Wrapped in a ToastProvider so any
  * child (including the write modals) can raise a toast.
  */
-export default function HomePage() {
+/**
+ * Home page mode — set by the route, NOT the user. It groups the ~10 sections
+ * into three at-a-glance pages so a 13" laptop fold isn't a wall of stacked
+ * cards:
+ *   • today  (/)       — brief → vitals → priority queue + recommended actions
+ *   • growth (/growth) — cross-sell white-space → pipeline → leads & referrals
+ *   • health (/health) — risk alerts → life events → portfolio pulse → metrics
+ * The Current/Cockpit `view` is orthogonal (it decides arrangement); `mode`
+ * decides which sections show.
+ */
+export type HomeMode = 'today' | 'growth' | 'health';
+
+export default function HomePage({ mode = 'today' }: { mode?: HomeMode }) {
   return (
     <ToastProvider>
-      <HomeContent />
+      <HomeContent mode={mode} />
     </ToastProvider>
   );
 }
 
-function HomeContent() {
+function HomeContent({ mode }: { mode: HomeMode }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   // Live HomeDashboard from the shared HomeData context (one fetch shared with
@@ -983,6 +996,25 @@ function HomeContent() {
     </div>
   );
 
+  // Health-page variant: all KPIs on ONE line as a compact vitals strip. Steps
+  // up to a 6th column at xl so the 6-KPI set doesn't orphan Active Goals onto a
+  // second row (grid-cols-5 wraps the 6th). Falls back to 5/3/2 on narrower
+  // content regions so it never overflows.
+  const kpiGridWide = (
+    <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+      {data.kpis.map(k => (
+        <KpiCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          risk={k.key === 'atRisk'}
+          onClick={() => kpiClick(k.key)}
+        />
+      ))}
+    </div>
+  );
+
   // Cockpit vitals: the four headline metrics as sparkline cards (mockup order:
   // Pipeline · Leads & referrals · At-Risk · Active Goals). Chosen from data.kpis
   // by key so it survives a KPI-set change; falls back to the first four.
@@ -1061,29 +1093,52 @@ function HomeContent() {
   );
   // `capped` trims the card list to the reveal window and appends a footer — used
   // in the cockpit column to hold its height; the classic view passes all cards.
-  const buildActionsBody = (capped: boolean) => {
+  // `withHeader` folds the section title INTO the top of the box as its first
+  // row (same header-inside-box chrome as PriorityQueueCard) so the cockpit reads
+  // as one continuous panel instead of a header card floating above the list.
+  const buildActionsBody = (capped: boolean, withHeader = false) => {
     const recs = capped ? recsReveal.visible : visibleRecs;
+    if (!visibleRecs.length) {
+      return <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>;
+    }
+    // One bordered box: an optional header row, flat cards stacked with `divide-y`
+    // rules between them, and the reveal footer as the final divided row (replaces
+    // the old separate-card-per-action look).
     return (
-      <div className="grid gap-3.5">
-        {recs.map(rec => (
-          <RecommendationCard
-            key={rec.id}
-            rec={rec}
-            onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
-            onDismiss={() => {
-              setDismissed(s => new Set(s).add(rec.id));
-              toast('Dismissed', 'Recommendation removed — model will learn from this');
-            }}
-            onEdit={() => editRec(rec)}
-            onApprove={() => void approveRec(rec)}
-          />
-        ))}
-        {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
-        {capped && (recsReveal.hasMore || recsReveal.expanded) && (
-          <div className="overflow-hidden rounded-card border border-line bg-surface">
-            <RevealFooter reveal={recsReveal} noun="actions" />
+      // Own the scroll anchor only when standing alone (cockpit). In the classic
+      // view an outer <section id="actions"> wraps this, so don't duplicate the id.
+      <div id={withHeader ? 'actions' : undefined} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+        {withHeader && (
+          <div className="border-b border-line px-5 pb-3.5 pt-4">
+            <div className="flex items-end gap-2.5">
+              <div className="min-w-0">
+                <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">Agentforce · pre-drafted</div>
+                <h2 className="mt-0.5 font-display text-[19px] font-semibold tracking-tight">Recommended Actions</h2>
+              </div>
+              <div className="ml-auto flex flex-none items-center gap-2">{actionsControls}</div>
+            </div>
           </div>
         )}
+        {/* line-strong, not line: in light mode --wp-border is near-white (a
+            raised-edge highlight for cards on the gray page) and vanishes as an
+            INTERNAL divider on the white box. line-strong is the visible hairline. */}
+        <div className="divide-y divide-line-strong">
+          {recs.map(rec => (
+            <RecommendationCard
+              key={rec.id}
+              rec={rec}
+              flat
+              onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
+              onDismiss={() => {
+                setDismissed(s => new Set(s).add(rec.id));
+                toast('Dismissed', 'Recommendation removed — model will learn from this');
+              }}
+              onEdit={() => editRec(rec)}
+              onApprove={() => void approveRec(rec)}
+            />
+          ))}
+        </div>
+        {capped && <RevealFooter reveal={recsReveal} noun="actions" />}
       </div>
     );
   };
@@ -1313,6 +1368,18 @@ function HomeContent() {
     </div>
   );
 
+  // ── Cross-sell / Upsell white-space (Growth mode) ──
+  // A selectable clients × products heat map + detail table. Renders off MOCK
+  // data today, shaped so a Data Cloud dataset (product-holding DMOs blended
+  // with life-event / goal signals) can back it later with no markup change.
+  // Acting on a row reuses the page's Prep modal so the banker lands in a real
+  // flow. Anchored at #whitespace so the rail's "On this page" link resolves.
+  const whitespaceSection = (
+    <CrossSellWhitespace
+      onAct={o => open('prep', o.clientName, o.clientId)}
+    />
+  );
+
   // ── Full-width supporting band (cockpit only) ──
   // The five secondary modules from the mockup, in a single responsive row:
   // Customer Goals · Pipeline Movement · Open Cases · Today's Agenda ·
@@ -1488,110 +1555,146 @@ function HomeContent() {
     </div>
   );
 
-  return (
-    <div className="pb-24">
-      {/* ---------- DAILY BRIEF (classic view only — the cockpit uses a compact
-           strip inside its left column so the context panel can align to the top) ---------- */}
-      {view !== 'cockpit' && (
-        <section id="brief" className="scroll-mt-[82px]">
-          <div className="relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
-            <div className="grid gap-7 lg:grid-cols-[1fr_380px]">
-              <div>
-                <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
-                  <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
+  // ── The big hero daily brief (classic view, Today mode only) ──
+  // The cockpit uses a compact briefStrip inside its left column so the context
+  // panel aligns to the top; Growth/Health lead with their own section instead.
+  const heroBrief = (
+    <section id="brief" className="scroll-mt-[82px]">
+      <div className="relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
+        <div className="grid gap-7 lg:grid-cols-[1fr_380px]">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
+              <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
+            </div>
+            <h1 className="mb-2.5 mt-2 font-display text-[30px] font-semibold leading-[1.1] tracking-tight">
+              {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+            </h1>
+            <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
+                  <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
                 </div>
-                <h1 className="mb-2.5 mt-2 font-display text-[30px] font-semibold leading-[1.1] tracking-tight">
-                  {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
-                </h1>
-                <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
-                      <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
-                    </div>
-                    <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
-                    className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
-                  >
-                    {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
-                  </button>
-                  <AskChip
-                    onClick={() =>
-                      openAi(
-                        'queue_rationale',
-                        'Why this order',
-                        "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
-                        queueContext(),
-                        queueFallback(),
-                      )
-                    }
-                  >
-                    Ask why this order
-                  </AskChip>
-                </div>
+                <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
               </div>
-              {data.rightNow && !dismissed.has('rightNow') && (
-                <RightNowCard
-                  item={data.rightNow}
-                  onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
-                  onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
-                  onSnooze={() => {
-                    setDismissed(s => new Set(s).add('rightNow'));
-                    toast('Snoozed', 'Right Now item hidden for this session');
-                  }}
-                  onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
-                />
-              )}
+              <button
+                type="button"
+                onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
+                className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
+              >
+                {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
+              </button>
+              <AskChip
+                onClick={() =>
+                  openAi(
+                    'queue_rationale',
+                    'Why this order',
+                    "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
+                    queueContext(),
+                    queueFallback(),
+                  )
+                }
+              >
+                Ask why this order
+              </AskChip>
             </div>
           </div>
+          {data.rightNow && !dismissed.has('rightNow') && (
+            <RightNowCard
+              item={data.rightNow}
+              onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
+              onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
+              onSnooze={() => {
+                setDismissed(s => new Set(s).add('rightNow'));
+                toast('Snoozed', 'Right Now item hidden for this session');
+              }}
+              onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
+            />
+          )}
+        </div>
+      </div>
+    </section>
+  );
+
+  // ── Per-mode section content (shared by both views) ──
+  // Each mode surfaces a coherent, laptop-fold-sized slice of the ~10 sections.
+  // The builders (briefStrip, kpiGridVitals, pipelineBody, …) are reused as-is;
+  // only WHICH sections render, and their arrangement, changes.
+  const todayCockpitLeft = (
+    <>
+      <section id="brief" className="scroll-mt-[82px]">{briefStrip}</section>
+      <section id="kpis" className="mt-4 scroll-mt-[82px]">{kpiGridVitals}</section>
+      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+        <section id="queue" className="min-w-0 scroll-mt-[82px]">
+          <PriorityQueueCard
+            items={queueItems}
+            controls={queueControls}
+            onOpen={c => queueOpen('quickview', c.clientName, c.clientId)}
+            onViewAll={() => setExplorer('atRisk')}
+          />
         </section>
-      )}
+        {buildActionsBody(true, true)}
+      </div>
+    </>
+  );
+
+  const growthLeft = (
+    <>
+      <section id="whitespace" className="scroll-mt-[82px]">{whitespaceSection}</section>
+      <section id="pipeline" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
+          {pipelineControls}
+        </SectionHead>
+        {pipelineBody}
+      </section>
+      <section id="leads" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
+        {leadsBody}
+      </section>
+    </>
+  );
+
+  const healthLeft = (
+    <>
+      {/* Lead with the glanceable vitals: KPI cards + slim pulse strip share the
+          top of the column, then the act-now detail (alerts → events) below. */}
+      <section id="kpis" className="scroll-mt-[82px]">
+        <SectionHead eyebrow="Book-wide" title="Key metrics" />
+        {kpiGridWide}
+      </section>
+      <section id="pulse" className="mt-4 scroll-mt-[82px]">
+        {pulseStrip}
+      </section>
+      <section id="alerts" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="At-risk relationships · act now" title="Risk alerts" />
+        {alertsBody}
+      </section>
+      <section id="events" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
+        {lifeEventsBody}
+      </section>
+    </>
+  );
+
+  const cockpitLeft = mode === 'growth' ? growthLeft : mode === 'health' ? healthLeft : todayCockpitLeft;
+
+  return (
+    <div className="pb-24">
+      {/* Hero brief — classic Today only. Cockpit embeds a compact briefStrip in
+          its left column; Growth/Health lead with their own first section. */}
+      {view !== 'cockpit' && mode === 'today' && heroBrief}
 
       {view === 'cockpit' ? (
         /* ==================== COCKPIT WORKSPACE ====================
-           Master-detail command center matching the design mockup:
-             • left column: compact AI brief → 4 KPI vitals → Priority Queue +
-               Recommended Actions side-by-side
-             • right column: a sticky context panel (AI brief until a row is
-               clicked, then a tabbed Client-360)
-             • full-width supporting band (5 glance modules)
-             • always-rendered detail modules below carry the CommandRail nav
-               anchors (#pipeline / #events / #leads / #pulse / #schedule).
-           Left nav + pinned accounts live in the CommandRail (see HomeLayout). */
+           Master-detail command center: mode-specific content in the left
+           column, a sticky Client-360 context panel on the right (shared across
+           modes so clicking any client/opp/lead row drives it). The supporting
+           band shows on Today only — Growth/Health carry their own detail
+           sections in the left column instead of the 5-module glance band. */
         <>
           <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_clamp(320px,26vw,384px)]">
-            {/* ---- LEFT: the primary workflow ---- */}
-            <div className="wp-stagger min-w-0">
-              {/* AI Daily Brief strip — greeting + brief with the Right Now
-                  card embedded on the right (see briefStrip). */}
-              <section id="brief" className="scroll-mt-[82px]">
-                {briefStrip}
-              </section>
-
-              {/* Vitals: four sparkline KPI cards */}
-              <section id="kpis" className="mt-4 scroll-mt-[82px]">
-                {kpiGridVitals}
-              </section>
-
-              {/* Priority Queue + Recommended Actions, side by side */}
-              <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
-                <section id="queue" className="min-w-0 scroll-mt-[82px]">
-                  <PriorityQueueCard
-                    items={queueItems}
-                    controls={queueControls}
-                    onOpen={c => queueOpen('quickview', c.clientName, c.clientId)}
-                    onViewAll={() => setExplorer('atRisk')}
-                  />
-                </section>
-
-                <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended Actions" controls={actionsControls}>
-                  {buildActionsBody(true)}
-                </ColumnCard>
-              </div>
-            </div>
+            {/* ---- LEFT: the primary workflow (per mode) ---- */}
+            <div className="wp-stagger min-w-0">{cockpitLeft}</div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
             <div className="sticky top-[92px] min-w-0">
@@ -1610,72 +1713,96 @@ function HomeContent() {
             </div>
           </div>
 
-          {/* ---- Full-width supporting band ---- */}
-          <div className="mt-4">{supportingBand}</div>
-
-          {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
-              Life events + Alerts / Leads) were removed — they duplicated the
-              right panel and the supporting band. Their content is one click away
-              via the KPI cards, supporting-band "View all →", and the CommandRail
-              (which now opens a DataExplorerModal for anchor-less sections). */}
+          {/* ---- Full-width supporting band (Today only) ---- */}
+          {mode === 'today' && <div className="mt-4">{supportingBand}</div>}
         </>
       ) : (
         /* ==================== CURRENT VIEW (classic stacked) ==================== */
         <>
-          {/* ---------- KPI PULSE ---------- */}
-          <section id="kpis" className="mt-8 scroll-mt-[82px]">
-            {kpiGrid}
-          </section>
+          {mode === 'today' && (
+            <>
+              {/* ---------- KPI PULSE ---------- */}
+              <section id="kpis" className="mt-8 scroll-mt-[82px]">
+                {kpiGrid}
+              </section>
 
-          {/* ---------- TASKS & SCHEDULE ---------- */}
-          <section id="schedule" className="mt-8 scroll-mt-[82px]">
-            <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
-              {scheduleControls}
-            </SectionHead>
-            {scheduleBody}
-          </section>
+              {/* ---------- TASKS & SCHEDULE ---------- */}
+              <section id="schedule" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
+                  {scheduleControls}
+                </SectionHead>
+                {scheduleBody}
+              </section>
 
-          {/* ---------- PRIORITY QUEUE ---------- */}
-          <section id="queue" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
-              {queueControls}
-            </SectionHead>
-            {queueBody}
-          </section>
+              {/* ---------- PRIORITY QUEUE ---------- */}
+              <section id="queue" className="scroll-mt-[82px]">
+                <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
+                  {queueControls}
+                </SectionHead>
+                {queueBody}
+              </section>
 
-          {/* ---------- RECOMMENDED ACTIONS ---------- */}
-          <section id="actions" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
-              {actionsControls}
-            </SectionHead>
-            {actionsBody}
-          </section>
+              {/* ---------- RECOMMENDED ACTIONS ---------- */}
+              <section id="actions" className="scroll-mt-[82px]">
+                <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
+                  {actionsControls}
+                </SectionHead>
+                {actionsBody}
+              </section>
+            </>
+          )}
 
-          {/* ---------- LIFE EVENTS + ALERTS ---------- */}
-          <section id="events" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
-            <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-              <div className="min-w-0">{lifeEventsBody}</div>
-              <div id="alerts" className="min-w-0 scroll-mt-[82px]">{alertsBody}</div>
-            </div>
-          </section>
+          {mode === 'growth' && (
+            <>
+              {/* ---------- CROSS-SELL WHITE-SPACE ---------- */}
+              <section id="whitespace" className="mt-8 scroll-mt-[82px]">
+                {whitespaceSection}
+              </section>
 
-          {/* ---------- PIPELINE ---------- */}
-          <section id="pipeline" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
-              {pipelineControls}
-            </SectionHead>
-            {pipelineBody}
-          </section>
+              {/* ---------- PIPELINE ---------- */}
+              <section id="pipeline" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
+                  {pipelineControls}
+                </SectionHead>
+                {pipelineBody}
+              </section>
 
-          {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
-          <section id="leads" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
-            <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
-              <div className="min-w-0">{leadsBody}</div>
-              <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
-            </div>
-          </section>
+              {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
+              <section id="leads" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
+                <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+                  <div className="min-w-0">{leadsBody}</div>
+                  <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {mode === 'health' && (
+            <>
+              {/* ---------- VITALS HEADER: KEY METRICS + PULSE ----------
+                  Both glanceable summaries lead the page as a compact top band:
+                  the 5 KPI cards on one line, then the slim single-line pulse
+                  strip (narrative + stats) directly beneath — so "how's the book
+                  doing" answers at a glance before the act-now detail lists. */}
+              <section id="kpis" className="scroll-mt-[82px]">
+                <SectionHead eyebrow="Book-wide" title="Key metrics" />
+                {kpiGridWide}
+              </section>
+              <section id="pulse" className="mt-4 scroll-mt-[82px]">
+                {pulseStrip}
+              </section>
+
+              {/* ---------- LIFE EVENTS + ALERTS (the act-now detail) ---------- */}
+              <section id="events" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
+                <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+                  <div className="min-w-0">{lifeEventsBody}</div>
+                  <div id="alerts" className="min-w-0 scroll-mt-[82px]">{alertsBody}</div>
+                </div>
+              </section>
+            </>
+          )}
         </>
       )}
 
@@ -2185,41 +2312,6 @@ function SectionHead({ eyebrow, title, children }: { eyebrow: string; title: str
   );
 }
 
-/**
- * Cockpit-view column wrapper: a compact heading (eyebrow + title + optional
- * controls) over the section body, sized to sit in a ⅓-width grid track.
- * `min-w-0` lets a wide table shrink to the column instead of blowing out the
- * grid — the project's canonical grid-child rule.
- */
-function ColumnCard({
-  id,
-  eyebrow,
-  title,
-  controls,
-  children,
-}: {
-  id?: string;
-  eyebrow: string;
-  title: string;
-  controls?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section id={id} className="min-w-0 scroll-mt-[82px]">
-      {/* Header sits in its own white card (same chrome as the Priority Queue
-          header) so the two column titles read as the same "level" instead of
-          this one floating on the gray page background. */}
-      <div className="mb-3 flex items-end gap-2.5 rounded-card border border-line bg-surface px-5 pb-3.5 pt-4 shadow-card">
-        <div className="min-w-0">
-          <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">{eyebrow}</div>
-          <h2 className="mt-0.5 font-display text-[19px] font-semibold tracking-tight">{title}</h2>
-        </div>
-        {controls && <div className="ml-auto flex flex-none items-center gap-2">{controls}</div>}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 function KpiCard({ label, value, note, risk, onClick }: { label: string; value: string; note?: string; risk?: boolean; onClick: () => void }) {
   return (
