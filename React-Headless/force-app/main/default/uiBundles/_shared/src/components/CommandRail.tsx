@@ -147,6 +147,11 @@ export function CommandRail({
     ...buildStructuralVars(brand?.sidebar),
   };
 
+  // Today's arc is capped to the 5 most relevant steps so the whole rail fits
+  // top-to-bottom in one scroll region. An uncapped arc could balloon to 15+
+  // overdue rows, which is what previously forced it into its own scrollbox.
+  const arcCapped = arc.slice(0, 5);
+
   return (
     <aside
       className="sticky top-0 z-10 flex h-screen flex-col gap-4 border-r border-line bg-surface-glass px-3.5 py-5 backdrop-blur transition-[width] duration-300"
@@ -249,10 +254,15 @@ export function CommandRail({
         </div>
       )}
 
-      {/* SECONDARY nav — the scrollable "On this page" section list. This is the
-          only part allowed to grow/scroll (flex-1); the primary groups above and
-          the footers below stay pinned. */}
-      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+      {/* SCROLL REGION — the ONE scrollable area of the rail. The brand header +
+          primary nav above and the user chip below stay pinned (flex-none); this
+          single container owns all the flow-content (section list, pinned
+          accounts, Today's arc) so there's never more than one scrollbar. This
+          replaces the old two-competing-scroll-boxes layout (a flex-1 nav AND a
+          max-h arc each scrolling independently) that felt "hard to control". */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+      {/* SECONDARY nav — the "On this page" section list. */}
+      <nav className="flex flex-col gap-0.5">
         {!collapsed && sections.length > 0 && (
           <div className="px-3 pb-1.5 pt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">
             {groups && groups.length > 0 ? 'On this page' : 'Sections'}
@@ -336,15 +346,14 @@ export function CommandRail({
         </div>
       )}
 
-      {/* Today's arc — capped + scrollable. A book with many overdue items would
-          otherwise render 15+ rows here (~500px) and, as a flex-none footer,
-          starve the nav column above. Cap it and let it scroll internally so the
-          footer never grows past ~1/3 of the rail. */}
-      {!collapsed && (
-        <div className="flex max-h-[34vh] flex-none flex-col border-t border-line pt-3.5">
-          <h4 className="mb-2.5 flex-none px-2 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Today's arc</h4>
-          <div className="flex min-h-0 flex-col gap-0.5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-            {arc.map((step, i) => (
+      {/* Today's arc — capped to 5 rows (arcCapped) so it flows inline in the
+          shared scroll region above instead of needing its own scrollbox. The
+          cap is what lets the whole rail read top-to-bottom as one column. */}
+      {!collapsed && arcCapped.length > 0 && (
+        <div className="flex flex-col border-t border-line pt-3.5">
+          <h4 className="mb-2.5 px-2 font-mono text-[10px] uppercase tracking-[0.16em] text-faint">Today's arc</h4>
+          <div className="flex flex-col gap-0.5">
+            {arcCapped.map((step, i) => (
               <div
                 key={`${step.label}-${i}`}
                 className={clsx(
@@ -368,6 +377,7 @@ export function CommandRail({
           </div>
         </div>
       )}
+      </div>
 
       {/* User chip */}
       <div className={clsx('flex items-center gap-3 rounded-[12px] bg-surface-muted p-2', collapsed && 'justify-center')}>
