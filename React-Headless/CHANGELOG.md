@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_20_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Jul_23_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [July 2026]
+
+### 2026-07-23 — default Light/Dark theme baseline + favicon-callout fix
+
+#### Added
+
+- **Pinned default Light/Dark themes.** The Brand Theme config section gained two non-deletable base themes — Dark (teal accent on dark surfaces) and Light (blue/violet on white) — that are always available to re-activate as a fallback to the standard Aurora looks. Unlike custom brand themes, defaults carry a structural `mode` (`dark`/`light`) so activating one re-skins the whole surface palette, not just the accent; `ThemeProvider` reads the override's `mode` to drive `data-mode`. Their sentinel ids (`__default_dark__` / `__default_light__`) are recognized as permanently valid by the Apex per-user active-theme resolver even though they never live in the saved theme library.
+
+#### Fixed
+
+- **Brand-logo callout 301s.** Google's legacy `/s2/favicons` endpoint now redirects to the `gstatic` `faviconV2` service, and Apex `Http.send` does not follow redirects — so the brand-logo lookup always got a 301 and returned no logo. `CommandCenterConfigRest`'s callout now points directly at `faviconV2`, with the `RemoteSiteSetting` repointed from `www.google.com` to `t0.gstatic.com`.
+
+### 2026-07-21 → 2026-07-23 — native-mirror Schedule detail modal + brand theming system
+
+#### Added
+
+- **Native-mirror `ScheduleDetailModal`** — the Tasks & Schedule table's detail popup now mirrors the native Task/Event edit surface: Type, Comments, and system fields (Created/Modified) render alongside the editable core fields, with Mark Complete, Delete, and a "create follow-up" quick action. `CrmWriteRest` gained `update` (now covers Type/Description/Location/ShowAs, not just Status/Priority) and `delete` actions to back it.
+- **Editable Assigned To / Related To lookups on the schedule modal** — the polymorphic Owner (Assigned To) and What (Related To) references are now reassignable type-ahead lookups, matching the native Task/Event surface. A new `LookupField` (debounced async type-ahead, inline results, clear button) and `lookupSearch.ts` (`searchUsers` / `searchAccounts` via uiapi GraphQL) back the fields; `CrmWriteRest.handleUpdate` writes `OwnerId`/`WhatId` on both Task and Event branches, only when a field was actively touched (an untouched field never rewrites the reference).
+- **Related To now resolves to a name.** Schedule items carried `WhatId` but never resolved it to a client name, so the modal's Related To row was blank; `WhatId`s (Account-prefixed) are now batch-resolved to names alongside the existing `accountNamesQuery`/`userNamesQuery` pattern.
+- **Brand theming system** — a config-driven theming flow on the Configuration page (`BrandThemeSection`, `_shared/src/components/config/`): paste a site URL, auto-extract its logo via a new `CommandCenterConfigRest` favicon-service callout, get a suggested accent/glow palette (client-side canvas color quantization via `paletteExtract.ts`), refine by hand, and save as a named theme in an org-shared library. A user's active theme selection persists server-side per Salesforce `UserId` and re-skins all React surfaces (cockpits + C360) by overriding the `--wp-accent`/gradient/glow CSS vars `ThemeProvider` already injects — structural palette and layout are untouched. Backed by `brandThemeClient` (`GET/POST /config/brand-logo`, `/config/themes`, `/config/active-theme`) and two new `CommandCenterConfig__c` fields, `Theme_Library__c` and `Active_Themes__c`. The active brand's logo also renders in the `AppShell`'s header chip.
 
 ### 2026-07-18 → 2026-07-20 — cockpit brief polish + sidebar-first de-duplication
 

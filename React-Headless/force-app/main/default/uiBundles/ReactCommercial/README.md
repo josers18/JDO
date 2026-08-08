@@ -10,7 +10,7 @@ Shared plumbing (Aurora Glass theme, data clients, component primitives, home-ac
 
 - **Home** (`/`) — the relationship-command dashboard, a schedule table (Tasks + Events bucketed Overdue / Today / Upcoming), and a book-level **Delinquency Watch** panel (`Loan_Delinquencies__dlm` aggregate — book-level rather than per-client because the data isn't customer-joinable in this org). AI briefs turn into one-click actions (draft with Einstein via `AiGenerateRest`; create tasks / meetings / emails / cases via `CrmWriteRest`), refetching in place with no spinner.
 - **Customer 360** — includes a **Company Intel** tab fusing four corporate signals for business accounts: ZoomInfo firmographics, BoardEx board/governance intel, MSCI ESG profile, and SEC filings (via the DC bridge; null-safe with a graceful empty state for non-business accounts). Plus CoreLogic Property + MoneyGuidePro plan cards.
-- **Configuration** (`/config`) — org-level admin page to pick which Agentforce model runs each generative action, from a self-updating catalog (`CommandCenterConfigRest` → `/config/*`). See the project README for the catalog mechanism.
+- **Configuration** (`/config`) — org-level admin page to pick which Agentforce model runs each generative action, from a self-updating catalog (`CommandCenterConfigRest` → `/config/*`); plus a brand theming section (custom logo/palette per org, two pinned default Light/Dark themes). See the project README for both mechanisms.
 - Native-style Salesforce chrome (app-launcher waffle, global search, user menu, notifications) and real Agentforce chat embedded via the Conversation Client.
 
 ## Run (development)
