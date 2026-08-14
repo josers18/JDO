@@ -10,6 +10,11 @@ export function useCountUp(target: number, duration = 900): number {
   const rafRef = useRef(0);
 
   useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(target);
+      return;
+    }
+
     let start: number | null = null;
     const from = 0;
     const ease = (t: number) => 1 - Math.pow(1 - t, 3); // ease-out cubic

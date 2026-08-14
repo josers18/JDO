@@ -140,3 +140,17 @@
     transform: rotate(360deg);
   }
 }
+
+/* wp-fade-up/pulse/shimmer/spin are applied inline (style={{ animation: '...' }}),
+   not via class, so collapse every keyframe animation AND transition (incl. the
+   nav-rail width collapse) to a single instant frame rather than targeting rules
+   by name. Hover/focus feedback still applies, just without the tween. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

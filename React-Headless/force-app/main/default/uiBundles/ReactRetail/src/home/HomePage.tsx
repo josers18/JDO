@@ -951,7 +951,8 @@ function HomeContent() {
      any markup. */
 
   const kpiGrid = (
-    <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5">
+    <div className="@container/kpis">
+    <div className="grid grid-cols-2 gap-3.5 @[560px]/kpis:grid-cols-3 @[900px]/kpis:grid-cols-5">
       {data.kpis.map(k => (
         <KpiCard
           key={k.key}
@@ -962,6 +963,7 @@ function HomeContent() {
           onClick={() => kpiClick(k.key)}
         />
       ))}
+    </div>
     </div>
   );
 
@@ -975,7 +977,8 @@ function HomeContent() {
   const VITAL_KEYS = ['pipeline', 'leads', 'atRisk', 'goals'];
   const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridVitals = (
-    <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+    <div className="@container/vitals">
+    <div className="grid grid-cols-2 gap-3.5 @[640px]/vitals:grid-cols-4">
       {(vitalKpis.length ? vitalKpis : data.kpis.slice(0, 4)).map(k => (
         <VitalCard
           key={k.key}
@@ -988,6 +991,7 @@ function HomeContent() {
           onClick={() => kpiClick(k.key)}
         />
       ))}
+    </div>
     </div>
   );
 
@@ -1238,11 +1242,11 @@ function HomeContent() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const showRightNow = !!data.rightNow && !dismissed.has('rightNow');
   const briefStrip = (
-    <div className="rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
+    <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
           the "Right Now · your first move" card embedded on the right. Drops to
           one column (card below) when there's no room. */}
-      <div className={`grid gap-6 ${showRightNow ? 'lg:grid-cols-[1fr_340px]' : ''}`}>
+      <div className={`grid gap-6 ${showRightNow ? '@[720px]/brief:grid-cols-[1fr_340px]' : ''}`}>
         {/* ---- Left: welcome greeting + dense AI brief line, with the Portfolio
              Pulse strip pinned to the bottom (mt-auto) so it fills the space the
              taller Right Now card opens up beside it. ---- */}
@@ -1476,8 +1480,8 @@ function HomeContent() {
            strip inside its left column so the context panel can align to the top) ---------- */}
       {view !== 'cockpit' && (
         <section id="brief" className="scroll-mt-[82px]">
-          <div className="relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
-            <div className="grid gap-7 lg:grid-cols-[1fr_380px]">
+          <div className="@container/brief relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
+            <div className="grid gap-7 @[820px]/brief:grid-cols-[1fr_380px]">
               <div>
                 <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
                   <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
@@ -1544,7 +1548,8 @@ function HomeContent() {
                anchors (#pipeline / #events / #leads / #pulse / #schedule).
            Left nav + pinned accounts live in the CommandRail (see HomeLayout). */
         <>
-          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_384px]">
+          <div className="@container/cockpit">
+          <div className="grid items-start gap-4 @[1180px]/cockpit:grid-cols-[minmax(0,1fr)_384px]">
             {/* ---- LEFT: the primary workflow ---- */}
             <div className="min-w-0">
               {/* AI Daily Brief strip — greeting + brief with the Right Now
@@ -1559,7 +1564,8 @@ function HomeContent() {
               </section>
 
               {/* Priority Queue + Recommended Actions, side by side */}
-              <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+              <div className="@container/queueActions mt-4">
+              <div className="grid items-start gap-4 @[760px]/queueActions:grid-cols-[1.35fr_1fr]">
                 <section id="queue" className="min-w-0 scroll-mt-[82px]">
                   <PriorityQueueCard
                     items={queueItems}
@@ -1573,12 +1579,14 @@ function HomeContent() {
                   {buildActionsBody(true)}
                 </ColumnCard>
               </div>
+              </div>
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
             <div className="sticky top-[92px] min-w-0">
               <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
             </div>
+          </div>
           </div>
 
           {/* ---- Full-width supporting band ---- */}
@@ -1625,9 +1633,11 @@ function HomeContent() {
           {/* ---------- LIFE EVENTS + ALERTS ---------- */}
           <section id="events" className="scroll-mt-[82px]">
             <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
-            <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+            <div className="@container/events">
+            <div className="grid gap-4 @[820px]/events:grid-cols-[1.35fr_1fr]">
               <div className="min-w-0">{lifeEventsBody}</div>
               <div id="alerts" className="min-w-0 scroll-mt-[82px]">{alertsBody}</div>
+            </div>
             </div>
           </section>
 
@@ -1642,9 +1652,11 @@ function HomeContent() {
           {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
           <section id="leads" className="scroll-mt-[82px]">
             <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
-            <div className="grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+            <div className="@container/leads">
+            <div className="grid items-start gap-4 @[820px]/leads:grid-cols-[1.35fr_1fr]">
               <div className="min-w-0">{leadsBody}</div>
               <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
+            </div>
             </div>
           </section>
         </>

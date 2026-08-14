@@ -379,6 +379,8 @@ function AgentPicker({
           boxShadow: expanded ? '0 6px 18px rgba(0,0,0,0.14)' : '0 2px 8px rgba(0,0,0,0.12)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
+          contain: 'layout',
+          willChange: 'width',
           transition: 'width 160ms ease, padding 160ms ease, gap 160ms ease, box-shadow 160ms ease',
         }}
       >

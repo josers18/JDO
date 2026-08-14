@@ -1,0 +1,24 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "**/shell/AppShell.tsx"
+        ],
+        "createdAt": "2026-08-14T04:34:37.488Z"
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "**/components/AgentforceChat.tsx"
+        ],
+        "createdAt": "2026-08-14T04:34:37.525Z"
+      }
+    ]
+  }
+}

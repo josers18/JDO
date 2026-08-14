@@ -67,7 +67,8 @@ export default function HomePage() {
       </div>
 
       {/* Main split: who to call (left, wide) + schedule/goals (right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+      <div className="@container/callSplit">
+      <div className="grid items-start gap-5 @[900px]/callSplit:grid-cols-[1.6fr_1fr]">
         <GlassCard title="Who to call today — and why" action={<span style={{ fontSize: '0.72rem', color: 'var(--wp-text-faint)' }}>AI-ranked · click to open 360</span>}>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.6rem' }}>
             {data.callList.map((c: CallItem, i) => (
@@ -134,6 +135,7 @@ export default function HomePage() {
           </GlassCard>
         </div>
       </div>
+      </div>
 
       {/* Life events across the book */}
       <GlassCard title="Life events across your book" action={<span style={{ fontSize: '0.72rem', color: 'var(--wp-text-faint)' }}>Data Cloud signals → opportunities</span>}>
@@ -157,7 +159,8 @@ export default function HomePage() {
       </GlassCard>
 
       {/* Pipeline + alerts + leads */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+      <div className="@container/pipelineSplit">
+      <div className="grid items-start gap-5 @[900px]/pipelineSplit:grid-cols-[1.4fr_1fr]">
         <GlassCard title="Pipeline">
           <DataTable
             columns={pipelineCols}
@@ -189,6 +192,7 @@ export default function HomePage() {
             <DataTable columns={leadCols} rows={data.leads} getRowId={(r: LeadReferral) => r.id} />
           </GlassCard>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -56,6 +56,8 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
           top: 0,
           height: '100vh',
           transition: 'width 0.18s ease',
+          contain: 'layout',
+          willChange: 'width',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '1rem 1.1rem', height: 60 }}>
@@ -75,18 +77,21 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
           {!collapsed && <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>Cumulus</span>}
         </div>
 
-        <nav style={{ flex: 1, padding: '0.5rem', display: 'grid', gap: '0.15rem', alignContent: 'start' }}>
+        <nav aria-label="Primary" style={{ flex: 1, padding: '0.5rem', display: 'grid', gap: '0.15rem', alignContent: 'start' }}>
           {nav.map(item => (
             <button
               key={item.id}
               type="button"
               onClick={item.onClick}
               title={item.label}
+              aria-label={item.label}
+              aria-current={item.active ? 'page' : undefined}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.8rem',
                 padding: '0.6rem 0.75rem',
+                minHeight: 44,
                 borderRadius: 'var(--wp-radius-sm)',
                 border: 'none',
                 cursor: 'pointer',
@@ -108,8 +113,8 @@ export function AppShell({ nav, title, titleAside, children }: AppShellProps) {
         <button
           type="button"
           onClick={() => setCollapsed(c => !c)}
-          aria-label="Toggle navigation"
-          style={{ margin: '0.5rem', padding: '0.5rem', borderRadius: 'var(--wp-radius-sm)', border: '1px solid var(--wp-border)', background: 'transparent', color: 'var(--wp-text-muted)', cursor: 'pointer' }}
+          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          style={{ margin: '0.5rem', minWidth: 44, minHeight: 44, borderRadius: 'var(--wp-radius-sm)', border: '1px solid var(--wp-border)', background: 'transparent', color: 'var(--wp-text-muted)', cursor: 'pointer' }}
         >
           {collapsed ? '»' : '«'}
         </button>
