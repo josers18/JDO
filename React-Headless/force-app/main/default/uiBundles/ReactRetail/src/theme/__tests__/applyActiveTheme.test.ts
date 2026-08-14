@@ -38,6 +38,8 @@ describe('applyActiveThemeOnLoad', () => {
       accent: t.accent,
       accentSoft: t.accentSoft,
       logoBase64: t.logoBase64,
+      // A saved theme with no explicit brandName falls back to its `name`.
+      brandName: t.name,
     });
   });
 

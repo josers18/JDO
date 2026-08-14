@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
-import { useAsyncData, GlassCard, AgentforceChat } from '@shared';
+import { useAsyncData, GlassCard, AgentforceChat, SkeletonCard } from '@shared';
 import { fetchCustomer360, fetchCustomer360Detail } from './customerData';
 import { fetchFull360 } from './full360Data';
 import { ClientIdentityRail } from './ClientIdentityRail';
 import { HighlightStrip } from './HighlightStrip';
 import { ContextSidebar } from './ContextSidebar';
-import { Full360Tabs, FULL_TABS, type FullTab } from './Full360Tabs';
+import { Full360Tabs, TAB_GROUPS, type FullTab } from './Full360Tabs';
 
 /** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
 const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
@@ -23,6 +23,10 @@ export default function Customer360Page() {
   const { id } = useParams();
   const accountId = id ?? '001am00000qvjsAAAQ';
   const [tab, setTab] = useState<FullTab>('Overview');
+  // The active leaf's owning group drives the primary strip's highlight; its
+  // sibling leaves populate the secondary segmented row (shown only when >1).
+  const activeGroup = TAB_GROUPS.find(g => g.tabs.includes(tab)) ?? TAB_GROUPS[0];
+  const selectGroup = (g: (typeof TAB_GROUPS)[number]) => setTab(g.tabs[0]);
 
   const customer = useAsyncData(() => fetchCustomer360(accountId), [accountId]);
   const detail = useAsyncData(() => fetchCustomer360Detail(accountId), [accountId]);
@@ -52,36 +56,79 @@ export default function Customer360Page() {
         </div>
         <HighlightStrip highlights={c.highlights} />
 
-        {/* tab bar */}
+        {/* PRIMARY nav — 5 grouped tabs */}
         <div style={{ display: 'flex', gap: '0.2rem', flexWrap: 'wrap', borderBottom: '1px solid var(--wp-border-strong)' }}>
-          {FULL_TABS.map(t => (
+          {TAB_GROUPS.map(g => (
             <button
-              key={t}
+              key={g.label}
               type="button"
-              onClick={() => setTab(t)}
+              onClick={() => selectGroup(g)}
               style={{
                 padding: '0.55rem 0.9rem',
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
                 fontSize: '0.88rem',
-                fontWeight: tab === t ? 800 : 500,
-                color: tab === t ? 'var(--wp-accent)' : 'var(--wp-text-muted)',
-                borderBottom: `2px solid ${tab === t ? 'var(--wp-accent)' : 'transparent'}`,
+                fontWeight: g === activeGroup ? 800 : 500,
+                color: g === activeGroup ? 'var(--wp-accent)' : 'var(--wp-text-muted)',
+                borderBottom: `2px solid ${g === activeGroup ? 'var(--wp-accent)' : 'transparent'}`,
                 marginBottom: -1,
                 whiteSpace: 'nowrap',
               }}
             >
-              {t}
+              {g.label}
             </button>
           ))}
         </div>
 
-        {detail.data && full.data && <Full360Tabs tab={tab} full={full.data} customer={c} detail={detail.data} />}
+        {/* SECONDARY nav — leaves within the active group (only when >1) */}
+        {activeGroup.tabs.length > 1 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            {activeGroup.tabs.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                style={{
+                  padding: '0.25rem 0.75rem',
+                  border: 'none',
+                  borderRadius: 999,
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  background: tab === t ? 'var(--wp-accent)' : 'var(--wp-surface-raised)',
+                  color: tab === t ? 'var(--wp-on-accent)' : 'var(--wp-text-muted)',
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {detail.data && full.data
+          ? <Full360Tabs tab={tab} full={full.data} customer={c} detail={detail.data} />
+          : (
+            <div style={{ display: 'grid', gap: '1rem' }} aria-busy="true" aria-label="Loading customer detail">
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1rem' }}>
+                <SkeletonCard lines={4} />
+                <SkeletonCard lines={4} />
+              </div>
+              <SkeletonCard lines={3} />
+            </div>
+          )}
       </div>
 
       {/* RIGHT — contextual AI/ML */}
-      {full.data && <ContextSidebar data={full.data} tab={tab} />}
+      {full.data
+        ? <ContextSidebar data={full.data} tab={tab} />
+        : (
+          <div style={{ display: 'grid', gap: '1rem', position: 'sticky', top: 16 }} aria-busy="true">
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={2} />
+          </div>
+        )}
 
       {/* Client-scoped Agentforce FAB — primed with the current client's name. */}
       <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" contextLabel={c.name} />

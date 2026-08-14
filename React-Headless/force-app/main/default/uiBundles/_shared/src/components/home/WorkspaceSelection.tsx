@@ -78,13 +78,25 @@ export function WorkspaceSelectionProvider({
 
   // Hydrate from localStorage once (falling back to the seed), then persist on
   // change. Reads are guarded — storage can throw in sandboxed frames.
+  //
+  // Migration guard: real pins always carry an `id` (derivePins maps every
+  // call-list item to a live Account id; togglePin stores fully-resolved
+  // selections). A persisted set with any id-less entry therefore predates the
+  // real-data cutover — it's mock-era chaff that would otherwise shadow the
+  // real seed forever (localStorage always wins over initialPinned once set),
+  // and an id-less pin can't resolve fetchCustomer360, so its 360 never
+  // enriches. Discard such sets and fall through to the real seed. An empty
+  // persisted array passes the check vacuously, so a deliberate "unpin all"
+  // still survives reloads (it only persists after a first real seed).
   const [pinned, setPinned] = useState<CommandRailPinned[]>(() => {
     if (storageKey && typeof localStorage !== 'undefined') {
       try {
         const raw = localStorage.getItem(storageKey);
         if (raw) {
           const parsed = JSON.parse(raw) as CommandRailPinned[];
-          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed) && parsed.every(p => p && p.id)) {
+            return parsed;
+          }
         }
       } catch {
         /* corrupt/unavailable storage → fall through to the seed */

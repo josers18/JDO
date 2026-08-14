@@ -192,7 +192,7 @@ const FACT_TONE: Record<NonNullable<WorkspaceFact['tone']>, string> = {
 function PanelFact({ fact }: { fact: WorkspaceFact }) {
   return (
     <div className="rounded-[11px] border border-line bg-bg px-3 py-2.5">
-      <span className="mb-1 block truncate font-mono text-[9.5px] uppercase tracking-[0.12em] text-faint">{fact.label}</span>
+      <span className="mb-1 block truncate font-mono text-[10px] uppercase tracking-[0.12em] text-faint">{fact.label}</span>
       <b className={clsx('block truncate text-[14px] font-semibold', fact.tone ? FACT_TONE[fact.tone] : 'text-fg')} title={typeof fact.value === 'string' ? fact.value : undefined}>
         {fact.value}
       </b>
@@ -215,7 +215,7 @@ function PanelSection({ title, children, first, action }: { title: string; child
   return (
     <div className={first ? '' : 'mt-5'}>
       <div className="mb-2.5 flex items-center gap-2">
-        <h4 className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-faint">{title}</h4>
+        <h4 className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">{title}</h4>
         {action && <span className="ml-auto flex-none">{action}</span>}
       </div>
       {children}
@@ -527,7 +527,7 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
             <button
               type="button"
               onClick={handlers.onViewAtRisk}
-              className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
+              className="font-mono text-[10.5px] font-medium text-link transition hover:opacity-80"
             >
               View all →
             </button>
@@ -552,7 +552,7 @@ function DefaultState({ brief, handlers }: { brief: WorkspaceBrief; handlers: Wo
               <button
                 type="button"
                 onClick={handlers.onViewLifeEvents}
-                className="font-mono text-[10.5px] font-medium text-accent transition hover:opacity-80"
+                className="font-mono text-[10.5px] font-medium text-link transition hover:opacity-80"
               >
                 View all →
               </button>
@@ -638,7 +638,7 @@ function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: Worksp
           <div className="flex items-center gap-2">
             <h3 className="truncate font-display text-[18px] font-semibold leading-tight tracking-tight" title={sel.name}>{sel.name}</h3>
             {sel.priorityLabel && (
-              <span className="flex-none rounded-full bg-risk-bg px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.08em] text-risk">
+              <span className="flex-none rounded-full bg-risk-bg px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-risk">
                 {sel.priorityLabel}
               </span>
             )}
@@ -688,7 +688,7 @@ function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: Worksp
             <div className="mt-4 grid grid-cols-2 gap-3">
               {health != null && tone && (
                 <div className="rounded-[13px] border border-line bg-bg px-3.5 py-3">
-                  <span className="mb-1.5 block font-mono text-[9.5px] uppercase tracking-[0.12em] text-faint">Health score</span>
+                  <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">Health score</span>
                   <div className="flex items-center gap-2.5">
                     <HealthRing score={health} size={52} label="" segments={[{ value: health, color: tone.color }]} />
                     <div className="min-w-0">
@@ -704,7 +704,7 @@ function ClientState({ sel, handlers }: { sel: ClientSelection; handlers: Worksp
               )}
               {sel.relationshipValue && (
                 <div className="rounded-[13px] border border-line bg-bg px-3.5 py-3">
-                  <span className="mb-1.5 block font-mono text-[9.5px] uppercase tracking-[0.12em] text-faint">Relationship value</span>
+                  <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-faint">Relationship value</span>
                   <b className="block font-display text-[22px] font-semibold leading-none tracking-tight text-fg">{sel.relationshipValue}</b>
                   {sel.valueDeltaPct != null && (
                     <span className={clsx('mt-1.5 block font-mono text-[10.5px]', sel.valueDeltaPct < 0 ? 'text-risk' : 'text-ok')}>
@@ -820,7 +820,7 @@ function TaskState({ sel, handlers }: { sel: TaskSelection; handlers: WorkspaceP
         <button
           type="button"
           onClick={() => handlers.onOpenClient(sel.clientId, sel.client)}
-          className="mt-1 text-[12.5px] text-accent transition hover:underline"
+          className="mt-1 text-[12.5px] text-link transition hover:underline"
         >
           {sel.client}
         </button>
@@ -863,7 +863,7 @@ function OpportunityState({ sel, handlers }: { sel: OpportunitySelection; handle
         <button
           type="button"
           onClick={() => handlers.onOpenClient(sel.clientId, sel.client)}
-          className="mt-1 text-[12.5px] text-accent transition hover:underline"
+          className="mt-1 text-[12.5px] text-link transition hover:underline"
         >
           {sel.client}
         </button>
@@ -914,7 +914,7 @@ function MeetingState({ sel, handlers }: { sel: MeetingSelection; handlers: Work
         <button
           type="button"
           onClick={() => handlers.onOpenClient(sel.clientId, sel.client)}
-          className="mt-1 text-[12.5px] text-accent transition hover:underline"
+          className="mt-1 text-[12.5px] text-link transition hover:underline"
         >
           {sel.client}
         </button>

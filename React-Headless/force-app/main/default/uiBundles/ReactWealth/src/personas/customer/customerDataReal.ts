@@ -134,7 +134,7 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
     id: accountId,
     name,
     location: [city, state].filter(Boolean).join(', ') || '—',
-    segment: cl?.segment || 'Retail',
+    segment: cl?.segment || 'Wealth',
     riskProfile: cl ? `${cl.life_stage}` : '—',
     customerSince: '—',
     lastInteraction: '—',

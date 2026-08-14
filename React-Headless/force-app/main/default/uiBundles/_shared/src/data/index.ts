@@ -36,6 +36,7 @@ export {
   saveTheme,
   deleteTheme,
   setActiveTheme,
+  saveDisplaySize,
 } from './brandThemeClient';
 export {
   orgCoreOrigin,

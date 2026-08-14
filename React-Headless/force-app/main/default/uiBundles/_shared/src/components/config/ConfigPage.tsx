@@ -18,6 +18,7 @@ import {
 } from '../../data/configClient';
 import { primeCenterConfig } from '../../data/configCache';
 import { BrandThemeSection } from './BrandThemeSection';
+import { DisplaySizeControl } from './DisplaySizeControl';
 
 /**
  * Command-center Configuration page.
@@ -239,6 +240,16 @@ export function ConfigPage({ center, onBack }: { center: PersonaKey; onBack?: ()
 
       <div className="h-5" />
       <BrandThemeSection index={2} />
+
+      <div className="h-5" />
+      <GlassCard title="Display size" index={3}>
+        <p className="mb-4 text-[12.5px] text-muted">
+          Scales the whole interface — text, labels, and boxes — for readability and
+          presentations. Applies instantly and is saved to your user, so it follows you across
+          command centers. This is a personal setting; it doesn’t affect other users.
+        </p>
+        <DisplaySizeControl />
+      </GlassCard>
 
       <div className="mt-6 flex justify-end">
         <Button variant="accent" onClick={onSave} disabled={saving || loading}>

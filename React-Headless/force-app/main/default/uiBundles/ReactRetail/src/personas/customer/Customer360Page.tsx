@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import clsx from 'clsx';
-import { useAsyncData, Panel, Eyebrow, AgentforceChat } from '@shared';
+import { useAsyncData, Panel, Eyebrow, AgentforceChat, SkeletonCard } from '@shared';
 import { fetchCustomer360, fetchCustomer360Detail } from './customerData';
 import { fetchFull360 } from './full360Data';
 import { ClientIdentityRail } from './ClientIdentityRail';
 import { HighlightStrip } from './HighlightStrip';
 import { ContextSidebar } from './ContextSidebar';
-import { Full360Tabs, FULL_TABS, type FullTab } from './Full360Tabs';
+import { Full360Tabs, TAB_GROUPS, type FullTab } from './Full360Tabs';
 
 /** Cumulus Assistant — the main Agentforce agent in jdo-1lrnov. */
 const CUMULUS_AGENT_ID = '0Xxam000000tfCDCAY';
@@ -28,6 +28,10 @@ export default function Customer360Page() {
   const { id } = useParams();
   const accountId = id ?? '001am00000qvjsAAAQ';
   const [tab, setTab] = useState<FullTab>('Overview');
+  // The active leaf's owning group drives the primary strip's highlight; its
+  // sibling leaves populate the secondary segmented row (shown only when >1).
+  const activeGroup = TAB_GROUPS.find(g => g.tabs.includes(tab)) ?? TAB_GROUPS[0];
+  const selectGroup = (g: (typeof TAB_GROUPS)[number]) => setTab(g.tabs[0]);
 
   const customer = useAsyncData(() => fetchCustomer360(accountId), [accountId]);
   const detail = useAsyncData(() => fetchCustomer360Detail(accountId), [accountId]);
@@ -58,28 +62,66 @@ export default function Customer360Page() {
         </div>
         <HighlightStrip highlights={c.highlights} />
 
-        {/* tab bar — underline-active */}
+        {/* PRIMARY nav — 5 grouped tabs (underline-active) */}
         <div style={{ display: 'flex', gap: '0.2rem', flexWrap: 'wrap', borderBottom: '1px solid var(--wp-border-strong)' }}>
-          {FULL_TABS.map(t => (
+          {TAB_GROUPS.map(g => (
             <button
-              key={t}
+              key={g.label}
               type="button"
-              onClick={() => setTab(t)}
+              onClick={() => selectGroup(g)}
               className={clsx(
                 '-mb-px whitespace-nowrap border-b-2 px-3.5 py-2.5 text-[0.88rem] font-medium',
-                tab === t ? 'border-accent font-bold text-accent' : 'border-transparent text-muted',
+                g === activeGroup ? 'border-accent font-bold text-accent' : 'border-transparent text-muted',
               )}
             >
-              {t}
+              {g.label}
             </button>
           ))}
         </div>
 
-        {detail.data && full.data && <Full360Tabs tab={tab} full={full.data} customer={c} detail={detail.data} />}
+        {/* SECONDARY nav — leaves within the active group (only when >1) */}
+        {activeGroup.tabs.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            {activeGroup.tabs.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={clsx(
+                  'whitespace-nowrap rounded-full px-3 py-1 text-[0.8rem] font-semibold transition-colors',
+                  tab === t
+                    ? 'bg-accent text-[color:var(--wp-on-accent)]'
+                    : 'bg-[color:var(--wp-surface-raised)] text-muted hover:text-fg',
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {detail.data && full.data
+          ? <Full360Tabs tab={tab} full={full.data} customer={c} detail={detail.data} />
+          : (
+            <div style={{ display: 'grid', gap: '1rem' }} aria-busy="true" aria-label="Loading customer detail">
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '1rem' }}>
+                <SkeletonCard lines={4} />
+                <SkeletonCard lines={4} />
+              </div>
+              <SkeletonCard lines={3} />
+            </div>
+          )}
       </div>
 
       {/* RIGHT — contextual AI/ML */}
-      {full.data && <ContextSidebar data={full.data} tab={tab} accountId={accountId} />}
+      {full.data
+        ? <ContextSidebar data={full.data} tab={tab} accountId={accountId} />
+        : (
+          <div style={{ display: 'grid', gap: '1rem', position: 'sticky', top: 16 }} aria-busy="true">
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={2} />
+          </div>
+        )}
 
       {/* Client-scoped Agentforce FAB — primed with the current client's name. */}
       <AgentforceChat agentId={CUMULUS_AGENT_ID} agentLabel="Cumulus Assistant" contextLabel={c.name} />

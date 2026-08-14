@@ -85,17 +85,17 @@ export function PriorityQueueRow({
           )}
           <span className="truncate" title={item.clientName}>{item.clientName}</span>
           {emphasis && (
-            <span className="flex-none rounded-full bg-accent px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white">
+            <span className="flex-none rounded-full bg-accent px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white">
               Top priority
             </span>
           )}
-          <span className="flex-none rounded-[5px] bg-track px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted">
+          <span className="flex-none rounded-[5px] bg-track px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-muted">
             {item.segment}
           </span>
           <span className="flex-none text-[12px] text-faint">›</span>
         </div>
         <p className="mt-1.5 truncate text-[13px] text-muted" title={item.reason}>{item.reason}</p>
-        <span className="mt-1.5 inline-block font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">{item.source}</span>
+        <span className="mt-1.5 inline-block font-mono text-[10px] uppercase tracking-[0.1em] text-faint">{item.source}</span>
       </div>
       {/* Per-row action rail — inline at the row's right edge. The content box
           above is `flex-1`, so it grows to fill all free space and pushes this

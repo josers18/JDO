@@ -30,7 +30,7 @@ export default function ThemeCompare() {
                 <div style={{ color: '#8ea0b8', fontFamily: 'system-ui', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.72rem', marginBottom: '0.5rem' }}>
                   {mode}
                 </div>
-                <ThemeProvider persona="retail" mode={mode}>
+                <ThemeProvider persona="retail" mode={mode} scaleDisplaySize={false}>
                   <div style={{ background: 'var(--wp-surface)', borderRadius: 20, padding: '1.25rem', display: 'grid', gap: '1.25rem', border: '1px solid var(--wp-border)' }}>
                     <GlassCard padded>
                       <ClientIdentityRail customer={customer} />

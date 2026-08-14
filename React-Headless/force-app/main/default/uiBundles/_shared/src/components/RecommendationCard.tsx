@@ -43,12 +43,16 @@ export function RecommendationCard({
   onDismiss,
   onEdit,
   onApprove,
+  flat = false,
 }: {
   rec: RecommendationCardItem;
   onOpenClient: () => void;
   onDismiss: () => void;
   onEdit: () => void;
   onApprove: () => void;
+  /** Drop the card's own border/shadow/rounding so a parent can render the whole
+   *  list as ONE bordered box with `divide-y` separators between items. */
+  flat?: boolean;
 }) {
   // Render the client name inside the title as a link, when present.
   const idx = rec.clientName ? rec.title.indexOf(rec.clientName) : -1;
@@ -66,7 +70,16 @@ export function RecommendationCard({
     );
 
   return (
-    <div className="rounded-card border border-line bg-surface p-5 shadow-card transition hover:border-ai-border">
+    <div
+      className={clsx(
+        'transition',
+        flat
+          ? // Flat: no chrome of its own — the parent box owns the border and
+            // draws separators via divide-y. Hover just warms the row surface.
+            'p-5 hover:bg-surface-muted'
+          : 'rounded-card border border-line bg-surface p-5 shadow-card hover:border-ai-border',
+      )}
+    >
       <div className="mb-3 flex items-center gap-3">
         <span className={clsx('grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]', KIND_CHIP[rec.kind])}>
           <Icon name={KIND_ICON[rec.kind]} size={15} />

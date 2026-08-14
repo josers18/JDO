@@ -29,11 +29,17 @@ export const routes: RouteObject[] = [
   },
 
   // HOME app — banker landing that replaces the standard home page (full shell).
+  // The 10-section home is split across three grouped routes so a laptop fold
+  // isn't a wall of stacked cards: Today (/) · Growth (/growth) · Health
+  // (/health). All three share HomeLayout (chrome + CommandRail + sticky
+  // Client-360 panel); only HomePage's `mode` prop changes which sections show.
   {
     path: '/',
     element: <HomeLayout />,
     children: [
-      { index: true, element: <HomePage />, handle: { showInNavigation: true, label: 'Home' } },
+      { index: true, element: <HomePage mode="today" />, handle: { showInNavigation: true, label: 'Today' } },
+      { path: 'growth', element: <HomePage mode="growth" />, handle: { showInNavigation: true, label: 'Growth' } },
+      { path: 'health', element: <HomePage mode="health" />, handle: { showInNavigation: true, label: 'Health' } },
       { path: 'config', element: <ConfigRoute />, handle: { showInNavigation: true, label: 'Configuration' } },
       { path: '*', element: <NotFound /> },
     ],

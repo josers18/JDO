@@ -25,6 +25,33 @@ const PRI = { High: 'var(--wp-neg)', Medium: 'var(--wp-warn)', Low: 'var(--wp-te
 export const FULL_TABS = ['Overview', 'Details', 'Journey', 'Money', 'Property', 'Engagement', 'Cases', 'Opportunities', 'Campaigns', 'Notes', 'Tearsheet'] as const;
 export type FullTab = (typeof FULL_TABS)[number];
 
+export interface TabGroup {
+  label: string;
+  tabs: FullTab[];
+}
+
+/**
+ * Primary information architecture — collapses the {10,11,12} leaf tabs into 5
+ * top-level groups so the tab strip no longer wraps into an unscannable double
+ * row (design-audit #9). The `tab` state stays a *leaf* FullTab, so the content
+ * switch below and the ContextSidebar intelligence map are untouched; the
+ * secondary segmented row (rendered by Customer360Page when a group has >1 leaf)
+ * drives leaf selection. Leaves absent from THIS bundle's FULL_TABS are filtered
+ * out — the same block compiles in every bundle (e.g. no 'Property' in the CRM
+ * bundle, 'Company Intel' only in Commercial). Typed as string[] before the
+ * cast so the shared literal doesn't fail against a narrower FullTab union. */
+const RAW_TAB_GROUPS: { label: string; tabs: string[] }[] = [
+  { label: 'Overview', tabs: ['Overview', 'Details'] },
+  { label: 'Finances', tabs: ['Money', 'Property', 'Company Intel'] },
+  { label: 'Relationship', tabs: ['Journey', 'Engagement', 'Cases'] },
+  { label: 'Growth', tabs: ['Opportunities', 'Campaigns'] },
+  { label: 'Notes & Tools', tabs: ['Notes', 'Tearsheet'] },
+];
+export const TAB_GROUPS: TabGroup[] = RAW_TAB_GROUPS.map(g => ({
+  label: g.label,
+  tabs: g.tabs.filter(t => (FULL_TABS as readonly string[]).includes(t)) as FullTab[],
+})).filter(g => g.tabs.length > 0);
+
 /**
  * Renders the active tab's content for the full Customer 360. Each tab fuses the
  * §3b content areas; the profile-widget tabs (AI Signals/Portfolio/etc.) are

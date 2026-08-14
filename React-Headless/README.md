@@ -9,7 +9,7 @@ It now hosts a three-persona banking cockpit suite — **React Retail**, **React
 ## Status
 
 - **Created:** 2026-06-25
-- **Target org:** `jdo-oe0sdd` (Cumulus Financial Services, Enterprise Edition — org id `00Dam00000Uo32qEAB` / `storm-16a17dc388fbe6`; the former `jdo-1lrnov` and `jdo-0pz8au` aliases pointed at this same org but no longer resolve)
+- **Target org:** `jdo-oe0sdd` (Cumulus Financial Services, Enterprise Edition — org id `00Dam00000Uo32qEAB` / `storm-16a17dc388fbe6`; the `jdo-0pz8au` alias points at this same org and also resolves; the former `jdo-1lrnov` alias no longer resolves)
 - **API version:** 67.0 (see "Critical: API version" below)
 - **Bundles:**
   - `uiBundles/ReactRetail/` — Retail banker home + customer 360 (live GraphQL + Data Cloud data)
@@ -84,13 +84,13 @@ All three render in-org at the Salesforce App Domain (org `jdo-oe0sdd` / `storm-
 
 All three apps default to live data (GraphQL for CRM, the `DcBridgeRest` Apex bridge for Data Cloud, and prompt-flow-backed Einstein/Agentforce summaries), with a per-domain mock fallback via `dataSource.ts`. Commercial adds a Company Intel 360 tab (ZoomInfo firmographics, BoardEx governance, MSCI ESG, SEC filings) and a book-level Delinquency Watch home panel.
 
-Each cockpit is styled with the **Cumulus Aurora** design language (Fraunces + Hanken Grotesk typography, light-mode Aurora Glass) and renders native-style Salesforce chrome inside the React shell — an app-launcher waffle, multi-object global search, user menu, and notifications. Every persona also embeds **real Agentforce chat** via the Agentforce Conversation Client (a floating AI assistant), with an in-panel switcher across four employee agents (Cumulus Assistant, Financial Advisor, Data Cloud Agent, Analytics & Visualization).
+Each cockpit is styled with the **Cumulus Aurora** design language (Apple SF Pro system-font typography, light-mode Aurora Glass) and renders native-style Salesforce chrome inside the React shell — an app-launcher waffle, multi-object global search, user menu, and notifications. Every persona also embeds **real Agentforce chat** via the Agentforce Conversation Client (a floating AI assistant), with an in-panel switcher across four employee agents (Cumulus Assistant, Financial Advisor, Data Cloud Agent, Analytics & Visualization).
 
 The banker home turns AI briefs into **one-click actions**: generate/draft with Einstein (`AiGenerateRest` → `/ai/generate`, composed-first with a graceful fallback), and create records — tasks, meetings, emails, cases, follow-ups — through `CrmWriteRest` (`/crm/*`). Writes **refetch in place** (no spinner), so a task or meeting created from the page shows up immediately in its Overdue / Today / Upcoming bucket; the email recipient auto-fills from the client's Account record. The Tasks & Schedule table's detail popup is a **native-mirror `ScheduleDetailModal`** — Type, Comments, and system fields alongside editable, type-ahead Assigned To / Related To lookups, plus Mark Complete / Delete / create-follow-up quick actions.
 
 Each cockpit also carries an in-app **Configuration** page (`/config`) where an admin picks which Agentforce model runs each generative action — from a **self-updating catalog** discovered by probing the org's live foundation models (there is no listing API) and cached on a `CommandCenterConfig__c` singleton via `CommandCenterConfigRest` (`/config/*`). Settings are org-level and shared; a "Refresh models" button forces a fresh discovery probe.
 
-The Configuration page also carries a **brand theming** section: paste a site URL to auto-extract its logo + a suggested accent palette, refine by hand, and save as a named theme in an org-shared library; a user's active theme choice persists per Salesforce user and re-skins every cockpit's accent/gradient/glow without touching structural layout. Two pinned, non-deletable **default Light/Dark** themes are always available as a fallback to the standard Aurora looks.
+The app is also **brand-themable per user**. A theming UI lets each user build, name, edit, and activate holistic **brand themes** — a multi-color logo palette (extracted from an uploaded/fetched logo, with a complementary-color suggestion), per-element/role color mapping, an optional dedicated **AI accent** as a third brand color, agent-bubble and aurora-wash colors, plus always-available fixed **Light/Dark** baselines — and pick an app-wide **display size** (font/UI scale). Theme *definitions* are org-shared; the *active theme* and *display size* are stored **per user** (UserId-keyed maps on the same `CommandCenterConfig__c` singleton), applied on load without blocking paint. All of it reads/writes through `CommandCenterConfigRest` brand-theming routes (`/config/themes`, `/config/active-theme`, `/config/display-size`, `/config/brand-logo`); the theming client and token machinery live in `_shared/src/theme/`.
 
 The banker home ships **two layouts** behind a top-bar toggle: the original **Current** stacked list and a **Cockpit** command center. The cockpit brief opens with a personalized time-of-day greeting, an embedded **Right Now** next-action card, and a **Portfolio Pulse** strip; below it sit sparkline KPI vitals (Pipeline, Leads & Referrals, at-risk, active goals), a side-by-side Priority Queue + Recommended Actions, a tabbed customer-360 workspace panel that master-details off any row you click, and a supporting band. The cockpit is **de-duplicated and sidebar-first** — the KPI vitals, the Portfolio-Pulse header, and the left rail's section links all open search/filter/table **explorer modals** (rather than repeating content in bottom detail boxes); the classic view keeps its full-page sections. The **Priority Queue** is blended and dated — it merges each persona's signature risk signal (CSAT / credit / held-away) with open-opportunity and overdue-task items, each with a real due date, so it sorts into a genuinely mixed, ranked worklist.
 
@@ -107,7 +107,7 @@ React-Headless/
 │   │   ├── ReactCommercial/             # Commercial cockpit
 │   │   └── ReactHeadless/               # review harness
 │   ├── applications/                    # CustomApplication per persona (uiBundle binding)
-│   ├── objects/                         # CommandCenterConfig__c — org-level AI config singleton
+│   ├── objects/                         # CommandCenterConfig__c — org-level AI config + model cache + per-user brand-theme / display-size maps
 │   ├── pages/                           # <App>Launcher VF pages — App Launcher bridge to the App Domain
 │   ├── tabs/                            # <App>App CustomTabs — the waffle-menu tiles
 │   ├── permissionsets/                  # <App>_Access (app/tab/page access) + CommandCenterConfigAdmin (config FLS)

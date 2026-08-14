@@ -33,7 +33,7 @@ export function ScoreRing({
           {value}
         </span>
       </span>
-      {caption && <span className="block text-[8.5px] uppercase tracking-[0.06em] text-faint mt-1">{caption}</span>}
+      {caption && <span className="block text-[10px] uppercase tracking-[0.06em] text-faint mt-1">{caption}</span>}
     </span>
   );
 }

@@ -21,6 +21,9 @@
   --wp-pos: #34d399;
   --wp-neg: #f87171;
   --wp-warn: #fbbf24;
+  /* Links / informational affordances — defaults to the accent hue, overridable
+     per-brand via the theme's linkColor. */
+  --wp-link: #14b8a6;
   /* text that sits on a solid accent fill */
   --wp-on-accent: #04121a;
 
@@ -66,14 +69,29 @@
   /* Darkened for pure-white surfaces (was #6b7290 / #9aa2bd, tuned for the
      tinted aurora wash and too pale on white — secondary text vanished). */
   --wp-text-muted: #454c66;
-  --wp-text-faint: #697089;
+  /* Darkened from #697089 (4.35:1 on the tinted surface — just under AA) so
+     faint metadata clears 4.5:1 on white, surface, and glass alike. */
+  --wp-text-faint: #5f6683;
   --wp-radius: 20px;
   --wp-radius-sm: 14px;
   --wp-shadow: 0 18px 50px rgba(40, 50, 90, 0.14);
   --wp-shadow-sm: 0 10px 30px rgba(40, 50, 90, 0.10);
-  --wp-pos: #12a594;
-  --wp-neg: #e5544b;
-  --wp-warn: #e0912f;
+  /* Status hues darkened for WCAG AA (2026-07-28). The prior brighter values
+     (#12a594 / #e5544b / #e0912f) failed 4.5:1 as text — worst on their own
+     soft-tint chips (bg-*-bg text-*): warn 2.26, ok 2.75, risk 3.14. These
+     deeper hues clear 4.5:1 on white, the tinted surface, glass, AND the soft
+     chips, while staying legible as solid fills/dots. Dark mode is unchanged
+     (its brighter hues already pass on the near-black surface). */
+  --wp-pos: #107569;
+  --wp-neg: #c2352c;
+  --wp-warn: #9a5b00;
+  /* Link/informational text darkened from the accent blue (#5b8def, 3.23:1 as
+     text — a large-text-only pass that fails for normal-size links) to a hue
+     that clears 4.5:1 on white/surface/glass. */
+  --wp-link: #3a67c9;
+  /* Fallback only. ThemeProvider recomputes --wp-on-accent per active accent
+     via luminance so text on the accent fill always meets contrast; this pins
+     the static default (white on the :root blue) used before that runs. */
   --wp-on-accent: #ffffff;
 
   /* Aurora accent — blue → violet, with the ambient page wash */
@@ -140,6 +158,25 @@
     transform: rotate(360deg);
   }
 }
+
+/* ── Staggered entry (cockpit card reveal) ─────────────────────────
+   Add `wp-stagger` to a container: each direct child fades+rises in
+   sequence via the existing wp-fade-up keyframe, so the command center
+   assembles top-to-bottom instead of popping in flat. CSS-only (nth-child
+   delays) — no per-card index prop threading. Capped at 8 steps so a long
+   list doesn't accumulate a visible late delay. Fully disabled under
+   prefers-reduced-motion (children render immediately, no transform). */
+.wp-stagger > * {
+  animation: wp-fade-up 0.5s ease both;
+}
+.wp-stagger > *:nth-child(1) { animation-delay: 0s; }
+.wp-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.wp-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.wp-stagger > *:nth-child(4) { animation-delay: 0.18s; }
+.wp-stagger > *:nth-child(5) { animation-delay: 0.24s; }
+.wp-stagger > *:nth-child(6) { animation-delay: 0.30s; }
+.wp-stagger > *:nth-child(7) { animation-delay: 0.36s; }
+.wp-stagger > *:nth-child(n + 8) { animation-delay: 0.42s; }
 
 /* wp-fade-up/pulse/shimmer/spin are applied inline (style={{ animation: '...' }}),
    not via class, so collapse every keyframe animation AND transition (incl. the

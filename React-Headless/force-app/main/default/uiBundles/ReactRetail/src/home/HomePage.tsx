@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  useAsyncData,
   ToastProvider,
   useToast,
   Button,
@@ -36,10 +35,16 @@ import {
   DetailModal,
   type DetailModalData,
   DataExplorerModal,
+  CrossSellWhitespace,
   Pill,
   WorkspacePanel,
   useWorkspaceSelection,
+  selectionToProfile,
+  type ClientProfile,
   type WorkspaceSelection,
+  type ClientSelection,
+  type PanelSignal,
+  type PanelTimelineEntry,
   type WorkspaceBrief,
   type WorkspacePanelHandlers,
   Icon,
@@ -53,97 +58,24 @@ import {
   generateText,
   loadCenterConfig,
   DEFAULT_CONFIG,
-  type ClientProfile,
   type CrmWriteInput,
   type DraftRow,
   type AiGenerateResult,
   type AiActionKey,
   type CommandCenterConfig,
 } from '@shared';
-import { fetchHomeDashboard } from './homeData';
+import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
+import { fetchCustomer360, fetchCustomer360Detail } from '../personas/customer/customerData';
+import type { Customer360, Customer360Detail, AiSignal } from '../personas/customer/customerTypes';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { modeFor } from '../data/dataSource';
 import { APP_PERSONA } from '../shell/appChrome';
 
-/* ── Rich mock profiles for prep / quick view (retail book) ───────── */
-const PROFILES: Record<string, ClientProfile> = {
-  'Julie E Morris': {
-    initials: 'JM',
-    descriptor: 'Retail household',
-    since: '2016',
-    csat: 'Poor · 62',
-    value: '$1.24M',
-    openCases: '5',
-    tier: 'Platinum',
-    priorityLabel: 'High Priority',
-    healthScore: 62,
-    healthLabel: 'Fair',
-    healthDeltaPts: -8,
-    valueDeltaPct: 6,
-    facts: [
-      ['Open opp', '$150K personal loan'],
-      ['Overdue task', '270 days'],
-      ['Open cases', '5'],
-      ['Last contact', '9 mo ago'],
-    ],
-    signals: [
-      { label: 'CSAT dropped below threshold', when: 'Today', tone: 'risk' },
-      { label: 'Complaint ticket opened', when: 'Yesterday', tone: 'risk' },
-      { label: 'Digital banking login', when: 'Yesterday', tone: 'ok' },
-    ],
-    timeline: [
-      { when: 'Yesterday', title: 'Complaint opened', detail: 'Service issue logged by client', tone: 'risk' },
-      { when: '3 days ago', title: 'Wire completed', detail: '$250,000 outgoing wire', tone: 'neutral' },
-      { when: '7 days ago', title: 'Rollover discussion', detail: 'Exploring 401k options', tone: 'neutral' },
-      { when: '2 wks ago', title: 'Login detected', detail: 'Digital banking login', tone: 'ok' },
-    ],
-    recap:
-      'Julie has banked with Cumulus for 9 years across a mortgage, two deposit accounts, and a brokerage link. Engagement dropped after a branch closure near her; CSAT slid to Poor over the last three surveys. A 401k rollover conversation started in 2024 was never closed, and a $150K personal-loan opportunity is sitting in Interested. Five open cases — most notably a lost debit card — are the likely CSAT driver.',
-    talk:
-      'Lead by resolving the lost-card case live on the call — that rebuilds trust before any product talk. Then reframe the idle rollover as a simple, guided next step and connect it to the personal-loan need she already raised.',
-    nbaHeadline: 'Schedule service recovery call',
-    nba: [
-      'Resolve lost-card case & confirm replacement shipped',
-      'Walk the 401k rollover, offer to e-sign on the call',
-      "Re-open the $150K personal-loan quote at today's rate",
-    ],
-  },
-  'AJC Corporation': {
-    initials: 'AJ',
-    descriptor: 'Commercial',
-    since: '2021',
-    csat: 'Good · 81',
-    value: '$3.0M deal',
-    openCases: '—',
-    tier: 'Commercial',
-    healthScore: 81,
-    healthLabel: 'Good',
-    healthDeltaPts: 2,
-    valueDeltaPct: 12,
-    facts: [
-      ['Deal', '$3.0M CRE term loan'],
-      ['Stage', 'Closing/Funding'],
-      ['Probability', '80%'],
-      ['Idle', '12 days'],
-    ],
-    signals: [
-      { label: 'Deal stalled 12 days', when: '12d', tone: 'warn' },
-      { label: 'Appraisal received', when: '2 wks', tone: 'ok' },
-    ],
-    timeline: [
-      { when: '12 days ago', title: 'Terms agreed', detail: 'Verbal agreement on rate', tone: 'ok' },
-      { when: '2 wks ago', title: 'Appraisal received', detail: 'Collateral valued', tone: 'ok' },
-      { when: '3 wks ago', title: 'Application submitted', detail: '$3M CRE term loan', tone: 'neutral' },
-    ],
-    recap:
-      'AJC is a commercial real-estate borrower with a $3M term loan at the funding stage. Everything is verbally agreed but no activity has been logged in 12 days, and no funding date is set — the classic way an 80% deal slips a quarter.',
-    talk:
-      'Keep it operational and short: confirm the final documents received, name any open blocker, and put a funding date on the calendar before you hang up.',
-    nbaHeadline: 'Confirm docs & set funding date',
-    nba: ['Confirm final docs & appraisal received', 'Set a hard funding date', 'Send DocuSign package for signatures'],
-  },
-};
+/** Default account for the full Customer 360 when a selection carries no id
+ *  (e.g. a demo pinned household with no backing Account). Mirrors the fallback
+ *  Customer360Page uses for a missing route param, so navigation always lands. */
+const DEFAULT_ACCOUNT_ID = '001am00000qvjsAAAQ';
 
 /* ── Modal state ──────────────────────────────────────────────────── */
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
@@ -169,18 +101,33 @@ function scrollToId(id: string) {
  * with modals that perform real CRM writes. Wrapped in a ToastProvider so any
  * child (including the write modals) can raise a toast.
  */
-export default function HomePage() {
+/**
+ * Home page mode — set by the route, NOT the user. It groups the ~10 sections
+ * into three at-a-glance pages so a 13" laptop fold isn't a wall of stacked
+ * cards:
+ *   • today  (/)       — brief → vitals → priority queue + recommended actions
+ *   • growth (/growth) — cross-sell white-space → pipeline → leads & referrals
+ *   • health (/health) — risk alerts → life events → portfolio pulse → metrics
+ * The Current/Cockpit `view` is orthogonal (it decides arrangement); `mode`
+ * decides which sections show.
+ */
+export type HomeMode = 'today' | 'growth' | 'health';
+
+export default function HomePage({ mode = 'today' }: { mode?: HomeMode }) {
   return (
     <ToastProvider>
-      <HomeContent />
+      <HomeContent mode={mode} />
     </ToastProvider>
   );
 }
 
-function HomeContent() {
+function HomeContent({ mode }: { mode: HomeMode }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data, loading, refetch } = useAsyncData(fetchHomeDashboard, []);
+  // Live HomeDashboard from the shared HomeData context (one fetch shared with
+  // HomeLayout's CommandRail). `refetch` keeps current data on screen and is
+  // wired to every write modal's onSaved so an edit re-pulls the book.
+  const { data, loading, refetch } = useHomeData();
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const speech = useSpeech();
@@ -215,6 +162,14 @@ function HomeContent() {
   // center row (client / task / opportunity / meeting) sets this; the panel
   // renders the matching state, and `{ kind: 'none' }` shows the default brief.
   const [selection, setSelection] = useState<WorkspaceSelection>({ kind: 'none' });
+  // Account id currently being enriched (phase 2 fetch in flight) — drives a
+  // subtle "enriching…" affordance on the panel until the live 360 lands.
+  const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  // Client profile driving the profile-bearing modals (QuickView / Prep). Built
+  // instant-then-enrich exactly like the side panel: phase 1 from in-memory
+  // dashboard data, phase 2 merged from the live Customer 360. Without this the
+  // modals render their CSAT / Value / Open-cases tiles as bare '—'.
+  const [modalProfile, setModalProfile] = useState<ClientProfile | undefined>(undefined);
   // Bridge to the left sidebar's pinned-accounts block (lives in the layout,
   // outside this component). A pin click bumps `pinnedRequest`; we resolve it
   // into a full client selection below.
@@ -262,6 +217,86 @@ function HomeContent() {
     if (target) setExplorer(target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navRequest?.nonce]);
+
+  // ── Two-phase Client-360 enrichment ──────────────────────────────
+  // Phase 1 (buildClientSelection) renders instantly from in-memory dashboard
+  // data on click. Phase 2 here fetches the live Customer360 + Customer360Detail
+  // for the selected account and merges the rich fields (health / tier / value /
+  // AI recap / signals / timeline / NBA) into the selection. Keyed on the client
+  // id; the last-enriched id is tracked so re-selecting the same client doesn't
+  // refetch. Race-guarded: a stale response (id changed, or unmount) is dropped,
+  // and a failed fetch keeps the Phase-1 card (no toast).
+  const enrichedIdRef = useRef<string | null>(null);
+  const selClientId = selection.kind === 'client' ? selection.id : undefined;
+  useEffect(() => {
+    if (selection.kind !== 'client' || !selClientId) {
+      enrichedIdRef.current = null;
+      return;
+    }
+    if (enrichedIdRef.current === selClientId) return; // already enriched this id
+    enrichedIdRef.current = selClientId;
+    const id = selClientId;
+    let cancelled = false;
+    setEnrichingId(id);
+    Promise.all([fetchCustomer360(id), fetchCustomer360Detail(id)])
+      .then(([c360, detail]) => {
+        if (cancelled || !c360) return;
+        setSelection(prev => {
+          // Only merge if the selection is still the same client we fetched for.
+          if (prev.kind !== 'client' || prev.id !== id) return prev;
+          return mergeEnrichment(prev, c360, detail);
+        });
+      })
+      .catch(() => {
+        /* graceful degrade — keep the Phase-1 card, no toast */
+      })
+      .finally(() => {
+        if (!cancelled) setEnrichingId(prev => (prev === id ? null : prev));
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selClientId, selection.kind]);
+
+  // ── Profile-bearing modals (QuickView 360 / Prep sheet) instant-then-enrich.
+  //    A profile modal opens knowing only the client name/id; without a profile
+  //    its stat tiles render as bare '—'. Mirror the side panel: build the
+  //    Phase-1 profile instantly from in-memory data, then merge the live
+  //    Customer 360 (+ detail) — the same fetch the panel uses. Keyed on the
+  //    open modal's client id; race-guarded and graceful-degrading. Reset to
+  //    undefined when no profile modal is open so a stale profile never leaks
+  //    into the next client's modal.
+  const profileModalId =
+    modal.type === 'quickview' || modal.type === 'prep' ? modal.id : undefined;
+  const profileModalName =
+    modal.type === 'quickview' || modal.type === 'prep' ? modal.name : undefined;
+  useEffect(() => {
+    if (!profileModalName || !data) {
+      setModalProfile(undefined);
+      return;
+    }
+    // Phase 1 — instant profile from the in-memory book (reuses the panel's
+    // client-selection builder, then maps it onto the modal's ClientProfile).
+    const phase1 = buildClientSelection(profileModalName, profileModalId);
+    setModalProfile(phase1.kind === 'client' ? selectionToProfile(phase1) : undefined);
+    if (!profileModalId) return;
+    // Phase 2 — enrich from the live Customer 360, merged the same way the panel
+    // merges, then re-mapped onto the modal profile.
+    let cancelled = false;
+    Promise.all([fetchCustomer360(profileModalId), fetchCustomer360Detail(profileModalId)])
+      .then(([c360, detail]) => {
+        if (cancelled || !c360 || phase1.kind !== 'client') return;
+        setModalProfile(selectionToProfile(mergeEnrichment(phase1, c360, detail)));
+      })
+      .catch(() => {
+        /* graceful degrade — keep the Phase-1 profile, no toast */
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileModalId, profileModalName, data]);
 
   // Merge the configured model + params into an AI request for a given action.
   const withConfig = (
@@ -316,53 +351,50 @@ function HomeContent() {
   const open = (type: ModalKind, name: string, id?: string, subject?: string, toAddress?: string) => setModal({ type, name, id, subject, toAddress });
   const close = () => setModal({ type: 'none' });
   const flowFor = (id?: string) => (modeFor('agentforce') === 'real' && id ? AGENTFORCE_FLOWS.account : undefined);
-  const profileFor = (name: string) => PROFILES[name];
+  // Open the full Customer 360 route. Some selections (e.g. a pinned household
+  // with no real Account backing it) carry no id; rather than dead-end on a
+  // toast that reads as a broken button, fall back to the persona's default
+  // account — the same id Customer360Page itself defaults to when the route
+  // param is absent, so the 360 always opens.
   const openFull = (id?: string) => {
-    if (id) navigate(`/client/${id}`);
-    else toast('Full 360', 'Open the client record for the complete view');
+    navigate(`/client/${id ?? DEFAULT_ACCOUNT_ID}`);
   };
 
   // ── Right context panel: build a selection payload for each entity kind.
   //    The panel is presentational; these builders turn a clicked row into the
   //    render-ready shape the panel expects.
+  //
+  // PHASE 1 of the two-phase 360: built PURELY from in-memory dashboard data so
+  // it renders the instant a row/pin is clicked. The rich fields (health / tier
+  // / relationship value / AI recap / signals / timeline / NBA) are left
+  // undefined here and merged by the phase-2 enrichment effect once the live
+  // Customer360 lands. Fields with no in-memory source render '—' or are omitted.
   function buildClientSelection(name: string, id?: string): WorkspaceSelection {
-    const p = PROFILES[name];
     // May be invoked from the pinnedRequest effect (which runs before the
     // loading guard), so re-narrow the book optionally rather than assuming it.
     const call = data?.callList.find(c => c.clientName === name);
     const opps = data?.pipeline.filter(o => o.clientName === name) ?? [];
     const events = data?.lifeEvents.filter(e => e.clientName === name) ?? [];
+    const openCases = data?.cases.filter(cs => cs.clientName === name) ?? [];
     const signals = [
       ...events.map(e => ({ label: e.event, sub: e.opportunity, meta: e.when })),
       ...opps.map(o => ({ label: o.name, sub: `${o.stage} · ${Math.round(o.propensity * 100)}%`, meta: formatValue(o.amount, 'currencyCompact') })),
     ].slice(0, 5);
-    const subtitleBits = [p?.descriptor ?? call?.segment ?? 'Client'];
-    if (p?.since) subtitleBits.push(`Since ${p.since}`);
-    if (p?.tier) subtitleBits.push(p.tier);
     return {
       kind: 'client',
       id: id ?? call?.clientId,
       name,
-      subtitle: subtitleBits.join(' · '),
-      initials: p?.initials,
-      priorityLabel: p?.priorityLabel ?? (call?.severity === 'high' ? 'High Priority' : undefined),
-      tier: p?.tier,
-      healthScore: p?.healthScore,
-      healthLabel: p?.healthLabel,
-      healthDeltaPts: p?.healthDeltaPts,
-      relationshipValue: p?.value ?? (call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined),
-      valueDeltaPct: p?.valueDeltaPct,
+      subtitle: call?.segment ?? 'Client',
+      priorityLabel: call?.severity === 'high' ? 'High Priority' : undefined,
+      relationshipValue: call && call.relationshipValue ? formatValue(call.relationshipValue, 'currencyCompact') : undefined,
       facts: [
-        { label: 'CSAT', value: p?.csat ?? '—', tone: (p?.csat ?? '').startsWith('Poor') ? 'risk' : undefined },
-        { label: 'Value', value: p?.value ?? (call ? formatValue(call.relationshipValue, 'currencyCompact') : '—') },
-        { label: 'Open cases', value: p?.openCases ?? '—' },
+        { label: 'CSAT', value: '—' },
+        { label: 'Value', value: call ? formatValue(call.relationshipValue, 'currencyCompact') : '—' },
+        { label: 'Open cases', value: openCases.length ? String(openCases.length) : '—' },
       ],
-      summary: p?.recap ?? call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
-      signalRows: p?.signals,
+      summary: call?.reason ?? 'AI relationship summary generates on open from CRM, Data Cloud signals, and recent activity.',
       signals,
-      nbaHeadline: p?.nbaHeadline,
-      nba: p?.nba ?? (call ? [call.action] : []),
-      timeline: p?.timeline,
+      nba: call ? [call.action] : [],
     };
   }
 
@@ -410,7 +442,6 @@ function HomeContent() {
 
   const selectMeetingPanel = (item: ScheduleItem) => {
     const call = item.clientName ? data.callList.find(c => c.clientName === item.clientName) : undefined;
-    const p = item.clientName ? PROFILES[item.clientName] : undefined;
     setSelection({
       kind: 'meeting',
       title: item.title,
@@ -421,8 +452,8 @@ function HomeContent() {
         { label: 'Type', value: item.kind[0].toUpperCase() + item.kind.slice(1) },
         { label: 'Client', value: item.clientName ?? 'Internal' },
       ],
-      agenda: p?.nba ?? (call ? [call.action] : ['Review relationship status', 'Confirm next steps']),
-      talkingPoints: p?.talk ? [p.talk] : (call ? [call.reason] : ['Open with the client’s most recent signal.']),
+      agenda: call ? [call.action] : ['Review relationship status', 'Confirm next steps'],
+      talkingPoints: call ? [call.reason] : ['Open with the client’s most recent signal.'],
       questions: [
         'What has changed since we last spoke?',
         call ? `How can we help with ${call.action.toLowerCase()}?` : 'What are your priorities this quarter?',
@@ -900,7 +931,7 @@ function HomeContent() {
     narrative: data.aiBrief,
     confidencePct: data.confidencePct,
     pulse: [
-      { label: 'Wins · 30d', value: '$0', tone: 'warn' },
+      { label: 'Wins · 30d', value: '$0' },
       { label: 'Activity · 7d', value: String(data.schedule.length) },
     ],
     agenda: data.schedule.map(s => ({ id: s.id, time: s.time, title: s.title, kind: s.kind, client: s.clientName })),
@@ -964,6 +995,25 @@ function HomeContent() {
         />
       ))}
     </div>
+    </div>
+  );
+
+  // Health-page variant: all KPIs on ONE line as a compact vitals strip. Steps
+  // up to a 6th column at xl so the 6-KPI set doesn't orphan Active Goals onto a
+  // second row (grid-cols-5 wraps the 6th). Falls back to 5/3/2 on narrower
+  // content regions so it never overflows.
+  const kpiGridWide = (
+    <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+      {data.kpis.map(k => (
+        <KpiCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          risk={k.key === 'atRisk'}
+          onClick={() => kpiClick(k.key)}
+        />
+      ))}
     </div>
   );
 
@@ -1047,29 +1097,52 @@ function HomeContent() {
   );
   // `capped` trims the card list to the reveal window and appends a footer — used
   // in the cockpit column to hold its height; the classic view passes all cards.
-  const buildActionsBody = (capped: boolean) => {
+  // `withHeader` folds the section title INTO the top of the box as its first
+  // row (same header-inside-box chrome as PriorityQueueCard) so the cockpit reads
+  // as one continuous panel instead of a header card floating above the list.
+  const buildActionsBody = (capped: boolean, withHeader = false) => {
     const recs = capped ? recsReveal.visible : visibleRecs;
+    if (!visibleRecs.length) {
+      return <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>;
+    }
+    // One bordered box: an optional header row, flat cards stacked with `divide-y`
+    // rules between them, and the reveal footer as the final divided row (replaces
+    // the old separate-card-per-action look).
     return (
-      <div className="grid gap-3.5">
-        {recs.map(rec => (
-          <RecommendationCard
-            key={rec.id}
-            rec={rec}
-            onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
-            onDismiss={() => {
-              setDismissed(s => new Set(s).add(rec.id));
-              toast('Dismissed', 'Recommendation removed — model will learn from this');
-            }}
-            onEdit={() => editRec(rec)}
-            onApprove={() => void approveRec(rec)}
-          />
-        ))}
-        {!visibleRecs.length && <p className="rounded-card border border-line bg-surface p-6 text-[13px] text-muted">All recommendations handled. Nice work.</p>}
-        {capped && (recsReveal.hasMore || recsReveal.expanded) && (
-          <div className="overflow-hidden rounded-card border border-line bg-surface">
-            <RevealFooter reveal={recsReveal} noun="actions" />
+      // Own the scroll anchor only when standing alone (cockpit). In the classic
+      // view an outer <section id="actions"> wraps this, so don't duplicate the id.
+      <div id={withHeader ? 'actions' : undefined} className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+        {withHeader && (
+          <div className="border-b border-line px-5 pb-3.5 pt-4">
+            <div className="flex items-end gap-2.5">
+              <div className="min-w-0">
+                <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">Agentforce · pre-drafted</div>
+                <h2 className="mt-0.5 font-display text-[19px] font-semibold tracking-tight">Recommended Actions</h2>
+              </div>
+              <div className="ml-auto flex flex-none items-center gap-2">{actionsControls}</div>
+            </div>
           </div>
         )}
+        {/* line-strong, not line: in light mode --wp-border is near-white (a
+            raised-edge highlight for cards on the gray page) and vanishes as an
+            INTERNAL divider on the white box. line-strong is the visible hairline. */}
+        <div className="divide-y divide-line-strong">
+          {recs.map(rec => (
+            <RecommendationCard
+              key={rec.id}
+              rec={rec}
+              flat
+              onOpenClient={() => open('quickview', rec.clientName, rec.clientId)}
+              onDismiss={() => {
+                setDismissed(s => new Set(s).add(rec.id));
+                toast('Dismissed', 'Recommendation removed — model will learn from this');
+              }}
+              onEdit={() => editRec(rec)}
+              onApprove={() => void approveRec(rec)}
+            />
+          ))}
+        </div>
+        {capped && <RevealFooter reveal={recsReveal} noun="actions" />}
       </div>
     );
   };
@@ -1191,7 +1264,7 @@ function HomeContent() {
     >
       <p className="mb-4 max-w-[80ch] text-[14.5px] leading-relaxed text-fg">{pipelineNarrative()}</p>
       <div className="grid grid-cols-2 gap-3.5">
-        <PulseCard label="Wins · 30d" value="$0" note="Nothing closed this period." tone="warn" />
+        <PulseCard label="Wins · 30d" value="$0" note="No closes logged in the last 30 days." />
         <PulseCard label="Activity · 7d" value={String(data.schedule.length)} note="Low volume — schedule touchpoints." />
       </div>
     </SectionPanel>
@@ -1218,7 +1291,7 @@ function HomeContent() {
       <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
         <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">{pipelineNarrative()}</p>
         <div className="flex flex-none items-center gap-5">
-          <PulseStat label="Wins · 30d" value="$0" tone="warn" />
+          <PulseStat label="Wins · 30d" value="$0" />
           <span className="h-8 w-px bg-line" />
           <PulseStat label="Activity · 7d" value={String(data.schedule.length)} />
           <button
@@ -1297,6 +1370,18 @@ function HomeContent() {
         )}
       </div>
     </div>
+  );
+
+  // ── Cross-sell / Upsell white-space (Growth mode) ──
+  // A selectable clients × products heat map + detail table. Renders off MOCK
+  // data today, shaped so a Data Cloud dataset (product-holding DMOs blended
+  // with life-event / goal signals) can back it later with no markup change.
+  // Acting on a row reuses the page's Prep modal so the banker lands in a real
+  // flow. Anchored at #whitespace so the rail's "On this page" link resolves.
+  const whitespaceSection = (
+    <CrossSellWhitespace
+      onAct={o => open('prep', o.clientName, o.clientId)}
+    />
   );
 
   // ── Full-width supporting band (cockpit only) ──
@@ -1392,7 +1477,7 @@ function HomeContent() {
                   {cs.clientName || 'Unassigned'} · {cs.ageDays}{cs.ageDays === 1 ? ' day' : ' days'} open
                 </span>
               </span>
-              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${st.chip}`}>
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${st.chip}`}>
                 {cs.priority || '—'}
               </span>
             </button>
@@ -1465,7 +1550,7 @@ function HomeContent() {
                 <span className="block truncate text-[12.5px] font-semibold text-fg">{p.clientName} – {p.name}</span>
                 <span className="mt-0.5 block truncate text-[11px] text-faint">{formatValue(p.amount, 'currencyCompact')} · {Math.round(p.propensity * 100)}% probability</span>
               </span>
-              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] ${heatClass}`}>{heat}</span>
+              <span className={`flex-none rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${heatClass}`}>{heat}</span>
             </button>
           );
         })}
@@ -1474,191 +1559,260 @@ function HomeContent() {
     </div>
   );
 
-  return (
-    <div className="pb-24">
-      {/* ---------- DAILY BRIEF (classic view only — the cockpit uses a compact
-           strip inside its left column so the context panel can align to the top) ---------- */}
-      {view !== 'cockpit' && (
-        <section id="brief" className="scroll-mt-[82px]">
-          <div className="@container/brief relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
-            <div className="grid gap-7 @[820px]/brief:grid-cols-[1fr_380px]">
-              <div>
-                <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
-                  <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
+  // ── The big hero daily brief (classic view, Today mode only) ──
+  // The cockpit uses a compact briefStrip inside its left column so the context
+  // panel aligns to the top; Growth/Health lead with their own section instead.
+  const heroBrief = (
+    <section id="brief" className="scroll-mt-[82px]">
+      <div className="@container/brief relative overflow-hidden rounded-[22px] border border-line bg-surface-glass px-7 py-5 shadow-card">
+        <div className="grid gap-7 @[820px]/brief:grid-cols-[1fr_380px]">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
+              <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
+            </div>
+            <h1 className="mb-2.5 mt-2 font-display text-[30px] font-semibold leading-[1.1] tracking-tight">
+              {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+            </h1>
+            <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
+                  <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
                 </div>
-                <h1 className="mb-2.5 mt-2 font-display text-[30px] font-semibold leading-[1.1] tracking-tight">
-                  {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
-                </h1>
-                <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
-                      <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
-                    </div>
-                    <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
-                    className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
-                  >
-                    {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
-                  </button>
-                  <AskChip
-                    onClick={() =>
-                      openAi(
-                        'queue_rationale',
-                        'Why this order',
-                        "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
-                        queueContext(),
-                        queueFallback(),
-                      )
-                    }
-                  >
-                    Ask why this order
-                  </AskChip>
-                </div>
+                <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
               </div>
-              {data.rightNow && !dismissed.has('rightNow') && (
-                <RightNowCard
-                  item={data.rightNow}
-                  onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
-                  onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
-                  onSnooze={() => {
-                    setDismissed(s => new Set(s).add('rightNow'));
-                    toast('Snoozed', 'Right Now item hidden for this session');
-                  }}
-                  onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
-                />
-              )}
+              <button
+                type="button"
+                onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
+                className="inline-flex items-center gap-2 rounded-full border border-line-strong px-3.5 py-2 text-[12.5px] text-muted transition hover:border-accent-border hover:text-fg"
+              >
+                {speech.speaking ? '❚❚ Stop' : '▷ Listen to brief'}
+              </button>
+              <AskChip
+                onClick={() =>
+                  openAi(
+                    'queue_rationale',
+                    'Why this order',
+                    "Explain in 3-4 sentences why these clients are ranked in this order for a banker's day. Reference the priority scores.",
+                    queueContext(),
+                    queueFallback(),
+                  )
+                }
+              >
+                Ask why this order
+              </AskChip>
             </div>
           </div>
+          {data.rightNow && !dismissed.has('rightNow') && (
+            <RightNowCard
+              item={data.rightNow}
+              onPrep={() => open('prep', data.rightNow!.clientName, data.rightNow!.clientId)}
+              onSchedule={() => open('schedule', data.rightNow!.clientName, data.rightNow!.clientId, data.rightNow!.taskSubject)}
+              onSnooze={() => {
+                setDismissed(s => new Set(s).add('rightNow'));
+                toast('Snoozed', 'Right Now item hidden for this session');
+              }}
+              onQuickView={() => open('quickview', data.rightNow!.clientName, data.rightNow!.clientId)}
+            />
+          )}
+        </div>
+      </div>
+    </section>
+  );
+
+  // ── Per-mode section content (shared by both views) ──
+  // Each mode surfaces a coherent, laptop-fold-sized slice of the ~10 sections.
+  // The builders (briefStrip, kpiGridVitals, pipelineBody, …) are reused as-is;
+  // only WHICH sections render, and their arrangement, changes.
+  const todayCockpitLeft = (
+    <>
+      <section id="brief" className="scroll-mt-[82px]">{briefStrip}</section>
+      <section id="kpis" className="mt-4 scroll-mt-[82px]">{kpiGridVitals}</section>
+      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[1.35fr_1fr]">
+        <section id="queue" className="min-w-0 scroll-mt-[82px]">
+          <PriorityQueueCard
+            items={queueItems}
+            controls={queueControls}
+            onOpen={c => queueOpen('quickview', c.clientName, c.clientId)}
+            onViewAll={() => setExplorer('atRisk')}
+          />
         </section>
-      )}
+        {buildActionsBody(true, true)}
+      </div>
+    </>
+  );
+
+  const growthLeft = (
+    <>
+      <section id="whitespace" className="scroll-mt-[82px]">{whitespaceSection}</section>
+      <section id="pipeline" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
+          {pipelineControls}
+        </SectionHead>
+        {pipelineBody}
+      </section>
+      <section id="leads" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
+        {leadsBody}
+      </section>
+    </>
+  );
+
+  const healthLeft = (
+    <>
+      {/* Lead with the glanceable vitals: KPI cards + slim pulse strip share the
+          top of the column, then the act-now detail (alerts → events) below. */}
+      <section id="kpis" className="scroll-mt-[82px]">
+        <SectionHead eyebrow="Book-wide" title="Key metrics" />
+        {kpiGridWide}
+      </section>
+      <section id="pulse" className="mt-4 scroll-mt-[82px]">
+        {pulseStrip}
+      </section>
+      <section id="alerts" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="At-risk relationships · act now" title="Risk alerts" />
+        {alertsBody}
+      </section>
+      <section id="events" className="mt-8 scroll-mt-[82px]">
+        <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
+        {lifeEventsBody}
+      </section>
+    </>
+  );
+
+  const cockpitLeft = mode === 'growth' ? growthLeft : mode === 'health' ? healthLeft : todayCockpitLeft;
+
+  return (
+    <div className="pb-24">
+      {/* Hero brief — classic Today only. Cockpit embeds a compact briefStrip in
+          its left column; Growth/Health lead with their own first section. */}
+      {view !== 'cockpit' && mode === 'today' && heroBrief}
 
       {view === 'cockpit' ? (
         /* ==================== COCKPIT WORKSPACE ====================
-           Master-detail command center matching the design mockup:
-             • left column: compact AI brief → 4 KPI vitals → Priority Queue +
-               Recommended Actions side-by-side
-             • right column: a sticky context panel (AI brief until a row is
-               clicked, then a tabbed Client-360)
-             • full-width supporting band (5 glance modules)
-             • always-rendered detail modules below carry the CommandRail nav
-               anchors (#pipeline / #events / #leads / #pulse / #schedule).
-           Left nav + pinned accounts live in the CommandRail (see HomeLayout). */
+           Master-detail command center: mode-specific content in the left
+           column, a sticky Client-360 context panel on the right (shared across
+           modes so clicking any client/opp/lead row drives it). The supporting
+           band shows on Today only — Growth/Health carry their own detail
+           sections in the left column instead of the 5-module glance band. */
         <>
           <div className="@container/cockpit">
-          <div className="grid items-start gap-4 @[1180px]/cockpit:grid-cols-[minmax(0,1fr)_384px]">
-            {/* ---- LEFT: the primary workflow ---- */}
-            <div className="min-w-0">
-              {/* AI Daily Brief strip — greeting + brief with the Right Now
-                  card embedded on the right (see briefStrip). */}
-              <section id="brief" className="scroll-mt-[82px]">
-                {briefStrip}
-              </section>
-
-              {/* Vitals: four sparkline KPI cards */}
-              <section id="kpis" className="mt-4 scroll-mt-[82px]">
-                {kpiGridVitals}
-              </section>
-
-              {/* Priority Queue + Recommended Actions, side by side */}
-              <div className="@container/queueActions mt-4">
-              <div className="grid items-start gap-4 @[760px]/queueActions:grid-cols-[1.35fr_1fr]">
-                <section id="queue" className="min-w-0 scroll-mt-[82px]">
-                  <PriorityQueueCard
-                    items={queueItems}
-                    controls={queueControls}
-                    onOpen={c => queueOpen('quickview', c.clientName, c.clientId)}
-                    onViewAll={() => setExplorer('atRisk')}
-                  />
-                </section>
-
-                <ColumnCard id="actions" eyebrow="Agentforce · pre-drafted" title="Recommended Actions" controls={actionsControls}>
-                  {buildActionsBody(true)}
-                </ColumnCard>
-              </div>
-              </div>
-            </div>
+          <div className="grid items-start gap-4 @[1180px]/cockpit:grid-cols-[minmax(0,1fr)_clamp(320px,26vw,384px)]">
+            {/* ---- LEFT: the primary workflow (per mode) ---- */}
+            <div className="wp-stagger min-w-0">{cockpitLeft}</div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
             <div className="sticky top-[92px] min-w-0">
-              <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
+              {/* Subtle phase-2 affordance: while the selected client's live 360
+                  is loading, a small pill floats over the panel. It vanishes the
+                  moment the rich fields land (or if the fetch fails). */}
+              <div className="relative">
+                {selection.kind === 'client' && enrichingId && selection.id === enrichingId && (
+                  <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full border border-ai-border bg-ai-bg px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ai">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ai" />
+                    Enriching…
+                  </span>
+                )}
+                <WorkspacePanel selection={selection} brief={workspaceBrief} handlers={panelHandlers} />
+              </div>
             </div>
           </div>
           </div>
 
-          {/* ---- Full-width supporting band ---- */}
-          <div className="mt-4">{supportingBand}</div>
-
-          {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
-              Life events + Alerts / Leads) were removed — they duplicated the
-              right panel and the supporting band. Their content is one click away
-              via the KPI cards, supporting-band "View all →", and the CommandRail
-              (which now opens a DataExplorerModal for anchor-less sections). */}
+          {/* ---- Full-width supporting band (Today only) ---- */}
+          {mode === 'today' && <div className="mt-4">{supportingBand}</div>}
         </>
       ) : (
         /* ==================== CURRENT VIEW (classic stacked) ==================== */
         <>
-          {/* ---------- KPI PULSE ---------- */}
-          <section id="kpis" className="mt-8 scroll-mt-[82px]">
-            {kpiGrid}
-          </section>
+          {mode === 'today' && (
+            <>
+              {/* ---------- KPI PULSE ---------- */}
+              <section id="kpis" className="mt-8 scroll-mt-[82px]">
+                {kpiGrid}
+              </section>
 
-          {/* ---------- TASKS & SCHEDULE ---------- */}
-          <section id="schedule" className="mt-8 scroll-mt-[82px]">
-            <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
-              {scheduleControls}
-            </SectionHead>
-            {scheduleBody}
-          </section>
+              {/* ---------- TASKS & SCHEDULE ---------- */}
+              <section id="schedule" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Your tasks & meetings · book-wide" title="Tasks & schedule">
+                  {scheduleControls}
+                </SectionHead>
+                {scheduleBody}
+              </section>
 
-          {/* ---------- PRIORITY QUEUE ---------- */}
-          <section id="queue" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
-              {queueControls}
-            </SectionHead>
-            {queueBody}
-          </section>
+              {/* ---------- PRIORITY QUEUE ---------- */}
+              <section id="queue" className="scroll-mt-[82px]">
+                <SectionHead eyebrow="Ranked · click to open 360" title="Who to act on today">
+                  {queueControls}
+                </SectionHead>
+                {queueBody}
+              </section>
 
-          {/* ---------- RECOMMENDED ACTIONS ---------- */}
-          <section id="actions" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
-              {actionsControls}
-            </SectionHead>
-            {actionsBody}
-          </section>
+              {/* ---------- RECOMMENDED ACTIONS ---------- */}
+              <section id="actions" className="scroll-mt-[82px]">
+                <SectionHead eyebrow="Agentforce · pre-drafted · you approve" title="Recommended actions">
+                  {actionsControls}
+                </SectionHead>
+                {actionsBody}
+              </section>
+            </>
+          )}
 
-          {/* ---------- LIFE EVENTS + ALERTS ---------- */}
-          <section id="events" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
-            <div className="@container/events">
-            <div className="grid gap-4 @[820px]/events:grid-cols-[1.35fr_1fr]">
-              <div className="min-w-0">{lifeEventsBody}</div>
-              <div id="alerts" className="min-w-0 scroll-mt-[82px]">{alertsBody}</div>
-            </div>
-            </div>
-          </section>
+          {mode === 'growth' && (
+            <>
+              {/* ---------- CROSS-SELL WHITE-SPACE ---------- */}
+              <section id="whitespace" className="mt-8 scroll-mt-[82px]">
+                {whitespaceSection}
+              </section>
 
-          {/* ---------- PIPELINE ---------- */}
-          <section id="pipeline" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
-              {pipelineControls}
-            </SectionHead>
-            {pipelineBody}
-          </section>
+              {/* ---------- PIPELINE ---------- */}
+              <section id="pipeline" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
+                  {pipelineControls}
+                </SectionHead>
+                {pipelineBody}
+              </section>
 
-          {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
-          <section id="leads" className="scroll-mt-[82px]">
-            <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
-            <div className="@container/leads">
-            <div className="grid items-start gap-4 @[820px]/leads:grid-cols-[1.35fr_1fr]">
-              <div className="min-w-0">{leadsBody}</div>
-              <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
-            </div>
-            </div>
-          </section>
+              {/* ---------- LEADS + PORTFOLIO PULSE ---------- */}
+              <section id="leads" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Inbound · routed to you" title="Leads & referrals" />
+                <div className="@container/leads">
+                <div className="grid items-start gap-4 @[820px]/leads:grid-cols-[1.35fr_1fr]">
+                  <div className="min-w-0">{leadsBody}</div>
+                  <div id="pulse" className="min-w-0 scroll-mt-[82px]">{pulseBody}</div>
+                </div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {mode === 'health' && (
+            <>
+              {/* ---------- VITALS HEADER: KEY METRICS + PULSE ----------
+                  Both glanceable summaries lead the page as a compact top band:
+                  the 5 KPI cards on one line, then the slim single-line pulse
+                  strip (narrative + stats) directly beneath — so "how's the book
+                  doing" answers at a glance before the act-now detail lists. */}
+              <section id="kpis" className="scroll-mt-[82px]">
+                <SectionHead eyebrow="Book-wide" title="Key metrics" />
+                {kpiGridWide}
+              </section>
+              <section id="pulse" className="mt-4 scroll-mt-[82px]">
+                {pulseStrip}
+              </section>
+
+              {/* ---------- LIFE EVENTS + ALERTS (the act-now detail) ---------- */}
+              <section id="events" className="mt-8 scroll-mt-[82px]">
+                <SectionHead eyebrow="Data Cloud signals → opportunities" title="Life events & live signals" />
+                <div className="@container/events">
+                <div className="grid gap-4 @[820px]/events:grid-cols-[1.35fr_1fr]">
+                  <div className="min-w-0">{lifeEventsBody}</div>
+                  <div id="alerts" className="min-w-0 scroll-mt-[82px]">{alertsBody}</div>
+                </div>
+                </div>
+              </section>
+            </>
+          )}
         </>
       )}
 
@@ -2039,7 +2193,7 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
-          profile={profileFor(modal.name)}
+          profile={modalProfile}
           promptFlow={flowFor(modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
           onMakeTask={n => open('task', modal.name, modal.id, n)}
@@ -2051,7 +2205,7 @@ function HomeContent() {
           onClose={close}
           clientName={modal.name}
           clientId={modal.id}
-          profile={profileFor(modal.name)}
+          profile={modalProfile}
           promptFlow={flowFor(modal.id)}
           onPrep={() => open('prep', modal.name, modal.id)}
           onSchedule={() => open('schedule', modal.name, modal.id, 'Call')}
@@ -2168,41 +2322,6 @@ function SectionHead({ eyebrow, title, children }: { eyebrow: string; title: str
   );
 }
 
-/**
- * Cockpit-view column wrapper: a compact heading (eyebrow + title + optional
- * controls) over the section body, sized to sit in a ⅓-width grid track.
- * `min-w-0` lets a wide table shrink to the column instead of blowing out the
- * grid — the project's canonical grid-child rule.
- */
-function ColumnCard({
-  id,
-  eyebrow,
-  title,
-  controls,
-  children,
-}: {
-  id?: string;
-  eyebrow: string;
-  title: string;
-  controls?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section id={id} className="min-w-0 scroll-mt-[82px]">
-      {/* Header sits in its own white card (same chrome as the Priority Queue
-          header) so the two column titles read as the same "level" instead of
-          this one floating on the gray page background. */}
-      <div className="mb-3 flex items-end gap-2.5 rounded-card border border-line bg-surface px-5 pb-3.5 pt-4 shadow-card">
-        <div className="min-w-0">
-          <div className="truncate font-mono text-[10.5px] uppercase tracking-[0.16em] text-faint">{eyebrow}</div>
-          <h2 className="mt-0.5 font-display text-[19px] font-semibold tracking-tight">{title}</h2>
-        </div>
-        {controls && <div className="ml-auto flex flex-none items-center gap-2">{controls}</div>}
-      </div>
-      {children}
-    </section>
-  );
-}
 
 function KpiCard({ label, value, note, risk, onClick }: { label: string; value: string; note?: string; risk?: boolean; onClick: () => void }) {
   return (
@@ -2351,7 +2470,7 @@ function LifeRow({ event, onClick }: { event: LifeEventSignal; onClick: () => vo
       </span>
       <span className="flex-none text-right">
         <span className="block font-mono text-[11px] text-muted">{event.when}</span>
-        <span className="block font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">{event.event}</span>
+        <span className="block font-mono text-[10px] uppercase tracking-[0.1em] text-faint">{event.event}</span>
       </span>
     </button>
   );
@@ -2377,7 +2496,7 @@ function AlertRow({ alert, onClick }: { alert: AlertSignal; onClick: () => void 
 function Th({ children, align = 'left' }: { children: ReactNode; align?: 'left' | 'right' }) {
   return (
     <th
-      className={`border-b border-line px-5 py-3 font-mono text-[9.5px] font-medium uppercase tracking-[0.12em] text-faint ${
+      className={`border-b border-line px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-faint ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >
@@ -2571,4 +2690,81 @@ function BandCard({
 function clientFromAlert(title: string): string {
   const idx = title.indexOf('— ');
   return idx >= 0 ? title.slice(idx + 2) : title;
+}
+
+/* ── Phase-2 enrichment: live Customer360 → ClientSelection rich fields ──
+   Merges the live 360 (and its detail) into a Phase-1 ClientSelection, filling
+   only the rich fields the compact card can't derive from the dashboard alone:
+   health score/label, tier, relationship value, AI recap, tinted signals,
+   timeline, and next best actions. Fields with no live source (healthDeltaPts,
+   valueDeltaPct, CSAT) are intentionally left as-is from Phase 1 — we never
+   fabricate them. The Phase-1 `facts`/`signals`/`summary`/`nba` shells are
+   preserved and overlaid, so the card degrades gracefully if a field is empty. */
+
+/** 0..100 health score → a short label matching the ScoreRing bands. */
+function healthLabelFor(score: number): string {
+  if (score >= 80) return 'Excellent';
+  if (score >= 70) return 'Good';
+  if (score >= 55) return 'Fair';
+  return 'Needs attention';
+}
+
+/** Customer360 AiSignal tone → PanelSignal tone (the panel's tighter palette). */
+const SIGNAL_TONE: Record<AiSignal['tone'], PanelSignal['tone']> = {
+  positive: 'ok',
+  opportunity: 'neutral',
+  risk: 'risk',
+  neutral: 'neutral',
+};
+
+/** Customer360Detail timeline tone → PanelTimelineEntry tone. */
+const TIMELINE_TONE: Record<'positive' | 'opportunity' | 'risk' | 'neutral', PanelTimelineEntry['tone']> = {
+  positive: 'ok',
+  opportunity: 'warn',
+  risk: 'risk',
+  neutral: 'neutral',
+};
+
+function mergeEnrichment(
+  prev: ClientSelection,
+  c360: Customer360,
+  detail: Customer360Detail | null,
+): ClientSelection {
+  const signalRows: PanelSignal[] = c360.aiSignals.map(s => ({
+    label: `${s.label}${s.value ? ` · ${s.value}` : ''}`,
+    when: '',
+    tone: SIGNAL_TONE[s.tone],
+  }));
+  const timeline: PanelTimelineEntry[] | undefined = detail?.timeline.length
+    ? detail.timeline.map(t => ({
+        when: t.when,
+        title: t.title,
+        detail: t.detail,
+        tone: TIMELINE_TONE[t.tone ?? 'neutral'],
+      }))
+    : prev.timeline;
+  const nba = c360.nextBestActions.length ? c360.nextBestActions.map(a => a.title) : prev.nba;
+  const relationshipValue =
+    c360.opportunitiesValue > 0 ? formatValue(c360.opportunitiesValue, 'currencyCompact') : prev.relationshipValue;
+
+  return {
+    ...prev,
+    // Rich fields from the live 360 (fall back to the Phase-1 values).
+    tier: c360.segment || prev.tier,
+    healthScore: c360.healthScore || prev.healthScore,
+    healthLabel: c360.healthScore ? healthLabelFor(c360.healthScore) : prev.healthLabel,
+    relationshipValue,
+    summary: c360.aiBrief || prev.summary,
+    signalRows: signalRows.length ? signalRows : prev.signalRows,
+    nba,
+    nbaHeadline: c360.nextBestActions[0]?.title ?? prev.nbaHeadline,
+    timeline,
+    // Overlay the facts the live 360 can fill; Value now reflects live pipeline,
+    // Open cases the live count. CSAT has no live scalar → keep the Phase-1 '—'.
+    facts: prev.facts.map(f => {
+      if (f.label === 'Value' && relationshipValue) return { ...f, value: relationshipValue };
+      if (f.label === 'Open cases') return { ...f, value: String(c360.casesCount) };
+      return f;
+    }),
+  };
 }

@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Jul_23_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Aug_14_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -17,24 +17,71 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [July 2026]
 
-### 2026-07-23 — default Light/Dark theme baseline + favicon-callout fix
+### 2026-07-29 — Apple SF Pro typography + dead-webfont cleanup
+
+Reworked app typography to a sans-serif, apple.com-style system stack across all four bundles. Built + deployed to `jdo-0pz8au` (496 components, 0 errors).
+
+#### Changed
+
+- **Switched typography to the Apple SF Pro system stack** for both body and headings — `-apple-system, BlinkMacSystemFont, 'SF Pro Text'/'SF Pro Display', 'Helvetica Neue', Arial, sans-serif`. Set once via the `--font-sans` / `--font-display` tokens in each bundle's `global.css` `@theme` block, so Tailwind regenerates the `font-sans`/`font-display` utilities and every consumer flips without touching call sites. This replaces the previous Fraunces (display) + Hanken Grotesk (body) editorial pairing with one OS-native sans family — no serif, no webfont download, fully CSP-safe, and falls back cleanly to Helvetica Neue / Arial off-Apple. The ACC `headerBlockFontFamily` styleToken and the `AgentPicker` inline `fontFamily` in `AgentforceChat.tsx` were updated to the same stack.
+
+#### Removed
+
+- **Dropped now-dead webfont loads** — the three `@fontsource-variable` imports (Inter / Fraunces / Hanken Grotesk) from each non-headless `app.tsx`, and the CSP-blocked Google Fonts `@import` from `ReactHeadless/global.css`. Removes **39 woff2 files** (Inter ×21, Fraunces ×9, Hanken ×9) from the deployed bundles. `@fontsource/ibm-plex-mono` is retained for `--font-mono`.
+
+### 2026-07-28 — accessibility, Customer-360 nav, and load-state polish
+
+A11y contrast pass, Customer-360 navigation refactor, and load-state motion across the four bundles. Also a net-zero Agentforce fix (a wrong-headed change and its revert).
+
+#### Changed
+
+- **Collapsed the 11-tab Full Customer-360 nav into 5 grouped tabs + a secondary row** (`Full360Tabs.tsx`, `Customer360Page.tsx` across the three persona bundles) — reduces the top-level tab overload while preserving access to every section.
+- **WCAG contrast + control-edge + tiny-type fixes across all four bundles** — darkened form-control borders and focus rings to meet 3:1 (`--input` / `--ring` in each `global.css`), promoted sub-legible decorative type, and tightened low-contrast token pairings flagged in the audit.
 
 #### Added
 
-- **Pinned default Light/Dark themes.** The Brand Theme config section gained two non-deletable base themes — Dark (teal accent on dark surfaces) and Light (blue/violet on white) — that are always available to re-activate as a fallback to the standard Aurora looks. Unlike custom brand themes, defaults carry a structural `mode` (`dark`/`light`) so activating one re-skins the whole surface palette, not just the accent; `ThemeProvider` reads the override's `mode` to drive `data-mode`. Their sentinel ids (`__default_dark__` / `__default_light__`) are recognized as permanently valid by the Apex per-user active-theme resolver even though they never live in the saved theme library.
+- **Skeleton loaders for Customer-360 phase-2 content + staggered cockpit entry** — new shared `Skeleton` primitive (`_shared/src/components/Skeleton.tsx`, exported from the barrel) and a `wp-fade-up` staggered reveal on cockpit mount, so async panels shimmer in rather than popping.
+
+#### Removed
+
+- **Deleted the dead `Customer360Body` component** (design-audit #11) — 208 lines removed from each persona bundle; the live path renders through `Customer360Page` + `Full360Tabs`.
 
 #### Fixed
 
-- **Brand-logo callout 301s.** Google's legacy `/s2/favicons` endpoint now redirects to the `gstatic` `faviconV2` service, and Apex `Http.send` does not follow redirects — so the brand-logo lookup always got a 301 and returned no logo. `CommandCenterConfigRest`'s callout now points directly at `faviconV2`, with the `RemoteSiteSetting` repointed from `www.google.com` to `t0.gstatic.com`.
+- **Agentforce chat FAB re-embed (net-zero).** A change that stopped re-embedding the ACC client on async brand-accent change (`1d3d3ac2`) was reverted (`737abd07`) — the async re-embed is load-bearing: it both re-themes the bubble to the resolved brand color AND is what renders the FAB in the first place. The `agentColor` dep must stay in the embed effect's dependency array.
 
-### 2026-07-21 → 2026-07-23 — native-mirror Schedule detail modal + brand theming system
+### 2026-07-28 — frontend-design critique fixes
+
+Fixes from a `frontend-design` review of the live cockpit, applied across all three persona bundles (and the shared QuickView modal). Built + deployed to `jdo-oe0sdd` (437 components, 0 errors).
+
+#### Changed
+
+- **Neutralized the `$0 Wins · 30d` tile** — dropped the `warn` tone so a zero reads as a clean slate rather than an alert (`HomePage.tsx` ×3; `PulseStat`/`PulseCard` only tint `text-warn` when `tone === 'warn'`).
+- **Thousands-separated the opportunity count** in the AI brief (`.toLocaleString('en-US')`) — `homeDataReal.ts` ×3.
+- **Corrected the "Open 360" descriptor per persona** — Commercial and Wealth were falling back to the literal `'Retail'` segment default (`customerDataReal.ts`); the descriptor chain is `sel.tier ?? sel.subtitle`, `tier` derives from `mergeEnrichment(c360.segment)`, and `segment` defaulted to `'Retail'`. Fixed at the per-persona source; Retail was already correct.
+- **Deduped "Your day" life-event signals** on a `client|type|date` key — `homeDataReal.ts` ×3.
+- **Sectioned the QuickView AI summary** into labeled subheads and routed each parsed section to its matching tab (Overview / Opportunities / Cases / Activity) instead of a single wall of text on Overview and dead stubs elsewhere — `_shared/src/components/home/QuickViewModal.tsx` (`parseSummary` + `SUMMARY_MARKERS`/`TAB_MARKERS`).
+- **Stat grid falls back to a Health tile** when CSAT is absent, so the QuickView tile grid never renders an empty CSAT slot — same shared modal.
 
 #### Added
 
-- **Native-mirror `ScheduleDetailModal`** — the Tasks & Schedule table's detail popup now mirrors the native Task/Event edit surface: Type, Comments, and system fields (Created/Modified) render alongside the editable core fields, with Mark Complete, Delete, and a "create follow-up" quick action. `CrmWriteRest` gained `update` (now covers Type/Description/Location/ShowAs, not just Status/Priority) and `delete` actions to back it.
-- **Editable Assigned To / Related To lookups on the schedule modal** — the polymorphic Owner (Assigned To) and What (Related To) references are now reassignable type-ahead lookups, matching the native Task/Event surface. A new `LookupField` (debounced async type-ahead, inline results, clear button) and `lookupSearch.ts` (`searchUsers` / `searchAccounts` via uiapi GraphQL) back the fields; `CrmWriteRest.handleUpdate` writes `OwnerId`/`WhatId` on both Task and Event branches, only when a field was actively touched (an untouched field never rewrites the reference).
-- **Related To now resolves to a name.** Schedule items carried `WhatId` but never resolved it to a client name, so the modal's Related To row was blank; `WhatId`s (Account-prefixed) are now batch-resolved to names alongside the existing `accountNamesQuery`/`userNamesQuery` pattern.
-- **Brand theming system** — a config-driven theming flow on the Configuration page (`BrandThemeSection`, `_shared/src/components/config/`): paste a site URL, auto-extract its logo via a new `CommandCenterConfigRest` favicon-service callout, get a suggested accent/glow palette (client-side canvas color quantization via `paletteExtract.ts`), refine by hand, and save as a named theme in an org-shared library. A user's active theme selection persists server-side per Salesforce `UserId` and re-skins all React surfaces (cockpits + C360) by overriding the `--wp-accent`/gradient/glow CSS vars `ThemeProvider` already injects — structural palette and layout are untouched. Backed by `brandThemeClient` (`GET/POST /config/brand-logo`, `/config/themes`, `/config/active-theme`) and two new `CommandCenterConfig__c` fields, `Theme_Library__c` and `Active_Themes__c`. The active brand's logo also renders in the `AppShell`'s header chip.
+- **Fraunces Variable wired as the display face** (headings only, via `--font-display`; body stays Hanken Grotesk). Self-hosted `@fontsource-variable/fraunces` woff2 imported in each bundle's `app.tsx` and bundled into `dist/` (App-Domain CSP blocks the Google Fonts CDN). This makes the long-standing "Fraunces + Hanken Grotesk" claim in the README/AGENTS true — the code had been shipping Inter for headings.
+
+### 2026-07-21 → 2026-07-27 — per-user brand theming, display size, and live data wiring
+
+#### Added
+
+- **Per-user brand theming system** — an in-app theming UI lets each user build, name, edit, and activate holistic **brand themes**: a multi-color logo palette (extracted from an uploaded/fetched logo via `paletteExtract`, with complementary-color suggestion), per-element/role color mapping (a role-mapping modal + hex/RGB `ColorInput`), an optional dedicated **AI accent** as a third brand color, agent-bubble and aurora-wash colors, plus always-available fixed **Light/Dark** baseline themes. Themes are org-shared definitions (`Theme_Library__c`); the active choice is **per user** (`Active_Themes__c`, a UserId→themeId map). Client lives in `_shared/src/theme/` (`brandThemes`, `activeBrand`, `applyActiveTheme`, `defaultThemes`, `paletteExtract`) + `_shared/src/data/brandThemeClient.ts`.
+- **Per-user app-wide display size** — a font/UI scale preset, stored per user (`Display_Sizes__c`, a UserId→sizeId map) and applied app-wide (`_shared/src/theme/displaySize.ts`).
+- **New `CommandCenterConfig__c` fields** backing the above — `Theme_Library__c` (org-shared theme defs), `Active_Themes__c` (per-user active-theme map), `Display_Sizes__c` (per-user display-size map). FLS granted via the `CommandCenterConfigAdmin` permission set.
+- **New brand-theming endpoints on `CommandCenterConfigRest`** (same apexrest-bridge constraint as the rest of the app — the App-Domain session only reaches `/services/apexrest/*`): `GET/POST /config/themes`, `POST /config/active-theme`, `POST /config/display-size`, and `GET /config/brand-logo?url=` (server-side logo fetch → base64, since gstatic faviconV2 replaced the now-301'ing google s2 favicon endpoint).
+- **Native-mirror Schedule detail modal** (`ScheduleDetailModal`) — Type/Comments/system fields with Mark Complete / Delete / Follow-Up actions (#25).
+
+#### Changed
+
+- **All three cockpits wired to live data end-to-end** and the profile modals (Open 360 / Prep) enriched with live Customer 360.
+- **"Open full 360" button now always navigates.**
+- **Dark-mode theming fixes** — re-emit structural tokens + `color-scheme` on dark; Agentforce FAB uses a transparent chat container and trims the white card behind the minimized launcher on dark surfaces.
 
 ### 2026-07-18 → 2026-07-20 — cockpit brief polish + sidebar-first de-duplication
 

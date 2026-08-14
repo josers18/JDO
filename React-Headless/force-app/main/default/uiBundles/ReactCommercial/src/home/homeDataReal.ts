@@ -368,6 +368,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // primary person is a Contact; for person accounts its Account.Name is the
   // client. EventType drives icon + next-best-action. recordId/contactId let
   // the modal edit the record; eventType/eventDate seed its fields.
+  const seenLifeEvents = new Set<string>();
   const lifeEvents: LifeEventSignal[] = (q?.PersonLifeEvent?.edges ?? []).map((e, i) => {
     const type = s(e.node, 'EventType');
     const pp = e.node.PrimaryPerson;
@@ -386,6 +387,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       eventDate: dateOnly(rawDate) || undefined,
       contactId: s(e.node, 'PrimaryPersonId') || undefined,
     };
+  }).filter(le => {
+    // Dedupe repeated PersonLifeEvent rows (same person + type + date) that the
+    // book query can surface more than once — one card per real milestone.
+    const key = `${le.clientId}|${le.eventType ?? ''}|${le.eventDate ?? ''}`;
+    if (seenLifeEvents.has(key)) return false;
+    seenLifeEvents.add(key);
+    return true;
   });
 
   const leads: LeadReferral[] = (q?.Lead?.edges ?? []).map((e, i) => ({
@@ -531,7 +539,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${opp?.totalCount ?? 0} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
+    aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
     confidencePct: 86,
     dataSourceCount: 25,
     kpis: [

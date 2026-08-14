@@ -51,7 +51,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto px-5 py-[60px] backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4 backdrop-blur-sm"
       style={{ background: 'rgba(15,20,40,0.5)' }}
       onClick={e => {
         if (e.target === e.currentTarget) onClose();
@@ -62,12 +62,17 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={clsx(
-          'w-full overflow-hidden rounded-card border border-line-strong bg-surface shadow-pop',
+          // Single flex-column panel capped to the viewport: header/footer stay
+          // pinned (flex-none) and only the body scrolls. This avoids the
+          // two-competing-scroll-containers trap where a tall content list made
+          // the panel exceed the viewport, pushed the header off-screen, and
+          // left the wheel driving only an inner region with no way back up.
+          'flex max-h-[90vh] w-full flex-col overflow-hidden rounded-card border border-line-strong bg-surface shadow-pop',
           (size ?? (wide ? 'md' : 'sm')) === 'xl' ? 'max-w-[980px]' : (size ?? (wide ? 'md' : 'sm')) === 'md' ? 'max-w-[720px]' : 'max-w-[600px]',
         )}
         style={{ animation: 'wp-fade-up 0.26s cubic-bezier(0.2,0.8,0.2,1) both' }}
       >
-        <header className="flex items-start gap-3.5 border-b border-line px-6 py-5">
+        <header className="flex flex-none items-start gap-3.5 border-b border-line px-6 py-5">
           {icon && (
             <span
               className={clsx(
@@ -91,9 +96,9 @@ export function Modal({
             ✕
           </button>
         </header>
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer && (
-          <footer className="flex items-center gap-2.5 border-t border-line bg-surface-muted px-6 py-4">{footer}</footer>
+          <footer className="flex flex-none items-center gap-2.5 border-t border-line bg-surface-muted px-6 py-4">{footer}</footer>
         )}
       </div>
     </div>

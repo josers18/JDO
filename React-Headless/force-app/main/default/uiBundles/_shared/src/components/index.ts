@@ -13,6 +13,7 @@ export { DataList, type DataListRow } from './DataList';
 export { DataTable, type TableColumn } from './DataTable';
 export { Icon, type IconKey } from './iconMap';
 export { Eyebrow } from './Eyebrow';
+export { Skeleton, SkeletonCard } from './Skeleton';
 export { Pill, type PillTone } from './Pill';
 export { ScoreRing, type RingTone } from './ScoreRing';
 export { StatTile, type StatTone } from './StatTile';
@@ -30,7 +31,13 @@ export { NotificationBell, type Alert } from './NotificationBell';
 export { Button, type ButtonVariant, type ButtonSize } from './Button';
 export { Modal, CrmNote } from './Modal';
 export { ToastProvider, useToast } from './Toast';
-export { CommandRail, type CommandRailSection, type CommandRailArcStep, type CommandRailPinned } from './CommandRail';
+export {
+  CommandRail,
+  type CommandRailSection,
+  type CommandRailGroup,
+  type CommandRailArcStep,
+  type CommandRailPinned,
+} from './CommandRail';
 export { RightNowCard, type RightNowCardItem } from './RightNowCard';
 export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
 export {
@@ -41,6 +48,7 @@ export {
 } from './PriorityQueueCard';
 export { RecommendationCard, type RecommendationCardItem, type RecommendationKind } from './RecommendationCard';
 export { type ClientProfile, type ClientSignal, type ClientTimelineEntry } from './home/types';
+export { selectionToProfile } from './home/clientProfile';
 export { TaskModal } from './home/TaskModal';
 export { ScheduleModal } from './home/ScheduleModal';
 export { ScheduleDetailModal } from './home/ScheduleDetailModal';
@@ -99,7 +107,15 @@ export {
   useWorkspaceSelection,
   type PinnedClientRequest,
 } from './home/WorkspaceSelection';
+export {
+  CrossSellWhitespace,
+  type WhitespaceData,
+  type WhitespaceClient,
+  type WhitespaceProduct,
+  type WhitespaceCell,
+} from './home/CrossSellWhitespace';
 
 // ── Command-center configuration page ──────────────────────────
 export { ConfigPage } from './config/ConfigPage';
 export { BrandThemeSection } from './config/BrandThemeSection';
+export { DisplaySizeControl } from './config/DisplaySizeControl';

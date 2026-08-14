@@ -3,11 +3,11 @@ import { routes } from '@/routes';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { applyActiveThemeOnLoad } from '@shared';
-// Self-hosted fonts (variable woff2 + IBM Plex Mono weights), bundled into dist/.
-// The App Domain CSP blocks fonts.googleapis.com, so these must ship with the
-// bundle rather than load from the Google Fonts CDN.
-import '@fontsource-variable/inter';
-import '@fontsource-variable/hanken-grotesk';
+// Self-hosted fonts, bundled into dist/. The App Domain CSP blocks
+// fonts.googleapis.com, so any webfont must ship with the bundle rather than
+// load from the Google Fonts CDN. Body + display now use the OS-native Apple
+// SF Pro stack (see global.css --font-sans / --font-display), so no sans/serif
+// webfont is loaded — only IBM Plex Mono remains for --font-mono.
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '@fontsource/ibm-plex-mono/600.css';
