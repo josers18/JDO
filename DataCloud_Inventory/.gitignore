@@ -1,0 +1,4 @@
+# Generated artifacts — regenerate with `python generate_inventory.py`
+output/
+__pycache__/
+*.pyc
