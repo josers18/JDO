@@ -1,5 +1,14 @@
 # Data Stream Inventory — jdo-0pz8au
 
+> **⚠️ Superseded — frozen snapshot.** This directory is a one-time, **manually
+> produced** audit from **2026-07-02** against org `jdo-0pz8au` (which no longer
+> resolves). It is kept for historical reference only and is not regenerated.
+> For a repeatable, self-serve inventory against the current org, use the tool at
+> [`../../DataCloud_Inventory/`](../../DataCloud_Inventory/README.md)
+> (`python generate_inventory.py`) — it produces an autofilter `.xlsx` + a
+> filterable `.html` and resolves DLO→DMO mappings reverse-only (the method notes
+> below were the manual precursor to that tool's approach).
+
 Complete audit of every Data Cloud data stream in the org, enriched with data
 source, connector type, DLO details, record counts, DMO mapping status, and
 health indicators.
