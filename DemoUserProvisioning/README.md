@@ -4,10 +4,17 @@ Central, repeatable provisioning of demo users cloned from `sarah.smith@finsdc3.
 Org alias: `jdo-oe0sdd`. Spec: `../docs/superpowers/specs/2026-09-24-demo-user-provisioning-design.md`.
 
 ## Provision a user
-    DEMO_USER_PASSWORD=salesforce1 scripts/provision_demo_user.sh jdoe@salesforce.com
+    scripts/provision_demo_user.sh jdoe@salesforce.com            # name derived from email
+    scripts/provision_demo_user.sh jdoe@salesforce.com Jane Doe   # explicit display name
 Creates `jdoe@finsdc3.demo` (Standard User / Central Sales), assigns the 9 PSGs, 49
 permission-set licenses, the WebMessagingQueue, and the Demo_Users group, and sets the
-shared password. Idempotent — safe to re-run. Password defaults to `salesforce1`.
+shared password. Idempotent — safe to re-run. Password defaults to `salesforce1`
+(override with `DEMO_USER_PASSWORD=...`). Optional `[firstName] [lastName]` set the
+display name (letters/spaces/hyphens/dots only — no quotes); omit to derive from the email.
+
+**Claude Code skill:** this repo ships a `provision-demo-user` skill
+(`.claude/skills/provision-demo-user/`) — just ask Claude to "provision a demo user for
+jdoe@salesforce.com" and it runs and verifies this flow for you.
 
 ## Grant new access to ALL demo users
 - **A permission set:** add it to the `Demo_Standard_Access` permission set group

@@ -36,8 +36,11 @@ if (!existing.isEmpty()) {
   Id roleId = [SELECT Id FROM UserRole WHERE Name = 'Central Sales' LIMIT 1].Id;
   String alias = localPart.replaceAll('[^a-zA-Z0-9]', '');
   if (alias.length() > 8) alias = alias.substring(0, 8);
-  String firstName = localPart.contains('.') ? localPart.substringBefore('.') : localPart;
-  String lastName  = localPart.contains('.') ? localPart.substringAfter('.')  : localPart;
+  // Optional first/last name from the wrapper; fall back to email-derived when blank.
+  String firstName = '{{FIRSTNAME}}';
+  String lastName  = '{{LASTNAME}}';
+  if (String.isBlank(firstName)) firstName = localPart.contains('.') ? localPart.substringBefore('.') : localPart;
+  if (String.isBlank(lastName))  lastName  = localPart.contains('.') ? localPart.substringAfter('.')  : localPart;
   User u = new User(
     Username = username, Email = sfEmail, FirstName = firstName, LastName = lastName,
     Alias = alias, ProfileId = profileId, UserRoleId = roleId,
