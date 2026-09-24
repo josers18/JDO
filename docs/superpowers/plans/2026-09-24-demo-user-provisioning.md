@@ -83,8 +83,8 @@ Create `DemoUserProvisioning/force-app/main/default/permissionsetgroups/Demo_Sta
     <label>Demo Standard Access</label>
     <permissionSets>Access</permissionSets>
     <permissionSets>Access_Agentforce_Default_Agent_PS</permissionSets>
-    <permissionSets>Advisor</permissionSets>
-    <permissionSets>AgentCreator</permissionSets>
+    <permissionSets>FinServ__Advisor</permissionSets>
+    <permissionSets>agentcreator__AgentCreator</permissionSets>
     <permissionSets>CumulusOfferTilesAccess</permissionSets>
     <permissionSets>Data_Cloud_Standard_User_Augmentation</permissionSets>
     <permissionSets>DC_AgentForce_Output_User</permissionSets>
@@ -97,13 +97,13 @@ Create `DemoUserProvisioning/force-app/main/default/permissionsetgroups/Demo_Sta
     <permissionSets>FINS_Base</permissionSets>
     <permissionSets>FINS_Commercial_Banking_Sales</permissionSets>
     <permissionSets>Offer_Objects_Access</permissionSets>
-    <permissionSets>PersonalBanker</permissionSets>
+    <permissionSets>FinServ__PersonalBanker</permissionSets>
     <permissionSets>SDO_Platform_Components</permissionSets>
     <permissionSets>SDO_Platform_Email_Template_Builder</permissionSets>
     <permissionSets>SDO_Platform_Files_Connect</permissionSets>
     <permissionSets>SDO_Platform_Flow_User</permissionSets>
     <permissionSets>SDO_Slack_Service_Swarming_User</permissionSets>
-    <permissionSets>Slack_Standard_User</permissionSets>
+    <permissionSets>slackv2__Slack_Standard_User</permissionSets>
     <permissionSets>Standard_User_Augment</permissionSets>
     <permissionSets>Use_Flow_Automation_Agent</permissionSets>
     <permissionSets>View_Flows</permissionSets>
