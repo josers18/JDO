@@ -7,19 +7,31 @@ description: >-
   shared demo password. Use this whenever someone wants to create, provision, set up,
   onboard, or "spin up" a demo user / demo login / demo account for the finsdc3 (JDO)
   demo org — even if they only give a name and email and don't say the word "provision".
-  Triggers on things like "create a demo user for jdoe@salesforce.com", "I need a demo
-  login for Jane Doe", "onboard a new person on the demo org", "set up a demo account
-  with the same access as Sarah", or "give <name> a demo user". Do NOT use for creating
-  real production users, for non-JDO orgs, or for changing an existing user's permissions.
+  ALSO use to bring an EXISTING org user up to the full demo baseline (align mode): "bring
+  bob up to baseline", "give <existing user> full access", "uplift/fix/top-up <user>'s
+  permissions", "make sure <user> has everything Sarah has". Triggers on things like
+  "create a demo user for jdoe@salesforce.com", "I need a demo login for Jane Doe",
+  "onboard a new person on the demo org", "set up a demo account with the same access as
+  Sarah", "give <name> a demo user", or "bring an existing user up to the demo baseline".
+  Do NOT use for creating real production users or for non-JDO orgs.
 ---
 
 # Provision a demo user (finsdc3.demo)
 
-This runs the repo's `DemoUserProvisioning/` tooling to create one demo user that is a
-full clone of `sarah.smith@finsdc3.demo`. It exists so a whole team can each have their
-own login instead of sharing one user (which causes session collisions). The heavy
-lifting lives in an idempotent Apex script; your job is to gather the inputs, run it,
-confirm the result, and report the login.
+This runs the repo's `DemoUserProvisioning/` tooling against the demo org. It has two modes:
+
+- **create** (default) — create one demo user that is a full clone of
+  `sarah.smith@finsdc3.demo`, so a whole team can each have their own login instead of
+  sharing one user (which causes session collisions).
+- **align** (`--existing`) — bring an **already-existing** org user (any username, e.g. an
+  SSO teammate or an older non-standard login) up to the same full baseline. Additive
+  only: it assigns the 49 PSLs, 9 PSGs, WebMessagingQueue, and Demo_Users group, and
+  **never touches the target's profile, role, or password**. Use this when someone asks to
+  "bring <user> up to baseline" or "give an existing user full access".
+
+The heavy lifting lives in an idempotent Apex script; your job is to gather the inputs, run
+it, confirm the result, and report the outcome. You can run either mode directly from the
+conversation — the user does not have to run the script themselves.
 
 ## Prerequisites (check first, fail fast)
 
@@ -46,7 +58,9 @@ don't guess around it.
 
 ## Steps
 
-1. **Run the provisioning script** from the repo root:
+1. **Run the provisioning script** from the repo root.
+
+   **Create a new demo user** (the person doesn't have a login yet):
    ```bash
    DemoUserProvisioning/scripts/provision_demo_user.sh <email> [First] [Last]
    ```
@@ -54,12 +68,30 @@ don't guess around it.
    - `DemoUserProvisioning/scripts/provision_demo_user.sh jdoe@salesforce.com Jane Doe`
    - `DemoUserProvisioning/scripts/provision_demo_user.sh jdoe@salesforce.com` (name derived)
 
-   It is idempotent — re-running for an existing user just tops up any missing grants, so
-   it's safe to run again if something looked off.
+   **Align an existing user** (already has a login; bring them up to baseline):
+   ```bash
+   DemoUserProvisioning/scripts/provision_demo_user.sh --existing <username|email|Id>
+   ```
+   Examples:
+   - `DemoUserProvisioning/scripts/provision_demo_user.sh --existing bob.jones@finsdc3.demo`
+   - `DemoUserProvisioning/scripts/provision_demo_user.sh --existing bjones@salesforce.com`
+   - `DemoUserProvisioning/scripts/provision_demo_user.sh --existing 005XXXXXXXXXXXXXXX`
 
-2. **Read the debug output.** Success looks like:
-   `USER CREATED: <username> / <id>`, `PSL assigned this run: N/49`, `PSG assigned this run: 9`.
-   A fully-clean clone is **9 PSGs and 49 licenses**. Lines like
+   The target is resolved by exact **Username OR Email OR Id**. If the identifier matches
+   **no user**, the run aborts with `ALIGN FAIL: no user matches "<id>"`. If it matches
+   **more than one**, the run lists each candidate as `ALIGN CANDIDATE: <username> / <id>`
+   then aborts — re-run with the exact username or 18-char Id from that list.
+
+   Both modes are idempotent — re-running just tops up any missing grants, so it's safe to
+   run again if something looked off.
+
+2. **Read the debug output.** Success looks like `PSL assigned this run: N/49` and
+   `PSG assigned this run: N/9`, preceded by one of:
+   - create mode: `USER CREATED: <username> / <id>` (new) or `USER EXISTS: <username>` (top-up).
+   - align mode: `ALIGN TARGET: <username> / <id> (additive — profile/role/password left unchanged)`.
+     An `ALIGN FAIL:` line means the identifier matched zero or many users — see step 1; nothing was changed.
+
+   A fully-clean baseline is **9 PSGs and 49 licenses**. Lines like
    `PSL FAIL: All <X> permission set licenses are in use` mean that license is out of
    seats in the org — not a script error. Note which ones failed; a seat-exhausted license
    also blocks any permission set group that requires it.
@@ -69,12 +101,16 @@ don't guess around it.
    sf data query -o jdo-oe0sdd -q "SELECT Assignee.Username usr, COUNT(Id) c FROM PermissionSetLicenseAssign WHERE Assignee.Username = '<username>' GROUP BY Assignee.Username"
    sf data query -o jdo-oe0sdd -q "SELECT Assignee.Username usr, COUNT(Id) c FROM PermissionSetAssignment WHERE PermissionSetGroupId != null AND Assignee.Username = '<username>' GROUP BY Assignee.Username"
    ```
+   In align mode, use the resolved username from the `ALIGN TARGET:` line as `<username>`.
    Expect 49 licenses and 9 PSGs. If either is short, report the specific seat-exhausted
    licenses from step 2 — the fix is org capacity (free/expand seats), not the script. Once
    seats free up, `DemoUserProvisioning/scripts/sync_demo_users.sh` backfills all demo users.
 
 4. **Report to the user**, concisely:
-   - Login username (`<localpart>@finsdc3.demo`) and password (`salesforce1` unless overridden).
+   - **create mode:** login username (`<localpart>@finsdc3.demo`) and password
+     (`salesforce1` unless overridden).
+   - **align mode:** the resolved target (`<username> / <id>`), and confirm you left their
+     profile/role/password unchanged. No new login is issued — they keep their existing one.
    - Login URL: `https://storm-16a17dc388fbe6.demo.my.salesforce.com/`.
    - PSG/license counts, and any seat-blocked licenses if it wasn't a full 9/49 clone.
 
