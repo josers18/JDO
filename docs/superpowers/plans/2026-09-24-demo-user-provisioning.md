@@ -322,22 +322,7 @@ if (!existing.isEmpty()) {
   System.debug('USER CREATED: ' + username + ' / ' + userId);
 }
 
-// 2) Permission Set Groups (skip already-assigned)
-Set<Id> assignedPsgIds = new Set<Id>();
-for (PermissionSetAssignment pa : [SELECT PermissionSetGroupId FROM PermissionSetAssignment
-     WHERE AssigneeId = :userId AND PermissionSetGroupId != null]) {
-  assignedPsgIds.add(pa.PermissionSetGroupId);
-}
-List<PermissionSetAssignment> psaIns = new List<PermissionSetAssignment>();
-for (PermissionSetGroup g : [SELECT Id, DeveloperName FROM PermissionSetGroup WHERE DeveloperName IN :PSG_NAMES]) {
-  if (!assignedPsgIds.contains(g.Id)) psaIns.add(new PermissionSetAssignment(AssigneeId = userId, PermissionSetGroupId = g.Id));
-}
-for (Database.SaveResult r : Database.insert(psaIns, false)) {
-  if (!r.isSuccess()) System.debug('PSG FAIL: ' + r.getErrors()[0].getMessage());
-}
-System.debug('PSG assigned this run: ' + psaIns.size());
-
-// 3) Permission Set Licenses (skip already-assigned; report seat failures)
+// 2) Permission Set Licenses FIRST (a license-gated PSG assignment fails if the license isn't present yet)
 Set<Id> assignedPslIds = new Set<Id>();
 for (PermissionSetLicenseAssign a : [SELECT PermissionSetLicenseId FROM PermissionSetLicenseAssign WHERE AssigneeId = :userId]) {
   assignedPslIds.add(a.PermissionSetLicenseId);
@@ -351,6 +336,21 @@ for (Database.SaveResult r : Database.insert(pslaIns, false)) {
   if (r.isSuccess()) pslOk++; else System.debug('PSL FAIL: ' + r.getErrors()[0].getMessage());
 }
 System.debug('PSL assigned this run: ' + pslOk + '/' + pslaIns.size());
+
+// 3) Permission Set Groups (skip already-assigned; requires the licenses above)
+Set<Id> assignedPsgIds = new Set<Id>();
+for (PermissionSetAssignment pa : [SELECT PermissionSetGroupId FROM PermissionSetAssignment
+     WHERE AssigneeId = :userId AND PermissionSetGroupId != null]) {
+  assignedPsgIds.add(pa.PermissionSetGroupId);
+}
+List<PermissionSetAssignment> psaIns = new List<PermissionSetAssignment>();
+for (PermissionSetGroup g : [SELECT Id, DeveloperName FROM PermissionSetGroup WHERE DeveloperName IN :PSG_NAMES]) {
+  if (!assignedPsgIds.contains(g.Id)) psaIns.add(new PermissionSetAssignment(AssigneeId = userId, PermissionSetGroupId = g.Id));
+}
+for (Database.SaveResult r : Database.insert(psaIns, false)) {
+  if (!r.isSuccess()) System.debug('PSG FAIL: ' + r.getErrors()[0].getMessage());
+}
+System.debug('PSG assigned this run: ' + psaIns.size());
 
 // 4) Queue + public group membership
 Map<String, Id> grpByDev = new Map<String, Id>();
