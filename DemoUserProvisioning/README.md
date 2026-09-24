@@ -3,6 +3,11 @@
 Central, repeatable provisioning of demo users cloned from `sarah.smith@finsdc3.demo`.
 Org alias: `jdo-oe0sdd`. Spec: `../docs/superpowers/specs/2026-09-24-demo-user-provisioning-design.md`.
 
+> 📖 **Provisioning for someone else / not sure where to start?** Follow the
+> **[Operator Runbook](RUNBOOK.md)** — a standalone, step-by-step guide (prerequisites,
+> both flows, verification, troubleshooting) that needs no prior repo knowledge. The
+> sections below are the quick reference.
+
 ## Provision a user
     scripts/provision_demo_user.sh jdoe@salesforce.com            # name derived from email
     scripts/provision_demo_user.sh jdoe@salesforce.com Jane Doe   # explicit display name
