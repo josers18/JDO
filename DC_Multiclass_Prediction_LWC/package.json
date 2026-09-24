@@ -7,7 +7,28 @@
     "@tootallnate/once": "3.0.1",
     "@babel/core": "^7.29.6",
     "@istanbuljs/load-nyc-config": {
-      "js-yaml": "^3.15.0"
+      "js-yaml": "^3.15.2"
+    },
+    "js-yaml": "^4.3.2",
+    "@humanfs/node": "^0.16.8",
+    "@vitest/mocker": "^4.1.11",
+    "vitest": "^4.1.11",
+    "axios": "^1.18.0",
+    "baseline-browser-mapping": "^2.11.0",
+    "browserslist": "^4.28.7",
+    "joi": "^18.2.5",
+    "postcss": "^8.5.23",
+    "postcss-selector-parser": "^7.1.3",
+    "brace-expansion": "^1.1.18",
+    "@lwc/eslint-plugin-lwc": {
+      "minimatch": {
+        "brace-expansion": "^2.1.4"
+      }
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": {
+        "brace-expansion": "^5.0.9"
+      }
     }
   },
   "scripts": {
