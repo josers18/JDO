@@ -100,9 +100,13 @@ the 8 existing PSGs.
 }
 ```
 
-Editing this file is how provisioning is changed centrally. For grants a PSG can
-carry (permission sets) prefer editing the PSG (auto-propagates). For grants it
-cannot (licenses, queue), edit the manifest and run the sync command (§4.4).
+This manifest is documentation, not a runtime input — it is not read by the
+scripts or Apex. Editing this file is how provisioning is changed centrally in
+practice, but the authoritative list the code actually enforces lives in Apex:
+`ProvisionDemoUser.apex` and `SyncDemoUsers.apex` each carry their own hardcoded
+`PSL_NAMES` set. For grants a PSG can carry (permission sets) prefer editing the
+PSG (auto-propagates). For grants it cannot (licenses, queue), update
+`template.json` **and** both `PSL_NAMES` sets, then run the sync command (§4.4).
 
 ### 4.3 Provisioning tool — on-demand, repeatable, idempotent
 

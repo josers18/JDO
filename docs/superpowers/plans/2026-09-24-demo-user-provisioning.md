@@ -191,7 +191,7 @@ git commit -m "feat(demo-provisioning): add Demo_Users public group"
 - Create: `DemoUserProvisioning/template.json`
 
 **Interfaces:**
-- Produces: `template.json` — the documented source of truth; `sync_demo_users.sh` (Task 6) reads `permissionSetLicenses` from it.
+- Produces: `template.json` — the human-readable, version-controlled source of truth for what a demo user gets. It is documentation, not read at runtime: `ProvisionDemoUser.apex` (Task 4) and `SyncDemoUsers.apex` (Task 6) each carry their own hardcoded `PSL_NAMES` set that must be updated in lockstep with this file whenever a PSL is added or removed.
 
 - [ ] **Step 1: Create the manifest**
 

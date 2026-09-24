@@ -28,3 +28,4 @@ shared password. Idempotent — safe to re-run. Password defaults to `salesforce
 - Login is username + password (not SSO). New users do not reuse Sarah's FederationIdentifier.
 - The shared password is a low-sensitivity demo credential; override per run with `DEMO_USER_PASSWORD`.
 - Base Salesforce license had 458 free seats as of 2026-09-24.
+- `sync_demo_users.sh` assigns in a single Apex transaction; if the demo-user pool ever grows into the hundreds and a new license is added, chunk the sync (per-user or batched) to stay under the 10,000-row DML limit.
