@@ -1,0 +1,41 @@
+{
+  "org": "jdo-oe0sdd",
+  "usernameDomain": "finsdc3.demo",
+  "profile": "Standard User",
+  "role": "Central Sales",
+  "queues": ["WebMessagingQueue"],
+  "publicGroups": ["Demo_Users"],
+  "userDefaults": {
+    "TimeZoneSidKey": "America/New_York",
+    "LocaleSidKey": "en_US",
+    "LanguageLocaleKey": "en_US",
+    "EmailEncodingKey": "UTF-8"
+  },
+  "permissionSetGroups": [
+    "Demo_Standard_Access", "Access_Ai_Search", "Agentforce_Main",
+    "CopilotSalesforceUserPSG", "Data_Cloud_Data_Access",
+    "FINS_Banking_Base_Lvl2", "FINS_Financial_Service_Cloud_Base",
+    "FSC_Base_Permset_Group", "QBrix_Demo_FINS_Retail_Banking_Starter_Group"
+  ],
+  "permissionSetLicenses": [
+    "AgentPlatformBuilderPsl", "AISearchUserPsl", "BREDesigner",
+    "CdpSegmentsActivationsCardPsl", "DecisionExplainerPSL", "DocumentChecklistPsl",
+    "EinsteinAnalyticsPlusPsl", "EinsteinAssistantPsl", "EinsteinGPTCallExplorerPsl",
+    "EinsteinGPTCopilotPsl", "EinsteinGPTPromptTemplatesPsl",
+    "EinsteinGPTSalesCallSummariesPsl", "EinsteinGPTSalesEmailsPsl",
+    "EinsteinGPTSalesMiningPsl", "EinsteinGPTSalesSummariesPsl",
+    "EinsteinGPTSendMeetingRequestPsl", "EinsteinGPTServiceEmailAssistantPsl",
+    "EinsteinSearchAnswersPsl", "EnablementPsl", "FinancialServicesCloudExtensionPsl",
+    "FinServ_FinancialServicesCloudBasicPsl", "FinServ_FinancialServicesCloudStandardPsl",
+    "FinServ_FSCComprehensivePackagePsl", "FSCComprehensivePsl", "FSCFoundationsPsl",
+    "FSCInsurancePsl", "FSCInsuranceRecordSummaryPsl", "FSCSalesEinsteinPsl",
+    "FSCSalesPsl", "FSCServiceEinsteinPsl", "FSCServicePsl",
+    "GenerativeAISummarizationPsl", "GenieDataPlatformStarterPsl",
+    "GlobalPromotionsManagementPsl", "IndustriesServiceExcellencePsl",
+    "InsightsBuilderPsl", "InsightsFSCAnalyticsPsl", "LoyaltyManagementPsl",
+    "MortgagePsl", "OmniStudioDesigner", "OmniStudioRuntime",
+    "PersonalizedFinancialEngagementPsl", "ScoringFrameworkPsl", "ServiceProcessPsl",
+    "ServiceUserPsl", "SlackServiceUserPsl", "TableauBusinessUserPsl",
+    "TableauEinsteinUserPsl", "WalkthroughsPsl"
+  ]
+}

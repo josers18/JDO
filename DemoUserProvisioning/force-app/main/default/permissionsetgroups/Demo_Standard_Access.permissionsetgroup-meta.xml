@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Bundles the standalone permission sets that make up standard demo user access (cloned from sarah.smith). Add a permission set here to grant it to every demo user automatically.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Demo Standard Access</label>
+    <permissionSets>Access</permissionSets>
+    <permissionSets>Access_Agentforce_Default_Agent_PS</permissionSets>
+    <permissionSets>Advisor</permissionSets>
+    <permissionSets>AgentCreator</permissionSets>
+    <permissionSets>CumulusOfferTilesAccess</permissionSets>
+    <permissionSets>Data_Cloud_Standard_User_Augmentation</permissionSets>
+    <permissionSets>DC_AgentForce_Output_User</permissionSets>
+    <permissionSets>DC_GA4_EC_PermissionSet</permissionSets>
+    <permissionSets>DC_Goals_Cockpit_User</permissionSets>
+    <permissionSets>DC_Multiclass_Prediction_User</permissionSets>
+    <permissionSets>DC_Prediction_Model_User</permissionSets>
+    <permissionSets>DC_Query_to_Table_User</permissionSets>
+    <permissionSets>FINS_Banking_Base</permissionSets>
+    <permissionSets>FINS_Base</permissionSets>
+    <permissionSets>FINS_Commercial_Banking_Sales</permissionSets>
+    <permissionSets>Offer_Objects_Access</permissionSets>
+    <permissionSets>PersonalBanker</permissionSets>
+    <permissionSets>SDO_Platform_Components</permissionSets>
+    <permissionSets>SDO_Platform_Email_Template_Builder</permissionSets>
+    <permissionSets>SDO_Platform_Files_Connect</permissionSets>
+    <permissionSets>SDO_Platform_Flow_User</permissionSets>
+    <permissionSets>SDO_Slack_Service_Swarming_User</permissionSets>
+    <permissionSets>Slack_Standard_User</permissionSets>
+    <permissionSets>Standard_User_Augment</permissionSets>
+    <permissionSets>Use_Flow_Automation_Agent</permissionSets>
+    <permissionSets>View_Flows</permissionSets>
+    <permissionSets>xDO_Service_Knowledge_Access</permissionSets>
+</PermissionSetGroup>
