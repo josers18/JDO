@@ -108,10 +108,11 @@ List<PermissionSetAssignment> psaIns = new List<PermissionSetAssignment>();
 for (PermissionSetGroup g : [SELECT Id, DeveloperName FROM PermissionSetGroup WHERE DeveloperName IN :PSG_NAMES]) {
   if (!assignedPsgIds.contains(g.Id)) psaIns.add(new PermissionSetAssignment(AssigneeId = userId, PermissionSetGroupId = g.Id));
 }
+Integer psgOk = 0;
 for (Database.SaveResult r : Database.insert(psaIns, false)) {
-  if (!r.isSuccess()) System.debug('PSG FAIL: ' + r.getErrors()[0].getMessage());
+  if (r.isSuccess()) psgOk++; else System.debug('PSG FAIL: ' + r.getErrors()[0].getMessage());
 }
-System.debug('PSG assigned this run: ' + psaIns.size());
+System.debug('PSG assigned this run: ' + psgOk + '/' + psaIns.size());
 
 // 4) Queue + public group membership
 Map<String, Id> grpByDev = new Map<String, Id>();
