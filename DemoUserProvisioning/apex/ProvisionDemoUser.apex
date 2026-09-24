@@ -1,7 +1,7 @@
-String sfEmail = '{{EMAIL}}';
-String pwd = '{{PASSWORD}}';
-String localPart = sfEmail.substringBefore('@');
-String username = localPart + '@finsdc3.demo';
+String mode = '{{MODE}}';            // 'create' (default) or 'align'
+String sfEmail = '{{EMAIL}}';        // create mode only
+String identifier = '{{IDENTIFIER}}'; // align mode only: existing user's Username, Email, or Id
+String pwd = '{{PASSWORD}}';         // create mode only
 
 Set<String> PSG_NAMES = new Set<String>{
   'Demo_Standard_Access','Access_Ai_Search','Agentforce_Main','CopilotSalesforceUserPSG',
@@ -25,32 +25,62 @@ Set<String> PSL_NAMES = new Set<String>{
   'ServiceUserPsl','SlackServiceUserPsl','TableauBusinessUserPsl','TableauEinsteinUserPsl','WalkthroughsPsl'
 };
 
-// 1) Ensure user
+// 1) Resolve (align mode) or ensure (create mode) the user
 Id userId;
-List<User> existing = [SELECT Id FROM User WHERE Username = :username LIMIT 1];
-if (!existing.isEmpty()) {
-  userId = existing[0].Id;
-  System.debug('USER EXISTS: ' + username);
+if (mode == 'align') {
+  // Bring an EXISTING org user up to the full baseline. Additive only:
+  // profile, role, and password are left untouched. Resolve by exact
+  // Username OR Email OR Id; refuse to guess when the identifier is ambiguous.
+  // Only add the Id clause when the identifier actually parses as an Id — a
+  // non-Id string (email/username) in an `Id = :x` bind would throw and break
+  // the whole query.
+  Id maybeId = null;
+  try { maybeId = Id.valueOf(identifier); } catch (Exception e) { maybeId = null; }
+  List<User> matches = (maybeId != null)
+    ? [SELECT Id, Username, Email FROM User
+       WHERE Id = :maybeId OR Username = :identifier OR Email = :identifier]
+    : [SELECT Id, Username, Email FROM User
+       WHERE Username = :identifier OR Email = :identifier];
+  if (matches.isEmpty()) {
+    throw new HandledException('ALIGN FAIL: no user matches "' + identifier + '"');
+  }
+  if (matches.size() > 1) {
+    for (User m : matches) System.debug('ALIGN CANDIDATE: ' + m.Username + ' / ' + m.Id);
+    throw new HandledException('ALIGN FAIL: ' + matches.size() + ' users match "' + identifier
+      + '" — re-run with the exact Username or 18-char Id (candidates listed above).');
+  }
+  userId = matches[0].Id;
+  System.debug('ALIGN TARGET: ' + matches[0].Username + ' / ' + userId
+    + ' (additive — profile/role/password left unchanged)');
 } else {
-  Id profileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id;
-  Id roleId = [SELECT Id FROM UserRole WHERE Name = 'Central Sales' LIMIT 1].Id;
-  String alias = localPart.replaceAll('[^a-zA-Z0-9]', '');
-  if (alias.length() > 8) alias = alias.substring(0, 8);
-  // Optional first/last name from the wrapper; fall back to email-derived when blank.
-  String firstName = '{{FIRSTNAME}}';
-  String lastName  = '{{LASTNAME}}';
-  if (String.isBlank(firstName)) firstName = localPart.contains('.') ? localPart.substringBefore('.') : localPart;
-  if (String.isBlank(lastName))  lastName  = localPart.contains('.') ? localPart.substringAfter('.')  : localPart;
-  User u = new User(
-    Username = username, Email = sfEmail, FirstName = firstName, LastName = lastName,
-    Alias = alias, ProfileId = profileId, UserRoleId = roleId,
-    TimeZoneSidKey = 'America/New_York', LocaleSidKey = 'en_US',
-    LanguageLocaleKey = 'en_US', EmailEncodingKey = 'UTF-8'
-  );
-  insert u;
-  userId = u.Id;
-  System.setPassword(userId, pwd);
-  System.debug('USER CREATED: ' + username + ' / ' + userId);
+  // create mode: create-or-top-up the derived demo user <localpart>@finsdc3.demo
+  String localPart = sfEmail.substringBefore('@');
+  String username = localPart + '@finsdc3.demo';
+  List<User> existing = [SELECT Id FROM User WHERE Username = :username LIMIT 1];
+  if (!existing.isEmpty()) {
+    userId = existing[0].Id;
+    System.debug('USER EXISTS: ' + username);
+  } else {
+    Id profileId = [SELECT Id FROM Profile WHERE Name = 'Standard User' LIMIT 1].Id;
+    Id roleId = [SELECT Id FROM UserRole WHERE Name = 'Central Sales' LIMIT 1].Id;
+    String alias = localPart.replaceAll('[^a-zA-Z0-9]', '');
+    if (alias.length() > 8) alias = alias.substring(0, 8);
+    // Optional first/last name from the wrapper; fall back to email-derived when blank.
+    String firstName = '{{FIRSTNAME}}';
+    String lastName  = '{{LASTNAME}}';
+    if (String.isBlank(firstName)) firstName = localPart.contains('.') ? localPart.substringBefore('.') : localPart;
+    if (String.isBlank(lastName))  lastName  = localPart.contains('.') ? localPart.substringAfter('.')  : localPart;
+    User u = new User(
+      Username = username, Email = sfEmail, FirstName = firstName, LastName = lastName,
+      Alias = alias, ProfileId = profileId, UserRoleId = roleId,
+      TimeZoneSidKey = 'America/New_York', LocaleSidKey = 'en_US',
+      LanguageLocaleKey = 'en_US', EmailEncodingKey = 'UTF-8'
+    );
+    insert u;
+    userId = u.Id;
+    System.setPassword(userId, pwd);
+    System.debug('USER CREATED: ' + username + ' / ' + userId);
+  }
 }
 
 // 2) Permission Set Licenses FIRST (a license-gated PSG assignment fails if the license isn't present yet)
@@ -97,4 +127,4 @@ for (String dev : grpByDev.keySet()) {
 for (Database.SaveResult r : Database.insert(gmIns, false)) {
   if (!r.isSuccess()) System.debug('GROUP FAIL: ' + r.getErrors()[0].getMessage());
 }
-System.debug('DONE: ' + username);
+System.debug('DONE: user ' + userId);

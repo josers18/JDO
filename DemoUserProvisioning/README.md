@@ -12,9 +12,21 @@ shared password. Idempotent — safe to re-run. Password defaults to `salesforce
 (override with `DEMO_USER_PASSWORD=...`). Optional `[firstName] [lastName]` set the
 display name (letters/spaces/hyphens/dots only — no quotes); omit to derive from the email.
 
+## Bring an existing user up to baseline (align mode)
+    scripts/provision_demo_user.sh --existing bob.jones@finsdc3.demo   # by username
+    scripts/provision_demo_user.sh --existing bjones@salesforce.com    # by email
+    scripts/provision_demo_user.sh --existing 005XXXXXXXXXXXXXXX        # by 15/18-char Id
+Use this for a user who **already exists** in the org (any username — e.g. an SSO teammate
+or an older non-standard login) and just needs the full access baseline. The target is
+resolved by exact **Username OR Email OR Id**; if it matches zero or multiple users the run
+aborts (multiple matches are listed as `ALIGN CANDIDATE:` lines — re-run with an exact one).
+Additive only: assigns the 9 PSGs, 49 PSLs, WebMessagingQueue, and Demo_Users group, and
+**never changes the target's profile, role, or password**. Idempotent — safe to re-run.
+
 **Claude Code skill:** this repo ships a `provision-demo-user` skill
 (`.claude/skills/provision-demo-user/`) — just ask Claude to "provision a demo user for
-jdoe@salesforce.com" and it runs and verifies this flow for you.
+jdoe@salesforce.com" or "bring bob.jones up to baseline" and it runs and verifies the right
+flow for you.
 
 ## Grant new access to ALL demo users
 - **A permission set:** add it to the `Demo_Standard_Access` permission set group
