@@ -6,6 +6,7 @@
 |-----|--------------|
 | [`jdo-guardrails`](jdo-guardrails/) | **sf-deploy-guard** + **git-safety** + **gotcha-lint** (below) |
 | [`jdo-org-cockpit`](jdo-org-cockpit/) | **`/org`** pane: org auth, UI Bundles, Data Cloud stream health (below) |
+| [`jdo-announce`](jdo-announce/) | **`/announce <component>`**: drafts a JDO launch post, DM-first review, gated post to the JDO channel (below) |
 | [`jdo-cost-router`](jdo-cost-router/) | Sends lookup subagents (Explore, docs Q&A) to a cheaper model at spawn; **`/cost-router`** reports (below) |
 
 ## Install
@@ -17,7 +18,7 @@ Claude_Mods/install.sh
 The script syncs each mod into `~/.claude/mods/<mod>` and prints the line to put in `~/.claude/settings.json` under `env`:
 
 ```json
-"CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/jdo-guardrails:~/.claude/mods/jdo-org-cockpit:~/.claude/mods/jdo-cost-router"
+"CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/jdo-guardrails:~/.claude/mods/jdo-org-cockpit:~/.claude/mods/jdo-cost-router:~/.claude/mods/jdo-announce"
 ```
 
 Every new session then loads all of them. Edit the mods here, then re-run `install.sh`. For a hot-reloading dev loop, run `claude --plugin-dir Claude_Mods/<mod>`. Don't also load the installed copy in that session, or every hook runs twice.
@@ -79,3 +80,16 @@ Measured on this setup: without the mod, an `Explore` subagent inherits the sess
 - **`/cost-router`** — what's routed, routed spawns by type, and subagent tokens by model (from `turn.complete`).
 - **`/cost-router off`** / **`on`** — toggle routing for this session.
 - Options: `cheapModel` (default `haiku`, the alias your settings resolve) and `routeTypes` (default `Explore,claude-code-guide,statusline-setup`, comma-separated).
+
+## jdo-announce
+
+**`/announce <component path>`** (e.g. `/announce Claude_Mods/jdo-cost-router`) reads that folder's `README.md` and drafts a launch post with `$.model.complete`. It follows the tone and template rules of the `announce-jdo-component` skill (`~/.claude/skills/announce-jdo-component/SKILL.md`) (Phases 2–3), read from the skill file at runtime, so the rules live in one place. The draft opens in a pane:
+
+| Control | What it does |
+|---------|--------------|
+| **Send to my DM** (`d`) | Sends the draft to your DM (`U02LZ7EM0BS`) through the `slack` MCP server and shows the link |
+| **Post to #JDO** (`p`) | Shown **only after this exact draft is in your DM**: the skill's DM-first rule, enforced by a hash of the text. Any regenerate or tweak re-locks it. Pressing it is the explicit OK. |
+| **Tweak** box | Revises the draft per your note ("shorter, lead with the A/B result") |
+| **Regenerate** (`g`) | Drafts it again from the README |
+
+Nothing reaches Slack without a press. After posting, the canvas section is still the skill's Phase 7. Options: `repoDir`, `draftModel` (default `sonnet`), `channelId`, `dmUserId`, `slackServer`.
