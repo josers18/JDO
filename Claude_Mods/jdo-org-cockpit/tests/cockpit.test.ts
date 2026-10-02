@@ -1,5 +1,5 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
-import { appDomainUrl, base64, heatCells, joinBundles, parseDist, sfResult, severity } from '../hooks/model.ts'
+import { appDomainUrl, base64, deployPrompt, heatCells, joinBundles, parseDist, sfResult, severity } from '../hooks/model.ts'
 
 const INSTANCE = 'https://storm-16a17dc388fbe6.demo.my.salesforce.com'
 const ok = (result: unknown) => JSON.stringify({ status: 0, result })
@@ -27,6 +27,10 @@ describe('model', () => {
   test('dist join and sf errors', () => {
     const rows = joinBundles([{ name: 'ReactRetail', deployedAt: '2026-09-03T20:53:48.000+0000' }], parseDist('ReactRetail\tstale\nLocalOnly\tfresh\n'))
     expect(rows.map(r => `${r.name}:${r.dist}:${r.deployedAt ? 'org' : 'local'}`)).toEqual(['LocalOnly:fresh:local', 'ReactRetail:stale:org'])
+    expect(rows[1]?.dir).toBe('ReactRetail')
+    expect(deployPrompt('ReactRetail', 'ReactRetail', 'jdo', '/p', 'stale')).toContain(
+      'from /p run `sf project deploy start --source-dir force-app/main/default/uiBundles/ReactRetail -o jdo --json`',
+    )
     expect(() => sfResult('{"status":1,"message":"No authorization information found"}')).toThrow('No authorization')
   })
 })
@@ -37,12 +41,25 @@ describe('pane', () => {
     mock.store(on)
     mock.env(on, { HOME: '/Users/test' })
     const opened: string[] = []
+    const queued: string[] = []
+    on('prompt.submit', (_$, e) => {
+      queued.push(e.text)
+      return { text: e.text }
+    })
     on('process.run', (_$, e) => {
       const argv = e.argv.join(' ')
       if (argv.startsWith('sf org display'))
         return run(ok({ username: 'admin@finsdc3.demo', instanceUrl: INSTANCE, connectedStatus: 'Connected', apiVersion: '67.0' }))
       if (argv.includes('FROM UIBundle'))
         return run(ok({ records: [{ DeveloperName: 'ReactRetail', LastModifiedDate: '2026-09-03T20:53:48.000+0000' }] }))
+      if (argv.includes('FROM DeployRequest'))
+        return run(
+          ok({
+            records: [
+              { StartDate: '2026-09-25T21:55:43.000+0000', Status: 'Failed', NumberComponentsDeployed: 0, NumberComponentErrors: 1, CheckOnly: false, CreatedBy: { Name: 'Jose Sifontes' } },
+            ],
+          }),
+        )
       if (argv.includes('FROM DataStream'))
         return run(
           ok({
@@ -71,9 +88,15 @@ describe('pane', () => {
       expect(await ui.find({ text: /1 failing/ })).toBeDefined()
       expect(await ui.find({ text: /BT_Financial_Trades · FAILURE · never refreshed/ })).toBeDefined()
       expect((await ui.find({ key: 'heat' })) !== undefined).toBe(surface === 'terminal')
+      expect(await ui.find({ text: /2026-09-25 21:55/ })).toBeDefined()
+      expect(await ui.find({ text: /0 comp · 1 err/ })).toBeDefined()
       await ui.press({ key: 'open:ReactRetail' })
+      await ui.press({ key: 'deploy:ReactRetail' })
       await ui.unmount()
     }
+    expect(queued.length).toBe(2)
+    expect(queued[0]).toContain('Build and deploy the ReactRetail UI bundle to jdo-oe0sdd; its local dist/ is stale.')
+    expect(queued[0]).toContain('/Users/test/Documents/Git/JDO/React-Headless/force-app/main/default/uiBundles/ReactRetail')
     expect(opened).toEqual([
       'https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactRetail',
       'https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactRetail',

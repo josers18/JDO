@@ -34,6 +34,8 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
 - **Claude_Mods** — Claude Code mods for JDO work (see [`Claude_Mods/README.md`](Claude_Mods/README.md)):
   - **jdo-guardrails** — `sf project deploy start` guard: denies `--ignore-conflicts`, a stale UI-bundle `dist/` (2 s tolerance for checkout ties) and `--source-dir` casing that differs from git; appends `--json`; toasts status/deployed/errors and tells the model when a deploy didn't cleanly succeed, whatever the exit code. Plus a post-Edit/Write lint for 8 JDO gotchas. 13 tests.
   - **jdo-org-cockpit** — `/org` pane: org auth, UI Bundles (deploy date, local dist freshness, App Domain **Open** buttons), and a Data Cloud stream-health heat map from SOQL on `DataStream` (~3 s for 447 streams vs ~100 s per page over SSOT REST). The snapshot persists across sessions. 5 tests.
+- **jdo-guardrails 0.2 — git-safety**: before a broad discard (`reset --hard`, `checkout -- .`, `restore .`, `switch --discard-changes`, `clean -f`) that would destroy changes this session didn't make, it asks Cancel / Run anyway, listing the files. With no one to ask (`-p`) it denies, and it fails closed if the check can't run. It also denies a `git push` under the wrong active gh account, with the exact `gh auth switch`. 23 tests.
+- **jdo-org-cockpit — Deploy + recent deploys**: a **Deploy** button on bundles with a stale or missing `dist/` queues a build + deploy prompt to Claude, so it runs visibly through the deploy guard. A **Recent deploys** section shows the last 5 Tooling `DeployRequest`s.
 
 ---
 
