@@ -1,0 +1,13 @@
+{
+  "name": "jdo-announce",
+  "version": "0.1.0",
+  "description": "/announce <component>: drafts a JDO launch post from the component's README using the announce-jdo-component skill's rules, then DM-first review in a pane; Post to #JDO unlocks only after that exact draft was DM'd",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "repoDir": { "type": "string", "title": "JDO repo", "description": "Where component folders live", "default": "~/Documents/Git/JDO" },
+    "draftModel": { "type": "string", "title": "Draft model", "description": "Model alias or id that writes the draft", "default": "sonnet" },
+    "channelId": { "type": "string", "title": "Channel", "description": "Slack channel the post goes to", "default": "C08R0EM8PAS" },
+    "dmUserId": { "type": "string", "title": "Review DM", "description": "Slack user id whose DM gets every draft first", "default": "U02LZ7EM0BS" },
+    "slackServer": { "type": "string", "title": "Slack MCP server", "description": "Server name as /mcp lists it", "default": "slack" }
+  }
+}
