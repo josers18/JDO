@@ -82,10 +82,15 @@ export const register: Register = on => {
 
     const notes: string[] = []
     if (call.sourceDirs.length > 0) {
-      const { stdout } = await $.process.run(['sh', '-c', CHECK_SCRIPT, 'sh', call.cwd ?? '.', ...call.sourceDirs], {
-        timeoutMs: 8000,
-      })
-      const found = readFindings(stdout)
+      // fail closed: a check that cannot run must not let an unchecked deploy through
+      const checked = await $.process
+        .run(['sh', '-c', CHECK_SCRIPT, 'sh', call.cwd ?? '.', ...call.sourceDirs], { timeoutMs: 8000 })
+        .catch((err: unknown) => ({ failure: String(err) }))
+      if ('failure' in checked && !call.allowStaleDist)
+        return {
+          deny: `${tag}: could not run the dist/ and --source-dir casing checks (${checked.failure}); refusing an unchecked deploy. Fix that, or prefix JDO_ALLOW_STALE_DIST=1 to deploy without them.`,
+        }
+      const found = readFindings('stdout' in checked ? checked.stdout : '')
       if (found.casing.length > 0)
         return {
           deny: `${tag}: --source-dir casing differs from git (macOS case collision → "duplicate value found: <unknown>"): ${found.casing.join('; ')}. Use the tracked casing.`,
