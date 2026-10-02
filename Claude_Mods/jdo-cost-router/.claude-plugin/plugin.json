@@ -1,0 +1,20 @@
+{
+  "name": "jdo-cost-router",
+  "version": "0.1.0",
+  "description": "Routes allowlisted subagent types (Explore, docs lookups) to a cheaper model at spawn, never overriding an explicit model; /cost-router reports subagent token use by model",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "cheapModel": {
+      "type": "string",
+      "title": "Cheap model",
+      "description": "Model alias or id routed subagents run on",
+      "default": "haiku"
+    },
+    "routeTypes": {
+      "type": "string",
+      "title": "Routed agent types",
+      "description": "Comma-separated subagent types sent to the cheap model when the caller names no model",
+      "default": "Explore,claude-code-guide,statusline-setup"
+    }
+  }
+}
