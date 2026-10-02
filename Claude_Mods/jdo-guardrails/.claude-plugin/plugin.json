@@ -1,0 +1,1 @@
+{ "name": "jdo-guardrails", "version": "0.1.0", "description": "JDO guardrails: sf deploy guard (no --ignore-conflicts, forced --json, stale dist/ and --source-dir casing checks, result toast) + post-edit gotcha lint" }

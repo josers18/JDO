@@ -1,0 +1,20 @@
+{
+  "name": "jdo-org-cockpit",
+  "version": "0.1.0",
+  "description": "/org pane: JDO org auth, UI Bundles (deploy date, local dist freshness, App Domain open buttons) and a Data Cloud stream health heat map",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "orgAlias": {
+      "type": "string",
+      "title": "Org alias",
+      "description": "sf alias the cockpit reads",
+      "default": "jdo-oe0sdd"
+    },
+    "projectDir": {
+      "type": "string",
+      "title": "SFDX project dir",
+      "description": "Where force-app/main/default/uiBundles lives, for the dist freshness check",
+      "default": "~/Documents/Git/JDO/React-Headless"
+    }
+  }
+}
