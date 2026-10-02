@@ -1,1 +1,6 @@
-{ "name": "jdo-guardrails", "version": "0.1.0", "description": "JDO guardrails: sf deploy guard (no --ignore-conflicts, forced --json, stale dist/ and --source-dir casing checks, result toast) + post-edit gotcha lint" }
+{
+  "name": "jdo-guardrails",
+  "version": "0.2.0",
+  "description": "JDO guardrails: sf deploy guard (no --ignore-conflicts, forced --json, stale dist/ and --source-dir casing checks, result toast), git-safety (ask before broad discards of changes this session didn't make; deny a push under the wrong gh account) + post-edit gotcha lint",
+  "types": "./types/index.d.ts"
+}

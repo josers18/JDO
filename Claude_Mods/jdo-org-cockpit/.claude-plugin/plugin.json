@@ -1,6 +1,6 @@
 {
   "name": "jdo-org-cockpit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "/org pane: JDO org auth, UI Bundles (deploy date, local dist freshness, App Domain open buttons) and a Data Cloud stream health heat map",
   "types": "./types/index.d.ts",
   "userConfig": {

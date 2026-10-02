@@ -94,6 +94,15 @@ describe('deploy guard through the engine', () => {
     expect(r.context?.join('\n') ?? '').toContain('did NOT cleanly succeed')
   })
 
+  test('fails closed when its checks cannot run', async ($, on) => {
+    on('process.run', () => {
+      throw new Error('sh missing')
+    })
+    on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: OK_JSON } as never }))
+    const r = await $.tool.call({ tool: 'Bash', command: `sf project deploy start -d ${BUNDLE} --json` })
+    expect(refusal(r)).toContain('refusing an unchecked deploy')
+  })
+
   test('leaves other commands alone', async ($, on) => {
     on('tool.call', { tool: 'Bash' }, () => ({ result: { stdout: 'hi' } as never }))
     const r = await $.tool.call({ tool: 'Bash', command: 'echo hi' })

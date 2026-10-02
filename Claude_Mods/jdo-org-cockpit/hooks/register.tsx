@@ -10,9 +10,12 @@ import {
   ago,
   appDomainUrl,
   bySeverity,
+  deployColor,
+  deployPrompt,
   heatCells,
   joinBundles,
   parseBundles,
+  parseDeploys,
   parseDist,
   parseOrg,
   parseStreams,
@@ -25,6 +28,8 @@ const snapshot = atom({ plugin: 'jdo-org-cockpit', key: 'snapshot' } as const, n
 const isLoading = atom({ plugin: 'jdo-org-cockpit', key: 'isLoading' } as const, false)
 
 const BUNDLES_SOQL = 'SELECT DeveloperName, LastModifiedDate FROM UIBundle WITH USER_MODE'
+const DEPLOYS_SOQL =
+  'SELECT StartDate, Status, NumberComponentsDeployed, NumberComponentErrors, CheckOnly, CreatedBy.Name FROM DeployRequest WITH USER_MODE ORDER BY StartDate DESC LIMIT 5'
 const STREAMS_SOQL =
   'SELECT Name, ImportRunStatus, DataStreamStatus, LastRefreshDate FROM DataStream WITH USER_MODE LIMIT 2000'
 
@@ -48,22 +53,25 @@ async function refresh($: EngineInterface, cfg: Cfg) {
   if (await read($, isLoading)) return
   await update($, isLoading, () => true)
   try {
-    const [org, bundles, streams, dist] = await Promise.allSettled([
+    const [org, bundles, streams, dist, deploys] = await Promise.allSettled([
       sf($, cfg, ['org', 'display']).then(out => parseOrg(out, cfg.alias)),
       sf($, cfg, ['data', 'query', '--use-tooling-api', '-q', BUNDLES_SOQL]).then(parseBundles),
       sf($, cfg, ['data', 'query', '-q', STREAMS_SOQL]).then(parseStreams),
       localDist($, cfg),
+      sf($, cfg, ['data', 'query', '--use-tooling-api', '-q', DEPLOYS_SOQL]).then(parseDeploys),
     ])
     const errors = [
       org.status === 'rejected' ? `org: ${String(org.reason)}` : '',
       bundles.status === 'rejected' ? `UI bundles: ${String(bundles.reason)}` : '',
       streams.status === 'rejected' ? `streams: ${String(streams.reason)}` : '',
+      deploys.status === 'rejected' ? `deploys: ${String(deploys.reason)}` : '',
     ].filter(Boolean)
     const next: Snapshot = {
       at: await $.clock.now(),
       org: org.status === 'fulfilled' ? org.value : null,
       bundles: joinBundles(bundles.status === 'fulfilled' ? bundles.value : [], dist.status === 'fulfilled' ? dist.value : new Map()),
       streams: streams.status === 'fulfilled' ? streams.value : [],
+      deploys: deploys.status === 'fulfilled' ? deploys.value : [],
       errors,
     }
     await update($, snapshot, () => next)
@@ -77,6 +85,11 @@ async function openPane($: EngineInterface, cfg: Cfg) {
   await $.ui.open({ id: PANE, title: `Org · ${cfg.alias}`, focus: true, closeOnEscape: true })
   const held = await read($, snapshot)
   if (!held || (await $.clock.now()) - held.at > STALE_MS) $.clock.after(0, () => void refresh($, cfg))
+}
+
+async function queueDeploy($: EngineInterface, cfg: Cfg, bundle: string, dir: string, dist: string) {
+  await $.prompt.submit({ text: deployPrompt(bundle, dir, cfg.alias, await projectDir($, cfg), dist) })
+  $.ui.toast(`Queued: build + deploy ${bundle}`)
 }
 
 export const register: Register = (on, options) => {
@@ -146,10 +159,29 @@ export const register: Register = (on, options) => {
                     Open
                   </Button>
                 )}
+                {b.dir && (b.dist === 'stale' || b.dist === 'missing') && (
+                  <Button key={`deploy:${b.name}`} onPress={() => void queueDeploy($, cfg, b.name, b.dir!, b.dist)}>
+                    Deploy
+                  </Button>
+                )}
               </Box>
             )
           })}
         </Box>
+
+        {(snap?.deploys ?? []).length > 0 && (
+          <Box flexDirection="column">
+            <Text bold>Recent deploys</Text>
+            {(snap?.deploys ?? []).map(d => (
+              <Box key={`d:${d.startedAt}`} flexDirection="row" gap={2}>
+                <Box width={17}><Text dimColor>{d.startedAt.slice(0, 16).replace('T', ' ')}</Text></Box>
+                <Box width={11}><Text color={deployColor(d.status)}>{d.status}</Text></Box>
+                <Text>{d.components} comp · {d.errors} err{d.isCheckOnly ? ' · validate-only' : ''}</Text>
+                <Text dimColor wrap="truncate">{d.by}</Text>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         <Box flexDirection="column">
           <Text bold>Data Cloud streams · {snap?.streams.length ?? 0}</Text>

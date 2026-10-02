@@ -1,11 +1,14 @@
 export type OrgInfo = { alias: string; username: string; instanceUrl: string; status: string; apiVersion: string }
-export type BundleRow = { name: string; deployedAt: string | null; dist: 'fresh' | 'stale' | 'missing' | 'unknown' }
+// `dir` is the local folder under uiBundles/ when there is one (the org may spell the name differently)
+export type BundleRow = { name: string; dir?: string; deployedAt: string | null; dist: 'fresh' | 'stale' | 'missing' | 'unknown' }
 export type StreamRow = { name: string; run: string; status: string; lastRefresh: string | null }
+export type DeployRow = { startedAt: string; status: string; components: number; errors: number; isCheckOnly: boolean; by: string }
 export type Snapshot = {
   at: number
   org: OrgInfo | null
   bundles: BundleRow[]
   streams: StreamRow[]
+  deploys: DeployRow[]
   errors: string[]
 }
 

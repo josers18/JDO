@@ -1,6 +1,6 @@
 // Pure pieces of the cockpit: parsing sf --json output, the App Domain URL,
 // stream severity, and the heat map's packed Raster cells.
-import type { BundleRow, OrgInfo, StreamRow } from '../types'
+import type { BundleRow, DeployRow, OrgInfo, StreamRow } from '../types'
 
 export const DC_SETUP_PATH = '/lightning/setup/SetupOneHome/home?setupApp=audience360'
 
@@ -56,10 +56,47 @@ export const parseDist = (stdout: string): Map<string, { name: string; dist: Dis
 
 // Org bundles joined with local dist state; a local-only bundle shows undeployed.
 export const joinBundles = (org: { name: string; deployedAt: string }[], dist: Map<string, { name: string; dist: Dist }>): BundleRow[] => {
-  const rows: BundleRow[] = org.map(b => ({ name: b.name, deployedAt: b.deployedAt, dist: dist.get(b.name.toLowerCase())?.dist ?? 'unknown' }))
-  for (const [key, local] of dist) if (!rows.some(r => r.name.toLowerCase() === key)) rows.push({ name: local.name, deployedAt: null, dist: local.dist })
+  const rows: BundleRow[] = org.map(b => {
+    const local = dist.get(b.name.toLowerCase())
+    return { name: b.name, dir: local?.name, deployedAt: b.deployedAt, dist: local?.dist ?? 'unknown' }
+  })
+  for (const [key, local] of dist)
+    if (!rows.some(r => r.name.toLowerCase() === key)) rows.push({ name: local.name, dir: local.name, deployedAt: null, dist: local.dist })
   return rows.sort((a, b) => a.name.localeCompare(b.name))
 }
+
+export const parseDeploys = (stdout: string): DeployRow[] =>
+  sfResult<
+    Records<{
+      StartDate: string
+      Status: string
+      NumberComponentsDeployed: number | null
+      NumberComponentErrors: number | null
+      CheckOnly: boolean
+      CreatedBy: { Name: string } | null
+    }>
+  >(stdout).records.map(r => ({
+    startedAt: r.StartDate,
+    status: r.Status,
+    components: r.NumberComponentsDeployed ?? 0,
+    errors: r.NumberComponentErrors ?? 0,
+    isCheckOnly: r.CheckOnly,
+    by: r.CreatedBy?.Name ?? '?',
+  }))
+
+// The prompt the Deploy button queues: Claude runs the build and the deploy as
+// ordinary visible steps, through the person's permissions and jdo-guardrails.
+export const deployPrompt = (bundle: string, dir: string, alias: string, projectDir: string, dist: string): string => {
+  const path = `force-app/main/default/uiBundles/${dir}`
+  return [
+    `Build and deploy the ${bundle} UI bundle to ${alias}; its local dist/ is ${dist}.`,
+    `From ${projectDir}/${path} run \`npm run build\`, then from ${projectDir} run`,
+    `\`sf project deploy start --source-dir ${path} -o ${alias} --json\` and report status and numberComponentErrors.`,
+  ].join(' ')
+}
+
+export const deployColor = (status: string): string =>
+  status === 'Succeeded' ? '#3fb950' : status === 'InProgress' || status === 'Pending' ? '#d29922' : status === 'Canceled' ? '#6e7681' : '#f85149'
 
 // https://<myDomain>.<sub>.my.salesforce.com → https://<myDomain>--c.<sub>.my.salesforce.app/app/c__<Name>
 export const appDomainUrl = (instanceUrl: string, bundle: string): string | undefined => {
