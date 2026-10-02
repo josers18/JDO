@@ -6,6 +6,7 @@
 |-----|--------------|
 | [`jdo-guardrails`](jdo-guardrails/) | **sf-deploy-guard** + **git-safety** + **gotcha-lint** (below) |
 | [`jdo-org-cockpit`](jdo-org-cockpit/) | **`/org`** pane: org auth, UI Bundles, Data Cloud stream health (below) |
+| [`jdo-cost-router`](jdo-cost-router/) | Sends lookup subagents (Explore, docs Q&A) to a cheaper model at spawn; **`/cost-router`** reports (below) |
 
 ## Install
 
@@ -16,10 +17,10 @@ Claude_Mods/install.sh
 The script syncs each mod into `~/.claude/mods/<mod>` and prints the line to put in `~/.claude/settings.json` under `env`:
 
 ```json
-"CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/jdo-guardrails:~/.claude/mods/jdo-org-cockpit"
+"CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/jdo-guardrails:~/.claude/mods/jdo-org-cockpit:~/.claude/mods/jdo-cost-router"
 ```
 
-Every new session then loads both. Edit the mods here, then re-run `install.sh`. For a hot-reloading dev loop, run `claude --plugin-dir Claude_Mods/<mod>`. Don't also load the installed copy in that session, or every hook runs twice.
+Every new session then loads all of them. Edit the mods here, then re-run `install.sh`. For a hot-reloading dev loop, run `claude --plugin-dir Claude_Mods/<mod>`. Don't also load the installed copy in that session, or every hook runs twice.
 
 Check a mod with `claude plugin validate Claude_Mods/<mod>` and `claude plugin test Claude_Mods/<mod>`.
 
@@ -68,3 +69,13 @@ Type **`/org`** to open a pane for the configured org:
 - **Data Cloud streams** — a heat map with two streams per cell, colored failing / running / never run / ok, then counts and the failing streams by name. The data comes from SOQL on `DataStream` (~3 s for 447 streams; the SSOT REST list took ~100 s per 200-stream page).
 
 The snapshot is saved across sessions, so the pane opens instantly and refreshes in the background when the data is more than 5 minutes old. Options, set in `/config` or under `pluginConfigs` in settings: `orgAlias` (default `jdo-oe0sdd`) and `projectDir` (default `~/Documents/Git/JDO/React-Headless`).
+
+## jdo-cost-router
+
+When a subagent is spawned with **no `model`** and its type is on the allowlist, the router sets the model to the cheap one. This happens once, at spawn (`agent.spawn`), so the subagent keeps one model for its whole run and its prompt cache stays warm. An explicit `model` from the caller is never overridden, and types off the list (reviewers, planners, general-purpose) keep their own models.
+
+Measured on this setup: without the mod, an `Explore` subagent inherits the session's Opus. With it, the same Explore task ran on `claude-haiku-4-5` with the same answer.
+
+- **`/cost-router`** — what's routed, routed spawns by type, and subagent tokens by model (from `turn.complete`).
+- **`/cost-router off`** / **`on`** — toggle routing for this session.
+- Options: `cheapModel` (default `haiku`, the alias your settings resolve) and `routeTypes` (default `Explore,claude-code-guide,statusline-setup`, comma-separated).
