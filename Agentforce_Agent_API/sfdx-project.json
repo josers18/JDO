@@ -1,0 +1,5 @@
+{
+  "packageDirectories": [{ "path": "force-app", "default": true }],
+  "name": "Agentforce_Agent_API",
+  "sourceApiVersion": "67.0"
+}
