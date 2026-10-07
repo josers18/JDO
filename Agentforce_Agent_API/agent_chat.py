@@ -7,6 +7,7 @@ client-credentials token -> start session -> streaming messages -> end session.
 Usage:
   python3 agent_chat.py                  # interactive chat (Ctrl-D / "exit" to quit)
   python3 agent_chat.py "your question"  # one-shot: ask, print answer, end session
+  python3 agent_chat.py --list           # list agents in the org with their IDs
 """
 import json
 import os
@@ -59,6 +60,23 @@ def get_token(my_domain, client_id, client_secret):
         "client_secret": client_secret,
     })
     return json.load(resp)["access_token"]
+
+
+def list_agents(token, my_domain):
+    soql = ("SELECT Id, DeveloperName, MasterLabel, AgentType, "
+            "(SELECT Id FROM BotVersions WHERE Status = 'Active' LIMIT 1) "
+            "FROM BotDefinition WHERE Type IN ('InternalCopilot', 'ExternalCopilot') "
+            "ORDER BY MasterLabel")
+    resp = request("GET", f"{my_domain}/services/data/v67.0/query?q={urllib.parse.quote(soql)}", token)
+    agents = json.load(resp)["records"]
+    print(f"{'ID':<20} {'Label':<42} {'Type':<26} Status")
+    for a in agents:
+        status = "Active" if a.get("BotVersions") else "Inactive"
+        # AgentType 'Employee' is the Agentforce (Default) assistant, which Agent API doesn't support
+        if a["AgentType"] == "Employee":
+            status += " (not Agent API)"
+        default = "  <- default" if a["Id"] == DEFAULT_AGENT_ID else ""
+        print(f"{a['Id']:<20} {a['MasterLabel'][:41]:<42} {a['AgentType']:<26} {status}{default}")
 
 
 def start_session(token, agent_id, my_domain, bypass_user):
@@ -119,6 +137,9 @@ def main():
     bypass_user = os.environ.get("AGENT_BYPASS_USER", "false").lower() == "true"
 
     token = get_token(my_domain, os.environ["SF_CLIENT_ID"], os.environ["SF_CLIENT_SECRET"])
+    if sys.argv[1:] == ["--list"]:
+        list_agents(token, my_domain)
+        return
     session_id = start_session(token, agent_id, my_domain, bypass_user)
     sequence_id = 0
     try:
