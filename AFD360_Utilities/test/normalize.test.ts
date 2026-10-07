@@ -71,6 +71,34 @@ describe("TurnNormalizer — Confirm (action approval)", () => {
   });
 });
 
+describe("TurnNormalizer — step trail (agent delegation)", () => {
+  // One tool id is re-reported with a new description per step; the final Inform only has the last state.
+  it("keeps every step of a tool, in order, while streaming and in the final parts", async () => {
+    const { events, final } = await run("stream-delegation.sse");
+    const live = events.flatMap((e) => (e.type === "tool" ? [e.tool] : [])).at(-1)!;
+    expect(live.steps?.map((s) => s.description)).toEqual([
+      "Delegating to D360 Agent",
+      "D360 Agent: Analyzing your request...",
+      "D360 Agent: Understanding your request...",
+      "D360 Agent: Determining next steps...",
+      "D360 Agent: Working on your request",
+      "D360 Agent: Routing request...",
+      expect.stringMatching(/^D360 Agent: Planning — The user wants the latest Moody's/),
+      "D360 Agent: Generating SQL: Get the latest Moody's information for Omega Inc",
+      "D360 Agent: Run SQL — Found 0 rows — columns: result",
+      expect.stringMatching(/^D360 Agent: Planning — The query returned 0 rows/),
+      "Delegating to D360 Agent - Trying a different angle",
+    ]);
+    // Earlier steps are done; the last carries the tool's final status.
+    expect(live.steps!.slice(0, -1).every((s) => s.status === "success")).toBe(true);
+    expect(live.steps!.at(-1)!.status).toBe("error");
+
+    const tools = final.flatMap((p) => (p.kind === "tools" ? p.tools : []));
+    expect(tools).toHaveLength(1);
+    expect(tools[0].steps).toHaveLength(11);
+  });
+});
+
 describe("TurnNormalizer — Text stream", () => {
   it("turns ProgressIndicator into progress events and final progress parts", async () => {
     const { events, final } = await run("stream-text.sse");

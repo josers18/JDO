@@ -37,12 +37,19 @@ export interface Agent {
   supported: boolean; // false for the "Agentforce (Default)" assistant (AgentType = Employee)
 }
 
+export interface ToolStep {
+  description: string;
+  status: string;
+}
+
 export interface Tool {
   id: string;
   description: string;
   count?: string;
   status: string; // running | success | error ...
   category?: string;
+  // Every description this tool reported, in order (e.g. agent delegation sub-steps); last = current.
+  steps?: ToolStep[];
 }
 
 export type Part =

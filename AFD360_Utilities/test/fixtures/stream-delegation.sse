@@ -1,0 +1,198 @@
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389951831, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 0, "message": {"type": "LightningChunk", "offset": 0, "id": "5cad34d4-9738-46b4-9ff9-c4cd066c68de", "metrics": {}, "value": "{\"content\":\"Let", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389952120, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 1, "message": {"type": "LightningChunk", "offset": 1, "id": "68e21a44-58c0-42de-be38-87a1864a9520", "metrics": {}, "value": " me delegate", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389952121, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 2, "message": {"type": "LightningChunk", "offset": 2, "id": "adf2f5f1-82fb-40f8-90af-705d87f3c4c8", "metrics": {}, "value": " that", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389952122, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 3, "message": {"type": "LightningChunk", "offset": 3, "id": "cd0cd85b-9f1e-45b5-981f-83fb44011b28", "metrics": {}, "value": " to the D360 Agent", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389952123, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 4, "message": {"type": "LightningChunk", "offset": 4, "id": "d26e71a9-2bb4-488e-8d3d-88c28be5e0ca", "metrics": {}, "value": " for", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389952124, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 5, "message": {"type": "LightningChunk", "offset": 5, "id": "e806feb4-8e6e-47d6-bf44-f6ce8ca7ab5b", "metrics": {}, "value": " you", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389952125, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 6, "message": {"type": "LightningChunk", "offset": 6, "id": "6bd9515b-bc74-4d40-9aa4-f6024e78fa9f", "metrics": {}, "value": "!", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389953107, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 7, "message": {"type": "LightningChunk", "offset": 7, "id": "cfe8dfc0-984d-4a70-9156-454f32c3303a", "metrics": {}, "value": "\"}", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389953108, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 0, "message": {"type": "LightningChunk", "offset": 0, "id": "5c53721a-fc21-4c2c-9b68-7c2f4b2d9e3d", "metrics": {}, "value": "{\"tools\":[{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"Delegating to D360 Agent\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389957930, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 1, "message": {"type": "LightningChunk", "offset": 1, "id": "b2ac2f5f-55b9-40fe-b6f3-76f93aac220f", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Analyzing your request...\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389957983, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 2, "message": {"type": "LightningChunk", "offset": 2, "id": "e885e577-c1bb-4451-a6ee-528935e082ce", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Understanding your request...\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791389977438, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 3, "message": {"type": "LightningChunk", "offset": 3, "id": "fb592ceb-e43f-4ae9-97bc-95dfcac1cabc", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Determining next steps...\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390016181, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 4, "message": {"type": "LightningChunk", "offset": 4, "id": "2d7ee97b-5338-42ca-85e1-5915a5a58c9e", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Working on your request\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390018703, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 5, "message": {"type": "LightningChunk", "offset": 5, "id": "2b5409c5-d1ec-4d7f-8085-8fafc561142c", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Routing request...\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390021099, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 6, "message": {"type": "LightningChunk", "offset": 6, "id": "67617185-bec8-4bbd-9710-c3bd9813c472", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Planning \\u2014 The user wants the latest Moody's information for Omega Inc \\u2014 this is a data query I should pass directly to sql().\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390021105, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 7, "message": {"type": "LightningChunk", "offset": 7, "id": "b44ddfca-b353-4c15-9c43-5f988c9e22ba", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Generating SQL: Get the latest Moody's information for Omega Inc\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390043588, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 8, "message": {"type": "LightningChunk", "offset": 8, "id": "d05f73e1-1f34-47f5-bb55-852c7d5a519f", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Run SQL \\u2014 Found 0 rows \\u2014 columns: result\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390043592, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 9, "message": {"type": "LightningChunk", "offset": 9, "id": "07e84309-52a7-47fd-b066-3ae1b9166541", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"D360 Agent: Planning \\u2014 The query returned 0 rows. I should debug to investigate why \\u2014 it could be that the account name doesn't match, the data source filter for 'Moody's' isn't matching, or there's simply no data for this combination.\",\"count\":\"0\",\"status\":\"running\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390052416, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 10, "message": {"type": "LightningChunk", "offset": 10, "id": "84507aff-20ce-432a-bc1d-b22f12a3e025", "metrics": {}, "value": ",{\"id\":\"tooluse_E7YWa2Fh7JrTvkrJkGHm19\",\"description\":\"Delegating to D360 Agent - Trying a different angle\",\"count\":\"0\",\"status\":\"error\",\"category\":\"agent_delegation\"}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390052417, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 11, "message": {"type": "LightningChunk", "offset": 11, "id": "111b23ca-be68-4334-bb02-d0e2c39f01de", "metrics": {}, "value": "]}", "lightningType": "propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053277, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 0, "message": {"type": "LightningChunk", "offset": 0, "id": "6d1b5775-d190-452d-8de9-3eddbe2bd340", "metrics": {}, "value": "{\"content\":\"The", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053567, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 1, "message": {"type": "LightningChunk", "offset": 1, "id": "84af641a-d611-4d70-9fa2-3deac0885a01", "metrics": {}, "value": " D360 Agent ran", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053568, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 2, "message": {"type": "LightningChunk", "offset": 2, "id": "c7e28d17-41d3-4681-a461-e91aec930617", "metrics": {}, "value": " into", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053569, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 3, "message": {"type": "LightningChunk", "offset": 3, "id": "6fb477d8-fe29-493b-a74a-b6bd0e6b8b58", "metrics": {}, "value": " an", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053570, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 4, "message": {"type": "LightningChunk", "offset": 4, "id": "8408cf4b-b5ea-4253-879b-bb05fa657c86", "metrics": {}, "value": " issue", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053571, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 5, "message": {"type": "LightningChunk", "offset": 5, "id": "5b82fb14-4ed3-4ecd-bf81-d8b1bb260491", "metrics": {}, "value": " retriev", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053572, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 6, "message": {"type": "LightningChunk", "offset": 6, "id": "928d2f90-bae1-406a-938b-48b9262a76e1", "metrics": {}, "value": "ing that", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053573, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 7, "message": {"type": "LightningChunk", "offset": 7, "id": "7365ff85-9090-41d3-8d29-7778c528777c", "metrics": {}, "value": " data", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053574, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 8, "message": {"type": "LightningChunk", "offset": 8, "id": "b27fdb91-d577-4f65-85b4-695eb56ba3cc", "metrics": {}, "value": ". I", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053865, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 9, "message": {"type": "LightningChunk", "offset": 9, "id": "b09a738f-bae5-4cfd-bf17-399ed40b53f7", "metrics": {}, "value": " wasn", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053866, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 10, "message": {"type": "LightningChunk", "offset": 10, "id": "b25d9a18-ae7a-44a3-9030-715c7a8cf303", "metrics": {}, "value": "'t able to pull", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053867, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 11, "message": {"type": "LightningChunk", "offset": 11, "id": "bc0eb30b-4a04-46d8-9dc7-9881ea9d5d23", "metrics": {}, "value": " the latest Moody's information for", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053868, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 12, "message": {"type": "LightningChunk", "offset": 12, "id": "31518496-29c2-4fc3-b294-86da09cd6bf9", "metrics": {}, "value": " [", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053869, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 13, "message": {"type": "LightningChunk", "offset": 13, "id": "b2968c81-061d-4b0d-94ac-bad0e9d68fac", "metrics": {}, "value": "Omega,", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053870, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 14, "message": {"type": "LightningChunk", "offset": 14, "id": "d93fa401-aedf-4f78-a974-0ac3579bf389", "metrics": {}, "value": " Inc.](/", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053871, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 15, "message": {"type": "LightningChunk", "offset": 15, "id": "38e60863-0c3b-4b78-a72d-b85dd09d1dc6", "metrics": {}, "value": "lightning/r/Account", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390053874, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 16, "message": {"type": "LightningChunk", "offset": 16, "id": "7193080f-98f5-41c8-bd03-43b9ed8635e9", "metrics": {}, "value": "/001", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054167, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 17, "message": {"type": "LightningChunk", "offset": 17, "id": "1f1dc879-62b1-4be5-a4a5-f8b5316a4c53", "metrics": {}, "value": "am", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054169, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 18, "message": {"type": "LightningChunk", "offset": 18, "id": "848eb6ba-566e-46cd-becd-fa5255465927", "metrics": {}, "value": "00", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054170, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 19, "message": {"type": "LightningChunk", "offset": 19, "id": "497d85cd-a87e-47d4-a8cc-2fed7e1a270d", "metrics": {}, "value": "000q", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054171, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 20, "message": {"type": "LightningChunk", "offset": 20, "id": "2d65f19f-40e3-451e-910e-70db86ded9be", "metrics": {}, "value": "vjs", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054172, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 21, "message": {"type": "LightningChunk", "offset": 21, "id": "9834d477-05ce-46ec-a8a6-53ffe22cd73f", "metrics": {}, "value": "6", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054173, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 22, "message": {"type": "LightningChunk", "offset": 22, "id": "29dbba95-b217-4413-a787-d38852a2406e", "metrics": {}, "value": "AA", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054174, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 23, "message": {"type": "LightningChunk", "offset": 23, "id": "de85a3bf-8f3a-4d7f-be5d-bb9050fb4e8e", "metrics": {}, "value": "A", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054175, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 24, "message": {"type": "LightningChunk", "offset": 24, "id": "a1586388-23d1-4058-b0a6-9f8fc74d7a09", "metrics": {}, "value": "/view) through", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054463, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 25, "message": {"type": "LightningChunk", "offset": 25, "id": "9f58513c-0c35-4519-8279-aff3912e688f", "metrics": {}, "value": " D", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054465, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 26, "message": {"type": "LightningChunk", "offset": 26, "id": "da4e4128-9294-4297-8b81-04ac337a8ad7", "metrics": {}, "value": "360 this", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054467, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 27, "message": {"type": "LightningChunk", "offset": 27, "id": "62838a3f-141e-4696-8a3e-ccbce9286c2f", "metrics": {}, "value": " time", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054468, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 28, "message": {"type": "LightningChunk", "offset": 28, "id": "717ad7b3-1535-4aa4-a5da-9c9029b58d63", "metrics": {}, "value": ".\\n\\nWant", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054468, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 29, "message": {"type": "LightningChunk", "offset": 29, "id": "969ec56f-5378-4cf2-8a72-e906b9dc3267", "metrics": {}, "value": " me to try", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054469, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 30, "message": {"type": "LightningChunk", "offset": 30, "id": "ed6f5e0f-18b6-40a7-bc6e-94d1fbd3dfe9", "metrics": {}, "value": " again, or I", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054470, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 31, "message": {"type": "LightningChunk", "offset": 31, "id": "677ba17e-6bab-4a80-a81c-a92e1cea5a0c", "metrics": {}, "value": " can search", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054471, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 32, "message": {"type": "LightningChunk", "offset": 32, "id": "e5a08a9a-691e-4c35-bf5b-b904143f41f2", "metrics": {}, "value": " your", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054764, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 33, "message": {"type": "LightningChunk", "offset": 33, "id": "1336488a-973d-4c97-a36f-9ac450e4c95c", "metrics": {}, "value": " C", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054765, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 34, "message": {"type": "LightningChunk", "offset": 34, "id": "c1ac25ac-3b03-415d-8da0-9981db9bc3c0", "metrics": {}, "value": "RM and", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054766, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 35, "message": {"type": "LightningChunk", "offset": 35, "id": "7673a6d5-e6c7-476b-844c-1a713c602565", "metrics": {}, "value": " Knowledge", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054767, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 36, "message": {"type": "LightningChunk", "offset": 36, "id": "2e53821d-cf28-45dc-bcb9-8a8a7ca160e7", "metrics": {}, "value": " articles", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054768, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 37, "message": {"type": "LightningChunk", "offset": 37, "id": "bc0c0fc8-ddf2-44d8-82b0-e7359fb0ab77", "metrics": {}, "value": " directly", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054769, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 38, "message": {"type": "LightningChunk", "offset": 38, "id": "023570cf-4aa7-40f7-a132-4b4b1a23f306", "metrics": {}, "value": " for any", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054770, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 39, "message": {"type": "LightningChunk", "offset": 39, "id": "4d3ee352-5de5-46ca-8486-9f9eb426dc6c", "metrics": {}, "value": " Moody's-", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054771, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 40, "message": {"type": "LightningChunk", "offset": 40, "id": "394b4106-515c-4398-baf5-37d66e89bcb0", "metrics": {}, "value": "related information on", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054811, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 41, "message": {"type": "LightningChunk", "offset": 41, "id": "8144f975-0eca-422e-9dec-8fab41c2ab10", "metrics": {}, "value": " Omega,", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054812, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 42, "message": {"type": "LightningChunk", "offset": 42, "id": "5e553870-3106-4f24-9054-d9edf0a63e02", "metrics": {}, "value": " Inc.?", "lightningType": "propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+data: {"timestamp": 1791390054876, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 43, "message": {"type": "LightningChunk", "offset": 43, "id": "e3bcb39f-4c0f-4c48-a1e1-affe810d6443", "metrics": {}, "value": "\"}", "lightningType": "propertyType/search__agentMessage"}}
+
+event: INFORM
+data: {"timestamp": 1791390054986, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 0, "message": {"type": "Inform", "feedbackId": "72fc6ff9-e717-4939-a8dc-e0437466b684", "isContentSafe": true, "message": "", "id": "dabcef85-5c7c-4092-b645-fd15855b9d4e", "metrics": {}, "planId": "", "result": [{"type": "propertyType/search__agentMessage", "value": {"content": "Let me delegate that to the D360 Agent for you!"}, "property": ""}, {"type": "propertyType/search__toolBatch", "value": {"tools": [{"id": "tooluse_E7YWa2Fh7JrTvkrJkGHm19", "description": "Delegating to D360 Agent - Trying a different angle", "count": "0", "status": "error", "category": "agent_delegation"}]}, "property": ""}, {"type": "propertyType/search__agentMessage", "value": {"content": "The D360 Agent ran into an issue retrieving that data. I wasn't able to pull the latest Moody's information for [Omega, Inc.](/lightning/r/Account/001am00000qvjs6AAA/view) through D360 this time.\n\nWant me to try again, or I can search your CRM and Knowledge articles directly for any Moody's-related information on Omega, Inc.?"}, "property": ""}], "citedReferences": []}}
+
+event: END_OF_TURN
+data: {"timestamp": 1791390054988, "originEventId": "1791389950904-REQ", "traceId": "801d8c74b9a37caf051ccf0042cb7493", "offset": 0, "message": {"type": "EndOfTurn", "id": "6b83237c-f288-45e1-9851-da37246917ff", "metrics": {}}}
+

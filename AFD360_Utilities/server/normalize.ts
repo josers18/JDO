@@ -1,4 +1,4 @@
-import type { AppEvent, ConfirmItem, Part, Tool } from "../shared/types.ts";
+import type { AppEvent, ConfirmItem, Part, Tool, ToolStep } from "../shared/types.ts";
 import type { SseEvent } from "./sse.ts";
 
 const AGENT_MESSAGE = "propertyType/search__agentMessage";
@@ -77,6 +77,8 @@ export class TurnNormalizer {
   private informResult: Part[] | null = null;
   private informMessage = "";
   private confirm: { messageId: string; items: ConfirmItem[] } | null = null;
+  // Per tool id, every step it reported; the final Inform only carries the last state, so the trail lives here.
+  private trails = new Map<string, ToolStep[]>();
 
   push(ev: SseEvent): AppEvent[] {
     const out: AppEvent[] = [];
@@ -130,7 +132,9 @@ export class TurnNormalizer {
 
   /** Authoritative parts for the finished agent message. */
   finalParts(): Part[] {
-    if (this.informResult) return this.informResult;
+    if (this.informResult) {
+      return this.informResult.map((p) => (p.kind === "tools" ? { ...p, tools: p.tools.map((t) => this.track(t)) } : p));
+    }
     const progress: Part[] = this.progress.map((text) => ({ kind: "progress", text }));
     if (this.informMessage) return [...progress, { kind: "text", markdown: this.informMessage }];
     // No Inform (e.g. stream cut short): fall back to what was streamed.
@@ -188,9 +192,23 @@ export class TurnNormalizer {
     if (this.open) this.flushText(this.open, out);
   }
 
+  // Records a tool update: a new description is a new step (the previous running step is then done).
+  private track(update: Tool): Tool {
+    const steps = this.trails.get(update.id) ?? [];
+    const last = steps.at(-1);
+    if (!last || last.description !== update.description) {
+      if (last?.status === "running") last.status = "success";
+      steps.push({ description: update.description, status: update.status });
+    } else {
+      last.status = update.status;
+    }
+    this.trails.set(update.id, steps);
+    return { ...update, steps: steps.map((st) => ({ ...st })) };
+  }
+
   private emitTool(seg: Segment, json: string, out: AppEvent[]) {
     try {
-      const tool = JSON.parse(json) as Tool;
+      const tool = this.track(JSON.parse(json) as Tool);
       seg.tools.set(tool.id, tool);
       out.push({ type: "tool", segment: seg.index, tool });
     } catch {
