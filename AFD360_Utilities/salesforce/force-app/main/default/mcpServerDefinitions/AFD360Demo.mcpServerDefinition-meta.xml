@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<McpServerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>AFD360 Demo</masterLabel>
+    <description>AFD360_Utilities demo: one tool that returns a Lead snapshot via the AFD360LeadSnapshot Apex invocable and renders it with the afd360LeadCard HXL widget.</description>
+    <tools>
+        <toolName>getLeadSnapshot</toolName>
+        <toolTitle>Get Lead Snapshot</toolTitle>
+        <descriptionOverride>Return a snapshot of a Salesforce Lead (name, company, title, status, rating, source, email, phone, created date) by Lead Id (leadId) or name (leadName), displayed as a Lead card widget.</descriptionOverride>
+        <readOnly>true</readOnly>
+        <destructive>false</destructive>
+        <idempotent>true</idempotent>
+        <openWorld>false</openWorld>
+        <returnDirect>false</returnDirect>
+        <uiResource>leadSnapshot</uiResource>
+        <apiDefinition>
+            <apiSource>API_CATALOG</apiSource>
+            <apiIdentifier>aa:apex-AFD360LeadSnapshot</apiIdentifier>
+            <operation>AFD360LeadSnapshot</operation>
+        </apiDefinition>
+    </tools>
+    <resources>
+        <resourceName>leadSnapshot</resourceName>
+        <resourceUri>ui://widget/lightningType/c__afd360LeadSnapshotResult</resourceUri>
+        <resourceTitle>AFD360 Lead Snapshot widget</resourceTitle>
+        <description>Backs the widget-referencing CLT c__afd360LeadSnapshotResult; renderer.json maps $attrs.outputValues.lead.* to @widget/c/afd360LeadCard.</description>
+    </resources>
+</McpServerDefinition>

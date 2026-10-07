@@ -1,0 +1,11 @@
+{
+  "title": "AFD360 Lead Snapshot Output Values",
+  "description": "Payload of the getLeadSnapshot MCP tool (AFD360LeadSnapshot invocable)",
+  "type": "object",
+  "lightning:type": "lightning__objectType",
+  "unevaluatedProperties": false,
+  "lightning:tags": ["mcp"],
+  "properties": {
+    "lead": { "title": "Lead Snapshot", "lightning:type": "@apexClassType/c__AFD360LeadSnapshot$Snapshot" }
+  }
+}

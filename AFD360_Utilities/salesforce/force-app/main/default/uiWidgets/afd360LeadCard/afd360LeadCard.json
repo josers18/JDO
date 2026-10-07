@@ -1,0 +1,204 @@
+{
+  "type": "lightning__agentforceWidget",
+  "contentBody": {
+    "widgetBody": {
+      "definition": "tile/widget",
+      "children": [
+        {
+          "definition": "tile/column",
+          "attributes": {
+            "gap": "md",
+            "align": "stretch"
+          },
+          "children": [
+            {
+              "definition": "tile/container",
+              "children": [
+                {
+                  "definition": "tile/text",
+                  "attributes": {
+                    "text": "{!$attrs.name}",
+                    "variant": "h2"
+                  }
+                },
+                {
+                  "definition": "tile/row",
+                  "attributes": {
+                    "gap": "sm"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.title}",
+                        "variant": "caption",
+                        "color": "muted"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "\u2022",
+                        "variant": "caption",
+                        "color": "muted"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.company}",
+                        "variant": "caption",
+                        "color": "muted"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "sm"
+              },
+              "children": [
+                {
+                  "definition": "tile/badge",
+                  "attributes": {
+                    "label": "{!$attrs.status}",
+                    "variant": "info"
+                  }
+                },
+                {
+                  "definition": "tile/badge",
+                  "attributes": {
+                    "label": "{!$attrs.rating}",
+                    "variant": "warning"
+                  }
+                }
+              ]
+            },
+            {
+              "definition": "tile/container",
+              "attributes": {
+                "variant": "emphasis"
+              },
+              "children": [
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "sm",
+                    "align": "start"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/row",
+                      "attributes": {
+                        "gap": "sm"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "Lead source",
+                            "variant": "body",
+                            "weight": "semibold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.leadSource}",
+                            "variant": "body"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "definition": "tile/row",
+                      "attributes": {
+                        "gap": "sm"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "Email",
+                            "variant": "body",
+                            "weight": "semibold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.email}",
+                            "variant": "body"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "definition": "tile/row",
+                      "attributes": {
+                        "gap": "sm"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "Phone",
+                            "variant": "body",
+                            "weight": "semibold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.phone}",
+                            "variant": "body"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "definition": "tile/row",
+                      "attributes": {
+                        "gap": "sm"
+                      },
+                      "children": [
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "Created",
+                            "variant": "body",
+                            "weight": "semibold"
+                          }
+                        },
+                        {
+                          "definition": "tile/text",
+                          "attributes": {
+                            "text": "{!$attrs.createdDate}",
+                            "variant": "body"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "definition": "tile/link",
+              "attributes": {
+                "href": "{!$attrs.recordUrl}",
+                "text": "Open in Salesforce"
+              },
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

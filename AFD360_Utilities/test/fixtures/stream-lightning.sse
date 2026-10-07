@@ -1,0 +1,460 @@
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382572600,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":0,"message":{"type":"LightningChunk","offset":0,"id":"324cd0db-e73a-4d4b-83ac-e7d11e86d42a","metrics":{},"value":"{\"content\":\"Let","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382572898,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":1,"message":{"type":"LightningChunk","offset":1,"id":"f661c7ad-a435-41dc-883d-066ead3b9118","metrics":{},"value":" me pull","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382572899,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":2,"message":{"type":"LightningChunk","offset":2,"id":"1ee15450-d7fc-419b-b0fb-a64083976926","metrics":{},"value":" up your top","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382572900,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":3,"message":{"type":"LightningChunk","offset":3,"id":"73a28bc0-9a11-4410-befd-6199ef4f70f1","metrics":{},"value":" open","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382572900,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":4,"message":{"type":"LightningChunk","offset":4,"id":"28b93e65-6855-4f4d-b97c-ee99c336c74c","metrics":{},"value":" opportunities right","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382572901,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":5,"message":{"type":"LightningChunk","offset":5,"id":"957e3079-8c59-43ab-8ce6-31f3b7b44c56","metrics":{},"value":" now!","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382573963,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":6,"message":{"type":"LightningChunk","offset":6,"id":"174d8ac6-b1d7-4bee-91a2-1ae166d0bf47","metrics":{},"value":"\"}","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382573964,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":0,"message":{"type":"LightningChunk","offset":0,"id":"a3017037-1583-4832-8136-9799c0515aca","metrics":{},"value":"{\"tools\":[{\"id\":\"tooluse_CvzGeh1NNODu1QtWXlXtee\",\"description\":\"Finding Salesforce records\",\"count\":\"0\",\"status\":\"running\",\"category\":\"search\"}","lightningType":"propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382574374,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":1,"message":{"type":"LightningChunk","offset":1,"id":"1a601ca0-2b76-45fb-a806-04b284858363","metrics":{},"value":",{\"id\":\"tooluse_CvzGeh1NNODu1QtWXlXtee\",\"description\":\"Finding Salesforce records (Opportunity)\",\"count\":\"5\",\"status\":\"success\",\"category\":\"search\"}","lightningType":"propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382574376,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":2,"message":{"type":"LightningChunk","offset":2,"id":"5e3b3623-2261-4595-9995-1855afa7ac2f","metrics":{},"value":"]}","lightningType":"propertyType/search__toolBatch"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575190,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":0,"message":{"type":"LightningChunk","offset":0,"id":"dc96d019-ce4b-4a15-9062-3d3867c2ee07","metrics":{},"value":"{\"content\":\"Here are your top 5 open","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575427,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":1,"message":{"type":"LightningChunk","offset":1,"id":"fbce44d5-99ad-4098-ba51-0249b72fc2f3","metrics":{},"value":" opportunities by amount,","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575428,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":2,"message":{"type":"LightningChunk","offset":2,"id":"f854ae63-3de6-4074-be2e-3be27acb8e0b","metrics":{},"value":" all","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575429,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":3,"message":{"type":"LightningChunk","offset":3,"id":"86cd1564-6e63-4a47-83c9-5ea41a03930c","metrics":{},"value":" currently","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575429,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":4,"message":{"type":"LightningChunk","offset":4,"id":"447b2f19-46cd-4049-9533-b8a1d44b0b2c","metrics":{},"value":" in **","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575430,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":5,"message":{"type":"LightningChunk","offset":5,"id":"f5aaef91-6764-470d-ab2c-2e80ab01a753","metrics":{},"value":"Qualification** stage:\\n\\n| #","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575431,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":6,"message":{"type":"LightningChunk","offset":6,"id":"c4d35ce1-6806-4b67-b1c0-6fd9081cb19f","metrics":{},"value":" |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575432,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":7,"message":{"type":"LightningChunk","offset":7,"id":"4c90018c-bc19-465f-9761-b0f3e336d04c","metrics":{},"value":" Opportunity |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575433,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":8,"message":{"type":"LightningChunk","offset":8,"id":"f327af25-fb31-47b3-b667-80c180440045","metrics":{},"value":" Account","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575726,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":9,"message":{"type":"LightningChunk","offset":9,"id":"0f3c0d5d-1b91-4c23-89c8-61efe9fa065d","metrics":{},"value":" | Amount (","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575726,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":10,"message":{"type":"LightningChunk","offset":10,"id":"af83b291-a6c8-4c0e-a77e-63074c2ab8a6","metrics":{},"value":"USD) | Close Date |\\n|","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575727,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":11,"message":{"type":"LightningChunk","offset":11,"id":"e7ee7c8b-afb9-4f04-9add-65345fc8d752","metrics":{},"value":"---|-------------|---------|--------------|----------","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575728,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":12,"message":{"type":"LightningChunk","offset":12,"id":"e0be5008-9d32-48e5-bc7d-4bf5374fa258","metrics":{},"value":"--|\\n| 1 | [","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575729,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":13,"message":{"type":"LightningChunk","offset":13,"id":"a1279e7f-d6e6-45b3-af05-c22af35cefd6","metrics":{},"value":"Innovation Pipeline](/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575730,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":14,"message":{"type":"LightningChunk","offset":14,"id":"323cd015-78b9-426e-ac64-6795c9d2a8d3","metrics":{},"value":"lightning","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575731,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":15,"message":{"type":"LightningChunk","offset":15,"id":"20ffa7a8-df35-4113-b82c-919caca85f0f","metrics":{},"value":"/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382575732,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":16,"message":{"type":"LightningChunk","offset":16,"id":"e5df930b-73ca-43a1-8b94-a8da5b783488","metrics":{},"value":"r","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576026,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":17,"message":{"type":"LightningChunk","offset":17,"id":"14fc05ff-f2c2-4f05-ad9b-8b573e60a995","metrics":{},"value":"/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576027,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":18,"message":{"type":"LightningChunk","offset":18,"id":"08090ae6-21f2-44f7-bc25-2aa4fbb644ca","metrics":{},"value":"Opportunity/006am00000Lc","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576028,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":19,"message":{"type":"LightningChunk","offset":19,"id":"d511b5ea-5c08-46cd-bf7b-24a902ee0a81","metrics":{},"value":"Oy6AAF/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576029,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":20,"message":{"type":"LightningChunk","offset":20,"id":"f6148d9e-2f73-48a0-8ca4-47841ef4f9e2","metrics":{},"value":"view","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576030,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":21,"message":{"type":"LightningChunk","offset":21,"id":"07279abe-2dcf-419f-99c0-d2950dc71cfc","metrics":{},"value":") | [","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576031,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":22,"message":{"type":"LightningChunk","offset":22,"id":"133f524b-ec18-4979-9bf5-267a21dae0a4","metrics":{},"value":"United Partners](/lightning/r/Account","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576032,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":23,"message":{"type":"LightningChunk","offset":23,"id":"fd444953-3c53-4d8a-9f2f-201e8fb3a98e","metrics":{},"value":"/001am00000qvjt","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576033,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":24,"message":{"type":"LightningChunk","offset":24,"id":"d8a6cf9b-4c92-4c5c-ae19-cc2fe57ba417","metrics":{},"value":"XAAQ/view) | $","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576272,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":25,"message":{"type":"LightningChunk","offset":25,"id":"527fd474-22ff-45ad-af15-d0e914586bfc","metrics":{},"value":"5,257,150,000 ","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576273,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":26,"message":{"type":"LightningChunk","offset":26,"id":"7e4d391f-9701-4c83-8c8f-dac79afd5c93","metrics":{},"value":"| Jul","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576274,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":27,"message":{"type":"LightningChunk","offset":27,"id":"0fe8c979-0178-4764-88a5-6c1e2035ac49","metrics":{},"value":" 29, 2026 |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576275,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":28,"message":{"type":"LightningChunk","offset":28,"id":"f48e3ab2-37e9-4373-a9fd-2fc5db260d65","metrics":{},"value":"\\n| 2 | [Innovation","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576276,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":29,"message":{"type":"LightningChunk","offset":29,"id":"761dc394-65f4-4c8f-afbf-972f29dee2d0","metrics":{},"value":" Pipeline](/lightning/r/Opportunity","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576277,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":30,"message":{"type":"LightningChunk","offset":30,"id":"0d805903-0077-40f8-bbe2-4d8a06d16910","metrics":{},"value":"/006am00000LcO","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576277,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":31,"message":{"type":"LightningChunk","offset":31,"id":"5347f209-f566-4a2f-8355-1913db0a2244","metrics":{},"value":"yXAAV/view) |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576278,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":32,"message":{"type":"LightningChunk","offset":32,"id":"649fb189-b657-457b-8d5a-70e3c2ebd4a0","metrics":{},"value":" [B2B Commerce Lightning Experience Guest","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576629,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":33,"message":{"type":"LightningChunk","offset":33,"id":"0761bf24-5cb7-4e9f-996f-ad29c3ccd281","metrics":{},"value":" Buyer Account](/lightning/r/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576632,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":34,"message":{"type":"LightningChunk","offset":34,"id":"d6ebff7f-7878-448c-92b5-9c4ac2ee068b","metrics":{},"value":"Account/001am00000qv","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576633,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":35,"message":{"type":"LightningChunk","offset":35,"id":"7c2f3daf-be8a-4798-b1be-a1d61013740c","metrics":{},"value":"jttAAA/view) |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576635,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":36,"message":{"type":"LightningChunk","offset":36,"id":"544ccdb3-5126-4d5a-9d63-260b49a6dd5a","metrics":{},"value":" $4,470,741,000","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576637,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":37,"message":{"type":"LightningChunk","offset":37,"id":"d0593f31-4743-44fa-8816-62c00ec80fb7","metrics":{},"value":" | Jul 30, 2","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576638,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":38,"message":{"type":"LightningChunk","offset":38,"id":"d995d8d9-e231-4cee-aeb9-6a84f2d0deba","metrics":{},"value":"026 |\\n| 3 ","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576639,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":39,"message":{"type":"LightningChunk","offset":39,"id":"bd3f51d8-525f-4d12-b80f-f94cb51e4986","metrics":{},"value":"| [Innovation Pipeline](/lightning/r","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576640,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":40,"message":{"type":"LightningChunk","offset":40,"id":"0a52516b-e8dd-4089-b264-94e1ee0c4a10","metrics":{},"value":"/Opportunity/006am00000","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576924,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":41,"message":{"type":"LightningChunk","offset":41,"id":"2c0b5408-d86f-4ef0-ac00-d394a472ee78","metrics":{},"value":"LcOyZAAV/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576925,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":42,"message":{"type":"LightningChunk","offset":42,"id":"73b1e3f6-7a4b-4062-a1ee-a7d73238c62c","metrics":{},"value":"view) | [Jim Morris Estate](/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576925,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":43,"message":{"type":"LightningChunk","offset":43,"id":"c5360dd4-e0e6-4033-aaa0-410b2568b13f","metrics":{},"value":"lightning/r/Account/001am","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576926,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":44,"message":{"type":"LightningChunk","offset":44,"id":"42078024-96b6-48ba-b064-8723844914a2","metrics":{},"value":"00000qvju","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576927,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":45,"message":{"type":"LightningChunk","offset":45,"id":"792ae2b0-b4f4-4e47-ab8b-c424135e8ee3","metrics":{},"value":"6AAA/view) | $","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576928,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":46,"message":{"type":"LightningChunk","offset":46,"id":"ecbb7d66-f46b-4659-8ab6-e5adcd34ea23","metrics":{},"value":"3,416,803,000 ","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576930,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":47,"message":{"type":"LightningChunk","offset":47,"id":"ab735872-0728-40d9-a182-d59df6c54416","metrics":{},"value":"| Aug 5, 2026","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382576931,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":48,"message":{"type":"LightningChunk","offset":48,"id":"7eb1b584-0a5b-4d00-960b-74e511db3770","metrics":{},"value":" |\\n| 4 |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577219,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":49,"message":{"type":"LightningChunk","offset":49,"id":"27cdfb43-366c-42f3-8da3-f42b8354a141","metrics":{},"value":" [Innovation Pipeline](/lightning/r/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577220,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":50,"message":{"type":"LightningChunk","offset":50,"id":"41e533f4-2a62-4b9e-9ae0-8a222da9bcf1","metrics":{},"value":"Opportunity/006am00000L","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577221,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":51,"message":{"type":"LightningChunk","offset":51,"id":"f3622aea-58a4-4936-95f9-9b41a5430e95","metrics":{},"value":"cOyMAAV/view","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577222,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":52,"message":{"type":"LightningChunk","offset":52,"id":"35d12b8d-9a0b-485d-9b31-e249836b09dc","metrics":{},"value":") | [IDO House Account](/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577223,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":53,"message":{"type":"LightningChunk","offset":53,"id":"5e104813-9e17-4a15-9715-c09f2e9936bd","metrics":{},"value":"lightning/r/Account/001am","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577224,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":54,"message":{"type":"LightningChunk","offset":54,"id":"cef09377-d791-4ba1-a182-febd3363ac3a","metrics":{},"value":"00000qvjtuAAA","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577224,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":55,"message":{"type":"LightningChunk","offset":55,"id":"e8620b3f-9216-4310-9b64-4caa82e91203","metrics":{},"value":"/view) | $2,008","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577225,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":56,"message":{"type":"LightningChunk","offset":56,"id":"5f5af9d0-8f27-4e51-b418-c478a7c0e343","metrics":{},"value":",102,000 | Jul ","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577479,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":57,"message":{"type":"LightningChunk","offset":57,"id":"6479aa52-c3e9-4f4b-b51c-8cbda3333956","metrics":{},"value":"30, 2026 |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577480,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":58,"message":{"type":"LightningChunk","offset":58,"id":"afe74538-ad51-44a4-8d04-9669e732738c","metrics":{},"value":"\\n| 5 | [Innovation Pipeline","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577481,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":59,"message":{"type":"LightningChunk","offset":59,"id":"75a1b44b-a7c0-46f7-9e0c-c8a11dca53e1","metrics":{},"value":"](/lightning/r/Opportunity/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577482,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":60,"message":{"type":"LightningChunk","offset":60,"id":"2da52b8c-281f-402a-ae11-abf80efc1faa","metrics":{},"value":"006am00000LcOy","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577483,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":61,"message":{"type":"LightningChunk","offset":61,"id":"cbcf3ac6-88c4-47da-bee0-88f71581f37a","metrics":{},"value":"YAAV/view) | [","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577484,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":62,"message":{"type":"LightningChunk","offset":62,"id":"747cf4b4-8277-450d-8749-91e69bc5cbdf","metrics":{},"value":"Frank Household](/lightning/r/","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577485,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":63,"message":{"type":"LightningChunk","offset":63,"id":"a7611933-c52f-42e1-850e-4c28dce1afcf","metrics":{},"value":"Account/001am00000qv","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577486,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":64,"message":{"type":"LightningChunk","offset":64,"id":"432d1e7f-cf91-4a19-806c-1a9665512000","metrics":{},"value":"ju2AAA/view) |","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577776,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":65,"message":{"type":"LightningChunk","offset":65,"id":"7613f56a-6d54-4ecf-be29-99c077cd60f4","metrics":{},"value":" $1,697,721,000","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577778,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":66,"message":{"type":"LightningChunk","offset":66,"id":"4b12f9f9-627a-4cb8-942c-52c00a5100dd","metrics":{},"value":" | Jul 31, 2","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577778,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":67,"message":{"type":"LightningChunk","offset":67,"id":"3aaef632-0c61-4c3f-8bc9-40e0c1b2cb04","metrics":{},"value":"026 |\\n\\nAll five","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577779,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":68,"message":{"type":"LightningChunk","offset":68,"id":"404554b1-5e68-47f9-a11a-a8f7e24528e4","metrics":{},"value":" are","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577780,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":69,"message":{"type":"LightningChunk","offset":69,"id":"5419a744-e126-4ae6-900e-27a8b798d8fd","metrics":{},"value":" named","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577781,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":70,"message":{"type":"LightningChunk","offset":70,"id":"65c835a6-8940-4481-a05d-39493d225369","metrics":{},"value":" **","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577782,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":71,"message":{"type":"LightningChunk","offset":71,"id":"dad6332c-b9e4-41a0-b25a-4eb2a3efdead","metrics":{},"value":"\\\"","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382577783,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":72,"message":{"type":"LightningChunk","offset":72,"id":"2f93d04d-6b37-44af-a431-f606869ecce7","metrics":{},"value":"Innovation Pipeline\\\"** and have","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578075,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":73,"message":{"type":"LightningChunk","offset":73,"id":"7b0bbe0c-75a0-4ba4-8059-6d6aea92ff02","metrics":{},"value":" close","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578076,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":74,"message":{"type":"LightningChunk","offset":74,"id":"3be76b74-4e07-4485-8c0e-2d266a8fffcb","metrics":{},"value":" dates that","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578077,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":75,"message":{"type":"LightningChunk","offset":75,"id":"4c5f58e5-7527-47f7-96cf-fb09f4cff6b5","metrics":{},"value":" have","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578077,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":76,"message":{"type":"LightningChunk","offset":76,"id":"76109e12-e947-4a26-9a0f-30e129b2b6f3","metrics":{},"value":" already passed \\u2014","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578078,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":77,"message":{"type":"LightningChunk","offset":77,"id":"194f4fc9-c77c-4870-aabc-200e227b0ac7","metrics":{},"value":" worth","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578079,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":78,"message":{"type":"LightningChunk","offset":78,"id":"cd4dba4b-3e48-4434-bb7f-9b534309ee13","metrics":{},"value":" reviewing","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578080,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":79,"message":{"type":"LightningChunk","offset":79,"id":"e945d4c4-4d05-4afb-8d3e-fe3d67a26b84","metrics":{},"value":" to see if those","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578081,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":80,"message":{"type":"LightningChunk","offset":80,"id":"e50ffcc1-a8ca-4bca-a0f4-72c3c0fcbe34","metrics":{},"value":" need","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578376,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":81,"message":{"type":"LightningChunk","offset":81,"id":"33f4bed1-a4d5-4607-b538-ed7850856f09","metrics":{},"value":" to","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578378,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":82,"message":{"type":"LightningChunk","offset":82,"id":"aef08b8f-d689-4885-b86d-ca0617316be4","metrics":{},"value":" be updated","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578379,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":83,"message":{"type":"LightningChunk","offset":83,"id":"d178081f-f828-48b7-860b-e06cf08547e7","metrics":{},"value":"!","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578380,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":84,"message":{"type":"LightningChunk","offset":84,"id":"9a1aa822-f764-4e67-b8fc-27c1799fcf38","metrics":{},"value":" The","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578381,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":85,"message":{"type":"LightningChunk","offset":85,"id":"6453fca1-f284-4213-a426-1f6c494f5809","metrics":{},"value":" combined","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578382,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":86,"message":{"type":"LightningChunk","offset":86,"id":"086332c1-7e91-4f5d-b4ae-1901215449b1","metrics":{},"value":" value","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578383,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":87,"message":{"type":"LightningChunk","offset":87,"id":"c04f6ef6-0651-4407-a3c1-e04122f0f17b","metrics":{},"value":" is a","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578384,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":88,"message":{"type":"LightningChunk","offset":88,"id":"8da308eb-eea7-415c-a724-3f94570a0929","metrics":{},"value":" who","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578628,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":89,"message":{"type":"LightningChunk","offset":89,"id":"c5f508c7-eb37-41d3-aeee-8296c364422e","metrics":{},"value":"pping **","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578629,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":90,"message":{"type":"LightningChunk","offset":90,"id":"c1eb8d0c-4890-4068-a51b-1aec0eae7dd6","metrics":{},"value":"~","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578629,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":91,"message":{"type":"LightningChunk","offset":91,"id":"3e8d16e7-d853-48df-abb0-3888278a34b4","metrics":{},"value":"$16","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578631,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":92,"message":{"type":"LightningChunk","offset":92,"id":"2a51425b-9e8c-489d-89b0-4c3fee0c9db8","metrics":{},"value":".85","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578632,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":93,"message":{"type":"LightningChunk","offset":93,"id":"6a96721f-3bea-47f3-9ea3-ac339e7e233a","metrics":{},"value":"B","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578634,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":94,"message":{"type":"LightningChunk","offset":94,"id":"4cff484a-03ca-484e-9f84-47ff92d606a3","metrics":{},"value":" USD","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578634,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":95,"message":{"type":"LightningChunk","offset":95,"id":"ed779dee-80ef-4d0d-8c7c-cba0f73bbdbe","metrics":{},"value":"**.\\n\\nWant","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578635,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":96,"message":{"type":"LightningChunk","offset":96,"id":"a734354f-05d2-41f4-a999-878dc7dd5006","metrics":{},"value":" me to dig","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578798,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":97,"message":{"type":"LightningChunk","offset":97,"id":"d33f3833-45d7-4b2f-898d-c76272b38d7f","metrics":{},"value":" into","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578799,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":98,"message":{"type":"LightningChunk","offset":98,"id":"fc4277cf-0f99-4a5f-8c3d-51158e83eb98","metrics":{},"value":" any of these opportunities in more detail,","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578800,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":99,"message":{"type":"LightningChunk","offset":99,"id":"4426078f-a335-4d51-a35a-e0f42ae86fa3","metrics":{},"value":" or help you update","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578800,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":100,"message":{"type":"LightningChunk","offset":100,"id":"f15d1c17-b020-4043-bd73-7e092141d3de","metrics":{},"value":" the close","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578801,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":101,"message":{"type":"LightningChunk","offset":101,"id":"577d9e38-8903-4a75-a8b1-31ad2604b4aa","metrics":{},"value":" dates?","lightningType":"propertyType/search__agentMessage"}}
+
+event: LIGHTNING_CHUNK
+id: 1791382570728-REQ
+data: {"timestamp":1791382578879,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":102,"message":{"type":"LightningChunk","offset":102,"id":"13573116-b2fc-4041-bf6d-e348f6bc707c","metrics":{},"value":"\"}","lightningType":"propertyType/search__agentMessage"}}
+
+event: INFORM
+id: 1791382570728-REQ
+data: {"timestamp":1791382579014,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":0,"message":{"type":"Inform","feedbackId":"cebd9c0f-dad2-4da3-a4e8-e02e92836d12","isContentSafe":true,"message":"","id":"20482e07-0d2a-4883-97ad-f1191a2b4569","metrics":{},"planId":"","result":[{"type":"propertyType/search__agentMessage","value":{"content":"Let me pull up your top open opportunities right now!"},"property":""},{"type":"propertyType/search__toolBatch","value":{"tools":[{"id":"tooluse_CvzGeh1NNODu1QtWXlXtee","description":"Finding Salesforce records (Opportunity)","count":"5","status":"success","category":"search"}]},"property":""},{"type":"propertyType/search__agentMessage","value":{"content":"Here are your top 5 open opportunities by amount, all currently in **Qualification** stage:\n\n| # | Opportunity | Account | Amount (USD) | Close Date |\n|---|-------------|---------|--------------|------------|\n| 1 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOy6AAF/view) | [United Partners](/lightning/r/Account/001am00000qvjtXAAQ/view) | $5,257,150,000 | Jul 29, 2026 |\n| 2 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyXAAV/view) | [B2B Commerce Lightning Experience Guest Buyer Account](/lightning/r/Account/001am00000qvjttAAA/view) | $4,470,741,000 | Jul 30, 2026 |\n| 3 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyZAAV/view) | [Jim Morris Estate](/lightning/r/Account/001am00000qvju6AAA/view) | $3,416,803,000 | Aug 5, 2026 |\n| 4 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyMAAV/view) | [IDO House Account](/lightning/r/Account/001am00000qvjtuAAA/view) | $2,008,102,000 | Jul 30, 2026 |\n| 5 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyYAAV/view) | [Frank Household](/lightning/r/Account/001am00000qvju2AAA/view) | $1,697,721,000 | Jul 31, 2026 |\n\nAll five are named **\"Innovation Pipeline\"** and have close dates that have already passed — worth reviewing to see if those need to be updated! The combined value is a whopping **~$16.85B USD**.\n\nWant me to dig into any of these opportunities in more detail, or help you update the close dates?"},"property":""}],"citedReferences":[]}}
+
+event: END_OF_TURN
+id: 1791382570728-REQ
+data: {"timestamp":1791382579016,"originEventId":"1791382570728-REQ","traceId":"96e72c43575f684fbec465f008522672","offset":0,"message":{"type":"EndOfTurn","id":"68bdfc3d-854a-4047-b2ba-e605f62ee0d7","metrics":{}}}
+

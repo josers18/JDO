@@ -1,0 +1,22 @@
+{
+  "renderer": {
+    "componentOverrides": {
+      "$": {
+        "definition": "@widget/c/afd360LeadCard",
+        "attributes": {
+          "found": "{!$attrs.outputValues.lead.found}",
+          "name": "{!$attrs.outputValues.lead.name}",
+          "company": "{!$attrs.outputValues.lead.company}",
+          "title": "{!$attrs.outputValues.lead.title}",
+          "status": "{!$attrs.outputValues.lead.status}",
+          "rating": "{!$attrs.outputValues.lead.rating}",
+          "leadSource": "{!$attrs.outputValues.lead.leadSource}",
+          "email": "{!$attrs.outputValues.lead.email}",
+          "phone": "{!$attrs.outputValues.lead.phone}",
+          "createdDate": "{!$attrs.outputValues.lead.createdDate}",
+          "recordUrl": "{!$attrs.outputValues.lead.recordUrl}"
+        }
+      }
+    }
+  }
+}
