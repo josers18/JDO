@@ -49,6 +49,9 @@ App events: `text-delta`, `tool`, `progress`, `part`, `final`, `end-of-turn`, `s
 maps `$attrs.outputValues.lead.*` to `@widget/c/afd360LeadCard`. MCP server `AFD360Demo` (names: letters/digits only)
 links tool `getLeadSnapshot` to resource `ui://widget/lightningType/c__afd360LeadSnapshotResult`. Deploying the full
 McpServerDefinition directly works (no Setup create/retrieve round trip needed); activation is Setup-only.
+For Agentforce (Lightning) action output, `afd360LeadSnapshotCard` is the single Apex-based CLT
+(`@apexClassType/c__AFD360LeadSnapshot$Snapshot`, direct `{!$attrs.x}` mapping); it needs an agent action output
+set to render with it (not wired to any agent). Full HXL reference: personal skill `hxl-widgets`.
 
 ## Out of scope (v1)
 
