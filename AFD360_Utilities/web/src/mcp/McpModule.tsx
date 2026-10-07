@@ -137,9 +137,9 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
 
   if (!org) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-ink-3">
         <p>No org configured yet.</p>
-        <button onClick={onOpenAdmin} className="rounded-lg bg-sky-600 px-4 py-2 text-sm text-white">
+        <button onClick={onOpenAdmin} className="rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-action-ink shadow-card">
           Add an org in Admin
         </button>
       </div>
@@ -149,59 +149,59 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
   return (
     <div className="flex h-full">
       {/* Servers + tools */}
-      <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200 bg-white xl:w-72 2xl:w-80">
-        <div className="border-b border-slate-200 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">MCP servers · {org.name}</p>
+      <aside className="flex w-64 shrink-0 flex-col bg-side text-side-ink xl:w-72 2xl:w-80">
+        <div className="px-3 pb-3 pt-4">
+          <h2 className="text-sm font-semibold text-side-ink">MCP servers <span className="font-normal text-side-ink-2">· {org.name}</span></h2>
           <div className="mt-2 flex gap-1">
             <input
               value={newServer}
               onChange={(e) => setNewServer(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addServer()}
               placeholder="custom/MyServer"
-              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-2 py-1.5 font-mono text-xs focus:border-sky-500 focus:outline-none"
+              className="min-w-0 flex-1 rounded-xl border border-side-line bg-side-2 px-2.5 py-2 font-mono text-xs text-side-ink placeholder:text-side-ink-2 focus:outline-none"
             />
-            <button onClick={addServer} className="rounded-lg bg-sky-600 px-2 text-white" title="Add and connect">
+            <button onClick={addServer} className="rounded-xl bg-action px-2.5 text-action-ink" title="Add and connect">
               <Plus size={14} />
             </button>
           </div>
         </div>
-        <div className="max-h-[40%] overflow-y-auto border-b border-slate-200 p-2">
+        <div className="max-h-[40%] overflow-y-auto border-b border-side-line p-2">
           {servers.map((s) => (
             <button
               key={s}
               onClick={() => connect(s)}
-              className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left font-mono text-xs ${
-                server === s ? "bg-slate-100 font-semibold" : "hover:bg-slate-50"
+              className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left font-mono text-xs ${
+                server === s ? "bg-side-2 font-semibold ring-1 ring-side-line" : "hover:bg-side-2/60"
               }`}
             >
-              <Plug size={12} className="shrink-0 text-slate-400" />
+              <Plug size={12} className="shrink-0 text-side-ink-2" />
               <span className="break-all">{s}</span>
             </button>
           ))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {connecting && (
-            <div className="flex items-center gap-2 p-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 p-2 text-xs text-side-ink-2">
               <Loader2 size={14} className="animate-spin" /> Connecting…
             </div>
           )}
-          {!connecting && server && tools.length === 0 && !error && <p className="p-2 text-xs text-slate-400">No tools.</p>}
+          {!connecting && server && tools.length === 0 && !error && <p className="p-2 text-xs text-side-ink-2">No tools.</p>}
           {tools.map((t) => (
             <button
               key={t.name}
               onClick={() => pick(t)}
-              className={`flex w-full items-start gap-2 rounded-lg px-2.5 py-2 text-left ${tool?.name === t.name ? "bg-sky-50 ring-1 ring-sky-300" : "hover:bg-slate-50"}`}
+              className={`flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left ${tool?.name === t.name ? "bg-side-2 ring-1 ring-side-line" : "hover:bg-side-2/60"}`}
             >
               {t.uiResourceUri ? (
-                <LayoutTemplate size={14} className="mt-0.5 shrink-0 text-violet-600" />
+                <LayoutTemplate size={14} className="mt-0.5 shrink-0 text-live" />
               ) : (
-                <Wrench size={14} className="mt-0.5 shrink-0 text-slate-400" />
+                <Wrench size={14} className="mt-0.5 shrink-0 text-side-ink-2" />
               )}
               <div className="min-w-0">
                 <div className="break-words text-sm">{t.title ?? t.name}</div>
-                <div className="break-all font-mono text-[10px] text-slate-500">
+                <div className="break-all font-mono text-xs text-side-ink-2">
                   {t.name}
-                  {t.uiResourceUri && <span className="ml-1 rounded bg-violet-100 px-1 text-violet-700">UI</span>}
+                  {t.uiResourceUri && <span className="ml-1 rounded bg-side-2 px-1 font-semibold text-side-ink ring-1 ring-side-line">UI</span>}
                 </div>
               </div>
             </button>
@@ -213,29 +213,29 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
       <section className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <div className="mx-auto w-full max-w-[88rem] space-y-4 px-6 py-6 lg:px-10">
           {info && server && (
-            <div className="text-xs text-slate-500">
-              Connected to <span className="font-semibold text-slate-700">{info.title ?? info.name}</span> {info.version} ·{" "}
+            <div className="text-xs text-ink-3">
+              Connected to <span className="font-semibold text-ink-2">{info.title ?? info.name}</span> {info.version} ·{" "}
               <span className="break-all font-mono">{BASE + server}</span>
             </div>
           )}
-          {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {error && <div className="rounded-xl border border-err/30 bg-err/8 px-3 py-2 text-sm text-err">{error}</div>}
           {!tool ? (
-            <div className="py-16 text-center text-slate-500">
+            <div className="py-16 text-center text-ink-3">
               {server ? "Pick a tool on the left." : "Pick or add an MCP server on the left. Tools marked UI return an MCP Apps widget (e.g. HXL)."}
             </div>
           ) : (
             <>
               <div>
                 <h1 className="text-xl font-semibold">{tool.title ?? tool.name}</h1>
-                {tool.description && <p className="mt-1 whitespace-pre-line text-sm text-slate-600">{tool.description}</p>}
+                {tool.description && <p className="mt-1 whitespace-pre-line text-sm text-ink-2">{tool.description}</p>}
                 {tool.uiResourceUri && (
-                  <p className="mt-1 text-xs text-violet-700">
+                  <p className="mt-1 text-xs text-recv-ink">
                     Returns a widget: <span className="font-mono">{tool.uiResourceUri}</span>
                   </p>
                 )}
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white">
-                <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2 text-xs text-slate-500">
+              <div className="rounded-xl border border-line bg-surface">
+                <div className="flex items-center justify-between border-b border-line px-3 py-2 text-xs text-ink-3">
                   <span>
                     Arguments (JSON)
                     {tool.inputSchema?.required?.length ? ` · required: ${tool.inputSchema.required.join(", ")}` : ""}
@@ -243,7 +243,7 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
                   <button
                     onClick={run}
                     disabled={running}
-                    className="flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-xl bg-action px-3 py-1.5 text-xs font-semibold text-action-ink shadow-card hover:brightness-105 disabled:opacity-50"
                   >
                     {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />} Call tool
                   </button>
@@ -272,7 +272,7 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
                   {tab === "widget" && output.ui ? (
                     <WidgetFrame orgId={org.id} url={BASE + server} ui={output.ui} args={output.args} result={output.result} onWire={addWire} />
                   ) : (
-                    <pre className="max-h-[60vh] overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-100">
+                    <pre className="max-h-[60vh] overflow-auto rounded-xl bg-console p-4 text-xs text-console-ink">
                       {JSON.stringify(output.result, null, 2)}
                     </pre>
                   )}
@@ -284,13 +284,13 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
       </section>
 
       {/* Wire */}
-      <aside className="hidden w-[24rem] shrink-0 flex-col border-l border-slate-200 bg-slate-50 lg:flex xl:w-[30rem]">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-3 py-2.5">
+      <aside className="hidden w-[24rem] shrink-0 flex-col border-l border-line bg-surface lg:flex xl:w-[30rem]">
+        <div className="flex items-start justify-between gap-2 px-4 pb-1 pt-4">
           <div>
-            <div className="text-sm font-semibold">Wire</div>
-            <div className="text-[11px] text-slate-500">Every MCP call this session · tokens masked</div>
+            <h2 className="text-[17px] font-semibold leading-tight">Wire</h2>
+            <div className="text-xs text-ink-3">Every MCP call this session · tokens masked</div>
           </div>
-          <button onClick={() => setWire([])} className="rounded border border-slate-300 px-2 py-0.5 text-[11px] hover:bg-slate-50">
+          <button onClick={() => setWire([])} className="rounded-lg border border-line px-2.5 py-1 text-xs font-medium hover:bg-tint">
             Clear
           </button>
         </div>
@@ -306,7 +306,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-xs ${active ? "bg-slate-800 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}
+      className={`rounded-xl px-3 py-1.5 text-xs ${active ? "bg-ink text-surface" : "bg-surface text-ink-2 ring-1 ring-line hover:bg-tint"}`}
     >
       {children}
     </button>

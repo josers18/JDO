@@ -1,0 +1,14 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "lead" : {
+      "title" : "Lead",
+      "description" : "Lead snapshot, shown to the user as a Lead card",
+      "lightning:type" : "c__afd360LeadSnapshotCard",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

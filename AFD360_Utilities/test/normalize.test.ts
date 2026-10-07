@@ -99,6 +99,16 @@ describe("TurnNormalizer — step trail (agent delegation)", () => {
   });
 });
 
+describe("TurnNormalizer — action outputs (Text stream)", () => {
+  // Agent with displayable Apex outputs: Inform.result holds only copilotActionOutput parts; the reply text is Inform.message.
+  it("keeps the Inform message alongside structured action outputs", async () => {
+    const { final } = await run("stream-action-output.sse");
+    expect(final[0]).toEqual({ kind: "text", markdown: "Here is Omega, Inc. and its largest open opportunity." });
+    const raws = final.filter((p) => p.kind === "raw");
+    expect(raws.map((p) => (p.kind === "raw" ? Object.keys(p.value as object) : []))).toEqual([["account"], ["opportunity"]]);
+  });
+});
+
 describe("TurnNormalizer — Text stream", () => {
   it("turns ProgressIndicator into progress events and final progress parts", async () => {
     const { events, final } = await run("stream-text.sse");

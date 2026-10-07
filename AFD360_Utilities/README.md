@@ -25,4 +25,4 @@ two MCP Lightning types, and the `AFD360Demo` MCP server (`/platform/mcp/v1/cust
 Deploy order: widget → Apex + Lightning types → MCP server, then **Activate** it in Setup → MCP Servers.
 The org needs Setup → Headless Experience Layer Settings turned on.
 
-`data/` (orgs, conversations, wire logs) and `.env` are gitignored. Design: [docs/design.md](docs/design.md).
+`data/` (orgs, conversations, wire logs) and `.env` are gitignored. Design: [docs/architecture.md](docs/architecture.md).

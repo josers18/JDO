@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, PanelRightClose, PanelRightOpen, Plus, Power, RotateCcw, Send, Square, Trash2 } from "lucide-react";
+import { Bot, Loader2, PanelRightClose, PanelRightOpen, Plus, Power, RotateCcw, Send, Square, Trash2 } from "lucide-react";
 import { api, streamTurn, type TurnRequest } from "../api";
 import { AgentGallery } from "./AgentGallery";
-import { MessageView, Parts } from "./MessageView";
+import { AgentCard, MessageView, Parts } from "./MessageView";
 import { WirePanel } from "./WirePanel";
 import type { AppEvent, Conversation, ConversationSummary, OrgsResponse, Part, Tool } from "../../../shared/types";
 
@@ -52,7 +52,14 @@ function ago(iso: string, now: number) {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-const statusDot: Record<string, string> = { live: "bg-emerald-500", expired: "bg-amber-400", ended: "bg-slate-300" };
+// Expired is hollow so it differs from live by shape, not by two close tints.
+const statusDot: Record<string, string> = { live: "bg-live", expired: "bg-transparent ring-1 ring-inset ring-side-ink-2", ended: "bg-side-line" };
+
+const isToday = (iso: string) => new Date(iso).toDateString() === new Date().toDateString();
+const clockOrDay = (iso: string) =>
+  isToday(iso)
+    ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+    : new Date(iso).toLocaleDateString([], { weekday: "short" });
 
 const WIRE_MIN = 320;
 const wireMax = () => Math.max(WIRE_MIN, Math.round(window.innerWidth * 0.6));
@@ -215,9 +222,9 @@ export function ChatModule({
 
   if (!activeOrg) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-ink-2">
         <p>No org configured yet.</p>
-        <button onClick={onOpenAdmin} className="rounded-lg bg-sky-600 px-4 py-2 text-sm text-white">
+        <button onClick={onOpenAdmin} className="rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-action-ink shadow-card">
           Add an org in Admin
         </button>
       </div>
@@ -225,20 +232,20 @@ export function ChatModule({
   }
 
   const headerButton =
-    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50 disabled:opacity-50";
+    "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-tint disabled:opacity-50";
 
   return (
     <div className="relative flex h-full">
       {/* Sidebar */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white xl:w-72 2xl:w-80">
-        <div className="space-y-2 border-b border-slate-200 p-3">
+      <aside className="flex w-64 shrink-0 flex-col gap-3 bg-side px-3 py-4 text-side-ink xl:w-72 2xl:w-80">
+        <div className="space-y-2.5">
           <select
             value={activeOrg.id}
             onChange={(e) => {
               setConv(null);
               onSwitchOrg(e.target.value);
             }}
-            className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
+            className="w-full rounded-xl border border-side-line bg-side-2 px-3 py-2.5 text-sm font-semibold text-side-ink"
           >
             {orgs.orgs.map((o) => (
               <option key={o.id} value={o.id}>
@@ -249,43 +256,52 @@ export function ChatModule({
           <button
             onClick={() => setPicking(true)}
             disabled={Boolean(draft)}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 ${
-              showGallery ? "bg-sky-100 text-sky-800" : "bg-sky-600 text-white hover:bg-sky-700"
+            className={`flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold disabled:opacity-50 ${
+              showGallery ? "bg-side-2 text-side-ink ring-1 ring-side-line" : "bg-action text-action-ink shadow-card hover:brightness-105"
             }`}
           >
             <Plus size={16} /> New chat
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {orgList.length === 0 && <p className="p-3 text-xs text-slate-400">No conversations in this org yet.</p>}
-          {orgList.map((c) => (
+        <div className="-mx-1 min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
+          {orgList.length === 0 && <p className="px-2 py-3 text-sm text-side-ink-2">No conversations in this org yet.</p>}
+          {orgList.map((c, i) => [
+            (i === 0 || isToday(orgList[i - 1].updatedAt) !== isToday(c.updatedAt)) && (
+              <div key={`g${i}`} className="px-2 pb-1 pt-2 text-xs font-semibold text-side-ink-2">
+                {isToday(c.updatedAt) ? "Today" : "Earlier"}
+              </div>
+            ),
             <div
               key={c.id}
               onClick={() => open(c.id)}
               title={c.title}
-              className={`group flex cursor-pointer items-start gap-2 rounded-lg px-2.5 py-2 ${
-                !showGallery && conv?.id === c.id ? "bg-slate-100" : "hover:bg-slate-50"
+              className={`group flex cursor-pointer items-start gap-2.5 rounded-xl px-3 py-2.5 ${
+                !showGallery && conv?.id === c.id ? "bg-side-2 ring-1 ring-side-line" : "hover:bg-side-2/60"
               }`}
             >
-              <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${statusDot[c.status]}`} title={c.status} />
+              <span className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${statusDot[c.status]}`} title={c.status} />
               <div className="min-w-0 flex-1">
-                <div className="line-clamp-2 break-words text-sm">{c.title}</div>
-                <div className="text-[11px] text-slate-500">
-                  {c.agentLabel} · {plural(c.turns, "turn")} · {ago(c.updatedAt, now)}
+                <div className="line-clamp-2 break-words text-sm font-semibold leading-snug">{c.title}</div>
+                <div className="mt-0.5 text-xs text-side-ink-2">
+                  {c.agentLabel} · {plural(c.turns, "turn")}
+                  {c.status !== "live" && ` · ${c.status}`}
                 </div>
               </div>
+              <time dateTime={c.updatedAt} title={`Updated ${ago(c.updatedAt, now)} ago`} className="mt-0.5 font-mono text-xs text-side-ink-2 group-hover:hidden">
+                {clockOrDay(c.updatedAt)}
+              </time>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   remove(c.id);
                 }}
-                className="invisible text-slate-400 hover:text-red-600 group-hover:visible"
+                className="mt-0.5 hidden text-side-ink-2 hover:text-side-ink group-hover:block"
                 title="Delete"
               >
                 <Trash2 size={14} />
               </button>
-            </div>
-          ))}
+            </div>,
+          ])}
         </div>
       </aside>
 
@@ -300,24 +316,33 @@ export function ChatModule({
           />
         ) : (
           <>
-            <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200 bg-white px-6 py-3 lg:px-10">
-              <div className="min-w-56 flex-1">
-                <div className="font-semibold">{conv.agentLabel}</div>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
-                  <span className="flex items-center gap-1.5">
-                    <span className={`h-2 w-2 rounded-full ${statusDot[conv.status]}`} />
-                    <span className="capitalize">{conv.status}</span>
+            <header className="mx-4 mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-card lg:mx-6">
+              <div className="flex min-w-56 flex-1 items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-recv-line bg-recv text-recv-ink">
+                  <Bot size={20} strokeWidth={1.8} />
+                </div>
+                <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-[17px] font-semibold leading-tight">{conv.agentLabel}</h1>
+                  <span
+                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
+                      conv.status === "live" ? "bg-sent-chip text-sent-ink" : "bg-tint text-ink-2"
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${conv.status === "live" ? "bg-ok" : "bg-ink-3"}`} />
+                    {conv.status}
                   </span>
-                  <span>· {plural(conv.turns, "turn")}</span>
-                  {conv.session && <span>· idle {ago(conv.session.lastActivityAt, now)}</span>}
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-xs text-ink-3">
+                  <span className="font-sans">{plural(conv.turns, "turn")}</span>
+                  {conv.session && <span className="font-sans">· idle {ago(conv.session.lastActivityAt, now)}</span>}
                   {conv.session && (
-                    <span className="font-mono" title="Agent API session id">
-                      · session {conv.session.id}
+                    <span title={`Agent API session id: ${conv.session.id}`}>
+                      · session {conv.session.id.slice(0, 8)}…
                     </span>
                   )}
-                  <span className="font-mono" title="Agent id">
-                    · agent {conv.agentId}
-                  </span>
+                  <span title="Agent id">· agent {conv.agentId}</span>
+                </div>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -336,32 +361,34 @@ export function ChatModule({
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-[88rem] space-y-5 px-6 py-6 lg:px-10">
+              <div className="mx-auto w-full max-w-[72rem] space-y-3.5 px-4 py-5 lg:px-6">
                 {conv.messages.map((m) => (
                   <MessageView
                     key={m.id}
                     message={m}
+                    agentLabel={conv.agentLabel}
+                    orgId={conv.orgId}
                     myDomain={convOrg?.myDomain ?? ""}
                     onHover={setHoverTurn}
                     onConfirm={conv.status === "live" && !draft ? decide : undefined}
                   />
                 ))}
                 {draft && (
-                  <div>
-                    <Parts parts={draftParts(draft)} myDomain={convOrg?.myDomain ?? ""} streaming />
+                  <AgentCard label={conv.agentLabel} streaming>
+                    <Parts parts={draftParts(draft)} orgId={conv.orgId} myDomain={convOrg?.myDomain ?? ""} streaming />
                     {draftParts(draft).length === 0 && (
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <div className="flex items-center gap-2 text-sm text-ink-3">
                         <Loader2 size={14} className="animate-spin" /> Thinking…
                       </div>
                     )}
-                  </div>
+                  </AgentCard>
                 )}
                 <div ref={bottomRef} />
               </div>
             </div>
 
-            <div className="border-t border-slate-200 bg-white px-6 py-3 lg:px-10">
-              <div className="mx-auto flex w-full max-w-[88rem] items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 focus-within:border-sky-500">
+            <div className="px-4 pb-4 lg:px-6">
+              <div className="mx-auto flex w-full max-w-[72rem] items-end gap-2 rounded-[18px] border border-line bg-surface py-1.5 pl-4 pr-1.5 shadow-card focus-within:border-ink-3">
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -374,20 +401,20 @@ export function ChatModule({
                   rows={1}
                   disabled={conv.status !== "live"}
                   placeholder={conv.status === "live" ? `Message ${conv.agentLabel}…` : "Session is not live — start a new session"}
-                  className="max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-1.5 text-sm focus:outline-none disabled:text-slate-400"
+                  className="max-h-40 min-h-10 flex-1 resize-none bg-transparent py-2.5 text-[15px] text-ink focus:outline-none focus-visible:outline-none disabled:text-ink-3"
                 />
                 {draft ? (
-                  <button onClick={() => abortRef.current?.abort()} className="rounded-xl bg-slate-800 p-2 text-white" title="Stop">
-                    <Square size={16} />
+                  <button onClick={() => abortRef.current?.abort()} className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-surface" title="Stop">
+                    <Square size={14} /> Stop
                   </button>
                 ) : (
                   <button
                     onClick={send}
                     disabled={!input.trim() || conv.status !== "live"}
-                    className="rounded-xl bg-sky-600 p-2 text-white disabled:opacity-40"
+                    className="flex items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-action-ink shadow-card disabled:opacity-40 disabled:shadow-none"
                     title="Send"
                   >
-                    <Send size={16} />
+                    <Send size={15} /> Send
                   </button>
                 )}
               </div>
@@ -400,8 +427,8 @@ export function ChatModule({
       {conv && !showGallery && panelOpen && (
         <aside
           style={{ width: narrow ? "min(92vw, 34rem)" : wireWidth }}
-          className={`flex shrink-0 flex-col border-l border-slate-200 bg-slate-50 ${
-            narrow ? "absolute inset-y-0 right-0 z-10 shadow-2xl" : "relative"
+          className={`flex shrink-0 flex-col border-l border-line bg-surface ${
+            narrow ? "absolute inset-y-0 right-0 z-10 shadow-lift" : "relative"
           }`}
         >
           {!narrow && (
@@ -413,15 +440,15 @@ export function ChatModule({
                 localStorage.setItem("afd360.wireWidth", String(w));
               }}
               title="Drag to resize · double-click to reset"
-              className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-sky-300/60"
+              className="absolute inset-y-0 -left-1 z-10 w-2 cursor-col-resize hover:bg-ink-3/30"
             />
           )}
-          <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5">
+          <div className="flex items-start justify-between gap-2 px-4 pb-1 pt-4">
             <div className="min-w-0">
-              <div className="text-sm font-semibold">Wire</div>
-              <div className="text-[11px] text-slate-500">Every Salesforce call for this conversation · tokens masked</div>
+              <h2 className="text-[17px] font-semibold leading-tight">Wire</h2>
+              <div className="mt-0.5 text-xs text-ink-3">Every Salesforce call for this conversation · tokens masked</div>
             </div>
-            <button onClick={() => setPanelOpen(false)} className="p-1 text-slate-500 hover:text-slate-800" title="Close Wire panel">
+            <button onClick={() => setPanelOpen(false)} className="rounded-lg p-1.5 text-ink-3 hover:bg-tint hover:text-ink" title="Close Wire panel">
               <PanelRightClose size={16} />
             </button>
           </div>

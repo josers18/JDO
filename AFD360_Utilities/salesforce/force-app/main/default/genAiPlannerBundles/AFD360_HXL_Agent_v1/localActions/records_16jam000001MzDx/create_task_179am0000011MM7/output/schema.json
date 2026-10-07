@@ -1,0 +1,14 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "task" : {
+      "title" : "Task",
+      "description" : "The created Task (or the exact error), shown to the user as a Task card",
+      "lightning:type" : "c__afd360CreateTaskCard",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

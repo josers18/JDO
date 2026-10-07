@@ -139,20 +139,20 @@ export function WidgetFrame({
 
   return (
     <div className="space-y-2">
-      <div className={`overflow-hidden rounded-xl bg-white ${ui.prefersBorder === false ? "" : "border border-slate-200 shadow-sm"}`}>
+      <div className={`overflow-hidden rounded-xl bg-surface ${ui.prefersBorder === false ? "" : "border border-line shadow-sm"}`}>
         <div ref={hostRef} style={{ height }} />
       </div>
-      <details className="rounded-lg border border-slate-200 bg-white text-xs">
-        <summary className="cursor-pointer px-3 py-2 text-slate-600">
-          Widget bridge · <span className={status === "Live" ? "text-emerald-700" : "text-slate-500"}>{status}</span> ·{" "}
+      <details className="rounded-xl border border-line bg-surface text-xs">
+        <summary className="cursor-pointer px-3 py-2 text-ink-2">
+          Widget bridge · <span className={status === "Live" ? "text-ok" : "text-ink-3"}>{status}</span> ·{" "}
           {log.length} messages · <span className="font-mono">{ui.uri}</span>
         </summary>
-        <div className="space-y-0.5 px-3 pb-2 font-mono text-[11px]">
+        <div className="space-y-0.5 px-3 pb-2 font-mono text-xs">
           {log.map((l, i) => (
             <div key={i} className="flex gap-2">
-              <span className="w-12 shrink-0 text-right text-slate-400">+{(l.t / 1000).toFixed(2)}s</span>
-              <span className={`w-16 shrink-0 ${l.direction === "host→app" ? "text-sky-700" : "text-violet-700"}`}>{l.direction}</span>
-              <span className="break-all text-slate-700">{l.text}</span>
+              <span className="w-12 shrink-0 text-right text-ink-3">+{(l.t / 1000).toFixed(2)}s</span>
+              <span className={`w-16 shrink-0 ${l.direction === "host→app" ? "text-sent-ink" : "text-recv-ink"}`}>{l.direction}</span>
+              <span className="break-all text-ink-2">{l.text}</span>
             </div>
           ))}
         </div>

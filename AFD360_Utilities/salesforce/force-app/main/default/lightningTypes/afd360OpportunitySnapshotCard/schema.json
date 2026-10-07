@@ -1,0 +1,5 @@
+{
+  "title": "AFD360 Opportunity Card",
+  "description": "AFD360OpportunitySnapshot output rendered as the afd360OpportunityCard HXL widget in Agentforce",
+  "lightning:type": "@apexClassType/c__AFD360OpportunitySnapshot$Snapshot"
+}

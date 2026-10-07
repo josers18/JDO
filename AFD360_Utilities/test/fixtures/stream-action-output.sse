@@ -1,0 +1,16 @@
+event: PROGRESS_INDICATOR
+id: x-REQ
+data: {"timestamp":1791403097469,"originEventId":"1791403094871-REQ","traceId":"9c9d86ee8bb41930beea3946aa1ba7bc","offset":0,"message":{"type":"ProgressIndicator","indicatorType":"ACTION","message":"Looking up the account...","id":"bd7a6a78-1f8d-4eb1-a82d-fe97eb8b0ed5","metrics":{}}}
+
+event: PROGRESS_INDICATOR
+id: x-REQ
+data: {"timestamp":1791403102295,"originEventId":"1791403094871-REQ","traceId":"9c9d86ee8bb41930beea3946aa1ba7bc","offset":0,"message":{"type":"ProgressIndicator","indicatorType":"ACTION","message":"Looking up the opportunity...","id":"20bae688-ccb7-4439-8dcd-fa8e4fbb364e","metrics":{}}}
+
+event: INFORM
+id: x-REQ
+data: {"timestamp":1791403104058,"originEventId":"1791403094871-REQ","traceId":"9c9d86ee8bb41930beea3946aa1ba7bc","offset":0,"message":{"type":"Inform","feedbackId":"8c745f93-33a2-4356-a224-eac77d1ee594","isContentSafe":true,"message":"Here is Omega, Inc. and its largest open opportunity.","id":"bacc7945-9e69-448a-bd07-2756fdd217a3","metrics":{},"planId":"8c745f93-33a2-4356-a224-eac77d1ee594","result":[{"type":"copilotActionOutput/get_account_snapshot_179am0000011MM7","value":{"account":{"website":"URL_Redacted","recordUrl":"https://storm-16a17dc388fbe6.demo.my.salesforce.com/lightning/r/Account/001am00000qvjs6AAA/view","phone":"(415) 555-0153","owner":"Erica Associate","openPipeline":"$146,000","openOpportunities":"2 open opportunities","name":"Omega, Inc.","location":"San Francisco, CA","industry":"Technology","found":true,"accountType":"Enterprise","accountId":"001am00000qvjs6AAA"}},"property":""},{"type":"copilotActionOutput/get_opportunity_snapshot_179am0000011MM7","value":{"opportunity":{"stage":"Discovery","recordUrl":"https://storm-16a17dc388fbe6.demo.my.salesforce.com/lightning/r/Opportunity/006am000005W2woAAC/view","probability":"15%","owner":"Vanessa Central","opportunityId":"006am000005W2woAAC","nextStep":"\u2014","name":"Omega, Inc. - Cumulus ACH Services - New Business - $128K","found":true,"closeDate":"Aug 10, 2026","amount":"$128,000","accountName":"Omega, Inc."}},"property":""}],"citedReferences":[]}}
+
+event: END_OF_TURN
+id: x-REQ
+data: {"timestamp":1791403104061,"originEventId":"1791403094871-REQ","traceId":"9c9d86ee8bb41930beea3946aa1ba7bc","offset":0,"message":{"type":"EndOfTurn","id":"0ec0038a-bc81-4c73-beb7-2a2284d6327f","metrics":{}}}
+

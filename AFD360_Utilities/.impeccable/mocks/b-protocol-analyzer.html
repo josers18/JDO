@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mock B · Protocol Analyzer</title>
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root {
+    --ground: #FFFFFF; --ink: #0E1116; --ink-2: #48515C; --rule: #D8DDE3; --head: #F3F5F8;
+    --agent: #E8F1FB; --mcp: #EEF7EC; --oauth: #F4F0FA; --sel: #0B6BCB; --err: #C62828; --ok: #157F3B;
+    --sans: "Archivo", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--ground); font-size: 14px; }
+  .app { display: grid; grid-template-columns: 56px minmax(0,1fr); grid-template-rows: 46px minmax(0, 44%) minmax(0,1fr); height: 100vh; }
+  .rail { grid-row: 1 / 4; background: #0E1116; }
+  .bar { display: flex; align-items: center; gap: 14px; padding: 0 14px; border-bottom: 1px solid var(--rule); }
+  .bar b { font: 800 15px/1 var(--sans); font-stretch: 85%; letter-spacing: .04em; text-transform: uppercase; }
+  .filter { flex: 1; border: 1px solid var(--rule); border-radius: 4px; padding: 7px 10px; font: 500 13px var(--mono); color: var(--ink-2); }
+  .rec { font: 600 12px/1 var(--mono); color: var(--err); display: flex; align-items: center; gap: 6px; }
+  .rec i { width: 9px; height: 9px; border-radius: 50%; background: var(--err); }
+  table { width: 100%; border-collapse: collapse; font: 500 13px/1.3 var(--mono); }
+  th { position: sticky; top: 0; background: var(--head); text-align: left; font: 700 12px/1 var(--sans); font-stretch: 85%; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+  td { padding: 6px 10px; border-bottom: 1px solid #EEF1F4; white-space: nowrap; }
+  td.info { white-space: normal; font-family: var(--sans); font-size: 13.5px; }
+  tr.a td { background: var(--agent); } tr.m td { background: var(--mcp); } tr.o td { background: var(--oauth); }
+  tr.sel td { background: var(--sel); color: #fff; }
+  .capture { overflow: auto; border-bottom: 2px solid var(--ink); }
+  .detail { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); min-height: 0; }
+  .pane { overflow: auto; padding: 16px 20px; }
+  .pane + .pane { border-left: 1px solid var(--rule); background: #FAFBFC; }
+  h3 { font: 800 12px/1 var(--sans); font-stretch: 85%; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 12px; }
+  .turn { margin-bottom: 14px; }
+  .turn .who { font: 700 12px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--sel); margin-bottom: 4px; }
+  .turn p { font-size: 15px; line-height: 1.55; }
+  .tree { font: 500 13px/1.7 var(--mono); }
+  .tree .ok { color: var(--ok); }
+  pre { font: 500 12px/1.55 var(--mono); white-space: pre-wrap; }
+  .k { color: #7A3E9D; } .s { color: #0B6BCB; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail"></nav>
+  <div class="bar"><b>AFD360 · Capture</b><div class="filter">session == 01a11734 &amp;&amp; turn ≥ 0</div><span class="rec"><i></i>LIVE · Search Agent · finsdc3</span></div>
+  <section class="capture">
+    <table>
+      <thead><tr><th>No.</th><th>Time</th><th>Proto</th><th>Dir</th><th>Info</th><th>Status</th><th>ms</th></tr></thead>
+      <tbody>
+        <tr class="o"><td>1</td><td>14:20:56.104</td><td>OAuth</td><td>→</td><td class="info">POST /services/oauth2/token · client_credentials</td><td>200</td><td>312</td></tr>
+        <tr class="a"><td>2</td><td>14:20:57.002</td><td>Agent API</td><td>→</td><td class="info">Start session · agent 0Xxam000000thvZCAQ</td><td>200</td><td>1007</td></tr>
+        <tr class="a sel"><td>3</td><td>14:21:03.410</td><td>Agent API</td><td>⇄</td><td class="info">Send message (stream) · turn 1 · 17 events · delegation → D360 Agent (14 steps)</td><td>200</td><td>40702</td></tr>
+        <tr class="a"><td>4</td><td>14:23:40.118</td><td>Agent API</td><td>⇄</td><td class="info">Send message (stream) · turn 2 · Confirm · 2 actions awaiting approval</td><td>200</td><td>9143</td></tr>
+        <tr class="m"><td>5</td><td>14:25:12.870</td><td>MCP</td><td>→</td><td class="info">tools/call getLeadSnapshot · AFD360Demo · widget ui://…/c__afd360LeadSnapshotResult</td><td>200</td><td>1886</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="detail">
+    <div class="pane">
+      <h3>Decoded · No. 3 · turn 1</h3>
+      <div class="turn"><div class="who">You</div><p>Ask the D360 Agent: how many unified individuals are in Data Cloud?</p></div>
+      <div class="turn"><div class="who">Search Agent → D360 Agent</div>
+        <div class="tree">
+          <div><span class="ok">✓</span> Analyzing your request</div>
+          <div><span class="ok">✓</span> Planning — straightforward SQL query</div>
+          <div><span class="ok">✓</span> Generating SQL</div>
+          <div><span class="ok">✓</span> Run SQL — 1 row · TotalUnifiedIndividuals__c</div>
+          <div><span class="ok">✓</span> debug_sql — UnifiedIndividual__dlm empty</div>
+          <div><span class="ok">✓</span> Preparing response</div>
+        </div>
+      </div>
+      <div class="turn"><p>There are currently <b>0 unified individuals</b> in Data Cloud — identity resolution hasn't produced unified profiles yet.</p></div>
+    </div>
+    <div class="pane">
+      <h3>Raw · request / stream</h3>
+<pre><span class="k">POST</span> /einstein/ai-agent/v1/sessions/01a11734…/messages/stream
+Authorization: Bearer eyJ0bm…FUeg
+{ <span class="s">"message"</span>: { <span class="s">"sequenceId"</span>: 1, <span class="s">"type"</span>: "Text" } }
+
++0.42s  LightningChunk  {"content":"Let me"
++1.10s  LightningChunk  {"tools":[{"description":"Delegating…
++38.9s  Inform          result[3]
++40.7s  EndOfTurn</pre>
+    </div>
+  </section>
+</div>
+</body>
+</html>

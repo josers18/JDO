@@ -1,16 +1,26 @@
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { AlertTriangle, CheckCircle2, CircleDot, Loader2, Search, XCircle, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, CircleDot, Copy, Loader2, Search, X, Zap } from "lucide-react";
 import type { Message, Part, Tool } from "../../../shared/types";
 import { ApprovalCard, type ConfirmDecision } from "./ApprovalCard";
+import { HxlCard } from "./HxlCard";
+import { hxlBindingFor } from "../../../shared/hxl";
+
+const clock = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
 export function MessageView({
   message,
+  agentLabel,
+  orgId,
   myDomain,
   onHover,
   onConfirm,
 }: {
   message: Message;
+  agentLabel: string;
+  orgId: string;
   myDomain: string;
   onHover?: (turn: number | null) => void;
   onConfirm?: ConfirmDecision;
@@ -21,42 +31,87 @@ export function MessageView({
   };
   if (message.role === "user") {
     return (
-      <div className="flex justify-end" {...hover}>
-        <div className="max-w-[80%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-sky-600 px-4 py-2.5 text-sm text-white">
+      <article className="ml-[8%] rounded-2xl border border-sent-line bg-sent px-[18px] pb-4 pt-3.5 shadow-card" {...hover}>
+        <CardHead lane="sent" who="You" time={clock(message.createdAt)} />
+        <div className="whitespace-pre-wrap break-words text-[15px] font-medium leading-relaxed text-sent-ink">
           {message.parts.map((p) => (p.kind === "text" ? p.markdown : "")).join("")}
         </div>
-      </div>
+      </article>
     );
   }
   if (message.role === "system" || message.role === "error") {
     const isError = message.role === "error";
     return (
-      <div className={`flex items-start gap-2 text-xs ${isError ? "text-red-600" : "text-slate-500"}`} {...hover}>
-        {isError ? <AlertTriangle size={14} className="mt-0.5 shrink-0" /> : <CircleDot size={14} className="mt-0.5 shrink-0" />}
-        <div className="prose prose-xs max-w-none text-inherit [&_p]:my-0">
+      <div
+        className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${isError ? "border border-err/30 bg-err/8 text-err" : "text-ink-3"}`}
+        {...hover}
+      >
+        {isError ? <AlertTriangle size={15} className="mt-0.5 shrink-0" /> : <CircleDot size={15} className="mt-0.5 shrink-0" />}
+        <div className="prose prose-sm max-w-none text-inherit [&_p]:my-0">
           <ReactMarkdown>{message.parts.map((p) => (p.kind === "text" ? p.markdown : "")).join("")}</ReactMarkdown>
         </div>
       </div>
     );
   }
+  const time = clock(message.createdAt) + (message.durationMs !== undefined ? ` · ${(message.durationMs / 1000).toFixed(1)}s` : "");
   return (
-    <div {...hover}>
-      <Parts parts={message.parts} myDomain={myDomain} confirm={message.confirm} onConfirm={onConfirm} />
-      {message.durationMs !== undefined && (
-        <div className="mt-1 text-[11px] text-slate-400">{(message.durationMs / 1000).toFixed(1)}s</div>
+    <AgentCard label={agentLabel} time={time} {...hover}>
+      <Parts parts={message.parts} orgId={orgId} myDomain={myDomain} confirm={message.confirm} onConfirm={onConfirm} />
+    </AgentCard>
+  );
+}
+
+// A received card: the agent's whole answer for one turn (also used for the live, streaming draft).
+export function AgentCard({
+  label,
+  time,
+  streaming,
+  children,
+  ...rest
+}: {
+  label: string;
+  time?: string;
+  streaming?: boolean;
+  children: React.ReactNode;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  return (
+    <article className="mr-[4%] rounded-2xl border border-line bg-surface px-[18px] pb-4 pt-3.5 shadow-card" {...rest}>
+      <CardHead lane="recv" who={label} time={streaming ? "streaming…" : time} />
+      {children}
+    </article>
+  );
+}
+
+function CardHead({ lane, who, time }: { lane: "sent" | "recv"; who: string; time?: string }) {
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
+      {lane === "sent" ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-sent-chip px-2.5 py-0.5 text-xs font-semibold text-sent-ink">
+          <ArrowRight size={12} strokeWidth={2.4} /> Sent
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-1 rounded-full border border-recv-line bg-recv px-2.5 py-0.5 text-xs font-semibold text-recv-ink">
+          <ArrowLeft size={12} strokeWidth={2.4} /> Received
+        </span>
       )}
+      <span className="font-semibold text-ink">{who}</span>
+      {time && <time className="ml-auto font-mono text-xs text-ink-3">{time}</time>}
     </div>
   );
 }
 
 export function Parts({
   parts: raw,
+  orgId,
   myDomain,
   streaming,
   confirm,
   onConfirm,
 }: {
   parts: Part[];
+  orgId?: string;
   myDomain: string;
   streaming?: boolean;
   confirm?: Message["confirm"];
@@ -66,7 +121,7 @@ export function Parts({
   const actions = parts.filter((p): p is Extract<Part, { kind: "action" }> => p.kind === "action");
   const firstAction = parts.findIndex((p) => p.kind === "action");
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {parts.map((p, i) => {
         // All proposed actions of a turn render as one approval card, where the first one appeared.
         if (p.kind === "action") {
@@ -77,22 +132,69 @@ export function Parts({
         if (p.kind === "text") return <Markdown key={i} text={p.markdown} myDomain={myDomain} />;
         if (p.kind === "tools") return <ToolCards key={i} tools={p.tools} />;
         if (p.kind === "progress") return <ProgressLine key={i} text={p.text} running={streaming && i === parts.length - 1} />;
+        // Action outputs with an HXL widget (e.g. {"account": {...}} from AFD360_HXL_Agent) render as that widget.
+        const hxl = orgId ? hxlBindingFor(p.value) : null;
+        if (hxl && orgId) {
+          return (
+            <div key={i} className="space-y-1.5">
+              <HxlCard orgId={orgId} myDomain={myDomain} dataKey={hxl.key} binding={hxl.binding} value={p.value as Record<string, unknown>} />
+              <details className="rounded-xl border border-line bg-tint text-sm">
+                <summary className="cursor-pointer px-3 py-2 text-ink-2">
+                  Action output · <span className="font-mono text-xs">{p.lightningType}</span>
+                </summary>
+                <pre className="max-h-96 overflow-auto px-3 pb-3 font-mono text-xs text-ink">{JSON.stringify(p.value, null, 2)}</pre>
+              </details>
+            </div>
+          );
+        }
         // Action outputs (e.g. a delegated agent's copilotActionOutput) often carry the answer in `response`.
-        const response = (p.value as { response?: unknown })?.response;
+        const out = p.value as { response?: unknown; generatedSql?: unknown; tables?: unknown; queryData?: unknown };
+        const response = typeof out?.response === "string" ? out.response : null;
+        // The D360 agent writes a "<data>" marker where its UI shows the result table; the Agent API doesn't include those rows.
+        const rowsMissing = Boolean(response?.includes("<data>")) && !out.tables && !out.queryData;
+        const shownResponse = rowsMissing
+          ? response!.replace(/<data>/g, "> _The agent's result table isn't included in the Agent API response (only its summary and SQL are)._")
+          : response;
+        const sql = typeof out?.generatedSql === "string" && out.generatedSql.trim() ? out.generatedSql : null;
         return (
           <div key={i} className="space-y-1.5">
-            {typeof response === "string" && response.trim() && <Markdown text={response} myDomain={myDomain} />}
-            <details className="rounded-lg border border-slate-200 bg-white text-xs">
-              <summary className="cursor-pointer px-3 py-2 text-slate-600">
+            {shownResponse?.trim() && <Markdown text={shownResponse} myDomain={myDomain} />}
+            {sql && <SqlBlock sql={sql} />}
+            <details className="rounded-xl border border-line bg-tint text-sm">
+              <summary className="cursor-pointer px-3 py-2 text-ink-2">
                 {typeof response === "string" ? "Action output details · " : ""}
-                {p.lightningType}
+                <span className="font-mono text-xs">{p.lightningType}</span>
               </summary>
-              <pre className="max-h-96 overflow-auto px-3 pb-3 text-[11px]">{JSON.stringify(p.value, null, 2)}</pre>
+              <pre className="max-h-96 overflow-auto px-3 pb-3 font-mono text-xs text-ink">{JSON.stringify(p.value, null, 2)}</pre>
             </details>
           </div>
         );
       })}
     </div>
+  );
+}
+
+function SqlBlock({ sql }: { sql: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <details className="overflow-hidden rounded-xl border border-line bg-surface text-sm">
+      <summary className="flex cursor-pointer items-center justify-between px-3 py-2 font-medium text-ink-2">
+        <span>Generated SQL</span>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            navigator.clipboard.writeText(sql).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1200);
+            });
+          }}
+          className="flex items-center gap-1 rounded-lg border border-line px-2 py-0.5 text-xs hover:bg-tint"
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy"}
+        </button>
+      </summary>
+      <pre className="max-h-80 overflow-auto bg-console px-3 py-3 font-mono text-xs leading-relaxed text-console-ink">{sql}</pre>
+    </details>
   );
 }
 
@@ -108,7 +210,7 @@ function mergeToolParts(parts: Part[]): Part[] {
 
 function Markdown({ text, myDomain }: { text: string; myDomain: string }) {
   return (
-    <div className="prose prose-sm max-w-none prose-table:text-xs prose-th:bg-slate-50 prose-th:px-2 prose-td:px-2 prose-a:text-sky-700">
+    <div className="prose max-w-none text-[15px] leading-relaxed prose-p:my-2 prose-table:text-sm prose-th:bg-tint prose-th:px-2 prose-td:px-2">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -133,7 +235,7 @@ function Markdown({ text, myDomain }: { text: string; myDomain: string }) {
 
 function ToolCards({ tools }: { tools: Tool[] }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {groupTools(tools).map(({ tool: t, times }) => {
         const Icon = t.category === "search" ? Search : Zap;
         const showCount = t.count !== undefined && t.status !== "running" && !(t.category !== "search" && t.count === "0");
@@ -143,40 +245,50 @@ function ToolCards({ tools }: { tools: Tool[] }) {
         return (
           <div
             key={t.id}
-            className={`max-w-full rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm ${trail ? "w-full max-w-3xl" : "w-fit min-w-72"}`}
+            className={`max-w-full rounded-xl border border-recv-line bg-recv px-3.5 py-2.5 ${trail ? "w-full max-w-3xl" : "w-fit min-w-72"}`}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surface/70 text-recv-ink">
                 <Icon size={15} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  {t.category ?? "tool"}
-                  {trail && ` · ${trail.length} steps`}
-                </div>
-                <div className="break-words text-sm text-slate-800">{trail ? trail[0].description : t.description}</div>
+                <div className="break-words text-sm font-semibold text-recv-ink">{trail ? trail[0].description : t.description}</div>
+                {(t.category || trail) && (
+                  <div className="font-mono text-xs text-recv-ink/80">
+                    {t.category ?? "tool"}
+                    {trail && ` · ${trail.length} steps`}
+                  </div>
+                )}
               </div>
-              {times > 1 && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">×{times}</span>}
+              {times > 1 && <span className="rounded-full bg-surface/70 px-2 py-0.5 font-mono text-xs font-semibold text-recv-ink">×{times}</span>}
               {showCount && (
-                <span className="whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                <span className="whitespace-nowrap rounded-full bg-surface/70 px-2 py-0.5 text-xs text-recv-ink">
                   {t.count} result{t.count === "1" ? "" : "s"}
                 </span>
               )}
-              <ToolStatus status={t.status} />
+              <StepIcon status={t.status} />
             </div>
             {trail && (
-              <ul className="ml-10 mt-2 space-y-1 border-l border-slate-200 pl-3">
+              <ol className="relative mt-2.5 space-y-0.5 before:absolute before:bottom-2 before:left-[9px] before:top-2 before:w-0.5 before:rounded before:bg-recv-line">
                 {trail.slice(1).map((step, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] leading-snug">
-                    <span className="mt-0.5 shrink-0">
-                      <StepIcon status={step.status} />
-                    </span>
-                    <span className={`break-words ${step.status === "running" ? "text-slate-900" : step.status === "success" ? "text-slate-600" : "text-red-700"}`}>
+                  <li key={i} className="relative flex items-start gap-2.5 py-1 text-sm leading-snug">
+                    <StepIcon status={step.status} />
+                    <span
+                      className={`min-w-0 break-words ${
+                        step.status === "running" ? "font-semibold text-ink" : step.status === "success" ? "text-ink-2" : "text-err"
+                      }`}
+                    >
                       {stripAgentPrefix(step.description, trail[0].description)}
                     </span>
                   </li>
                 ))}
-              </ul>
+              </ol>
+            )}
+            {t.status === "error" && (
+              <p className="mt-2 border-t border-recv-line pt-2 text-sm text-recv-ink">
+                Salesforce marked this step as failed but sent no error detail over the Agent API. The agent&apos;s reply usually
+                says why; the full reason is in the session trace.
+              </p>
             )}
           </div>
         );
@@ -194,10 +306,27 @@ function stripAgentPrefix(text: string, title: string) {
   return text;
 }
 
+// Trail markers: filled check when done, pulsing ring while running, cross on error.
 function StepIcon({ status }: { status: string }) {
-  if (status === "running") return <Loader2 size={14} className="animate-spin text-sky-500" />;
-  if (status === "success") return <CheckCircle2 size={14} className="text-emerald-500" />;
-  return <XCircle size={14} className="text-red-500" aria-label={status} />;
+  if (status === "running") {
+    return (
+      <span className="relative z-[1] grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 border-ink bg-surface">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-ink" />
+      </span>
+    );
+  }
+  if (status === "success") {
+    return (
+      <span className="relative z-[1] grid h-5 w-5 shrink-0 place-items-center rounded-full bg-ok text-surface">
+        <Check size={12} strokeWidth={3} />
+      </span>
+    );
+  }
+  return (
+    <span className="relative z-[1] grid h-5 w-5 shrink-0 place-items-center rounded-full bg-err text-surface" aria-label={status}>
+      <X size={12} strokeWidth={3} />
+    </span>
+  );
 }
 
 // Collapses consecutive identical steps (e.g. ten "Proposing to update Lead" actions) into one card.
@@ -216,16 +345,10 @@ function groupTools(tools: Tool[]) {
   return groups;
 }
 
-function ToolStatus({ status }: { status: string }) {
-  if (status === "running") return <Loader2 size={16} className="animate-spin text-sky-500" />;
-  if (status === "success") return <CheckCircle2 size={16} className="text-emerald-500" />;
-  return <XCircle size={16} className="text-red-500" aria-label={status} />;
-}
-
 function ProgressLine({ text, running }: { text: string; running?: boolean }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-slate-500">
-      {running ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} className="text-emerald-500" />}
+    <div className="flex items-center gap-2 text-sm text-ink-2">
+      {running ? <Loader2 size={15} className="animate-spin text-ink-3" /> : <CheckCircle2 size={15} className="text-ok" />}
       {text}
     </div>
   );

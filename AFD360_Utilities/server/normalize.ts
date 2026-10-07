@@ -103,7 +103,13 @@ export class TurnNormalizer {
       case "Inform": {
         this.informMessage = String(m.message ?? "");
         const result = m.result as { type: string; value: unknown }[] | undefined;
-        if (result?.length) this.informResult = result.map((r) => partFromResult(r.type, r.value));
+        if (result?.length) {
+          this.informResult = result.map((r) => partFromResult(r.type, r.value));
+          // Action-output-only results (e.g. displayable Apex outputs) carry the reply text in message, not in result.
+          if (this.informMessage && !this.informResult.some((p) => p.kind === "text")) {
+            this.informResult.unshift({ kind: "text", markdown: this.informMessage });
+          }
+        }
         break;
       }
       case "Confirm": {

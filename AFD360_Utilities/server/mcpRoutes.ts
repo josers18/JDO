@@ -1,6 +1,8 @@
 import { Router, type Request, type Response } from "express";
 import { McpError, UI_MIME, getSession, rpc, toolUiUri } from "./mcp.ts";
 import type { WireEntry } from "../shared/types.ts";
+import { HXL_BINDINGS } from "../shared/hxl.ts";
+import { resolveUiMetadata } from "./hxl.ts";
 
 export const mcpApi = Router();
 
@@ -61,6 +63,39 @@ mcpApi.post(
       uiUri ? readUi(orgId, url, uiUri, tool._meta, wire) : Promise.resolve(null),
     ]);
     return { result, ui, tool: { name: tool.name, title: tool.title } };
+  }),
+);
+
+// Widget HTML for a tool's ui:// resource, without calling the tool (the chat already has the data from the agent).
+// Pages are ~0.9 MB, so they're cached per org + resource for a few minutes.
+const widgetCache = new Map<string, { at: number; ui: Awaited<ReturnType<typeof readUi>> }>();
+const WIDGET_TTL_MS = 10 * 60_000;
+
+mcpApi.post(
+  "/widget",
+  route(async ({ orgId, url, tool: name }, wire) => {
+    const tools = (await rpc(orgId, url, "tools/list", {}, wire))?.tools ?? [];
+    const tool = tools.find((t: { name: string }) => t.name === name);
+    const uri = tool && toolUiUri(tool);
+    if (!uri) throw new McpError(`Tool ${name} has no UI resource on ${url}`);
+    const key = `${orgId}|${uri}`;
+    const hit = widgetCache.get(key);
+    if (hit && Date.now() - hit.at < WIDGET_TTL_MS) return { ui: hit.ui, cached: true };
+    const ui = await readUi(orgId, url, uri, tool._meta, wire);
+    widgetCache.set(key, { at: Date.now(), ui });
+    return { ui, cached: false };
+  }),
+);
+
+// Chat: an agent action output bound to an HXL widget -> the widget's resolved tree, as hosted MCP would send it.
+mcpApi.post(
+  "/hxl-render",
+  route(async ({ key, value }) => {
+    const binding = HXL_BINDINGS[String(key)];
+    if (!binding) throw new McpError(`No HXL widget for ${key}`);
+    const attrs = (value as Record<string, unknown>)?.[String(key)];
+    if (!attrs || typeof attrs !== "object") throw new McpError(`Action output has no ${key} object`);
+    return { uiMetadata: resolveUiMetadata(binding.widget, attrs as Record<string, unknown>) };
   }),
 );
 

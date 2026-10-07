@@ -1,0 +1,151 @@
+{
+  "title": "Choose the visual world for AFD360 Utilities",
+  "question": "The roll assigned the Flight Progress Board. Keep it, take an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Flight Progress Board",
+      "kicker": "THE ROLL",
+      "lineage": "air-traffic-control flight progress strips in a controller's bay",
+      "thesis": "Every turn and every Salesforce call is a strip on the controller's board: live, timestamped, handed off, never lost.",
+      "palette": ["#FBFBF7", "#111418", "#CFE3F5", "#F6D58A", "#D7262E", "#1E9E5A", "#5B6670"],
+      "materials": ["printed card strips in steel holders", "grease-pencil status marks", "tabular clock numerals"],
+      "viewport": "Three bays: sector list of conversations, the live transcript as wide strips (clock | callsign | mark | content) with tool steps handed down as sub-strips, and the Wire as a strip rack — blue outbound, amber inbound — stacked by time.",
+      "risk": "The strip metaphor turns into costume if holders and brackets get decorated; it must stay a dense typographic grid, not skeuomorphism.",
+      "raised": [
+        {"from": "challenger-ticket-wallet", "raise": "Nothing disappears, it cancels: stopped, rejected and superseded turns get a stamped mark on their strip instead of vanishing."},
+        {"from": "challenger-warm-app", "raise": "One saturated action color, used only on things you can press; status lives in strip color and marks, never in the action color."},
+        {"from": "challenger-datamatics", "raise": "One tabular monospace grammar for every clock, duration, status code and id, aligned in fixed columns."},
+        {"from": "challenger-timetable", "raise": "Inside dense strips, rank comes from weight, case and reversal, not size; the one live strip gets the board's only reversed plate."},
+        {"from": "challenger-zoo-map", "raise": "Live state is a capsule whose chip crosses to the leading edge when the session is live."}
+      ],
+      "wireframe": {"cols": 12, "rows": 10, "regions": [
+        {"label": "rail", "x": 0, "y": 0, "w": 1, "h": 10},
+        {"label": "sector list", "x": 1, "y": 0, "w": 2, "h": 10},
+        {"label": "live strip (reversed)", "x": 3, "y": 0, "w": 6, "h": 1, "accent": true},
+        {"label": "transcript strips", "x": 3, "y": 1, "w": 6, "h": 8},
+        {"label": "composer", "x": 3, "y": 9, "w": 6, "h": 1},
+        {"label": "wire rack: out / in", "x": 9, "y": 0, "w": 3, "h": 10, "accent": true}
+      ]}
+    },
+    {
+      "id": "model-pick",
+      "label": "Protocol Analyzer",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "packet-capture tools (timeline + decoded detail pane)",
+      "thesis": "The wire is the main view; the conversation is the decoded payload of each call.",
+      "palette": ["#FFFFFF", "#0E1116", "#0B6BCB", "#E8F1FB", "#FFF4D6", "#C62828"],
+      "materials": ["ruled capture rows", "hex-dump detail pane", "colored protocol rows"],
+      "viewport": "Top: a time-ordered capture list of every call; bottom: the selected call decoded as chat turns, tool steps and raw JSON side by side.",
+      "risk": "Familiar developer-tool look (DevTools/Wireshark): credible to engineers, can read as intimidating to a business audience on a customer call.",
+      "wireframe": {"cols": 12, "rows": 10, "regions": [
+        {"label": "rail", "x": 0, "y": 0, "w": 1, "h": 10},
+        {"label": "capture list (all calls, by time)", "x": 1, "y": 0, "w": 11, "h": 4, "accent": true},
+        {"label": "decoded: conversation", "x": 1, "y": 4, "w": 6, "h": 6},
+        {"label": "decoded: raw", "x": 7, "y": 4, "w": 5, "h": 6}
+      ]}
+    },
+    {
+      "id": "challenger-ticket-wallet",
+      "label": "Jet-Age Ticket Wallet",
+      "verdict": "competitive",
+      "lineage": "1960s airline ticket wallets with carbon coupons",
+      "thesis": "Each conversation is a ticket wallet; every turn is a coupon that gets validated, used, or voided.",
+      "palette": ["#FFFFFF", "#14254A", "#C8202F", "#5B3F8C", "#E9EEF5"],
+      "materials": ["carbon-copy coupons", "hairline-ruled fare boxes", "rubber stamps"],
+      "viewport": "A coupon book: the open leg is the current turn; used legs stack as stubs, approvals stamp APPROVED or VOID across the coupon.",
+      "case": "Fuses cleanly: approvals and session states map to stamped coupons; loses on audience (SEs and bank execs don't read the app as travel).",
+      "risk": "Coupon chrome can crowd dense Wire data.",
+      "hero": "https://impeccable.style/worlds/cards/vernacular-ephemera-jet-age-ticket-wallet-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/vernacular-ephemera-jet-age-ticket-wallet.webp"
+    },
+    {
+      "id": "challenger-timetable",
+      "label": "Timetable Slide Rack",
+      "verdict": "declined",
+      "lineage": "1971 pocket airline timetable on a light table",
+      "thesis": "One type size; rank by weight, case and reversal on a raked rack of slides.",
+      "palette": ["#E2B33B", "#2E3A40", "#F2EBD9", "#D2462A", "#2F6B4F"],
+      "materials": ["tinted acetate", "goldenrod light bed"],
+      "viewport": "Lateral rack of raked slides with a tick rail.",
+      "case": "Fuses poorly: the 11° rake and lateral travel fight readability on a screen-share.",
+      "risk": "Unreadable at demo distance.",
+      "kept": "Rank by weight, case and reversal instead of size inside dense rows.",
+      "hero": "https://impeccable.style/worlds/cards/rw-timetable-slide-rack-hero.webp"
+    },
+    {
+      "id": "challenger-warm-app",
+      "label": "Warm Consumer App",
+      "verdict": "declined",
+      "lineage": "consumer mobile app surfaces",
+      "thesis": "Soft cards, friendly labels, one color for what you can press.",
+      "palette": ["#F6F1EA", "#FFFFFF", "#FF5A36", "#2B2B2B"],
+      "materials": ["soft radii", "spring press"],
+      "viewport": "Single card column with a bottom bar.",
+      "case": "Fuses poorly: a thumb-first consumer surface undersells an engineering demo tool.",
+      "risk": "Toy-like for a bank audience.",
+      "kept": "The action color appears only on things you can press.",
+      "hero": "https://impeccable.style/worlds/cards/digital-design-canon-warm-consumer-app-surface-hero.webp"
+    },
+    {
+      "id": "challenger-datamatics",
+      "label": "Data-Sublime Field",
+      "verdict": "declined",
+      "lineage": "Ryoji Ikeda datamatics",
+      "thesis": "Black and white barcode columns of pure data.",
+      "palette": ["#000000", "#FFFFFF"],
+      "materials": ["hairline bars", "monospace numerals"],
+      "viewport": "Dense bar fields with strobing inversion.",
+      "case": "Fuses poorly: strobing black fields are hostile on customer calls.",
+      "risk": "Art piece, not a tool.",
+      "kept": "One tabular monospace grammar for every number and id.",
+      "hero": "https://impeccable.style/worlds/cards/ikeda-datamatics-hero.webp"
+    },
+    {
+      "id": "challenger-zoo-map",
+      "label": "Zoo Guide Map",
+      "verdict": "declined",
+      "lineage": "park guide maps",
+      "thesis": "Swelling lobes of flat color divide the page.",
+      "palette": ["#8ED462", "#F5F1E4", "#2C2E2A", "#F5E211", "#FF705D"],
+      "materials": ["flat color lobes", "capsule controls"],
+      "viewport": "One dominant lobe per screen.",
+      "case": "Fuses poorly: playful geography obscures dense API state.",
+      "risk": "Wrong register for FSI demos.",
+      "kept": "A live capsule whose chip crosses sides when active.",
+      "hero": "https://impeccable.style/worlds/cards/aww2-zoo-gardens-guide-map-hero.webp"
+    },
+    {
+      "id": "challenger-feed",
+      "label": "Vertical Media Feed",
+      "verdict": "declined",
+      "lineage": "full-bleed short-video feeds",
+      "thesis": "One item owns the viewport; the next is one snap away.",
+      "palette": ["#000000", "#FFFFFF"],
+      "materials": ["full-bleed media", "glyph rail"],
+      "viewport": "One snap-paged item at a time.",
+      "case": "Fuses poorly: hides the history and the wire, the two things this product exists to show.",
+      "risk": "Destroys context.",
+      "kept": "The next action is always loaded and waiting (composer ready the moment a turn ends).",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-vertical-video-feed-surface-hero.webp"
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": false},
+  "canon": true,
+  "canonCard": {
+    "label": "The category standard",
+    "thesis": "A polished AI-chat app: conversation sidebar, centered thread, inspector panel, executed at full craft.",
+    "palette": ["#FFFFFF", "#0F172A", "#2563EB", "#F1F5F9"],
+    "materials": ["clean neutral grid", "soft cards", "system UI type"],
+    "viewport": "Sidebar, centered chat thread with message bubbles, collapsible inspector on the right.",
+    "risk": "Indistinguishable from every AI chat tool by design; the Wire stays a side panel.",
+    "wireframe": {"cols": 12, "rows": 10, "regions": [
+      {"label": "sidebar", "x": 0, "y": 0, "w": 3, "h": 10},
+      {"label": "chat thread", "x": 3, "y": 0, "w": 6, "h": 9},
+      {"label": "composer", "x": 3, "y": 9, "w": 6, "h": 1},
+      {"label": "inspector", "x": 9, "y": 0, "w": 3, "h": 10}
+    ]}
+  },
+  "steer": true
+}

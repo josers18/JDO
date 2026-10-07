@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mock A · Flight Progress Board</title>
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root {
+    --bay: #DCE1E6;          /* steel strip bay */
+    --bay-rule: #C3CAD2;
+    --console: #1B2026;      /* controller console rail */
+    --paper: #FBFBF7;        /* strip stock */
+    --ink: #111418;
+    --ink-2: #4A535D;
+    --ink-3: #59626C;
+    --out: #D9E8F6;          /* outbound strip paper (sent to Salesforce) */
+    --out-rule: #A9C6E3;
+    --out-ink: #0D3A66;
+    --in: #F7E2A6;           /* inbound strip paper (from Salesforce) */
+    --in-rule: #E1C26C;
+    --in-ink: #5A4106;
+    --mark-ok: #127A46;      /* grease pencil green */
+    --mark-err: #C8242B;     /* grease pencil red */
+    --action: #2F3BFF;       /* the only saturated color, pressable only */
+    --sans: "Archivo", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--bay); font-size: 15px; line-height: 1.45; }
+  ::selection { background: var(--action); color: #fff; }
+  .app { display: grid; grid-template-columns: 64px 264px minmax(0, 1fr) minmax(360px, 30%); height: 100vh; }
+
+  /* console rail */
+  .rail { background: var(--console); color: #AEB7C1; display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; }
+  .rail .id { font: 700 12px/1 var(--mono); letter-spacing: .08em; color: #fff; margin-bottom: 14px; }
+  .rail a { width: 48px; padding: 8px 0 6px; border-radius: 6px; display: grid; place-items: center; gap: 3px; color: inherit; text-decoration: none;
+    font: 600 11px/1 var(--sans); font-stretch: 80%; letter-spacing: .06em; text-transform: uppercase; }
+  .rail a.on { background: #2A313A; color: #fff; box-shadow: inset 0 -2px 0 #fff; }
+  .rail svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+  /* sector list */
+  .sector { border-right: 1px solid var(--bay-rule); display: flex; flex-direction: column; min-width: 0; }
+  .sector header { padding: 14px 14px 10px; display: grid; gap: 10px; }
+  .org { font: 600 12px/1 var(--sans); font-stretch: 85%; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); display: flex; justify-content: space-between; }
+  .org b { color: var(--ink); }
+  .btn-action { background: var(--action); color: #fff; border: 0; border-radius: 6px; padding: 9px 12px; font: 600 14px/1 var(--sans); display: flex; gap: 8px; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(17,20,24,.25); }
+  .holders { padding: 4px 10px 14px; display: grid; gap: 6px; overflow: auto; }
+  .holder { background: var(--paper); border: 1px solid var(--bay-rule); border-radius: 3px; display: grid; grid-template-columns: 46px minmax(0,1fr); min-height: 54px;
+    box-shadow: 0 1px 0 rgba(17,20,24,.06); }
+  .holder .clk { border-right: 1px solid var(--bay-rule); font: 500 12px/1.2 var(--mono); color: var(--ink-3); padding: 8px 6px; text-align: center; }
+  .holder .body { padding: 7px 10px; min-width: 0; }
+  .holder .t { font-weight: 600; font-size: 13.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .holder .m { font: 500 12px/1.4 var(--mono); color: var(--ink-3); }
+  .holder.live { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .holder.live .clk { color: #9AA4AE; border-color: #2E353D; }
+  .holder.live .m { color: #9AA4AE; }
+
+  /* board */
+  .board { display: flex; flex-direction: column; min-width: 0; }
+  .plate { margin: 12px 16px 0; background: var(--ink); color: #fff; border-radius: 4px; display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 16px; padding: 10px 14px; }
+  .callsign { font: 700 22px/1 var(--sans); font-stretch: 78%; letter-spacing: .02em; text-transform: uppercase; }
+  .plate .meta { font: 500 12px/1.5 var(--mono); color: #AEB7C1; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .capsule { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border-radius: 999px; background: #2A313A; font: 700 12px/1 var(--sans); letter-spacing: .1em; }
+  .capsule i { width: 14px; height: 14px; border-radius: 50%; background: #35D07F; box-shadow: 0 0 0 3px rgba(53,208,127,.25); }
+  .plate .acts { display: flex; gap: 8px; }
+  .ghost { background: transparent; color: #fff; border: 1px solid #4A535D; border-radius: 6px; padding: 7px 10px; font: 600 12.5px/1 var(--sans); }
+
+  .strips { flex: 1; overflow: auto; padding: 14px 16px 18px; display: grid; gap: 8px; align-content: start; }
+  .strip { display: grid; grid-template-columns: 70px 96px 34px minmax(0,1fr); border-radius: 3px; border: 1px solid; box-shadow: 0 1px 1px rgba(17,20,24,.08); }
+  .strip > div { padding: 9px 10px; }
+  .strip > div + div { border-left: 1px solid; }
+  .strip.out { background: var(--out); border-color: var(--out-rule); color: var(--out-ink); }
+  .strip.out > div + div { border-color: var(--out-rule); }
+  .strip.in { background: var(--paper); border-color: var(--in-rule); }
+  .strip.in > div + div { border-color: var(--in-rule); }
+  .strip.in .cs { background: var(--in); color: var(--in-ink); }
+  .strip .clk { font: 500 12px/1.3 var(--mono); }
+  .strip .cs { font: 700 13px/1.2 var(--sans); font-stretch: 78%; letter-spacing: .06em; text-transform: uppercase; }
+  .strip .cs small { display: block; font: 500 12px/1.3 var(--mono); letter-spacing: 0; text-transform: none; opacity: .75; margin-top: 2px; }
+  .strip .mk { display: grid; place-items: start center; padding-top: 10px; }
+  .strip .content { color: var(--ink); font-size: 15.5px; line-height: 1.55; }
+  .strip.out .content { color: var(--out-ink); font-weight: 500; }
+  .content p + p, .content ul { margin-top: 8px; }
+  .content ul { padding-left: 18px; }
+  .content b { font-weight: 700; }
+
+  /* handed-down sub strips (tool steps) */
+  .handoff { margin-top: 10px; border: 1px solid var(--in-rule); border-radius: 3px; background: #FFFDF4; }
+  .handoff .hd { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--in-rule);
+    font: 700 12px/1 var(--sans); font-stretch: 80%; letter-spacing: .08em; text-transform: uppercase; color: var(--in-ink); }
+  .handoff .hd span:last-child { font: 500 12px/1 var(--mono); letter-spacing: 0; text-transform: none; }
+  .step { display: grid; grid-template-columns: 64px 34px minmax(0,1fr); align-items: start; border-top: 1px dashed #EAD9A6; font-size: 14px; }
+  .step:first-of-type { border-top: 0; }
+  .step > * { padding: 6px 8px; }
+  .step > svg.pencil { padding: 0; margin: 6px auto 0; width: 18px; height: 18px; }
+  .step .t { font: 500 12px/1.6 var(--mono); color: var(--ink-3); border-right: 1px solid #EAD9A6; }
+  .step .txt { color: var(--ink-2); }
+  .step .txt b { color: var(--ink); font-weight: 600; }
+  .step.now .txt { color: var(--ink); font-weight: 600; }
+  .pencil { width: 18px; height: 18px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--action); margin: 4px auto 0; box-shadow: 0 0 0 4px rgba(47,59,255,.18); animation: p 1.2s ease-out infinite; }
+  @keyframes p { 0% { box-shadow: 0 0 0 0 rgba(47,59,255,.35); } 100% { box-shadow: 0 0 0 10px rgba(47,59,255,0); } }
+
+  .note { margin-top: 10px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--in-rule); padding-top: 8px; }
+  .note code, .content code { font: 500 12.5px var(--mono); background: rgba(17,20,24,.05); padding: 1px 4px; border-radius: 3px; }
+
+  /* approval strip */
+  .approval { margin-top: 10px; border: 1px solid var(--ink); border-radius: 3px; background: #fff; }
+  .approval .hd { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid var(--ink); }
+  .stampbox { font: 800 12px/1 var(--sans); font-stretch: 75%; letter-spacing: .14em; border: 2px solid var(--ink); padding: 4px 6px; text-transform: uppercase; }
+  .approval .row { display: grid; grid-template-columns: 26px minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 7px 10px; border-top: 1px dashed var(--bay-rule); font-size: 14px; }
+  .approval .row:first-of-type { border-top: 0; }
+  .chg { font: 500 12.5px var(--mono); background: var(--in); color: var(--in-ink); padding: 2px 6px; border-radius: 2px; }
+  .approval .ft { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-top: 1px solid var(--ink); font-size: 12.5px; color: var(--ink-2); }
+  .approval .ft .b { display: flex; gap: 8px; }
+  .quiet { background: #fff; border: 1px solid var(--ink); color: var(--ink); border-radius: 6px; padding: 8px 12px; font: 600 13.5px/1 var(--sans); }
+  input[type=checkbox] { accent-color: var(--action); width: 15px; height: 15px; }
+
+  .composer { margin: 0 16px 14px; background: #fff; border: 1px solid var(--ink); border-radius: 4px; display: grid; grid-template-columns: 70px minmax(0,1fr) auto; align-items: center; }
+  .composer .cs { font: 700 12px/1 var(--sans); font-stretch: 78%; letter-spacing: .08em; text-transform: uppercase; color: var(--out-ink); background: var(--out); height: 100%; display: grid; place-items: center; border-right: 1px solid var(--ink); }
+  .composer input { border: 0; font: 15px var(--sans); padding: 14px; outline: none; background: transparent; }
+  .composer .btn-action { margin: 6px; }
+
+  /* wire rack */
+  .wire { border-left: 1px solid var(--bay-rule); display: flex; flex-direction: column; min-width: 0; background: #E4E8EC; }
+  .wire header { padding: 14px 14px 10px; display: grid; gap: 8px; border-bottom: 1px solid var(--bay-rule); }
+  .wire h2 { font: 800 18px/1 var(--sans); font-stretch: 80%; letter-spacing: .04em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: baseline; }
+  .wire h2 span { font: 500 12px/1 var(--mono); letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+  .legend { display: flex; gap: 12px; font: 600 12px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; border: 1px solid; }
+  .tabs { display: flex; gap: 4px; font: 600 12px/1 var(--sans); }
+  .tabs span { padding: 6px 9px; border-radius: 5px; color: var(--ink-2); }
+  .tabs .on { background: var(--ink); color: #fff; }
+  .tabs .sort { margin-left: auto; font-family: var(--mono); font-weight: 500; }
+  .rack { overflow: auto; padding: 10px; display: grid; gap: 6px; align-content: start; }
+  .ws { display: grid; grid-template-columns: 62px 34px minmax(0,1fr) auto; border: 1px solid; border-radius: 3px; font-size: 13px; }
+  .ws > div { padding: 7px 8px; }
+  .ws > div + div { border-left: 1px solid; }
+  .ws.out { background: var(--out); border-color: var(--out-rule); color: var(--out-ink); }
+  .ws.out > div + div { border-color: var(--out-rule); }
+  .ws.in { background: var(--in); border-color: var(--in-rule); color: var(--in-ink); }
+  .ws.in > div + div { border-color: var(--in-rule); }
+  .ws .clk { font: 500 12px/1.35 var(--mono); }
+  .ws .dir { font: 800 12px/1 var(--sans); font-stretch: 75%; letter-spacing: .08em; display: grid; place-items: center; }
+  .ws .what b { font-weight: 700; display: block; color: var(--ink); }
+  .ws .what span { font: 500 12px/1.4 var(--mono); word-break: break-all; opacity: .85; }
+  .ws .st { font: 600 12px/1.3 var(--mono); text-align: right; white-space: nowrap; }
+  .ws .st em { display: block; font-style: normal; opacity: .7; font-weight: 500; }
+  .pair { border: 1px solid var(--ink); border-radius: 3px; background: #fff; }
+  .pair .ph { display: grid; grid-template-columns: 62px minmax(0,1fr) auto; border-bottom: 1px solid var(--ink); font-size: 13px; }
+  .pair .ph > div { padding: 7px 8px; }
+  .pair .ph > div + div { border-left: 1px solid var(--ink); }
+  .halves { display: grid; grid-template-columns: 1fr 1fr; }
+  .half { padding: 8px; min-width: 0; }
+  .half + .half { border-left: 1px solid var(--ink); }
+  .half.o { background: var(--out); }
+  .half.i { background: var(--in); }
+  .half h4 { font: 800 12px/1 var(--sans); font-stretch: 78%; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+  .half.o h4 { color: var(--out-ink); } .half.i h4 { color: var(--in-ink); }
+  pre { font: 500 12px/1.5 var(--mono); white-space: pre-wrap; word-break: break-all; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail">
+    <div class="id">AFD360</div>
+    <a class="on" href="#"><svg viewBox="0 0 24 24"><path d="M4 5h16v10H8l-4 4z"/></svg>Chat</a>
+    <a href="#"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><path d="M16.5 13v7M13 16.5h7"/></svg>MCP</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>Admin</a>
+  </nav>
+
+  <aside class="sector">
+    <header>
+      <div class="org"><span>Org</span><b>finsdc3 · JDO demo</b></div>
+      <button class="btn-action"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New chat</button>
+    </header>
+    <div class="holders">
+      <div class="holder live"><div class="clk">14:21<br/>LIVE</div><div class="body"><div class="t">How many unified individuals are in Data Cloud?</div><div class="m">SEARCH AGENT · 2 turns</div></div></div>
+      <div class="holder"><div class="clk">11:00</div><div class="body"><div class="t">Update the Rating of the lead Joanna Ball</div><div class="m">SEARCH AGENT · 5 turns</div></div></div>
+      <div class="holder"><div class="clk">09:42</div><div class="body"><div class="t">What are my top 5 open opportunities by amount?</div><div class="m">SEARCH AGENT · 8 turns</div></div></div>
+      <div class="holder"><div class="clk">Tue</div><div class="body"><div class="t">Moody's market context for Omega Inc</div><div class="m">SEARCH AGENT · 10 turns · expired</div></div></div>
+    </div>
+  </aside>
+
+  <main class="board">
+    <div class="plate">
+      <div class="callsign">Search Agent</div>
+      <div class="meta"><span>SESS 01a11734-c1c8-71fd</span><span>AGT 0Xxam000000thvZCAQ</span><span>TURN 2</span><span>IDLE 0:04</span></div>
+      <div class="acts"><span class="capsule">LIVE <i></i></span><button class="ghost">End session</button><button class="ghost">New session</button></div>
+    </div>
+
+    <section class="strips">
+      <div class="strip out">
+        <div class="clk">14:21:03</div>
+        <div class="cs">You<small>turn 1 · sent</small></div>
+        <div class="mk"><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="content">Ask the D360 Agent: how many unified individuals are in Data Cloud?</div>
+      </div>
+
+      <div class="strip in">
+        <div class="clk">14:21:05<br/><span style="opacity:.6">40.7 s</span></div>
+        <div class="cs">Search Agent<small>turn 1 · received</small></div>
+        <div class="mk"><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="content">
+          <div class="handoff">
+            <div class="hd"><span>Handoff → D360 Agent</span><span>14 steps · 1 result</span></div>
+            <div class="step"><span class="t">+0.4s</span><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.4" stroke-linecap="round"/></svg><span class="txt">Analyzing your request</span></div>
+            <div class="step"><span class="t">+3.1s</span><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.4" stroke-linecap="round"/></svg><span class="txt"><b>Planning</b> — a count of unified individuals; a straightforward SQL query</span></div>
+            <div class="step"><span class="t">+6.8s</span><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.4" stroke-linecap="round"/></svg><span class="txt"><b>Generating SQL</b> — How many unified individuals are in Data Cloud?</span></div>
+            <div class="step"><span class="t">+11.2s</span><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.4" stroke-linecap="round"/></svg><span class="txt"><b>Run SQL</b> — found 1 row · <code>TotalUnifiedIndividuals__c</code></span></div>
+            <div class="step"><span class="t">+14.0s</span><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.4" stroke-linecap="round"/></svg><span class="txt"><b>Planning</b> — 0 is suspicious; investigate before concluding</span></div>
+            <div class="step"><span class="t">+22.5s</span><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.4" stroke-linecap="round"/></svg><span class="txt"><b>debug_sql</b> — UnifiedIndividual__dlm exists but is empty</span></div>
+            <div class="step now"><span class="t">+38.9s</span><span class="dot"></span><span class="txt">Preparing response</span></div>
+          </div>
+          <p style="margin-top:12px">There are currently <b>0 unified individuals</b> in Data Cloud. The <code>UnifiedIndividual__dlm</code> table exists but contains no data — identity resolution hasn't produced unified profiles yet.</p>
+        </div>
+      </div>
+
+      <div class="strip out">
+        <div class="clk">14:23:40</div>
+        <div class="cs">You<small>turn 2 · sent</small></div>
+        <div class="mk"><svg class="pencil" viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9" fill="none" stroke="#127A46" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="content">Set the Rating of my two newest leads to Hot.</div>
+      </div>
+
+      <div class="strip in">
+        <div class="clk">14:23:49<br/><span style="opacity:.6">9.1 s</span></div>
+        <div class="cs">Search Agent<small>turn 2 · received</small></div>
+        <div class="mk"><svg class="pencil" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="none" stroke="#111418" stroke-width="2.2"/></svg></div>
+        <div class="content">
+          Two updates are ready — nothing changes until you approve.
+          <div class="approval">
+            <div class="hd"><span class="stampbox">Approval</span><span style="font-weight:600">2 changes · UpdateRecordFields</span></div>
+            <div class="row"><input type="checkbox" checked /><span><b>Bruce Watkins</b> <span style="color:var(--ink-3);font-size:12.5px">Lead · Cormier Inc</span></span><span class="chg">Rating → Hot</span></div>
+            <div class="row"><input type="checkbox" checked /><span><b>Joanna Ball</b> <span style="color:var(--ink-3);font-size:12.5px">Lead · Considine, Goldner</span></span><span class="chg">Rating → Hot</span></div>
+            <div class="ft"><span>Sends a Reply with the checked changes</span><span class="b"><button class="quiet">Reject</button><button class="btn-action">Approve 2</button></span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="composer"><div class="cs">You</div><input placeholder="Message Search Agent…" /><button class="btn-action">Send</button></div>
+  </main>
+
+  <aside class="wire">
+    <header>
+      <h2>Wire <span>7 calls · tokens masked</span></h2>
+      <div class="legend"><span><i style="background:var(--out);border-color:var(--out-rule)"></i>Sent</span><span><i style="background:var(--in);border-color:var(--in-rule)"></i>Received</span></div>
+      <div class="tabs"><span class="on">All</span><span>Requests</span><span>Stream</span><span>Errors</span><span class="sort">↓ newest</span></div>
+    </header>
+    <div class="rack">
+      <div class="pair">
+        <div class="ph"><div class="ws-clk" style="font:500 12px/1.35 var(--mono)">14:23:40</div><div><b>Send message (stream)</b> · turn 2</div><div style="font:600 12px var(--mono)">200 · 9.1s</div></div>
+        <div class="halves">
+          <div class="half o"><h4>→ Sent · POST</h4><pre>/einstein/ai-agent/v1/sessions/01a11734…/messages/stream
+{ "message": { "sequenceId": 2,
+  "type": "Text",
+  "text": "Set the Rating of my…" } }</pre></div>
+          <div class="half i"><h4>← Received · 26 events</h4><pre>+0.21s LightningChunk "Two up…"
++1.80s LightningChunk toolBatch
++8.92s Confirm  2 actions
++9.10s EndOfTurn</pre></div>
+        </div>
+      </div>
+      <div class="ws in"><div class="clk">14:21:05</div><div class="dir">IN</div><div class="what"><b>Stream · 17 events</b><span>LightningChunk ×15 · Inform · EndOfTurn</span></div><div class="st">200<em>40.7s</em></div></div>
+      <div class="ws out"><div class="clk">14:21:03</div><div class="dir">OUT</div><div class="what"><b>Send message (stream)</b><span>POST /sessions/01a11734…/messages/stream</span></div><div class="st">turn 1</div></div>
+      <div class="ws in"><div class="clk">14:20:58</div><div class="dir">IN</div><div class="what"><b>Session started</b><span>sessionId 01a11734-c1c8-71fd…</span></div><div class="st">200<em>1.0s</em></div></div>
+      <div class="ws out"><div class="clk">14:20:57</div><div class="dir">OUT</div><div class="what"><b>Start session</b><span>POST /agents/0Xxam000000thvZCAQ/sessions</span></div><div class="st">turn 0</div></div>
+      <div class="ws in"><div class="clk">14:20:56</div><div class="dir">IN</div><div class="what"><b>Access token</b><span>access_token eyJ0bm…FUeg</span></div><div class="st">200<em>0.3s</em></div></div>
+      <div class="ws out"><div class="clk">14:20:56</div><div class="dir">OUT</div><div class="what"><b>Get access token</b><span>POST /services/oauth2/token</span></div><div class="st">cc</div></div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

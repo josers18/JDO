@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { ChevronRight, Copy, Download } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronRight, Copy, Download } from "lucide-react";
 import type { WireEntry } from "../../../shared/types";
 
 type Filter = "all" | "requests" | "stream" | "errors";
+type Order = "desc" | "asc";
+
+const ORDER_KEY = "afd360.wireOrder";
+const time = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
 const isError = (w: WireEntry) => Boolean(w.error) || (w.status !== undefined && w.status >= 400);
 
@@ -27,7 +32,11 @@ function toCurl(w: WireEntry): string {
 function shortPath(url: string) {
   try {
     const u = new URL(url);
-    return `${u.host.split(".")[0]}${decodeURIComponent(u.pathname)}${u.search ? "?…" : ""}`;
+    // Drop the host and common API prefixes, shorten ids: /sessions/01a11734…/messages/stream reads at a glance.
+    const path = decodeURIComponent(u.pathname)
+      .replace(/^\/(einstein\/ai-agent\/v1|platform\/mcp\/v1|services\/data\/v[\d.]+)/, "")
+      .replace(/[0-9a-f]{8}-[0-9a-f-]{27}|\b[0-9A-Za-z]{18}\b/g, (id) => `${id.slice(0, 8)}…`);
+    return `${path || "/"}${u.search ? "?…" : ""}`;
   } catch {
     return url;
   }
@@ -35,9 +44,18 @@ function shortPath(url: string) {
 
 export function WirePanel({ wire, highlightTurn, title }: { wire: WireEntry[]; highlightTurn: number | null; title: string }) {
   const [filter, setFilter] = useState<Filter>("all");
-  const shown = wire.filter((w) =>
-    filter === "all" ? true : filter === "errors" ? isError(w) : filter === "stream" ? Boolean(w.streamEvents) : !w.streamEvents,
-  );
+  const [order, setOrder] = useState<Order>(() => (localStorage.getItem(ORDER_KEY) === "asc" ? "asc" : "desc"));
+  const toggleOrder = () => {
+    const next = order === "desc" ? "asc" : "desc";
+    setOrder(next);
+    localStorage.setItem(ORDER_KEY, next);
+  };
+  const shown = wire
+    .filter((w) =>
+      filter === "all" ? true : filter === "errors" ? isError(w) : filter === "stream" ? Boolean(w.streamEvents) : !w.streamEvents,
+    )
+    // Sort by when each call started; ISO timestamps compare correctly as strings.
+    .sort((a, b) => (order === "desc" ? b.startedAt.localeCompare(a.startedAt) : a.startedAt.localeCompare(b.startedAt)));
 
   const download = () => {
     const blob = new Blob([JSON.stringify(wire, null, 2)], { type: "application/json" });
@@ -50,23 +68,40 @@ export function WirePanel({ wire, highlightTurn, title }: { wire: WireEntry[]; h
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1 border-b border-slate-200 px-3 py-2">
-        {(["all", "requests", "stream", "errors"] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-md px-2 py-1 text-xs capitalize ${filter === f ? "bg-slate-800 text-white" : "text-slate-600 hover:bg-slate-100"}`}
-          >
-            {f}
-          </button>
-        ))}
-        <span className="ml-auto text-xs text-slate-400">{wire.length} calls</span>
-        <button onClick={download} title="Download JSON" className="p-1 text-slate-500 hover:text-slate-800">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 pb-3 pt-2">
+        <div className="inline-flex gap-0.5 rounded-[10px] bg-tint p-[3px]">
+          {(["all", "requests", "stream", "errors"] as Filter[]).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
+              className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold capitalize ${
+                filter === f ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:text-ink"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <span className="ml-auto font-mono text-xs text-ink-3">{wire.length} calls</span>
+        <button
+          onClick={toggleOrder}
+          title={order === "desc" ? "Newest first — click for oldest first" : "Oldest first — click for newest first"}
+          className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-ink-2 hover:bg-tint"
+        >
+          {order === "desc" ? <ArrowDownWideNarrow size={14} /> : <ArrowUpNarrowWide size={14} />}
+          {order === "desc" ? "Newest" : "Oldest"}
+        </button>
+        <button onClick={download} title="Download JSON" className="rounded-lg p-1.5 text-ink-3 hover:bg-tint hover:text-ink">
           <Download size={14} />
         </button>
+        <div className="flex w-full gap-4 text-xs text-ink-2">
+          <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] border border-sent-line bg-sent-chip" />Sent to Salesforce</span>
+          <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-[3px] border border-recv-line bg-recv" />From Salesforce</span>
+        </div>
       </div>
-      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2">
-        {shown.length === 0 && <p className="p-4 text-center text-xs text-slate-400">No calls yet.</p>}
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-ground p-3">
+        {shown.length === 0 && <p className="p-6 text-center text-sm text-ink-3">No calls yet.</p>}
         {shown.map((w) => (
           <WireRow key={w.id} entry={w} highlighted={highlightTurn !== null && w.turn === highlightTurn} />
         ))}
@@ -79,7 +114,7 @@ function WireRow({ entry: w, highlighted }: { entry: WireEntry; highlighted: boo
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const status = w.error ? "ERR" : w.status ?? "…";
-  const statusColor = isError(w) ? "bg-red-100 text-red-700" : w.status ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500";
+  const statusColor = isError(w) ? "text-err" : w.status ? "text-ok" : "text-ink-3";
 
   const copy = async () => {
     await navigator.clipboard.writeText(toCurl(w));
@@ -88,46 +123,68 @@ function WireRow({ entry: w, highlighted }: { entry: WireEntry; highlighted: boo
   };
 
   return (
-    <div className={`rounded-lg border bg-white text-xs ${highlighted ? "border-sky-400 ring-2 ring-sky-200" : "border-slate-200"}`}>
-      <button onClick={() => setOpen(!open)} className="w-full px-2.5 py-2 text-left">
-        <div className="flex items-center gap-2">
-          <ChevronRight size={14} className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-90" : ""}`} />
-          <span className="shrink-0 font-mono font-semibold text-slate-700">{w.method}</span>
-          <span className="min-w-0 flex-1 break-words font-medium text-slate-800">
-            {w.label}
-            {w.turn !== null && <span className="ml-1.5 whitespace-nowrap text-slate-400">· turn {w.turn}</span>}
+    <div
+      className={`overflow-hidden rounded-xl border bg-surface text-xs transition-shadow ${
+        highlighted ? "border-ink-3 shadow-lift" : open ? "border-line shadow-card" : "border-line"
+      }`}
+    >
+      <button onClick={() => setOpen(!open)} className="grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-start gap-2.5 px-3 py-2.5 text-left">
+        <time dateTime={w.startedAt} title={new Date(w.startedAt).toLocaleString()} className="font-mono text-xs leading-[1.6] text-ink-3">
+          {time(w.startedAt)}
+        </time>
+        <span className="min-w-0">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <ChevronRight size={13} className={`-mr-1 shrink-0 text-ink-3 transition-transform ${open ? "rotate-90" : ""}`} />
+            <span className="break-words text-sm font-semibold text-ink">{w.label.replace(/ \(stream\)$/, "")}</span>
+            <span
+              className={`rounded-full px-2 py-0.5 font-mono text-xs font-semibold ${
+                w.streamEvents ? "border border-recv-line bg-recv text-recv-ink" : "bg-sent-chip text-sent-ink"
+              }`}
+            >
+              {w.streamEvents ? `stream · ${w.streamEvents.length} ev` : w.method}
+            </span>
           </span>
-          {w.streamEvents && <span className="shrink-0 whitespace-nowrap text-[10px] text-slate-500">{w.streamEvents.length} ev</span>}
-          <span className={`shrink-0 rounded px-1.5 py-0.5 font-mono ${statusColor}`}>{status}</span>
-          <span className="shrink-0 whitespace-nowrap text-right text-slate-400">
-            {w.durationMs !== undefined ? `${w.durationMs}ms` : "…"}
+          <span className="mt-0.5 block truncate font-mono text-xs text-ink-3" title={w.url}>
+            {shortPath(w.url)}
+            {w.turn !== null && ` · turn ${w.turn}`}
           </span>
-        </div>
-        <div className="mt-0.5 break-all pl-[22px] font-mono text-[10px] text-slate-500">{shortPath(w.url)}</div>
+        </span>
+        <span className="text-right font-mono text-xs leading-[1.6]">
+          <span className={`block font-semibold ${statusColor}`}>{status}</span>
+          <span className="block whitespace-nowrap text-ink-3">{w.durationMs !== undefined ? `${(w.durationMs / 1000).toFixed(1)}s` : "…"}</span>
+        </span>
       </button>
       {open && (
-        <div className="space-y-2 border-t border-slate-100 px-2.5 py-2">
-          <div className="flex items-center justify-between">
-            <span className="break-all font-mono text-[10px] text-slate-500">{w.url}</span>
-            <button onClick={copy} className="ml-2 flex shrink-0 items-center gap-1 rounded border border-slate-200 px-1.5 py-0.5 hover:bg-slate-50">
+        <div className="space-y-2 px-2.5 pb-2.5">
+          <div className="flex items-center justify-between gap-2 px-0.5">
+            <span className="break-all font-mono text-xs text-ink-3">{w.url}</span>
+            <button onClick={copy} className="flex shrink-0 items-center gap-1 rounded-lg border border-line px-2 py-0.5 font-medium text-ink-2 hover:bg-tint">
               <Copy size={11} /> {copied ? "Copied" : "curl"}
             </button>
           </div>
-          <Block title="Request headers" value={w.requestHeaders} />
-          {w.requestBody !== undefined && <Block title="Request body" value={w.requestBody} />}
-          {w.responseHeaders && <Block title="Response headers" value={w.responseHeaders} collapsed />}
-          {w.responseBody !== undefined && <Block title="Response body" value={w.responseBody} />}
-          {w.error && <Block title="Error" value={w.error} />}
-          {w.streamEvents && (
-            <div>
-              <div className="mb-1 font-semibold text-slate-600">Stream events</div>
-              <div className="space-y-0.5">
-                {w.streamEvents.map((e, i) => (
-                  <StreamEventRow key={i} t={e.t} event={e.event} data={e.data} />
-                ))}
+          <Side direction="out" label={`→ Sent to Salesforce · ${w.method}`}>
+            <Block title="Request headers" value={w.requestHeaders} />
+            {w.requestBody !== undefined && <Block title="Request body" value={w.requestBody} />}
+          </Side>
+          <Side
+            direction="in"
+            label={`← From Salesforce · ${w.error ? "error" : (w.status ?? "pending")}${w.durationMs !== undefined ? ` · ${w.durationMs}ms` : ""}`}
+          >
+            {w.responseHeaders && <Block title="Response headers" value={w.responseHeaders} collapsed />}
+            {w.responseBody !== undefined && <Block title="Response body" value={w.responseBody} />}
+            {w.error && <Block title="Error" value={w.error} />}
+            {w.streamEvents && (
+              <div>
+                <div className="mb-1 font-semibold">Stream events ({w.streamEvents.length})</div>
+                <div className="space-y-0.5">
+                  {w.streamEvents.map((e, i) => (
+                    <StreamEventRow key={i} t={e.t} event={e.event} data={e.data} />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            {!w.responseHeaders && !w.error && <div className="opacity-80">Waiting for response…</div>}
+          </Side>
         </div>
       )}
     </div>
@@ -139,13 +196,24 @@ function StreamEventRow({ t, event, data }: { t: number; event: string; data: un
   const m = (data as { message?: Record<string, unknown> })?.message ?? {};
   const preview = String(m.value ?? m.message ?? "").replace(/\s+/g, " ").slice(0, 70);
   return (
-    <div className="rounded bg-slate-50">
-      <button onClick={() => setOpen(!open)} className="flex w-full items-baseline gap-2 px-1.5 py-0.5 text-left font-mono text-[10px]">
-        <span className="w-12 shrink-0 text-right text-slate-400">+{(t / 1000).toFixed(2)}s</span>
-        <span className="shrink-0 font-semibold text-violet-700">{String(m.type ?? event)}</span>
-        <span className="truncate text-slate-600">{preview}</span>
+    <div className="rounded-md bg-surface/70">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-baseline gap-2 px-1.5 py-0.5 text-left font-mono text-xs">
+        <span className="w-14 shrink-0 text-right opacity-75">+{(t / 1000).toFixed(2)}s</span>
+        <span className="shrink-0 font-semibold">{String(m.type ?? event)}</span>
+        <span className="truncate text-ink-2">{preview}</span>
       </button>
-      {open && <pre className="overflow-x-auto px-2 pb-1.5 text-[10px] text-slate-700">{JSON.stringify(data, null, 2)}</pre>}
+      {open && <pre className="overflow-x-auto px-2 pb-1.5 font-mono text-xs text-ink">{JSON.stringify(data, null, 2)}</pre>}
+    </div>
+  );
+}
+
+// Separates what we sent (the theme's "sent" tint) from what Salesforce returned (the "received" tint), as on the chat cards.
+function Side({ direction, label, children }: { direction: "out" | "in"; label: string; children: React.ReactNode }) {
+  const tone = direction === "out" ? "border-sent-line bg-sent text-sent-ink" : "border-recv-line bg-recv text-recv-ink";
+  return (
+    <div className={`min-w-0 space-y-2 rounded-[10px] border p-2.5 ${tone}`}>
+      <div className="text-xs font-semibold">{label}</div>
+      {children}
     </div>
   );
 }
@@ -153,8 +221,8 @@ function StreamEventRow({ t, event, data }: { t: number; event: string; data: un
 function Block({ title, value, collapsed }: { title: string; value: unknown; collapsed?: boolean }) {
   return (
     <details open={!collapsed}>
-      <summary className="cursor-pointer font-semibold text-slate-600">{title}</summary>
-      <pre className="mt-1 max-h-72 overflow-auto rounded bg-slate-900 p-2 text-[10px] leading-relaxed text-slate-100">
+      <summary className="cursor-pointer font-medium">{title}</summary>
+      <pre className="mt-1 max-h-72 overflow-auto rounded-lg bg-console p-2.5 font-mono text-xs leading-relaxed text-console-ink">
         {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
       </pre>
     </details>

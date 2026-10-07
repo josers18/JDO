@@ -1,0 +1,56 @@
+{
+  "required" : [ "subject" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "activityDate" : {
+      "title" : "Activity Date",
+      "description" : "Due date as YYYY-MM-DD",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "details" : {
+      "title" : "Details",
+      "description" : "Longer task description",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "priority" : {
+      "title" : "Priority",
+      "description" : "High, Normal or Low; defaults to Normal",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "status" : {
+      "title" : "Status",
+      "description" : "Task status; defaults to Not Started",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "subject" : {
+      "title" : "Subject",
+      "description" : "Task subject",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "whatId" : {
+      "title" : "What Id",
+      "description" : "Id of the related record (Account, Opportunity, Case)",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "whoId" : {
+      "title" : "Who Id",
+      "description" : "Id of the Contact or Lead the task is about",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

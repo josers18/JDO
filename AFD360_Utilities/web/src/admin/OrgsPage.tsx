@@ -39,24 +39,23 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
     <div className="mx-auto w-full max-w-[88rem] p-6 lg:p-10">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Admin</p>
-          <h1 className="text-2xl font-semibold">Orgs</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-semibold tracking-tight">Orgs</h1>
+          <p className="mt-1 text-sm text-ink-3">
             Each org needs an External Client App with the client credentials flow. Secrets are encrypted at rest and never
             sent back to the browser.
           </p>
         </div>
         <button
           onClick={() => setEditing({ id: null, form: { ...EMPTY } })}
-          className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-action px-4 py-2 text-sm font-semibold text-action-ink shadow-card hover:brightness-105"
         >
           <Plus size={16} /> Add org
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-surface shadow-card">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+          <thead className="bg-tint text-left text-xs font-semibold text-ink-2">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">My Domain</th>
@@ -66,10 +65,10 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
               <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-line">
             {orgs.orgs.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-10 text-center text-ink-3">
                   No orgs yet. Add one to start chatting with its agents.
                 </td>
               </tr>
@@ -81,33 +80,33 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
                   <td className="px-4 py-3 font-medium">
                     {o.name}
                     {orgs.activeOrgId === o.id ? (
-                      <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">active</span>
+                      <span className="ml-2 rounded-full bg-ok/12 px-2 py-0.5 text-xs font-semibold text-ink">active</span>
                     ) : (
                       <button
                         onClick={() => api.activateOrg(o.id).then(onChange)}
-                        className="ml-2 text-xs text-sky-600 hover:underline"
+                        className="ml-2 text-xs text-sent-ink hover:underline"
                       >
                         set active
                       </button>
                     )}
                   </td>
-                  <td className="break-all px-4 py-3 font-mono text-xs text-slate-600">
+                  <td className="break-all px-4 py-3 font-mono text-xs text-ink-2">
                     {o.myDomain.replace(/^https:\/\//, "")}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-600" title={o.clientId}>{o.clientId.slice(0, 14)}…{o.clientId.slice(-4)}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-600">••••{o.secretLast4}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-ink-2" title={o.clientId}>{o.clientId.slice(0, 14)}…{o.clientId.slice(-4)}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-ink-2">••••{o.secretLast4}</td>
                   <td className="px-4 py-3">
-                    <button onClick={() => test(o.id)} className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+                    <button onClick={() => test(o.id)} className="rounded border border-line px-2 py-1 text-xs hover:bg-tint">
                       Test
                     </button>
-                    {t === "running" && <Loader2 size={14} className="ml-2 inline animate-spin text-slate-400" />}
+                    {t === "running" && <Loader2 size={14} className="ml-2 inline animate-spin text-ink-3" />}
                     {t && t !== "running" && t.ok && (
-                      <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-700">
+                      <span className="ml-2 inline-flex items-center gap-1 text-xs text-ok">
                         <CheckCircle2 size={14} /> {t.username}
                       </span>
                     )}
                     {t && t !== "running" && !t.ok && (
-                      <span className="ml-2 inline-flex items-center gap-1 text-xs text-red-600" title={t.error}>
+                      <span className="ml-2 inline-flex items-center gap-1 text-xs text-err" title={t.error}>
                         <XCircle size={14} /> {t.error?.slice(0, 60)}
                       </span>
                     )}
@@ -115,12 +114,12 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => setEditing({ id: o.id, form: { name: o.name, myDomain: o.myDomain, clientId: o.clientId, clientSecret: "" } })}
-                      className="p-1 text-slate-400 hover:text-slate-700"
+                      className="p-1 text-ink-3 hover:text-ink-2"
                       title="Edit"
                     >
                       <Pencil size={16} />
                     </button>
-                    <button onClick={() => remove(o)} className="p-1 text-slate-400 hover:text-red-600" title="Delete">
+                    <button onClick={() => remove(o)} className="p-1 text-ink-3 hover:text-err" title="Delete">
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -132,8 +131,8 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-900/40 p-4" onClick={() => setEditing(null)}>
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-console/40 p-4" onClick={() => setEditing(null)}>
+          <div className="w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-lift" onClick={(e) => e.stopPropagation()}>
             <h2 className="mb-4 text-lg font-semibold">{editing.id ? "Edit org" : "Add org"}</h2>
             <div className="space-y-3">
               <Field label="Name" value={editing.form.name} onChange={(v) => setEditing({ ...editing, form: { ...editing.form, name: v } })} placeholder="finsdc3 (JDO demo)" />
@@ -154,12 +153,12 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
                 hint={editing.id ? "Leave blank to keep the saved secret" : undefined}
               />
             </div>
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            {error && <p className="mt-3 text-sm text-err">{error}</p>}
             <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => setEditing(null)} className="rounded-lg px-4 py-2 text-sm hover:bg-slate-100">
+              <button onClick={() => setEditing(null)} className="rounded-xl px-4 py-2 text-sm hover:bg-tint">
                 Cancel
               </button>
-              <button onClick={save} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">
+              <button onClick={save} className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-action-ink shadow-card hover:brightness-105">
                 Save
               </button>
             </div>
@@ -181,16 +180,16 @@ function Field(props: {
 }) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-slate-700">{props.label}</span>
+      <span className="text-sm font-medium text-ink-2">{props.label}</span>
       <input
         type={props.type ?? "text"}
         value={props.value}
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
         autoComplete="off"
-        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none ${props.mono ? "font-mono" : ""}`}
+        className={`mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm focus:border-ink-3 focus:outline-none ${props.mono ? "font-mono" : ""}`}
       />
-      {props.hint && <span className="mt-1 block text-xs text-slate-500">{props.hint}</span>}
+      {props.hint && <span className="mt-1 block text-xs text-ink-3">{props.hint}</span>}
     </label>
   );
 }
