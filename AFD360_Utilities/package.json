@@ -20,6 +20,7 @@
     "@modelcontextprotocol/core": "^2.0.0",
     "@modelcontextprotocol/ext-apps": "^2.0.3",
     "express": "^5.2.1",
+    "fflate": "^0.8.2",
     "lucide-react": "^1.52.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

@@ -150,3 +150,13 @@ export type AppEvent =
   | { type: "session-expired" }
   | { type: "error"; message: string }
   | { type: "wire"; entry: WireEntry };
+
+// One HXL card for an agent action output (server/hxl.ts): the org's own widget for the output's Lightning type,
+// or a card generated from the data's shape. uiMetadata is the resolved widget tree the HXL runtime draws.
+export interface HxlCard {
+  key: string;
+  type: string | null;
+  source: "widget" | "auto";
+  widget?: string;
+  uiMetadata: unknown;
+}

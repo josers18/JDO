@@ -2,69 +2,81 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { api, type McpUi } from "../api";
 import { WidgetFrame } from "../mcp/WidgetFrame";
-import type { HxlBinding } from "../../../shared/hxl";
+import type { HxlCard } from "../../../shared/types";
 
-const BASE = "https://api.salesforce.com/platform/mcp/v1/";
-
-// One widget fetch per org + tool for the page's lifetime; every card of that kind reuses it.
-const uiCache = new Map<string, Promise<McpUi>>();
-function loadUi(orgId: string, b: HxlBinding) {
-  const key = `${orgId}|${b.server}|${b.tool}`;
-  if (!uiCache.has(key)) {
-    const p = api.mcpWidget(orgId, BASE + b.server, b.tool).then((r) => r.ui);
-    p.catch(() => uiCache.delete(key));
-    uiCache.set(key, p);
+// The HXL runtime page is identical for every widget; load it once per org.
+const runtimes = new Map<string, Promise<McpUi & { url: string }>>();
+function runtime(orgId: string) {
+  if (!runtimes.has(orgId)) {
+    const p = api.hxlRuntime(orgId).then((r) => r.runtime);
+    p.catch(() => runtimes.delete(orgId));
+    runtimes.set(orgId, p);
   }
-  return uiCache.get(key)!;
+  return runtimes.get(orgId)!;
 }
 
 /**
- * An agent action output rendered through its HXL widget. The Agent API returns only the action's structured data,
- * so we fetch the widget page from the MCP server that declares it, have our server resolve the widget tree with
- * that data (server/hxl.ts), and hand both over in the same result envelope the MCP tool would have returned.
+ * Any agent's action output, rendered as HXL. The Agent API returns only the action's data; the server works out how
+ * the org renders that output (its Lightning type's widget) or builds a generic card, and returns the resolved widget
+ * tree, which we hand to the HXL runtime in the same result shape a hosted-MCP tool call has.
  */
-export function HxlCard({
+export function HxlOutput({
   orgId,
   myDomain,
-  dataKey,
-  binding,
+  actionType,
   value,
+  fallback,
 }: {
   orgId: string;
   myDomain: string;
-  dataKey: string;
-  binding: HxlBinding;
-  value: Record<string, unknown>;
+  actionType: string;
+  value: unknown;
+  fallback: React.ReactNode;
 }) {
-  const [ui, setUi] = useState<McpUi | null>(null);
-  const [result, setResult] = useState<unknown>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<{ ui: McpUi & { url: string }; cards: HxlCard[] } | { error: string } | null>(null);
   useEffect(() => {
-    // Mirrors a hosted-MCP tools/call result for an Apex invocable, including the server-resolved widget tree.
-    Promise.all([loadUi(orgId, binding), api.hxlRender(dataKey, value)]).then(([u, r]) => {
-      const envelope = { actionName: binding.actionName, isSuccess: true, errors: null, outputValues: value };
-      setResult({
-        content: [{ type: "text", text: JSON.stringify([envelope]) }],
-        structuredContent: { content: [envelope] },
-        isError: false,
-        _meta: { "salesforce/org_base_url": myDomain, "salesforce/uiMetadata": r.uiMetadata },
-      });
-      setUi(u);
-    }, (e) => setError((e as Error).message));
-  }, [orgId, myDomain, dataKey, binding, value]);
+    Promise.all([runtime(orgId), api.hxl(orgId, actionType, value)]).then(
+      ([ui, r]) => setState({ ui, cards: r.cards }),
+      (e) => setState({ error: (e as Error).message }),
+    );
+  }, [orgId, actionType, value]);
 
-  if (error) return <p className="rounded-xl border border-err/30 bg-err/8 px-3 py-2 text-sm text-err">HXL widget unavailable: {error}</p>;
-  if (!ui || !result) {
+  if (!state) {
     return (
       <div className="flex items-center gap-2 text-sm text-ink-3">
-        <Loader2 size={14} className="animate-spin" /> Loading HXL widget…
+        <Loader2 size={14} className="animate-spin" /> Rendering with HXL…
       </div>
     );
   }
+  if ("error" in state || state.cards.length === 0) {
+    return (
+      <>
+        {"error" in state && <p className="text-sm text-ink-3">HXL unavailable ({state.error}); showing the raw output.</p>}
+        {fallback}
+      </>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {state.cards.map((card) => (
+        <HxlFrame key={card.key} card={card} ui={state.ui} orgId={orgId} myDomain={myDomain} />
+      ))}
+    </div>
+  );
+}
+
+function HxlFrame({ card, ui, orgId, myDomain }: { card: HxlCard; ui: McpUi & { url: string }; orgId: string; myDomain: string }) {
+  const [result] = useState(() => ({
+    content: [{ type: "text", text: "" }],
+    isError: false,
+    _meta: { "salesforce/org_base_url": myDomain, "salesforce/uiMetadata": card.uiMetadata },
+  }));
   return (
     <div className="space-y-1">
-      <WidgetFrame orgId={orgId} url={BASE + binding.server} ui={ui} args={{}} result={result} onWire={() => {}} />
-      <p className="font-mono text-xs text-ink-3">HXL · {ui.uri}</p>
+      <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} />
+      <p className="font-mono text-xs text-ink-3">
+        HXL · {card.source === "widget" ? `${card.type} → ${card.widget}` : `generated card${card.type ? ` · ${card.type}` : ""}`}
+      </p>
     </div>
   );
 }

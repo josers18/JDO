@@ -4,8 +4,7 @@ import remarkGfm from "remark-gfm";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, CircleDot, Copy, Loader2, Search, X, Zap } from "lucide-react";
 import type { Message, Part, Tool } from "../../../shared/types";
 import { ApprovalCard, type ConfirmDecision } from "./ApprovalCard";
-import { HxlCard } from "./HxlCard";
-import { hxlBindingFor } from "../../../shared/hxl";
+import { HxlOutput } from "./HxlCard";
 
 const clock = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
@@ -132,21 +131,6 @@ export function Parts({
         if (p.kind === "text") return <Markdown key={i} text={p.markdown} myDomain={myDomain} />;
         if (p.kind === "tools") return <ToolCards key={i} tools={p.tools} />;
         if (p.kind === "progress") return <ProgressLine key={i} text={p.text} running={streaming && i === parts.length - 1} />;
-        // Action outputs with an HXL widget (e.g. {"account": {...}} from AFD360_HXL_Agent) render as that widget.
-        const hxl = orgId ? hxlBindingFor(p.value) : null;
-        if (hxl && orgId) {
-          return (
-            <div key={i} className="space-y-1.5">
-              <HxlCard orgId={orgId} myDomain={myDomain} dataKey={hxl.key} binding={hxl.binding} value={p.value as Record<string, unknown>} />
-              <details className="rounded-xl border border-line bg-tint text-sm">
-                <summary className="cursor-pointer px-3 py-2 text-ink-2">
-                  Action output · <span className="font-mono text-xs">{p.lightningType}</span>
-                </summary>
-                <pre className="max-h-96 overflow-auto px-3 pb-3 font-mono text-xs text-ink">{JSON.stringify(p.value, null, 2)}</pre>
-              </details>
-            </div>
-          );
-        }
         // Action outputs (e.g. a delegated agent's copilotActionOutput) often carry the answer in `response`.
         const out = p.value as { response?: unknown; generatedSql?: unknown; tables?: unknown; queryData?: unknown };
         const response = typeof out?.response === "string" ? out.response : null;
@@ -156,17 +140,29 @@ export function Parts({
           ? response!.replace(/<data>/g, "> _The agent's result table isn't included in the Agent API response (only its summary and SQL are)._")
           : response;
         const sql = typeof out?.generatedSql === "string" && out.generatedSql.trim() ? out.generatedSql : null;
+        const details = (
+          <details className="rounded-xl border border-line bg-tint text-sm">
+            <summary className="cursor-pointer px-3 py-2 text-ink-2">
+              {typeof response === "string" ? "Action output details · " : "Action output · "}
+              <span className="font-mono text-xs">{p.lightningType}</span>
+            </summary>
+            <pre className="max-h-96 overflow-auto px-3 pb-3 font-mono text-xs text-ink">{JSON.stringify(p.value, null, 2)}</pre>
+          </details>
+        );
+        // Structured action outputs from any agent render as HXL; prose answers (a delegated agent's `response`) stay markdown.
+        if (orgId && response === null && p.lightningType.startsWith("copilotActionOutput/") && p.value && typeof p.value === "object") {
+          return (
+            <div key={i} className="space-y-1.5">
+              <HxlOutput orgId={orgId} myDomain={myDomain} actionType={p.lightningType} value={p.value} fallback={null} />
+              {details}
+            </div>
+          );
+        }
         return (
           <div key={i} className="space-y-1.5">
             {shownResponse?.trim() && <Markdown text={shownResponse} myDomain={myDomain} />}
             {sql && <SqlBlock sql={sql} />}
-            <details className="rounded-xl border border-line bg-tint text-sm">
-              <summary className="cursor-pointer px-3 py-2 text-ink-2">
-                {typeof response === "string" ? "Action output details · " : ""}
-                <span className="font-mono text-xs">{p.lightningType}</span>
-              </summary>
-              <pre className="max-h-96 overflow-auto px-3 pb-3 font-mono text-xs text-ink">{JSON.stringify(p.value, null, 2)}</pre>
-            </details>
+            {details}
           </div>
         );
       })}

@@ -1,8 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { McpError, UI_MIME, getSession, rpc, toolUiUri } from "./mcp.ts";
 import type { WireEntry } from "../shared/types.ts";
-import { HXL_BINDINGS } from "../shared/hxl.ts";
-import { resolveUiMetadata } from "./hxl.ts";
+import { renderActionOutput } from "./hxl.ts";
 
 export const mcpApi = Router();
 
@@ -66,37 +65,32 @@ mcpApi.post(
   }),
 );
 
-// Widget HTML for a tool's ui:// resource, without calling the tool (the chat already has the data from the agent).
-// Pages are ~0.9 MB, so they're cached per org + resource for a few minutes.
-const widgetCache = new Map<string, { at: number; ui: Awaited<ReturnType<typeof readUi>> }>();
-const WIDGET_TTL_MS = 10 * 60_000;
+// The HXL runtime page is the same for every widget (the card itself travels as uiMetadata in the tool result), so any
+// hosted MCP server that declares a ui:// resource can supply it. Cached per org; ~0.9 MB.
+const HXL_RUNTIME_SERVER = "https://api.salesforce.com/platform/mcp/v1/custom/AFD360Demo";
+const runtimeCache = new Map<string, { at: number; ui: Awaited<ReturnType<typeof readUi>> }>();
+const RUNTIME_TTL_MS = 30 * 60_000;
 
+async function hxlRuntime(orgId: string, wire: WireEntry[]) {
+  const hit = runtimeCache.get(orgId);
+  if (hit && Date.now() - hit.at < RUNTIME_TTL_MS) return hit.ui;
+  const tools = (await rpc(orgId, HXL_RUNTIME_SERVER, "tools/list", {}, wire))?.tools ?? [];
+  const tool = tools.find((t: Record<string, any>) => toolUiUri(t));
+  if (!tool) throw new McpError(`No ui:// resource on ${HXL_RUNTIME_SERVER} to load the HXL runtime from`);
+  const ui = await readUi(orgId, HXL_RUNTIME_SERVER, toolUiUri(tool)!, tool._meta, wire);
+  runtimeCache.set(orgId, { at: Date.now(), ui });
+  return ui;
+}
+
+// Chat: any agent's action output -> HXL cards (org widget for its Lightning type, or generated) + the runtime page.
 mcpApi.post(
-  "/widget",
-  route(async ({ orgId, url, tool: name }, wire) => {
-    const tools = (await rpc(orgId, url, "tools/list", {}, wire))?.tools ?? [];
-    const tool = tools.find((t: { name: string }) => t.name === name);
-    const uri = tool && toolUiUri(tool);
-    if (!uri) throw new McpError(`Tool ${name} has no UI resource on ${url}`);
-    const key = `${orgId}|${uri}`;
-    const hit = widgetCache.get(key);
-    if (hit && Date.now() - hit.at < WIDGET_TTL_MS) return { ui: hit.ui, cached: true };
-    const ui = await readUi(orgId, url, uri, tool._meta, wire);
-    widgetCache.set(key, { at: Date.now(), ui });
-    return { ui, cached: false };
-  }),
+  "/hxl",
+  route(async ({ orgId, actionType, value }) => ({ cards: await renderActionOutput(orgId, String(actionType ?? ""), value) })),
 );
 
-// Chat: an agent action output bound to an HXL widget -> the widget's resolved tree, as hosted MCP would send it.
 mcpApi.post(
-  "/hxl-render",
-  route(async ({ key, value }) => {
-    const binding = HXL_BINDINGS[String(key)];
-    if (!binding) throw new McpError(`No HXL widget for ${key}`);
-    const attrs = (value as Record<string, unknown>)?.[String(key)];
-    if (!attrs || typeof attrs !== "object") throw new McpError(`Action output has no ${key} object`);
-    return { uiMetadata: resolveUiMetadata(binding.widget, attrs as Record<string, unknown>) };
-  }),
+  "/hxl-runtime",
+  route(async ({ orgId }, wire) => ({ runtime: { ...(await hxlRuntime(orgId, wire)), url: HXL_RUNTIME_SERVER } })),
 );
 
 // Proxied for widgets (app → host → server): tools/call from inside the widget.

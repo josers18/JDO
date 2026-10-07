@@ -3,6 +3,7 @@ import type {
   AppEvent,
   Conversation,
   ConversationSummary,
+  HxlCard,
   OrgInput,
   OrgSummary,
   OrgTestResult,
@@ -38,8 +39,8 @@ export const api = {
   deleteConversation: (id: string) => call("DELETE", `/conversations/${id}`),
   // MCP: every response carries the Wire entries for the calls it made (also on errors).
   mcpConnect: (orgId: string, url: string) => mcpCall<McpConnectResult>("/connect", { orgId, url }),
-  hxlRender: (key: string, value: unknown) => mcpCall<{ uiMetadata: unknown }>("/hxl-render", { key, value }),
-  mcpWidget: (orgId: string, url: string, tool: string) => mcpCall<{ ui: McpUi; cached: boolean }>("/widget", { orgId, url, tool }),
+  hxl: (orgId: string, actionType: string, value: unknown) => mcpCall<{ cards: HxlCard[] }>("/hxl", { orgId, actionType, value }),
+  hxlRuntime: (orgId: string) => mcpCall<{ runtime: McpUi & { url: string } }>("/hxl-runtime", { orgId }),
   mcpCall: (orgId: string, url: string, name: string, args: unknown) =>
     mcpCall<McpCallResult>("/call", { orgId, url, name, arguments: args }),
   mcpAppCall: (orgId: string, url: string, name: string, args: unknown) =>
