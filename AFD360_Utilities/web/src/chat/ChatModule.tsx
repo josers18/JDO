@@ -100,7 +100,7 @@ export function ChatModule({
     clampWire(Number(localStorage.getItem("afd360.wireWidth")) || Math.round(window.innerWidth * 0.3)),
   );
   const [hoverTurn, setHoverTurn] = useState<number | null>(null);
-  const [panelTab, setPanelTab] = useState<"wire" | "sources">("wire");
+  const [panelTab, setPanelTab] = useState<"wire" | "stats" | "sources">("wire");
   const [actionBusy, setActionBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -459,7 +459,7 @@ export function ChatModule({
           <div className="flex items-start justify-between gap-2 px-4 pb-1 pt-4">
             <div className="min-w-0">
               <div role="tablist" className="flex gap-4">
-                {(["wire", "sources"] as const).map((t) => (
+                {(["wire", "stats", "sources"] as const).map((t) => (
                   <button
                     key={t}
                     role="tab"
@@ -467,13 +467,17 @@ export function ChatModule({
                     onClick={() => setPanelTab(t)}
                     className={`text-[17px] font-semibold leading-tight ${panelTab === t ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}
                   >
-                    {t === "wire" ? "Wire" : "Sources"}
+                    {t === "wire" ? "Wire" : t === "stats" ? "Stats" : "Sources"}
                     {t === "sources" && sources.length > 0 && <span className="ml-1.5 font-mono text-xs text-ink-3">{sources.length}</span>}
                   </button>
                 ))}
               </div>
               <div className="mt-0.5 text-xs text-ink-3">
-                {panelTab === "wire" ? "Every Salesforce call for this conversation · tokens masked" : "References the agent cited, by turn"}
+                {panelTab === "wire"
+                  ? "Every Salesforce call for this conversation · tokens masked"
+                  : panelTab === "stats"
+                    ? "Timing, tokens and IDs for the hovered or latest turn"
+                    : "References the agent cited, by turn"}
               </div>
             </div>
             <button onClick={() => setPanelOpen(false)} className="rounded-lg p-1.5 text-ink-3 hover:bg-tint hover:text-ink" title="Close side panel">
@@ -481,12 +485,13 @@ export function ChatModule({
             </button>
           </div>
           {panelTab === "wire" ? (
-            <>
+            <div className="min-h-0 flex-1">
+              <WirePanel wire={conv.wire} highlightTurn={hoverTurn} title={conv.title} />
+            </div>
+          ) : panelTab === "stats" ? (
+            <div className="mt-2 min-h-0 flex-1 border-t border-line">
               <TurnStats orgId={conv.orgId} wire={conv.wire} highlightTurn={hoverTurn} />
-              <div className="min-h-0 flex-1">
-                <WirePanel wire={conv.wire} highlightTurn={hoverTurn} title={conv.title} />
-              </div>
-            </>
+            </div>
           ) : (
             <div className="mt-2 min-h-0 flex-1 border-t border-line">
               <SourcesPanel items={sources} highlightTurn={hoverTurn} />

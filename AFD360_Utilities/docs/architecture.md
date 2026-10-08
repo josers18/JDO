@@ -56,14 +56,15 @@ resolver and generated cards).
 - **Wire panel:** every Salesforce HTTP exchange for the conversation, with timestamps, newest/oldest sort,
   filters, a sent/received split, headers, bodies and stream events. Tokens are masked. Calls can be copied as
   curl or downloaded as JSON.
-- **Turn stats** (top of the Wire panel, `shared/turnStats.ts`): for the hovered or latest turn, computed from the
+- **Stats tab** (between Wire and Sources, `shared/turnStats.ts`): for the hovered or latest turn, computed from the
   captured stream with no extra calls. Salesforce processing time (last event `timestamp` minus `originEventId`),
   network overhead (our measured time minus that), time to first text, tool step timings, `isContentSafe`, cited
   source count, and `traceId` / `planId` / `x-request-id` with copy buttons. The API's `metrics` field is always
   empty, so token counts come from Data 360 instead: a **Usage (Data 360)** row queries
   `AiAgentGenerativeAiUsage_std__dlm` by `TelemetryTraceIdentifier__c` (= the turn's `traceId`) and shows total,
-  input and output tokens, LLM calls, and tokens per model. Telemetry lands minutes after the turn; until then the
-  row says so and offers a re-check.
+  input and output tokens, LLM calls, and tokens per model, each with a provider mark (`ProviderIcon.tsx`; OpenAI,
+  Anthropic and Gemini marks from LobeHub Icons, MIT). Telemetry lands minutes after the turn; until then the row
+  re-checks every 30 s for up to 10 minutes.
 - **Sources tab** (next to Wire, `shared/citations.ts`): every `citedReferences` item from the conversation's
   Inform messages, as chips grouped by turn. The item shape isn't documented, so each chip shows the first field
   that looks like a title or a link, and expands to the raw item. No finsdc3 agent has returned a citation yet.
