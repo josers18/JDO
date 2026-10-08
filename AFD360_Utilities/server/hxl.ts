@@ -201,12 +201,15 @@ const TYPED: Record<string, { columnType: Attrs; raw: (v: unknown) => string | n
   // A bare ISO date parses as UTC midnight (a day early west of UTC); with a time and no zone it's local midnight.
   Date: { columnType: { type: "date" }, raw: (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T00:00:00` : null) },
   DateTime: { columnType: { type: "date", format: "datetime" }, raw: (v) => (typeof v === "string" ? v : null) },
+  // The stored API value; the column's options map it back to the label (HXL table cells have no badge type).
+  Picklist: { columnType: { type: "picklist" }, raw: (v) => (typeof v === "string" ? v : null) },
 };
 
 function table(caption: string, items: Attrs[]): Node | null {
   // recordInfoType rows keep their fields under data; flatten them to label -> display value like single records.
   // Typed fields keep the raw value instead; currencies add the ISO code from the display value ("USD 5,257,…").
   const typedCols = new Map<string, string>(); // label -> dataType
+  const picklists = new Map<string, Map<string, string>>(); // label -> value -> display label
   const rows = items.map((r) => {
     const rec = flattenRecord(r);
     if (!rec) return r;
@@ -219,6 +222,10 @@ function table(caption: string, items: Attrs[]): Node | null {
       const raw = typed.raw(f.value);
       if (raw === null) continue;
       row[label] = raw;
+      if (f.dataType === "Picklist") {
+        if (!picklists.has(label)) picklists.set(label, new Map());
+        picklists.get(label)!.set(raw, String(f.displayValue || raw));
+      }
       const code = f.dataType === "Currency" ? /^([A-Z]{3})\b/.exec(String(f.displayValue ?? ""))?.[1] : undefined;
       if (code) row[CURRENCY + label] = code;
     }
@@ -239,7 +246,7 @@ function table(caption: string, items: Attrs[]): Node | null {
         linked && k === nameKey
           ? { key: k, header: humanize(k), columnType: { type: "link", urlKey: RECORD_URL } }
           : typedCols.has(k)
-            ? typedColumn(k, TYPED[typedCols.get(k)!].columnType, rows)
+            ? typedColumn(k, TYPED[typedCols.get(k)!].columnType, rows, picklists.get(k))
             : { key: k, header: humanize(k), columnType: rows.some((r) => isUrl(r[k])) ? { type: "link" } : undefined },
       ),
       rows: rows.slice(0, 25).map((r) => ({
@@ -252,7 +259,13 @@ function table(caption: string, items: Attrs[]): Node | null {
   };
 }
 
-function typedColumn(k: string, columnType: Attrs, rows: Attrs[]) {
+function typedColumn(k: string, columnType: Attrs, rows: Attrs[], picklist?: Map<string, string>) {
+  // A picklist column needs at least one option; with no values seen, fall back to plain text.
+  if (columnType.type === "picklist") {
+    return picklist?.size
+      ? { key: k, header: humanize(k), columnType: { ...columnType, options: [...picklist].map(([value, label]) => ({ label, value })) } }
+      : { key: k, header: humanize(k) };
+  }
   const currencyCodeKey = columnType.format === "currency" && rows.some((r) => r[CURRENCY + k]) ? { currencyCodeKey: CURRENCY + k } : {};
   return { key: k, header: humanize(k), ...(columnType.type === "number" ? { align: "right" } : {}), columnType: { ...columnType, ...currencyCodeKey } };
 }

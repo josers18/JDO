@@ -153,6 +153,29 @@ describe("autoCard", () => {
     });
   });
 
+  it("renders Picklist fields as picklist columns of the stored value, labeled from the rows", () => {
+    const row = (value: string | null, displayValue: string | null) => ({
+      id: "006am00000LcOy6AAF",
+      title: "Deal",
+      data: { Name: { label: "Name", value: "Deal" }, StageName: { label: "Stage", value, displayValue, dataType: "Picklist" } },
+    });
+    const card = autoCard("result", [row("Qualification", "Qualification"), row("Closed Won", "Gagné"), row("Closed Won", "Gagné"), row(null, null)]);
+    const find = (n: any): any => (n.definition === "tile/table" ? n : (n.children ?? []).map(find).find(Boolean));
+    const t = find(card).attributes;
+    expect(t.columns[1]).toEqual({
+      key: "Stage",
+      header: "Stage",
+      columnType: {
+        type: "picklist",
+        options: [
+          { label: "Qualification", value: "Qualification" },
+          { label: "Gagné", value: "Closed Won" },
+        ],
+      },
+    });
+    expect(t.rows.map((r: any) => r.Stage)).toEqual(["Qualification", "Closed Won", "Closed Won", "—"]);
+  });
+
   it("links a record table's Name column to the record", () => {
     const card = autoCard("result", [
       { id: "006am00000LcOy6AAF", title: "Deal", data: { Name: { label: "Name", value: "Deal" }, Amount: { label: "Amount", value: 5 } } },
