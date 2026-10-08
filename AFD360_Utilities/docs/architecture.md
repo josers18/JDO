@@ -56,6 +56,11 @@ resolver and generated cards).
 - **Wire panel:** every Salesforce HTTP exchange for the conversation, with timestamps, newest/oldest sort,
   filters, a sent/received split, headers, bodies and stream events. Tokens are masked. Calls can be copied as
   curl or downloaded as JSON.
+- **Turn stats** (top of the Wire panel, `shared/turnStats.ts`): for the hovered or latest turn, computed from the
+  captured stream with no extra calls. Salesforce processing time (last event `timestamp` minus `originEventId`),
+  network overhead (our measured time minus that), time to first text, tool step timings, `isContentSafe`, cited
+  source count, and `traceId` / `planId` / `x-request-id` with copy buttons. The API's `metrics` field is always
+  empty, so there are no token counts.
 - **MCP:** a server-side Streamable HTTP client. It accepts only `https://api.salesforce.com/platform/mcp/v1/...`
   URLs, so the token can't leak. It advertises `io.modelcontextprotocol/ui`. Tools with `_meta.ui.resourceUri`
   render through `@modelcontextprotocol/ext-apps` `AppBridge` in the double-iframe sandbox (:3002, CSP header
