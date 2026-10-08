@@ -5,6 +5,8 @@ import { AgentGallery } from "./AgentGallery";
 import { AgentCard, MessageView, Parts } from "./MessageView";
 import { WirePanel } from "./WirePanel";
 import { TurnStats } from "./TurnStats";
+import { SourcesPanel } from "./SourcesPanel";
+import { citations } from "../../../shared/citations";
 import type { AppEvent, Conversation, ConversationSummary, OrgsResponse, Part, Tool } from "../../../shared/types";
 
 interface Draft {
@@ -98,6 +100,7 @@ export function ChatModule({
     clampWire(Number(localStorage.getItem("afd360.wireWidth")) || Math.round(window.innerWidth * 0.3)),
   );
   const [hoverTurn, setHoverTurn] = useState<number | null>(null);
+  const [panelTab, setPanelTab] = useState<"wire" | "sources">("wire");
   const [actionBusy, setActionBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -107,6 +110,7 @@ export function ChatModule({
   const convOrg = orgs.orgs.find((o) => o.id === conv?.orgId) ?? activeOrg;
   const orgList = list.filter((c) => c.orgId === orgs.activeOrgId);
   const showGallery = picking || !conv;
+  const sources = conv ? citations(conv.wire) : [];
 
   const reloadList = useCallback(() => api.conversations().then(setList), []);
   useEffect(() => {
@@ -454,17 +458,40 @@ export function ChatModule({
           )}
           <div className="flex items-start justify-between gap-2 px-4 pb-1 pt-4">
             <div className="min-w-0">
-              <h2 className="text-[17px] font-semibold leading-tight">Wire</h2>
-              <div className="mt-0.5 text-xs text-ink-3">Every Salesforce call for this conversation · tokens masked</div>
+              <div role="tablist" className="flex gap-4">
+                {(["wire", "sources"] as const).map((t) => (
+                  <button
+                    key={t}
+                    role="tab"
+                    aria-selected={panelTab === t}
+                    onClick={() => setPanelTab(t)}
+                    className={`text-[17px] font-semibold leading-tight ${panelTab === t ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}
+                  >
+                    {t === "wire" ? "Wire" : "Sources"}
+                    {t === "sources" && sources.length > 0 && <span className="ml-1.5 font-mono text-xs text-ink-3">{sources.length}</span>}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-0.5 text-xs text-ink-3">
+                {panelTab === "wire" ? "Every Salesforce call for this conversation · tokens masked" : "References the agent cited, by turn"}
+              </div>
             </div>
-            <button onClick={() => setPanelOpen(false)} className="rounded-lg p-1.5 text-ink-3 hover:bg-tint hover:text-ink" title="Close Wire panel">
+            <button onClick={() => setPanelOpen(false)} className="rounded-lg p-1.5 text-ink-3 hover:bg-tint hover:text-ink" title="Close side panel">
               <PanelRightClose size={16} />
             </button>
           </div>
-          <TurnStats wire={conv.wire} highlightTurn={hoverTurn} />
-          <div className="min-h-0 flex-1">
-            <WirePanel wire={conv.wire} highlightTurn={hoverTurn} title={conv.title} />
-          </div>
+          {panelTab === "wire" ? (
+            <>
+              <TurnStats wire={conv.wire} highlightTurn={hoverTurn} />
+              <div className="min-h-0 flex-1">
+                <WirePanel wire={conv.wire} highlightTurn={hoverTurn} title={conv.title} />
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 min-h-0 flex-1 border-t border-line">
+              <SourcesPanel items={sources} highlightTurn={hoverTurn} />
+            </div>
+          )}
         </aside>
       )}
     </div>

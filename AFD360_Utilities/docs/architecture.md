@@ -61,6 +61,9 @@ resolver and generated cards).
   network overhead (our measured time minus that), time to first text, tool step timings, `isContentSafe`, cited
   source count, and `traceId` / `planId` / `x-request-id` with copy buttons. The API's `metrics` field is always
   empty, so there are no token counts.
+- **Sources tab** (next to Wire, `shared/citations.ts`): every `citedReferences` item from the conversation's
+  Inform messages, as chips grouped by turn. The item shape isn't documented, so each chip shows the first field
+  that looks like a title or a link, and expands to the raw item. No finsdc3 agent has returned a citation yet.
 - **MCP:** a server-side Streamable HTTP client. It accepts only `https://api.salesforce.com/platform/mcp/v1/...`
   URLs, so the token can't leak. It advertises `io.modelcontextprotocol/ui`. Tools with `_meta.ui.resourceUri`
   render through `@modelcontextprotocol/ext-apps` `AppBridge` in the double-iframe sandbox (:3002, CSP header
