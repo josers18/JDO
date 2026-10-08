@@ -482,7 +482,7 @@ export function ChatModule({
           </div>
           {panelTab === "wire" ? (
             <>
-              <TurnStats wire={conv.wire} highlightTurn={hoverTurn} />
+              <TurnStats orgId={conv.orgId} wire={conv.wire} highlightTurn={hoverTurn} />
               <div className="min-h-0 flex-1">
                 <WirePanel wire={conv.wire} highlightTurn={hoverTurn} title={conv.title} />
               </div>

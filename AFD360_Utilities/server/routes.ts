@@ -5,6 +5,7 @@ import * as orgs from "./orgStore.ts";
 import * as store from "./conversationStore.ts";
 import { endSession, listAgents, startSession, streamMessage } from "./agentApi.ts";
 import { TurnNormalizer } from "./normalize.ts";
+import { turnUsage } from "./usage.ts";
 import { SfError, forgetToken, getToken, sfJson } from "./salesforce.ts";
 import type { AppEvent, Conversation, CreateConversationInput, Message, OrgInput, Part, WireEntry } from "../shared/types.ts";
 
@@ -65,6 +66,7 @@ api.post("/orgs/:id/test", wrap(async (req) => {
 
 // ── Agents ────────────────────────────────────────────────────────────
 api.get("/orgs/:id/agents", wrap((req) => listAgents(String(req.params.id))));
+api.get("/orgs/:id/usage/:traceId", wrap((req) => turnUsage(String(req.params.id), String(req.params.traceId))));
 
 // ── Conversations ─────────────────────────────────────────────────────
 api.get("/conversations", wrap(() => store.listConversations()));

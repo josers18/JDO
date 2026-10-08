@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { ChevronRight, Copy } from "lucide-react";
-import type { WireEntry } from "../../../shared/types";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronRight, Copy, RotateCcw } from "lucide-react";
+import { api } from "../api";
+import type { TurnUsage, WireEntry } from "../../../shared/types";
 import { turnStats } from "../../../shared/turnStats";
 
 const OPEN_KEY = "afd360.turnStatsOpen";
@@ -14,7 +15,7 @@ function pickStream(wire: WireEntry[], turn: number | null) {
   return [...pool].sort((a, b) => a.startedAt.localeCompare(b.startedAt)).at(-1);
 }
 
-export function TurnStats({ wire, highlightTurn }: { wire: WireEntry[]; highlightTurn: number | null }) {
+export function TurnStats({ orgId, wire, highlightTurn }: { orgId: string; wire: WireEntry[]; highlightTurn: number | null }) {
   const [open, setOpen] = useState(() => localStorage.getItem(OPEN_KEY) !== "0");
   const entry = pickStream(wire, highlightTurn);
   if (!entry) return null;
@@ -57,6 +58,8 @@ export function TurnStats({ wire, highlightTurn }: { wire: WireEntry[]; highligh
               </ol>
             </div>
           )}
+
+          {s.traceId && entry.durationMs !== undefined && <UsageRow orgId={orgId} traceId={s.traceId} />}
 
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             <span>
@@ -111,6 +114,73 @@ function IdRow({ label, value }: { label: string; value: string | null }) {
       >
         <Copy size={11} /> {copied ? "Copied" : "Copy"}
       </button>
+    </div>
+  );
+}
+
+const fmt = (n: number) => n.toLocaleString();
+const usageCache = new Map<string, TurnUsage>(); // traceId -> usage, once Data 360 has it
+
+// Tokens per turn from Data 360 usage telemetry, which lands minutes after the turn.
+function UsageRow({ orgId, traceId }: { orgId: string; traceId: string }) {
+  const [usage, setUsage] = useState<TurnUsage | null>(() => usageCache.get(traceId) ?? null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    api
+      .usage(orgId, traceId)
+      .then((u) => {
+        if (u.rows > 0) usageCache.set(traceId, u);
+        setUsage(u);
+      })
+      .catch((e) => setError((e as Error).message))
+      .finally(() => setLoading(false));
+  }, [orgId, traceId]);
+
+  useEffect(() => {
+    const cached = usageCache.get(traceId);
+    setUsage(cached ?? null);
+    if (!cached) load();
+  }, [traceId, load]);
+
+  const retry = (
+    <button onClick={load} disabled={loading} title="Check Data 360 again" className="rounded-md p-0.5 text-ink-3 hover:bg-tint hover:text-ink disabled:opacity-40">
+      <RotateCcw size={12} className={loading ? "animate-spin" : ""} />
+    </button>
+  );
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-1.5 font-semibold text-ink-2">
+        Usage <span className="font-normal text-ink-3">(Data 360)</span>
+        {(!usage || usage.rows === 0 || error) && retry}
+      </div>
+      {error ? (
+        <p className="text-err">{error}</p>
+      ) : !usage ? (
+        <p className="text-ink-3">{loading ? "Looking up…" : "—"}</p>
+      ) : usage.rows === 0 ? (
+        <p className="text-ink-3">Not in Data 360 yet. Usage telemetry usually lands within minutes of the turn.</p>
+      ) : (
+        <div className="space-y-1">
+          <p>
+            <span className="font-mono text-sm font-semibold text-ink">{fmt(usage.totalTokens)}</span>
+            <span className="text-ink-3"> tokens · {fmt(usage.inputTokens)} in / {fmt(usage.outputTokens)} out · {usage.llmCalls} LLM calls</span>
+          </p>
+          <ul className="space-y-0.5">
+            {usage.models.map((m) => (
+              <li key={m.model} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-2 font-mono">
+                <span className="truncate text-ink" title={m.model}>{m.model}</span>
+                <span className="text-ink-3">{m.calls}×</span>
+                <span className="w-16 text-right text-ink-2">{fmt(m.totalTokens)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

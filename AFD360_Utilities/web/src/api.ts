@@ -8,6 +8,7 @@ import type {
   OrgSummary,
   OrgTestResult,
   OrgsResponse,
+  TurnUsage,
   WireEntry,
 } from "../../shared/types";
 
@@ -30,6 +31,7 @@ export const api = {
   activateOrg: (id: string) => call("POST", `/orgs/${id}/activate`),
   testOrg: (id: string) => call<OrgTestResult>("POST", `/orgs/${id}/test`),
   agents: (orgId: string) => call<Agent[]>("GET", `/orgs/${orgId}/agents`),
+  usage: (orgId: string, traceId: string) => call<TurnUsage>("GET", `/orgs/${orgId}/usage/${traceId}`),
   conversations: () => call<ConversationSummary[]>("GET", "/conversations"),
   conversation: (id: string) => call<Conversation>("GET", `/conversations/${id}`),
   createConversation: (body: { orgId: string; agentId: string; agentLabel: string; agentType: string; bypassUser: boolean }) =>

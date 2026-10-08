@@ -160,3 +160,14 @@ export interface HxlCard {
   widget?: string;
   uiMetadata: unknown;
 }
+
+// Token usage for one Agent API turn, from Data 360's AiAgentGenerativeAiUsage_std__dlm (lands minutes after the turn).
+export interface TurnUsage {
+  traceId: string;
+  rows: number; // 0 = not in Data 360 yet
+  llmCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  models: { model: string; calls: number; totalTokens: number }[];
+}
