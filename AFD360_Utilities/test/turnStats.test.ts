@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseSse } from "../server/sse.ts";
-import { turnStats } from "../shared/turnStats.ts";
+import { streamsByTurn, trimWire, turnStats } from "../shared/turnStats.ts";
 import type { WireEntry } from "../shared/types.ts";
 
 // Builds a stream wire entry from a recorded fixture; our clock runs 200ms behind Salesforce's (network).
@@ -44,5 +44,24 @@ describe("turnStats", () => {
     }
     expect(s.contentSafe).toBe(true);
     expect(s.citedSources).toBe(0);
+  });
+});
+
+describe("streamsByTurn / trimWire", () => {
+  const w = (id: string, turn: number, url: string, at: number): WireEntry => ({
+    id, turn, label: id, startedAt: new Date(at).toISOString(), method: "POST", url, requestHeaders: {},
+    streamEvents: url.includes("/messages/stream") ? [{ t: 0, event: "END_OF_TURN", data: {} }] : undefined,
+  });
+  const STREAM = "https://api.salesforce.com/einstein/ai-agent/v1/sessions/s/messages/stream";
+
+  it("keeps each turn's last stream, oldest turn first", () => {
+    const rows = streamsByTurn([w("b", 2, STREAM, 3), w("a1", 1, STREAM, 1), w("q", 1, "https://x/query", 2), w("a2", 1, STREAM, 2)]);
+    expect(rows.map((r) => r.id)).toEqual(["a2", "b"]);
+  });
+
+  it("trims the oldest non-stream calls first, so early turns keep their stats", () => {
+    const wire = [w("s1", 1, STREAM, 1), ...Array.from({ length: 5 }, (_, i) => w(`u${i}`, 1, "https://x/query", 2 + i)), w("s2", 2, STREAM, 9)];
+    expect(trimWire(wire, 4).map((e) => e.id)).toEqual(["s1", "u3", "u4", "s2"]);
+    expect(trimWire(wire, 10)).toBe(wire);
   });
 });

@@ -74,3 +74,21 @@ export function turnStats(w: WireEntry): TurnStats {
     requestId: w.responseHeaders?.["x-request-id"] ?? null,
   };
 }
+
+const isStream = (w: WireEntry) => w.url.includes("/messages/stream");
+
+// Each turn's last Agent API stream, oldest turn first: what the Stats tab reads, one row per turn.
+export function streamsByTurn(wire: WireEntry[]): WireEntry[] {
+  const byTurn = new Map<number | null, WireEntry>();
+  for (const w of [...wire].filter((w) => isStream(w) && w.streamEvents?.length).sort((a, b) => a.startedAt.localeCompare(b.startedAt)))
+    byTurn.set(w.turn, w);
+  return [...byTurn.values()];
+}
+
+// Caps a conversation's wire log by dropping its oldest calls, but keeps every turn's stream so no turn's stats are lost.
+export function trimWire(wire: WireEntry[], max: number): WireEntry[] {
+  let extra = wire.length - max;
+  if (extra <= 0) return wire;
+  const kept = wire.filter((w) => isStream(w) || extra-- <= 0);
+  return kept.length > max ? kept.slice(-max) : kept;
+}

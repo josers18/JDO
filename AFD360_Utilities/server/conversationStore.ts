@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DATA_DIR } from "./env.ts";
 import type { Conversation, ConversationSummary, WireEntry } from "../shared/types.ts";
+import { trimWire } from "../shared/turnStats.ts";
 
 const DIR = path.join(DATA_DIR, "conversations");
 const MAX_WIRE_ENTRIES = 400;
@@ -33,7 +34,7 @@ export function getConversation(id: string): Conversation {
 
 export function saveConversation(c: Conversation) {
   c.updatedAt = new Date().toISOString();
-  if (c.wire.length > MAX_WIRE_ENTRIES) c.wire = c.wire.slice(-MAX_WIRE_ENTRIES);
+  c.wire = trimWire(c.wire, MAX_WIRE_ENTRIES);
   fs.writeFileSync(file(c.id), JSON.stringify(c, null, 2));
 }
 

@@ -2,18 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Copy, RotateCcw } from "lucide-react";
 import { api } from "../api";
 import type { TurnUsage, WireEntry } from "../../../shared/types";
-import { turnStats } from "../../../shared/turnStats";
+import { streamsByTurn, turnStats } from "../../../shared/turnStats";
 import { ProviderIcon } from "./ProviderIcon";
 
 const secs = (ms: number | null) => (ms === null ? "—" : `${(ms / 1000).toFixed(2)}s`);
 
-// The hovered message's turn, else the latest turn: its last Agent API stream.
-function pickStream(wire: WireEntry[], turn: number | null) {
-  const streams = wire.filter((w) => w.streamEvents?.length && w.url.includes("/messages/stream"));
-  const inTurn = turn === null ? [] : streams.filter((w) => w.turn === turn);
-  const pool = inTurn.length ? inTurn : streams;
-  return [...pool].sort((a, b) => a.startedAt.localeCompare(b.startedAt)).at(-1);
-}
+const sum = (xs: (number | null)[]) => (xs.some((x) => x !== null) ? xs.reduce<number>((a, x) => a + (x ?? 0), 0) : null);
 
 export function TurnStats({
   conversationId,
@@ -26,7 +20,12 @@ export function TurnStats({
   highlightTurn: number | null;
   onWire: (entries: WireEntry[]) => void;
 }) {
-  const entry = pickStream(wire, highlightTurn);
+  // The hovered message's turn, else the turn picked in All turns, else the latest turn.
+  const [pinned, setPinned] = useState<number | null>(null);
+  useEffect(() => setPinned(null), [conversationId]);
+  const rows = streamsByTurn(wire);
+  const shownTurn = highlightTurn ?? pinned;
+  const entry = rows.find((w) => shownTurn !== null && w.turn === shownTurn) ?? rows.at(-1);
   if (!entry) return <p className="p-6 text-center text-sm text-ink-3">Stats appear once the agent answers a turn.</p>;
   const s = turnStats(entry);
 
@@ -37,6 +36,11 @@ export function TurnStats({
           {s.turn !== null ? `turn ${s.turn}` : ""}
           {entry.durationMs === undefined ? " · running" : ""}
         </span>
+        {pinned !== null && highlightTurn === null && (
+          <button onClick={() => setPinned(null)} className="rounded-md px-1.5 text-ink-3 hover:bg-tint hover:text-ink">
+            Show latest
+          </button>
+        )}
         <span className="ml-auto font-mono text-ink-2">{secs(s.totalMs)}</span>
       </div>
       <div className="mt-2.5 space-y-3">
@@ -81,6 +85,14 @@ export function TurnStats({
           <IdRow label="planId" value={s.planId} />
           <IdRow label="x-request-id" value={s.requestId} />
         </div>
+
+        <AllTurns
+          conversationId={conversationId}
+          rows={rows}
+          shownTurn={s.turn}
+          onPick={(t) => setPinned((p) => (p === t ? null : t))}
+          onWire={onWire}
+        />
       </div>
     </section>
   );
@@ -122,9 +134,25 @@ function IdRow({ label, value }: { label: string; value: string | null }) {
 const fmt = (n: number) => n.toLocaleString();
 const usageCache = new Map<string, TurnUsage>(); // traceId -> usage, once Data 360 has it
 const pollStarted = new Map<string, number>(); // traceId -> when we first found no rows
-const inFlight = new Set<string>(); // one lookup per trace at a time, so the wire logs no duplicates
+const pending = new Map<string, Promise<TurnUsage>>(); // one lookup per trace at a time, so the wire logs no duplicates
 const POLL_EVERY_MS = 30_000;
 const POLL_FOR_MS = 10 * 60_000;
+
+function lookupUsage(conversationId: string, traceId: string, turn: number | null, onWire: (entries: WireEntry[]) => void) {
+  let p = pending.get(traceId);
+  if (!p) {
+    p = api
+      .usage(conversationId, traceId, turn)
+      .then(({ usage, wire }) => {
+        onWire(wire);
+        if (usage.rows > 0) usageCache.set(traceId, usage);
+        return usage;
+      })
+      .finally(() => pending.delete(traceId));
+    pending.set(traceId, p);
+  }
+  return p;
+}
 
 // Tokens per turn from Data 360 usage telemetry, which lands minutes after the turn.
 function UsageRow({
@@ -143,22 +171,12 @@ function UsageRow({
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    if (inFlight.has(traceId)) return;
-    inFlight.add(traceId);
     setLoading(true);
     setError(null);
-    api
-      .usage(conversationId, traceId, turn)
-      .then(({ usage: u, wire }) => {
-        onWire(wire);
-        if (u.rows > 0) usageCache.set(traceId, u);
-        setUsage(u);
-      })
+    lookupUsage(conversationId, traceId, turn, onWire)
+      .then(setUsage)
       .catch((e) => setError((e as Error).message))
-      .finally(() => {
-        inFlight.delete(traceId);
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   }, [conversationId, traceId, turn, onWire]);
 
   useEffect(() => {
@@ -216,6 +234,89 @@ function UsageRow({
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+const looked = new Set<string>(); // traces All turns has already looked up once
+
+// Every turn at a glance: totals across the conversation, then one row per turn; a row shows that turn above.
+function AllTurns({
+  conversationId,
+  rows,
+  shownTurn,
+  onPick,
+  onWire,
+}: {
+  conversationId: string;
+  rows: WireEntry[];
+  shownTurn: number | null;
+  onPick: (turn: number | null) => void;
+  onWire: (entries: WireEntry[]) => void;
+}) {
+  const all = rows.map((w) => ({ w, s: turnStats(w) }));
+  // Token totals need each finished turn's Data 360 usage: look each up once. The shown turn keeps re-checking above.
+  useEffect(() => {
+    for (const { w, s } of all) {
+      if (!s.traceId || w.durationMs === undefined || usageCache.has(s.traceId) || looked.has(s.traceId)) continue;
+      looked.add(s.traceId);
+      lookupUsage(conversationId, s.traceId, s.turn, onWire).catch(() => {});
+    }
+  });
+  if (all.length < 2) return null;
+
+  const usageOf = (s: (typeof all)[number]["s"]) => (s.traceId ? usageCache.get(s.traceId) : undefined);
+  const known = all.map(({ s }) => usageOf(s)).filter((u) => !!u);
+  const tokens = known.reduce((n, u) => n + u.totalTokens, 0);
+  const cols = "grid grid-cols-[2.5rem_repeat(4,minmax(0,1fr))] items-baseline gap-2";
+
+  return (
+    <div className="border-t border-line pt-3">
+      <div className="flex items-center gap-1.5">
+        <span className="font-semibold text-ink-2">All turns</span>
+        <span className="font-mono text-ink-3">{all.length} turns</span>
+        <span className="ml-auto font-mono text-ink-2">{secs(sum(all.map(({ s }) => s.totalMs)))}</span>
+      </div>
+      <dl className="mt-2 grid grid-cols-3 gap-2">
+        <Metric label="Salesforce" value={secs(sum(all.map(({ s }) => s.sfProcessingMs)))} hint="Salesforce's processing time, summed over every turn" />
+        <Metric label="Network" value={secs(sum(all.map(({ s }) => s.networkMs)))} hint="Network overhead, summed over every turn" />
+        <Metric
+          label="Tokens"
+          value={known.length ? fmt(tokens) : "—"}
+          hint={`Data 360 usage, summed over the ${known.length} of ${all.length} turns it has telemetry for`}
+        />
+      </dl>
+      {known.length > 0 && known.length < all.length && (
+        <p className="mt-1 text-ink-3">Tokens cover {known.length} of {all.length} turns; the rest aren't in Data 360 yet.</p>
+      )}
+      <div className="mt-2">
+        <div className={`${cols} px-1.5 pb-1 text-ink-3`}>
+          <span>Turn</span>
+          <span className="text-right">Total</span>
+          <span className="text-right">Salesforce</span>
+          <span className="text-right">First text</span>
+          <span className="text-right">Tokens</span>
+        </div>
+        {all.map(({ w, s }) => {
+          const u = usageOf(s);
+          const shown = s.turn === shownTurn;
+          return (
+            <button
+              key={w.id}
+              onClick={() => onPick(s.turn)}
+              aria-pressed={shown}
+              title={`Show turn ${s.turn ?? "—"} above`}
+              className={`${cols} w-full rounded-md px-1.5 py-0.5 text-left font-mono hover:bg-tint ${shown ? "bg-tint font-semibold text-ink" : "text-ink-2"}`}
+            >
+              <span>{s.turn ?? "—"}</span>
+              <span className="text-right">{w.durationMs === undefined ? "running" : secs(s.totalMs)}</span>
+              <span className="text-right">{secs(s.sfProcessingMs)}</span>
+              <span className="text-right">{secs(s.firstTextMs)}</span>
+              <span className="text-right">{u ? fmt(u.totalTokens) : "—"}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
