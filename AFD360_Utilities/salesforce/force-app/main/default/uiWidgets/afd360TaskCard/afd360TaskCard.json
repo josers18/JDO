@@ -177,6 +177,26 @@
               }
             },
             {
+              "definition": "tile/button",
+              "attributes": {
+                "label": "Mark complete",
+                "variant": "secondary",
+                "actions": {
+                  "click": [
+                    {
+                      "definition": "action/sendMessage",
+                      "attributes": {
+                        "content": "Mark the task \"{!$attrs.subject}\" ({!$attrs.taskId}) as Completed"
+                      }
+                    }
+                  ]
+                }
+              },
+              "meta": {
+                "if": "{!$attrs.created}"
+              }
+            },
+            {
               "definition": "tile/link",
               "attributes": {
                 "href": "{!$attrs.recordUrl}",
