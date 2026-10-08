@@ -218,7 +218,7 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
               <span className="break-all font-mono">{BASE + server}</span>
             </div>
           )}
-          {error && <div className="rounded-xl border border-err/30 bg-err/8 px-3 py-2 text-sm text-err">{error}</div>}
+          {error && <div className="rounded-xl border border-err/30 bg-err/10 px-3 py-2 text-sm text-err">{error}</div>}
           {!tool ? (
             <div className="py-16 text-center text-ink-3">
               {server ? "Pick a tool on the left." : "Pick or add an MCP server on the left. Tools marked UI return an MCP Apps widget (e.g. HXL)."}

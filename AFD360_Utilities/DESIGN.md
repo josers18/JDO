@@ -196,7 +196,7 @@ Two directional tint families on neutral ground, with one action color; all valu
 - **Derived** (no theme entry): `tint` = ground 60% into surface (hover fills, header strips, segmented controls); `console` = rail 92% into black with `console-ink` = white 86% into rail (SQL, payload and code blocks).
 
 ### Status
-- **ok** (success checks, connected), **live** (the live-session dot in the sidebar), **err** (errors, failed steps, Rejected). Status fills use low-alpha mixes (`err/8`, `ok/12`) with the full color only on the icon or text.
+- **ok** (success checks, connected), **live** (the live-session dot in the sidebar), **err** (errors, failed steps, Rejected). Status fills use low-alpha mixes (`err/10`, `ok/12`) with the full color only on the icon or text.
 
 ### Named Rules
 **The Two Lanes Rule.** Direction is always encoded by the sent/recv families and nothing else. Any new surface showing traffic to or from Salesforce uses `sent*` for outbound and `recv*` for inbound, with the same arrows and words.

@@ -45,7 +45,7 @@ export function MessageView({
     const isError = message.role === "error";
     return (
       <div
-        className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${isError ? "border border-err/30 bg-err/8 text-err" : "text-ink-3"}`}
+        className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm ${isError ? "border border-err/30 bg-err/10 text-err" : "text-ink-3"}`}
         {...hover}
       >
         {isError ? <AlertTriangle size={15} className="mt-0.5 shrink-0" /> : <CircleDot size={15} className="mt-0.5 shrink-0" />}

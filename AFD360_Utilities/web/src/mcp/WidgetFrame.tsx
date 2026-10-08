@@ -173,7 +173,7 @@ export function WidgetFrame({
   return (
     <div className="space-y-2">
       {/* HXL cards draw their own card chrome; other MCP Apps get a framed surface unless they opt out. */}
-      <div className={`overflow-hidden rounded-xl ${frameless || ui.prefersBorder === false ? "" : "border border-line bg-surface shadow-sm"}`}>
+      <div className={`overflow-hidden rounded-xl ${frameless || ui.prefersBorder === false ? "" : "border border-line bg-surface shadow-card"}`}>
         <div ref={hostRef} style={{ height }} />
       </div>
       <details className="rounded-xl border border-line bg-surface text-xs">

@@ -101,7 +101,7 @@ export function ApprovalCard({
                 {info ? (
                   <>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="h-2 w-2 rounded-full" style={{ background: `#${info.detail.sObjectInfo?.color ?? "94a3b8"}` }} />
+                      <span className="h-2 w-2 rounded-full bg-ink-3" style={info.detail.sObjectInfo?.color ? { background: `#${info.detail.sObjectInfo.color}` } : undefined} />
                       <span className="text-sm text-ink-3">{info.detail.sObjectInfo?.label}</span>
                       {info.isCreate ? (
                         <span className="text-sm font-semibold">New {info.detail.sObjectInfo?.label ?? "record"}</span>
