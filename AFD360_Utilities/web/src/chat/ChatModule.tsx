@@ -7,7 +7,7 @@ import { WirePanel } from "./WirePanel";
 import { TurnStats } from "./TurnStats";
 import { SourcesPanel } from "./SourcesPanel";
 import { citations } from "../../../shared/citations";
-import type { AppEvent, Conversation, ConversationSummary, OrgsResponse, Part, Tool } from "../../../shared/types";
+import type { AppEvent, Conversation, ConversationSummary, OrgsResponse, Part, Tool, WireEntry } from "../../../shared/types";
 
 interface Draft {
   progress: string[];
@@ -113,6 +113,19 @@ export function ChatModule({
   const sources = conv ? citations(conv.wire) : [];
 
   const reloadList = useCallback(() => api.conversations().then(setList), []);
+  // Upsert by id: a stream's wire entry is re-reported as it progresses.
+  const mergeWire = useCallback((entries: WireEntry[]) => {
+    setConv((c) => {
+      if (!c) return c;
+      const wire = [...c.wire];
+      for (const e of entries) {
+        const i = wire.findIndex((w) => w.id === e.id);
+        if (i >= 0) wire[i] = e;
+        else wire.push(e);
+      }
+      return { ...c, wire };
+    });
+  }, []);
   useEffect(() => {
     reloadList();
   }, [reloadList]);
@@ -191,13 +204,7 @@ export function ChatModule({
         turn,
         (e) => {
           if (e.type === "user-message") setConv((c) => (c ? { ...c, messages: [...c.messages, e.message] } : c));
-          else if (e.type === "wire")
-            setConv((c) => {
-              if (!c) return c;
-              const i = c.wire.findIndex((w) => w.id === e.entry.id);
-              const wire = i >= 0 ? c.wire.map((w, j) => (j === i ? e.entry : w)) : [...c.wire, e.entry];
-              return { ...c, wire };
-            });
+          else if (e.type === "wire") mergeWire([e.entry]);
           else setDraft((d) => (d ? applyEvent(d, e) : d));
         },
         controller.signal,
@@ -490,7 +497,7 @@ export function ChatModule({
             </div>
           ) : panelTab === "stats" ? (
             <div className="mt-2 min-h-0 flex-1 border-t border-line">
-              <TurnStats orgId={conv.orgId} wire={conv.wire} highlightTurn={hoverTurn} />
+              <TurnStats conversationId={conv.id} wire={conv.wire} highlightTurn={hoverTurn} onWire={mergeWire} />
             </div>
           ) : (
             <div className="mt-2 min-h-0 flex-1 border-t border-line">

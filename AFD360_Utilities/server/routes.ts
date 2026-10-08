@@ -7,7 +7,7 @@ import { endSession, listAgents, startSession, streamMessage } from "./agentApi.
 import { TurnNormalizer } from "./normalize.ts";
 import { turnUsage } from "./usage.ts";
 import { SfError, forgetToken, getToken, sfJson } from "./salesforce.ts";
-import type { AppEvent, Conversation, CreateConversationInput, Message, OrgInput, Part, WireEntry } from "../shared/types.ts";
+import type { AppEvent, Conversation, CreateConversationInput, Message, OrgInput, Part, TurnUsageResult, WireEntry } from "../shared/types.ts";
 
 export const api = Router();
 
@@ -66,11 +66,25 @@ api.post("/orgs/:id/test", wrap(async (req) => {
 
 // ── Agents ────────────────────────────────────────────────────────────
 api.get("/orgs/:id/agents", wrap((req) => listAgents(String(req.params.id))));
-api.get("/orgs/:id/usage/:traceId", wrap((req) => turnUsage(String(req.params.id), String(req.params.traceId))));
 
 // ── Conversations ─────────────────────────────────────────────────────
 api.get("/conversations", wrap(() => store.listConversations()));
 api.get("/conversations/:id", wrap((req) => store.getConversation(String(req.params.id))));
+
+// One turn's token usage from Data 360; the lookup is logged to the conversation's wire.
+api.get("/conversations/:id/usage/:traceId", wrap(async (req): Promise<TurnUsageResult> => {
+  const id = String(req.params.id);
+  const turn = Number.isInteger(Number(req.query.turn)) ? Number(req.query.turn) : null;
+  const entries = new Map<string, WireEntry>();
+  const usage = await turnUsage(store.getConversation(id).orgId, String(req.params.traceId), (w) => entries.set(w.id, w), turn);
+  // Re-read before saving; skip while a turn is in flight, since that turn saves its own copy when it ends.
+  if (!busy.has(id)) {
+    const c = store.getConversation(id);
+    for (const w of entries.values()) store.upsertWire(c, w);
+    store.saveConversation(c);
+  }
+  return { usage, wire: [...entries.values()] };
+}));
 
 async function openSession(c: Conversation, turn: number) {
   const started = await startSession(c.orgId, c.agentId, c.bypassUser, (w) => store.upsertWire(c, w));

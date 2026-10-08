@@ -15,7 +15,17 @@ function pickStream(wire: WireEntry[], turn: number | null) {
   return [...pool].sort((a, b) => a.startedAt.localeCompare(b.startedAt)).at(-1);
 }
 
-export function TurnStats({ orgId, wire, highlightTurn }: { orgId: string; wire: WireEntry[]; highlightTurn: number | null }) {
+export function TurnStats({
+  conversationId,
+  wire,
+  highlightTurn,
+  onWire,
+}: {
+  conversationId: string;
+  wire: WireEntry[];
+  highlightTurn: number | null;
+  onWire: (entries: WireEntry[]) => void;
+}) {
   const entry = pickStream(wire, highlightTurn);
   if (!entry) return <p className="p-6 text-center text-sm text-ink-3">Stats appear once the agent answers a turn.</p>;
   const s = turnStats(entry);
@@ -51,7 +61,7 @@ export function TurnStats({ orgId, wire, highlightTurn }: { orgId: string; wire:
           </div>
         )}
 
-        {s.traceId && entry.durationMs !== undefined && <UsageRow orgId={orgId} traceId={s.traceId} />}
+        {s.traceId && entry.durationMs !== undefined && <UsageRow conversationId={conversationId} traceId={s.traceId} turn={s.turn} onWire={onWire} />}
 
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           <span>
@@ -112,27 +122,44 @@ function IdRow({ label, value }: { label: string; value: string | null }) {
 const fmt = (n: number) => n.toLocaleString();
 const usageCache = new Map<string, TurnUsage>(); // traceId -> usage, once Data 360 has it
 const pollStarted = new Map<string, number>(); // traceId -> when we first found no rows
+const inFlight = new Set<string>(); // one lookup per trace at a time, so the wire logs no duplicates
 const POLL_EVERY_MS = 30_000;
 const POLL_FOR_MS = 10 * 60_000;
 
 // Tokens per turn from Data 360 usage telemetry, which lands minutes after the turn.
-function UsageRow({ orgId, traceId }: { orgId: string; traceId: string }) {
+function UsageRow({
+  conversationId,
+  traceId,
+  turn,
+  onWire,
+}: {
+  conversationId: string;
+  traceId: string;
+  turn: number | null;
+  onWire: (entries: WireEntry[]) => void;
+}) {
   const [usage, setUsage] = useState<TurnUsage | null>(() => usageCache.get(traceId) ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
+    if (inFlight.has(traceId)) return;
+    inFlight.add(traceId);
     setLoading(true);
     setError(null);
     api
-      .usage(orgId, traceId)
-      .then((u) => {
+      .usage(conversationId, traceId, turn)
+      .then(({ usage: u, wire }) => {
+        onWire(wire);
         if (u.rows > 0) usageCache.set(traceId, u);
         setUsage(u);
       })
       .catch((e) => setError((e as Error).message))
-      .finally(() => setLoading(false));
-  }, [orgId, traceId]);
+      .finally(() => {
+        inFlight.delete(traceId);
+        setLoading(false);
+      });
+  }, [conversationId, traceId, turn, onWire]);
 
   useEffect(() => {
     const cached = usageCache.get(traceId);

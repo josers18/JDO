@@ -162,6 +162,12 @@ export interface HxlCard {
 }
 
 // Token usage for one Agent API turn, from Data 360's AiAgentGenerativeAiUsage_std__dlm (lands minutes after the turn).
+// Usage plus the wire entries the lookup made, for the conversation's Wire tab.
+export interface TurnUsageResult {
+  usage: TurnUsage;
+  wire: WireEntry[];
+}
+
 export interface TurnUsage {
   traceId: string;
   rows: number; // 0 = not in Data 360 yet

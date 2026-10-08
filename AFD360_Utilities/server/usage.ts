@@ -1,11 +1,12 @@
 import { getOrgCredentials } from "./orgStore.ts";
 import { restUrl, sfJson } from "./salesforce.ts";
+import type { WireSink } from "./wire.ts";
 import type { TurnUsage } from "../shared/types.ts";
 
 const TRACE_ID = /^[0-9a-f]{16,64}$/i; // it's interpolated into SQL, so only hex gets through
 
 // Sums one turn's LLM calls from Agentforce usage telemetry in Data 360, keyed on the Agent API traceId.
-export async function turnUsage(orgId: string, traceId: string): Promise<TurnUsage> {
+export async function turnUsage(orgId: string, traceId: string, wire?: WireSink, turn?: number | null): Promise<TurnUsage> {
   if (!TRACE_ID.test(traceId)) throw new Error("Invalid traceId");
   const { myDomain } = getOrgCredentials(orgId);
   const sql =
@@ -17,6 +18,8 @@ export async function turnUsage(orgId: string, traceId: string): Promise<TurnUsa
     method: "POST",
     url: restUrl(myDomain, "/ssot/query-sql"),
     body: { sql },
+    turn,
+    wire,
   });
   return summarizeUsage(traceId, res.data ?? []);
 }

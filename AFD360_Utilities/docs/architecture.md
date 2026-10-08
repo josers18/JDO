@@ -64,7 +64,7 @@ resolver and generated cards).
   `AiAgentGenerativeAiUsage_std__dlm` by `TelemetryTraceIdentifier__c` (= the turn's `traceId`) and shows total,
   input and output tokens, LLM calls, and tokens per model, each with a provider mark (`ProviderIcon.tsx`; OpenAI,
   Anthropic and Gemini marks from LobeHub Icons, MIT). Telemetry lands minutes after the turn; until then the row
-  re-checks every 30 s for up to 10 minutes.
+  re-checks every 30 s for up to 10 minutes. Each lookup is logged in the Wire tab under the turn it belongs to.
 - **Sources tab** (next to Wire, `shared/citations.ts`): every `citedReferences` item from the conversation's
   Inform messages, as chips grouped by turn. The item shape isn't documented, so each chip shows the first field
   that looks like a title or a link, and expands to the raw item. No finsdc3 agent has returned a citation yet.
@@ -82,8 +82,7 @@ resolver and generated cards).
 |---|---|
 | `/api/orgs*` | Org profiles, test, activate |
 | `/api/orgs/:id/agents` | Agent list (BotDefinition and Agent API support) |
-| `/api/conversations*` | Create (starts a session and warms HXL), list, get, delete; `messages` and `confirm` stream a turn over SSE |
-| `/api/orgs/:id/usage/:traceId` | One turn's LLM token usage from Data 360 (`server/usage.ts`) |
+| `/api/conversations*` | Create (starts a session and warms HXL), list, get, delete; `messages` and `confirm` stream a turn over SSE; `usage/:traceId` returns a turn's Data 360 token usage (`server/usage.ts`) and logs the lookup to the conversation's wire |
 | `/api/mcp/connect`, `/call`, `/app-call`, `/read` | Hosted MCP client and MCP Apps host proxy |
 | `/api/mcp/hxl`, `/hxl-runtime` | HXL cards for an agent action output, and the HXL runtime page |
 
