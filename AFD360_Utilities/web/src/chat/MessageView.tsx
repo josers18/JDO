@@ -6,6 +6,25 @@ import type { Message, Part, Tool } from "../../../shared/types";
 import { ApprovalCard, type ConfirmDecision } from "./ApprovalCard";
 import { HxlOutput } from "./HxlCard";
 
+// Agents write a single newline to mean a line break, and some put <br> in table cells: render both as breaks.
+// Any other raw HTML stays literal text; it is never parsed as HTML.
+type MdNode = { type: string; value?: string; children?: MdNode[] };
+const BR = /^<br\s*\/?>$/i;
+function remarkLineBreaks() {
+  const walk = (node: MdNode) => {
+    if (!node.children) return;
+    node.children = node.children.flatMap((c): MdNode[] => {
+      if (c.type === "html" && BR.test(c.value!.trim())) return node.type === "root" ? [] : [{ type: "break" }];
+      if (c.type === "text" && c.value!.includes("\n"))
+        return c.value!.split("\n").flatMap((v, i) => [...(i ? [{ type: "break" }] : []), ...(v ? [{ type: "text", value: v }] : [])]);
+      walk(c);
+      return [c];
+    });
+  };
+  return walk;
+}
+const REMARK = [remarkGfm, remarkLineBreaks];
+
 const clock = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
@@ -50,7 +69,7 @@ export function MessageView({
       >
         {isError ? <AlertTriangle size={15} className="mt-0.5 shrink-0" /> : <CircleDot size={15} className="mt-0.5 shrink-0" />}
         <div className="prose prose-sm max-w-none text-inherit [&_p]:my-0">
-          <ReactMarkdown>{message.parts.map((p) => (p.kind === "text" ? p.markdown : "")).join("")}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={REMARK}>{message.parts.map((p) => (p.kind === "text" ? p.markdown : "")).join("")}</ReactMarkdown>
         </div>
       </div>
     );
@@ -213,7 +232,7 @@ function Markdown({ text, myDomain }: { text: string; myDomain: string }) {
   return (
     <div className="prose max-w-none text-[15px] leading-relaxed prose-p:my-2 prose-table:text-sm prose-th:bg-tint prose-th:px-2 prose-td:px-2">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={REMARK}
         components={{
           // Agent links are org-relative (/lightning/r/...): point them at the org, open in a new tab.
           a: ({ href, children }) => (
