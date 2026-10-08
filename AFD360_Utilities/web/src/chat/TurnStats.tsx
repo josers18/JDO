@@ -120,6 +120,9 @@ function IdRow({ label, value }: { label: string; value: string | null }) {
 
 const fmt = (n: number) => n.toLocaleString();
 const usageCache = new Map<string, TurnUsage>(); // traceId -> usage, once Data 360 has it
+const pollStarted = new Map<string, number>(); // traceId -> when we first found no rows
+const POLL_EVERY_MS = 30_000;
+const POLL_FOR_MS = 10 * 60_000;
 
 // Tokens per turn from Data 360 usage telemetry, which lands minutes after the turn.
 function UsageRow({ orgId, traceId }: { orgId: string; traceId: string }) {
@@ -146,6 +149,16 @@ function UsageRow({ orgId, traceId }: { orgId: string; traceId: string }) {
     if (!cached) load();
   }, [traceId, load]);
 
+  // While Data 360 has no rows yet, check again every 30s for up to 10 minutes.
+  const waiting = !!usage && usage.rows === 0 && !error;
+  if (waiting && !pollStarted.has(traceId)) pollStarted.set(traceId, Date.now());
+  const polling = waiting && Date.now() - pollStarted.get(traceId)! < POLL_FOR_MS;
+  useEffect(() => {
+    if (!polling || loading) return;
+    const t = setTimeout(load, POLL_EVERY_MS);
+    return () => clearTimeout(t);
+  }, [polling, loading, load]);
+
   const retry = (
     <button onClick={load} disabled={loading} title="Check Data 360 again" className="rounded-md p-0.5 text-ink-3 hover:bg-tint hover:text-ink disabled:opacity-40">
       <RotateCcw size={12} className={loading ? "animate-spin" : ""} />
@@ -163,7 +176,10 @@ function UsageRow({ orgId, traceId }: { orgId: string; traceId: string }) {
       ) : !usage ? (
         <p className="text-ink-3">{loading ? "Looking up…" : "—"}</p>
       ) : usage.rows === 0 ? (
-        <p className="text-ink-3">Not in Data 360 yet. Usage telemetry usually lands within minutes of the turn.</p>
+        <p className="text-ink-3">
+          Not in Data 360 yet. Usage telemetry usually lands within minutes of the turn.{" "}
+          {polling ? "Checking every 30s." : "Stopped checking after 10 minutes."}
+        </p>
       ) : (
         <div className="space-y-1">
           <p>
