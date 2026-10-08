@@ -184,7 +184,12 @@ function flattenRecord(o: Attrs): { title?: string; subtitle?: string; fields: [
   return { title: String(o.title ?? ""), subtitle: (o.sObjectInfo as Attrs | undefined)?.label as string | undefined, fields };
 }
 
-function table(caption: string, rows: Attrs[]): Node | null {
+function table(caption: string, items: Attrs[]): Node | null {
+  // recordInfoType rows keep their fields under data; flatten them to label -> display value like single records.
+  const rows = items.map((r) => {
+    const rec = flattenRecord(r);
+    return rec ? (Object.fromEntries(rec.fields) as Attrs) : r;
+  });
   const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))].filter((k) => rows.some((r) => isPrimitive(r[k]) && !isIdKey(k, r[k])));
   if (!keys.length) return null;
   return {

@@ -76,4 +76,24 @@ describe("autoCard", () => {
     });
     expect(texts(card)).toEqual(["Joanna Ball", "Lead", "Rating", "Hot"]);
   });
+
+  it("tables a list of recordInfoType records by their data fields", () => {
+    const opp = (name: string, amount: string, stage: string) => ({
+      id: "006am00000LcOy6AAF",
+      recordTypeId: "012am000001mrZgAAI",
+      sObjectInfo: { apiName: "Opportunity", label: "Opportunity" },
+      title: name,
+      data: {
+        Id: { value: "006am00000LcOy6AAF", label: "Opportunity ID", displayValue: null },
+        Name: { value: name, label: "Name", displayValue: null },
+        Amount: { value: 5257150000, label: "Amount", displayValue: amount },
+        StageName: { value: stage, label: "Stage", displayValue: stage },
+      },
+    });
+    const card = autoCard("result", [opp("Innovation Pipeline", "USD 5,257,150,000.00", "Qualification"), opp("Cumulus Loan", "USD 1.00", "Closed Won")]);
+    const find = (n: any): any => (n.definition === "tile/table" ? n : (n.children ?? []).map(find).find(Boolean));
+    const t = find(card).attributes;
+    expect(t.columns.map((c: any) => c.header)).toEqual(["Name", "Amount", "Stage"]);
+    expect(Object.values(t.rows[0])).toEqual(["Innovation Pipeline", "USD 5,257,150,000.00", "Qualification"]);
+  });
 });
