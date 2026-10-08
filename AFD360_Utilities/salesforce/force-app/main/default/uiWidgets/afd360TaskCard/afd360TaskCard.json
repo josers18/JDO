@@ -12,21 +12,38 @@
           },
           "children": [
             {
-              "definition": "tile/container",
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "md",
+                "align": "start",
+                "isWrapped": false
+              },
               "children": [
                 {
-                  "definition": "tile/text",
+                  "definition": "tile/avatar",
                   "attributes": {
-                    "text": "{!$attrs.subject}",
-                    "variant": "h2"
+                    "iconName": "list-checks",
+                    "shape": "rounded",
+                    "size": "lg",
+                    "alt": "record"
                   }
                 },
                 {
-                  "definition": "tile/row",
+                  "definition": "tile/column",
                   "attributes": {
-                    "gap": "sm"
+                    "gap": "none",
+                    "align": "start",
+                    "width": "stretch"
                   },
                   "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.subject}",
+                        "variant": "h3",
+                        "weight": "semibold"
+                      }
+                    },
                     {
                       "definition": "tile/text",
                       "attributes": {
@@ -42,7 +59,8 @@
             {
               "definition": "tile/row",
               "attributes": {
-                "gap": "sm"
+                "gap": "sm",
+                "align": "center"
               },
               "children": [
                 {
@@ -65,109 +83,103 @@
               }
             },
             {
-              "definition": "tile/container",
+              "definition": "tile/separator",
+              "meta": {
+                "if": "{!$attrs.created}"
+              }
+            },
+            {
+              "definition": "tile/row",
               "attributes": {
-                "variant": "emphasis"
+                "gap": "lg",
+                "align": "start"
               },
               "children": [
                 {
                   "definition": "tile/column",
                   "attributes": {
-                    "gap": "sm",
-                    "align": "start"
+                    "gap": "xs",
+                    "align": "start",
+                    "width": "stretch"
                   },
                   "children": [
                     {
-                      "definition": "tile/row",
+                      "definition": "tile/text",
                       "attributes": {
-                        "gap": "sm"
-                      },
-                      "children": [
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "Due",
-                            "variant": "body",
-                            "weight": "semibold"
-                          }
-                        },
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "{!$attrs.dueDate}",
-                            "variant": "body"
-                          }
-                        }
-                      ]
+                        "text": "Due",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
                     },
                     {
-                      "definition": "tile/row",
+                      "definition": "tile/text",
                       "attributes": {
-                        "gap": "sm"
-                      },
-                      "children": [
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "Related to",
-                            "variant": "body",
-                            "weight": "semibold"
-                          }
-                        },
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "{!$attrs.relatedTo}",
-                            "variant": "body"
-                          }
-                        }
-                      ]
+                        "text": "{!$attrs.dueDate}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
                     },
                     {
-                      "definition": "tile/row",
+                      "definition": "tile/text",
                       "attributes": {
-                        "gap": "sm"
-                      },
-                      "children": [
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "Name",
-                            "variant": "body",
-                            "weight": "semibold"
-                          }
-                        },
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "{!$attrs.name}",
-                            "variant": "body"
-                          }
-                        }
-                      ]
+                        "text": "Related to",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
                     },
                     {
-                      "definition": "tile/row",
+                      "definition": "tile/text",
                       "attributes": {
-                        "gap": "sm"
-                      },
-                      "children": [
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "Assigned to",
-                            "variant": "body",
-                            "weight": "semibold"
-                          }
-                        },
-                        {
-                          "definition": "tile/text",
-                          "attributes": {
-                            "text": "{!$attrs.assignedTo}",
-                            "variant": "body"
-                          }
-                        }
-                      ]
+                        "text": "{!$attrs.relatedTo}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "xs",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Name",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.name}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Assigned to",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.assignedTo}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
                     }
                   ]
                 }
@@ -177,31 +189,38 @@
               }
             },
             {
-              "definition": "tile/button",
+              "definition": "tile/row",
               "attributes": {
-                "label": "Mark complete",
-                "variant": "secondary",
-                "actions": {
-                  "click": [
-                    {
-                      "definition": "action/sendMessage",
-                      "attributes": {
-                        "content": "Mark the task \"{!$attrs.subject}\" ({!$attrs.taskId}) as Completed"
-                      }
+                "gap": "md",
+                "align": "center"
+              },
+              "children": [
+                {
+                  "definition": "tile/button",
+                  "attributes": {
+                    "label": "Mark complete",
+                    "variant": "secondary",
+                    "iconName": "check-circle",
+                    "actions": {
+                      "click": [
+                        {
+                          "definition": "action/sendMessage",
+                          "attributes": {
+                            "content": "Mark the task \"{!$attrs.subject}\" ({!$attrs.taskId}) as Completed"
+                          }
+                        }
+                      ]
                     }
-                  ]
+                  }
+                },
+                {
+                  "definition": "tile/link",
+                  "attributes": {
+                    "href": "{!$attrs.recordUrl}",
+                    "text": "Open in Salesforce"
+                  }
                 }
-              },
-              "meta": {
-                "if": "{!$attrs.created}"
-              }
-            },
-            {
-              "definition": "tile/link",
-              "attributes": {
-                "href": "{!$attrs.recordUrl}",
-                "text": "Open in Salesforce"
-              },
+              ],
               "meta": {
                 "if": "{!$attrs.created}"
               }

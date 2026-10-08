@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AppBridge, PostMessageTransport } from "@modelcontextprotocol/ext-apps/app-bridge";
+import type { McpUiStyles } from "@modelcontextprotocol/ext-apps";
 import { api, type McpUi } from "../api";
+import { widgetHostStyles } from "../themes";
 import type { WireEntry } from "../../../shared/types";
 
 export interface WidgetLogEntry {
@@ -28,6 +30,7 @@ export function WidgetFrame({
   onWire,
   onSendMessage,
   label,
+  frameless,
 }: {
   orgId: string;
   url: string;
@@ -39,12 +42,21 @@ export function WidgetFrame({
   onSendMessage?: (text: string) => boolean;
   /** What the frame shows (e.g. the HXL card's type → widget); defaults to the UI resource URI. */
   label?: string;
+  /** Skip the host frame (the widget renders its own card). */
+  frameless?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   // Latest handler, read at click time, so a new callback doesn't re-mount the widget.
   const sendRef = useRef(onSendMessage);
   sendRef.current = onSendMessage;
   const acceptsMessages = Boolean(onSendMessage);
+  // Re-render widgets when the app theme changes (the theme picker sets <html data-theme>).
+  const [themeId, setThemeId] = useState(() => document.documentElement.dataset.theme);
+  useEffect(() => {
+    const mo = new MutationObserver(() => setThemeId(document.documentElement.dataset.theme));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
+  }, []);
   const [height, setHeight] = useState(240);
   const [status, setStatus] = useState("Loading sandbox…");
   const [log, setLog] = useState<WidgetLogEntry[]>([]);
@@ -56,6 +68,7 @@ export function WidgetFrame({
     const iframe = document.createElement("iframe");
     iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
     iframe.style.cssText = "width:100%;height:100%;border:0;background:transparent";
+    const hostStyles = widgetHostStyles();
     let bridge: AppBridge | null = null;
     let disposed = false;
 
@@ -69,7 +82,10 @@ export function WidgetFrame({
         { openLinks: {}, serverTools: {}, serverResources: {}, logging: {}, ...(acceptsMessages ? { message: { text: {} } } : {}) },
         {
           hostContext: {
-            theme: "light",
+            // The widget takes on the app's active theme (colors, Archivo, radii) via the MCP Apps style variables.
+            theme: hostStyles.theme,
+            // Partial on purpose (the runtime merges over its defaults) and includes HXL-only keys beyond the standard set.
+            styles: { variables: hostStyles.variables as unknown as McpUiStyles },
             platform: "web",
             displayMode: "inline",
             availableDisplayModes: ["inline"],
@@ -150,13 +166,14 @@ export function WidgetFrame({
         iframe.remove();
       });
     };
-    // Re-mount only when a new result arrives.
+    // Re-mount only when a new result arrives or the app theme changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ui, result]);
+  }, [ui, result, themeId]);
 
   return (
     <div className="space-y-2">
-      <div className={`overflow-hidden rounded-xl bg-surface ${ui.prefersBorder === false ? "" : "border border-line shadow-sm"}`}>
+      {/* HXL cards draw their own card chrome; other MCP Apps get a framed surface unless they opt out. */}
+      <div className={`overflow-hidden rounded-xl ${frameless || ui.prefersBorder === false ? "" : "border border-line bg-surface shadow-sm"}`}>
         <div ref={hostRef} style={{ height }} />
       </div>
       <details className="rounded-xl border border-line bg-surface text-xs">

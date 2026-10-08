@@ -71,3 +71,61 @@ export function useTheme() {
   }, [id]);
   return [id, setId] as const;
 }
+
+// MCP Apps host styles for widgets (HXL cards): the active theme mapped onto the standardized --color-*, --font-*,
+// radius and shadow variables the HXL runtime reads from hostContext.styles.variables. Values must be literal
+// colors, since the widget runs in its own document.
+export function widgetHostStyles(): { theme: "light" | "dark"; variables: Record<string, string> } {
+  const t = find(document.documentElement.dataset.theme ?? null);
+  const k = tokens(t);
+  const mix = (a: string, b: string, pct: number) => `color-mix(in oklab, ${a} ${pct}%, ${b})`;
+  const soft = (c: string) => mix(c, k.surface, 14);
+  const tones = {
+    info: { soft: k["sent-chip"], text: k["sent-ink"], surface: k.sent, border: k["sent-line"], solid: k["sent-ink"] },
+    caution: { soft: k.recv, text: k["recv-ink"], surface: k.recv, border: k["recv-line"], solid: k["recv-ink"] },
+    warning: { soft: k.recv, text: k["recv-ink"], surface: k.recv, border: k["recv-line"], solid: k["recv-ink"] },
+    success: { soft: soft(k.ok), text: mix(k.ok, k.ink, 80), surface: soft(k.ok), border: mix(k.ok, k.surface, 40), solid: k.ok },
+    danger: { soft: soft(k.err), text: k.err, surface: soft(k.err), border: mix(k.err, k.surface, 40), solid: k.err },
+    discovery: { soft: k["sent-chip"], text: k["sent-ink"], surface: k.sent, border: k["sent-line"], solid: k["sent-ink"] },
+  };
+  const v: Record<string, string> = {
+    "--font-sans": '"Archivo Variable", ui-sans-serif, system-ui, sans-serif',
+    "--font-mono": '"JetBrains Mono Variable", ui-monospace, monospace',
+    "--color-background-primary": k.surface,
+    "--color-background-secondary": mix(k.ground, k.surface, 60),
+    "--color-background-tertiary": k.ground,
+    "--color-background-inverse": k.ink,
+    "--color-text-primary": k.ink,
+    "--color-text-secondary": k["ink-2"],
+    "--color-text-tertiary": k["ink-3"],
+    "--color-text-inverse": k.surface,
+    "--color-border-primary": k.line,
+    "--color-border-secondary": k.line,
+    "--color-border-tertiary": mix(k.line, k.surface, 60),
+    "--color-border-subtle": mix(k.line, k.surface, 60),
+    "--color-border-strong": k["ink-3"],
+    "--color-ring-primary": k.action,
+    "--color-background-primary-solid": k.action,
+    "--color-text-primary-solid": k["action-ink"],
+    "--color-background-secondary-soft": mix(k.ground, k.surface, 60),
+    "--color-text-secondary-soft": k["ink-2"],
+    "--border-radius-sm": "6px",
+    "--border-radius-md": "10px",
+    "--border-radius-lg": "14px",
+    "--border-radius-xl": "16px",
+    "--shadow-sm": "0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)",
+    "--shadow-md": "0 2px 6px rgb(15 23 36 / 0.08), 0 16px 40px rgb(15 23 36 / 0.14)",
+  };
+  for (const [tone, c] of Object.entries(tones)) {
+    v[`--color-background-${tone}-soft`] = c.soft;
+    v[`--color-background-${tone}-surface`] = c.surface;
+    v[`--color-background-${tone}-solid`] = c.solid;
+    v[`--color-text-${tone}`] = c.text;
+    v[`--color-text-${tone}-soft`] = c.text;
+    v[`--color-text-${tone}-surface`] = c.text;
+    v[`--color-border-${tone}-surface`] = c.border;
+    v[`--color-border-${tone}`] = c.border;
+    v[`--color-ring-${tone}`] = c.solid;
+  }
+  return { theme: t.dark ? "dark" : "light", variables: v };
+}

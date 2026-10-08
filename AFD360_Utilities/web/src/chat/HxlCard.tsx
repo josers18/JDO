@@ -86,5 +86,5 @@ function HxlFrame({
     _meta: { "salesforce/org_base_url": myDomain, "salesforce/uiMetadata": card.uiMetadata },
   }));
   const label = card.source === "widget" ? `HXL · ${card.type} → ${card.widget}` : `HXL · generated card${card.type ? ` · ${card.type}` : ""}`;
-  return <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} onSendMessage={onSend} label={label} />;
+  return <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} onSendMessage={onSend} label={label} frameless />;
 }

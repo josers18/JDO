@@ -1,4 +1,6 @@
+import path from "node:path";
 import express from "express";
+import { ROOT } from "./env.ts";
 
 // MCP Apps sandbox proxy: served on its own origin (port) so widget HTML never runs with the host's origin.
 // CSP comes from the widget's declared domains and is sent as an HTTP header (tamper-proof, unlike a meta tag).
@@ -43,6 +45,16 @@ const PAGE = `<!doctype html>
   var inner = document.createElement("iframe");
   inner.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms");
   document.body.appendChild(inner);
+  // The host passes --font-sans/--font-mono as "Archivo Variable"/"JetBrains Mono Variable"; serve those faces from
+  // this origin (font-src 'self') so the widget can actually use them.
+  function addFonts(doc) {
+    if (!doc || !doc.head) return;
+    var st = doc.createElement("style");
+    st.textContent =
+      "@font-face{font-family:'Archivo Variable';font-style:normal;font-display:swap;font-weight:100 900;src:url(" + OWN + "/fonts/archivo.woff2) format('woff2-variations')}" +
+      "@font-face{font-family:'JetBrains Mono Variable';font-style:normal;font-display:swap;font-weight:100 800;src:url(" + OWN + "/fonts/jetbrains-mono.woff2) format('woff2-variations')}";
+    doc.head.appendChild(st);
+  }
   var PERMS = { camera: "camera", microphone: "microphone", geolocation: "geolocation", clipboardWrite: "clipboard-write" };
   window.addEventListener("message", function (ev) {
     if (ev.source === window.parent) {
@@ -54,7 +66,7 @@ const PAGE = `<!doctype html>
         var allow = Object.keys(p.permissions || {}).map(function (k) { return PERMS[k]; }).filter(Boolean).join("; ");
         if (allow) inner.setAttribute("allow", allow);
         var doc = inner.contentDocument || (inner.contentWindow && inner.contentWindow.document);
-        if (doc) { doc.open(); doc.write(p.html || ""); doc.close(); } else { inner.srcdoc = p.html || ""; }
+        if (doc) { doc.open(); doc.write(p.html || ""); doc.close(); addFonts(doc); } else { inner.srcdoc = p.html || ""; inner.onload = function () { addFonts(inner.contentDocument); }; }
       } else if (inner.contentWindow) {
         inner.contentWindow.postMessage(d, "*");
       }
@@ -80,7 +92,17 @@ export function startSandbox(port: number) {
     res.setHeader("Cache-Control", "no-store");
     res.type("html").send(PAGE);
   });
-  app.use((_req, res) => res.status(404).send("Only the sandbox page is served here"));
+  const FONTS: Record<string, string> = {
+    "archivo.woff2": "@fontsource-variable/archivo/files/archivo-latin-wght-normal.woff2",
+    "jetbrains-mono.woff2": "@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2",
+  };
+  app.get("/fonts/:file", (req, res) => {
+    const rel = FONTS[req.params.file];
+    if (!rel) return res.status(404).end();
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.sendFile(path.join(ROOT, "node_modules", rel));
+  });
+  app.use((_req, res) => res.status(404).send("Only the sandbox page and its fonts are served here"));
   const host = process.env.HOST || "127.0.0.1";
   app.listen(port, host, () => console.log(`[sandbox] MCP Apps sandbox on http://${host}:${port}`));
 }
