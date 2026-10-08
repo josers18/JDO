@@ -75,6 +75,9 @@ export function useTheme() {
 // MCP Apps host styles for widgets (HXL cards): the active theme mapped onto the standardized --color-*, --font-*,
 // radius and shadow variables the HXL runtime reads from hostContext.styles.variables. Values must be literal
 // colors, since the widget runs in its own document.
+// The app's Card and Lift shadows, read from index.css (@theme static) so HXL cards share one source.
+const cssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 export function widgetHostStyles(): { theme: "light" | "dark"; variables: Record<string, string> } {
   const t = find(document.documentElement.dataset.theme ?? null);
   const k = tokens(t);
@@ -113,8 +116,8 @@ export function widgetHostStyles(): { theme: "light" | "dark"; variables: Record
     "--border-radius-md": "10px",
     "--border-radius-lg": "14px",
     "--border-radius-xl": "16px",
-    "--shadow-sm": "0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)",
-    "--shadow-md": "0 2px 6px rgb(15 23 36 / 0.08), 0 16px 40px rgb(15 23 36 / 0.14)",
+    "--shadow-sm": cssVar("--shadow-card"),
+    "--shadow-md": cssVar("--shadow-lift"),
   };
   for (const [tone, c] of Object.entries(tones)) {
     v[`--color-background-${tone}-soft`] = c.soft;
