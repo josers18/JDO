@@ -184,20 +184,38 @@ function flattenRecord(o: Attrs): { title?: string; subtitle?: string; fields: [
   return { title: String(o.title ?? ""), subtitle: (o.sObjectInfo as Attrs | undefined)?.label as string | undefined, fields };
 }
 
+const RECORD_URL = "_recordUrl"; // hidden row field the Name column links through (urlKey)
+const isRecordId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9]{15}([A-Za-z0-9]{3})?$/.test(v);
+
+// columnType is an object (lightning__linkColumnType etc.), not a bare string.
 function table(caption: string, items: Attrs[]): Node | null {
   // recordInfoType rows keep their fields under data; flatten them to label -> display value like single records.
   const rows = items.map((r) => {
     const rec = flattenRecord(r);
-    return rec ? (Object.fromEntries(rec.fields) as Attrs) : r;
+    if (!rec) return r;
+    const row = Object.fromEntries(rec.fields) as Attrs;
+    if (isRecordId(r.id)) row[RECORD_URL] = `{!$meta.env.orgUrl}/lightning/r/${r.id}/view`;
+    return row;
   });
-  const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))].filter((k) => rows.some((r) => isPrimitive(r[k]) && !isIdKey(k, r[k])));
+  const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))]
+    .filter((k) => k !== RECORD_URL && rows.some((r) => isPrimitive(r[k]) && !isIdKey(k, r[k])))
+    .slice(0, 8);
   if (!keys.length) return null;
+  const nameKey = items.map((r) => (r.data as Record<string, { label?: string }> | undefined)?.Name?.label).find(Boolean) ?? keys[0];
+  const linked = rows.some((r) => r[RECORD_URL]);
   return {
     definition: "tile/table",
     attributes: {
       caption,
-      columns: keys.slice(0, 8).map((k) => ({ key: k, header: humanize(k), columnType: rows.some((r) => isUrl(r[k])) ? "link" : undefined })),
-      rows: rows.slice(0, 25).map((r) => Object.fromEntries(keys.slice(0, 8).map((k) => [k, show(r[k])]))),
+      columns: keys.map((k) =>
+        linked && k === nameKey
+          ? { key: k, header: humanize(k), columnType: { type: "link", urlKey: RECORD_URL } }
+          : { key: k, header: humanize(k), columnType: rows.some((r) => isUrl(r[k])) ? { type: "link" } : undefined },
+      ),
+      rows: rows.slice(0, 25).map((r) => ({
+        ...Object.fromEntries(keys.map((k) => [k, show(r[k])])),
+        ...(r[RECORD_URL] ? { [RECORD_URL]: r[RECORD_URL] } : {}),
+      })),
       appearance: "striped",
       size: "sm",
     },

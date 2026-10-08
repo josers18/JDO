@@ -94,6 +94,18 @@ describe("autoCard", () => {
     const find = (n: any): any => (n.definition === "tile/table" ? n : (n.children ?? []).map(find).find(Boolean));
     const t = find(card).attributes;
     expect(t.columns.map((c: any) => c.header)).toEqual(["Name", "Amount", "Stage"]);
-    expect(Object.values(t.rows[0])).toEqual(["Innovation Pipeline", "USD 5,257,150,000.00", "Qualification"]);
+    expect(t.rows[0]).toMatchObject({ Name: "Innovation Pipeline", Amount: "USD 5,257,150,000.00", Stage: "Qualification" });
+  });
+
+  it("links a record table's Name column to the record", () => {
+    const card = autoCard("result", [
+      { id: "006am00000LcOy6AAF", title: "Deal", data: { Name: { label: "Name", value: "Deal" }, Amount: { label: "Amount", value: 5 } } },
+    ]);
+    const resolved = resolveTree(card, {}, "https://acme.my.salesforce.com") as any;
+    const find = (n: any): any => (n.definition === "tile/table" ? n : (n.children ?? []).map(find).find(Boolean));
+    const t = find(resolved).attributes;
+    expect(t.columns[0]).toMatchObject({ key: "Name", columnType: { type: "link", urlKey: "_recordUrl" } });
+    expect(t.columns.map((c: any) => c.key)).toEqual(["Name", "Amount"]);
+    expect(t.rows[0]._recordUrl).toBe("https://acme.my.salesforce.com/lightning/r/006am00000LcOy6AAF/view");
   });
 });
