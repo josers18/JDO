@@ -131,7 +131,7 @@ export function AgentGallery({
                     isSelected
                       ? "border-sent-ink ring-2 ring-sent-line"
                       : ok
-                        ? "border-line hover:border-line"
+                        ? "border-line hover:border-ink-3"
                         : "cursor-not-allowed border-line opacity-50"
                   }`}
                 >
