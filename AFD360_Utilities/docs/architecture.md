@@ -10,7 +10,7 @@ visual system is in `../DESIGN.md`, and HXL is covered in [hxl.md](hxl.md).
 |---|---|
 | Runtime | `npm run dev` runs Vite (:5173), which proxies `/api` to Express (:3001), plus the widget sandbox on its own origin (:3002). All of them bind to loopback only. `npm run build && npm start` runs one Express process that serves `web/dist` (the Heroku shape). |
 | Stack | Server: Express 5 + TypeScript, run with tsx watch. Web: Vite + React 19 + TypeScript + Tailwind v4. Shared types live in `shared/`. Tests use vitest. |
-| Auth to Salesforce | One External Client App per org, using OAuth client credentials. The token is cached per org and fetched again on a 401. The same token is used for the Agent API, hosted MCP (`mcp_api` scope), REST, Tooling and SOAP Metadata. |
+| Auth to Salesforce | One External Client App per org, using OAuth client credentials. The token is cached per org. On a 401 the app fetches a fresh token and retries, twice: the second retry waits 1.5 s first. All of an org's tokens share one Salesforce session, and right after that session times out (e.g. overnight) a fresh token can still be rejected with `INVALID_JWT_FORMAT`. The same token is used for the Agent API, hosted MCP (`mcp_api` scope), REST, Tooling and SOAP Metadata. |
 | Org storage | `data/orgs.json` (gitignored). Client secrets are AES-256-GCM encrypted with `AFD360_MASTER_KEY` from `.env`, which is generated on first run. Secrets are never sent to the browser. |
 | App auth | None while local. **Must be added before any Heroku deploy.** |
 | Sessions | One Agent API session per conversation, persisted (session id + next sequenceId) so it survives reloads and restarts. Marked **expired** when the API rejects it; "New session" reconnects. |
