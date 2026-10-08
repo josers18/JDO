@@ -190,21 +190,36 @@ const isHidden = (k: string) => k === RECORD_URL || k.startsWith(CURRENCY);
 const isRecordId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9]{15}([A-Za-z0-9]{3})?$/.test(v);
 
 // columnType is an object (lightning__linkColumnType etc.), not a bare string.
+// Typed record fields: the column type the renderer formats, and the raw value it expects (null keeps the display value).
+const TYPED: Record<string, { columnType: Attrs; raw: (v: unknown) => string | null }> = {
+  Currency: { columnType: { type: "number", format: "currency" }, raw: (v) => (typeof v === "number" ? String(v) : null) },
+  // Salesforce percents are 0-100; the renderer's percent format expects a fraction.
+  Percent: { columnType: { type: "number", format: "percent" }, raw: (v) => (typeof v === "number" ? String(Number((v / 100).toPrecision(12))) : null) },
+  Double: { columnType: { type: "number" }, raw: (v) => (typeof v === "number" ? String(v) : null) },
+  Int: { columnType: { type: "number" }, raw: (v) => (typeof v === "number" ? String(v) : null) },
+  Long: { columnType: { type: "number" }, raw: (v) => (typeof v === "number" ? String(v) : null) },
+  // A bare ISO date parses as UTC midnight (a day early west of UTC); with a time and no zone it's local midnight.
+  Date: { columnType: { type: "date" }, raw: (v) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T00:00:00` : null) },
+  DateTime: { columnType: { type: "date", format: "datetime" }, raw: (v) => (typeof v === "string" ? v : null) },
+};
+
 function table(caption: string, items: Attrs[]): Node | null {
   // recordInfoType rows keep their fields under data; flatten them to label -> display value like single records.
-  // Currency fields keep the raw number instead, with the ISO code from the display value ("USD 5,257,…").
-  const currencyCols = new Set<string>();
+  // Typed fields keep the raw value instead; currencies add the ISO code from the display value ("USD 5,257,…").
+  const typedCols = new Map<string, string>(); // label -> dataType
   const rows = items.map((r) => {
     const rec = flattenRecord(r);
     if (!rec) return r;
     const row = Object.fromEntries(rec.fields) as Attrs;
     for (const [k, f] of Object.entries(r.data as Record<string, { label?: string; value?: unknown; displayValue?: unknown; dataType?: string }>)) {
-      if (f.dataType !== "Currency") continue;
+      const typed = f.dataType ? TYPED[f.dataType] : undefined;
+      if (!typed) continue;
       const label = f.label ?? humanize(k);
-      currencyCols.add(label);
-      if (typeof f.value !== "number") continue;
-      row[label] = String(f.value);
-      const code = /^([A-Z]{3})\b/.exec(String(f.displayValue ?? ""))?.[1];
+      typedCols.set(label, f.dataType!);
+      const raw = typed.raw(f.value);
+      if (raw === null) continue;
+      row[label] = raw;
+      const code = f.dataType === "Currency" ? /^([A-Z]{3})\b/.exec(String(f.displayValue ?? ""))?.[1] : undefined;
       if (code) row[CURRENCY + label] = code;
     }
     if (isRecordId(r.id)) row[RECORD_URL] = `{!$meta.env.orgUrl}/lightning/r/${r.id}/view`;
@@ -223,13 +238,8 @@ function table(caption: string, items: Attrs[]): Node | null {
       columns: keys.map((k) =>
         linked && k === nameKey
           ? { key: k, header: humanize(k), columnType: { type: "link", urlKey: RECORD_URL } }
-          : currencyCols.has(k)
-            ? {
-                key: k,
-                header: humanize(k),
-                align: "right",
-                columnType: { type: "number", format: "currency", ...(rows.some((r) => r[CURRENCY + k]) ? { currencyCodeKey: CURRENCY + k } : {}) },
-              }
+          : typedCols.has(k)
+            ? typedColumn(k, TYPED[typedCols.get(k)!].columnType, rows)
             : { key: k, header: humanize(k), columnType: rows.some((r) => isUrl(r[k])) ? { type: "link" } : undefined },
       ),
       rows: rows.slice(0, 25).map((r) => ({
@@ -240,6 +250,11 @@ function table(caption: string, items: Attrs[]): Node | null {
       size: "sm",
     },
   };
+}
+
+function typedColumn(k: string, columnType: Attrs, rows: Attrs[]) {
+  const currencyCodeKey = columnType.format === "currency" && rows.some((r) => r[CURRENCY + k]) ? { currencyCodeKey: CURRENCY + k } : {};
+  return { key: k, header: humanize(k), ...(columnType.type === "number" ? { align: "right" } : {}), columnType: { ...columnType, ...currencyCodeKey } };
 }
 
 export function autoCard(key: string, data: unknown): Node {

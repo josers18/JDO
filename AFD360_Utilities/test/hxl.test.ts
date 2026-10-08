@@ -121,6 +121,38 @@ describe("autoCard", () => {
     expect(t.rows[2].Amount).toBe("—");
   });
 
+  it("types Date, DateTime, Percent and number fields from the raw value", () => {
+    const card = autoCard("result", [
+      {
+        id: "006am00000LcOy6AAF",
+        title: "Deal",
+        data: {
+          Name: { label: "Name", value: "Deal" },
+          CloseDate: { label: "Close Date", value: "2026-07-29", displayValue: "7/29/2026", dataType: "Date" },
+          LastActivity: { label: "Last Activity", value: "2026-07-29T14:30:00.000Z", displayValue: "7/29/2026, 2:30 PM", dataType: "DateTime" },
+          Probability: { label: "Probability (%)", value: 14.3, displayValue: "14.3%", dataType: "Percent" },
+          Quantity: { label: "Quantity", value: 1200.5, displayValue: "1,200.5", dataType: "Double" },
+          Seats: { label: "Seats", value: 40, displayValue: "40", dataType: "Int" },
+        },
+      },
+    ]);
+    const find = (n: any): any => (n.definition === "tile/table" ? n : (n.children ?? []).map(find).find(Boolean));
+    const t = find(card).attributes;
+    const col = (key: string) => t.columns.find((c: any) => c.key === key);
+    expect(col("Close Date")).toEqual({ key: "Close Date", header: "Close Date", columnType: { type: "date" } });
+    expect(col("Last Activity").columnType).toEqual({ type: "date", format: "datetime" });
+    expect(col("Probability (%)")).toEqual({ key: "Probability (%)", header: "Probability (%)", align: "right", columnType: { type: "number", format: "percent" } });
+    expect(col("Quantity")).toMatchObject({ align: "right", columnType: { type: "number" } });
+    expect(col("Seats")).toMatchObject({ align: "right", columnType: { type: "number" } });
+    expect(t.rows[0]).toMatchObject({
+      "Close Date": "2026-07-29T00:00:00", // local midnight: a bare date parses as UTC and shows a day early west of UTC
+      "Last Activity": "2026-07-29T14:30:00.000Z",
+      "Probability (%)": "0.143",
+      Quantity: "1200.5",
+      Seats: "40",
+    });
+  });
+
   it("links a record table's Name column to the record", () => {
     const card = autoCard("result", [
       { id: "006am00000LcOy6AAF", title: "Deal", data: { Name: { label: "Name", value: "Deal" }, Amount: { label: "Amount", value: 5 } } },
