@@ -185,20 +185,33 @@ function flattenRecord(o: Attrs): { title?: string; subtitle?: string; fields: [
 }
 
 const RECORD_URL = "_recordUrl"; // hidden row field the Name column links through (urlKey)
+const CURRENCY = "_currency:"; // hidden per-row ISO code for a currency column (currencyCodeKey)
+const isHidden = (k: string) => k === RECORD_URL || k.startsWith(CURRENCY);
 const isRecordId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9]{15}([A-Za-z0-9]{3})?$/.test(v);
 
 // columnType is an object (lightning__linkColumnType etc.), not a bare string.
 function table(caption: string, items: Attrs[]): Node | null {
   // recordInfoType rows keep their fields under data; flatten them to label -> display value like single records.
+  // Currency fields keep the raw number instead, with the ISO code from the display value ("USD 5,257,…").
+  const currencyCols = new Set<string>();
   const rows = items.map((r) => {
     const rec = flattenRecord(r);
     if (!rec) return r;
     const row = Object.fromEntries(rec.fields) as Attrs;
+    for (const [k, f] of Object.entries(r.data as Record<string, { label?: string; value?: unknown; displayValue?: unknown; dataType?: string }>)) {
+      if (f.dataType !== "Currency") continue;
+      const label = f.label ?? humanize(k);
+      currencyCols.add(label);
+      if (typeof f.value !== "number") continue;
+      row[label] = String(f.value);
+      const code = /^([A-Z]{3})\b/.exec(String(f.displayValue ?? ""))?.[1];
+      if (code) row[CURRENCY + label] = code;
+    }
     if (isRecordId(r.id)) row[RECORD_URL] = `{!$meta.env.orgUrl}/lightning/r/${r.id}/view`;
     return row;
   });
   const keys = [...new Set(rows.flatMap((r) => Object.keys(r)))]
-    .filter((k) => k !== RECORD_URL && rows.some((r) => isPrimitive(r[k]) && !isIdKey(k, r[k])))
+    .filter((k) => !isHidden(k) && rows.some((r) => isPrimitive(r[k]) && !isIdKey(k, r[k])))
     .slice(0, 8);
   if (!keys.length) return null;
   const nameKey = items.map((r) => (r.data as Record<string, { label?: string }> | undefined)?.Name?.label).find(Boolean) ?? keys[0];
@@ -210,11 +223,18 @@ function table(caption: string, items: Attrs[]): Node | null {
       columns: keys.map((k) =>
         linked && k === nameKey
           ? { key: k, header: humanize(k), columnType: { type: "link", urlKey: RECORD_URL } }
-          : { key: k, header: humanize(k), columnType: rows.some((r) => isUrl(r[k])) ? { type: "link" } : undefined },
+          : currencyCols.has(k)
+            ? {
+                key: k,
+                header: humanize(k),
+                align: "right",
+                columnType: { type: "number", format: "currency", ...(rows.some((r) => r[CURRENCY + k]) ? { currencyCodeKey: CURRENCY + k } : {}) },
+              }
+            : { key: k, header: humanize(k), columnType: rows.some((r) => isUrl(r[k])) ? { type: "link" } : undefined },
       ),
       rows: rows.slice(0, 25).map((r) => ({
         ...Object.fromEntries(keys.map((k) => [k, show(r[k])])),
-        ...(r[RECORD_URL] ? { [RECORD_URL]: r[RECORD_URL] } : {}),
+        ...Object.fromEntries(Object.entries(r).filter(([k]) => isHidden(k))),
       })),
       appearance: "striped",
       size: "sm",

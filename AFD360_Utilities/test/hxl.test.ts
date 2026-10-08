@@ -97,6 +97,30 @@ describe("autoCard", () => {
     expect(t.rows[0]).toMatchObject({ Name: "Innovation Pipeline", Amount: "USD 5,257,150,000.00", Stage: "Qualification" });
   });
 
+  it("formats Currency fields as right-aligned currency number columns from the raw value", () => {
+    const row = (amount: number | null, display: string | null) => ({
+      id: "006am00000LcOy6AAF",
+      title: "Deal",
+      data: {
+        Name: { label: "Name", value: "Deal" },
+        Amount: { label: "Amount", value: amount, displayValue: display, dataType: "Currency" },
+      },
+    });
+    const card = autoCard("result", [row(5257150000, "USD 5,257,150,000.00"), row(12.5, "EUR 12.50"), row(null, null)]);
+    const find = (n: any): any => (n.definition === "tile/table" ? n : (n.children ?? []).map(find).find(Boolean));
+    const t = find(card).attributes;
+    expect(t.columns[1]).toEqual({
+      key: "Amount",
+      header: "Amount",
+      align: "right",
+      columnType: { type: "number", format: "currency", currencyCodeKey: "_currency:Amount" },
+    });
+    expect(t.columns.map((c: any) => c.key)).toEqual(["Name", "Amount"]);
+    expect(t.rows[0]).toMatchObject({ Amount: "5257150000", "_currency:Amount": "USD" });
+    expect(t.rows[1]).toMatchObject({ Amount: "12.5", "_currency:Amount": "EUR" });
+    expect(t.rows[2].Amount).toBe("—");
+  });
+
   it("links a record table's Name column to the record", () => {
     const card = autoCard("result", [
       { id: "006am00000LcOy6AAF", title: "Deal", data: { Name: { label: "Name", value: "Deal" }, Amount: { label: "Amount", value: 5 } } },

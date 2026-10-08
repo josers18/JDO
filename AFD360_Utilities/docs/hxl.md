@@ -28,7 +28,7 @@ The Agent API sends an action result as `Inform.result[] = {type: "copilotAction
    covers `{!$attrs.a.b}`, `meta.if`, `meta.forEach`/`forItem`/`forIndex` with loop variables, and
    `{!$meta.env.orgUrl}`.
 5. **No widget?** `autoCard` builds a generic HXL card from the data's shape: a field card (columns of at most 10),
-   a `tile/table` for lists (rows that are `lightning__recordInfoType` records become columns of their `data` fields, and the Name column links to `orgUrl/lightning/r/<id>/view` through a `{type: "link", urlKey}` column type), flattened single records, and a link for the first URL.
+   a `tile/table` for lists (rows that are `lightning__recordInfoType` records become columns of their `data` fields, and the Name column links to `orgUrl/lightning/r/<id>/view` through a `{type: "link", urlKey}` column type; `Currency` fields become right-aligned `{type: "number", format: "currency"}` columns holding the raw value, with the ISO code from the display value as `currencyCodeKey`), flattened single records, and a link for the first URL.
 6. **Render.** `web/src/chat/HxlCard.tsx` hands the tree to the HXL runtime in the result shape a hosted-MCP
    `tools/call` has (`_meta["salesforce/uiMetadata"]`), through `WidgetFrame`.
 
