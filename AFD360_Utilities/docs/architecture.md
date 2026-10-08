@@ -1,58 +1,86 @@
-# AFD360_Utilities — Design (v1)
+# AFD360_Utilities: Architecture
 
-Local test bench for Agentforce + Data 360 APIs. v1 ships one module (Agent API chat) plus Admin → Orgs.
-Runs locally now; structured to move to Heroku as a single Node process later.
+Local test bench for Agentforce and Data 360 APIs, used by SEs to demo the raw API to customers (see
+`../PRODUCT.md`). It runs locally now and is structured to move to Heroku as a single Node process later. The
+visual system is in `../DESIGN.md`, and HXL is covered in [hxl.md](hxl.md).
 
 ## Decisions
 
 | Area | Decision |
 |---|---|
-| Runtime | Local dev tool. `npm run dev` = Vite (:5173) proxying `/api` to Express (:3001). `npm run build && npm start` = one Express process serving `web/dist` (Heroku shape). |
-| Stack | Express + TypeScript (server), Vite + React + TypeScript + Tailwind v4 (web), shared types in `shared/`. |
-| Auth to Salesforce | Per-org External Client App, OAuth client credentials. Token cached per org, re-fetched on 401. |
-| Org storage | `data/orgs.json` (gitignored). Client secrets AES-256-GCM encrypted with `AFD360_MASTER_KEY` from `.env` (generated on first run if missing). Secrets never returned to the browser — UI shows last 4 only. |
-| App auth | None while local. Must be added before any Heroku deploy. |
-| Sessions | One Agent API session per conversation, persisted (session id + next sequenceId) in the conversation file so it survives page reloads and server restarts. Marked **expired** when the API rejects it; transcript stays readable; "New session" reconnects. |
-| Streaming | Sessions request `chunkTypes: ["Text","LightningChunk"]`. Server normalizes raw stream events into app events (below) and relays them to the browser over SSE. |
-| Persistence | `data/conversations/<id>.json`: metadata, messages, wire log (capped). |
+| Runtime | `npm run dev` runs Vite (:5173), which proxies `/api` to Express (:3001), plus the widget sandbox on its own origin (:3002). All of them bind to loopback only. `npm run build && npm start` runs one Express process that serves `web/dist` (the Heroku shape). |
+| Stack | Server: Express 5 + TypeScript, run with tsx watch. Web: Vite + React 19 + TypeScript + Tailwind v4. Shared types live in `shared/`. Tests use vitest. |
+| Auth to Salesforce | One External Client App per org, using OAuth client credentials. The token is cached per org and fetched again on a 401. The same token is used for the Agent API, hosted MCP (`mcp_api` scope), REST, Tooling and SOAP Metadata. |
+| Org storage | `data/orgs.json` (gitignored). Client secrets are AES-256-GCM encrypted with `AFD360_MASTER_KEY` from `.env`, which is generated on first run. Secrets are never sent to the browser. |
+| App auth | None while local. **Must be added before any Heroku deploy.** |
+| Sessions | One Agent API session per conversation, persisted (session id + next sequenceId) so it survives reloads and restarts. Marked **expired** when the API rejects it; "New session" reconnects. |
+| Streaming | Sessions request `chunkTypes: ["Text","LightningChunk"]`. The server normalizes raw stream events into app events and relays them to the browser over SSE. |
+| Persistence | `data/conversations/<id>.json` holds metadata, messages and the wire log. `data/hxl-planners/` holds HXL output-type maps. All of `data/` is gitignored. |
 
-## Stream normalization
+## Stream normalization (`server/normalize.ts`)
 
-Verified 2026-10-07 against Search Agent (`0Xxam000000thvZCAQ`):
+Verified against the Search Agent (`0Xxam000000thvZCAQ`) and Cumulus Assistant:
 
-- `["Text"]` → `ProgressIndicator` events carry tool steps as text; answer in `Inform.message`.
-- `["Text","LightningChunk"]` → `LightningChunk` deltas (partial JSON of `{"content": "..."}`, `lightningType: propertyType/search__agentMessage`) stream the text; the final `Inform.result[]` holds structured parts: `search__agentMessage {content}` and `search__toolBatch {tools:[{description,count,status,category}]}`. **`Inform.message` is empty in this mode.**
+- With `LightningChunk`, deltas stream partial JSON for `search__agentMessage` (text) and `search__toolBatch`
+  (tools). `Inform.result[]` is authoritative. `Inform.message` is empty, **except** when the result holds only
+  action outputs (`copilotActionOutput/*`): then the reply text is in `message`, and it's kept as the first part.
+- **Tool trail.** One tool id is reported again with a new description for each step, and the final Inform only
+  carries the last state. `steps[]` keeps the full trail, which renders as a checklist.
+- **Approvals.** On `Confirm`, the `confirm[]` items include proposals:
+  - `copilotActionInput/*` (e.g. UpdateRecordFields);
+  - any other item that carries a `toolId` and `recordDetailInput`, such as the Coworker's `search__recordDraft`
+    for creating a record.
 
-- `Confirm` (agent asks approval before running actions): `confirm[]` = agentMessage / toolBatch / `copilotActionInput/*` items.
-  Approve = `{type:"Reply", inReplyToMessageId:<Confirm id>, reply:[approved copilotActionInput items]}`; reject = `{type:"Cancel", inReplyToMessageId}`.
-  Typing a text reply does **not** approve (verified: agent re-proposes). Verified live 2026-10-07 (Lead Rating updates).
+  Approve sends `{type:"Reply", inReplyToMessageId, reply:[approved items]}`; reject sends `{type:"Cancel"}`.
+  Typing a message instead doesn't approve: the proposal is marked "superseded".
+- **Failed tool steps.** They arrive only as `status: "error"`. The Agent API sends no error detail, and the card
+  says so.
 
-App events: `text-delta`, `tool`, `progress`, `part`, `final`, `end-of-turn`, `session-expired`, `error`, `wire`.
-`message-final` parts are authoritative: `text` (markdown) and `tools` (tool cards). When an agent returns no structured `result`, parts are built from `Inform.message`, with `ProgressIndicator` lines shown as tool steps.
+App events: `text-delta`, `tool`, `progress`, `part`, `final`, `end-of-turn`, `session-expired`, `error`, `wire`,
+`user-message`.
 
-## Modules
+Tests: `test/normalize.test.ts` (recorded streams in `test/fixtures/*.sse`) and `test/hxl.test.ts` (widget
+resolver and generated cards).
 
-- **Chat**: org switcher, conversation sidebar (live ● / expired ○), agent picker (inactive and `Employee` default-assistant agents disabled; bypassUser defaults on for service agents, off for employee agents), thread with markdown + tool cards, session header (status, turns, idle, End/New session, Stop).
-- **Wire tab**: every Salesforce HTTP exchange per conversation — method, URL, status, duration, request/response headers + bodies, stream events with time offsets. Tokens and secrets masked. Copy-as-curl (`$TOKEN` placeholder), download JSON.
-- **Admin → Orgs**: add / edit / delete org (name, My Domain URL, consumer key, consumer secret), Test connection (token + userinfo), set active org.
+## Modules (`web/src/`)
 
-- **MCP**: server-side Streamable HTTP client (org client-credentials token, `mcp_api` scope; only
-  `https://api.salesforce.com/platform/mcp/v1/...` URLs accepted so the token can't leak). Advertises the MCP Apps
-  extension `io.modelcontextprotocol/ui`. Tools with `_meta.ui.resourceUri` render via `@modelcontextprotocol/ext-apps`
-  `AppBridge` in a double-iframe sandbox served from :3002 with a CSP header built from the resource's declared domains.
-  Widget-initiated `tools/call` / `resources/read` are proxied through the server (`/api/mcp/app-call`, `/read`).
+- **Chat:**
+  - org switcher;
+  - conversation sidebar with Today/Earlier groups, a time column, and live/expired/ended dots;
+  - agent gallery;
+  - session bar;
+  - thread of sent and received cards;
+  - Ask-page-style tool cards with a step trail;
+  - approval cards for updates and creates;
+  - HXL cards for action outputs, with widget buttons that send chat messages.
+- **Wire panel:** every Salesforce HTTP exchange for the conversation, with timestamps, newest/oldest sort,
+  filters, a sent/received split, headers, bodies and stream events. Tokens are masked. Calls can be copied as
+  curl or downloaded as JSON.
+- **MCP:** a server-side Streamable HTTP client. It accepts only `https://api.salesforce.com/platform/mcp/v1/...`
+  URLs, so the token can't leak. It advertises `io.modelcontextprotocol/ui`. Tools with `_meta.ui.resourceUri`
+  render through `@modelcontextprotocol/ext-apps` `AppBridge` in the double-iframe sandbox (:3002, CSP header
+  built from the resource's declared domains). Widget-initiated `tools/call` and `resources/read` go through the
+  server.
+- **Admin → Orgs:** add, edit, delete, test and activate org profiles.
+- **Theme picker:** 17 runtime themes (`themes.ts`), at the foot of the rail. HXL cards follow the active theme.
 
-## HXL demo (finsdc3)
+## Server routes
 
-`salesforce/`: Apex invocable `AFD360LeadSnapshot` → MCP payload CLT `afd360LeadSnapshotOutputValues` (references
-`@apexClassType/c__AFD360LeadSnapshot$Snapshot`) → result wrapper CLT `afd360LeadSnapshotResult` whose `renderer.json`
-maps `$attrs.outputValues.lead.*` to `@widget/c/afd360LeadCard`. MCP server `AFD360Demo` (names: letters/digits only)
-links tool `getLeadSnapshot` to resource `ui://widget/lightningType/c__afd360LeadSnapshotResult`. Deploying the full
-McpServerDefinition directly works (no Setup create/retrieve round trip needed); activation is Setup-only.
-For Agentforce (Lightning) action output, `afd360LeadSnapshotCard` is the single Apex-based CLT
-(`@apexClassType/c__AFD360LeadSnapshot$Snapshot`, direct `{!$attrs.x}` mapping); it needs an agent action output
-set to render with it (not wired to any agent). Full HXL reference: personal skill `hxl-widgets`.
+| Route | Purpose |
+|---|---|
+| `/api/orgs*` | Org profiles, test, activate |
+| `/api/orgs/:id/agents` | Agent list (BotDefinition and Agent API support) |
+| `/api/conversations*` | Create (starts a session and warms HXL), list, get, delete; `messages` and `confirm` stream a turn over SSE |
+| `/api/mcp/connect`, `/call`, `/app-call`, `/read` | Hosted MCP client and MCP Apps host proxy |
+| `/api/mcp/hxl`, `/hxl-runtime` | HXL cards for an agent action output, and the HXL runtime page |
 
-## Out of scope (v1)
+## Known platform issues
 
-App login, Postgres, Data 360 modules, resuming a session after Salesforce expires it.
+- **Coworker create-record over the Agent API:** Case works; Lead and Task fail on create-layout required fields.
+  See [bug-coworker-create-record-agent-api.md](bug-coworker-create-record-agent-api.md). Cumulus Assistant's
+  `create_task` (`AFD360CreateTask`) works.
+- **Masked URLs:** the Agent API masks URLs inside action data (`URL_Redacted`); record URLs are kept.
+
+## Out of scope
+
+App login, Postgres, Data 360 modules, and resuming a session after Salesforce expires it.

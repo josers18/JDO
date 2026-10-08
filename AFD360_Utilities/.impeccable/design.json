@@ -1,0 +1,695 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-08T03:01:22+00:00",
+  "title": "Design System: AFD360 Utilities",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Tinted Ground",
+        "canonical": "#F3F4F6",
+        "tonalRamp": [
+          "#21242C",
+          "#3A404D",
+          "#535C6E",
+          "#6C7890",
+          "#8D96A9",
+          "#AEB5C2",
+          "#CFD3DB",
+          "#F0F2F4"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Card White",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#434343",
+          "#616161",
+          "#7E7E7E",
+          "#9B9B9B",
+          "#B8B8B8",
+          "#D5D5D5",
+          "#F2F2F2"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#E0E3E8",
+        "tonalRamp": [
+          "#21252C",
+          "#39414D",
+          "#525D6F",
+          "#6B7990",
+          "#8C97AA",
+          "#ADB5C2",
+          "#CFD4DB",
+          "#F0F2F4"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111827",
+        "tonalRamp": [
+          "#172135",
+          "#293A5E",
+          "#3B5386",
+          "#4C6CAF",
+          "#738DC2",
+          "#9CAED4",
+          "#C5CFE6",
+          "#EDF0F7"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#3D4554",
+        "tonalRamp": [
+          "#20242C",
+          "#39404E",
+          "#515C70",
+          "#6A7892",
+          "#8B96AB",
+          "#ADB5C3",
+          "#CED3DC",
+          "#F0F2F4"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3 (muted floor)",
+        "canonical": "#555E6D",
+        "tonalRamp": [
+          "#22252B",
+          "#3B414C",
+          "#555E6C",
+          "#6E7A8D",
+          "#8E98A7",
+          "#AFB6C1",
+          "#D0D4DA",
+          "#F1F2F4"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "side": {
+        "role": "neutral",
+        "displayName": "Navy Sidebar",
+        "canonical": "#14213D",
+        "tonalRamp": [
+          "#131F3A",
+          "#213766",
+          "#304F91",
+          "#3E66BD",
+          "#6888CE",
+          "#94ABDC",
+          "#C0CDEA",
+          "#ECF0F9"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "side-2": {
+        "role": "neutral",
+        "displayName": "Sidebar Raised",
+        "canonical": "#1E2E52",
+        "tonalRamp": [
+          "#141F38",
+          "#243763",
+          "#344F8D",
+          "#4367B8",
+          "#6C89C9",
+          "#97ABD9",
+          "#C2CEE9",
+          "#ECF0F8"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "side-ink": {
+        "role": "neutral",
+        "displayName": "Sidebar Ink",
+        "canonical": "#EEF1F7",
+        "tonalRamp": [
+          "#182234",
+          "#2B3B5C",
+          "#3E5583",
+          "#506FAB",
+          "#778FBF",
+          "#9EAFD2",
+          "#C6D0E4",
+          "#EEF1F7"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "side-ink-2": {
+        "role": "neutral",
+        "displayName": "Sidebar Ink 2",
+        "canonical": "#AEB9CF",
+        "tonalRamp": [
+          "#1C2330",
+          "#323E55",
+          "#485879",
+          "#5E739E",
+          "#8192B4",
+          "#A6B2CA",
+          "#CAD2E0",
+          "#EFF1F6"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "side-line": {
+        "role": "neutral",
+        "displayName": "Sidebar Line",
+        "canonical": "#2B3C63",
+        "tonalRamp": [
+          "#172035",
+          "#29395E",
+          "#3A5287",
+          "#4C6AAF",
+          "#738BC2",
+          "#9CADD4",
+          "#C5CFE6",
+          "#EDF0F7"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Midnight Rail",
+        "canonical": "#0D172C",
+        "tonalRamp": [
+          "#111F3B",
+          "#1F3668",
+          "#2C4E95",
+          "#3965C2",
+          "#6487D1",
+          "#91AADF",
+          "#BECDEC",
+          "#EBF0F9"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "rail-ink": {
+        "role": "neutral",
+        "displayName": "Rail Ink",
+        "canonical": "#93A1BC",
+        "tonalRamp": [
+          "#1D232F",
+          "#343E53",
+          "#4A5977",
+          "#60749B",
+          "#8393B2",
+          "#A7B3C9",
+          "#CBD2DF",
+          "#EFF1F5"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "rail-on": {
+        "role": "neutral",
+        "displayName": "Rail Active",
+        "canonical": "#1E2E52",
+        "tonalRamp": [
+          "#141F38",
+          "#243763",
+          "#344F8D",
+          "#4367B8",
+          "#6C89C9",
+          "#97ABD9",
+          "#C2CEE9",
+          "#ECF0F8"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "sent": {
+        "role": "secondary",
+        "displayName": "Outbound Steel Blue",
+        "canonical": "#E6ECF5",
+        "tonalRamp": [
+          "#162337",
+          "#273E60",
+          "#37588A",
+          "#4873B4",
+          "#7092C6",
+          "#9AB2D6",
+          "#C3D2E7",
+          "#EDF1F8"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "sent-line": {
+        "role": "secondary",
+        "displayName": "Outbound Line",
+        "canonical": "#C8D4E6",
+        "tonalRamp": [
+          "#182335",
+          "#2A3E5D",
+          "#3C5985",
+          "#4F74AD",
+          "#7593C0",
+          "#9DB3D3",
+          "#C5D2E5",
+          "#EDF1F7"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "sent-ink": {
+        "role": "secondary",
+        "displayName": "Outbound Ink",
+        "canonical": "#1A3360",
+        "tonalRamp": [
+          "#10203C",
+          "#1D386A",
+          "#295198",
+          "#3669C6",
+          "#618AD4",
+          "#8FACE1",
+          "#BDCEED",
+          "#EBF0FA"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "sent-chip": {
+        "role": "secondary",
+        "displayName": "Outbound Chip",
+        "canonical": "#D4DFEF",
+        "tonalRamp": [
+          "#152338",
+          "#253E62",
+          "#34588D",
+          "#4473B7",
+          "#6D92C9",
+          "#97B2D8",
+          "#C2D2E8",
+          "#ECF1F8"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "recv": {
+        "role": "tertiary",
+        "displayName": "Inbound Parchment",
+        "canonical": "#F7F0DC",
+        "tonalRamp": [
+          "#3E320E",
+          "#6E5819",
+          "#9D7E24",
+          "#CDA42F",
+          "#DAB95C",
+          "#E5CD8B",
+          "#EFE2BB",
+          "#FAF6EA"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "recv-line": {
+        "role": "tertiary",
+        "displayName": "Inbound Line",
+        "canonical": "#E6D6A8",
+        "tonalRamp": [
+          "#3B3011",
+          "#69551E",
+          "#967A2B",
+          "#C39F38",
+          "#D2B663",
+          "#DFCB91",
+          "#ECE0BE",
+          "#F9F6EB"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "recv-ink": {
+        "role": "tertiary",
+        "displayName": "Inbound Ink",
+        "canonical": "#5F4A0F",
+        "tonalRamp": [
+          "#42330A",
+          "#745B12",
+          "#A7821A",
+          "#D9A922",
+          "#E4BD52",
+          "#ECD184",
+          "#F4E4B7",
+          "#FCF7E9"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "ok": {
+        "role": "status",
+        "displayName": "Success",
+        "canonical": "#2F7D5B",
+        "tonalRamp": [
+          "#153828",
+          "#256247",
+          "#358C66",
+          "#45B785",
+          "#6DC8A1",
+          "#98D8BC",
+          "#C2E8D8",
+          "#ECF8F3"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "live": {
+        "role": "status",
+        "displayName": "Live Dot",
+        "canonical": "#E2C15A",
+        "tonalRamp": [
+          "#41340B",
+          "#735C14",
+          "#A4831D",
+          "#D6AB26",
+          "#E1BF55",
+          "#EAD286",
+          "#F2E4B8",
+          "#FBF7E9"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "err": {
+        "role": "status",
+        "displayName": "Error",
+        "canonical": "#B23A33",
+        "tonalRamp": [
+          "#3B1311",
+          "#69221E",
+          "#96312B",
+          "#C34038",
+          "#D26963",
+          "#DF9591",
+          "#ECC0BE",
+          "#F9ECEB"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "action": {
+        "role": "primary",
+        "displayName": "Ledger Gold",
+        "canonical": "#C9A227",
+        "tonalRamp": [
+          "#40340C",
+          "#715B16",
+          "#A2821F",
+          "#D3AA29",
+          "#DEBE57",
+          "#E8D188",
+          "#F1E4B9",
+          "#FBF7EA"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      },
+      "action-ink": {
+        "role": "primary",
+        "displayName": "Ink-on-Gold",
+        "canonical": "#1A1405",
+        "tonalRamp": [
+          "#40310C",
+          "#715716",
+          "#A27D1F",
+          "#D3A229",
+          "#DFB857",
+          "#E8CD88",
+          "#F1E1B9",
+          "#FBF6EA"
+        ],
+        "note": "Navy & Gold value; runtime value comes from the active theme (web/src/themes.ts)."
+      }
+    },
+    "derivedColors": [
+      {
+        "name": "tint",
+        "value": "color-mix(in oklab, var(--ground) 60%, var(--surface))",
+        "purpose": "Hover fills, header and footer strips, segmented tracks, inline code."
+      },
+      {
+        "name": "console",
+        "value": "color-mix(in oklab, var(--rail) 92%, black)",
+        "purpose": "SQL, payload and code block fill."
+      },
+      {
+        "name": "console-ink",
+        "value": "color-mix(in oklab, white 86%, var(--rail))",
+        "purpose": "Text on console."
+      },
+      {
+        "name": "rail-on-ink",
+        "value": "theme railOnInk ?? side-ink",
+        "purpose": "Active rail item text; set explicitly by light-sidebar themes."
+      }
+    ],
+    "themes": {
+      "source": "web/src/themes.ts",
+      "count": 17,
+      "default": "navygold",
+      "storageKey": "afd360.theme",
+      "finance": [
+        "navygold",
+        "platinum",
+        "steel",
+        "champagne",
+        "ivory",
+        "pewter",
+        "citron",
+        "midnight (dark)"
+      ],
+      "color": [
+        "evergreen",
+        "aubergine",
+        "graphite",
+        "oxblood",
+        "petrol",
+        "linen",
+        "obsidian (dark)",
+        "mulberry",
+        "clay"
+      ]
+    },
+    "typographyMeta": {
+      "page-title": {
+        "displayName": "Page title",
+        "purpose": "Module landing headings (Pick an agent, Orgs)."
+      },
+      "session-title": {
+        "displayName": "Session title",
+        "purpose": "Agent name in the session bar."
+      },
+      "message": {
+        "displayName": "Message",
+        "purpose": "Message text and agent markdown."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Controls, rows, tool titles."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Chips, group headings, Wire side labels; sentence case."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "IDs, timestamps, durations, URLs, payloads only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)",
+        "purpose": "Outermost cards, composer, primary buttons."
+      },
+      {
+        "name": "lift",
+        "value": "0 2px 6px rgb(15 23 36 / 0.08), 0 16px 40px rgb(15 23 36 / 0.14)",
+        "purpose": "Popovers, dialogs, highlighted Wire row."
+      }
+    ],
+    "motion": [
+      {
+        "name": "color-transition",
+        "value": "Tailwind transition-colors (150ms)",
+        "purpose": "Rail and button hover."
+      },
+      {
+        "name": "pulse",
+        "value": "animate-pulse",
+        "purpose": "Running step marker dot."
+      },
+      {
+        "name": "spin",
+        "value": "animate-spin",
+        "purpose": "Loader icons while busy."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "2xl",
+        "value": "1536px"
+      }
+    ],
+    "hxlBridge": {
+      "source": "web/src/themes.ts widgetHostStyles()",
+      "fonts": "server/sandbox.ts injects @font-face for 'Archivo Variable' and 'JetBrains Mono Variable' served from /fonts (font-src 'self')",
+      "tones": {
+        "info": "sent",
+        "discovery": "sent",
+        "warning": "recv",
+        "caution": "recv",
+        "success": "ok mixed 14% into surface",
+        "danger": "err mixed 14% into surface"
+      },
+      "radii": {
+        "sm": "6px",
+        "md": "10px",
+        "lg": "14px",
+        "xl": "16px"
+      },
+      "widgetComposition": [
+        "avatar header (lg rounded avatar, h3 semibold name, muted caption)",
+        "stats (caption label over h4 semibold)",
+        "info/warning badges (if found)",
+        "separator",
+        "2-col details (muted caption label over medium body)",
+        "action row (secondary button with action/sendMessage, Open in Salesforce link)"
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-action",
+      "description": "The single primary decision in a region: New chat, Send, Approve.",
+      "html": "<button class=\"ds-btn-action\">Approve all (3)</button>",
+      "css": ".ds-btn-action{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--action, #C9A227);color:var(--action-ink, #1A1405);border:0;border-radius:12px;padding:8px 14px;font-size:14px;font-weight:600;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06);cursor:pointer;transition:filter .15s}.ds-btn-action:hover{filter:brightness(1.05)}.ds-btn-action:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}.ds-btn-action:disabled{opacity:.5;box-shadow:none}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Session-bar and footer secondary actions (End session, Reject).",
+      "html": "<button class=\"ds-btn-secondary\">New session</button>",
+      "css": ".ds-btn-secondary{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--surface, #FFFFFF);color:var(--ink, #111827);border:1px solid var(--line, #E0E3E8);border-radius:12px;padding:8px 12px;font-size:14px;font-weight:500;cursor:pointer}.ds-btn-secondary:hover{background:color-mix(in oklab, var(--ground, #F3F4F6) 60%, var(--surface, #FFFFFF))}.ds-btn-secondary:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}"
+    },
+    {
+      "name": "Lane Chips",
+      "kind": "chip",
+      "refersTo": "chip-sent",
+      "description": "Direction chips heading every message card.",
+      "html": "<span class=\"ds-chip ds-chip-sent\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg> Sent</span> <span class=\"ds-chip ds-chip-recv\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m12 19-7-7 7-7\"/><path d=\"M19 12H5\"/></svg> Received</span>",
+      "css": ".ds-chip{font-family:'Archivo Variable',system-ui,sans-serif;display:inline-flex;align-items:center;gap:4px;border-radius:9999px;padding:2px 10px;font-size:12px;font-weight:600;border:1px solid transparent}.ds-chip-sent{background:var(--sent-chip, #D4DFEF);color:var(--sent-ink, #1A3360)}.ds-chip-recv{background:var(--recv, #F7F0DC);color:var(--recv-ink, #5F4A0F);border-color:var(--recv-line, #E6D6A8)}"
+    },
+    {
+      "name": "Sent Message Card",
+      "kind": "card",
+      "refersTo": "card-sent",
+      "description": "The user's turn: cool lane, inset 8% from the left.",
+      "html": "<article class=\"ds-card-sent\"><div class=\"ds-head\"><span class=\"ds-lane\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg> Sent</span><b>You</b><time>14:02:11</time></div><p>Show my open leads in Texas</p></article>",
+      "css": ".ds-card-sent{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--sent, #E6ECF5);border:1px solid var(--sent-line, #C8D4E6);border-radius:16px;padding:14px 18px 16px;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06);color:var(--sent-ink, #1A3360)}.ds-card-sent .ds-head{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:8px;color:var(--ink, #111827)}.ds-card-sent .ds-lane{display:inline-flex;align-items:center;gap:4px;border-radius:9999px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--sent-chip, #D4DFEF);color:var(--sent-ink, #1A3360)}.ds-card-sent time{margin-left:auto;font-family:'JetBrains Mono Variable',ui-monospace,monospace;font-size:12px;color:var(--ink-3, #555E6D)}.ds-card-sent p{margin:0;font-size:15px;font-weight:500;line-height:1.625}"
+    },
+    {
+      "name": "Tool Card with Spine",
+      "kind": "custom",
+      "refersTo": "tool-card",
+      "description": "An agent tool step; delegations show their trail as a checklist on a 2px spine.",
+      "html": "<div class=\"ds-tool\"><div class=\"ds-tool-title\">Delegating to D360 Agent<small>action · 3 steps</small></div><ol><li><i class=\"ds-ok\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg></i>Generating SQL</li><li><i class=\"ds-run\"><b></b></i><strong>Running query</strong></li></ol></div>",
+      "css": ".ds-tool{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--recv, #F7F0DC);border:1px solid var(--recv-line, #E6D6A8);border-radius:12px;padding:10px 14px;color:var(--recv-ink, #5F4A0F);max-width:48rem}.ds-tool-title{font-size:14px;font-weight:600}.ds-tool-title small{display:block;font-family:'JetBrains Mono Variable',ui-monospace,monospace;font-size:12px;font-weight:400;opacity:.8}.ds-tool ol{position:relative;list-style:none;margin:10px 0 0;padding:0}.ds-tool ol::before{content:'';position:absolute;left:9px;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--recv-line, #E6D6A8)}.ds-tool li{position:relative;display:flex;align-items:flex-start;gap:10px;padding:4px 0;font-size:14px;color:var(--ink-2, #3D4554)}.ds-tool li strong{color:var(--ink, #111827)}.ds-tool i{position:relative;z-index:1;display:grid;place-items:center;width:20px;height:20px;border-radius:9999px;flex-shrink:0}.ds-ok{background:var(--ok, #2F7D5B);color:var(--surface, #FFFFFF)}.ds-run{border:2px solid var(--ink, #111827);background:var(--surface, #FFFFFF);box-sizing:border-box}.ds-run b{width:8px;height:8px;border-radius:9999px;background:var(--ink, #111827)}"
+    },
+    {
+      "name": "Approval Card",
+      "kind": "card",
+      "refersTo": "field-change-chip",
+      "description": "Agent-proposed writes; nothing changes until approved.",
+      "html": "<div class=\"ds-approve\"><header>Approve changes <span>1 pending</span></header><div class=\"ds-row\">Lead · <b>Ana Ruiz</b><div><span class=\"ds-change\">Status &rarr; <b>Qualified</b></span></div></div><footer><em>Nothing is changed until you approve.</em><button class=\"ds-rej\">Reject</button><button class=\"ds-ok-btn\">Approve all (1)</button></footer></div>",
+      "css": ".ds-approve{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);border-radius:12px;overflow:hidden;color:var(--ink, #111827);font-size:14px}.ds-approve header,.ds-approve footer{display:flex;align-items:center;gap:8px;padding:10px 16px;background:color-mix(in oklab, var(--ground, #F3F4F6) 60%, var(--surface, #FFFFFF))}.ds-approve header{font-weight:600;border-bottom:1px solid var(--line, #E0E3E8)}.ds-approve header span{border-radius:9999px;border:1px solid var(--recv-line, #E6D6A8);background:var(--recv, #F7F0DC);color:var(--recv-ink, #5F4A0F);padding:2px 10px;font-size:12px}.ds-row{padding:10px 16px;color:var(--ink-3, #555E6D)}.ds-change{display:inline-flex;gap:4px;margin-top:4px;border-radius:8px;border:1px solid var(--sent-line, #C8D4E6);background:var(--sent, #E6ECF5);color:var(--sent-ink, #1A3360);padding:2px 8px;font-family:'JetBrains Mono Variable',ui-monospace,monospace;font-size:12px}.ds-approve footer{border-top:1px solid var(--line, #E0E3E8);justify-content:flex-end}.ds-approve em{margin-right:auto;font-style:normal;color:var(--ink-3, #555E6D)}.ds-rej,.ds-ok-btn{border-radius:12px;padding:8px 14px;font:inherit;cursor:pointer}.ds-rej{background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);color:var(--ink, #111827)}.ds-ok-btn{background:var(--action, #C9A227);color:var(--action-ink, #1A1405);border:0;font-weight:600;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)}.ds-rej:focus-visible,.ds-ok-btn:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}"
+    },
+    {
+      "name": "Composer",
+      "kind": "input",
+      "refersTo": "input-composer",
+      "description": "Message input; border shifts to ink-3 on focus.",
+      "html": "<div class=\"ds-composer\"><textarea rows=\"1\" placeholder=\"Message Cumulus Assistant…\"></textarea><button>Send</button></div>",
+      "css": ".ds-composer{font-family:'Archivo Variable',system-ui,sans-serif;display:flex;align-items:flex-end;gap:8px;background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);border-radius:18px;padding:6px 6px 6px 16px;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)}.ds-composer:focus-within{border-color:var(--ink-3, #555E6D)}.ds-composer textarea{flex:1;resize:none;border:0;outline:0;background:transparent;font:inherit;font-size:15px;padding:10px 0;color:var(--ink, #111827);caret-color:var(--action, #C9A227)}.ds-composer textarea::placeholder{color:var(--ink-3, #555E6D)}.ds-composer button{border:0;border-radius:12px;background:var(--action, #C9A227);color:var(--action-ink, #1A1405);font:inherit;font-size:14px;font-weight:600;padding:10px 16px;cursor:pointer}"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "rail-item-active",
+      "description": "72px module rail: icon over label, theme picker at the foot.",
+      "html": "<nav class=\"ds-rail\"><div class=\"ds-mark\">AF</div><button aria-current=\"page\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"><path d=\"M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z\"/><path d=\"M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1\"/></svg> Chat</button><button><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\"><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><path d=\"M10 21V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1H3\"/></svg> MCP</button></nav>",
+      "css": ".ds-rail{font-family:'Archivo Variable',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:8px;width:72px;padding:16px 0;background:var(--rail, #0D172C)}.ds-mark{display:grid;place-items:center;width:36px;height:36px;margin-bottom:12px;border-radius:10px;background:var(--action, #C9A227);color:var(--action-ink, #1A1405);font-size:12px;font-weight:700}.ds-rail button{display:grid;place-items:center;gap:4px;width:52px;padding:9px 0 7px;border:0;border-radius:12px;background:transparent;color:var(--rail-ink, #93A1BC);font:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s,color .15s}.ds-rail button:hover{background:color-mix(in oklab, var(--rail-on, #1E2E52) 60%, transparent);color:var(--side-ink, #EEF1F7)}.ds-rail button[aria-current]{background:var(--rail-on, #1E2E52);color:var(--side-ink, #EEF1F7)}.ds-rail button:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Refined Flight Board",
+    "overview": "**Creative North Star: \"The Refined Flight Board\"**\n\nEvery exchange with Salesforce is a strip on a board: a softly rounded, timestamped card that says which way it travelled. What we sent is cool, what came back is warm, and a lane chip (→ Sent / ← Received) names the direction so an audience on a screen-share can follow without narration. The canvas is a quiet tinted ground with white surfaces; the session list lives in a dark-tinted sidebar beside a darker module rail, so navigation and content never blur together.\n\nThe system is a token set, not a palette. Seventeen runtime themes (eight Finance, nine Color; two dark) each fill the same 29 tokens, applied as CSS custom properties on `:root` before first render and persisted in `localStorage` (`afd360.theme`). Navy & Gold is the default and is the set recorded in the frontmatter. Components only ever reference token roles (`sent`, `recv-line`, `action`), so a new surface is themed for free if it does the same.\n\nDensity is operator-grade but legible at projector distance: 12px is the floor for any text, timestamps and IDs are monospaced and tabular, and state (live, running, failed, pending approval) is always shown with a dot, chip or icon rather than implied.",
+    "keyCharacteristics": [
+      "Sent = cool `sent` family, Received = warm `recv` family, everywhere: chat cards, tool cards, Wire panel sides, HXL tones.",
+      "Dark rail (module nav + theme picker at its foot), dark-tinted session sidebar, light canvas.",
+      "Softly rounded cards (16px) on a tinted ground with low ambient shadows.",
+      "Archivo for the UI voice; JetBrains Mono only for IDs, timestamps, durations, URLs and payloads.",
+      "One gold-family `action` color for the primary decision on a surface."
+    ],
+    "rules": [
+      {
+        "name": "The Two Lanes Rule",
+        "body": "Direction is always encoded by the sent/recv families and nothing else. Any new surface showing traffic to or from Salesforce uses `sent*` for outbound and `recv*` for inbound, with the same arrows and words.",
+        "section": "colors"
+      },
+      {
+        "name": "The Token-Only Rule",
+        "body": "Components never hard-code a color. They reference a token role, so all 17 themes (including Midnight and Obsidian, the dark ones) keep working. A new theme must fill every token in the order `themes.ts` declares.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Gold Rule",
+        "body": "`action` marks the single primary decision in a region. Secondary actions are surface buttons with a hairline border.",
+        "section": "colors"
+      },
+      {
+        "name": "The Machine Voice Rule",
+        "body": "Mono is reserved for values the platform produced or will parse: IDs, timestamps, durations, URLs, payloads, field-change values. Human words beside them (\"2 turns\", \"idle 3m\") switch back to sans even inside a mono run.",
+        "section": "typography"
+      },
+      {
+        "name": "The 12px Floor Rule",
+        "body": "No text below 0.75rem (12px), anywhere. Icons can be 11 to 13px; text cannot.",
+        "section": "typography"
+      },
+      {
+        "name": "The Resting Flat Rule",
+        "body": "Nested containers (tool cards, approval cards, details, Wire rows at rest) carry a border and no shadow. Shadow belongs to the outermost card or to something floating above the page.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reference token roles (`bg-sent`, `border-recv-line`, `text-ink-3`) and never literal colors, so every one of the 17 themes renders correctly.",
+      "Do mark direction with the sent/recv families plus an arrow and a word (→ Sent / ← Received, \"Sent to Salesforce\" / \"From Salesforce\").",
+      "Do set IDs, timestamps (24-hour), durations, URLs and payloads in JetBrains Mono at 0.75rem, and everything else in Archivo.",
+      "Do keep text at 12px or larger and body text at ink-3 or darker.",
+      "Do use the Card shadow for outermost cards and Lift only for floating layers.",
+      "Do step radius down as containers nest (16, then 12, then 10, then 8px).",
+      "Do pass any new embedded surface the active theme the way `widgetHostStyles()` does for HXL."
+    ],
+    "donts": [
+      "Don't use glow shadows, colored shadows or hard offset shadows.",
+      "Don't add border-left accents wider than 1px. The only side borders are 1px panel separators.",
+      "Don't put uppercase or tracked eyebrow labels above headings. Group labels are sentence-case 0.75rem semibold.",
+      "Don't fill a whole received card with the recv tint. Warmth sits in the chip, tool cards and response side.",
+      "Don't let any width produce horizontal scroll. Wrap rows and give text children `min-w-0`.",
+      "Don't load fonts from a CDN. Both families are self-hosted."
+    ]
+  }
+}
