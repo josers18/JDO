@@ -14,6 +14,12 @@ export class SfError extends Error {
 
 const tokens = new Map<string, string>(); // orgId -> access token
 
+// All of an org's tokens share one Salesforce session. Right after it times out, a fresh token can still be
+// rejected, so a second 401 waits this long and fetches another.
+const RETRY_PAUSE_MS = 1500;
+const MAX_AUTH_RETRIES = 2;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 interface CallOptions {
   orgId: string;
   label: string;
@@ -111,7 +117,7 @@ export function forgetToken(orgId: string) {
   tokens.delete(orgId);
 }
 
-// JSON request with automatic token refresh on 401.
+// JSON request with automatic token refresh on 401 (twice, the second after a pause).
 export async function sfJson<T = unknown>(opts: CallOptions): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     const token = opts.auth === false ? null : await getToken(opts.orgId, opts.wire, attempt > 0);
@@ -120,7 +126,10 @@ export async function sfJson<T = unknown>(opts: CallOptions): Promise<T> {
     entry.responseBody = maskBody(body);
     entry.durationMs = Date.now() - t0;
     opts.wire?.(entry);
-    if (res.status === 401 && attempt === 0 && opts.auth !== false) continue;
+    if (res.status === 401 && attempt < MAX_AUTH_RETRIES && opts.auth !== false) {
+      if (attempt > 0) await sleep(RETRY_PAUSE_MS);
+      continue;
+    }
     if (!res.ok) throw new SfError(errorMessage(res.status, body), res.status, body);
     return body as T;
   }
@@ -128,12 +137,12 @@ export async function sfJson<T = unknown>(opts: CallOptions): Promise<T> {
 
 // Streaming (SSE) request: yields parsed events; every event is also appended to the wire entry.
 export async function* sfStream(opts: CallOptions): AsyncGenerator<SseEvent> {
-  let token = await getToken(opts.orgId, opts.wire);
-  let sent = await send({ ...opts, headers: { Accept: "text/event-stream", ...opts.headers } }, token);
-  if (sent.res.status === 401) {
+  let sent = await send({ ...opts, headers: { Accept: "text/event-stream", ...opts.headers } }, await getToken(opts.orgId, opts.wire));
+  for (let attempt = 0; sent.res.status === 401 && attempt < MAX_AUTH_RETRIES; attempt++) {
     sent.entry.durationMs = Date.now() - sent.t0;
     opts.wire?.(sent.entry);
-    token = await getToken(opts.orgId, opts.wire, true);
+    if (attempt > 0) await sleep(RETRY_PAUSE_MS);
+    const token = await getToken(opts.orgId, opts.wire, true);
     sent = await send({ ...opts, headers: { Accept: "text/event-stream", ...opts.headers } }, token);
   }
   const { res, entry, t0 } = sent;
