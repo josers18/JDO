@@ -222,20 +222,36 @@ function UsageRow({
             <span className="font-mono text-sm font-semibold text-ink">{fmt(usage.totalTokens)}</span>
             <span className="text-ink-3"> tokens · {fmt(usage.inputTokens)} in / {fmt(usage.outputTokens)} out · {usage.llmCalls} LLM calls</span>
           </p>
-          <ul className="space-y-0.5">
-            {usage.models.map((m) => (
-              <li key={m.model} className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 font-mono">
-                <ProviderIcon model={m.model} />
-                <span className="truncate text-ink" title={m.model}>{m.model}</span>
-                <span className="text-ink-3">{m.calls}×</span>
-                <span className="w-16 text-right text-ink-2">{fmt(m.totalTokens)}</span>
-              </li>
-            ))}
-          </ul>
+          <ModelList models={usage.models} />
         </div>
       )}
     </div>
   );
+}
+
+function ModelList({ models }: { models: TurnUsage["models"] }) {
+  return (
+    <ul className="space-y-0.5">
+      {models.map((m) => (
+        <li key={m.model} className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 font-mono">
+          <ProviderIcon model={m.model} />
+          <span className="truncate text-ink" title={m.model}>{m.model}</span>
+          <span className="text-ink-3">{m.calls}×</span>
+          <span className="w-16 text-right text-ink-2">{fmt(m.totalTokens)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Calls and tokens per model, summed over turns, most tokens first.
+function sumModels(usages: TurnUsage[]): TurnUsage["models"] {
+  const by = new Map<string, TurnUsage["models"][number]>();
+  for (const m of usages.flatMap((u) => u.models)) {
+    const t = by.get(m.model) ?? { model: m.model, calls: 0, totalTokens: 0 };
+    by.set(m.model, { model: m.model, calls: t.calls + m.calls, totalTokens: t.totalTokens + m.totalTokens });
+  }
+  return [...by.values()].sort((a, b) => b.totalTokens - a.totalTokens);
 }
 
 const looked = new Set<string>(); // traces All turns has already looked up once
@@ -288,6 +304,11 @@ function AllTurns({
       </dl>
       {known.length > 0 && known.length < all.length && (
         <p className="mt-1 text-ink-3">Tokens cover {known.length} of {all.length} turns; the rest aren't in Data 360 yet.</p>
+      )}
+      {known.length > 0 && (
+        <div className="mt-2">
+          <ModelList models={sumModels(known)} />
+        </div>
       )}
       <div className="mt-2">
         <div className={`${cols} px-1.5 pb-1 text-ink-3`}>

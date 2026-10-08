@@ -65,8 +65,8 @@ resolver and generated cards).
   input and output tokens, LLM calls, and tokens per model, each with a provider mark (`ProviderIcon.tsx`; OpenAI,
   Anthropic and Gemini marks from LobeHub Icons, MIT). Telemetry lands minutes after the turn; until then the row
   re-checks every 30 s for up to 10 minutes. Each lookup is logged in the Wire tab under the turn it belongs to.
-  Below it, **All turns** sums time, Salesforce, network and tokens over the conversation and lists one row per
-  turn; clicking a row shows that turn above. The wire log is capped at 400 entries, but trimming drops other calls
+  Below it, **All turns** sums time, Salesforce, network and tokens over the conversation, breaks the tokens down
+  per model (with provider marks), and lists one row per turn; clicking a row shows that turn above. The wire log is capped at 400 entries, but trimming drops other calls
   before any turn's stream, so no turn's stats are lost.
 - **Sources tab** (next to Wire, `shared/citations.ts`): every `citedReferences` item from the conversation's
   Inform messages, as chips grouped by turn. The item shape isn't documented, so each chip shows the first field
