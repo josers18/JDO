@@ -52,6 +52,7 @@ causes are not true of the org.
 | 6 | Lightning Ask panel, **Agentforce Studio** app | Same Task request | Fails with the same "page layout" message |
 | 7 | UI API as the same user: `GET /ui-api/record-defaults/create/Task` (all 3 record types) + `POST /ui-api/records` with the same fields | Direct call | Succeeds (test record deleted) |
 | 8 | `EmployeeCopilot__CreateAToDo`, same user, Aug–Sep 2026 session traces | Task create | Succeeds |
+| 9 | Agent API, client credentials (2026-10-08) | Task with only Subject, Status, Priority; Name and Related To left empty | Create fails 2× in one turn; no draft proposed, no Task created |
 
 ## What we ruled out
 
@@ -84,6 +85,22 @@ The create tool appears to validate drafts against the full create page layout's
 compound required items (Lead Name), and it errors on the Task layout. The Lightning Ask panel in Banking -
 Console likely succeeds because Lightning resolves a different (app/quick-action) layout. That part is unverified.
 
+## Update: Name and Related To ruled out (2026-10-08, 21:12 UTC)
+
+Task's Name (`WhoId`) and Related To (`WhatId`) are polymorphic lookups, unlike Case's lookups, and every
+earlier Task attempt set at least one of them. Run #9 left both empty and sent only Subject
+(`AFD360 minimal task test`), Status (Not Started) and Priority (Normal).
+
+The agent first read the Task metadata ("Exploring Salesforce metadata (Task)", success ×2). Then the
+create tool failed twice ("Creating Task record - Adjusting approach", then "- Exploring another path",
+both `status: "error"`). No `search__recordDraft` was proposed, and a SOQL check found no Task with that
+subject. The agent said the system "can't retrieve the page layout metadata for the Task object", which
+stopped "the creation tool from completing the preview step".
+
+So the polymorphic lookups aren't the cause. The Task create fails before any field-level check, while
+the tool loads the Task layout (it never reaches the draft/preview step). This is unlike Case, where the
+first failure was a missing value (`BusinessHoursId`) that the agent could look up and fix.
+
 ## Secondary issue: the error detail is not surfaced
 
 The Agent API stream carries only `{"description":"Creating Task record - Adjusting approach","status":"error"}`.
@@ -97,5 +114,6 @@ Returning the actual error in the tool chunk or the Inform result would make thi
 | Task, minimal fields (#2) | `01a117ca-fb54-783b-8bcd-d6e5b6d11089` | `275f7b2f5658ed23862dfb50382e15b8` | 19:15:41 |
 | Lead (#3) | `01a117cb-fe49-700c-a915-96d80ab352fc` | `cd1c091e5cfe7741783047a062c8be6b`, `70d63e56b1d549dec38b47898a617bc1` | 19:16:47, 19:17:26 |
 | Task, full fields (#1) | `01a11734-c1c8-71fd-9d3b-467d2be674e5` | `1c51711d156de67e50a5f93847c265a8` | 18:36:47 |
+| Task, no Name or Related To (#9), 2026-10-08 | `01a11d5c-3b10-73d0-81c8-e181c6d6ed75` | `08d81cd645d1000f03d38270833ea4ff` | 21:12:26 |
 
 Full request/response captures, with tokens masked, are available from the AFD360_Utilities Wire panel.
