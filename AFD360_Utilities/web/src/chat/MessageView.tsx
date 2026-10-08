@@ -16,6 +16,7 @@ export function MessageView({
   myDomain,
   onHover,
   onConfirm,
+  onSend,
 }: {
   message: Message;
   agentLabel: string;
@@ -23,6 +24,8 @@ export function MessageView({
   myDomain: string;
   onHover?: (turn: number | null) => void;
   onConfirm?: ConfirmDecision;
+  /** Sends text as the user's next message (HXL widget buttons); returns false when it can't be sent now. */
+  onSend?: (text: string) => boolean;
 }) {
   const hover = {
     onMouseEnter: () => onHover?.(message.turn),
@@ -55,7 +58,7 @@ export function MessageView({
   const time = clock(message.createdAt) + (message.durationMs !== undefined ? ` · ${(message.durationMs / 1000).toFixed(1)}s` : "");
   return (
     <AgentCard label={agentLabel} time={time} {...hover}>
-      <Parts parts={message.parts} orgId={orgId} myDomain={myDomain} confirm={message.confirm} onConfirm={onConfirm} />
+      <Parts parts={message.parts} orgId={orgId} myDomain={myDomain} confirm={message.confirm} onConfirm={onConfirm} onSend={onSend} />
     </AgentCard>
   );
 }
@@ -108,6 +111,7 @@ export function Parts({
   streaming,
   confirm,
   onConfirm,
+  onSend,
 }: {
   parts: Part[];
   orgId?: string;
@@ -115,6 +119,7 @@ export function Parts({
   streaming?: boolean;
   confirm?: Message["confirm"];
   onConfirm?: ConfirmDecision;
+  onSend?: (text: string) => boolean;
 }) {
   const parts = mergeToolParts(raw);
   const actions = parts.filter((p): p is Extract<Part, { kind: "action" }> => p.kind === "action");
@@ -153,7 +158,7 @@ export function Parts({
         if (orgId && response === null && p.lightningType.startsWith("copilotActionOutput/") && p.value && typeof p.value === "object") {
           return (
             <div key={i} className="space-y-1.5">
-              <HxlOutput orgId={orgId} myDomain={myDomain} actionType={p.lightningType} value={p.value} fallback={null} />
+              <HxlOutput orgId={orgId} myDomain={myDomain} actionType={p.lightningType} value={p.value} fallback={null} onSend={onSend} />
               {details}
             </div>
           );

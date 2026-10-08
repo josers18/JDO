@@ -23,11 +23,43 @@ describe("resolveTree", () => {
   });
 });
 
+describe("resolveTree — loops and $meta", () => {
+  it("repeats meta.forEach blocks with forItem/forIndex and resolves {!$meta.env.orgUrl}", () => {
+    const tree = resolveTree(
+      {
+        definition: "tile/column",
+        children: [
+          {
+            definition: "tile/row",
+            meta: { forEach: "{!$attrs.lines}", forItem: "$line", forIndex: "$i" },
+            children: [
+              { definition: "tile/text", attributes: { text: "{!$i}. {!$line.product}" } },
+              { definition: "tile/badge", meta: { if: "{!$line.backordered}" }, attributes: { label: "Backordered" } },
+            ],
+          },
+          { definition: "tile/link", attributes: { href: "{!$meta.env.orgUrl}/lightning/page/home", text: "Home" } },
+        ],
+      },
+      { lines: [{ product: "Gold card", backordered: true }, { product: "Checking" }] },
+      "https://org.example",
+    )!;
+    expect(texts(tree)).toEqual(["0. Gold card", "1. Checking", "Home"]);
+    expect(defs(tree).filter((d) => d === "tile/badge")).toHaveLength(1);
+    expect((tree.children!.at(-1)!.attributes as any).href).toBe("https://org.example/lightning/page/home");
+  });
+});
+
 describe("autoCard", () => {
   it("builds a titled field card for an object, hiding ids and turning URLs into a link", () => {
     const card = autoCard("account", { name: "Omega, Inc.", industry: "Technology", accountId: "001am00000qvjs6AAA", recordUrl: "https://o/x", found: true });
     expect(texts(card)).toEqual(["Omega, Inc.", "Account", "Industry", "Technology", "Found", "Yes", "Open in Salesforce"]);
     expect(defs(card)).toContain("tile/link");
+  });
+
+  it("keeps columns within HXL's 10-children limit", () => {
+    const card = autoCard("record", { name: "Big", ...Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`f${i}`, i])) });
+    const maxKids = (n: any): number => Math.max(n.definition === "tile/column" ? (n.children ?? []).length : 0, ...(n.children ?? []).map(maxKids));
+    expect(maxKids(card)).toBeLessThanOrEqual(10);
   });
 
   it("uses a table for lists of records", () => {

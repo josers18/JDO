@@ -26,12 +26,14 @@ export function HxlOutput({
   actionType,
   value,
   fallback,
+  onSend,
 }: {
   orgId: string;
   myDomain: string;
   actionType: string;
   value: unknown;
   fallback: React.ReactNode;
+  onSend?: (text: string) => boolean;
 }) {
   const [state, setState] = useState<{ ui: McpUi & { url: string }; cards: HxlCard[] } | { error: string } | null>(null);
   useEffect(() => {
@@ -59,24 +61,30 @@ export function HxlOutput({
   return (
     <div className="space-y-3">
       {state.cards.map((card) => (
-        <HxlFrame key={card.key} card={card} ui={state.ui} orgId={orgId} myDomain={myDomain} />
+        <HxlFrame key={card.key} card={card} ui={state.ui} orgId={orgId} myDomain={myDomain} onSend={onSend} />
       ))}
     </div>
   );
 }
 
-function HxlFrame({ card, ui, orgId, myDomain }: { card: HxlCard; ui: McpUi & { url: string }; orgId: string; myDomain: string }) {
+function HxlFrame({
+  card,
+  ui,
+  orgId,
+  myDomain,
+  onSend,
+}: {
+  card: HxlCard;
+  ui: McpUi & { url: string };
+  orgId: string;
+  myDomain: string;
+  onSend?: (text: string) => boolean;
+}) {
   const [result] = useState(() => ({
     content: [{ type: "text", text: "" }],
     isError: false,
     _meta: { "salesforce/org_base_url": myDomain, "salesforce/uiMetadata": card.uiMetadata },
   }));
-  return (
-    <div className="space-y-1">
-      <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} />
-      <p className="font-mono text-xs text-ink-3">
-        HXL · {card.source === "widget" ? `${card.type} → ${card.widget}` : `generated card${card.type ? ` · ${card.type}` : ""}`}
-      </p>
-    </div>
-  );
+  const label = card.source === "widget" ? `HXL · ${card.type} → ${card.widget}` : `HXL · generated card${card.type ? ` · ${card.type}` : ""}`;
+  return <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} onSendMessage={onSend} label={label} />;
 }

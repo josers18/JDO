@@ -187,6 +187,26 @@
               ]
             },
             {
+              "definition": "tile/button",
+              "attributes": {
+                "label": "Create follow-up task",
+                "variant": "secondary",
+                "actions": {
+                  "click": [
+                    {
+                      "definition": "action/sendMessage",
+                      "attributes": {
+                        "content": "Create a follow-up task for the lead {!$attrs.name} ({!$attrs.company})"
+                      }
+                    }
+                  ]
+                }
+              },
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
               "definition": "tile/link",
               "attributes": {
                 "href": "{!$attrs.recordUrl}",

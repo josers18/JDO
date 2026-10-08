@@ -16,7 +16,8 @@ const sandboxUrl = (csp: McpUi["csp"]) =>
 /**
  * Renders an MCP Apps UI resource (e.g. an HXL widget) the way MCP Apps hosts do:
  * sandbox proxy iframe → AppBridge over postMessage → ui/initialize → tool-input → tool-result.
- * Widget-initiated tools/call and resources/read are proxied through our server.
+ * Widget-initiated tools/call and resources/read are proxied through our server. With onSendMessage, the host also
+ * accepts ui/message (e.g. an HXL button's action/sendMessage) and hands its text to the caller.
  */
 export function WidgetFrame({
   orgId,
@@ -25,6 +26,8 @@ export function WidgetFrame({
   args,
   result,
   onWire,
+  onSendMessage,
+  label,
 }: {
   orgId: string;
   url: string;
@@ -32,8 +35,16 @@ export function WidgetFrame({
   args: Record<string, unknown>;
   result: any;
   onWire: (entries: WireEntry[]) => void;
+  /** Delivers a widget's ui/message text; return false if it couldn't be sent (e.g. a turn is already running). */
+  onSendMessage?: (text: string) => boolean;
+  /** What the frame shows (e.g. the HXL card's type → widget); defaults to the UI resource URI. */
+  label?: string;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  // Latest handler, read at click time, so a new callback doesn't re-mount the widget.
+  const sendRef = useRef(onSendMessage);
+  sendRef.current = onSendMessage;
+  const acceptsMessages = Boolean(onSendMessage);
   const [height, setHeight] = useState(240);
   const [status, setStatus] = useState("Loading sandbox…");
   const [log, setLog] = useState<WidgetLogEntry[]>([]);
@@ -55,7 +66,7 @@ export function WidgetFrame({
       bridge = new AppBridge(
         null,
         { name: "AFD360 Utilities", version: "0.1.0" },
-        { openLinks: {}, serverTools: {}, serverResources: {}, logging: {} },
+        { openLinks: {}, serverTools: {}, serverResources: {}, logging: {}, ...(acceptsMessages ? { message: { text: {} } } : {}) },
         {
           hostContext: {
             theme: "light",
@@ -103,7 +114,13 @@ export function WidgetFrame({
       };
       bridge.onmessage = async (params) => {
         note("app→host", `ui/message ${JSON.stringify(params.content).slice(0, 120)}`);
-        return {};
+        const send = sendRef.current;
+        if (!send) return {};
+        const text = params.content
+          .flatMap((b) => (b.type === "text" ? [b.text] : []))
+          .join("\n")
+          .trim();
+        return { isError: !text || !send(text) };
       };
       bridge.onupdatemodelcontext = async () => {
         note("app→host", "ui/update-model-context");
@@ -145,9 +162,10 @@ export function WidgetFrame({
       <details className="rounded-xl border border-line bg-surface text-xs">
         <summary className="cursor-pointer px-3 py-2 text-ink-2">
           Widget bridge · <span className={status === "Live" ? "text-ok" : "text-ink-3"}>{status}</span> ·{" "}
-          {log.length} messages · <span className="font-mono">{ui.uri}</span>
+          {log.length} messages · <span className="font-mono">{label ?? ui.uri}</span>
         </summary>
         <div className="space-y-0.5 px-3 pb-2 font-mono text-xs">
+          {label && <div className="pb-1 text-ink-3">Runtime page: {ui.uri}</div>}
           {log.map((l, i) => (
             <div key={i} className="flex gap-2">
               <span className="w-12 shrink-0 text-right text-ink-3">+{(l.t / 1000).toFixed(2)}s</span>

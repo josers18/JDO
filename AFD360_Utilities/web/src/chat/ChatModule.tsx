@@ -167,6 +167,13 @@ export function ChatModule({
 
   const decide = (decision: "approve" | "reject", toolIds?: string[]) => runTurn({ kind: "confirm", decision, toolIds });
 
+  // HXL widget buttons (action/sendMessage) send their text as the user's next message.
+  const sendFromWidget = (text: string) => {
+    if (!conv || draft || conv.status !== "live") return false;
+    runTurn({ kind: "text", text });
+    return true;
+  };
+
   const runTurn = async (turn: TurnRequest) => {
     if (!conv || draft) return;
     const controller = new AbortController();
@@ -371,6 +378,7 @@ export function ChatModule({
                     myDomain={convOrg?.myDomain ?? ""}
                     onHover={setHoverTurn}
                     onConfirm={conv.status === "live" && !draft ? decide : undefined}
+                    onSend={conv.status === "live" ? sendFromWidget : undefined}
                   />
                 ))}
                 {draft && (

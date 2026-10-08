@@ -193,6 +193,26 @@
               }
             },
             {
+              "definition": "tile/button",
+              "attributes": {
+                "label": "Show top opportunity",
+                "variant": "secondary",
+                "actions": {
+                  "click": [
+                    {
+                      "definition": "action/sendMessage",
+                      "attributes": {
+                        "content": "Show me the top open opportunity for {!$attrs.name}"
+                      }
+                    }
+                  ]
+                }
+              },
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
               "definition": "tile/link",
               "attributes": {
                 "href": "{!$attrs.recordUrl}",

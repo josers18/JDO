@@ -10,7 +10,7 @@ import type { HxlCard } from "../shared/types.ts";
 // renders that output (function output schema -> Lightning type -> renderer -> UiWidgetBundle) and resolve the
 // same tree. Outputs whose type has no widget get an HXL card built from the data's shape.
 
-type Node = { definition?: string; attributes?: Record<string, unknown>; children?: Node[]; meta?: { if?: string }; [k: string]: unknown };
+type Node = { definition?: string; attributes?: Record<string, unknown>; children?: Node[]; meta?: { if?: string; forEach?: string; forItem?: string; forIndex?: string }; [k: string]: unknown };
 type Attrs = Record<string, unknown>;
 
 const TTL_MS = 10 * 60_000;
@@ -82,23 +82,44 @@ function typeWidget(orgId: string, type: string): Promise<{ widget: string; attr
   });
 }
 
-// {!$attrs.a.b} bindings: a whole-string binding keeps the value's type; embedded ones interpolate.
-function lookup(attrs: Attrs, path: string): unknown {
-  return path.split(".").reduce<unknown>((o, k) => (o && typeof o === "object" ? (o as Attrs)[k] : undefined), attrs);
+// Bindings per the HXL expression syntax: {!$attrs.a.b}, loop variables from meta.forEach ({!$line.x}), and
+// {!$meta.env.orgUrl}. A whole-string binding keeps the value's type; embedded ones interpolate.
+type Scope = Record<string, unknown>; // "$attrs", "$meta" and forItem/forIndex names -> values
+const BINDING = /\{!(\$[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\}/g;
+function lookup(scope: Scope, ref: string): unknown {
+  const [head, ...rest] = ref.split(".");
+  return rest.reduce<unknown>((o, k) => (o && typeof o === "object" ? (o as Attrs)[k] : undefined), scope[head]);
 }
-function resolveValue(v: unknown, attrs: Attrs): unknown {
-  if (typeof v !== "string") return v;
-  const whole = /^\{!\$attrs\.([A-Za-z0-9_.]+)\}$/.exec(v);
-  if (whole) return lookup(attrs, whole[1]) ?? "";
-  return v.replace(/\{!\$attrs\.([A-Za-z0-9_.]+)\}/g, (_, k) => String(lookup(attrs, k) ?? ""));
+function resolveValue(v: unknown, scope: Scope): unknown {
+  if (typeof v === "string") {
+    const whole = /^\{!(\$[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\}$/.exec(v);
+    if (whole) return lookup(scope, whole[1]) ?? "";
+    return v.replace(BINDING, (_, ref) => String(lookup(scope, ref) ?? ""));
+  }
+  // Nested attribute values (e.g. table columns/rows, button actions) can carry bindings too.
+  if (Array.isArray(v)) return v.map((x) => resolveValue(x, scope));
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, resolveValue(x, scope)]));
+  return v;
 }
-export function resolveTree(node: Node, attrs: Attrs): Node | null {
-  if (node.meta?.if !== undefined && !resolveValue(node.meta.if, attrs)) return null;
+function resolveNodes(node: Node, scope: Scope): Node[] {
+  const meta = node.meta ?? {};
+  if (meta.forEach !== undefined) {
+    const items = resolveValue(meta.forEach, scope);
+    const { forEach: _f, forItem = "$Item", forIndex, ...restMeta } = meta;
+    const inner = { ...node, meta: restMeta } as Node;
+    return (Array.isArray(items) ? items : []).flatMap((item, i) =>
+      resolveNodes(inner, { ...scope, [forItem]: item, ...(forIndex ? { [forIndex]: i } : {}) }),
+    );
+  }
+  if (meta.if !== undefined && !resolveValue(meta.if, scope)) return [];
   const { meta: _meta, children, attributes, ...rest } = node;
   const out: Node = { ...rest, id: crypto.randomUUID() };
-  if (attributes) out.attributes = Object.fromEntries(Object.entries(attributes).map(([k, v]) => [k, resolveValue(v, attrs)]));
-  if (children) out.children = children.map((c) => resolveTree(c, attrs)).filter((c): c is Node => c !== null);
-  return out;
+  if (attributes) out.attributes = resolveValue(attributes, scope) as Attrs;
+  if (children) out.children = children.flatMap((c) => resolveNodes(c, scope));
+  return [out];
+}
+export function resolveTree(node: Node, attrs: Attrs, orgUrl = ""): Node | null {
+  return resolveNodes(node, { $attrs: attrs, $meta: { env: { orgUrl } } })[0] ?? null;
 }
 
 const uiMetadata = (root: Node | null) => ({ renderer: { componentOverrides: { $: root } } });
@@ -112,6 +133,7 @@ const isIdKey = (k: string, v: unknown) => /(^id|Id|_id)$/.test(k) && typeof v =
 const isPrimitive = (v: unknown) => v === null || ["string", "number", "boolean"].includes(typeof v);
 const show = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : typeof v === "boolean" ? (v ? "Yes" : "No") : String(v));
 const text = (t: string, a: Attrs = {}): Node => ({ definition: "tile/text", attributes: { text: t, ...a } });
+const chunk = <T>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
 const TITLE_KEYS = ["name", "title", "subject", "label", "Name", "Title", "Subject"];
 
 // lightning__recordInfoType-style objects: {sObjectInfo, title, data: {Field: {label, value, displayValue}}}.
@@ -160,20 +182,20 @@ export function autoCard(key: string, data: unknown): Node {
       children.push({
         definition: "tile/container",
         attributes: { variant: "emphasis" },
-        children: [
-          {
-            definition: "tile/column",
-            attributes: { gap: "sm", align: "start" },
-            children: fields.slice(0, 16).map(([label, v]) => ({
-              definition: "tile/row",
-              attributes: { gap: "sm" },
-              children: [text(label, { variant: "body", weight: "semibold" }), text(show(v), { variant: "body" })],
-            })),
-          },
-        ],
+        // A column holds at most 10 children (HXL childBlocks), so fields go in columns of 10.
+        children: chunk(fields.slice(0, 30), 10).map((group) => ({
+          definition: "tile/column",
+          attributes: { gap: "sm", align: "start" },
+          children: group.map(([label, v]) => ({
+            definition: "tile/row",
+            attributes: { gap: "sm" },
+            children: [text(label, { variant: "body", weight: "semibold" }), text(show(v), { variant: "body" })],
+          })),
+        })),
       });
     }
-    for (const [k, v] of Object.entries(o)) {
+    for (const [k, v] of Object.entries(o).slice(0, 40)) {
+      if (children.length >= 8) break; // header + fields + tables + link stay within a column's 10
       if (Array.isArray(v) && v.some((x) => x && typeof x === "object")) {
         const t = table(humanize(k), v as Attrs[]);
         if (t) children.push(t);
@@ -191,6 +213,7 @@ export function autoCard(key: string, data: unknown): Node {
 export async function renderActionOutput(orgId: string, actionType: string, value: unknown): Promise<HxlCard[]> {
   const fn = /^copilotActionOutput\/(.+)$/.exec(actionType)?.[1];
   const props = value && typeof value === "object" && !Array.isArray(value) ? Object.entries(value as Attrs) : [["output", value] as [string, unknown]];
+  const orgUrl = getOrgCredentials(orgId).myDomain;
   const types = fn ? await outputTypes(orgId, fn).catch(() => ({}) as Record<string, string>) : {};
   return Promise.all(
     props
@@ -200,10 +223,10 @@ export async function renderActionOutput(orgId: string, actionType: string, valu
         const w = type ? await typeWidget(orgId, type).catch(() => null) : null;
         if (w && data && typeof data === "object") {
           // Renderer attributes map the type's data ($attrs) onto the widget's attributes.
-          const widgetAttrs = Object.fromEntries(Object.entries(w.attributes).map(([k, v]) => [k, resolveValue(v, data as Attrs)]));
-          return { key, type, source: "widget", widget: w.widget, uiMetadata: uiMetadata(resolveTree(w.body, widgetAttrs)) };
+          const widgetAttrs = resolveValue(w.attributes, { $attrs: data as Attrs, $meta: { env: { orgUrl } } }) as Attrs;
+          return { key, type, source: "widget", widget: w.widget, uiMetadata: uiMetadata(resolveTree(w.body, widgetAttrs, orgUrl)) };
         }
-        return { key, type, source: "auto", uiMetadata: uiMetadata(resolveTree(autoCard(key, data), {})) };
+        return { key, type, source: "auto", uiMetadata: uiMetadata(resolveTree(autoCard(key, data), {}, orgUrl)) };
       }),
   );
 }
