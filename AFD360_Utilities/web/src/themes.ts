@@ -55,6 +55,8 @@ function apply(t: Theme) {
   const root = document.documentElement;
   for (const [k, v] of Object.entries(tokens(t))) root.style.setProperty(`--${k}`, v);
   root.style.colorScheme = t.dark ? "dark" : "light";
+  // Before data-theme: widgets re-render on that change and read the scheme's shadows.
+  root.dataset.scheme = t.dark ? "dark" : "light";
   root.dataset.theme = t.id;
 }
 

@@ -240,11 +240,13 @@ Spacing follows Tailwind's 4px grid. 8px and 12px gaps dominate inside component
 
 ## Elevation & Depth
 
-Hybrid: depth is mostly tonal (rail darker than sidebar, sidebar darker than ground, ground darker than surface), with two soft, cool-neutral ambient shadows on top. No glows, no colored shadows, no hard offsets.
+Hybrid: depth is mostly tonal (rail darker than sidebar, sidebar darker than ground, ground darker than surface), with two soft ambient shadows on top. Their geometry is fixed and their color follows the scheme: a faint cool navy on light themes, and black at higher alpha on dark themes (Midnight, Obsidian), where a 5% navy would vanish against the ground. No glows, no colored shadows, no hard offsets.
 
 ### Shadow Vocabulary
-- **Card** (`box-shadow: 0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)`): message cards, the session bar, the composer, primary action buttons, the open Wire row.
-- **Lift** (`box-shadow: 0 2px 6px rgb(15 23 36 / 0.08), 0 16px 40px rgb(15 23 36 / 0.14)`): popovers and dialogs (theme picker, org editor) and the Wire row highlighted by hovering its chat turn.
+- **Card** (light `0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)`; dark `0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px rgb(0 0 0 / 0.32)`): message cards, the session bar, the composer, primary action buttons, the open Wire row.
+- **Lift** (light `0 2px 6px rgb(15 23 36 / 0.08), 0 16px 40px rgb(15 23 36 / 0.14)`; dark `0 2px 6px rgb(0 0 0 / 0.45), 0 16px 40px rgb(0 0 0 / 0.55)`): popovers and dialogs (theme picker, org editor) and the Wire row highlighted by hovering its chat turn.
+
+Mechanics: `index.css` declares both shadows in `@theme static` with color variables (`--shadow-card-near|far`, `--shadow-lift-near|far`). `:root[data-scheme="dark"]` swaps those colors, and `apply()` in `themes.ts` sets `data-scheme` from the theme's `dark` flag.
 
 ### Named Rules
 **The Resting Flat Rule.** Nested containers (tool cards, approval cards, details, Wire rows at rest) carry a border and no shadow. Shadow belongs to the outermost card or to something floating above the page.
@@ -293,7 +295,7 @@ The house rule that nothing changes in the org without consent, as a component. 
 
 ### HXL Cards (widget theming bridge)
 Salesforce HXL widgets render in a sandboxed frame, but they wear the app's theme:
-- **Bridge:** `widgetHostStyles()` in `web/src/themes.ts` maps the active theme onto the MCP Apps host-style variables the HXL runtime reads from `hostContext.styles.variables`. The values are literal colors (or `color-mix`) because the widget runs in its own document. Background primary, secondary and tertiary map to surface, tint and ground. Text maps to ink, ink-2 and ink-3. Borders map to line. The ring and the primary solid map to action and action-ink. The tones map like this: `info` and `discovery` go to the sent family, `warning` and `caution` to the recv family, and `success` and `danger` to ok and err mixed 14% into surface, with 40% borders. Radii are 6, 10, 14 and 16px, and the shadows are the Card and Lift values above.
+- **Bridge:** `widgetHostStyles()` in `web/src/themes.ts` maps the active theme onto the MCP Apps host-style variables the HXL runtime reads from `hostContext.styles.variables`. The values are literal colors (or `color-mix`) because the widget runs in its own document. Background primary, secondary and tertiary map to surface, tint and ground. Text maps to ink, ink-2 and ink-3. Borders map to line. The ring and the primary solid map to action and action-ink. The tones map like this: `info` and `discovery` go to the sent family, `warning` and `caution` to the recv family, and `success` and `danger` to ok and err mixed 14% into surface, with 40% borders. Radii are 6, 10, 12 and 16px, and the shadows are the active scheme's Card and Lift values, read from `:root`.
 - **Fonts:** the host passes `--font-sans` and `--font-mono` as Archivo Variable and JetBrains Mono Variable. `server/sandbox.ts` injects `@font-face` rules and serves the two woff2 files from its own origin under `font-src 'self'`.
 - **Frame:** chat HXL cards render frameless, inheriting the received card, with a raw "Action output" details block below. MCP widgets get a 12px line-bordered surface frame unless the widget declares `prefersBorder: false`.
 - **Composition** (`salesforce/.../uiWidgets/afd360{Lead,Account,Opportunity,Task}Card`): a column with an md gap, built from:

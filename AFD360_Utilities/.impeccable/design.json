@@ -500,12 +500,14 @@
       {
         "name": "card",
         "value": "0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)",
-        "purpose": "Outermost cards, composer, primary buttons."
+        "purpose": "Outermost cards, composer, primary buttons.",
+        "valueDark": "0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px rgb(0 0 0 / 0.32)"
       },
       {
         "name": "lift",
         "value": "0 2px 6px rgb(15 23 36 / 0.08), 0 16px 40px rgb(15 23 36 / 0.14)",
-        "purpose": "Popovers, dialogs, highlighted Wire row."
+        "purpose": "Popovers, dialogs, highlighted Wire row.",
+        "valueDark": "0 2px 6px rgb(0 0 0 / 0.45), 0 16px 40px rgb(0 0 0 / 0.55)"
       }
     ],
     "motion": [
@@ -573,7 +575,7 @@
       "refersTo": "button-action",
       "description": "The single primary decision in a region: New chat, Send, Approve.",
       "html": "<button class=\"ds-btn-action\">Approve all (3)</button>",
-      "css": ".ds-btn-action{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--action, #C9A227);color:var(--action-ink, #1A1405);border:0;border-radius:12px;padding:8px 14px;font-size:14px;font-weight:600;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06);cursor:pointer;transition:filter .15s}.ds-btn-action:hover{filter:brightness(1.05)}.ds-btn-action:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}.ds-btn-action:disabled{opacity:.5;box-shadow:none}"
+      "css": ".ds-btn-action{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--action, #C9A227);color:var(--action-ink, #1A1405);border:0;border-radius:12px;padding:8px 14px;font-size:14px;font-weight:600;box-shadow:var(--shadow-card, 0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06));cursor:pointer;transition:filter .15s}.ds-btn-action:hover{filter:brightness(1.05)}.ds-btn-action:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}.ds-btn-action:disabled{opacity:.5;box-shadow:none}"
     },
     {
       "name": "Secondary Button",
@@ -597,7 +599,7 @@
       "refersTo": "card-sent",
       "description": "The user's turn: cool lane, inset 8% from the left.",
       "html": "<article class=\"ds-card-sent\"><div class=\"ds-head\"><span class=\"ds-lane\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg> Sent</span><b>You</b><time>14:02:11</time></div><p>Show my open leads in Texas</p></article>",
-      "css": ".ds-card-sent{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--sent, #E6ECF5);border:1px solid var(--sent-line, #C8D4E6);border-radius:16px;padding:14px 18px 16px;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06);color:var(--sent-ink, #1A3360)}.ds-card-sent .ds-head{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:8px;color:var(--ink, #111827)}.ds-card-sent .ds-lane{display:inline-flex;align-items:center;gap:4px;border-radius:9999px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--sent-chip, #D4DFEF);color:var(--sent-ink, #1A3360)}.ds-card-sent time{margin-left:auto;font-family:'JetBrains Mono Variable',ui-monospace,monospace;font-size:12px;color:var(--ink-3, #555E6D)}.ds-card-sent p{margin:0;font-size:15px;font-weight:500;line-height:1.625}"
+      "css": ".ds-card-sent{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--sent, #E6ECF5);border:1px solid var(--sent-line, #C8D4E6);border-radius:16px;padding:14px 18px 16px;box-shadow:var(--shadow-card, 0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06));color:var(--sent-ink, #1A3360)}.ds-card-sent .ds-head{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:8px;color:var(--ink, #111827)}.ds-card-sent .ds-lane{display:inline-flex;align-items:center;gap:4px;border-radius:9999px;padding:2px 10px;font-size:12px;font-weight:600;background:var(--sent-chip, #D4DFEF);color:var(--sent-ink, #1A3360)}.ds-card-sent time{margin-left:auto;font-family:'JetBrains Mono Variable',ui-monospace,monospace;font-size:12px;color:var(--ink-3, #555E6D)}.ds-card-sent p{margin:0;font-size:15px;font-weight:500;line-height:1.625}"
     },
     {
       "name": "Tool Card with Spine",
@@ -613,7 +615,7 @@
       "refersTo": "field-change-chip",
       "description": "Agent-proposed writes; nothing changes until approved.",
       "html": "<div class=\"ds-approve\"><header>Approve changes <span>1 pending</span></header><div class=\"ds-row\">Lead · <b>Ana Ruiz</b><div><span class=\"ds-change\">Status &rarr; <b>Qualified</b></span></div></div><footer><em>Nothing is changed until you approve.</em><button class=\"ds-rej\">Reject</button><button class=\"ds-ok-btn\">Approve all (1)</button></footer></div>",
-      "css": ".ds-approve{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);border-radius:12px;overflow:hidden;color:var(--ink, #111827);font-size:14px}.ds-approve header,.ds-approve footer{display:flex;align-items:center;gap:8px;padding:10px 16px;background:color-mix(in oklab, var(--ground, #F3F4F6) 60%, var(--surface, #FFFFFF))}.ds-approve header{font-weight:600;border-bottom:1px solid var(--line, #E0E3E8)}.ds-approve header span{border-radius:9999px;border:1px solid var(--recv-line, #E6D6A8);background:var(--recv, #F7F0DC);color:var(--recv-ink, #5F4A0F);padding:2px 10px;font-size:12px}.ds-row{padding:10px 16px;color:var(--ink-3, #555E6D)}.ds-change{display:inline-flex;gap:4px;margin-top:4px;border-radius:8px;border:1px solid var(--sent-line, #C8D4E6);background:var(--sent, #E6ECF5);color:var(--sent-ink, #1A3360);padding:2px 8px;font-family:'JetBrains Mono Variable',ui-monospace,monospace;font-size:12px}.ds-approve footer{border-top:1px solid var(--line, #E0E3E8);justify-content:flex-end}.ds-approve em{margin-right:auto;font-style:normal;color:var(--ink-3, #555E6D)}.ds-rej,.ds-ok-btn{border-radius:12px;padding:8px 14px;font:inherit;cursor:pointer}.ds-rej{background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);color:var(--ink, #111827)}.ds-ok-btn{background:var(--action, #C9A227);color:var(--action-ink, #1A1405);border:0;font-weight:600;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)}.ds-rej:focus-visible,.ds-ok-btn:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}"
+      "css": ".ds-approve{font-family:'Archivo Variable',system-ui,sans-serif;background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);border-radius:12px;overflow:hidden;color:var(--ink, #111827);font-size:14px}.ds-approve header,.ds-approve footer{display:flex;align-items:center;gap:8px;padding:10px 16px;background:color-mix(in oklab, var(--ground, #F3F4F6) 60%, var(--surface, #FFFFFF))}.ds-approve header{font-weight:600;border-bottom:1px solid var(--line, #E0E3E8)}.ds-approve header span{border-radius:9999px;border:1px solid var(--recv-line, #E6D6A8);background:var(--recv, #F7F0DC);color:var(--recv-ink, #5F4A0F);padding:2px 10px;font-size:12px}.ds-row{padding:10px 16px;color:var(--ink-3, #555E6D)}.ds-change{display:inline-flex;gap:4px;margin-top:4px;border-radius:8px;border:1px solid var(--sent-line, #C8D4E6);background:var(--sent, #E6ECF5);color:var(--sent-ink, #1A3360);padding:2px 8px;font-family:'JetBrains Mono Variable',ui-monospace,monospace;font-size:12px}.ds-approve footer{border-top:1px solid var(--line, #E0E3E8);justify-content:flex-end}.ds-approve em{margin-right:auto;font-style:normal;color:var(--ink-3, #555E6D)}.ds-rej,.ds-ok-btn{border-radius:12px;padding:8px 14px;font:inherit;cursor:pointer}.ds-rej{background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);color:var(--ink, #111827)}.ds-ok-btn{background:var(--action, #C9A227);color:var(--action-ink, #1A1405);border:0;font-weight:600;box-shadow:var(--shadow-card, 0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06))}.ds-rej:focus-visible,.ds-ok-btn:focus-visible{outline:2px solid color-mix(in oklab, var(--action, #C9A227) 70%, var(--ink, #111827));outline-offset:2px;}"
     },
     {
       "name": "Composer",
@@ -621,7 +623,7 @@
       "refersTo": "input-composer",
       "description": "Message input; border shifts to ink-3 on focus.",
       "html": "<div class=\"ds-composer\"><textarea rows=\"1\" placeholder=\"Message Cumulus Assistant…\"></textarea><button>Send</button></div>",
-      "css": ".ds-composer{font-family:'Archivo Variable',system-ui,sans-serif;display:flex;align-items:flex-end;gap:8px;background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);border-radius:18px;padding:6px 6px 6px 16px;box-shadow:0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06)}.ds-composer:focus-within{border-color:var(--ink-3, #555E6D)}.ds-composer textarea{flex:1;resize:none;border:0;outline:0;background:transparent;font:inherit;font-size:15px;padding:10px 0;color:var(--ink, #111827);caret-color:var(--action, #C9A227)}.ds-composer textarea::placeholder{color:var(--ink-3, #555E6D)}.ds-composer button{border:0;border-radius:12px;background:var(--action, #C9A227);color:var(--action-ink, #1A1405);font:inherit;font-size:14px;font-weight:600;padding:10px 16px;cursor:pointer}"
+      "css": ".ds-composer{font-family:'Archivo Variable',system-ui,sans-serif;display:flex;align-items:flex-end;gap:8px;background:var(--surface, #FFFFFF);border:1px solid var(--line, #E0E3E8);border-radius:18px;padding:6px 6px 6px 16px;box-shadow:var(--shadow-card, 0 1px 2px rgb(15 23 36 / 0.05), 0 6px 20px rgb(15 23 36 / 0.06))}.ds-composer:focus-within{border-color:var(--ink-3, #555E6D)}.ds-composer textarea{flex:1;resize:none;border:0;outline:0;background:transparent;font:inherit;font-size:15px;padding:10px 0;color:var(--ink, #111827);caret-color:var(--action, #C9A227)}.ds-composer textarea::placeholder{color:var(--ink-3, #555E6D)}.ds-composer button{border:0;border-radius:12px;background:var(--action, #C9A227);color:var(--action-ink, #1A1405);font:inherit;font-size:14px;font-weight:600;padding:10px 16px;cursor:pointer}"
     },
     {
       "name": "Rail Navigation",
