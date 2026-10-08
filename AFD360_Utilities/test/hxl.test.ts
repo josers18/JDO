@@ -139,8 +139,8 @@ describe("autoCard", () => {
     const find = (n: any): any => (n.definition === "tile/table" ? n : (n.children ?? []).map(find).find(Boolean));
     const t = find(card).attributes;
     const col = (key: string) => t.columns.find((c: any) => c.key === key);
-    expect(col("Close Date")).toEqual({ key: "Close Date", header: "Close Date", columnType: { type: "date" } });
-    expect(col("Last Activity").columnType).toEqual({ type: "date", format: "datetime" });
+    expect(col("Close Date")).toEqual({ key: "Close Date", header: "Close Date", isSortable: true, isFilterable: true, columnType: { type: "date" } });
+    expect(col("Last Activity")).toMatchObject({ isSortable: true, isFilterable: true, columnType: { type: "date", format: "datetime" } });
     expect(col("Probability (%)")).toEqual({ key: "Probability (%)", header: "Probability (%)", align: "right", columnType: { type: "number", format: "percent" } });
     expect(col("Quantity")).toMatchObject({ align: "right", columnType: { type: "number" } });
     expect(col("Seats")).toMatchObject({ align: "right", columnType: { type: "number" } });
@@ -165,6 +165,8 @@ describe("autoCard", () => {
     expect(t.columns[1]).toEqual({
       key: "Stage",
       header: "Stage",
+      isSortable: true,
+      isFilterable: true,
       columnType: {
         type: "picklist",
         options: [

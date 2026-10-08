@@ -259,13 +259,17 @@ function table(caption: string, items: Attrs[]): Node | null {
   };
 }
 
+// The runtime sorts and filters these itself (header click; a dropdown or date-range filter panel).
+const SORT_FILTER = { isSortable: true, isFilterable: true };
+
 function typedColumn(k: string, columnType: Attrs, rows: Attrs[], picklist?: Map<string, string>) {
   // A picklist column needs at least one option; with no values seen, fall back to plain text.
   if (columnType.type === "picklist") {
     return picklist?.size
-      ? { key: k, header: humanize(k), columnType: { ...columnType, options: [...picklist].map(([value, label]) => ({ label, value })) } }
+      ? { key: k, header: humanize(k), ...SORT_FILTER, columnType: { ...columnType, options: [...picklist].map(([value, label]) => ({ label, value })) } }
       : { key: k, header: humanize(k) };
   }
+  if (columnType.type === "date") return { key: k, header: humanize(k), ...SORT_FILTER, columnType };
   const currencyCodeKey = columnType.format === "currency" && rows.some((r) => r[CURRENCY + k]) ? { currencyCodeKey: CURRENCY + k } : {};
   return { key: k, header: humanize(k), ...(columnType.type === "number" ? { align: "right" } : {}), columnType: { ...columnType, ...currencyCodeKey } };
 }
