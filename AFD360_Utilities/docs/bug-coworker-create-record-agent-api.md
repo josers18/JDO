@@ -72,6 +72,18 @@ provides that context. Agentforce Studio does not, and neither does an Agent API
 with client credentials, which has no Lightning UI session. Without it the tool fails, and the error is
 swallowed.
 
+## Update: it depends on the object's create-layout required fields (2026-10-07, 22:30 UTC)
+
+| Object | Required items on the create layout (`/ui-api/record-defaults/create/<obj>`) | Coworker create over the Agent API |
+|---|---|---|
+| Case | Status | **Works.** The first attempt failed, the agent then looked up `BusinessHoursId`, and the draft went through. A `search__recordDraft` was proposed and approved, and the Case was created. |
+| Lead | **Name** (compound: Salutation, FirstName, *MiddleName*, LastName), Company, Status | Fails. The tool treats each component of the required compound Name item as required, so the agent asks the user for a Middle Name and Salutation. |
+| Task | Assigned To (`OwnerId`), Subject, Activity Currency (`CurrencyIsoCode`), Status, Priority | Fails, even when the request names `OwnerId` and `CurrencyIsoCode = USD` explicitly ("the page layout check hit a snag"). |
+
+The create tool appears to validate drafts against the full create page layout's required items. It mishandles
+compound required items (Lead Name), and it errors on the Task layout. The Lightning Ask panel in Banking -
+Console likely succeeds because Lightning resolves a different (app/quick-action) layout. That part is unverified.
+
 ## Secondary issue: the error detail is not surfaced
 
 The Agent API stream carries only `{"description":"Creating Task record - Adjusting approach","status":"error"}`.

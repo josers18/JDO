@@ -55,8 +55,16 @@ function toolsFrom(value: unknown): Tool[] {
   return [...byId.values()];
 }
 
+// A proposed action awaiting approval: copilotActionInput/* (e.g. UpdateRecordFields), or another typed proposal that
+// carries a toolId and a record payload (e.g. the Coworker's search__recordDraft for creating a record).
+function isProposal(type: string, value: unknown): boolean {
+  if (type.startsWith("copilotActionInput/")) return true;
+  const v = value as { toolId?: unknown; recordDetailInput?: unknown } | null;
+  return type !== TOOL_BATCH && type !== AGENT_MESSAGE && typeof v?.toolId === "string" && Boolean(v.recordDetailInput);
+}
+
 function partFromResult(type: string, value: unknown): Part {
-  if (type.startsWith("copilotActionInput/")) {
+  if (isProposal(type, value)) {
     return { kind: "action", actionType: type, toolId: (value as { toolId?: string })?.toolId, value };
   }
   if (type === AGENT_MESSAGE) return { kind: "text", markdown: String((value as { content?: string })?.content ?? "") };
@@ -117,7 +125,7 @@ export class TurnNormalizer {
         const items = (m.confirm as ConfirmItem[] | undefined) ?? [];
         this.informResult = items.map((r) => partFromResult(r.type, r.value));
         if (m.message) this.informResult.unshift({ kind: "text", markdown: String(m.message) });
-        this.confirm = { messageId: String(m.id), items: items.filter((i) => i.type.startsWith("copilotActionInput/")) };
+        this.confirm = { messageId: String(m.id), items: items.filter((i) => isProposal(i.type, i.value)) };
         break;
       }
       case "EndOfTurn":

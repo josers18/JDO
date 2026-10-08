@@ -1,3 +1,4 @@
+import { warmAgent } from "./hxl.ts";
 import crypto from "node:crypto";
 import { Router, type Request, type Response } from "express";
 import * as orgs from "./orgStore.ts";
@@ -103,6 +104,8 @@ api.post("/conversations", wrap(async (req) => {
     c.messages.push(message("error", [{ kind: "text", markdown: `Could not start session: ${(e as Error).message}` }], 0));
   }
   store.saveConversation(c);
+  // Warm the agent's HXL output types so its first card renders without the ~40 s metadata retrieve.
+  warmAgent(c.orgId, c.agentId).catch(() => {});
   return c;
 }));
 

@@ -1,4 +1,7 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { DATA_DIR } from "./env.ts";
 import { getOrgCredentials } from "./orgStore.ts";
 import { restUrl, sfJson } from "./salesforce.ts";
 import { retrieveFiles } from "./metadata.ts";
@@ -15,9 +18,9 @@ type Attrs = Record<string, unknown>;
 
 const TTL_MS = 10 * 60_000;
 const cache = new Map<string, { at: number; value: Promise<unknown> }>();
-function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+function cached<T>(key: string, load: () => Promise<T>, ttl = TTL_MS): Promise<T> {
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.value as Promise<T>;
+  if (hit && Date.now() - hit.at < ttl) return hit.value as Promise<T>;
   const value = load();
   cache.set(key, { at: Date.now(), value });
   value.catch(() => cache.delete(key));
@@ -32,7 +35,33 @@ async function tooling<T>(orgId: string, soql: string): Promise<T[]> {
 
 const soqlString = (s: string) => `'${s.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
 
-// Output property -> Lightning type, from the function's output schema (planner-local or standalone GenAiFunction).
+// Every function's output property -> Lightning type for one planner version. Published planner versions
+// (e.g. Cumulus_Assistant_v26) don't change, and retrieving a big bundle takes ~40 s, so maps are kept on disk.
+const PLANNER_DIR = path.join(DATA_DIR, "hxl-planners");
+type OutputTypes = Record<string, Record<string, string>>; // function DeveloperName -> property -> lightning:type
+
+function plannerTypes(orgId: string, planner: string): Promise<OutputTypes> {
+  const file = path.join(PLANNER_DIR, `${orgId}__${planner.replace(/[^A-Za-z0-9_]/g, "_")}.json`);
+  return cached(`planner|${orgId}|${planner}`, async () => {
+    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8")) as OutputTypes;
+    const files = await retrieveFiles(orgId, { GenAiPlannerBundle: [planner] });
+    const map: OutputTypes = {};
+    for (const [p, body] of files) {
+      const m = /\/([^/]+)\/output\/schema\.json$/.exec(p);
+      if (m) map[m[1]] = propertyTypes(body);
+    }
+    fs.mkdirSync(PLANNER_DIR, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(map));
+    return map;
+  }, Infinity);
+}
+
+function propertyTypes(schemaJson: string): Record<string, string> {
+  const schema = JSON.parse(schemaJson) as { properties?: Record<string, { "lightning:type"?: string }> };
+  return Object.fromEntries(Object.entries(schema.properties ?? {}).map(([k, p]) => [k, p["lightning:type"] ?? ""]));
+}
+
+// Output property -> Lightning type for one function (planner-local or standalone GenAiFunction).
 function outputTypes(orgId: string, fn: string): Promise<Record<string, string>> {
   return cached(`out|${orgId}|${fn}`, async () => {
     const [def] = await tooling<{ IsLocal: boolean; PluginId: string | null; PlannerId: string | null }>(
@@ -40,25 +69,34 @@ function outputTypes(orgId: string, fn: string): Promise<Record<string, string>>
       `SELECT IsLocal, PluginId, PlannerId FROM GenAiFunctionDefinition WHERE DeveloperName = ${soqlString(fn)}`,
     );
     if (!def) return {};
-    let files: Map<string, string>;
-    if (def.IsLocal) {
-      let plannerId = def.PlannerId;
-      if (!plannerId && def.PluginId) {
-        const [link] = await tooling<{ PlannerId: string }>(orgId, `SELECT PlannerId FROM GenAiPlannerFunctionDef WHERE Plugin = ${soqlString(def.PluginId)}`);
-        plannerId = link?.PlannerId ?? null;
-      }
-      if (!plannerId) return {};
-      const [planner] = await tooling<{ DeveloperName: string }>(orgId, `SELECT DeveloperName FROM GenAiPlannerDefinition WHERE Id = ${soqlString(plannerId)}`);
-      if (!planner) return {};
-      files = await cached(`planner|${orgId}|${planner.DeveloperName}`, () => retrieveFiles(orgId, { GenAiPlannerBundle: [planner.DeveloperName] }));
-    } else {
-      files = await retrieveFiles(orgId, { GenAiFunction: [fn] });
+    if (!def.IsLocal) {
+      const files = await retrieveFiles(orgId, { GenAiFunction: [fn] });
+      const schemaPath = [...files.keys()].find((p) => p.endsWith(`/${fn}/output/schema.json`));
+      return schemaPath ? propertyTypes(files.get(schemaPath)!) : {};
     }
-    const schemaPath = [...files.keys()].find((p) => p.endsWith(`/${fn}/output/schema.json`));
-    if (!schemaPath) return {};
-    const schema = JSON.parse(files.get(schemaPath)!) as { properties?: Record<string, { "lightning:type"?: string }> };
-    return Object.fromEntries(Object.entries(schema.properties ?? {}).map(([k, p]) => [k, p["lightning:type"] ?? ""]));
+    let plannerId = def.PlannerId;
+    if (!plannerId && def.PluginId) {
+      const [link] = await tooling<{ PlannerId: string }>(orgId, `SELECT PlannerId FROM GenAiPlannerFunctionDef WHERE Plugin = ${soqlString(def.PluginId)}`);
+      plannerId = link?.PlannerId ?? null;
+    }
+    if (!plannerId) return {};
+    const [planner] = await tooling<{ DeveloperName: string }>(orgId, `SELECT DeveloperName FROM GenAiPlannerDefinition WHERE Id = ${soqlString(plannerId)}`);
+    return planner ? ((await plannerTypes(orgId, planner.DeveloperName))[fn] ?? {}) : {};
   });
+}
+
+/** Starts loading an agent's active planner output types in the background, so its first card renders quickly. */
+export async function warmAgent(orgId: string, agentId: string): Promise<void> {
+  const url = restUrl(
+    getOrgCredentials(orgId).myDomain,
+    `/query?q=${encodeURIComponent(`SELECT DeveloperName, (SELECT VersionNumber FROM BotVersions WHERE Status = 'Active' LIMIT 1) FROM BotDefinition WHERE Id = ${soqlString(agentId)}`)}`,
+  );
+  const r = await sfJson<{ records: { DeveloperName: string; BotVersions?: { records: { VersionNumber: number }[] } }[] }>({ orgId, label: "Agent version", method: "GET", url });
+  const bot = r.records[0];
+  const version = bot?.BotVersions?.records[0]?.VersionNumber;
+  if (!bot || !version) return;
+  const [planner] = await tooling<{ DeveloperName: string }>(orgId, `SELECT DeveloperName FROM GenAiPlannerDefinition WHERE DeveloperName = ${soqlString(`${bot.DeveloperName}_v${version}`)}`);
+  if (planner) await plannerTypes(orgId, planner.DeveloperName);
 }
 
 // Custom Lightning type -> its HXL widget renderer (attribute mapping + widget composition), or null.

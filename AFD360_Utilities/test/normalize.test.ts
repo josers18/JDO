@@ -71,6 +71,22 @@ describe("TurnNormalizer — Confirm (action approval)", () => {
   });
 });
 
+describe("TurnNormalizer — Confirm for a record create (search__recordDraft)", () => {
+  // The Coworker proposes creating a record as a search__recordDraft item, not copilotActionInput/*.
+  it("treats the draft as an approvable action and keeps it for the Reply", async () => {
+    const raw = fs.readFileSync(path.join(import.meta.dirname, "fixtures", "stream-confirm-create.sse"));
+    const n = new TurnNormalizer();
+    async function* body() {
+      yield new Uint8Array(raw);
+    }
+    for await (const ev of parseSse(body())) n.push(ev);
+    const actions = n.finalParts().filter((p) => p.kind === "action");
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({ kind: "action", actionType: "search__recordDraft" });
+    expect(n.pendingConfirm()?.items.map((i) => i.type)).toEqual(["search__recordDraft"]);
+  });
+});
+
 describe("TurnNormalizer — step trail (agent delegation)", () => {
   // One tool id is re-reported with a new description per step; the final Inform only has the last state.
   it("keeps every step of a tool, in order, while streaming and in the final parts", async () => {

@@ -19,16 +19,18 @@ interface RecordDetail {
   data?: Record<string, FieldValue>;
 }
 
-const shortType = (t: string) => t.replace(/^copilotActionInput\//, "").replace(/^EmployeeCopilot__/, "");
+const shortType = (t: string) => t.replace(/^copilotActionInput\//, "").replace(/^EmployeeCopilot__/, "").replace(/^search__recordDraft$/, "CreateRecord");
 
 function describe(a: ActionPart) {
   const detail = (a.value as { recordDetailInput?: RecordDetail })?.recordDetailInput;
   if (!detail) return null;
-  // Fields the action writes = updateable fields in the proposal (Id and read-only context are excluded).
+  // A proposal without a record Id creates a record (e.g. search__recordDraft): every proposed field is a change.
+  // An update lists only the updateable fields (Id and read-only context are excluded).
+  const isCreate = !detail.id;
   const changes = Object.entries(detail.data ?? {})
-    .filter(([key, f]) => key !== "Id" && f.updateable)
+    .filter(([key, f]) => key !== "Id" && (isCreate ? f.value !== undefined && f.value !== "" : f.updateable))
     .map(([key, f]) => ({ key, label: f.label ?? key, value: f.displayValue || String(f.value ?? "—") }));
-  return { detail, changes };
+  return { detail, changes, isCreate };
 }
 
 export function ApprovalCard({
@@ -101,7 +103,9 @@ export function ApprovalCard({
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className="h-2 w-2 rounded-full" style={{ background: `#${info.detail.sObjectInfo?.color ?? "94a3b8"}` }} />
                       <span className="text-sm text-ink-3">{info.detail.sObjectInfo?.label}</span>
-                      {info.detail.id && info.detail.sObjectInfo?.apiName ? (
+                      {info.isCreate ? (
+                        <span className="text-sm font-semibold">New {info.detail.sObjectInfo?.label ?? "record"}</span>
+                      ) : info.detail.id && info.detail.sObjectInfo?.apiName ? (
                         <a
                           href={`${myDomain}/lightning/r/${info.detail.sObjectInfo.apiName}/${info.detail.id}/view`}
                           target="_blank"
