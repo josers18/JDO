@@ -4,6 +4,7 @@ import { api, streamTurn, type TurnRequest } from "../api";
 import { AgentGallery } from "./AgentGallery";
 import { AgentCard, MessageView, Parts } from "./MessageView";
 import { WirePanel } from "./WirePanel";
+import { TurnStats } from "./TurnStats";
 import type { AppEvent, Conversation, ConversationSummary, OrgsResponse, Part, Tool } from "../../../shared/types";
 
 interface Draft {
@@ -460,6 +461,7 @@ export function ChatModule({
               <PanelRightClose size={16} />
             </button>
           </div>
+          <TurnStats wire={conv.wire} highlightTurn={hoverTurn} />
           <div className="min-h-0 flex-1">
             <WirePanel wire={conv.wire} highlightTurn={hoverTurn} title={conv.title} />
           </div>
