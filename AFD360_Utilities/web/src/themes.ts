@@ -114,7 +114,7 @@ export function widgetHostStyles(): { theme: "light" | "dark"; variables: Record
     "--color-text-secondary-soft": k["ink-2"],
     "--border-radius-sm": "6px",
     "--border-radius-md": "10px",
-    "--border-radius-lg": "14px",
+    "--border-radius-lg": "12px",
     "--border-radius-xl": "16px",
     "--shadow-sm": cssVar("--shadow-card"),
     "--shadow-md": cssVar("--shadow-lift"),
