@@ -1,9 +1,10 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, CircleDot, Copy, Loader2, Search, User, X, Zap } from "lucide-react";
+import { Check, CheckCircle2, Copy, Loader2, Search, X, Zap } from "lucide-react";
 import type { Message, Part, Tool } from "../../../shared/types";
 import { ApprovalCard, type ConfirmDecision } from "./ApprovalCard";
+import { CardHead } from "./CardHead";
 import { HxlOutput } from "./HxlCard";
 
 // Agents write a single newline to mean a line break, and some put <br> in table cells: render both as breaks.
@@ -102,62 +103,6 @@ export function AgentCard({
       <CardHead lane="recv" who={label} time={streaming ? "streaming…" : time} />
       {children}
     </article>
-  );
-}
-
-// SLDS utility:agent_astro (Salesforce Lightning Design System, BSD-3-Clause), 520x520 viewBox.
-const ASTRO = [
-  "M314.9 276.2h.2a100 100 0 0 0-21.8 4.1s-9.2 2.9-23.3 4.9c-3.3.5-7.5.5-9.8.5h-1.7c-2.3 0-6.6-.2-9.8-.7a149.5 149.5 0 0 1-23.2-5.5 113 113 0 0 0-21.8-4.4c-44.9-4.6-64.3 12.5-65.4 15.7s3.8 44.8 7.4 51.4a28 28 0 0 0 13.8 12.4c5 2.1 46.1 6.2 59.8 4.3s15.8-6.5 19.5-13.5c2.6-5 9.3-27.6 13-40.9.9-2.6 1-7.8 7.3-8.2 6.3.5 6.4 5.8 7.2 8.4l12.4 41.1c3.5 7.1 5.6 11.7 19.3 13.9 13.6 2.1 54.8-1.2 59.8-3.2s10.4-5.7 14-12.2 9.2-48 8.2-51.2c-1-3.3-20.1-20.7-65.1-16.9",
-  "M455.2 145.5h.1a226.5 226.5 0 0 0-43.7-42.1 36.2 36.2 0 0 0 29.9-35.6 36.3 36.3 0 1 0-70.6 11.4 258.5 258.5 0 0 0-83.5-23.3 260 260 0 0 0-138.2 23 36.3 36.3 0 1 0-70.7-11.1 36.2 36.2 0 0 0 29.6 35.6C61.5 137.8 29 187.9 21.6 246a201.5 201.5 0 0 0 43.2 151.5c39.4 49.8 100.6 82.5 167.8 89.6q14.1 1.5 27.9 1.5c119.9 0 223.7-81.4 237.9-191.6a201.5 201.5 0 0 0-43.2-151.5m-195 281.1h-.1c-90.2-.1-163.6-60.3-163.6-134.3 0-22.3 6.8-43.7 19.1-62.7a60.6 60.6 0 0 0 5.3 17.1 17 17 0 0 0 22.8 7.8c8.5-4.1 12-14.3 8.1-22.8-2.1-4.5-7.5-19.4 5.6-30.8 12.7 11.5 30.9 25 51.4 31.6 38.2 12.1 67.1 5 68.3 4.7a17.1 17.1 0 0 0 12.1-11.5 17 17 0 0 0-3.4-16.3 185.5 185.5 0 0 1-32.5-48.2c78.2 10.6 93.2 72.9 93.8 75.7a17 17 0 0 0 20.2 13.1c9.3-1.9 15.2-11 13.3-20.3a119 119 0 0 0-19.9-43c38.3 24.6 63.1 62.8 63.1 105.7 0 74-73.4 134.2-163.6 134.2",
-];
-
-const Astro = () => (
-  <svg viewBox="0 0 520 520" width={14} height={14} fill="currentColor">
-    {ASTRO.map((d) => (
-      <path key={d.length} d={d} />
-    ))}
-  </svg>
-);
-
-type Lane = "sent" | "recv" | "system" | "error";
-// Per lane: header bar, identity badge and icon, and the direction chip (system and error notes have none).
-const LANES: Record<Lane, { bar: string; badge: string; icon: React.ReactNode; chip?: React.ReactNode }> = {
-  sent: {
-    bar: "border-sent-line bg-[color-mix(in_oklab,var(--sent-chip)_40%,var(--sent))]",
-    badge: "bg-sent-chip text-sent-ink",
-    icon: <User size={14} strokeWidth={2.4} />,
-    chip: (
-      <span className="inline-flex items-center gap-1 rounded-full bg-sent-chip px-2 py-px text-[11px] font-semibold text-sent-ink">
-        <ArrowRight size={11} strokeWidth={2.4} /> Sent
-      </span>
-    ),
-  },
-  recv: {
-    bar: "border-recv-line bg-[color-mix(in_oklab,var(--recv)_85%,var(--surface))]",
-    badge: "border border-recv-line bg-recv text-recv-ink",
-    icon: <Astro />,
-    chip: (
-      <span className="inline-flex items-center gap-1 rounded-full border border-recv-line bg-recv px-2 py-px text-[11px] font-semibold text-recv-ink">
-        <ArrowLeft size={11} strokeWidth={2.4} /> Received
-      </span>
-    ),
-  },
-  system: { bar: "border-line bg-tint", badge: "border border-line bg-surface text-ink-3", icon: <CircleDot size={14} strokeWidth={2.4} /> },
-  error: { bar: "border-err/30 bg-err/10", badge: "border border-err/30 bg-surface text-err", icon: <AlertTriangle size={13} strokeWidth={2.4} /> },
-};
-
-function CardHead({ lane, who, time }: { lane: Lane; who: string; time?: string }) {
-  const l = LANES[lane];
-  return (
-    // A faint bar across the card's top edge separates who/when from the message.
-    <div className={`-mx-[18px] -mt-3.5 mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-t-2xl border-b px-[18px] py-2 text-sm ${l.bar}`}>
-      <span aria-hidden className={`grid size-6 shrink-0 place-items-center rounded-full ${l.badge}`}>
-        {l.icon}
-      </span>
-      <span className={`text-[15px] font-bold tracking-tight [font-stretch:112%] ${lane === "error" ? "text-err" : "text-ink"}`}>{who}</span>
-      {l.chip}
-      {time && <time className="ml-auto font-mono text-xs text-ink-3">{time}</time>}
-    </div>
   );
 }
 

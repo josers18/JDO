@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, CheckCircle2, ExternalLink, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import type { Message, Part } from "../../../shared/types";
+import { BAR, Badge, Chip, HeadName } from "./CardHead";
 
 type ActionPart = Extract<Part, { kind: "action" }>;
 export type ConfirmDecision = (decision: "approve" | "reject", toolIds?: string[]) => Promise<void>;
@@ -70,12 +71,12 @@ export function ApprovalCard({
 
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface">
-      <div className="flex flex-wrap items-center gap-2 border-b border-line bg-tint px-4 py-2.5">
-        <ShieldCheck size={16} className="text-ink-2" />
-        <span className="text-sm font-semibold text-ink">{pending ? "Approve changes" : "Proposed changes"}</span>
-        <span className="rounded-full border border-recv-line bg-recv px-2.5 py-0.5 text-xs font-semibold text-recv-ink">
-          {actions.length} {pending ? "pending" : `change${actions.length === 1 ? "" : "s"}`}
-        </span>
+      <div className={`flex flex-wrap items-center gap-2 border-b px-4 py-2 ${BAR.recv}`}>
+        <Badge tone="recv">
+          <ShieldCheck size={14} strokeWidth={2.4} />
+        </Badge>
+        <HeadName>{pending ? "Approve changes" : "Proposed changes"}</HeadName>
+        <Chip tone="recv">{actions.length} {pending ? "pending" : `change${actions.length === 1 ? "" : "s"}`}</Chip>
         <StatusBadge status={confirm?.status} approved={approvedIds.size} total={actions.length} />
         {pending && (
           <button

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { LayoutTemplate, Loader2 } from "lucide-react";
 import { api, type McpUi } from "../api";
 import { WidgetFrame } from "../mcp/WidgetFrame";
 import type { HxlCard } from "../../../shared/types";
+import { BAR, Badge, Chip, HeadName } from "./CardHead";
 
 // The HXL runtime page is identical for every widget; load it once per org.
 const runtimes = new Map<string, Promise<McpUi & { url: string }>>();
@@ -86,5 +87,19 @@ function HxlFrame({
     _meta: { "salesforce/org_base_url": myDomain, "salesforce/uiMetadata": card.uiMetadata },
   }));
   const label = card.source === "widget" ? `HXL · ${card.type} → ${card.widget}` : `HXL · generated card${card.type ? ` · ${card.type}` : ""}`;
-  return <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} onSendMessage={onSend} label={label} frameless />;
+  return (
+    <div className="overflow-hidden rounded-xl border border-sent-line bg-surface">
+      <div className={`flex flex-wrap items-center gap-2 border-b px-4 py-2 ${BAR.sent}`}>
+        <Badge tone="sent">
+          <LayoutTemplate size={14} strokeWidth={2.4} />
+        </Badge>
+        <HeadName>{card.source === "widget" ? card.widget : "Generated card"}</HeadName>
+        <Chip tone="sent">HXL</Chip>
+        {card.type && <span className="ml-auto truncate font-mono text-xs text-ink-3">{card.type}</span>}
+      </div>
+      <div className="p-3">
+        <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} onSendMessage={onSend} label={label} frameless />
+      </div>
+    </div>
+  );
 }
