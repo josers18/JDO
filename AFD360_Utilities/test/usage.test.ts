@@ -15,8 +15,8 @@ describe("summarizeUsage", () => {
     expect(u.outputTokens).toBe(152);
     expect(u.totalTokens).toBe(3452);
     expect(u.models).toEqual([
-      { model: "gpt-4.1-2025-04-14", calls: 2, totalTokens: 3150 },
-      { model: "EinsteinHyperClassifier", calls: 1, totalTokens: 302 },
+      { model: "gpt-4.1-2025-04-14", calls: 2, inputTokens: 3000, outputTokens: 150, totalTokens: 3150 },
+      { model: "EinsteinHyperClassifier", calls: 1, inputTokens: 300, outputTokens: 2, totalTokens: 302 },
     ]);
   });
 

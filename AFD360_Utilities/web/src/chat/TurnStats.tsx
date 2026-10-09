@@ -229,14 +229,23 @@ function UsageRow({
   );
 }
 
-function ModelList({ models }: { models: TurnUsage["models"] }) {
+// `split` adds each model's input / output tokens.
+function ModelList({ models, split }: { models: TurnUsage["models"]; split?: boolean }) {
   return (
     <ul className="space-y-0.5">
       {models.map((m) => (
-        <li key={m.model} className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 font-mono">
+        <li
+          key={m.model}
+          className={`grid items-center gap-2 font-mono ${split ? "grid-cols-[auto_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto_auto]"}`}
+        >
           <ProviderIcon model={m.model} />
           <span className="truncate text-ink" title={m.model}>{m.model}</span>
           <span className="text-ink-3">{m.calls}×</span>
+          {split && (
+            <span className="text-right text-ink-3" title="Input / output tokens">
+              {fmt(m.inputTokens)} / {fmt(m.outputTokens)}
+            </span>
+          )}
           <span className="w-16 text-right text-ink-2">{fmt(m.totalTokens)}</span>
         </li>
       ))}
@@ -248,8 +257,14 @@ function ModelList({ models }: { models: TurnUsage["models"] }) {
 function sumModels(usages: TurnUsage[]): TurnUsage["models"] {
   const by = new Map<string, TurnUsage["models"][number]>();
   for (const m of usages.flatMap((u) => u.models)) {
-    const t = by.get(m.model) ?? { model: m.model, calls: 0, totalTokens: 0 };
-    by.set(m.model, { model: m.model, calls: t.calls + m.calls, totalTokens: t.totalTokens + m.totalTokens });
+    const t = by.get(m.model) ?? { model: m.model, calls: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+    by.set(m.model, {
+      model: m.model,
+      calls: t.calls + m.calls,
+      inputTokens: t.inputTokens + m.inputTokens,
+      outputTokens: t.outputTokens + m.outputTokens,
+      totalTokens: t.totalTokens + m.totalTokens,
+    });
   }
   return [...by.values()].sort((a, b) => b.totalTokens - a.totalTokens);
 }
@@ -306,8 +321,13 @@ function AllTurns({
         <p className="mt-1 text-ink-3">Tokens cover {known.length} of {all.length} turns; the rest aren't in Data 360 yet.</p>
       )}
       {known.length > 0 && (
-        <div className="mt-2">
-          <ModelList models={sumModels(known)} />
+        <div className="mt-2 space-y-1">
+          <p className="text-ink-3">
+            <span className="font-mono font-semibold text-ink">{fmt(known.reduce((n, u) => n + u.inputTokens, 0))}</span> in /{" "}
+            <span className="font-mono font-semibold text-ink">{fmt(known.reduce((n, u) => n + u.outputTokens, 0))}</span> out ·{" "}
+            {known.reduce((n, u) => n + u.llmCalls, 0)} LLM calls
+          </p>
+          <ModelList models={sumModels(known)} split />
         </div>
       )}
       <div className="mt-2">

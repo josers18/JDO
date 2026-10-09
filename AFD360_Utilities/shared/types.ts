@@ -175,5 +175,5 @@ export interface TurnUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
-  models: { model: string; calls: number; totalTokens: number }[];
+  models: { model: string; calls: number; inputTokens: number; outputTokens: number; totalTokens: number }[];
 }

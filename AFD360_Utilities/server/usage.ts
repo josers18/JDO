@@ -27,17 +27,21 @@ export async function turnUsage(orgId: string, traceId: string, wire?: WireSink,
 // Rows are [model, input, output, total] in SELECT order.
 export function summarizeUsage(traceId: string, rows: unknown[][]): TurnUsage {
   const usage: TurnUsage = { traceId, rows: rows.length, llmCalls: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, models: [] };
-  const byModel = new Map<string, { model: string; calls: number; totalTokens: number }>();
+  const byModel = new Map<string, TurnUsage["models"][number]>();
   for (const [model, input, output, total] of rows) {
     if (!model) continue; // action and agent rows carry no model and no tokens
     const m = String(model);
+    const i = Number(input) || 0;
+    const o = Number(output) || 0;
     const t = Number(total) || 0;
     usage.llmCalls++;
-    usage.inputTokens += Number(input) || 0;
-    usage.outputTokens += Number(output) || 0;
+    usage.inputTokens += i;
+    usage.outputTokens += o;
     usage.totalTokens += t;
-    const entry = byModel.get(m) ?? { model: m, calls: 0, totalTokens: 0 };
+    const entry = byModel.get(m) ?? { model: m, calls: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 };
     entry.calls++;
+    entry.inputTokens += i;
+    entry.outputTokens += o;
     entry.totalTokens += t;
     byModel.set(m, entry);
   }
