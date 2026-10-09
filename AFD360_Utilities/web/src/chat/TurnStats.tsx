@@ -229,23 +229,17 @@ function UsageRow({
   );
 }
 
-// `split` adds each model's input / output tokens.
-function ModelList({ models, split }: { models: TurnUsage["models"]; split?: boolean }) {
+function ModelList({ models }: { models: TurnUsage["models"] }) {
   return (
     <ul className="space-y-0.5">
       {models.map((m) => (
-        <li
-          key={m.model}
-          className={`grid items-center gap-2 font-mono ${split ? "grid-cols-[auto_minmax(0,1fr)_auto_auto_auto]" : "grid-cols-[auto_minmax(0,1fr)_auto_auto]"}`}
-        >
+        <li key={m.model} className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 font-mono">
           <ProviderIcon model={m.model} />
           <span className="truncate text-ink" title={m.model}>{m.model}</span>
           <span className="text-ink-3">{m.calls}×</span>
-          {split && (
-            <span className="text-right text-ink-3" title="Input / output tokens">
-              {fmt(m.inputTokens)} / {fmt(m.outputTokens)}
-            </span>
-          )}
+          <span className="text-right text-ink-3" title="Input / output tokens">
+            {fmt(m.inputTokens)} / {fmt(m.outputTokens)}
+          </span>
           <span className="w-16 text-right text-ink-2">{fmt(m.totalTokens)}</span>
         </li>
       ))}
@@ -327,7 +321,7 @@ function AllTurns({
             <span className="font-mono font-semibold text-ink">{fmt(known.reduce((n, u) => n + u.outputTokens, 0))}</span> out ·{" "}
             {known.reduce((n, u) => n + u.llmCalls, 0)} LLM calls
           </p>
-          <ModelList models={sumModels(known)} split />
+          <ModelList models={sumModels(known)} />
         </div>
       )}
       <div className="mt-2">

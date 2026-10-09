@@ -62,7 +62,7 @@ resolver and generated cards).
   source count, and `traceId` / `planId` / `x-request-id` with copy buttons. The API's `metrics` field is always
   empty, so token counts come from Data 360 instead: a **Usage (Data 360)** row queries
   `AiAgentGenerativeAiUsage_std__dlm` by `TelemetryTraceIdentifier__c` (= the turn's `traceId`) and shows total,
-  input and output tokens, LLM calls, and tokens per model, each with a provider mark (`ProviderIcon.tsx`; OpenAI,
+  input and output tokens, LLM calls, and calls, input / output and total tokens per model, each with a provider mark (`ProviderIcon.tsx`; OpenAI,
   Anthropic and Gemini marks from LobeHub Icons, MIT). Telemetry lands minutes after the turn; until then the row
   re-checks every 30 s for up to 10 minutes. Each lookup is logged in the Wire tab under the turn it belongs to.
   Below it, **All turns** sums time, Salesforce, network and tokens over the conversation, splits them into input
