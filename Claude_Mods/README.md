@@ -110,4 +110,4 @@ Redraws the transcript so tool calls read at a glance instead of as walls of com
 | laya | `deciding <questions>` while it runs, then a card: each answer with a confidence meter and percentage, plus model · device · latency |
 | Plan panel | Above the prompt, from TodoWrite / TaskCreate / TaskUpdate or the latest `plan-progress` bar: the goal, elapsed time, a `Step N of M` bar and each step's state |
 
-It needs the `plan-progress` mod loaded (a declared dependency). It redraws the same rows as `clean-view`, so run one or the other.
+It needs the `plan-progress` mod loaded (a declared dependency). A finished plan's panel drops off by itself. It changes only what you see: the model still gets every tool result in full.
