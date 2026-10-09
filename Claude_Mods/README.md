@@ -8,6 +8,7 @@
 | [`jdo-org-cockpit`](jdo-org-cockpit/) | **`/org`** pane: org auth, UI Bundles, Data Cloud stream health (below) |
 | [`jdo-announce`](jdo-announce/) | **`/announce <component>`**: drafts a JDO launch post, DM-first review, gated post to the JDO channel (below) |
 | [`jdo-cost-router`](jdo-cost-router/) | Sends lookup subagents (Explore, docs Q&A) to a cheaper model at spawn; **`/cost-router`** reports (below) |
+| [`tidy-tools`](tidy-tools/) | One rich line per tool call, a Claude sparkle while it runs, bead-track groups, laya decision cards and a plan panel; **`/tidy`** toggles (below) |
 
 ## Install
 
@@ -18,7 +19,7 @@ Claude_Mods/install.sh
 The script syncs each mod into `~/.claude/mods/<mod>` and prints the line to put in `~/.claude/settings.json` under `env`:
 
 ```json
-"CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/jdo-guardrails:~/.claude/mods/jdo-org-cockpit:~/.claude/mods/jdo-cost-router:~/.claude/mods/jdo-announce"
+"CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/jdo-guardrails:~/.claude/mods/jdo-org-cockpit:~/.claude/mods/jdo-cost-router:~/.claude/mods/jdo-announce:~/.claude/mods/tidy-tools"
 ```
 
 Every new session then loads all of them. Edit the mods here, then re-run `install.sh`. For a hot-reloading dev loop, run `claude --plugin-dir Claude_Mods/<mod>`. Don't also load the installed copy in that session, or every hook runs twice.
@@ -93,3 +94,20 @@ Measured on this setup: without the mod, an `Explore` subagent inherits the sess
 | **Regenerate** (`g`) | Drafts it again from the README |
 
 Nothing reaches Slack without a press. After posting, the canvas section is still the skill's Phase 7. Options: `repoDir`, `draftModel` (default `sonnet`), `channelId`, `dmUserId`, `slackServer`.
+
+## tidy-tools
+
+Redraws the transcript so tool calls read at a glance instead of as walls of commands and output. **`/tidy`** turns it off and on (saved across sessions); off shows the engine's full rows.
+
+| What | How it draws |
+|------|--------------|
+| Every tool | One line: an icon, a bold verb, the path as a dim folder plus the file name, then what came of it |
+| Bash | The description, with an icon by command kind (search `⌕`, git `⎇`, sf `☁`, npm `⬢`, python `λ`, curl `⇅`) and the command head; output folds to `⎿ N lines · first line` |
+| Read / Edit / Write | `lines 1–20 of 400`; green `+N` / red `−N` (diffs of ≤ 20 lines still show in full); `new · N lines` |
+| Agent, Skill, WebFetch, WebSearch, MCP | Subagent type with tools · time · tokens; status · KB · time; result count; server, tool and first argument |
+| Running / failed | An orange Claude sparkle (`✢ ✳ ✶ ✻ ✽`) that animates only while a call runs; red `✗` on failure |
+| Groups | `◈ Explored` with a track of colored beads, one per call, then words: `read 2 files · ran 1 search · 1 failed` |
+| laya | `deciding <questions>` while it runs, then a card: each answer with a confidence meter and percentage, plus model · device · latency |
+| Plan panel | Above the prompt, from TodoWrite / TaskCreate / TaskUpdate or the latest `plan-progress` bar: the goal, elapsed time, a `Step N of M` bar and each step's state |
+
+It needs the `plan-progress` mod loaded (a declared dependency). It redraws the same rows as `clean-view`, so run one or the other.
