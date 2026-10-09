@@ -97,7 +97,8 @@ function HxlFrame({
         <Chip tone="sent">HXL</Chip>
         {card.type && <span className="ml-auto truncate font-mono text-xs text-ink-3">{card.type}</span>}
       </div>
-      <div className="p-3">
+      {/* Light padding: the HXL runtime adds its own margin inside the frame. */}
+      <div className="p-1">
         <WidgetFrame orgId={orgId} url={ui.url} ui={ui} args={{}} result={result} onWire={() => {}} onSendMessage={onSend} label={label} frameless />
       </div>
     </div>
