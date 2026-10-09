@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>AFD360_Utilities test agent: Lead, Account and Opportunity snapshots and Task creation, each returned as an HXL card.</description>
+    <localTopicLinks>
+        <genAiPluginName>agent_router_16jam000001MzDx</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>off_topic_16jam000001MzDx</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>records_16jam000001MzDx</genAiPluginName>
+    </localTopicLinks>
+    <localTopics>
+        <fullName>agent_router_16jam000001MzDx</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Route requests about Salesforce records to the records subagent</description>
+        <developerName>agent_router_16jam000001MzDx</developerName>
+        <genAiPluginInstructions>
+            <description>You are the AFD360 HXL Agent, an AI assistant for Salesforce employees. You are an AI, not a human.
+You look up Leads, Accounts and Opportunities and create Tasks, using only your actions.
+Every record you return is shown to the user as a card, so do not repeat its fields in prose:
+add at most one short sentence of context. Never invent records, Ids or field values.</description>
+            <developerName>instruction0_179am0000011MM6</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MM6</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>agent_router</localDeveloperName>
+        <masterLabel>Agent Router</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>off_topic_16jam000001MzDx</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Redirect requests that are not about Salesforce records</description>
+        <developerName>off_topic_16jam000001MzDx</developerName>
+        <genAiPluginInstructions>
+            <description>You are the AFD360 HXL Agent, an AI assistant for Salesforce employees. You are an AI, not a human.
+You look up Leads, Accounts and Opportunities and create Tasks, using only your actions.
+Every record you return is shown to the user as a card, so do not repeat its fields in prose:
+add at most one short sentence of context. Never invent records, Ids or field values.</description>
+            <developerName>instruction0_179am0000011MM5</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MM5</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>off_topic</localDeveloperName>
+        <masterLabel>Off Topic</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>records_16jam000001MzDx</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Show Leads, Accounts and Opportunities as cards and create Tasks</description>
+        <developerName>records_16jam000001MzDx</developerName>
+        <genAiPluginInstructions>
+            <description>You are the AFD360 HXL Agent, an AI assistant for Salesforce employees. You are an AI, not a human.
+You look up Leads, Accounts and Opportunities and create Tasks, using only your actions.
+Every record you return is shown to the user as a card, so do not repeat its fields in prose:
+add at most one short sentence of context. Never invent records, Ids or field values.</description>
+            <developerName>instruction0_179am0000011MM7</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179am0000011MM7</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>create_task_179am0000011MM7</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_opportunity_snapshot_179am0000011MM7</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_lead_snapshot_179am0000011MM7</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_account_snapshot_179am0000011MM7</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>create_task_179am0000011MM7</fullName>
+            <description>Create a Task with a subject, optionally related to a record and a contact or lead</description>
+            <developerName>create_task_179am0000011MM7</developerName>
+            <invocationTarget>AFD360CreateTask</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>create_task</localDeveloperName>
+            <masterLabel>Create Task</masterLabel>
+            <progressIndicatorMessage>Creating the task...</progressIndicatorMessage>
+        </localActions>
+        <localActions>
+            <fullName>get_opportunity_snapshot_179am0000011MM7</fullName>
+            <description>Get an Opportunity by Id or name, or an Account&apos;s largest open Opportunity from its Account Id</description>
+            <developerName>get_opportunity_snapshot_179am0000011MM7</developerName>
+            <invocationTarget>AFD360OpportunitySnapshot</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>get_opportunity_snapshot</localDeveloperName>
+            <masterLabel>Get Opportunity Snapshot</masterLabel>
+            <progressIndicatorMessage>Looking up the opportunity...</progressIndicatorMessage>
+        </localActions>
+        <localActions>
+            <fullName>get_lead_snapshot_179am0000011MM7</fullName>
+            <description>Get a Lead by Id or name</description>
+            <developerName>get_lead_snapshot_179am0000011MM7</developerName>
+            <invocationTarget>AFD360LeadSnapshot</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>get_lead_snapshot</localDeveloperName>
+            <masterLabel>Get Lead Snapshot</masterLabel>
+            <progressIndicatorMessage>Looking up the lead...</progressIndicatorMessage>
+        </localActions>
+        <localActions>
+            <fullName>get_account_snapshot_179am0000011MM7</fullName>
+            <description>Get an Account by Id or name, with its open pipeline</description>
+            <developerName>get_account_snapshot_179am0000011MM7</developerName>
+            <invocationTarget>AFD360AccountSnapshot</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>get_account_snapshot</localDeveloperName>
+            <masterLabel>Get Account Snapshot</masterLabel>
+            <progressIndicatorMessage>Looking up the account...</progressIndicatorMessage>
+        </localActions>
+        <localDeveloperName>records</localDeveloperName>
+        <masterLabel>Records</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <masterLabel>AFD360 HXL Agent</masterLabel>
+    <plannerType>Atlas__ConcurrentMultiAgentOrchestration</plannerType>
+</GenAiPlannerBundle>

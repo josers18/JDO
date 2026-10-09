@@ -1,0 +1,103 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Theme tokens are set on :root by themes.ts; these names become utilities (bg-side, text-sent-ink, border-line, …). */
+@theme {
+  --font-sans: "Archivo Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-side: var(--side);
+  --color-side-2: var(--side-2);
+  --color-side-ink: var(--side-ink);
+  --color-side-ink-2: var(--side-ink-2);
+  --color-side-line: var(--side-line);
+  --color-rail: var(--rail);
+  --color-rail-ink: var(--rail-ink);
+  --color-rail-on: var(--rail-on);
+  --color-rail-on-ink: var(--rail-on-ink);
+  --color-sent: var(--sent);
+  --color-sent-line: var(--sent-line);
+  --color-sent-ink: var(--sent-ink);
+  --color-sent-chip: var(--sent-chip);
+  --color-recv: var(--recv);
+  --color-recv-line: var(--recv-line);
+  --color-recv-ink: var(--recv-ink);
+  --color-ok: var(--ok);
+  --color-live: var(--live);
+  --color-err: var(--err);
+  --color-action: var(--action);
+  --color-action-ink: var(--action-ink);
+  /* Derived: a quiet fill between ground and surface, and the code console. */
+  --color-tint: color-mix(in oklab, var(--ground) 60%, var(--surface));
+  --color-console: color-mix(in oklab, var(--rail) 92%, black);
+  --color-console-ink: color-mix(in oklab, white 86%, var(--rail));
+}
+
+/* Static so the shadows are also emitted as :root variables; widgetHostStyles() reads them for HXL cards.
+   The geometry is fixed; the colors come from the scheme below so the shadows stay visible on dark themes. */
+@theme static {
+  --shadow-card: 0 1px 2px var(--shadow-card-near), 0 6px 20px var(--shadow-card-far);
+  --shadow-lift: 0 2px 6px var(--shadow-lift-near), 0 16px 40px var(--shadow-lift-far);
+}
+
+/* Light themes: a faint cool navy. Dark themes (data-scheme set by themes.ts): black at higher alpha, since a
+   navy shadow at 5% disappears against a dark ground. */
+:root {
+  --shadow-card-near: rgb(15 23 36 / 0.05);
+  --shadow-card-far: rgb(15 23 36 / 0.06);
+  --shadow-lift-near: rgb(15 23 36 / 0.08);
+  --shadow-lift-far: rgb(15 23 36 / 0.14);
+}
+:root[data-scheme="dark"] {
+  --shadow-card-near: rgb(0 0 0 / 0.4);
+  --shadow-card-far: rgb(0 0 0 / 0.32);
+  --shadow-lift-near: rgb(0 0 0 / 0.45);
+  --shadow-lift-far: rgb(0 0 0 / 0.55);
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+::selection { background: color-mix(in oklab, var(--action) 30%, transparent); color: var(--ink); }
+:focus-visible { outline: 2px solid color-mix(in oklab, var(--action) 70%, var(--ink)); outline-offset: 2px; }
+input, textarea { caret-color: var(--action); }
+input::placeholder, textarea::placeholder { color: var(--ink-3); }
+input[type="checkbox"] { accent-color: var(--action); }
+* { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--ink-3) 45%, transparent) transparent; }
+
+.prose {
+  --tw-prose-body: var(--ink-2);
+  --tw-prose-headings: var(--ink);
+  --tw-prose-bold: var(--ink);
+  --tw-prose-links: var(--sent-ink);
+  --tw-prose-bullets: var(--ink-3);
+  --tw-prose-counters: var(--ink-3);
+  --tw-prose-quotes: var(--ink-2);
+  --tw-prose-quote-borders: var(--line);
+  --tw-prose-hr: var(--line);
+  --tw-prose-code: var(--ink);
+  --tw-prose-th-borders: var(--line);
+  --tw-prose-td-borders: var(--line);
+  --tw-prose-pre-bg: var(--color-console);
+  --tw-prose-pre-code: var(--color-console-ink);
+}
+.prose :where(code):not(:where(pre *)) {
+  background: var(--color-tint);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 5px;
+  font-weight: 500;
+}
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after { content: none; }
+.prose :where(a) { text-underline-offset: 3px; }

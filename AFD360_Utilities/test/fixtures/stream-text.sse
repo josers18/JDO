@@ -1,0 +1,16 @@
+event: PROGRESS_INDICATOR
+id: 1791382581322-REQ
+data: {"timestamp":1791382584556,"originEventId":"1791382581322-REQ","traceId":"c44618e455ac45df2b76f0bb90da8442","offset":0,"message":{"type":"ProgressIndicator","indicatorType":"ACTION","message":"Let me pull up your top open opportunities right now!","id":"0231d98c-31f6-459f-96cd-ee45af1add11","metrics":{}}}
+
+event: PROGRESS_INDICATOR
+id: 1791382581322-REQ
+data: {"timestamp":1791382584951,"originEventId":"1791382581322-REQ","traceId":"c44618e455ac45df2b76f0bb90da8442","offset":0,"message":{"type":"ProgressIndicator","indicatorType":"ACTION","message":"Finding Salesforce records (Opportunity) - 5 results","id":"f591129b-ace0-4c53-b469-116ebb8001ef","metrics":{}}}
+
+event: INFORM
+id: 1791382581322-REQ
+data: {"timestamp":1791382589586,"originEventId":"1791382581322-REQ","traceId":"c44618e455ac45df2b76f0bb90da8442","offset":0,"message":{"type":"Inform","feedbackId":"3c0e8646-841b-4ef8-8c48-2ca6cf91a794","isContentSafe":true,"message":"Here are your top 5 open opportunities by amount, all currently in **Qualification** stage:\n\n| # | Opportunity | Account | Amount (USD) | Close Date |\n|---|-------------|---------|--------------|------------|\n| 1 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOy6AAF/view) | [United Partners](/lightning/r/Account/001am00000qvjtXAAQ/view) | $5,257,150,000 | Jul 29, 2026 |\n| 2 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyXAAV/view) | [B2B Commerce Lightning Experience Guest Buyer Account](/lightning/r/Account/001am00000qvjttAAA/view) | $4,470,741,000 | Jul 30, 2026 |\n| 3 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyZAAV/view) | [Jim Morris Estate](/lightning/r/Account/001am00000qvju6AAA/view) | $3,416,803,000 | Aug 5, 2026 |\n| 4 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyMAAV/view) | [IDO House Account](/lightning/r/Account/001am00000qvjtuAAA/view) | $2,008,102,000 | Jul 30, 2026 |\n| 5 | [Innovation Pipeline](/lightning/r/Opportunity/006am00000LcOyYAAV/view) | [Frank Household](/lightning/r/Account/001am00000qvju2AAA/view) | $1,697,721,000 | Jul 31, 2026 |\n\nAll five are named **\"Innovation Pipeline\"** and have close dates that have already passed — worth flagging that these may need their close dates updated! The combined value is a whopping **~$16.85B USD**.\n\nWant me to help update the close dates on these, or dig into the details of any specific opportunity?","id":"ab4247de-8984-4126-a5d9-3b9f7600df14","metrics":{},"planId":"","result":[],"citedReferences":[]}}
+
+event: END_OF_TURN
+id: 1791382581322-REQ
+data: {"timestamp":1791382589592,"originEventId":"1791382581322-REQ","traceId":"c44618e455ac45df2b76f0bb90da8442","offset":0,"message":{"type":"EndOfTurn","id":"6354bd4e-547d-4b3e-94aa-b04cf00a347a","metrics":{}}}
+

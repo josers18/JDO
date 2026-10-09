@@ -1,0 +1,23 @@
+{
+  "renderer": {
+    "componentOverrides": {
+      "$": {
+        "definition": "@widget/c/afd360AccountCard",
+        "attributes": {
+          "found": "{!$attrs.outputValues.account.found}",
+          "accountId": "{!$attrs.outputValues.account.accountId}",
+          "name": "{!$attrs.outputValues.account.name}",
+          "accountType": "{!$attrs.outputValues.account.accountType}",
+          "industry": "{!$attrs.outputValues.account.industry}",
+          "owner": "{!$attrs.outputValues.account.owner}",
+          "phone": "{!$attrs.outputValues.account.phone}",
+          "website": "{!$attrs.outputValues.account.website}",
+          "location": "{!$attrs.outputValues.account.location}",
+          "openOpportunities": "{!$attrs.outputValues.account.openOpportunities}",
+          "openPipeline": "{!$attrs.outputValues.account.openPipeline}",
+          "recordUrl": "{!$attrs.outputValues.account.recordUrl}"
+        }
+      }
+    }
+  }
+}

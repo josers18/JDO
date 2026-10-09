@@ -1,0 +1,14 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "opportunity" : {
+      "title" : "Opportunity",
+      "description" : "Opportunity snapshot, shown to the user as an Opportunity card",
+      "lightning:type" : "c__afd360OpportunitySnapshotCard",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : true,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

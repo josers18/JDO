@@ -1,0 +1,266 @@
+{
+  "type": "lightning__agentforceWidget",
+  "contentBody": {
+    "widgetBody": {
+      "definition": "tile/widget",
+      "children": [
+        {
+          "definition": "tile/column",
+          "attributes": {
+            "gap": "md",
+            "align": "stretch"
+          },
+          "children": [
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "md",
+                "align": "start",
+                "isWrapped": false
+              },
+              "children": [
+                {
+                  "definition": "tile/avatar",
+                  "attributes": {
+                    "iconName": "building",
+                    "shape": "rounded",
+                    "size": "lg",
+                    "alt": "record"
+                  }
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.name}",
+                        "variant": "h3",
+                        "weight": "semibold"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.accountType} \u00b7 {!$attrs.industry} \u00b7 {!$attrs.location}",
+                        "variant": "caption",
+                        "color": "muted"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "xl",
+                "align": "start"
+              },
+              "children": [
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "auto"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Open pipeline",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.openPipeline}",
+                        "variant": "h3",
+                        "weight": "semibold"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "auto"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Opportunities",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.openOpportunities}",
+                        "variant": "h4",
+                        "weight": "semibold"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "auto"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Owner",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.owner}",
+                        "variant": "h4",
+                        "weight": "semibold"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
+              "definition": "tile/separator",
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "lg",
+                "align": "start"
+              },
+              "children": [
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "xs",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Phone",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.phone}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "xs",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Website",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.website}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "md",
+                "align": "center"
+              },
+              "children": [
+                {
+                  "definition": "tile/button",
+                  "attributes": {
+                    "label": "Show top opportunity",
+                    "variant": "secondary",
+                    "iconName": "trending-up",
+                    "actions": {
+                      "click": [
+                        {
+                          "definition": "action/sendMessage",
+                          "attributes": {
+                            "content": "Show me the top open opportunity for {!$attrs.name}"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "definition": "tile/link",
+                  "attributes": {
+                    "href": "{!$attrs.recordUrl}",
+                    "text": "Open in Salesforce"
+                  }
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

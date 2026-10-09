@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mock C · Ticket Wallet</title>
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root {
+    --stock: #FFFFFF; --navy: #14254A; --red: #C8202F; --carbon: #4E3A86; --fold: #E9EEF5; --ink: #101624; --ink-2: #4D576A;
+    --sans: "Archivo", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: var(--sans); background: var(--fold); color: var(--ink); font-size: 15px; }
+  .app { display: grid; grid-template-columns: 300px minmax(0,1fr) 360px; height: 100vh; }
+  .wallet { background: var(--navy); color: #fff; padding: 18px; display: grid; gap: 10px; align-content: start; }
+  .wallet h1 { font: 800 20px/1 var(--sans); font-stretch: 80%; letter-spacing: .12em; text-transform: uppercase; }
+  .wallet .tab { background: rgba(255,255,255,.08); border-radius: 4px; padding: 10px 12px; }
+  .wallet .tab.on { background: #fff; color: var(--navy); }
+  .wallet .tab b { display: block; font-size: 14px; } .wallet .tab span { font: 500 12px var(--mono); opacity: .8; }
+  .book { overflow: auto; padding: 22px 28px; display: grid; gap: 14px; align-content: start; }
+  .coupon { background: var(--stock); border-radius: 6px; position: relative; display: grid; grid-template-columns: 120px minmax(0,1fr); box-shadow: 0 2px 6px rgba(16,22,36,.12); }
+  .coupon .stub { border-right: 2px dashed #C9D2E0; padding: 14px; display: grid; gap: 6px; align-content: start; }
+  .coupon .stub .no { font: 700 22px/1 var(--mono); color: var(--carbon); }
+  .coupon .stub .lbl { font: 700 12px/1 var(--sans); font-stretch: 80%; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+  .coupon .body { padding: 14px 18px; line-height: 1.55; }
+  .coupon .body .from { font: 700 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--navy); margin-bottom: 6px; }
+  .legs { margin-top: 10px; display: grid; gap: 3px; font: 500 13px/1.5 var(--mono); color: var(--carbon); }
+  .stamp { position: absolute; right: 24px; top: 18px; transform: rotate(-8deg); border: 3px solid var(--red); color: var(--red); font: 800 18px/1 var(--sans); font-stretch: 75%; letter-spacing: .18em; padding: 6px 10px; border-radius: 4px; opacity: .9; }
+  .stamp.ok { border-color: #1F7A4C; color: #1F7A4C; }
+  .act { display: flex; gap: 8px; margin-top: 12px; }
+  .act button { border-radius: 4px; padding: 8px 14px; font: 700 13px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; border: 2px solid var(--navy); background: #fff; color: var(--navy); }
+  .act .go { background: var(--red); border-color: var(--red); color: #fff; }
+  .manifest { background: var(--stock); border-left: 1px solid #C9D2E0; padding: 18px; overflow: auto; }
+  .manifest h2 { font: 800 16px/1 var(--sans); font-stretch: 80%; letter-spacing: .12em; text-transform: uppercase; color: var(--navy); margin-bottom: 12px; }
+  .line { display: grid; grid-template-columns: 66px 40px minmax(0,1fr) 48px; gap: 6px; font: 500 12.5px/1.4 var(--mono); padding: 6px 0; border-bottom: 1px dashed #C9D2E0; }
+  .line .d { font-family: var(--sans); font-weight: 700; color: var(--navy); }
+  .line.in .d { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="wallet">
+    <h1>AFD360 · Wallet</h1>
+    <div class="tab on"><b>Unified individuals in Data Cloud</b><span>Search Agent · live · 2 coupons</span></div>
+    <div class="tab"><b>Joanna Ball rating</b><span>5 coupons · used</span></div>
+    <div class="tab"><b>Top 5 opportunities</b><span>8 coupons · used</span></div>
+  </aside>
+  <main class="book">
+    <div class="coupon"><div class="stub"><span class="lbl">Coupon</span><span class="no">01</span><span class="lbl">14:21:03</span></div>
+      <div class="body"><div class="from">You → Search Agent</div>Ask the D360 Agent: how many unified individuals are in Data Cloud?
+        <div class="legs"><span>LEG 1  Search Agent → D360 Agent  ✓</span><span>LEG 2  Generating SQL  ✓</span><span>LEG 3  Run SQL · 1 row  ✓</span><span>LEG 4  debug_sql  ✓</span></div>
+        <p style="margin-top:10px">There are currently <b>0 unified individuals</b> in Data Cloud.</p></div>
+      <span class="stamp ok">Used</span></div>
+    <div class="coupon"><div class="stub"><span class="lbl">Coupon</span><span class="no">02</span><span class="lbl">14:23:40</span></div>
+      <div class="body"><div class="from">Search Agent → approval</div>Two updates are ready: <b>Bruce Watkins</b> and <b>Joanna Ball</b> · Rating → Hot
+        <div class="act"><button class="go">Validate 2</button><button>Void</button></div></div>
+      <span class="stamp">Pending</span></div>
+  </main>
+  <aside class="manifest">
+    <h2>Manifest · Wire</h2>
+    <div class="line in"><span>14:23:49</span><span class="d">IN</span><span>Confirm · 2 actions</span><span>9.1s</span></div>
+    <div class="line"><span>14:23:40</span><span class="d">OUT</span><span>Send message · turn 2</span><span>200</span></div>
+    <div class="line in"><span>14:21:05</span><span class="d">IN</span><span>Stream · 17 events</span><span>40.7s</span></div>
+    <div class="line"><span>14:21:03</span><span class="d">OUT</span><span>Send message · turn 1</span><span>200</span></div>
+    <div class="line"><span>14:20:57</span><span class="d">OUT</span><span>Start session</span><span>200</span></div>
+  </aside>
+</div>
+</body>
+</html>

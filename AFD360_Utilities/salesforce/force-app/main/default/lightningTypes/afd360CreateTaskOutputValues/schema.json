@@ -1,0 +1,16 @@
+{
+  "title": "AFD360 Task Output Values",
+  "description": "Payload of the AFD360CreateTask MCP tool",
+  "type": "object",
+  "lightning:type": "lightning__objectType",
+  "unevaluatedProperties": false,
+  "lightning:tags": [
+    "mcp"
+  ],
+  "properties": {
+    "task": {
+      "title": "AFD360 Task",
+      "lightning:type": "@apexClassType/c__AFD360CreateTask$TaskCard"
+    }
+  }
+}

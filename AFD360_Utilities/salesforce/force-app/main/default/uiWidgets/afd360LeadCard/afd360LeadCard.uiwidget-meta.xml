@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UiWidgetBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>AFD360 Lead Card</masterLabel>
+    <description>Lead snapshot: name, company, status and rating badges, source, contact info.</description>
+    <widgetType>JSON</widgetType>
+</UiWidgetBundle>
