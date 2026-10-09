@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "@fontsource-variable/archivo";
+import "@fontsource-variable/archivo/wdth.css"; // same family plus the width axis, for display names
 import "@fontsource-variable/jetbrains-mono";
 import "./themes";
 import { App } from "./App";
