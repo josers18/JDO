@@ -220,15 +220,17 @@ export const register: Register = on => {
     )
   })
 
-  // The plan panel stacks above what the plugins beneath drew.
+  // The plan panel stacks above what the plugins beneath drew, and drops off once its plan is complete.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const below = await next(e)
     let items = await read($, plan)
     let title = await read($, goal)
     let started = await read($, startedAt)
-    const latest = items.length === 0 ? (await read($, bars)).at(-1) : undefined
+    const latest = isFresh(items) ? (await read($, bars)).filter(b => b.state !== 'done').at(-1) : undefined
     if (latest) [items, title, started] = [fromProgress(latest), latest.title, latest.startedAt]
-    if (e.props.hasSurvey || items.length === 0 || (await read($, isOff))) return below
+    if (e.props.hasSurvey || isFresh(items) || (await read($, isOff))) return next(e)
+    const room = Math.max(0, Math.min(items.length, e.props.maxRows - 7))
+    // the plugins beneath (image thumbnails, bars) get the rows the panel leaves
+    const below = await next({ ...e, props: { ...e.props, maxRows: Math.max(0, e.props.maxRows - room - 5) } })
     const { Box, Text } = $.ui.resolve(e)
     const tick = running > 0 ? await read($, frame) : 0
     const width = e.props.bodyColumns
@@ -244,7 +246,6 @@ export const register: Register = on => {
     const barW = inner >= 60 ? Math.min(20, Math.floor(inner * 0.18)) : 0
     const labelW = inner - barW - (barW ? 10 : 9)
     const words = labels(items)
-    const room = Math.max(0, Math.min(items.length, e.props.maxRows - 7))
     const at = Math.max(0, items.findIndex(p => p.status === 'in_progress'))
     const first = Math.max(0, Math.min(at - 1, items.length - room))
 

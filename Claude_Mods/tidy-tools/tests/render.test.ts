@@ -94,6 +94,11 @@ describe('through the engine', () => {
     expect(await ui.find({ text: /─ Tidy ─$/ })).toBeDefined()
     await ui.unmount()
 
+    await $.tool.call({ tool: 'TodoWrite', tool_use_id: 'c2', todos: [{ content: 'Rows', status: 'completed', activeForm: 'Doing rows' }, { content: 'Panel', status: 'completed', activeForm: 'Doing panel' }] } as never)
+    ui = await $.ui.mount({ ...band, surface: 'terminal' } as never)
+    expect(await ui.find({ text: /─ Tidy ─$/ })).toBeUndefined()
+    await ui.unmount()
+
     const off = await $.command.run({ command: 'tidy', args: '' } as never)
     expect('text' in off ? off.text : '').toContain('off')
     expect(stored.get('isOff')).toBe(true)

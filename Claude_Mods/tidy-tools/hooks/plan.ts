@@ -21,7 +21,7 @@ export function updateTask(plan: PlanItem[], id: string, u: { subject?: string; 
 }
 
 /** The fields read off a plan-progress bar: its stages' steps, flattened into one list. */
-export type ProgressPlan = { id: string; title: string; startedAt: number; stages: { steps: { title: string; status: string }[] }[] }
+export type ProgressPlan = { id: string; title: string; startedAt: number; state?: string; stages: { steps: { title: string; status: string }[] }[] }
 
 export const fromProgress = (p: ProgressPlan): PlanItem[] =>
   p.stages.flatMap(st => st.steps).map((s, i) => ({
