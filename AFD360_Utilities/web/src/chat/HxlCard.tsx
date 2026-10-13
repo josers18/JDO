@@ -88,13 +88,13 @@ function HxlFrame({
   }));
   const label = card.source === "widget" ? `HXL · ${card.type} → ${card.widget}` : `HXL · generated card${card.type ? ` · ${card.type}` : ""}`;
   return (
-    <div className="overflow-hidden rounded-xl border border-sent-line bg-surface">
-      <div className={`flex flex-wrap items-center gap-2 border-b px-4 py-2 ${BAR.sent}`}>
-        <Badge tone="sent">
+    <div className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div className={`flex flex-wrap items-center gap-2 border-b px-4 py-2 ${BAR.neutral}`}>
+        <Badge tone="neutral">
           <LayoutTemplate size={14} strokeWidth={2.4} />
         </Badge>
         <HeadName>{card.source === "widget" ? card.widget : "Generated card"}</HeadName>
-        <Chip tone="sent">HXL</Chip>
+        <Chip tone="neutral">HXL</Chip>
         {card.type && <span className="ml-auto truncate font-mono text-xs text-ink-3">{card.type}</span>}
       </div>
       {/* Light padding: the HXL runtime adds its own margin inside the frame. */}

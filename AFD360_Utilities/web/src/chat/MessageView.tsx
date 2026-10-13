@@ -213,7 +213,7 @@ function mergeToolParts(parts: Part[]): Part[] {
 
 function Markdown({ text, myDomain }: { text: string; myDomain: string }) {
   return (
-    <div className="prose max-w-none text-[15px] leading-relaxed prose-p:my-2 prose-table:text-sm prose-th:bg-tint prose-th:px-2 prose-td:px-2">
+    <div className="prose max-w-none text-[15px] leading-relaxed prose-p:my-2 prose-p:max-w-[70ch] prose-li:max-w-[70ch] prose-table:text-sm prose-th:bg-tint prose-th:px-2 prose-td:px-2">
       <ReactMarkdown
         remarkPlugins={REMARK}
         components={{

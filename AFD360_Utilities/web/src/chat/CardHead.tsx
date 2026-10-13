@@ -30,6 +30,7 @@ export const BADGE = {
 const CHIP = {
   sent: "bg-sent-chip text-sent-ink",
   recv: "border border-recv-line bg-recv text-recv-ink",
+  neutral: "border border-line bg-surface text-ink-2",
 };
 
 // The round identity mark that leads every header.
@@ -46,7 +47,7 @@ export function HeadName({ children, className = "text-ink" }: { children: React
 }
 
 export function Chip({ tone, children }: { tone: keyof typeof CHIP; children: React.ReactNode }) {
-  return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-px text-[11px] font-semibold ${CHIP[tone]}`}>{children}</span>;
+  return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${CHIP[tone]}`}>{children}</span>;
 }
 
 type Lane = "sent" | "recv" | "system" | "error";

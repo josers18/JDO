@@ -64,8 +64,15 @@ const clockOrDay = (iso: string) =>
     ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
     : new Date(iso).toLocaleDateString([], { weekday: "short" });
 
+// Agent API docs publish no session idle lifetime (only a 120s per-request timeout), so this is a
+// conservative guess. A wrong guess only changes the chip: the next message reports the real state.
+const SESSION_IDLE_MS = 60 * 60_000;
+
 const WIRE_MIN = 320;
-const wireMax = () => Math.max(WIRE_MIN, Math.round(window.innerWidth * 0.6));
+// The Wire never takes more than 45% of the window or leaves the chat under 560px (rail + widest sidebar = 392px).
+const CHAT_MIN = 560;
+const SHELL = 392;
+const wireMax = () => Math.max(WIRE_MIN, Math.min(Math.round(window.innerWidth * 0.45), window.innerWidth - SHELL - CHAT_MIN));
 const clampWire = (w: number) => Math.min(wireMax(), Math.max(WIRE_MIN, w));
 
 function useIsNarrow() {
@@ -111,6 +118,8 @@ export function ChatModule({
   const orgList = list.filter((c) => c.orgId === orgs.activeOrgId);
   const showGallery = picking || !conv;
   const sources = conv ? citations(conv.wire) : [];
+  // The server only learns a session expired when the next call fails; past the idle lifetime, say so up front.
+  const stale = conv?.status === "live" && Boolean(conv.session) && now - Date.parse(conv.session!.lastActivityAt) > SESSION_IDLE_MS;
 
   const reloadList = useCallback(() => api.conversations().then(setList), []);
   // Upsert by id: a stream's wire entry is re-reported as it progresses.
@@ -137,6 +146,21 @@ export function ChatModule({
   useEffect(() => {
     if (narrow) setPanelOpen(false);
   }, [narrow]);
+
+  // A remembered width is re-clamped when the window shrinks.
+  useEffect(() => {
+    const on = () => setWireWidth((w) => clampWire(w));
+    addEventListener("resize", on);
+    return () => removeEventListener("resize", on);
+  }, []);
+
+  // The narrow slide-over closes on Esc, like its backdrop.
+  useEffect(() => {
+    if (!narrow || !panelOpen) return;
+    const on = (e: KeyboardEvent) => e.key === "Escape" && setPanelOpen(false);
+    addEventListener("keydown", on);
+    return () => removeEventListener("keydown", on);
+  }, [narrow, panelOpen]);
 
   // Drag the Wire panel's left edge to resize; width is remembered.
   const startResize = (e: React.MouseEvent) => {
@@ -343,24 +367,31 @@ export function ChatModule({
                 <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-[17px] font-semibold leading-tight">{conv.agentLabel}</h1>
-                  <span
-                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
-                      conv.status === "live" ? "bg-sent-chip text-sent-ink" : "bg-tint text-ink-2"
-                    }`}
-                  >
-                    <span className={`h-2 w-2 rounded-full ${conv.status === "live" ? "bg-ok" : "bg-ink-3"}`} />
-                    {conv.status}
-                  </span>
-                </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-xs text-ink-3">
-                  <span className="font-sans">{plural(conv.turns, "turn")}</span>
-                  {conv.session && <span className="font-sans">· idle {ago(conv.session.lastActivityAt, now)}</span>}
-                  {conv.session && (
-                    <span title={`Agent API session id: ${conv.session.id}`}>
-                      · session {conv.session.id.slice(0, 8)}…
+                  {stale ? (
+                    <span
+                      title="Idle longer than the Agent API session lifetime. Your next message will confirm."
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-recv-line bg-recv px-2.5 py-1 text-xs font-semibold text-recv-ink"
+                    >
+                      <span className="h-2 w-2 rounded-full ring-[1.5px] ring-inset ring-recv-ink" />
+                      Likely expired
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
+                        conv.status === "live" ? "bg-sent-chip text-sent-ink" : "bg-tint text-ink-2"
+                      }`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${conv.status === "live" ? "bg-ok" : "bg-ink-3"}`} />
+                      {conv.status}
                     </span>
                   )}
-                  <span title="Agent id">· agent {conv.agentId}</span>
+                </div>
+                {/* Whole items with spacing, no separators: a wrapped line never starts with a stray dot. */}
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3.5 gap-y-0.5 font-mono text-xs text-ink-3 [&>span]:whitespace-nowrap">
+                  <span className="font-sans">{plural(conv.turns, "turn")}</span>
+                  {conv.session && <span className="font-sans">idle {ago(conv.session.lastActivityAt, now)}</span>}
+                  {conv.session && <span title={`Agent API session id: ${conv.session.id}`}>session {conv.session.id.slice(0, 8)}…</span>}
+                  <span title={`Agent id: ${conv.agentId}`}>agent {conv.agentId.slice(0, 5)}…{conv.agentId.slice(-5)}</span>
                 </div>
                 </div>
               </div>
@@ -444,11 +475,14 @@ export function ChatModule({
       </section>
 
       {/* Wire panel: docked + resizable on wide screens, slide-over on narrow ones */}
+      {conv && !showGallery && panelOpen && narrow && (
+        <div onClick={() => setPanelOpen(false)} aria-hidden className="absolute inset-0 z-10 bg-rail/35" />
+      )}
       {conv && !showGallery && panelOpen && (
         <aside
           style={{ width: narrow ? "min(92vw, 34rem)" : wireWidth }}
           className={`flex shrink-0 flex-col border-l border-line bg-surface ${
-            narrow ? "absolute inset-y-0 right-0 z-10 shadow-lift" : "relative"
+            narrow ? "absolute inset-y-0 right-0 z-20 shadow-lift" : "relative"
           }`}
         >
           {!narrow && (
