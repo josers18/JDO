@@ -158,7 +158,7 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
               onChange={(e) => setNewServer(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addServer()}
               placeholder="custom/MyServer"
-              className="min-w-0 flex-1 rounded-xl border border-side-line bg-side-2 px-2.5 py-2 font-mono text-xs text-side-ink placeholder:text-side-ink-2 focus:outline-none"
+              className="min-w-0 flex-1 rounded-xl border border-side-line bg-side-2 px-2.5 py-2 font-mono text-xs text-side-ink placeholder:text-side-ink-2"
             />
             <button onClick={addServer} className="rounded-xl bg-action px-2.5 text-action-ink" title="Add and connect">
               <Plus size={14} />
@@ -253,7 +253,7 @@ export function McpModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOpenAdm
                   onChange={(e) => setArgsText(e.target.value)}
                   spellCheck={false}
                   rows={Math.min(14, Math.max(4, argsText.split("\n").length + 1))}
-                  className="w-full resize-y rounded-b-xl px-3 py-2 font-mono text-xs focus:outline-none"
+                  className="w-full resize-y rounded-b-xl px-3 py-2 font-mono text-xs"
                 />
               </div>
 

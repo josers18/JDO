@@ -69,7 +69,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 ::selection { background: color-mix(in oklab, var(--action) 30%, transparent); color: var(--ink); }
-:focus-visible { outline: 2px solid color-mix(in oklab, var(--action) 70%, var(--ink)); outline-offset: 2px; }
+/* In the base layer so a field whose wrapper draws its own focus border can opt out with outline-none. */
+@layer base {
+  :focus-visible { outline: 2px solid color-mix(in oklab, var(--action) 70%, var(--ink)); outline-offset: 2px; }
+}
 input, textarea { caret-color: var(--action); }
 input::placeholder, textarea::placeholder { color: var(--ink-3); }
 input[type="checkbox"] { accent-color: var(--action); }
