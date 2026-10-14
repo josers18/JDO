@@ -1,0 +1,24 @@
+{
+  "title": "AFD360 Opportunity Result",
+  "description": "Invocable-action result envelope for the AFD360OpportunitySnapshot MCP tool",
+  "type": "object",
+  "lightning:type": "lightning__objectType",
+  "unevaluatedProperties": false,
+  "lightning:tags": [
+    "mcp"
+  ],
+  "properties": {
+    "actionName": {
+      "title": "Action Name",
+      "lightning:type": "lightning__textType"
+    },
+    "isSuccess": {
+      "title": "Is Success",
+      "lightning:type": "lightning__booleanType"
+    },
+    "outputValues": {
+      "title": "Output Values",
+      "lightning:type": "c__afd360OpportunitySnapshotOutputValues"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "renderer": {
+    "componentOverrides": {
+      "$": {
+        "definition": "@widget/c/afd360TaskCard",
+        "attributes": {
+          "created": "{!$attrs.outputValues.task.created}",
+          "taskId": "{!$attrs.outputValues.task.taskId}",
+          "subject": "{!$attrs.outputValues.task.subject}",
+          "status": "{!$attrs.outputValues.task.status}",
+          "priority": "{!$attrs.outputValues.task.priority}",
+          "dueDate": "{!$attrs.outputValues.task.dueDate}",
+          "relatedTo": "{!$attrs.outputValues.task.relatedTo}",
+          "name": "{!$attrs.outputValues.task.name}",
+          "assignedTo": "{!$attrs.outputValues.task.assignedTo}",
+          "message": "{!$attrs.outputValues.task.message}",
+          "recordUrl": "{!$attrs.outputValues.task.recordUrl}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "title": "AFD360 Task Card",
+  "description": "Created Task: subject, status and priority badges, due date, related record, name, assignee.",
+  "type": "object",
+  "properties": {
+    "attributes": {
+      "lightning:type": "lightning__objectType",
+      "properties": {
+        "created": {
+          "title": "Created",
+          "lightning:type": "lightning__booleanType"
+        },
+        "taskId": {
+          "title": "TaskId",
+          "lightning:type": "lightning__textType"
+        },
+        "subject": {
+          "title": "Subject",
+          "lightning:type": "lightning__textType"
+        },
+        "status": {
+          "title": "Status",
+          "lightning:type": "lightning__textType"
+        },
+        "priority": {
+          "title": "Priority",
+          "lightning:type": "lightning__textType"
+        },
+        "dueDate": {
+          "title": "DueDate",
+          "lightning:type": "lightning__textType"
+        },
+        "relatedTo": {
+          "title": "RelatedTo",
+          "lightning:type": "lightning__textType"
+        },
+        "name": {
+          "title": "Name",
+          "lightning:type": "lightning__textType"
+        },
+        "assignedTo": {
+          "title": "AssignedTo",
+          "lightning:type": "lightning__textType"
+        },
+        "message": {
+          "title": "Message",
+          "lightning:type": "lightning__textType"
+        },
+        "recordUrl": {
+          "title": "RecordUrl",
+          "lightning:type": "lightning__urlType"
+        }
+      }
+    }
+  }
+}

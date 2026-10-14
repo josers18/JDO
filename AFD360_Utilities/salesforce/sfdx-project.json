@@ -1,0 +1,5 @@
+{
+  "packageDirectories": [{ "path": "force-app", "default": true }],
+  "name": "AFD360_Utilities_Demo",
+  "sourceApiVersion": "67.0"
+}

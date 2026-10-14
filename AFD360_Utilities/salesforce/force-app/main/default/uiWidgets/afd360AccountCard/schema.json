@@ -1,0 +1,60 @@
+{
+  "title": "AFD360 Account Card",
+  "description": "Account snapshot: name, type and industry badges, owner, phone, website, location, open pipeline.",
+  "type": "object",
+  "properties": {
+    "attributes": {
+      "lightning:type": "lightning__objectType",
+      "properties": {
+        "found": {
+          "title": "Found",
+          "lightning:type": "lightning__booleanType"
+        },
+        "accountId": {
+          "title": "AccountId",
+          "lightning:type": "lightning__textType"
+        },
+        "name": {
+          "title": "Name",
+          "lightning:type": "lightning__textType"
+        },
+        "accountType": {
+          "title": "AccountType",
+          "lightning:type": "lightning__textType"
+        },
+        "industry": {
+          "title": "Industry",
+          "lightning:type": "lightning__textType"
+        },
+        "owner": {
+          "title": "Owner",
+          "lightning:type": "lightning__textType"
+        },
+        "phone": {
+          "title": "Phone",
+          "lightning:type": "lightning__textType"
+        },
+        "website": {
+          "title": "Website",
+          "lightning:type": "lightning__textType"
+        },
+        "location": {
+          "title": "Location",
+          "lightning:type": "lightning__textType"
+        },
+        "openOpportunities": {
+          "title": "OpenOpportunities",
+          "lightning:type": "lightning__textType"
+        },
+        "openPipeline": {
+          "title": "OpenPipeline",
+          "lightning:type": "lightning__textType"
+        },
+        "recordUrl": {
+          "title": "RecordUrl",
+          "lightning:type": "lightning__urlType"
+        }
+      }
+    }
+  }
+}

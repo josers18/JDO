@@ -1,0 +1,56 @@
+{
+  "title": "AFD360 Opportunity Card",
+  "description": "Opportunity snapshot: name, account, stage badge, amount, close date, probability, owner, next step.",
+  "type": "object",
+  "properties": {
+    "attributes": {
+      "lightning:type": "lightning__objectType",
+      "properties": {
+        "found": {
+          "title": "Found",
+          "lightning:type": "lightning__booleanType"
+        },
+        "opportunityId": {
+          "title": "OpportunityId",
+          "lightning:type": "lightning__textType"
+        },
+        "name": {
+          "title": "Name",
+          "lightning:type": "lightning__textType"
+        },
+        "accountName": {
+          "title": "AccountName",
+          "lightning:type": "lightning__textType"
+        },
+        "stage": {
+          "title": "Stage",
+          "lightning:type": "lightning__textType"
+        },
+        "amount": {
+          "title": "Amount",
+          "lightning:type": "lightning__textType"
+        },
+        "closeDate": {
+          "title": "CloseDate",
+          "lightning:type": "lightning__textType"
+        },
+        "probability": {
+          "title": "Probability",
+          "lightning:type": "lightning__textType"
+        },
+        "owner": {
+          "title": "Owner",
+          "lightning:type": "lightning__textType"
+        },
+        "nextStep": {
+          "title": "NextStep",
+          "lightning:type": "lightning__textType"
+        },
+        "recordUrl": {
+          "title": "RecordUrl",
+          "lightning:type": "lightning__urlType"
+        }
+      }
+    }
+  }
+}

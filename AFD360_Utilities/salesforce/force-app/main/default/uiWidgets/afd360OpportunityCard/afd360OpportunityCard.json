@@ -1,0 +1,228 @@
+{
+  "type": "lightning__agentforceWidget",
+  "contentBody": {
+    "widgetBody": {
+      "definition": "tile/widget",
+      "children": [
+        {
+          "definition": "tile/column",
+          "attributes": {
+            "gap": "md",
+            "align": "stretch"
+          },
+          "children": [
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "md",
+                "align": "start",
+                "isWrapped": false
+              },
+              "children": [
+                {
+                  "definition": "tile/avatar",
+                  "attributes": {
+                    "iconName": "target",
+                    "shape": "rounded",
+                    "size": "lg",
+                    "alt": "record"
+                  }
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.name}",
+                        "variant": "h3",
+                        "weight": "semibold"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.accountName} \u00b7 {!$attrs.owner}",
+                        "variant": "caption",
+                        "color": "muted"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "sm",
+                "align": "center"
+              },
+              "children": [
+                {
+                  "definition": "tile/badge",
+                  "attributes": {
+                    "label": "{!$attrs.stage}",
+                    "variant": "info"
+                  }
+                },
+                {
+                  "definition": "tile/badge",
+                  "attributes": {
+                    "label": "{!$attrs.probability}",
+                    "variant": "secondary"
+                  }
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "xl",
+                "align": "start"
+              },
+              "children": [
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "auto"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Amount",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.amount}",
+                        "variant": "h3",
+                        "weight": "semibold"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "auto"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Close date",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.closeDate}",
+                        "variant": "h4",
+                        "weight": "semibold"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
+              "definition": "tile/separator",
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
+              "definition": "tile/column",
+              "attributes": {
+                "gap": "xs",
+                "align": "start"
+              },
+              "children": [
+                {
+                  "definition": "tile/text",
+                  "attributes": {
+                    "text": "Next step",
+                    "variant": "caption",
+                    "color": "muted",
+                    "weight": "medium"
+                  }
+                },
+                {
+                  "definition": "tile/text",
+                  "attributes": {
+                    "text": "{!$attrs.nextStep}",
+                    "variant": "body",
+                    "weight": "medium"
+                  }
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "md",
+                "align": "center"
+              },
+              "children": [
+                {
+                  "definition": "tile/button",
+                  "attributes": {
+                    "label": "Create follow-up task",
+                    "variant": "secondary",
+                    "iconName": "list-checks",
+                    "actions": {
+                      "click": [
+                        {
+                          "definition": "action/sendMessage",
+                          "attributes": {
+                            "content": "Create a follow-up task on the opportunity {!$attrs.name}"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "definition": "tile/link",
+                  "attributes": {
+                    "href": "{!$attrs.recordUrl}",
+                    "text": "Open in Salesforce"
+                  }
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.found}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

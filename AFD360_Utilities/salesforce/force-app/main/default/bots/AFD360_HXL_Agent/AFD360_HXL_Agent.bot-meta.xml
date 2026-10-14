@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bot xmlns="http://soap.sforce.com/2006/04/metadata">
+    <agentDSLEnabled>true</agentDSLEnabled>
+    <agentType>AgentforceEmployeeAgent</agentType>
+    <botMlDomain>
+        <label>AFD360 HXL Agent</label>
+        <name>AFD360_HXL_Agent</name>
+    </botMlDomain>
+    <botSource>None</botSource>
+    <description>AFD360_Utilities test agent: Lead, Account and Opportunity snapshots and Task creation, each returned as an HXL card.</description>
+    <label>AFD360 HXL Agent</label>
+    <logPrivateConversationData>false</logPrivateConversationData>
+    <richContentEnabled>true</richContentEnabled>
+    <sessionTimeout>0</sessionTimeout>
+    <type>InternalCopilot</type>
+</Bot>
