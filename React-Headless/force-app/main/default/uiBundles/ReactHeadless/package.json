@@ -30,7 +30,7 @@
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
-    "react-router": "^7.10.1",
+    "react-router": "^7.18.2",
     "shadcn": "^3.8.5",
     "sonner": "^1.7.0",
     "tailwind-merge": "^3.5.0",
@@ -53,7 +53,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/ui": "^4.0.17",
+    "@vitest/ui": "^4.1.10",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -67,11 +67,28 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vite-plugin-graphql-codegen": "^3.6.3",
-    "vitest": "^4.0.17"
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "lodash": "^4.18.1",
-    "protobufjs": "^7.6.3",
-    "esbuild": "^0.28.1"
+    "protobufjs": "^7.6.5",
+    "esbuild": "^0.28.1",
+    "@hono/node-server": "^2.0.5",
+    "@vitest/mocker": "^4.1.10",
+    "baseline-browser-mapping": "^2.11.0",
+    "browserslist": "^4.28.7",
+    "csv-parse": "^7.0.2",
+    "fast-uri": "^3.1.8",
+    "hono": "^4.13.5",
+    "immutable": "^5.1.8",
+    "ip-address": "^10.3.1",
+    "js-yaml": "^4.3.2",
+    "nanoid": "^3.3.16",
+    "postcss": "^8.5.23",
+    "qs": "^6.16.0",
+    "shell-quote": "^1.9.0",
+    "@dotenvx/dotenvx": {
+      "undici": "^7.29.0"
+    }
   }
 }
