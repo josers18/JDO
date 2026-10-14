@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalClientApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>jsifontes@salesforce.com</contactEmail>
+    <description>Server-to-server client for the Agentforce Agent API (client credentials flow).</description>
+    <distributionState>Local</distributionState>
+    <isProtected>false</isProtected>
+    <label>Agent API Client</label>
+</ExternalClientApplication>
