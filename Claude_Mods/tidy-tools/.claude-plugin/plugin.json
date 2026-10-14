@@ -1,0 +1,12 @@
+{
+  "name": "tidy-tools",
+  "version": "0.2.0",
+  "description": "Every tool call as one rich line: per-tool icons, file paths, diff stats, a Claude sparkle while it runs; groups as a bead track; laya decisions as a card; the plan as a panel above the prompt. /tidy toggles it",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Jose Sifontes"
+  },
+  "dependencies": [
+    "plan-progress"
+  ]
+}
