@@ -8,7 +8,7 @@
  *   · InteractionSummary_Home__dlm (interactions)                     → Data Cloud
  *   · Meeting_Note_c_Home__dlm (meeting notes)                        → Data Cloud
  *   · CSAT_Snowflake__dlm (CSAT/NPS + trend + verbatims)              → Data Cloud
- *   · Marketing_Campaigns__dlm (campaigns)                            → Data Cloud
+ *   · Marketing_Engagements__dlm (campaign events, one row per send)  → Data Cloud
  *   · CumulusGongCallSentiment__dlm (call sentiment summaries)        → Data Cloud
  *   · CumulusWorldCheckAml__dlm (KYC / AML card)                      → Data Cloud
  *   · Attrition_Prediction__dlm + Predicted_CSAT_Output__dlm (ML)     → Data Cloud
@@ -106,7 +106,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     rows(queryDataCloud<Record<string, unknown>>(`SELECT CreatedDate__c dt, Name__c nm, InteractionPurpose__c purp, MeetingNotes__c notes, NextSteps__c nxt FROM InteractionSummary_Home__dlm WHERE AccountId__c = '${acct}' ORDER BY CreatedDate__c DESC LIMIT 8`, 8)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Date_c__c dt, Title_c__c ttl, Notes_c__c notes FROM Meeting_Note_c_Home__dlm WHERE Account_c__c = '${acct}' ORDER BY Date_c__c DESC LIMIT 6`, 6)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT csat_score__c csat, nps_score__c nps, csat_description__c csatd, nps_description__c npsd, score_date__c dt FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY score_date__c DESC LIMIT 8`, 8)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT Campaign_Name__c nm, Category__c cat, Product_Name__c prod, Email_Action__c act, Send_Date__c dt FROM Marketing_Campaigns__dlm WHERE AccountID__c = '${acct}' ORDER BY Send_Date__c DESC LIMIT 8`, 8)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT campaign_name__c nm, product_category__c cat, product_name__c prod, MAX(CASE engagement_type__c WHEN 'Unsubscribed' THEN 5 WHEN 'Clicked' THEN 4 WHEN 'Opened' THEN 3 WHEN 'Delivered' THEN 2 WHEN 'Bounced' THEN 1 ELSE 0 END) rk, MIN(engagement_at__c) dt FROM Marketing_Engagements__dlm WHERE account_id__c = '${acct}' GROUP BY send_id__c, campaign_name__c, product_category__c, product_name__c ORDER BY dt DESC LIMIT 8`, 8)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT overallSentiment__c sent, sentimentTrend__c trend, dealRiskScore__c risk, rmName__c rm, lastCallDate__c dt, generatedAt__c gen FROM CumulusGongCallSentiment__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY generatedAt__c DESC LIMIT 4`, 4)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT overallRiskRating__c rating, sanctionsHit__c sanc, pepHit__c pep, adverseMediaHit__c media, lastScreenedAt__c dt FROM CumulusWorldCheckAml__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileDate__c DESC LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Churned_c__c churned FROM Attrition_Prediction__dlm WHERE PrimaryObjectPk__c = '${acct}' LIMIT 1`, 1)),
@@ -223,12 +223,14 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
   }));
 
   /* ---- Campaigns ---- */
+  // rk = furthest engagement reached per send (see the Marketing_Engagements__dlm query).
+  const CAMPAIGN_STATUS = ['Sent', 'Bounced', 'Delivered', 'Opened', 'Clicked', 'Unsubscribed'];
   const campaigns: Campaign[] = camps.map((r, i) => ({
     id: `cm${i}`,
     name: decode(r.nm) || 'Campaign',
     type: `${decode(r.cat)}${r.prod ? ` · ${decode(r.prod)}` : ''}` || '—',
-    status: String(r.act ?? '—'),
-    responded: ['Click', 'Open'].includes(String(r.act)),
+    status: CAMPAIGN_STATUS[dcNum(r.rk)] ?? '—',
+    responded: ['Clicked', 'Opened'].includes(CAMPAIGN_STATUS[dcNum(r.rk)]),
     memberSince: shortDate(r.dt),
   }));
 
