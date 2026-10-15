@@ -113,7 +113,7 @@ Each step can be re-run safely and is independent of the others. A failure in on
 
 - **App:** `jdo-marketing-feed`, Python buildpack. The code is deployed from the `Marketing_Engagement/` folder with `git subtree push --prefix Marketing_Engagement heroku main`.
   - Files: `Procfile`/`requirements.txt` (`psycopg[binary]`, `requests`, `PyJWT[crypto]`), plus `.python-version`.
-- **Database:** attach the existing Heroku Postgres to the app (`DATABASE_URL`). If it lives on another account, use `Heroku_PG_*` config vars instead. The worker reads `DATABASE_URL` first, then `.env` for local runs.
+- **Database:** attach the existing add-on `postgresql-trapezoidal-29488` (owned by the `data-cloud` app, plan essential-2) to the new app with `heroku addons:attach`, which sets `DATABASE_URL`. The worker reads `DATABASE_URL` first, then `.env` for local runs.
 - **Salesforce auth:** an External Client App in JDO with JWT bearer enabled, pre-authorized for admin@finsdc3.demo's profile, with a self-signed cert.
   - Config vars: `SF_LOGIN_URL`, `SF_CLIENT_ID`, `SF_USERNAME`, `SF_PRIVATE_KEY`.
   - The private key lives only in config vars. It's never committed or logged.
@@ -156,6 +156,6 @@ Marketing_Engagement/
 
 ## Risks
 
-- **JWT setup.** It's the one fiddly manual step. If the cert or pre-authorization is wrong, the CRM steps fail and nothing new is generated, while existing campaigns keep generating events.
+- **JWT setup.** It's the one fiddly manual step. If the cert or pre-authorization is wrong, the run logs an `auth` error and exits non-zero. Audiences come from live CRM, so nothing is generated until auth works. Nothing is lost either: the next successful run inserts every event that has come due in the meantime.
 - **Rotation is predictable** with a 12-template library: each template returns about every 6 months. The names carry the month, so they don't collide.
 - **Hourly CRM reads.** The Account query (about 36k rows, about 18 REST pages) runs only during generation for campaigns whose audience needs it, and it's cached per run. That's well within JDO's API limits.
