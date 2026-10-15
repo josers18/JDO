@@ -71,8 +71,8 @@ A single send produces several events: sent, delivered, one or more opens, maybe
 | `send_id` | `varchar(64)` not null | Deterministic: `md5(campaign_id ‖ account_id)` |
 | `campaign_id` | `varchar(18)` not null | JDO Campaign Id (`701…`) |
 | `campaign_name` | `varchar(80)` not null | `Campaign.Name` |
-| `audience_source` | `varchar(10)` not null | `CRM` (from CampaignMember) or `Simulated` (§3) |
-| `campaign_member_id` | `varchar(18)` | `00v…`; filled only when `audience_source = 'CRM'` |
+| `audience_source` | `varchar(20)` not null | `Campaign Member` (audience from CampaignMember) or `Segment` (segment-built audience, §3). Dashboard-facing. |
+| `campaign_member_id` | `varchar(18)` | `00v…`; filled only when `audience_source = 'Campaign Member'` |
 | `account_id` | `varchar(18)` not null | `001…` |
 | `contact_id` | `varchar(18)` | Person accounts: PersonContactId. Business accounts: the oldest Contact with an Email, if any; otherwise null |
 | `personal_business` | `varchar(10)` not null | `Personal` / `Business` |
@@ -86,7 +86,7 @@ A single send produces several events: sent, delivered, one or more opens, maybe
 Indexes: `(account_id, engagement_at)` for per-customer reads, and `(send_id)` for the view.
 Check constraints:
 - `engagement_type` must be one of the six values.
-- `audience_source` must be `CRM` or `Simulated`.
+- `audience_source` must be `Campaign Member` or `Segment`.
 
 All columns are lower-case, so SQL doesn't need quoting (unlike the existing Fins tables).
 
@@ -153,7 +153,7 @@ If an email campaign with account members is missing from the catalog, the scrip
 
 `seed_campaigns.py` creates each new campaign from §3 in JDO if none with that Name exists:
 - `Type = 'Email'`, `IsActive = true`, with the Status, `StartDate` and `EndDate` from §3.
-- `Description` = "Simulated audience; engagement in Heroku Fins.marketing_engagement."
+- `Description` = "Segment-based email campaign; engagement tracked in Fins.marketing_engagement."
 
 Existing campaigns are never changed. It runs before the backfill. Running it again creates nothing new, because it matches on Name.
 
