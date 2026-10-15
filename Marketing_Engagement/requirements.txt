@@ -1,0 +1,4 @@
+psycopg[binary]==3.3.6
+requests>=2.32,<3
+PyJWT[crypto]==2.12.1
+tzdata
