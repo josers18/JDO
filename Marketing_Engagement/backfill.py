@@ -20,13 +20,13 @@ from catalog import MEMBER_SOURCE
 
 
 def plan(conn, query, as_of, loaded_at):
-    """Rows due by as_of for all Linked campaigns (bounced sends skipped), plus the account map."""
+    """Rows due by as_of for all Linked campaigns (rules in engine.new_rows), plus the account map."""
     campaigns = db.campaigns(conn, state="Linked")
     accounts, business_contact = crm.load_accounts(query)
     members = crm.load_members(query, [c["campaign_id"] for c in campaigns if c["audience_source"] == MEMBER_SOURCE])
     sends = engine.build_sends(campaigns, accounts, business_contact, members)
-    skip = db.bounced_send_ids(conn, [c["campaign_id"] for c in campaigns])
-    return engine.build_rows(sends, as_of, loaded_at, skip), accounts
+    stored = db.stored_sends(conn, [c["campaign_id"] for c in campaigns])
+    return engine.new_rows(campaigns, sends, stored, as_of, loaded_at), accounts
 
 
 def report(rows, accounts, already_covered):
@@ -56,6 +56,8 @@ if __name__ == "__main__":
     p.add_argument("--as-of", type=date.fromisoformat, default=datetime.now(timezone.utc).date(),
                    help="Events after this date (UTC midnight) are not inserted; default today")
     a = p.parse_args()
+    if a.as_of > datetime.now(timezone.utc).date() and not a.dry_run:
+        sys.exit("--as-of is in the future; rows would be future-dated. Use --dry-run to preview.")
     as_of = datetime.combine(a.as_of, time())
 
     with db.connect() as conn:

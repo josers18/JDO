@@ -21,6 +21,8 @@ from catalog import MEMBER_SOURCE, NEW_CAMPAIGN_DESCRIPTION, SEGMENT_SOURCE
 RECONCILE_HOUR_UTC = 6
 # Generated campaigns start here; earlier months were covered by the original backfill.
 FIRST_MONTH = date(2026, 11, 1)
+# Keep generating this long past a campaign's cap, so an outage spanning the cap loses nothing.
+GRACE = timedelta(days=7)
 
 
 def plan_rollover(templates, month):
@@ -55,23 +57,26 @@ def desired_status(c, today):
 
 
 def due_rows(conn, sfc, now, extra=()):
-    """Event rows due by `now` for active Linked campaigns (+ `extra`), bounced sends skipped."""
-    camps = [c for c in [*db.campaigns(conn, state="Linked"), *extra] if engine.is_active(c, now)]
+    """Event rows due by `now` for active Linked campaigns (+ `extra`); rules in engine.new_rows."""
+    camps = [c for c in [*db.campaigns(conn, state="Linked"), *extra] if engine.is_active(c, now, GRACE)]
     if not camps:
         return []
     accounts, business_contact = crm.load_accounts(sfc.query)
     members = crm.load_members(sfc.query, [c["campaign_id"] for c in camps if c["audience_source"] == MEMBER_SOURCE])
     sends = engine.build_sends(camps, accounts, business_contact, members)
-    skip = db.bounced_send_ids(conn, [c["campaign_id"] for c in camps])
-    return engine.build_rows(sends, now, now, skip)
+    stored = db.stored_sends(conn, [c["campaign_id"] for c in camps])
+    return engine.new_rows(camps, sends, stored, now, now)
 
 
 def step_rollover(conn, now, dry_run):
     month = now.date().replace(day=1)
     if month < FIRST_MONTH:
         return []
-    existing = {c["campaign_key"] for c in db.campaigns(conn)}
-    new = [c for c in plan_rollover(db.templates(conn), month) if c["campaign_key"] not in existing]
+    have = [c for c in db.campaigns(conn) if c["template_key"] and c["campaign_key"].endswith(f"-{month:%Y-%m}")]
+    # One Personal + one Business per month, even if the template pool changes mid-month.
+    taken = {c["campaign_key"] for c in have} | {c["target"] for c in have if c["target"] in ("Personal", "Business")}
+    new = [c for c in plan_rollover(db.templates(conn), month)
+           if c["campaign_key"] not in taken and c["target"] not in taken]
     if not dry_run:
         for c in new:
             db.insert_campaign(conn, c)
@@ -132,7 +137,10 @@ def step_reconcile(conn, sfc, now, dry_run):
 
 
 def run(conn, sf_factory, now, dry_run=False):
-    """One feed pass. Returns True when every step succeeded."""
+    """One feed pass. Returns True when every step succeeded (or another run holds the lock)."""
+    if not db.try_lock(conn):
+        print("another feed run is in progress; skipping")
+        return True
     ok = True
     ctx = {}
 
@@ -193,6 +201,9 @@ if __name__ == "__main__":
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--now", type=datetime.fromisoformat, help="Naive UTC run time (default: now)")
     a = p.parse_args()
-    now = (a.now or datetime.now(timezone.utc).replace(tzinfo=None)).replace(microsecond=0)
+    real_now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = (a.now or real_now).replace(microsecond=0)
+    if now > real_now and not a.dry_run:
+        sys.exit("--now is in the future; rows would be future-dated. Use --dry-run to preview.")
     with db.connect() as conn:
         sys.exit(0 if run(conn, SfClient.from_env, now, a.dry_run) else 1)

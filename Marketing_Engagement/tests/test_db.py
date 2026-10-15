@@ -55,7 +55,7 @@ def test_templates_seeded(pg):
 
 def test_bounced_and_sent_counts(pg):
     db.insert_events(pg, [row("e1", send="s1"), row("e2", send="s1", kind="Bounced"), row("e3", send="s2")])
-    assert db.bounced_send_ids(pg, ["701000000000000AAA"]) == {"s1"}
+    assert db.stored_sends(pg, ["701000000000000AAA"]) == {"s1": {"Sent", "Bounced"}, "s2": {"Sent"}}
     assert db.sent_counts(pg) == {"701000000000000AAA": 2}
     assert db.covered_accounts(pg) == {"001A"}
 

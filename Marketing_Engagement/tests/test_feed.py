@@ -1,4 +1,7 @@
-from datetime import date, datetime
+import os
+import subprocess
+import sys
+from datetime import date, datetime, time, timedelta
 
 import pytest
 
@@ -177,3 +180,45 @@ def test_no_generated_campaigns_before_first_month(pg):
     fake = FakeSf()
     assert feed.run(pg, lambda: fake, datetime(2026, 10, 20, 7)) is True
     assert [c for c in db.campaigns(pg) if c["template_key"]] == [] and fake.creates == 0
+
+
+def test_catch_up_across_cap_loses_nothing(pg):
+    fake = FakeSf()
+    feed.run(pg, lambda: fake, datetime(2026, 11, 1, 7))
+    first = min((c for c in db.campaigns(pg, state="Linked") if c["template_key"] and c["audience_rule"] != "new_accounts"),
+                key=lambda c: c["end_date"])
+    cap = datetime.combine(first["end_date"], time(23, 59, 59)) + timedelta(days=14)
+    expected = {r[0] for r in feed.due_rows(pg, fake, cap) if r[2] == first["campaign_id"]}
+    feed.run(pg, lambda: fake, cap + timedelta(days=3))  # outage spanned the cap, ended within GRACE
+    got = {r[0] for r in pg.execute(f"SELECT engagement_id FROM {db.t('marketing_engagement')} "
+                                    "WHERE campaign_id = %s", (first["campaign_id"],)).fetchall()}
+    assert expected and got == expected
+
+
+def test_template_added_mid_month_creates_no_extra_campaign(pg):
+    fake = FakeSf()
+    feed.run(pg, lambda: fake, datetime(2026, 11, 1, 7))
+    pg.execute(f"INSERT INTO {db.t('marketing_campaign_template')} (template_key, name_pattern, target, "
+               "audience_rule, product_name, product_category, start_day, duration_days) "
+               "VALUES ('aaa-new', 'New Offer — {month}', 'Personal', 'share:0.30', 'P', 'C', 3, 10)")
+    feed.run(pg, lambda: fake, datetime(2026, 11, 15, 7))
+    assert fake.creates == 3
+    assert len([c for c in db.campaigns(pg) if c["campaign_key"].endswith("-2026-11")]) == 3
+
+
+def test_overlapping_run_is_skipped(pg):
+    other = db.connect()
+    try:
+        assert db.try_lock(other)
+        fake = FakeSf()
+        assert feed.run(pg, lambda: fake, datetime(2026, 11, 1, 7)) is True
+        assert fake.creates == 0 and db.table_counts(pg)["marketing_feed_run"] == 0
+    finally:
+        other.close()
+
+
+def test_future_now_refused_without_dry_run():
+    env = {k: v for k, v in os.environ.items() if k != "DATABASE_URL"} | {"ME_ENV_FILE": "/nonexistent"}
+    out = subprocess.run([sys.executable, "feed.py", "--now", "2099-01-01T00:00"], capture_output=True, text=True,
+                         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))), env=env)
+    assert out.returncode != 0 and "future" in out.stderr

@@ -56,3 +56,21 @@ def test_backfill_skips_bounced_sends(pg):
     assert bounced
     rows2, _ = backfill.plan(pg, q, as_of, as_of)
     assert not {r[1] for r in rows2} & bounced
+
+
+def test_backfill_never_adds_sends_to_closed_campaigns(pg):
+    seed(pg)
+    as_of = datetime(2026, 10, 15)
+    rows, _ = backfill.plan(pg, FakeQuery([account(i) for i in range(200)]), as_of, as_of)
+    db.insert_events(pg, rows)
+    # CRM churn: more pre-start accounts now qualify for the long-finished March campaign.
+    rows2, _ = backfill.plan(pg, FakeQuery([account(i) for i in range(400)]), as_of, as_of)
+    assert db.insert_events(pg, rows2) == 0
+
+
+def test_backfill_refuses_future_as_of_without_dry_run():
+    import subprocess, sys, os
+    env = {k: v for k, v in os.environ.items() if k != "DATABASE_URL"} | {"ME_ENV_FILE": "/nonexistent"}
+    out = subprocess.run([sys.executable, "backfill.py", "--as-of", "2099-01-01"], capture_output=True, text=True,
+                         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))), env=env)
+    assert out.returncode != 0 and "future" in out.stderr

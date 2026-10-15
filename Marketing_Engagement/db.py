@@ -84,10 +84,19 @@ def sent_counts(conn):
         "WHERE audience_source = 'Segment' AND engagement_type = 'Sent' GROUP BY campaign_id").fetchall())
 
 
-def bounced_send_ids(conn, campaign_ids):
-    return {r[0] for r in conn.execute(
-        f"SELECT send_id FROM {t('marketing_engagement')} WHERE engagement_type = 'Bounced' "
-        "AND campaign_id = ANY(%s)", (list(campaign_ids),)).fetchall()}
+def stored_sends(conn, campaign_ids):
+    """send_id -> set of engagement types already stored, for these campaigns."""
+    out = {}
+    for send_id, kind in conn.execute(
+            f"SELECT DISTINCT send_id, engagement_type FROM {t('marketing_engagement')} "
+            "WHERE campaign_id = ANY(%s)", (list(campaign_ids),)).fetchall():
+        out.setdefault(send_id, set()).add(kind)
+    return out
+
+
+def try_lock(conn):
+    """Session advisory lock so overlapping feed runs (Scheduler double-fire, manual run) don't race."""
+    return conn.execute("SELECT pg_try_advisory_lock(hashtext(%s))", (f"marketing_feed:{SCHEMA}",)).fetchone()[0]
 
 
 def covered_accounts(conn):

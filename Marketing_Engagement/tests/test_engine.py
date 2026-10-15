@@ -1,5 +1,5 @@
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import pytest
 
@@ -116,3 +116,32 @@ def test_is_active():
     assert engine.is_active(c, datetime(2026, 11, 29, 23, 59))
     assert not engine.is_active(c, datetime(2026, 11, 30, 0, 0, 1))
     assert engine.is_active(camp(end_date=None, start_date=date(2026, 1, 1)), datetime(2030, 1, 1))
+
+
+def test_is_active_grace_extends_past_cap():
+    c = camp(start_date=date(2026, 11, 5), end_date=date(2026, 11, 15))
+    week = timedelta(days=7)
+    assert engine.is_active(c, datetime(2026, 12, 6, 23, 59), grace=week)
+    assert not engine.is_active(c, datetime(2026, 12, 7, 0, 0, 1), grace=week)
+    assert not engine.is_active(c, datetime(2026, 11, 4, 23), grace=week)
+
+
+def test_new_rows_closed_campaign_only_extends_stored_sends_and_never_bounces_delivered():
+    c = camp(start_date=date(2026, 3, 1), end_date=date(2026, 3, 5))
+    sends = engine.build_sends([c], {f"001{i:015d}": acct() for i in range(400)}, {}, {})
+    as_of = datetime(2026, 10, 1)
+    bounced = sorted({r[1] for r in engine.build_rows(sends, as_of, as_of) if r[11] == "Bounced"})
+    assert bounced
+    stored = {bounced[0]: {"Sent", "Delivered"}}  # delivered earlier, before a HasResponded flip
+    rows = engine.new_rows([c], sends, stored, as_of, as_of)
+    assert {r[1] for r in rows} == {bounced[0]}
+    assert "Bounced" not in {r[11] for r in rows}
+
+
+def test_new_rows_active_campaign_adds_new_sends_and_skips_bounced():
+    c = camp(start_date=date(2026, 11, 1), end_date=date(2026, 11, 30))
+    sends = engine.build_sends([c], {f"001{i:015d}": acct() for i in range(50)}, {}, {})
+    as_of = datetime(2026, 11, 10)
+    stored = {sends[0]["send_id"]: {"Sent", "Bounced"}}
+    rows = engine.new_rows([c], sends, stored, as_of, as_of)
+    assert {r[1] for r in rows} == {s["send_id"] for s in sends[1:]}

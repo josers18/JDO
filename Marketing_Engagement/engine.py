@@ -42,11 +42,11 @@ def md5(*parts):
     return hashlib.md5("|".join(parts).encode()).hexdigest()
 
 
-def is_active(c, now):
-    """True while a campaign can still produce events (start reached, cap not passed)."""
+def is_active(c, now, grace=timedelta(0)):
+    """True while a campaign can still produce events (start reached, cap + grace not passed)."""
     if c["start_date"] > now.date():
         return False
-    return c["end_date"] is None or now <= datetime.combine(c["end_date"], time(23, 59, 59)) + CAP_AFTER_END
+    return c["end_date"] is None or now <= datetime.combine(c["end_date"], time(23, 59, 59)) + CAP_AFTER_END + grace
 
 
 # ── Audiences ───────────────────────────────────────────────────────────────
@@ -184,3 +184,20 @@ def build_rows(sends, as_of, loaded_at, skip_send_ids=frozenset()):
         for kind, at, bounce, seq in events_for(s, as_of):
             rows.append((md5(s["send_id"], kind, str(seq)), *(s[c] for c in SEND_COLUMNS), kind, at, bounce, loaded_at))
     return rows
+
+
+def new_rows(campaigns, sends, stored, as_of, loaded_at):
+    """Rows to insert given `stored` (send_id -> engagement types already in the table).
+
+    A campaign past its cap that already has rows only extends those sends, so CRM
+    churn never backdates a whole new send (a first load still gets everything).
+    Bounced sends get nothing more, and a send that was Delivered never gets a
+    Bounced row (e.g. after a HasResponded flip).
+    """
+    loaded = {s["campaign_id"] for s in sends if s["send_id"] in stored}
+    closed = {c["campaign_id"] for c in campaigns if c["campaign_id"] in loaded and not is_active(c, as_of)}
+    sends = [s for s in sends if s["campaign_id"] not in closed or s["send_id"] in stored]
+    bounced = {k for k, v in stored.items() if "Bounced" in v}
+    delivered = {k for k, v in stored.items() if "Delivered" in v}
+    return [r for r in build_rows(sends, as_of, loaded_at, bounced)
+            if not (r[11] == "Bounced" and r[1] in delivered)]
