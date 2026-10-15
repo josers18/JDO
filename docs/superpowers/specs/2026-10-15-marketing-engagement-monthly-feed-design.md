@@ -1,7 +1,7 @@
 # Marketing Engagement Monthly Feed — Design
 
 **Date:** 2026-10-15
-**Status:** Draft, pending review
+**Status:** Implemented (PR #113, 2026-10-15). See "As built" below for where the build departs from this design.
 **Builds on:** `2026-10-14-marketing-engagement-design.md` (table, funnel rules, campaign catalog)
 **Org:** JDO (`jdo-gj9q5q`, admin@finsdc3.demo)
 **Database:** Heroku Postgres, `"Fins"` schema
@@ -146,6 +146,20 @@ Marketing_Engagement/
 - **Reconcile:** renaming a test campaign in CRM marks it `Drifted`. Deleting a scratch campaign marks it `Missing in CRM` and stops its rows.
 - **Data Cloud:** new rows are visible in `Marketing_Engagements__dlm` within minutes, and the C360 page shows the new campaign on an account in its audience.
 - **Liveness:** `marketing_feed_run` has a success row in each of the last 24 hours.
+
+## As built
+
+- **App:** the worker runs in the existing `data-cloud` app, not a new `jdo-marketing-feed` app. Salesforce internal users can't create personal apps, and a team app would expose the JWT key to team admins. `DATABASE_URL` was already set there, so no add-on attach was needed.
+- **Salesforce auth:** a Connected App (`JDO_Marketing_Feed`) with JWT bearer, pre-authorized for System Administrator.
+- **Start month:** generated campaigns begin November 2026 (`feed.FIRST_MONTH`). Earlier months were covered by the original backfill.
+- **Scheduler:** hourly at :10, created through the Scheduler API.
+- **Hardening from the final review:**
+  - Finished campaigns that already have rows only extend their existing sends.
+  - A Delivered send never gets a Bounced row.
+  - Generation continues for 7 days past a campaign's cap.
+  - Rollover fills each Personal and Business slot once per month.
+  - An advisory lock skips overlapping runs.
+  - A future `--now` or `--as-of` is refused without `--dry-run`.
 
 ## Out of scope
 
