@@ -108,6 +108,6 @@ Redraws the transcript so tool calls read at a glance instead of as walls of com
 | Running / failed | An orange Claude sparkle (`✢ ✳ ✶ ✻ ✽`) that animates only while a call runs; red `✗` on failure |
 | Groups | `◈ Explored` with a track of colored beads, one per call, then words: `read 2 files · ran 1 search · 1 failed` |
 | laya | `deciding <questions>` while it runs, then a card: each answer with a confidence meter and percentage, plus model · device · latency |
-| Plan panel | Above the prompt, from TodoWrite / TaskCreate / TaskUpdate or the latest `plan-progress` bar: the goal, elapsed time, a `Step N of M` bar and each step's state |
+| Plan panel | Above the prompt, from TodoWrite / TaskCreate / TaskUpdate or the latest `plan-progress` bar: the goal, elapsed time, a `Step N of M` bar and each step's state; a finished step drops off 8 s after it completes |
 
-It needs the `plan-progress` mod loaded (a declared dependency). A finished plan's panel drops off by itself. It changes only what you see: the model still gets every tool result in full.
+It needs the `plan-progress` mod loaded (a declared dependency). A finished step leaves the panel 8 seconds after it completes (the `Step N of M` count still includes it), and a finished plan's panel drops off by itself. It changes only what you see: the model still gets every tool result in full.

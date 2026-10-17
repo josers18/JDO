@@ -3,7 +3,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { PlanItem } from '../types'
 import { card, meter } from './laya.ts'
-import { createTask, elapsed, fromProgress, fromTodos, isFresh, labels, ramp, runs, standing, updateTask } from './plan.ts'
+import { createTask, elapsed, fromProgress, fromTodos, isFresh, labels, nextFold, ramp, runs, showing, stamp, standing, updateTask } from './plan.ts'
 import type { ProgressPlan } from './plan.ts'
 import { ORANGE, bead, changedLines, foldsToLine, groupWords, isInteractive, isLaya, resultLine, row, spark } from './rows.ts'
 import type { Part } from './rows.ts'
@@ -14,6 +14,8 @@ const frame = atom({ plugin: 'tidy-tools', key: 'frame' } as const, 0)
 const plan = atom({ plugin: 'tidy-tools', key: 'plan' } as const, [] as PlanItem[])
 const goal = atom({ plugin: 'tidy-tools', key: 'goal' } as const, '')
 const startedAt = atom({ plugin: 'tidy-tools', key: 'startedAt' } as const, 0)
+// Moves on when a finished step's time is up, so the panel redraws without it.
+const fold = atom({ plugin: 'tidy-tools', key: 'fold' } as const, 0)
 const bars = atom({ plugin: 'plan-progress', key: 'plans' } as const, [] as ProgressPlan[])
 
 const STORE_KEY = 'isOff'
@@ -28,26 +30,29 @@ const WORK_BAR = ramp('#c15f3c', ORANGE, 3)
 // Rows hidden under their tool row, which already says what came of the call.
 const SAID_IN_ROW = new Set(['Read', 'Write', 'Agent', 'Task', 'Skill', 'WebFetch', 'WebSearch', 'TodoWrite', 'TaskCreate', 'TaskUpdate', 'TaskGet', 'TaskList'])
 const SMALL_DIFF = 20
+// a finished step stays in the panel this long, then drops off (plan-progress closes a finished bar after as long)
+const DONE_MS = 8000
 
 let cwd = ''
 let home = ''
 let lastPrompt = ''
 let running = 0
 let ticker: Timer | undefined
+let folder: { at: number; timer: Timer } | undefined
 
 // The plan, from whichever tool Claude keeps it with.
 async function trackPlan($: EngineInterface, e: any, result: any) {
   try {
     if ('deny' in result && result.deny !== undefined) return
     const isNew = (e.tool === 'TodoWrite' || e.tool === 'TaskCreate') && isFresh(await read($, plan))
-    if (e.tool === 'TodoWrite') await update($, plan, () => fromTodos(e.todos))
+    const now = await $.clock.now()
+    if (e.tool === 'TodoWrite') await update($, plan, p => stamp(p, fromTodos(e.todos), now))
     else if (e.tool === 'TaskCreate') {
       const id = (result.result as { task?: { id?: string } } | undefined)?.task?.id
       if (id) await update($, plan, p => createTask(p, id, e.subject, e.activeForm))
-    } else if (e.tool === 'TaskUpdate') await update($, plan, p => updateTask(p, e.taskId, e))
+    } else if (e.tool === 'TaskUpdate') await update($, plan, p => stamp(p, updateTask(p, e.taskId, e), now))
     if (isNew) {
       await update($, goal, () => lastPrompt)
-      const now = await $.clock.now()
       await update($, startedAt, () => now)
     }
   } catch {
@@ -228,7 +233,19 @@ export const register: Register = on => {
     const latest = isFresh(items) ? (await read($, bars)).filter(b => b.state !== 'done').at(-1) : undefined
     if (latest) [items, title, started] = [fromProgress(latest), latest.title, latest.startedAt]
     if (e.props.hasSurvey || isFresh(items) || (await read($, isOff))) return next(e)
-    const room = Math.max(0, Math.min(items.length, e.props.maxRows - 7))
+    await read($, fold)
+    const now = await $.clock.now()
+    const rows = showing(items, now, DONE_MS)
+    const due = nextFold(items, now, DONE_MS)
+    if (due !== undefined && (!folder || folder.at > due)) {
+      folder?.timer.cancel()
+      const timer = $.clock.after(due - now + 50, () => {
+        folder = undefined
+        void update($, fold, n => n + 1)
+      })
+      folder = { at: due, timer }
+    }
+    const room = Math.max(0, Math.min(rows.length, e.props.maxRows - 7))
     // the plugins beneath (image thumbnails, bars) get the rows the panel leaves
     const below = await next({ ...e, props: { ...e.props, maxRows: Math.max(0, e.props.maxRows - room - 5) } })
     const { Box, Text } = $.ui.resolve(e)
@@ -239,15 +256,15 @@ export const register: Register = on => {
       runs(cells, colors).map((r, k) => <Text key={`${key}${k}`} color={r.color}>{'█'.repeat(r.cells)}</Text>)
 
     const { step, total, pct } = standing(items)
-    const clock = started ? elapsed((await $.clock.now()) - started) : ''
+    const clock = started ? elapsed(now - started) : ''
     const stepText = `Step ${step} of ${total} `
     const stepCells = Math.max(0, inner - stepText.length - 5)
     const filled = Math.round((stepCells * pct) / 100)
     const barW = inner >= 60 ? Math.min(20, Math.floor(inner * 0.18)) : 0
     const labelW = inner - barW - (barW ? 10 : 9)
-    const words = labels(items)
-    const at = Math.max(0, items.findIndex(p => p.status === 'in_progress'))
-    const first = Math.max(0, Math.min(at - 1, items.length - room))
+    const words = labels(rows)
+    const at = Math.max(0, rows.findIndex(p => p.status === 'in_progress'))
+    const first = Math.max(0, Math.min(at - 1, rows.length - room))
 
     return (
       <Box flexDirection="column">
@@ -265,7 +282,7 @@ export const register: Register = on => {
             <Text color={TRACK}>{'█'.repeat(stepCells - filled)}</Text>
             <Text color={ORANGE}>{` ${pct}%`.padStart(5)}</Text>
           </Box>
-          {items.slice(first, first + room).map((p, k) => {
+          {rows.slice(first, first + room).map((p, k) => {
             const word = words[first + k]!
             const isWorking = p.status === 'in_progress'
             const workCells = Math.max(1, Math.round(barW / 4))
