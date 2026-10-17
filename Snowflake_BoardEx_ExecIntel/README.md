@@ -39,7 +39,7 @@ pip install -e ../Snowflake_Cumulus_Common
 pytest tests/ -v
 ```
 
-The L1 conftest builds an inline 5-anchor `COMMERCIAL_BANKING_FIXTURE` (mid-market enterprise / regulated bank / family business / recent IPO / large cap) rather than filtering `SAMPLE_ANCHORS` — see AGENTS.md "L1 conftest synthetic-fixture-override pattern" for the full rationale. "BoardEx" and "Exec Intel" are both clean tokens, so no `&`-sanitize gymnastics are needed (compare Plan 6's `D&B` workaround).
+The L1 conftest uses the full `SAMPLE_ANCHORS` slice as the audience, plus an inline 5-anchor `COMMERCIAL_BANKING_FIXTURE` (mid-market enterprise / regulated bank / family business / recent IPO / large cap) for the enterprise bias-band tests — see AGENTS.md "L1 conftest (all-accounts)". "BoardEx" and "Exec Intel" are both clean tokens, so no `&`-sanitize gymnastics are needed (compare Plan 6's `D&B` workaround).
 
 ## Deploy
 ```bash
