@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'claude-code/testing'
+import { describe, expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
-const setup = (on: Parameters<TestBody>[1]) => {
+const setup = (on: Parameters<TestBody>[1], isClockFixed = true) => {
   const stored = new Map<string, unknown>()
   on('store.get', (_$, e) => ({ value: stored.get(e.key) ?? null }) as never)
   on('store.set', (_$, e) => {
@@ -12,7 +12,7 @@ const setup = (on: Parameters<TestBody>[1]) => {
   on('session.cwd', () => ({ value: '/repo' }))
   on('env.get', () => ({ value: '/home/j' }) as never)
   on('prompt.submit', (_$, e) => e as never)
-  on('clock.now', () => ({ value: 1_000 }) as never)
+  if (isClockFixed) on('clock.now', () => ({ value: 1_000 }) as never)
   on('command.register', () => ({ value: undefined }) as never)
   on('tool.call', () => ({ result: 'ok' }) as never)
   on('ui.render', { component: 'AbovePrompt' }, () => ({ type: 'engine', ref: 1 }) as never)
@@ -104,6 +104,33 @@ describe('through the engine', () => {
     expect(stored.get('isOff')).toBe(true)
     ui = await $.ui.mount({ ...toolResult({ tool: 'Read', output: 'x' }), surface: 'terminal' } as never)
     expect(await ui.find({ text: 'full output' })).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('a finished TodoWrite step drops off the plan panel 8 seconds after it is done', async ($, on) => {
+    setup(on, false)
+    const clock = mock.clock(on, { now: 10_000 })
+    await $.session.start({ source: 'startup', cwd: '/repo' } as never)
+    const todos = (rows: string, tests: string) => [
+      { content: 'Rows', status: rows, activeForm: 'Doing rows' },
+      { content: 'Tests', status: tests, activeForm: 'Doing tests' },
+      { content: 'Ship', status: 'pending', activeForm: 'Shipping' },
+    ]
+    await $.tool.call({ tool: 'TodoWrite', tool_use_id: 'd1', todos: todos('completed', 'in_progress') } as never)
+    const band = { plugin: 'tidy-tools', component: 'AbovePrompt', surface: 'terminal', props: { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 100 } }
+    const ui = await $.ui.mount(band as never)
+    expect(await ui.find({ text: 'Rows' })).toBeDefined()
+    await clock.advance(5_000)
+    // a rewrite keeps the time Rows finished; Tests finishes now
+    await $.tool.call({ tool: 'TodoWrite', tool_use_id: 'd2', todos: todos('completed', 'completed') } as never)
+    expect(await ui.find({ text: 'Tests' })).toBeDefined()
+    await clock.advance(3_100)
+    expect(await ui.find({ text: 'Rows' })).toBeUndefined()
+    expect(await ui.find({ text: 'Tests' })).toBeDefined()
+    await clock.advance(5_000)
+    expect(await ui.find({ text: 'Tests' })).toBeUndefined()
+    expect(await ui.find({ text: 'Ship' })).toBeDefined()
+    expect(await ui.find({ text: 'Step 3 of 3 ' })).toBeDefined()
     await ui.unmount()
   })
 })

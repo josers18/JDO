@@ -21,14 +21,37 @@ export function updateTask(plan: PlanItem[], id: string, u: { subject?: string; 
 }
 
 /** The fields read off a plan-progress bar: its stages' steps, flattened into one list. */
-export type ProgressPlan = { id: string; title: string; startedAt: number; state?: string; stages: { steps: { title: string; status: string }[] }[] }
+export type ProgressPlan = { id: string; title: string; startedAt: number; state?: string; stages: { steps: { title: string; status: string; doneAt?: number }[] }[] }
 
 export const fromProgress = (p: ProgressPlan): PlanItem[] =>
   p.stages.flatMap(st => st.steps).map((s, i) => ({
     id: `${p.id}-${i}`,
     subject: s.title,
     status: s.status === 'done' || s.status === 'skipped' ? 'completed' : s.status === 'active' || s.status === 'error' ? 'in_progress' : 'pending',
+    // a step sent already finished has no time of its own: it counts from the bar's start
+    ...(s.status === 'done' || s.status === 'skipped' ? { doneAt: s.doneAt ?? p.startedAt } : {}),
   }))
+
+/** The rows still shown: a step finished `ms` ago or longer drops off; one with no finish time stays. */
+export const showing = (plan: PlanItem[], now: number, ms: number) =>
+  plan.filter(p => p.status !== 'completed' || p.doneAt === undefined || now - p.doneAt < ms)
+
+/** When the next shown step drops off, if any does. */
+export const nextFold = (plan: PlanItem[], now: number, ms: number) => {
+  const due = showing(plan, now, ms).flatMap(p => (p.status === 'completed' && p.doneAt !== undefined ? [p.doneAt + ms] : []))
+  return due.length ? Math.min(...due) : undefined
+}
+
+/** Each completed step keeps the time it was first seen completed (now for one just finished); an open one has none. */
+export const stamp = (before: PlanItem[], after: PlanItem[], now: number): PlanItem[] =>
+  after.map(p => {
+    if (p.status !== 'completed') {
+      const { doneAt: _, ...open } = p
+      return open
+    }
+    const was = before.find(b => b.subject === p.subject && b.status === 'completed')
+    return { ...p, doneAt: was?.doneAt ?? p.doneAt ?? now }
+  })
 
 /** A new plan starts once the last one is empty or finished. */
 export const isFresh = (plan: PlanItem[]) => plan.every(p => p.status === 'completed')
