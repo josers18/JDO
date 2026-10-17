@@ -17,10 +17,12 @@
 --   in the wrong slot during the dataset-table swap).
 --
 -- Plan 8 differences from Plans 1-7:
---   - SMALLEST Cumulus audience by 2.9× (Wealth Management only). Fixture
---     has 14 anchors total: 4 Wealth (in audience) + 10 non-Wealth (filtered
---     out). The 4-anchor cohort drives a per-anchor invariant approach
---     rather than distributional rate convergence.
+--   - ALL-ACCOUNTS audience (rebroadcast; v1 was Wealth Management only).
+--     No CLIENT_CATEGORY predicate -- every anchor with a non-empty
+--     ACCOUNT_ID emits one row. Fixture has 14 anchors total, all in
+--     audience: 4 Wealth + 10 non-Wealth (6 PERSON, 4 BUSINESS). BUSINESS
+--     anchors exercise the `_effective_age` / `_effective_annual_income`
+--     "business owner" fallback.
 --   - First Cumulus dataset whose NULL semantics are gated by a non-Boolean
 --     enum: PLAN_STATUS = 'Draft' → LAST_REVIEW_DATE NULL; 'Stale' →
 --     NEXT_REVIEW_DATE NULL; 'Active' → both populated. These NULL-semantic
@@ -28,7 +30,7 @@
 --   - 1 BOOLEAN column (ADVISOR_NOTES_FLAG) and 2 NULLable date columns
 --     (LAST_REVIEW_DATE, NEXT_REVIEW_DATE).
 --   - MONTHLY cadence (PROFILE_MONTH, not PROFILE_DATE). 1:1 emit per
---     Wealth anchor per month → 4 rows expected.
+--     anchor per month → 14 rows expected.
 --
 -- Pre-requisites:
 --   1. SP_GENERATE_MGP_FINANCIAL_PLANS deployed (run scripts/deploy_sp.py first).
@@ -51,24 +53,22 @@ DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTUR
 --       (25, 45, 65, 78) and incomes ($230K, $390K, $720K, $1.2M) so all
 --       5 RECOMMENDED_ASSET_ALLOCATION bands are reachable across the age
 --       glide AND a wide range of MONTHLY_INCOME_TARGET values gets tested.
---       BIRTHDATE and ANNUAL_INCOME are 100% populated for these 4 — that's
---       the audience contract (probed live: both fields 100% populated for
---       Wealth Management).
---    - 10 non-Wealth anchors (out of audience — `NW-` prefix to make the
---       audience-filter assertion trivially expressible):
+--       BIRTHDATE and ANNUAL_INCOME are populated for these 4 PERSON rows.
+--    - 10 non-Wealth anchors (also in audience under the all-accounts SP;
+--       `NW-` prefix kept so the v1 cohort is still easy to tell apart):
 --          4 Retail PERSON   (ages 30/55/68/19)
 --          2 Household PERSON (ages 42/72)
 --          2 Small Business BUSINESS (NULL BIRTHDATE / ANNUAL_INCOME)
 --          2 Commercial Banking BUSINESS (NULL BIRTHDATE / ANNUAL_INCOME)
---    The audience predicate `CLIENT_CATEGORY = 'Wealth Management'` filters
---    the 10 non-Wealth anchors out of the SP's row factory, so only 4 rows
---    land in the dataset table.
+--    No audience predicate, so all 14 anchors land in the dataset table.
+--    The 4 BUSINESS rows synthesize an owner age in [40, 65] and an owner
+--    income of ANNUAL_REVENUE × 0.05 clamped to [$150K, $2M].
 --
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly (15 columns) so the
 --    cloned SP's audience SELECT compiles unchanged.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE AS
--- 4 Wealth Management anchors — IN AUDIENCE.
+-- 4 Wealth Management anchors.
 SELECT
     'MGPFP-FIX-WM-01'::VARCHAR  AS ACCOUNT_ID,
     'Quinn Marlowe'::VARCHAR    AS ACCOUNT_NAME,
@@ -88,7 +88,7 @@ SELECT
 UNION ALL SELECT 'MGPFP-FIX-WM-02', 'Jordan Vega',     '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1981-06-12'::TIMESTAMP_LTZ,   390000, 790, NULL, NULL, NULL, '77002', 'TX', 'US', 'MGPFP-FIX-WM-002'  -- age ~45
 UNION ALL SELECT 'MGPFP-FIX-WM-03', 'Morgan Hayes',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1961-09-30'::TIMESTAMP_LTZ,   720000, 800, NULL, NULL, NULL, '60601', 'IL', 'US', 'MGPFP-FIX-WM-003'  -- age ~65
 UNION ALL SELECT 'MGPFP-FIX-WM-04', 'Avery Stone',     '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1948-02-18'::TIMESTAMP_LTZ,  1200000, 810, NULL, NULL, NULL, '33139', 'FL', 'US', 'MGPFP-FIX-WM-004'  -- age ~78
--- 10 non-Wealth anchors — OUT OF AUDIENCE.
+-- 10 non-Wealth anchors (in audience under the all-accounts SP).
 UNION ALL SELECT 'MGPFP-FIX-NW-R1', 'Riley Park',      '2026-05-28'::DATE, 'Retail',            'PERSON',  '1996-08-22'::TIMESTAMP_LTZ,    62000, 700, NULL, NULL, NULL, '10025', 'NY', 'US', 'MGPFP-FIX-NW-005'  -- age ~30
 UNION ALL SELECT 'MGPFP-FIX-NW-R2', 'Casey Reed',      '2026-05-28'::DATE, 'Retail',            'PERSON',  '1971-11-05'::TIMESTAMP_LTZ,    95000, 720, NULL, NULL, NULL, '02115', 'MA', 'US', 'MGPFP-FIX-NW-006'  -- age ~55
 UNION ALL SELECT 'MGPFP-FIX-NW-R3', 'Pat Donovan',     '2026-05-28'::DATE, 'Retail',            'PERSON',  '1958-12-03'::TIMESTAMP_LTZ,    72000, 720, NULL, NULL, NULL, '10001', 'NY', 'US', 'MGPFP-FIX-NW-007'  -- age ~68
@@ -147,33 +147,34 @@ $$;
 CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MGP_FINANCIAL_PLANS_FIXTURE();
 
 -- ---------------------------------------------------------------------------
--- 6. Coverage assertion #1: distinct ACCOUNT_ID == post-filter audience size.
--- 14 anchors in the view, audience predicate Wealth-Management-only filters
--- 10 non-Wealth out, leaving exactly 4 distinct accounts in the dataset.
+-- 6. Coverage assertion #1: distinct ACCOUNT_ID == audience size.
+-- 14 anchors in the view, no audience predicate -> exactly 14 distinct
+-- accounts in the dataset.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 4
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 14
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 7. 1:1 emit assertion #2: COUNT(*) == post-filter audience size (4).
--- Wealth audience (4) + 1:1 emit per anchor per month ⇒ row count = 4.
+-- 7. 1:1 emit assertion #2: COUNT(*) == audience size (14).
+-- All-accounts audience (14) + 1:1 emit per anchor per month ⇒ row count = 14.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 4
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE) = 14
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 8. Audience-filter assertion #3: zero rows have a non-Wealth fixture
--- prefix. Confirms the SP's `WHERE CLIENT_CATEGORY = 'Wealth Management'`
--- predicate excluded the 10 `MGPFP-FIX-NW-%` anchors.
+-- 8. All-accounts assertion #3: every one of the 10 non-Wealth
+-- `MGPFP-FIX-NW-%` anchors emitted a row (including the 4 BUSINESS anchors
+-- with NULL BIRTHDATE / ANNUAL_INCOME). Guards against a regression back to
+-- the v1 `CLIENT_CATEGORY = 'Wealth Management'` predicate.
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
-       WHERE ACCOUNT_ID LIKE 'MGPFP-FIX-NW-%') = 0
-    AS audience_filter_excludes_non_wealth;
+       WHERE ACCOUNT_ID LIKE 'MGPFP-FIX-NW-%') = 10
+    AS all_accounts_includes_non_wealth;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
@@ -210,8 +211,8 @@ SELECT
 
 -- ---------------------------------------------------------------------------
 -- 11. PLAN_STATUS variety assertion #6: at least 1 of the 3 values present.
--- With 4 anchors and an 80/12/8 distribution, the expected status mix is
--- 3.2/0.5/0.3 — Active dominant. Asserting all 3 values present would flake;
+-- With 14 anchors and an 80/12/8 distribution, the expected status mix is
+-- 11.2/1.7/1.1 — Active dominant. Asserting all 3 values present would flake;
 -- asserting ≥1 just confirms the column is producing recognised values.
 -- ---------------------------------------------------------------------------
 SELECT
@@ -297,12 +298,27 @@ SELECT
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 19. Range invariant #9b: MONTHLY_INCOME_TARGET_USD in [10000, 200000].
+-- 19. Per-anchor invariant #9b: MONTHLY_INCOME_TARGET_USD within the
+-- 70-90% replacement band of the anchor's effective annual income / 12.
+-- The v1 absolute [10000, 200000] range only held for the affluent Wealth
+-- cohort; under all-accounts the SP has no absolute clamp
+-- (`_monthly_income_target`), so the per-anchor band is the contract.
+-- Effective income mirrors `_effective_annual_income`: ANNUAL_INCOME, else
+-- ANNUAL_REVENUE × 0.05 clamped to [150000, 2000000], else 250000.
+-- ±1 tolerance absorbs the SP's round().
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE
-       WHERE MONTHLY_INCOME_TARGET_USD NOT BETWEEN 10000 AND 200000) = 0
-    AS monthly_income_target_in_range;
+    (SELECT COUNT(*)
+       FROM DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS_FIXTURE p
+       JOIN (SELECT ACCOUNT_ID,
+                    COALESCE(ANNUAL_INCOME,
+                             LEAST(2000000, GREATEST(150000, ANNUAL_REVENUE * 0.05)),
+                             250000) AS EFFECTIVE_INCOME
+               FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MGPFP_FIXTURE) a
+         ON a.ACCOUNT_ID = p.ACCOUNT_ID
+      WHERE p.MONTHLY_INCOME_TARGET_USD NOT BETWEEN a.EFFECTIVE_INCOME * 0.70 / 12 - 1
+                                               AND a.EFFECTIVE_INCOME * 0.90 / 12 + 1) = 0
+    AS monthly_income_target_in_band;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
