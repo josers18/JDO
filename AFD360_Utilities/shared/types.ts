@@ -177,3 +177,56 @@ export interface TurnUsage {
   totalTokens: number;
   models: { model: string; calls: number; inputTokens: number; outputTokens: number; totalTokens: number }[];
 }
+
+// ── Data 360 Query (server/query.ts) ──────────────────────────────────
+export type QueryObjectType = "DMO" | "DLO" | "CI" | "Unified";
+
+export interface QueryField {
+  name: string;
+  label: string;
+  type: string;
+}
+
+// One queryable object from /ssot/metadata, slimmed for the object browser and autocomplete.
+export interface QueryObject {
+  name: string; // the API name SQL uses, e.g. ssot__Account__dlm
+  label: string;
+  type: QueryObjectType;
+  category: string;
+  fields: QueryField[];
+}
+
+export interface QueryCatalog {
+  dataspace: string;
+  loadedAt: string;
+  objects: QueryObject[];
+}
+
+export interface QueryStatus {
+  queryId: string;
+  completionStatus: string; // Running | ResultsProduced | Finished
+  progress: number;
+  rowCount: number;
+  rowsProcessed?: number;
+  wallClockTime?: number; // seconds
+  chunkCount?: number;
+  expirationTime?: string;
+  stalenessReasons?: string[];
+}
+
+export interface QueryColumn {
+  name: string;
+  type: string;
+  nullable?: boolean;
+}
+
+// POST /ssot/query-sql and GET …/rows both answer with this shape (status only on the POST).
+export interface QueryPage {
+  metadata?: QueryColumn[];
+  data?: unknown[][];
+  returnedRows?: number;
+  status?: QueryStatus;
+}
+
+// What a /api/query route answers: the result plus the wire entries for the calls it made (also on errors).
+export type QueryReply<T> = T & { wire: WireEntry[] };

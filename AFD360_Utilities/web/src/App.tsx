@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Blocks, Check, MessagesSquare, Palette, Settings2 } from "lucide-react";
+import { Blocks, Check, DatabaseZap, MessagesSquare, Palette, Settings2 } from "lucide-react";
 import { api } from "./api";
 import { ChatModule } from "./chat/ChatModule";
 import { OrgsPage } from "./admin/OrgsPage";
 import { McpModule } from "./mcp/McpModule";
+import { QueryModule } from "./query/QueryModule";
 import { THEMES, tokens, useTheme } from "./themes";
 import type { OrgsResponse } from "../../shared/types";
 
-type Module = "chat" | "mcp" | "admin";
-const fromHash = (): Module => (location.hash === "#admin" ? "admin" : location.hash === "#mcp" ? "mcp" : "chat");
+type Module = "chat" | "mcp" | "query" | "admin";
+const MODULES: Module[] = ["chat", "mcp", "query", "admin"];
+const fromHash = (): Module => MODULES.find((m) => location.hash === `#${m}`) ?? "chat";
 
 export function App() {
   const [module, setModule] = useState<Module>(fromHash);
@@ -44,6 +46,9 @@ export function App() {
         <RailButton label="MCP" active={module === "mcp"} onClick={() => setModule("mcp")}>
           <Blocks size={20} strokeWidth={1.7} />
         </RailButton>
+        <RailButton label="Query" active={module === "query"} onClick={() => setModule("query")}>
+          <DatabaseZap size={20} strokeWidth={1.7} />
+        </RailButton>
         <RailButton label="Admin" active={module === "admin"} onClick={() => setModule("admin")}>
           <Settings2 size={20} strokeWidth={1.7} />
         </RailButton>
@@ -56,6 +61,8 @@ export function App() {
           <ChatModule orgs={orgs} onSwitchOrg={switchOrg} onOpenAdmin={() => setModule("admin")} />
         ) : module === "mcp" ? (
           <McpModule orgs={orgs} onOpenAdmin={() => setModule("admin")} />
+        ) : module === "query" ? (
+          <QueryModule orgs={orgs} onOpenAdmin={() => setModule("admin")} />
         ) : (
           <OrgsPage orgs={orgs} onChange={reloadOrgs} />
         )}

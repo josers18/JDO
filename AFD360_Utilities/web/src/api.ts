@@ -8,6 +8,10 @@ import type {
   OrgSummary,
   OrgTestResult,
   OrgsResponse,
+  QueryCatalog,
+  QueryPage,
+  QueryReply,
+  QueryStatus,
   TurnUsageResult,
   WireEntry,
 } from "../../shared/types";
@@ -49,7 +53,37 @@ export const api = {
   mcpAppCall: (orgId: string, url: string, name: string, args: unknown) =>
     mcpCall<{ result: any }>("/app-call", { orgId, url, name, arguments: args }),
   mcpRead: (orgId: string, url: string, uri: string) => mcpCall<{ result: any }>("/read", { orgId, url, uri }),
+  // Data 360 Query: same contract as MCP, the Wire entries ride along on every reply and error.
+  dataSpaces: (orgId: string) => queryCall<{ dataSpaces: string[] }>("/data-spaces", { orgId }),
+  queryCatalog: (orgId: string, dataspace: string, refresh = false) => queryCall<{ catalog: QueryCatalog }>("/catalog", { orgId, dataspace, refresh }),
+  queryRun: (orgId: string, sql: string, dataspace: string, rowLimit: number) => queryCall<{ page: QueryPage }>("/run", { orgId, sql, dataspace, rowLimit }),
+  queryStatus: (orgId: string, queryId: string, dataspace: string, waitTimeMs: number) =>
+    queryCall<{ status: QueryStatus }>("/status", { orgId, queryId, dataspace, waitTimeMs }),
+  queryRows: (orgId: string, queryId: string, dataspace: string, offset: number, rowLimit: number) =>
+    queryCall<{ page: QueryPage }>("/rows", { orgId, queryId, dataspace, offset, rowLimit }),
+  queryCancel: (orgId: string, queryId: string, dataspace: string) => queryCall<{ ok: boolean }>("/cancel", { orgId, queryId, dataspace }),
 };
+
+// A failed query: the API's message, and for SQL errors the caret line, SQL state and trace id.
+export class QueryCallError extends Error {
+  constructor(
+    message: string,
+    public wire: WireEntry[],
+    public detail?: string,
+    public sqlState?: string,
+    public traceId?: string,
+    public status?: number,
+  ) {
+    super(message);
+  }
+}
+
+async function queryCall<T>(path: string, body: unknown): Promise<QueryReply<T>> {
+  const res = await fetch(`/api/query${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({ wire: [] }));
+  if (!res.ok) throw new QueryCallError(data.message ?? `HTTP ${res.status}`, data.wire ?? [], data.detail, data.sqlState, data.traceId, data.status);
+  return data;
+}
 
 export interface McpTool {
   name: string;
