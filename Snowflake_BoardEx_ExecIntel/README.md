@@ -1,10 +1,10 @@
 # BoardEx Exec Intel — Cumulus Synthetic Dataset (Board & Executive Intelligence)
 
-Synthetic BoardEx / Equilar / ISS-style board director and executive intelligence dataset per Commercial Banking account for Cumulus's customer footprint. Mirrors
+Synthetic BoardEx / Equilar / ISS-style board director and executive intelligence dataset per account (all anchors, PERSON + BUSINESS) for Cumulus's customer footprint. Mirrors
 [Snowflake_MoneyGuidePro_FinancialPlans](../Snowflake_MoneyGuidePro_FinancialPlans) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
-**Plan 10 is account-scoped with monthly cadence — the smallest Cumulus audience of all 13 plans (Commercial Banking only, ~960 anchors), dethroning Plan 8 (MGP Financial Plans, 3,920) by 4.1×. It is also the first Cumulus dataset where the standard `SAMPLE_ANCHORS` L1 fixture has *zero* relevant cohort members, forcing an inline synthetic-fixture override in the L1 conftest.** Each distinct Commercial Banking anchor produces one board-and-executive-intelligence row per month. Rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_MONTH)` (~960 rows/month at 1:1 anchor:row). Re-runs same calendar month MERGE-replace in place. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK collapses to single-column `profileMonth__c` with `ssot__AccountId__c` as a KQ qualifier (single-column-PK rule from Plan 4).
+**Plan 10 is account-scoped with monthly cadence and an all-accounts audience (~36,813 anchors).** The original Plan 10 design narrowed to Commercial Banking only (~960 anchors); the rebroadcast widened it to every distinct anchor, with PERSON anchors emitting a "personal household" governance row (see [Audience](#audience)). Each distinct anchor produces one board-and-executive-intelligence row per month. Rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_MONTH)` (~36,813 rows/month at 1:1 anchor:row). Re-runs same calendar month MERGE-replace in place. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK collapses to single-column `profileMonth__c` with `ssot__AccountId__c` as a KQ qualifier (single-column-PK rule from Plan 4).
 
 ## Plan
 - Plan 10, instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -19,16 +19,17 @@ Synthetic BoardEx / Equilar / ISS-style board director and executive intelligenc
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusBoardExExecIntel__dll` → DMO `CumulusBoardExExecIntel__dlm`
 
 ## Audience
-**Commercial Banking only** — every distinct anchor in `V_ACCOUNT_ANCHORS` whose `CLIENT_CATEGORY = 'Commercial Banking'`. BoardEx-style governance intelligence is a Commercial / Corporate Banking product: Retail customers don't have boards, Wealth clients are individuals, and Small Business is too small to maintain formal governance structures. Commercial Banking is the only audience where every anchor is plausibly an enterprise with a board. The audience predicate:
+**All accounts** — every distinct anchor in `V_ACCOUNT_ANCHORS`, PERSON and BUSINESS alike (no `CLIENT_CATEGORY` filter; `SELECT DISTINCT` dedupes MASTER_ACCOUNTS). The audience predicate:
 
 ```sql
 SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
-WHERE CLIENT_CATEGORY = 'Commercial Banking'
 ```
 
-Live cardinality (probed 2026-05-28): **960 distinct accounts** with no MASTER_ACCOUNTS duplicates. **Smallest Cumulus dataset of all 13 plans by 4.1×, dethroning Plan 8 (MGP Financial Plans, 3,920)** from that title and 11.9× smaller than the next-after-that (MSCI ESG / D&B Business Credit at 11,389). Both `EMPLOYEE_COUNT` and `ANNUAL_REVENUE` expected ~100% populated for this BUSINESS-skewed cohort.
+Cardinality: **~36,813 distinct accounts**. The v1 design was Commercial Banking only (`CLIENT_CATEGORY = 'Commercial Banking'`, 960 accounts probed 2026-05-28); the rebroadcast dropped that predicate so every customer has governance data.
 
-Each anchor emits exactly one row per month → **~960 rows/month**.
+**PERSON-anchor fallback.** PERSON anchors have no real board, so the SP emits a "personal household" governance row instead of rejecting them: `BOARD_SIZE = 1`, `BOARD_INDEPENDENCE_PCT = 100.0`, `WOMEN_BOARD_PCT` / `MINORITY_BOARD_PCT` in `{0.0, 100.0}` (deterministic from `ACCOUNT_ID` hash), `BOARD_AVG_TENURE_YEARS = CEO_TENURE_YEARS = 5.0`, `EXEC_TURNOVER_FLAG = False`, `GOVERNANCE_RATING = 'Adequate'`, `INTERLOCK_COUNT = 0`, `KEY_DIRECTOR_NAME = 'Self'`, `RECENT_GOVERNANCE_EVENT_DATE = NULL`. BUSINESS anchors keep the `EMPLOYEE_COUNT` / `INTERLOCK_DEGREE` bias bands.
+
+Each anchor emits exactly one row per month → **~36,813 rows/month**.
 
 ## Tests
 ```bash

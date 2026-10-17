@@ -1,10 +1,10 @@
 # Gong Call Sentiment — Cumulus Synthetic Dataset (Conversation Intelligence)
 
-Synthetic Gong / Chorus.ai / ExecVision-style weekly conversation-intelligence rollups per Wealth Management + Commercial Banking anchor for Cumulus's customer footprint. Mirrors
+Synthetic Gong / Chorus.ai / ExecVision-style weekly conversation-intelligence rollups per account (all anchors, call volume tiered by `CLIENT_CATEGORY`) for Cumulus's customer footprint. Mirrors
 [Snowflake_MoneyGuidePro_FinancialPlans](../Snowflake_MoneyGuidePro_FinancialPlans) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
-**Plan 12 is account-scoped with weekly cadence — the second weekly Cumulus plan after Plan 6 (Plaid Held-Away). The first Cumulus dataset where NULL semantics cascade-collapse from a single zero-activity Boolean predicate (`CALL_COUNT_LAST_7D == 0`) — when an anchor had no calls that week, six fields collapse together (talk time/ratio zero, sentiment 'Neutral', topics/last-call NULL, action items zero) but the row still emits.** Each distinct Wealth + Commercial anchor produces one rollup row per week. Rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_WEEK)` (~4,880 rows/week at 1:1 anchor:row). Re-runs same calendar week MERGE-replace in place. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK collapses to single-column `profileWeek__c` with `ssot__AccountId__c` as a KQ qualifier (single-column-PK rule from Plan 4).
+**Plan 12 is account-scoped with weekly cadence — the second weekly Cumulus plan after Plan 6 (Plaid Held-Away). The first Cumulus dataset where NULL semantics cascade-collapse from a single zero-activity Boolean predicate (`CALL_COUNT_LAST_7D == 0`) — when an anchor had no calls that week, six fields collapse together (talk time/ratio zero, sentiment 'Neutral', topics/last-call NULL, action items zero) but the row still emits.** The audience is all accounts (~36,813 anchors); the v1 design was Wealth + Commercial only (~4,880), and the rebroadcast widened it with per-`CLIENT_CATEGORY` call-rate tiering (see [Audience](#audience)). Each distinct anchor produces one rollup row per week. Rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_WEEK)` (~36,813 rows/week at 1:1 anchor:row). Re-runs same calendar week MERGE-replace in place. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK collapses to single-column `profileWeek__c` with `ssot__AccountId__c` as a KQ qualifier (single-column-PK rule from Plan 4).
 
 ## Plan
 - Plan 12, instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -19,16 +19,27 @@ Synthetic Gong / Chorus.ai / ExecVision-style weekly conversation-intelligence r
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusGongCallSentiment__dll` → DMO `CumulusGongCallSentiment__dlm`
 
 ## Audience
-**Wealth Management + Commercial Banking** — every distinct anchor in `V_ACCOUNT_ANCHORS` whose `CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')`. Gong's revenue-intelligence product targets high-touch relationship segments where RM call activity matters — Wealth advisors covering HNW clients, and Commercial Bankers covering corporate-treasury accounts. Retail self-serves through digital channels (no RM calls); Small Business and Household are below the call-volume threshold where conversation analytics earn their keep:
+**All accounts** — every distinct anchor in `V_ACCOUNT_ANCHORS` (no `CLIENT_CATEGORY` filter). The audience predicate:
 
 ```sql
 SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
-WHERE CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')
 ```
 
-Live cardinality (probed 2026-05-28): **4,880 distinct accounts** (Wealth Management 3,920 + Commercial Banking 960). Mid-size cohort — between Plan 8's 3,920 and Plan 11's 12,021. The audience predicate uses `IN (...)` rather than `=` to handle the 9-value `CLIENT_CATEGORY` drift gracefully (umbrella spec §3 finding) — if a Wealth sub-band like `'Private Wealth Management'` appears upstream, the predicate either becomes empty (caught by coverage assertion) or picks up the rename when the SP is updated.
+Cardinality: **~36,813 distinct accounts**. The v1 design was Wealth Management + Commercial Banking only (`CLIENT_CATEGORY IN ('Wealth Management', 'Commercial Banking')`, 4,880 accounts probed 2026-05-28); the rebroadcast dropped that predicate.
 
-Each anchor emits exactly one rollup row per week → **~4,880 rows/week → ~21,000/month**.
+**Per-`CLIENT_CATEGORY` call-rate tiering.** Instead of filtering low-touch segments out, `_call_count_last_7d` caps weekly call volume by category:
+
+| `CLIENT_CATEGORY` | Max calls / week | Zero-call rate |
+|---|---|---|
+| Commercial Banking | 5 | 20% |
+| Wealth Management | 3 | 40% |
+| Small Business | 2 | 75% |
+| Retail, Household | 1 | 90% |
+| Unknown / NULL | 0 | 95% (always 0 calls) |
+
+Unknown-category rows always hit the no-call cascade below, but still emit.
+
+Each anchor emits exactly one rollup row per week → **~36,813 rows/week**.
 
 ## Cadence
 
@@ -56,7 +67,7 @@ When `CALL_COUNT_LAST_7D == 0`, six fields collapse together to their no-call de
 | `LAST_CALL_DATE` | `NULL` |
 | `ACTION_ITEMS_COUNT` | `0` |
 
-The boring case (no activity that week) is itself a meaningful row, not a row that's filtered out. Coverage invariant still holds — every Wealth + Commercial anchor emits one row per week even on no-call weeks. Plan 12 is the first Cumulus dataset where the boring case has cascade-NULL semantics off a single Boolean predicate (Plan 8's NULL gating was driven by a 3-value enum; Plan 6's was per-row flagged accounts). `NEXT_SCHEDULED_CALL_DATE` carries an independent ~40% NULL gate (RMs don't always schedule the next touch).
+The boring case (no activity that week) is itself a meaningful row, not a row that's filtered out. Coverage invariant still holds — every anchor emits one row per week even on no-call weeks. Plan 12 is the first Cumulus dataset where the boring case has cascade-NULL semantics off a single Boolean predicate (Plan 8's NULL gating was driven by a 3-value enum; Plan 6's was per-row flagged accounts). `NEXT_SCHEDULED_CALL_DATE` carries an independent ~40% NULL gate (RMs don't always schedule the next touch).
 
 ## Tests
 ```bash

@@ -1,10 +1,10 @@
 # MoneyGuidePro Financial Plans — Cumulus Synthetic Dataset (Wealth Financial Planning)
 
-Synthetic MoneyGuidePro / eMoney / NaviPlan-style financial-plan dataset per Wealth Management account for Cumulus's customer footprint. Mirrors
+Synthetic MoneyGuidePro / eMoney / NaviPlan-style financial-plan dataset per account (all anchors, PERSON + BUSINESS) for Cumulus's customer footprint. Mirrors
 [Snowflake_WorldCheck_AML](../Snowflake_WorldCheck_AML) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
-**Plan 8 is account-scoped with monthly cadence — the smallest Cumulus audience by 2.9× (Wealth Management only, ~3,920 anchors) AND the first dataset whose NULL semantics are gated by a non-Boolean enum.** Each distinct Wealth anchor produces one financial-plan row per month. Rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_MONTH)` (~3,920 rows/month at 1:1 anchor:row). Re-runs same calendar month MERGE-replace in place. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK collapses to single-column `profileMonth__c` with `ssot__AccountId__c` as a KQ qualifier (single-column-PK rule from Plan 4).
+**Plan 8 is account-scoped with monthly cadence and an all-accounts audience (~36,813 anchors) — the first dataset whose NULL semantics are gated by a non-Boolean enum.** The v1 design was Wealth Management only (~3,920 anchors); the rebroadcast (v2) widened it to every distinct anchor, with BUSINESS anchors getting a synthesized "business owner" persona (see [Audience](#audience)). Each distinct anchor produces one financial-plan row per month. Rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_MONTH)` (~36,813 rows/month at 1:1 anchor:row). Re-runs same calendar month MERGE-replace in place. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK collapses to single-column `profileMonth__c` with `ssot__AccountId__c` as a KQ qualifier (single-column-PK rule from Plan 4).
 
 ## Plan
 - Plan 8, instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -19,16 +19,17 @@ Synthetic MoneyGuidePro / eMoney / NaviPlan-style financial-plan dataset per Wea
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusMgpFinancialPlans__dll` → DMO `CumulusMgpFinancialPlans__dlm`
 
 ## Audience
-**Wealth Management only** — every distinct anchor in `V_ACCOUNT_ANCHORS` whose `CLIENT_CATEGORY = 'Wealth Management'`. Retail customers don't get formal financial plans (they self-serve via apps); Commercial / Small Business has its own corporate-treasury planning tools. The audience predicate is therefore the cleanest in the rollout:
+**All accounts** — every distinct anchor in `V_ACCOUNT_ANCHORS`, PERSON and BUSINESS alike (no `CLIENT_CATEGORY` filter). The audience predicate:
 
 ```sql
 SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
-WHERE CLIENT_CATEGORY = 'Wealth Management'
 ```
 
-Live cardinality (probed 2026-05-28): **3,920 distinct accounts** with no MASTER_ACCOUNTS duplicates. **Smallest Cumulus dataset by 2.9×** — next-smallest is MSCI ESG / D&B Business Credit at 11,389. Both `BIRTHDATE` and `ANNUAL_INCOME` are 100% populated for this cohort — income range $200K-$1.9M, median $333K, mean $381K.
+Cardinality: **~36,813 distinct accounts**. The v1 design was Wealth Management only (`CLIENT_CATEGORY = 'Wealth Management'`, 3,920 accounts probed 2026-05-28), which left ~89% of customers with no plan data; the rebroadcast dropped that predicate.
 
-Each anchor emits exactly one financial-plan row per month → **~3,920 rows/month**.
+**BUSINESS-anchor fallback.** PERSON anchors keep `BIRTHDATE` + `ANNUAL_INCOME` populated. BUSINESS anchors have both NULL, so `_effective_age` and `_effective_annual_income` synthesize a "business owner" persona — a year-stable owner age in [40, 65] from the `ACCOUNT_ID` hash, and an owner draw of ~5% of `ANNUAL_REVENUE` clamped to [$150K, $2M]. The age/income-banded helpers downstream are unchanged.
+
+Each anchor emits exactly one financial-plan row per month → **~36,813 rows/month**.
 
 ## Tests
 ```bash
