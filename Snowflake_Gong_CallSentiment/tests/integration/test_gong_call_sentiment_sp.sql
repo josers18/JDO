@@ -38,18 +38,20 @@
 --   - 0 BOOLEAN columns at the table level. 15 columns total
 --     (12 NOT NULL + 3 NULLable; RM_LAST_LOGGED_NOTE_DATE counts as NULLable
 --     auxiliary mixed-gate).
---   - Audience predicate `CLIENT_CATEGORY IN ('Wealth Management',
---     'Commercial Banking')`. Fixture has 14 anchors (3 Wealth + 2 Commercial
---     in audience; 9 out: 4 Retail + 2 Household + 2 Small Business +
---     1 Wealth-but-empty-ACCOUNT_ID edge). 5 audience-eligible anchors
---     emit exactly one row each per week.
+--   - ALL-ACCOUNTS audience (rebroadcast; v1 was Wealth + Commercial only).
+--     No CLIENT_CATEGORY predicate; call volume is tiered per category
+--     instead (`_CALL_RATE_BY_CATEGORY`: Commercial max 5 / 20% zero-call,
+--     Wealth 3 / 40%, Small Business 2 / 75%, Retail + Household 1 / 90%,
+--     unknown 0 / always zero). Fixture has 13 anchors, all in audience
+--     (3 Wealth + 2 Commercial + 4 Retail + 2 Household + 2 Small
+--     Business); each emits exactly one row per week.
 --
 -- Cascade-NULL test strategy (THE load-bearing assertions for Plan 12):
---   With 3 Wealth anchors (~65% no-call rate per week) + 2 Commercial
---   (~35%), the probability that AT LEAST ONE row in this single-week run
---   has CALL_COUNT_LAST_7D = 0 is approximately
---   1 - (0.35**3) * (0.65**2) ~= 0.982 (98.2%). High enough that the
---   fixture is expected to surface the boring case in practice.
+--   With 3 Wealth (40% zero-call) + 2 Commercial (20%) + 2 Small Business
+--   (75%) + 6 Retail/Household (90%), the probability that AT LEAST ONE
+--   row in this single-week run has CALL_COUNT_LAST_7D = 0 is
+--   1 - (0.60**3)(0.80**2)(0.25**2)(0.10**6) > 99.9999%. The fixture
+--   surfaces the boring case in practice.
 --   The cascade-NULL invariants below are written as conditional
 --   zero-counts ("0 rows where call_count=0 AND any cascade field is
 --   non-default") so they remain LOAD-BEARING whether or not a zero-call
@@ -76,27 +78,25 @@ DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMEN
 DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE;
 
 -- ---------------------------------------------------------------------------
--- 2. Materialise the L2 fixture audience view: 14 anchors total.
---    -  3 Wealth Management PERSON anchors (in audience). Mid-affluent
---       ages 40-60. Drives the cascade-gated boring case (no-call rate ~65%).
---    -  2 Commercial Banking BUSINESS anchors (in audience). Varied size.
---       Higher call cadence (~1.8 mean calls/wk vs Wealth ~0.6).
---    -  9 non-audience anchors (filtered out by _AUDIENCE_PREDICATE):
---          4 Retail PERSON
---          2 Household PERSON
---          2 Small Business BUSINESS
---          1 Wealth Management PERSON with empty-string ACCOUNT_ID --
---            tests the defense-in-depth `_anchor_in_audience` predicate
---            in the SP (rejects rows missing a non-empty ACCOUNT_ID).
---          = 5 audience-eligible anchors after both SQL predicate AND
---          the empty-ACCOUNT_ID defensive filter.
+-- 2. Materialise the L2 fixture audience view: 13 anchors total.
+--    -  3 Wealth Management PERSON anchors. Mid-affluent ages 40-60
+--       (max 3 calls/wk, 40% zero-call).
+--    -  2 Commercial Banking BUSINESS anchors. Varied size. Highest call
+--       cadence (max 5 calls/wk, 20% zero-call).
+--    -  8 v1-non-audience anchors, now in audience under the all-accounts
+--       SP at low-touch tiers:
+--          4 Retail PERSON          (max 1 call/wk, 90% zero-call)
+--          2 Household PERSON       (max 1 call/wk, 90% zero-call)
+--          2 Small Business BUSINESS (max 2 calls/wk, 75% zero-call)
+--       = 13 audience anchors. (The empty-ACCOUNT_ID edge is L1-only; see
+--       the note after the view.)
 --
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly (15 columns) so the
 --    cloned SP's audience SELECT compiles unchanged. ACCOUNT_ID prefix
 --    `GONG-FIX-` keeps the audience-filter assertion easy to express.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_GONG_FIXTURE AS
--- 3 Wealth Management PERSON anchors -- IN AUDIENCE.
+-- 3 Wealth Management PERSON anchors.
 SELECT
     'GONG-FIX-WM-01'::VARCHAR    AS ACCOUNT_ID,
     'Quinn Marlowe'::VARCHAR     AS ACCOUNT_NAME,
@@ -115,10 +115,10 @@ SELECT
     'GONG-FIX-WM-001'::VARCHAR   AS EXTERNAL_ID
 UNION ALL SELECT 'GONG-FIX-WM-02', 'Logan Pierce',  '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1976-04-12'::TIMESTAMP_LTZ, 350000, 770, NULL, NULL, NULL, '10021', 'NY', 'US', 'GONG-FIX-WM-002'  -- age ~50
 UNION ALL SELECT 'GONG-FIX-WM-03', 'Harper Cole',   '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1966-10-04'::TIMESTAMP_LTZ, 410000, 790, NULL, NULL, NULL, '02115', 'MA', 'US', 'GONG-FIX-WM-003'  -- age ~60
--- 2 Commercial Banking BUSINESS anchors -- IN AUDIENCE.
+-- 2 Commercial Banking BUSINESS anchors.
 UNION ALL SELECT 'GONG-FIX-CB-01', 'Atlas Logistics Inc.',   '2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Logistics',             18500000, 220, '60601', 'IL', 'US', 'GONG-FIX-CB-001'  -- larger
 UNION ALL SELECT 'GONG-FIX-CB-02', 'Northwind Holdings LLC', '2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Investment Management',  4200000,  35, '10005', 'NY', 'US', 'GONG-FIX-CB-002'  -- smaller
--- 9 non-audience anchors -- OUT OF AUDIENCE (filtered by SQL predicate or defensive filter).
+-- 8 v1-non-audience anchors (in audience under the all-accounts SP).
 -- 4 Retail PERSON
 UNION ALL SELECT 'GONG-FIX-RT-01', 'Riley Park',    '2026-05-28'::DATE, 'Retail',         'PERSON',   '1996-08-22'::TIMESTAMP_LTZ,    62000, 700, NULL, NULL, NULL, '10025', 'NY', 'US', 'GONG-FIX-RT-001'
 UNION ALL SELECT 'GONG-FIX-RT-02', 'Casey Reed',    '2026-05-28'::DATE, 'Retail',         'PERSON',   '1971-11-05'::TIMESTAMP_LTZ,    95000, 720, NULL, NULL, NULL, '02115', 'MA', 'US', 'GONG-FIX-RT-002'
@@ -132,9 +132,9 @@ UNION ALL SELECT 'GONG-FIX-SB-01', 'Pinewood Coffee Co.',    '2026-05-28'::DATE,
 UNION ALL SELECT 'GONG-FIX-SB-02', 'Mariposa Cleaners LLC',  '2026-05-28'::DATE, 'Small Business', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services', 480000,  6, '94110', 'CA', 'US', 'GONG-FIX-SB-002';
 -- Note: the empty-ACCOUNT_ID defense-in-depth case is covered exhaustively in
 -- the L1 unit tests (`test_empty_account_id_raises`). Including it here would
--- make the SP's `assert_coverage` fail — the SQL audience predicate counts the
--- empty-ACCOUNT_ID row as in-audience (CLIENT_CATEGORY = 'Wealth Management'),
--- but `_anchor_in_audience` rejects it, producing a coverage gap. The L1 test
+-- make the SP's `assert_coverage` fail — COVERAGE_SQL counts the empty
+-- ACCOUNT_ID as a distinct in-audience value, but `_anchor_in_audience`
+-- rejects it, producing a coverage gap. The L1 test
 -- exercises the predicate directly without that complication.
 
 -- ---------------------------------------------------------------------------
@@ -184,38 +184,36 @@ $$;
 CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_GONG_CALL_SENTIMENT_FIXTURE();
 
 -- ---------------------------------------------------------------------------
--- 6. Coverage assertion #1: distinct ACCOUNT_ID == post-filter audience size.
--- 14 anchors in the view; SQL predicate filters 8 non-Wealth/non-Commercial
--- out (4 Retail + 2 Household + 2 Small Business); the 1 Wealth-but-empty-
--- ACCOUNT_ID anchor is rejected by the SP's defensive `_anchor_in_audience`
--- (empty ACCOUNT_ID drops it). Net: exactly 5 distinct accounts emit rows.
+-- 6. Coverage assertion #1: distinct ACCOUNT_ID == audience size.
+-- 13 anchors in the view, no audience predicate -> exactly 13 distinct
+-- accounts emit rows.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 5
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 13
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 7. 1:1 emit assertion #2: COUNT(*) == post-filter audience size (5).
--- Audience size 5 + 1:1 weekly emit per anchor => row count = 5.
+-- 7. 1:1 emit assertion #2: COUNT(*) == audience size (13).
+-- Audience size 13 + 1:1 weekly emit per anchor => row count = 13.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 5
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE) = 13
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 8. Audience-filter assertion #3: zero rows have a non-audience fixture
--- prefix. Confirms the SP's `WHERE CLIENT_CATEGORY IN ('Wealth Management',
--- 'Commercial Banking')` predicate excluded the 8 non-audience anchors AND
--- the defensive filter dropped the 1 empty-ACCOUNT_ID Wealth edge.
+-- 8. All-accounts assertion #3: every one of the 8 v1-non-audience
+-- anchors (Retail / Household / Small Business) emitted a row. Guards
+-- against a regression back to the v1 `CLIENT_CATEGORY IN
+-- ('Wealth Management', 'Commercial Banking')` predicate.
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE ACCOUNT_ID LIKE 'GONG-FIX-RT-%'
           OR ACCOUNT_ID LIKE 'GONG-FIX-HH-%'
-          OR ACCOUNT_ID LIKE 'GONG-FIX-SB-%') = 0
-    AS audience_filter_excludes_non_audience;
+          OR ACCOUNT_ID LIKE 'GONG-FIX-SB-%') = 8
+    AS all_accounts_includes_low_touch_tiers;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
@@ -424,9 +422,10 @@ SELECT
 -- ---------------------------------------------------------------------------
 -- 26. Boring-case observability #10: at least one row has CALL_COUNT_LAST_7D = 0
 -- in the fixture run. Confirms the cascade-NULL invariants above (#11-#16)
--- are actually exercised rather than vacuously true. With 3 Wealth (~65%
--- no-call rate) + 2 Commercial (~35%), the chance of zero zero-call rows is
--- 1 - 0.982 ~ 1.8% -- low but non-zero. If this assertion ever returns FALSE
+-- are actually exercised rather than vacuously true. With 6 Retail/Household
+-- anchors at a 90% zero-call rate (plus Small Business 75%, Wealth 40%,
+-- Commercial 20%), the chance of zero zero-call rows is < 1e-6. If this
+-- assertion ever returns FALSE
 -- in CI, the cascade-gate test surface area collapsed and the L2 should
 -- either widen the fixture cohort or freeze a known-good run-timestamp.
 -- ---------------------------------------------------------------------------
@@ -434,7 +433,7 @@ SELECT EXISTS (
     SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
     WHERE CALL_COUNT_LAST_7D = 0
 ) AS at_least_one_zero_call_row_exists;
--- Expected: TRUE (~98% chance per run; observational)
+-- Expected: TRUE (>99.9999% chance per run; observational)
 
 -- ---------------------------------------------------------------------------
 -- 27. Idempotency assertion #11: a second run leaves the row count

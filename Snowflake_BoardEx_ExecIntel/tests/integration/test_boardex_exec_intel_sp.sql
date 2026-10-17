@@ -17,13 +17,15 @@
 --   in the wrong slot during the dataset-table swap).
 --
 -- Plan 10 differences from Plans 1-8:
---   - SMALLEST Cumulus audience by 4.1x (Commercial Banking only, ~960 anchors).
---     Dethrones Plan 8 (Wealth Management, 3,920) from that title. Fixture
---     has 14 anchors total: 5 Commercial Banking (in audience, mirroring the
---     5 archetypes used in the L1 conftest synthetic-fixture override) + 9
---     non-Commercial-Banking (filtered out). The 5-anchor cohort drives a
---     per-anchor invariant approach rather than distributional rate
---     convergence.
+--   - ALL-ACCOUNTS audience (rebroadcast; v1 was Commercial Banking only).
+--     No CLIENT_CATEGORY predicate -- every anchor with a non-empty
+--     ACCOUNT_ID emits one row. Fixture has 14 anchors total, all in
+--     audience: 5 Commercial Banking BUSINESS (mirroring the 5 archetypes
+--     in the L1 conftest) + 9 non-Commercial-Banking (7 PERSON, 2 BUSINESS).
+--     PERSON anchors take the "personal household" fallback row
+--     (BOARD_SIZE = 1, KEY_DIRECTOR_NAME = 'Self', GOVERNANCE_RATING =
+--     'Adequate'), so BUSINESS-only range invariants are scoped to
+--     BUSINESS anchors.
 --   - 1 BOOLEAN column (EXEC_TURNOVER_FLAG) and 1 NULLable date column
 --     (RECENT_GOVERNANCE_EVENT_DATE) with an INDEPENDENT 30%/70% Bernoulli
 --     draw (no enum gating, simpler than Plan 8's PLAN_STATUS-gated 2-NULL
@@ -31,8 +33,8 @@
 --     load-bearing assertions for this test.
 --   - GOVERNANCE_RATING canonical 5-value set
 --     {Excellent, Strong, Adequate, Weak, Concerning}.
---   - MONTHLY cadence (PROFILE_MONTH). 1:1 emit per Commercial Banking
---     anchor per month -> 5 rows expected.
+--   - MONTHLY cadence (PROFILE_MONTH). 1:1 emit per anchor per month ->
+--     14 rows expected.
 --
 -- Pre-requisites:
 --   1. SP_GENERATE_BOARDEX_EXEC_INTEL deployed (run scripts/deploy_sp.py first).
@@ -66,21 +68,21 @@ DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXT
 --       INTERLOCK_COUNT in {0,1,2,3} -- still in [0,5] for the range
 --       assertion. INTERLOCK_DEGREE bias-band coverage is exercised at L1
 --       only, where the conftest synthesises dicts directly.
---    -  9 non-Commercial-Banking anchors (out of audience -- `NCB-` prefix
---       to make the audience-filter assertion trivially expressible):
+--    -  9 non-Commercial-Banking anchors (also in audience under the
+--       all-accounts SP; `NCB-` prefix kept so the v1 cohort is still
+--       easy to tell apart):
 --          3 Retail PERSON
 --          2 Wealth Management PERSON
 --          2 Small Business BUSINESS
 --          2 Household PERSON
---    The audience predicate `CLIENT_CATEGORY = 'Commercial Banking'` filters
---    the 9 non-Commercial-Banking anchors out of the SP's row factory, so
---    only 5 rows land in the dataset table.
+--    No audience predicate, so all 14 anchors land in the dataset table;
+--    the 7 PERSON anchors exercise the personal-household fallback.
 --
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly so the cloned SP's
 --    audience SELECT compiles unchanged.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE AS
--- 5 Commercial Banking anchors -- IN AUDIENCE.
+-- 5 Commercial Banking anchors.
 -- Archetype 1: mid-market enterprise (~8000 employees, mid-market BOARD_SIZE band).
 SELECT
     'BOARDEX-FIX-CB-01'::VARCHAR         AS ACCOUNT_ID,
@@ -106,7 +108,7 @@ UNION ALL SELECT 'BOARDEX-FIX-CB-03', 'Heartland Foods Inc',     '2026-05-28'::D
 UNION ALL SELECT 'BOARDEX-FIX-CB-04', 'Lumen Therapeutics',      '2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Biotech',           12000000,    80, '02139', 'MA', 'US', 'BOARDEX-FIX-004'
 -- Archetype 5: large-cap energy (~600 employees small-to-mid band).
 UNION ALL SELECT 'BOARDEX-FIX-CB-05', 'Meridian Energy Holdings','2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Energy',           180000000,   600, '77002', 'TX', 'US', 'BOARDEX-FIX-005'
--- 9 non-Commercial-Banking anchors -- OUT OF AUDIENCE.
+-- 9 non-Commercial-Banking anchors (in audience under the all-accounts SP).
 UNION ALL SELECT 'BOARDEX-FIX-NCB-R1', 'Riley Park',              '2026-05-28'::DATE, 'Retail',            'PERSON',  '1996-08-22'::TIMESTAMP_LTZ,  62000, 700, NULL, NULL, NULL, '10025', 'NY', 'US', 'BOARDEX-FIX-006'
 UNION ALL SELECT 'BOARDEX-FIX-NCB-R2', 'Casey Reed',              '2026-05-28'::DATE, 'Retail',            'PERSON',  '1971-11-05'::TIMESTAMP_LTZ,  95000, 720, NULL, NULL, NULL, '02115', 'MA', 'US', 'BOARDEX-FIX-007'
 UNION ALL SELECT 'BOARDEX-FIX-NCB-R3', 'Pat Donovan',             '2026-05-28'::DATE, 'Retail',            'PERSON',  '1958-12-03'::TIMESTAMP_LTZ,  72000, 720, NULL, NULL, NULL, '10001', 'NY', 'US', 'BOARDEX-FIX-008'
@@ -164,35 +166,55 @@ $$;
 CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL_FIXTURE();
 
 -- ---------------------------------------------------------------------------
--- 6. Coverage assertion #1: distinct ACCOUNT_ID == post-filter audience size.
--- 14 anchors in the view, audience predicate Commercial-Banking-only filters
--- 9 non-CB out, leaving exactly 5 distinct accounts in the dataset.
+-- 6. Coverage assertion #1: distinct ACCOUNT_ID == audience size.
+-- 14 anchors in the view, no audience predicate -> exactly 14 distinct
+-- accounts in the dataset.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 5
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 14
     AS distinct_accounts_assertion_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 7. 1:1 emit assertion #2: COUNT(*) == post-filter audience size (5).
--- Commercial Banking audience (5) + 1:1 emit per anchor per month -> row
--- count = 5.
+-- 7. 1:1 emit assertion #2: COUNT(*) == audience size (14).
+-- All-accounts audience (14) + 1:1 emit per anchor per month -> row
+-- count = 14.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 5
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE) = 14
     AS row_count_assertion_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 8. Audience-filter assertion #3: zero rows have a non-Commercial-Banking
--- fixture prefix. Confirms the SP's
--- `WHERE CLIENT_CATEGORY = 'Commercial Banking'` predicate excluded the 9
--- `BOARDEX-FIX-NCB-%` anchors. Equivalent: every row has the CB prefix.
+-- 8. All-accounts assertion #3: every one of the 9 non-Commercial-Banking
+-- `BOARDEX-FIX-NCB-%` anchors emitted a row. Guards against a regression
+-- back to the v1 `CLIENT_CATEGORY = 'Commercial Banking'` predicate.
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
-       WHERE ACCOUNT_ID NOT LIKE 'BOARDEX-FIX-CB-%') = 0
-    AS audience_filter_excludes_non_cb;
+       WHERE ACCOUNT_ID LIKE 'BOARDEX-FIX-NCB-%') = 9
+    AS all_accounts_includes_non_cb;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 8b. PERSON-fallback assertion #3b: every PERSON anchor's row is the
+-- "personal household" shape (BOARD_SIZE = 1, BOARD_INDEPENDENCE_PCT = 100,
+-- INTERLOCK_COUNT = 0, GOVERNANCE_RATING = 'Adequate',
+-- KEY_DIRECTOR_NAME = 'Self', EXEC_TURNOVER_FLAG = FALSE,
+-- RECENT_GOVERNANCE_EVENT_DATE NULL).
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
+       WHERE ACCOUNT_ID IN (SELECT ACCOUNT_ID FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE
+                            WHERE ACCOUNT_TYPE_FLAG = 'PERSON')
+         AND (BOARD_SIZE <> 1
+              OR BOARD_INDEPENDENCE_PCT <> 100
+              OR INTERLOCK_COUNT <> 0
+              OR GOVERNANCE_RATING <> 'Adequate'
+              OR KEY_DIRECTOR_NAME <> 'Self'
+              OR EXEC_TURNOVER_FLAG
+              OR RECENT_GOVERNANCE_EVENT_DATE IS NOT NULL)) = 0
+    AS person_fallback_shape_ok;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
@@ -222,13 +244,16 @@ SELECT
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 10. Range invariant #5: BOARD_SIZE in [5, 15]. Per rowspec _board_size
--- bias bands: large enterprise 9-15, mid-market 7-12, small-to-mid 5-10,
--- smallest 5-8.
+-- 10. Range invariant #5: BOARD_SIZE in [5, 15] for BUSINESS anchors. Per
+-- rowspec _board_size bias bands: large enterprise 9-15, mid-market 7-12,
+-- small-to-mid 5-10, smallest 5-8. PERSON anchors are exempt (BOARD_SIZE = 1,
+-- asserted by #3b).
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL_FIXTURE
-       WHERE BOARD_SIZE NOT BETWEEN 5 AND 15) = 0
+       WHERE ACCOUNT_ID IN (SELECT ACCOUNT_ID FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_BOARDEX_FIXTURE
+                            WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS')
+         AND BOARD_SIZE NOT BETWEEN 5 AND 15) = 0
     AS board_size_in_range;
 -- Expected: TRUE
 
