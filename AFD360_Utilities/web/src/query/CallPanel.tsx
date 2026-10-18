@@ -30,7 +30,7 @@ function shortResponse(body: unknown) {
 
 interface Props {
   telemetry: Telemetry;
-  submit: WireEntry | undefined; // the POST /ssot/query-sql for the query on screen
+  submit: WireEntry | undefined; // the call behind the result on screen: the SQL submit or a REST read
   wire: WireEntry[];
 }
 
@@ -60,7 +60,7 @@ export function CallPanel({ telemetry, submit, wire }: Props) {
       ) : (
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-6">
           <Tiles t={telemetry} />
-          {submit ? <Request entry={submit} /> : <p className="text-sm text-ink-3">Run a query to see the call Data 360 receives.</p>}
+          {submit ? <Request entry={submit} /> : <p className="text-sm text-ink-3">Run a query or send a read to see the call Data 360 receives.</p>}
           {submit?.responseBody !== undefined && (
             <Section title="Response" lane="recv" meta={`${submit.status ?? ""} · ${submit.durationMs ?? 0} ms`}>
               <Code text={JSON.stringify(shortResponse(submit.responseBody), null, 2)} />
@@ -111,7 +111,7 @@ function Tiles({ t }: { t: Telemetry }) {
             "—"
           )}
         </Row>
-        <Row k="Query id">{s ? <span className="break-all">{s.queryId}</span> : "—"}</Row>
+        <Row k="Query id">{s?.queryId ? <span className="break-all">{s.queryId}</span> : "—"}</Row>
       </div>
     </div>
   );
@@ -139,7 +139,8 @@ function Row({ k, children }: { k: string; children: React.ReactNode }) {
 function Request({ entry }: { entry: WireEntry }) {
   const [as, setAs] = useState<"json" | "curl" | "fetch">("json");
   const shape: RequestShape = { method: entry.method, url: entry.url, body: entry.requestBody };
-  const text = as === "curl" ? asCurl(shape) : as === "fetch" ? asFetch(shape) : JSON.stringify(entry.requestBody, null, 2);
+  const text =
+    as === "curl" ? asCurl(shape) : as === "fetch" ? asFetch(shape) : entry.requestBody === undefined ? `No body: a ${entry.method} carries its input in the URL.` : JSON.stringify(entry.requestBody, null, 2);
   const url = new URL(entry.url);
   return (
     <Section

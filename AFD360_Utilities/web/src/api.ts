@@ -8,9 +8,11 @@ import type {
   OrgSummary,
   OrgTestResult,
   OrgsResponse,
+  QueryApiCall,
   QueryCatalog,
   QueryPage,
   QueryReply,
+  QueryRunOptions,
   QueryStatus,
   TurnUsageResult,
   WireEntry,
@@ -56,7 +58,9 @@ export const api = {
   // Data 360 Query: same contract as MCP, the Wire entries ride along on every reply and error.
   dataSpaces: (orgId: string) => queryCall<{ dataSpaces: string[] }>("/data-spaces", { orgId }),
   queryCatalog: (orgId: string, dataspace: string, refresh = false) => queryCall<{ catalog: QueryCatalog }>("/catalog", { orgId, dataspace, refresh }),
-  queryRun: (orgId: string, sql: string, dataspace: string, rowLimit: number) => queryCall<{ page: QueryPage }>("/run", { orgId, sql, dataspace, rowLimit }),
+  queryRun: (orgId: string, sql: string, dataspace: string, rowLimit: number, options: QueryRunOptions = {}) =>
+    queryCall<{ page: QueryPage }>("/run", { orgId, sql, dataspace, rowLimit, ...options }),
+  queryRead: (orgId: string, call: QueryApiCall, dataspace: string) => queryCall<{ page: QueryPage; done: boolean }>("/read", { orgId, ...call, dataspace }),
   queryStatus: (orgId: string, queryId: string, dataspace: string, waitTimeMs: number) =>
     queryCall<{ status: QueryStatus }>("/status", { orgId, queryId, dataspace, waitTimeMs }),
   queryRows: (orgId: string, queryId: string, dataspace: string, offset: number, rowLimit: number) =>

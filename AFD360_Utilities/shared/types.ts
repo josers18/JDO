@@ -179,7 +179,7 @@ export interface TurnUsage {
 }
 
 // ── Data 360 Query (server/query.ts) ──────────────────────────────────
-export type QueryObjectType = "DMO" | "DLO" | "CI" | "Unified";
+export type QueryObjectType = "DMO" | "DLO" | "CI" | "Unified" | "DG" | "SI";
 
 export interface QueryField {
   name: string;
@@ -194,6 +194,20 @@ export interface QueryObject {
   type: QueryObjectType;
   category: string;
   fields: QueryField[];
+  // A search index (named for its index DMO) is read through one of these table functions.
+  searchFunction?: "vector_search" | "hybrid_search";
+  chunk?: string; // and its chunk DMO holds the text each match came from
+  // A data graph's root DMO (or a profile DMO itself), with its primary key and the fields that name a record, for
+  // finding one to look up.
+  root?: QueryGraphRoot;
+  // A calculated insight's measures, by name; its other fields are dimensions.
+  measures?: string[];
+}
+
+export interface QueryGraphRoot {
+  object: string;
+  key: string;
+  show: string[];
 }
 
 export interface QueryCatalog {
@@ -226,6 +240,26 @@ export interface QueryPage {
   data?: unknown[][];
   returnedRows?: number;
   status?: QueryStatus;
+}
+
+// A named parameter (`:acct` in the SQL) sent with the query.
+export interface QuerySqlParameter {
+  name: string;
+  type: string; // Varchar, Integer, Date …
+  value: string;
+}
+
+export interface QueryRunOptions {
+  sqlParameters?: QuerySqlParameter[];
+  querySettings?: Record<string, string>; // date_style, lc_time, query_timeout
+}
+
+// The Data 360 REST reads beside SQL: data graphs, calculated insights, profiles and universal ID lookup.
+export type QueryApiKind = "dataGraph" | "insight" | "profile" | "universalId";
+
+export interface QueryApiCall {
+  kind: QueryApiKind;
+  params: Record<string, string>;
 }
 
 // What a /api/query route answers: the result plus the wire entries for the calls it made (also on errors).

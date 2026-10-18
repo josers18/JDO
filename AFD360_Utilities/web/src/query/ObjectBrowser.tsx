@@ -4,12 +4,25 @@ import { rankObjects } from "../../../shared/sqlAssist";
 import { DRAG_FROM, DRAG_TYPE } from "./SqlEditor";
 import type { QueryCatalog, QueryObject, QueryObjectType } from "../../../shared/types";
 
-const TYPES: { type: QueryObjectType; label: string; hint: string }[] = [
-  { type: "DMO", label: "DMO", hint: "Data model objects" },
-  { type: "Unified", label: "Unified", hint: "Unified profiles and their link objects" },
-  { type: "CI", label: "CI", hint: "Calculated insights" },
-  { type: "DLO", label: "DLO", hint: "Data lake objects" },
+const TYPES: { type: QueryObjectType; label: string; hint: string; hue: number }[] = [
+  { type: "DMO", label: "DMO", hint: "Data model objects", hue: 240 },
+  { type: "Unified", label: "Unified", hint: "Unified profiles and their link objects", hue: 300 },
+  { type: "CI", label: "CI", hint: "Calculated insights", hue: 70 },
+  { type: "DLO", label: "DLO", hint: "Data lake objects", hue: 155 },
+  { type: "DG", label: "Graph", hint: "Data graphs: double-click to look a record up", hue: 15 },
+  { type: "SI", label: "Search", hint: "Search indexes: double-click to write a vector or hybrid search", hue: 195 },
 ];
+
+// Each type in its own hue, so a long list sorts by eye. Mixed into the sidebar's ink, it reads on light and dark
+// sidebars alike; pressed, the hue fills in.
+const tone = (type: QueryObjectType, on = false): React.CSSProperties => {
+  const hue = `oklch(0.68 0.16 ${TYPES.find((t) => t.type === type)?.hue ?? 0})`;
+  return {
+    color: on ? "white" : `color-mix(in oklab, ${hue} 70%, var(--side-ink))`,
+    background: on ? hue : `color-mix(in oklab, ${hue} 16%, transparent)`,
+    ["--tw-ring-color" as string]: `color-mix(in oklab, ${hue} 45%, transparent)`,
+  };
+};
 
 // Dragged into the SQL editor, a name lands where it is dropped. A field also carries its object, so dropping it
 // into an empty editor can write the whole query.
@@ -35,11 +48,11 @@ interface Props {
   error: string | null;
   onRefresh: () => void;
   onOpen: (o: QueryObject) => void;
-  onField: (name: string) => void;
+  onField: (name: string, from?: string) => void;
 }
 
-// Every queryable object in the data space, grouped by type then category. Clicking one lists its fields (clicking a
-// field, or dragging it into the editor, puts it in the SQL); double-clicking it, or its play button, queries it.
+// Every queryable object in the data space, grouped by type then category. Clicking one lists its fields (double-
+// clicking a field, or dragging it into the editor, adds it to the SELECT); double-clicking it, or its play button, queries it.
 export function ObjectBrowser(p: Props) {
   const [search, setSearch] = useState("");
   const [types, setTypes] = useState<Set<QueryObjectType>>(new Set());
@@ -110,9 +123,8 @@ export function ObjectBrowser(p: Props) {
               title={t.hint}
               aria-pressed={types.has(t.type)}
               onClick={() => setTypes(toggle(types, t.type))}
-              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-side-line ${
-                types.has(t.type) ? "bg-action text-action-ink ring-action" : "text-side-ink-2 hover:text-side-ink"
-              }`}
+              style={tone(t.type, types.has(t.type))}
+              className="rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 hover:brightness-110"
             >
               {t.label} <span className="font-mono font-normal">{counts.get(t.type) ?? 0}</span>
             </button>
@@ -123,7 +135,7 @@ export function ObjectBrowser(p: Props) {
       <div className="min-h-0 flex-1 overflow-y-auto border-t border-side-line px-2 py-2">
         {p.loading && (
           <div className="flex items-center gap-2 p-2 text-xs text-side-ink-2">
-            <Loader2 size={14} className="animate-spin" /> Reading DMO, DLO and calculated insight metadata…
+            <Loader2 size={14} className="animate-spin" /> Reading objects, insights, data graphs and search indexes…
           </div>
         )}
         {p.error && <p className="p-2 text-xs text-err">{p.error}</p>}
@@ -145,7 +157,6 @@ export function ObjectBrowser(p: Props) {
                 g.items.map((o) => (
                   <div key={o.name}>
                     <div className={`group flex items-start gap-1 rounded-xl ${expanded === o.name ? "bg-side-2" : "hover:bg-side-2/60"}`}>
-                      <ChevronRight size={13} aria-hidden className={`ml-1 mt-2.5 shrink-0 text-side-ink-2 transition-transform ${expanded === o.name ? "rotate-90" : ""}`} />
                       <button
                         // A click selects and shows the fields; a double-click queries and leaves them open.
                         onClick={(e) => e.detail < 2 && setExpanded(expanded === o.name ? null : o.name)}
@@ -157,13 +168,18 @@ export function ObjectBrowser(p: Props) {
                         onDragStart={dragName(o.name)}
                         aria-expanded={expanded === o.name}
                         title={`${o.name}: click for fields, double-click to query, drag into the editor`}
-                        className="min-w-0 flex-1 py-1.5 text-left"
+                        className="flex min-w-0 flex-1 items-start gap-1 py-1.5 text-left"
                       >
-                        <div className="flex items-center gap-1.5">
-                          <span className="min-w-0 flex-1 truncate text-sm">{o.label}</span>
-                          <span className="shrink-0 rounded bg-side-2 px-1 text-xs font-semibold text-side-ink-2 ring-1 ring-side-line">{o.type}</span>
+                        <ChevronRight size={13} aria-hidden className={`ml-1 mt-1 shrink-0 text-side-ink-2 transition-transform ${expanded === o.name ? "rotate-90" : ""}`} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="min-w-0 flex-1 truncate text-sm">{o.label}</span>
+                            <span style={tone(o.type)} className="shrink-0 rounded px-1 text-xs font-semibold ring-1">
+                              {o.type}
+                            </span>
+                          </div>
+                          <div className="truncate font-mono text-xs text-side-ink-2">{o.name}</div>
                         </div>
-                        <div className="truncate font-mono text-xs text-side-ink-2">{o.name}</div>
                       </button>
                       <button
                         onClick={() => p.onOpen(o)}
@@ -180,10 +196,10 @@ export function ObjectBrowser(p: Props) {
                         {o.fields.map((f) => (
                           <li key={f.name}>
                             <button
-                              onClick={() => p.onField(f.name)}
+                              onDoubleClick={() => p.onField(f.name, o.type === "DG" ? undefined : o.name)}
                               draggable
-                              onDragStart={dragName(f.name, o.name)}
-                              title={`Click to insert ${f.name} at the cursor, or drag it into the editor`}
+                              onDragStart={dragName(f.name, o.type === "DG" ? undefined : o.name)}
+                              title={`Double-click or drag into the editor to add ${f.name} to the SELECT`}
                               className="flex w-full items-baseline gap-2 rounded-md px-1.5 py-0.5 text-left hover:bg-side-2/60"
                             >
                               <span className="min-w-0 flex-1 truncate font-mono text-xs">{f.name}</span>

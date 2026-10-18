@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from "express";
 import { SfError } from "./salesforce.ts";
-import { cancel, catalog, dataSpaces, queryError, rows, status, submit } from "./query.ts";
+import { apiRead, cancel, catalog, dataSpaces, queryError, rows, status, submit } from "./query.ts";
 import type { WireSink } from "./wire.ts";
-import type { WireEntry } from "../shared/types.ts";
+import type { QueryApiCall, QueryRunOptions, WireEntry } from "../shared/types.ts";
 
 export const queryApi = Router();
 
@@ -12,6 +12,18 @@ const DEFAULT_ROW_LIMIT = 100;
 const MAX_ROW_LIMIT = 5000;
 const limit = (n: unknown) => Math.max(1, Math.min(MAX_ROW_LIMIT, Number(n) || DEFAULT_ROW_LIMIT));
 const space = (s: unknown) => (typeof s === "string" && s !== "default" ? s : "");
+const SETTINGS = ["date_style", "lc_time", "query_timeout"];
+const API_KINDS: QueryApiCall["kind"][] = ["dataGraph", "insight", "profile", "universalId"];
+
+// Named parameters and query settings, kept to the shapes the Query API takes.
+function runOptions(body: Record<string, any>): QueryRunOptions {
+  const sqlParameters = (Array.isArray(body.sqlParameters) ? body.sqlParameters : [])
+    .filter((p: any) => p && typeof p.name === "string" && p.name)
+    .map((p: any) => ({ name: p.name, type: String(p.type || "Varchar"), value: String(p.value ?? "") }));
+  const s = body.querySettings && typeof body.querySettings === "object" ? body.querySettings : {};
+  const querySettings = Object.fromEntries(SETTINGS.filter((k) => typeof s[k] === "string" && s[k].trim()).map((k) => [k, s[k].trim()]));
+  return { sqlParameters, querySettings };
+}
 
 // Like the MCP routes, every reply carries the Wire entries for the calls it made, errors included. A SQL error also
 // carries its parsed detail: the caret line, SQL state and trace id.
@@ -36,9 +48,18 @@ queryApi.post(
 
 queryApi.post(
   "/run",
-  route(async ({ orgId, sql, dataspace, rowLimit }, wire) => {
+  route(async (body, wire) => {
+    const { orgId, sql, dataspace, rowLimit } = body;
     if (typeof sql !== "string" || !sql.trim()) throw new Error("Write a SQL statement first");
-    return { page: await submit(orgId, sql.trim(), space(dataspace), limit(rowLimit), wire) };
+    return { page: await submit(orgId, sql.trim(), space(dataspace), limit(rowLimit), runOptions(body), wire) };
+  }),
+);
+
+queryApi.post(
+  "/read",
+  route(async ({ orgId, kind, params, dataspace }, wire) => {
+    if (!API_KINDS.includes(kind)) throw new Error(`Unknown read ${kind}`);
+    return apiRead(orgId, { kind, params: params && typeof params === "object" ? params : {} }, space(dataspace), wire);
   }),
 );
 

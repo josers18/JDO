@@ -6,16 +6,16 @@ import { HighlightStyle, bracketMatching, syntaxHighlighting, syntaxTree } from 
 import { acceptCompletion, autocompletion, closeBrackets, completionKeymap, type Completion, type CompletionContext } from "@codemirror/autocomplete";
 import { SQLDialect, sql as sqlLanguage } from "@codemirror/lang-sql";
 import { tags } from "@lezer/highlight";
-import { completing, insertion, rankObjects, resolveRef, tablesIn } from "../../../shared/sqlAssist";
+import { addToSelect, completing, insertion, rankObjects, resolveRef, tablesIn } from "../../../shared/sqlAssist";
 import type { QueryField, QueryObject } from "../../../shared/types";
 
 // The words Data 360 SQL knows, for both highlighting and completion.
 const WORDS = {
   keywords:
-    "select from where and or not in is like ilike between join left right full outer inner cross on as group by order having limit offset distinct case when then else end asc desc union all intersect except with exists any some over partition rows range unbounded preceding following current row nulls first last interval cast using lateral filter within window values fetch next only",
+    "select from where and or not in is like ilike between join left right full outer inner cross on as group by order having limit offset distinct case when then else end asc desc union all intersect except with exists any some over partition rows range unbounded preceding following current row nulls first last interval cast using lateral filter within window values fetch next only table ordinality graph_table property graph vertex edge tables relationship key label properties columns match source destination references exclude per step",
   types: "varchar char text string integer int bigint smallint tinyint decimal numeric double float real boolean date time timestamp timestamptz",
   builtin:
-    "count sum avg min max coalesce nullif ifnull nvl greatest least concat lower upper trim ltrim rtrim length substring substr replace split_part strpos lpad rpad regexp_like regexp_replace regexp_extract round floor ceil ceiling abs mod power sqrt date_trunc date_part extract to_date to_timestamp to_char now current_date current_timestamp date_add date_diff datediff row_number rank dense_rank lag lead first_value last_value ntile percentile_cont approx_count_distinct array_agg string_agg listagg",
+    "count sum avg min max coalesce nullif ifnull nvl greatest least concat lower upper trim ltrim rtrim length substring substr replace split_part strpos lpad rpad regexp_like regexp_replace regexp_extract round floor ceil ceiling abs mod power sqrt date_trunc date_part extract to_date to_timestamp to_char now current_date current_timestamp date_add date_diff datediff row_number rank dense_rank lag lead first_value last_value ntile percentile_cont approx_count_distinct array_agg string_agg listagg vector_search hybrid_search result_scan unnest generate_series regexp_matches",
 };
 const DataCloudSQL = SQLDialect.define(WORDS);
 const KEYWORDS = WORDS.keywords.toUpperCase().split(" ");
@@ -131,10 +131,12 @@ const dropNames = EditorView.domEventHandlers({
     const name = e.dataTransfer?.getData(DRAG_TYPE);
     if (!name) return false;
     e.preventDefault();
-    // A field dropped into an empty editor becomes a starter query on its object.
+    // A field (it carries its object) lands like a double-click: a starter query in an empty editor, else the next
+    // SELECT item, grouped when the query groups. An object name, or a field with no SELECT to join, lands where dropped.
     const from = e.dataTransfer?.getData(DRAG_FROM);
-    if (from && !view.state.doc.toString().trim()) {
-      const text = `SELECT ${name} FROM ${from} LIMIT 100`;
+    const doc = view.state.doc.toString();
+    const text = !from ? null : doc.trim() ? addToSelect(doc, name, from) : `SELECT ${name} FROM ${from} LIMIT 100`;
+    if (text !== null) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, selection: { anchor: text.length } });
       view.focus();
       return true;
