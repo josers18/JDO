@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalClientApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <contactEmail>jsifontes@salesforce.com</contactEmail>
+    <description>Server-to-server client for the AFD360 Utilities Notebook: the Data Cloud Python connector (client credentials, standard tokens for the a360 token exchange).</description>
+    <distributionState>Local</distributionState>
+    <isProtected>false</isProtected>
+    <label>AFD360 Data Cloud Client</label>
+</ExternalClientApplication>

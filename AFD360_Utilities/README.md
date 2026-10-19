@@ -46,7 +46,11 @@ opportunity". The Search Agent (Coworker) only returns text, so it shows no card
 **`salesforce/`** holds the HXL pieces deployed to finsdc3:
 - four Apex actions (Lead, Account and Opportunity snapshots, Create Task);
 - four widgets and their Lightning types;
-- the `AFD360Demo` MCP server.
+- the `AFD360Demo` MCP server;
+- the `AFD360_Data_Cloud_Client` External Client App for the Notebook (client credentials, JWT tokens off). The
+  consumer key isn't in source, so Salesforce generates one on deploy. Set the client credentials run-as user
+  (`clientCredentialsFlowUser`, `admin@finsdc3.demo`) for the target org first, then copy the key and secret into
+  Admin → Orgs.
 
 Details, the deploy order and how chat resolves widgets: [docs/hxl.md](docs/hxl.md).
 
