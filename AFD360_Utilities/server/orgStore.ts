@@ -5,8 +5,9 @@ import { DATA_DIR, MASTER_KEY } from "./env.ts";
 import { decrypt, encrypt } from "./crypto.ts";
 import type { OrgInput, OrgSummary, OrgsResponse } from "../shared/types.ts";
 
-interface StoredOrg extends Omit<OrgSummary, "secretLast4"> {
+interface StoredOrg extends Omit<OrgSummary, "secretLast4" | "dataCloudSecretLast4"> {
   secretEnc: string;
+  dataCloudSecretEnc?: string;
 }
 
 interface OrgFile {
@@ -26,8 +27,12 @@ function write(data: OrgFile) {
 }
 
 function summarize(o: StoredOrg): OrgSummary {
-  const { secretEnc, ...rest } = o;
-  return { ...rest, secretLast4: decrypt(secretEnc, MASTER_KEY).slice(-4) };
+  const { secretEnc, dataCloudSecretEnc, ...rest } = o;
+  return {
+    ...rest,
+    secretLast4: decrypt(secretEnc, MASTER_KEY).slice(-4),
+    ...(dataCloudSecretEnc ? { dataCloudSecretLast4: decrypt(dataCloudSecretEnc, MASTER_KEY).slice(-4) } : {}),
+  };
 }
 
 function normalizeDomain(url: string): string {
@@ -43,7 +48,11 @@ export function listOrgs(): OrgsResponse {
 export function getOrgCredentials(id: string) {
   const org = read().orgs.find((o) => o.id === id);
   if (!org) throw new Error(`Unknown org ${id}`);
-  return { ...org, clientSecret: decrypt(org.secretEnc, MASTER_KEY) };
+  return {
+    ...org,
+    clientSecret: decrypt(org.secretEnc, MASTER_KEY),
+    dataCloudClientSecret: org.dataCloudSecretEnc ? decrypt(org.dataCloudSecretEnc, MASTER_KEY) : undefined,
+  };
 }
 
 export function createOrg(input: OrgInput): OrgSummary {
@@ -59,6 +68,7 @@ export function createOrg(input: OrgInput): OrgSummary {
     secretEnc: encrypt(input.clientSecret.trim(), MASTER_KEY),
     createdAt: new Date().toISOString(),
   };
+  setDataCloudApp(org, input);
   data.orgs.push(org);
   data.activeOrgId ??= org.id;
   write(data);
@@ -73,8 +83,23 @@ export function updateOrg(id: string, input: OrgInput): OrgSummary {
   org.myDomain = normalizeDomain(input.myDomain);
   org.clientId = input.clientId.trim();
   if (input.clientSecret) org.secretEnc = encrypt(input.clientSecret.trim(), MASTER_KEY);
+  setDataCloudApp(org, input);
   write(data);
   return summarize(org);
+}
+
+// The Data Cloud app is optional; clearing its key removes it, and a blank secret keeps the saved one.
+function setDataCloudApp(org: StoredOrg, input: OrgInput) {
+  const clientId = input.dataCloudClientId?.trim();
+  if (!clientId) {
+    delete org.dataCloudClientId;
+    delete org.dataCloudSecretEnc;
+    return;
+  }
+  const secret = input.dataCloudClientSecret?.trim();
+  if (!secret && !org.dataCloudSecretEnc) throw new Error("The Data Cloud app needs its consumer secret");
+  org.dataCloudClientId = clientId;
+  if (secret) org.dataCloudSecretEnc = encrypt(secret, MASTER_KEY);
 }
 
 export function deleteOrg(id: string) {

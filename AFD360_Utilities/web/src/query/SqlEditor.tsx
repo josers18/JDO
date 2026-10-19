@@ -31,7 +31,7 @@ const MIN_HEIGHT = 80;
 const HEIGHT_KEY = "afd360.query.editorHeight";
 
 // Colors come from the theme tokens, so the editor follows the theme picker, dark themes included.
-const look = EditorView.theme({
+export const look = EditorView.theme({
   "&": { height: "100%", fontSize: "13px", backgroundColor: "var(--surface)", color: "var(--ink)" },
   "&.cm-focused": { outline: "none" },
   ".cm-scroller": { overflow: "auto" },
@@ -54,7 +54,7 @@ const look = EditorView.theme({
   ".cm-completionInfo": { fontFamily: "var(--font-sans)", fontSize: "12px", padding: "6px 10px", color: "var(--ink-2)" },
 });
 
-const colors = HighlightStyle.define([
+export const colors = HighlightStyle.define([
   { tag: tags.keyword, color: "var(--recv-ink)", fontWeight: "700" },
   { tag: tags.standard(tags.name), color: "color-mix(in oklab, var(--err) 70%, var(--ink))", fontWeight: "600" },
   { tag: tags.typeName, color: "color-mix(in oklab, var(--err) 70%, var(--ink))", fontStyle: "italic" },

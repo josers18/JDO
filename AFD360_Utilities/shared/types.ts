@@ -6,6 +6,8 @@ export interface OrgSummary {
   myDomain: string;
   clientId: string;
   secretLast4: string;
+  dataCloudClientId?: string; // optional second app for the Notebook's Data Cloud connector (standard, non-JWT tokens)
+  dataCloudSecretLast4?: string;
   createdAt: string;
 }
 
@@ -19,6 +21,8 @@ export interface OrgInput {
   myDomain: string;
   clientId: string;
   clientSecret?: string; // optional on update = keep existing
+  dataCloudClientId?: string; // blank = none
+  dataCloudClientSecret?: string; // optional on update = keep existing
 }
 
 export interface OrgTestResult {
@@ -264,3 +268,27 @@ export interface QueryApiCall {
 
 // What a /api/query route answers: the result plus the wire entries for the calls it made (also on errors).
 export type QueryReply<T> = T & { wire: WireEntry[] };
+
+// ── Notebook: Python cells run in a local kernel per org (python/kernel.py) ──
+
+export type NotebookOutput =
+  | { type: "stream"; name: "stdout" | "stderr"; text: string }
+  | { type: "display"; mime: "text/html" | "image/png" | "text/plain"; data: string }
+  | { type: "error"; ename: string; evalue: string; traceback: string };
+
+export type KernelState = "missing" | "stopped" | "starting" | "idle" | "busy";
+
+export interface KernelStatus {
+  state: KernelState;
+  python?: string; // version, once the kernel reports ready
+  setupCommand: string; // what creates the Python environment when state is "missing"
+}
+
+// One cell run: its execution count, what it showed, and the HTTP calls it made (masked).
+export interface NotebookRun {
+  count: number;
+  ok: boolean;
+  outputs: NotebookOutput[];
+  wire: WireEntry[];
+  durationMs: number;
+}

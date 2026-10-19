@@ -2,6 +2,7 @@ import { warmAgent } from "./hxl.ts";
 import crypto from "node:crypto";
 import { Router, type Request, type Response } from "express";
 import * as orgs from "./orgStore.ts";
+import { stopKernel } from "./notebook.ts";
 import * as store from "./conversationStore.ts";
 import { endSession, listAgents, startSession, streamMessage } from "./agentApi.ts";
 import { TurnNormalizer } from "./normalize.ts";
@@ -43,6 +44,7 @@ api.get("/orgs", wrap(() => orgs.listOrgs()));
 api.post("/orgs", wrap((req) => orgs.createOrg(req.body as OrgInput)));
 api.put("/orgs/:id", wrap((req) => {
   forgetToken(String(req.params.id));
+  stopKernel(String(req.params.id));
   return orgs.updateOrg(String(req.params.id), req.body as OrgInput);
 }));
 api.delete("/orgs/:id", wrap((req) => orgs.deleteOrg(String(req.params.id))));

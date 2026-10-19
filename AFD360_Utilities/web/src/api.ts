@@ -4,6 +4,8 @@ import type {
   Conversation,
   ConversationSummary,
   HxlCard,
+  KernelStatus,
+  NotebookRun,
   OrgInput,
   OrgSummary,
   OrgTestResult,
@@ -66,6 +68,10 @@ export const api = {
   queryRows: (orgId: string, queryId: string, dataspace: string, offset: number, rowLimit: number) =>
     queryCall<{ page: QueryPage }>("/rows", { orgId, queryId, dataspace, offset, rowLimit }),
   queryCancel: (orgId: string, queryId: string, dataspace: string) => queryCall<{ ok: boolean }>("/cancel", { orgId, queryId, dataspace }),
+  notebookStatus: (orgId: string) => call<KernelStatus>("POST", "/notebook/status", { orgId }),
+  notebookRun: (orgId: string, code: string) => call<NotebookRun>("POST", "/notebook/run", { orgId, code }),
+  notebookInterrupt: (orgId: string) => call<{ ok: boolean }>("POST", "/notebook/interrupt", { orgId }),
+  notebookRestart: (orgId: string) => call<KernelStatus>("POST", "/notebook/restart", { orgId }),
 };
 
 // A failed query: the API's message, and for SQL errors the caret line, SQL state and trace id.

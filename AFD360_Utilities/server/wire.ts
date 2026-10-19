@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import type { WireEntry } from "../shared/types.ts";
 
-const SECRET_KEYS = /^(access_token|refresh_token|client_secret|id_token|signature)$/i;
+const SECRET_KEYS = /^(access_token|refresh_token|client_secret|id_token|subject_token|token|password|assertion|signature)$/i;
+const SECRET_PARAMS = /^(access_token|refresh_token|client_secret|id_token|subject_token|token|password|assertion)$/i;
 
 export function maskToken(value: string): string {
   return value.length <= 12 ? "••••" : `${value.slice(0, 6)}…${value.slice(-4)}`;
@@ -24,6 +25,21 @@ export function maskBody(body: unknown): unknown {
     );
   }
   return body;
+}
+
+const decoded = (v: string) => {
+  try {
+    return decodeURIComponent(v.replace(/\+/g, " "));
+  } catch {
+    return v;
+  }
+};
+
+// Secrets sent as query parameters (OAuth flows that use params, like the Python connector's).
+export function maskUrl(url: string): string {
+  return url.replace(/([?&])([^=&#]+)=([^&#]*)/g, (m, sep: string, k: string, v: string) =>
+    SECRET_PARAMS.test(k) ? `${sep}${k}=${maskToken(decoded(v))}` : m,
+  );
 }
 
 export function newWireEntry(init: Pick<WireEntry, "label" | "method" | "url" | "turn"> & {

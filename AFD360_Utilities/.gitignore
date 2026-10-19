@@ -2,3 +2,5 @@ node_modules/
 web/dist/
 data/
 .env
+.venv/
+__pycache__/

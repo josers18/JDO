@@ -3,7 +3,7 @@ import { CheckCircle2, Loader2, Pencil, Plus, Trash2, XCircle } from "lucide-rea
 import { api } from "../api";
 import type { OrgInput, OrgSummary, OrgTestResult, OrgsResponse } from "../../../shared/types";
 
-const EMPTY: OrgInput = { name: "", myDomain: "", clientId: "", clientSecret: "" };
+const EMPTY: OrgInput = { name: "", myDomain: "", clientId: "", clientSecret: "", dataCloudClientId: "", dataCloudClientSecret: "" };
 
 export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () => Promise<void> }) {
   const [editing, setEditing] = useState<{ id: string | null; form: OrgInput } | null>(null);
@@ -94,7 +94,14 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
                     {o.myDomain.replace(/^https:\/\//, "")}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-ink-2" title={o.clientId}>{o.clientId.slice(0, 14)}…{o.clientId.slice(-4)}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-ink-2">••••{o.secretLast4}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-ink-2">
+                    ••••{o.secretLast4}
+                    {o.dataCloudClientId && (
+                      <span className="mt-1 block font-sans text-ink-3" title={`Notebook connector app ${o.dataCloudClientId}`}>
+                        + Data Cloud app
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <button onClick={() => test(o.id)} className="rounded border border-line px-2 py-1 text-xs hover:bg-tint">
                       Test
@@ -113,7 +120,7 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => setEditing({ id: o.id, form: { name: o.name, myDomain: o.myDomain, clientId: o.clientId, clientSecret: "" } })}
+                      onClick={() => setEditing({ id: o.id, form: { name: o.name, myDomain: o.myDomain, clientId: o.clientId, clientSecret: "", dataCloudClientId: o.dataCloudClientId ?? "", dataCloudClientSecret: "" } })}
                       className="p-1 text-ink-3 hover:text-ink-2"
                       title="Edit"
                     >
@@ -151,6 +158,28 @@ export function OrgsPage({ orgs, onChange }: { orgs: OrgsResponse; onChange: () 
                 type="password"
                 mono
                 hint={editing.id ? "Leave blank to keep the saved secret" : undefined}
+              />
+              <div className="border-t border-line pt-3">
+                <p className="text-sm font-medium text-ink-2">Data Cloud app (optional)</p>
+                <p className="mt-0.5 text-xs text-ink-3">
+                  For the Notebook's Data Cloud Python connector: a second External Client App with client credentials, JWT-based
+                  tokens off, and the cdp_api and cdp_query_api scopes. Without it the notebook uses the app above.
+                </p>
+              </div>
+              <Field
+                label="Consumer key"
+                value={editing.form.dataCloudClientId ?? ""}
+                onChange={(v) => setEditing({ ...editing, form: { ...editing.form, dataCloudClientId: v } })}
+                mono
+                hint="Clear it to remove the Data Cloud app"
+              />
+              <Field
+                label="Consumer secret"
+                value={editing.form.dataCloudClientSecret ?? ""}
+                onChange={(v) => setEditing({ ...editing, form: { ...editing.form, dataCloudClientSecret: v } })}
+                type="password"
+                mono
+                hint={editing.id && orgs.orgs.find((o) => o.id === editing.id)?.dataCloudClientId ? "Leave blank to keep the saved secret" : undefined}
               />
             </div>
             {error && <p className="mt-3 text-sm text-err">{error}</p>}

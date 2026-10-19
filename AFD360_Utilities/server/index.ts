@@ -4,12 +4,14 @@ import { PORT, ROOT, SANDBOX_PORT } from "./env.ts";
 import { api } from "./routes.ts";
 import { mcpApi } from "./mcpRoutes.ts";
 import { queryApi } from "./queryRoutes.ts";
+import { notebookApi } from "./notebookRoutes.ts";
 import { startSandbox } from "./sandbox.ts";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use("/api/mcp", mcpApi);
 app.use("/api/query", queryApi);
+app.use("/api/notebook", notebookApi);
 app.use("/api", api);
 
 // Production (and Heroku later): one process serves the built React app too.

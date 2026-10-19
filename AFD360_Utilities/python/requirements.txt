@@ -1,0 +1,3 @@
+salesforce-cdp-connector==1.0.20  # its successor, salesforce-datacloud-connector, is beta and has no client credentials flow until 2.0.0b2
+pandas
+matplotlib
