@@ -31,6 +31,10 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
 
 ### Added
 
+- **AFD360_Utilities** (PR [#100](https://github.com/josers18/JDO/pull/100)) — local Vite + React + Express test bench for Agentforce and Data 360 APIs (see [`AFD360_Utilities/README.md`](AFD360_Utilities/README.md)):
+  - **Chat (Agent API)** — agent gallery, persisted live sessions, Ask-page tool cards, approval cards (Confirm → Reply/Cancel), HXL cards for action outputs, and a Wire / Stats / Sources side panel with per-model token usage from Data 360 telemetry.
+  - **MCP** — Streamable HTTP client for Salesforce-hosted MCP and an MCP Apps host (`AppBridge` in a CSP-headed double-iframe sandbox) that renders HXL widgets; `salesforce/` holds the HXL demo deployed to finsdc3.
+  - **Query (Data 360)** — catalog-driven object browser (types colored), SQL editor over `/ssot/query-sql` with autocomplete, polling, paging, export and history; REST read forms for data graph / insight / profile / Universal ID with a checkbox field picker, root-record search, and Universal ID data source + object dropdowns from the link DMO; a sortable, per-column-filterable result grid with a JSON record panel; bare `vector_search` / `hybrid_search` auto-joined to the index's chunk DMO so matches show text. 79 vitest tests.
 - **Claude_Mods** — Claude Code mods for JDO work (see [`Claude_Mods/README.md`](Claude_Mods/README.md)):
   - **jdo-guardrails** — `sf project deploy start` guard: denies `--ignore-conflicts`, a stale UI-bundle `dist/` (2 s tolerance for checkout ties) and `--source-dir` casing that differs from git; appends `--json`; toasts status/deployed/errors and tells the model when a deploy didn't cleanly succeed, whatever the exit code. Plus a post-Edit/Write lint for 8 JDO gotchas. 13 tests.
   - **jdo-org-cockpit** — `/org` pane: org auth, UI Bundles (deploy date, local dist freshness, App Domain **Open** buttons), and a Data Cloud stream-health heat map from SOQL on `DataStream` (~3 s for 447 streams vs ~100 s per page over SSOT REST). The snapshot persists across sessions. 5 tests.

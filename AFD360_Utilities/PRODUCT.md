@@ -40,10 +40,12 @@ produced, against the customer's or demo org's live agents — not a mock, not t
 - Wire panel: every Salesforce exchange — timestamped, sortable newest/oldest, sent vs received clearly separated,
   tokens and secrets masked, copy-as-curl, JSON export.
 - MCP: Salesforce-hosted MCP servers, tools, JSON arguments, results, and HXL widgets rendered in a sandboxed frame.
+- Query (Data 360): object browser per data space, SQL editor, REST read forms (data graph, insight, profile,
+  Universal ID), sortable/filterable result grid, search indexes joined to their chunk text.
 - Admin → Orgs: org credentials (encrypted at rest; secrets never shown), test connection, active org.
 - Terminology to keep: Agent, Session, Turn, Tool step, Approval, Wire, MCP server, Tool, Widget, Org.
 - Some agent outputs reference data the Agent API doesn't return (e.g. D360 `<data>` tables) — say so honestly.
-- More API modules (Data 360 query etc.) will be added; the structure must accommodate new modules in the rail.
+- More API modules will be added; the structure must accommodate new modules in the rail.
 
 ## Brand Commitments
 

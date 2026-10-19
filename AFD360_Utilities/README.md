@@ -9,13 +9,18 @@ Local test bench for Agentforce and Data 360 APIs, built for SEs to demo live to
   - a **Wire** panel with every Salesforce call.
 - **MCP.** An MCP Apps host for Salesforce-hosted MCP servers: list and call tools, and render their HXL widgets
   in a sandbox.
+- **Query (Data 360).** Browse a data space's objects and run them through the Query API:
+  - a SQL editor with catalog autocomplete;
+  - REST read forms for data graphs, insights, profiles and Universal ID;
+  - a sortable, filterable result grid;
+  - vector and hybrid searches joined to their chunk text.
 - **Admin → Orgs.** Org profiles (My Domain plus External Client App key and secret): test them and switch.
 - **17 themes.** Pick one with the picker at the bottom of the rail. HXL cards follow the theme.
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173 (API :3001, widget sandbox :3002, loopback only)
-npm test           # stream normalizer + HXL resolver tests
+npm test           # stream normalizer, HXL resolver, stats, query and grid tests
 ```
 
 **First run:**
@@ -35,6 +40,7 @@ opportunity". The Search Agent (Coworker) only returns text, so it shows no card
 Details, the deploy order and how chat resolves widgets: [docs/hxl.md](docs/hxl.md).
 
 **Docs:**
+- [AGENTS.md](AGENTS.md): primer for coding agents (structure, commands, conventions, gotchas).
 - [docs/architecture.md](docs/architecture.md): architecture, stream normalization, routes and known issues.
 - [docs/hxl.md](docs/hxl.md): HXL in chat and MCP, theming, buttons, org artifacts.
 - [DESIGN.md](DESIGN.md): visual system (themes, components).

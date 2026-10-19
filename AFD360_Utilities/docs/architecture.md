@@ -39,8 +39,12 @@ Verified against the Search Agent (`0Xxam000000thvZCAQ`) and Cumulus Assistant:
 App events: `text-delta`, `tool`, `progress`, `part`, `final`, `end-of-turn`, `session-expired`, `error`, `wire`,
 `user-message`.
 
-Tests: `test/normalize.test.ts` (recorded streams in `test/fixtures/*.sse`) and `test/hxl.test.ts` (widget
-resolver and generated cards).
+Tests:
+- `test/normalize.test.ts`: recorded streams in `test/fixtures/*.sse`.
+- `test/hxl.test.ts`: widget resolver and generated cards.
+- Stats, citations and usage tests.
+- `test/query.test.ts`, `queryExport.test.ts` and `gridView.test.ts`: catalog, SQL assist, chunk join, export, grid
+  sort/filter.
 
 ## Modules (`web/src/`)
 
@@ -76,6 +80,32 @@ resolver and generated cards).
   render through `@modelcontextprotocol/ext-apps` `AppBridge` in the double-iframe sandbox (:3002, CSP header
   built from the resource's declared domains). Widget-initiated `tools/call` and `resources/read` go through the
   server.
+- **Query (Data 360)** (`web/src/query/`, `server/query.ts`):
+  - **Catalog.** Built per data space from `/ssot/metadata`, `/ssot/data-graphs/metadata` and `/ssot/search-index`,
+    then cached on the server; the reload button refetches it. It covers DMOs, DLOs, calculated insights,
+    unified/link objects and search indexes, and each search index records its chunk DMO
+    (`chunkDmoDeveloperName`). The object browser colors each type.
+  - **SQL** (`SqlEditor.tsx`, `shared/sqlAssist.ts`):
+    - Runs through `POST /ssot/query-sql`, with status polling, cancel and paged "load more".
+    - The editor has autocomplete from the catalog (Tab accepts), highlighting, and drop insertion that knows
+      lists.
+    - History is kept per org in `localStorage`.
+  - **REST read forms** (`ApiForm.tsx`, built from the catalog):
+    - The forms cover data graph, insight, profile and Universal ID.
+    - A checkbox multi-select field picker, and filter and order-by builders that know each field's type.
+    - A root-record search that fills in the record ID.
+    - For Universal ID, the data source and source object dropdowns are filled from the link DMO, with record
+      counts. Its record search reads `SourceRecordId__c` from the link DMO, joined to the unified profile for a
+      name (`linkSearch`).
+  - **Results grid:**
+    - Header sort and per-column filters (`shared/gridView.ts`): text it contains, or `>` `>=` `<` `<=` `=` `!=`,
+      compared as numbers on number columns and as text elsewhere. Empty values sort last.
+    - The CSV/.xlsx export, the JSON view and the record panel (`RecordPanel.tsx`, a collapsible JSON tree) use
+      the rows currently shown.
+  - **Search indexes.** A bare `SELECT *` over `vector_search` / `hybrid_search` is rewritten by
+    `searchWithChunks` to join the chunk DMO on `RecordId__c`, so matches show `Chunk__c` text, best score first.
+  - **Wire.** Every Salesforce call goes into the call panel, which can copy it as a body, curl or fetch.
+    `:source` is reserved in Data 360 SQL, so named parameters use `:src` / `:obj`.
 - **Admin → Orgs:** add, edit, delete, test and activate org profiles.
 - **Theme picker:** 17 runtime themes (`themes.ts`), at the foot of the rail. HXL cards follow the active theme.
 
@@ -87,6 +117,8 @@ resolver and generated cards).
 | `/api/orgs/:id/agents` | Agent list (BotDefinition and Agent API support) |
 | `/api/conversations*` | Create (starts a session and warms HXL), list, get, delete; `messages` and `confirm` stream a turn over SSE; `usage/:traceId` returns a turn's Data 360 token usage (`server/usage.ts`) and logs the lookup to the conversation's wire |
 | `/api/mcp/connect`, `/call`, `/app-call`, `/read` | Hosted MCP client and MCP Apps host proxy |
+| `/api/query/data-spaces`, `/catalog`, `/run`, `/status`, `/rows`, `/cancel` | Data 360 Query API: data spaces, object catalog, SQL submit, polling, paging, cancel. Each response carries its `wire` entries |
+| `/api/query/read` | REST reads: data graph, calculated insight, profile, Universal ID lookup |
 | `/api/mcp/hxl`, `/hxl-runtime` | HXL cards for an agent action output, and the HXL runtime page |
 
 ## Known platform issues
@@ -98,4 +130,4 @@ resolver and generated cards).
 
 ## Out of scope
 
-App login, Postgres, Data 360 modules, and resuming a session after Salesforce expires it.
+App login, Postgres, Data 360 writes (ingest, segments, mappings), and resuming a session after Salesforce expires it.
