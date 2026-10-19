@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<McpServerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>AFD360 Demo</masterLabel>
+    <description>AFD360_Utilities demo: Lead, Account and Opportunity snapshots and Task creation via Apex invocables, each rendered with an HXL widget (afd360LeadCard, afd360AccountCard, afd360OpportunityCard, afd360TaskCard).</description>
+    <tools>
+        <toolName>getLeadSnapshot</toolName>
+        <toolTitle>Get Lead Snapshot</toolTitle>
+        <descriptionOverride>Return a snapshot of a Salesforce Lead (name, company, title, status, rating, source, email, phone, created date) by Lead Id (leadId) or name (leadName), displayed as a Lead card widget.</descriptionOverride>
+        <readOnly>true</readOnly>
+        <destructive>false</destructive>
+        <idempotent>true</idempotent>
+        <openWorld>false</openWorld>
+        <returnDirect>false</returnDirect>
+        <uiResource>leadSnapshot</uiResource>
+        <apiDefinition>
+            <apiSource>API_CATALOG</apiSource>
+            <apiIdentifier>aa:apex-AFD360LeadSnapshot</apiIdentifier>
+            <operation>AFD360LeadSnapshot</operation>
+        </apiDefinition>
+    </tools>
+    <tools>
+        <toolName>getAccountSnapshot</toolName>
+        <toolTitle>Get Account Snapshot</toolTitle>
+        <descriptionOverride>Return a snapshot of a Salesforce Account (type, industry, owner, phone, website, location, open opportunities and pipeline) by Account Id (accountId) or name (accountName), displayed as an Account card widget.</descriptionOverride>
+        <readOnly>true</readOnly>
+        <destructive>false</destructive>
+        <idempotent>true</idempotent>
+        <openWorld>false</openWorld>
+        <returnDirect>false</returnDirect>
+        <uiResource>accountSnapshot</uiResource>
+        <apiDefinition>
+            <apiSource>API_CATALOG</apiSource>
+            <apiIdentifier>aa:apex-AFD360AccountSnapshot</apiIdentifier>
+            <operation>AFD360AccountSnapshot</operation>
+        </apiDefinition>
+    </tools>
+    <tools>
+        <toolName>getOpportunitySnapshot</toolName>
+        <toolTitle>Get Opportunity Snapshot</toolTitle>
+        <descriptionOverride>Return a snapshot of a Salesforce Opportunity (account, stage, amount, close date, probability, owner, next step) by Opportunity Id (opportunityId) or name (opportunityName); with only an Account Id (accountId), its largest open opportunity. Displayed as an Opportunity card widget.</descriptionOverride>
+        <readOnly>true</readOnly>
+        <destructive>false</destructive>
+        <idempotent>true</idempotent>
+        <openWorld>false</openWorld>
+        <returnDirect>false</returnDirect>
+        <uiResource>opportunitySnapshot</uiResource>
+        <apiDefinition>
+            <apiSource>API_CATALOG</apiSource>
+            <apiIdentifier>aa:apex-AFD360OpportunitySnapshot</apiIdentifier>
+            <operation>AFD360OpportunitySnapshot</operation>
+        </apiDefinition>
+    </tools>
+    <tools>
+        <toolName>createTask</toolName>
+        <toolTitle>Create Task</toolTitle>
+        <descriptionOverride>Create a Salesforce Task: subject (required), whatId (related record), whoId (contact or lead), status, priority, activityDate (YYYY-MM-DD) and details. Returns the created Task as a Task card widget.</descriptionOverride>
+        <readOnly>false</readOnly>
+        <destructive>false</destructive>
+        <idempotent>false</idempotent>
+        <openWorld>false</openWorld>
+        <returnDirect>false</returnDirect>
+        <uiResource>taskCard</uiResource>
+        <apiDefinition>
+            <apiSource>API_CATALOG</apiSource>
+            <apiIdentifier>aa:apex-AFD360CreateTask</apiIdentifier>
+            <operation>AFD360CreateTask</operation>
+        </apiDefinition>
+    </tools>
+    <resources>
+        <resourceName>leadSnapshot</resourceName>
+        <resourceUri>ui://widget/lightningType/c__afd360LeadSnapshotResult</resourceUri>
+        <resourceTitle>AFD360 Lead Snapshot widget</resourceTitle>
+        <description>Backs the widget-referencing CLT c__afd360LeadSnapshotResult; renderer.json maps $attrs.outputValues.lead.* to @widget/c/afd360LeadCard.</description>
+    </resources>
+    <resources>
+        <resourceName>accountSnapshot</resourceName>
+        <resourceUri>ui://widget/lightningType/c__afd360AccountSnapshotResult</resourceUri>
+        <resourceTitle>AFD360 Account Snapshot widget</resourceTitle>
+        <description>Backs the widget-referencing CLT c__afd360AccountSnapshotResult.</description>
+    </resources>
+    <resources>
+        <resourceName>opportunitySnapshot</resourceName>
+        <resourceUri>ui://widget/lightningType/c__afd360OpportunitySnapshotResult</resourceUri>
+        <resourceTitle>AFD360 Opportunity Snapshot widget</resourceTitle>
+        <description>Backs the widget-referencing CLT c__afd360OpportunitySnapshotResult.</description>
+    </resources>
+    <resources>
+        <resourceName>taskCard</resourceName>
+        <resourceUri>ui://widget/lightningType/c__afd360CreateTaskResult</resourceUri>
+        <resourceTitle>AFD360 Task card widget</resourceTitle>
+        <description>Backs the widget-referencing CLT c__afd360CreateTaskResult.</description>
+    </resources>
+</McpServerDefinition>

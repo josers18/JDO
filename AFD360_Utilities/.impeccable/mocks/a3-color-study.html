@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mock A3 · color study</title>
+<link rel="stylesheet" href="fonts.css" />
+<style>
+  :root, [data-pal="platinum"] {
+    --ground: #F5F6F8; --surface: #FFFFFF; --line: #E1E5EA; --ink: #121821; --ink-2: #3E4753; --ink-3: #56606C;
+    --side: #DDE2E8; --side-2: #F7F8FA; --side-ink: #121821; --side-ink-2: #4B5562; --side-line: #C7CED7;
+    --rail: #1B2B4B; --rail-ink: #A9B6CB; --rail-on: #2C3E63;
+    --sent: #E7EDF4; --sent-line: #C9D5E4; --sent-ink: #1B3358; --sent-chip: #D6E1EE;
+    --recv: #F6F0E1; --recv-line: #E4D6B4; --recv-ink: #5E4A16;
+    --ok: #2F7D5B; --live: #2F7D5B; --err: #B23A33;
+    --action: #1B2B4B; --action-ink: #FFFFFF;
+    --focus: rgba(27,43,75,.25);
+    --rail-on-ink: #FFFFFF;
+  }
+  [data-pal="navygold"] {
+    --ground: #F3F4F6; --surface: #FFFFFF; --line: #E0E3E8; --ink: #111827; --ink-2: #3D4554; --ink-3: #555E6D;
+    --side: #14213D; --side-2: #1E2E52; --side-ink: #EEF1F7; --side-ink-2: #AEB9CF; --side-line: #2B3C63;
+    --rail: #0D172C; --rail-ink: #93A1BC; --rail-on: #1E2E52;
+    --sent: #E6ECF5; --sent-line: #C8D4E6; --sent-ink: #1A3360; --sent-chip: #D4DFEF;
+    --recv: #F7F0DC; --recv-line: #E6D6A8; --recv-ink: #5F4A0F;
+    --ok: #2F7D5B; --live: #E2C15A; --err: #B23A33;
+    --action: #C9A227; --action-ink: #1A1405;
+    --focus: rgba(201,162,39,.25);
+  }
+  [data-pal="steel"] {
+    --ground: #EEF1F4; --surface: #FFFFFF; --line: #DCE1E7; --ink: #141A22; --ink-2: #3F4955; --ink-3: #56606C;
+    --side: #2B3440; --side-2: #37414F; --side-ink: #EDF1F5; --side-ink-2: #AEB8C4; --side-line: #465263;
+    --rail: #1F262F; --rail-ink: #98A3B0; --rail-on: #37414F;
+    --sent: #E3EAF6; --sent-line: #C3D1EA; --sent-ink: #1C3D78; --sent-chip: #D2DEF2;
+    --recv: #F1EFEA; --recv-line: #DCD7CB; --recv-ink: #4E473A;
+    --ok: #2F7D5B; --live: #8FB4E8; --err: #B23A33;
+    --action: #1F4FA3; --action-ink: #FFFFFF;
+    --focus: rgba(31,79,163,.25);
+  }
+  [data-pal="champagne"] {
+    --ground: #F4F3F0; --surface: #FFFFFF; --line: #E3E1DB; --ink: #1A1A1A; --ink-2: #45443F; --ink-3: #5C5A54;
+    --side: #232528; --side-2: #303236; --side-ink: #F1F0EC; --side-ink-2: #B8B6AF; --side-line: #3F4146;
+    --rail: #18191B; --rail-ink: #9D9B95; --rail-on: #303236;
+    --sent: #ECEBE7; --sent-line: #D6D4CC; --sent-ink: #33322E; --sent-chip: #E1DFD8;
+    --recv: #F5EEDC; --recv-line: #E3D5B0; --recv-ink: #5C4914;
+    --ok: #2F7D5B; --live: #D8BE7A; --err: #B23A33;
+    --action: #D8BE7A; --action-ink: #1E1A10;
+    --focus: rgba(216,190,122,.25);
+  }
+  [data-pal="ivory"] {
+    --ground: #FBFAF7; --surface: #FFFFFF; --line: #E8E4DA; --ink: #16202C; --ink-2: #434B56; --ink-3: #5A616B;
+    --side: #EFEBE1; --side-2: #FFFEFB; --side-ink: #16202C; --side-ink-2: #5A616B; --side-line: #DCD5C6;
+    --rail: #1D3A5F; --rail-ink: #A7B7CC; --rail-on: #2C4E7A;
+    --sent: #E7EDF4; --sent-line: #C8D5E4; --sent-ink: #1D3A5F; --sent-chip: #D6E1EE;
+    --recv: #F6EED8; --recv-line: #E3D3A8; --recv-ink: #5D4812;
+    --ok: #2F7D5B; --live: #2F7D5B; --err: #B23A33;
+    --action: #1D3A5F; --action-ink: #FFFFFF;
+    --focus: rgba(29,58,95,.25);
+    --rail-on-ink: #FFFFFF;
+  }
+  [data-pal="pewter"] {
+    --ground: #F2F2F0; --surface: #FFFFFF; --line: #E0E0DC; --ink: #18191B; --ink-2: #44464A; --ink-3: #5B5D62;
+    --side: #3C4148; --side-2: #4A5058; --side-ink: #EFF0F2; --side-ink-2: #B5BAC1; --side-line: #585E67;
+    --rail: #2D3137; --rail-ink: #A0A5AD; --rail-on: #4A5058;
+    --sent: #E9ECEF; --sent-line: #D0D5DB; --sent-ink: #2F3640; --sent-chip: #DDE1E6;
+    --recv: #FBF0D4; --recv-line: #EED69A; --recv-ink: #5E4405;
+    --ok: #2F7D5B; --live: #E8B23A; --err: #B23A33;
+    --action: #E0A526; --action-ink: #1C1404;
+    --focus: rgba(224,165,38,.25);
+  }
+  [data-pal="citron"] {
+    --ground: #F3F4F6; --surface: #FFFFFF; --line: #E0E3E8; --ink: #12151C; --ink-2: #3E4350; --ink-3: #565C69;
+    --side: #161B26; --side-2: #222938; --side-ink: #ECEFF4; --side-ink-2: #A6AEBD; --side-line: #333B4C;
+    --rail: #0E121A; --rail-ink: #8D95A4; --rail-on: #222938;
+    --sent: #E8EBF0; --sent-line: #CDD2DB; --sent-ink: #252C3A; --sent-chip: #DADFE7;
+    --recv: #F8F4D8; --recv-line: #E6DC9E; --recv-ink: #554A0A;
+    --ok: #2F7D5B; --live: #E6D35A; --err: #B23A33;
+    --action: #E6D35A; --action-ink: #17150A;
+    --focus: rgba(230,211,90,.25);
+  }
+  [data-pal="midnight"] {
+    --ground: #0F1622; --surface: #162032; --line: #26324A; --ink: #E8ECF2; --ink-2: #B4BDCB; --ink-3: #8E99AA;
+    --side: #0A101B; --side-2: #162032; --side-ink: #E8ECF2; --side-ink-2: #8E99AA; --side-line: #26324A;
+    --rail: #070B13; --rail-ink: #7D889A; --rail-on: #162032;
+    --sent: #1B2A44; --sent-line: #2C4166; --sent-ink: #D5E2F7; --sent-chip: #24365A;
+    --recv: #262418; --recv-line: #463F27; --recv-ink: #EADBB0;
+    --ok: #5BBF8F; --live: #C9D1DC; --err: #FF7A6E;
+    --action: #C9D1DC; --action-ink: #0F1622;
+    --focus: rgba(201,209,220,.25);
+  }
+  :root {
+    --r: 14px;
+    --shadow: 0 1px 2px rgba(15,23,36,.05), 0 6px 20px rgba(15,23,36,.06);
+    --sans: "Archivo", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--ground); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--focus); }
+  .app { display: grid; grid-template-columns: 72px 280px minmax(0, 1fr) minmax(380px, 30%); height: 100vh; }
+
+  .rail { background: var(--rail); display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 8px; }
+  .mark { width: 36px; height: 36px; border-radius: 10px; background: var(--action); color: var(--action-ink); display: grid; place-items: center; font: 700 12px/1 var(--mono); margin-bottom: 14px; }
+  .rail a { width: 52px; padding: 9px 0 7px; border-radius: 12px; display: grid; place-items: center; gap: 4px; color: var(--rail-ink); text-decoration: none; font: 500 11px/1 var(--sans); }
+  .rail a.on { background: var(--rail-on); color: var(--rail-on-ink, var(--side-ink)); }
+  .rail svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  .side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; min-width: 0; padding: 16px 12px; gap: 14px; }
+  .orgpick { display: flex; align-items: center; justify-content: space-between; background: var(--side-2); border: 1px solid var(--side-line); color: var(--side-ink); border-radius: 12px; padding: 10px 12px; font-weight: 600; font-size: 14px; }
+  .orgpick span { font: 500 12px var(--mono); color: var(--side-ink-2); }
+  .btn { border: 0; border-radius: 11px; padding: 10px 14px; font: 600 14px/1 var(--sans); cursor: pointer; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
+  .btn-action { background: var(--action); color: var(--action-ink); font-weight: 650; box-shadow: 0 1px 2px rgba(15,23,36,.18), 0 4px 10px rgba(15,23,36,.10); }
+  .btn-soft { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+  .group { font: 600 12px/1 var(--sans); color: var(--side-ink-2); padding: 0 6px; }
+  .convs { display: grid; gap: 4px; overflow: auto; }
+  .conv { border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: 10px minmax(0,1fr) auto; gap: 10px; align-items: start; }
+  .conv.on { background: var(--side-2); box-shadow: inset 0 0 0 1px var(--side-line); }
+  .conv:not(.on):hover { background: color-mix(in oklab, var(--side-ink) 6%, transparent); }
+  .conv .st { display: block; width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; background: var(--side-line); }
+  .conv .st.up { background: var(--live); }
+  .conv .t { font-weight: 600; font-size: 14px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .conv .m { font-size: 12.5px; color: var(--side-ink-2); margin-top: 2px; }
+  .conv time { font: 500 12px var(--mono); color: var(--side-ink-2); }
+
+  .main { display: flex; flex-direction: column; min-width: 0; }
+  .sessbar { margin: 14px 18px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+  .sessbar .meta { margin-right: auto; }
+  .agent { min-width: 0; }
+  .agent { display: flex; gap: 12px; align-items: center; }
+  .avatar { width: 38px; height: 38px; border-radius: 11px; background: var(--recv); border: 1px solid var(--recv-line); display: grid; place-items: center; color: var(--recv-ink); }
+  .agent h1 { font: 650 17px/1.2 var(--sans); }
+  .agent p { font: 500 12px/1.4 var(--mono); color: var(--ink-3); }
+  .live { display: inline-flex; align-items: center; gap: 8px; padding: 5px 6px 5px 12px; border-radius: 999px; background: var(--sent); color: var(--sent-ink); white-space: nowrap; font: 600 12.5px/1 var(--sans); }
+  .live i { width: 16px; height: 16px; border-radius: 50%; background: var(--ok); }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; white-space: nowrap; font-size: 13px; color: var(--ink-2); }
+  .meta b { color: var(--ink); font-weight: 600; }
+  .acts { display: flex; gap: 8px; align-items: center; }
+
+  .thread { flex: 1; overflow: auto; padding: 18px 18px 24px; display: grid; gap: 14px; align-content: start; max-width: 1100px; width: 100%; margin: 0 auto; }
+  .card { border-radius: var(--r); border: 1px solid; padding: 14px 18px 16px; box-shadow: var(--shadow); }
+  .card.sent { background: var(--sent); border-color: var(--sent-line); margin-left: 12%; }
+  .card.recv { background: var(--surface); border-color: var(--line); margin-right: 6%; }
+  .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+  .lane { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font: 600 12px/1.2 var(--sans); }
+  .sent .lane { background: var(--sent-chip); color: var(--sent-ink); }
+  .recv .lane { background: var(--recv); color: var(--recv-ink); border: 1px solid var(--recv-line); }
+  .head .who { font-weight: 600; }
+  .head time { margin-left: auto; font: 500 12px var(--mono); color: var(--ink-3); }
+  .sent .body { color: var(--sent-ink); font-weight: 500; font-size: 15.5px; }
+  .body { font-size: 15.5px; line-height: 1.6; }
+  .body b { font-weight: 650; }
+  code { font: 500 13px var(--mono); background: var(--tint); border: 1px solid var(--line); padding: 0 5px; border-radius: 6px; }
+
+  .trail { margin: 4px 0 14px; background: var(--recv); border: 1px solid var(--recv-line); border-radius: 12px; padding: 12px 14px; }
+  .trail .th { display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 14px; color: var(--recv-ink); margin-bottom: 8px; }
+  .trail .th span { font: 500 12px var(--mono); }
+  .steps { list-style: none; padding: 0; position: relative; }
+  .steps::before { content: ""; position: absolute; left: 9px; top: 8px; bottom: 8px; width: 2px; background: var(--recv-line); border-radius: 2px; }
+  .steps li { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 10px; align-items: start; padding: 5px 0; position: relative; font-size: 14px; color: var(--ink-2); }
+  .steps li b { color: var(--ink); font-weight: 600; }
+  .steps time { font: 500 12px var(--mono); color: var(--recv-ink); opacity: .85; }
+  .ck { width: 20px; height: 20px; border-radius: 50%; background: var(--ok); display: grid; place-items: center; position: relative; z-index: 1; }
+  .ck svg { width: 12px; height: 12px; stroke: #fff; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .now .ck { background: var(--surface); border: 2px solid var(--ink); }
+  .now .ck::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); animation: pulse 1.4s ease-in-out infinite; }
+  .now { color: var(--ink) !important; font-weight: 600; }
+  @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.55); opacity: .55; } }
+
+  .approve { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .approve .ah { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: var(--tint); border-bottom: 1px solid var(--line); font-weight: 600; font-size: 14px; }
+  .approve .ah .pill { background: var(--recv); color: var(--recv-ink); border-radius: 999px; padding: 3px 9px; font-size: 12px; }
+  .row { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 14px; }
+  .row:first-of-type { border-top: 0; }
+  .row small { color: var(--ink-3); font-size: 13px; margin-left: 6px; }
+  .chg { font: 500 12.5px var(--mono); background: var(--sent); color: var(--sent-ink); border: 1px solid var(--sent-line); border-radius: 8px; padding: 3px 8px; }
+  .af { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--tint); font-size: 13px; color: var(--ink-3); }
+  .af div { display: flex; gap: 8px; }
+  input[type=checkbox] { accent-color: var(--action); width: 16px; height: 16px; }
+
+  .composer { margin: 0 18px 16px; max-width: 1100px; align-self: center; width: calc(100% - 36px); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); display: flex; align-items: center; padding: 6px 6px 6px 18px; gap: 10px; }
+  .composer input { flex: 1; border: 0; outline: none; font: 15.5px var(--sans); padding: 10px 0; background: transparent; }
+
+  .wire { background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
+  .wh { padding: 16px 16px 12px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+  .wh h2 { font: 650 17px/1 var(--sans); display: flex; align-items: baseline; justify-content: space-between; }
+  .wh h2 span { font: 500 12px var(--mono); color: var(--ink-3); }
+  .wtools { display: flex; gap: 6px; align-items: center; }
+  .seg { display: inline-flex; background: var(--tint); border-radius: 10px; padding: 3px; gap: 2px; font: 600 12.5px/1 var(--sans); }
+  .seg span { padding: 6px 10px; border-radius: 8px; color: var(--ink-2); }
+  .seg .on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(15,23,36,.08); }
+  .sort { margin-left: auto; font: 600 12.5px var(--sans); color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+  .key { display: flex; gap: 14px; font-size: 12.5px; color: var(--ink-2); }
+  .key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .calls { overflow: auto; padding: 12px; display: grid; gap: 8px; align-content: start; background: var(--ground); }
+  .call { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 10px; align-items: start; }
+  .call time { font: 500 12px/1.6 var(--mono); color: var(--ink-3); }
+  .call .ttl { font-weight: 600; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .dir { font: 600 11.5px/1 var(--sans); padding: 3px 7px; border-radius: 999px; }
+  .dir.o { background: var(--sent-chip); color: var(--sent-ink); }
+  .dir.i { background: var(--recv); color: var(--recv-ink); border: 1px solid var(--recv-line); }
+  .call .url { font: 500 12px/1.5 var(--mono); color: var(--ink-3); word-break: break-all; margin-top: 2px; }
+  .status { text-align: right; font: 600 12.5px/1.5 var(--mono); }
+  .status .ok { color: var(--ok); } .status em { display: block; font-style: normal; color: var(--ink-3); font-weight: 500; }
+  .open { border-color: var(--sent-line); box-shadow: var(--shadow); padding: 0; display: block; overflow: hidden; }
+  .open .top { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 10px; padding: 10px 12px; }
+  .halves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 10px 10px; }
+  .half { border-radius: 10px; padding: 10px; min-width: 0; }
+  .half.o { background: var(--sent); border: 1px solid var(--sent-line); }
+  .half.i { background: var(--recv); border: 1px solid var(--recv-line); }
+  .half h4 { font: 600 12.5px/1 var(--sans); margin-bottom: 8px; }
+  .half.o h4 { color: var(--sent-ink); } .half.i h4 { color: var(--recv-ink); }
+  pre { font: 500 12px/1.55 var(--mono); white-space: pre-wrap; word-break: break-all; color: var(--ink); }
+  body[data-pal] { --tint: color-mix(in oklab, var(--ground) 60%, var(--surface)); }
+</style>
+</head>
+<body data-pal="platinum">
+<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9;background:#fff;border:1px solid #ddd;border-radius:22px;padding:6px;display:flex;flex-wrap:wrap;justify-content:center;max-width:94vw;gap:6px;box-shadow:0 6px 24px rgba(0,0,0,.15);font:600 13px Archivo,system-ui">
+  <button onclick="document.body.dataset.pal='platinum'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#DDE2E8;color:#121821;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#1B2B4B;display:inline-block"></i>1 · Platinum &amp; Navy</button>
+  <button onclick="document.body.dataset.pal='navygold'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#14213D;color:#fff;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#C9A227;display:inline-block"></i>2 · Navy &amp; Gold</button>
+  <button onclick="document.body.dataset.pal='steel'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#2B3440;color:#fff;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#1F4FA3;display:inline-block"></i>3 · Steel &amp; Sapphire</button>
+  <button onclick="document.body.dataset.pal='champagne'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#232528;color:#fff;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#D8BE7A;display:inline-block"></i>4 · Charcoal &amp; Champagne</button>
+  <button onclick="document.body.dataset.pal='ivory'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#EFEBE1;color:#121821;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#1D3A5F;display:inline-block"></i>5 · Ivory &amp; Prussian</button>
+  <button onclick="document.body.dataset.pal='pewter'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#3C4148;color:#fff;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#E0A526;display:inline-block"></i>6 · Pewter &amp; Amber</button>
+  <button onclick="document.body.dataset.pal='citron'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#161B26;color:#fff;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#E6D35A;display:inline-block"></i>7 · Ink &amp; Citron</button>
+  <button onclick="document.body.dataset.pal='midnight'" style="border:0;border-radius:999px;padding:6px 14px 6px 8px;background:#0A101B;color:#fff;cursor:pointer;display:inline-flex;gap:8px;align-items:center"><i style="width:14px;height:14px;border-radius:50%;background:#C9D1DC;display:inline-block"></i>8 · Midnight &amp; Silver (dark)</button>
+</div>
+<div class="app">
+  <nav class="rail">
+    <div class="mark">A3</div>
+    <a class="on" href="#"><svg viewBox="0 0 24 24"><path d="M5 6h14v9H9l-4 3.5z"/></svg>Chat</a>
+    <a href="#"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><path d="M16.5 13.5v6M13.5 16.5h6"/></svg>MCP</a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Admin</a>
+  </nav>
+
+  <aside class="side">
+    <div class="orgpick">finsdc3 · JDO demo <span>org ▾</span></div>
+    <button class="btn btn-action"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New chat</button>
+    <div class="group">Today</div>
+    <div class="convs">
+      <div class="conv on"><span class="st up"></span><div><div class="t">How many unified individuals are in Data Cloud?</div><div class="m">Search Agent · 2 turns</div></div><time>14:21</time></div>
+      <div class="conv"><span class="st up"></span><div><div class="t">Update the Rating of the lead Joanna Ball</div><div class="m">Search Agent · 5 turns</div></div><time>11:00</time></div>
+      <div class="conv"><span class="st"></span><div><div class="t">What are my top 5 open opportunities by amount?</div><div class="m">Search Agent · 8 turns</div></div><time>09:42</time></div>
+    </div>
+    <div class="group">Earlier</div>
+    <div class="convs">
+      <div class="conv"><span class="st"></span><div><div class="t">Moody's market context for Omega Inc</div><div class="m">Search Agent · 10 turns · expired</div></div><time>Tue</time></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="sessbar">
+      <div class="agent"><div class="avatar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.3-4.3"/></svg></div>
+        <div><h1>Search Agent</h1><p>0Xxam000000thvZCAQ · session 01a11734…</p></div></div>
+      <div class="meta"><span><b>2</b> turns</span><span>idle <b>0:04</b></span><span class="live">Live <i></i></span></div>
+      <div class="acts"><button class="btn btn-soft">End session</button><button class="btn btn-soft">New session</button></div>
+    </div>
+
+    <section class="thread">
+      <article class="card sent">
+        <div class="head"><span class="lane">→ Sent</span><span class="who">You</span><time>14:21:03</time></div>
+        <div class="body">Ask the D360 Agent: how many unified individuals are in Data Cloud?</div>
+      </article>
+
+      <article class="card recv">
+        <div class="head"><span class="lane">← Received</span><span class="who">Search Agent</span><time>14:21:05 · 40.7s</time></div>
+        <div class="trail">
+          <div class="th">Delegated to D360 Agent <span>14 steps</span></div>
+          <ol class="steps">
+            <li><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg></span><span>Analyzing your request</span><time>+0.4s</time></li>
+            <li><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg></span><span><b>Planning</b> — a count of unified individuals; a straightforward SQL query</span><time>+3.1s</time></li>
+            <li><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg></span><span><b>Generating SQL</b> — How many unified individuals are in Data Cloud?</span><time>+6.8s</time></li>
+            <li><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg></span><span><b>Run SQL</b> — found 1 row · <code>TotalUnifiedIndividuals__c</code></span><time>+11.2s</time></li>
+            <li><span class="ck"><svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg></span><span><b>debug_sql</b> — UnifiedIndividual__dlm exists but is empty</span><time>+22.5s</time></li>
+            <li class="now"><span class="ck"></span><span>Preparing response</span><time>+38.9s</time></li>
+          </ol>
+        </div>
+        <div class="body">There are currently <b>0 unified individuals</b> in Data Cloud. The <code>UnifiedIndividual__dlm</code> table exists but contains no data — identity resolution hasn't produced unified profiles yet.</div>
+      </article>
+
+      <article class="card sent">
+        <div class="head"><span class="lane">→ Sent</span><span class="who">You</span><time>14:23:40</time></div>
+        <div class="body">Set the Rating of my two newest leads to Hot.</div>
+      </article>
+
+      <article class="card recv">
+        <div class="head"><span class="lane">← Received</span><span class="who">Search Agent</span><time>14:23:49 · 9.1s</time></div>
+        <div class="body">Two updates are ready — nothing changes until you approve.</div>
+        <div class="approve">
+          <div class="ah">Approve changes <span class="pill">2 pending</span></div>
+          <div class="row"><input type="checkbox" checked /><span><b>Bruce Watkins</b><small>Lead · Cormier Inc</small></span><span class="chg">Rating → Hot</span></div>
+          <div class="row"><input type="checkbox" checked /><span><b>Joanna Ball</b><small>Lead · Considine, Goldner</small></span><span class="chg">Rating → Hot</span></div>
+          <div class="af"><span>Sends a Reply with the checked changes</span><div><button class="btn btn-soft">Reject</button><button class="btn btn-action">Approve 2</button></div></div>
+        </div>
+      </article>
+    </section>
+
+    <div class="composer"><input placeholder="Message Search Agent…" /><button class="btn btn-action">Send</button></div>
+  </main>
+
+  <aside class="wire">
+    <div class="wh">
+      <h2>Wire <span>7 calls · tokens masked</span></h2>
+      <div class="wtools"><div class="seg"><span class="on">All</span><span>Requests</span><span>Stream</span><span>Errors</span></div><span class="sort">Newest ↓</span></div>
+      <div class="key"><span><i style="background:var(--sent-chip)"></i>Sent to Salesforce</span><span><i style="background:var(--recv);border:1px solid var(--recv-line)"></i>Received</span></div>
+    </div>
+    <div class="calls">
+      <div class="call open">
+        <div class="top"><time>14:23:40</time><div><div class="ttl">Send message <span class="dir o">stream</span></div><div class="url">/sessions/01a11734…/messages/stream · turn 2</div></div><div class="status"><span class="ok">200</span><em>9.1s</em></div></div>
+        <div class="halves">
+          <div class="half o"><h4>→ Sent · POST</h4><pre>{ "message": {
+  "sequenceId": 2,
+  "type": "Text",
+  "text": "Set the Rating of…" } }</pre></div>
+          <div class="half i"><h4>← Received · 26 events</h4><pre>+0.21s LightningChunk
++1.80s toolBatch
++8.92s Confirm · 2 actions
++9.10s EndOfTurn</pre></div>
+        </div>
+      </div>
+      <div class="call"><time>14:21:03</time><div><div class="ttl">Send message <span class="dir o">stream</span></div><div class="url">/sessions/01a11734…/messages/stream · turn 1</div></div><div class="status"><span class="ok">200</span><em>40.7s</em></div></div>
+      <div class="call"><time>14:20:57</time><div><div class="ttl">Start session <span class="dir o">POST</span></div><div class="url">/agents/0Xxam000000thvZCAQ/sessions</div></div><div class="status"><span class="ok">200</span><em>1.0s</em></div></div>
+      <div class="call"><time>14:20:56</time><div><div class="ttl">Access token <span class="dir i">token</span></div><div class="url">/services/oauth2/token · client_credentials</div></div><div class="status"><span class="ok">200</span><em>0.3s</em></div></div>
+    </div>
+  </aside>
+</div>
+</body>
+</html>

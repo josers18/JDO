@@ -1,0 +1,233 @@
+{
+  "type": "lightning__agentforceWidget",
+  "contentBody": {
+    "widgetBody": {
+      "definition": "tile/widget",
+      "children": [
+        {
+          "definition": "tile/column",
+          "attributes": {
+            "gap": "md",
+            "align": "stretch"
+          },
+          "children": [
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "md",
+                "align": "start",
+                "isWrapped": false
+              },
+              "children": [
+                {
+                  "definition": "tile/avatar",
+                  "attributes": {
+                    "iconName": "list-checks",
+                    "shape": "rounded",
+                    "size": "lg",
+                    "alt": "record"
+                  }
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "none",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.subject}",
+                        "variant": "h3",
+                        "weight": "semibold"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.message}",
+                        "variant": "caption",
+                        "color": "muted"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "sm",
+                "align": "center"
+              },
+              "children": [
+                {
+                  "definition": "tile/badge",
+                  "attributes": {
+                    "label": "{!$attrs.status}",
+                    "variant": "info"
+                  }
+                },
+                {
+                  "definition": "tile/badge",
+                  "attributes": {
+                    "label": "{!$attrs.priority}",
+                    "variant": "warning"
+                  }
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.created}"
+              }
+            },
+            {
+              "definition": "tile/separator",
+              "meta": {
+                "if": "{!$attrs.created}"
+              }
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "lg",
+                "align": "start"
+              },
+              "children": [
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "xs",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Due",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.dueDate}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Related to",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.relatedTo}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "definition": "tile/column",
+                  "attributes": {
+                    "gap": "xs",
+                    "align": "start",
+                    "width": "stretch"
+                  },
+                  "children": [
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Name",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.name}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "Assigned to",
+                        "variant": "caption",
+                        "color": "muted",
+                        "weight": "medium"
+                      }
+                    },
+                    {
+                      "definition": "tile/text",
+                      "attributes": {
+                        "text": "{!$attrs.assignedTo}",
+                        "variant": "body",
+                        "weight": "medium"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.created}"
+              }
+            },
+            {
+              "definition": "tile/row",
+              "attributes": {
+                "gap": "md",
+                "align": "center"
+              },
+              "children": [
+                {
+                  "definition": "tile/button",
+                  "attributes": {
+                    "label": "Mark complete",
+                    "variant": "secondary",
+                    "iconName": "check-circle",
+                    "actions": {
+                      "click": [
+                        {
+                          "definition": "action/sendMessage",
+                          "attributes": {
+                            "content": "Mark the task \"{!$attrs.subject}\" ({!$attrs.taskId}) as Completed"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "definition": "tile/link",
+                  "attributes": {
+                    "href": "{!$attrs.recordUrl}",
+                    "text": "Open in Salesforce"
+                  }
+                }
+              ],
+              "meta": {
+                "if": "{!$attrs.created}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

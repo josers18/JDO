@@ -1,0 +1,22 @@
+{
+  "renderer": {
+    "componentOverrides": {
+      "$": {
+        "definition": "@widget/c/afd360OpportunityCard",
+        "attributes": {
+          "found": "{!$attrs.found}",
+          "opportunityId": "{!$attrs.opportunityId}",
+          "name": "{!$attrs.name}",
+          "accountName": "{!$attrs.accountName}",
+          "stage": "{!$attrs.stage}",
+          "amount": "{!$attrs.amount}",
+          "closeDate": "{!$attrs.closeDate}",
+          "probability": "{!$attrs.probability}",
+          "owner": "{!$attrs.owner}",
+          "nextStep": "{!$attrs.nextStep}",
+          "recordUrl": "{!$attrs.recordUrl}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "renderer": {
+    "componentOverrides": {
+      "$": {
+        "definition": "@widget/c/afd360LeadCard",
+        "attributes": {
+          "found": "{!$attrs.found}",
+          "name": "{!$attrs.name}",
+          "company": "{!$attrs.company}",
+          "title": "{!$attrs.title}",
+          "status": "{!$attrs.status}",
+          "rating": "{!$attrs.rating}",
+          "leadSource": "{!$attrs.leadSource}",
+          "email": "{!$attrs.email}",
+          "phone": "{!$attrs.phone}",
+          "createdDate": "{!$attrs.createdDate}",
+          "recordUrl": "{!$attrs.recordUrl}"
+        }
+      }
+    }
+  }
+}

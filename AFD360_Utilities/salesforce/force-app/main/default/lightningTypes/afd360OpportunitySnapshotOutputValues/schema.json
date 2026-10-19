@@ -1,0 +1,16 @@
+{
+  "title": "AFD360 Opportunity Output Values",
+  "description": "Payload of the AFD360OpportunitySnapshot MCP tool",
+  "type": "object",
+  "lightning:type": "lightning__objectType",
+  "unevaluatedProperties": false,
+  "lightning:tags": [
+    "mcp"
+  ],
+  "properties": {
+    "opportunity": {
+      "title": "AFD360 Opportunity",
+      "lightning:type": "@apexClassType/c__AFD360OpportunitySnapshot$Snapshot"
+    }
+  }
+}

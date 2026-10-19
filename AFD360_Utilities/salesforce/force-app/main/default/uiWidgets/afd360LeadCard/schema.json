@@ -1,0 +1,23 @@
+{
+  "title": "AFD360 Lead Card",
+  "description": "Lead snapshot: name, company, status and rating badges, source, contact info.",
+  "type": "object",
+  "properties": {
+    "attributes": {
+      "lightning:type": "lightning__objectType",
+      "properties": {
+        "found": { "title": "Found", "lightning:type": "lightning__booleanType" },
+        "name": { "title": "Name", "lightning:type": "lightning__textType" },
+        "company": { "title": "Company", "lightning:type": "lightning__textType" },
+        "title": { "title": "Title", "lightning:type": "lightning__textType" },
+        "status": { "title": "Status", "lightning:type": "lightning__textType" },
+        "rating": { "title": "Rating", "lightning:type": "lightning__textType" },
+        "leadSource": { "title": "Lead Source", "lightning:type": "lightning__textType" },
+        "email": { "title": "Email", "lightning:type": "lightning__textType" },
+        "phone": { "title": "Phone", "lightning:type": "lightning__textType" },
+        "createdDate": { "title": "Created", "lightning:type": "lightning__textType" },
+        "recordUrl": { "title": "Record URL", "lightning:type": "lightning__urlType" }
+      }
+    }
+  }
+}

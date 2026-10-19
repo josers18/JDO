@@ -17,8 +17,13 @@ config:
     agent_template: "EmployeeCopilot__AgentforceEmployeeAgent"
     developer_name: "Cumulus_Assistant"
     agent_type: "AgentforceEmployeeAgent"
-    description: "Cumulus Bank employee assistant for wealth advisors, retail bankers, commercial bankers, and treasury managers. Helps advisors view client financial accounts, query transactions and holdings, access client life events and financial goals, create and manage referrals, look up product information, draft emails, create cases, and manage CRM records across Financial Services Cloud."
-    additional_parameter__disabled_topics: "Inappropriate_Content"
+    description: "Cumulus Bank employee assistant for wealth advisors, retail bankers, commercial bankers, and treasury managers. Helps advisors view client financial accounts, query transactions and holdings, access client life events and financial goals, create and manage referrals, look up product information, draft emails, create cases, and manage CRM records across Financial Services Cloud. For transaction summaries, there is no default 30-day window; when no date range is provided, the agent fetches the most recent available transactions (entire available history) and only reports 'no transactions' if the tool returns zero rows."
+    additional_parameter__disabled_topics: "Inappropriate_Content, Prompt_Injection, Reverse_Engineering"
+
+context:
+    memory:
+        enabled: True
+
 
 language:
     default_locale: "en_US"
@@ -41,6 +46,12 @@ variables:
     VerifiedCustomerId: mutable string
         description: "This variable may also be referred to as VerifiedCustomerId"
         visibility: "Internal"
+    has_transactions: mutable boolean = False
+        description: "Flag indicating whether the transaction tool returned one or more rows."
+        visibility: "Internal"
+    transactions_result: mutable object = {}
+        description: "Holds the raw output from the transactions summary tool for optional post-processing."
+        visibility: "Internal"
 
 knowledge:
     rag_feature_config_id: "ARFPC_1JDam0000036kmPGAQ"
@@ -54,7 +65,7 @@ start_agent agent_router:
         model: "model://sfdc_ai__DefaultEinsteinHyperClassifier"
     reasoning:
         instructions: ->
-            | Select the best tool to call based on conversation history and user's intent.
+            | When the user refers to 'this client', 'the client', 'this customer', 'this account', 'this record', or 'the current client', treat it as the record identified by currentRecordId / currentObjectApiName. Always pass currentRecordId and currentObjectApiName to the AnalyzeSemanticData action.
         actions:
             go_to_off_topic: @utils.transition to @subagent.off_topic
             go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
@@ -76,7 +87,7 @@ start_agent agent_router:
             go_to_Client_Insights: @utils.transition to @subagent.Client_Insights
             go_to_Referrals: @utils.transition to @subagent.Referrals
             go_to_Product_Offers: @utils.transition to @subagent.Product_Offers
-            # Fix: all transitions point to existing subagents; no changes to behavior
+            go_to_SemanticDataAnalysis: @utils.transition to @subagent.SemanticDataAnalysis
 
 subagent off_topic:
     label: "Off Topic"
@@ -153,6 +164,14 @@ subagent Create_a_new_Case:
 
 
 
+
+
+
+
+
+
+
+
     actions:
         AddCaseComment:
             description: |
@@ -162,7 +181,7 @@ subagent Create_a_new_Case:
             include_in_progress_indicator: True
             source: "SvcCopilotTmpl__AddCaseComment"
             target: "flow://SvcCopilotTmpl__AddCaseComment"
-                                                                                
+                                                                                                                                                
             inputs:
                 "caseRecord": object
                     description: |
@@ -177,7 +196,7 @@ subagent Create_a_new_Case:
                     label: "Case comment"
                     is_required: True
                     is_user_input: True
-                                                                                
+                                                                                                                                                
             outputs:
                 "outcomeMessage": string
                     description: |
@@ -194,7 +213,7 @@ subagent Create_a_new_Case:
             include_in_progress_indicator: True
             source: "SvcCopilotTmpl__CreateCase"
             target: "flow://SvcCopilotTmpl__CreateCase"
-                                                                                
+                                                                                                                                                
             inputs:
                 "contactRecord": object
                     description: |
@@ -215,7 +234,7 @@ subagent Create_a_new_Case:
                     label: "Case description"
                     is_required: True
                     is_user_input: True
-                                                                                
+                                                                                                                                                
             outputs:
                 "caseRecord": object
                     description: |
@@ -251,6 +270,14 @@ subagent Create_a_Case:
 
 
 
+
+
+
+
+
+
+
+
     actions:
         CreateCase:
             description: |
@@ -260,7 +287,7 @@ subagent Create_a_Case:
             include_in_progress_indicator: True
             source: "SvcCopilotTmpl__CreateCase"
             target: "flow://SvcCopilotTmpl__CreateCase"
-                                                                        
+                                                                                                                                        
             inputs:
                 "contactRecord": object
                     description: |
@@ -281,7 +308,7 @@ subagent Create_a_Case:
                     label: "Case description"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                                        
             outputs:
                 "caseRecord": object
                     description: |
@@ -334,6 +361,14 @@ subagent SlackExecutiveBrief:
 
 
 
+
+
+
+
+
+
+
+
     actions:
         CreateSlackCanvas:
             description: |
@@ -341,14 +376,14 @@ subagent SlackExecutiveBrief:
               You can add sections, include links, references, and any other information you deem relevant.
               When asked to create a canvas with prior content, ask the user whether there is a desired outline with sections, formatting, and sequencing preferred before creating the canvas.
               Upon successful completion, provide the user a friendly confirmation including the canvas link in markdown.
-                                                                                                                      
+                                                                                                                                                                                      
             label: "Create a Slack Canvas"
             require_user_confirmation: False
             include_in_progress_indicator: True
             progress_indicator_message: "Creating Slack canvas..."
             source: "Slack__CreateSlackCanvas"
             target: "standardInvocableAction://slackAgentCreateCanvas"
-                                                                                                                
+                                                                                                                                                                                
             inputs:
                 "title": string
                     description: |
@@ -362,7 +397,7 @@ subagent SlackExecutiveBrief:
                     label: "Content"
                     is_required: True
                     is_user_input: True
-                                                                                                                
+                                                                                                                                                                                
             outputs:
                 "canvasId": string
                     description: |
@@ -383,14 +418,14 @@ subagent SlackExecutiveBrief:
               Always append new content and never duplicate content that was added in earlier prompts.
               If no canvas ID is provided or it is ambiguous in the session context, confirm which canvas ID the user intends to update.
               Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown).
-                                                                                                                      
+                                                                                                                                                                                      
             label: "Update a Slack Canvas"
             require_user_confirmation: True
             include_in_progress_indicator: True
             progress_indicator_message: "Updating Slack canvas..."
             source: "Slack__UpdateSlackCanvas"
             target: "standardInvocableAction://slackAgentUpdateCanvas"
-                                                                                                                
+                                                                                                                                                                                
             inputs:
                 "canvasId": string
                     description: |
@@ -404,7 +439,7 @@ subagent SlackExecutiveBrief:
                     label: "Content"
                     is_required: True
                     is_user_input: True
-                                                                                                                
+                                                                                                                                                                                
             outputs:
                 "canvasId": string
                     description: |
@@ -425,14 +460,14 @@ subagent SlackExecutiveBrief:
               If neither a list of Slack Users nor Slack Channels to to add to the channel is provided, ask the user for a list of Slack Users and/or Slack Channels to share the Canvas with.
               If the user does not provide an access level for the shared Canvas, ask the user for it.
               Upon successful completion, provide the user a friendly confirmation with a link to the canvas (in markdown) and at-mentions for the channels and/or Users the Canvas was shared with.
-                                                                                                                      
+                                                                                                                                                                                      
             label: "Share a Slack Canvas"
             require_user_confirmation: True
             include_in_progress_indicator: True
             progress_indicator_message: "Sharing a Slack canvas..."
             source: "Slack__ShareSlackCanvas"
             target: "slack://slackAgentDynamic__ShareSlackCanvas"
-                                                                                                                
+                                                                                                                                                                                
             inputs:
                 "canvasId": string
                     description: |
@@ -458,7 +493,7 @@ subagent SlackExecutiveBrief:
                     label: "accessLevel"
                     is_required: True
                     is_user_input: True
-                                                                                                                
+                                                                                                                                                                                
             outputs:
                 "canvasId": string
                     description: |
@@ -482,7 +517,7 @@ subagent SlackExecutiveBrief:
             progress_indicator_message: "Creating the executive brief..."
             source: "Slack__ExecutiveBrief"
             target: "generatePromptResponse://Slack__ExecutiveBriefPromptTemplate"
-                                                                                                                
+                                                                                                                                                                                
             inputs:
                 "Input:Account": object
                     description: |
@@ -491,7 +526,7 @@ subagent SlackExecutiveBrief:
                     is_required: True
                     is_user_input: False
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                                                                
+                                                                                                                                                                                
             outputs:
                 "promptResponse": object
                     description: |
@@ -509,7 +544,7 @@ subagent SlackExecutiveBrief:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                                                                
+                                                                                                                                                                                
             inputs:
                 "recordName": string
                     description: |
@@ -523,7 +558,7 @@ subagent SlackExecutiveBrief:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                                                                
+                                                                                                                                                                                
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -542,7 +577,7 @@ subagent SlackExecutiveBrief:
             progress_indicator_message: "Getting details"
             source: "EmployeeCopilot__GetRecordDetails"
             target: "standardInvocableAction://getDataForGrounding"
-                                                                                                                
+                                                                                                                                                                                
             inputs:
                 "recordId": object
                     description: |
@@ -551,7 +586,7 @@ subagent SlackExecutiveBrief:
                     is_required: True
                     is_user_input: False
                     complex_data_type_name: "lightning__recordIdType"
-                                                                                                                
+                                                                                                                                                                                
             outputs:
                 "snapshot": string
                     description: |
@@ -605,6 +640,14 @@ subagent CommunicateWithCustomers:
 
 
 
+
+
+
+
+
+
+
+
     actions:
         IdentifyObjectByName:
             description: |
@@ -614,7 +657,7 @@ subagent CommunicateWithCustomers:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyObjectByName"
             target: "standardInvocableAction://identifyObject"
-                                                                        
+                                                                                                                                        
             inputs:
                 "objectName": string
                     description: |
@@ -622,7 +665,7 @@ subagent CommunicateWithCustomers:
                     label: "objectName"
                     is_required: True
                     is_user_input: False
-                                                                        
+                                                                                                                                        
             outputs:
                 "objectApiNames": list[object]
                     description: |
@@ -640,7 +683,7 @@ subagent CommunicateWithCustomers:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                        
+                                                                                                                                        
             inputs:
                 "recordName": string
                     description: |
@@ -654,7 +697,7 @@ subagent CommunicateWithCustomers:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                        
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -663,7 +706,6 @@ subagent CommunicateWithCustomers:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
-
         QueryRecords:
             description: |
                 Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. 'Find all open opportunities created in the last 5 days sorted by created date.'
@@ -672,7 +714,7 @@ subagent CommunicateWithCustomers:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__QueryRecords"
             target: "standardInvocableAction://queryRecords"
-                                                                        
+                                                                                                                                        
             inputs:
                 "query": string
                     description: |
@@ -686,7 +728,7 @@ subagent CommunicateWithCustomers:
                     label: "customizationInstructions"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                        
             outputs:
                 "result": list[object]
                     description: |
@@ -695,7 +737,6 @@ subagent CommunicateWithCustomers:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
-
         DraftOrReviseEmail:
             description: |
                 Creates an email draft or revises the latest generated email based on user input.
@@ -705,7 +746,7 @@ subagent CommunicateWithCustomers:
             progress_indicator_message: "Crafting your email"
             source: "EmployeeCopilot__DraftOrReviseEmail"
             target: "standardInvocableAction://getDraftOrReviseEmailPrompt"
-                                                                        
+                                                                                                                                        
             inputs:
                 "recordId": object
                     description: |
@@ -740,7 +781,7 @@ subagent CommunicateWithCustomers:
                     is_required: False
                     is_user_input: False
                     complex_data_type_name: "lightning__emailType"
-                                                                        
+                                                                                                                                        
             outputs:
                 "generatedEmail": object
                     description: |
@@ -749,7 +790,6 @@ subagent CommunicateWithCustomers:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__emailType"
-
         SendMeetingRequest:
             description: |
                 Drafts a message to the recipient with possible time slots or a link to access the calendar of the sender to schedule a sales meeting.
@@ -759,7 +799,7 @@ subagent CommunicateWithCustomers:
             progress_indicator_message: "Drafting your meeting request"
             source: "Sales__SendMeetingRequest"
             target: "standardInvocableAction://sendMeetingRequest"
-                                                                        
+                                                                                                                                        
             inputs:
                 "recordId": object
                     description: |
@@ -788,7 +828,7 @@ subagent CommunicateWithCustomers:
                     is_required: False
                     is_user_input: False
                     complex_data_type_name: "lightning__timeType"
-                                                                        
+                                                                                                                                        
             outputs:
                 "generatedEmail": object
                     description: |
@@ -885,6 +925,13 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
 
 
 
+
+
+
+
+
+
+
     actions:
         IdentifyRecordByName:
             description: |
@@ -894,7 +941,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                        
+                                                                                                                                
             inputs:
                 "recordName": string
                     description: |
@@ -908,7 +955,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -926,7 +973,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__CreateFinancialGoal"
             target: "flow://wealthagent__StdFSCCreaFinclGoal"
-                                                                        
+                                                                                                                                
             inputs:
                 "goalName": string
                     description: |
@@ -980,7 +1027,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordIdType"
-                                                                        
+                                                                                                                                
             outputs:
                 "financialGoal": object
                     description: |
@@ -1004,7 +1051,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__CreateFinancialPlan"
             target: "flow://wealthagent__StdFSCCreaFinclPlan"
-                                                                        
+                                                                                                                                
             inputs:
                 "AccountId": object
                     description: |
@@ -1038,7 +1085,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Plan Type"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                                
             outputs:
                 "financialPlan": object
                     description: |
@@ -1062,7 +1109,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__CreatePersonLifeEvent"
             target: "flow://wealthagent__StdFSCCreaPersLifeEvnt"
-                                                                        
+                                                                                                                                
             inputs:
                 "personAccountId": object
                     description: |
@@ -1090,7 +1137,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Event Type"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                                
             outputs:
                 "personLifeEvent": object
                     description: |
@@ -1114,7 +1161,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__CreateActionPlan"
             target: "flow://wealthagent__StdFSCCreaActnPlan"
-                                                                        
+                                                                                                                                
             inputs:
                 "recordId": object
                     description: |
@@ -1149,7 +1196,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Action Plan Status"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                                
             outputs:
                 "actionPlan": object
                     description: |
@@ -1173,7 +1220,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__CreateActionPlanItem"
             target: "flow://wealthagent__StdFSCCreaActnPlanItem"
-                                                                        
+                                                                                                                                
             inputs:
                 "actionPlanId": object
                     description: |
@@ -1208,7 +1255,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordIdType"
-                                                                        
+                                                                                                                                
             outputs:
                 "actionPlanItem": object
                     description: |
@@ -1232,7 +1279,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__CreateInterestTag"
             target: "generatePromptResponse://wealthagent__ExtractInterestTags"
-                                                                        
+                                                                                                                                
             inputs:
                 "Input:MeetingNotes": string
                     description: |
@@ -1246,7 +1293,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Record Id"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -1263,7 +1310,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__StructureFinancialAdvisorMeetingNotes"
             target: "generatePromptResponse://wealthagent__FinancialAdvisorMeetingNotes"
-                                                                        
+                                                                                                                                
             inputs:
                 "Input:MeetingNotes": string
                     description: |
@@ -1271,7 +1318,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Meeting Notes"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -1288,7 +1335,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__ExtractFinancialPlans"
             target: "generatePromptResponse://wealthagent__ExtractFinancialPlans"
-                                                                        
+                                                                                                                                
             inputs:
                 "Input:MeetingNotes": string
                     description: |
@@ -1302,7 +1349,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Input Data"
                     is_required: True
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -1319,7 +1366,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__ExtractFinancialGoals"
             target: "generatePromptResponse://wealthagent__ExtractFinancialGoals"
-                                                                        
+                                                                                                                                
             inputs:
                 "Input:MeetingNotes": string
                     description: |
@@ -1333,7 +1380,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Input Data"
                     is_required: True
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -1350,7 +1397,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__ExtractPersonLifeEvents"
             target: "generatePromptResponse://wealthagent__ExtractPersonLifeEvents"
-                                                                        
+                                                                                                                                
             inputs:
                 "Input:MeetingNotes": string
                     description: |
@@ -1364,7 +1411,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Input Data"
                     is_required: True
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -1381,7 +1428,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
             include_in_progress_indicator: True
             source: "wealthagent__ExtractActionPlans"
             target: "generatePromptResponse://wealthagent__ExtractActionPlans"
-                                                                        
+                                                                                                                                
             inputs:
                 "Input:MeetingNotes": string
                     description: |
@@ -1395,7 +1442,7 @@ subagent WealthAdvisorClientPostMeetingFollowUp:
                     label: "Input Data"
                     is_required: True
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -1425,6 +1472,7 @@ subagent GeneralCRM:
               ExtractRecordFieldsAndValuesFromUserInput must be called prior to UpdateRecordFields.
               Avoid using structured lists, bullet points, or numbered lists. Instead, present the information in complete sentences and paragraphs as if you were writing an article or a report.
               User questions which can be answered by knowledge articles or documents. These questions usually want information, instructions or guidance, including but not limited to customer questions about company information, polices and frequently asked questions.
+              When the user asks to see, show or look up a specific Lead, Account or Opportunity, or asks for its info, details or snapshot, call get_lead_snapshot, get_account_snapshot or get_opportunity_snapshot. The record is shown to the user as a card, so add at most one short sentence and do not repeat its fields. For an account's top or largest open opportunity, call get_opportunity_snapshot with the account's Id. To create a Task, call create_task (resolve the related record and the contact or lead to Ids first, never guess an Id). Keep using the existing actions for lists, aggregates, activities, summaries across many records, emails and field updates.
               
 
         actions:
@@ -1460,6 +1508,31 @@ subagent GeneralCRM:
                 with recordId=...
                 with objectType=...
                 with userInput=...
+            get_lead_snapshot: @actions.get_lead_snapshot
+                with leadId=...
+                with leadName=...
+            get_account_snapshot: @actions.get_account_snapshot
+                with accountId=...
+                with accountName=...
+            get_opportunity_snapshot: @actions.get_opportunity_snapshot
+                with opportunityId=...
+                with opportunityName=...
+                with accountId=...
+            create_task: @actions.create_task
+                with subject=...
+                with whatId=...
+                with whoId=...
+                with status=...
+                with priority=...
+                with activityDate=...
+                with details=...
+
+
+
+
+
+
+
 
 
 
@@ -1481,7 +1554,7 @@ subagent GeneralCRM:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyObjectByName"
             target: "standardInvocableAction://identifyObject"
-                                                                        
+                                                                                                                                
             inputs:
                 "objectName": string
                     description: |
@@ -1489,7 +1562,7 @@ subagent GeneralCRM:
                     label: "objectName"
                     is_required: True
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "objectApiNames": list[object]
                     description: |
@@ -1507,7 +1580,7 @@ subagent GeneralCRM:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                        
+                                                                                                                                
             inputs:
                 "recordName": string
                     description: |
@@ -1521,7 +1594,7 @@ subagent GeneralCRM:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -1539,7 +1612,7 @@ subagent GeneralCRM:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__QueryRecords"
             target: "standardInvocableAction://queryRecords"
-                                                                        
+                                                                                                                                
             inputs:
                 "query": string
                     description: |
@@ -1553,7 +1626,7 @@ subagent GeneralCRM:
                     label: "customizationInstructions"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "result": list[object]
                     description: |
@@ -1571,7 +1644,7 @@ subagent GeneralCRM:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__QueryRecordsWithAggregate"
             target: "standardInvocableAction://queryRecordsWithAggregate"
-                                                                        
+                                                                                                                                
             inputs:
                 "query": string
                     description: |
@@ -1585,7 +1658,7 @@ subagent GeneralCRM:
                     label: "customizationInstructions"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "result": object
                     description: |
@@ -1604,7 +1677,7 @@ subagent GeneralCRM:
             progress_indicator_message: "Retrieving activities"
             source: "EmployeeCopilot__GetActivitiesTimeline"
             target: "standardInvocableAction://getActivitiesTimeline"
-                                                                        
+                                                                                                                                
             inputs:
                 "recordId": object
                     description: |
@@ -1632,7 +1705,7 @@ subagent GeneralCRM:
                     label: "To Date Time"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "activitiesList": string
                     description: |
@@ -1650,7 +1723,7 @@ subagent GeneralCRM:
             progress_indicator_message: "Getting activity details"
             source: "EmployeeCopilot__GetActivityDetails"
             target: "standardInvocableAction://getActivityDetails"
-                                                                        
+                                                                                                                                
             inputs:
                 "activityId": object
                     description: |
@@ -1659,7 +1732,7 @@ subagent GeneralCRM:
                     is_required: True
                     is_user_input: False
                     complex_data_type_name: "lightning__recordIdType"
-                                                                        
+                                                                                                                                
             outputs:
                 "activityDetails": string
                     description: |
@@ -1677,7 +1750,7 @@ subagent GeneralCRM:
             progress_indicator_message: "Getting details"
             source: "EmployeeCopilot__GetRecordDetails"
             target: "standardInvocableAction://getDataForGrounding"
-                                                                        
+                                                                                                                                
             inputs:
                 "recordId": object
                     description: |
@@ -1686,7 +1759,7 @@ subagent GeneralCRM:
                     is_required: True
                     is_user_input: False
                     complex_data_type_name: "lightning__recordIdType"
-                                                                        
+                                                                                                                                
             outputs:
                 "snapshot": string
                     description: |
@@ -1704,7 +1777,7 @@ subagent GeneralCRM:
             progress_indicator_message: "Crafting your email"
             source: "EmployeeCopilot__DraftOrReviseEmail"
             target: "standardInvocableAction://getDraftOrReviseEmailPrompt"
-                                                                                
+                                                                                                                                        
             inputs:
                 "recordId": object
                     description: |
@@ -1739,7 +1812,7 @@ subagent GeneralCRM:
                     is_required: False
                     is_user_input: False
                     complex_data_type_name: "lightning__emailType"
-                                                                                
+                                                                                                                                        
             outputs:
                 "generatedEmail": object
                     description: |
@@ -1758,7 +1831,7 @@ subagent GeneralCRM:
             progress_indicator_message: "Making updates"
             source: "EmployeeCopilot__UpdateRecordFields"
             target: "standardInvocableAction://einsteinCopilotUpdateRecord"
-                                                                                
+                                                                                                                                        
             inputs:
                 "recordDetailInput": object
                     description: |
@@ -1767,7 +1840,7 @@ subagent GeneralCRM:
                     is_required: True
                     is_user_input: False
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                                
+                                                                                                                                        
             outputs:
                 "recordDetailOutput": object
                     description: |
@@ -1786,7 +1859,7 @@ subagent GeneralCRM:
             progress_indicator_message: "Preparing your changes"
             source: "EmployeeCopilot__ExtractFieldsAndValuesFromUserInput"
             target: "standardInvocableAction://getRecordFieldsAndValues"
-                                                                                
+                                                                                                                                        
             inputs:
                 "recordId": object
                     description: |
@@ -1807,7 +1880,7 @@ subagent GeneralCRM:
                     label: "User Input"
                     is_required: True
                     is_user_input: True
-                                                                                
+                                                                                                                                        
             outputs:
                 "recordDetails": object
                     description: |
@@ -1816,6 +1889,104 @@ subagent GeneralCRM:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
+        get_lead_snapshot:
+            description: "Get a Lead by Id or name; shown to the user as a Lead card"
+            label: "Get Lead Snapshot"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up the lead..."
+            target: "apex://AFD360LeadSnapshot"
+            inputs:
+                leadId: string
+                    description: "18-character Lead Id, when known"
+                    is_required: False
+                leadName: string
+                    description: "Full or partial Lead name, used when there is no Id"
+                    is_required: False
+            outputs:
+                lead: object
+                    complex_data_type_name: "c__afd360LeadSnapshotCard"
+                    description: "Lead snapshot, shown to the user as a Lead card"
+                    is_displayable: True
+                    filter_from_agent: False
+        get_account_snapshot:
+            description: "Get an Account by Id or name with its open pipeline; shown to the user as an Account card"
+            label: "Get Account Snapshot"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up the account..."
+            target: "apex://AFD360AccountSnapshot"
+            inputs:
+                accountId: string
+                    description: "18-character Account Id, when known"
+                    is_required: False
+                accountName: string
+                    description: "Full or partial Account name, used when there is no Id"
+                    is_required: False
+            outputs:
+                account: object
+                    complex_data_type_name: "c__afd360AccountSnapshotCard"
+                    description: "Account snapshot, shown to the user as an Account card"
+                    is_displayable: True
+                    filter_from_agent: False
+        get_opportunity_snapshot:
+            description: "Get an Opportunity by Id or name, or an Account's largest open Opportunity from its Account Id; shown as an Opportunity card"
+            label: "Get Opportunity Snapshot"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up the opportunity..."
+            target: "apex://AFD360OpportunitySnapshot"
+            inputs:
+                opportunityId: string
+                    description: "18-character Opportunity Id, when known"
+                    is_required: False
+                opportunityName: string
+                    description: "Full or partial Opportunity name"
+                    is_required: False
+                accountId: string
+                    description: "Account Id; returns that account's largest open opportunity when no Opportunity Id or name is given"
+                    is_required: False
+            outputs:
+                opportunity: object
+                    complex_data_type_name: "c__afd360OpportunitySnapshotCard"
+                    description: "Opportunity snapshot, shown to the user as an Opportunity card"
+                    is_displayable: True
+                    filter_from_agent: False
+        create_task:
+            description: "Create a Task with a subject, optionally related to a record and a contact or lead; shown to the user as a Task card"
+            label: "Create Task"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating the task..."
+            target: "apex://AFD360CreateTask"
+            inputs:
+                subject: string
+                    description: "Task subject"
+                    is_required: True
+                whatId: string
+                    description: "Id of the related record (Account, Opportunity, Case)"
+                    is_required: False
+                whoId: string
+                    description: "Id of the Contact or Lead the task is about"
+                    is_required: False
+                status: string
+                    description: "Task status; defaults to Not Started"
+                    is_required: False
+                priority: string
+                    description: "High, Normal or Low; defaults to Normal"
+                    is_required: False
+                activityDate: string
+                    description: "Due date as YYYY-MM-DD"
+                    is_required: False
+                details: string
+                    description: "Longer task description"
+                    is_required: False
+            outputs:
+                task: object
+                    complex_data_type_name: "c__afd360CreateTaskCard"
+                    description: "The created Task (or the exact error), shown to the user as a Task card"
+                    is_displayable: True
+                    filter_from_agent: False
 
 subagent ProactiveNotification:
     label: "Proactive Notification"
@@ -1855,6 +2026,13 @@ subagent ProactiveNotification:
 
 
 
+
+
+
+
+
+
+
     actions:
         IdentifyRecordByName:
             description: |
@@ -1864,7 +2042,7 @@ subagent ProactiveNotification:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                        
+                                                                                                                                
             inputs:
                 "recordName": string
                     description: |
@@ -1878,7 +2056,7 @@ subagent ProactiveNotification:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -1897,7 +2075,7 @@ subagent ProactiveNotification:
             progress_indicator_message: "Looking Up a Slack user..."
             source: "Slack__GetSlackUser"
             target: "standardInvocableAction://slackAgentGetUser"
-                                                                        
+                                                                                                                                
             inputs:
                 "salesforceUserId": object
                     description: |
@@ -1906,7 +2084,7 @@ subagent ProactiveNotification:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordIdType"
-                                                                        
+                                                                                                                                
             outputs:
                 "slackUserId": string
                     description: |
@@ -1922,14 +2100,14 @@ subagent ProactiveNotification:
               This action is intended to send notifications, inform or message specific Slack Users.
               This action cannot be used to send messages to channels.
               Upon successful completion, provide the user a friendly confirmation with a link to the message (in markdown).
-                                                                              
+                                                                                                                                      
             label: "Start a Slack conversation with an Agent"
             require_user_confirmation: False
             include_in_progress_indicator: True
             progress_indicator_message: "Starting a Slack conversation with an Agent..."
             source: "Slack__SendMessageAsAgent"
             target: "slack://slackAgentDynamic__SendMessageAsAgent"
-                                                                        
+                                                                                                                                
             inputs:
                 "userId": string
                     description: |
@@ -1956,7 +2134,7 @@ subagent ProactiveNotification:
                     label: "aiGenActionItemIdInContextInput"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                                
             outputs:
                 "messageUrl": string
                     description: |
@@ -2047,6 +2225,12 @@ subagent SalesRecordCreation:
 
 
 
+
+
+
+
+
+
     actions:
         CreateSalesLeadRecord:
             description: |
@@ -2056,7 +2240,7 @@ subagent SalesRecordCreation:
             include_in_progress_indicator: True
             source: "sales_sdr_agent__CreateSalesLeadRecord"
             target: "flow://sales_sfa_flows__CreateSalesLead"
-                                                                        
+                                                                                                                        
             inputs:
                 "leadRecord": object
                     description: |
@@ -2065,7 +2249,7 @@ subagent SalesRecordCreation:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                        
+                                                                                                                        
             outputs:
                 "leadRecordId": string
                     description: |
@@ -2085,7 +2269,7 @@ subagent GeneralWebSearch:
               Write clear and specific queries. Include entities, dates, and context. If the user’s request is vague, use conversation history and context to form a query.
               Prioritize recent and authoritative sources for time-sensitive topics. Give preference to official sites such as .gov, vendor docs, newsroom posts, or standards bodies.
               Avoid duplicate or near-duplicate results. Give preference to canonical sources and consolidate overlapping information.
-              Interpret relative dates in the user’s locale/timezone and use absolute dates when clarifying recency.
+              Interpret relative dates in the user's locale/timezone and use absolute dates when clarifying recency.
               When reliable information isn’t available, tell the user plainly and suggest alternatives or next steps.
               Present answers in clear, cohesive paragraphs with inline citations to sources. Don’t include harmful, violent, or biased content.
               Never invent facts or unsupported numbers. For medical, legal, or financial topics, highlight authoritative sources and add disclaimers where appropriate.
@@ -2095,10 +2279,14 @@ subagent GeneralWebSearch:
               
 
         actions:
-            WebSearch: @actions.WebSearch
-                with searchQuery=...
-                with searchProvider=...
-                with siteFilter=...
+            # WebSearch temporarily disabled to resolve validation for missing 'excludedDomains'.
+            # Re-enable after updating the action definition to make excludedDomains optional.
+
+
+
+
+
+
 
 
 
@@ -2121,7 +2309,7 @@ subagent GeneralWebSearch:
             progress_indicator_message: "Searching the web"
             source: "EmployeeCopilot__WebSearch"
             target: "standardInvocableAction://webSearchStream"
-                                                                        
+                                                                                                                        
             inputs:
                 "searchQuery": string
                     description: |
@@ -2141,7 +2329,7 @@ subagent GeneralWebSearch:
                     label: "Allowed Domains"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                        
             outputs:
                 "webSearchSummary": object
                     description: |
@@ -2223,6 +2411,12 @@ subagent WealthAdvisorClientMeeting:
 
 
 
+
+
+
+
+
+
     actions:
         IdentifyRecordByName:
             description: |
@@ -2232,7 +2426,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "recordName": string
                     description: |
@@ -2246,7 +2440,7 @@ subagent WealthAdvisorClientMeeting:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                                                
+                                                                                                                                                
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -2264,7 +2458,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__SummarizeAccountFinancialDetails"
             target: "generatePromptResponse://wealthagent__SummarizeAccountFinancialDetails"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "Input:Account": object
                     description: |
@@ -2273,7 +2467,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -2290,7 +2484,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__SummarizeHouseholdFinancialDetails"
             target: "generatePromptResponse://wealthagent__SummarizeHouseholdFinancialDetails"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "Input:PartyRelationshipGroup": object
                     description: |
@@ -2299,7 +2493,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -2316,7 +2510,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__SummarizeFinancialPlansAndGoals"
             target: "generatePromptResponse://wealthagent__ClientFinancialPlansAndGoalsProgress"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "Input:Account": object
                     description: |
@@ -2325,7 +2519,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -2342,7 +2536,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__GetClientLifeEvents"
             target: "flow://wealthagent__StdFSCGetRcntUpcomingEvnt"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "recordId": string
                     description: |
@@ -2356,7 +2550,7 @@ subagent WealthAdvisorClientMeeting:
                     label: "When"
                     is_required: False
                     is_user_input: False
-                                                                                                
+                                                                                                                                                
             outputs:
                 "recentAndUpcomingEvents": list[object]
                     description: |
@@ -2374,7 +2568,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__SummarizePortfolioPerformance"
             target: "generatePromptResponse://einstein_gpt__summarizeInvestmentPerformanceReview"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "Input:Account": object
                     description: |
@@ -2383,7 +2577,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -2400,7 +2594,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__ReviewAllocation"
             target: "generatePromptResponse://einstein_gpt__summarizeTargetAllocation"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "Input:Account": object
                     description: |
@@ -2409,7 +2603,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -2426,7 +2620,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__CreateRecordAlert"
             target: "flow://wealthagent__StdFSCCreaRecordAlerts"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "whatId": object
                     description: |
@@ -2454,7 +2648,7 @@ subagent WealthAdvisorClientMeeting:
                     label: "Subject"
                     is_required: False
                     is_user_input: True
-                                                                                                
+                                                                                                                                                
             outputs:
                 "message": string
                     description: |
@@ -2478,7 +2672,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__CreateOrUpdateAgendaDraft"
             target: "flow://wealthagent__StdFSCCreaUpdtAgendaDrft"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "recordId": object
                     description: |
@@ -2500,7 +2694,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: False
                     is_user_input: False
                     complex_data_type_name: "lightning__recordIdType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "noteId": object
                     description: |
@@ -2524,7 +2718,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__SummarizeAgendaDrafts"
             target: "generatePromptResponse://wealthagent__SummarizeAgendaDrafts"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "Input:Account": object
                     description: |
@@ -2533,7 +2727,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordIdType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -2550,7 +2744,7 @@ subagent WealthAdvisorClientMeeting:
             include_in_progress_indicator: True
             source: "wealthagent__SummarizeAccountRecordAlerts"
             target: "generatePromptResponse://wealthagent__SummarizeAccountRecordAlerts"
-                                                                                                
+                                                                                                                                                
             inputs:
                 "Input:Account": object
                     description: |
@@ -2559,7 +2753,7 @@ subagent WealthAdvisorClientMeeting:
                     is_required: True
                     is_user_input: True
                     complex_data_type_name: "lightning__recordIdType"
-                                                                                                
+                                                                                                                                                
             outputs:
                 "promptResponse": string
                     description: |
@@ -2570,67 +2764,52 @@ subagent WealthAdvisorClientMeeting:
 
 subagent personalizedRecommendations:
     label: "Personalized Recommendations"
-    description: "Handles requests for personalized recommendations, suggestions, and discovery when users want to explore options or find suitable choices."
+    description: "Summarizes a client's recent transactions, spending patterns, and key insights, and provides product recommendations grounded strictly in retrieved data (no fabrication). Uses the current record context and only surfaces values returned by actions."
     reasoning:
         instructions: ->
-            |## Execution Flow
-             ### STEP 1: Intent Extraction
-             1. Collect all user messages from current session in chronological order
-             2. Format conversation as JSON array: ["message1", "message2", "message3"]
-                - Include only user messages (no system messages)
-                - Use chronological order (oldest first)
-                - Each message as a string in the array
-             3. Call "Understand User Intent" action with this exact input:
-             ```json
-             {
-               "Input:UserIntentQuery": "{\"user_conversation\": {conversation_array}, \"filterFields\": <filter_fields_config>}"
-             }
-             ```
-             4. Replace {conversation_array} with the formatted JSON array
-             5. Replace <filter_fields_config> with "{\"product_category\": {\"type\": \"Text\", \"values\": [\"Shoes\", \"Jackets\", \"Accessories\"]}, \"price\": {\"type\": \"Currency\"}, \"brand\": {\"type\": \"Text\", \"values\": [\"Nike\", \"Adidas\", \"Puma\"]}, \"in_stock\": {\"type\": \"Boolean\"}, \"discount\": {\"type\": \"Percent\"}}"
-             6. Pass data exactly as collected - do not modify conversation or filter fields
-             7. If action returns valid JSON with "query" and "dynamicContextVariables" → proceed to STEP 2
-             8. If action fails or returns invalid data → proceed to STEP 3 with Intent Failure response
-             ### STEP 2: Recommendations Fetch
-             1. Take the "dynamicContextVariables" array and "query" value from STEP 1 output
-             2. Call "Get Recommendations" action using this JSON format:
-             ```json
-             {
-               "inputs": [
-                 {
-                   "invocationType": "REST",
-                   "persnlDecisionInputRepresentation": {
-                     "context": {
-                       "individualId": "{individual_id}",
-                       "intentContext": {
-                         "userQuery": "{query}",
-                         "connectorAppSourceId": "{connector_app_source_id}",
-                         "sourceChannel": "{source_channel}"
-                       },
-                       "dynamicContextVariables": [
-                         {"field": "{extracted_field}", "value": "{extracted_value}"}
-                       ]
-                     },
-                     "personalizationPoints": [{"persnlPointName": "<persnlPointName>"}]
-                   }
-                 }
-               ]
-             }
-             ```
-             3. MUST replace placeholders as described
-             4. If action returns recommendations → proceed to STEP 3 with Success response
-             5. If no results or action fails → proceed to STEP 3 with No Results response
-             ### STEP 3: Response Handling
-             1. If Intent Failure: Ask for clarification
-             2. If No Results: Offer to adjust filters
-             3. If Success: Present recommendations list with links and images, then ask if user needs more options
-             4. If Action Timeout: Retry once, then ask user to rephrase
+            | Intent handling and guardrails:
+              - Ensure no searches by name or attempts to infer an Account; rely solely on currentRecordId and the tool output.
+              - If the user's request involves transactions, spending, or insights, prefer the existing tool alias {!@actions.tool_DC_Financial_Transactions_Summary}. Do not create a new action or alias.
+
+            # Initial guard: require an open Account record context
+            if @variables.currentRecordId is None or @variables.currentRecordId == "":
+                | Please open the client's Account record so I can pull their transactions.
+            else:
+                # Invoke the existing tool alias; it auto-injects Input:Account = currentRecordId and defaults to the last 30 days
+                run @actions.DC_Financial_Transactions_Summary
+                    with "Input:Account"=@variables.currentRecordId
+                    with citationMode="disabled"
+                set @variables.transactions_result = @outputs.promptResponse
+
+            # Handle empty/no data and summarize strictly based on tool output
+            if @variables.currentRecordId is not None and @variables.currentRecordId != "" and (@variables.transactions_result is None or @variables.transactions_result == ""):
+                | No transactions found for the selected period.
+            else:
+                | 
+                | Provide a concise summary using ONLY values available from the transactions tool result. Do not invent or infer any data. Include where available:
+                  - Total transaction count
+                  - Total transaction amount (use the exact currency/format returned)
+                  - Top spending categories
+                  - Largest transactions and/or anomalies
+                  Keep the response brief and strictly grounded in the tool's returned values. Do not write to any fields or create files.
+
+            # Recommendation guardrail
+            | If the user asks for product recommendations, first ensure transactions were retrieved using the same tool alias and ground any recommendations strictly in the returned categories and amounts. Do not infer missing data.
         actions:
-            getRecommendations: @actions.getRecommendations
-                with PersnlDecisionInputRepresentation = ...
-                with invocationType = ...
-            UnderstandUserIntent: @actions.UnderstandUserIntent
-                with "Input:UserIntentQuery" = ...
+            tool_DC_Financial_Transactions_Summary: @actions.DC_Financial_Transactions_Summary
+                with "Input:Account"=@variables.currentRecordId
+                with citationMode="disabled"
+            tool_Product_Offers: @actions.Product_Offers
+                with "Input:ProductOfferQuestion" = ...
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2641,63 +2820,80 @@ subagent personalizedRecommendations:
 
 
     actions:
-        getRecommendations:
+        DC_Financial_Transactions_Summary:
             description: |
-                Get recommendations as a list of items with item name and any supporting detail.
-            label: "Personalization: Get Recommendations"
+                Summarize a customer’s financial transactions. If no date range is provided, default to the last 30 days to return recent, real data quickly. Only if the last 30 days returns zero rows should the query expand to a larger window. Do not default to full available history to avoid timeouts. Never fabricate or infer transactions; report only the rows returned by the tool.
+            label: "DC_Financial_Transactions_Summary"
             require_user_confirmation: False
             include_in_progress_indicator: True
-            progress_indicator_message: "Getting the personalized recommendations..."
-            source: "Personalization__getRecommendations"
-            target: "standardInvocableAction://getPersonalizationDecisions"
-                                                                                                        
+            progress_indicator_message: "Fetching Transactional Data"
+            source: "DC_Financial_Transactions_Summary"
+            target: "generatePromptResponse://DC_Financial_Transactions_Summary"
+                                                                        
             inputs:
-                "PersnlDecisionInputRepresentation": object
+                "Input:Account": object
                     description: |
-                      Context and personalization point details for retrieving a personalization decision.
-                    label: "Personalization Decision Input"
-                    is_required: True
-                    is_user_input: True
-                    complex_data_type_name: "@apexClassType/ConnectApi__PersnlDecisionInputRepresentation"
-                "invocationType": string
-                    description: |
-                      Invocation type for the personalization action. The value is currently restricted to REST.
-                    label: "Invocation Type"
+                      Input AccountID. This is bound automatically to the current record context and must not be requested from the user.
+                    label: "RelatedEntity"
                     is_required: True
                     is_user_input: False
-                                                                                                        
-            outputs:
-                "PersnlDecisionOutputRepresentation": object
+                    complex_data_type_name: "lightning__recordInfoType"
+                "citationMode": string
                     description: |
-                      List of recommended items with item name, and its related details.
-                    label: "Personalization Decision Output"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "@apexClassType/ConnectApi__PersnlDecisionOutputRepresentation"
-
-        UnderstandUserIntent:
-            description: |
-                Extracts user intent and identifies related criteria (such as brand or price range) from natural language input to make more relevant recommendations.
-            label: "Personalization: Understand User Intent"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Understanding the user intent..."
-            source: "Personalization__UnderstandUserIntent"
-            target: "generatePromptResponse://Personalization__interpretUserIntent"
-                                                                                                        
-            inputs:
-                "Input:UserIntentQuery": string
-                    description: |
-                      A JSON query that contains the user's conversation history about what they're looking for and the available filter options that can be applied to refine the results for their product recommendations
-                    label: "User Intent Query"
-                    is_required: True
-                    is_user_input: True
-                                                                                                        
+                      Select Citation Mode
+                    label: "Citation Mode"
+                    is_required: False
+                    is_user_input: False
+                                                                        
             outputs:
                 "promptResponse": string
                     description: |
-                      A JSON response that contains the extracted user intent
-                    label: "User Intent"
+                      The prompt response generated by the action based on the specified prompt and input. When a date range is not provided, default to the last 30 days; only expand the window if those 30 days return zero rows.
+                    label: "Prompt Response"
+                    is_displayable: False
+                    filter_from_agent: False
+                "citations": object
+                    description: |
+                      The prompt citation response generated by the action based on the specified prompt and input.
+                    label: "Citations"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "@apexClassType/AiCopilot__GenAiCitationOutput"
+        Product_Offers:
+            label: "Product Offers"
+            description: "Retrieves relevant product offers and promotions to consider for the client."
+            target: "generatePromptResponse://Product_Offers"
+            inputs:
+                "Input:ProductOfferQuestion": string
+                    label: "ProductOfferQuestion"
+                    is_required: True
+                    complex_data_type_name: "lightning__textType"
+                outputLanguage: string
+                    label: "Output language"
+                    description: "Optional. Specify the response language using the appropriate two-character language code or five-character locale code (for example, en_US, en_GB, es, es_MX)."
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                citationMode: string
+                    label: "Citation Mode"
+                    description: "Select Citation Mode"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                isPreviewOnly: boolean
+                    label: "Preview Only"
+                    description: "Resolves the prompt template without generating an LLM response."
+                    is_required: False
+                    complex_data_type_name: "lightning__booleanType"
+            outputs:
+                promptResponse: string
+                    label: "Prompt Response"
+                    description: "The prompt response generated by the action based on the specified prompt and input."
+                    complex_data_type_name: "lightning__textType"
+                    is_displayable: True
+                    filter_from_agent: False
+                citations: object
+                    label: "Citations"
+                    description: "The prompt citation response generated by the action based on the specified prompt and input."
+                    complex_data_type_name: "@apexClassType/AiCopilot__GenAiCitationOutput"
                     is_displayable: True
                     filter_from_agent: False
 
@@ -2744,6 +2940,12 @@ subagent RecordManagement:
 
 
 
+
+
+
+
+
+
     actions:
         IdentifyRecordByName:
             description: |
@@ -2753,7 +2955,7 @@ subagent RecordManagement:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                        
+                                                                                                                        
             inputs:
                 "recordName": string
                     description: |
@@ -2767,7 +2969,7 @@ subagent RecordManagement:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                        
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -2786,7 +2988,7 @@ subagent RecordManagement:
             progress_indicator_message: "Preparing your changes"
             source: "EmployeeCopilot__ExtractFieldsAndValuesFromUserInput"
             target: "standardInvocableAction://getRecordFieldsAndValues"
-                                                                        
+                                                                                                                        
             inputs:
                 "recordId": object
                     description: |
@@ -2807,7 +3009,7 @@ subagent RecordManagement:
                     label: "User Input"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                        
             outputs:
                 "recordDetails": object
                     description: |
@@ -2826,7 +3028,7 @@ subagent RecordManagement:
             progress_indicator_message: "Making updates"
             source: "EmployeeCopilot__UpdateRecordFields"
             target: "standardInvocableAction://einsteinCopilotUpdateRecord"
-                                                                        
+                                                                                                                        
             inputs:
                 "recordDetailInput": object
                     description: |
@@ -2835,7 +3037,7 @@ subagent RecordManagement:
                     is_required: True
                     is_user_input: False
                     complex_data_type_name: "lightning__recordInfoType"
-                                                                        
+                                                                                                                        
             outputs:
                 "recordDetailOutput": object
                     description: |
@@ -2853,7 +3055,7 @@ subagent RecordManagement:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__QueryRecords"
             target: "standardInvocableAction://queryRecords"
-                                                                        
+                                                                                                                        
             inputs:
                 "query": string
                     description: |
@@ -2867,7 +3069,7 @@ subagent RecordManagement:
                     label: "customizationInstructions"
                     is_required: False
                     is_user_input: False
-                                                                        
+                                                                                                                        
             outputs:
                 "result": list[object]
                     description: |
@@ -2885,7 +3087,7 @@ subagent RecordManagement:
             include_in_progress_indicator: False
             source: "SalesMgmt__UpdateAiGenActionItem"
             target: "standardInvocableAction://updateAiGenActionItem"
-                                                                        
+                                                                                                                        
             inputs:
                 "aiGenActionItemId": string
                     description: |
@@ -2899,7 +3101,7 @@ subagent RecordManagement:
                     label: "AI-Generated Action Item Status"
                     is_required: True
                     is_user_input: True
-                                                                        
+                                                                                                                        
             outputs:
                 "status": string
                     description: |
@@ -2925,6 +3127,12 @@ subagent Product_Questions:
         actions:
             DC_Product_Feature_Brochure: @actions.DC_Product_Feature_Brochure
                 with "Input:ProductQuestion" = ...
+
+
+
+
+
+
 
 
     actions:
@@ -2994,6 +3202,12 @@ subagent Financial_Accounts:
                 with customizationInstructions=...
 
 
+
+
+
+
+
+
     actions:
         IdentifyRecordByName:
             description: |
@@ -3003,7 +3217,7 @@ subagent Financial_Accounts:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-                                                                                                                                                                
+                                                                                                                                                                                                                
             inputs:
                 "recordName": string
                     description: |
@@ -3017,7 +3231,7 @@ subagent Financial_Accounts:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-                                                                                                                                                                
+                                                                                                                                                                                                                
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -3026,6 +3240,7 @@ subagent Financial_Accounts:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
+
         QueryRecords:
             description: |
                 Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. 'Find all open opportunities created in the last 5 days sorted by created date.'
@@ -3034,7 +3249,7 @@ subagent Financial_Accounts:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__QueryRecords"
             target: "standardInvocableAction://queryRecords"
-                        
+                                                                        
             inputs:
                 "query": string
                     description: |
@@ -3048,7 +3263,7 @@ subagent Financial_Accounts:
                     label: "customizationInstructions"
                     is_required: False
                     is_user_input: False
-                        
+                                                                        
             outputs:
                 "result": list[object]
                     description: |
@@ -3083,6 +3298,12 @@ subagent Client_Insights:
                 with query=...
                 with customizationInstructions=...
 
+
+
+
+
+
+
     actions:
         IdentifyRecordByName:
             description: |
@@ -3092,7 +3313,7 @@ subagent Client_Insights:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
-        
+                                                        
             inputs:
                 "recordName": string
                     description: |
@@ -3106,7 +3327,7 @@ subagent Client_Insights:
                     label: "objectApiName"
                     is_required: False
                     is_user_input: False
-        
+                                                        
             outputs:
                 "searchResults": list[object]
                     description: |
@@ -3115,6 +3336,7 @@ subagent Client_Insights:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
+
         QueryRecords:
             description: |
                 Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type.
@@ -3123,7 +3345,7 @@ subagent Client_Insights:
             include_in_progress_indicator: True
             source: "EmployeeCopilot__QueryRecords"
             target: "standardInvocableAction://queryRecords"
-        
+                                                        
             inputs:
                 "query": string
                     description: |
@@ -3137,7 +3359,7 @@ subagent Client_Insights:
                     label: "customizationInstructions"
                     is_required: False
                     is_user_input: False
-        
+                                                        
             outputs:
                 "result": list[object]
                     description: |
@@ -3149,120 +3371,88 @@ subagent Client_Insights:
 
 subagent Referrals:
     label: "Referrals"
-    description: "Create and manage client referrals including person referrals, and wealth management referrals as Lead records"
+    description: "Handles referral creation directly without lead creation or record search. Creates a referral for the current record context without creating Leads or searching records by name."
     reasoning:
         instructions: ->
-            | Use Identify Record by Name to resolve the client or related account when provided.
-              Use Query Records to gather any needed context (e.g., existing leads or referral history).
-              When the user confirms creating a referral, use Create Record to create a Lead with appropriate fields (e.g., FirstName, LastName, Company, Status, LeadSource, Referral_Type__c if applicable).
-              Ask for any missing mandatory fields succinctly. Do not fabricate values.
-              Avoid SOQL; provide natural-language inputs to the tools.
+            | Detect when the user asks to create a referral (e.g., "create a referral", "refer this client").
+              When creating a referral:
+              - Do NOT search for a client by name and do NOT create a Lead. Do not ask for Company or Status.
+              - Use the current record in context. Set recordId to the current record using the existing context variable currentRecordId without prompting the user and pass it to the Create Referral tool.
+              - Collect only targetLOB if not provided. Accepted values: CMC, Consumer Investments, Wealth, Private Bank, Business Banking, Commercial Bank, Global Markets, Lending, Mortgage. If user input is outside this list, briefly reprompt the user to choose one of the accepted values.
+              - introductionComments are optional. If the user provides context, include it; otherwise, omit it.
+              - Invoke the Create Referral tool with parameters: recordId, targetLOB, and introductionComments (if provided).
+              - After the action runs, surface the actual result verbatim from the action output. Do not fabricate values or claim success unless confirmed by the action output.
         actions:
-            IdentifyRecordByName: @actions.IdentifyRecordByName
-                with recordName = ...
-                with objectApiName = ...
-            CreateRecord: @actions.CreateSalesLeadRecord
-                with leadRecord = ...
-    reasoning:
-        actions:
-            tool_IdentifyRecordByName: @actions.IdentifyRecordByName
-                with recordName=...
-                with objectApiName=...
-            tool_QueryRecords: @actions.QueryRecords
-                with query=...
-                with customizationInstructions=...
-            tool_CreateRecord: @actions.CreateSalesLeadRecord
-                with leadRecord=...
+            tool_CreateReferral: @actions.CreateReferral
+                with recordId=@variables.currentRecordId
+                with targetLOB=...
+                with introductionComments=...
+
+
+
+
+
+
 
     actions:
-        IdentifyRecordByName:
+        CreateReferral:
             description: |
-                Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.
-            label: "Identify Record by Name"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            source: "EmployeeCopilot__IdentifyRecordByName"
-            target: "standardInvocableAction://identifyRecordByName"
-        
-            inputs:
-                "recordName": string
-                    description: |
-                      The name or title of the Salesforce record extracted from user input.
-                    label: "recordName"
-                    is_required: True
-                    is_user_input: True
-                "objectApiName": string
-                    description: |
-                      The API name of the Salesforce object associated with the record if known.
-                    label: "objectApiName"
-                    is_required: False
-                    is_user_input: False
-        
-            outputs:
-                "searchResults": list[object]
-                    description: |
-                      A list of matching Salesforce record ids.
-                    label: "searchResults"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
-        QueryRecords:
-            description: |
-                Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type.
-            label: "Query Records"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            source: "EmployeeCopilot__QueryRecords"
-            target: "standardInvocableAction://queryRecords"
-        
-            inputs:
-                "query": string
-                    description: |
-                      Natural-language query to review existing leads or referral context. No SOQL.
-                    label: "query"
-                    is_required: True
-                    is_user_input: True
-                "customizationInstructions": string
-                    description: |
-                      Optional guidance to fine-tune retrieval.
-                    label: "customizationInstructions"
-                    is_required: False
-                    is_user_input: False
-        
-            outputs:
-                "result": list[object]
-                    description: |
-                      Matching records and key fields.
-                    label: "result"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
-        CreateSalesLeadRecord:
-            description: |
-                Searches for a matching Lead record. If one is not found, creates a new Lead record.
-            label: "Create Sales Lead Record"
+                Use this action when the user asks to create a referral to another line of business. Common requests can sound like "create a referral to our wealth department" or "create a referral to our lending department" with other insights or contexts included.
+            label: "Create Referral"
             require_user_confirmation: True
             include_in_progress_indicator: True
-            source: "sales_sdr_agent__CreateSalesLeadRecord"
-            target: "flow://sales_sfa_flows__CreateSalesLead"
-        
+            progress_indicator_message: "Creating referral..."
+            source: "Create_Referral"
+            target: "flow://Create_Referral"
+                                        
             inputs:
-                "leadRecord": object
+                "introductionComments": string
                     description: |
-                      The Lead record to identify or create.
-                    label: "Lead Record"
+                      Any comments to include from the context of how the referral was created. Summarize the context or comments to be one to three sentences max.
+                    label: "introductionComments"
+                    is_required: False
+                    is_user_input: False
+                "recordId": string
+                    description: |
+                      Record ID of the related account.
+                    label: "recordId"
                     is_required: True
-                    is_user_input: True
-                    complex_data_type_name: "lightning__recordInfoType"
-        
-            outputs:
-                "leadRecordId": string
+                    is_user_input: False
+                "referralCreatedOn": object
                     description: |
-                      The Lead record ID that was found or created.
-                    label: "Lead Record ID"
+                      Date and time the referral was created. This is already set to current date and time by default so need to provide input here.
+                    label: "referralCreatedOn"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__dateTimeStringType"
+                "targetLOB": string
+                    description: |
+                      Target line of business the referral is for. The picklist values for this input are any one of these options: CMC, Consumer Investments, Wealth, Private Bank, Business Banking, Commercial Bank, Global Markets, Lending, Mortgage.
+                    label: "targetLOB"
+                    is_required: False
+                    is_user_input: True
+                                        
+            outputs:
+                "introductionComments": object
+                    description: |
+                      Any comments to include from the context of how the referral was created. Summarize the context or comments to be one to three sentences max. Show this back to the user for review and allow them to edit before saving the new record.
+                    label: "introductionComments"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "referralCreatedOn": object
+                    description: |
+                      Date and time the referral was created.
+                    label: "referralCreatedOn"
                     is_displayable: False
                     filter_from_agent: False
-
+                    complex_data_type_name: "lightning__dateTimeStringType"
+                "targetLOB": string
+                    description: |
+                      Target line of business the referral is for. The picklist values for this input are any one of these options: CMC, Consumer Investments, Wealth, Private Bank, Business Banking, Commercial Bank, Global Markets, Lending, Mortgage. Show this back to the user to confirm the referral is being routed to the right business.
+                    label: "targetLOB"
+                    is_displayable: True
+                    filter_from_agent: False
 
 subagent Product_Offers:
     label: "Product Offers"
@@ -3281,29 +3471,192 @@ subagent Product_Offers:
              5. If no matching products are found, let the user know and suggest related product categories they might be interested in.
              Always present product information accurately as retrieved from the knowledge base. Do not fabricate rates, fees, or product details. If specific details are not available in the retrieved results, acknowledge this and offer to help the user connect with a product specialist.
         actions:
-            DC_Product_Offers: @actions.DC_Product_Offers
+            Product_Offers: @actions.Product_Offers
                 with "Input:ProductOfferQuestion" = ...
+                with outputLanguage = ...
+                with citationMode = ...
+                with isPreviewOnly = ...
+
+
+
+
+
+
+
+
+
     actions:
-        DC_Product_Offers:
-            description: "The goal of this action is to answer questions related to products and processes including product features, requirements, processes, fees, recommendations"
-            label: "DC_Product_Offers"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            source: "DC_Product_Offers"
+        Product_Offers:
+            label: "Product Offers"
+            description: "The goal of this action is to answer questions related to product offers and promotions"
             target: "generatePromptResponse://Product_Offers"
             inputs:
                 "Input:ProductOfferQuestion": string
-                    description: |
-                        Product offer inquiry question text
                     label: "ProductOfferQuestion"
                     is_required: True
-                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                outputLanguage: string
+                    label: "Output language"
+                    description: "Optional. Specify the response language using the appropriate two-character language code or five-character locale code (for example, en_US, en_GB, es, es_MX)."
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                citationMode: string
+                    label: "Citation Mode"
+                    description: "Select Citation Mode"
+                    is_required: False
+                    complex_data_type_name: "lightning__textType"
+                isPreviewOnly: boolean
+                    label: "Preview Only"
+                    description: "Resolves the prompt template without generating an LLM response."
+                    is_required: False
+                    complex_data_type_name: "lightning__booleanType"
             outputs:
-                "promptResponse": object
-                    complex_data_type_name: "c__markdownResponse"
-                    description: |
-                        The prompt response generated by the action based on the specified prompt and input.
+                promptResponse: string
                     label: "Prompt Response"
+                    description: "The prompt response generated by the action based on the specified prompt and input."
+                    complex_data_type_name: "lightning__textType"
+                    is_displayable: False
+                    filter_from_agent: False
+                citations: object
+                    label: "Citations"
+                    description: "The prompt citation response generated by the action based on the specified prompt and input."
+                    complex_data_type_name: "@apexClassType/AiCopilot__GenAiCitationOutput"
                     is_displayable: True
                     filter_from_agent: False
-            progress_indicator_message: "Retrieving Product Details..."
+            include_in_progress_indicator: True
+            progress_indicator_message: "Retrieving Product Offers..."
+
+subagent SemanticDataAnalysis:
+    label: "Data Analysis"
+    description: "Answer analytical questions grounded in a semantic data model, dashboard, or metric — including a client's fraud-pattern risk, high-risk merchant-category (MCC) exposure, flagged transactions, flagged amounts, and risk-tier drivers. Use for 'what's driving the risk', 'why is this client flagged', and breakdown/trend/ranking questions about transaction risk."
+
+    reasoning:
+        instructions: ->
+            | If an action asks for conversationContext, ALWAYS provide the action with the current session history in the following format:
+              
+              {
+                "messages": [
+                  {
+                    "role": "Agent",
+                    "message": "..."
+                  },
+                  {
+                    "role": "User",
+                    "message": "..."
+                  }
+                ]
+              }
+              
+              Always invoke the AnalyzeSemanticData action immediately, without prompting the user for further clarification beforehand
+              
+              When the user refers to "this account", "this client", "this customer", "this record", or "the current client", you MUST pass the currentRecordId and currentObjectApiName context variables to the AnalyzeSemanticData action to scope the analysis to that one account. Never return data for more than one account when currentRecordId is available, and never ask the user for an account name or ID that is already provided by currentRecordId.
+
+              You should ALWAYS avoid repeating the content from Answer returned from AnalyzeSemanticData action.
+              
+              You MUST avoid repeating clarification question from the Answer returned from AnalyzeSemanticData action. You should keep your answer more general than the clarification question from the Answer returned from AnalyzeSemanticData action.
+              
+              Always include the complete, untruncated conversation history between 'User' and 'Agent' whenever conversationContext is asked for
+              
+              Always ensure that config is part of conversationContext even if the user asks a new question
+              
+              Always pass the user’s most recent chat message as the 'utterance' parameter when invoking the AnalyzeSemanticData action.
+              
+              For any new question in this topic, always invoke the AnalyzeSemanticData action to obtain fresh results, do not reuse or echo prior chat responses
+              
+              ALWAYS use the /show command, Do NOT write the structured data as plain text
+              
+              
+
+        actions:
+            AnalyzeSemanticData: @actions.AnalyzeSemanticData
+                with targetEntityId=...
+                with targetEntityType=...
+                with targetEntityState=...
+                with currentRecordId=...
+                with currentObjectApiName=...
+                with conversationContext=...
+                with utterance=...
+
+
+
+
+
+
+
+
+
+
+    actions:
+        AnalyzeSemanticData:
+            description: |
+                Answer analytical questions grounded in a semantic data model, dashboard, or metric — including a client's fraud-pattern risk, high-risk merchant-category (MCC) exposure, flagged transactions, flagged amounts, and risk-tier drivers. Use for 'what's driving the risk', 'why is this client flagged', and breakdown/trend/ranking questions about transaction risk.
+            label: "Analyze Data"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Analyzing your data"
+            source: "Analytics__AnalyzeSemanticData"
+            target: "standardInvocableAction://analyzeSemanticData"
+                                                        
+            inputs:
+                "targetEntityId": string
+                    description: |
+                      ID or API name of the dashboard, sdm or metric on the page
+                    label: "Target Entity Id"
+                    is_required: False
+                    is_user_input: False
+                "targetEntityType": string
+                    description: |
+                      One of dashboard, metric or sdm
+                    label: "Target Entity Type"
+                    is_required: False
+                    is_user_input: False
+                "targetEntityState": string
+                    description: |
+                      Entity-specific state, like dashboard filters
+                    label: "Target Entity State"
+                    is_required: False
+                    is_user_input: False
+                "currentRecordId": string
+                    description: |
+                      The Id of the record the user is currently viewing. Use this for information about 'this record', 'current record', 'the record', etc.
+                    label: "Current Record Id"
+                    is_required: False
+                    is_user_input: False
+                "currentObjectApiName": string
+                    description: |
+                      The API name of the Salesforce object (such as Account or Opportunity) associated with the record the user wants to interact with. Do not use this if the user is already talking about another object in the conversation.
+                    label: "Current Object Api Name"
+                    is_required: False
+                    is_user_input: False
+                "conversationContext": string
+                    description: |
+                      Context of the conversation session
+                    label: "Conversation Context"
+                    is_required: True
+                    is_user_input: False
+                "utterance": string
+                    description: |
+                      User utterance
+                    label: "Utterance"
+                    is_required: True
+                    is_user_input: False
+                                                        
+            outputs:
+                "answer": string
+                    description: |
+                      Answer to an analytical question
+                    label: "Answer"
+                    is_displayable: True
+                    filter_from_agent: False
+                "visualizationMetadata": string
+                    description: |
+                      Visualization Metadata
+                    label: "Visualization Metadata"
+                    is_displayable: True
+                    filter_from_agent: True
+                "answerArtifacts": string
+                    description: |
+                      Answer Artifacts
+                    label: "Answer Artifacts"
+                    is_displayable: True
+                    filter_from_agent: True

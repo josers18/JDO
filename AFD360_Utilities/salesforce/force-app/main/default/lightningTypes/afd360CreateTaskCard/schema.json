@@ -1,0 +1,5 @@
+{
+  "title": "AFD360 Task Card",
+  "description": "AFD360CreateTask output rendered as the afd360TaskCard HXL widget in Agentforce",
+  "lightning:type": "@apexClassType/c__AFD360CreateTask$TaskCard"
+}

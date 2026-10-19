@@ -1,0 +1,294 @@
+// Types shared by the Express server and the React app.
+
+export interface OrgSummary {
+  id: string;
+  name: string;
+  myDomain: string;
+  clientId: string;
+  secretLast4: string;
+  dataCloudClientId?: string; // optional second app for the Notebook's Data Cloud connector (standard, non-JWT tokens)
+  dataCloudSecretLast4?: string;
+  createdAt: string;
+}
+
+export interface OrgsResponse {
+  orgs: OrgSummary[];
+  activeOrgId: string | null;
+}
+
+export interface OrgInput {
+  name: string;
+  myDomain: string;
+  clientId: string;
+  clientSecret?: string; // optional on update = keep existing
+  dataCloudClientId?: string; // blank = none
+  dataCloudClientSecret?: string; // optional on update = keep existing
+}
+
+export interface OrgTestResult {
+  ok: boolean;
+  username?: string;
+  organizationId?: string;
+  error?: string;
+}
+
+export interface Agent {
+  id: string;
+  developerName: string;
+  label: string;
+  agentType: string;
+  active: boolean;
+  supported: boolean; // false for the "Agentforce (Default)" assistant (AgentType = Employee)
+}
+
+export interface ToolStep {
+  description: string;
+  status: string;
+}
+
+export interface Tool {
+  id: string;
+  description: string;
+  count?: string;
+  status: string; // running | success | error ...
+  category?: string;
+  // Every description this tool reported, in order (e.g. agent delegation sub-steps); last = current.
+  steps?: ToolStep[];
+}
+
+export type Part =
+  | { kind: "text"; markdown: string }
+  | { kind: "tools"; tools: Tool[] }
+  | { kind: "progress"; text: string }
+  | { kind: "action"; actionType: string; toolId?: string; value: unknown } // a proposed action awaiting approval
+  | { kind: "raw"; lightningType: string; value: unknown };
+
+// An agent Confirm message item (TargetTypeMessage) — sent back verbatim in the approving Reply.
+export interface ConfirmItem {
+  type: string;
+  property?: string;
+  value: unknown;
+}
+
+export type ConfirmStatus = "pending" | "approved" | "partially-approved" | "rejected" | "superseded";
+
+export interface Message {
+  id: string;
+  role: "user" | "agent" | "system" | "error";
+  parts: Part[];
+  createdAt: string;
+  turn: number;
+  durationMs?: number;
+  confirm?: { status: ConfirmStatus; approvedToolIds?: string[] };
+}
+
+export interface WireStreamEvent {
+  t: number; // ms since request start
+  event: string;
+  data: unknown;
+}
+
+export interface WireEntry {
+  id: string;
+  turn: number | null;
+  label: string; // e.g. "Start session", "Send message (stream)"
+  startedAt: string;
+  method: string;
+  url: string;
+  requestHeaders: Record<string, string>;
+  requestBody?: unknown;
+  status?: number;
+  responseHeaders?: Record<string, string>;
+  responseBody?: unknown;
+  streamEvents?: WireStreamEvent[];
+  durationMs?: number;
+  error?: string;
+}
+
+export interface SessionState {
+  id: string;
+  nextSequenceId: number;
+  startedAt: string;
+  lastActivityAt: string;
+}
+
+export type ConversationStatus = "live" | "expired" | "ended";
+
+export interface ConversationSummary {
+  id: string;
+  orgId: string;
+  agentId: string;
+  agentLabel: string;
+  title: string;
+  status: ConversationStatus;
+  turns: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Conversation extends ConversationSummary {
+  agentType: string;
+  bypassUser: boolean;
+  session: SessionState | null;
+  messages: Message[];
+  wire: WireEntry[];
+  // The open approval request: agent Confirm message id + action items, tied to our agent message.
+  pendingConfirm?: { agentMessageId: string; confirmMessageId: string; items: ConfirmItem[] } | null;
+}
+
+export interface CreateConversationInput {
+  orgId: string;
+  agentId: string;
+  bypassUser: boolean;
+}
+
+// Events streamed from the server to the browser while a turn runs.
+export type AppEvent =
+  | { type: "user-message"; message: Message }
+  | { type: "text-delta"; segment: number; text: string }
+  | { type: "tool"; segment: number; tool: Tool }
+  | { type: "progress"; text: string }
+  | { type: "part"; segment: number; part: Part }
+  | { type: "final"; message: Message }
+  | { type: "end-of-turn" }
+  | { type: "session-expired" }
+  | { type: "error"; message: string }
+  | { type: "wire"; entry: WireEntry };
+
+// One HXL card for an agent action output (server/hxl.ts): the org's own widget for the output's Lightning type,
+// or a card generated from the data's shape. uiMetadata is the resolved widget tree the HXL runtime draws.
+export interface HxlCard {
+  key: string;
+  type: string | null;
+  source: "widget" | "auto";
+  widget?: string;
+  uiMetadata: unknown;
+}
+
+// Token usage for one Agent API turn, from Data 360's AiAgentGenerativeAiUsage_std__dlm (lands minutes after the turn).
+// Usage plus the wire entries the lookup made, for the conversation's Wire tab.
+export interface TurnUsageResult {
+  usage: TurnUsage;
+  wire: WireEntry[];
+}
+
+export interface TurnUsage {
+  traceId: string;
+  rows: number; // 0 = not in Data 360 yet
+  llmCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  models: { model: string; calls: number; inputTokens: number; outputTokens: number; totalTokens: number }[];
+}
+
+// ── Data 360 Query (server/query.ts) ──────────────────────────────────
+export type QueryObjectType = "DMO" | "DLO" | "CI" | "Unified" | "DG" | "SI";
+
+export interface QueryField {
+  name: string;
+  label: string;
+  type: string;
+}
+
+// One queryable object from /ssot/metadata, slimmed for the object browser and autocomplete.
+export interface QueryObject {
+  name: string; // the API name SQL uses, e.g. ssot__Account__dlm
+  label: string;
+  type: QueryObjectType;
+  category: string;
+  fields: QueryField[];
+  // A search index (named for its index DMO) is read through one of these table functions.
+  searchFunction?: "vector_search" | "hybrid_search";
+  chunk?: string; // and its chunk DMO holds the text each match came from
+  // A data graph's root DMO (or a profile DMO itself), with its primary key and the fields that name a record, for
+  // finding one to look up.
+  root?: QueryGraphRoot;
+  // A calculated insight's measures, by name; its other fields are dimensions.
+  measures?: string[];
+}
+
+export interface QueryGraphRoot {
+  object: string;
+  key: string;
+  show: string[];
+}
+
+export interface QueryCatalog {
+  dataspace: string;
+  loadedAt: string;
+  objects: QueryObject[];
+}
+
+export interface QueryStatus {
+  queryId: string;
+  completionStatus: string; // Running | ResultsProduced | Finished
+  progress: number;
+  rowCount: number;
+  rowsProcessed?: number;
+  wallClockTime?: number; // seconds
+  chunkCount?: number;
+  expirationTime?: string;
+  stalenessReasons?: string[];
+}
+
+export interface QueryColumn {
+  name: string;
+  type: string;
+  nullable?: boolean;
+}
+
+// POST /ssot/query-sql and GET …/rows both answer with this shape (status only on the POST).
+export interface QueryPage {
+  metadata?: QueryColumn[];
+  data?: unknown[][];
+  returnedRows?: number;
+  status?: QueryStatus;
+}
+
+// A named parameter (`:acct` in the SQL) sent with the query.
+export interface QuerySqlParameter {
+  name: string;
+  type: string; // Varchar, Integer, Date …
+  value: string;
+}
+
+export interface QueryRunOptions {
+  sqlParameters?: QuerySqlParameter[];
+  querySettings?: Record<string, string>; // date_style, lc_time, query_timeout
+}
+
+// The Data 360 REST reads beside SQL: data graphs, calculated insights, profiles and universal ID lookup.
+export type QueryApiKind = "dataGraph" | "insight" | "profile" | "universalId";
+
+export interface QueryApiCall {
+  kind: QueryApiKind;
+  params: Record<string, string>;
+}
+
+// What a /api/query route answers: the result plus the wire entries for the calls it made (also on errors).
+export type QueryReply<T> = T & { wire: WireEntry[] };
+
+// ── Notebook: Python cells run in a local kernel per org (python/kernel.py) ──
+
+export type NotebookOutput =
+  | { type: "stream"; name: "stdout" | "stderr"; text: string }
+  | { type: "display"; mime: "text/html" | "image/png" | "text/plain"; data: string }
+  | { type: "error"; ename: string; evalue: string; traceback: string };
+
+export type KernelState = "missing" | "stopped" | "starting" | "idle" | "busy";
+
+export interface KernelStatus {
+  state: KernelState;
+  python?: string; // version, once the kernel reports ready
+  setupCommand: string; // what creates the Python environment when state is "missing"
+}
+
+// One cell run: its execution count, what it showed, and the HTTP calls it made (masked).
+export interface NotebookRun {
+  count: number;
+  ok: boolean;
+  outputs: NotebookOutput[];
+  wire: WireEntry[];
+  durationMs: number;
+}
