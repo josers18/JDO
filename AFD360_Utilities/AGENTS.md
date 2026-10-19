@@ -15,14 +15,19 @@ Local test bench for Agentforce and Data 360 APIs that SEs use to demo the raw A
 - Server: Express 5 + TypeScript, run with `tsx` (Node ≥ 20).
 - Web: Vite + React 19 + TypeScript + Tailwind v4, `lucide-react` icons.
 - Shared pure logic in `shared/`, tested with vitest.
-- Salesforce: one External Client App per org, OAuth client credentials (`api`, `chatbot_api`, `sfap_api`, `mcp_api`).
+- Salesforce: one External Client App per org, OAuth client credentials (`api`, `chatbot_api`, `sfap_api`, `mcp_api`),
+  plus an optional Data Cloud app per org for the Notebook (`api`, `cdp_api`, `cdp_query_api`, `cdp_profile_api`).
+- Notebook: Python 3 in `.venv` (`salesforce-cdp-connector==1.0.20`, pandas, matplotlib), CodeMirror cells.
 
 # Project structure
 
 ```
-server/      Express API: Agent API sessions + stream normalizer, MCP client/host, Data 360 query + REST reads, orgs
+server/      Express API: Agent API sessions + stream normalizer, MCP client/host, Data 360 query + REST reads,
+             notebook kernels, orgs
 shared/      Pure logic used by both sides (types, sqlAssist, gridView, turnStats, citations)
-web/src/     React app: chat, MCP, query/ (ObjectBrowser, SqlEditor, ApiForm, ResultsGrid in QueryModule, RecordPanel)
+web/src/     React app: chat, MCP, query/ (ObjectBrowser, SqlEditor, ApiForm, ResultsGrid in QueryModule, RecordPanel),
+             notebook/ (NotebookModule, CellEditor)
+python/      Notebook kernel (kernel.py, JSON-lines protocol) and requirements.txt
 test/        vitest suites + recorded Agent API streams (fixtures/*.sse)
 salesforce/  HXL demo metadata deployed to finsdc3 (Apex actions, widgets, Lightning types, AFD360Demo MCP server)
 docs/        architecture, HXL, platform bug reports
@@ -36,6 +41,7 @@ npm install
 npm run dev         # web :5173 (proxies /api), API :3001, widget sandbox :3002 — loopback only
 npm test            # vitest run
 npm run typecheck   # tsc --noEmit, includes test/
+npm run notebook:setup       # .venv for the Notebook kernel (once, or after requirements.txt changes)
 npm run build && npm start   # single Express process serving web/dist
 ```
 
@@ -46,6 +52,9 @@ npm run build && npm start   # single Express process serving web/dist
 - Agent API streams are normalized in `server/normalize.ts` into app events relayed over SSE.
 - Query module: catalog per data space (cached server-side; reload button refetches), SQL via `/ssot/query-sql`,
   REST reads via `/api/query/read`. Grid sort/filter is client-side over loaded rows (`shared/gridView.ts`).
+- Notebook: one `python/kernel.py` process per org (`server/notebook.ts`). The kernel patches
+  `requests.Session.send` and reports each HTTP call; the server masks it (`server/wire.ts`) and tags it with the
+  cell's execution count. Credentials reach the kernel only as env vars; the cell-facing `org` hides the secret.
 
 # Conventions
 
@@ -70,6 +79,14 @@ npm run build && npm start   # single Express process serving web/dist
   chunk DMO returns 0 rows, not an error.
 - The Agent API `metrics` field is always empty; token usage comes from Data 360 telemetry minutes later.
 - After a Salesforce session timeout a fresh token can still fail with `INVALID_JWT_FORMAT`; the client retries.
+- The Data Cloud connector's `/services/a360/token` exchange rejects JWT-format tokens ("invalid subject token"),
+  and the Agent API app must issue JWTs. That's why the Notebook has its own Data Cloud app (JWT tokens off).
+- Don't add scopes to the Agent API app: adding `cdp_profile_api` made every token request fail with "too many
+  scopes requested".
+- Keep `salesforce-cdp-connector` pinned at 1.0.20 — its successor `salesforce-datacloud-connector` is `2.0.0b1` on
+  PyPI, without client credentials. Revisit at `2.0.0b2` (scope name `cdpquery`).
+- New secret-bearing fields on the wire need adding to `SECRET_KEYS` / `SECRET_PARAMS` in `server/wire.ts`
+  (`subject_token` leaked until the masking test caught it).
 
 # Related docs
 

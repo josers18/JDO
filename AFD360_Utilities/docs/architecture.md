@@ -10,7 +10,7 @@ visual system is in `../DESIGN.md`, and HXL is covered in [hxl.md](hxl.md).
 |---|---|
 | Runtime | `npm run dev` runs Vite (:5173), which proxies `/api` to Express (:3001), plus the widget sandbox on its own origin (:3002). All of them bind to loopback only. `npm run build && npm start` runs one Express process that serves `web/dist` (the Heroku shape). |
 | Stack | Server: Express 5 + TypeScript, run with tsx watch. Web: Vite + React 19 + TypeScript + Tailwind v4. Shared types live in `shared/`. Tests use vitest. |
-| Auth to Salesforce | One External Client App per org, using OAuth client credentials. The token is cached per org. On a 401 the app fetches a fresh token and retries, twice: the second retry waits 1.5 s first. All of an org's tokens share one Salesforce session, and right after that session times out (e.g. overnight) a fresh token can still be rejected with `INVALID_JWT_FORMAT`. The same token is used for the Agent API, hosted MCP (`mcp_api` scope), REST, Tooling and SOAP Metadata. |
+| Auth to Salesforce | One External Client App per org, using OAuth client credentials. The token is cached per org. On a 401 the app fetches a fresh token and retries, twice: the second retry waits 1.5 s first. All of an org's tokens share one Salesforce session, and right after that session times out (e.g. overnight) a fresh token can still be rejected with `INVALID_JWT_FORMAT`. The same token is used for the Agent API, hosted MCP (`mcp_api` scope), REST, Tooling and SOAP Metadata. The Notebook can use a second, optional **Data Cloud app** per org (opaque tokens, `cdp_api` / `cdp_query_api` / `cdp_profile_api`) because the connector's `/services/a360/token` exchange rejects the Agent API app's JWT tokens. |
 | Org storage | `data/orgs.json` (gitignored). Client secrets are AES-256-GCM encrypted with `AFD360_MASTER_KEY` from `.env`, which is generated on first run. Secrets are never sent to the browser. |
 | App auth | None while local. **Must be added before any Heroku deploy.** |
 | Sessions | One Agent API session per conversation, persisted (session id + next sequenceId) so it survives reloads and restarts. Marked **expired** when the API rejects it; "New session" reconnects. |
@@ -45,6 +45,8 @@ Tests:
 - Stats, citations and usage tests.
 - `test/query.test.ts`, `queryExport.test.ts` and `gridView.test.ts`: catalog, SQL assist, chunk join, export, grid
   sort/filter.
+- `test/notebook.test.ts`: URL and body masking of the connector's wire entries (`subject_token` included), turn
+  numbering, and output merging.
 
 ## Modules (`web/src/`)
 
@@ -106,7 +108,29 @@ Tests:
     `searchWithChunks` to join the chunk DMO on `RecordId__c`, so matches show `Chunk__c` text, best score first.
   - **Wire.** Every Salesforce call goes into the call panel, which can copy it as a body, curl or fetch.
     `:source` is reserved in Data 360 SQL, so named parameters use `:src` / `:obj`.
-- **Admin → Orgs:** add, edit, delete, test and activate org profiles.
+- **Notebook** (`web/src/notebook/`, `server/notebook.ts`, `python/kernel.py`):
+  - **Kernel.** One Python process per org, `.venv/bin/python -I -u python/kernel.py`, started on the module's
+    first status call. `npm run notebook:setup` builds `.venv` from `python/requirements.txt`
+    (`salesforce-cdp-connector==1.0.20`, pandas, matplotlib); without it the module shows the setup command.
+    Cells share one namespace and talk to the server as JSON lines on stdin/stdout (`run`, then `stream`,
+    `display`, `error`, `wire` and `done`). Interrupt raises `KeyboardInterrupt`; Restart gives a fresh namespace.
+    Saving an org in Admin stops its kernel so the next run picks up new credentials.
+  - **Credentials.** The kernel gets the org through env vars (`AFD360_ORG_NAME`, `AFD360_LOGIN_URL`,
+    `AFD360_CLIENT_ID`, `AFD360_CLIENT_SECRET`, `AFD360_APP`), using the Data Cloud app when one is saved and the main
+    app otherwise. Cells see them as `org`, whose repr never prints the secret.
+  - **Outputs.** The last expression displays like Jupyter: DataFrames as HTML tables (pandas' `<style>` is
+    stripped so the theme applies), matplotlib figures as PNG, anything else as its repr. stdout and stderr stream
+    under the cell.
+  - **Wire.** The kernel patches `requests.Session.send`, so every connector call (OAuth token, Data Cloud token
+    exchange, revoke, `/api/v2/query` and its batches) is recorded with a label, with query bodies cut to 50 rows.
+    The server masks URL params, headers and bodies (`maskUrl`, `maskBody`) and tags each entry with the cell's
+    execution count, which the Wire panel highlights for the selected cell. The connector connects lazily, so its
+    auth calls land on the first query cell.
+  - **Cells** (`CellEditor.tsx`, CodeMirror Python): Shift+Enter runs and moves on, ⌘/Ctrl+Enter runs in place,
+    Run all stops at the first error. Code (not outputs) is saved per org in `localStorage`. The starter
+    notebook connects, groups `UnifiedssotAccountAcc__dlm` by risk tolerance into `df`, and charts it.
+- **Admin → Orgs:** add, edit, delete, test and activate org profiles. Each org can also hold an optional Data Cloud
+  app (key and secret, encrypted like the main secret) for the Notebook.
 - **Theme picker:** 17 runtime themes (`themes.ts`), at the foot of the rail. HXL cards follow the active theme.
 
 ## Server routes
@@ -119,6 +143,7 @@ Tests:
 | `/api/mcp/connect`, `/call`, `/app-call`, `/read` | Hosted MCP client and MCP Apps host proxy |
 | `/api/query/data-spaces`, `/catalog`, `/run`, `/status`, `/rows`, `/cancel` | Data 360 Query API: data spaces, object catalog, SQL submit, polling, paging, cancel. Each response carries its `wire` entries |
 | `/api/query/read` | REST reads: data graph, calculated insight, profile, Universal ID lookup |
+| `/api/notebook/status`, `/run`, `/interrupt`, `/restart` | Notebook kernel for an org: status (starts it), run a cell (outputs plus masked `wire`), interrupt, restart |
 | `/api/mcp/hxl`, `/hxl-runtime` | HXL cards for an agent action output, and the HXL runtime page |
 
 ## Known platform issues
@@ -127,6 +152,10 @@ Tests:
   See [bug-coworker-create-record-agent-api.md](bug-coworker-create-record-agent-api.md). Cumulus Assistant's
   `create_task` (`AFD360CreateTask`) works.
 - **Masked URLs:** the Agent API masks URLs inside action data (`URL_Redacted`); record URLs are kept.
+- **Data Cloud Python connector:** `salesforce-cdp-connector` warns that it's deprecated in favor of
+  `salesforce-datacloud-connector`, but that package is only `2.0.0b1` on PyPI and has no client credentials flow
+  (its README describes `2.0.0b2`, which adds `auth_type="client_credentials"`). The notebook stays on 1.0.20 until
+  b2 ships.
 
 ## Out of scope
 
