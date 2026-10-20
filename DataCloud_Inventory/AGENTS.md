@@ -27,13 +27,17 @@ This file is the agent-orientation primer.
 
 ```
 DataCloud_Inventory/
-├── generate_inventory.py   ← the whole tool (fetch → join → write xlsx + html)
+├── generate_inventory.py   ← the whole tool (fetch → join → tag → write xlsx + html)
+├── persona_rules.json      ← persona regex rules, overrides, suppress_rules
+├── corrections/
+│   └── jdo-oe0sdd.json     ← collaborator corrections (HTML editor export; via PR)
 ├── requirements.txt        ← openpyxl only
 ├── README.md               ← quick start, column guide, method/caveats
 ├── .gitignore              ← ignores output/
 └── output/                 ← generated artifacts (gitignored, regenerate anytime)
     ├── data_stream_inventory.xlsx
-    └── data_stream_inventory.html
+    ├── data_stream_inventory.html
+    └── raw_snapshot.json   ← raw API pull; feed to --from-snapshot to re-tag fast
 ```
 
 # Commands
@@ -64,11 +68,13 @@ Four fetch phases, then a join, then two writers. All in `generate_inventory.py`
    (`?dmoDeveloperName=…`). See Common mistakes for why forward is avoided.
 4. **`build_stream_dmos` / `build_rows` / `build_breakdowns` / `build_connectors`** —
    join maps to streams via the map `developerName` prefix (`{stream}_map_…`),
-   emit the 26-column master plus Unmapped / Needs-Attention / Orphaned-DLO /
+   tag each stream (`PersonaTagger` + `corrections/<org>.json`, see README),
+   emit the 32-column master plus Unmapped / Needs-Attention / Orphaned-DLO /
    Summary / Connectors tables.
 5. **`write_xlsx`** (multi-sheet, frozen header + autofilter per sheet) and
    **`write_html`** (one file; embeds rows as JSON, vanilla-JS search/filter/sort, plus
-   CSV and `.xlsx` export of the current view, the `.xlsx` zipped in-browser).
+   CSV and `.xlsx` export of the current view, the `.xlsx` zipped in-browser, a
+   persona picker, and the correction editor that exports `corrections/<org>.json`).
 
 # Conventions
 
@@ -90,6 +96,17 @@ Four fetch phases, then a join, then two writers. All in `generate_inventory.py`
 
 # Common mistakes
 
+- **Classification logic exists twice.** `build_rows()` (Python) and `applyRow()`
+  (JS in `_HTML`) must agree on precedence: correction persona → rule persona;
+  correction `suppressed` → pattern suppression → persona suppression on the
+  *final* tags. Change one, change the other — otherwise the page and the
+  workbook disagree after an edit.
+- **Re-tagging doesn't need the org.** Every live run writes
+  `output/raw_snapshot.json`; iterate on `persona_rules.json` with
+  `--from-snapshot` instead of paying the ~4 min fetch.
+- **Regex rules also see the source object.** `NotebookFilesStream` matched a
+  `Knowledge` rule via its source object `DataKnowledgeSrcFileRef`; pin such
+  stragglers in `overrides` rather than contorting the pattern.
 - **Do NOT resolve mappings with the forward query.**
   `/ssot/data-model-object-mappings?sourceObjectName=<CRM object>` HANGS / resets
   the connection (HTTP 000) on large CRM objects like `Account` (hundreds of field

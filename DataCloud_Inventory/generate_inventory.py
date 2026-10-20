@@ -19,6 +19,7 @@ See README.md for the column guide and method caveats.
 from __future__ import annotations
 
 import argparse
+import os
 import concurrent.futures as cf
 import html
 import json
@@ -239,12 +240,88 @@ def build_stream_dmos(streams: list[dict], maps: list[dict]) -> dict[str, set[st
     return result
 
 
+# ---------------------------------------------------------------------------
+# Persona tagging
+# ---------------------------------------------------------------------------
+
+DEFAULT_RULES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "persona_rules.json")
+
+
+class PersonaTagger:
+    """Tags each stream with the persona(s) it serves, per persona_rules.json.
+
+    Exact `overrides` win; otherwise the first regex rule matching the stream
+    name, label, or source object applies; otherwise `Unclassified`.
+
+    `suppress_rules` flag streams that aren't customer-useful (test, internal,
+    initiative-specific). Pattern rules are checked first, then persona rules
+    (`personas`), which run against the final -- possibly corrected -- tags.
+    """
+
+    def __init__(self, path: str):
+        with open(path, encoding="utf-8") as f:
+            cfg = json.load(f)
+        self.personas: list[str] = cfg.get("personas") or []
+        self.overrides: dict[str, list[str]] = cfg.get("overrides") or {}
+        self.rules = [(r["tags"], r.get("label") or r["pattern"],
+                       re.compile(r["pattern"], re.IGNORECASE))
+                      for r in cfg.get("rules") or []]
+        sup = cfg.get("suppress_rules") or []
+        self.suppress_patterns = [(r["reason"], re.compile(r["pattern"], re.IGNORECASE))
+                                  for r in sup if r.get("pattern")]
+        self.suppress_personas = [(r["personas"], r["reason"]) for r in sup if r.get("personas")]
+        self.tag_choices = sorted({t for tags, _, _ in self.rules for t in tags}
+                                  | {t for v in self.overrides.values() for t in v})
+
+    @staticmethod
+    def _fields(stream: dict) -> list[str]:
+        src = ((stream.get("connectorInfo") or {}).get("connectorDetails") or {}).get("sourceObject")
+        return [f for f in (stream.get("name"), stream.get("label"), src) if f]
+
+    def tag(self, stream: dict) -> tuple[list[str], str]:
+        name = stream.get("name") or ""
+        if name in self.overrides:
+            return list(self.overrides[name]), "override"
+        fields = self._fields(stream)
+        for tags, label, rx in self.rules:
+            if any(rx.search(f) for f in fields):
+                return list(tags), f"rule: {label}"
+        return ["Unclassified"], "no rule matched"
+
+    def pattern_suppression(self, stream: dict) -> str | None:
+        fields = self._fields(stream)
+        for reason, rx in self.suppress_patterns:
+            if any(rx.search(f) for f in fields):
+                return reason
+        return None
+
+    def persona_suppression(self, tags: list[str]) -> str | None:
+        for personas, reason in self.suppress_personas:
+            if set(personas) & set(tags):
+                return reason
+        return None
+
+
+def load_corrections(path: str | None) -> dict:
+    """Collaborator corrections (exported from the HTML editor), or empty."""
+    if not path or not os.path.exists(path):
+        return {"streams": {}}
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    data.setdefault("streams", {})
+    print(f"  {len(data['streams'])} corrections from {path}", file=sys.stderr)
+    return data
+
+
 ATTENTION_RUN = {"FAILURE", "FAILED", "WARNING", "ERROR", "PARTIAL_SUCCESS"}
 
 
 def build_rows(streams: list[dict], stream_dmos: dict[str, set[str]],
-               dmos: dict[str, dict]) -> list[dict]:
-    rows = []
+               dmos: dict[str, dict], tagger: PersonaTagger,
+               corrections: dict[str, dict]) -> tuple[list[dict], dict[str, dict]]:
+    """Returns (rows, rule_values) -- the latter is the rules-only verdict per
+    stream, which the HTML editor needs for "revert to rules"."""
+    rows, rule_values = [], {}
     for s in streams:
         conn = (s.get("connectorInfo") or {})
         cd = conn.get("connectorDetails", {}) or {}
@@ -265,9 +342,32 @@ def build_rows(streams: list[dict], stream_dmos: dict[str, set[str]],
         status = (s.get("status") or "").upper()
         enabled = s.get("isEnabled")
         needs_attn = (run in ATTENTION_RUN) or (status and status != "ACTIVE") or (enabled is False)
+        name = s.get("name")
+        rule_tags, rule_basis = tagger.tag(s)
+        pattern_reason = tagger.pattern_suppression(s)
+        rule_reason = pattern_reason or tagger.persona_suppression(rule_tags)
+        rule_values[name] = {"p": "; ".join(rule_tags), "b": rule_basis,
+                             "s": bool(rule_reason), "r": rule_reason or "",
+                             "pr": pattern_reason}
+        # A correction may override persona and/or suppression independently;
+        # mirrored in the HTML's applyRow().
+        c = corrections.get(name) or {}
+        personas = c.get("persona") or rule_tags
+        basis = "correction" if c.get("persona") else rule_basis
+        if "suppressed" in c:
+            suppressed, reason = bool(c["suppressed"]), (c.get("reason") or "")
+        else:
+            reason = pattern_reason or tagger.persona_suppression(personas) or ""
+            suppressed = bool(reason)
         rows.append({
             "Data Stream Name": s.get("name"),
             "Data Stream Label": s.get("label"),
+            "Persona": "; ".join(personas),
+            "Persona Basis": basis,
+            "Suppressed": suppressed,
+            "Suppress Reason": reason,
+            "Notes": c.get("note") or "",
+            "Corrected By": c.get("by") or "",
             "Stream Status": s.get("status"),
             "Enabled": enabled,
             "Last Run Status": s.get("lastRunStatus"),
@@ -294,7 +394,7 @@ def build_rows(streams: list[dict], stream_dmos: dict[str, set[str]],
             "Record ID": s.get("recordId"),
         })
     rows.sort(key=lambda r: (r["Data Stream Name"] or "").lower())
-    return rows
+    return rows, rule_values
 
 
 # ---------------------------------------------------------------------------
@@ -335,13 +435,39 @@ def build_breakdowns(rows: list[dict], streams: list[dict], dlos: dict[str, dict
                 key=lambda kv: -kv[1]["Streams"])]
 
     return {
+        "Suppressed Streams": [r for r in rows if r["Suppressed"]],
         "Unmapped Streams": unmapped,
         "Needs Attention": attention,
         "Orphaned DLOs": orphaned,
+        "Summary by Persona": summarize_personas(rows),
         "Summary by Connector": summarize("Connector Type"),
         "Summary by Category": summarize("DLO Category"),
         "Summary by Source Object": summarize("Source Object"),
     }
+
+
+def persona_tags(row: dict) -> list[str]:
+    return [t.strip() for t in (row.get("Persona") or "").split(";") if t.strip()]
+
+
+def persona_rows(rows: list[dict], persona: str) -> list[dict]:
+    """Streams that apply to `persona` -- its own tag plus shared `All` data."""
+    return [r for r in rows if {persona, "All"} & set(persona_tags(r))]
+
+
+def summarize_personas(rows: list[dict]) -> list[dict]:
+    """One line per tag; a multi-tagged stream counts toward each of its tags."""
+    agg = defaultdict(lambda: {"Streams": 0, "Suppressed": 0, "Mapped": 0,
+                               "Needs Attention": 0, "Total Records": 0})
+    for r in rows:
+        for t in persona_tags(r):
+            a = agg[t]
+            a["Streams"] += 1
+            a["Suppressed"] += 1 if r["Suppressed"] else 0
+            a["Mapped"] += 1 if r["Is Mapped"] else 0
+            a["Needs Attention"] += 1 if r["Needs Attention"] else 0
+            a["Total Records"] += r.get("Total Records") or 0
+    return [{"Persona": k, **v} for k, v in sorted(agg.items(), key=lambda kv: -kv[1]["Streams"])]
 
 
 def build_connectors(streams: list[dict]) -> list[dict]:
@@ -408,7 +534,8 @@ def _cell(v):
     return v
 
 
-def write_html(path: str, title: str, rows: list[dict], org: str, generated: str):
+def write_html(path: str, title: str, rows: list[dict], org: str, generated: str,
+               tagger: PersonaTagger, corrections: dict, rule_values: dict):
     cols = list(rows[0].keys()) if rows else []
     data_json = json.dumps([[_cell(r.get(c)) for c in cols] for r in rows])
     cols_json = json.dumps(cols)
@@ -417,6 +544,12 @@ def write_html(path: str, title: str, rows: list[dict], org: str, generated: str
     tmpl = tmpl.replace("__GEN__", html.escape(generated))
     tmpl = tmpl.replace("__COUNT__", str(len(rows)))
     tmpl = tmpl.replace("__COLS__", cols_json)
+    tmpl = tmpl.replace("__PERSONAS__", json.dumps(tagger.personas))
+    tmpl = tmpl.replace("__TAGS__", json.dumps(tagger.tag_choices))
+    tmpl = tmpl.replace("__SUPP_P__", json.dumps(tagger.suppress_personas))
+    tmpl = tmpl.replace("__ORGJS__", json.dumps(org))
+    tmpl = tmpl.replace("__CORR__", json.dumps(corrections))
+    tmpl = tmpl.replace("__RULE__", json.dumps(rule_values))
     tmpl = tmpl.replace("__DATA__", data_json)
     with open(path, "w", encoding="utf-8") as f:
         f.write(tmpl)
@@ -433,6 +566,7 @@ _HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
   h1{font-size:16px;margin:0 0 4px}
   .meta{color:#57606a;font-size:12px}
   .bar{margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  select{padding:7px 8px;border:1px solid var(--bd);border-radius:6px;font-size:12px;background:#fff}
   #q{flex:1;min-width:220px;padding:7px 10px;border:1px solid var(--bd);border-radius:6px;font-size:13px}
   button{padding:7px 12px;border:1px solid var(--bd);background:#f6f8fa;border-radius:6px;cursor:pointer;font-size:12px}
   #count{color:#57606a;font-size:12px}
@@ -447,21 +581,75 @@ _HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
   th .arrow{font-size:10px;opacity:.7;margin-left:4px}
   td.bool-true{color:#1a7f37;font-weight:600}
   td.bool-false{color:#cf222e}
+  body.editing tbody tr{cursor:pointer}
+  body.editing #edit{background:#0969da;color:#fff;border-color:#0969da}
+  tr.pending td{background:#ddf4ff!important}
+  #pend{color:#0969da;font-weight:600;font-size:12px}
+  dialog{border:1px solid var(--bd);border-radius:8px;padding:16px 18px;width:440px;max-width:95vw}
+  dialog h3{margin:0 0 2px;font-size:14px;word-break:break-all}
+  dialog .sub{color:#57606a;font-size:12px;margin-bottom:10px}
+  dialog fieldset{border:1px solid var(--bd);border-radius:6px;margin:0 0 10px;padding:8px 10px}
+  dialog fieldset label{display:inline-block;margin:2px 12px 2px 0}
+  dialog input[type=text],dialog textarea,dialog select{width:100%;box-sizing:border-box;margin-top:4px;padding:5px 7px;border:1px solid var(--bd);border-radius:5px;font:inherit}
+  dialog .row{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
 </style></head><body>
 <header>
   <h1>__TITLE__</h1>
   <div class="meta">Org <b>__ORG__</b> &middot; generated __GEN__ &middot; <span id="count">__COUNT__</span> rows</div>
   <div class="bar">
     <input id="q" placeholder="Search all columns&hellip;" autofocus>
+    <select id="persona" title="Show streams for a persona (includes shared 'All' data)"></select>
     <button id="cols">Toggle filters</button>
     <button id="reset">Reset</button>
     <button id="csv" title="Export the rows currently shown">Export CSV</button>
     <button id="xlsx" title="Export the rows currently shown">Export Excel</button>
+    <button id="edit" title="Click any row to correct its persona or suppression">Edit classifications</button>
+    <span id="pend"></span>
+    <button id="exp" hidden title="Download the merged corrections file to commit to git">Export corrections</button>
+    <button id="disc" hidden>Discard pending</button>
   </div>
 </header>
+<dialog id="ed"><form method="dialog">
+  <h3 id="edName"></h3><div class="sub" id="edRule"></div>
+  <fieldset><legend>Persona</legend><div id="edP"></div></fieldset>
+  <fieldset><legend>Suppression</legend>
+    <label><input type="checkbox" id="edS"> Suppressed &mdash; not customer-useful</label>
+    <select id="edR"><option>Test</option><option>Internal</option><option>Initiative-specific</option>
+      <option>Duplicate</option><option>Deprecated</option><option>Other</option></select>
+    <input type="text" id="edRx" placeholder="detail, e.g. React cockpits">
+  </fieldset>
+  <textarea id="edN" rows="2" placeholder="Note for collaborators (optional)"></textarea>
+  <div class="row"><button value="revert">Revert to rules</button><button value="cancel">Cancel</button><button value="save">Save</button></div>
+</form></dialog>
 <div class="wrap"><table id="t"><thead></thead><tbody></tbody></table></div>
 <script>
-const COLS=__COLS__, DATA=__DATA__;
+const COLS=__COLS__, DATA=__DATA__, PERSONAS=__PERSONAS__;
+const PCOL=COLS.indexOf("Persona");
+// --- Collaborative corrections: CORR = committed file, pending = this browser's edits ---
+const TAGS=__TAGS__, SUPP_P=__SUPP_P__, ORG=__ORGJS__, CORR=__CORR__, RULE=__RULE__;
+const C=n=>COLS.indexOf(n), NAME=C("Data Stream Name"), PB=C("Persona Basis"),
+  SUP=C("Suppressed"), SR=C("Suppress Reason"), NOTE=C("Notes"), BY=C("Corrected By");
+const LSK="dcinv-corrections-"+ORG;
+const same=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
+let pending=JSON.parse(localStorage.getItem(LSK)||"{}");
+for(const n of Object.keys(pending))if(same(pending[n],CORR.streams[n]))delete pending[n];  // already committed
+const corrFor=n=>(n in pending)?pending[n]:CORR.streams[n];
+function applyRow(row){  // mirrors build_rows() in generate_inventory.py
+  const n=row[NAME],r=RULE[n],c=corrFor(n)||{};
+  const tags=c.persona&&c.persona.length?c.persona:r.p.split("; ");
+  row[PCOL]=tags.join("; ");row[PB]=c.persona&&c.persona.length?"correction":r.b;
+  if("suppressed" in c){row[SUP]=!!c.suppressed;row[SR]=c.reason||"";}
+  else{const pr=SUPP_P.find(([ps])=>ps.some(p=>tags.includes(p)));
+    const reason=r.pr||(pr?pr[1]:"");row[SUP]=!!reason;row[SR]=reason;}
+  row[NOTE]=c.note||"";row[BY]=c.by||"";
+}
+DATA.forEach(applyRow);
+const tagsOf=row=>String(row[PCOL]||"").split(";").map(t=>t.trim()).filter(Boolean);
+const personaSel=document.getElementById("persona");
+(()=>{const all=new Set();DATA.forEach(r=>tagsOf(r).forEach(t=>all.add(t)));
+  const opts=[["","All personas"],...PERSONAS.map(p=>[p,p+" (incl. All)"]),
+    ...[...all].filter(t=>!PERSONAS.includes(t)).sort().map(t=>["="+t,"Only: "+t])];
+  personaSel.innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");})();
 let sortCol=-1, sortDir=1, showFilters=true;
 const colFilters=COLS.map(()=>"");
 const thead=document.querySelector("thead"), tbody=document.querySelector("tbody");
@@ -485,7 +673,10 @@ function buildHead(){
 }
 function filtered(){
   const g=q.value.toLowerCase();
+  const p=personaSel.value;
   return DATA.filter(row=>{
+    if(p){const t=tagsOf(row);
+      if(p.startsWith("=")?!t.includes(p.slice(1)):!(t.includes(p)||t.includes("All")))return false;}
     if(g && !row.some(v=>String(v==null?"":v).toLowerCase().includes(g)))return false;
     for(let i=0;i<COLS.length;i++){
       if(colFilters[i] && !String(row[i]==null?"":row[i]).toLowerCase().includes(colFilters[i]))return false;
@@ -508,6 +699,8 @@ function render(){
   tbody.innerHTML="";
   const frag=document.createDocumentFragment();
   for(const row of rows){const tr=document.createElement("tr");
+    if(row[NAME] in pending)tr.className="pending";
+    tr.onclick=()=>{if(editing)openEd(row);};
     row.forEach(v=>{const td=document.createElement("td");
       const s=v==null?"":String(v);td.textContent=s;td.title=s;
       if(s==="true")td.className="bool-true";else if(s==="false")td.className="bool-false";
@@ -518,8 +711,9 @@ function render(){
   thead.querySelectorAll("th .arrow").forEach((el,i)=>el.textContent=(i===sortCol)?(sortDir>0?"▲":"▼"):"");
 }
 q.oninput=render;
+personaSel.onchange=render;
 document.getElementById("cols").onclick=()=>{showFilters=!showFilters;buildHead();render();};
-document.getElementById("reset").onclick=()=>{q.value="";colFilters.fill("");sortCol=-1;buildHead();render();};
+document.getElementById("reset").onclick=()=>{q.value="";personaSel.value="";colFilters.fill("");sortCol=-1;buildHead();render();};
 // --- Export (current filtered + sorted view) ---
 function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
@@ -575,6 +769,59 @@ function exportXlsx(){
 }
 document.getElementById("csv").onclick=exportCsv;
 document.getElementById("xlsx").onclick=exportXlsx;
+// --- Editor ---
+let editing=false,cur=null;
+const ed=document.getElementById("ed"),$=id=>document.getElementById(id);
+$("edit").onclick=()=>{editing=!editing;document.body.classList.toggle("editing",editing);
+  $("edit").textContent=editing?"Editing \u2014 click a row":"Edit classifications";};
+function openEd(row){
+  cur=row;const n=row[NAME],r=RULE[n],c=corrFor(n)||{};
+  $("edName").textContent=n;
+  $("edRule").textContent="Rules say: "+r.p+" ("+r.b+")"+(r.s?" \u00b7 suppressed: "+r.r:"");
+  const tags=String(row[PCOL]).split("; ");
+  $("edP").innerHTML=TAGS.map(t=>`<label><input type="checkbox" value="${t}"${tags.includes(t)?" checked":""}> ${t}</label>`).join("");
+  $("edS").checked=!!row[SUP];
+  const [rs,...rx]=String(row[SR]||"").split(": ");
+  $("edR").value=[...$("edR").options].some(o=>o.value===rs)?rs:"Other";
+  $("edRx").value=[...$("edR").options].some(o=>o.value===rs)?rx.join(": "):String(row[SR]||"");
+  $("edN").value=c.note||"";
+  ed.showModal();
+}
+ed.addEventListener("close",()=>{
+  const v=ed.returnValue,n=cur&&cur[NAME];if(!n||v==="cancel"||!v)return;
+  let entry=null;
+  if(v==="save"){
+    const r=RULE[n],tags=[...$("edP").querySelectorAll("input:checked")].map(i=>i.value);
+    const sup=$("edS").checked,reason=sup?[$("edR").value,$("edRx").value.trim()].filter(Boolean).join(": "):"";
+    entry={};
+    if(tags.length&&tags.join("; ")!==r.p)entry.persona=tags;
+    const pr=SUPP_P.find(([ps])=>ps.some(p=>(entry.persona||r.p.split("; ")).includes(p)));
+    const ruleReason=r.pr||(pr?pr[1]:"");
+    if(sup!==!!ruleReason||(sup&&reason!==ruleReason)){entry.suppressed=sup;if(sup)entry.reason=reason;}
+    const note=$("edN").value.trim();if(note)entry.note=note;
+    if(Object.keys(entry).length){
+      let by=localStorage.getItem("dcinv-user");
+      if(!by){by=(prompt("Your name (recorded on corrections):")||"").trim();if(by)localStorage.setItem("dcinv-user",by);}
+      if(by)entry.by=by;entry.at=new Date().toISOString().slice(0,10);
+    }else entry=null;
+  }
+  if(same(entry,CORR.streams[n]))delete pending[n];else pending[n]=entry;
+  localStorage.setItem(LSK,JSON.stringify(pending));
+  applyRow(cur);render();updatePending();
+});
+function updatePending(){const k=Object.keys(pending).length;
+  $("pend").textContent=k?k+" pending correction"+(k>1?"s":""):"";$("exp").hidden=$("disc").hidden=!k;}
+$("disc").onclick=()=>{if(!confirm("Discard all pending corrections in this browser?"))return;
+  pending={};localStorage.removeItem(LSK);DATA.forEach(applyRow);render();updatePending();};
+$("exp").onclick=()=>{
+  const streams={...CORR.streams};
+  for(const [n,e] of Object.entries(pending)){if(e===null)delete streams[n];else streams[n]=e;}
+  const sorted=Object.fromEntries(Object.keys(streams).sort().map(k=>[k,streams[k]]));
+  const out={org:ORG,updated:new Date().toISOString(),streams:sorted};
+  download(ORG+".json",new Blob([JSON.stringify(out,null,2)+"\n"],{type:"application/json"}));
+  alert("Saved "+ORG+".json.\nCommit it to DataCloud_Inventory/corrections/ and regenerate; then click 'Discard pending'.");
+};
+updatePending();
 buildHead();render();
 </script></body></html>"""
 
@@ -590,40 +837,63 @@ def main():
     ap.add_argument("--out", default="output", help="output directory (default: ./output)")
     ap.add_argument("--api-version", default="67.0", help="Salesforce API version (default: 67.0)")
     ap.add_argument("--workers", type=int, default=16, help="parallel mapping queries (default: 16)")
+    ap.add_argument("--persona-rules", default=DEFAULT_RULES,
+                    help="persona tagging rules JSON (default: persona_rules.json beside this script)")
+    ap.add_argument("--corrections", metavar="PATH",
+                    help="collaborator corrections JSON (default: corrections/<org>.json beside this script)")
+    ap.add_argument("--from-snapshot", metavar="PATH",
+                    help="skip the org fetch and rebuild from a raw_snapshot.json (fast re-tagging)")
     args = ap.parse_args()
 
-    import os
     from datetime import datetime, timezone
     os.makedirs(args.out, exist_ok=True)
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    print(f"Auth via sf CLI for org '{args.org}'...", file=sys.stderr)
-    instance, token = get_session(args.org)
-    client = Client(instance, token, args.api_version)
-    print(f"  {instance}", file=sys.stderr)
+    snap_path = os.path.join(args.out, "raw_snapshot.json")
+    if args.from_snapshot:
+        print(f"Loading snapshot {args.from_snapshot}...", file=sys.stderr)
+        with open(args.from_snapshot, encoding="utf-8") as f:
+            snap = json.load(f)
+        streams, dmos, dlos, maps = snap["streams"], snap["dmos"], snap["dlos"], snap["maps"]
+        generated = snap.get("generated", generated)
+    else:
+        print(f"Auth via sf CLI for org '{args.org}'...", file=sys.stderr)
+        instance, token = get_session(args.org)
+        client = Client(instance, token, args.api_version)
+        print(f"  {instance}", file=sys.stderr)
 
-    print("Fetching data streams...", file=sys.stderr)
-    streams = fetch_streams(client)
-    print("Fetching DMOs...", file=sys.stderr)
-    dmos = fetch_dmos(client)
-    print(f"  {len(dmos)} DMOs", file=sys.stderr)
-    print("Fetching DLOs (for orphan detection)...", file=sys.stderr)
-    dlos = fetch_dlos(client)
-    print(f"  {len(dlos)} DLOs", file=sys.stderr)
-    print("Resolving DLO->DMO mappings (reverse, per DMO)...", file=sys.stderr)
-    maps = fetch_mappings(client, dmos, args.workers)
-    print(f"  {len(maps)} unique mappings", file=sys.stderr)
+        print("Fetching data streams...", file=sys.stderr)
+        streams = fetch_streams(client)
+        print("Fetching DMOs...", file=sys.stderr)
+        dmos = fetch_dmos(client)
+        print(f"  {len(dmos)} DMOs", file=sys.stderr)
+        print("Fetching DLOs (for orphan detection)...", file=sys.stderr)
+        dlos = fetch_dlos(client)
+        print(f"  {len(dlos)} DLOs", file=sys.stderr)
+        print("Resolving DLO->DMO mappings (reverse, per DMO)...", file=sys.stderr)
+        maps = fetch_mappings(client, dmos, args.workers)
+        print(f"  {len(maps)} unique mappings", file=sys.stderr)
+        with open(snap_path, "w", encoding="utf-8") as f:
+            json.dump({"org": args.org, "generated": generated, "streams": streams,
+                       "dmos": dmos, "dlos": dlos, "maps": maps}, f)
 
     stream_dmos = build_stream_dmos(streams, maps)
-    rows = build_rows(streams, stream_dmos, dmos)
+    tagger = PersonaTagger(args.persona_rules)
+    corr_path = args.corrections or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "corrections", f"{args.org}.json")
+    corrections = load_corrections(corr_path)
+    rows, rule_values = build_rows(streams, stream_dmos, dmos, tagger, corrections["streams"])
     breakdowns = build_breakdowns(rows, streams, dlos, stream_dmos)
     connectors = build_connectors(streams)
 
     sheets = {
         "Inventory": rows,
         "Unmapped Streams": breakdowns["Unmapped Streams"],
+        "Suppressed Streams": breakdowns["Suppressed Streams"],
+        **{f"{p} Datasets": persona_rows(rows, p) for p in tagger.personas},
         "Needs Attention": breakdowns["Needs Attention"],
         "Orphaned DLOs": breakdowns["Orphaned DLOs"],
+        "Summary by Persona": breakdowns["Summary by Persona"],
         "Summary by Connector": breakdowns["Summary by Connector"],
         "Summary by Category": breakdowns["Summary by Category"],
         "Summary by Source Object": breakdowns["Summary by Source Object"],
@@ -633,7 +903,8 @@ def main():
     xlsx_path = os.path.join(args.out, "data_stream_inventory.xlsx")
     html_path = os.path.join(args.out, "data_stream_inventory.html")
     write_xlsx(xlsx_path, sheets)
-    write_html(html_path, f"Data Cloud Inventory — {args.org}", rows, args.org, generated)
+    write_html(html_path, f"Data Cloud Inventory — {args.org}", rows, args.org, generated,
+               tagger, corrections, rule_values)
 
     mapped = sum(1 for r in rows if r["Is Mapped"])
     attn = len(breakdowns["Needs Attention"])
@@ -644,6 +915,12 @@ def main():
     )
     print(f"  {xlsx_path}", file=sys.stderr)
     print(f"  {html_path}", file=sys.stderr)
+    print(f"  {len(breakdowns['Suppressed Streams'])} suppressed (flagged, still listed)",
+          file=sys.stderr)
+    unclassified = [r["Data Stream Name"] for r in rows if r["Persona"] == "Unclassified"]
+    if unclassified:
+        print(f"  {len(unclassified)} unclassified (add rules/overrides): "
+              + ", ".join(unclassified), file=sys.stderr)
 
 
 if __name__ == "__main__":

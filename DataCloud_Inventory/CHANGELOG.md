@@ -6,6 +6,32 @@ are dated newest-first and grouped by month. Treat shipped entries as immutable
 history — when new work lands, add a NEW dated entry rather than retroactively
 editing prior ones.
 
+## [October 2026] — 2026-10-20
+
+### 2026-10-20 — Personas, suppression flags, collaborative corrections
+
+- `feat(datacloud-inventory)` — Every stream is tagged with a **Persona**
+  (`Personal` incl. wealth, `Business`, `All`, plus `Insurance` / `Platform` /
+  `Other Industry` / `Unclassified`) from ordered regex rules in the new
+  `persona_rules.json`, with a `Persona Basis` column naming the rule. Workbook
+  gains `Personal Datasets` / `Business Datasets` (persona + `All`) and
+  `Summary by Persona`; the HTML gains a persona picker.
+- `feat(datacloud-inventory)` — **Suppression flags** (`Suppressed`,
+  `Suppress Reason`) for streams that aren't customer-useful: `test_*` /
+  sample / demo-connector streams (`Test`), `Platform` (`Internal`),
+  `Other Industry` (`Non-FS demo data`). Flag only — rows stay listed; a
+  `Suppressed Streams` sheet collects them.
+- `feat(datacloud-inventory)` — **Collaborative corrections.** The HTML's
+  *Edit classifications* mode lets anyone re-tag or (un)suppress a stream with a
+  note; edits persist in the browser and *Export corrections* writes the merged
+  `corrections/<org>.json`, which the generator applies on every run
+  (`--corrections`). Changes are shared via PR.
+- `feat(datacloud-inventory)` — Live runs write `output/raw_snapshot.json`;
+  `--from-snapshot` rebuilds every artifact from it in seconds.
+- Verified against `jdo-oe0sdd` (v67): 434 streams · 317 mapped · 117 unmapped ·
+  30 need attention · 262 orphaned DLOs · 143 suppressed (135 Internal, 5
+  Non-FS, 3 Test) · 1 unclassified (`asset_Databricks`).
+
 ## [October 2026] — 2026-10-17
 
 ### 2026-10-17 — Export from the HTML page

@@ -24,6 +24,9 @@ the target org (`sf org login web -o <alias>`). No tokens live in the script.
 | `--out` | `output` | output directory |
 | `--api-version` | `67.0` | Salesforce API version (org is v67) |
 | `--workers` | `16` | parallel mapping queries |
+| `--persona-rules` | `persona_rules.json` | persona + suppression rules |
+| `--corrections` | `corrections/<org>.json` | collaborator corrections (see below) |
+| `--from-snapshot` | — | rebuild from `output/raw_snapshot.json` without hitting the org (seconds, not minutes) |
 
 ## Outputs (`output/`)
 
@@ -31,18 +34,67 @@ the target org (`sf org login web -o <alias>`). No tokens live in the script.
   frozen header row and column **autofilter** dropdowns:
   - `Inventory` — the master Stream → DLO → DMO join (one row per stream)
   - `Unmapped Streams` — streams whose data flows to no DMO
+  - `Suppressed Streams` — streams flagged as not customer-useful (see below)
+  - `Personal Datasets` / `Business Datasets` — each persona's streams **plus**
+    the shared `All` streams
   - `Needs Attention` — failed/warning last run, non-active status, or disabled
   - `Orphaned DLOs` — DLOs in the org with no visible stream feeding them
-  - `Summary by Connector` / `by Category` / `by Source Object`
+  - `Summary by Persona` / `by Connector` / `by Category` / `by Source Object`
   - `Connectors` — per-connector rollup (stream count + source objects)
 - **`data_stream_inventory.html`** — one self-contained page (no dependencies)
   with live all-column search, per-column filters, and click-to-sort headers.
   **Export CSV** / **Export Excel** download the rows currently shown (after
-  search, filters, and sort). Open in any browser; share as a single file.
+  search, filters, and sort). A **persona** dropdown shows one persona (incl.
+  `All`) or a single tag. **Edit classifications** turns on the correction
+  editor (below). Open in any browser; share as a single file.
+
+## Personas, suppression, and collaborative corrections
+
+Every stream is tagged with the persona(s) it serves (`Persona`, `;`-separated):
+
+| Tag | Meaning |
+|-----|---------|
+| `Personal` | consumer banking **including wealth** (wealth data always applies to retail) |
+| `Business` | commercial / small-business (firmographics, KYB, commercial selling) |
+| `All` | generic customer / CRM / engagement data holding both — folded into both persona views |
+| `Insurance`, `Platform`, `Other Industry`, `Unclassified` | outside the two banking personas |
+
+Streams that aren't customer-useful (test, internal, initiative-specific) are
+**flagged** via `Suppressed` + `Suppress Reason` — flag only, they stay listed
+everywhere so you can filter on them.
+
+Classification is layered; the highest layer that speaks wins:
+
+1. **`corrections/<org>.json`** — per-stream fixes from collaborators (persona
+   and/or suppression, with `by`/`at`/`note`). **This is the shared, reviewed
+   source of truth** — changes land via PR.
+2. **`persona_rules.json`** — `overrides` (exact stream name), then ordered regex
+   `rules` (first match on name / label / source object wins), then
+   `suppress_rules` (pattern rules first, then persona rules such as
+   `Platform → Internal`).
+
+`Persona Basis` says which layer/rule fired; `Corrected By` and `Notes` carry
+the correction's author and rationale.
+
+### Correcting classifications
+
+1. Open the HTML, click **Edit classifications**, then click any row.
+2. Tick personas, toggle *Suppressed* + reason (e.g. *Initiative-specific: React
+   cockpits*), add a note, **Save**. *Revert to rules* drops a correction.
+   Pending edits are highlighted and kept in your browser across reloads.
+3. **Export corrections** downloads the full merged `<org>.json` (committed
+   corrections + your edits). Replace `corrections/<org>.json` with it and open
+   a PR.
+4. After merge, regenerate (`--from-snapshot output/raw_snapshot.json` is
+   enough) and click **Discard pending**.
+
+Prefer a rule over many corrections when a whole family is wrong — edit
+`persona_rules.json` and rebuild from the snapshot.
 
 ## Master column guide (`Inventory`)
 
-`Data Stream Name`, `Data Stream Label`, `Stream Status`, `Enabled`,
+`Data Stream Name`, `Data Stream Label`, `Persona`, `Persona Basis`,
+`Suppressed`, `Suppress Reason`, `Notes`, `Corrected By`, `Stream Status`, `Enabled`,
 `Last Run Status`, `Last Refresh Date`, `Total Records`, `Last Added Records`,
 `Connector Type`, `Connector Name`, `Data Source`, `Data Stream Type`,
 `Source Object`, `Refresh Mode`, `Frequency Type`, `DLO Name`, `DLO Category`,
