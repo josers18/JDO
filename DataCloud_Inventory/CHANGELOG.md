@@ -8,6 +8,18 @@ editing prior ones.
 
 ## [October 2026] — 2026-10-20
 
+### 2026-10-20 — Transactions rule covers both personas
+
+- `feat(datacloud-inventory)` — The `transactions` rule now tags
+  Personal + Business (transaction feeds carry person and business account
+  activity, e.g. `Financial_Transactions_Generation`'s personal + business
+  accounts). Retags 11 streams, including the uncorrected
+  `Financial_Transactions_AWSRedshift`.
+- `data(datacloud-inventory)` — Dropped the 7 per-stream transaction persona
+  corrections the rule now covers and the persona half of
+  `Financial_Transactions_Heroku_Postgres` (its suppression stays):
+  114 → 107 corrections.
+
 ### 2026-10-20 — Salesforce core personas under a person-account model
 
 - `feat(datacloud-inventory)` — Reviewed all 199 SalesforceDotCom streams

@@ -44,7 +44,7 @@
 
     {"tags": ["Personal", "Business"], "label": "lending risk", "pattern": "Delinquen|Chargeoff"},
     {"tags": ["Personal"], "label": "deposits / cards / loans", "pattern": "Deposit|^Loans|^Card$|banking_trans|bank_churn|Account_Balance|Personal_Product|Claritas|Enrollment|Redemption"},
-    {"tags": ["Personal"], "label": "transactions", "pattern": "Transaction|transactions|YTD_"},
+    {"tags": ["Personal", "Business"], "label": "transactions", "pattern": "Transaction|transactions|YTD_"},
     {"tags": ["Personal"], "label": "attrition / churn models", "pattern": "Attrition|Churn"},
     {"tags": ["All"], "label": "offer / personalization objects", "pattern": "^Offer|^Personalization"},
     {"tags": ["Personal"], "label": "offers / personalization", "pattern": "PersnlRcmd|RTOM|RT_Transfers|RT_WebEvents"},
