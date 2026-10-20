@@ -98,7 +98,7 @@ export function TurnStats({
   );
 }
 
-function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
+export function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
   return (
     <div title={hint} className="rounded-[10px] border border-line bg-surface px-2.5 py-1.5">
       <dt className="text-ink-3">{label}</dt>
@@ -107,7 +107,7 @@ function Metric({ label, value, hint }: { label: string; value: string; hint: st
   );
 }
 
-function IdRow({ label, value }: { label: string; value: string | null }) {
+export function IdRow({ label, value }: { label: string; value: string | null }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     if (!value) return;

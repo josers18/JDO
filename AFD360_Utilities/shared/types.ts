@@ -100,6 +100,7 @@ export interface WireEntry {
   status?: number;
   responseHeaders?: Record<string, string>;
   responseBody?: unknown;
+  responseBytes?: number; // decompressed body size, when recorded (Notebook)
   streamEvents?: WireStreamEvent[];
   durationMs?: number;
   error?: string;

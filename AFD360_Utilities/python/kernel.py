@@ -144,6 +144,7 @@ def capture_requests():
             status=response.status_code,
             responseHeaders=dict(response.headers),
             responseBody=decode(response.content, response.headers.get("Content-Type")),
+            responseBytes=len(response.content),
             durationMs=round((time.monotonic() - started) * 1000),
         )
         send({"type": "wire", "entry": entry})

@@ -24,9 +24,9 @@ Local test bench for Agentforce and Data 360 APIs that SEs use to demo the raw A
 ```
 server/      Express API: Agent API sessions + stream normalizer, MCP client/host, Data 360 query + REST reads,
              notebook kernels, orgs
-shared/      Pure logic used by both sides (types, sqlAssist, gridView, turnStats, citations)
+shared/      Pure logic used by both sides (types, sqlAssist, gridView, turnStats, citations, notebookStats)
 web/src/     React app: chat, MCP, query/ (ObjectBrowser, SqlEditor, ApiForm, ResultsGrid in QueryModule, RecordPanel),
-             notebook/ (NotebookModule, CellEditor)
+             notebook/ (NotebookModule, CellEditor, CellStatsPanel)
 python/      Notebook kernel (kernel.py, JSON-lines protocol) and requirements.txt
 test/        vitest suites + recorded Agent API streams (fixtures/*.sse)
 salesforce/  HXL demo metadata deployed to finsdc3 (Apex actions, widgets, Lightning types, AFD360Demo MCP server)
@@ -55,6 +55,8 @@ npm run build && npm start   # single Express process serving web/dist
 - Notebook: one `python/kernel.py` process per org (`server/notebook.ts`). The kernel patches
   `requests.Session.send` and reports each HTTP call; the server masks it (`server/wire.ts`) and tags it with the
   cell's execution count. Credentials reach the kernel only as env vars; the cell-facing `org` hides the secret.
+  Cell stats (`shared/notebookStats.ts`) are derived from those wire entries only; `Query next batch` pages fold
+  into the query before them, so keep that label if the kernel's labels change.
 
 # Conventions
 
