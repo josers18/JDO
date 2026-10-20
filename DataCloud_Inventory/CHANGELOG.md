@@ -8,6 +8,12 @@ editing prior ones.
 
 ## [October 2026] — 2026-10-20
 
+### 2026-10-20 — Corrections skill docs
+
+- `docs(datacloud-inventory)` — README and AGENTS.md point to the Claude Code
+  skills: `applying-datacloud-inventory-corrections` (export → validate →
+  prune → regenerate → PR) and `generating-datacloud-inventory`.
+
 ### 2026-10-20 — Insurance suppression rule
 
 - `feat(datacloud-inventory)` — `persona_rules.json` gains a persona-based

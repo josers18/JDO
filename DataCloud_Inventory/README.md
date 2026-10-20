@@ -92,7 +92,11 @@ the correction's author and rationale.
    unsuppresses).
 3. **Export corrections** downloads the full merged `<org>.json` (committed
    corrections + your edits). Replace `corrections/<org>.json` with it and open
-   a PR.
+   a PR. In Claude Code, the `applying-datacloud-inventory-corrections` skill
+   ("new corrections" / "apply my corrections") does this for you: it picks the
+   newest export from `~/Downloads`, validates it against the snapshot and
+   rules, diffs it against the committed file, drops entries the rules already
+   cover (stale browser edits), regenerates from the snapshot, and opens the PR.
 4. After merge, regenerate (`--from-snapshot output/raw_snapshot.json` is
    enough) and click **Discard pending**.
 

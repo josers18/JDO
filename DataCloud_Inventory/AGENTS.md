@@ -133,6 +133,11 @@ Four fetch phases, then a join, then two writers. All in `generate_inventory.py`
 # Related docs
 
 - @README.md — quick start, column guide, method / caveats
+- Claude Code skills (user-level, `~/.claude/skills/`):
+  `generating-datacloud-inventory` runs this generator (its `scripts/` copy
+  must stay in sync with this directory); `applying-datacloud-inventory-corrections`
+  validates an HTML export, prunes rule-redundant entries, regenerates, and
+  opens the corrections PR
 - @../output/data-stream-inventory/README.md — the superseded one-time Jul-2 manual
   snapshot (org `jdo-0pz8au`, now defunct) this tool replaces
 - @../React-Headless/AGENTS.md — sibling project whose Data Cloud bridges expose the
