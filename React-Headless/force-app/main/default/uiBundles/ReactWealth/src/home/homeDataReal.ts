@@ -1,14 +1,15 @@
 /**
  * HOME app — REAL data implementation for the Wealth "Advisory Desk".
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal) → GraphQL
- *   · Data Cloud held-away capture (CumulusPlaidHeldAway__dlm) → DcBridgeRest
+ *   · Data Cloud held-away capture (BT_Plaid_Held_Away__dlm) → DcBridgeRest,
+ *     scoped to the signed-in advisor's book (falls back to org-wide when empty)
  *
  * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
  * by the largest active held-away balances (the biggest consolidation
- * opportunities). Field names + DMO columns verified live against jdo-1lrnov
- * (storm-16a17dc388fbe6, 2026-07-07) via uiapi + ssot/queryv2 probes.
+ * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
+ * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -139,20 +140,43 @@ function userNamesQuery(ids: string[]): string {
   }`;
 }
 
-/* ── Data Cloud: largest active held-away balances = "who to call" ──
-   Scope to this org's account prefix (001am%) so every row resolves to a local
-   Account name (the unified profile spans multiple source orgs). */
-const HELD_AWAY_SQL = `
-  SELECT ssot__AccountId__c AS account_id, balanceUsd__c AS balance,
-         institutionName__c AS institution, accountType__c AS acct_type,
-         monthlyNetFlowUsd__c AS net_flow
-  FROM CumulusPlaidHeldAway__dlm
-  WHERE isActive__c = true AND balanceUsd__c IS NOT NULL AND ssot__AccountId__c LIKE '001am%'
-  ORDER BY balanceUsd__c DESC
+/* ── Data Cloud: largest held-away investable assets = "who to call" ──
+   BT_Plaid_Held_Away__dlm is a monthly snapshot (one row per external account
+   per profile_month) — pin to the latest month or balances multiply. Liability
+   types (Credit Card / Mortgage / Auto Loan) are stored as negative balances
+   and Bank / Credit Union / Crypto aren't AUM, so only Brokerage + Robo-Advisor
+   assets count. One row per client: their total, plus their largest holding. */
+const heldAwaySql = (accountFilter: string) => `
+  SELECT account_id, balance, institution, acct_type, net_flow, holdings FROM (
+    SELECT account_id__c AS account_id,
+           SUM(balance_usd__c) OVER (PARTITION BY account_id__c) AS balance,
+           SUM(monthly_net_flow_usd__c) OVER (PARTITION BY account_id__c) AS net_flow,
+           COUNT(*) OVER (PARTITION BY account_id__c) AS holdings,
+           institution_name__c AS institution, account_type__c AS acct_type,
+           ROW_NUMBER() OVER (PARTITION BY account_id__c ORDER BY balance_usd__c DESC) AS rn
+    FROM BT_Plaid_Held_Away__dlm
+    WHERE profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm)
+      AND is_active__c = true AND balance_usd__c > 0
+      AND institution_type__c IN ('Brokerage', 'Robo-Advisor')
+      AND account_id__c ${accountFilter}
+  ) t
+  WHERE rn = 1
+  ORDER BY balance DESC
   LIMIT 8
 `;
 
-interface HeldAwayRow { account_id: string; balance: number; institution: string; acct_type: string; net_flow: number; }
+/** Book total behind the top-8 list, over the same slice (same filter). */
+const heldAwayTotalSql = (accountFilter: string) => `
+  SELECT COUNT(DISTINCT account_id__c) AS clients, SUM(balance_usd__c) AS balance
+  FROM BT_Plaid_Held_Away__dlm
+  WHERE profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm)
+    AND is_active__c = true AND balance_usd__c > 0
+    AND institution_type__c IN ('Brokerage', 'Robo-Advisor')
+    AND account_id__c ${accountFilter}
+`;
+
+interface HeldAwayRow { account_id: string; balance: number; institution: string; acct_type: string; net_flow: number; holdings: number; }
+interface HeldAwayTotalRow { clients: number; balance: number; }
 type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
@@ -197,11 +221,18 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
+  // The held-away query needs the advisor's user Id to scope to their book;
+  // GraphQL runs in parallel with that chain.
+  const userP = fetchCurrentUser();
   const [core, held, currentUser] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
-    queryDataCloud<HeldAwayRow>(HELD_AWAY_SQL, 8),
-    fetchCurrentUser(),
+    userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
+    userP,
   ]);
+  const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
+    .then(r => r.rows[0])
+    .catch(() => undefined);
+  const scopeNote = held.scope === 'org' ? ' · org-wide' : '';
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
   const bankerName = currentUser?.firstName || currentUser?.name || 'Alex';
@@ -221,7 +252,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     } catch { /* names best-effort; fall back to raw ID */ }
   }
 
-  const totalHeldAway = held.rows.reduce((sum, r) => sum + Number(r.balance || 0), 0);
+  const totalHeldAway = Number(heldTotal?.balance ?? held.rows.reduce((sum, r) => sum + Number(r.balance || 0), 0));
+  const heldAwayClients = Number(heldTotal?.clients ?? held.rows.length);
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
   const callList: CallItem[] = held.rows.map((row, i) => {
@@ -231,11 +263,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       clientId: row.account_id,
       clientName: nameById[row.account_id] || row.account_id,
       segment: 'Private Wealth',
-      reason: `${(bal).toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} held away at ${row.institution || 'external institution'} (${row.acct_type || 'account'})`,
+      reason: `${(bal).toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} held away across ${Number(row.holdings || 1)} account${Number(row.holdings || 1) === 1 ? '' : 's'}, largest at ${row.institution || 'external institution'} (${row.acct_type || 'account'})`,
       action: 'Held-away consolidation review',
       score: Math.min(1, bal / 8_000_000),
       severity: severityForBalance(bal),
-      source: 'Plaid held-away',
+      source: `Plaid held-away${scopeNote}`,
       relationshipValue: bal,
       tier: tierForSeverity(severityForBalance(bal)),
     };
@@ -516,7 +548,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'held-away assets within reach',
-    aiBrief: `${callList.length} clients hold external assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
+    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
     confidencePct: 89,
     dataSourceCount: 26,
     kpis: [

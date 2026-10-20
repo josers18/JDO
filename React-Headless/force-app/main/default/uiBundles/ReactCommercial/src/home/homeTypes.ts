@@ -174,12 +174,16 @@ export interface CaseItem {
   ageDays: number;
 }
 
-/** Book-level loan delinquency aggregate (NOT client-joinable — a book metric). */
+/** Book-level payment-behaviour aggregate from D&B days-beyond-terms bands
+ *  (latest monthly snapshot). */
 export interface DelinquencyWatch {
-  totalDelinquentBalance: number;
-  totalRecovered: number;
-  byStatus: { status: string; count: number; balance: number }[];
+  totalAccounts: number;
+  /** Accounts paying 1+ days beyond terms. */
+  lateAccounts: number;
+  byBand: { band: string; count: number; avgPaydex: number }[];
   asOf: string;
+  /** 'book' = the banker's own accounts; 'org' = org-wide fallback. */
+  scope: 'book' | 'org';
 }
 
 /** An upcoming customer financial goal (FSC FinancialGoal) for the supporting

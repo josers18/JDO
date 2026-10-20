@@ -1,14 +1,15 @@
 /**
  * HOME app — REAL data implementation for the Commercial "Relationship Command".
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal) → GraphQL
- *   · Data Cloud business credit (CumulusDnBBusinessCredit__dlm) → DcBridgeRest
+ *   · Data Cloud business credit (BT_DNB_Business_Credit__dlm) → DcBridgeRest,
+ *     scoped to the signed-in banker's book (falls back to org-wide when empty)
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
- * the weakest PAYDEX / highest delinquency-predictor scores (the borrowers most
+ * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
- * verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07).
+ * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -139,31 +140,39 @@ function userNamesQuery(ids: string[]): string {
 }
 
 /* ── Data Cloud: weakest business credit = "who to call" ──
-   Scope to this org's account prefix (001am%) so every row resolves to a local
-   Account name. Rank by PAYDEX ascending then delinquency-predictor descending. */
-const CREDIT_RISK_SQL = `
-  SELECT ssot__AccountId__c AS account_id, paydexScore__c AS paydex,
-         compositeRiskScore__c AS composite_risk, delinquencyPredictorScore__c AS delinquency,
-         dnbRating__c AS rating, averageDaysBeyondTerms__c AS days_beyond
-  FROM CumulusDnBBusinessCredit__dlm
-  WHERE paydexScore__c IS NOT NULL AND ssot__AccountId__c LIKE '001am%'
-  ORDER BY paydexScore__c ASC, delinquencyPredictorScore__c DESC
+   BT_DNB_Business_Credit__dlm is a monthly snapshot — pin to the latest
+   profile_month. Rank by PAYDEX ascending, then delinquency-predictor
+   ascending (D&B scores it 1–100 where HIGHER = safer, so the riskiest
+   borrowers have the lowest values). */
+const creditRiskSql = (accountFilter: string) => `
+  SELECT account_id__c AS account_id, paydex_score__c AS paydex,
+         composite_risk_score__c AS composite_risk, delinquency_predictor_score__c AS delinquency,
+         dnb_rating__c AS rating, average_days_beyond_terms__c AS days_beyond
+  FROM BT_DNB_Business_Credit__dlm
+  WHERE profile_month__c = (SELECT MAX(profile_month__c) FROM BT_DNB_Business_Credit__dlm)
+    AND paydex_score__c IS NOT NULL AND account_id__c ${accountFilter}
+  ORDER BY paydex_score__c ASC, delinquency_predictor_score__c ASC
   LIMIT 8
 `;
 
 interface CreditRow { account_id: string; paydex: number; composite_risk: number; delinquency: number; rating: string; days_beyond: number; }
 
-/* ── Data Cloud: book-level loan delinquency (NOT account-joinable —
-   all rows belong to a synthetic loan book, so this is an aggregate metric). */
-const DELINQUENCY_SQL = `
-  SELECT delinquency_status__c AS status, COUNT(uniqueid__c) AS cnt,
-         SUM(loan_balance__c) AS balance, SUM(recovered_amount__c) AS recovered
-  FROM Loan_Delinquencies__dlm
-  WHERE delinquency_status__c IS NOT NULL
-  GROUP BY delinquency_status__c
-  ORDER BY SUM(loan_balance__c) DESC
+/* ── Data Cloud: book payment-behaviour bands (Delinquency Watch) ──
+   Same D&B snapshot, bucketed by average days beyond terms — how late the
+   book's borrowers pay their trade creditors, latest month. */
+const delinquencySql = (accountFilter: string) => `
+  SELECT CASE WHEN average_days_beyond_terms__c >= 30 THEN '30+ days beyond terms'
+              WHEN average_days_beyond_terms__c >= 15 THEN '15-29 days beyond terms'
+              WHEN average_days_beyond_terms__c >= 1 THEN '1-14 days beyond terms'
+              ELSE 'Paying on terms' END AS band,
+         COUNT(*) AS cnt, AVG(paydex_score__c) AS paydex, MAX(profile_month__c) AS as_of
+  FROM BT_DNB_Business_Credit__dlm
+  WHERE profile_month__c = (SELECT MAX(profile_month__c) FROM BT_DNB_Business_Credit__dlm)
+    AND account_id__c ${accountFilter}
+  GROUP BY 1
+  ORDER BY MIN(average_days_beyond_terms__c) DESC
 `;
-interface DelinqRow { status: string; cnt: number; balance: number; recovered: number; }
+interface DelinqRow { band: string; cnt: number; paydex: number; as_of: string; }
 type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
@@ -209,12 +218,17 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
-  const [core, credit, delinq, currentUser] = await Promise.all([
+  // The D&B queries need the banker's user Id to scope to their book;
+  // GraphQL runs in parallel with that chain.
+  const userP = fetchCurrentUser();
+  const [core, credit, currentUser] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
-    queryDataCloud<CreditRow>(CREDIT_RISK_SQL, 8),
-    queryDataCloud<DelinqRow>(DELINQUENCY_SQL, 20).catch(() => ({ rows: [] as DelinqRow[] })),
-    fetchCurrentUser(),
+    userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
+    userP,
   ]);
+  const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
+    .catch(() => ({ rows: [] as DelinqRow[] }));
+  const scopeNote = credit.scope === 'org' ? ' · org-wide' : '';
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
   const bankerName = currentUser?.firstName || currentUser?.name || 'Alex';
@@ -247,7 +261,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       action: 'Credit / covenant review',
       score: 1 - Math.min(paydex, 100) / 100,
       severity: severityForPaydex(paydex),
-      source: 'D&B credit',
+      source: `D&B credit${scopeNote}`,
       relationshipValue: 0,
       tier: tierForSeverity(severityForPaydex(paydex)),
     };
@@ -438,10 +452,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   const delinqRows = delinq.rows ?? [];
   const delinquency: DelinquencyWatch | null = delinqRows.length ? {
-    totalDelinquentBalance: delinqRows.reduce((s, r) => s + Number(r.balance || 0), 0),
-    totalRecovered: delinqRows.reduce((s, r) => s + Number(r.recovered || 0), 0),
-    byStatus: delinqRows.map(r => ({ status: String(r.status || '—'), count: Math.round(Number(r.cnt || 0)), balance: Number(r.balance || 0) })),
-    asOf: 'Latest',
+    totalAccounts: delinqRows.reduce((s, r) => s + Number(r.cnt || 0), 0),
+    lateAccounts: delinqRows.filter(r => r.band !== 'Paying on terms').reduce((s, r) => s + Number(r.cnt || 0), 0),
+    byBand: delinqRows.map(r => ({ band: String(r.band || '—'), count: Math.round(Number(r.cnt || 0)), avgPaydex: Math.round(Number(r.paydex || 0)) })),
+    asOf: String(delinqRows[0]?.as_of ?? '').slice(0, 10) || 'Latest',
+    scope: credit.scope,
   } : null;
 
   // ── Recommendations — derived defensively (never throws). Sources:
@@ -481,7 +496,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const weakestCredit = callList[0];
   if (weakestCredit) {
     const delinqNote = delinquency
-      ? ` Book delinquency stands at ${delinquency.totalDelinquentBalance.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}.`
+      ? ` ${delinquency.lateAccounts.toLocaleString('en-US')} of ${delinquency.totalAccounts.toLocaleString('en-US')} ${delinquency.scope === 'book' ? 'borrowers in your book' : 'borrowers'} pay trade creditors beyond terms (D&B, ${delinquency.asOf}).`
       : '';
     recommendations.push({
       id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: weakestCredit.clientName, clientId: weakestCredit.clientId,

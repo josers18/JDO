@@ -2,13 +2,14 @@
  * HOME app — REAL data implementation ("wired like today"):
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal, Lead, Account)
  *     → GraphQL (sdk.graphql)
- *   · Data Cloud (CSAT/NPS) → DcBridgeRest → ConnectApi.CdpQuery
+ *   · Data Cloud (CSAT/NPS) → DcBridgeRest → ConnectApi.CdpQuery, scoped to
+ *     the signed-in banker's book (falls back to org-wide when empty)
  *
  * All field names + DMO columns below were VERIFIED live against the org
- * (jdo-1lrnov / storm-16a17dc388fbe6, 2026-07-06) by running each query through
- * the uiapi endpoint and the ssot/queryv2 probe. Not guessed.
+ * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
+ * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -142,18 +143,24 @@ function userNamesQuery(ids: string[]): string {
 }
 
 /* ── Data Cloud: lowest-CSAT accounts = "who to call" (verified) ──
-   CSAT_Snowflake__dlm spans multiple source orgs in the unified profile; scope
-   to THIS org's account prefix (001am%) so every row resolves to a local
-   Account name (cross-org IDs like 001Wt% have no local Account record). */
-const LOW_CSAT_SQL = `
-  SELECT accountid__c AS account_id, csat_score__c AS csat, nps_score__c AS nps, csat_description__c AS reason
-  FROM CSAT_Snowflake__dlm
-  WHERE csat_score__c IS NOT NULL AND accountid__c LIKE '001am%'
-  ORDER BY csat_score__c ASC
+   CSAT_Snowflake__dlm holds a score history per account (2023 → latest), so
+   take each account's MOST RECENT survey first, then rank — a client who
+   scored low two years ago and has since recovered isn't a call today.
+   Scoped to the signed-in banker's book (falls back to org-wide). */
+const lowCsatSql = (accountFilter: string) => `
+  SELECT account_id, csat, nps, reason, score_date FROM (
+    SELECT accountid__c AS account_id, csat_score__c AS csat, nps_score__c AS nps,
+           csat_description__c AS reason, score_date__c AS score_date,
+           ROW_NUMBER() OVER (PARTITION BY accountid__c ORDER BY score_date__c DESC) AS rn
+    FROM CSAT_Snowflake__dlm
+    WHERE csat_score__c IS NOT NULL AND accountid__c ${accountFilter}
+  ) t
+  WHERE rn = 1
+  ORDER BY csat ASC
   LIMIT 8
 `;
 
-interface CsatRow { account_id: string; csat: number; nps: number; reason: string; }
+interface CsatRow { account_id: string; csat: number; nps: number; reason: string; score_date: string; }
 type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
@@ -198,10 +205,13 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
+  // The CSAT query needs the banker's user Id to scope to their book;
+  // GraphQL runs in parallel with that chain.
+  const userP = fetchCurrentUser();
   const [core, csat, currentUser] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
-    queryDataCloud<CsatRow>(LOW_CSAT_SQL, 8),
-    fetchCurrentUser(),
+    userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
+    userP,
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -236,7 +246,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     action: 'Service-recovery outreach',
     score: 1 - Math.min(Number(row.csat) || 0, 100) / 100,
     severity: severityForCsat(Number(row.csat) || 0),
-    source: 'CSAT / NPS',
+    source: `CSAT / NPS${csat.scope === 'org' ? ' · org-wide' : ''}`,
     relationshipValue: 0,
     tier: tierForSeverity(severityForCsat(Number(row.csat) || 0)),
   }));

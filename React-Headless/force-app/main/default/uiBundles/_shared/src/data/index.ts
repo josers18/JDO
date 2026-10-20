@@ -5,7 +5,7 @@ export {
   type QueueOppInput,
   type QueueTaskInput,
 } from './priorityQueue';
-export { queryDataCloud, type DataCloudColumn, type DataCloudResult } from './dataCloudClient';
+export { queryDataCloud, queryDataCloudForBook, type DataCloudColumn, type DataCloudResult, type BookScope, type BookScopedResult } from './dataCloudClient';
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';
 export { fetchAccountEmail } from './accountLookup';

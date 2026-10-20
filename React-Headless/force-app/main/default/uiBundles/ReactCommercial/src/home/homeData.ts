@@ -130,14 +130,15 @@ const DASH: HomeDashboard = {
     { id: 'cg4', name: 'Treasury sweep automation', clientName: 'Emerald Construction', clientId: '001E', planName: 'Emerald Construction - Treasury Plan', status: 'IN_PROGRESS', priority: 'LOW', type: 'Other', targetDate: '2027-01-31', daysUntil: 194, target: 40000000, current: 22000000, description: 'Automate end-of-day cash sweeps across operating accounts.' },
   ],
   delinquency: {
-    totalDelinquentBalance: 4820000,
-    totalRecovered: 1130000,
-    byStatus: [
-      { status: '90 days late', count: 38, balance: 2740000 },
-      { status: '60 days late', count: 71, balance: 1520000 },
-      { status: '30 days late', count: 96, balance: 560000 },
+    totalAccounts: 5077,
+    lateAccounts: 2984,
+    byBand: [
+      { band: '15-29 days beyond terms', count: 634, avgPaydex: 64 },
+      { band: '1-14 days beyond terms', count: 2350, avgPaydex: 74 },
+      { band: 'Paying on terms', count: 2093, avgPaydex: 81 },
     ],
     asOf: 'Latest',
+    scope: 'book',
   },
 };
 
