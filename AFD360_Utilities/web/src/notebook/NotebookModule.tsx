@@ -3,6 +3,8 @@ import { ArrowDown, ArrowUp, Eraser, Loader2, Play, PlayCircle, Plus, RotateCcw,
 import { api } from "../api";
 import { CellEditor } from "./CellEditor";
 import { WirePanel } from "../chat/WirePanel";
+import { CellStatsPanel } from "./CellStatsPanel";
+import { cellStats, formatBytes, type CellStats } from "../../../shared/notebookStats";
 import type { KernelStatus, NotebookOutput, OrgsResponse, WireEntry } from "../../../shared/types";
 
 interface Cell {
@@ -13,7 +15,7 @@ interface Cell {
   running?: boolean;
   queued?: boolean;
   durationMs?: number;
-  calls?: number;
+  stats?: CellStats; // from the connector calls of its last run
   ok?: boolean;
 }
 
@@ -63,6 +65,8 @@ export function NotebookModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOp
   const [kernel, setKernel] = useState<KernelStatus | null>(null);
   const [wire, setWire] = useState<WireEntry[]>([]);
   const [runningAll, setRunningAll] = useState(false);
+  const [panelTab, setPanelTab] = useState<"wire" | "stats">("wire");
+  const [pinnedTurn, setPinnedTurn] = useState<number | null>(null); // an earlier run picked in Stats → All cells
   const cellsRef = useRef(cells);
   cellsRef.current = cells;
   const stopAll = useRef(false);
@@ -78,6 +82,7 @@ export function NotebookModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOp
     setCells(loaded);
     setSelected(loaded[0]?.id ?? null);
     setWire([]);
+    setPinnedTurn(null);
     setKernel(null);
     refreshKernel();
   }, [org?.id, refreshKernel]);
@@ -103,12 +108,12 @@ export function NotebookModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOp
       setKernel((k) => (k ? { ...k, state: "busy" } : k));
       try {
         const r = await api.notebookRun(org.id, cell.code);
-        patch(id, { running: false, count: r.count, outputs: r.outputs, durationMs: r.durationMs, calls: r.wire.length, ok: r.ok });
+        patch(id, { running: false, count: r.count, outputs: r.outputs, durationMs: r.durationMs, stats: cellStats(r.wire), ok: r.ok });
         setWire((w) => [...w, ...r.wire]);
         return r.ok;
       } catch (e) {
         const msg = (e as Error).message;
-        patch(id, { running: false, ok: false, outputs: [{ type: "error", ename: "Error", evalue: msg, traceback: msg }] });
+        patch(id, { running: false, ok: false, stats: undefined, outputs: [{ type: "error", ename: "Error", evalue: msg, traceback: msg }] });
         return false;
       } finally {
         refreshKernel();
@@ -155,7 +160,8 @@ export function NotebookModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOp
     if (!org) return;
     stopAll.current = true;
     setWire([]);
-    setCells((cs) => cs.map((c) => ({ ...c, count: undefined, outputs: [], durationMs: undefined, calls: undefined, ok: undefined })));
+    setPinnedTurn(null);
+    setCells((cs) => cs.map((c) => ({ ...c, count: undefined, outputs: [], durationMs: undefined, stats: undefined, ok: undefined })));
     setKernel(await api.notebookRestart(org.id));
   };
 
@@ -201,6 +207,17 @@ export function NotebookModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOp
 
   const busy = cells.some((c) => c.running) || kernel?.state === "busy";
   const selectedCount = cells.find((c) => c.id === selected)?.count ?? null;
+  const shownTurn = pinnedTurn ?? selectedCount;
+  const select = (id: string) => {
+    setSelected(id);
+    setPinnedTurn(null);
+  };
+  // All cells → a run: select the cell that ran it, or pin the run if that cell has run again since.
+  const pickTurn = (turn: number) => {
+    const cell = cells.find((c) => c.count === turn);
+    if (cell) select(cell.id);
+    else setPinnedTurn(turn);
+  };
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-ink-2 hover:bg-tint hover:text-ink disabled:opacity-40";
 
   return (
@@ -245,7 +262,7 @@ export function NotebookModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOp
               autoFocus={c.id === focusId}
               first={i === 0}
               last={i === cells.length - 1}
-              onSelect={() => setSelected(c.id)}
+              onSelect={() => select(c.id)}
               onChange={(code) => patch(c.id, { code })}
               onRun={(advance) => runAndAdvance(c.id, advance)}
               onMove={(by) => move(c.id, by)}
@@ -261,13 +278,38 @@ export function NotebookModule({ orgs, onOpenAdmin }: { orgs: OrgsResponse; onOp
       </section>
 
       <aside className="hidden w-[24rem] shrink-0 flex-col border-l border-line bg-surface lg:flex xl:w-[28rem]">
-        <div className="flex items-center gap-2 px-4 pb-2 pt-4">
-          <h2 className="flex-1 text-[17px] font-semibold leading-tight">Wire</h2>
-          <span className="text-xs text-ink-3">{selectedCount !== null ? `cell [${selectedCount}] highlighted` : `${wire.length} calls`}</span>
+        <div className="px-4 pb-2 pt-4">
+          <div className="flex items-baseline gap-4">
+            <div role="tablist" className="flex flex-1 gap-4">
+              {(["wire", "stats"] as const).map((t) => (
+                <button
+                  key={t}
+                  role="tab"
+                  aria-selected={panelTab === t}
+                  onClick={() => setPanelTab(t)}
+                  className={`text-[17px] font-semibold leading-tight ${panelTab === t ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}
+                >
+                  {t === "wire" ? "Wire" : "Stats"}
+                </button>
+              ))}
+            </div>
+            {panelTab === "wire" && (
+              <span className="text-xs text-ink-3">{shownTurn !== null ? `cell [${shownTurn}] highlighted` : `${wire.length} calls`}</span>
+            )}
+          </div>
+          <div className="mt-0.5 text-xs text-ink-3">
+            {panelTab === "wire" ? "Every call the connector made · tokens masked" : "Rows, timings and IDs for the selected or latest cell"}
+          </div>
         </div>
-        <div className="min-h-0 flex-1">
-          <WirePanel wire={wire} highlightTurn={selectedCount} title="notebook" />
-        </div>
+        {panelTab === "wire" ? (
+          <div className="min-h-0 flex-1">
+            <WirePanel wire={wire} highlightTurn={shownTurn} title="notebook" />
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 border-t border-line">
+            <CellStatsPanel wire={wire} shownTurn={shownTurn} onPick={pickTurn} />
+          </div>
+        )}
       </aside>
     </div>
   );
@@ -341,14 +383,30 @@ function CellView({ cell, selected, autoFocus, first, last, onSelect, onChange, 
             {cell.outputs.map((o, i) => (
               <Output key={i} out={o} />
             ))}
-            {cell.durationMs !== undefined && (
-              <div className="text-xs text-ink-3">
-                {(cell.durationMs / 1000).toFixed(2)} s{cell.calls ? ` · ${cell.calls} HTTP call${cell.calls === 1 ? "" : "s"} in the Wire panel` : ""}
-              </div>
-            )}
+            {cell.durationMs !== undefined && <RunSummary durationMs={cell.durationMs} stats={cell.stats} />}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// "1.45 s · 20,884 rows · Data Cloud 0.25 s · transfer 0.40 s · 1.2 MB · 4 HTTP calls"
+function RunSummary({ durationMs, stats }: { durationMs: number; stats?: CellStats }) {
+  const s = (ms: number) => `${(ms / 1000).toFixed(2)} s`;
+  const q = stats?.queries ?? [];
+  const failed = q.filter((x) => x.error).length;
+  const parts = [s(durationMs)];
+  if (stats?.rows !== null && stats?.rows !== undefined) parts.push(`${stats.rows.toLocaleString()} row${stats.rows === 1 ? "" : "s"}`);
+  if (stats?.dataCloudMs != null) parts.push(`Data Cloud ${s(stats.dataCloudMs)}`);
+  if (stats?.transferMs != null) parts.push(`transfer ${s(stats.transferMs)}`);
+  if (stats?.bytes != null) parts.push(formatBytes(stats.bytes));
+  if (q.length > 1) parts.push(`${q.length} queries`);
+  if (failed) parts.push(`${failed} failed`);
+  if (stats?.calls) parts.push(`${stats.calls} HTTP call${stats.calls === 1 ? "" : "s"}`);
+  return (
+    <div className="font-mono text-xs text-ink-3" title={stats?.calls ? "Rows and timings from the query responses; every call is in the Wire tab, details in Stats" : undefined}>
+      {parts.join(" · ")}
     </div>
   );
 }

@@ -47,6 +47,8 @@ Tests:
   sort/filter.
 - `test/notebook.test.ts`: URL and body masking of the connector's wire entries (`subject_token` included), turn
   numbering, and output merging.
+- `test/notebookStats.test.ts`: cell stats from recorded query responses (next-batch pages folded in, failed
+  queries, sign-in time) and grouping by cell.
 
 ## Modules (`web/src/`)
 
@@ -126,6 +128,14 @@ Tests:
     The server masks URL params, headers and bodies (`maskUrl`, `maskBody`) and tags each entry with the cell's
     execution count, which the Wire panel highlights for the selected cell. The connector connects lazily, so its
     auth calls land on the first query cell.
+  - **Stats** (`shared/notebookStats.ts`, `CellStatsPanel.tsx`). Read from the wire entries the cell already
+    recorded, so no extra calls. Per query: `rowCount` (the full total, not the 50 rows kept on the wire), column
+    count from `metadata`, pages (`Query next batch` entries fold into the query before them), Data Cloud time
+    (`endTime` − `startTime`, nanosecond timestamps truncated to ms), transfer time (our measured time minus Data
+    Cloud's), decompressed size (`responseBytes`, set by the kernel), `queryId`, `x-trace-id` and the
+    `x-ratelimit-*` headers. Sign-in is the OAuth, token exchange and revoke calls. Each cell shows a one-line
+    summary; the Stats tab shows the selected (or latest) cell plus an All cells table that selects a cell when
+    clicked. On large results transfer dominates: 20,884 rows took 0.24 s in Data Cloud and 0.34 s to transfer.
   - **Cells** (`CellEditor.tsx`, CodeMirror Python): Shift+Enter runs and moves on, ⌘/Ctrl+Enter runs in place,
     Run all stops at the first error. Code (not outputs) is saved per org in `localStorage`. The starter
     notebook connects, groups `UnifiedssotAccountAcc__dlm` by risk tolerance into `df`, and charts it.

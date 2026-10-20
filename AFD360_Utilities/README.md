@@ -16,7 +16,9 @@ Local test bench for Agentforce and Data 360 APIs, built for SEs to demo live to
   - vector and hybrid searches joined to their chunk text.
 - **Notebook (Python).** Jupyter-style cells on a Python kernel per org, preloaded with the Data Cloud Python
   connector (`salesforce-cdp-connector`): connect, query a DMO into a pandas DataFrame, chart it. Tables and figures
-  render under each cell, and the connector's HTTP calls show in the Wire panel, masked.
+  render under each cell with a one-line summary (time, rows, Data Cloud vs transfer time, size, HTTP calls). The
+  connector's HTTP calls show in the Wire panel, masked, and the Stats tab next to it breaks a cell down by query
+  (rows, columns, pages, `queryId`, trace ID, rate limit) with totals across cells.
 - **Admin → Orgs.** Org profiles (My Domain plus External Client App key and secret, and an optional Data Cloud app
   for the Notebook): test them and switch.
 - **17 themes.** Pick one with the picker at the bottom of the rail. HXL cards follow the theme.
