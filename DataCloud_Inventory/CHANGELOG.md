@@ -8,6 +8,30 @@ editing prior ones.
 
 ## [October 2026] — 2026-10-20
 
+### 2026-10-20 — Salesforce core personas under a person-account model
+
+- `feat(datacloud-inventory)` — Reviewed all 199 SalesforceDotCom streams
+  assuming person accounts are on (Account / Contact / Lead / financial
+  accounts carry both personas). Shared objects move to `All`:
+  `FinancialAccountTransaction` and `FinServ__FinancialAccountRole__c` (any
+  account type owns financial accounts; matches `FinancialAccountParty`),
+  `Meeting_Note__c`, the `Offer*` / `Personalization*` objects (Cumulus offers
+  include business deposit and lending offers), and `Pricebook2` /
+  `PricebookEntry` / `Quote` (product catalog, not a business-only signal).
+  Holdings, securities, goals, plans, assets/liabilities, households and life
+  events stay `Personal` (FSC wealth / individual objects). 23 streams retagged.
+
+### 2026-10-20 — BT_ dataset personas from generator source
+
+- `feat(datacloud-inventory)` — Persona rules for the BT_ Snowflake datasets
+  now follow each generator's audience SQL (`Snowflake_*/README.md`,
+  `Financial_*_Generation/README.md`) instead of name guesses. A new
+  `all-account BT_ datasets` rule tags Personal + Business: BoardEx, Gong,
+  Synth Relationship Graph and MGP (all `V_ACCOUNT_ANCHORS`), Esri (branch-ZIP
+  scoped), Financial Trades (person + business tiers) and
+  `Financial_Transactions_BT_Snow`. MSCI ESG moves to Business
+  (`ACCOUNT_TYPE_FLAG = 'BUSINESS'`). 8 streams retagged; no others change.
+
 ### 2026-10-20 — Corrections skill docs
 
 - `docs(datacloud-inventory)` — README and AGENTS.md point to the Claude Code
