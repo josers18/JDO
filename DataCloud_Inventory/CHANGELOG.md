@@ -8,6 +8,16 @@ editing prior ones.
 
 ## [October 2026] — 2026-10-20
 
+### 2026-10-20 — Insurance suppression rule
+
+- `feat(datacloud-inventory)` — `persona_rules.json` gains a persona-based
+  `suppress_rules` entry, `Insurance` → *Initiative-specific: Insurance*, so
+  every stream the Insurance rule tags (including new ones) auto-suppresses.
+- `data(datacloud-inventory)` — Dropped the 18 per-stream Insurance
+  corrections from `corrections/jdo-oe0sdd.json` (99 → 81) that the rule now
+  covers; regenerated output is unchanged (238 suppressed) apart from those
+  rows' blank *Corrected By*.
+
 ### 2026-10-20 — Personas, suppression flags, collaborative corrections
 
 - `feat(datacloud-inventory)` — Every stream is tagged with a **Persona**

@@ -2,27 +2,9 @@
   "org": "jdo-oe0sdd",
   "updated": "2026-10-20T14:58:19.749Z",
   "streams": {
-    "Account_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
     "BulkMessage_Home": {
       "suppressed": true,
       "reason": "Other",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Claim_Snowflake_InsAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Claims": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -68,12 +50,6 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
-    "Contact_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
     "CumulusGTM_Behavioral_Events_DD359D25": {
       "suppressed": true,
       "reason": "Other",
@@ -98,21 +74,9 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
-    "CurrencyType_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
     "DataCleanRoom_Home": {
       "suppressed": true,
       "reason": "Other",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Dataforce_Car_Telematics": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -161,54 +125,6 @@
     "External_Profile": {
       "suppressed": true,
       "reason": "Other",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "InsAfdc_PolicyholderPortal_Web_Behavioral_Events_3B3FA68": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "InsurancePolicy_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Lead_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "OpportunityContactRole_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Opportunity_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Payment_Snowflake_InsAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Policy_Snowflake_InsAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Product_Insurance_AFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -282,12 +198,6 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
-    "User_InsuranceAFDC": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
     "VIP_Cash_Position_Latest": {
       "suppressed": true,
       "reason": "Other",
@@ -357,24 +267,6 @@
     "banking_transactions_parquet_Databricks": {
       "suppressed": true,
       "reason": "Other",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "car_telematics": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "claims_Databricks": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "claims_history": {
-      "suppressed": true,
-      "reason": "Initiative-specific: Insurance",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
