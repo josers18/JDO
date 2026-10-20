@@ -1,6 +1,6 @@
 {
   "org": "jdo-oe0sdd",
-  "updated": "2026-10-20T14:38:48.503Z",
+  "updated": "2026-10-20T14:48:15.318Z",
   "streams": {
     "Account_InsuranceAFDC": {
       "suppressed": true,
@@ -23,6 +23,24 @@
     "Contact_InsuranceAFDC": {
       "suppressed": true,
       "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CumulusGTM_Behavioral_Events_DD359D25": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CumulusGTM_identity_DD362998": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CumulusGTM_partyIdentification_DD365FAB": {
+      "suppressed": true,
+      "reason": "Other",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -86,9 +104,63 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
+    "SurveyInvitation_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyPage_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyQuestionResponse_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyQuestion_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyResponse_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveySubject_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyVersion_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Survey_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
     "User_InsuranceAFDC": {
       "suppressed": true,
       "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "WorkOrder_Home": {
+      "suppressed": true,
+      "reason": "Other",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -113,6 +185,192 @@
     "claims_history": {
       "suppressed": true,
       "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202401_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202402_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202403_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202404_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202405_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202406_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202407_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202408_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202409_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202410_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202411_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202412_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_campaign_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_contact_point_email_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_ees_email_snapshot_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_einstein_email_scores_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_complaint_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_bounce_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_click_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_open_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_send_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_publication_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_template_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_unsubscribe_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_ent_profile_attribute_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_journey_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_journey_activity_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_subscriber_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_subscriber_bu_mapping_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "transactions_jl_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     }
