@@ -653,8 +653,23 @@ const C=n=>COLS.indexOf(n), NAME=C("Data Stream Name"), PB=C("Persona Basis"),
   SUP=C("Suppressed"), SR=C("Suppress Reason"), NOTE=C("Notes"), BY=C("Corrected By");
 const LSK="dcinv-corrections-"+ORG;
 const same=(a,b)=>JSON.stringify(a??null)===JSON.stringify(b??null);
+const strip=e=>{if(!e)return null;const {by,at,...x}=e;return x;};
+const ruleReasonFor=(r,tags)=>{const pr=SUPP_P.find(([ps])=>ps.some(p=>tags.includes(p)));return r.pr||(pr?pr[1]:"");};
+const sameTags=(a,b)=>[...a].sort().join("; ")===[...b].sort().join("; ");
+// Drop the parts of a correction the current rules already give (null = nothing left).
+function minimal(n,e){const r=RULE[n];if(!e||!r)return e;const x={...e};
+  if(x.persona&&(!x.persona.length||sameTags(x.persona,r.p.split("; "))))delete x.persona;
+  if("suppressed" in x){const rr=ruleReasonFor(r,x.persona||r.p.split("; "));
+    if(!!x.suppressed===!!rr&&(!x.suppressed||x.reason===rr)){delete x.suppressed;delete x.reason;}}
+  if(!x.note)delete x.note;
+  return Object.keys(strip(x)).length?x:null;}
 let pending=JSON.parse(localStorage.getItem(LSK)||"{}");
-for(const n of Object.keys(pending))if(same(pending[n],CORR.streams[n]))delete pending[n];  // already committed
+// Saved edits go stale after a commit or rule change: shrink each to what the rules
+// don't already give, and drop it if that matches the committed file.
+for(const n of Object.keys(pending)){
+  const m=pending[n]===null?null:minimal(n,pending[n]);
+  if(same(strip(m),strip(minimal(n,CORR.streams[n]))))delete pending[n];else pending[n]=m;}
+localStorage.setItem(LSK,JSON.stringify(pending));
 const corrFor=n=>(n in pending)?pending[n]:CORR.streams[n];
 function applyRow(row){  // mirrors build_rows() in generate_inventory.py
   const n=row[NAME],r=RULE[n],c=corrFor(n)||{};
@@ -822,8 +837,6 @@ $("edit").onclick=()=>{editing=!editing;document.body.classList.toggle("editing"
 function getBy(){let b=localStorage.getItem("dcinv-user");
   if(!b&&!byAsked){byAsked=true;b=(prompt("Your name (recorded on corrections):")||"").trim();if(b)localStorage.setItem("dcinv-user",b);}
   return b||"";}
-const strip=e=>{if(!e)return null;const {by,at,...x}=e;return x;};
-const ruleReasonFor=(r,tags)=>{const pr=SUPP_P.find(([ps])=>ps.some(p=>tags.includes(p)));return r.pr||(pr?pr[1]:"");};
 function setEntry(n,entry){if(same(entry,CORR.streams[n]))delete pending[n];else pending[n]=entry;}
 // Record the desired state of one row as the minimal correction vs. the rules.
 // Unspecified fields keep the row's current value.
@@ -833,7 +846,7 @@ function setState(row,{tags,sup,reason,note}){
   note=(note??String(row[NOTE]||"")).trim();
   if(sup&&!reason)reason="Other";
   const e={};
-  if(tags.length&&tags.join("; ")!==r.p)e.persona=tags;
+  if(tags.length&&!sameTags(tags,r.p.split("; ")))e.persona=tags;
   const rr=ruleReasonFor(r,e.persona||r.p.split("; "));
   if(sup!==!!rr||(sup&&reason!==rr)){e.suppressed=sup;if(sup)e.reason=reason;}
   if(note)e.note=note;

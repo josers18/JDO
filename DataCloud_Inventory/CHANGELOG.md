@@ -8,6 +8,16 @@ editing prior ones.
 
 ## [October 2026] — 2026-10-20
 
+### 2026-10-20 — Stale browser edits clear themselves
+
+- `fix(datacloud-inventory)` — On load, the HTML editor now shrinks each saved
+  (localStorage) edit to what the current rules don't already give, and drops
+  it when that matches the committed corrections. Edits made before a rule
+  change or commit no longer linger as pending and get re-exported.
+- `fix(datacloud-inventory)` — Persona tags are compared as a set, so
+  `Business; Personal` no longer counts as a correction against a rule giving
+  `Personal; Business`.
+
 ### 2026-10-20 — Transactions rule covers both personas
 
 - `feat(datacloud-inventory)` — The `transactions` rule now tags
