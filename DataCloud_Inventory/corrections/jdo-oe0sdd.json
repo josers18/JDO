@@ -226,61 +226,9 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
-    "Financial_Transactions_DataBricks": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Financial_Transactions_GCP": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
     "Financial_Transactions_Heroku_Postgres": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
       "suppressed": true,
       "reason": "Other",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Financial_Transactions_Redshift": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Financial_Transactions_Snow": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "Financial_Transactions_Snow_XL": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "GCP_Transactions": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -489,14 +437,6 @@
     "WorkOrder_Home": {
       "suppressed": true,
       "reason": "Other",
-      "by": "Jose Sifontes",
-      "at": "2026-10-20"
-    },
-    "YTD_Transactions_SNOW": {
-      "persona": [
-        "Business",
-        "Personal"
-      ],
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
