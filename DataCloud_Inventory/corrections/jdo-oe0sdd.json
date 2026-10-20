@@ -1,7 +1,39 @@
 {
   "org": "jdo-oe0sdd",
-  "updated": "2026-10-20T14:58:19.749Z",
+  "updated": "2026-10-20T15:56:49.544Z",
   "streams": {
+    "AccountAccountRelation_Home": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "AccountAccountRelationship": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Account_Balance": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Attrition_Inputs_Snowflake": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
     "BulkMessage_Home": {
       "suppressed": true,
       "reason": "Other",
