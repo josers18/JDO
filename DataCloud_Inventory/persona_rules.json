@@ -21,6 +21,7 @@
   },
   "suppress_rules": [
     {"reason": "Test", "pattern": "^test_|_test$|Sample|Demo_Connector"},
+    {"reason": "Initiative-specific: Insurance", "personas": ["Insurance"]},
     {"reason": "Internal", "personas": ["Platform"]},
     {"reason": "Non-FS demo data", "personas": ["Other Industry"]}
   ],
