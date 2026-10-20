@@ -1,0 +1,598 @@
+{
+  "org": "jdo-oe0sdd",
+  "updated": "2026-10-20T14:58:19.749Z",
+  "streams": {
+    "Account_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "BulkMessage_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Claim_Snowflake_InsAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Claims": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Clean_Room_Customer_Data": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Clean_Room_Engagement_Data": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Clean_Rooms_Advertising_Data": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CommSubscriptionChannelType_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CommSubscription_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "ConsentAuditTrailV2_00Dam00000Uo32q_ConsentAuditTrail_D5D3F20C": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "ConsentAuditTrailV2_ConsentAuditTrail_2EBB2A3F": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Contact_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CumulusGTM_Behavioral_Events_DD359D25": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CumulusGTM_identity_DD362998": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CumulusGTM_partyIdentification_DD365FAB": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CurrencyType_Brokerage": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "CurrencyType_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "DataCleanRoom_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Dataforce_Car_Telematics": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Events_Google_Analytics": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Experience_Cloud_Event_Connector_Behavioral_Events_8AE43755": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Experience_Cloud_Event_Connector_contactPointAddress_8AE4378C": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Experience_Cloud_Event_Connector_contactPointEmail_8AE437A8": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Experience_Cloud_Event_Connector_contactPointPhone_8AE437C8": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Experience_Cloud_Event_Connector_identity_8AE437EA": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Experience_Cloud_Event_Connector_partyIdentification_8AE43803": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "External_Profile": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "InsAfdc_PolicyholderPortal_Web_Behavioral_Events_3B3FA68": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "InsurancePolicy_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Lead_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "OpportunityContactRole_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Opportunity_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Payment_Snowflake_InsAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Policy_Snowflake_InsAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Product_Insurance_AFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Quote_FinsDC4": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Quote_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyInvitation_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyPage_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyQuestionResponse_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyQuestion_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyResponse_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveySubject_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SurveyVersion_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Survey_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "UserRole_Home": {
+      "suppressed": false,
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "User_Home": {
+      "suppressed": false,
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "User_InsuranceAFDC": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VIP_Cash_Position_Latest": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VideoCallInsightAction_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VideoCallInsightReason_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VideoCallInsight_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VideoCallParticipant_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VideoCallRecording_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VideoCallTranscript_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "VideoCall_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "WorkOrder_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "asset_Databricks": {
+      "suppressed": true,
+      "reason": "Test",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "bank_churners_jl_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "banking_transactions_parquet_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "car_telematics": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "claims_Databricks": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "claims_history": {
+      "suppressed": true,
+      "reason": "Initiative-specific: Insurance",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202401_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202402_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202403_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202404_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202405_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202406_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202407_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202408_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202409_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202410_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202411_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_202412_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "contact_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "eMoney_Advisor_Loyalty": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "eMoney_Advisor_Loyalty_FieldKey": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "eMoney_ChurnData_Stream_ChurnData_F212FE44": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "eMoney_Churn_Features_Stream_ChurnFeatures_E39D9F59": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_campaign_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_contact_point_email_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_ees_email_snapshot_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_einstein_email_scores_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_complaint_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_bounce_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_click_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_open_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_engagement_send_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_publication_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_template_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_email_unsubscribe_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_ent_profile_attribute_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_journey_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_journey_activity_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_subscriber_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "sfmc_subscriber_bu_mapping_523021287": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "transactions_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "transactions_jl_Databricks": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    }
+  }
+}

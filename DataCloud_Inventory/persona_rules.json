@@ -1,0 +1,51 @@
+{
+  "_doc": [
+    "Persona tagging for the Data Cloud inventory.",
+    "Personal = consumer banking incl. wealth (wealth data always applies to retail too);",
+    "Business = commercial / small-business. Persona Basis keeps the finer label.",
+    "Each stream is matched against `rules` in order; the FIRST rule whose regex",
+    "(case-insensitive, re.search) hits the stream name, label, or source object wins.",
+    "`overrides` (exact stream name -> tags) beats every rule -- use it to pin one-offs.",
+    "`All` = shared customer data relevant to every persona; it is folded into each",
+    "persona's sheet and HTML filter. `personas` lists the selectable persona views.",
+    "`suppress_rules` FLAG streams that aren't customer-useful (Suppressed + Suppress Reason",
+    "columns); they stay listed everywhere. Pattern rules run first, then `personas` rules.",
+    "Per-stream fixes from collaborators live in corrections/<org>.json (HTML editor export).",
+    "Re-tag without re-fetching: generate_inventory.py --from-snapshot <out>/raw_snapshot.json"
+  ],
+  "personas": ["Personal", "Business"],
+  "overrides": {
+    "ConversationParticipant_Home": ["All"],
+    "Databricks_File_Federation_Sample": ["Platform"],
+    "NotebookFilesStream": ["Platform"]
+  },
+  "suppress_rules": [
+    {"reason": "Test", "pattern": "^test_|_test$|Sample|Demo_Connector"},
+    {"reason": "Internal", "personas": ["Platform"]},
+    {"reason": "Non-FS demo data", "personas": ["Other Industry"]}
+  ],
+  "rules": [
+    {"tags": ["Insurance"], "label": "insurance LOB", "pattern": "Insurance|InsAfdc|claim|Policy_|Payment_Snowflake|telematics"},
+    {"tags": ["Other Industry"], "label": "non-FS demo data", "pattern": "Shipment|meterreads|premises|invoice|outliers"},
+
+    {"tags": ["All"], "label": "knowledge / data masking", "pattern": "Knowledge|CaseArticle|LinkedArticle|Data_Masking"},
+    {"tags": ["Platform"], "label": "agent / AI telemetry", "pattern": "^Agent|AgenticConnector|AgentOpt|^AiAgent|AiGrounding|AIRetriever|PilotAI|AiTag|BatchPrediction|PredictionAudit|^Bot|GenAi|ObservabilitySpans|AgentWork"},
+    {"tags": ["Platform"], "label": "DC / org metadata", "pattern": "^DataCategory|^DataLakeObject|^DataObject|DataPackageKit|DataSemanticSearch|DataSrcDataModel|^DataStream|^Mkt|ObjectMetadataTag|NotebookFiles|SetupPageSearch|remote_connection|ManagedContent|ExperimentationLog|AbnExperiment|test_ej"},
+    {"tags": ["Platform"], "label": "users / security / billing", "pattern": "^Tenant|Permission|^User|^Group|Collaboration|Territory2|BusinessHours|CurrencyType_(?!Brokerage)|ForecastingGroup|^Skill_|ServicePresence|^Flow|EventStream|EventBusConnector|_Salesforce_Platform|^RecordView$|^SearchQuery$|MessagingChannel|ConversationDefinition"},
+
+    {"tags": ["Business"], "label": "firmographics / KYB", "pattern": "Boardex|DNB|Zoominfo|SEC_Filings|ESRI|Gong|Business_Product|Lead_Demo|Synth_Relationship|AccountAccountRelation|^Lines$|Quote|Pricebook"},
+    {"tags": ["Personal", "Business"], "label": "AML / market context", "pattern": "WorldCheck|Moodys"},
+
+    {"tags": ["Personal"], "label": "holdings / planning", "pattern": "Holding|Securit|Custodian|FinancialPlan|Financial_Plans|PortfolioTgtAlloc|Financial_Goal|PartyFinancial|AssetsAndLiabilities|Brokerage|Investment|Trade|Plaid|eMoney|MSCI|VIP_Cash|Meeting_Note|PartyRelationshipGroup|Financial_Account_Role"},
+    {"tags": ["Personal"], "label": "life events / property", "pattern": "PersonLifeEvent|Corelogic"},
+
+    {"tags": ["Personal", "Business"], "label": "lending risk", "pattern": "Delinquen|Chargeoff"},
+    {"tags": ["Personal"], "label": "deposits / cards / loans", "pattern": "Deposit|^Loans|^Card$|banking_trans|bank_churn|Account_Balance|Personal_Product|Claritas|Enrollment|Redemption"},
+    {"tags": ["Personal"], "label": "transactions", "pattern": "Transaction|transactions|YTD_"},
+    {"tags": ["Personal"], "label": "attrition / churn models", "pattern": "Attrition|Churn"},
+    {"tags": ["Personal"], "label": "offers / personalization", "pattern": "^Offer|Personali|PersnlRcmd|RTOM|RT_Transfers|RT_WebEvents"},
+
+    {"tags": ["All"], "label": "core customer / CRM", "pattern": "^Account|^Contact|Individual|Party|Prospect|Profile|Customer|^Case|^Lead|^Opportunity|^Task|^Event|^Note|EmailMessage|InteractionSummary|^Alert$|^FinancialAccount|FinServ_FinancialAccount|^Referral|WorkOrder|Content(Document|Version)|^Product|MarketSegment|Service_Now|DC_Unified|contact_20"},
+    {"tags": ["All"], "label": "engagement / marketing / consent", "pattern": "Campaign|sfmc_|Messaging|Consent|CommSubscription|Engagement|Experience_Cloud|Cumulus|Web_|VoiceCall|VideoCall|Survey|CSAT|csat|Clean_Room|DataCleanRoom|BulkMessage|ListEmail|Google_Analytics"}
+  ]
+}
