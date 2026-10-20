@@ -1,6 +1,6 @@
 {
   "org": "jdo-oe0sdd",
-  "updated": "2026-10-20T15:56:49.544Z",
+  "updated": "2026-10-20T16:08:33.834Z",
   "streams": {
     "AccountAccountRelation_Home": {
       "persona": [
@@ -34,9 +34,53 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
+    "BT_CSAT_Attrition_Inputs": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "BT_Enrollments": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "BT_Lead_Demo_Data": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "BT_Lead_Demo_Role": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
     "BulkMessage_Home": {
       "suppressed": true,
       "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Card": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Churn_Training_Data": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -112,6 +156,22 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
+    "Deposits": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Deposits_Latest": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
     "Events_Google_Analytics": {
       "suppressed": true,
       "reason": "Other",
@@ -155,6 +215,12 @@
       "at": "2026-10-20"
     },
     "External_Profile": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Individual_MDM": {
       "suppressed": true,
       "reason": "Other",
       "by": "Jose Sifontes",
@@ -399,6 +465,12 @@
       "at": "2026-10-20"
     },
     "eMoney_Churn_Features_Stream_ChurnFeatures_E39D9F59": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "financial_services_lea09132348059": {
       "suppressed": true,
       "reason": "Other",
       "by": "Jose Sifontes",
