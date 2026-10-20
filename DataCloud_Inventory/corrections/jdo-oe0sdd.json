@@ -1,6 +1,6 @@
 {
   "org": "jdo-oe0sdd",
-  "updated": "2026-10-20T16:08:33.834Z",
+  "updated": "2026-10-20T16:21:51.205Z",
   "streams": {
     "AccountAccountRelation_Home": {
       "persona": [
@@ -220,9 +220,121 @@
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
+    "FinAssetPortfolioTgtAlloc_Home": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Financial_Transactions_DataBricks": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Financial_Transactions_GCP": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Financial_Transactions_Heroku_Postgres": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Financial_Transactions_Redshift": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Financial_Transactions_Snow": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Financial_Transactions_Snow_XL": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "GCP_Transactions": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
     "Individual_MDM": {
       "suppressed": true,
       "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Investment_Latest": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Investments": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Lines": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Loans": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Loans_Latest": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "ML_Attrition_Training_Data": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -235,6 +347,36 @@
     "Quote_Home": {
       "suppressed": true,
       "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Redemption_History_DLO": {
+      "suppressed": true,
+      "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Securities": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "SecuritiesHolding_Home": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "Service_Now": {
+      "persona": [
+        "All",
+        "Business"
+      ],
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
@@ -347,6 +489,14 @@
     "WorkOrder_Home": {
       "suppressed": true,
       "reason": "Other",
+      "by": "Jose Sifontes",
+      "at": "2026-10-20"
+    },
+    "YTD_Transactions_SNOW": {
+      "persona": [
+        "Business",
+        "Personal"
+      ],
       "by": "Jose Sifontes",
       "at": "2026-10-20"
     },
