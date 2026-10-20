@@ -35,9 +35,10 @@
     {"tags": ["Platform"], "label": "users / security / billing", "pattern": "^Tenant|Permission|^User|^Group|Collaboration|Territory2|BusinessHours|CurrencyType_(?!Brokerage)|ForecastingGroup|^Skill_|ServicePresence|^Flow|EventStream|EventBusConnector|_Salesforce_Platform|^RecordView$|^SearchQuery$|MessagingChannel|ConversationDefinition"},
 
     {"tags": ["Personal", "Business"], "label": "all-account BT_ datasets", "pattern": "Boardex|Gong|Synth_Relationship|ESRI|MGP_|MoneyGuide|Financial_Trades|Financial_Transactions_BT"},
-    {"tags": ["Business"], "label": "firmographics / KYB", "pattern": "DNB|Zoominfo|MSCI|SEC_Filings|Business_Product|Lead_Demo|AccountAccountRelation|^Lines$|Quote|Pricebook"},
+    {"tags": ["Business"], "label": "firmographics / KYB", "pattern": "DNB|Zoominfo|MSCI|SEC_Filings|Business_Product|Lead_Demo|AccountAccountRelation|^Lines$"},
     {"tags": ["Personal", "Business"], "label": "AML / market context", "pattern": "WorldCheck|Moodys"},
 
+    {"tags": ["All"], "label": "FSC financial-account core", "pattern": "^FinancialAccountTransaction|Financial_Account_Role|Meeting_Note"},
     {"tags": ["Personal"], "label": "holdings / planning", "pattern": "Holding|Securit|Custodian|FinancialPlan|Financial_Plans|PortfolioTgtAlloc|Financial_Goal|PartyFinancial|AssetsAndLiabilities|Brokerage|Investment|Trade|Plaid|eMoney|VIP_Cash|Meeting_Note|PartyRelationshipGroup|Financial_Account_Role"},
     {"tags": ["Personal"], "label": "life events / property", "pattern": "PersonLifeEvent|Corelogic"},
 
@@ -45,9 +46,10 @@
     {"tags": ["Personal"], "label": "deposits / cards / loans", "pattern": "Deposit|^Loans|^Card$|banking_trans|bank_churn|Account_Balance|Personal_Product|Claritas|Enrollment|Redemption"},
     {"tags": ["Personal"], "label": "transactions", "pattern": "Transaction|transactions|YTD_"},
     {"tags": ["Personal"], "label": "attrition / churn models", "pattern": "Attrition|Churn"},
-    {"tags": ["Personal"], "label": "offers / personalization", "pattern": "^Offer|Personali|PersnlRcmd|RTOM|RT_Transfers|RT_WebEvents"},
+    {"tags": ["All"], "label": "offer / personalization objects", "pattern": "^Offer|^Personalization"},
+    {"tags": ["Personal"], "label": "offers / personalization", "pattern": "PersnlRcmd|RTOM|RT_Transfers|RT_WebEvents"},
 
-    {"tags": ["All"], "label": "core customer / CRM", "pattern": "^Account|^Contact|Individual|Party|Prospect|Profile|Customer|^Case|^Lead|^Opportunity|^Task|^Event|^Note|EmailMessage|InteractionSummary|^Alert$|^FinancialAccount|FinServ_FinancialAccount|^Referral|WorkOrder|Content(Document|Version)|^Product|MarketSegment|Service_Now|DC_Unified|contact_20"},
+    {"tags": ["All"], "label": "core customer / CRM", "pattern": "^Account|^Contact|Individual|Party|Prospect|Profile|Customer|^Case|^Lead|^Opportunity|^Task|^Event|^Note|EmailMessage|InteractionSummary|^Alert$|^FinancialAccount|FinServ_FinancialAccount|^Referral|WorkOrder|Content(Document|Version)|^Product|^Pricebook|^Quote|MarketSegment|Service_Now|DC_Unified|contact_20"},
     {"tags": ["All"], "label": "engagement / marketing / consent", "pattern": "Campaign|sfmc_|Messaging|Consent|CommSubscription|Engagement|Experience_Cloud|Cumulus|Web_|VoiceCall|VideoCall|Survey|CSAT|csat|Clean_Room|DataCleanRoom|BulkMessage|ListEmail|Google_Analytics"}
   ]
 }
