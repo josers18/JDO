@@ -8,6 +8,17 @@ editing prior ones.
 
 ## [October 2026] — 2026-10-20
 
+### 2026-10-20 — BT_ dataset personas from generator source
+
+- `feat(datacloud-inventory)` — Persona rules for the BT_ Snowflake datasets
+  now follow each generator's audience SQL (`Snowflake_*/README.md`,
+  `Financial_*_Generation/README.md`) instead of name guesses. A new
+  `all-account BT_ datasets` rule tags Personal + Business: BoardEx, Gong,
+  Synth Relationship Graph and MGP (all `V_ACCOUNT_ANCHORS`), Esri (branch-ZIP
+  scoped), Financial Trades (person + business tiers) and
+  `Financial_Transactions_BT_Snow`. MSCI ESG moves to Business
+  (`ACCOUNT_TYPE_FLAG = 'BUSINESS'`). 8 streams retagged; no others change.
+
 ### 2026-10-20 — Corrections skill docs
 
 - `docs(datacloud-inventory)` — README and AGENTS.md point to the Claude Code
