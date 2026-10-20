@@ -82,6 +82,14 @@ the correction's author and rationale.
 2. Tick personas, toggle *Suppressed* + reason (e.g. *Initiative-specific: React
    cockpits*), add a note, **Save**. *Revert to rules* drops a correction.
    Pending edits are highlighted and kept in your browser across reloads.
+   **Mass edit like a spreadsheet:** in edit mode a checkbox column appears —
+   tick rows (shift-click for a range, header box = every row currently shown,
+   so filter first), then **Bulk edit…** to replace / add / remove personas,
+   suppress (with reason) or unsuppress, set or clear a note, or revert all to
+   rules; untouched sections are left as-is per row. Cells are editable in
+   place too: click **Suppressed** to toggle, double-click **Suppress Reason**
+   or **Notes** to type (Enter saves, Esc cancels; clearing the reason
+   unsuppresses).
 3. **Export corrections** downloads the full merged `<org>.json` (committed
    corrections + your edits). Replace `corrections/<org>.json` with it and open
    a PR.

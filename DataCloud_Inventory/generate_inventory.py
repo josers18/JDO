@@ -591,6 +591,12 @@ _HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
   dialog fieldset{border:1px solid var(--bd);border-radius:6px;margin:0 0 10px;padding:8px 10px}
   dialog fieldset label{display:inline-block;margin:2px 12px 2px 0}
   dialog input[type=text],dialog textarea,dialog select{width:100%;box-sizing:border-box;margin-top:4px;padding:5px 7px;border:1px solid var(--bd);border-radius:5px;font:inherit}
+  body.editing td.ed{background:#fffbea;cursor:text}
+  body.editing td.tog{cursor:pointer;text-decoration:underline dotted}
+  td.editing{outline:2px solid var(--accent);white-space:normal;background:#fff!important}
+  th.sel,td.sel{width:28px;text-align:center;padding:0 4px}
+  tr.selected td{background:#fff1b8!important}
+  #selbar{font-size:12px;display:inline-flex;gap:6px;align-items:center}
   dialog .row{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
 </style></head><body>
 <header>
@@ -604,6 +610,8 @@ _HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
     <button id="csv" title="Export the rows currently shown">Export CSV</button>
     <button id="xlsx" title="Export the rows currently shown">Export Excel</button>
     <button id="edit" title="Click any row to correct its persona or suppression">Edit classifications</button>
+    <span id="selbar" hidden><b id="selN"></b> selected
+      <button id="bulk">Bulk edit&hellip;</button><button id="selClear">Clear selection</button></span>
     <span id="pend"></span>
     <button id="exp" hidden title="Download the merged corrections file to commit to git">Export corrections</button>
     <button id="disc" hidden>Discard pending</button>
@@ -614,12 +622,26 @@ _HTML = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
   <fieldset><legend>Persona</legend><div id="edP"></div></fieldset>
   <fieldset><legend>Suppression</legend>
     <label><input type="checkbox" id="edS"> Suppressed &mdash; not customer-useful</label>
-    <select id="edR"><option>Test</option><option>Internal</option><option>Initiative-specific</option>
-      <option>Duplicate</option><option>Deprecated</option><option>Other</option></select>
+    <select id="edR" class="reasons"></select>
     <input type="text" id="edRx" placeholder="detail, e.g. React cockpits">
   </fieldset>
   <textarea id="edN" rows="2" placeholder="Note for collaborators (optional)"></textarea>
   <div class="row"><button value="revert">Revert to rules</button><button value="cancel">Cancel</button><button value="save">Save</button></div>
+</form></dialog>
+<dialog id="bk"><form method="dialog">
+  <h3 id="bkTitle"></h3><div class="sub">Only the sections you change are applied; everything else is left as-is per row.</div>
+  <fieldset><legend>Persona</legend>
+    <select id="bkPm"><option value="">Leave unchanged</option><option value="set">Replace with</option>
+      <option value="add">Add</option><option value="remove">Remove</option></select>
+    <div id="bkP"></div></fieldset>
+  <fieldset><legend>Suppression</legend>
+    <select id="bkSm"><option value="">Leave unchanged</option><option value="on">Suppress</option><option value="off">Unsuppress</option></select>
+    <select id="bkR" class="reasons"></select>
+    <input type="text" id="bkRx" placeholder="detail, e.g. React cockpits"></fieldset>
+  <fieldset><legend>Note</legend>
+    <select id="bkNm"><option value="">Leave unchanged</option><option value="set">Set to</option><option value="clear">Clear</option></select>
+    <input type="text" id="bkN" placeholder="note"></fieldset>
+  <div class="row"><button value="revert">Revert all to rules</button><button value="cancel">Cancel</button><button value="apply" id="bkGo">Apply</button></div>
 </form></dialog>
 <div class="wrap"><table id="t"><thead></thead><tbody></tbody></table></div>
 <script>
@@ -657,12 +679,16 @@ const q=document.getElementById("q"), count=document.getElementById("count");
 function buildHead(){
   thead.innerHTML="";
   const h=document.createElement("tr");
+  if(editing){const th=document.createElement("th");th.className="sel";
+    th.innerHTML='<input type="checkbox" id="selAll" title="Select all rows shown">';
+    th.onclick=e=>e.stopPropagation();h.appendChild(th);}
   COLS.forEach((c,i)=>{const th=document.createElement("th");
     th.innerHTML=c+'<span class="arrow"></span>';
     th.onclick=()=>{sortDir=(sortCol===i)?-sortDir:1;sortCol=i;render();};
     h.appendChild(th);});
   thead.appendChild(h);
   const f=document.createElement("tr");f.className="filters";
+  if(editing)f.appendChild(document.createElement("th"));
   COLS.forEach((c,i)=>{const th=document.createElement("th");
     const inp=document.createElement("input");inp.placeholder="filter";
     inp.value=colFilters[i];
@@ -694,20 +720,36 @@ function view(){
   });}
   return rows;
 }
+let viewRows=[];
 function render(){
-  const rows=view();
+  const rows=viewRows=view();
   tbody.innerHTML="";
   const frag=document.createDocumentFragment();
   for(const row of rows){const tr=document.createElement("tr");
-    if(row[NAME] in pending)tr.className="pending";
-    tr.onclick=()=>{if(editing)openEd(row);};
-    row.forEach(v=>{const td=document.createElement("td");
+    const n=row[NAME];
+    tr.className=(n in pending?"pending ":"")+(selected.has(n)?"selected":"");
+    if(editing){const td=document.createElement("td");td.className="sel";
+      const cb=document.createElement("input");cb.type="checkbox";cb.checked=selected.has(n);
+      td.appendChild(cb);td.onclick=e=>{e.stopPropagation();toggleSel(row,e.shiftKey,e.target===cb?cb.checked:!selected.has(n));};
+      tr.appendChild(td);}
+    row.forEach((v,i)=>{const td=document.createElement("td");
       const s=v==null?"":String(v);td.textContent=s;td.title=s;
       if(s==="true")td.className="bool-true";else if(s==="false")td.className="bool-false";
+      if(editing){
+        if(i===SUP){td.classList.add("tog");td.title="Click to toggle";
+          td.onclick=e=>{e.stopPropagation();setState(row,{sup:!row[SUP]});commit([row]);};}
+        else if(i===SR||i===NOTE){td.classList.add("ed");td.title=(s?s+" \u2014 ":"")+"double-click to edit";
+          td.onclick=e=>e.stopPropagation();td.ondblclick=e=>{e.stopPropagation();inlineEdit(td,row,i);};}
+        else td.onclick=()=>openEd(row);
+      }
       tr.appendChild(td);});
     frag.appendChild(tr);}
   tbody.appendChild(frag);
   count.textContent=rows.length+(rows.length!==DATA.length?" / "+DATA.length:"");
+  const all=$("selAll");if(all){const k=rows.filter(r=>selected.has(r[NAME])).length;
+    all.checked=k>0&&k===rows.length;all.indeterminate=k>0&&k<rows.length;
+    all.onchange=()=>{rows.forEach(r=>all.checked?selected.add(r[NAME]):selected.delete(r[NAME]));render();};}
+  updateSel();
   thead.querySelectorAll("th .arrow").forEach((el,i)=>el.textContent=(i===sortCol)?(sortDir>0?"▲":"▼"):"");
 }
 q.oninput=render;
@@ -769,46 +811,104 @@ function exportXlsx(){
 }
 document.getElementById("csv").onclick=exportCsv;
 document.getElementById("xlsx").onclick=exportXlsx;
-// --- Editor ---
-let editing=false,cur=null;
-const ed=document.getElementById("ed"),$=id=>document.getElementById(id);
+// --- Editor: single-row dialog, multi-select bulk edit, inline cells ---
+let editing=false,cur=null,lastSel=-1,byAsked=false;
+const selected=new Set();
+const ed=document.getElementById("ed"),bk=document.getElementById("bk"),$=id=>document.getElementById(id);
+const REASONS=["Test","Internal","Initiative-specific","Duplicate","Deprecated","Other"];
+document.querySelectorAll("select.reasons").forEach(el=>el.innerHTML=REASONS.map(r=>`<option>${r}</option>`).join(""));
 $("edit").onclick=()=>{editing=!editing;document.body.classList.toggle("editing",editing);
-  $("edit").textContent=editing?"Editing \u2014 click a row":"Edit classifications";};
+  $("edit").textContent=editing?"Editing — click a row":"Edit classifications";buildHead();render();};
+function getBy(){let b=localStorage.getItem("dcinv-user");
+  if(!b&&!byAsked){byAsked=true;b=(prompt("Your name (recorded on corrections):")||"").trim();if(b)localStorage.setItem("dcinv-user",b);}
+  return b||"";}
+const strip=e=>{if(!e)return null;const {by,at,...x}=e;return x;};
+const ruleReasonFor=(r,tags)=>{const pr=SUPP_P.find(([ps])=>ps.some(p=>tags.includes(p)));return r.pr||(pr?pr[1]:"");};
+function setEntry(n,entry){if(same(entry,CORR.streams[n]))delete pending[n];else pending[n]=entry;}
+// Record the desired state of one row as the minimal correction vs. the rules.
+// Unspecified fields keep the row's current value.
+function setState(row,{tags,sup,reason,note}){
+  const n=row[NAME],r=RULE[n];
+  tags=tags??tagsOf(row);sup=sup??!!row[SUP];reason=reason??String(row[SR]||"");
+  note=(note??String(row[NOTE]||"")).trim();
+  if(sup&&!reason)reason="Other";
+  const e={};
+  if(tags.length&&tags.join("; ")!==r.p)e.persona=tags;
+  const rr=ruleReasonFor(r,e.persona||r.p.split("; "));
+  if(sup!==!!rr||(sup&&reason!==rr)){e.suppressed=sup;if(sup)e.reason=reason;}
+  if(note)e.note=note;
+  let entry=null;
+  if(Object.keys(e).length){const prev=corrFor(n);
+    entry=same(strip(prev),e)?prev:{...e,...(getBy()?{by:getBy()}:{}),at:new Date().toISOString().slice(0,10)};}
+  setEntry(n,entry);
+}
+function commit(rows){localStorage.setItem(LSK,JSON.stringify(pending));rows.forEach(applyRow);render();updatePending();}
+const reasonParts=s=>{const [rs,...rx]=String(s||"").split(": ");
+  return REASONS.includes(rs)?[rs,rx.join(": ")]:["Other",String(s||"")];};
 function openEd(row){
   cur=row;const n=row[NAME],r=RULE[n],c=corrFor(n)||{};
   $("edName").textContent=n;
-  $("edRule").textContent="Rules say: "+r.p+" ("+r.b+")"+(r.s?" \u00b7 suppressed: "+r.r:"");
-  const tags=String(row[PCOL]).split("; ");
+  $("edRule").textContent="Rules say: "+r.p+" ("+r.b+")"+(r.s?" · suppressed: "+r.r:"");
+  const tags=tagsOf(row);
   $("edP").innerHTML=TAGS.map(t=>`<label><input type="checkbox" value="${t}"${tags.includes(t)?" checked":""}> ${t}</label>`).join("");
   $("edS").checked=!!row[SUP];
-  const [rs,...rx]=String(row[SR]||"").split(": ");
-  $("edR").value=[...$("edR").options].some(o=>o.value===rs)?rs:"Other";
-  $("edRx").value=[...$("edR").options].some(o=>o.value===rs)?rx.join(": "):String(row[SR]||"");
+  [$("edR").value,$("edRx").value]=reasonParts(row[SR]);
   $("edN").value=c.note||"";
   ed.showModal();
 }
 ed.addEventListener("close",()=>{
   const v=ed.returnValue,n=cur&&cur[NAME];if(!n||v==="cancel"||!v)return;
-  let entry=null;
-  if(v==="save"){
-    const r=RULE[n],tags=[...$("edP").querySelectorAll("input:checked")].map(i=>i.value);
-    const sup=$("edS").checked,reason=sup?[$("edR").value,$("edRx").value.trim()].filter(Boolean).join(": "):"";
-    entry={};
-    if(tags.length&&tags.join("; ")!==r.p)entry.persona=tags;
-    const pr=SUPP_P.find(([ps])=>ps.some(p=>(entry.persona||r.p.split("; ")).includes(p)));
-    const ruleReason=r.pr||(pr?pr[1]:"");
-    if(sup!==!!ruleReason||(sup&&reason!==ruleReason)){entry.suppressed=sup;if(sup)entry.reason=reason;}
-    const note=$("edN").value.trim();if(note)entry.note=note;
-    if(Object.keys(entry).length){
-      let by=localStorage.getItem("dcinv-user");
-      if(!by){by=(prompt("Your name (recorded on corrections):")||"").trim();if(by)localStorage.setItem("dcinv-user",by);}
-      if(by)entry.by=by;entry.at=new Date().toISOString().slice(0,10);
-    }else entry=null;
-  }
-  if(same(entry,CORR.streams[n]))delete pending[n];else pending[n]=entry;
-  localStorage.setItem(LSK,JSON.stringify(pending));
-  applyRow(cur);render();updatePending();
+  if(v==="revert")setEntry(n,null);
+  else{const sup=$("edS").checked;
+    setState(cur,{tags:[...$("edP").querySelectorAll("input:checked")].map(i=>i.value),sup,
+      reason:sup?[$("edR").value,$("edRx").value.trim()].filter(Boolean).join(": "):"",note:$("edN").value});}
+  commit([cur]);
 });
+// Selection (checkbox column; shift-click selects a range of the rows shown)
+function toggleSel(row,shift,on){
+  const idx=viewRows.indexOf(row);
+  const span=shift&&lastSel>=0?viewRows.slice(Math.min(lastSel,idx),Math.max(lastSel,idx)+1):[row];
+  span.forEach(r=>on?selected.add(r[NAME]):selected.delete(r[NAME]));
+  lastSel=idx;render();
+}
+function updateSel(){$("selbar").hidden=!(editing&&selected.size);$("selN").textContent=selected.size;}
+$("selClear").onclick=()=>{selected.clear();lastSel=-1;render();};
+$("bulk").onclick=()=>{
+  $("bkTitle").textContent="Bulk edit "+selected.size+" stream"+(selected.size>1?"s":"");
+  $("bkGo").textContent="Apply to "+selected.size;
+  $("bkP").innerHTML=TAGS.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("");
+  ["bkPm","bkSm","bkNm"].forEach(id=>$(id).value="");$("bkRx").value=$("bkN").value="";$("bkR").value="Initiative-specific";
+  bk.showModal();
+};
+bk.addEventListener("close",()=>{
+  const v=bk.returnValue;if(!v||v==="cancel")return;
+  const rows=DATA.filter(r=>selected.has(r[NAME]));
+  if(v==="revert"){if(!confirm("Revert "+rows.length+" streams to the rules?"))return;rows.forEach(r=>setEntry(r[NAME],null));}
+  else{const pm=$("bkPm").value,sm=$("bkSm").value,nm=$("bkNm").value;
+    const picked=[...$("bkP").querySelectorAll("input:checked")].map(i=>i.value);
+    const reason=[$("bkR").value,$("bkRx").value.trim()].filter(Boolean).join(": ");
+    for(const row of rows){const st={},t=tagsOf(row);
+      if(pm==="set"&&picked.length)st.tags=picked;
+      if(pm==="add")st.tags=[...t,...picked.filter(x=>!t.includes(x))];
+      if(pm==="remove")st.tags=t.filter(x=>!picked.includes(x));
+      if(sm==="on"){st.sup=true;st.reason=reason;}
+      if(sm==="off"){st.sup=false;st.reason="";}
+      if(nm==="set")st.note=$("bkN").value;
+      if(nm==="clear")st.note="";
+      setState(row,st);}}
+  commit(rows);
+});
+// Inline cell editing: Enter/blur saves, Escape cancels
+function inlineEdit(td,row,i){
+  const before=String(row[i]||"");td.contentEditable="true";td.classList.add("editing");td.focus();
+  document.getSelection().selectAllChildren(td);
+  let cancel=false;
+  td.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();td.blur();}if(e.key==="Escape"){cancel=true;td.blur();}};
+  td.onblur=()=>{td.contentEditable="false";const val=td.textContent.trim();
+    if(cancel||val===before){render();return;}
+    if(i===SR)setState(row,val?{sup:true,reason:val}:{sup:false,reason:""});else setState(row,{note:val});
+    commit([row]);};
+}
 function updatePending(){const k=Object.keys(pending).length;
   $("pend").textContent=k?k+" pending correction"+(k>1?"s":""):"";$("exp").hidden=$("disc").hidden=!k;}
 $("disc").onclick=()=>{if(!confirm("Discard all pending corrections in this browser?"))return;

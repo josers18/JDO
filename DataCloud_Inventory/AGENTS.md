@@ -101,6 +101,10 @@ Four fetch phases, then a join, then two writers. All in `generate_inventory.py`
   correction `suppressed` → pattern suppression → persona suppression on the
   *final* tags. Change one, change the other — otherwise the page and the
   workbook disagree after an edit.
+- **Every edit path goes through `setState()`.** The single-row dialog, Bulk
+  edit… and in-place cells all call `setState(row, {tags, sup, reason, note})`,
+  which stores only the fields that differ from the rules (so a revert drops
+  the correction). Don't write to `pending` directly from a new edit UI.
 - **Re-tagging doesn't need the org.** Every live run writes
   `output/raw_snapshot.json`; iterate on `persona_rules.json` with
   `--from-snapshot` instead of paying the ~4 min fetch.

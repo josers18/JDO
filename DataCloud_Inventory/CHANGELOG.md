@@ -26,11 +26,20 @@ editing prior ones.
   note; edits persist in the browser and *Export corrections* writes the merged
   `corrections/<org>.json`, which the generator applies on every run
   (`--corrections`). Changes are shared via PR.
+- `feat(datacloud-inventory)` — **Spreadsheet-style mass editing** in the
+  HTML editor: checkbox selection (shift-click ranges, select-all-shown),
+  **Bulk edit…** (replace/add/remove persona, suppress/unsuppress with reason,
+  set/clear note, revert to rules), and in-place cells (click *Suppressed* to
+  toggle, double-click *Suppress Reason* / *Notes* to type).
+- `data(datacloud-inventory)` — First collaborator corrections for
+  `jdo-oe0sdd`: 18 Insurance streams suppressed as *Initiative-specific:
+  Insurance*, `asset_Databricks` as *Test*.
 - `feat(datacloud-inventory)` — Live runs write `output/raw_snapshot.json`;
   `--from-snapshot` rebuilds every artifact from it in seconds.
 - Verified against `jdo-oe0sdd` (v67): 434 streams · 317 mapped · 117 unmapped ·
-  30 need attention · 262 orphaned DLOs · 143 suppressed (135 Internal, 5
-  Non-FS, 3 Test) · 1 unclassified (`asset_Databricks`).
+  30 need attention · 262 orphaned DLOs · 162 suppressed (135 Internal,
+  18 Initiative-specific: Insurance, 5 Non-FS, 4 Test) · 1 unclassified
+  (`asset_Databricks`, suppressed as Test).
 
 ## [October 2026] — 2026-10-17
 
