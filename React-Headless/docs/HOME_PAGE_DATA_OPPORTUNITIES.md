@@ -120,8 +120,9 @@ Source-side fixes are written up for the Snowflake agent in
   until fixed.
 - **Attrition / CSAT-prediction input / Enrollments need a backfill.** They cover 159 local accounts
   today; they need all ~36K. Wire them once the backfill lands.
-- **Heroku Deposits / Loans / Lines / Investments / transactions need a backfill.** They cover 3 accounts
-  and the snapshots date from 2021–2024. Use `FinancialAccount_Home` via GraphQL until then.
+- **Heroku Deposits / Loans / Lines / Investments: ✅ backfilled 2026-10-20.** 31,916 FinServ accounts now have 12 monthly
+  snapshots through 2026-10-01, keyed `<PRODUCT>-<FinServ Id>`. This enables home signals like deposit
+  outflows, loan paydown/maturity and line utilization. Transactions are still unkeyed.
 - **Trades anchor on the latest Snowflake date.** Windows key on `MAX(trade_date)`. The
   `BT_Financial_Trades` stream is failing (DC max 2026-09-01) and needs repair to land newer data.
 - **Failing streams (inventory `FAILURE`):** `BT_Financial_Trades`, `Loan_Delinquencies`,

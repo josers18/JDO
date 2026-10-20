@@ -47,14 +47,32 @@ Fixes:
 - Add a `scored_at` / snapshot date so the UI can pin the latest run.
 - `Attrition_Inputs_Snowflake` stream is in **FAILURE**. Fix it before the backfill lands.
 
-## 3. Heroku (Deposits / Loans / Lines / Investments / transactions): backfill
+## 3. Heroku (Deposits / Loans / Lines / Investments): ✅ backfilled 2026-10-20
 
-- `Deposits__dlm`, `Loans__dlm`, `Lines__dlm` and `Investments__dlm` cover **3 accounts**. Snapshot dates run 2021–2024.
-- `ssot__FinancialAccountTransaction__dlm` has 3 keyed accounts plus **4,386 rows with a null account key**.
+Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgres (schema `Fins`):
 
-Fixes: backfill the Heroku Postgres source for the local population with current
-snapshot dates, and populate the account key on every transaction row. A business
-slice is needed for Commercial cash-flow signals.
+- **Source:** all 31,916 open `FinServ__FinancialAccount__c` records. That's the full set
+  minus 220 Treasury Management, 3 Merchant Services and 11 Lost/blank records. The standard
+  `FinancialAccount` object is a mirror subset of FinServ: 22,348 link back via `LegacyId__c`.
+- **What was written:** 12 monthly snapshots (2025-11-01 → 2026-10-01). The latest snapshot equals the CRM balance;
+  earlier months are back-derived (amortization for loans, random walks for deposits and
+  lines, market returns for investments).
+
+| Table | Rows | Accounts |
+|---|---|---|
+| `Deposits` | 261,755 | 22,174 |
+| `Loans` | 87,255 | 7,334 |
+| `Lines` | 9,599 | 823 |
+| `investments` | 18,972 | 1,585 |
+
+- **Keys:** `<PRODUCT>-<FinServ Id>` (e.g. `CHK-a7kam…`, `MTG-…`, `HELOC-…`). The `_Latest` streams map
+  this key into `ssot__FinancialAccount` / `LoanAccount` / `InvestmentAccount`, where the bare FinServ
+  Id already exists from CRM. The prefix avoids overwriting those records. To join back,
+  strip everything up to the first `-`. Customer key = `FinServ__PrimaryOwner__c`.
+- **Rollback:** every backfill row has `uniqueid` / `UUID` ≥ 1,000,000. Pre-existing rows (≤ 371) are untouched.
+- **Rates:** stored in percent, as the existing rows were. Loans with no CRM rate got a typical product rate.
+- **Still open:** `ssot__FinancialAccountTransaction__dlm` has 4,386 rows with a null account key. The Heroku
+  transactions stream (`Financial_Transactions_Heroku_Postgres`) is suppressed, so it's not covered here.
 
 ## 4. Financial trades: land the latest data
 
