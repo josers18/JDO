@@ -63,6 +63,7 @@ export { LifeEventModal } from './home/LifeEventModal';
 export type { LifeEventItem } from './home/types';
 export { LIFE_EVENT_TYPE_OPTIONS } from './home/types';
 export { LeadModal } from './home/LeadModal';
+export { ViewAsPicker } from './home/ViewAsPicker';
 export type { LeadItem } from './home/types';
 export { LEAD_STATUS_OPTIONS, LEAD_SOURCE_OPTIONS } from './home/types';
 export { tagSchedule, scheduleCounts } from './home/schedule';

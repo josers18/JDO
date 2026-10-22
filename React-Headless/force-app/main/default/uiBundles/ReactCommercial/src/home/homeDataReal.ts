@@ -11,6 +11,8 @@
  *     run, ratings that escalated since the previous run → queue + alerts
  *   · S3 next-best offers (Offer_Eligibility_Model__dlm), this app's product
  *     family, one card per product → top of Recommendations
+ *   · S5 business slice — $10K+ ACH customer receipts in 7 days → queue,
+ *     alerts (opportunity tone) + AI brief
  *   · S4 warm intros (BT_Synth_Relationship_Graph__dlm), referrals from my
  *     clients into accounts outside my book → Leads & Referrals
  *
@@ -19,7 +21,7 @@
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -230,9 +232,11 @@ interface CoreShape {
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The D&B queries need the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
-  const userP = fetchCurrentUser();
-  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros] = await Promise.all([
-    executeGraphQL<CoreShape>(HOME_CORE_QUERY),
+  // "View as" swaps in another banker: their Id drives every DC book filter
+  // and the CRM roots below get an owner filter (none for your own book).
+  const userP = fetchEffectiveUser();
+  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts] = await Promise.all([
+    executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
     // C9 is additive — a failed transaction query must not blank the page.
@@ -246,6 +250,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): NextBestOfferResult => ({ rows: [], scope: 'org' })),
     userP.then(u => fetchWarmIntros(u?.userId))
       .catch((): WarmIntroResult => ({ rows: [], scope: 'org' })),
+    // S5 business slice — additive like C9.
+    userP.then(u => fetchBusinessInflows(u?.userId))
+      .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -256,7 +263,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId)].filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...receipts.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -276,7 +283,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const gongSignals: CallItem[] = callSentimentQueueItems(gong, nameById, { segment: 'Commercial' });
   // C9 — operating accounts racking up NSF / overdraft / late fees.
   const txSignals: CallItem[] = feeSpikeQueueItems(feeSpikes, nameById, { segment: 'Commercial' });
-  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals];
+  // S5 — large customer receipts sitting in operating cash.
+  const receiptSignals: CallItem[] = inflowQueueItems(receipts, nameById, {
+    segment: 'Commercial', action: 'Excess-cash conversation — sweep / money market', idPrefix: 'rx',
+  });
+  const receiptTotal = receipts.rows.reduce((sum, r) => sum + r.amount, 0);
+  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals, ...receiptSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -588,7 +600,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}`,
+    aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
     confidencePct: 86,
     dataSourceCount: 25,
     kpis: [
@@ -622,6 +634,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       ...txSignals.slice(0, 3).map((t, i) => ({
         id: `ax${i}`, title: `Fee spike — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'risk' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 30d',
+      })),
+      ...receiptSignals.slice(0, 2).map((t, i) => ({
+        id: `ar${i}`, title: `Receivable landed — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
+        tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
       })),
     ],
     // S4 warm intros alternate with CRM leads; the KPI above still counts Leads only.

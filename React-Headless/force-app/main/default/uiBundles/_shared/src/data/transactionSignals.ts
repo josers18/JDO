@@ -5,6 +5,8 @@
  *
  *   · S5 (Retail / Wealth) — large inbound credits in the last 7 days: bonuses and
  *     tax refunds landing in checking = an idle-cash conversation while it's fresh.
+ *   · S5 (Commercial)      — $10K+ ACH customer receipts in the last 7 days:
+ *     receivables landing in operating cash = a sweep / treasury conversation.
  *   · C9 (Commercial)      — business fee spikes: 3+ NSF / overdraft / late fees in
  *     30 days = cash-flow stress worth a treasury / line-of-credit conversation.
  *
@@ -38,6 +40,26 @@ const largeInflowSql = (accountFilter: string) => `
   LIMIT 8
 `;
 
+// S5 business slice (Commercial) — the client's largest ACH customer receipt in
+// 7 days. A $10K+ receivable landing in operating cash is a sweep / treasury
+// moment, the business counterpart of a bonus hitting personal checking.
+const businessInflowSql = (accountFilter: string) => `
+  SELECT account_id, amount, description, tx_date FROM (
+    SELECT t.SFAccountID__c AS account_id, t.ssot__TransactionAmount__c AS amount,
+           t.ssot__Description__c AS description, t.ssot__TransactionDate__c AS tx_date,
+           ROW_NUMBER() OVER (PARTITION BY t.SFAccountID__c ORDER BY t.ssot__TransactionAmount__c DESC) AS rn
+    FROM ssot__FinancialAccountTransaction__dlm t
+    WHERE t.ssot__FinancialAccountTransactionType__c = 'Credit'
+      AND t.ssot__TransactionAmount__c >= 10000
+      AND t.ssot__TransactionDate__c >= current_date - INTERVAL '7' DAY
+      AND t.ssot__Description__c LIKE 'ACH CREDIT %'
+      AND t.SFAccountID__c ${accountFilter}
+  ) x
+  WHERE rn = 1
+  ORDER BY amount DESC
+  LIMIT 8
+`;
+
 // 'Overdraft Fee' alone also hits personal checking (1–3 per account), so a spike
 // must include at least one NSF / late fee — those only post on business accounts.
 const feeSpikeSql = (accountFilter: string) => `
@@ -54,7 +76,14 @@ const feeSpikeSql = (accountFilter: string) => `
   LIMIT 8
 `;
 
-export interface LargeInflow { accountId: string; amount: number; kind: 'Bonus' | 'Tax refund'; date: string; }
+export interface LargeInflow {
+  accountId: string;
+  amount: number;
+  kind: 'Bonus' | 'Tax refund' | 'Customer receipt';
+  date: string;
+  /** Business receipts only — who paid, e.g. "Wayne Logistics". */
+  payer?: string;
+}
 export interface FeeSpike { accountId: string; fees: number; feeTotal: number; lastFee: string; }
 export interface TxSignalResult<T> { rows: T[]; scope: BookScope; }
 
@@ -71,6 +100,23 @@ export async function fetchLargeInflows(ownerId: string | null | undefined): Pro
       amount: Number(r.amount) || 0,
       kind: /TAX REF/i.test(String(r.description ?? '')) ? 'Tax refund' : 'Bonus',
       date: isoDate(r.tx_date),
+    })),
+  };
+}
+
+const titleCase = (v: string) => v.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()).replace(/\b(Llc|Inc|Co)\b/g, w => (w === 'Llc' ? 'LLC' : w));
+
+/** S5 (Commercial) — each client's largest $10K+ ACH customer receipt in the last 7 days. */
+export async function fetchBusinessInflows(ownerId: string | null | undefined): Promise<TxSignalResult<LargeInflow>> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(businessInflowSql, ownerId, 8);
+  return {
+    scope: res.scope,
+    rows: res.rows.map(r => ({
+      accountId: String(r.account_id ?? ''),
+      amount: Number(r.amount) || 0,
+      kind: 'Customer receipt' as const,
+      date: isoDate(r.tx_date),
+      payer: titleCase(String(r.description ?? '').replace(/^ACH CREDIT\s+/i, '')),
     })),
   };
 }
@@ -106,17 +152,17 @@ const sourceLabel = (scope: BookScope) => `Transactions${scope === 'org' ? ' · 
 export function inflowQueueItems(
   res: TxSignalResult<LargeInflow>,
   nameById: Record<string, string>,
-  opts: { segment: string; action: string; now?: Date },
+  opts: { segment: string; action: string; now?: Date; idPrefix?: string },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
   return res.rows.map((r, i) => {
     const severity: QueueSeverity = r.amount >= 20_000 ? 'high' : r.amount >= 7_500 ? 'medium' : 'low';
     return {
-      id: `tx${i}`,
+      id: `${opts.idPrefix ?? 'tx'}${i}`,
       clientId: r.accountId,
       clientName: nameById[r.accountId] || r.accountId,
       segment: opts.segment,
-      reason: `${r.kind} deposit ${money(r.amount)} on ${r.date}`,
+      reason: r.payer ? `${money(r.amount)} ACH receipt from ${r.payer} on ${r.date}` : `${r.kind} deposit ${money(r.amount)} on ${r.date}`,
       action: opts.action,
       score: Math.min(0.95, 0.5 + r.amount / 100_000),
       severity,

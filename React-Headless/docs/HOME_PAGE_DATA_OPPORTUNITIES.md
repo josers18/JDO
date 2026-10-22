@@ -41,6 +41,22 @@ are monthly/weekly snapshots, so always pin to `MAX(profile_*)` or the totals mu
 
 ---
 
+## "View as" banker picker (shipped 2026-10-22)
+
+The cockpit header on all three apps carries a **View as** pill (`ViewAsPicker` +
+`_shared/src/data/viewAs.ts`). It lists users who own 100+ local accounts (largest book
+first); choosing one is session-scoped (`sessionStorage`) and refetches the home data:
+
+- **Data Cloud signals** book-scope to the chosen banker (`fetchEffectiveUser()` replaces
+  `fetchCurrentUser()` as the owner Id passed to `queryDataCloudForBook`).
+- **CRM GraphQL roots** get an owner filter (`ownerScopedQuery`): `OwnerId` on tasks,
+  events, opportunities, leads and goals; the *account's* owner on `Case`,
+  `PersonLifeEvent` (via `PrimaryPerson.Account`) and `CustomerGoal` (via
+  `FinancialPlan.Account`), since those records are data-loaded, not banker-owned.
+- It's a **preview, not a login-as**: GraphQL still runs with the logged-in user's
+  sharing, and writes from the page are still made as them. For an exact permission
+  replica use Setup → Users → Login.
+
 ## 0. Fix first — currently broken on the live home pages
 
 | App | Problem | Fix |
@@ -62,7 +78,7 @@ are monthly/weekly snapshots, so always pin to `MAX(profile_*)` or the totals mu
 | S2 | **Screening changes since last run**: AML/PEP/adverse-media rating changed | `BT_WorldCheck_AML__dlm` (latest: 99 High *Changed*, 177 Medium *Changed*, 344 Severe/High) | Alerts band (risk tone) | Only surface `change_since_last_run__c='Changed'`; the steady state belongs on the record page. ✅ Shipped 2026-10-22 to all three queues + alerts: daily `profile_date__c` snapshot, escalations only (rating up vs the previous run, or a first screening), with sanctions / PEP / adverse-media hits and the case ref |
 | S3 | **Next-best-offer pipeline**: top action per client with conversion % and expected uplift $ | `Offer_Eligibility_Model__dlm` (279K rows; rank-1 leaders: MTG-30 $4.29M EV, AUTO-ACQ $3.43M, BIZ-CHK $1.42M) | Recommendations + Growth KPI "Modeled uplift in book" | Key is `MDM_ID__c = ssot__Account__dlm.External_ID_c__c` (MDM party key, 25,424 accounts; the `GEN-<AccountId>` form covers only 7 rows). Filter action codes per app (`BIZ-*` → Commercial; `WM-*`, `IRA-*` → Wealth; mortgage/auto/card/checking/savings → Retail). `Recommended_Channels__c` + EM/CC probabilities drive the CTA. ✅ Recommendations shipped 2026-10-22 to all three: each client's best-ranked eligible offer, then the top client per product (up to 3 cards, ahead of the CRM-derived ones). Person books get 3 Retail / 2 Wealth cards; business books get 1 (BIZ-CHK is the only business code). Growth KPI not built yet |
 | S4 | **Warm intros**: referral edges into accounts you don't own yet | `BT_Synth_Relationship_Graph__dlm` (42,690 `REFERRAL` edges, 3,010 `BUSINESS_OWNER`) | Leads & Referrals card | `confidence_pct__c >= 70` and `edge_discovered_date__c` within 30d gives "new connections this month". `BUSINESS_OWNER` is the bridge between Retail/Wealth and Commercial (see C6/W6). ✅ Shipped 2026-10-22 to all three Leads & Referrals cards: REFERRAL edges from my clients into accounts outside my book, deduped per prospect, ranked by confidence. ⚠ REFERRAL confidence tops out at ~65% (so `>= 70` matches nothing) and the newest edge is 2026-09-18, so the window is the 60 days before the latest edge, not before today. Many intros are cross-LOB. Row click opens the Lead modal in create mode, prefilled (Source = Referral) |
-| S5 | **Transaction-derived moments**: large inbound credits (bonus, payroll change, tax refund) in the last 7d | `ssot__FinancialAccountTransaction__dlm` (21,186 rows, current through 2026-10-20) | Right Now / AI brief | Fresh, joinable via `SFAccountID__c`. "Bonus deposit $12.7K, idle cash" is a classic home-page nudge. ✅ Shipped 2026-10-22 in Retail + Wealth (queue, alerts, AI brief) |
+| S5 | **Transaction-derived moments**: large inbound credits (bonus, payroll change, tax refund) in the last 7d | `ssot__FinancialAccountTransaction__dlm` (21,186 rows, current through 2026-10-20) | Right Now / AI brief | Fresh, joinable via `SFAccountID__c`. "Bonus deposit $12.7K, idle cash" is a classic home-page nudge. ✅ Shipped 2026-10-22 in Retail + Wealth (queue, alerts, AI brief). Commercial slice shipped too: each client's largest $10K+ `ACH CREDIT <payer>` receipt in 7d → queue (excess-cash / sweep conversation), opportunity alerts, AI brief |
 | S6 | **Campaign touches on my clients** (opened, not converted) | `Marketing_Engagements__dlm` has `personal_business__c` built in | Activity feed / follow-up queue | ⚠ Live hourly feed is thin (16 events / 30d, Personal only). Wire it now; it'll fill as the generator runs |
 | S7 | **Open service drag**: ServiceNow + CRM cases rolled together | `Service_Now` stream to `ssot__Case__dlm` (4,009) + `Case` | Cases KPI | Commercial-tagged (`All; Business`); include ServiceNow volume in Commercial's case count |
 | S8 | **Data freshness chip**: "Data as of …" per source in the hero | `generated_at__c` / `profile_month__c` on each `BT_` DMO | Hero `dataSourceCount` / confidence | Replaces the hardcoded confidence. BT snapshots range Jun–Oct 2026, so advisors should see it |
