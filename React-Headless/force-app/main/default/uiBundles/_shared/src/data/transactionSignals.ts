@@ -11,8 +11,9 @@
  * Both are book-scoped through `SFAccountID__c` (the Account key) and fall back to
  * org-wide like every other DC card. Queries + columns verified live 2026-10-22.
  *
- * Also hosts S1 (all three apps), the Gong call-sentiment feed, because it plugs
- * into the queue and alerts the same way (see the bottom of this file).
+ * Also hosts S1 (Gong call sentiment) and S2 (World-Check AML screening changes),
+ * shared by all three apps, because they plug into the queue and alerts the same
+ * way (see the bottom of this file).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
@@ -248,6 +249,110 @@ export function callSentimentQueueItems(
       source: `Gong call sentiment${res.scope === 'org' ? ' · org-wide' : ''}`,
       relationshipValue: 0,
       dueDate: prep ? dueFrom(r.nextCall, -1, now) : dueFrom('', severity === 'high' ? 0 : 2, now),
+    };
+  });
+}
+
+/* ── S2: World-Check AML / PEP screening changes (BT_WorldCheck_AML__dlm) ─────
+   Daily snapshot, one row per account per `profile_date__c`. Only surface
+   `change_since_last_run__c = 'Changed'` rows whose rating went UP versus the
+   previous run (about half of the changes are de-escalations, which is good news
+   and belongs on the record page). A client with no prior row counts as new.
+   Verified live 2026-10-22: 483 changed org-wide, ~245 escalations; 8+ High per
+   banker book. NB: ConnectApi rejects the simple `CASE x WHEN` form, so the
+   escalation test is spelled out instead of comparing rank expressions. */
+const amlChangeSql = (accountFilter: string) => `
+  SELECT c.account_id__c AS account_id, c.overall_risk_rating__c AS risk_rating,
+         p.overall_risk_rating__c AS prev_rating, c.pep_hit__c AS pep, c.sanctions_hit__c AS sanctions,
+         c.adverse_media_hit__c AS adverse_media, c.adverse_media_categories__c AS am_cats,
+         c.case_reference__c AS case_ref, c.risk_jurisdiction_code__c AS jur, c.profile_date__c AS screened
+  FROM BT_WorldCheck_AML__dlm c
+  LEFT JOIN BT_WorldCheck_AML__dlm p ON p.account_id__c = c.account_id__c
+    AND p.profile_date__c = (SELECT MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm
+                             WHERE profile_date__c < (SELECT MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm))
+  WHERE c.profile_date__c = (SELECT MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm)
+    AND c.change_since_last_run__c = 'Changed'
+    AND (   (c.overall_risk_rating__c = 'Severe' AND COALESCE(p.overall_risk_rating__c, '') <> 'Severe')
+         OR (c.overall_risk_rating__c = 'High' AND COALESCE(p.overall_risk_rating__c, '') NOT IN ('High', 'Severe'))
+         OR (c.overall_risk_rating__c = 'Medium' AND COALESCE(p.overall_risk_rating__c, 'Low') = 'Low'))
+    AND c.account_id__c ${accountFilter}
+  ORDER BY CASE WHEN c.overall_risk_rating__c = 'Severe' THEN 4 WHEN c.overall_risk_rating__c = 'High' THEN 3 ELSE 2 END DESC
+  LIMIT 8
+`;
+
+export type AmlRating = 'Low' | 'Medium' | 'High' | 'Severe';
+
+export interface AmlChange {
+  accountId: string;
+  rating: AmlRating;
+  /** Rating on the previous run, or null when this is the client's first screening. */
+  prevRating: AmlRating | null;
+  pep: boolean;
+  sanctions: boolean;
+  adverseMedia: boolean;
+  /** e.g. 'Financial Crime', 'Fraud' — only set on adverse-media hits. */
+  mediaCategory: string;
+  caseRef: string;
+  jurisdiction: string;
+  screened: string;
+}
+
+const RATINGS: AmlRating[] = ['Low', 'Medium', 'High', 'Severe'];
+const asRating = (v: unknown): AmlRating | null => (RATINGS.includes(v as AmlRating) ? (v as AmlRating) : null);
+// DC booleans arrive as true/false, but tolerate the string form too.
+const asBool = (v: unknown) => v === true || v === 'true';
+
+/** S2 — book clients whose AML / PEP / sanctions rating escalated on the latest run. */
+export async function fetchAmlChanges(ownerId: string | null | undefined): Promise<TxSignalResult<AmlChange>> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(amlChangeSql, ownerId, 8);
+  return {
+    scope: res.scope,
+    rows: res.rows.map(r => ({
+      accountId: String(r.account_id ?? ''),
+      rating: asRating(r.risk_rating) ?? 'Medium',
+      prevRating: asRating(r.prev_rating),
+      pep: asBool(r.pep),
+      sanctions: asBool(r.sanctions),
+      adverseMedia: asBool(r.adverse_media),
+      mediaCategory: String(r.am_cats ?? ''),
+      caseRef: String(r.case_ref ?? ''),
+      jurisdiction: String(r.jur ?? ''),
+      screened: isoDate(r.screened),
+    })),
+  };
+}
+
+/** S2 rows → priority-queue items. High / Severe is due today (compliance clock);
+ *  a Medium escalation within a day. */
+export function amlChangeQueueItems(
+  res: TxSignalResult<AmlChange>,
+  nameById: Record<string, string>,
+  opts: { segment: string; now?: Date },
+): QueueSignalItem[] {
+  const now = opts.now ?? new Date();
+  return res.rows.map((r, i) => {
+    const severity: QueueSeverity = r.rating === 'High' || r.rating === 'Severe' ? 'high' : 'medium';
+    const hits = [
+      r.sanctions && 'sanctions',
+      r.pep && 'PEP',
+      r.adverseMedia && (r.mediaCategory ? `adverse media (${r.mediaCategory})` : 'adverse media'),
+    ].filter(Boolean) as string[];
+    const parts = [`AML rating ${r.prevRating ? `${r.prevRating} → ${r.rating}` : `${r.rating} (new)`}`];
+    if (hits.length) parts.push(hits.join(', '));
+    if (r.jurisdiction) parts.push(r.jurisdiction);
+    if (r.caseRef) parts.push(`case ${r.caseRef}`);
+    return {
+      id: `wc${i}`,
+      clientId: r.accountId,
+      clientName: nameById[r.accountId] || r.accountId,
+      segment: opts.segment,
+      reason: parts.join(' · '),
+      action: severity === 'high' ? 'Compliance review — enhanced due diligence' : 'Review screening change',
+      score: Math.min(0.98, (r.rating === 'Severe' ? 0.95 : severity === 'high' ? 0.88 : 0.7) + (r.sanctions ? 0.03 : 0)),
+      severity,
+      source: `World-Check screening${res.scope === 'org' ? ' · org-wide' : ''}`,
+      relationshipValue: 0,
+      dueDate: dueFrom('', severity === 'high' ? 0 : 1, now),
     };
   });
 }

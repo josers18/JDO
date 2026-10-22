@@ -7,12 +7,14 @@
  *     scoped to the signed-in banker's book (falls back to org-wide when empty)
  *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
  *     negative + declining → queue + alerts, same book scoping
+ *   · S2 World-Check AML / PEP screening (BT_WorldCheck_AML__dlm), latest
+ *     run, ratings that escalated since the previous run → queue + alerts
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -211,7 +213,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The CSAT query needs the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, csat, currentUser, inflows, gong] = await Promise.all([
+  const [core, csat, currentUser, inflows, gong, aml] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
     userP,
@@ -220,6 +222,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
     userP.then(u => fetchCallSentiment(u?.userId))
       .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
+    userP.then(u => fetchAmlChanges(u?.userId))
+      .catch((): TxSignalResult<AmlChange> => ({ rows: [], scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -228,7 +232,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve CSAT + inflow account IDs → names in one follow-up query
-  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (csatIds.length) {
     try {
@@ -260,12 +264,14 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   }));
 
   // S1 — clients whose recorded-call sentiment is negative and sliding.
+  // S2 — screening ratings that escalated on the latest World-Check run.
+  const amlSignals: CallItem[] = amlChangeQueueItems(aml, nameById, { segment: 'Retail' });
   const gongSignals: CallItem[] = callSentimentQueueItems(gong, nameById, { segment: 'Retail' });
   // S5 — fresh bonus / tax-refund cash sitting in checking.
   const txSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
     segment: 'Retail', action: 'Idle-cash conversation — savings / CD',
   });
-  const transactionSignals: CallItem[] = [...gongSignals, ...txSignals];
+  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -567,6 +573,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     schedule,
     transactionSignals,
     alerts: [
+      ...amlSignals.slice(0, 2).map((w, i) => ({
+        id: `aw${i}`, title: `Screening escalated — ${w.clientName}`, detail: `${w.reason} · ${w.action}`,
+        tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',
+      })),
       ...callList.slice(0, 4).map((c, i) => ({
         id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',

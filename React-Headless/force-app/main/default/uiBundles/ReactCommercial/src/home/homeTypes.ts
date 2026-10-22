@@ -226,7 +226,7 @@ export interface HomeDashboard {
   aiBrief: string;
   kpis: HomeKpi[];
   callList: CallItem[];
-  /** Extra dated queue feeds — S1 Gong call sentiment plus S5 inflows (Retail/Wealth) or
+  /** Extra dated queue feeds — S2 AML screening escalations, S1 Gong call sentiment, plus S5 inflows (Retail/Wealth) or
    *  C9 fee spikes (Commercial). Each item carries its own dueDate. */
   transactionSignals?: CallItem[];
   pipeline: PipelineItem[];

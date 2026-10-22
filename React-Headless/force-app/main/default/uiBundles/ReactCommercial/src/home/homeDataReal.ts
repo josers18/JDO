@@ -7,13 +7,15 @@
  *     book scoping — repeated NSF / late fees = cash-flow stress
  *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
  *     negative + declining → queue + alerts, same book scoping
+ *   · S2 World-Check AML / PEP screening (BT_WorldCheck_AML__dlm), latest
+ *     run, ratings that escalated since the previous run → queue + alerts
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -225,7 +227,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The D&B queries need the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, credit, currentUser, feeSpikes, gong] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes, gong, aml] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
@@ -234,6 +236,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): TxSignalResult<FeeSpike> => ({ rows: [], scope: 'org' })),
     userP.then(u => fetchCallSentiment(u?.userId))
       .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
+    userP.then(u => fetchAmlChanges(u?.userId))
+      .catch((): TxSignalResult<AmlChange> => ({ rows: [], scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -244,7 +248,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -259,10 +263,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
   // S1 — clients whose recorded-call sentiment is negative and sliding.
+  // S2 — screening ratings that escalated on the latest World-Check run.
+  const amlSignals: CallItem[] = amlChangeQueueItems(aml, nameById, { segment: 'Commercial' });
   const gongSignals: CallItem[] = callSentimentQueueItems(gong, nameById, { segment: 'Commercial' });
   // C9 — operating accounts racking up NSF / overdraft / late fees.
   const txSignals: CallItem[] = feeSpikeQueueItems(feeSpikes, nameById, { segment: 'Commercial' });
-  const transactionSignals: CallItem[] = [...gongSignals, ...txSignals];
+  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -593,6 +599,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     schedule,
     transactionSignals,
     alerts: [
+      ...amlSignals.slice(0, 2).map((w, i) => ({
+        id: `aw${i}`, title: `Screening escalated — ${w.clientName}`, detail: `${w.reason} · ${w.action}`,
+        tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',
+      })),
       ...callList.slice(0, 4).map((c, i) => ({
         id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
