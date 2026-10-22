@@ -32,13 +32,15 @@
  *     the business): liquidity-event / 401(k) / succession angle → growth card + KPI
  *   · W7 wealth-propensity upgrades (BT_Claritas_Demographics__dlm): $1M+ net worth
  *     or propensity ≥ 80, not yet in the Wealth Management category → card, KPI, queue
+ *   · W8 holdings concentration (ssot__FinancialHolding__dlm, FinServ source): a
+ *     single stock ≥ 20% of a client's holdings → card, risk KPI, diversification queue
  *
  * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
  * by the largest active held-away balances (the biggest consolidation
  * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -259,7 +261,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, held, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades] = await Promise.all([
+  const [core, held, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades, concentration] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
     userP,
@@ -299,6 +301,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // W7 Claritas wealth-propensity upgrades — additive.
     userP.then(u => fetchWealthUpgrades(u?.userId))
       .catch((): WealthUpgradeResult => ({ rows: [], candidates: 0, fiveM: 0, highPropensity: 0, scope: 'org' })),
+    // W8 single-stock concentration — additive.
+    userP.then(u => fetchHoldingsConcentration(u?.userId))
+      .catch((): HoldingsConcentrationResult => ({ rows: [], exposures: [], clients: 0, concentrated: 0, aum: 0, singleStockShare: 0, scope: 'org' })),
   ]);
   const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
     .then(r => r.rows[0])
@@ -311,7 +316,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve held-away + inflow account IDs → names
-  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId), ...upgrades.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId), ...upgrades.rows.map(r => r.accountId), ...concentration.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -340,7 +345,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const sellerSignals: CallItem[] = netSellerQueueItems(trades, nameById, { segment: 'Wealth' });
   // W7 — clients who look like Wealth clients but are still categorised Retail.
   const upgradeSignals: CallItem[] = wealthUpgradeQueueItems(upgrades, nameById, { segment: 'Wealth' });
-  const transactionSignals: CallItem[] = [...amlSignals, ...planRiskSignals, ...gongSignals, ...txSignals, ...campaignSignals, ...reviewSignals, ...sellerSignals, ...upgradeSignals];
+  // W8 — a single stock ≥ 20% of the client's holdings: diversification review.
+  const concentrationSignals: CallItem[] = concentrationQueueItems(concentration, nameById, { segment: 'Wealth' });
+  const transactionSignals: CallItem[] = [...amlSignals, ...planRiskSignals, ...gongSignals, ...txSignals, ...campaignSignals, ...reviewSignals, ...sellerSignals, ...upgradeSignals, ...concentrationSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -663,6 +670,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       date: r.nextReview, successPct: r.successPct, goalUsd: r.goalUsd, stale: r.stale,
     })),
     planReviewsDue: plans.due30,
+    holdingsConcentration: { ...concentration, rows: concentration.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     wealthUpgrades: { ...upgrades, rows: upgrades.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     businessOwners: { ...owners, rows: owners.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     tradingPulse: { ...trades, sellers: trades.sellers.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
@@ -679,6 +687,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'plansAtRisk', label: 'Plans at Risk', value: plans.atRisk, format: 'number', trend: seedTrend('plansAtRisk', Math.max(1, plans.atRisk)), note: plans.plans ? `< 70% success · ${plans.critical.toLocaleString('en-US')} below 50% · ${plans.due30.toLocaleString('en-US')} reviews due 30d · ${plans.stale.toLocaleString('en-US')} stale${plans.scope === 'org' ? ' · org-wide' : ''}` : 'No MoneyGuidePro plans in book' },
       { key: 'bizOwners', label: 'Business Owners', value: owners.owners, format: 'number', trend: seedTrend('bizOwners', Math.max(1, owners.owners)), note: owners.owners ? `${owners.businesses.toLocaleString('en-US')} businesses · ${owners.upmarket.toLocaleString('en-US')} at $50M+ · relationship graph${owners.scope === 'org' ? ' · org-wide' : ''}` : 'No business owners in book' },
       { key: 'upgrades', label: 'Upgrade Prospects', value: upgrades.candidates, format: 'number', trend: seedTrend('upgrades', Math.max(1, upgrades.candidates)), note: upgrades.candidates ? `$1M+ est. net worth, not in Wealth · ${upgrades.fiveM.toLocaleString('en-US')} at $5M+ · Claritas${upgrades.scope === 'org' ? ' · org-wide' : ''}` : 'No upgrade prospects in book' },
+      { key: 'concentrated', label: 'Concentrated Positions', value: concentration.concentrated, format: 'number', trend: seedTrend('concentrated', Math.max(1, concentration.concentrated)), note: concentration.clients ? `of ${concentration.clients.toLocaleString('en-US')} clients with holdings · one stock ≥ 20% · ${Math.round(concentration.singleStockShare * 100)}% of ${concentration.aum.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in single stocks${concentration.scope === 'org' ? ' · org-wide' : ''}` : 'No CRM holdings in book' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,

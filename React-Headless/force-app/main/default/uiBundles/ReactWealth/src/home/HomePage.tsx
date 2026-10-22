@@ -1461,6 +1461,61 @@ function HomeContent() {
     </div>
   );
 
+  // W8 — single-stock concentration across CRM holdings (one stock ≥ 20% of a client).
+  const hc = data.holdingsConcentration;
+  const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+  const concentrationCard = hc && hc.clients > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Concentration risk</b>
+        <span className="font-mono text-[10.5px] text-faint">CRM holdings · funds excluded{hc.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {hc.concentrated.toLocaleString('en-US')} of {hc.clients.toLocaleString('en-US')} clients hold a single stock worth 20% or more of
+          {' '}their holdings. Single stocks are {Math.round(hc.singleStockShare * 100)}% of {usd(hc.aum)} held
+          {hc.exposures[0] ? <>; the largest exposure is {hc.exposures[0].issuer} at {Math.round(hc.exposures[0].share * 100)}%</> : null}.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Concentrated" value={hc.concentrated.toLocaleString('en-US')} tone={hc.concentrated ? 'warn' : undefined} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="In single stocks" value={`${Math.round(hc.singleStockShare * 100)}%`} />
+        </div>
+      </div>
+      {hc.exposures.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {hc.exposures.map(e => (
+            <span key={e.ticker} className="rounded-full bg-track px-2.5 py-1 font-mono text-[10.5px] text-muted" title={e.issuer}>
+              <b className="text-fg">{e.ticker}</b> {Math.round(e.share * 100)}% · {e.holders} client{e.holders === 1 ? '' : 's'}
+            </span>
+          ))}
+        </div>
+      )}
+      {hc.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {hc.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.ticker} · {usd(r.positionUsd)} of {usd(r.totalUsd)} · {r.positions} positions
+                </span>
+                <span className={`w-[48px] flex-none text-right font-mono text-[11px] ${r.weight >= 0.35 ? 'text-warn' : 'text-fg'}`}>
+                  {Math.round(r.weight * 100)}%
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const briefStrip = (
     <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
@@ -1816,6 +1871,11 @@ function HomeContent() {
                   {upgradesCard}
                 </section>
               )}
+              {concentrationCard && (
+                <section id="concentration" className="mt-4 scroll-mt-[82px]">
+                  {concentrationCard}
+                </section>
+              )}
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
@@ -1868,6 +1928,11 @@ function HomeContent() {
           {upgradesCard && (
             <section id="upgrades" className="mt-4 scroll-mt-[82px]">
               {upgradesCard}
+            </section>
+          )}
+          {concentrationCard && (
+            <section id="concentration" className="mt-4 scroll-mt-[82px]">
+              {concentrationCard}
             </section>
           )}
 
@@ -2372,7 +2437,7 @@ function HomeContent() {
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
 /** KPIs styled as risk metrics (red accent). */
-const RISK_KPIS = new Set(['plansAtRisk', 'atRisk', 'callTone']);
+const RISK_KPIS = new Set(['plansAtRisk', 'atRisk', 'callTone', 'concentrated']);
 
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
@@ -2387,6 +2452,7 @@ const KPI_TARGET: Record<string, string> = {
   plansAtRisk: 'queue',
   bizOwners: 'owners',
   upgrades: 'upgrades',
+  concentrated: 'concentration',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

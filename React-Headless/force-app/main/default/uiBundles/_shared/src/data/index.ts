@@ -83,4 +83,5 @@ export { fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, type T
 export { fetchFirmographicMix, techPitch, REVENUE_BANDS, EMPLOYEE_BANDS, type FirmographicMixResult, type UpmarketRow, type BandCount } from './firmographics';
 export { fetchBusinessOwners, fetchOwnerWealthHandoffs, ownerHandoffLeads, OWNER_ANGLE_LABEL, type BusinessOwnersResult, type BusinessOwnerRow, type OwnerAngle, type OwnerHandoffResult, type OwnerHandoffRow } from './businessOwners';
 export { fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, type WealthUpgradeRow } from './wealthUpgrades';
+export { fetchHoldingsConcentration, concentrationQueueItems, CONCENTRATION_THRESHOLD, type HoldingsConcentrationResult, type ConcentratedClientRow, type StockExposure } from './holdingsConcentration';
 export { fetchMarketFootprint, type MarketFootprintResult, type FootprintZip } from './marketFootprint';
