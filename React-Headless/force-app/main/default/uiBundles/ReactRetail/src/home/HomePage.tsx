@@ -1027,6 +1027,26 @@ function HomeContent({ mode }: { mode: HomeMode }) {
     </div>
   );
 
+  // Growth-page variant: the book's upside in one row: pipeline, opportunities,
+  // leads and the S3 offer model's modeled uplift. Picked by key like the others.
+  const GROWTH_KEYS = ['pipeline', 'openOpps', 'leads', 'uplift'];
+  const growthKpis = GROWTH_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
+  const kpiGridGrowth = (
+    <div className="@container/gkpis">
+    <div className="grid grid-cols-2 gap-3.5 @[700px]/gkpis:grid-cols-4">
+      {growthKpis.map(k => (
+        <KpiCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          onClick={() => kpiClick(k.key)}
+        />
+      ))}
+    </div>
+    </div>
+  );
+
   // Cockpit vitals: the four headline metrics as sparkline cards (mockup order:
   // Pipeline · Leads & referrals · At-Risk · Active Goals). Chosen from data.kpis
   // by key so it survives a KPI-set change; falls back to the first four.
@@ -1654,7 +1674,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 
   const growthLeft = (
     <>
-      <section id="whitespace" className="scroll-mt-[82px]">{whitespaceSection}</section>
+      <section id="kpis" className="scroll-mt-[82px]">
+        <SectionHead eyebrow="Book-wide · offer model" title="Growth metrics" />
+        {kpiGridGrowth}
+      </section>
+      <section id="whitespace" className="mt-8 scroll-mt-[82px]">{whitespaceSection}</section>
       <section id="pipeline" className="mt-8 scroll-mt-[82px]">
         <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
           {pipelineControls}
@@ -2281,6 +2305,7 @@ const KPI_TARGET: Record<string, string> = {
   goals: 'pulse',
   atRisk: 'events',
   callTone: 'alerts',
+  uplift: 'actions',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

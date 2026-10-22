@@ -15,13 +15,16 @@
  *     alerts (opportunity tone) + AI brief
  *   · S4 warm intros (BT_Synth_Relationship_Graph__dlm), referrals from my
  *     clients into accounts outside my book → Leads & Referrals
+ *   · S3 Growth KPI "Modeled uplift" — each client's best-offer EV, summed
+ *   · S6 campaign touches (Marketing_Engagements__dlm), clicked-through clients
+ *     → queue + alerts
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -235,7 +238,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
@@ -253,6 +256,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // S5 business slice — additive like C9.
     userP.then(u => fetchBusinessInflows(u?.userId))
       .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
+    // S3 Growth KPI + S6 campaign touches — additive, like the other DC signals.
+    userP.then(u => fetchModeledUplift(u?.userId, 'commercial'))
+      .catch((): ModeledUplift => ({ total: 0, clients: 0, byOffer: [], scope: 'org' })),
+    userP.then(u => fetchCampaignTouches(u?.userId, 'Business'))
+      .catch((): CampaignTouchResult => ({ rows: [], scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -263,7 +271,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...receipts.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -288,7 +296,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     segment: 'Commercial', action: 'Excess-cash conversation — sweep / money market', idPrefix: 'rx',
   });
   const receiptTotal = receipts.rows.reduce((sum, r) => sum + r.amount, 0);
-  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals, ...receiptSignals];
+  // S6 — clients who clicked through a campaign: a warm follow-up.
+  const campaignSignals: CallItem[] = campaignTouchQueueItems(touches, nameById, { segment: 'Commercial' });
+  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals, ...receiptSignals, ...campaignSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -610,6 +620,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number', trend: seedTrend('cases', q?.Case?.totalCount ?? 0), note: 'Open cases' },
       { key: 'atRisk', label: 'Credit Watch', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: 'PAYDEX < 60' },
       { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
+      { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,
@@ -619,6 +630,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     schedule,
     transactionSignals,
     alerts: [
+      ...campaignSignals.slice(0, 2).map((t, i) => ({
+        id: `am${i}`, title: `Campaign interest — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
+        tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last touch',
+      })),
       ...amlSignals.slice(0, 2).map((w, i) => ({
         id: `aw${i}`, title: `Screening escalated — ${w.clientName}`, detail: `${w.reason} · ${w.action}`,
         tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',

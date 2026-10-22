@@ -23,7 +23,8 @@ export {
   type FeeSpike,
   type TxSignalResult,
 } from './transactionSignals';
-export { fetchNextBestOffers, offerRecommendations, type NextBestOffer, type NextBestOfferResult, type OfferFamily } from './offerModel';
+export { fetchNextBestOffers, offerRecommendations, fetchModeledUplift, type NextBestOffer, type NextBestOfferResult, type OfferFamily, type ModeledUplift } from './offerModel';
+export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type CampaignTouchResult, type CampaignPersona } from './campaignTouches';
 export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
 export { getViewAs, setViewAs, useViewAs, fetchEffectiveUser, ownerScopedQuery, fetchBankers, type ViewAsUser } from './viewAs';
 export { queryDataCloud, queryDataCloudForBook, type DataCloudColumn, type DataCloudResult, type BookScope, type BookScopedResult } from './dataCloudClient';

@@ -2203,6 +2203,7 @@ const KPI_TARGET: Record<string, string> = {
   goals: 'pulse',
   atRisk: 'events',
   callTone: 'alerts',
+  uplift: 'actions',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

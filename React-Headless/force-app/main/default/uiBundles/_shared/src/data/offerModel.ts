@@ -107,6 +107,48 @@ export async function fetchNextBestOffers(
   };
 }
 
+// Growth KPI — the same per-client pick as the cards (best-ranked eligible
+// offer per client), summed over the whole book and split by product.
+const upliftSql = (family: OfferFamily) => (accountFilter: string) => `
+  SELECT code, COUNT(*) AS clients, SUM(ev) AS uplift FROM (
+    SELECT o.Action_Code__c AS code, o.Expected_Value_Uplift__c AS ev,
+           ROW_NUMBER() OVER (PARTITION BY a.ssot__Id__c ORDER BY o.Recommended_Action_Rank__c) AS rn
+    FROM Offer_Eligibility_Model__dlm o
+    JOIN ssot__Account__dlm a ON a.External_ID_c__c = o.MDM_ID__c
+    WHERE ${FAMILY_FILTER[family]}
+      AND o.Recommended_Action_Rank__c IS NOT NULL
+      AND o.Expected_Value_Uplift__c > 0
+      AND a.ssot__Id__c ${accountFilter}
+  ) y
+  WHERE rn = 1
+  GROUP BY code
+  ORDER BY uplift DESC
+`;
+
+export interface ModeledUplift {
+  /** Sum of each client's best-offer expected uplift. */
+  total: number;
+  clients: number;
+  /** Largest product first. */
+  byOffer: { code: string; offer: string; clients: number; uplift: number }[];
+  scope: BookScope;
+}
+
+/** S3 Growth KPI — "Modeled uplift in book" for this app's product family. */
+export async function fetchModeledUplift(ownerId: string | null | undefined, family: OfferFamily): Promise<ModeledUplift> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(upliftSql(family), ownerId, 20);
+  const byOffer = res.rows.map(r => {
+    const code = String(r.code ?? '');
+    return { code, offer: OFFER_LABEL[code] ?? code, clients: Number(r.clients) || 0, uplift: Number(r.uplift) || 0 };
+  });
+  return {
+    total: byOffer.reduce((sum, o) => sum + o.uplift, 0),
+    clients: byOffer.reduce((sum, o) => sum + o.clients, 0),
+    byOffer,
+    scope: res.scope,
+  };
+}
+
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
