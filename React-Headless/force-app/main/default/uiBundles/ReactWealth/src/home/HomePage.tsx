@@ -1419,6 +1419,48 @@ function HomeContent() {
     </div>
   );
 
+  // W7 — clients who look like Wealth clients (Claritas) but are still categorised Retail.
+  const wu = data.wealthUpgrades;
+  const upgradesCard = wu && wu.candidates > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Wealth upgrade prospects</b>
+        <span className="font-mono text-[10.5px] text-faint">Claritas propensity{wu.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {wu.candidates.toLocaleString('en-US')} clients carry an estimated $1M+ net worth or a high wealth propensity but aren't in the
+          Wealth Management category yet. Prospect from inside the book: a planning review is the natural opener.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Prospects" value={wu.candidates.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="$5M+" value={wu.fiveM.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {wu.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {wu.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.lifeStage}{r.prizm ? ` · ${r.prizm}` : ''} · wealth {Math.round(r.wealthScore)} · invest {Math.round(r.investScore)}
+                </span>
+                <span className="w-[80px] flex-none text-right font-mono text-[11px] text-fg">{r.netWorthBand}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const briefStrip = (
     <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
@@ -1769,6 +1811,11 @@ function HomeContent() {
                   {ownersCard}
                 </section>
               )}
+              {upgradesCard && (
+                <section id="upgrades" className="mt-4 scroll-mt-[82px]">
+                  {upgradesCard}
+                </section>
+              )}
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
@@ -1816,6 +1863,11 @@ function HomeContent() {
           {ownersCard && (
             <section id="owners" className="mt-4 scroll-mt-[82px]">
               {ownersCard}
+            </section>
+          )}
+          {upgradesCard && (
+            <section id="upgrades" className="mt-4 scroll-mt-[82px]">
+              {upgradesCard}
             </section>
           )}
 
@@ -2334,6 +2386,7 @@ const KPI_TARGET: Record<string, string> = {
   heldAway: 'queue',
   plansAtRisk: 'queue',
   bizOwners: 'owners',
+  upgrades: 'upgrades',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

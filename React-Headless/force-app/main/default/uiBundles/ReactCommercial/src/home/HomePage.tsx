@@ -1380,6 +1380,46 @@ function HomeContent() {
     </div>
   );
 
+  // C7 — ESRI branch footprint: where the book sits on the branch network,
+  // Consolidate ZIPs (retention risk) next to the busiest Optimize ZIPs.
+  const fp = data.marketFootprint;
+  const footprintCard = fp && fp.clients > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Branch &amp; market footprint</b>
+        <span className="font-mono text-[10.5px] text-faint">ESRI geo · by billing ZIP{fp.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {fp.clients.toLocaleString('en-US')} clients sit in {fp.zips.toLocaleString('en-US')} ESRI-profiled ZIPs; {fp.consolidate.toLocaleString('en-US')} bank
+          near a branch flagged for consolidation and {fp.affluent.toLocaleString('en-US')} in affluent markets (wealth index 120+). Average
+          {' '}wealth index {Math.round(fp.avgWealthIndex)}, foot traffic {Math.round(fp.avgFootTraffic)}, {fp.avgDistanceMi.toFixed(1)} mi to the nearest branch.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Consolidate" value={fp.consolidate.toLocaleString('en-US')} tone={fp.consolidate ? 'warn' : undefined} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Affluent ZIPs" value={fp.affluent.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {fp.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {fp.rows.map(z => (
+            <li key={z.zip} className="flex items-center gap-3 py-2">
+              <span className="w-[92px] flex-none font-mono text-[12px] font-semibold text-fg">{z.zip} · {z.state}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted">
+                {z.tapestry} · wealth {Math.round(z.wealthIndex)} · traffic {Math.round(z.footTraffic)} · {z.distanceMi.toFixed(1)} mi
+              </span>
+              <span className={`w-[96px] flex-none text-right font-mono text-[11px] ${z.recommendation === 'Consolidate' ? 'text-warn' : 'text-fg'}`}>
+                {z.recommendation} · {z.clients}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const briefStrip = (
     <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
@@ -1720,6 +1760,11 @@ function HomeContent() {
                   {firmoCard}
                 </section>
               )}
+              {footprintCard && (
+                <section id="footprint" className="mt-4 scroll-mt-[82px]">
+                  {footprintCard}
+                </section>
+              )}
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
@@ -1759,6 +1804,11 @@ function HomeContent() {
           {firmoCard && (
             <section id="firmographics" className="mt-4 scroll-mt-[82px]">
               {firmoCard}
+            </section>
+          )}
+          {footprintCard && (
+            <section id="footprint" className="mt-4 scroll-mt-[82px]">
+              {footprintCard}
             </section>
           )}
 
@@ -2263,7 +2313,7 @@ function HomeContent() {
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
 /** KPIs styled as risk metrics (red accent). */
-const RISK_KPIS = new Set(['outlook', 'atRisk', 'callTone']);
+const RISK_KPIS = new Set(['outlook', 'atRisk', 'callTone', 'branchRisk']);
 
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
@@ -2278,6 +2328,7 @@ const KPI_TARGET: Record<string, string> = {
   leadership: 'alerts',
   esg: 'alerts',
   upmarket: 'firmographics',
+  branchRisk: 'footprint',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

@@ -3,7 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
-import type { DataFreshness, FirmographicMixResult } from '@shared';
+import type { DataFreshness, FirmographicMixResult, MarketFootprintResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -265,6 +265,8 @@ export interface HomeDashboard {
   dataFreshness?: DataFreshness;
   /** C5 — ZoomInfo revenue / employee band mix + upmarket clients (real data only). */
   firmographics?: FirmographicMixResult;
+  /** C7 — ESRI branch-ZIP footprint of the book (real data only). */
+  marketFootprint?: MarketFootprintResult;
   /** Book-level delinquency aggregate (null when not wired for this persona). */
   delinquency: DelinquencyWatch | null;
 }

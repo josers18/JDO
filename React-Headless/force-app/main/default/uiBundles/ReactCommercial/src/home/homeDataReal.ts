@@ -32,13 +32,16 @@
  *   · C6 owner-wealth handoff (relationship graph BUSINESS_OWNER + Claritas on
  *     the owner): owners of my business clients, richest first → Leads rows
  *     referring them to Wealth + opportunity alerts
+ *   · C7 ESRI branch / market footprint (BT_ESRI_GEO_Footprint__dlm) placed by
+ *     billing ZIP: clients in Consolidate-branch ZIPs → Health KPI + retention
+ *     alerts; wealth index + foot traffic → footprint card
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -256,7 +259,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
@@ -282,7 +285,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
     userP.then(u => fetchServiceNowDrag(u?.userId))
       .catch((): ServiceNowDrag => ({ open: 0, aged: 0, scope: 'org' })),
-    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'dnb', 'moodys', 'boardex', 'msci', 'zoominfo'])
+    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'dnb', 'moodys', 'boardex', 'msci', 'zoominfo', 'claritas', 'esri'])
       .catch((): DataFreshness | undefined => undefined),
     // C2 Moody's outlook + C3 BoardEx leadership change — additive.
     userP.then(u => fetchOutlookWatch(u?.userId))
@@ -297,6 +300,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): FirmographicMixResult => ({ revenue: [], employees: [], total: 0, upmarket: 0, rows: [], scope: 'org' })),
     userP.then(u => fetchOwnerWealthHandoffs(u?.userId))
       .catch((): OwnerHandoffResult => ({ rows: [], owners: 0, millionaires: 0, scope: 'org' })),
+    // C7 ESRI branch footprint — additive.
+    userP.then(u => fetchMarketFootprint(u?.userId))
+      .catch((): MarketFootprintResult => ({ rows: [], clients: 0, zips: 0, consolidate: 0, affluent: 0, avgWealthIndex: 0, avgFootTraffic: 0, avgDistanceMi: 0, scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -659,6 +665,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     confidencePct: freshness?.pct ?? 86,
     dataSourceCount: freshness?.sources.length ?? 25,
     dataFreshness: freshness,
+    marketFootprint: footprint,
     firmographics: { ...firmo, rows: firmo.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     kpis: [
       { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.051, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
@@ -672,6 +679,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'leadership', label: 'Leadership Changes', value: leadership.turnover, format: 'number', trend: seedTrend('leadership', Math.max(1, leadership.turnover)), note: `${leadership.recent.toLocaleString('en-US')} with a board event 90d · ${leadership.weak.toLocaleString('en-US')} on weak governance${leadership.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'esg', label: 'ESG Movers', value: esg.up + esg.down, format: 'number', trend: seedTrend('esg', Math.max(1, esg.up + esg.down)), note: `${esg.up.toLocaleString('en-US')} up · ${esg.down.toLocaleString('en-US')} down · ${esg.controversies.toLocaleString('en-US')} with controversies · MSCI${esg.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'upmarket', label: 'Upmarket Clients', value: firmo.upmarket, format: 'number', trend: seedTrend('upmarket', Math.max(1, firmo.upmarket)), note: firmo.total ? `$50M+ revenue of ${firmo.total.toLocaleString('en-US')} profiled · ZoomInfo${firmo.scope === 'org' ? ' · org-wide' : ''}` : 'No ZoomInfo profiles in book' },
+      { key: 'branchRisk', label: 'Consolidate-Branch Clients', value: footprint.consolidate, format: 'number', trend: seedTrend('branchRisk', Math.max(1, footprint.consolidate)), note: footprint.clients ? `of ${footprint.clients.toLocaleString('en-US')} clients in ${footprint.zips.toLocaleString('en-US')} ESRI ZIPs · avg wealth index ${Math.round(footprint.avgWealthIndex)}${footprint.scope === 'org' ? ' · org-wide' : ''}` : 'No clients in ESRI-profiled ZIPs' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,
@@ -681,6 +689,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     schedule,
     transactionSignals,
     alerts: [
+      ...footprint.rows.filter(z => z.recommendation === 'Consolidate').slice(0, 2).map((z, i) => ({
+        id: `afp${i}`, title: `Branch consolidation — ZIP ${z.zip}, ${z.state}`,
+        detail: `${z.clients} client${z.clients === 1 ? '' : 's'} bank near a branch ESRI flags for consolidation · foot traffic ${Math.round(z.footTraffic)} · wealth index ${Math.round(z.wealthIndex)} · ${z.tapestry} · plan digital / relocation outreach before it closes`,
+        tone: 'risk' as const, severity: 'Medium' as const, when: 'latest ESRI month',
+      })),
       ...handoffs.rows.slice(0, 2).map((h, i) => ({
         id: `aoh${i}`, title: `Owner wealth — ${h.ownerName}`,
         detail: `Majority owner of ${nameById[h.businessId] || 'a business client'} · ${h.netWorthBand || 'net worth n/a'} est. net worth · wealth propensity ${Math.round(h.wealthScore)} · ${h.lifeStage} · refer to Wealth`,

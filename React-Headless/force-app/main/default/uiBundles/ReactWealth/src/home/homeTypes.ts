@@ -3,7 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
-import type { DataFreshness, DigitalLeakageResult, TradingPulseResult, BusinessOwnersResult } from '@shared';
+import type { DataFreshness, DigitalLeakageResult, TradingPulseResult, BusinessOwnersResult, WealthUpgradeResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -260,4 +260,6 @@ export interface HomeDashboard {
   tradingPulse?: TradingPulseResult;
   /** W6 — clients who own a business, with the business's ZoomInfo band (real data only). */
   businessOwners?: BusinessOwnersResult;
+  /** W7 — Claritas wealth-propensity upgrade candidates (real data only). */
+  wealthUpgrades?: WealthUpgradeResult;
 }
