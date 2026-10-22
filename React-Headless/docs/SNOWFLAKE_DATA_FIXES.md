@@ -141,20 +141,36 @@ The Wealth cockpit reads active Brokerage + Robo-Advisor rows with positive bala
 
 ## 7. Financial transactions: key them to FinServ financial accounts
 
-`ssot__FinancialAccountTransaction__dlm` gets its rows from Snowflake. The 18,962 rows from the
-`DATA_JEDAIS_FINS__PUBLIC` source run 2024-05-31 → 2026-10-21, and **none** has
-`ssot__FinancialAccountID__c`. The Databricks source (2,192 rows) is keyed, but to other-org Ids.
+`ssot__FinancialAccountTransaction__dlm` gets its rows from Snowflake (`Financial_Transactions_BT_Snow`,
+19,007 rows). Column roles:
+
+- `sfaccountid` → `SFAccountID__c`: the Salesforce **Account** Id. This is mapped and correct.
+- `ssot__FinancialAccountID__c` is **empty** on every row. It should hold the Salesforce
+  **FinServ financial-account Id** (`a7kam…`, 18-char). That's the key the DMO
+  `ssot__FinancialAccount__dlm.ssot__Id__c` uses.
+
+What the source carries today (probed 2026-10-21):
+
+| `accountid` prefix | Rows | Distinct values | Notes |
+|---|---|---|---|
+| `a7kam…` (local FinServ Id) | 6,593 | 2 | Correct form, but only 2 financial accounts |
+| `BC-4421335` | 5,116 | 1 | Product number, not an Id |
+| `CC-123456789` | 5,111 | 1 | Product number, not an Id |
+| `a7kal…` (other org) | 2,187 | 8 | No owner, no local record |
+
+All 19,007 rows belong to only **3 distinct Salesforce Accounts**, so coverage is the real gap.
 
 Fixes:
-1. Populate `accountid` with the FinServ financial-account Id (`a7kam…`, 18-char, matches
-   `ssot__FinancialAccount__dlm.ssot__Id__c`). There are 31,916 open FinServ accounts. Keep
-   `sfaccountid` = the account's `FinServ__PrimaryOwner__c` (`001am…`).
-2. Cover the population. Give each open account transactions of the right kind: payroll/spend on
-   checking, interest on savings, monthly payments on loans, purchases/payments on cards and lines.
+1. Add (or repurpose) a financial-account Id column holding the FinServ Id of the account each
+   transaction posted to, with `sfaccountid` = that account's `FinServ__PrimaryOwner__c`. Drop the
+   `BC-`/`CC-` product numbers and the other-org `a7kal…` Ids.
+2. Cover the population: all 31,916 open FinServ accounts, with transactions that fit each product.
+   That means payroll and spend on checking, interest on savings, monthly payments on loans, and
+   purchases and payments on cards and lines.
 3. Seed the home-page signals: recent large inbound credits (bonus / tax refund), outbound
    wires to other banks, and fee spikes on business accounts.
-4. DC side (not Snowflake): the `Financial_Transactions_BT_Snow` → DMO mapping does **not** map
-   `accountid__c` → `ssot__FinancialAccountID__c` (the Databricks mapping does). Add it.
+4. DC side (not Snowflake): map that column → `ssot__FinancialAccountID__c` (+ `KQ_FinancialAccountID__c`)
+   in the `Financial_Transactions_BT_Snow` → DMO mapping. Today nothing feeds it.
 
 ## 8. Minor
 

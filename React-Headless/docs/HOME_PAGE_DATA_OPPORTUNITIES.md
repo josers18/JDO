@@ -124,7 +124,7 @@ Source-side fixes are written up for the Snowflake agent in
   snapshots through 2026-10-01, keyed `<PRODUCT>-<FinServ Id>`. This enables home signals like deposit
   outflows, loan paydown/maturity and line utilization.
 - **Transactions need FinServ account keys in Snowflake.** The Snowflake rows have no
-  financial-account key. Handoff in §7 of the fixes doc, plus one missing DC field mapping.
+  FinServ financial-account Id (`ssot__FinancialAccountID__c` is empty; `sfaccountid` correctly carries the Account), and they cover only 3 accounts. Handoff in §7 of the fixes doc, plus one missing DC field mapping.
 - **Trades anchor on the latest Snowflake date.** Windows key on `MAX(trade_date)`. The
   `BT_Financial_Trades` stream is failing (DC max 2026-09-01) and needs repair to land newer data.
 - **Failing streams (inventory `FAILURE`):** `BT_Financial_Trades`, `Loan_Delinquencies`,
