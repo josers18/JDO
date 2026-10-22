@@ -71,8 +71,9 @@ Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgr
   strip everything up to the first `-`. Customer key = `FinServ__PrimaryOwner__c`.
 - **Rollback:** every backfill row has `uniqueid` / `UUID` ≥ 1,000,000. Pre-existing rows (≤ 371) are untouched.
 - **Rates:** stored in percent, as the existing rows were. Loans with no CRM rate got a typical product rate.
-- **Still open:** `ssot__FinancialAccountTransaction__dlm` has 4,386 rows with a null account key. The Heroku
-  transactions stream (`Financial_Transactions_Heroku_Postgres`) is suppressed, so it's not covered here.
+- **Transactions are out of scope here.** They come from Snowflake (see §7). The Heroku
+  `Financial_Transactions` stream stays suppressed: it's a Profile-category DLO that can't map to the
+  Engagement DMO `ssot__FinancialAccountTransaction`.
 
 ## 4. Financial trades: land the latest data
 
@@ -138,7 +139,24 @@ The Wealth cockpit reads active Brokerage + Robo-Advisor rows with positive bala
    other banks) would power a Commercial deposit-capture signal. Add it if desired.
 6. Sanity checks pass: there are no future dates, and the max balance is $7.18M (401k).
 
-## 7. Minor
+## 7. Financial transactions: key them to FinServ financial accounts
+
+`ssot__FinancialAccountTransaction__dlm` gets its rows from Snowflake. The 18,962 rows from the
+`DATA_JEDAIS_FINS__PUBLIC` source run 2024-05-31 → 2026-10-21, and **none** has
+`ssot__FinancialAccountID__c`. The Databricks source (2,192 rows) is keyed, but to other-org Ids.
+
+Fixes:
+1. Populate `accountid` with the FinServ financial-account Id (`a7kam…`, 18-char, matches
+   `ssot__FinancialAccount__dlm.ssot__Id__c`). There are 31,916 open FinServ accounts. Keep
+   `sfaccountid` = the account's `FinServ__PrimaryOwner__c` (`001am…`).
+2. Cover the population. Give each open account transactions of the right kind: payroll/spend on
+   checking, interest on savings, monthly payments on loans, purchases/payments on cards and lines.
+3. Seed the home-page signals: recent large inbound credits (bonus / tax refund), outbound
+   wires to other banks, and fee spikes on business accounts.
+4. DC side (not Snowflake): the `Financial_Transactions_BT_Snow` → DMO mapping does **not** map
+   `accountid__c` → `ssot__FinancialAccountID__c` (the Databricks mapping does). Add it.
+
+## 8. Minor
 
 - `Marketing_Engagements` feed is thin: 16 events in 30 days, Personal only.
 - `BT_Gong_Call_Sentiment.last_call_date__c` is null on sampled rows. Populate it.
