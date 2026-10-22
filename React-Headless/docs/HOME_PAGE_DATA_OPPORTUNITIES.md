@@ -123,8 +123,11 @@ Source-side fixes are written up for the Snowflake agent in
 - **Heroku Deposits / Loans / Lines / Investments: ✅ backfilled 2026-10-20.** 31,916 FinServ accounts now have 12 monthly
   snapshots through 2026-10-01, keyed `<PRODUCT>-<FinServ Id>`. This enables home signals like deposit
   outflows, loan paydown/maturity and line utilization.
-- **Transactions need FinServ account keys in Snowflake.** The Snowflake rows have no
-  FinServ financial-account Id (`ssot__FinancialAccountID__c` is empty; `sfaccountid` correctly carries the Account), and they cover only 3 accounts. Handoff in §7 of the fixes doc, plus one missing DC field mapping.
+- **Transactions: ✅ keyed to FinServ accounts 2026-10-22.**
+  - 1.66M rows over 90 days cover all 31,905 open FinServ accounts.
+  - `ssot__FinancialAccountID__c` is now mapped and joins `ssot__FinancialAccount__dlm`.
+  - The daily generator keeps them current from its account master. Details in §7 of the fixes doc.
+  - This unblocks S5 and C9.
 - **Trades anchor on the latest Snowflake date.** Windows key on `MAX(trade_date)`. The
   `BT_Financial_Trades` stream is failing (DC max 2026-09-01) and needs repair to land newer data.
 - **Failing streams (inventory `FAILURE`):** `BT_Financial_Trades`, `Loan_Delinquencies`,

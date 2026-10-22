@@ -139,7 +139,37 @@ The Wealth cockpit reads active Brokerage + Robo-Advisor rows with positive bala
    other banks) would power a Commercial deposit-capture signal. Add it if desired.
 6. Sanity checks pass: there are no future dates, and the max balance is $7.18M (401k).
 
-## 7. Financial transactions: key them to FinServ financial accounts
+## 7. Financial transactions: key them to FinServ financial accounts: ✅ done 2026-10-22
+
+**What was done** (Snowflake account `SFDC_DC_TECH_ARCH`, the `BT_Managed_Snowflake` source; the old
+`GSB13421` Jedi account is gone):
+
+- **The account master drives the generator.** `DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRANSACTION_ACCOUNTS`
+  now holds one `ACTIVE` row per open, classifiable FinServ account: 31,905 rows.
+  - `ACCOUNTID` = FinServ Id, `SFACCOUNTID` = `FinServ__PrimaryOwner__c`, `CONTACTID` = PersonContactId,
+    `ACCOUNTTYPE` = Personal/Business.
+  - New columns: `ACCOUNT_NAME`, `FINANCIAL_ACCOUNT_TYPE`, `RECORD_TYPE`, `PRODUCT_KIND`, `BALANCE`,
+    `INTEREST_RATE`, `OPEN_DATE`, `LOAN_END_DATE`, `CREDIT_LIMIT`, `SOURCE_OBJECT`, `LOADED_AT`.
+  - Personal checking accounts carry `DIRECT_DEPOSIT_AMOUNT` (monthly, paid on the 1st and 15th);
+    about 10% also carry a quarterly `BONUS_AMOUNT`.
+  - The old `CC-123456789` / `BC-4421335` rows are kept with `ACTIVE = FALSE`.
+  - To add accounts later, insert rows here; the next daily run picks them up.
+- **History:** `FINANCIAL_TRANSACTIONS` was replaced with 1,663,795 rows, 2026-07-24 → 2026-10-22,
+  following the rules below. Transaction ids start with `FS-`. `ACCOUNT_DAILY_BALANCE` was rebuilt.
+- **Going forward:** `GENERATE_DAILY_TRANSACTIONS` (task `DAILY_TRANSACTION_GENERATOR`, 03:05 ET)
+  now runs the same product-aware logic for one day, about 18K–34K rows/day.
+  - Rows post 0–2 days after the transaction date. Each run settles `Pending` rows whose posting
+    date has passed.
+  - The `TRANSACTIONS_PER_ACCOUNT` argument is ignored; volume comes from each product's pattern.
+- **DC:** `accountid__c` → `ssot__FinancialAccountID__c` (+ `KQ_`) is now mapped on the
+  `Financial_Transactions_BT_Snow` mapping. 99.99% of rows join `ssot__FinancialAccount__dlm`.
+- **Source:** `scripts/snowflake_transactions/` (`build_sp.sh` regenerates the procedure DDL).
+- **Rollback:**
+  - `FINANCIAL_TRANSACTIONS_BAK_20261022`, `FINANCIAL_TRANSACTION_ACCOUNTS_BAK_20261022` and
+    `ACCOUNT_DAILY_BALANCE_BAK_20261022` are clones of the pre-change tables.
+  - The old procedure is kept as `GENERATE_DAILY_TRANSACTIONS_BAK_20261022`.
+
+The original handoff follows.
 
 `ssot__FinancialAccountTransaction__dlm` gets its rows from Snowflake (`Financial_Transactions_BT_Snow`,
 19,007 rows). Column roles:
