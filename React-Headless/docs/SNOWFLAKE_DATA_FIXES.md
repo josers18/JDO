@@ -245,4 +245,6 @@ Fixes:
 - `Marketing_Engagements` feed is thin: 16 events in 30 days, Personal only.
 - `BT_Gong_Call_Sentiment.last_call_date__c` is null on sampled rows. Populate it.
 - Offer model `Offer_Eligibility_Model__dlm`: `SFID__c` is a `1Xh…` Id, not an Account Id.
-  The join key is `MDM_ID__c = 'GEN-' + AccountId`. Consider adding a plain `account_id` column.
+  The join key is `MDM_ID__c` = `ssot__Account__dlm.External_ID_c__c` (MDM party key, `MDMP#####`);
+  only 7 rows use `GEN-<AccountId>`. Consider adding a plain `account_id` column. The model also has
+  a single business action code (`BIZ-CHK`), so Commercial gets one offer card. Add treasury / lending codes.

@@ -9,13 +9,15 @@
  *     negative + declining → queue + alerts, same book scoping
  *   · S2 World-Check AML / PEP screening (BT_WorldCheck_AML__dlm), latest
  *     run, ratings that escalated since the previous run → queue + alerts
+ *   · S3 next-best offers (Offer_Eligibility_Model__dlm), this app's product
+ *     family, one card per product → top of Recommendations
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -227,7 +229,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The D&B queries need the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, credit, currentUser, feeSpikes, gong, aml] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes, gong, aml, offers] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
@@ -238,6 +240,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
     userP.then(u => fetchAmlChanges(u?.userId))
       .catch((): TxSignalResult<AmlChange> => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchNextBestOffers(u?.userId, 'commercial'))
+      .catch((): NextBestOfferResult => ({ rows: [], scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -248,7 +252,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -617,7 +621,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       })),
     ],
     leads,
-    recommendations,
+    // S3 model offers lead so they survive the cockpit's reveal cap.
+    recommendations: [...offerRecommendations(offers, nameById), ...recommendations],
     activity,
     pipelineMovement,
     cases,

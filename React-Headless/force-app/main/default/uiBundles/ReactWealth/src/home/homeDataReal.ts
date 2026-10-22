@@ -9,13 +9,15 @@
  *     negative + declining → queue + alerts, same book scoping
  *   · S2 World-Check AML / PEP screening (BT_WorldCheck_AML__dlm), latest
  *     run, ratings that escalated since the previous run → queue + alerts
+ *   · S3 next-best offers (Offer_Eligibility_Model__dlm), this app's product
+ *     family, one card per product → top of Recommendations
  *
  * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
  * by the largest active held-away balances (the biggest consolidation
  * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -230,7 +232,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The held-away query needs the advisor's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, held, currentUser, inflows, gong, aml] = await Promise.all([
+  const [core, held, currentUser, inflows, gong, aml, offers] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
     userP,
@@ -241,6 +243,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
     userP.then(u => fetchAmlChanges(u?.userId))
       .catch((): TxSignalResult<AmlChange> => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchNextBestOffers(u?.userId, 'wealth'))
+      .catch((): NextBestOfferResult => ({ rows: [], scope: 'org' })),
   ]);
   const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
     .then(r => r.rows[0])
@@ -253,7 +257,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve held-away + inflow account IDs → names
-  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -614,7 +618,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       })),
     ],
     leads,
-    recommendations,
+    // S3 model offers lead so they survive the cockpit's reveal cap.
+    recommendations: [...offerRecommendations(offers, nameById), ...recommendations],
     activity,
     pipelineMovement,
     cases,
