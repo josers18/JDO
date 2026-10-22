@@ -41,12 +41,14 @@ const ctes = (accountFilter: string) => `
   )`;
 
 // Unfiltered by persistence so a book with any High client never falls back org-wide.
+// Persistent AND overdraft-corroborated first, then months High, then fee count.
 const rowsSql = (accountFilter: string) => `${ctes(accountFilter)}
   SELECT st.acct AS account_id, st.months_high AS months_high, st.life_stage AS life_stage, st.prizm AS prizm,
          COALESCE(od.fees, 0) AS fees, COALESCE(od.fee_total, 0) AS fee_total
   FROM st LEFT JOIN od ON od.acct = st.acct
   WHERE st.now_high = 1
-  ORDER BY st.months_high DESC, COALESCE(od.fees, 0) DESC
+  ORDER BY CASE WHEN st.months_high >= ${PERSISTENT_MONTHS} AND od.acct IS NOT NULL THEN 1 ELSE 0 END DESC,
+           st.months_high DESC, COALESCE(od.fees, 0) DESC
   LIMIT 5
 `;
 
