@@ -431,7 +431,8 @@ spurious results.`)}}return!1};class Fb{constructor(a,i="GraphQL request",s={lin
          COALESCE(od.fees, 0) AS fees, COALESCE(od.fee_total, 0) AS fee_total
   FROM st LEFT JOIN od ON od.acct = st.acct
   WHERE st.now_high = 1
-  ORDER BY CASE WHEN st.months_high >= ${Gr} AND od.acct IS NOT NULL THEN 1 ELSE 0 END DESC,
+  ORDER BY CASE WHEN od.acct IS NULL THEN 0
+                WHEN st.months_high >= ${Gr} THEN 2 ELSE 1 END DESC,
            st.months_high DESC, COALESCE(od.fees, 0) DESC
   LIMIT 5
 `,FR=t=>`${U1(t)}
