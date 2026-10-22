@@ -214,7 +214,8 @@ export interface HomeDashboard {
   aiBrief: string;
   kpis: HomeKpi[];
   callList: CallItem[];
-  /** Transaction-derived queue items (S5 inflows / C9 fee spikes) — carry their own dueDate. */
+  /** Extra dated queue feeds — S1 Gong call sentiment plus S5 inflows (Retail/Wealth) or
+   *  C9 fee spikes (Commercial). Each item carries its own dueDate. */
   transactionSignals?: CallItem[];
   pipeline: PipelineItem[];
   bankerGoals: BankerGoal[];

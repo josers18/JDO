@@ -5,13 +5,15 @@
  *     scoped to the signed-in advisor's book (falls back to org-wide when empty)
  *   · S5 bonus / tax-refund inflows (ssot__FinancialAccountTransaction__dlm),
  *     same book scoping — fresh cash = an investable-assets conversation
+ *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
+ *     negative + declining → queue + alerts, same book scoping
  *
  * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
  * by the largest active held-away balances (the biggest consolidation
  * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentiment } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -226,13 +228,15 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The held-away query needs the advisor's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, held, currentUser, inflows] = await Promise.all([
+  const [core, held, currentUser, inflows, gong] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
     userP,
     // S5 is additive — a failed transaction query must not blank the page.
     userP.then(u => fetchLargeInflows(u?.userId))
       .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchCallSentiment(u?.userId))
+      .catch((): TxSignalResult<CallSentiment> => ({ rows: [], scope: 'org' })),
   ]);
   const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
     .then(r => r.rows[0])
@@ -245,7 +249,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve held-away + inflow account IDs → names
-  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -257,10 +261,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     } catch { /* names best-effort; fall back to raw ID */ }
   }
 
+  // S1 — clients whose recorded-call sentiment is negative and sliding.
+  const gongSignals: CallItem[] = callSentimentQueueItems(gong, nameById, { segment: 'Wealth' });
   // S5 — fresh bonus / tax-refund cash that could be put to work.
-  const transactionSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
+  const txSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
     segment: 'Wealth', action: 'Invest new cash — portfolio top-up',
   });
+  const transactionSignals: CallItem[] = [...gongSignals, ...txSignals];
   const inflowTotal = inflows.rows.reduce((sum, r) => sum + r.amount, 0);
 
   const totalHeldAway = Number(heldTotal?.balance ?? held.rows.reduce((sum, r) => sum + Number(r.balance || 0), 0));
@@ -581,7 +588,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         id: `a${i}`, title: `Held-away — ${c.clientName}`, detail: c.reason,
         tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
       })),
-      ...transactionSignals.slice(0, 3).map((t, i) => ({
+      ...gongSignals.slice(0, 2).map((g, i) => ({
+        id: `ag${i}`, title: `Call tone sliding — ${g.clientName}`, detail: `${g.reason} · ${g.action}`,
+        tone: 'risk' as const, severity: g.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
+      })),
+      ...txSignals.slice(0, 3).map((t, i) => ({
         id: `ax${i}`, title: `New cash — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : t.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this week',
       })),

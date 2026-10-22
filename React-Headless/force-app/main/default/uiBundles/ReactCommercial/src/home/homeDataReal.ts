@@ -5,13 +5,15 @@
  *     scoped to the signed-in banker's book (falls back to org-wide when empty)
  *   · C9 business fee spikes (ssot__FinancialAccountTransaction__dlm), same
  *     book scoping — repeated NSF / late fees = cash-flow stress
+ *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
+ *     negative + declining → queue + alerts, same book scoping
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentiment } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -223,13 +225,15 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The D&B queries need the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, credit, currentUser, feeSpikes] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes, gong] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
     // C9 is additive — a failed transaction query must not blank the page.
     userP.then(u => fetchFeeSpikes(u?.userId))
       .catch((): TxSignalResult<FeeSpike> => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchCallSentiment(u?.userId))
+      .catch((): TxSignalResult<CallSentiment> => ({ rows: [], scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -240,7 +244,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -254,8 +258,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
+  // S1 — clients whose recorded-call sentiment is negative and sliding.
+  const gongSignals: CallItem[] = callSentimentQueueItems(gong, nameById, { segment: 'Commercial' });
   // C9 — operating accounts racking up NSF / overdraft / late fees.
-  const transactionSignals: CallItem[] = feeSpikeQueueItems(feeSpikes, nameById, { segment: 'Commercial' });
+  const txSignals: CallItem[] = feeSpikeQueueItems(feeSpikes, nameById, { segment: 'Commercial' });
+  const transactionSignals: CallItem[] = [...gongSignals, ...txSignals];
 
   const callList: CallItem[] = credit.rows.map((row, i) => {
     const paydex = Number(row.paydex || 0);
@@ -584,7 +591,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
       })),
-      ...transactionSignals.slice(0, 3).map((t, i) => ({
+      ...gongSignals.slice(0, 2).map((g, i) => ({
+        id: `ag${i}`, title: `Call tone sliding — ${g.clientName}`, detail: `${g.reason} · ${g.action}`,
+        tone: 'risk' as const, severity: g.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
+      })),
+      ...txSignals.slice(0, 3).map((t, i) => ({
         id: `ax${i}`, title: `Fee spike — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'risk' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 30d',
       })),

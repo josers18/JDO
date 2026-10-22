@@ -5,12 +5,14 @@
  *   · Data Cloud (CSAT/NPS; S5 bonus / tax-refund inflows from
  *     ssot__FinancialAccountTransaction) → DcBridgeRest → ConnectApi.CdpQuery,
  *     scoped to the signed-in banker's book (falls back to org-wide when empty)
+ *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
+ *     negative + declining → queue + alerts, same book scoping
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentiment } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -209,13 +211,15 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The CSAT query needs the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, csat, currentUser, inflows] = await Promise.all([
+  const [core, csat, currentUser, inflows, gong] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
     userP,
     // S5 is additive — a failed transaction query must not blank the page.
     userP.then(u => fetchLargeInflows(u?.userId))
       .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchCallSentiment(u?.userId))
+      .catch((): TxSignalResult<CallSentiment> => ({ rows: [], scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -224,7 +228,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve CSAT + inflow account IDs → names in one follow-up query
-  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (csatIds.length) {
     try {
@@ -255,10 +259,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     tier: tierForSeverity(severityForCsat(Number(row.csat) || 0)),
   }));
 
+  // S1 — clients whose recorded-call sentiment is negative and sliding.
+  const gongSignals: CallItem[] = callSentimentQueueItems(gong, nameById, { segment: 'Retail' });
   // S5 — fresh bonus / tax-refund cash sitting in checking.
-  const transactionSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
+  const txSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
     segment: 'Retail', action: 'Idle-cash conversation — savings / CD',
   });
+  const transactionSignals: CallItem[] = [...gongSignals, ...txSignals];
   const inflowTotal = inflows.rows.reduce((sum, r) => sum + r.amount, 0);
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
@@ -558,7 +565,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
       })),
-      ...transactionSignals.slice(0, 3).map((t, i) => ({
+      ...gongSignals.slice(0, 2).map((g, i) => ({
+        id: `ag${i}`, title: `Call tone sliding — ${g.clientName}`, detail: `${g.reason} · ${g.action}`,
+        tone: 'risk' as const, severity: g.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
+      })),
+      ...txSignals.slice(0, 3).map((t, i) => ({
         id: `ax${i}`, title: `Inflow — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : t.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this week',
       })),

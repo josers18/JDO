@@ -10,6 +10,9 @@
  *
  * Both are book-scoped through `SFAccountID__c` (the Account key) and fall back to
  * org-wide like every other DC card. Queries + columns verified live 2026-10-22.
+ *
+ * Also hosts S1 (all three apps), the Gong call-sentiment feed, because it plugs
+ * into the queue and alerts the same way (see the bottom of this file).
  */
 import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
@@ -143,4 +146,85 @@ export function feeSpikeQueueItems(
     relationshipValue: 0,
     dueDate: dueFrom('', 0, now),
   }));
+}
+
+/* ── S1: Gong call sentiment (BT_Gong_Call_Sentiment__dlm) ───────────────────
+   Weekly snapshot, one row per account per `profile_week__c` — pin to the latest
+   week. Negative / Very Negative AND Declining = the relationship is souring on
+   recorded calls, a "who to call" signal independent of CSAT. Verified live
+   2026-10-22 (week 2026-10-19: 282 org-wide; 14–80 per banker book). */
+const callSentimentSql = (accountFilter: string) => `
+  SELECT g.account_id__c AS account_id, g.overall_sentiment__c AS sentiment,
+         g.deal_risk_score__c AS deal_risk, g.next_scheduled_call_date__c AS next_call,
+         g.rm_last_logged_note_date__c AS last_note, g.key_topics_flags__c AS topics
+  FROM BT_Gong_Call_Sentiment__dlm g
+  WHERE g.profile_week__c = (SELECT MAX(profile_week__c) FROM BT_Gong_Call_Sentiment__dlm)
+    AND g.overall_sentiment__c IN ('Negative', 'Very Negative')
+    AND g.sentiment_trend__c = 'Declining'
+    AND g.account_id__c ${accountFilter}
+  ORDER BY g.deal_risk_score__c DESC
+  LIMIT 8
+`;
+
+export interface CallSentiment {
+  accountId: string;
+  sentiment: 'Negative' | 'Very Negative';
+  dealRisk: number;
+  /** YYYY-MM-DD or '' when no call is booked. */
+  nextCall: string;
+  /** YYYY-MM-DD or '' when the RM has never logged a note. */
+  lastNote: string;
+  topics: string[];
+}
+
+/** S1 — book clients whose call sentiment is negative and declining this week. */
+export async function fetchCallSentiment(ownerId: string | null | undefined): Promise<TxSignalResult<CallSentiment>> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(callSentimentSql, ownerId, 8);
+  return {
+    scope: res.scope,
+    rows: res.rows.map(r => ({
+      accountId: String(r.account_id ?? ''),
+      sentiment: r.sentiment === 'Very Negative' ? 'Very Negative' : 'Negative',
+      dealRisk: Number(r.deal_risk) || 0,
+      nextCall: isoDate(r.next_call),
+      lastNote: isoDate(r.last_note),
+      topics: String(r.topics ?? '').split('|').map(t => t.trim()).filter(Boolean),
+    })),
+  };
+}
+
+const daysBetween = (fromIso: string, to: Date) =>
+  Math.round((new Date(fromIso + 'T00:00:00').getTime() - new Date(to.getFullYear(), to.getMonth(), to.getDate()).getTime()) / DAY);
+
+/** S1 rows → priority-queue items. Very Negative or deal risk ≥ 75 is due today;
+ *  the rest within two days. A call booked in the next 14 days with notes older
+ *  than 21 days (or none) gets the "call coming up, notes stale" prep flag. */
+export function callSentimentQueueItems(
+  res: TxSignalResult<CallSentiment>,
+  nameById: Record<string, string>,
+  opts: { segment: string; now?: Date },
+): QueueSignalItem[] {
+  const now = opts.now ?? new Date();
+  return res.rows.map((r, i) => {
+    const severity: QueueSeverity = r.sentiment === 'Very Negative' || r.dealRisk >= 75 ? 'high' : 'medium';
+    const callIn = r.nextCall ? daysBetween(r.nextCall, now) : NaN;
+    const notesStale = !r.lastNote || daysBetween(r.lastNote, now) < -21;
+    const prep = callIn >= 0 && callIn <= 14 && notesStale;
+    const parts = [`${r.sentiment} & declining on calls`, `deal risk ${Math.round(r.dealRisk)}`];
+    if (r.topics.length) parts.push(r.topics.join(', '));
+    if (prep) parts.push(`call in ${callIn}d, notes stale`);
+    return {
+      id: `gs${i}`,
+      clientId: r.accountId,
+      clientName: nameById[r.accountId] || r.accountId,
+      segment: opts.segment,
+      reason: parts.join(' · '),
+      action: prep ? 'Prep for upcoming call — log notes' : 'Relationship save call',
+      score: Math.min(0.97, 0.5 + r.dealRisk / 200 + (prep ? 0.05 : 0)),
+      severity,
+      source: `Gong call sentiment${res.scope === 'org' ? ' · org-wide' : ''}`,
+      relationshipValue: 0,
+      dueDate: prep ? dueFrom(r.nextCall, -1, now) : dueFrom('', severity === 'high' ? 0 : 2, now),
+    };
+  });
 }
