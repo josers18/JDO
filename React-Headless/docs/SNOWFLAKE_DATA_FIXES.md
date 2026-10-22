@@ -242,6 +242,9 @@ Fixes:
 
 ## 8. Minor
 
+- Relationship graph `BT_Synth_Relationship_Graph`: REFERRAL `confidence_pct` never reaches 70 (max ~65), and no edge
+  was discovered after 2026-09-18. Spread confidence up to ~95 and keep discovering edges daily so "new this month" works.
+  Some `dst_account_id` values are 16-char hashes, not Account Ids.
 - `Marketing_Engagements` feed is thin: 16 events in 30 days, Personal only.
 - `BT_Gong_Call_Sentiment.last_call_date__c` is null on sampled rows. Populate it.
 - Offer model `Offer_Eligibility_Model__dlm`: `SFID__c` is a `1Xh…` Id, not an Account Id.

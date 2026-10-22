@@ -23,6 +23,7 @@ export {
   type TxSignalResult,
 } from './transactionSignals';
 export { fetchNextBestOffers, offerRecommendations, type NextBestOffer, type NextBestOfferResult, type OfferFamily } from './offerModel';
+export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
 export { queryDataCloud, queryDataCloudForBook, type DataCloudColumn, type DataCloudResult, type BookScope, type BookScopedResult } from './dataCloudClient';
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';

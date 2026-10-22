@@ -131,6 +131,19 @@ export interface LeadReferral {
   lastName?: string;
   /** Lead.Company — required to edit/create; the org the lead belongs to. */
   company?: string;
+  /** S4 warm intro (relationship graph) — not a Lead yet. A row click opens the
+   *  Lead modal in create mode with these prefilled. */
+  intro?: {
+    accountId: string;
+    referrer: string;
+    owned: boolean;
+    confidencePct: number;
+    discovered: string;
+    scope: 'book' | 'org';
+    firstName?: string;
+    lastName?: string;
+    company: string;
+  };
 }
 
 /** A recent-activity feed row for the cockpit supporting band. */

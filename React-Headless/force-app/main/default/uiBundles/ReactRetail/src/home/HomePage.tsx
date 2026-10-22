@@ -613,6 +613,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   // FirstName / Company / Status / LeadSource / Email / AnnualRevenue back
   // through crmWrite; onSaved refetches so the card reflects the edit.
   const showLead = (l: LeadReferral) => {
+    // S4 warm intro — not a Lead yet, so open create mode with the prospect prefilled.
+    if (l.intro) {
+      setLeadItem({ create: true, firstName: l.intro.firstName, lastName: l.intro.lastName, company: l.intro.company, leadSource: 'Referral', status: 'New' });
+      return;
+    }
     if (!l.recordId) { showLeadDetail(l); return; }
     setLeadItem({
       recordId: l.recordId,
@@ -1244,7 +1249,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
         </thead>
         <tbody>
           {leadsReveal.visible.map(l => (
-            <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name, undefined, undefined, l.email)} />
+            <LeadRow key={l.id} lead={l} onClick={() => (l.intro ? showLead(l) : open('email', l.name, undefined, undefined, l.email))} />
           ))}
         </tbody>
       </table>
