@@ -160,6 +160,44 @@ What the source carries today (probed 2026-10-21):
 
 All 19,007 rows belong to only **3 distinct Salesforce Accounts**, so coverage is the real gap.
 
+**Where the Ids come from.** Use `FinServ__FinancialAccount__c`, not the standard `FinancialAccount`
+object:
+
+- FinServ has 32,150 records. The standard object is a 22,777-record mirror subset of it.
+- FinServ Ids equal `ssot__FinancialAccount__dlm.ssot__Id__c` exactly, so a filled key joins with no
+  lookup table.
+- It's the object the cockpits read.
+
+Land a reference table in Snowflake from this SOQL (Bulk API):
+
+```sql
+SELECT Id, Name, RecordType.DeveloperName, FinServ__PrimaryOwner__c,
+       FinServ__PrimaryOwner__r.IsPersonAccount, FinServ__FinancialAccountType__c,
+       FinServ__Status__c, FinServ__OpenDate__c, FinServ__CloseDate__c, FinServ__Balance__c
+FROM FinServ__FinancialAccount__c
+WHERE FinServ__Status__c = 'Open'
+```
+
+**Assignment rules** (every generated transaction):
+
+1. **The owner must match.** The row's financial-account Id must have `FinServ__PrimaryOwner__c` =
+   the row's `sfaccountid`, so the two keys always name the same customer. Use `IsPersonAccount` for
+   personal vs business patterns.
+2. **The product type must match.** Pick the account by its type, not at random:
+
+   | Account (type / name) | Transactions |
+   |---|---|
+   | Checking (`Deposits`, name contains *Checking*), personal | payroll direct deposit (MCC 9961), card spend, utilities/phone/subscriptions, loan-payment debits |
+   | Checking, business | ACH customer credits, vendor/business-services spend, payroll debits, lease, service fees |
+   | Savings / Money Market / CD (`Deposits`) | monthly interest (MCC 9967), occasional transfers (none on CDs) |
+   | `Loans` (mortgage, auto, personal, CRE, SBA, commercial) | one monthly payment credit (MCC 9980) |
+   | `Credit Cards` / names with *Card*, *HELOC*, *Line of Credit* | card purchases or line draws, plus a monthly payment credit |
+   | `Investments` | contributions, quarterly dividends, occasional distributions |
+
+   Skip Treasury Management and Merchant Services records.
+3. **The account must be open on the transaction date.** Only `Open` accounts qualify, with
+   `FinServ__OpenDate__c` ≤ the transaction date.
+
 Fixes:
 1. Add (or repurpose) a financial-account Id column holding the FinServ Id of the account each
    transaction posted to, with `sfaccountid` = that account's `FinServ__PrimaryOwner__c`. Drop the
