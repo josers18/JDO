@@ -12,7 +12,7 @@
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentiment } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -219,7 +219,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     userP.then(u => fetchLargeInflows(u?.userId))
       .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
     userP.then(u => fetchCallSentiment(u?.userId))
-      .catch((): TxSignalResult<CallSentiment> => ({ rows: [], scope: 'org' })),
+      .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -266,6 +266,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     segment: 'Retail', action: 'Idle-cash conversation — savings / CD',
   });
   const transactionSignals: CallItem[] = [...gongSignals, ...txSignals];
+  // S1 Health KPI — book count of negative + declining clients, with the real
+  // 8-week series behind the sparkline and a week-over-week delta.
+  const toneSeries = gong.weekly.map(w => w.count);
+  const toneNow = toneSeries.length ? toneSeries[toneSeries.length - 1] : gong.rows.length;
+  const tonePrev = toneSeries.length > 1 ? toneSeries[toneSeries.length - 2] : 0;
   const inflowTotal = inflows.rows.reduce((sum, r) => sum + r.amount, 0);
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
@@ -552,6 +557,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
       { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number', trend: seedTrend('cases', q?.Case?.totalCount ?? 0), note: 'Open cases' },
       { key: 'atRisk', label: 'At-Risk Clients', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: 'Require attention' },
+      { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,

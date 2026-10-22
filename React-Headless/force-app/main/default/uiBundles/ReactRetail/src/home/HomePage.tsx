@@ -990,7 +990,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           label={k.label}
           value={formatValue(k.value, k.format)}
           note={k.note}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -1002,15 +1002,20 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   // up to a 6th column at xl so the 6-KPI set doesn't orphan Active Goals onto a
   // second row (grid-cols-5 wraps the 6th). Falls back to 5/3/2 on narrower
   // content regions so it never overflows.
+  // The strip holds six cards, so it swaps Opportunities (a growth number, and
+  // already the Pipeline card's note) for the S1 Gong call-tone count. Picked by
+  // key like the vitals; falls back to the full set when a key is missing.
+  const HEALTH_KEYS = ['pipeline', 'leads', 'openCases', 'atRisk', 'callTone', 'goals'];
+  const healthKpis = HEALTH_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridWide = (
     <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-      {data.kpis.map(k => (
+      {(healthKpis.length === HEALTH_KEYS.length ? healthKpis : data.kpis).map(k => (
         <KpiCard
           key={k.key}
           label={k.label}
           value={formatValue(k.value, k.format)}
           note={k.note}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -1037,7 +1042,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           note={k.note}
           deltaPct={k.deltaPct}
           trend={k.trend}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -2260,6 +2265,9 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 }
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
+/** KPIs styled as risk metrics (red accent). */
+const RISK_KPIS = new Set(['atRisk', 'callTone']);
+
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
@@ -2267,6 +2275,7 @@ const KPI_TARGET: Record<string, string> = {
   openCases: 'events',
   goals: 'pulse',
   atRisk: 'events',
+  callTone: 'alerts',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
@@ -2277,6 +2286,7 @@ const KPI_EXPLORER: Record<string, ExplorerKey> = {
   leads: 'leads',
   goals: 'goals',
   atRisk: 'atRisk',
+  callTone: 'atRisk',
   openCases: 'atRisk',
 };
 

@@ -1029,7 +1029,7 @@ function HomeContent() {
           label={k.label}
           value={formatValue(k.value, k.format)}
           note={k.note}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -1057,7 +1057,7 @@ function HomeContent() {
           note={k.note}
           deltaPct={k.deltaPct}
           trend={k.trend}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -2187,6 +2187,9 @@ function HomeContent() {
 }
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
+/** KPIs styled as risk metrics (red accent). */
+const RISK_KPIS = new Set(['atRisk', 'callTone']);
+
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
@@ -2194,6 +2197,7 @@ const KPI_TARGET: Record<string, string> = {
   openCases: 'events',
   goals: 'pulse',
   atRisk: 'events',
+  callTone: 'alerts',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
@@ -2204,6 +2208,7 @@ const KPI_EXPLORER: Record<string, ExplorerKey> = {
   leads: 'leads',
   goals: 'goals',
   atRisk: 'atRisk',
+  callTone: 'atRisk',
   openCases: 'atRisk',
 };
 

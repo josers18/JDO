@@ -13,6 +13,7 @@ export {
   fetchCallSentiment,
   callSentimentQueueItems,
   type CallSentiment,
+  type CallSentimentResult,
   type LargeInflow,
   type FeeSpike,
   type TxSignalResult,

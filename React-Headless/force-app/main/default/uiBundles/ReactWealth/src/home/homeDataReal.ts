@@ -13,7 +13,7 @@
  * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentiment } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -236,7 +236,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     userP.then(u => fetchLargeInflows(u?.userId))
       .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
     userP.then(u => fetchCallSentiment(u?.userId))
-      .catch((): TxSignalResult<CallSentiment> => ({ rows: [], scope: 'org' })),
+      .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
   ]);
   const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
     .then(r => r.rows[0])
@@ -268,6 +268,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     segment: 'Wealth', action: 'Invest new cash — portfolio top-up',
   });
   const transactionSignals: CallItem[] = [...gongSignals, ...txSignals];
+  // S1 Health KPI — book count of negative + declining clients, with the real
+  // 8-week series behind the sparkline and a week-over-week delta.
+  const toneSeries = gong.weekly.map(w => w.count);
+  const toneNow = toneSeries.length ? toneSeries[toneSeries.length - 1] : gong.rows.length;
+  const tonePrev = toneSeries.length > 1 ? toneSeries[toneSeries.length - 2] : 0;
   const inflowTotal = inflows.rows.reduce((sum, r) => sum + r.amount, 0);
 
   const totalHeldAway = Number(heldTotal?.balance ?? held.rows.reduce((sum, r) => sum + Number(r.balance || 0), 0));
@@ -575,6 +580,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
       { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number', trend: seedTrend('cases', q?.Case?.totalCount ?? 0), note: 'Open cases' },
       { key: 'atRisk', label: '$5M+ Targets', value: highValue, format: 'number', trend: seedTrend('targets', Math.max(1, highValue)), deltaPct: 0.11, note: 'Consolidation' },
+      { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,

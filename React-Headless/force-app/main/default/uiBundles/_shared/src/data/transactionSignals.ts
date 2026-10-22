@@ -14,7 +14,7 @@
  * Also hosts S1 (all three apps), the Gong call-sentiment feed, because it plugs
  * into the queue and alerts the same way (see the bottom of this file).
  */
-import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
 
 const DAY = 86_400_000;
@@ -177,11 +177,34 @@ export interface CallSentiment {
   topics: string[];
 }
 
-/** S1 — book clients whose call sentiment is negative and declining this week. */
-export async function fetchCallSentiment(ownerId: string | null | undefined): Promise<TxSignalResult<CallSentiment>> {
+/** S1 result plus the book-wide Health KPI: distinct negative + declining clients
+ *  per week for the latest 8 `profile_week__c` snapshots (oldest → newest). */
+export interface CallSentimentResult extends TxSignalResult<CallSentiment> {
+  weekly: { week: string; count: number }[];
+}
+
+const callSentimentWeeklySql = (accountFilter: string) => `
+  SELECT profile_week__c AS week, COUNT(DISTINCT account_id__c) AS n
+  FROM BT_Gong_Call_Sentiment__dlm
+  WHERE overall_sentiment__c IN ('Negative', 'Very Negative')
+    AND sentiment_trend__c = 'Declining'
+    AND profile_week__c >= (SELECT MAX(profile_week__c) FROM BT_Gong_Call_Sentiment__dlm) - INTERVAL '49' DAY
+    AND account_id__c ${accountFilter}
+  GROUP BY profile_week__c
+  ORDER BY profile_week__c
+`;
+
+/** S1 — book clients whose call sentiment is negative and declining this week,
+ *  plus the weekly book count behind the Health KPI (same slice as the rows). */
+export async function fetchCallSentiment(ownerId: string | null | undefined): Promise<CallSentimentResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(callSentimentSql, ownerId, 8);
+  // The KPI is additive — if the trend query fails, the queue items still render.
+  const weekly = await queryDataCloud<Record<string, unknown>>(callSentimentWeeklySql(res.accountFilter), 10)
+    .then(r => r.rows.map(w => ({ week: isoDate(w.week), count: Number(w.n) || 0 })))
+    .catch(() => []);
   return {
     scope: res.scope,
+    weekly,
     rows: res.rows.map(r => ({
       accountId: String(r.account_id ?? ''),
       sentiment: r.sentiment === 'Very Negative' ? 'Very Negative' : 'Negative',
