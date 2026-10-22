@@ -63,6 +63,7 @@ import {
   type AiGenerateResult,
   type AiActionKey,
   type CommandCenterConfig,
+  DataFreshnessMeter,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1605,12 +1606,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
             </h1>
             <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
-                  <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
-                </div>
-                <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
-              </div>
+              <DataFreshnessMeter freshness={data.dataFreshness} fallbackPct={data.confidencePct} />
               <button
                 type="button"
                 onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}

@@ -67,6 +67,14 @@ const ORG_ACCOUNT_FILTER = "LIKE '001am%'";
  * there is no user or the book has no rows for this DMO (e.g. a business
  * banker opening the Wealth cockpit), and reports which scope it used.
  */
+/** The account filter for a banker's book, or the local-accounts filter when no
+ *  valid owner Id is given. For signals that must never widen to the whole org. */
+export function bookAccountFilter(ownerId: string | null | undefined): { accountFilter: string; scope: BookScope } {
+  return ownerId && SF_ID.test(ownerId)
+    ? { accountFilter: `IN (SELECT ssot__Id__c FROM ssot__Account__dlm WHERE ssot__OwnerId__c = '${ownerId}')`, scope: 'book' }
+    : { accountFilter: ORG_ACCOUNT_FILTER, scope: 'org' };
+}
+
 export async function queryDataCloudForBook<TRow = Record<string, unknown>>(
   build: (accountFilter: string) => string,
   ownerId: string | null | undefined,

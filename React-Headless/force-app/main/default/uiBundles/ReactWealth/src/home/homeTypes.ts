@@ -3,6 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
+import type { DataFreshness } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -248,4 +249,6 @@ export interface HomeDashboard {
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;
+  /** S8 — per-source as-of dates behind the hero meter (real data only). */
+  dataFreshness?: DataFreshness;
 }
