@@ -11,10 +11,10 @@
  */
 import { queryDataCloud } from './dataCloudClient';
 
-export type Cadence = 'live' | 'daily' | 'weekly' | 'monthly' | 'batch';
+export type Cadence = 'live' | 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'batch';
 
 /** Days a source may lag before it reads as stale. */
-const ALLOWANCE: Record<Cadence, number> = { live: Infinity, daily: 3, weekly: 10, monthly: 45, batch: 120 };
+const ALLOWANCE: Record<Cadence, number> = { live: Infinity, daily: 3, weekly: 10, monthly: 45, quarterly: 100, batch: 120 };
 
 const SOURCES = {
   transactions: { label: 'Transactions', cadence: 'daily', sql: 'MAX(ssot__TransactionDate__c) FROM ssot__FinancialAccountTransaction__dlm' },
@@ -26,6 +26,7 @@ const SOURCES = {
   offers: { label: 'Offer model', cadence: 'batch', sql: 'MAX(Start_Date__c) FROM Offer_Eligibility_Model__dlm' },
   csat: { label: 'CSAT scores', cadence: 'monthly', sql: 'MAX(score_date__c) FROM CSAT_Snowflake__dlm' },
   plaid: { label: 'Plaid held-away', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm' },
+  corelogic: { label: 'CoreLogic property', cadence: 'quarterly', sql: 'MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm' },
   dnb: { label: 'D&B credit', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_DNB_Business_Credit__dlm' },
 } satisfies Record<string, { label: string; cadence: Cadence; sql: string }>;
 

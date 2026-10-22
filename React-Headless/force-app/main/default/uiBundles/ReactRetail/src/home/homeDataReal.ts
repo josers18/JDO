@@ -18,12 +18,14 @@
  *     → queue + alerts
  *   · S7 open service drag: CRM + ServiceNow open cases (book-only) → Cases KPI
  *   · S8 data freshness per source → hero meter (replaces static confidence)
+ *   · R1 home equity (BT_Corelogic_Property__dlm): HELOC-ready owners → Growth KPI,
+ *     HELOC / refi leads → queue
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -228,7 +230,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness] = await Promise.all([
+  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
     userP,
@@ -251,8 +253,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
     userP.then(u => fetchServiceNowDrag(u?.userId))
       .catch((): ServiceNowDrag => ({ open: 0, aged: 0, scope: 'org' })),
-    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'csat'])
+    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'csat', 'corelogic'])
       .catch((): DataFreshness | undefined => undefined),
+    // R1 home equity (CoreLogic) — additive.
+    userP.then(u => fetchHomeEquity(u?.userId))
+      .catch((): HomeEquityResult => ({ rows: [], owners: 0, equity: 0, refi: 0, quarter: '', scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -261,7 +266,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve CSAT + inflow account IDs → names in one follow-up query
-  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (csatIds.length) {
     try {
@@ -302,7 +307,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   });
   // S6 — clients who clicked through a campaign: a warm follow-up.
   const campaignSignals: CallItem[] = campaignTouchQueueItems(touches, nameById, { segment: 'Retail' });
-  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals, ...campaignSignals];
+  // R1 — HELOC / refi leads from CoreLogic.
+  const equitySignals: CallItem[] = homeEquityQueueItems(equity, nameById, { segment: 'Retail' });
+  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals, ...campaignSignals, ...equitySignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -603,6 +610,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'atRisk', label: 'At-Risk Clients', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: 'Require attention' },
       { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
+      { key: 'homeEquity', label: 'Home Equity', value: equity.equity, format: 'currencyCompact', trend: seedTrend('homeEquity', Math.max(1, Math.round(equity.equity / 1e7))), note: equity.owners ? `${equity.owners.toLocaleString('en-US')} owners HELOC-ready · ${equity.refi.toLocaleString('en-US')} refi${equity.scope === 'org' ? ' · org-wide' : ''}` : 'No HELOC-ready owners in book' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,

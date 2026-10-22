@@ -1029,12 +1029,12 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   );
 
   // Growth-page variant: the book's upside in one row: pipeline, opportunities,
-  // leads and the S3 offer model's modeled uplift. Picked by key like the others.
-  const GROWTH_KEYS = ['pipeline', 'openOpps', 'leads', 'uplift'];
+  // leads, the S3 offer model's modeled uplift and R1 CoreLogic home equity. Picked by key like the others.
+  const GROWTH_KEYS = ['pipeline', 'openOpps', 'leads', 'uplift', 'homeEquity'];
   const growthKpis = GROWTH_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridGrowth = (
     <div className="@container/gkpis">
-    <div className="grid grid-cols-2 gap-3.5 @[700px]/gkpis:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3.5 @[560px]/gkpis:grid-cols-3 @[900px]/gkpis:grid-cols-5">
       {growthKpis.map(k => (
         <KpiCard
           key={k.key}
@@ -2302,6 +2302,7 @@ const KPI_TARGET: Record<string, string> = {
   atRisk: 'events',
   callTone: 'alerts',
   uplift: 'actions',
+  homeEquity: 'queue',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
@@ -2314,6 +2315,7 @@ const KPI_EXPLORER: Record<string, ExplorerKey> = {
   atRisk: 'atRisk',
   callTone: 'atRisk',
   openCases: 'atRisk',
+  homeEquity: 'atRisk',
 };
 
 /* ── CommandRail section id → drill-in explorer (cockpit view) ─────

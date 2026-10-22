@@ -87,7 +87,7 @@ first); choosing one is session-scoped (`sessionStorage`) and refetches the home
 
 | # | Data point | Source | Slot | Notes |
 |---|---|---|---|---|
-| R1 | **Home-equity opportunities**: HELOC score ≥ 70 with equity $ | `BT_Corelogic_Property__dlm` (latest Q: 10,375 / 25,424 ≥ 70) | Growth tab KPI + queue | `equity_usd__c`, `loan_to_value_pct__c`, `mortgage_rate_pct__c` (refi angle when rate is high) |
+| R1 | **Home-equity opportunities**: HELOC score ≥ 70 with equity $ | `BT_Corelogic_Property__dlm` (latest Q: 10,375 / 25,424 ≥ 70) | Growth tab KPI + queue | `equity_usd__c`, `loan_to_value_pct__c`, `mortgage_rate_pct__c` (refi angle when rate is high). ✅ Shipped 2026-10-22: "Home Equity" KPI (Growth strip + classic grid) = equity of book owners scoring 70+ on the latest `profile_quarter__c`. The queue gets four HELOC leads (mostly free and clear) interleaved with four refi leads (mortgaged at ≥ 6.5%). Follows View as. Live: Sarah 3,689 owners / $2.20B / 218 refi |
 | R2 | **Property-risk exposure**: clients in flood zone A/AE/V/VE or wildfire ≥ 70 | Same (4,535 flood, 3,390 wildfire) | Health tab / Alerts | Insurance cross-sell + proactive outreach after weather events |
 | R3 | **Financial-stress watchlist**: `financial_stress_indicator__c='High'` | `BT_Claritas_Demographics__dlm` (3,519 high-stress across life stages) | Health tab | Pair with S5 (balance drops) for retention outreach, framed as hardship support |
 | R4 | **Life-stage mix of my book** (donut) + mortgage/investment propensity | Claritas `life_stage__c`, `mortgage_propensity_score__c`, `investment_propensity_score__c` | Growth tab chart | "Young Families: 5,319, low wealth, high mortgage propensity" is how a banker plans the month |
