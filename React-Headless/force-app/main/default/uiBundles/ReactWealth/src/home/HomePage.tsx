@@ -998,7 +998,8 @@ function HomeContent() {
   // card carries the open-opportunity count in its note), freeing a slot for the
   // Leads & referrals vital. `openOpps` still lives in data.kpis for the classic
   // 5-KPI grid and pipelineNarrative().
-  const VITAL_KEYS = ['pipeline', 'leads', 'atRisk', 'goals'];
+  // W1 — held-away assets lead the vitals: the wealth book's biggest growth lever.
+  const VITAL_KEYS = ['heldAway', 'pipeline', 'leads', 'atRisk'];
   const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridVitals = (
     <div className="@container/vitals">
@@ -2146,6 +2147,7 @@ const KPI_TARGET: Record<string, string> = {
   atRisk: 'events',
   callTone: 'alerts',
   uplift: 'actions',
+  heldAway: 'queue',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
@@ -2158,6 +2160,7 @@ const KPI_EXPLORER: Record<string, ExplorerKey> = {
   atRisk: 'atRisk',
   callTone: 'atRisk',
   openCases: 'atRisk',
+  heldAway: 'atRisk',
 };
 
 /* ── CommandRail section id → drill-in explorer (cockpit view) ─────

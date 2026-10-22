@@ -20,12 +20,14 @@
  *   · S8 data freshness per source → hero meter (replaces static confidence)
  *   · R1 home equity (BT_Corelogic_Property__dlm): HELOC-ready owners → Growth KPI,
  *     HELOC / refi leads → queue
+ *   · R2 property-risk exposure (same DMO): flood zone A/AE/V/VE or wildfire 70+
+ *     → Health-tab exposure card + alerts
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -230,7 +232,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity] = await Promise.all([
+  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
     userP,
@@ -258,6 +260,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // R1 home equity (CoreLogic) — additive.
     userP.then(u => fetchHomeEquity(u?.userId))
       .catch((): HomeEquityResult => ({ rows: [], owners: 0, equity: 0, refi: 0, quarter: '', scope: 'org' })),
+    // R2 property-risk exposure (CoreLogic) — additive.
+    userP.then(u => fetchPropertyRisk(u?.userId))
+      .catch((): PropertyRiskResult => ({ rows: [], homes: 0, flood: 0, wildfire: 0, both: 0, homeValue: 0, mortgage: 0, scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -266,8 +271,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve CSAT + inflow account IDs → names in one follow-up query
-  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
+  const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
   if (csatIds.length) {
     try {
       const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(
@@ -602,6 +608,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     confidencePct: freshness?.pct ?? 87,
     dataSourceCount: freshness?.sources.length ?? 24,
     dataFreshness: freshness,
+    propertyRisk: {
+      ...propRisk,
+      rows: propRisk.rows.map(h => ({ ...h, clientName: nameById[h.accountId] ?? 'Client' })),
+    },
     kpis: [
       { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.041, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
       { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
@@ -620,6 +630,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     schedule,
     transactionSignals,
     alerts: [
+      // R2 — the most exposed homes (both hazards first, then value).
+      ...propRisk.rows.slice(0, 2).map((h, i) => ({
+        id: `ap${i}`, title: `Property risk — ${nameById[h.accountId] ?? 'Client'}`,
+        detail: `${propertyHazards(h)} · ${fmtUsd(h.value)} ${h.propertyType.toLowerCase() || 'home'}${h.mortgage ? ` · ${fmtUsd(h.mortgage)} mortgage` : ''} · Insurance review / proactive outreach`,
+        tone: 'risk' as const, severity: h.floodZone && h.wildfire >= 70 ? 'High' as const : 'Medium' as const, when: 'this quarter',
+      })),
       ...campaignSignals.slice(0, 2).map((t, i) => ({
         id: `am${i}`, title: `Campaign interest — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last touch',

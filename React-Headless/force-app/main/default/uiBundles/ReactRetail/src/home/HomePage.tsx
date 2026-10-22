@@ -64,6 +64,7 @@ import {
   type AiActionKey,
   type CommandCenterConfig,
   DataFreshnessMeter,
+  propertyHazards,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1337,6 +1338,51 @@ function HomeContent({ mode }: { mode: HomeMode }) {
     </div>
   );
 
+  // R2 — CoreLogic flood / wildfire exposure across the book (Health tab).
+  const risk = data.propertyRisk;
+  const propertyRiskCard = risk && risk.homes > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="alerts" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Property risk exposure</b>
+        <span className="font-mono text-[10.5px] text-faint">CoreLogic · latest quarter{risk.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {risk.homes.toLocaleString('en-US')} client homes sit in a high-risk flood zone or score 70+ on wildfire:{' '}
+          {formatValue(risk.homeValue, 'currencyCompact')} of property carrying {formatValue(risk.mortgage, 'currencyCompact')} of mortgage.
+          An insurance review / proactive check-in list, not a credit flag.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Flood zone" value={risk.flood.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Wildfire 70+" value={risk.wildfire.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Both" value={risk.both.toLocaleString('en-US')} tone="warn" />
+        </div>
+      </div>
+      {risk.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {risk.rows.map(h => (
+            <li key={h.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', h.clientName ?? 'Client', h.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{h.clientName}</span>
+                <span className={`font-mono text-[11px] ${h.floodZone && h.wildfire >= 70 ? 'text-risk' : 'text-warn'}`}>{propertyHazards(h)}</span>
+                <span className="w-[150px] flex-none text-right font-mono text-[11px] text-muted">
+                  {formatValue(h.value, 'currencyCompact')} {h.propertyType.toLowerCase() || 'home'}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   // ── Compact AI Daily Brief strip (cockpit only) ──
   // The mockup's brief is a single dense line — icon + "AI Daily Brief" +
   // "Updated" chip + one sentence + "View full insights →" — NOT the tall hero
@@ -1699,6 +1745,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       <section id="pulse" className="mt-4 scroll-mt-[82px]">
         {pulseStrip}
       </section>
+      {propertyRiskCard && (
+        <section id="propertyRisk" className="mt-4 scroll-mt-[82px]">
+          {propertyRiskCard}
+        </section>
+      )}
       <section id="alerts" className="mt-8 scroll-mt-[82px]">
         <SectionHead eyebrow="At-risk relationships · act now" title="Risk alerts" />
         {alertsBody}

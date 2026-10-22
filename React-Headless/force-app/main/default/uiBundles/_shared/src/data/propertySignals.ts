@@ -117,3 +117,98 @@ export function homeEquityQueueItems(
     dueDate: due,
   }));
 }
+
+/* ── R2 — property-risk exposure ─────────────────────────────────────
+   Owners on the latest quarter whose home sits in a FEMA high-risk flood zone
+   (A / AE / V / VE: 4,535 org-wide) or scores 70+ on wildfire (3,390). Homes
+   with both come first, then the largest home value. This is an insurance
+   cross-sell and proactive-outreach list ("check in after the storm"), not a
+   credit flag. Verified live 2026-10-22: Sarah Smith 2,019 homes (1,210 flood,
+   887 wildfire, 78 both), $1.49B value carrying $537M of mortgage. */
+const RISK_FLOOD = "flood_zone_code__c IN ('A', 'AE', 'V', 'VE')";
+const RISK_FIRE = 'wildfire_risk_score__c >= 70';
+const RISK_SLICE = `profile_quarter__c = (SELECT MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm)
+    AND is_owner__c = true AND (${RISK_FLOOD} OR ${RISK_FIRE})`;
+
+const riskRowsSql = (accountFilter: string) => `
+  SELECT account_id__c AS account_id, flood_zone_code__c AS flood_zone, wildfire_risk_score__c AS wildfire,
+         estimated_property_value__c AS value, outstanding_mortgage_balance__c AS mortgage,
+         primary_property_type__c AS property_type
+  FROM BT_Corelogic_Property__dlm
+  WHERE ${RISK_SLICE}
+    AND account_id__c ${accountFilter}
+  ORDER BY CASE WHEN ${RISK_FLOOD} AND ${RISK_FIRE} THEN 1 ELSE 0 END DESC, estimated_property_value__c DESC
+  LIMIT 6
+`;
+
+const riskSummarySql = (accountFilter: string) => `
+  SELECT COUNT(*) AS homes,
+         SUM(CASE WHEN ${RISK_FLOOD} THEN 1 ELSE 0 END) AS flood,
+         SUM(CASE WHEN ${RISK_FIRE} THEN 1 ELSE 0 END) AS wildfire,
+         SUM(CASE WHEN ${RISK_FLOOD} AND ${RISK_FIRE} THEN 1 ELSE 0 END) AS both_hazards,
+         SUM(estimated_property_value__c) AS home_value,
+         SUM(outstanding_mortgage_balance__c) AS mortgage
+  FROM BT_Corelogic_Property__dlm
+  WHERE ${RISK_SLICE}
+    AND account_id__c ${accountFilter}
+`;
+
+export interface PropertyRiskHome {
+  accountId: string;
+  /** FEMA zone when it's a high-risk one, else ''. */
+  floodZone: string;
+  wildfire: number;
+  value: number;
+  mortgage: number;
+  propertyType: string;
+  /** Resolved by the caller from its account-name lookup. */
+  clientName?: string;
+}
+
+export interface PropertyRiskResult {
+  rows: PropertyRiskHome[];
+  homes: number;
+  flood: number;
+  wildfire: number;
+  both: number;
+  homeValue: number;
+  mortgage: number;
+  scope: BookScope;
+}
+
+const HIGH_FLOOD = new Set(['A', 'AE', 'V', 'VE']);
+
+/** R2 — the book's flood / wildfire exposure: totals + the six most exposed homes. */
+export async function fetchPropertyRisk(ownerId: string | null | undefined): Promise<PropertyRiskResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(riskRowsSql, ownerId, 6);
+  const total = await queryDataCloud<Record<string, unknown>>(riskSummarySql(res.accountFilter), 1)
+    .then(r => r.rows[0] ?? {})
+    .catch((): Record<string, unknown> => ({}));
+  return {
+    scope: res.scope,
+    homes: Number(total.homes) || 0,
+    flood: Number(total.flood) || 0,
+    wildfire: Number(total.wildfire) || 0,
+    both: Number(total.both_hazards) || 0,
+    homeValue: Number(total.home_value) || 0,
+    mortgage: Number(total.mortgage) || 0,
+    rows: res.rows.map(r => {
+      const zone = String(r.flood_zone ?? '');
+      return {
+        accountId: String(r.account_id ?? ''),
+        floodZone: HIGH_FLOOD.has(zone) ? zone : '',
+        wildfire: Number(r.wildfire) || 0,
+        value: Number(r.value) || 0,
+        mortgage: Number(r.mortgage) || 0,
+        propertyType: String(r.property_type ?? ''),
+      };
+    }),
+  };
+}
+
+/** One-line hazard label, e.g. "Flood zone AE · wildfire 82". */
+export function propertyHazards(h: PropertyRiskHome): string {
+  return [h.floodZone && `Flood zone ${h.floodZone}`, h.wildfire >= 70 && `wildfire ${Math.round(h.wildfire)}`]
+    .filter(Boolean)
+    .join(' · ');
+}

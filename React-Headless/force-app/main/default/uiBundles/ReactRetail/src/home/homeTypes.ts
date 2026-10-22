@@ -3,7 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
-import type { DataFreshness } from '@shared';
+import type { DataFreshness, PropertyRiskResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -251,4 +251,6 @@ export interface HomeDashboard {
   dataSourceCount: number;
   /** S8 — per-source as-of dates behind the hero meter (real data only). */
   dataFreshness?: DataFreshness;
+  /** R2 — CoreLogic flood / wildfire exposure across the book (real data only). */
+  propertyRisk?: PropertyRiskResult;
 }

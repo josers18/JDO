@@ -18,6 +18,8 @@
  *     → queue + alerts
  *   · S7 open service drag: CRM + ServiceNow open cases (book-only) → Cases KPI
  *   · S8 data freshness per source → hero meter (replaces static confidence)
+ *   · W1 held-away opportunity: total brokerage + robo balance → lead vital KPI;
+ *     clients still contributing to the external account rank higher in the queue
  *
  * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
  * by the largest active held-away balances (the biggest consolidation
@@ -316,16 +318,19 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const heldAwayClients = Number(heldTotal?.clients ?? held.rows.length);
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
+  // W1 — money still flowing into the external account (monthly net contributions)
+  // is the live leak: it lifts the client in the queue and is called out in the reason.
   const callList: CallItem[] = held.rows.map((row, i) => {
     const bal = Number(row.balance || 0);
+    const flow = Number(row.net_flow || 0);
     return {
       id: `c${i}`,
       clientId: row.account_id,
       clientName: nameById[row.account_id] || row.account_id,
       segment: 'Private Wealth',
-      reason: `${(bal).toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} held away across ${Number(row.holdings || 1)} account${Number(row.holdings || 1) === 1 ? '' : 's'}, largest at ${row.institution || 'external institution'} (${row.acct_type || 'account'})`,
+      reason: `${(bal).toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} held away across ${Number(row.holdings || 1)} account${Number(row.holdings || 1) === 1 ? '' : 's'}, largest at ${row.institution || 'external institution'} (${row.acct_type || 'account'})${flow > 0 ? ` · +${flow.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}/mo still flowing out` : ''}`,
       action: 'Held-away consolidation review',
-      score: Math.min(1, bal / 8_000_000),
+      score: Math.min(1, bal / 8_000_000 + (flow > 0 ? Math.min(0.15, flow / 20_000) : 0)),
       severity: severityForBalance(bal),
       source: `Plaid held-away${scopeNote}`,
       relationshipValue: bal,
@@ -619,6 +624,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     dataSourceCount: freshness?.sources.length ?? 26,
     dataFreshness: freshness,
     kpis: [
+      { key: 'heldAway', label: 'Held-Away Opportunity', value: totalHeldAway, format: 'currencyCompact', trend: seedTrend('heldAway', Math.max(1, Math.round(totalHeldAway / 1e7))), note: heldAwayClients ? `${heldAwayClients.toLocaleString('en-US')} clients · brokerage + robo${scopeNote}` : 'No held-away assets in book' },
       { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.061, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
       { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
       { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
