@@ -1280,6 +1280,50 @@ function HomeContent() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const showRightNow = !!data.rightNow && !dismissed.has('rightNow');
+  // W4 — crypto-exchange + robo-advisor balances held away (growth insight).
+  const leak = data.digitalLeakage;
+  const leakageCard = leak && (leak.crypto.clients > 0 || leak.robo.clients > 0) && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Crypto &amp; robo leakage</b>
+        <span className="font-mono text-[10.5px] text-faint">Plaid held-away{leak.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {formatValue(leak.crypto.balance + leak.robo.balance, 'currencyCompact')} sits with crypto exchanges and robo-advisors,
+          with {formatValue(leak.crypto.inflow + leak.robo.inflow, 'currencyCompact')}/mo still flowing in. Open with a digital-asset
+          offering for crypto holders and a managed-account comparison for robo clients.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label={`Crypto · ${leak.crypto.clients.toLocaleString('en-US')}`} value={formatValue(leak.crypto.balance, 'currencyCompact')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`Robo · ${leak.robo.clients.toLocaleString('en-US')}`} value={formatValue(leak.robo.balance, 'currencyCompact')} />
+        </div>
+      </div>
+      {leak.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {leak.rows.map(r => (
+            <li key={`${r.kind}-${r.accountId}`}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="font-mono text-[11px] text-muted">
+                  {r.kind === 'crypto' ? 'Crypto' : 'Robo'} · {r.institution}
+                  {r.netFlow > 0 ? ` · +${formatValue(r.netFlow, 'currencyCompact')}/mo` : ''}
+                </span>
+                <span className="w-[80px] flex-none text-right font-mono text-[11px] text-fg">{formatValue(r.balance, 'currencyCompact')}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const briefStrip = (
     <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
@@ -1614,6 +1658,12 @@ function HomeContent() {
                 </ColumnCard>
               </div>
               </div>
+
+              {leakageCard && (
+                <section id="leakage" className="mt-4 scroll-mt-[82px]">
+                  {leakageCard}
+                </section>
+              )}
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
@@ -1648,6 +1698,11 @@ function HomeContent() {
           <section id="kpis" className="mt-8 scroll-mt-[82px]">
             {kpiGrid}
           </section>
+          {leakageCard && (
+            <section id="leakage" className="mt-4 scroll-mt-[82px]">
+              {leakageCard}
+            </section>
+          )}
 
           {/* ---------- TASKS & SCHEDULE ---------- */}
           <section id="schedule" className="mt-8 scroll-mt-[82px]">

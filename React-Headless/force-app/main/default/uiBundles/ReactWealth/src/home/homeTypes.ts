@@ -3,7 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
-import type { DataFreshness } from '@shared';
+import type { DataFreshness, DigitalLeakageResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -254,4 +254,6 @@ export interface HomeDashboard {
   /** W3 — MoneyGuidePro plan reviews due in the next 30 days (soonest first). */
   planReviews?: { clientId: string; clientName: string; date: string; successPct: number; goalUsd: number; stale: boolean }[];
   planReviewsDue?: number;
+  /** W4 — crypto-exchange + robo-advisor held-away balances (real data only). */
+  digitalLeakage?: DigitalLeakageResult;
 }

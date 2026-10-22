@@ -152,3 +152,78 @@ export async function fetchLeadershipChanges(ownerId: string | null | undefined)
     })),
   };
 }
+
+/* ── C4 — ESG movers (`BT_MSCI_ESG_Scores__dlm`, monthly by `profile_month__c`) ──
+   `last_rating_change_direction__c` Upgrade / Downgrade on the latest month.
+   Upgrades suit a sustainability-linked / green-loan pitch (ranked by overall
+   ESG score); downgrades are a credit-committee heads-up (ranked by controversy
+   flags). ⚠ Synthetic data: the direction flag doesn't always match the month-
+   over-month rating diff, so only the current rating is shown (no "from X").
+   Verified live 2026-10-22, Jose's book: 402 up / 356 down, 2,891+ with
+   controversy flags. */
+const ESG_LATEST = 'profile_month__c = (SELECT MAX(profile_month__c) FROM BT_MSCI_ESG_Scores__dlm)';
+const ESG_RANK = `CASE WHEN last_rating_change_direction__c = 'Upgrade' THEN esg_score_overall__c ELSE controversy_flag_count__c END`;
+
+const esgRowsSql = (accountFilter: string) => `
+  SELECT account_id, direction, rating, score, controversies, category FROM (
+    SELECT account_id__c AS account_id, last_rating_change_direction__c AS direction, msci_esg_rating__c AS rating,
+           esg_score_overall__c AS score, controversy_flag_count__c AS controversies,
+           top_controversy_category__c AS category,
+           ROW_NUMBER() OVER (PARTITION BY last_rating_change_direction__c ORDER BY ${ESG_RANK} DESC, esg_score_overall__c ASC) AS pn
+    FROM BT_MSCI_ESG_Scores__dlm
+    WHERE ${ESG_LATEST}
+      AND last_rating_change_direction__c IN ('Upgrade', 'Downgrade')
+      AND account_id__c ${accountFilter}
+  ) x
+  WHERE pn <= 3
+  ORDER BY pn, direction
+`;
+
+const esgSummarySql = (accountFilter: string) => `
+  SELECT SUM(CASE WHEN last_rating_change_direction__c = 'Upgrade' THEN 1 ELSE 0 END) AS up,
+         SUM(CASE WHEN last_rating_change_direction__c = 'Downgrade' THEN 1 ELSE 0 END) AS down,
+         SUM(CASE WHEN controversy_flag_count__c > 0 THEN 1 ELSE 0 END) AS controversies
+  FROM BT_MSCI_ESG_Scores__dlm
+  WHERE ${ESG_LATEST}
+    AND account_id__c ${accountFilter}
+`;
+
+export interface EsgMoverRow {
+  accountId: string;
+  direction: 'Upgrade' | 'Downgrade';
+  rating: string;
+  score: number;
+  controversies: number;
+  category: string;
+}
+
+export interface EsgMoversResult {
+  rows: EsgMoverRow[];
+  up: number;
+  down: number;
+  /** Accounts with 1+ controversy flags on the latest month. */
+  controversies: number;
+  scope: BookScope;
+}
+
+/** C4 — the book's MSCI ESG up/downgrades (top three each) plus counts. */
+export async function fetchEsgMovers(ownerId: string | null | undefined): Promise<EsgMoversResult> {
+  const res = await queryDataCloudForBook<Record<string, unknown>>(esgRowsSql, ownerId, 6);
+  const total = await queryDataCloud<Record<string, unknown>>(esgSummarySql(res.accountFilter), 1)
+    .then(r => r.rows[0] ?? {})
+    .catch((): Record<string, unknown> => ({}));
+  return {
+    scope: res.scope,
+    up: Number(total.up) || 0,
+    down: Number(total.down) || 0,
+    controversies: Number(total.controversies) || 0,
+    rows: res.rows.map(r => ({
+      accountId: String(r.account_id ?? ''),
+      direction: r.direction === 'Upgrade' ? 'Upgrade' as const : 'Downgrade' as const,
+      rating: String(r.rating ?? ''),
+      score: Number(r.score) || 0,
+      controversies: Number(r.controversies) || 0,
+      category: String(r.category ?? ''),
+    })),
+  };
+}

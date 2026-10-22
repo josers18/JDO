@@ -2202,6 +2202,7 @@ const KPI_TARGET: Record<string, string> = {
   uplift: 'actions',
   outlook: 'alerts',
   leadership: 'alerts',
+  esg: 'alerts',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

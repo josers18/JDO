@@ -31,6 +31,7 @@ const SOURCES = {
   moneyGuidePro: { label: 'MoneyGuidePro plans', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_MoneyGuidePro_Financial_Plans__dlm' },
   moodys: { label: "Moody's market context", cadence: 'daily', sql: 'MAX(profile_date__c) FROM BT_Moodys_Market_Context__dlm' },
   boardex: { label: 'BoardEx governance', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Boardex__dlm' },
+  msci: { label: 'MSCI ESG', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_MSCI_ESG_Scores__dlm' },
 } satisfies Record<string, { label: string; cadence: Cadence; sql: string }>;
 
 export type FreshnessSource = keyof typeof SOURCES;
