@@ -3,6 +3,9 @@
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal) → GraphQL
  *   · Data Cloud business credit (BT_DNB_Business_Credit__dlm) → DcBridgeRest,
  *     scoped to the signed-in banker's book (falls back to org-wide when empty)
+ *   · C1 credit-risk Who-to-Call: blended D&B risk index (failure score, PAYDEX,
+ *     delinquency predictor — all HIGHER = safer) → queue, alerts, Credit Watch KPI
+ *     counted over the whole book (Severe failure tier or PAYDEX < 60)
  *   · C9 business fee spikes (ssot__FinancialAccountTransaction__dlm), same
  *     book scoping — repeated NSF / late fees = cash-flow stress
  *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
@@ -174,23 +177,44 @@ function userNamesQuery(ids: string[]): string {
   }`;
 }
 
-/* ── Data Cloud: weakest business credit = "who to call" ──
+/* ── Data Cloud: weakest business credit = "who to call" (C1) ──
    BT_DNB_Business_Credit__dlm is a monthly snapshot — pin to the latest
-   profile_month. Rank by PAYDEX ascending, then delinquency-predictor
-   ascending (D&B scores it 1–100 where HIGHER = safer, so the riskiest
-   borrowers have the lowest values). */
+   profile_month. failure_risk_score__c, paydex_score__c and
+   delinquency_predictor_score__c are all 1–100 where HIGHER = safer (verified
+   2026-10-22: supplier_risk_level__c is a straight band of the failure score —
+   Severe 15–29, High 30–59, Moderate 60–79, Low 80–99; delinquency averages 63
+   on Severe vs 76 on Low). composite_risk_score__c runs the other way (1–4,
+   higher = riskier). Rank by a blended risk index, failure score weighted
+   heaviest, so Severe-tier borrowers with middling PAYDEX aren't buried. */
+const CREDIT_LATEST = 'profile_month__c = (SELECT MAX(profile_month__c) FROM BT_DNB_Business_Credit__dlm)';
 const creditRiskSql = (accountFilter: string) => `
-  SELECT account_id__c AS account_id, paydex_score__c AS paydex,
-         composite_risk_score__c AS composite_risk, delinquency_predictor_score__c AS delinquency,
-         dnb_rating__c AS rating, average_days_beyond_terms__c AS days_beyond
+  SELECT account_id__c AS account_id, paydex_score__c AS paydex, failure_risk_score__c AS failure,
+         supplier_risk_level__c AS tier, delinquency_predictor_score__c AS delinquency,
+         dnb_rating__c AS rating, average_days_beyond_terms__c AS days_beyond,
+         0.5 * (100 - failure_risk_score__c) + 0.3 * (100 - paydex_score__c)
+           + 0.2 * (100 - delinquency_predictor_score__c) AS risk_idx
   FROM BT_DNB_Business_Credit__dlm
-  WHERE profile_month__c = (SELECT MAX(profile_month__c) FROM BT_DNB_Business_Credit__dlm)
-    AND paydex_score__c IS NOT NULL AND account_id__c ${accountFilter}
-  ORDER BY paydex_score__c ASC, delinquency_predictor_score__c ASC
+  WHERE ${CREDIT_LATEST}
+    AND paydex_score__c IS NOT NULL AND failure_risk_score__c IS NOT NULL
+    AND account_id__c ${accountFilter}
+  ORDER BY risk_idx DESC
   LIMIT 8
 `;
 
-interface CreditRow { account_id: string; paydex: number; composite_risk: number; delinquency: number; rating: string; days_beyond: number; }
+interface CreditRow { account_id: string; paydex: number; failure: number; tier: string; delinquency: number; rating: string; days_beyond: number; risk_idx: number; }
+
+/** C1 — whole-book Credit Watch counts (the queue only carries the top eight). */
+const creditWatchSql = (accountFilter: string) => `
+  SELECT COUNT(*) AS scored,
+         SUM(CASE WHEN supplier_risk_level__c = 'Severe' OR paydex_score__c < 60 THEN 1 ELSE 0 END) AS watch,
+         SUM(CASE WHEN supplier_risk_level__c = 'Severe' THEN 1 ELSE 0 END) AS severe,
+         SUM(CASE WHEN supplier_risk_level__c = 'High' THEN 1 ELSE 0 END) AS high,
+         SUM(CASE WHEN paydex_score__c < 60 THEN 1 ELSE 0 END) AS late
+  FROM BT_DNB_Business_Credit__dlm
+  WHERE ${CREDIT_LATEST}
+    AND account_id__c ${accountFilter}
+`;
+interface CreditWatchRow { scored: number; watch: number; severe: number; high: number; late: number; }
 
 /* ── Data Cloud: book payment-behaviour bands (Delinquency Watch) ──
    Same D&B snapshot, bucketed by average days beyond terms — how late the
@@ -226,10 +250,11 @@ const sd = (n: Node, k: string) => decodeHtml(s(n, k));
 const relName = (n: Node, k: string): string =>
   String((n as Record<string, { Name?: { value?: unknown } } | undefined>)[k]?.Name?.value ?? '');
 
-/** Lower PAYDEX = higher risk. PAYDEX 80 = prompt payment; <50 = severely late. */
-function severityForPaydex(paydex: number): CallItem['severity'] {
-  if (paydex < 60) return 'high';
-  if (paydex < 75) return 'medium';
+/** Severe failure tier or PAYDEX < 60 (late payer) = high; High tier or
+ *  PAYDEX < 75 = medium. PAYDEX 80 = prompt payment. */
+function severityForCredit(tier: string, paydex: number): CallItem['severity'] {
+  if (tier === 'Severe' || paydex < 60) return 'high';
+  if (tier === 'High' || paydex < 75) return 'medium';
   return 'low';
 }
 
@@ -304,8 +329,17 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     userP.then(u => fetchMarketFootprint(u?.userId))
       .catch((): MarketFootprintResult => ({ rows: [], clients: 0, zips: 0, consolidate: 0, affluent: 0, avgWealthIndex: 0, avgFootTraffic: 0, avgDistanceMi: 0, scope: 'org' })),
   ]);
-  const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
-    .catch(() => ({ rows: [] as DelinqRow[] }));
+  const [delinq, watch] = await Promise.all([
+    queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
+      .catch(() => ({ rows: [] as DelinqRow[] })),
+    queryDataCloud<CreditWatchRow>(creditWatchSql(credit.accountFilter), 1)
+      .then(r => r.rows[0])
+      .catch(() => undefined),
+  ]);
+  const creditWatch = {
+    scored: Number(watch?.scored) || 0, watch: Number(watch?.watch) || 0,
+    severe: Number(watch?.severe) || 0, high: Number(watch?.high) || 0, late: Number(watch?.late) || 0,
+  };
   const scopeNote = credit.scope === 'org' ? ' · org-wide' : '';
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -353,18 +387,20 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const callList: CallItem[] = credit.rows.map((row, i) => {
     const paydex = Number(row.paydex || 0);
     const dbt = Number(row.days_beyond || 0);
+    const tier = String(row.tier || '');
+    const severity = severityForCredit(tier, paydex);
     return {
       id: `c${i}`,
       clientId: row.account_id,
       clientName: nameById[row.account_id] || row.account_id,
       segment: `D&B ${row.rating || 'unrated'}`,
-      reason: `PAYDEX ${Math.round(paydex)}${dbt ? `, ${Math.round(dbt)} days beyond terms` : ''}; delinquency score ${Math.round(Number(row.delinquency || 0))}`,
+      reason: `Failure score ${Math.round(Number(row.failure || 0))}${tier ? ` (${tier})` : ''} · PAYDEX ${Math.round(paydex)}${dbt ? `, ${Math.round(dbt)} days beyond terms` : ''} · delinquency score ${Math.round(Number(row.delinquency || 0))}`,
       action: 'Credit / covenant review',
-      score: 1 - Math.min(paydex, 100) / 100,
-      severity: severityForPaydex(paydex),
+      score: Math.min(1, Number(row.risk_idx || 0) / 100),
+      severity,
       source: `D&B credit${scopeNote}`,
       relationshipValue: 0,
-      tier: tierForSeverity(severityForPaydex(paydex)),
+      tier: tierForSeverity(severity),
     };
   });
 
@@ -549,7 +585,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     };
   });
 
-  const highRisk = callList.filter(c => c.severity === 'high').length;
+  const highRisk = creditWatch.watch;
 
   const delinqRows = delinq.rows ?? [];
   const delinquency: DelinquencyWatch | null = delinqRows.length ? {
@@ -660,7 +696,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
+    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 86,
     dataSourceCount: freshness?.sources.length ?? 25,
@@ -672,7 +708,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
       { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
       { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', trend: seedTrend('cases', openCases), note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
-      { key: 'atRisk', label: 'Credit Watch', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: 'PAYDEX < 60' },
+      { key: 'atRisk', label: 'Credit Watch', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), note: `${creditWatch.severe.toLocaleString('en-US')} Severe failure risk · ${creditWatch.late.toLocaleString('en-US')} PAYDEX < 60 · ${creditWatch.high.toLocaleString('en-US')} High tier${scopeNote}` },
       { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
       { key: 'outlook', label: 'Outlook Neg / Watch', value: outlook.negative + outlook.watch, format: 'number', trend: seedTrend('outlook', Math.max(1, outlook.negative + outlook.watch)), note: `${outlook.watch.toLocaleString('en-US')} Watch · ${outlook.negative.toLocaleString('en-US')} Negative · Moody's${outlook.scope === 'org' ? ' · org-wide' : ''}` },
