@@ -128,7 +128,10 @@ export async function fetchFinancialStress(ownerId: string | null | undefined): 
   };
 }
 
-/** R3 persistent-stress clients → queue: a hardship check-in. */
+/** Months High at which an overdraft-corroborated client still earns a check-in. */
+const CORROBORATED_MONTHS = 3;
+
+/** R3 persistent-stress clients, plus 3-month clients with overdraft fees → queue: a hardship check-in. */
 export function financialStressQueueItems(
   res: FinancialStressResult,
   nameById: Record<string, string>,
@@ -138,8 +141,8 @@ export function financialStressQueueItems(
   const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().slice(0, 10);
   const src = `Claritas stress${res.scope === 'org' ? ' · org-wide' : ''}`;
   return res.rows
-    .filter(r => r.monthsHigh >= PERSISTENT_MONTHS)
-    .slice(0, 3)
+    .filter(r => r.monthsHigh >= PERSISTENT_MONTHS || (r.overdraftFees > 0 && r.monthsHigh >= CORROBORATED_MONTHS))
+    .slice(0, 5)
     .map((r, i) => ({
       id: `fs${i}`,
       clientId: r.accountId,
