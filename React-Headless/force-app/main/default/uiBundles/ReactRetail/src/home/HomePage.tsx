@@ -65,6 +65,7 @@ import {
   type CommandCenterConfig,
   DataFreshnessMeter,
   propertyHazards,
+  PERSISTENT_MONTHS,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1383,6 +1384,52 @@ function HomeContent({ mode }: { mode: HomeMode }) {
     </div>
   );
 
+  // R3 — Claritas financial stress that has persisted, corroborated by overdraft fees (Health tab).
+  const stress = data.financialStress;
+  const financialStressCard = stress && stress.highNow > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="alerts" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Financial-stress watchlist</b>
+        <span className="font-mono text-[10.5px] text-faint">Claritas · last 6 months + overdraft fees 30d{stress.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {stress.highNow.toLocaleString('en-US')} clients are flagged high-stress this month, but the monthly flag churns;{' '}
+          {stress.persistent.toLocaleString('en-US')} have carried it {PERSISTENT_MONTHS}+ of the last 6 months.
+          {stress.lifeStages[0] ? ` Most are ${stress.lifeStages[0].stage} (${stress.lifeStages[0].count.toLocaleString('en-US')}).` : ''}{' '}
+          A hardship-support check-in list (relief options, fee waivers), not a collections flag.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="High now" value={stress.highNow.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`${PERSISTENT_MONTHS}+ months`} value={stress.persistent.toLocaleString('en-US')} tone="warn" />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="+ Overdraft" value={stress.withFees.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {stress.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {stress.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className={`font-mono text-[11px] ${r.monthsHigh >= PERSISTENT_MONTHS ? 'text-warn' : 'text-muted'}`}>
+                  High {r.monthsHigh}/6 mo{r.overdraftFees ? ` · ${r.overdraftFees} overdraft` : ''}
+                </span>
+                <span className="w-[150px] flex-none truncate text-right font-mono text-[11px] text-muted">{r.lifeStage}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   // ── Compact AI Daily Brief strip (cockpit only) ──
   // The mockup's brief is a single dense line — icon + "AI Daily Brief" +
   // "Updated" chip + one sentence + "View full insights →" — NOT the tall hero
@@ -1748,6 +1795,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       {propertyRiskCard && (
         <section id="propertyRisk" className="mt-4 scroll-mt-[82px]">
           {propertyRiskCard}
+        </section>
+      )}
+      {financialStressCard && (
+        <section id="financialStress" className="mt-4 scroll-mt-[82px]">
+          {financialStressCard}
         </section>
       )}
       <section id="alerts" className="mt-8 scroll-mt-[82px]">
