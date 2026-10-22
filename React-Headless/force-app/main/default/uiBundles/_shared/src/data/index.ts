@@ -27,6 +27,8 @@ export { fetchNextBestOffers, offerRecommendations, fetchModeledUplift, type Nex
 export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type CampaignTouchResult, type CampaignPersona } from './campaignTouches';
 export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
 export { getViewAs, setViewAs, useViewAs, fetchEffectiveUser, ownerScopedQuery, fetchBankers, type ViewAsUser } from './viewAs';
+export { fetchOutlookWatch, fetchLeadershipChanges, type OutlookResult, type OutlookRow, type LeadershipResult, type LeadershipRow } from './marketSignals';
+export { fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, type PlanRow } from './planSignals';
 export { fetchHomeEquity, homeEquityQueueItems, fetchPropertyRisk, propertyHazards, type HomeEquityResult, type HomeEquityLead, type PropertyRiskResult, type PropertyRiskHome } from './propertySignals';
 export { fetchServiceNowDrag, type ServiceNowDrag } from './serviceDrag';
 export { fetchDataFreshness, type DataFreshness, type SourceFreshness, type FreshnessSource, type Cadence } from './dataFreshness';

@@ -815,6 +815,20 @@ function HomeContent() {
       .map(p => `${p.clientName} · ${p.name} · ${p.stage} · ${Math.round(p.propensity * 100)}% · $${p.amount}`)
       .join('\n');
 
+  // W3 — MoneyGuidePro reviews coming due lead the prep chip.
+  const reviews = data.planReviews ?? [];
+  const reviewContext = () =>
+    reviews
+      .map(r => `Plan review ${r.date} · ${r.clientName} · success ${Math.round(r.successPct)}% · goals $${r.goalUsd}${r.stale ? ' · plan stale' : ''}`)
+      .join('\n');
+  const reviewFallback = () => {
+    if (!reviews.length) return '';
+    const lines = reviews.slice(0, 4).map(
+      r => `• ${r.clientName}: review ${new Date(`${r.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, plan at ${Math.round(r.successPct)}% success, ${formatValue(r.goalUsd, 'currencyCompact')} in goals${r.stale ? ' (plan stale, refresh assumptions first)' : ''}.`,
+    );
+    return `${(data.planReviewsDue ?? reviews.length).toLocaleString('en-US')} MoneyGuidePro plan reviews are due in the next 30 days. Soonest:\n${lines.join('\n')}`;
+  };
+
   const stalledFallback = () => {
     const stalled = data.pipeline.filter(p => p.propensity < 0.7).sort((a, b) => b.amount - a.amount).slice(0, 4);
     if (!stalled.length) return 'No stalled deals — every open opportunity is above a 70% propensity to close.';
@@ -880,8 +894,8 @@ function HomeContent() {
         queueContext(), queueFallback());
     } else if (key === 'prep') {
       openAi('pipeline_summary', 'Meetings needing prep',
-        'Which of today’s meetings and deals need the most preparation, and what should I focus on for each? 3-4 sentences.',
-        stalledContext(), stalledFallback());
+        'Which of today’s meetings, plan reviews and deals need the most preparation, and what should I focus on for each? 3-4 sentences.',
+        [reviewContext(), stalledContext()].filter(Boolean).join('\n'), [reviewFallback(), stalledFallback()].filter(Boolean).join('\n\n'));
     } else {
       openAi('queue_rationale', 'Which accounts need attention',
         'Which accounts need attention today and why? List the top 3-4 with the single most important reason for each.',
@@ -2136,7 +2150,7 @@ function HomeContent() {
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
 /** KPIs styled as risk metrics (red accent). */
-const RISK_KPIS = new Set(['atRisk', 'callTone']);
+const RISK_KPIS = new Set(['plansAtRisk', 'atRisk', 'callTone']);
 
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
@@ -2148,6 +2162,7 @@ const KPI_TARGET: Record<string, string> = {
   callTone: 'alerts',
   uplift: 'actions',
   heldAway: 'queue',
+  plansAtRisk: 'queue',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
@@ -2161,6 +2176,7 @@ const KPI_EXPLORER: Record<string, ExplorerKey> = {
   callTone: 'atRisk',
   openCases: 'atRisk',
   heldAway: 'atRisk',
+  plansAtRisk: 'atRisk',
 };
 
 /* ── CommandRail section id → drill-in explorer (cockpit view) ─────

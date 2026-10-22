@@ -2189,7 +2189,7 @@ function HomeContent() {
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
 /** KPIs styled as risk metrics (red accent). */
-const RISK_KPIS = new Set(['atRisk', 'callTone']);
+const RISK_KPIS = new Set(['outlook', 'atRisk', 'callTone']);
 
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
@@ -2200,6 +2200,8 @@ const KPI_TARGET: Record<string, string> = {
   atRisk: 'events',
   callTone: 'alerts',
   uplift: 'actions',
+  outlook: 'alerts',
+  leadership: 'alerts',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

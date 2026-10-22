@@ -251,4 +251,7 @@ export interface HomeDashboard {
   dataSourceCount: number;
   /** S8 — per-source as-of dates behind the hero meter (real data only). */
   dataFreshness?: DataFreshness;
+  /** W3 — MoneyGuidePro plan reviews due in the next 30 days (soonest first). */
+  planReviews?: { clientId: string; clientName: string; date: string; successPct: number; goalUsd: number; stale: boolean }[];
+  planReviewsDue?: number;
 }

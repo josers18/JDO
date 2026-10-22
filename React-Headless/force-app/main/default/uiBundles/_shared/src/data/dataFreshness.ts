@@ -28,6 +28,9 @@ const SOURCES = {
   plaid: { label: 'Plaid held-away', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm' },
   corelogic: { label: 'CoreLogic property', cadence: 'quarterly', sql: 'MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm' },
   dnb: { label: 'D&B credit', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_DNB_Business_Credit__dlm' },
+  moneyGuidePro: { label: 'MoneyGuidePro plans', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_MoneyGuidePro_Financial_Plans__dlm' },
+  moodys: { label: "Moody's market context", cadence: 'daily', sql: 'MAX(profile_date__c) FROM BT_Moodys_Market_Context__dlm' },
+  boardex: { label: 'BoardEx governance', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Boardex__dlm' },
 } satisfies Record<string, { label: string; cadence: Cadence; sql: string }>;
 
 export type FreshnessSource = keyof typeof SOURCES;

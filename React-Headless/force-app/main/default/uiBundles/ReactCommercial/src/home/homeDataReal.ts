@@ -20,13 +20,17 @@
  *     → queue + alerts
  *   · S7 open service drag: CRM + ServiceNow open cases (book-only) → Cases KPI
  *   · S8 data freshness per source → hero meter (replaces static confidence)
+ *   · C2 Moody's rating outlook (BT_Moodys_Market_Context__dlm): clients on a
+ *     Negative / Watch outlook → Health KPI + risk alerts
+ *   · C3 BoardEx leadership change (BT_Boardex__dlm): exec turnover with a recent
+ *     governance event → opportunity alerts; turnover on Weak governance → risk
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -244,7 +248,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
@@ -270,8 +274,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
     userP.then(u => fetchServiceNowDrag(u?.userId))
       .catch((): ServiceNowDrag => ({ open: 0, aged: 0, scope: 'org' })),
-    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'dnb'])
+    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'dnb', 'moodys', 'boardex'])
       .catch((): DataFreshness | undefined => undefined),
+    // C2 Moody's outlook + C3 BoardEx leadership change — additive.
+    userP.then(u => fetchOutlookWatch(u?.userId))
+      .catch((): OutlookResult => ({ rows: [], negative: 0, watch: 0, scope: 'org' })),
+    userP.then(u => fetchLeadershipChanges(u?.userId))
+      .catch((): LeadershipResult => ({ rows: [], turnover: 0, recent: 0, weak: 0, scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -282,7 +291,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -309,6 +318,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const receiptTotal = receipts.rows.reduce((sum, r) => sum + r.amount, 0);
   // S6 — clients who clicked through a campaign: a warm follow-up.
   const campaignSignals: CallItem[] = campaignTouchQueueItems(touches, nameById, { segment: 'Commercial' });
+  const shortDate = (iso: string) =>
+    iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const nameOf = (id: string) => nameById[id] || id;
   const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...txSignals, ...receiptSignals, ...campaignSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
@@ -639,6 +651,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'atRisk', label: 'Credit Watch', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: 'PAYDEX < 60' },
       { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
+      { key: 'outlook', label: 'Outlook Neg / Watch', value: outlook.negative + outlook.watch, format: 'number', trend: seedTrend('outlook', Math.max(1, outlook.negative + outlook.watch)), note: `${outlook.watch.toLocaleString('en-US')} Watch · ${outlook.negative.toLocaleString('en-US')} Negative · Moody's${outlook.scope === 'org' ? ' · org-wide' : ''}` },
+      { key: 'leadership', label: 'Leadership Changes', value: leadership.turnover, format: 'number', trend: seedTrend('leadership', Math.max(1, leadership.turnover)), note: `${leadership.recent.toLocaleString('en-US')} with a board event 90d · ${leadership.weak.toLocaleString('en-US')} on weak governance${leadership.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,
@@ -648,6 +662,23 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     schedule,
     transactionSignals,
     alerts: [
+      // C2 — Watch (review for downgrade) first, then Negative.
+      ...outlook.rows.slice(0, 2).map((o, i) => ({
+        id: `ao${i}`, title: `Outlook ${o.outlook} — ${nameOf(o.accountId)}`,
+        detail: `Moody's ${o.rating || 'rating'} · outlook ${o.outlook} since ${shortDate(o.since)}${o.flags ? ` · ${o.flags} agency flag${o.flags === 1 ? '' : 's'}` : ''}${o.px30 != null ? ` · price ${o.px30 > 0 ? '+' : ''}${o.px30.toFixed(1)}% 30d` : ''} · Credit review before the next renewal`,
+        tone: 'risk' as const, severity: o.outlook === 'Watch' ? 'High' as const : 'Medium' as const, when: 'current outlook',
+      })),
+      // C3 — new leadership = a banking-relationship review; weak governance = risk.
+      ...leadership.rows.filter(l => l.angle === 'opportunity').slice(0, 2).map((l, i) => ({
+        id: `al${i}`, title: `Leadership change — ${nameOf(l.accountId)}`,
+        detail: `Exec turnover · board event ${shortDate(l.eventDate)}${l.ceoTenureYears != null ? ` · CEO tenure ${l.ceoTenureYears.toFixed(1)}y` : ''}${l.director ? ` · key director ${l.director}` : ''} · Treasury-management intro to the new team`,
+        tone: 'opportunity' as const, severity: 'Medium' as const, when: shortDate(l.eventDate) || 'this quarter',
+      })),
+      ...leadership.rows.filter(l => l.angle === 'risk').slice(0, 1).map((l, i) => ({
+        id: `ar${i}`, title: `Leadership + weak governance — ${nameOf(l.accountId)}`,
+        detail: `Exec turnover on Weak governance${l.eventDate ? ` · board event ${shortDate(l.eventDate)}` : ''} · Flag for the credit committee`,
+        tone: 'risk' as const, severity: 'High' as const, when: shortDate(l.eventDate) || 'this quarter',
+      })),
       ...campaignSignals.slice(0, 2).map((t, i) => ({
         id: `am${i}`, title: `Campaign interest — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last touch',
