@@ -5,6 +5,15 @@ export {
   type QueueOppInput,
   type QueueTaskInput,
 } from './priorityQueue';
+export {
+  fetchLargeInflows,
+  fetchFeeSpikes,
+  inflowQueueItems,
+  feeSpikeQueueItems,
+  type LargeInflow,
+  type FeeSpike,
+  type TxSignalResult,
+} from './transactionSignals';
 export { queryDataCloud, queryDataCloudForBook, type DataCloudColumn, type DataCloudResult, type BookScope, type BookScopedResult } from './dataCloudClient';
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';

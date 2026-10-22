@@ -226,6 +226,8 @@ export interface HomeDashboard {
   aiBrief: string;
   kpis: HomeKpi[];
   callList: CallItem[];
+  /** Transaction-derived queue items (S5 inflows / C9 fee spikes) — carry their own dueDate. */
+  transactionSignals?: CallItem[];
   pipeline: PipelineItem[];
   bankerGoals: BankerGoal[];
   lifeEvents: LifeEventSignal[];

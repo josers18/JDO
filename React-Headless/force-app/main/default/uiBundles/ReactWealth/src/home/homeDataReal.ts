@@ -3,13 +3,15 @@
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal) → GraphQL
  *   · Data Cloud held-away capture (BT_Plaid_Held_Away__dlm) → DcBridgeRest,
  *     scoped to the signed-in advisor's book (falls back to org-wide when empty)
+ *   · S5 bonus / tax-refund inflows (ssot__FinancialAccountTransaction__dlm),
+ *     same book scoping — fresh cash = an investable-assets conversation
  *
  * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
  * by the largest active held-away balances (the biggest consolidation
  * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -224,10 +226,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The held-away query needs the advisor's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, held, currentUser] = await Promise.all([
+  const [core, held, currentUser, inflows] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
     userP,
+    // S5 is additive — a failed transaction query must not blank the page.
+    userP.then(u => fetchLargeInflows(u?.userId))
+      .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
   ]);
   const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
     .then(r => r.rows[0])
@@ -239,8 +244,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  // resolve held-away account IDs → names
-  const ids = [...new Set(held.rows.map(r => r.account_id).filter(Boolean))];
+  // resolve held-away + inflow account IDs → names
+  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -251,6 +256,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       }
     } catch { /* names best-effort; fall back to raw ID */ }
   }
+
+  // S5 — fresh bonus / tax-refund cash that could be put to work.
+  const transactionSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
+    segment: 'Wealth', action: 'Invest new cash — portfolio top-up',
+  });
+  const inflowTotal = inflows.rows.reduce((sum, r) => sum + r.amount, 0);
 
   const totalHeldAway = Number(heldTotal?.balance ?? held.rows.reduce((sum, r) => sum + Number(r.balance || 0), 0));
   const heldAwayClients = Number(heldTotal?.clients ?? held.rows.length);
@@ -548,7 +559,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'held-away assets within reach',
-    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
+    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}`,
     confidencePct: 89,
     dataSourceCount: 26,
     kpis: [
@@ -564,10 +575,17 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerGoals,
     lifeEvents,
     schedule,
-    alerts: callList.slice(0, 4).map((c, i) => ({
-      id: `a${i}`, title: `Held-away — ${c.clientName}`, detail: c.reason,
-      tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
-    })),
+    transactionSignals,
+    alerts: [
+      ...callList.slice(0, 4).map((c, i) => ({
+        id: `a${i}`, title: `Held-away — ${c.clientName}`, detail: c.reason,
+        tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
+      })),
+      ...transactionSignals.slice(0, 3).map((t, i) => ({
+        id: `ax${i}`, title: `New cash — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
+        tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : t.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this week',
+      })),
+    ],
     leads,
     recommendations,
     activity,

@@ -2,14 +2,15 @@
  * HOME app — REAL data implementation ("wired like today"):
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal, Lead, Account)
  *     → GraphQL (sdk.graphql)
- *   · Data Cloud (CSAT/NPS) → DcBridgeRest → ConnectApi.CdpQuery, scoped to
- *     the signed-in banker's book (falls back to org-wide when empty)
+ *   · Data Cloud (CSAT/NPS; S5 bonus / tax-refund inflows from
+ *     ssot__FinancialAccountTransaction) → DcBridgeRest → ConnectApi.CdpQuery,
+ *     scoped to the signed-in banker's book (falls back to org-wide when empty)
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchCurrentUser, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -208,10 +209,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The CSAT query needs the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, csat, currentUser] = await Promise.all([
+  const [core, csat, currentUser, inflows] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
     userP,
+    // S5 is additive — a failed transaction query must not blank the page.
+    userP.then(u => fetchLargeInflows(u?.userId))
+      .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -219,8 +223,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  // resolve CSAT account IDs → names in one follow-up query
-  const csatIds = [...new Set(csat.rows.map(r => r.account_id).filter(Boolean))];
+  // resolve CSAT + inflow account IDs → names in one follow-up query
+  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (csatIds.length) {
     try {
@@ -250,6 +254,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     relationshipValue: 0,
     tier: tierForSeverity(severityForCsat(Number(row.csat) || 0)),
   }));
+
+  // S5 — fresh bonus / tax-refund cash sitting in checking.
+  const transactionSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
+    segment: 'Retail', action: 'Idle-cash conversation — savings / CD',
+  });
+  const inflowTotal = inflows.rows.reduce((sum, r) => sum + r.amount, 0);
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -526,7 +536,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'your book at a glance',
-    aiBrief: `${callList.length} clients flagged by CSAT, ${highRisk} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
+    aiBrief: `${callList.length} clients flagged by CSAT, ${highRisk} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an idle-cash moment.` : ''}`,
     confidencePct: 87,
     dataSourceCount: 24,
     kpis: [
@@ -542,10 +552,17 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerGoals,
     lifeEvents,
     schedule,
-    alerts: callList.slice(0, 4).map((c, i) => ({
-      id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,
-      tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
-    })),
+    transactionSignals,
+    alerts: [
+      ...callList.slice(0, 4).map((c, i) => ({
+        id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,
+        tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
+      })),
+      ...transactionSignals.slice(0, 3).map((t, i) => ({
+        id: `ax${i}`, title: `Inflow — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
+        tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : t.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this week',
+      })),
+    ],
     leads,
     recommendations,
     activity,

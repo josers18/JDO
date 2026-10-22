@@ -323,7 +323,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   const queueItems = useMemo(
     () =>
       buildPriorityQueue({
-        primary: data?.callList ?? [],
+        primary: [...(data?.callList ?? []), ...(data?.transactionSignals ?? [])],
         opportunities: data?.pipeline ?? [],
         tasks: (data?.schedule ?? []).filter(it => it.bucket === 'overdue' || it.kind === 'task'),
       }) as CallItem[],

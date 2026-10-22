@@ -3,13 +3,15 @@
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal) → GraphQL
  *   · Data Cloud business credit (BT_DNB_Business_Credit__dlm) → DcBridgeRest,
  *     scoped to the signed-in banker's book (falls back to org-wide when empty)
+ *   · C9 business fee spikes (ssot__FinancialAccountTransaction__dlm), same
+ *     book scoping — repeated NSF / late fees = cash-flow stress
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchCurrentUser, fetchFeeSpikes, feeSpikeQueueItems, type TxSignalResult, type FeeSpike } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -221,10 +223,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // The D&B queries need the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   const userP = fetchCurrentUser();
-  const [core, credit, currentUser] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes] = await Promise.all([
     executeGraphQL<CoreShape>(HOME_CORE_QUERY),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
+    // C9 is additive — a failed transaction query must not blank the page.
+    userP.then(u => fetchFeeSpikes(u?.userId))
+      .catch((): TxSignalResult<FeeSpike> => ({ rows: [], scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -235,7 +240,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set(credit.rows.map(r => r.account_id).filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -248,6 +253,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   }
 
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
+
+  // C9 — operating accounts racking up NSF / overdraft / late fees.
+  const transactionSignals: CallItem[] = feeSpikeQueueItems(feeSpikes, nameById, { segment: 'Commercial' });
 
   const callList: CallItem[] = credit.rows.map((row, i) => {
     const paydex = Number(row.paydex || 0);
@@ -554,7 +562,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
+    aiBrief: `${callList.length} relationships flagged by D&B business credit, ${highRisk} with PAYDEX under 60 (covenant-review candidates). ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}`,
     confidencePct: 86,
     dataSourceCount: 25,
     kpis: [
@@ -570,10 +578,17 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerGoals,
     lifeEvents,
     schedule,
-    alerts: callList.slice(0, 4).map((c, i) => ({
-      id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,
-      tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
-    })),
+    transactionSignals,
+    alerts: [
+      ...callList.slice(0, 4).map((c, i) => ({
+        id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,
+        tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
+      })),
+      ...transactionSignals.slice(0, 3).map((t, i) => ({
+        id: `ax${i}`, title: `Fee spike — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
+        tone: 'risk' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 30d',
+      })),
+    ],
     leads,
     recommendations,
     activity,
