@@ -50,6 +50,7 @@ import {
   type IconKey,
   type RingTone,
   formatValue,
+  OWNER_ANGLE_LABEL,
   crmWrite,
   AiResultModal,
   DraftFollowupsModal,
@@ -1324,6 +1325,100 @@ function HomeContent() {
     </div>
   );
 
+  // W5 — trading pulse: eight weeks of confirmed USD buys vs sells, as of the
+  // latest trade (the stream is stale), plus the latest week's net sellers.
+  const tp = data.tradingPulse;
+  const tradeAsOf = tp?.asOf ? new Date(`${tp.asOf}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const tradingCard = tp && tp.weeks.length > 1 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Trading activity pulse</b>
+        <span className="font-mono text-[10.5px] text-faint">Confirmed USD trades{tp.scope === 'org' ? ' · org-wide' : ''}</span>
+        <span className="ml-auto rounded-full border border-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">As of {tradeAsOf}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <div className="flex min-w-[240px] flex-1 items-center gap-4">
+          <div className="flex flex-col gap-1">
+            <Sparkline points={tp.weeks.map(w => w.buys)} width={150} height={22} stroke="var(--wp-pos)" />
+            <Sparkline points={tp.weeks.map(w => w.sells)} width={150} height={22} stroke="var(--wp-neg)" />
+          </div>
+          <p className="min-w-0 flex-1 text-[13px] leading-snug text-muted">
+            Buys (green) vs sells (red) over {tp.weeks.length} trade weeks. The latest week was a net
+            {tp.net >= 0 ? ' buy' : ' sell'} of {formatValue(Math.abs(tp.net), 'currencyCompact')}; net sellers below raised cash to reinvest.
+          </p>
+        </div>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Buys · latest wk" value={formatValue(tp.buys, 'currencyCompact')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Sells · latest wk" value={formatValue(tp.sells, 'currencyCompact')} />
+        </div>
+      </div>
+      {tp.sellers.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {tp.sellers.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.trades} trade{r.trades === 1 ? '' : 's'}{r.instrument ? ` · ${r.instrument}` : ''}
+                </span>
+                <span className="w-[90px] flex-none text-right font-mono text-[11px] text-fg">net sold {formatValue(r.netSold, 'currencyCompact')}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // W6 — clients who own a business: liquidity-event / 401(k) / succession angle.
+  const bo = data.businessOwners;
+  const ownersCard = bo && bo.owners > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Business-owner clients</b>
+        <span className="font-mono text-[10.5px] text-faint">Relationship graph · ZoomInfo{bo.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {bo.owners.toLocaleString('en-US')} clients are majority owners of {bo.businesses.toLocaleString('en-US')} businesses
+          {bo.upmarket ? `, ${bo.upmarket.toLocaleString('en-US')} of them at $50M+ revenue` : ''}. Lead with liquidity-event planning for
+          the larger companies, a 401(k) for those with staff, and succession planning for the rest — and loop in the commercial RM.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Owners" value={bo.owners.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="$50M+ businesses" value={bo.upmarket.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {bo.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {bo.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.businessName}{r.revenueBand ? ` · ${r.revenueBand}` : ''}
+                </span>
+                <span className="w-[150px] flex-none text-right font-mono text-[11px] text-fg">{OWNER_ANGLE_LABEL[r.angle]}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const briefStrip = (
     <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
@@ -1664,6 +1759,16 @@ function HomeContent() {
                   {leakageCard}
                 </section>
               )}
+              {tradingCard && (
+                <section id="trading" className="mt-4 scroll-mt-[82px]">
+                  {tradingCard}
+                </section>
+              )}
+              {ownersCard && (
+                <section id="owners" className="mt-4 scroll-mt-[82px]">
+                  {ownersCard}
+                </section>
+              )}
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
@@ -1701,6 +1806,16 @@ function HomeContent() {
           {leakageCard && (
             <section id="leakage" className="mt-4 scroll-mt-[82px]">
               {leakageCard}
+            </section>
+          )}
+          {tradingCard && (
+            <section id="trading" className="mt-4 scroll-mt-[82px]">
+              {tradingCard}
+            </section>
+          )}
+          {ownersCard && (
+            <section id="owners" className="mt-4 scroll-mt-[82px]">
+              {ownersCard}
             </section>
           )}
 
@@ -2218,6 +2333,7 @@ const KPI_TARGET: Record<string, string> = {
   uplift: 'actions',
   heldAway: 'queue',
   plansAtRisk: 'queue',
+  bizOwners: 'owners',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

@@ -26,13 +26,19 @@
  *     governance event → opportunity alerts; turnover on Weak governance → risk
  *   · C4 MSCI ESG movers (BT_MSCI_ESG_Scores__dlm): upgrades → green-loan
  *     opportunity alerts, downgrades → credit-committee risk alerts + Health KPI
+ *   · C5 ZoomInfo firmographic mix (BT_Zoominfo_Firmographics__dlm): revenue /
+ *     employee bands of the book, $50M+ clients called out with a tech-stack
+ *     treasury pitch → growth card + Growth KPI
+ *   · C6 owner-wealth handoff (relationship graph BUSINESS_OWNER + Claritas on
+ *     the owner): owners of my business clients, richest first → Leads rows
+ *     referring them to Wealth + opportunity alerts
  *
  * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
  * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
  * likely to need a covenant or credit review). Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -250,7 +256,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg] = await Promise.all([
+  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP,
@@ -276,7 +282,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
     userP.then(u => fetchServiceNowDrag(u?.userId))
       .catch((): ServiceNowDrag => ({ open: 0, aged: 0, scope: 'org' })),
-    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'dnb', 'moodys', 'boardex', 'msci'])
+    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'dnb', 'moodys', 'boardex', 'msci', 'zoominfo'])
       .catch((): DataFreshness | undefined => undefined),
     // C2 Moody's outlook + C3 BoardEx leadership change — additive.
     userP.then(u => fetchOutlookWatch(u?.userId))
@@ -286,6 +292,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // C4 MSCI ESG movers — additive.
     userP.then(u => fetchEsgMovers(u?.userId))
       .catch((): EsgMoversResult => ({ rows: [], up: 0, down: 0, controversies: 0, scope: 'org' })),
+    // C5 ZoomInfo growth-tier mix + C6 owner-wealth handoffs — additive.
+    userP.then(u => fetchFirmographicMix(u?.userId))
+      .catch((): FirmographicMixResult => ({ revenue: [], employees: [], total: 0, upmarket: 0, rows: [], scope: 'org' })),
+    userP.then(u => fetchOwnerWealthHandoffs(u?.userId))
+      .catch((): OwnerHandoffResult => ({ rows: [], owners: 0, millionaires: 0, scope: 'org' })),
   ]);
   const delinq = await queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
     .catch(() => ({ rows: [] as DelinqRow[] }));
@@ -296,7 +307,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId), ...esg.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId), ...esg.rows.map(r => r.accountId), ...firmo.rows.map(r => r.accountId), ...handoffs.rows.map(r => r.businessId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -648,6 +659,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     confidencePct: freshness?.pct ?? 86,
     dataSourceCount: freshness?.sources.length ?? 25,
     dataFreshness: freshness,
+    firmographics: { ...firmo, rows: firmo.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     kpis: [
       { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.051, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
       { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
@@ -659,6 +671,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'outlook', label: 'Outlook Neg / Watch', value: outlook.negative + outlook.watch, format: 'number', trend: seedTrend('outlook', Math.max(1, outlook.negative + outlook.watch)), note: `${outlook.watch.toLocaleString('en-US')} Watch · ${outlook.negative.toLocaleString('en-US')} Negative · Moody's${outlook.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'leadership', label: 'Leadership Changes', value: leadership.turnover, format: 'number', trend: seedTrend('leadership', Math.max(1, leadership.turnover)), note: `${leadership.recent.toLocaleString('en-US')} with a board event 90d · ${leadership.weak.toLocaleString('en-US')} on weak governance${leadership.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'esg', label: 'ESG Movers', value: esg.up + esg.down, format: 'number', trend: seedTrend('esg', Math.max(1, esg.up + esg.down)), note: `${esg.up.toLocaleString('en-US')} up · ${esg.down.toLocaleString('en-US')} down · ${esg.controversies.toLocaleString('en-US')} with controversies · MSCI${esg.scope === 'org' ? ' · org-wide' : ''}` },
+      { key: 'upmarket', label: 'Upmarket Clients', value: firmo.upmarket, format: 'number', trend: seedTrend('upmarket', Math.max(1, firmo.upmarket)), note: firmo.total ? `$50M+ revenue of ${firmo.total.toLocaleString('en-US')} profiled · ZoomInfo${firmo.scope === 'org' ? ' · org-wide' : ''}` : 'No ZoomInfo profiles in book' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,
@@ -668,6 +681,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     schedule,
     transactionSignals,
     alerts: [
+      ...handoffs.rows.slice(0, 2).map((h, i) => ({
+        id: `aoh${i}`, title: `Owner wealth — ${h.ownerName}`,
+        detail: `Majority owner of ${nameById[h.businessId] || 'a business client'} · ${h.netWorthBand || 'net worth n/a'} est. net worth · wealth propensity ${Math.round(h.wealthScore)} · ${h.lifeStage} · refer to Wealth`,
+        tone: 'opportunity' as const, severity: h.netWorthBand === '$5M+' ? 'High' as const : 'Medium' as const, when: 'relationship graph',
+      })),
       // C2 — Watch (review for downgrade) first, then Negative.
       ...outlook.rows.slice(0, 2).map((o, i) => ({
         id: `ao${i}`, title: `Outlook ${o.outlook} — ${nameOf(o.accountId)}`,
@@ -722,7 +740,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       })),
     ],
     // S4 warm intros alternate with CRM leads; the KPI above still counts Leads only.
-    leads: interleave(leads, warmIntroLeads(intros, nameById)),
+    // C6 owner handoffs alternate with S4 warm intros, then with CRM leads.
+    leads: interleave(leads, interleave(ownerHandoffLeads(handoffs, nameById), warmIntroLeads(intros, nameById))),
     // S3 model offers lead so they survive the cockpit's reveal cap.
     recommendations: [...offerRecommendations(offers, nameById), ...recommendations],
     activity,

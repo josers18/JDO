@@ -26,13 +26,17 @@
  *     "What meetings need prep?" chip; stale plans counted on the KPI note
  *   · W4 crypto & robo leakage (Plaid held-away, Crypto Exchange / Robo-Advisor)
  *     → digital-assets insight card under the queue
+ *   · W5 trading pulse (Financial_Trades__dlm, confirmed USD): eight weeks of
+ *     buys vs sells "as of" the latest trade → card; net sellers → reinvest queue
+ *   · W6 business-owner clients (relationship graph BUSINESS_OWNER + ZoomInfo on
+ *     the business): liquidity-event / 401(k) / succession angle → growth card + KPI
  *
  * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
  * by the largest active held-away balances (the biggest consolidation
  * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -253,7 +257,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, held, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage] = await Promise.all([
+  const [core, held, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
     userP,
@@ -276,7 +280,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
     userP.then(u => fetchServiceNowDrag(u?.userId))
       .catch((): ServiceNowDrag => ({ open: 0, aged: 0, scope: 'org' })),
-    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'plaid', 'moneyGuidePro'])
+    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'plaid', 'moneyGuidePro', 'trades'])
       .catch((): DataFreshness | undefined => undefined),
     // W2 / W3 MoneyGuidePro plan health — additive.
     userP.then(u => fetchPlanHealth(u?.userId))
@@ -284,6 +288,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // W4 crypto + robo held-away — additive.
     userP.then(u => fetchDigitalLeakage(u?.userId))
       .catch((): DigitalLeakageResult => ({ rows: [], crypto: { clients: 0, balance: 0, inflow: 0 }, robo: { clients: 0, balance: 0, inflow: 0 }, scope: 'org' })),
+    // W5 trading pulse — additive; the stream is stale, so the card shows its as-of.
+    userP.then(u => fetchTradingPulse(u?.userId))
+      .catch((): TradingPulseResult => ({ weeks: [], asOf: '', buys: 0, sells: 0, net: 0, sellers: [], scope: 'org' })),
+    // W6 business-owner clients — additive.
+    userP.then(u => fetchBusinessOwners(u?.userId))
+      .catch((): BusinessOwnersResult => ({ rows: [], owners: 0, businesses: 0, upmarket: 0, scope: 'org' })),
   ]);
   const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
     .then(r => r.rows[0])
@@ -296,7 +306,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve held-away + inflow account IDs → names
-  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -321,7 +331,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // W2 — plans below 70% Monte Carlo success; W3 — plan reviews coming due.
   const planRiskSignals: CallItem[] = planRiskQueueItems(plans, nameById, { segment: 'Wealth' });
   const reviewSignals: CallItem[] = planReviewQueueItems(plans, nameById, { segment: 'Wealth' });
-  const transactionSignals: CallItem[] = [...amlSignals, ...planRiskSignals, ...gongSignals, ...txSignals, ...campaignSignals, ...reviewSignals];
+  // W5 — net sellers in the latest trade week: cash raised, ready to reinvest.
+  const sellerSignals: CallItem[] = netSellerQueueItems(trades, nameById, { segment: 'Wealth' });
+  const transactionSignals: CallItem[] = [...amlSignals, ...planRiskSignals, ...gongSignals, ...txSignals, ...campaignSignals, ...reviewSignals, ...sellerSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -644,6 +656,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       date: r.nextReview, successPct: r.successPct, goalUsd: r.goalUsd, stale: r.stale,
     })),
     planReviewsDue: plans.due30,
+    businessOwners: { ...owners, rows: owners.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
+    tradingPulse: { ...trades, sellers: trades.sellers.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     digitalLeakage: { ...leakage, rows: leakage.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     kpis: [
       { key: 'heldAway', label: 'Held-Away Opportunity', value: totalHeldAway, format: 'currencyCompact', trend: seedTrend('heldAway', Math.max(1, Math.round(totalHeldAway / 1e7))), note: heldAwayClients ? `${heldAwayClients.toLocaleString('en-US')} clients · brokerage + robo${scopeNote}` : 'No held-away assets in book' },
@@ -655,6 +669,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
       { key: 'plansAtRisk', label: 'Plans at Risk', value: plans.atRisk, format: 'number', trend: seedTrend('plansAtRisk', Math.max(1, plans.atRisk)), note: plans.plans ? `< 70% success · ${plans.critical.toLocaleString('en-US')} below 50% · ${plans.due30.toLocaleString('en-US')} reviews due 30d · ${plans.stale.toLocaleString('en-US')} stale${plans.scope === 'org' ? ' · org-wide' : ''}` : 'No MoneyGuidePro plans in book' },
+      { key: 'bizOwners', label: 'Business Owners', value: owners.owners, format: 'number', trend: seedTrend('bizOwners', Math.max(1, owners.owners)), note: owners.owners ? `${owners.businesses.toLocaleString('en-US')} businesses · ${owners.upmarket.toLocaleString('en-US')} at $50M+ · relationship graph${owners.scope === 'org' ? ' · org-wide' : ''}` : 'No business owners in book' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,

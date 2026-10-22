@@ -1317,6 +1317,69 @@ function HomeContent() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const showRightNow = !!data.rightNow && !dismissed.has('rightNow');
+  // C5 — ZoomInfo growth-tier mix: revenue bands of the book (upmarket $50M+
+  // highlighted) with the top upmarket clients and a tech-stack treasury pitch.
+  const firmo = data.firmographics;
+  const firmoMax = Math.max(1, ...(firmo?.revenue.map(b => b.count) ?? []));
+  const UPMARKET_BANDS = new Set(['$50M-$200M', '$200M-$1B', '$1B+']);
+  const firmoCard = firmo && firmo.total > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Growth-tier mix</b>
+        <span className="font-mono text-[10.5px] text-faint">ZoomInfo firmographics{firmo.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-start gap-x-6 gap-y-3">
+        <ul className="min-w-[260px] flex-1 space-y-1">
+          {firmo.revenue.map(b => {
+            const up = UPMARKET_BANDS.has(b.band);
+            return (
+              <li key={b.band} className="flex items-center gap-2.5">
+                <span className={`w-[84px] flex-none font-mono text-[11px] ${up ? 'font-semibold text-fg' : 'text-muted'}`}>{b.band}</span>
+                <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-line/60">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{ width: `${Math.max(2, (100 * b.count) / firmoMax)}%`, background: up ? 'var(--wp-accent)' : 'var(--wp-text-muted)', opacity: up ? 1 : 0.35 }}
+                  />
+                </span>
+                <span className="w-[52px] flex-none text-right font-mono text-[11px] text-fg">{b.count.toLocaleString('en-US')}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Upmarket $50M+" value={firmo.upmarket.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Profiled" value={firmo.total.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {firmo.employees.length > 0 && (
+        <p className="mt-2 font-mono text-[10.5px] text-faint">
+          Employees · {firmo.employees.map(b => `${b.band}: ${b.count.toLocaleString('en-US')}`).join(' · ')}
+        </p>
+      )}
+      {firmo.rows.length > 0 ? (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {firmo.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">{r.pitch || (r.tech.length ? r.tech.join(', ') : 'No tech-stack signal')}</span>
+                <span className="w-[86px] flex-none text-right font-mono text-[11px] text-fg">{r.revenueBand}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 border-t border-line pt-2 text-[12.5px] text-muted">No $50M+ clients in this book — the mix is small-business heavy.</p>
+      )}
+    </div>
+  );
+
   const briefStrip = (
     <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
@@ -1651,6 +1714,12 @@ function HomeContent() {
                 </ColumnCard>
               </div>
               </div>
+
+              {firmoCard && (
+                <section id="firmographics" className="mt-4 scroll-mt-[82px]">
+                  {firmoCard}
+                </section>
+              )}
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
@@ -1687,6 +1756,11 @@ function HomeContent() {
           <section id="kpis" className="mt-8 scroll-mt-[82px]">
             {kpiGrid}
           </section>
+          {firmoCard && (
+            <section id="firmographics" className="mt-4 scroll-mt-[82px]">
+              {firmoCard}
+            </section>
+          )}
 
           {/* ---------- TASKS & SCHEDULE ---------- */}
           <section id="schedule" className="mt-8 scroll-mt-[82px]">
@@ -2203,6 +2277,7 @@ const KPI_TARGET: Record<string, string> = {
   outlook: 'alerts',
   leadership: 'alerts',
   esg: 'alerts',
+  upmarket: 'firmographics',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */

@@ -3,7 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
-import type { DataFreshness, DigitalLeakageResult } from '@shared';
+import type { DataFreshness, DigitalLeakageResult, TradingPulseResult, BusinessOwnersResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -256,4 +256,8 @@ export interface HomeDashboard {
   planReviewsDue?: number;
   /** W4 — crypto-exchange + robo-advisor held-away balances (real data only). */
   digitalLeakage?: DigitalLeakageResult;
+  /** W5 — weekly buys vs sells + latest-week net sellers (real data only). */
+  tradingPulse?: TradingPulseResult;
+  /** W6 — clients who own a business, with the business's ZoomInfo band (real data only). */
+  businessOwners?: BusinessOwnersResult;
 }
