@@ -11,6 +11,9 @@
  *
  * Held-away balance is the opportunity (consolidation); the rest are risks. Every
  * row names its drivers, and the action follows the strongest one.
+ *
+ * Concentrated clients are usually single-driver and rank ~800th, so the book's
+ * most concentrated client takes the eighth slot when the score leaves them out.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSeverity, QueueSignalItem } from './priorityQueue';
@@ -97,8 +100,15 @@ const ctes = (accountFilter: string) => `
     LEFT JOIN k ON k.acct = ids.acct
   )`;
 
-const rowsSql = (accountFilter: string) => `${ctes(accountFilter)}
-  SELECT * FROM b ORDER BY score DESC LIMIT 8
+// rk = rank by score; crk = rank by concentration among concentrated clients. The
+// top 8 plus the book's most concentrated client (a ninth row when it ranks lower).
+const rowsSql = (accountFilter: string) => `${ctes(accountFilter)},
+  r AS (
+    SELECT b.*, ROW_NUMBER() OVER (ORDER BY score DESC) AS rk,
+           ROW_NUMBER() OVER (PARTITION BY CASE WHEN conc IS NULL THEN 0 ELSE 1 END ORDER BY conc DESC) AS crk
+    FROM b
+  )
+  SELECT * FROM r WHERE rk <= 8 OR (conc IS NOT NULL AND crk = 1) ORDER BY rk LIMIT 9
 `;
 
 const summarySql = (accountFilter: string) => `${ctes(accountFilter)}
@@ -146,7 +156,9 @@ const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').repl
 
 /** W9 — the book's blended Who-to-Call list. */
 export async function fetchWealthWhoToCall(ownerId: string | null | undefined): Promise<WealthWhoToCallResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 8);
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 9);
+  // Reserve the last slot for the most concentrated client when the score alone leaves them out.
+  const raw = res.rows.length > 8 ? [...res.rows.slice(0, 7), res.rows[8]] : res.rows;
   const total = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
     .then(r => r.rows[0] ?? {})
     .catch((): Record<string, unknown> => ({}));
@@ -154,7 +166,7 @@ export async function fetchWealthWhoToCall(ownerId: string | null | undefined): 
     scope: res.scope,
     clients: Number(total.clients) || res.rows.length,
     multiSignal: Number(total.multi) || 0,
-    rows: res.rows.map(r => {
+    rows: raw.map(r => {
       const heldAway = n(r.held);
       const monthlyFlow = n(r.flow);
       const planSuccess = n(r.success);
