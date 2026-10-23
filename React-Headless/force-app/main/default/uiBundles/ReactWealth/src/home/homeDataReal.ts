@@ -35,12 +35,14 @@
  *   · W8 holdings concentration (ssot__FinancialHolding__dlm, FinServ source): a
  *     single stock ≥ 20% of a client's holdings → card, risk KPI, diversification queue
  *
- * The persona signal is HELD-AWAY: the advisor's "who to call" ranks accounts
- * by the largest active held-away balances (the biggest consolidation
- * opportunities). Field names + DMO columns verified live against jdo-oe0sdd
+ *   · W9 blended Who-to-Call: held-away + outflow, W2 plans, Gong, W8 concentration
+ *     → one weighted score per client, driver tags on each row
+ *
+ * The persona signal is HELD-AWAY: it anchors the vital KPI and is the
+ * opportunity driver in the blended "who to call" score. Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -229,17 +231,6 @@ const sd = (n: Node, k: string) => decodeHtml(s(n, k));
 const relName = (n: Node, k: string): string =>
   String((n as Record<string, { Name?: { value?: unknown } } | undefined>)[k]?.Name?.value ?? '');
 
-function severityForBalance(balance: number): CallItem['severity'] {
-  if (balance >= 5_000_000) return 'high';
-  if (balance >= 1_000_000) return 'medium';
-  return 'low';
-}
-
-/** Map a call item's severity to its priority-queue tier. */
-function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
-  return sev === 'high' ? 'today' : sev === 'medium' ? 'week' : 'watch';
-}
-
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
@@ -261,9 +252,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, held, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades, concentration] = await Promise.all([
+  const [core, held, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades, concentration] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
+    userP.then(u => fetchWealthWhoToCall(u?.userId)),
     userP,
     // S5 is additive — a failed transaction query must not blank the page.
     userP.then(u => fetchLargeInflows(u?.userId))
@@ -316,7 +308,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve held-away + inflow account IDs → names
-  const ids = [...new Set([...held.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId), ...upgrades.rows.map(r => r.accountId), ...concentration.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId), ...upgrades.rows.map(r => r.accountId), ...concentration.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -359,25 +351,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const heldAwayClients = Number(heldTotal?.clients ?? held.rows.length);
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
-  // W1 — money still flowing into the external account (monthly net contributions)
-  // is the live leak: it lifts the client in the queue and is called out in the reason.
-  const callList: CallItem[] = held.rows.map((row, i) => {
-    const bal = Number(row.balance || 0);
-    const flow = Number(row.net_flow || 0);
-    return {
-      id: `c${i}`,
-      clientId: row.account_id,
-      clientName: nameById[row.account_id] || row.account_id,
-      segment: 'Private Wealth',
-      reason: `${(bal).toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} held away across ${Number(row.holdings || 1)} account${Number(row.holdings || 1) === 1 ? '' : 's'}, largest at ${row.institution || 'external institution'} (${row.acct_type || 'account'})${flow > 0 ? ` · +${flow.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}/mo still flowing out` : ''}`,
-      action: 'Held-away consolidation review',
-      score: Math.min(1, bal / 8_000_000 + (flow > 0 ? Math.min(0.15, flow / 20_000) : 0)),
-      severity: severityForBalance(bal),
-      source: `Plaid held-away${scopeNote}`,
-      relationshipValue: bal,
-      tier: tierForSeverity(severityForBalance(bal)),
-    };
-  });
+  // W9 — the blended Who-to-Call: held-away balance + outflow, plans at risk,
+  // souring Gong calls and single-stock concentration, one score per client.
+  const callList: CallItem[] = wealthWhoToCallItems(who, nameById, { segment: 'Private Wealth' });
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -560,7 +536,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     };
   });
 
-  const highValue = callList.filter(c => c.severity === 'high').length;
+  const highValue = held.rows.filter(r => Number(r.balance || 0) >= 5_000_000).length;
+  const highRisk = callList.filter(c => c.severity === 'high').length;
 
   // ── Recommendations — derived defensively (never throws). Sources:
   //   open Task · top Opportunity · highest-value Account · largest held-away.
@@ -596,12 +573,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       evidence: 'High-value household with sparse recent engagement history',
     });
   }
-  const topHeldAway = callList[0];
+  const topHeldAway = callList.find(c => c.action === 'Held-away consolidation review');
   if (topHeldAway) {
     recommendations.push({
       id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: topHeldAway.clientName, clientId: topHeldAway.clientId,
       title: `Open a consolidation case for ${topHeldAway.clientName}`,
-      body: 'The largest held-away balance in your book is a live consolidation opportunity. Log a case to track the outreach and required paperwork.',
+      body: 'A top-ranked held-away balance in your book is a live consolidation opportunity. Log a case to track the outreach and required paperwork.',
       evidence: topHeldAway.reason,
     });
   }
@@ -659,7 +636,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'held-away assets within reach',
-    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}`,
+    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${who.clients.toLocaleString('en-US')} clients scored for who to call (held away, plans, Gong, concentration), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 89,
     dataSourceCount: freshness?.sources.length ?? 26,

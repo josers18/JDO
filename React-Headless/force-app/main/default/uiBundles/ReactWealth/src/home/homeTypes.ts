@@ -33,6 +33,8 @@ export interface CallItem {
   /** Signal-native ISO due date (YYYY-MM-DD) — set by the priority-queue
    *  blender so the card can sort/label by real dates, not severity. */
   dueDate?: string;
+  /** W9 blended-score drivers — tags on the Who-to-Call rows. */
+  drivers?: { label: string; points: number; tone: 'risk' | 'opportunity' }[];
 }
 
 /**

@@ -2087,7 +2087,7 @@ function HomeContent() {
             <Pill tone={c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'neutral'}>{c.severity}</Pill>
           ) },
         ]}
-        footNote="Source · CSAT + Data Cloud signals"
+        footNote="Source · blended held-away + MoneyGuidePro + Gong + holdings concentration"
       />
 
       <DataExplorerModal<CaseItem>
