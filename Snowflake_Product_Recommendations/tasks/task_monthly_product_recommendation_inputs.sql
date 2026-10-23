@@ -7,8 +7,9 @@
 -- Warehouse: MAIN_WH_XS
 -- Training is NEVER scheduled; it is run manually (MODE 'TRAINING').
 --
--- This task is created SUSPENDED (Snowflake default for a new task). It is NOT
--- resumed here. Task 10, after the human gate, runs
+-- Running this file recreates the task SUSPENDED (Snowflake default for a new
+-- task); it is not resumed here. Plan Task 10 resumed the live task on 2026-10-23
+-- (first scheduled run 2026-11-02 04:00 ET). After re-running this file, run
 --     ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_PRODUCT_RECOMMENDATION_INPUTS RESUME;
 -- =============================================================================
 

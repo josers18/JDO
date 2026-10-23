@@ -19,7 +19,7 @@
 [![Einstein](https://img.shields.io/badge/Einstein-Prompt_Builder-7F56D9?style=for-the-badge)](https://help.salesforce.com/s/articleView?id=sf.generative_ai_prompt_builder.htm&type=5)
 [![SF CLI](https://img.shields.io/badge/SF_CLI-v2-111111?style=for-the-badge&logo=gnu-bash&logoColor=white)](https://developer.salesforce.com/tools/salesforcecli)
 [![Monorepo](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
-[![Updated](https://img.shields.io/badge/Updated-May_17_2026-2EA44F?style=for-the-badge)](CHANGELOG.md)
+[![Updated](https://img.shields.io/badge/Updated-Oct_23_2026-2EA44F?style=for-the-badge)](CHANGELOG.md)
 
 **Text predicted class** · **Class probabilities chart** · **Feature contributions** · **Optional AI summary**
 
@@ -74,8 +74,11 @@
 
 ```bash
 cd DC_Multiclass_Prediction_LWC
-sf project deploy start --source-dir force-app --target-org <alias> --wait 10
+sf project deploy start --source-dir force-app/main/default/classes --source-dir force-app/main/default/lwc --source-dir force-app/main/default/permissionsets \
+  --target-org <alias> --wait 10
 ```
+
+Deploy only the component directories to a new org. `flows/`, `flexipages/` and `genAiPromptTemplates/` hold the **product-recommendation reference implementation** from `jdo-gj9q5q` and depend on that org's Data Cloud models and DMOs (see [artifacts.md](artifacts.md)).
 
 With tests: see **[docs/DEPLOY.md](docs/DEPLOY.md)**. Then assign the permission set and **[docs/FLOW_GUIDE.md](docs/FLOW_GUIDE.md)**.
 
@@ -111,7 +114,11 @@ DC_Multiclass_Prediction_LWC/
 ├── sfdx-project.json
 ├── force-app/main/default/
 │   ├── classes/MulticlassPredictionLwcController.cls (+ test)
-│   └── lwc/multiclassPredictionLwc/    ← App Builder: Multiclass Prediction
+│   ├── lwc/multiclassPredictionLwc/    ← App Builder: Multiclass Prediction
+│   ├── permissionsets/                 ← DC Multiclass Prediction User
+│   ├── flows/                          ← reference: DC_MLProdPersonal, DC_Multiclass_Business
+│   ├── flexipages/                     ← reference: FINS_PersonAccount_Retail_Banking_Starter
+│   └── genAiPromptTemplates/           ← reference: DC_MulticlassModelExplanation, DC_MLModelExplanation
 └── docs/
 ```
 

@@ -1,6 +1,6 @@
 # Flow guide
 
-The **Multiclass Prediction** LWC does not include a Flow in source. You create an **autolaunched** flow in your org that returns a **text** class label, **recommendations** as JSON (SHAP-style feature contributions), and optionally **per-class probability scalars** (one Flow variable per class).
+The **Multiclass Prediction** LWC needs an **autolaunched** flow in your org. This project ships two working ones as a reference ([below](#reference-flows-product-recommendation)); in any other org you create your own **autolaunched** flow in your org that returns a **text** class label, **recommendations** as JSON (SHAP-style feature contributions), and optionally **per-class probability scalars** (one Flow variable per class).
 
 ---
 
@@ -147,6 +147,37 @@ If parsing fails or the value is not an array, the recommendations section shows
 ### Double-encoded JSON
 
 If the flow stores JSON as a **string** inside a Text variable, the LWC attempts a second `JSON.parse` when the first parse yields a string.
+
+---
+
+## Reference flows (product recommendation)
+
+Two working flows from the `jdo-gj9q5q` demo org live in `force-app/main/default/flows/`. They only deploy to that org (they call its Data Cloud model actions), but they are the pattern to copy.
+
+| | `DC_MLProdPersonal` | `DC_Multiclass_Business` |
+|---|---|---|
+| Card | Person accounts | Business accounts |
+| Input variable | `AccountID` (App Builder **record Id input** = `AccountID`) | `AccountID` |
+| Input DMO | `PERSONAL_PRODUCT_RECOMMENDATION_INPU__dlm` | `BUSINESS_PRODUCT_RECOMMENDATION_INPU__dlm` |
+| Model action (`cdpMlPrediction`) | `Predicted_RECOMMENDED_PRODUCT_Personal_CM_12l_32q497b2bbf` | `Predicted_RECOMMENDED_PRODUCT_Business_CM_12l_32qa0be0859` |
+| Model inputs | 27 | 25 |
+| Classes | 11 | 12 |
+
+**Steps:** `Get_Account` → `Get_Zero_Copy_Inputs` (first DMO row where `accountid__c = AccountID`) → model action (`maxTopFactors = 5`, every `param_<field>__c` mapped from `Get_Zero_Copy_Inputs.<field>__c`) → `Prediction_Value` assignment.
+
+**`Prediction_Value` assigns every output the card reads:**
+
+- One Number output (scale 2) per class from `<action>.recommended_product__c__<Class>`.
+- `recommendations` and `factors` from the action's top-factors JSON.
+- `prediction` from the **`Top_Product`** formula: a nested `IF({!Class} = MAX(...all classes...), "Class", ...)` that returns the highest-probability class name. Without it the prompt template receives no label and the summary reads "unknown".
+
+**Personal model inputs (27):** `age`, `annual_income`, `avg_transaction_amount`, `branch_visits_monthly`, `credit_score`, `customer_satisfaction_score`, `digital_banking_logins_monthly`, `education_level`, `employment_status`, `existing_product_count`, `geographic_region`, `has_auto_loan`, `has_credit_card`, `has_investment_account`, `has_mortgage`, `has_savings`, `marital_status`, `monthly_transaction_count`, `months_since_last_product`, `number_of_dependents`, `overdraft_count_12m`, `recent_life_event`, `risk_tolerance`, `savings_rate_pct`, `total_account_balance`, `years_as_customer`, `years_at_current_job`.
+
+**Business model inputs (25):** `ach_transactions_per_employee`, `annual_revenue`, `avg_receivables_days`, `business_structure`, `cash_flow_volatility`, `debt_service_coverage_ratio`, `digital_banking_usage`, `existing_product_count`, `has_business_credit_card`, `has_business_loan`, `has_business_savings`, `has_line_of_credit`, `has_merchant_services`, `industry`, `monthly_wire_transfer_count`, `net_monthly_cash_flow`, `number_of_employees`, `number_of_locations`, `operating_account_balance`, `payroll_burden_pct`, `profit_margin_pct`, `revenue_growth_yoy_pct`, `seasonal_business`, `years_as_customer`, `years_in_business`.
+
+**Classes.** Personal: `Auto_Loans, Brokerage_Advisory, CDs, Credit_Cards, Deposits, HELOC, Money_Market, Personal_Loans, Residential_Loans, Savings, Wealth_Management`. Business: `Brokerage_Advisory, Business_Banking, CDs, Commercial_Loans, Credit_Cards, Deposits, Line_Of_Credit, Merchant_Services, Money_Market, Savings, Treasury_Services, Wealth_Management`. These lists are the `classProbabilityVariableNames` on the two cards in `FINS_PersonAccount_Retail_Banking_Starter`.
+
+**When the model is retrained.** A `cdpMlPrediction` action requires every input. Check the current list with `GET /services/data/v67.0/actions/custom/cdpMlPrediction/<action>`; add any new field to the Snowflake input table ([`Snowflake_Product_Recommendations`](../../Snowflake_Product_Recommendations/README.md)), the DMO and its mapping; then wire it into the action and add any new class output. Smoke-test with `POST /services/data/v67.0/actions/custom/flow/<FlowApiName>` and `{"inputs":[{"AccountID":"001..."}]}`: the class outputs should sum to ~1.0 and `prediction` should equal the top class.
 
 ---
 

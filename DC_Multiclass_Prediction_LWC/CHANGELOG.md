@@ -7,10 +7,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-May_17_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Oct_23_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
+
+---
+
+## [2026-10-23]
+
+### Added
+- **Product-recommendation reference implementation** from `jdo-gj9q5q`, now versioned with the component ([`1a107bcc`](https://github.com/josers18/JDO/commit/1a107bcc), [`7353171f`](https://github.com/josers18/JDO/commit/7353171f)):
+  - Flows `DC_MLProdPersonal` (personal model, 27 inputs, 11 classes) and `DC_Multiclass_Business` (business model, 25 inputs, 12 classes; adds `Treasury_Services` and `Wealth_Management`).
+  - FlexiPage `FINS_PersonAccount_Retail_Banking_Starter`: one card for person accounts and one for business accounts.
+  - Prompt templates `DC_MulticlassModelExplanation` (used by both cards) and `DC_MLModelExplanation` (numeric payload).
+- Docs: reference-flow section in [FLOW_GUIDE.md](docs/FLOW_GUIDE.md), template table in [PROMPT_TEMPLATE_GUIDE.md](docs/PROMPT_TEMPLATE_GUIDE.md), two new [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) entries.
+
+### Changed
+- Both flows call the **retrained** Data Cloud models with every required input. They also compute `prediction` with a `Top_Product` formula and assign `factors`, so the AI summary no longer reports the product as "unknown".
+- Deploy commands are now scoped to `classes/`, `lwc/` and `permissionsets/`, because the reference metadata only deploys to `jdo-gj9q5q`.
 
 ---
 

@@ -8,6 +8,19 @@ with a **single flex text input** containing JSON. Your Prompt Builder template 
 
 ---
 
+## Templates in this repository
+
+Both are flex templates (`einstein_gpt__flex`, model `sfdc_ai__DefaultVertexAIGemini30Flash`) with one input, `Input:Prediction_Context`, retrieved from `jdo-gj9q5q` into `force-app/main/default/genAiPromptTemplates/`.
+
+| Template | Payload it expects | Used by |
+|----------|--------------------|---------|
+| **`DC_MulticlassModelExplanation`** | `prediction` (class label) + `recommendations` (SHAP contributors), the shape below | Both Multiclass Prediction cards on `FINS_PersonAccount_Retail_Banking_Starter`. Explains to a banker why the product is recommended and what to do next. |
+| `DC_MLModelExplanation` | `prediction` (numeric score) + `factors` | The numeric [Prediction Model](../../DC_Prediction_Model_LWC/README.md) card. Not referenced by this component. |
+
+Set **Prompt template Id or API name** to `DC_MulticlassModelExplanation` to reuse it.
+
+---
+
 ## Prerequisites (org)
 
 - Einstein **Generative AI** features enabled and licensed for your org (product names vary by edition; see current Salesforce Help).

@@ -32,7 +32,10 @@ DC_Multiclass_Prediction_LWC/
 │   │   ├── multiclassPredictionLwc.css             ← reuses --wp-* tokens; ~510 lines
 │   │   ├── multiclassPredictionLwc.js-meta.xml     ← THREE targetConfig blocks (RecordPage, AppPage, HomePage) — keep all in sync
 │   │   └── predictionThemes.js                     ← 43 theme presets; parity with classificationModelLwc
-│   └── permissionsets/DC_Multiclass_Prediction_User.permissionset-meta.xml
+│   ├── permissionsets/DC_Multiclass_Prediction_User.permissionset-meta.xml
+│   ├── flows/                                      ← reference (jdo-gj9q5q): DC_MLProdPersonal, DC_Multiclass_Business
+│   ├── flexipages/                                 ← reference: FINS_PersonAccount_Retail_Banking_Starter (2 cards)
+│   └── genAiPromptTemplates/                       ← reference: DC_MulticlassModelExplanation (used), DC_MLModelExplanation
 ├── docs/                                           ← INDEX.md is the entry point
 ├── README.md
 ├── CHANGELOG.md                                    ← project-scoped, Keep a Changelog format
@@ -42,11 +45,16 @@ DC_Multiclass_Prediction_LWC/
 # Commands
 
 ```bash
-# Deploy (single project, scoped)
-sf project deploy start --source-dir force-app/main/default --wait 10 --concise
+# Deploy the component only (any org)
+sf project deploy start --source-dir force-app/main/default/classes --source-dir force-app/main/default/lwc --source-dir force-app/main/default/permissionsets --wait 10 --concise
+
+# Reference flows / page / prompts (jdo-gj9q5q only — they need its DC models + DMOs)
+sf project deploy start --source-dir force-app/main/default/flows \
+  --source-dir force-app/main/default/flexipages \
+  --source-dir force-app/main/default/genAiPromptTemplates -o jdo-gj9q5q --wait 10
 
 # Deploy with tests
-sf project deploy start --source-dir force-app \
+sf project deploy start --source-dir force-app/main/default/classes --source-dir force-app/main/default/lwc --source-dir force-app/main/default/permissionsets \
   --test-level RunSpecifiedTests \
   --tests MulticlassPredictionLwcControllerTest --wait 30
 
@@ -157,6 +165,9 @@ Apex test patterns to follow:
 - **`Decimal.valueOf(Double)`** — produces noise; route through `String.valueOf`.
 - **Trying to fast-forward `main` after the feature branch was rebased** — fast-forward only works when the branches are linearly ahead. Use a regular merge commit (`--no-ff`) when both branches have unique commits.
 - **Subagent scope creep** — when delegating implementation tasks, be explicit about which files may change. Subagents will sometimes "fix things they noticed" in unrelated files. Surface and drop those commits via `git rebase --onto`.
+- **Deploying `force-app` whole to a new org** — the reference flows call `cdpMlPrediction` actions and read `*_PRODUCT_RECOMMENDATION_INPU__dlm` DMOs that only exist in `jdo-gj9q5q`; scope `--source-dir` to classes/lwc/permissionsets.
+- **Flow never assigns `prediction`** — the card then falls back to the top class, but the prompt receives an empty label and the summary says "unknown". The reference flows compute it with a `Top_Product` formula (`MAX` over the class outputs).
+- **Model retrained with new inputs** — every `param_*__c` on a `cdpMlPrediction` action is required; add the field to the input DMO, map it, then add it to the flow action. Describe with `GET /services/data/v67.0/actions/custom/cdpMlPrediction/<action>`.
 - **Offline reviews miss platform-specific compile rules** — code-quality reviewers running without a live org will not catch LWC1503 or the Apex `in` keyword. Always run `sf project deploy validate` before declaring an Apex/LWC change done.
 
 # Related docs
@@ -164,7 +175,9 @@ Apex test patterns to follow:
 - @docs/INDEX.md — full table of contents
 - @docs/ARCHITECTURE.md — sequence + data flow + class probability pipeline diagrams
 - @docs/COMPONENT_REFERENCE.md — every App Builder property, with defaults
-- @docs/FLOW_GUIDE.md — Flow contract (inputs/outputs incl. per-class scalars)
+- @docs/FLOW_GUIDE.md — Flow contract (inputs/outputs incl. per-class scalars) + the reference product-recommendation flows
+- @artifacts.md — every tracked file, including the jdo-gj9q5q reference implementation
+- @../Snowflake_Product_Recommendations/README.md — generator for the model input tables
 - @docs/UI_LAYOUT.md — card layout, responsive rules, mermaid structure diagrams
 - @docs/PROMPT_TEMPLATE_GUIDE.md — Einstein prompt template JSON shape
 - @docs/TROUBLESHOOTING.md — common issues + fixes

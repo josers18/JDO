@@ -80,7 +80,7 @@ If the org requires tests but you only deploy this project, run commands from th
 
 ```bash
 cd JDO/DC_Multiclass_Prediction_LWC   # or your standalone project root
-sf project deploy start --source-dir force-app \
+sf project deploy start --source-dir force-app/main/default/classes --source-dir force-app/main/default/lwc --source-dir force-app/main/default/permissionsets \
   --test-level RunSpecifiedTests \
   --tests MulticlassPredictionLwcControllerTest \
   --wait 30
@@ -89,10 +89,24 @@ sf project deploy start --source-dir force-app \
 For sandboxes that allow no tests:
 
 ```bash
-sf project deploy start --source-dir force-app --test-level NoTestRun --wait 30
+sf project deploy start --source-dir force-app/main/default/classes --source-dir force-app/main/default/lwc --source-dir force-app/main/default/permissionsets --test-level NoTestRun --wait 30
 ```
 
 (Subject to org policy.)
+
+If the deploy fails on `DC_MLProdPersonal`, `DC_Multiclass_Business` or the flexipage with an unknown action or object, you deployed the `jdo-gj9q5q` reference implementation to another org — scope `--source-dir` as above.
+
+---
+
+## AI summary says the product is "unknown"
+
+The flow did not assign the `prediction` output. The card's hero falls back to the top class, but the prompt payload carries an empty `prediction`. Assign it in the flow — the reference flows use a `Top_Product` formula that returns the class with the highest probability (see [FLOW_GUIDE.md](FLOW_GUIDE.md#reference-flows-product-recommendation)).
+
+---
+
+## Flow fails after the model was retrained
+
+`cdpMlPrediction` actions require **every** model input (`param_<field>__c`). When a retrained model adds inputs, add the field to the input DMO, map it from its data stream, then wire it into the flow action. List the required inputs with `GET /services/data/v67.0/actions/custom/cdpMlPrediction/<action name>`.
 
 ---
 
