@@ -150,3 +150,24 @@ numeric subset columns min / median / max  [input | new training | existing trai
   personal DEPOSIT_BALANCE fallback 0.0%: PASS
   personal DIRECT_DEPOSIT|MONTHLY_CREDITS fallback 0.1%: PASS
 ```
+
+## Re-measure after final-review fixes (dae0c2c3, 2026-10-23)
+
+Feed window now ends at the start of the run month (exclusive) and age is computed at month start; training pool is sorted by ACCOUNT_ID before draws. Re-pulled live (read-only, `--refresh`). Business volatility moved to 57.0/28.6/14.4 (max dev 7.0 pts, within the 10-pt gate).
+
+```
+=== GATES ===
+  overlap 0: PASS
+  business training mix: PASS
+  business input argmax mix: PASS
+  business rule-consistency 0.741: PASS
+  business volatility max dev 7.0 pts: PASS
+  business MONTHLY_CREDITS fallback 5.9%: PASS
+  business DEPOSIT_BALANCE fallback 1.7%: PASS
+  business MONTHLY_NET fallback 1.8%: PASS
+  personal training mix: PASS
+  personal input argmax mix: PASS
+  personal rule-consistency 0.760: PASS
+  personal DEPOSIT_BALANCE fallback 0.0%: PASS
+  personal DIRECT_DEPOSIT|MONTHLY_CREDITS fallback 0.1%: PASS
+```
