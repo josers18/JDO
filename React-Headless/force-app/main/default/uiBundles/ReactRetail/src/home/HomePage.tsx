@@ -74,6 +74,12 @@ import {
   DonutChart,
   LEAN_LABEL,
   PROPENSITY_READY,
+  needsRetentionCall,
+  DEPOSIT_RETENTION,
+  retentionCallDue,
+  retentionCallReason,
+  retentionCallPriority,
+  RETENTION_FLOW_USD,
   mortgageLeadTag,
   mortgageLeadLoan,
   mortgageLeadAction,
@@ -1398,6 +1404,69 @@ function HomeContent({ mode }: { mode: HomeMode }) {
     </div>
   );
 
+  // R5 — checking + savings at other banks, and who's moving money there this month (Health tab).
+  const attrition = data.depositAttrition;
+  const depositAttritionCard = attrition && attrition.clients > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="alerts" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Deposits leaving to other banks</b>
+        <span className="font-mono text-[10.5px] text-faint">Plaid held-away · latest month{attrition.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {attrition.clients.toLocaleString('en-US')} clients keep {formatValue(attrition.balance, 'currencyCompact')} in checking and savings elsewhere;{' '}
+          {attrition.leaving.toLocaleString('en-US')} moved more money there this month ({formatValue(attrition.outflow, 'currencyCompact')}).{' '}
+          {attrition.retention.toLocaleString('en-US')} are sending {formatValue(RETENTION_FLOW_USD, 'currencyCompact')}+ a month — a rate-match / consolidation call.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Held away" value={formatValue(attrition.balance, 'currencyCompact')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Leaving / mo" value={formatValue(attrition.outflow, 'currencyCompact')} tone="warn" />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`${formatValue(RETENTION_FLOW_USD, 'currencyCompact')}+ / mo`} value={attrition.retention.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {attrition.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {attrition.rows.map(r => (
+            <li key={r.accountId} className="flex items-center gap-3">
+              {/* The name opens the quick view; the rest of the row opens the prefilled
+                  retention Task on Retain rows (quick view otherwise). */}
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
+              >
+                {r.clientName}
+              </button>
+              <button
+                type="button"
+                onClick={() => needsRetentionCall(r)
+                  ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: DEPOSIT_RETENTION, dueDate: retentionCallDue(), comments: retentionCallReason(r), priority: retentionCallPriority(r) })
+                  : open('quickview', r.clientName ?? 'Client', r.accountId)}
+                title={needsRetentionCall(r) ? 'Create a deposit retention task' : undefined}
+                className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                {needsRetentionCall(r) && (
+                  <span className="flex-none rounded-full bg-warn-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-warn">
+                    Retain
+                  </span>
+                )}
+                <span className={`font-mono text-[11px] ${needsRetentionCall(r) ? 'text-warn' : 'text-muted'}`}>
+                  +{formatValue(r.monthlyFlow, 'currencyCompact')}/mo
+                </span>
+                <span className="w-[170px] flex-none truncate text-right font-mono text-[11px] text-muted">
+                  {r.institution} · {formatValue(r.balance, 'currencyCompact')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   // R3 — Claritas financial stress that has persisted, corroborated by overdraft fees (Health tab).
   const stress = data.financialStress;
   const financialStressCard = stress && stress.highNow > 0 && (
@@ -1522,7 +1591,9 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       {mix.mortgageLeads.length > 0 && (
         <>
           <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
-            Young Families · mortgage {PROPENSITY_READY}+ · in your queue
+            Young Families · mortgage {PROPENSITY_READY}+ ·{' '}
+            {mix.mortgageLeads.length} of {formatValue(mix.rows.find(s => s.stage === 'Young Families')?.mortgageReady ?? mix.mortgageLeads.length, 'number')}
+            {' '}· in your queue
           </p>
           <ul className="mt-1 divide-y divide-line border-t border-line">
             {mix.mortgageLeads.map(r => (
@@ -1940,6 +2011,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       {financialStressCard && (
         <section id="financialStress" className="mt-4 scroll-mt-[82px]">
           {financialStressCard}
+        </section>
+      )}
+      {depositAttritionCard && (
+        <section id="depositAttrition" className="mt-4 scroll-mt-[82px]">
+          {depositAttritionCard}
         </section>
       )}
       <section id="alerts" className="mt-8 scroll-mt-[82px]">
