@@ -102,6 +102,10 @@ const ctes = (accountFilter: string) => `
 
 // rk = rank by score; crk = rank by concentration among concentrated clients. The
 // top 8 plus the book's most concentrated client (a ninth row when it ranks lower).
+/** The blended-score CTEs (ending in `b`: account_id, score), so a single-driver
+ *  feed can rank by the same score and its top rows match this list for the dedupe. */
+export const wealthWhoToCallScoreCtes = ctes;
+
 const rowsSql = (accountFilter: string) => `${ctes(accountFilter)},
   r AS (
     SELECT b.*, ROW_NUMBER() OVER (ORDER BY score DESC) AS rk,

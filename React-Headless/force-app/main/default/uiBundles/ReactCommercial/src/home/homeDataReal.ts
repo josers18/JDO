@@ -46,7 +46,7 @@
  * driver in the blended "who to call" score. Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -376,8 +376,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // C10 — the blended Who-to-Call: D&B credit, souring Gong calls, Moody's outlook,
   // fee spikes and the best business offer, one score per client.
   const callList: CallItem[] = commercialWhoToCallItems(who, nameById);
-  // Gong / fee-spike clients already in the blended Who-to-Call don't repeat as their own item.
-  const transactionSignals: CallItem[] = [...amlSignals, ...dropCovered(gongSignals, callList), ...dropCovered(txSignals, callList), ...receiptSignals, ...campaignSignals];
+  // Gong / fee-spike clients already in the blended Who-to-Call don't repeat as their own item;
+  // the fee feed ranks by the same score and fetches spares, so cap it after the dedupe.
+  const feeQueue = dropCovered(txSignals, callList).slice(0, FEE_SPIKES);
+  const transactionSignals: CallItem[] = [...amlSignals, ...dropCovered(gongSignals, callList), ...feeQueue, ...receiptSignals, ...campaignSignals];
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -671,7 +673,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
+    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${Math.min(FEE_SPIKES, feeSpikes.rows.length)} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 86,
     dataSourceCount: freshness?.sources.length ?? 25,
@@ -755,7 +757,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         id: `ag${i}`, title: `Call tone sliding — ${g.clientName}`, detail: `${g.reason} · ${g.action}`,
         tone: 'risk' as const, severity: g.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
       })),
-      ...dropCovered(txSignals, callList).slice(0, 3).map((t, i) => ({
+      ...feeQueue.slice(0, 3).map((t, i) => ({
         id: `ax${i}`, title: `Fee spike — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'risk' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 30d',
       })),

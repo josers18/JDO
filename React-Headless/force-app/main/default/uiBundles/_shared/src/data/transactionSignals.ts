@@ -17,6 +17,7 @@
  * shared by all three apps, because they plug into the queue and alerts the same
  * way (see the bottom of this file).
  */
+import { commercialWhoToCallScoreCtes } from './commercialWhoToCall';
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
 
@@ -62,7 +63,10 @@ const businessInflowSql = (accountFilter: string) => `
 
 // 'Overdraft Fee' alone also hits personal checking (1–3 per account), so a spike
 // must include at least one NSF / late fee — those only post on business accounts.
-const feeSpikeSql = (accountFilter: string) => `
+// Ranked by the C10 blended score first, so the clients Who-to-Call already holds
+// lead the feed and drop out in the dedupe; FEE_SPIKE_SPARE extra rows backfill them.
+const feeSpikeSql = (accountFilter: string) => `${commercialWhoToCallScoreCtes(accountFilter)},
+  fs AS (
   SELECT SFAccountID__c AS account_id, COUNT(*) AS fees,
          SUM(ssot__TransactionAmount__c) AS fee_total, MAX(ssot__TransactionDate__c) AS last_fee
   FROM ssot__FinancialAccountTransaction__dlm
@@ -72,9 +76,16 @@ const feeSpikeSql = (accountFilter: string) => `
     AND SFAccountID__c ${accountFilter}
   GROUP BY SFAccountID__c
   HAVING COUNT(*) >= 3 AND MAX(CASE WHEN ssot__Description__c <> 'Overdraft Fee' THEN 1 ELSE 0 END) = 1
-  ORDER BY fees DESC, fee_total DESC
-  LIMIT 8
+  )
+  SELECT fs.account_id AS account_id, fs.fees AS fees, fs.fee_total AS fee_total, fs.last_fee AS last_fee
+  FROM fs LEFT JOIN b ON b.account_id = fs.account_id
+  ORDER BY COALESCE(b.score, 0) DESC, fs.fees DESC, fs.fee_total DESC
+  LIMIT ${FEE_SPIKES + FEE_SPIKE_SPARE}
 `;
+
+/** Fee spikes the queue shows, and the extra rows fetched to backfill Who-to-Call overlaps. */
+export const FEE_SPIKES = 8;
+const FEE_SPIKE_SPARE = 8;
 
 export interface LargeInflow {
   accountId: string;
@@ -121,9 +132,9 @@ export async function fetchBusinessInflows(ownerId: string | null | undefined): 
   };
 }
 
-/** C9 — business accounts with 3+ NSF / overdraft / late fees in 30 days. */
+/** C9 — business accounts with 3+ NSF / overdraft / late fees in 30 days, highest C10 score first. */
 export async function fetchFeeSpikes(ownerId: string | null | undefined): Promise<TxSignalResult<FeeSpike>> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(feeSpikeSql, ownerId, 8);
+  const res = await queryDataCloudForBook<Record<string, unknown>>(feeSpikeSql, ownerId, FEE_SPIKES + FEE_SPIKE_SPARE);
   return {
     scope: res.scope,
     rows: res.rows.map(r => ({

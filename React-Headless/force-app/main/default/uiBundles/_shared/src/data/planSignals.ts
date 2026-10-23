@@ -7,7 +7,7 @@
  * are excluded (not yet presented to the client).
  *
  *   · W2 plans at risk — Monte Carlo success < 70%; below 50% is the today tier.
- *     Ranked critical-first, then by goal dollars.
+ *     Ranked by the W9 blended score, then critical-first, then by goal dollars.
  *   · W3 reviews due — `next_review_date__c` in the next 30 days, soonest first;
  *     "stale" = status Stale or not updated in 12 months.
  *
@@ -16,6 +16,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { wealthWhoToCallScoreCtes } from './wealthWhoToCall';
 
 const LATEST = `profile_month__c = (SELECT MAX(profile_month__c) FROM BT_MoneyGuidePro_Financial_Plans__dlm)
     AND plan_status__c IN ('Active', 'Stale')`;
@@ -28,14 +29,20 @@ const COLS = `account_id__c AS account_id, monte_carlo_success_pct__c AS success
          goal_count__c AS goals, CAST(next_review_date__c AS VARCHAR) AS next_review,
          CAST(plan_last_updated_date__c AS VARCHAR) AS updated, CASE WHEN ${STALE} THEN 1 ELSE 0 END AS stale`;
 
-const atRiskRowsSql = (accountFilter: string) => `
+// W9 blended score first, so the clients Who-to-Call already holds lead and drop out
+// in the dedupe (PLAN_RISK_SPARE extra rows backfill them); then critical, then goal $.
+const atRiskRowsSql = (accountFilter: string) => `${wealthWhoToCallScoreCtes(accountFilter)}
   SELECT ${COLS}
-  FROM BT_MoneyGuidePro_Financial_Plans__dlm
+  FROM BT_MoneyGuidePro_Financial_Plans__dlm LEFT JOIN b ON b.account_id = account_id__c
   WHERE ${LATEST} AND ${AT_RISK}
     AND account_id__c ${accountFilter}
-  ORDER BY CASE WHEN ${CRITICAL} THEN 1 ELSE 0 END DESC, total_goal_amount_usd__c DESC
-  LIMIT 6
+  ORDER BY COALESCE(b.score, 0) DESC, CASE WHEN ${CRITICAL} THEN 1 ELSE 0 END DESC, total_goal_amount_usd__c DESC
+  LIMIT ${PLAN_RISK_ROWS + PLAN_RISK_SPARE}
 `;
+
+/** At-risk plans the queue shows, and the extra rows fetched to backfill Who-to-Call overlaps. */
+export const PLAN_RISK_ROWS = 6;
+const PLAN_RISK_SPARE = 8;
 
 const reviewRowsSql = (accountFilter: string) => `
   SELECT ${COLS}
@@ -69,7 +76,7 @@ export interface PlanRow {
 }
 
 export interface PlanHealthResult {
-  /** W2 — lowest-success plans (critical first, then by goal $). */
+  /** W2 — at-risk plans, highest W9 score first, then critical, then goal $ (up to PLAN_RISK_ROWS + spares). */
   atRiskRows: PlanRow[];
   /** W3 — reviews due in the next 30 days, soonest first. */
   reviewRows: PlanRow[];
@@ -94,7 +101,7 @@ const toRow = (r: Record<string, unknown>): PlanRow => ({
 
 /** W2 + W3 — the book's plan health: at-risk plans, upcoming reviews, totals. */
 export async function fetchPlanHealth(ownerId: string | null | undefined): Promise<PlanHealthResult> {
-  const atRisk = await queryDataCloudForBook<Record<string, unknown>>(atRiskRowsSql, ownerId, 6);
+  const atRisk = await queryDataCloudForBook<Record<string, unknown>>(atRiskRowsSql, ownerId, PLAN_RISK_ROWS + PLAN_RISK_SPARE);
   // Reviews + totals reuse the filter the at-risk rows resolved to (book, or org fallback).
   const [reviews, total] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(reviewRowsSql(atRisk.accountFilter), 6)

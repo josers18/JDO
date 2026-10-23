@@ -12,6 +12,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { whoToCallScoreCtes } from './whoToCall';
 
 /** Months flagged High (of the last six) at which stress counts as persistent. */
 export const PERSISTENT_MONTHS = 4;
@@ -41,18 +42,25 @@ const ctes = (accountFilter: string) => `
   )`;
 
 // Unfiltered by persistence so a book with any High client never falls back org-wide.
-// Persistent AND overdraft-corroborated first, then any overdraft client (so the
-// five rows fill with fee evidence before fee-less persistence), then months High, then fee count.
-const rowsSql = (accountFilter: string) => `${ctes(accountFilter)}
+// R7 blended score first, so the clients Who-to-Call already holds lead and drop out
+// in the dedupe (STRESS_SPARE extra rows backfill them); then persistent AND
+// overdraft-corroborated, then any overdraft client, then months High, then fee count.
+const rowsSql = (accountFilter: string) => `${whoToCallScoreCtes(accountFilter)},
+  ${ctes(accountFilter).replace(/^\s*WITH /, '')}
   SELECT st.acct AS account_id, st.months_high AS months_high, st.life_stage AS life_stage, st.prizm AS prizm,
          COALESCE(od.fees, 0) AS fees, COALESCE(od.fee_total, 0) AS fee_total
-  FROM st LEFT JOIN od ON od.acct = st.acct
+  FROM st LEFT JOIN od ON od.acct = st.acct LEFT JOIN b ON b.account_id = st.acct
   WHERE st.now_high = 1
-  ORDER BY CASE WHEN od.acct IS NULL THEN 0
+  ORDER BY COALESCE(b.score, 0) DESC,
+           CASE WHEN od.acct IS NULL THEN 0
                 WHEN st.months_high >= ${PERSISTENT_MONTHS} THEN 2 ELSE 1 END DESC,
            st.months_high DESC, COALESCE(od.fees, 0) DESC
-  LIMIT 5
+  LIMIT ${STRESS_ROWS + STRESS_SPARE}
 `;
+
+/** Stressed clients the card and queue show, and the extra rows fetched to backfill Who-to-Call overlaps. */
+export const STRESS_ROWS = 5;
+const STRESS_SPARE = 8;
 
 const summarySql = (accountFilter: string) => `${ctes(accountFilter)}
   SELECT COUNT(*) AS high_now,
@@ -85,7 +93,7 @@ export interface StressedClientRow {
 }
 
 export interface FinancialStressResult {
-  /** High now, most persistent first. */
+  /** High now, highest R7 score first, then most persistent (up to STRESS_ROWS + spares). */
   rows: StressedClientRow[];
   highNow: number;
   persistent: number;
@@ -101,7 +109,7 @@ const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').repl
 
 /** R3 — the book's clients under persistent financial stress. */
 export async function fetchFinancialStress(ownerId: string | null | undefined): Promise<FinancialStressResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 5);
+  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, STRESS_ROWS + STRESS_SPARE);
   const [total, stages] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
       .then(r => r.rows[0] ?? {})
@@ -162,9 +170,9 @@ export function financialStressQueueItems(
 ): QueueSignalItem[] {
   const due = hardshipCheckInDue(opts.now);
   const src = `Claritas stress${res.scope === 'org' ? ' · org-wide' : ''}`;
+  // Uncapped: the caller drops Who-to-Call overlaps, then keeps STRESS_ROWS.
   return res.rows
     .filter(needsHardshipCheckIn)
-    .slice(0, 5)
     .map((r, i) => ({
       id: `fs${i}`,
       clientId: r.accountId,

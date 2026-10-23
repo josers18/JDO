@@ -40,7 +40,7 @@
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered } from '@shared';
+import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -310,8 +310,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const webSignals: CallItem[] = webEngagementQueueItems(web, nameById, { segment: 'Retail' });
   // R5 — $5K+/mo moving to another bank: a deposit retention call.
   const attritionSignals: CallItem[] = depositAttritionQueueItems(attrition, nameById, { segment: 'Retail' });
-  // Gong / stress clients already in the blended Who-to-Call don't repeat as their own item.
-  const transactionSignals: CallItem[] = [...amlSignals, ...webSignals, ...dropCovered(gongSignals, callList), ...dropCovered(stressSignals, callList), ...attritionSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
+  // Gong / stress clients already in the blended Who-to-Call don't repeat as their own item;
+  // the stress feed ranks by the same score and fetches spares, so cap it after the dedupe.
+  const stressQueue = dropCovered(stressSignals, callList).slice(0, STRESS_ROWS);
+  const transactionSignals: CallItem[] = [...amlSignals, ...webSignals, ...dropCovered(gongSignals, callList), ...stressQueue, ...attritionSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -634,7 +636,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     },
     financialStress: {
       ...stress,
-      rows: stress.rows.map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+      rows: stress.rows.slice(0, STRESS_ROWS).map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
     },
     kpis: [
       { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.041, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
@@ -662,7 +664,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         tone: 'risk' as const, severity: h.floodZone && h.wildfire >= 70 ? 'High' as const : 'Medium' as const, when: 'this quarter',
       })),
       // R3 — persistent stress, fee-corroborated first (the rows are ranked that way).
-      ...dropCovered(stressSignals, callList).slice(0, 2).map((f, i) => ({
+      ...stressQueue.slice(0, 2).map((f, i) => ({
         id: `af${i}`, title: `Financial stress — ${f.clientName}`, detail: `${f.reason} · ${f.action}`,
         tone: 'risk' as const, severity: f.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this month',
       })),

@@ -90,6 +90,10 @@ const ctes = (accountFilter: string) => `
     LEFT JOIN o ON o.acct = ids.acct
   )`;
 
+/** The blended-score CTEs (ending in `b`: account_id, score), so a single-driver
+ *  feed can rank by the same score and its top rows match this list for the dedupe. */
+export const whoToCallScoreCtes = ctes;
+
 const rowsSql = (accountFilter: string) => `${ctes(accountFilter)}
   SELECT * FROM b ORDER BY score DESC LIMIT 8
 `;
