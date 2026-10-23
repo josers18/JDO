@@ -322,13 +322,15 @@ from datetime import datetime
 BUSINESS_SALT = "product_rec_business"
 
 # Cash-flow volatility cut-offs on cv = MONTHLY_NET_SD / max(MONTHLY_CREDITS, 1). Tuned in Task 8.
-VOL_LOW_MAX = 0.15
-VOL_MED_MAX = 0.40
+VOL_LOW_MAX = 0.12
+VOL_MED_MAX = 0.24
 VOL_MIN_FEED_MONTHS = 2
 # Sanity windows (multiples of annual revenue, or of revenue/12 for monthly figures).
 DEPOSITS_WINDOW = (0.05, 3.0)      # MONTHLY_CREDITS vs revenue/12
 BIZ_BALANCE_WINDOW = (0.01, 2.0)       # DEPOSIT_BALANCE vs revenue
 NET_FLOW_WINDOW = (-1.0, 1.0)      # MONTHLY_NET vs revenue/12
+BIZ_GEN_DEPOSIT_FRACTION = (0.45, 0.8)  # generated deposits = revenue/12 * U(...)
+BIZ_GEN_BALANCE_FRACTION = (0.06, 0.45)  # generated balance = revenue * U(...)
 REVENUE_PER_EMPLOYEE = 150_000.0
 
 # Appendix A training ranges (generated values are clamped to these).
@@ -425,8 +427,8 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     margin = _biz_fin(margin_base, -15.0, 40.5, 1, jf["PROFIT_MARGIN_PCT"])
 
     # --- real-feed-or-generated money values --------------------------------------------
-    dep_gen = monthly_rev * rng.uniform(0.6, 1.1)
-    bal_gen = rev_eff * rng.uniform(0.08, 0.2)
+    dep_gen = monthly_rev * rng.uniform(*BIZ_GEN_DEPOSIT_FRACTION)
+    bal_gen = rev_eff * rng.uniform(*BIZ_GEN_BALANCE_FRACTION)
     net_gen = margin_base / 100.0 * monthly_rev * rng.uniform(0.8, 1.2)
 
     # Scale-relative bounds when anchored; absolute Appendix A bounds only when nothing anchors the size.
@@ -872,10 +874,10 @@ def personal_input_row(profile: dict) -> dict:
 
 # ---- prodrec.labels ----
 BASE_SCORE = 0.05
-NOISE = 0.2
+NOISE = 0.35
 
 # --- Business terms ------------------------------------------------------------------------
-_lbl_LOC_HIGH_VOL = 1.0            # High volatility, no line of credit
+_lbl_LOC_HIGH_VOL = 0.95           # High volatility, no line of credit
 _lbl_LOC_SEASONAL = 0.3            # seasonal, no line of credit
 _lbl_LOC_MED_VOL = 0.15            # Medium volatility, no line of credit
 _lbl_TRS_REV_HUGE, _lbl_TRS_REV_HUGE_W = 50_000_000, 1.0
@@ -905,7 +907,7 @@ _lbl_DEP_NO_SAVINGS_POS_FLOW = 0.7
 _lbl_DEP_LOW_VOL_DEPOSITS, _lbl_DEP_DEPOSIT_RATIO = 0.7, 0.9   # deposits >= ratio * revenue/12
 
 # --- Personal terms ------------------------------------------------------------------------
-_lbl_P_SAVE_RATE = 15.0
+_lbl_P_SAVE_RATE = 12.0
 _lbl_P_SAV_RATE_W, _lbl_P_SAV_RENT_W, _lbl_P_SAV_NO_SAVINGS_W = 0.5, 0.4, 0.3
 _lbl_P_CD_RATE_W, _lbl_P_CD_RENT_W, _lbl_P_CD_CONS_W = 0.3, 0.4, 0.3
 _lbl_P_CD_CONS_BAL = 20_000
@@ -915,8 +917,8 @@ _lbl_P_EQUITY_AGE, _lbl_P_EQUITY_DTI, _lbl_P_EQUITY_W = 35, 0.35, 0.5   # proxy 
 _lbl_P_RES_RENT_W, _lbl_P_RES_CREDIT, _lbl_P_RES_CREDIT_W = 0.4, 720, 0.4
 _lbl_P_RES_INCOME, _lbl_P_RES_INCOME_W = 80_000, 0.5
 _lbl_P_PL_CREDIT, _lbl_P_PL_CREDIT_W = 670, 0.3
-_lbl_P_PL_DTI, _lbl_P_PL_DTI_W, _lbl_P_PL_BOTH_W = 0.4, 0.6, 0.3
-_lbl_P_AUTO_NO_LOAN_W = 0.5
+_lbl_P_PL_DTI, _lbl_P_PL_DTI_W, _lbl_P_PL_BOTH_W = 0.33, 0.6, 0.3
+_lbl_P_AUTO_NO_LOAN_W = 0.3
 _lbl_P_AUTO_AGE, _lbl_P_AUTO_AGE_W = (22, 60), 0.3
 _lbl_P_AUTO_EMP_FT_W, _lbl_P_AUTO_EMP_OTHER_W = 0.4, 0.2
 _lbl_P_BA_BAL, _lbl_P_BA_AGGRESSIVE_W, _lbl_P_BA_NONCONS_W = 100_000, 0.8, 0.3

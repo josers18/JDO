@@ -3,7 +3,7 @@ from statistics import mean
 
 import pytest
 
-from prodrec.business import business_input_row, business_profile
+from prodrec.business import VOL_LOW_MAX, VOL_MED_MAX, business_input_row, business_profile
 from prodrec.vocab import (
     BUSINESS_STRUCTURE_WEIGHTS, BUSINESS_SUBSET_COLUMNS, BUSINESS_TRAINING_COLUMNS,
     CASH_FLOW_VOLATILITY_WEIGHTS, DIGITAL_BANKING_USAGE_WEIGHTS, INDUSTRIES,
@@ -74,8 +74,8 @@ def test_real_feed_used_when_sane():
 
 def test_volatility_from_feed_and_flags_from_holdings():
     base = {"MONTHLY_CREDITS": 100_000, "FEED_MONTHS": 3}
-    assert business_profile(anchor(), {**base, "MONTHLY_NET_SD": 5_000}, T0)["CASH_FLOW_VOLATILITY"] == "Low"
-    assert business_profile(anchor(), {**base, "MONTHLY_NET_SD": 25_000}, T0)["CASH_FLOW_VOLATILITY"] == "Medium"
+    assert business_profile(anchor(), {**base, "MONTHLY_NET_SD": 100_000 * VOL_LOW_MAX / 2}, T0)["CASH_FLOW_VOLATILITY"] == "Low"
+    assert business_profile(anchor(), {**base, "MONTHLY_NET_SD": 100_000 * (VOL_LOW_MAX + VOL_MED_MAX) / 2}, T0)["CASH_FLOW_VOLATILITY"] == "Medium"
     assert business_profile(anchor(), {**base, "MONTHLY_NET_SD": 80_000}, T0)["CASH_FLOW_VOLATILITY"] == "High"
     one = {"MONTHLY_CREDITS": 100_000, "FEED_MONTHS": 1, "MONTHLY_NET_SD": 0}
     assert business_profile(anchor(), one, T0)["CASH_FLOW_VOLATILITY"] in CASH_FLOW_VOLATILITY_WEIGHTS

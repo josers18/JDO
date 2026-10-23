@@ -172,7 +172,7 @@ def test_draw_label_noise_rate():
     n = 5000
     hits = sum(draw_label(scores, rng, noise=0.2) == rule for _ in range(n))
     assert 0.78 <= hits / n <= 0.86
-    assert NOISE == 0.2
+    assert NOISE == 0.35  # Task 8 live calibration (rule-consistency 0.70-0.80)
 
 
 def test_draw_label_zero_noise_is_rule():

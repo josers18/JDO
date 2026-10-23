@@ -9,10 +9,10 @@ from prodrec.common import clamp
 from prodrec.vocab import BUSINESS_PRODUCTS, PERSONAL_PRODUCTS
 
 BASE_SCORE = 0.05
-NOISE = 0.2
+NOISE = 0.35
 
 # --- Business terms ------------------------------------------------------------------------
-_lbl_LOC_HIGH_VOL = 1.0            # High volatility, no line of credit
+_lbl_LOC_HIGH_VOL = 0.95           # High volatility, no line of credit
 _lbl_LOC_SEASONAL = 0.3            # seasonal, no line of credit
 _lbl_LOC_MED_VOL = 0.15            # Medium volatility, no line of credit
 _lbl_TRS_REV_HUGE, _lbl_TRS_REV_HUGE_W = 50_000_000, 1.0
@@ -42,7 +42,7 @@ _lbl_DEP_NO_SAVINGS_POS_FLOW = 0.7
 _lbl_DEP_LOW_VOL_DEPOSITS, _lbl_DEP_DEPOSIT_RATIO = 0.7, 0.9   # deposits >= ratio * revenue/12
 
 # --- Personal terms ------------------------------------------------------------------------
-_lbl_P_SAVE_RATE = 15.0
+_lbl_P_SAVE_RATE = 12.0
 _lbl_P_SAV_RATE_W, _lbl_P_SAV_RENT_W, _lbl_P_SAV_NO_SAVINGS_W = 0.5, 0.4, 0.3
 _lbl_P_CD_RATE_W, _lbl_P_CD_RENT_W, _lbl_P_CD_CONS_W = 0.3, 0.4, 0.3
 _lbl_P_CD_CONS_BAL = 20_000
@@ -52,8 +52,8 @@ _lbl_P_EQUITY_AGE, _lbl_P_EQUITY_DTI, _lbl_P_EQUITY_W = 35, 0.35, 0.5   # proxy 
 _lbl_P_RES_RENT_W, _lbl_P_RES_CREDIT, _lbl_P_RES_CREDIT_W = 0.4, 720, 0.4
 _lbl_P_RES_INCOME, _lbl_P_RES_INCOME_W = 80_000, 0.5
 _lbl_P_PL_CREDIT, _lbl_P_PL_CREDIT_W = 670, 0.3
-_lbl_P_PL_DTI, _lbl_P_PL_DTI_W, _lbl_P_PL_BOTH_W = 0.4, 0.6, 0.3
-_lbl_P_AUTO_NO_LOAN_W = 0.5
+_lbl_P_PL_DTI, _lbl_P_PL_DTI_W, _lbl_P_PL_BOTH_W = 0.33, 0.6, 0.3
+_lbl_P_AUTO_NO_LOAN_W = 0.3
 _lbl_P_AUTO_AGE, _lbl_P_AUTO_AGE_W = (22, 60), 0.3
 _lbl_P_AUTO_EMP_FT_W, _lbl_P_AUTO_EMP_OTHER_W = 0.4, 0.2
 _lbl_P_BA_BAL, _lbl_P_BA_AGGRESSIVE_W, _lbl_P_BA_NONCONS_W = 100_000, 0.8, 0.3

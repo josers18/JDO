@@ -23,13 +23,15 @@ from prodrec.vocab import (
 BUSINESS_SALT = "product_rec_business"
 
 # Cash-flow volatility cut-offs on cv = MONTHLY_NET_SD / max(MONTHLY_CREDITS, 1). Tuned in Task 8.
-VOL_LOW_MAX = 0.15
-VOL_MED_MAX = 0.40
+VOL_LOW_MAX = 0.12
+VOL_MED_MAX = 0.24
 VOL_MIN_FEED_MONTHS = 2
 # Sanity windows (multiples of annual revenue, or of revenue/12 for monthly figures).
 DEPOSITS_WINDOW = (0.05, 3.0)      # MONTHLY_CREDITS vs revenue/12
 BIZ_BALANCE_WINDOW = (0.01, 2.0)       # DEPOSIT_BALANCE vs revenue
 NET_FLOW_WINDOW = (-1.0, 1.0)      # MONTHLY_NET vs revenue/12
+BIZ_GEN_DEPOSIT_FRACTION = (0.45, 0.8)  # generated deposits = revenue/12 * U(...)
+BIZ_GEN_BALANCE_FRACTION = (0.06, 0.45)  # generated balance = revenue * U(...)
 REVENUE_PER_EMPLOYEE = 150_000.0
 
 # Appendix A training ranges (generated values are clamped to these).
@@ -126,8 +128,8 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     margin = _biz_fin(margin_base, -15.0, 40.5, 1, jf["PROFIT_MARGIN_PCT"])
 
     # --- real-feed-or-generated money values --------------------------------------------
-    dep_gen = monthly_rev * rng.uniform(0.6, 1.1)
-    bal_gen = rev_eff * rng.uniform(0.08, 0.2)
+    dep_gen = monthly_rev * rng.uniform(*BIZ_GEN_DEPOSIT_FRACTION)
+    bal_gen = rev_eff * rng.uniform(*BIZ_GEN_BALANCE_FRACTION)
     net_gen = margin_base / 100.0 * monthly_rev * rng.uniform(0.8, 1.2)
 
     # Scale-relative bounds when anchored; absolute Appendix A bounds only when nothing anchors the size.
