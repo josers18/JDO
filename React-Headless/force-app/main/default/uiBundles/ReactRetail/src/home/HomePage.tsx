@@ -75,6 +75,7 @@ import {
   LEAN_LABEL,
   PROPENSITY_READY,
   mortgageLeadTag,
+  mortgageLeadLoan,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1531,7 +1532,10 @@ function HomeContent({ mode }: { mode: HomeMode }) {
                   <span className="flex-none rounded-full bg-track px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
                     {mortgageLeadTag(r)}
                   </span>
-                  <span className="w-[110px] flex-none text-right font-mono text-[11px] text-muted">
+                  {mortgageLeadLoan(r) && (
+                    <span className="flex-none font-mono text-[11px] text-fg">{mortgageLeadLoan(r)}</span>
+                  )}
+                  <span className="w-[90px] flex-none text-right font-mono text-[11px] text-muted">
                     Mortgage {Math.round(r.score)}
                   </span>
                 </button>

@@ -158,6 +158,12 @@ export const selectMortgageLeads = (res: LifeStageMixResult, exclude?: ReadonlyS
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
+/** A mortgaged lead's loan — "$412K at 6.25%" — for the queue reason and the card row; '' otherwise. */
+export const mortgageLeadLoan = (r: MortgageLead) =>
+  r.tenure === 'mortgaged' && r.balance
+    ? `${money(r.balance)}${r.ratePct != null ? ` at ${r.ratePct.toFixed(2)}%` : ''}`
+    : '';
+
 /** R4 Young Families mortgage 70+ → queue: a mortgage lead. `exclude` drops
  *  clients another queue item already covers (Retail passes its R1 home-equity clients). */
 export function mortgageLeadQueueItems(
@@ -170,9 +176,7 @@ export function mortgageLeadQueueItems(
   const src = `Claritas propensity${res.scope === 'org' ? ' · org-wide' : ''}`;
   return selectMortgageLeads(res, opts.exclude).map((r, i) => {
     const angle = MORTGAGE_ANGLE[r.tenure];
-    const loan = r.tenure === 'mortgaged' && r.balance
-      ? ` (${money(r.balance)}${r.ratePct != null ? ` at ${r.ratePct.toFixed(2)}%` : ''})`
-      : '';
+    const loan = mortgageLeadLoan(r) && ` (${mortgageLeadLoan(r)})`;
     return {
       id: `ml${i}`,
       clientId: r.accountId,
