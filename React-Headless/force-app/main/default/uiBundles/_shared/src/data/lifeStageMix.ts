@@ -13,8 +13,9 @@
  * CoreLogic (`BT_Corelogic_Property__dlm`, latest quarter) — renters first (a
  * first-home purchase), then free-and-clear owners (move-up), then mortgaged
  * owners (move-up / rate review); propensity breaks ties. Sarah Smith 2,536 →
- * 903 renters / 475 free-and-clear / 1,158 mortgaged. Over-fetched so the queue
- * can skip clients another signal already covers and still fill three.
+ * 903 renters / 475 free-and-clear / 1,158 mortgaged. Renters and owners are
+ * fetched as separate buckets so an owner always makes the three when the book
+ * has one, over-fetched so exclusions still leave three.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
@@ -36,25 +37,34 @@ const mixSql = (accountFilter: string) => `
   ORDER BY n DESC
 `;
 
-/** Leads fetched: the queue shows three, the rest absorb exclusions (up to eight R1
- *  home-equity clients), so three still survive. */
+/** Leads fetched per bucket (renters / owners): the queue shows three, the rest absorb
+ *  exclusions (up to eight R1 home-equity clients — all owners), so three still survive. */
 const LEAD_FETCH = 11;
 
 // Renter → 0, free-and-clear owner → 1, mortgaged owner → 2 (ranked in that order).
 const TENURE = `CASE WHEN p.is_owner__c = true AND p.outstanding_mortgage_balance__c > 0 THEN 2
                      WHEN p.is_owner__c = true THEN 1 ELSE 0 END`;
 
+// l = every lead with its tenure; r ranks renters and owners as separate buckets.
 const mortgageLeadSql = (accountFilter: string) => `
-  SELECT c.account_id__c AS account_id, c.mortgage_propensity_score__c AS score,
-         ${TENURE} AS tenure, p.outstanding_mortgage_balance__c AS balance, p.mortgage_rate_pct__c AS rate
-  FROM BT_Claritas_Demographics__dlm c
-  LEFT JOIN BT_Corelogic_Property__dlm p ON p.account_id__c = c.account_id__c
-    AND p.profile_quarter__c = (SELECT MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm)
-  WHERE c.profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm)
-    AND c.life_stage__c = 'Young Families' AND c.mortgage_propensity_score__c >= ${PROPENSITY_READY}
-    AND c.account_id__c ${accountFilter}
-  ORDER BY ${TENURE}, c.mortgage_propensity_score__c DESC
-  LIMIT ${LEAD_FETCH}
+  WITH l AS (
+    SELECT c.account_id__c AS account_id, c.mortgage_propensity_score__c AS score,
+           ${TENURE} AS tenure, p.outstanding_mortgage_balance__c AS balance, p.mortgage_rate_pct__c AS rate
+    FROM BT_Claritas_Demographics__dlm c
+    LEFT JOIN BT_Corelogic_Property__dlm p ON p.account_id__c = c.account_id__c
+      AND p.profile_quarter__c = (SELECT MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm)
+    WHERE c.profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm)
+      AND c.life_stage__c = 'Young Families' AND c.mortgage_propensity_score__c >= ${PROPENSITY_READY}
+      AND c.account_id__c ${accountFilter}
+  ),
+  r AS (
+    SELECT l.*, ROW_NUMBER() OVER (PARTITION BY CASE WHEN tenure = 0 THEN 0 ELSE 1 END
+                                   ORDER BY tenure, score DESC) AS rn
+    FROM l
+  )
+  SELECT account_id, score, tenure, balance, rate FROM r
+  WHERE rn <= ${LEAD_FETCH}
+  ORDER BY tenure, score DESC
 `;
 
 export type MortgageLeadTenure = 'renter' | 'owner' | 'mortgaged';
@@ -88,7 +98,7 @@ export interface LifeStageMixResult {
   clients: number;
   mortgageReady: number;
   investReady: number;
-  /** Top Young Families mortgage 70+ clients, renters first (up to eleven; the queue shows three). */
+  /** Top Young Families mortgage 70+ clients, renters first (up to eleven per bucket; the queue shows three). */
   mortgageLeads: MortgageLead[];
   scope: BookScope;
 }
@@ -105,7 +115,7 @@ const leanOf = (m: number, i: number, w: number): PropensityLean =>
 /** R4 — the book's clients by life stage, with each stage's propensities. */
 export async function fetchLifeStageMix(ownerId: string | null | undefined): Promise<LifeStageMixResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(mixSql, ownerId, 20);
-  const leads = await queryDataCloud<Record<string, unknown>>(mortgageLeadSql(res.accountFilter), LEAD_FETCH)
+  const leads = await queryDataCloud<Record<string, unknown>>(mortgageLeadSql(res.accountFilter), LEAD_FETCH * 2)
     .then(r => r.rows)
     .catch((): Record<string, unknown>[] => []);
   const rows = res.rows.map(r => {
@@ -151,9 +161,14 @@ const MORTGAGE_ANGLE: Record<MortgageLeadTenure, { why: string; action: string; 
 /** Short angle label for the card's lead rows. */
 export const mortgageLeadTag = (r: MortgageLead) => MORTGAGE_ANGLE[r.tenure].tag;
 
-/** The three leads the queue shows — and the card lists — after exclusions. */
-export const selectMortgageLeads = (res: LifeStageMixResult, exclude?: ReadonlySet<string>) =>
-  res.mortgageLeads.filter(r => !exclude?.has(r.accountId)).slice(0, 3);
+/** The three leads the queue shows — and the card lists — after exclusions. Renters
+ *  rank first, but the top owner takes the third slot when no owner made the three. */
+export function selectMortgageLeads(res: LifeStageMixResult, exclude?: ReadonlySet<string>): MortgageLead[] {
+  const kept = res.mortgageLeads.filter(r => !exclude?.has(r.accountId));
+  const top = kept.slice(0, 3);
+  const owner = kept.find(r => r.tenure !== 'renter');
+  return owner && !top.includes(owner) ? [...top.slice(0, 2), owner] : top;
+}
 
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
