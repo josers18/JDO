@@ -2,7 +2,7 @@
  * HOME app — REAL data implementation ("wired like today"):
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal, Lead, Account)
  *     → GraphQL (sdk.graphql)
- *   · Data Cloud (CSAT/NPS; S5 bonus / tax-refund inflows from
+ *   · Data Cloud (R7 blended Who-to-Call — CSAT + Gong + stress + offers; S5 bonus / tax-refund inflows from
  *     ssot__FinancialAccountTransaction) → DcBridgeRest → ConnectApi.CdpQuery,
  *     scoped to the signed-in banker's book (falls back to org-wide when empty)
  *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
@@ -40,7 +40,7 @@
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult } from '@shared';
+import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -144,7 +144,7 @@ const HOME_CORE_QUERY = /* GraphQL */ `
   }
 `;
 
-/* ── Account name lookup for the CSAT call list (IDs → names) ──
+/* ── Account name lookup for the Who-to-Call list (IDs → names) ──
    Inlined IDs (not a $variable) — the SDK graphql client's variable
    forwarding for list types proved unreliable; an inline literal list is
    deterministic. IDs are org-generated 15/18-char alphanumerics (safe). */
@@ -176,25 +176,6 @@ function userNamesQuery(ids: string[]): string {
   }`;
 }
 
-/* ── Data Cloud: lowest-CSAT accounts = "who to call" (verified) ──
-   CSAT_Snowflake__dlm holds a score history per account (2023 → latest), so
-   take each account's MOST RECENT survey first, then rank — a client who
-   scored low two years ago and has since recovered isn't a call today.
-   Scoped to the signed-in banker's book (falls back to org-wide). */
-const lowCsatSql = (accountFilter: string) => `
-  SELECT account_id, csat, nps, reason, score_date FROM (
-    SELECT accountid__c AS account_id, csat_score__c AS csat, nps_score__c AS nps,
-           csat_description__c AS reason, score_date__c AS score_date,
-           ROW_NUMBER() OVER (PARTITION BY accountid__c ORDER BY score_date__c DESC) AS rn
-    FROM CSAT_Snowflake__dlm
-    WHERE csat_score__c IS NOT NULL AND accountid__c ${accountFilter}
-  ) t
-  WHERE rn = 1
-  ORDER BY csat ASC
-  LIMIT 8
-`;
-
-interface CsatRow { account_id: string; csat: number; nps: number; reason: string; score_date: string; }
 type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
@@ -213,17 +194,6 @@ const sd = (n: Node, k: string) => decodeHtml(s(n, k));
 const relName = (n: Node, k: string): string =>
   String((n as Record<string, { Name?: { value?: unknown } } | undefined>)[k]?.Name?.value ?? '');
 
-function severityForCsat(csat: number): CallItem['severity'] {
-  if (csat < 50) return 'high';
-  if (csat < 70) return 'medium';
-  return 'low';
-}
-
-/** Map a call item's severity to its priority-queue tier. */
-function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
-  return sev === 'high' ? 'today' : sev === 'medium' ? 'week' : 'watch';
-}
-
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
@@ -240,14 +210,15 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
-  // The CSAT query needs the banker's user Id to scope to their book;
+  // The Data Cloud queries need the banker's user Id to scope to their book;
   // GraphQL runs in parallel with that chain.
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition, web] = await Promise.all([
+  const [core, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition, web] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
-    userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
+    // R7 blended Who-to-Call (CSAT + Gong + stress + offers) — the page's centerpiece.
+    userP.then(u => fetchWhoToCall(u?.userId)),
     userP,
     // S5 is additive — a failed transaction query must not blank the page.
     userP.then(u => fetchLargeInflows(u?.userId))
@@ -295,8 +266,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  // resolve CSAT + inflow account IDs → names in one follow-up query
-  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
+  // resolve Who-to-Call + signal account IDs → names in one follow-up query
+  const csatIds = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
   if (csatIds.length) {
@@ -314,19 +285,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
-  const callList: CallItem[] = csat.rows.map((row, i) => ({
-    id: `c${i}`,
-    clientId: row.account_id,
-    clientName: nameById[row.account_id] || row.account_id,
-    segment: 'Retail',
-    reason: (row.reason && String(row.reason).trim()) || `CSAT ${Math.round(Number(row.csat))} · NPS ${Math.round(Number(row.nps))}`,
-    action: 'Service-recovery outreach',
-    score: 1 - Math.min(Number(row.csat) || 0, 100) / 100,
-    severity: severityForCsat(Number(row.csat) || 0),
-    source: `CSAT / NPS${csat.scope === 'org' ? ' · org-wide' : ''}`,
-    relationshipValue: 0,
-    tier: tierForSeverity(severityForCsat(Number(row.csat) || 0)),
-  }));
+  // R7 — one blended score per client; each row names its drivers.
+  const callList: CallItem[] = whoToCallItems(who, nameById, { segment: 'Retail' });
 
   // S1 — clients whose recorded-call sentiment is negative and sliding.
   // S2 — screening ratings that escalated on the latest World-Check run.
@@ -575,7 +535,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       evidence: 'High-value account with sparse recent engagement history',
     });
   }
-  const lowCsat = callList[0];
+  const lowCsat = callList.find(c => c.action === 'Service-recovery outreach');
   if (lowCsat) {
     recommendations.push({
       id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: lowCsat.clientName, clientId: lowCsat.clientId,
@@ -648,7 +608,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'your book at a glance',
-    aiBrief: `${callList.length} clients flagged by CSAT, ${highRisk} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an idle-cash moment.` : ''}`,
+    aiBrief: `${who.clients.toLocaleString('en-US')} clients scored for who to call (CSAT, Gong, stress, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an idle-cash moment.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 87,
     dataSourceCount: freshness?.sources.length ?? 24,
@@ -718,7 +678,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',
       })),
       ...callList.slice(0, 4).map((c, i) => ({
-        id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,
+        id: `a${i}`, title: `Call first — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
       })),
       ...gongSignals.slice(0, 2).map((g, i) => ({

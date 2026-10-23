@@ -35,6 +35,9 @@ const OFFER_LABEL: Record<string, string> = {
   'BIZ-CHK': 'business checking',
 };
 
+/** Human product name for an action code ("MTG-30" → "30-year fixed mortgage"). */
+export const offerLabel = (code: string) => OFFER_LABEL[code] ?? code;
+
 const bestOfferSql = (family: OfferFamily) => (accountFilter: string) => `
   SELECT account_id, code, action_rank, conv, noaction, ev, channels, em_p, cc_p FROM (
     SELECT y.*, ROW_NUMBER() OVER (PARTITION BY code ORDER BY ev DESC, conv DESC) AS pn FROM (

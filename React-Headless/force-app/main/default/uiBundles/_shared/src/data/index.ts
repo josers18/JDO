@@ -23,7 +23,7 @@ export {
   type FeeSpike,
   type TxSignalResult,
 } from './transactionSignals';
-export { fetchNextBestOffers, offerRecommendations, fetchModeledUplift, type NextBestOffer, type NextBestOfferResult, type OfferFamily, type ModeledUplift } from './offerModel';
+export { fetchNextBestOffers, offerRecommendations, offerLabel, fetchModeledUplift, type NextBestOffer, type NextBestOfferResult, type OfferFamily, type ModeledUplift } from './offerModel';
 export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type CampaignTouchResult, type CampaignPersona } from './campaignTouches';
 export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
 export { getViewAs, setViewAs, useViewAs, fetchEffectiveUser, ownerScopedQuery, fetchBankers, type ViewAsUser } from './viewAs';
@@ -89,3 +89,4 @@ export { fetchFinancialStress, financialStressQueueItems, needsHardshipCheckIn, 
 export { fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, needsBrowsingFollowUp, browsingFollowUpDue, SURGE_VIEWS, type WebEngagementResult, type BrowsingClientRow, type ProductInterest } from './webEngagement';
 export { fetchDepositAttrition, depositAttritionQueueItems, needsRetentionCall, DEPOSIT_RETENTION, retentionCallDue, retentionCallReason, retentionCallPriority, RETENTION_FLOW_USD, type DepositAttritionResult, type DepositAttritionRow } from './depositAttrition';
 export { fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, mortgageLeadTag, mortgageLeadLoan, mortgageLeadAction, mortgageLeadReason, mortgageLeadDue, mortgageLeadSeverity, mortgageLeadPriority, LEAN_LABEL, PROPENSITY_READY, type LifeStageMixResult, type LifeStageRow, type PropensityLean, type MortgageLead, type MortgageLeadTenure } from './lifeStageMix';
+export { fetchWhoToCall, whoToCallItems, WHO_TO_CALL_WEIGHTS, type WhoToCallRow, type WhoToCallResult, type WhoToCallDriver } from './whoToCall';

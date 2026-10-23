@@ -2324,7 +2324,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
             <Pill tone={c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'neutral'}>{c.severity}</Pill>
           ) },
         ]}
-        footNote="Source · CSAT + Data Cloud signals"
+        footNote="Source · blended CSAT + Gong + Claritas stress + offer model"
       />
 
       <DataExplorerModal<CaseItem>
