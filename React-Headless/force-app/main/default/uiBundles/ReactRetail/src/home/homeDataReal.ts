@@ -33,7 +33,7 @@
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, type LifeStageMixResult } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -630,7 +630,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       ...propRisk,
       rows: propRisk.rows.map(h => ({ ...h, clientName: nameById[h.accountId] ?? 'Client' })),
     },
-    lifeStageMix: lifeStages,
+    // The card lists exactly the queue's leads (R1 home-equity clients excluded).
+    lifeStageMix: {
+      ...lifeStages,
+      mortgageLeads: selectMortgageLeads(lifeStages, equityClients)
+        .map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+    },
     financialStress: {
       ...stress,
       rows: stress.rows.map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),

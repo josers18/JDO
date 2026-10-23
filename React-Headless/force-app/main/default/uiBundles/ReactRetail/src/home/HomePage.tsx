@@ -74,6 +74,7 @@ import {
   DonutChart,
   LEAN_LABEL,
   PROPENSITY_READY,
+  mortgageLeadTag,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1512,6 +1513,32 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           Largest segment: <b className="text-fg">{topStage.stage}</b>, {topStage.clients.toLocaleString('en-US')} clients leaning{' '}
           {LEAN_LABEL[topStage.lean].toLowerCase()} ({Math.round(topStage[topStage.lean])}). Propensities are Claritas scores, 0–100 averages per stage.
         </p>
+      )}
+      {mix.mortgageLeads.length > 0 && (
+        <>
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+            Young Families · mortgage {PROPENSITY_READY}+ · in your queue
+          </p>
+          <ul className="mt-1 divide-y divide-line border-t border-line">
+            {mix.mortgageLeads.map(r => (
+              <li key={r.accountId}>
+                <button
+                  type="button"
+                  onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                  className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                  <span className="flex-none rounded-full bg-track px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                    {mortgageLeadTag(r)}
+                  </span>
+                  <span className="w-[110px] flex-none text-right font-mono text-[11px] text-muted">
+                    Mortgage {Math.round(r.score)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

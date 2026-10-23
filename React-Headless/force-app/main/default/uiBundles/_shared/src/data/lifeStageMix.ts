@@ -65,6 +65,7 @@ export interface MortgageLead {
   tenure: MortgageLeadTenure;
   balance: number;
   ratePct: number | null;
+  clientName?: string;
 }
 
 export type PropensityLean = 'mortgage' | 'invest' | 'wealth';
@@ -141,11 +142,18 @@ export async function fetchLifeStageMix(ownerId: string | null | undefined): Pro
   };
 }
 
-const MORTGAGE_ANGLE: Record<MortgageLeadTenure, { why: string; action: string }> = {
-  renter: { why: 'renting', action: 'Mortgage lead — first-home pre-approval' },
-  owner: { why: 'owns free and clear', action: 'Mortgage lead — move-up purchase' },
-  mortgaged: { why: 'has a mortgage', action: 'Mortgage lead — move-up / rate review' },
+const MORTGAGE_ANGLE: Record<MortgageLeadTenure, { why: string; action: string; tag: string }> = {
+  renter: { why: 'renting', action: 'Mortgage lead — first-home pre-approval', tag: 'First home' },
+  owner: { why: 'owns free and clear', action: 'Mortgage lead — move-up purchase', tag: 'Move-up' },
+  mortgaged: { why: 'has a mortgage', action: 'Mortgage lead — move-up / rate review', tag: 'Move-up · rate' },
 };
+
+/** Short angle label for the card's lead rows. */
+export const mortgageLeadTag = (r: MortgageLead) => MORTGAGE_ANGLE[r.tenure].tag;
+
+/** The three leads the queue shows — and the card lists — after exclusions. */
+export const selectMortgageLeads = (res: LifeStageMixResult, exclude?: ReadonlySet<string>) =>
+  res.mortgageLeads.filter(r => !exclude?.has(r.accountId)).slice(0, 3);
 
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -160,7 +168,7 @@ export function mortgageLeadQueueItems(
   const now = opts.now ?? new Date();
   const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10);
   const src = `Claritas propensity${res.scope === 'org' ? ' · org-wide' : ''}`;
-  return res.mortgageLeads.filter(r => !opts.exclude?.has(r.accountId)).slice(0, 3).map((r, i) => {
+  return selectMortgageLeads(res, opts.exclude).map((r, i) => {
     const angle = MORTGAGE_ANGLE[r.tenure];
     const loan = r.tenure === 'mortgaged' && r.balance
       ? ` (${money(r.balance)}${r.ratePct != null ? ` at ${r.ratePct.toFixed(2)}%` : ''})`
