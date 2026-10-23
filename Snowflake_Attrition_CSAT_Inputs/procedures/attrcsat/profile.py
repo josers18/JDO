@@ -176,8 +176,8 @@ def build_profile(feature: dict, run_ts: datetime) -> dict:
 
     credits = as_float(feature.get("CREDITS"))
     debits = as_float(feature.get("DEBITS"))
-    if credits is not None and credits > 0:
-        savings = max(0.0, (credits - (debits or 0.0)) / credits)
+    if credits is not None and credits > 0 and debits is not None:
+        savings = max(0.0, (credits - debits) / credits)
     else:
         savings = _pf_rng(aid, "savings_rate").uniform(0.02, 0.12)
 
@@ -194,7 +194,7 @@ def build_profile(feature: dict, run_ts: datetime) -> dict:
         days_since = _pf_rng(aid, "days_since").randint(20, 90)
 
     neg_weeks = int(as_float(feature.get("NEG_WEEKS")) or 0)
-    complaints = (1 if feature.get("DETRACTOR_12M") else 0) + neg_weeks // 4
+    complaints = int(as_float(feature.get("DETRACTOR_12M")) or 0) + neg_weeks // 4
     escalations = int(as_float(feature.get("VNEG_WEEKS")) or 0)
 
     breadth = sum(w for c, w in _PF_KIND_WEIGHTS if held.get(c, 0) > 0)

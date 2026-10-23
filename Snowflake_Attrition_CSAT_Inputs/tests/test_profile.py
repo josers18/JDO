@@ -100,3 +100,30 @@ def test_profile_digital_affinity_by_age():
 def test_profile_deterministic(feature_rows):
     for row in feature_rows[:20]:
         assert build_profile(row, RUN_TS) == build_profile(dict(row), RUN_TS)
+
+
+def test_profile_complaints_counts_detractors():
+    p = build_profile(make_feature(DETRACTOR_12M=3, NEG_WEEKS=8), RUN_TS)
+    assert p["complaints"] == 5
+
+
+def test_profile_savings_without_debits_uses_seeded_rate():
+    p = build_profile(make_feature(CREDITS=5000.0, DEBITS=None), RUN_TS)
+    assert 0.02 <= p["savings_rate"] <= 0.12
+
+
+def test_profile_snowflake_typed_values():
+    from decimal import Decimal
+    row = make_feature(
+        ANNUAL_INCOME=Decimal("125000.50"), CREDIT_SCORE=Decimal("701"), N_PRODUCTS=Decimal("3"),
+        N_DEPOSIT=Decimal("1"), N_LOAN=Decimal("1"), N_INVESTMENT=Decimal("0"), N_LINE=Decimal("1"),
+        DD_AMOUNT=Decimal("0"), BONUS_AMOUNT=Decimal("12.5"), TOTAL_BALANCE=Decimal("1000.25"),
+        AVG_BALANCE=Decimal("900.10"), EARLY_AVG_BALANCE=Decimal("1000"), LATE_AVG_BALANCE=Decimal("800"),
+        CREDITS=Decimal("0"), DEBITS=Decimal("10"), ADB_TXN=Decimal("40"), ADB_DAYS=Decimal("0"),
+        FT_TXN=Decimal("9"), CALLS=Decimal("5"), GONG_WEEKS=Decimal("0"),
+        FIRST_OPEN_DATE=datetime(2019, 4, 2, 10, 0), LAST_CALL_DATE=datetime(2026, 9, 20, 8, 30),
+        DETRACTOR_12M=Decimal("2"), NEG_WEEKS=Decimal("4"), VNEG_WEEKS=Decimal("1"),
+    )
+    p = build_profile(row, RUN_TS)
+    assert set(p) == KEYS and all(v is not None for v in p.values())
+    assert p["complaints"] == 3 and p["escalations"] == 1
