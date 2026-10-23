@@ -1,6 +1,6 @@
 export { executeGraphQL } from './graphqlClient';
 export {
-  buildPriorityQueue, dropCovered,
+  buildPriorityQueue, dropCovered, inheritDue,
   type QueueSignalItem,
   type QueueOppInput,
   type QueueTaskInput,

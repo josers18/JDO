@@ -46,7 +46,7 @@
  * driver in the blended "who to call" score. Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered, inheritDue } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -375,7 +375,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   // C10 — the blended Who-to-Call: D&B credit, souring Gong calls, Moody's outlook,
   // fee spikes and the best business offer, one score per client.
-  const callList: CallItem[] = commercialWhoToCallItems(who, nameById);
+  // Who-to-Call rows take the live due date of the Gong / fee-spike signals they cover.
+  const callList: CallItem[] = inheritDue(commercialWhoToCallItems(who, nameById), [gongSignals, txSignals]);
   // Gong / fee-spike clients already in the blended Who-to-Call don't repeat as their own item;
   // the fee feed ranks by the same score and fetches spares, so cap it after the dedupe.
   const feeQueue = dropCovered(txSignals, callList).slice(0, FEE_SPIKES);
@@ -722,12 +723,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       // C4 — MSCI ESG: upgrades pitch green lending, downgrades go to credit.
       ...esg.rows.filter(e => e.direction === 'Upgrade').slice(0, 2).map((e, i) => ({
         id: `aeu${i}`, title: `ESG upgrade — ${nameOf(e.accountId)}`,
-        detail: `MSCI ${e.rating} · ESG score ${e.score.toFixed(1)} · Sustainability-linked / green-loan pitch`,
+        detail: `MSCI ${e.fromRating} → ${e.rating} · ESG score ${e.score.toFixed(1)} (+${e.scoreMove.toFixed(1)}) · Sustainability-linked / green-loan pitch`,
         tone: 'opportunity' as const, severity: 'Medium' as const, when: 'this month',
       })),
       ...esg.rows.filter(e => e.direction === 'Downgrade').slice(0, 2).map((e, i) => ({
         id: `aed${i}`, title: `ESG downgrade — ${nameOf(e.accountId)}`,
-        detail: `MSCI ${e.rating} · ESG score ${e.score.toFixed(1)}${e.controversies ? ` · ${e.controversies} controversy flag${e.controversies === 1 ? '' : 's'}${e.category ? ` (${e.category})` : ''}` : ''} · Credit-committee heads-up`,
+        detail: `MSCI ${e.fromRating} → ${e.rating} · ESG score ${e.score.toFixed(1)} (${e.scoreMove.toFixed(1)})${e.controversies ? ` · ${e.controversies} controversy flag${e.controversies === 1 ? '' : 's'}${e.category ? ` (${e.category})` : ''}` : ''} · Credit-committee heads-up`,
         tone: 'risk' as const, severity: e.controversies >= 5 ? 'High' as const : 'Medium' as const, when: 'this month',
       })),
       // C3 — new leadership = a banking-relationship review; weak governance = risk.

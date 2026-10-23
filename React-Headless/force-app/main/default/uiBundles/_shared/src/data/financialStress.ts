@@ -10,7 +10,7 @@
  * Verified live 2026-10-22: Sarah Smith 1,751 High now → 84 persistent, 41 with
  * overdraft fees, 3 both; Justin Chen 1,763 → 76 / 36 / 2.
  */
-import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { bookAccountFilter, queryDataCloud, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
 import { whoToCallScoreCtes } from './whoToCall';
 
@@ -41,20 +41,31 @@ const ctes = (accountFilter: string) => `
     GROUP BY SFAccountID__c
   )`;
 
-// Unfiltered by persistence so a book with any High client never falls back org-wide.
-// R7 blended score first, so the clients Who-to-Call already holds lead and drop out
-// in the dedupe (STRESS_SPARE extra rows backfill them); then persistent AND
-// overdraft-corroborated, then any overdraft client, then months High, then fee count.
-const rowsSql = (accountFilter: string) => `${whoToCallScoreCtes(accountFilter)},
+// Book-only: another banker's stressed clients are no one to call, so an empty book stays empty.
+// Card order: persistent AND overdraft-corroborated first, then any overdraft client (so
+// the rows fill with fee evidence before fee-less persistence), then months High, then fees.
+const ORDER = `CASE WHEN od.acct IS NULL THEN 0
+                WHEN st.months_high >= ${PERSISTENT_MONTHS} THEN 2 ELSE 1 END DESC,
+           st.months_high DESC, COALESCE(od.fees, 0) DESC`;
+const COLS = `st.acct AS account_id, st.months_high AS months_high, st.life_stage AS life_stage, st.prizm AS prizm,
+         COALESCE(od.fees, 0) AS fees, COALESCE(od.fee_total, 0) AS fee_total`;
+
+const rowsSql = (accountFilter: string) => `${ctes(accountFilter)}
+  SELECT ${COLS}
+  FROM st LEFT JOIN od ON od.acct = st.acct
+  WHERE st.now_high = 1
+  ORDER BY ${ORDER}
+  LIMIT ${STRESS_ROWS}
+`;
+
+// Queue order: the R7 blended score first, so the clients Who-to-Call already holds
+// lead and drop out in the dedupe (STRESS_SPARE extra rows backfill them), then card order.
+const queueRowsSql = (accountFilter: string) => `${whoToCallScoreCtes(accountFilter)},
   ${ctes(accountFilter).replace(/^\s*WITH /, '')}
-  SELECT st.acct AS account_id, st.months_high AS months_high, st.life_stage AS life_stage, st.prizm AS prizm,
-         COALESCE(od.fees, 0) AS fees, COALESCE(od.fee_total, 0) AS fee_total
+  SELECT ${COLS}
   FROM st LEFT JOIN od ON od.acct = st.acct LEFT JOIN b ON b.account_id = st.acct
   WHERE st.now_high = 1
-  ORDER BY COALESCE(b.score, 0) DESC,
-           CASE WHEN od.acct IS NULL THEN 0
-                WHEN st.months_high >= ${PERSISTENT_MONTHS} THEN 2 ELSE 1 END DESC,
-           st.months_high DESC, COALESCE(od.fees, 0) DESC
+  ORDER BY COALESCE(b.score, 0) DESC, ${ORDER}
   LIMIT ${STRESS_ROWS + STRESS_SPARE}
 `;
 
@@ -93,8 +104,10 @@ export interface StressedClientRow {
 }
 
 export interface FinancialStressResult {
-  /** High now, highest R7 score first, then most persistent (up to STRESS_ROWS + spares). */
+  /** High now, most persistent first — the card's watchlist. */
   rows: StressedClientRow[];
+  /** High now, highest R7 score first (STRESS_ROWS + spares) — the queue's feed, deduped against Who-to-Call. */
+  queueRows: StressedClientRow[];
   highNow: number;
   persistent: number;
   /** High now with an overdraft fee in the last 30 days. */
@@ -107,32 +120,37 @@ export interface FinancialStressResult {
 
 const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
-/** R3 — the book's clients under persistent financial stress. */
+const toRow = (r: Record<string, unknown>): StressedClientRow => ({
+  accountId: String(r.account_id ?? ''),
+  monthsHigh: Number(r.months_high) || 0,
+  lifeStage: String(r.life_stage ?? ''),
+  prizm: decode(String(r.prizm ?? '')),
+  overdraftFees: Number(r.fees) || 0,
+  overdraftUsd: Number(r.fee_total) || 0,
+});
+
+/** R3 — the book's clients under persistent financial stress (book-only, never org-wide). */
 export async function fetchFinancialStress(ownerId: string | null | undefined): Promise<FinancialStressResult> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, STRESS_ROWS + STRESS_SPARE);
-  const [total, stages] = await Promise.all([
-    queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
+  const { accountFilter, scope } = bookAccountFilter(ownerId);
+  const [card, queue, total, stages] = await Promise.all([
+    queryDataCloud<Record<string, unknown>>(rowsSql(accountFilter), STRESS_ROWS).then(r => r.rows),
+    queryDataCloud<Record<string, unknown>>(queueRowsSql(accountFilter), STRESS_ROWS + STRESS_SPARE).then(r => r.rows),
+    queryDataCloud<Record<string, unknown>>(summarySql(accountFilter), 1)
       .then(r => r.rows[0] ?? {})
       .catch((): Record<string, unknown> => ({})),
-    queryDataCloud<Record<string, unknown>>(lifeStageSql(res.accountFilter), 12)
+    queryDataCloud<Record<string, unknown>>(lifeStageSql(accountFilter), 12)
       .then(r => r.rows)
       .catch((): Record<string, unknown>[] => []),
   ]);
   return {
-    scope: res.scope,
+    scope,
     highNow: Number(total.high_now) || 0,
     persistent: Number(total.persistent) || 0,
     withFees: Number(total.with_fees) || 0,
     both: Number(total.both_) || 0,
     lifeStages: stages.map(r => ({ stage: String(r.life_stage ?? '') || 'Unknown', count: Number(r.n) || 0 })),
-    rows: res.rows.map(r => ({
-      accountId: String(r.account_id ?? ''),
-      monthsHigh: Number(r.months_high) || 0,
-      lifeStage: String(r.life_stage ?? ''),
-      prizm: decode(String(r.prizm ?? '')),
-      overdraftFees: Number(r.fees) || 0,
-      overdraftUsd: Number(r.fee_total) || 0,
-    })),
+    rows: card.map(toRow),
+    queueRows: queue.map(toRow),
   };
 }
 
@@ -171,7 +189,7 @@ export function financialStressQueueItems(
   const due = hardshipCheckInDue(opts.now);
   const src = `Claritas stress${res.scope === 'org' ? ' · org-wide' : ''}`;
   // Uncapped: the caller drops Who-to-Call overlaps, then keeps STRESS_ROWS.
-  return res.rows
+  return res.queueRows
     .filter(needsHardshipCheckIn)
     .map((r, i) => ({
       id: `fs${i}`,

@@ -40,7 +40,7 @@
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered } from '@shared';
+import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered, inheritDue } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -249,7 +249,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): PropertyRiskResult => ({ rows: [], homes: 0, flood: 0, wildfire: 0, both: 0, homeValue: 0, mortgage: 0, scope: 'org' })),
     // R3 financial-stress watchlist (Claritas + overdraft fees) — additive.
     userP.then(u => fetchFinancialStress(u?.userId))
-      .catch((): FinancialStressResult => ({ rows: [], highNow: 0, persistent: 0, withFees: 0, both: 0, lifeStages: [], scope: 'org' })),
+      .catch((): FinancialStressResult => ({ rows: [], queueRows: [], highNow: 0, persistent: 0, withFees: 0, both: 0, lifeStages: [], scope: 'org' })),
     // R4 life-stage mix (Claritas) — additive.
     userP.then(u => fetchLifeStageMix(u?.userId))
       .catch((): LifeStageMixResult => ({ rows: [], clients: 0, mortgageReady: 0, investReady: 0, mortgageLeads: [], scope: 'org' })),
@@ -267,7 +267,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve Who-to-Call + signal account IDs → names in one follow-up query
-  const csatIds = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...stress.queueRows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
   if (csatIds.length) {
@@ -286,7 +286,6 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
   // R7 — one blended score per client; each row names its drivers.
-  const callList: CallItem[] = whoToCallItems(who, nameById, { segment: 'Retail' });
 
   // S1 — clients whose recorded-call sentiment is negative and sliding.
   // S2 — screening ratings that escalated on the latest World-Check run.
@@ -302,6 +301,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const equitySignals: CallItem[] = homeEquityQueueItems(equity, nameById, { segment: 'Retail' });
   // R3 — persistent financial stress: a hardship check-in.
   const stressSignals: CallItem[] = financialStressQueueItems(stress, nameById, { segment: 'Retail' });
+  // Who-to-Call rows take the live due date of the Gong / stress signals they cover.
+  const callList: CallItem[] = inheritDue(whoToCallItems(who, nameById, { segment: 'Retail' }), [gongSignals, stressSignals]);
   // R4 — Young Families likely to need a mortgage, renters first; a client with an
   // R1 item (refi or HELOC) already has a home-lending conversation queued, so skip them.
   const equityClients = new Set(equity.rows.map(r => r.accountId));
@@ -636,7 +637,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     },
     financialStress: {
       ...stress,
-      rows: stress.rows.slice(0, STRESS_ROWS).map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+      rows: stress.rows.map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
     },
     kpis: [
       { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.041, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },

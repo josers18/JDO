@@ -18,7 +18,7 @@
  * way (see the bottom of this file).
  */
 import { commercialWhoToCallScoreCtes } from './commercialWhoToCall';
-import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { bookAccountFilter, queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
 
 const DAY = 86_400_000;
@@ -132,11 +132,13 @@ export async function fetchBusinessInflows(ownerId: string | null | undefined): 
   };
 }
 
-/** C9 — business accounts with 3+ NSF / overdraft / late fees in 30 days, highest C10 score first. */
+/** C9 — business accounts with 3+ NSF / overdraft / late fees in 30 days, highest C10 score first (book-only). */
 export async function fetchFeeSpikes(ownerId: string | null | undefined): Promise<TxSignalResult<FeeSpike>> {
-  const res = await queryDataCloudForBook<Record<string, unknown>>(feeSpikeSql, ownerId, FEE_SPIKES + FEE_SPIKE_SPARE);
+  // Book-only: another banker's fee spikes are no one to call, so an empty book stays empty.
+  const { accountFilter, scope } = bookAccountFilter(ownerId);
+  const res = await queryDataCloud<Record<string, unknown>>(feeSpikeSql(accountFilter), FEE_SPIKES + FEE_SPIKE_SPARE);
   return {
-    scope: res.scope,
+    scope,
     rows: res.rows.map(r => ({
       accountId: String(r.account_id ?? ''),
       fees: Number(r.fees) || 0,

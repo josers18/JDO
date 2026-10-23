@@ -125,6 +125,28 @@ export function dropCovered<T>(
   return items.filter(it => !ids.has(idOf(it)));
 }
 
+/** Give each Who-to-Call row the live due date of the single-driver signals it
+ *  covers (Gong's day-before-the-next-call, a stress check-in, a plan review…) when
+ *  that comes before its severity SLA; otherwise leave it for the blender's SLA.
+ *  Run it on the full signal lists, before `dropCovered` removes the overlaps. */
+export function inheritDue<T extends QueueSignalItem>(
+  items: T[],
+  signals: readonly (readonly QueueSignalItem[])[],
+  now: Date = new Date(),
+): T[] {
+  const earliest = new Map<string, string>();
+  for (const s of signals.flat()) {
+    if (!s.clientId || !s.dueDate) continue;
+    const cur = earliest.get(s.clientId);
+    if (!cur || s.dueDate < cur) earliest.set(s.clientId, s.dueDate);
+  }
+  const today = startOfDay(now);
+  return items.map((it, i) => {
+    const due = earliest.get(it.clientId);
+    return due && due < addDays(today, SEV_SLA_DAYS[it.severity] + (i % 2)) ? { ...it, dueDate: due } : it;
+  });
+}
+
 /**
  * Blend the persona's primary risk feed with opportunity- and task-derived items
  * into a single diverse, dated queue. Deduplicates by client+action, caps at

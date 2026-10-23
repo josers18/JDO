@@ -154,45 +154,70 @@ export async function fetchLeadershipChanges(ownerId: string | null | undefined)
 }
 
 /* ── C4 — ESG movers (`BT_MSCI_ESG_Scores__dlm`, monthly by `profile_month__c`) ──
-   `last_rating_change_direction__c` Upgrade / Downgrade on the latest month.
-   Upgrades suit a sustainability-linked / green-loan pitch (ranked by overall
-   ESG score); downgrades are a credit-committee heads-up (ranked by controversy
-   flags). ⚠ Synthetic data: the direction flag doesn't always match the month-
-   over-month rating diff, so only the current rating is shown (no "from X").
-   Verified live 2026-10-22, Jose's book: 402 up / 356 down, 2,891+ with
-   controversy flags. */
-const ESG_LATEST = 'profile_month__c = (SELECT MAX(profile_month__c) FROM BT_MSCI_ESG_Scores__dlm)';
-const ESG_RANK = `CASE WHEN last_rating_change_direction__c = 'Upgrade' THEN esg_score_overall__c ELSE controversy_flag_count__c END`;
+   A mover is a client whose MSCI letter rating changed since last month AND whose
+   overall ESG score moved at least ESG_MIN_MOVE points the same way. The
+   `last_rating_change_direction__c` flag isn't used: on the synthetic data it agrees
+   with the actual change on only 668 of 1,679 flagged rows, and 8,089 of 11,484
+   ratings moved Sep → Oct (up to six notches), so a bare rating diff is noise too —
+   the score has to corroborate it, within ESG_MAX_NOTCHES. Upgrades suit a sustainability-linked / green-loan
+   pitch (biggest score gain first); downgrades are a credit-committee heads-up
+   (most controversy flags first, then biggest score drop). */
+const ESG_MIN_MOVE = 1;
+/** Real MSCI ratings move a notch or two at a time; bigger synthetic jumps are noise. */
+const ESG_MAX_NOTCHES = 2;
+const ESG_PREV = '(SELECT MAX(profile_month__c) FROM BT_MSCI_ESG_Scores__dlm WHERE profile_month__c < (SELECT MAX(profile_month__c) FROM BT_MSCI_ESG_Scores__dlm))';
+const ESG_LEVEL = `CASE WHEN msci_esg_rating__c = 'AAA' THEN 7 WHEN msci_esg_rating__c = 'AA' THEN 6 WHEN msci_esg_rating__c = 'A' THEN 5
+    WHEN msci_esg_rating__c = 'BBB' THEN 4 WHEN msci_esg_rating__c = 'BB' THEN 3 WHEN msci_esg_rating__c = 'B' THEN 2
+    WHEN msci_esg_rating__c = 'CCC' THEN 1 END`;
 
-const esgRowsSql = (accountFilter: string) => `
-  SELECT account_id, direction, rating, score, controversies, category FROM (
-    SELECT account_id__c AS account_id, last_rating_change_direction__c AS direction, msci_esg_rating__c AS rating,
-           esg_score_overall__c AS score, controversy_flag_count__c AS controversies,
-           top_controversy_category__c AS category,
-           ROW_NUMBER() OVER (PARTITION BY last_rating_change_direction__c ORDER BY ${ESG_RANK} DESC, esg_score_overall__c ASC) AS pn
+// cur / prev = latest and prior month; mv = corroborated movers with their direction.
+const esgCtes = (accountFilter: string) => `
+  WITH cur AS (
+    SELECT account_id__c AS acct, msci_esg_rating__c AS rating, ${ESG_LEVEL} AS lvl, esg_score_overall__c AS score,
+           controversy_flag_count__c AS controversies, top_controversy_category__c AS category
     FROM BT_MSCI_ESG_Scores__dlm
-    WHERE ${ESG_LATEST}
-      AND last_rating_change_direction__c IN ('Upgrade', 'Downgrade')
-      AND account_id__c ${accountFilter}
+    WHERE profile_month__c = (SELECT MAX(profile_month__c) FROM BT_MSCI_ESG_Scores__dlm) AND account_id__c ${accountFilter}
+  ),
+  prev AS (
+    SELECT account_id__c AS acct, msci_esg_rating__c AS rating, ${ESG_LEVEL} AS lvl, esg_score_overall__c AS score
+    FROM BT_MSCI_ESG_Scores__dlm
+    WHERE profile_month__c = ${ESG_PREV} AND account_id__c ${accountFilter}
+  ),
+  mv AS (
+    SELECT cur.acct AS acct, cur.rating AS rating, prev.rating AS from_rating, cur.score AS score,
+           cur.score - prev.score AS move, cur.controversies AS controversies, cur.category AS category,
+           CASE WHEN cur.lvl > prev.lvl THEN 'Upgrade' ELSE 'Downgrade' END AS direction
+    FROM cur JOIN prev ON prev.acct = cur.acct
+    WHERE ABS(cur.lvl - prev.lvl) <= ${ESG_MAX_NOTCHES}
+      AND ((cur.lvl > prev.lvl AND cur.score - prev.score >= ${ESG_MIN_MOVE})
+        OR (cur.lvl < prev.lvl AND prev.score - cur.score >= ${ESG_MIN_MOVE}))
+  )`;
+
+const esgRowsSql = (accountFilter: string) => `${esgCtes(accountFilter)}
+  SELECT account_id, direction, rating, from_rating, score, move, controversies, category FROM (
+    SELECT acct AS account_id, direction, rating, from_rating, score, move, controversies, category,
+           ROW_NUMBER() OVER (PARTITION BY direction ORDER BY
+             CASE WHEN direction = 'Upgrade' THEN move ELSE controversies END DESC, ABS(move) DESC) AS pn
+    FROM mv
   ) x
   WHERE pn <= 3
   ORDER BY pn, direction
 `;
 
-const esgSummarySql = (accountFilter: string) => `
-  SELECT SUM(CASE WHEN last_rating_change_direction__c = 'Upgrade' THEN 1 ELSE 0 END) AS up,
-         SUM(CASE WHEN last_rating_change_direction__c = 'Downgrade' THEN 1 ELSE 0 END) AS down,
-         SUM(CASE WHEN controversy_flag_count__c > 0 THEN 1 ELSE 0 END) AS controversies
-  FROM BT_MSCI_ESG_Scores__dlm
-  WHERE ${ESG_LATEST}
-    AND account_id__c ${accountFilter}
+const esgSummarySql = (accountFilter: string) => `${esgCtes(accountFilter)}
+  SELECT (SELECT COUNT(*) FROM mv WHERE direction = 'Upgrade') AS up,
+         (SELECT COUNT(*) FROM mv WHERE direction = 'Downgrade') AS down,
+         (SELECT COUNT(*) FROM cur WHERE controversies > 0) AS controversies
 `;
 
 export interface EsgMoverRow {
   accountId: string;
   direction: 'Upgrade' | 'Downgrade';
+  /** This month's MSCI rating, last month's, the overall score and its move since. */
   rating: string;
+  fromRating: string;
   score: number;
+  scoreMove: number;
   controversies: number;
   category: string;
 }
@@ -206,7 +231,7 @@ export interface EsgMoversResult {
   scope: BookScope;
 }
 
-/** C4 — the book's MSCI ESG up/downgrades (top three each) plus counts. */
+/** C4 — the book's corroborated MSCI ESG up/downgrades (top three each) plus counts. */
 export async function fetchEsgMovers(ownerId: string | null | undefined): Promise<EsgMoversResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(esgRowsSql, ownerId, 6);
   const total = await queryDataCloud<Record<string, unknown>>(esgSummarySql(res.accountFilter), 1)
@@ -221,7 +246,9 @@ export async function fetchEsgMovers(ownerId: string | null | undefined): Promis
       accountId: String(r.account_id ?? ''),
       direction: r.direction === 'Upgrade' ? 'Upgrade' as const : 'Downgrade' as const,
       rating: String(r.rating ?? ''),
+      fromRating: String(r.from_rating ?? ''),
       score: Number(r.score) || 0,
+      scoreMove: Number(r.move) || 0,
       controversies: Number(r.controversies) || 0,
       category: String(r.category ?? ''),
     })),

@@ -251,3 +251,21 @@ Fixes:
   The join key is `MDM_ID__c` = `ssot__Account__dlm.External_ID_c__c` (MDM party key, `MDMP#####`);
   only 7 rows use `GEN-<AccountId>`. Consider adding a plain `account_id` column. The model also has
   a single business action code (`BIZ-CHK`), so Commercial gets one offer card. Add treasury / lending codes.
+
+## 9. Market feeds and the relationship graph: realism (probed 2026-10-23)
+
+- **Moody's outlook (`BT_Moodys_Market_Context`)**: no account's `rating_outlook__c` has changed since 2025, so the
+  Commercial C2 "outlook changed in the last 90 days" view never fires. Generate a few real outlook moves in 2026
+  (Stable → Negative / Watch, and some back to Stable), dated across the last 90 days, in Allen's and Jose's books.
+- **MSCI ESG ratings (`BT_MSCI_ESG`)**: the ratings change at random. 8,089 of 11,484 accounts changed rating from
+  September to October, some by up to 6 notches. The upgrade/downgrade flag matches the actual change on only 668 of
+  1,679 flagged rows. The cockpit now works out direction from the rating change itself and ignores the flag (moves of
+  ≤ 2 notches whose score moved ≥ 1 point the same way). Make ratings sticky: most accounts keep last month's rating,
+  a few move one notch, the score moves with the rating, and the flag matches the move.
+- **Business owners (`BT_Synth_Relationship_Graph`, `BUSINESS_OWNER` edges)**: they exist only in Vince's, Kim's and
+  Adam's books. Sarah's and Justin's books have none, so Wealth W6 falls back to org-wide for them. Seed
+  `BUSINESS_OWNER` edges from Sarah's and Justin's person accounts to business accounts in Allen's or Jose's books.
+- **Fee spikes and financial stress are uneven across books**: Sarah, Kim and Jose have no business accounts with 3+
+  NSF / overdraft / late fees in 30 days (Allen has 97). Kim and Allen have no clients High on stress now (Sarah has
+  1,751; Jose has 2). Those feeds are now book-only, so their cards are empty in those books. Spread fee events and
+  `financial_stress_indicator` = High across every book.
