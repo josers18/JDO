@@ -134,6 +134,10 @@ const CORROBORATED_MONTHS = 3;
 /** The hardship check-in — queue action and the Task subject the card prefills. */
 export const HARDSHIP_CHECK_IN = 'Hardship check-in — relief options, fee waiver';
 
+/** Hardship check-ins are due in 5 days — the queue item and the card's Task prefill. */
+export const hardshipCheckInDue = (now = new Date()) =>
+  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().slice(0, 10);
+
 /** Persistent stress, or 3+ months High corroborated by overdraft fees — earns a hardship check-in. */
 export const needsHardshipCheckIn = (r: StressedClientRow) =>
   r.monthsHigh >= PERSISTENT_MONTHS || (r.overdraftFees > 0 && r.monthsHigh >= CORROBORATED_MONTHS);
@@ -144,8 +148,7 @@ export function financialStressQueueItems(
   nameById: Record<string, string>,
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
-  const now = opts.now ?? new Date();
-  const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().slice(0, 10);
+  const due = hardshipCheckInDue(opts.now);
   const src = `Claritas stress${res.scope === 'org' ? ' · org-wide' : ''}`;
   return res.rows
     .filter(needsHardshipCheckIn)
