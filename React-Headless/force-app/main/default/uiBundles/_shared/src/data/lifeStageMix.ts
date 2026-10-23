@@ -14,8 +14,8 @@
  * first-home purchase), then free-and-clear owners (move-up), then mortgaged
  * owners (move-up / rate review); propensity breaks ties. Sarah Smith 2,536 →
  * 903 renters / 475 free-and-clear / 1,158 mortgaged. Each tenure is fetched as
- * its own bucket so a mortgaged owner (or failing that, any owner) always makes
- * the three when the book has one, over-fetched so exclusions still leave three.
+ * its own bucket so the three can be one of each — a renter, a free-and-clear
+ * owner, a mortgaged owner — over-fetched so exclusions still leave three.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
@@ -160,14 +160,17 @@ const MORTGAGE_ANGLE: Record<MortgageLeadTenure, { why: string; action: string; 
 /** Short angle label for the card's lead rows. */
 export const mortgageLeadTag = (r: MortgageLead) => MORTGAGE_ANGLE[r.tenure].tag;
 
-/** The three leads the queue shows — and the card lists — after exclusions. Renters
- *  rank first, but the top mortgaged owner (a rate review; failing that, the top
- *  free-and-clear owner) takes the third slot when none of its tenure made the three. */
+const TENURES: readonly MortgageLeadTenure[] = ['renter', 'owner', 'mortgaged'];
+
+/** The three leads the queue shows — and the card lists — after exclusions: the top
+ *  lead of each tenure the book has, any open slots filled by rank (renters first). */
 export function selectMortgageLeads(res: LifeStageMixResult, exclude?: ReadonlySet<string>): MortgageLead[] {
   const kept = res.mortgageLeads.filter(r => !exclude?.has(r.accountId));
-  const top = kept.slice(0, 3);
-  const pick = kept.find(r => r.tenure === 'mortgaged') ?? kept.find(r => r.tenure === 'owner');
-  return pick && !top.some(r => r.tenure === pick.tenure) ? [...top.slice(0, 2), pick] : top;
+  const firsts = TENURES
+    .map(t => kept.find(r => r.tenure === t))
+    .filter((r): r is MortgageLead => r !== undefined);
+  const fill = kept.filter(r => !firsts.includes(r)).slice(0, 3 - firsts.length);
+  return [...firsts, ...fill].sort((a, b) => kept.indexOf(a) - kept.indexOf(b));
 }
 
 const money = (n: number) =>
