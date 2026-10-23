@@ -76,6 +76,9 @@ import {
   PROPENSITY_READY,
   mortgageLeadTag,
   mortgageLeadLoan,
+  mortgageLeadAction,
+  mortgageLeadReason,
+  mortgageLeadDue,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1522,13 +1525,27 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           </p>
           <ul className="mt-1 divide-y divide-line border-t border-line">
             {mix.mortgageLeads.map(r => (
-              <li key={r.accountId}>
+              <li key={r.accountId} className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
-                  className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+                  className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
                 >
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                  {r.clientName}
+                </button>
+                <button
+                  type="button"
+                  title={mortgageLeadAction(r)}
+                  onClick={() => setModal({
+                    type: 'task',
+                    name: r.clientName ?? 'Client',
+                    id: r.accountId,
+                    subject: mortgageLeadAction(r),
+                    dueDate: mortgageLeadDue(),
+                    comments: mortgageLeadReason(r),
+                  })}
+                  className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
+                >
                   <span className="flex-none rounded-full bg-track px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
                     {mortgageLeadTag(r)}
                   </span>

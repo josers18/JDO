@@ -164,6 +164,19 @@ export const mortgageLeadLoan = (r: MortgageLead) =>
     ? `${money(r.balance)}${r.ratePct != null ? ` at ${r.ratePct.toFixed(2)}%` : ''}`
     : '';
 
+/** The lead's next step — the queue action and the card's Task subject. */
+export const mortgageLeadAction = (r: MortgageLead) => MORTGAGE_ANGLE[r.tenure].action;
+
+/** Why the client is a lead — the queue reason and the card's Task comments. */
+export const mortgageLeadReason = (r: MortgageLead) => {
+  const loan = mortgageLeadLoan(r);
+  return `Young family · mortgage propensity ${Math.round(r.score)} · ${MORTGAGE_ANGLE[r.tenure].why}${loan && ` (${loan})`}`;
+};
+
+/** Mortgage leads are due in 7 days — the queue item and the card's Task prefill. */
+export const mortgageLeadDue = (now = new Date()) =>
+  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10);
+
 /** R4 Young Families mortgage 70+ → queue: a mortgage lead. `exclude` drops
  *  clients another queue item already covers (Retail passes its R1 home-equity clients). */
 export function mortgageLeadQueueItems(
@@ -171,24 +184,19 @@ export function mortgageLeadQueueItems(
   nameById: Record<string, string>,
   opts: { segment: string; now?: Date; exclude?: ReadonlySet<string> },
 ): QueueSignalItem[] {
-  const now = opts.now ?? new Date();
-  const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10);
+  const due = mortgageLeadDue(opts.now);
   const src = `Claritas propensity${res.scope === 'org' ? ' · org-wide' : ''}`;
-  return selectMortgageLeads(res, opts.exclude).map((r, i) => {
-    const angle = MORTGAGE_ANGLE[r.tenure];
-    const loan = mortgageLeadLoan(r) && ` (${mortgageLeadLoan(r)})`;
-    return {
-      id: `ml${i}`,
-      clientId: r.accountId,
-      clientName: nameById[r.accountId] || r.accountId,
-      segment: opts.segment,
-      reason: `Young family · mortgage propensity ${Math.round(r.score)} · ${angle.why}${loan}`,
-      action: angle.action,
-      score: Math.min(0.8, 0.3 + r.score / 200),
-      severity: r.tenure === 'renter' ? 'medium' : 'low',
-      source: src,
-      relationshipValue: 0,
-      dueDate: due,
-    };
-  });
+  return selectMortgageLeads(res, opts.exclude).map((r, i) => ({
+    id: `ml${i}`,
+    clientId: r.accountId,
+    clientName: nameById[r.accountId] || r.accountId,
+    segment: opts.segment,
+    reason: mortgageLeadReason(r),
+    action: mortgageLeadAction(r),
+    score: Math.min(0.8, 0.3 + r.score / 200),
+    severity: r.tenure === 'renter' ? 'medium' : 'low',
+    source: src,
+    relationshipValue: 0,
+    dueDate: due,
+  }));
 }
