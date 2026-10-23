@@ -3,24 +3,26 @@
  * four Data Cloud drivers, replacing the CSAT-only call list. Each driver is
  * normalized to 0–1 and weighted:
  *
- *   · CSAT (35%)   — latest survey per account below 70 (`CSAT_Snowflake__dlm`); 20 → 1.
+ *   · CSAT (30%)   — latest survey per account below 70 (`CSAT_Snowflake__dlm`); 20 → 1.
  *   · Gong (30%)   — S1 negative + declining call sentiment this week, by deal risk.
- *   · Stress (20%) — R3 Claritas High now and 3+ of the last 6 months.
+ *   · Stress (25%) — R3 Claritas High now and 3+ of the last 6 months, by months High.
  *   · Offer (15%)  — S3 best retail offer's modeled conversion (50%+ → 1): a reason
  *                    to call that isn't a problem.
  *
- * Risk drivers dominate, so stacked signals rise to the top. Every row names its
+ * (months_high is an integer count — divide by 6.0, or anything short of 6/6 truncates
+ * to 0.) Stress at 25% lets persistent-stress clients share the top 8 with Gong save
+ * calls; at 30% they crowd them out. Risk drivers dominate, so stacked signals rise to the top. Every row names its
  * drivers, and the action follows the strongest one. Verified live 2026-10-22: Sarah
  * Smith 10,012 clients score (6,916 low CSAT, 48 Gong, 393 stress, 8,916 offers;
- * 280 with 2+ risk drivers) — top is CSAT 52 + Very Negative calls (risk 79) + a
- * 63% mortgage offer.
+ * 280 with 2+ risk drivers); after the 2026-10-23 rebalance her top 8 is 5 stress + 4
+ * Gong clients, led by stress 4/6 + CSAT 54 + Negative calls + a 50% offer.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { offerLabel } from './offerModel';
 import type { QueueSeverity, QueueSignalItem } from './priorityQueue';
 
 /** Driver weights — they sum to 1, so the score is 0–1. */
-export const WHO_TO_CALL_WEIGHTS = { csat: 0.35, gong: 0.3, stress: 0.2, offer: 0.15 } as const;
+export const WHO_TO_CALL_WEIGHTS = { csat: 0.3, gong: 0.3, stress: 0.25, offer: 0.15 } as const;
 const W = WHO_TO_CALL_WEIGHTS;
 /** Latest CSAT below this counts; the floor of the scale (20) scores 1. */
 const CSAT_LOW = 70;
@@ -79,7 +81,7 @@ const ctes = (accountFilter: string) => `
            g.sentiment AS sentiment, g.risk AS deal_risk, s.months_high AS months_high, o.code AS offer_code, o.conv AS conv,
            ${W.csat} * COALESCE((${CSAT_LOW} - c.csat) / ${CSAT_LOW - 20}, 0)
          + ${W.gong} * COALESCE(g.risk / 100, 0)
-         + ${W.stress} * COALESCE(s.months_high / 6, 0)
+         + ${W.stress} * COALESCE(s.months_high / 6.0, 0)
          + ${W.offer} * COALESCE(CASE WHEN o.conv >= 50 THEN 1 ELSE o.conv / 50 END, 0) AS score
     FROM ids
     LEFT JOIN c ON c.acct = ids.acct
