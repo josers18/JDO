@@ -1,0 +1,24 @@
+[project]
+name = "cumulus-attrition-csat-inputs"
+version = "0.1.0"
+description = "Synthetic attrition, CSAT and enrollment input rows for Cumulus Data Cloud models."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pandas",
+    "snowflake-snowpark-python>=1.20",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["procedures", "."]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []

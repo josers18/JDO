@@ -1,0 +1,66 @@
+"""Live column orders, categorical vocabularies and numeric ranges for the three input tables.
+
+Column order and names are the contract (they mirror the live DESCRIBE TABLE output).
+"""
+from __future__ import annotations
+
+ATTRITION_COLUMNS = (
+    "CUSTOMER_SEGMENT_C", "CROSS_SELL_SCORE_C", "ONLINE_BANKING_C", "MOBILE_BANKING_C", "DIRECT_DEPOSIT_C",
+    "AVG_NUMBER_OF_TRANSACTIONS_C", "TENURE_IN_MONTHS_C", "AVG_BALANCE_6_MONTHS_C", "NPS_SCORE_C",
+    "SINGLE_PRODUCT_CUSTOMER_C", "PROMOTIONAL_PRODUCT_C", "PCT_BALANCE_DROP_6_MONTHS_AVG_C",
+    "DAYS_SINCE_LAST_INTERACTION_C", "CHURNED_C", "UNIQUEID", "AVG_NUMBER_OF_CALL_CENTER_CALLS_C",
+)
+
+CSAT_COLUMNS = (
+    "SEGMENT", "AGE", "ANNUAL_INCOME", "ACCOUNT_BALANCE", "TENURE_YEARS", "NUM_PRODUCTS", "DIGITAL_ENGAGEMENT",
+    "COMPLAINT_COUNT", "CUSTOMER_SERVICE_CONTACT", "CROSS_SELL_SCORE", "ESCALATED_CASES", "TRANSACTION_VOLUME",
+    "CREDIT_SCORE", "ACCOUNTID",
+)
+
+ENROLLMENT_COLUMNS = (
+    "ACCOUNTID", "MOBILE_ENROLLED", "ONLINE_ENROLLED", "KYC_STATUS", "MFA_STATUS", "PAPERLESS_ENROLLED",
+    "ALERT_ENROLLED", "WIRE_ENABLED", "SAVINGS_RATE", "CROSS_SELL_SCORE", "AML_STATUS", "SNAPSHOT_DATE",
+)
+
+YES_NO_COLUMNS = (
+    "ONLINE_BANKING_C", "MOBILE_BANKING_C", "DIRECT_DEPOSIT_C", "SINGLE_PRODUCT_CUSTOMER_C", "PROMOTIONAL_PRODUCT_C",
+)
+
+BOOL_COLUMNS = (
+    "MOBILE_ENROLLED", "ONLINE_ENROLLED", "MFA_STATUS", "PAPERLESS_ENROLLED", "ALERT_ENROLLED", "WIRE_ENABLED",
+)
+
+CATEGORIES: dict[str, tuple[str, ...]] = {
+    "CUSTOMER_SEGMENT_C": ("Regular", "Premium", "Preferred"),
+    "NPS_SCORE_C": ("Promoter", "Passive", "Detractor"),
+    "CHURNED_C": ("No",),
+    "SEGMENT": ("Corporate", "WealthManagement", "Commercial", "Banking"),
+    "KYC_STATUS": ("Current", "Pending", "Expired", "Under Review"),
+    "AML_STATUS": ("Cleared", "Under Review", "Pending", "None"),
+    **{c: ("Yes", "No") for c in YES_NO_COLUMNS},
+}
+
+# Inclusive min/max. CSAT and enrollment CROSS_SELL_SCORE collide, so they are prefixed.
+RANGES: dict[str, tuple[float, float]] = {
+    "CROSS_SELL_SCORE_C": (1, 7),
+    "AVG_NUMBER_OF_TRANSACTIONS_C": (0, 45),
+    "TENURE_IN_MONTHS_C": (8, 74),
+    "AVG_BALANCE_6_MONTHS_C": (1.70, 778793.36),
+    "PCT_BALANCE_DROP_6_MONTHS_AVG_C": (0, 0.84),
+    "DAYS_SINCE_LAST_INTERACTION_C": (0, 65),
+    "AVG_NUMBER_OF_CALL_CENTER_CALLS_C": (0, 11),
+    "AGE": (18, 79),
+    "ANNUAL_INCOME": (40004, 14795526),
+    "ACCOUNT_BALANCE": (3667.14, 7249807.74),
+    "TENURE_YEARS": (1, 34),
+    "NUM_PRODUCTS": (1, 23),
+    "DIGITAL_ENGAGEMENT": (40, 99),
+    "COMPLAINT_COUNT": (0, 4),
+    "CUSTOMER_SERVICE_CONTACT": (0, 5),
+    "CSAT.CROSS_SELL_SCORE": (0, 100),
+    "ESCALATED_CASES": (0, 2),
+    "TRANSACTION_VOLUME": (1, 197),
+    "CREDIT_SCORE": (621.78, 842),
+    "ENR.SAVINGS_RATE": (0.00, 0.40),
+    "ENR.CROSS_SELL_SCORE": (1, 10),
+}
