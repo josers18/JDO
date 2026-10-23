@@ -70,6 +70,7 @@ import {
   HARDSHIP_CHECK_IN,
   hardshipCheckInDue,
   hardshipCheckInReason,
+  hardshipCheckInPriority,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -88,7 +89,7 @@ const DEFAULT_ACCOUNT_ID = '001am00000qvjsAAAQ';
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
 type ModalState =
   | { type: 'none' }
-  | { type: ModalKind; name: string; id?: string; subject?: string; toAddress?: string; dueDate?: string; comments?: string };
+  | { type: ModalKind; name: string; id?: string; subject?: string; toAddress?: string; dueDate?: string; comments?: string; priority?: 'High' | 'Normal' | 'Low' };
 
 const KIND_TO_ACTION: Record<Recommendation['kind'], CrmWriteInput['action']> = {
   task: 'task',
@@ -1420,7 +1421,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
                 type="button"
                 // Check-in rows go straight to a prefilled hardship Task; the rest open the quick view.
                 onClick={() => needsHardshipCheckIn(r)
-                  ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: HARDSHIP_CHECK_IN, dueDate: hardshipCheckInDue(), comments: hardshipCheckInReason(r) })
+                  ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: HARDSHIP_CHECK_IN, dueDate: hardshipCheckInDue(), comments: hardshipCheckInReason(r), priority: hardshipCheckInPriority(r) })
                   : open('quickview', r.clientName ?? 'Client', r.accountId)}
                 title={needsHardshipCheckIn(r) ? 'Create a hardship check-in task' : undefined}
                 className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
@@ -1964,7 +1965,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 
       {/* ---------- MODALS ---------- */}
       {modal.type === 'task' && (
-        <TaskModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} dueDateDefault={modal.dueDate} commentsDefault={modal.comments} onSaved={refetch} />
+        <TaskModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} dueDateDefault={modal.dueDate} commentsDefault={modal.comments} priorityDefault={modal.priority} onSaved={refetch} />
       )}
       {modal.type === 'schedule' && (
         <ScheduleModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject ?? 'Call'} onSaved={refetch} />

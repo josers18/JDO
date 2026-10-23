@@ -142,6 +142,14 @@ export const hardshipCheckInDue = (now = new Date()) =>
 export const hardshipCheckInReason = (r: StressedClientRow) =>
   `High financial stress ${r.monthsHigh} of 6 months${r.overdraftFees ? ` · ${r.overdraftFees} overdraft fee${r.overdraftFees > 1 ? 's' : ''} in 30d` : ''}`;
 
+/** Overdraft fees or 5+ months High → medium; the queue severity behind the Task priority. */
+export const hardshipCheckInSeverity = (r: StressedClientRow): 'medium' | 'low' =>
+  r.overdraftFees || r.monthsHigh >= 5 ? 'medium' : 'low';
+
+/** Task priority for the card's prefill: medium → High, low → Normal. */
+export const hardshipCheckInPriority = (r: StressedClientRow) =>
+  hardshipCheckInSeverity(r) === 'medium' ? 'High' as const : 'Normal' as const;
+
 /** Persistent stress, or 3+ months High corroborated by overdraft fees — earns a hardship check-in. */
 export const needsHardshipCheckIn = (r: StressedClientRow) =>
   r.monthsHigh >= PERSISTENT_MONTHS || (r.overdraftFees > 0 && r.monthsHigh >= CORROBORATED_MONTHS);
@@ -165,7 +173,7 @@ export function financialStressQueueItems(
       reason: hardshipCheckInReason(r),
       action: HARDSHIP_CHECK_IN,
       score: Math.min(0.85, 0.4 + r.monthsHigh * 0.06 + (r.overdraftFees ? 0.1 : 0)),
-      severity: r.overdraftFees || r.monthsHigh >= 5 ? 'medium' : 'low',
+      severity: hardshipCheckInSeverity(r),
       source: src,
       relationshipValue: 0,
       dueDate: due,
