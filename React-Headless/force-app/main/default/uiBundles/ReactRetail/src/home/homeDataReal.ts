@@ -25,12 +25,14 @@
  *   · R3 financial-stress watchlist (BT_Claritas_Demographics__dlm): High stress in
  *     ≥ 4 of the last 6 months, corroborated by overdraft fees → Health-tab card,
  *     hardship check-ins in the queue, At-Risk KPI note + alerts
+ *   · R4 life-stage mix (same DMO): clients per life stage with mortgage /
+ *     investment / wealth propensity → Growth-tab donut
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, type LifeStageMixResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -235,7 +237,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress] = await Promise.all([
+  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
     userP,
@@ -269,6 +271,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // R3 financial-stress watchlist (Claritas + overdraft fees) — additive.
     userP.then(u => fetchFinancialStress(u?.userId))
       .catch((): FinancialStressResult => ({ rows: [], highNow: 0, persistent: 0, withFees: 0, both: 0, lifeStages: [], scope: 'org' })),
+    // R4 life-stage mix (Claritas) — additive.
+    userP.then(u => fetchLifeStageMix(u?.userId))
+      .catch((): LifeStageMixResult => ({ rows: [], clients: 0, mortgageReady: 0, investReady: 0, scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -620,6 +625,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       ...propRisk,
       rows: propRisk.rows.map(h => ({ ...h, clientName: nameById[h.accountId] ?? 'Client' })),
     },
+    lifeStageMix: lifeStages,
     financialStress: {
       ...stress,
       rows: stress.rows.map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),

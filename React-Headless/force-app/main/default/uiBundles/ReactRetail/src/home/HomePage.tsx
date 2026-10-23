@@ -71,6 +71,9 @@ import {
   hardshipCheckInDue,
   hardshipCheckInReason,
   hardshipCheckInPriority,
+  DonutChart,
+  LEAN_LABEL,
+  PROPENSITY_READY,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1451,6 +1454,68 @@ function HomeContent({ mode }: { mode: HomeMode }) {
     </div>
   );
 
+  // R4 — Claritas life-stage mix: donut of the book by life stage, each stage's
+  // mortgage / investment / wealth propensity and its strongest lean.
+  const mix = data.lifeStageMix;
+  const STAGE_COLORS = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e', '#64748b', '#0ea5e9'];
+  const topStage = mix?.rows[0];
+  const lifeStageCard = mix && mix.clients > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Life-stage mix</b>
+        <span className="font-mono text-[10.5px] text-faint">Claritas · latest month{mix.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-4">
+        <div className="flex-none">
+          <DonutChart
+            slices={mix.rows.map((r, i) => ({ label: r.stage, value: r.clients, color: STAGE_COLORS[i % STAGE_COLORS.length] }))}
+            size={150}
+            thickness={20}
+            centerValue={formatValue(mix.clients, 'number')}
+            centerLabel="Profiled"
+            legend={false}
+          />
+        </div>
+        <div className="min-w-[300px] flex-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_56px_56px_56px_76px] gap-x-2 border-b border-line pb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+            <span>Stage</span>
+            <span className="text-right">Mortg.</span>
+            <span className="text-right">Invest</span>
+            <span className="text-right">Wealth</span>
+            <span className="text-right">Lean</span>
+          </div>
+          <ul className="divide-y divide-line">
+            {mix.rows.map((r, i) => (
+              <li key={r.stage} className="grid grid-cols-[minmax(0,1fr)_56px_56px_56px_76px] items-center gap-x-2 py-1.5 font-mono text-[11px]">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="h-2.5 w-2.5 flex-none rounded-[3px]" style={{ background: STAGE_COLORS[i % STAGE_COLORS.length] }} />
+                  <span className="truncate font-sans text-[12.5px] font-semibold text-fg">{r.stage}</span>
+                  <span className="flex-none text-muted">{r.clients.toLocaleString('en-US')}</span>
+                </span>
+                {(['mortgage', 'invest', 'wealth'] as const).map(k => (
+                  <span key={k} className={`text-right ${r.lean === k ? 'font-semibold text-fg' : 'text-muted'}`}>{Math.round(r[k])}</span>
+                ))}
+                <span className="text-right text-accent">{LEAN_LABEL[r.lean]}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-none items-center gap-5 self-center">
+          <PulseStat label={`Mortgage ${PROPENSITY_READY}+`} value={mix.mortgageReady.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`Invest ${PROPENSITY_READY}+`} value={mix.investReady.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {topStage && (
+        <p className="mt-2 text-[12.5px] leading-snug text-muted">
+          Largest segment: <b className="text-fg">{topStage.stage}</b>, {topStage.clients.toLocaleString('en-US')} clients leaning{' '}
+          {LEAN_LABEL[topStage.lean].toLowerCase()} ({Math.round(topStage[topStage.lean])}). Propensities are Claritas scores, 0–100 averages per stage.
+        </p>
+      )}
+    </div>
+  );
+
   // ── Compact AI Daily Brief strip (cockpit only) ──
   // The mockup's brief is a single dense line — icon + "AI Daily Brief" +
   // "Updated" chip + one sentence + "View full insights →" — NOT the tall hero
@@ -1789,6 +1854,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
         {kpiGridGrowth}
       </section>
       <section id="whitespace" className="mt-8 scroll-mt-[82px]">{whitespaceSection}</section>
+      {lifeStageCard && <section id="lifeStages" className="mt-8 scroll-mt-[82px]">{lifeStageCard}</section>}
       <section id="pipeline" className="mt-8 scroll-mt-[82px]">
         <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
           {pipelineControls}
@@ -1918,6 +1984,9 @@ function HomeContent({ mode }: { mode: HomeMode }) {
               <section id="whitespace" className="mt-8 scroll-mt-[82px]">
                 {whitespaceSection}
               </section>
+
+              {/* ---------- LIFE-STAGE MIX ---------- */}
+              {lifeStageCard && <section id="lifeStages" className="mt-8 scroll-mt-[82px]">{lifeStageCard}</section>}
 
               {/* ---------- PIPELINE ---------- */}
               <section id="pipeline" className="mt-8 scroll-mt-[82px]">

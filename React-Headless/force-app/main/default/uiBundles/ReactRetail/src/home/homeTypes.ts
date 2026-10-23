@@ -3,7 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
-import type { DataFreshness, FinancialStressResult, PropertyRiskResult } from '@shared';
+import type { DataFreshness, FinancialStressResult, LifeStageMixResult, PropertyRiskResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -255,4 +255,6 @@ export interface HomeDashboard {
   propertyRisk?: PropertyRiskResult;
   /** R3 — persistent financial stress (Claritas) + overdraft corroboration. */
   financialStress?: FinancialStressResult;
+  /** R4 — clients per Claritas life stage with propensities. */
+  lifeStageMix?: LifeStageMixResult;
 }
