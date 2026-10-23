@@ -23,7 +23,7 @@ def anchor(**kw):
 
 
 def age_anchor(age, **kw):
-    return anchor(BIRTHDATE=f"{2026 - age - 1}-01-15", **kw)
+    return anchor(BIRTHDATE=f"{2026 - age}-01-15", **kw)
 
 
 def test_anchor_values_copied_unclamped():
@@ -137,6 +137,8 @@ def test_risk_leans_with_propensity_and_age():
         got = [personal_profile(age_anchor(age), feats, T0, key=f"k{i}")["RISK_TOLERANCE"] for i in range(n)]
         return got.count(tol) / n
     assert share(40, "Aggressive", INVESTMENT_PROPENSITY=90) > share(40, "Aggressive", INVESTMENT_PROPENSITY=20)
+    rising = [share(40, "Aggressive", INVESTMENT_PROPENSITY=v) for v in (5, 15, 90)]
+    assert rising[0] < rising[1] < rising[2], rising
     assert share(70, "Conservative") > share(40, "Conservative")
 
 
@@ -229,3 +231,52 @@ def test_training_key_changes_generated_fields():
     a = anchor(BIRTHDATE=None, ANNUAL_INCOME=None, CREDIT_SCORE=None)
     assert personal_profile(a, {}, T0) != personal_profile(a, {}, T0, key=a["ACCOUNT_ID"] + "#T1")
     assert personal_profile(a, {}, T0, key="x#T1")["ACCOUNTID"] == a["ACCOUNT_ID"]
+
+
+def test_age_anchor_exact():
+    assert [personal_profile(age_anchor(a), {}, T0)["AGE"] for a in (20, 30, 45, 75)] == [20, 30, 45, 75]
+
+
+def test_absurd_age_with_null_income_is_total():
+    p = personal_profile(anchor(BIRTHDATE="1800-01-01", ANNUAL_INCOME=None), {}, T0)
+    assert p["AGE"] >= 200 and p["ANNUAL_INCOME"] > 0
+
+
+def test_product_count_feed_drives_count():
+    for i in range(60):
+        k = f"k{i}"
+        # one seeded flag (card) + PRODUCT_COUNT=2 -> exactly 2, still the flag sum
+        p = personal_profile(anchor(), {"PRODUCT_COUNT": 2, "HAS_CARD": 1, "IS_OWNER": False}, T0, key=k)
+        assert p["EXISTING_PRODUCT_COUNT"] == 2 == sum(p[f] for f in FLAGS)
+        assert p["HAS_CREDIT_CARD"] == 1
+        big = personal_profile(anchor(), {"PRODUCT_COUNT": 9, "IS_OWNER": False, "DEPOSIT_BALANCE": 100}, T0, key=k)
+        assert big["EXISTING_PRODUCT_COUNT"] == 5 == sum(big[f] for f in FLAGS)  # mortgage fixed at 0
+        zero = personal_profile(anchor(), {"PRODUCT_COUNT": 0, "HAS_CARD": 1, "IS_OWNER": False}, T0, key=k)
+        assert zero["EXISTING_PRODUCT_COUNT"] == 1  # clamped up to the seeded flags
+    mix = {f: sum(personal_profile(anchor(), {"PRODUCT_COUNT": 3, "IS_OWNER": False}, T0, key=f"m{i}")[f]
+                  for i in range(300)) for f in ("HAS_SAVINGS", "HAS_INVESTMENT_ACCOUNT")}
+    assert mix["HAS_SAVINGS"] > mix["HAS_INVESTMENT_ACCOUNT"]  # likelier products are picked first
+
+
+def test_checking_rule():
+    for i in range(40):
+        k = f"k{i}"
+        assert personal_profile(anchor(), {"DEPOSIT_BALANCE": 5, "PRODUCT_COUNT": 3}, T0, key=k)["HAS_CHECKING"] == 1
+        assert personal_profile(anchor(), {"DEPOSIT_BALANCE": None, "PRODUCT_COUNT": 3}, T0, key=k)["HAS_CHECKING"] == 0
+    drawn = {personal_profile(anchor(), {}, T0, key=f"k{i}")["HAS_CHECKING"] for i in range(100)}
+    assert drawn == {0, 1}
+
+
+def test_no_loan_rules_out_auto_loan():
+    assert all(personal_profile(anchor(), {"HAS_LOAN": 0}, T0, key=f"k{i}")["HAS_AUTO_LOAN"] == 0
+               for i in range(60))
+    assert {personal_profile(anchor(), {"HAS_LOAN": 1}, T0, key=f"k{i}")["HAS_AUTO_LOAN"] for i in range(100)} == {0, 1}
+
+
+def test_real_values_exact_across_months():
+    feats = {"DEPOSIT_BALANCE": 30_000, "DIRECT_DEPOSIT": 6_000}
+    a = anchor(ANNUAL_INCOME=120_000, CREDIT_SCORE=720)
+    p1 = personal_profile(a, feats, datetime(2026, 10, 23))
+    p2 = personal_profile(a, feats, datetime(2026, 11, 23))
+    for c in ("ANNUAL_INCOME", "CREDIT_SCORE", "TOTAL_ACCOUNT_BALANCE", "MONTHLY_DEPOSIT_AMOUNT"):
+        assert p1[c] == p2[c], c

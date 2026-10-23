@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from datetime import datetime
 
-from prodrec.common import as_date, as_float, clamp, jitter, month_rng, stable_rng
+from prodrec.common import allocate_flags, as_date, as_float, clamp, jitter, month_rng, stable_rng
 from prodrec.vocab import (
     EDUCATION_LEVEL_WEIGHTS,
     EMPLOYMENT_STATUS_WEIGHTS,
@@ -38,7 +38,7 @@ _per_INC_RANGE = (15_000, 750_000)
 _per_CREDIT_RANGE = (450, 850)     # training covers 449-796; real population runs higher
 _per_RATES = {  # Appendix A flag rates
     "HAS_CHECKING": 0.90, "HAS_SAVINGS": 0.60, "HAS_INVESTMENT_ACCOUNT": 0.19,
-    "HAS_AUTO_LOAN": 0.40, "HAS_CREDIT_CARD": 0.70,
+    "HAS_MORTGAGE": 0.35, "HAS_AUTO_LOAN": 0.40, "HAS_CREDIT_CARD": 0.70,
 }
 _per_MOBILE_RATE = 0.94
 # Median generated income by age band (Appendix A mean 55.8k, sd 47.8k -> lognormal sigma 0.7).
@@ -89,15 +89,13 @@ def _per_scale(weights: dict, factors: dict) -> dict:
 
 
 def _per_income_median(age: int) -> float:
-    return next(m for hi, m in _per_INCOME_MEDIAN_BY_AGE if age < hi)
+    return next((m for hi, m in _per_INCOME_MEDIAN_BY_AGE if age < hi), _per_INCOME_MEDIAN_BY_AGE[-1][1])
 
 
 def _per_propensity(v) -> float | None:
-    """Claritas investment propensity on an unknown scale (0-1, 1-10 or 0-100) -> 0..1."""
+    """Claritas INVESTMENT_PROPENSITY_SCORE (NUMBER(5,2), 0-100) -> 0..1."""
     f = as_float(v)
-    if f is None:
-        return None
-    return clamp(f / 100.0 if f > 10 else f / 10.0 if f > 1 else f, 0.0, 1.0)
+    return None if f is None else clamp(f / 100.0, 0.0, 1.0)
 
 
 def _per_employment_weights(age: int, retirees: bool) -> dict:
@@ -269,16 +267,18 @@ def personal_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     savings_rate = _per_fin(clamp(sav_base, 0.1, 36.1), 0.1, 36.1, 1, jf["SAVINGS_RATE_PCT"])
 
     # --- holdings -------------------------------------------------------------------------
-    flags = {f: int(flag_u[f] < _per_RATES[f]) for f in _per_RATES}
+    seeded = {"HAS_MORTGAGE": has_mortgage}
     if dbal is not None:  # any deposit account in the feed
-        flags["HAS_CHECKING"] = 1
+        seeded["HAS_CHECKING"] = 1
+    elif as_float(feats.get("PRODUCT_COUNT")) is not None:  # FTA-covered, no deposit account
+        seeded["HAS_CHECKING"] = 0
     for feat, flag in (("HAS_INVESTMENT", "HAS_INVESTMENT_ACCOUNT"), ("HAS_CARD", "HAS_CREDIT_CARD")):
         real = _per_flag(feats.get(feat))
         if real is not None:  # a real 0 is information; draw only when missing
-            flags[flag] = real
-    flags["HAS_MORTGAGE"] = has_mortgage
-    ordered = {f: flags[f] for f in ("HAS_CHECKING", "HAS_SAVINGS", "HAS_INVESTMENT_ACCOUNT",
-                                     "HAS_MORTGAGE", "HAS_AUTO_LOAN", "HAS_CREDIT_CARD")}
+            seeded[flag] = real
+    if _per_flag(feats.get("HAS_LOAN")) == 0:  # no loan at all rules out an auto loan; 1 does not seed it
+        seeded["HAS_AUTO_LOAN"] = 0
+    ordered = allocate_flags(_per_RATES, flag_u, seeded, feats.get("PRODUCT_COUNT"))
 
     # --- tenure / job ---------------------------------------------------------------------
     adult_years = max(0, age - 18)

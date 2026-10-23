@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 from datetime import datetime
 
-from prodrec.common import as_date, as_float, clamp, jitter, month_rng, stable_rng
+from prodrec.common import allocate_flags, as_date, as_float, clamp, jitter, month_rng, stable_rng
 from prodrec.vocab import (
     BUSINESS_STRUCTURE_WEIGHTS,
     BUSINESS_SUBSET_COLUMNS,
@@ -161,15 +161,18 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     digital = _voc_weighted_pick(DIGITAL_BANKING_USAGE_WEIGHTS, rng)
     volatility = _biz_volatility(feats, rng, seasonal)
 
-    draws = {f: int(rng.random() < _biz_RATES[f]) for f in _biz_FLAGS}  # always drawn
-    flags = dict(draws)
-    if as_float(feats.get("DEPOSIT_BALANCE")) is not None:  # any FTA deposit account
-        flags["HAS_BUSINESS_CHECKING"] = 1
+    draws = {f: rng.random() for f in _biz_FLAGS}  # always drawn, fixed order
     # A feed value (0 or 1) is authoritative; only a missing feed (None) falls back to the draw.
+    seeded = {}
+    if as_float(feats.get("DEPOSIT_BALANCE")) is not None:  # any FTA deposit account
+        seeded["HAS_BUSINESS_CHECKING"] = 1
+    elif as_float(feats.get("PRODUCT_COUNT")) is not None:  # FTA-covered, no deposit account
+        seeded["HAS_BUSINESS_CHECKING"] = 0
     for feat, flag in (("HAS_LOAN", "HAS_BUSINESS_LOAN"), ("HAS_LINE", "HAS_LINE_OF_CREDIT"),
                        ("HAS_CARD", "HAS_BUSINESS_CREDIT_CARD")):
         if as_float(feats.get(feat)) is not None:
-            flags[flag] = int(_biz_truthy(feats.get(feat)))
+            seeded[flag] = int(_biz_truthy(feats.get(feat)))
+    flags = allocate_flags(_biz_RATES, draws, seeded, feats.get("PRODUCT_COUNT"))
 
     # --- tenure ---------------------------------------------------------------------------
     size_factor = clamp((rev_eff / 1_288_538.0) ** 0.1, 0.6, 1.8)

@@ -57,3 +57,20 @@ def as_date(v) -> date | None:
         except ValueError:
             return None
     return None
+
+
+def allocate_flags(rates: dict, draws: dict, seeded: dict, target) -> dict:
+    """0/1 product flags. `seeded` flags (from real feeds) are kept. Without a real product count the
+    rest are drawn at their rates (draws[f] < rate). With one, exactly clamp(target) - sum(seeded) of the
+    rest are 1, picked by Efraimidis-Spirakis order (draws[f] ** (1/rate)) so likelier products go first."""
+    free = [f for f in rates if f not in seeded]
+    flags = {f: int(seeded[f]) for f in rates if f in seeded}
+    n = as_float(target)
+    if n is None:
+        flags.update({f: int(draws[f] < rates[f]) for f in free})
+    else:
+        on = sum(flags.values())
+        k = int(clamp(int(n), on, on + len(free))) - on
+        ranked = sorted(free, key=lambda f: draws[f] ** (1.0 / rates[f]), reverse=True)
+        flags.update({f: int(f in ranked[:k]) for f in free})
+    return {f: flags[f] for f in rates}

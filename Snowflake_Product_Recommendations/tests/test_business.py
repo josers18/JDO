@@ -162,3 +162,19 @@ def test_feed_zero_flags_respected():
     # uncovered (None) accounts still get drawn flags
     assert any(business_profile(anchor(), {"HAS_LOAN": None}, T0, key=f"n#{i}")["HAS_BUSINESS_LOAN"]
                for i in range(100))
+
+
+def test_product_count_feed_drives_count_and_checking():
+    for i in range(60):
+        k = f"B{i}"
+        p = business_profile(anchor(), {"PRODUCT_COUNT": 2, "HAS_CARD": 1}, T0, key=k)
+        assert p["EXISTING_PRODUCT_COUNT"] == 2 == sum(p[f] for f in FLAGS)
+        assert p["HAS_BUSINESS_CREDIT_CARD"] == 1
+        assert p["HAS_BUSINESS_CHECKING"] == 0  # FTA-covered but no deposit balance
+        big = business_profile(anchor(), {"PRODUCT_COUNT": 9, "DEPOSIT_BALANCE": 1000}, T0, key=k)
+        assert big["EXISTING_PRODUCT_COUNT"] == 6 == sum(big[f] for f in FLAGS)
+        assert big["HAS_BUSINESS_CHECKING"] == 1
+        low = business_profile(anchor(), {"PRODUCT_COUNT": 0, "DEPOSIT_BALANCE": 1000}, T0, key=k)
+        assert low["EXISTING_PRODUCT_COUNT"] == 1
+    drawn = {business_profile(anchor(), {}, T0, key=f"B{i}")["HAS_BUSINESS_CHECKING"] for i in range(100)}
+    assert drawn == {0, 1}
