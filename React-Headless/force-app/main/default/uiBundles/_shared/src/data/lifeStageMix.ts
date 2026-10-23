@@ -36,8 +36,9 @@ const mixSql = (accountFilter: string) => `
   ORDER BY n DESC
 `;
 
-/** Leads fetched: the queue shows three, the rest absorb exclusions (R1 refi clients). */
-const LEAD_FETCH = 8;
+/** Leads fetched: the queue shows three, the rest absorb exclusions (up to eight R1
+ *  home-equity clients), so three still survive. */
+const LEAD_FETCH = 11;
 
 // Renter → 0, free-and-clear owner → 1, mortgaged owner → 2 (ranked in that order).
 const TENURE = `CASE WHEN p.is_owner__c = true AND p.outstanding_mortgage_balance__c > 0 THEN 2
@@ -86,7 +87,7 @@ export interface LifeStageMixResult {
   clients: number;
   mortgageReady: number;
   investReady: number;
-  /** Top Young Families mortgage 70+ clients, renters first (up to eight; the queue shows three). */
+  /** Top Young Families mortgage 70+ clients, renters first (up to eleven; the queue shows three). */
   mortgageLeads: MortgageLead[];
   scope: BookScope;
 }
@@ -150,7 +151,7 @@ const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
 /** R4 Young Families mortgage 70+ → queue: a mortgage lead. `exclude` drops
- *  clients another queue item already covers (Retail passes its R1 refi clients). */
+ *  clients another queue item already covers (Retail passes its R1 home-equity clients). */
 export function mortgageLeadQueueItems(
   res: LifeStageMixResult,
   nameById: Record<string, string>,
