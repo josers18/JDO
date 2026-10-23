@@ -79,6 +79,7 @@ import {
   mortgageLeadAction,
   mortgageLeadReason,
   mortgageLeadDue,
+  mortgageLeadPriority,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1543,6 +1544,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
                     subject: mortgageLeadAction(r),
                     dueDate: mortgageLeadDue(),
                     comments: mortgageLeadReason(r),
+                    priority: mortgageLeadPriority(r),
                   })}
                   className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
                 >

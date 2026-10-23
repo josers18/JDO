@@ -177,6 +177,14 @@ export const mortgageLeadReason = (r: MortgageLead) => {
 export const mortgageLeadDue = (now = new Date()) =>
   new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10);
 
+/** Renters (a first-home purchase) → medium; owners → low — the queue severity behind the Task priority. */
+export const mortgageLeadSeverity = (r: MortgageLead): 'medium' | 'low' =>
+  r.tenure === 'renter' ? 'medium' : 'low';
+
+/** Task priority for the card's prefill: medium → High, low → Normal. */
+export const mortgageLeadPriority = (r: MortgageLead) =>
+  mortgageLeadSeverity(r) === 'medium' ? 'High' as const : 'Normal' as const;
+
 /** R4 Young Families mortgage 70+ → queue: a mortgage lead. `exclude` drops
  *  clients another queue item already covers (Retail passes its R1 home-equity clients). */
 export function mortgageLeadQueueItems(
@@ -194,7 +202,7 @@ export function mortgageLeadQueueItems(
     reason: mortgageLeadReason(r),
     action: mortgageLeadAction(r),
     score: Math.min(0.8, 0.3 + r.score / 200),
-    severity: r.tenure === 'renter' ? 'medium' : 'low',
+    severity: mortgageLeadSeverity(r),
     source: src,
     relationshipValue: 0,
     dueDate: due,
