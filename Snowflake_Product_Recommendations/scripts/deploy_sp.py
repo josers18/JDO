@@ -172,6 +172,10 @@ def main() -> int:
         help="Snowflake CLI connection name (default: unflagged, active connection)",
     )
     parser.add_argument(
+        "--role", default=None,
+        help="Snowflake role override (the FINS__PUBLIC objects are owned by ACCOUNTADMIN)",
+    )
+    parser.add_argument(
         "--no-deploy", action="store_true",
         help="Only generate procedures/sp_create_procedure.sql; do not run snow sql -f (no Snowflake access).",
     )
@@ -192,7 +196,9 @@ def main() -> int:
 
     cmd = ["snow", "sql", "-f", str(SP_SQL)]
     if args.connection:
-        cmd[1:1] = ["-c", args.connection]
+        cmd += ["-c", args.connection]
+    if args.role:
+        cmd += ["--role", args.role]
     print(f"Deploying SP via: {' '.join(cmd)}")
     rc = subprocess.call(cmd)
     if rc != 0:
