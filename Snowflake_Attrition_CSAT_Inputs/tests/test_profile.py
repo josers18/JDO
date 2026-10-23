@@ -1,0 +1,102 @@
+from datetime import date, datetime
+
+import pytest
+
+from attrcsat.profile import build_profile
+from tests.conftest import FEED_KEYS, make_feature
+
+RUN_TS = datetime(2026, 10, 2, 5, 0, 0)
+
+KEYS = {
+    "account_id", "kind", "client_category", "age", "income", "credit_score", "tenure_months",
+    "n_products", "has_direct_deposit", "has_promo", "total_balance", "avg_balance",
+    "pct_balance_drop", "monthly_txn", "savings_rate", "monthly_calls", "days_since_interaction",
+    "complaints", "escalations", "nps_category", "cross_sell", "risk", "digital_affinity", "grounded",
+}
+
+
+def test_profile_keys_and_types(feature_rows):
+    for row in feature_rows:
+        p = build_profile(row, RUN_TS)
+        assert set(p) == KEYS
+        assert all(v is not None for v in p.values()), (row["ACCOUNT_ID"], p)
+        assert isinstance(p["age"], int) and isinstance(p["tenure_months"], int)
+        assert isinstance(p["n_products"], int) and isinstance(p["complaints"], int)
+        assert isinstance(p["has_direct_deposit"], bool) and isinstance(p["grounded"], bool)
+        assert p["kind"] in ("PERSON", "BUSINESS", "HOUSEHOLD")
+        assert p["risk"] in ("REVIEW", "WATCH", "CLEAN")
+        assert p["nps_category"] in ("Promoter", "Passive", "Detractor")
+
+
+def test_profile_feedless_account_is_complete():
+    row = make_feature(**{k: None for k in FEED_KEYS}, CALLS=None, GONG_WEEKS=None, LAST_CALL_DATE=None,
+                       NPS_SCORE=None, NPS_DESCRIPTION=None, RISK_RATING=None, SANCTIONS_HIT=None,
+                       PEP_HIT=None, ADVERSE_MEDIA_HIT=None, DETRACTOR_12M=None, NEG_WEEKS=None,
+                       VNEG_WEEKS=None)
+    p = build_profile(row, RUN_TS)
+    assert set(p) == KEYS
+    assert all(v is not None for v in p.values())
+    assert p["grounded"] is False
+    assert p["n_products"] >= 1
+    assert p["risk"] == "CLEAN"
+
+
+def test_profile_kind():
+    assert build_profile(make_feature(ACCOUNT_TYPE_FLAG="BUSINESS", CLIENT_CATEGORY="Household"), RUN_TS)["kind"] == "HOUSEHOLD"
+    assert build_profile(make_feature(ACCOUNT_TYPE_FLAG="BUSINESS", CLIENT_CATEGORY="SmallBusiness"), RUN_TS)["kind"] == "BUSINESS"
+    assert build_profile(make_feature(), RUN_TS)["kind"] == "PERSON"
+
+
+@pytest.mark.parametrize("desc,expected", [("Promoter", "Promoter"), ("Passives", "Passive"), ("Detractor", "Detractor")])
+def test_profile_nps_category_from_description(desc, expected):
+    assert build_profile(make_feature(NPS_DESCRIPTION=desc, NPS_SCORE=None), RUN_TS)["nps_category"] == expected
+
+
+@pytest.mark.parametrize("score,expected", [(10, "Promoter"), (9, "Promoter"), (8, "Passive"), (7, "Passive"), (6, "Detractor"), (0, "Detractor")])
+def test_profile_nps_category_from_score(score, expected):
+    assert build_profile(make_feature(NPS_DESCRIPTION=None, NPS_SCORE=score), RUN_TS)["nps_category"] == expected
+
+
+def test_profile_nps_category_seeded_when_missing():
+    row = make_feature(NPS_DESCRIPTION=None, NPS_SCORE=None)
+    a = build_profile(row, RUN_TS)["nps_category"]
+    assert a in ("Promoter", "Passive", "Detractor")
+    assert a == build_profile(row, datetime(2026, 11, 2))["nps_category"]
+
+
+def test_profile_risk():
+    for hit in ("SANCTIONS_HIT", "PEP_HIT", "ADVERSE_MEDIA_HIT"):
+        assert build_profile(make_feature(**{hit: True}), RUN_TS)["risk"] == "REVIEW"
+    assert build_profile(make_feature(RISK_RATING="High"), RUN_TS)["risk"] == "REVIEW"
+    assert build_profile(make_feature(RISK_RATING="Severe"), RUN_TS)["risk"] == "REVIEW"
+    assert build_profile(make_feature(RISK_RATING="Medium"), RUN_TS)["risk"] == "WATCH"
+    assert build_profile(make_feature(RISK_RATING="Low"), RUN_TS)["risk"] == "CLEAN"
+
+
+def test_profile_balance_drop():
+    p = build_profile(make_feature(EARLY_AVG_BALANCE=100000, LATE_AVG_BALANCE=60000), RUN_TS)
+    assert p["pct_balance_drop"] == pytest.approx(0.4)
+    p = build_profile(make_feature(EARLY_AVG_BALANCE=60000, LATE_AVG_BALANCE=100000), RUN_TS)
+    assert p["pct_balance_drop"] == 0.0
+
+
+def test_profile_cross_sell_tracks_holdings():
+    low = build_profile(make_feature(N_PRODUCTS=1, N_DEPOSIT=1, N_LOAN=0, N_INVESTMENT=0, N_LINE=0), RUN_TS)
+    high = build_profile(make_feature(N_PRODUCTS=4, N_DEPOSIT=1, N_LOAN=1, N_INVESTMENT=1, N_LINE=1), RUN_TS)
+    assert high["cross_sell"] > low["cross_sell"]
+    assert 0 <= low["cross_sell"] <= 1 and 0 <= high["cross_sell"] <= 1
+
+
+def test_profile_digital_affinity_by_age():
+    young = build_profile(make_feature(BIRTHDATE=date(2001, 5, 15)), RUN_TS)
+    old = build_profile(make_feature(BIRTHDATE=date(1951, 5, 15)), RUN_TS)
+    assert young["age"] == 25 and old["age"] == 75
+    assert young["digital_affinity"] > old["digital_affinity"]
+    biz = build_profile(make_feature(ACCOUNT_TYPE_FLAG="BUSINESS", CLIENT_CATEGORY="SmallBusiness"), RUN_TS)
+    hh = build_profile(make_feature(ACCOUNT_TYPE_FLAG="BUSINESS", CLIENT_CATEGORY="Household"), RUN_TS)
+    assert biz["digital_affinity"] > hh["digital_affinity"]
+
+
+def test_profile_deterministic(feature_rows):
+    for row in feature_rows[:20]:
+        assert build_profile(row, RUN_TS) == build_profile(dict(row), RUN_TS)
