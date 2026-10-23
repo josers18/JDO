@@ -8,6 +8,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "pandas",
     "snowflake-snowpark-python>=1.20",
 ]
 
