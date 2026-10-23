@@ -29,8 +29,9 @@ def age_anchor(age, **kw):
 def test_anchor_values_copied_unclamped():
     p = personal_profile(anchor(ANNUAL_INCOME=2_400_000, CREDIT_SCORE=842), {}, T0)
     assert p["ANNUAL_INCOME"] == 2_400_000 and p["CREDIT_SCORE"] == 842
-    assert personal_profile(anchor(BIRTHDATE="1986-10-23"), {}, T0)["AGE"] == 40
-    assert personal_profile(anchor(BIRTHDATE="1986-10-24"), {}, T0)["AGE"] == 39
+    # age is as of the run month's first day (T0 = 2026-10-23 -> 2026-10-01)
+    assert personal_profile(anchor(BIRTHDATE="1986-10-01"), {}, T0)["AGE"] == 40
+    assert personal_profile(anchor(BIRTHDATE="1986-10-02"), {}, T0)["AGE"] == 39
 
 
 def test_null_anchor_still_complete():
@@ -280,3 +281,12 @@ def test_real_values_exact_across_months():
     p2 = personal_profile(a, feats, datetime(2026, 11, 23))
     for c in ("ANNUAL_INCOME", "CREDIT_SCORE", "TOTAL_ACCOUNT_BALANCE", "MONTHLY_DEPOSIT_AMOUNT"):
         assert p1[c] == p2[c], c
+
+
+def test_age_is_as_of_run_month_start():
+    # a birthday falling mid-month must not change the age between same-month re-runs
+    a = anchor(BIRTHDATE="1986-10-15")
+    ages = {personal_profile(a, {}, datetime(2026, 10, d))["AGE"] for d in (1, 14, 15, 31)}
+    assert ages == {39}
+    assert personal_profile(a, {}, datetime(2026, 11, 1))["AGE"] == 40
+    assert personal_profile(anchor(BIRTHDATE="1986-10-01"), {}, datetime(2026, 10, 1))["AGE"] == 40

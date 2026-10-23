@@ -33,6 +33,8 @@ def build_training_set(
     if size < 1:
         raise ValueError("size must be >= 1")
     month = f"{run_ts:%Y-%m}"
+    # Draws index into the population, so fix its order: same accounts -> same set, any input order.
+    population = sorted(population, key=lambda p: str(p[0]["ACCOUNT_ID"]))
 
     pool_rng = stable_rng(f"pool|{month}", side + "_training")
     pool: list[tuple[dict, str]] = []

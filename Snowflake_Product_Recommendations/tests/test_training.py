@@ -88,3 +88,13 @@ def test_mix_problems():
     assert mix_problems(healthy) == []
     assert any("floor" in p for p in mix_problems(healthy, floor=11))
     assert mix_problems(healthy, floor=10) == []
+
+
+def test_order_independent(business_anchors, person_anchors):
+    import random
+    for side, anchors in (("business", business_anchors), ("personal", person_anchors)):
+        pop = _pop(anchors)
+        shuffled = list(pop)
+        random.Random(7).shuffle(shuffled)
+        assert shuffled != pop
+        assert build_training_set(shuffled, side, T0, 120, FLOOR) == build_training_set(pop, side, T0, 120, FLOOR)

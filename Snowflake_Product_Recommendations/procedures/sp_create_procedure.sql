@@ -598,10 +598,11 @@ def _per_flag(v) -> int | None:
 
 
 def _per_age(birthdate, run_ts: datetime) -> int | None:
+    """Age as of the run month's first day, so same-month re-runs agree."""
     b = as_date(birthdate)
     if b is None:
         return None
-    d = run_ts.date()
+    d = run_ts.date().replace(day=1)
     return max(0, d.year - b.year - ((d.month, d.day) < (b.month, b.day)))
 
 
@@ -1159,6 +1160,8 @@ def build_training_set(
     if size < 1:
         raise ValueError("size must be >= 1")
     month = f"{run_ts:%Y-%m}"
+    # Draws index into the population, so fix its order: same accounts -> same set, any input order.
+    population = sorted(population, key=lambda p: str(p[0]["ACCOUNT_ID"]))
 
     pool_rng = stable_rng(f"pool|{month}", side + "_training")
     pool: list[tuple[dict, str]] = []
@@ -1246,6 +1249,13 @@ _sp_PER_AUD = f"""aud AS (
   QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID ORDER BY ANNUAL_INCOME DESC NULLS LAST) = 1
 )"""
 
+# Feed windows end at the run month's first day (exclusive), so every re-run inside a month
+# reads the same 90 days and in-month / future-dated transactions never enter.
+_sp_FEED_ANCHOR = "DATE_TRUNC('month', CURRENT_DATE())"
+_sp_FEED_WINDOW = (
+    f"TRANSACTIONDATE >= DATEADD(day, -90, {_sp_FEED_ANCHOR}) AND TRANSACTIONDATE < {_sp_FEED_ANCHOR}"
+)
+
 BUSINESS_FEATURES_SQL = f"""WITH {_sp_BIZ_AUD},
 fta AS (
   SELECT SFACCOUNTID AS ACCOUNT_ID,
@@ -1260,10 +1270,10 @@ fta AS (
   WHERE COALESCE(ACTIVE, TRUE) GROUP BY 1
 ),
 ftm AS (
-  SELECT SFACCOUNTID AS ACCOUNT_ID, FLOOR(DATEDIFF(day, TRANSACTIONDATE, CURRENT_DATE()) / 30) AS b,
+  SELECT SFACCOUNTID AS ACCOUNT_ID, FLOOR(DATEDIFF(day, TRANSACTIONDATE, {_sp_FEED_ANCHOR}) / 30) AS b,
          SUM(IFF(TRANSACTION_TYPE = 'Credit', AMOUNT, 0)) AS cr, SUM(IFF(TRANSACTION_TYPE = 'Debit', AMOUNT, 0)) AS dr
   FROM {_sp_PREFIX}.FINANCIAL_TRANSACTIONS
-  WHERE TRANSACTIONDATE >= DATEADD(day, -90, CURRENT_DATE()) GROUP BY 1, 2
+  WHERE {_sp_FEED_WINDOW} GROUP BY 1, 2
 ),
 ft AS (
   SELECT ACCOUNT_ID, AVG(cr) AS MONTHLY_CREDITS, AVG(cr - dr) AS MONTHLY_NET,
@@ -1292,10 +1302,10 @@ fta AS (
   WHERE COALESCE(ACTIVE, TRUE) GROUP BY 1
 ),
 ftm AS (
-  SELECT SFACCOUNTID AS ACCOUNT_ID, FLOOR(DATEDIFF(day, TRANSACTIONDATE, CURRENT_DATE()) / 30) AS b,
+  SELECT SFACCOUNTID AS ACCOUNT_ID, FLOOR(DATEDIFF(day, TRANSACTIONDATE, {_sp_FEED_ANCHOR}) / 30) AS b,
          SUM(IFF(TRANSACTION_TYPE = 'Credit', AMOUNT, 0)) AS cr
   FROM {_sp_PREFIX}.FINANCIAL_TRANSACTIONS
-  WHERE TRANSACTIONDATE >= DATEADD(day, -90, CURRENT_DATE()) GROUP BY 1, 2
+  WHERE {_sp_FEED_WINDOW} GROUP BY 1, 2
 ),
 ft AS (
   SELECT ACCOUNT_ID, AVG(cr) AS MONTHLY_CREDITS FROM ftm WHERE b < 3 GROUP BY 1
@@ -1340,22 +1350,35 @@ def dedupe_anchors(rows: list[dict]) -> list[dict]:
     return out
 
 
-def replace_table(session, table: str, columns: tuple[str, ...], rows: list[dict]) -> int:
-    """Stage via write_pandas, then DELETE + INSERT...SELECT in one transaction."""
+def _sp_stage(session, table: str, columns: tuple[str, ...], rows: list[dict]) -> str:
+    """write_pandas into <table>_STAGING (DDL: must run before BEGIN). Returns the staging name."""
     import pandas as pd
 
-    df = pd.DataFrame(rows, columns=list(columns))
     staging = table + "_STAGING"
-    cols = ", ".join(columns)
+    session.write_pandas(
+        pd.DataFrame(rows, columns=list(columns)), staging.split(".")[-1], database=_sp_DB, schema=_sp_SCHEMA,
+        auto_create_table=True, overwrite=True,
+    )
+    return staging
+
+
+def replace_tables(session, writes, check=None) -> int:
+    """All-or-nothing replace of every target: stage all, then one BEGIN; DELETE + INSERT...SELECT
+    per table; optional check(session) inside the transaction; COMMIT. ROLLBACK on any error.
+    writes: [(table, columns, rows), ...]. Staging tables are dropped in finally, best-effort."""
+    staged: list[str] = []
     try:
-        session.write_pandas(
-            df, staging.split(".")[-1], database=_sp_DB, schema=_sp_SCHEMA,
-            auto_create_table=True, overwrite=True,
-        )
+        for table, columns, rows in writes:
+            staged.append(table + "_STAGING")
+            _sp_stage(session, table, columns, rows)
         session.sql("BEGIN").collect()
         try:
-            session.sql(f"DELETE FROM {table}").collect()
-            session.sql(f"INSERT INTO {table} ({cols}) SELECT {cols} FROM {staging}").collect()
+            for table, columns, _ in writes:
+                cols = ", ".join(columns)
+                session.sql(f"DELETE FROM {table}").collect()
+                session.sql(f"INSERT INTO {table} ({cols}) SELECT {cols} FROM {table}_STAGING").collect()
+            if check is not None:
+                check(session)
             session.sql("COMMIT").collect()
         except Exception:
             try:
@@ -1364,8 +1387,12 @@ def replace_table(session, table: str, columns: tuple[str, ...], rows: list[dict
                 pass  # never mask the original failure
             raise
     finally:
-        session.sql(f"DROP TABLE IF EXISTS {staging}").collect()
-    return len(rows)
+        for staging in staged:
+            try:
+                session.sql(f"DROP TABLE IF EXISTS {staging}").collect()
+            except Exception:
+                pass  # cleanup must not mask the original failure
+    return sum(len(rows) for _, _, rows in writes)
 
 
 def _sp_scalar(session, sql: str) -> int:
@@ -1430,6 +1457,8 @@ def main(session, mode: str = "INPUTS") -> str:
             empty = "business" if not biz else "personal"
             raise RuntimeError(f"empty audience: {empty} feature query returned no accounts")
 
+        # Build every DataFrame and pass every gate before any staging or DML.
+        writes = []
         if mode in ("INPUTS", "ALL"):
             biz_in, biz_err = _sp_build_inputs(biz, business_profile, business_input_row, run_ts)
             per_in, per_err = _sp_build_inputs(per, personal_profile, personal_input_row, run_ts)
@@ -1438,9 +1467,8 @@ def main(session, mode: str = "INPUTS") -> str:
                 raise RuntimeError(
                     f"input row factory failed on {len(errors)} accounts; first 3: {errors[:3]}"
                 )
-            rows_inserted += replace_table(session, _sp_BIZ_SUBSET, BUSINESS_SUBSET_COLUMNS, biz_in)
-            rows_inserted += replace_table(session, _sp_PER_SUBSET, PERSONAL_SUBSET_COLUMNS, per_in)
-            assert_inputs(session)
+            writes += [(_sp_BIZ_SUBSET, BUSINESS_SUBSET_COLUMNS, biz_in),
+                       (_sp_PER_SUBSET, PERSONAL_SUBSET_COLUMNS, per_in)]
 
         if mode in ("TRAINING", "ALL"):
             biz_tr = build_training_set([(r, r) for r in biz], "business", run_ts, _sp_BIZ_TRAINING_SIZE)
@@ -1449,8 +1477,11 @@ def main(session, mode: str = "INPUTS") -> str:
                 problems = mix_problems([r["RECOMMENDED_PRODUCT"] for r in tr], floor=100)
                 if problems:
                     raise RuntimeError(f"label mix gate: {side}: " + "; ".join(problems))
-            rows_inserted += replace_table(session, _sp_BIZ_TRAINING, BUSINESS_TRAINING_COLUMNS, biz_tr)
-            rows_inserted += replace_table(session, _sp_PER_TRAINING, PERSONAL_TRAINING_COLUMNS, per_tr)
+            writes += [(_sp_BIZ_TRAINING, BUSINESS_TRAINING_COLUMNS, biz_tr),
+                       (_sp_PER_TRAINING, PERSONAL_TRAINING_COLUMNS, per_tr)]
+
+        check = assert_inputs if mode in ("INPUTS", "ALL") else None
+        rows_inserted = replace_tables(session, writes, check=check)
     except Exception as exc:
         status = "FAILED"
         err = str(exc)[:4000]
@@ -1464,7 +1495,7 @@ def main(session, mode: str = "INPUTS") -> str:
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            params=[log_id, TASK_NAME, started, status, rows_inserted, accounts_processed, err, duration_ms],
+            params=[log_id, f"{TASK_NAME}[{mode}]", started, status, rows_inserted, accounts_processed, err, duration_ms],
         ).collect()
 
     return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"

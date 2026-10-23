@@ -77,10 +77,11 @@ def _per_flag(v) -> int | None:
 
 
 def _per_age(birthdate, run_ts: datetime) -> int | None:
+    """Age as of the run month's first day, so same-month re-runs agree."""
     b = as_date(birthdate)
     if b is None:
         return None
-    d = run_ts.date()
+    d = run_ts.date().replace(day=1)
     return max(0, d.year - b.year - ((d.month, d.day) < (b.month, b.day)))
 
 
