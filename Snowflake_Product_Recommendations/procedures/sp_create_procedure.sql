@@ -553,6 +553,16 @@ DEPOSIT_WINDOW = (0.05, 1.5)       # DIRECT_DEPOSIT / MONTHLY_CREDITS vs income/
 GEN_DEPOSIT_FRACTION = (0.25, 0.6)  # generated deposit = income/12 * U(...)
 GEN_BALANCE_FLOOR = 0.01           # generated balance >= 1% of income
 
+# Employment-mix age factors (multipliers on EMPLOYMENT_STATUS_WEIGHTS). The *_SHARE values
+# are a multiple of the combined working-status weight rather than a plain multiplier.
+PER_RETIRED_FACTOR_50_61 = 0.15
+PER_RETIRED_FACTOR_62_69 = 3.0
+PER_RETIRED_SHARE_70_PLUS = 9.0
+PER_RETIREE_BOOST = 3.0            # applied at age >= 50 when the anchor flags retirees
+PER_STUDENT_SHARE_UNDER_23 = 1.5
+PER_STUDENT_FACTOR_23_25 = 1.0
+PER_STUDENT_FACTOR_26_35 = 0.4
+
 # Appendix A training ranges (generated values are clamped to these).
 _per_AGE_RANGE = (18, 85)
 _per_INC_RANGE = (15_000, 750_000)
@@ -625,23 +635,23 @@ def _per_employment_weights(age: int, retirees: bool) -> dict:
     if age < 50:
         f["Retired"] = 0.0
     elif age < 62:
-        f["Retired"] = 0.15
+        f["Retired"] = PER_RETIRED_FACTOR_50_61
     elif age < 70:
-        f["Retired"] = 3.0
+        f["Retired"] = PER_RETIRED_FACTOR_62_69
     else:
-        f["Retired"] = 9.0 * sum(w for k, w in EMPLOYMENT_STATUS_WEIGHTS.items()
+        f["Retired"] = PER_RETIRED_SHARE_70_PLUS * sum(w for k, w in EMPLOYMENT_STATUS_WEIGHTS.items()
                                  if k not in ("Retired", "Student")) / EMPLOYMENT_STATUS_WEIGHTS["Retired"]
     if retirees and age >= 50:
-        f["Retired"] = f["Retired"] * 3.0 if f["Retired"] > 0 else 0.0
+        f["Retired"] = f["Retired"] * PER_RETIREE_BOOST if f["Retired"] > 0 else 0.0
     if age > 35:
         f["Student"] = 0.0
     elif age < 23:
-        f["Student"] = 1.5 * sum(w for k, w in EMPLOYMENT_STATUS_WEIGHTS.items()
+        f["Student"] = PER_STUDENT_SHARE_UNDER_23 * sum(w for k, w in EMPLOYMENT_STATUS_WEIGHTS.items()
                                  if k not in ("Retired", "Student")) / EMPLOYMENT_STATUS_WEIGHTS["Student"]
     elif age < 26:
-        f["Student"] = 1.0
+        f["Student"] = PER_STUDENT_FACTOR_23_25
     else:
-        f["Student"] = 0.4
+        f["Student"] = PER_STUDENT_FACTOR_26_35
     return _per_scale(EMPLOYMENT_STATUS_WEIGHTS, f)
 
 
@@ -1493,9 +1503,11 @@ def main(session, mode: str = "INPUTS") -> str:
             INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?)
             """,
-            params=[log_id, f"{TASK_NAME}[{mode}]", started, status, rows_inserted, accounts_processed, err, duration_ms],
+            # Snowpark binds a None param as the string 'None', so pass '' and let NULLIF make it NULL.
+            params=[log_id, f"{TASK_NAME}[{mode}]", started, status, rows_inserted, accounts_processed,
+                    err or "", duration_ms],
         ).collect()
 
     return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"

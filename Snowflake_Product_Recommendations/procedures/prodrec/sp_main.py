@@ -280,9 +280,11 @@ def main(session, mode: str = "INPUTS") -> str:
             INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
                 (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
                  ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?)
             """,
-            params=[log_id, f"{TASK_NAME}[{mode}]", started, status, rows_inserted, accounts_processed, err, duration_ms],
+            # Snowpark binds a None param as the string 'None', so pass '' and let NULLIF make it NULL.
+            params=[log_id, f"{TASK_NAME}[{mode}]", started, status, rows_inserted, accounts_processed,
+                    err or "", duration_ms],
         ).collect()
 
     return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"

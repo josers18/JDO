@@ -119,6 +119,9 @@ def test_inputs_mode_replaces_both_subsets_in_transaction(business_anchors, pers
     assert log_params[1] == f"{TASK_NAME}[INPUTS]" and log_params[3] == "SUCCEEDED"
     assert log_params[5] == len(business_anchors) + len(person_anchors)
     assert log_params[4] == len(business_anchors) + len(person_anchors)
+    # success logs ERROR_MESSAGE as NULL: '' is bound and NULLIF turns it into NULL
+    assert log_params[6] == ""
+    assert any("TASK_EXECUTION_LOG" in q and "NULLIF(?, '')" in q for q in sess.log)
 
 
 def test_insert_failure_rolls_back(business_anchors, person_anchors):

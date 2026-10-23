@@ -31,9 +31,6 @@ from prodrec.sp_main import (  # noqa: E402
     BUSINESS_FEATURES_SQL, PERSONAL_FEATURES_SQL, _sp_BIZ_TRAINING, _sp_BIZ_TRAINING_SIZE,
     _sp_PER_TRAINING, _sp_PER_TRAINING_SIZE,
 )
-import prodrec.sp_main as _cal_sp  # noqa: E402  (calibration script only; never deployed)
-
-_sp_TRAINING_FLOORS = getattr(_cal_sp, "_sp_TRAINING_FLOORS", {})
 from prodrec.training import build_training_set, mix_problems  # noqa: E402
 from prodrec.vocab import BUSINESS_SUBSET_COLUMNS, PERSONAL_SUBSET_COLUMNS  # noqa: E402
 
@@ -117,13 +114,11 @@ def report_side(side: str, rows: list[dict], old_stats: dict, run_ts: datetime, 
     else:
         prof_fn, in_fn, scores_fn = personal_profile, personal_input_row, personal_scores
         cols, size = PERSONAL_SUBSET_COLUMNS, _sp_PER_TRAINING_SIZE
-    floors = _sp_TRAINING_FLOORS.get(side)
 
     profiles = [prof_fn(r, r, run_ts) for r in rows]
     inputs = [in_fn(p) for p in profiles]
     input_labels = Counter(rule_label(scores_fn(p)) for p in profiles)
-    extra = {"floors": floors} if floors else {}
-    training = build_training_set([(r, r) for r in rows], side, run_ts, size, **extra)
+    training = build_training_set([(r, r) for r in rows], side, run_ts, size)
     t_labels = [t["RECOMMENDED_PRODUCT"] for t in training]
     t_mix = Counter(t_labels)
     consistent = sum(t["RECOMMENDED_PRODUCT"] == rule_label(scores_fn(t)) for t in training)
@@ -136,7 +131,7 @@ def report_side(side: str, rows: list[dict], old_stats: dict, run_ts: datetime, 
     print(f"input argmax mix ({len(input_labels)} classes): {pct(input_labels, len(inputs))}")
     print(f"rule-consistency (training): {rc:.3f}")
 
-    p_train = mix_problems(t_labels, floor=100, **extra)
+    p_train = mix_problems(t_labels, floor=100)
     p_input = mix_problems([rule_label(scores_fn(p)) for p in profiles])
     gates.append((f"{side} training mix", "PASS" if not p_train else "FAIL: " + "; ".join(p_train)))
     gates.append((f"{side} input argmax mix", "PASS" if not p_input else "FAIL: " + "; ".join(p_input)))
