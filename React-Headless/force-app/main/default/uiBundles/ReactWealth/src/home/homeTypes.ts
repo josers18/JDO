@@ -3,6 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
+import type { DataFreshness, DigitalLeakageResult, TradingPulseResult, BusinessOwnersResult, WealthUpgradeResult, HoldingsConcentrationResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -32,6 +33,8 @@ export interface CallItem {
   /** Signal-native ISO due date (YYYY-MM-DD) — set by the priority-queue
    *  blender so the card can sort/label by real dates, not severity. */
   dueDate?: string;
+  /** W9 blended-score drivers — tags on the Who-to-Call rows. */
+  drivers?: { label: string; points: number; tone: 'risk' | 'opportunity' }[];
 }
 
 /**
@@ -131,6 +134,19 @@ export interface LeadReferral {
   lastName?: string;
   /** Lead.Company — required to edit/create; the org the lead belongs to. */
   company?: string;
+  /** S4 warm intro (relationship graph) — not a Lead yet. A row click opens the
+   *  Lead modal in create mode with these prefilled. */
+  intro?: {
+    accountId: string;
+    referrer: string;
+    owned: boolean;
+    confidencePct: number;
+    discovered: string;
+    scope: 'book' | 'org';
+    firstName?: string;
+    lastName?: string;
+    company: string;
+  };
 }
 
 /** A recent-activity feed row for the cockpit supporting band. */
@@ -214,6 +230,9 @@ export interface HomeDashboard {
   aiBrief: string;
   kpis: HomeKpi[];
   callList: CallItem[];
+  /** Extra dated queue feeds — S2 AML screening escalations, S1 Gong call sentiment, plus S5 inflows (Retail/Wealth) or
+   *  C9 fee spikes (Commercial). Each item carries its own dueDate. */
+  transactionSignals?: CallItem[];
   pipeline: PipelineItem[];
   bankerGoals: BankerGoal[];
   lifeEvents: LifeEventSignal[];
@@ -232,4 +251,19 @@ export interface HomeDashboard {
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;
+  /** S8 — per-source as-of dates behind the hero meter (real data only). */
+  dataFreshness?: DataFreshness;
+  /** W3 — MoneyGuidePro plan reviews due in the next 30 days (soonest first). */
+  planReviews?: { clientId: string; clientName: string; date: string; successPct: number; goalUsd: number; stale: boolean }[];
+  planReviewsDue?: number;
+  /** W4 — crypto-exchange + robo-advisor held-away balances (real data only). */
+  digitalLeakage?: DigitalLeakageResult;
+  /** W5 — weekly buys vs sells + latest-week net sellers (real data only). */
+  tradingPulse?: TradingPulseResult;
+  /** W6 — clients who own a business, with the business's ZoomInfo band (real data only). */
+  businessOwners?: BusinessOwnersResult;
+  /** W7 — Claritas wealth-propensity upgrade candidates (real data only). */
+  wealthUpgrades?: WealthUpgradeResult;
+  /** W8 — single-stock concentration across CRM holdings (real data only). */
+  holdingsConcentration?: HoldingsConcentrationResult;
 }

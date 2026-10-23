@@ -2,13 +2,45 @@
  * HOME app — REAL data implementation ("wired like today"):
  *   · Core/FSC (Opportunity, Case, Task, Event, FinancialGoal, Lead, Account)
  *     → GraphQL (sdk.graphql)
- *   · Data Cloud (CSAT/NPS) → DcBridgeRest → ConnectApi.CdpQuery
+ *   · Data Cloud (R7 blended Who-to-Call — CSAT + Gong + stress + offers; S5 bonus / tax-refund inflows from
+ *     ssot__FinancialAccountTransaction) → DcBridgeRest → ConnectApi.CdpQuery,
+ *     scoped to the signed-in banker's book (falls back to org-wide when empty)
+ *   · S1 Gong call sentiment (BT_Gong_Call_Sentiment__dlm), latest week,
+ *     negative + declining → queue + alerts, same book scoping
+ *   · S2 World-Check AML / PEP screening (BT_WorldCheck_AML__dlm), latest
+ *     run, ratings that escalated since the previous run → queue + alerts
+ *   · S3 next-best offers (Offer_Eligibility_Model__dlm), this app's product
+ *     family, one card per product → top of Recommendations
+ *   · S4 warm intros (BT_Synth_Relationship_Graph__dlm), referrals from my
+ *     clients into accounts outside my book → Leads & Referrals
+ *   · S3 Growth KPI "Modeled uplift" — each client's best-offer EV, summed
+ *   · S6 campaign touches (Marketing_Engagements__dlm), clicked-through clients
+ *     → queue + alerts
+ *   · S7 open service drag: CRM + ServiceNow open cases (book-only) → Cases KPI
+ *   · S8 data freshness per source → hero meter (replaces static confidence)
+ *   · R1 home equity (BT_Corelogic_Property__dlm): HELOC-ready owners → Growth KPI,
+ *     HELOC / refi leads → queue
+ *   · R2 property-risk exposure (same DMO): flood zone A/AE/V/VE or wildfire 70+
+ *     → Health-tab exposure card + alerts
+ *   · R3 financial-stress watchlist (BT_Claritas_Demographics__dlm): High stress in
+ *     ≥ 4 of the last 6 months, corroborated by overdraft fees → Health-tab card,
+ *     hardship check-ins in the queue, At-Risk KPI note + alerts
+ *   · R4 life-stage mix (same DMO): clients per life stage with mortgage /
+ *     investment / wealth propensity → Growth-tab donut; Young Families mortgage
+ *     70+ (renters first, via CoreLogic tenure) → Mortgage-lead queue items
+ *   · R5 money leaving to other banks (BT_Plaid_Held_Away__dlm): held-away Bank /
+ *     Credit Union checking + savings with a positive monthly net flow → Health-tab
+ *     card, deposit-retention calls ($5K+/mo) in the queue + alerts
+ *   · R6 digital-engagement surges (ssot__WebsiteEngagement__dlm RTOM site +
+ *     CumulusWeb_Engagements__dlm, recognized via UnifiedLinkssotAccountAcc__dlm):
+ *     product-page views, book's latest week → Growth card; 5+ views in the last
+ *     14 days → queue; a visit in the last 2 days → Right Now
  *
  * All field names + DMO columns below were VERIFIED live against the org
- * (jdo-1lrnov / storm-16a17dc388fbe6, 2026-07-06) by running each query through
- * the uiapi endpoint and the ssot/queryv2 probe. Not guessed.
+ * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
+ * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloud, fetchCurrentUser } from '@shared';
+import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered, inheritDue } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -83,6 +115,9 @@ const HOME_CORE_QUERY = /* GraphQL */ `
           totalCount
           edges { node { Id CaseNumber @optional { value } Subject @optional { value } Priority @optional { value } Status @optional { value } CreatedDate @optional { value } AccountId @optional { value } Account @optional { Name @optional { value } } } }
         }
+        CaseAged: Case(first: 1, where: { IsClosed: { eq: false }, CreatedDate: { lt: { range: { last_n_days: 30 } } } }) {
+          totalCount
+        }
         TaskOverdue: Task(first: 15, where: { IsClosed: { eq: false }, ActivityDate: { lt: { literal: TODAY } } }, orderBy: { ActivityDate: { order: DESC } }) {
           edges { node { Id Subject @optional { value } ActivityDate @optional { value } Status @optional { value } Priority @optional { value } Type @optional { value } Description @optional { value } WhatId @optional { value } OwnerId @optional { value } CreatedBy @optional { Name @optional { value } } CreatedDate @optional { value } LastModifiedBy @optional { Name @optional { value } } LastModifiedDate @optional { value } } }
         }
@@ -109,7 +144,7 @@ const HOME_CORE_QUERY = /* GraphQL */ `
   }
 `;
 
-/* ── Account name lookup for the CSAT call list (IDs → names) ──
+/* ── Account name lookup for the Who-to-Call list (IDs → names) ──
    Inlined IDs (not a $variable) — the SDK graphql client's variable
    forwarding for list types proved unreliable; an inline literal list is
    deterministic. IDs are org-generated 15/18-char alphanumerics (safe). */
@@ -141,19 +176,6 @@ function userNamesQuery(ids: string[]): string {
   }`;
 }
 
-/* ── Data Cloud: lowest-CSAT accounts = "who to call" (verified) ──
-   CSAT_Snowflake__dlm spans multiple source orgs in the unified profile; scope
-   to THIS org's account prefix (001am%) so every row resolves to a local
-   Account name (cross-org IDs like 001Wt% have no local Account record). */
-const LOW_CSAT_SQL = `
-  SELECT accountid__c AS account_id, csat_score__c AS csat, nps_score__c AS nps, csat_description__c AS reason
-  FROM CSAT_Snowflake__dlm
-  WHERE csat_score__c IS NOT NULL AND accountid__c LIKE '001am%'
-  ORDER BY csat_score__c ASC
-  LIMIT 8
-`;
-
-interface CsatRow { account_id: string; csat: number; nps: number; reason: string; }
 type Node = Record<string, { value?: unknown } | undefined>;
 const v = (n: Node, k: string) => (n[k] as { value?: unknown } | undefined)?.value;
 const s = (n: Node, k: string) => String(v(n, k) ?? '');
@@ -172,20 +194,10 @@ const sd = (n: Node, k: string) => decodeHtml(s(n, k));
 const relName = (n: Node, k: string): string =>
   String((n as Record<string, { Name?: { value?: unknown } } | undefined>)[k]?.Name?.value ?? '');
 
-function severityForCsat(csat: number): CallItem['severity'] {
-  if (csat < 50) return 'high';
-  if (csat < 70) return 'medium';
-  return 'low';
-}
-
-/** Map a call item's severity to its priority-queue tier. */
-function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
-  return sev === 'high' ? 'today' : sev === 'medium' ? 'week' : 'watch';
-}
-
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
+    CaseAged?: { totalCount?: number };
     Case?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
     TaskOverdue?: { edges?: { node: Node }[] };
     TaskUpcoming?: { edges?: { node: Node }[] };
@@ -198,10 +210,55 @@ interface CoreShape {
 }
 
 export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
-  const [core, csat, currentUser] = await Promise.all([
-    executeGraphQL<CoreShape>(HOME_CORE_QUERY),
-    queryDataCloud<CsatRow>(LOW_CSAT_SQL, 8),
-    fetchCurrentUser(),
+  // The Data Cloud queries need the banker's user Id to scope to their book;
+  // GraphQL runs in parallel with that chain.
+  // "View as" swaps in another banker: their Id drives every DC book filter
+  // and the CRM roots below get an owner filter (none for your own book).
+  const userP = fetchEffectiveUser();
+  const [core, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition, web] = await Promise.all([
+    executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
+    // R7 blended Who-to-Call (CSAT + Gong + stress + offers) — the page's centerpiece.
+    userP.then(u => fetchWhoToCall(u?.userId)),
+    userP,
+    // S5 is additive — a failed transaction query must not blank the page.
+    userP.then(u => fetchLargeInflows(u?.userId))
+      .catch((): TxSignalResult<LargeInflow> => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchCallSentiment(u?.userId))
+      .catch((): CallSentimentResult => ({ rows: [], scope: 'org', weekly: [] })),
+    userP.then(u => fetchAmlChanges(u?.userId))
+      .catch((): TxSignalResult<AmlChange> => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchNextBestOffers(u?.userId, 'retail'))
+      .catch((): NextBestOfferResult => ({ rows: [], scope: 'org' })),
+    userP.then(u => fetchWarmIntros(u?.userId))
+      .catch((): WarmIntroResult => ({ rows: [], scope: 'org' })),
+    // S3 Growth KPI + S6 campaign touches — additive, like the other DC signals.
+    userP.then(u => fetchModeledUplift(u?.userId, 'retail'))
+      .catch((): ModeledUplift => ({ total: 0, clients: 0, byOffer: [], scope: 'org' })),
+    userP.then(u => fetchCampaignTouches(u?.userId, 'Personal'))
+      .catch((): CampaignTouchResult => ({ rows: [], scope: 'org' })),
+    // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
+    userP.then(u => fetchServiceNowDrag(u?.userId))
+      .catch((): ServiceNowDrag => ({ open: 0, aged: 0, scope: 'org' })),
+    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'csat', 'corelogic', 'claritas', 'plaid'])
+      .catch((): DataFreshness | undefined => undefined),
+    // R1 home equity (CoreLogic) — additive.
+    userP.then(u => fetchHomeEquity(u?.userId))
+      .catch((): HomeEquityResult => ({ rows: [], owners: 0, equity: 0, refi: 0, quarter: '', scope: 'org' })),
+    // R2 property-risk exposure (CoreLogic) — additive.
+    userP.then(u => fetchPropertyRisk(u?.userId))
+      .catch((): PropertyRiskResult => ({ rows: [], homes: 0, flood: 0, wildfire: 0, both: 0, homeValue: 0, mortgage: 0, scope: 'org' })),
+    // R3 financial-stress watchlist (Claritas + overdraft fees) — additive.
+    userP.then(u => fetchFinancialStress(u?.userId))
+      .catch((): FinancialStressResult => ({ rows: [], queueRows: [], highNow: 0, persistent: 0, withFees: 0, both: 0, lifeStages: [], scope: 'org' })),
+    // R4 life-stage mix (Claritas) — additive.
+    userP.then(u => fetchLifeStageMix(u?.userId))
+      .catch((): LifeStageMixResult => ({ rows: [], clients: 0, mortgageReady: 0, investReady: 0, mortgageLeads: [], scope: 'org' })),
+    // R5 deposits leaving to other banks (Plaid held-away) — additive.
+    userP.then(u => fetchDepositAttrition(u?.userId))
+      .catch((): DepositAttritionResult => ({ rows: [], clients: 0, balance: 0, leaving: 0, outflow: 0, retention: 0, scope: 'org' })),
+    // R6 recognized clients browsing product pages — additive.
+    userP.then(u => fetchWebEngagement(u?.userId))
+      .catch((): WebEngagementResult => ({ rows: [], clients: 0, views: 0, windowEnd: '', scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -209,9 +266,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  // resolve CSAT account IDs → names in one follow-up query
-  const csatIds = [...new Set(csat.rows.map(r => r.account_id).filter(Boolean))];
+  // resolve Who-to-Call + signal account IDs → names in one follow-up query
+  const csatIds = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...stress.queueRows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
+  const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
   if (csatIds.length) {
     try {
       const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(
@@ -227,19 +285,42 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 
-  const callList: CallItem[] = csat.rows.map((row, i) => ({
-    id: `c${i}`,
-    clientId: row.account_id,
-    clientName: nameById[row.account_id] || row.account_id,
-    segment: 'Retail',
-    reason: (row.reason && String(row.reason).trim()) || `CSAT ${Math.round(Number(row.csat))} · NPS ${Math.round(Number(row.nps))}`,
-    action: 'Service-recovery outreach',
-    score: 1 - Math.min(Number(row.csat) || 0, 100) / 100,
-    severity: severityForCsat(Number(row.csat) || 0),
-    source: 'CSAT / NPS',
-    relationshipValue: 0,
-    tier: tierForSeverity(severityForCsat(Number(row.csat) || 0)),
-  }));
+  // R7 — one blended score per client; each row names its drivers.
+
+  // S1 — clients whose recorded-call sentiment is negative and sliding.
+  // S2 — screening ratings that escalated on the latest World-Check run.
+  const amlSignals: CallItem[] = amlChangeQueueItems(aml, nameById, { segment: 'Retail' });
+  const gongSignals: CallItem[] = callSentimentQueueItems(gong, nameById, { segment: 'Retail' });
+  // S5 — fresh bonus / tax-refund cash sitting in checking.
+  const txSignals: CallItem[] = inflowQueueItems(inflows, nameById, {
+    segment: 'Retail', action: 'Idle-cash conversation — savings / CD',
+  });
+  // S6 — clients who clicked through a campaign: a warm follow-up.
+  const campaignSignals: CallItem[] = campaignTouchQueueItems(touches, nameById, { segment: 'Retail' });
+  // R1 — HELOC / refi leads from CoreLogic.
+  const equitySignals: CallItem[] = homeEquityQueueItems(equity, nameById, { segment: 'Retail' });
+  // R3 — persistent financial stress: a hardship check-in.
+  const stressSignals: CallItem[] = financialStressQueueItems(stress, nameById, { segment: 'Retail' });
+  // Who-to-Call rows take the live due date of the Gong / stress signals they cover.
+  const callList: CallItem[] = inheritDue(whoToCallItems(who, nameById, { segment: 'Retail' }), [gongSignals, stressSignals]);
+  // R4 — Young Families likely to need a mortgage, renters first; a client with an
+  // R1 item (refi or HELOC) already has a home-lending conversation queued, so skip them.
+  const equityClients = new Set(equity.rows.map(r => r.accountId));
+  const mortgageSignals: CallItem[] = mortgageLeadQueueItems(lifeStages, nameById, { segment: 'Retail', exclude: equityClients });
+  // R6 — recognized clients surging on product pages: a timely product follow-up.
+  const webSignals: CallItem[] = webEngagementQueueItems(web, nameById, { segment: 'Retail' });
+  // R5 — $5K+/mo moving to another bank: a deposit retention call.
+  const attritionSignals: CallItem[] = depositAttritionQueueItems(attrition, nameById, { segment: 'Retail' });
+  // Gong / stress clients already in the blended Who-to-Call don't repeat as their own item;
+  // the stress feed ranks by the same score and fetches spares, so cap it after the dedupe.
+  const stressQueue = dropCovered(stressSignals, callList).slice(0, STRESS_ROWS);
+  const transactionSignals: CallItem[] = [...amlSignals, ...webSignals, ...dropCovered(gongSignals, callList), ...stressQueue, ...attritionSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
+  // S1 Health KPI — book count of negative + declining clients, with the real
+  // 8-week series behind the sparkline and a week-over-week delta.
+  const toneSeries = gong.weekly.map(w => w.count);
+  const toneNow = toneSeries.length ? toneSeries[toneSeries.length - 1] : gong.rows.length;
+  const tonePrev = toneSeries.length > 1 ? toneSeries[toneSeries.length - 2] : 0;
+  const inflowTotal = inflows.rows.reduce((sum, r) => sum + r.amount, 0);
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -458,7 +539,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       evidence: 'High-value account with sparse recent engagement history',
     });
   }
-  const lowCsat = callList[0];
+  const lowCsat = callList.find(c => c.action === 'Service-recovery outreach');
   if (lowCsat) {
     recommendations.push({
       id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: lowCsat.clientName, clientId: lowCsat.clientId,
@@ -468,9 +549,19 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     });
   }
 
-  // ── Right Now — the single first move, from the top-priority call item.
+  // ── Right Now — the single first move: a client on a product page in the last
+  //    two days (R6) beats the top-priority call item.
   const top = callList[0];
-  const rightNow: RightNowItem | undefined = top
+  const browsing = web.rows.find(r => isBrowsingNow(r));
+  const rightNow: RightNowItem | undefined = browsing
+    ? {
+        clientId: browsing.accountId,
+        clientName: nameById[browsing.accountId] ?? 'Client',
+        headline: `Reach out to ${nameById[browsing.accountId] ?? 'your client'} — browsing ${browsing.products[0]?.product ?? 'product pages'} on the website now.`,
+        detail: browsingReason(browsing),
+        taskSubject: browsingAction(browsing),
+      }
+    : top
     ? {
         clientId: top.clientId,
         clientName: top.clientName,
@@ -512,19 +603,51 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       trend: seedTrend(label, amount),
     }));
 
+  // S7 — open service drag: CRM open cases + the book's open ServiceNow cases.
+  const crmOpen = q?.Case?.totalCount ?? 0;
+  const openCases = crmOpen + serviceNow.open;
+  const agedCases = (q?.CaseAged?.totalCount ?? 0) + serviceNow.aged;
+
   return {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'your book at a glance',
-    aiBrief: `${callList.length} clients flagged by CSAT, ${highRisk} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.`,
-    confidencePct: 87,
-    dataSourceCount: 24,
+    aiBrief: `${who.clients.toLocaleString('en-US')} clients scored for who to call (CSAT, Gong, stress, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an idle-cash moment.` : ''}`,
+    // S8 — freshness replaces the static confidence (kept as the fallback).
+    confidencePct: freshness?.pct ?? 87,
+    dataSourceCount: freshness?.sources.length ?? 24,
+    dataFreshness: freshness,
+    propertyRisk: {
+      ...propRisk,
+      rows: propRisk.rows.map(h => ({ ...h, clientName: nameById[h.accountId] ?? 'Client' })),
+    },
+    // The card lists exactly the queue's leads (R1 home-equity clients excluded).
+    lifeStageMix: {
+      ...lifeStages,
+      mortgageLeads: selectMortgageLeads(lifeStages, equityClients)
+        .map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+    },
+    webEngagement: {
+      ...web,
+      rows: web.rows.slice(0, 5).map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+    },
+    depositAttrition: {
+      ...attrition,
+      rows: attrition.rows.map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+    },
+    financialStress: {
+      ...stress,
+      rows: stress.rows.map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+    },
     kpis: [
       { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.041, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
       { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
       { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
-      { key: 'openCases', label: 'Open Cases', value: q?.Case?.totalCount ?? 0, format: 'number', trend: seedTrend('cases', q?.Case?.totalCount ?? 0), note: 'Open cases' },
-      { key: 'atRisk', label: 'At-Risk Clients', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: 'Require attention' },
+      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', trend: seedTrend('cases', openCases), note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
+      { key: 'atRisk', label: 'At-Risk Clients', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: stress.persistent ? `Require attention · ${stress.persistent.toLocaleString('en-US')} under persistent financial stress${stress.scope === 'org' ? ' · org-wide' : ''}` : 'Require attention' },
+      { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
+      { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
+      { key: 'homeEquity', label: 'Home Equity', value: equity.equity, format: 'currencyCompact', trend: seedTrend('homeEquity', Math.max(1, Math.round(equity.equity / 1e7))), note: equity.owners ? `${equity.owners.toLocaleString('en-US')} owners HELOC-ready · ${equity.refi.toLocaleString('en-US')} refi${equity.scope === 'org' ? ' · org-wide' : ''}` : 'No HELOC-ready owners in book' },
       { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
     ],
     callList,
@@ -532,12 +655,50 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerGoals,
     lifeEvents,
     schedule,
-    alerts: callList.slice(0, 4).map((c, i) => ({
-      id: `a${i}`, title: `Low CSAT — ${c.clientName}`, detail: c.reason,
-      tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
-    })),
-    leads,
-    recommendations,
+    transactionSignals,
+    // Gong / stress alerts skip clients the blended Who-to-Call already carries.
+    alerts: [
+      // R2 — the most exposed homes (both hazards first, then value).
+      ...propRisk.rows.slice(0, 2).map((h, i) => ({
+        id: `ap${i}`, title: `Property risk — ${nameById[h.accountId] ?? 'Client'}`,
+        detail: `${propertyHazards(h)} · ${fmtUsd(h.value)} ${h.propertyType.toLowerCase() || 'home'}${h.mortgage ? ` · ${fmtUsd(h.mortgage)} mortgage` : ''} · Insurance review / proactive outreach`,
+        tone: 'risk' as const, severity: h.floodZone && h.wildfire >= 70 ? 'High' as const : 'Medium' as const, when: 'this quarter',
+      })),
+      // R3 — persistent stress, fee-corroborated first (the rows are ranked that way).
+      ...stressQueue.slice(0, 2).map((f, i) => ({
+        id: `af${i}`, title: `Financial stress — ${f.clientName}`, detail: `${f.reason} · ${f.action}`,
+        tone: 'risk' as const, severity: f.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this month',
+      })),
+      // R5 — the largest monthly outflows to other banks.
+      ...attritionSignals.slice(0, 2).map((d, i) => ({
+        id: `ad${i}`, title: `Deposits leaving — ${d.clientName}`, detail: `${d.reason} · ${d.action}`,
+        tone: 'risk' as const, severity: d.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this month',
+      })),
+      ...campaignSignals.slice(0, 2).map((t, i) => ({
+        id: `am${i}`, title: `Campaign interest — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
+        tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last touch',
+      })),
+      ...amlSignals.slice(0, 2).map((w, i) => ({
+        id: `aw${i}`, title: `Screening escalated — ${w.clientName}`, detail: `${w.reason} · ${w.action}`,
+        tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',
+      })),
+      ...callList.slice(0, 4).map((c, i) => ({
+        id: `a${i}`, title: `Call first — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
+      })),
+      ...dropCovered(gongSignals, callList).slice(0, 2).map((g, i) => ({
+        id: `ag${i}`, title: `Call tone sliding — ${g.clientName}`, detail: `${g.reason} · ${g.action}`,
+        tone: 'risk' as const, severity: g.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
+      })),
+      ...txSignals.slice(0, 3).map((t, i) => ({
+        id: `ax${i}`, title: `Inflow — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
+        tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : t.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this week',
+      })),
+    ],
+    // S4 warm intros alternate with CRM leads; the KPI above still counts Leads only.
+    leads: interleave(leads, warmIntroLeads(intros, nameById)),
+    // S3 model offers lead so they survive the cockpit's reveal cap.
+    recommendations: [...offerRecommendations(offers, nameById), ...recommendations],
     activity,
     pipelineMovement,
     cases,

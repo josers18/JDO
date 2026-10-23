@@ -4,6 +4,8 @@ import {
   CommandRail,
   HomeViewProvider,
   HomeViewToggle,
+  ViewAsPicker,
+  useViewAs,
   WorkspaceSelectionProvider,
   tagSchedule,
   type CommandRailSection,
@@ -152,13 +154,16 @@ export default function HomeLayout() {
  */
 function HomeLayoutInner() {
   const { data, loading } = useHomeData();
+  // "View as" preview — the rail names the banker whose book is on screen.
+  const viewAs = useViewAs();
+  const railUser = viewAs ? { name: viewAs.name, sub: `Viewing as · ${RAIL_USER.sub}` } : RAIL_USER;
 
   if (loading || !data) {
     return (
       <AppShell
         title="Advisory Desk"
-        titleAside={<HomeViewToggle />}
-        sidebar={<CommandRail sections={RAIL_SECTIONS} arc={FALLBACK_ARC} user={RAIL_USER} />}
+        titleAside={<span className="inline-flex items-center gap-2"><ViewAsPicker /><HomeViewToggle /></span>}
+        sidebar={<CommandRail sections={RAIL_SECTIONS} arc={FALLBACK_ARC} user={railUser} />}
       >
         <Outlet />
       </AppShell>
@@ -169,9 +174,9 @@ function HomeLayoutInner() {
     <WorkspaceSelectionProvider initialPinned={derivePins(data)} storageKey={PINNED_STORAGE_KEY}>
       <AppShell
         title="Advisory Desk"
-        titleAside={<HomeViewToggle />}
+        titleAside={<span className="inline-flex items-center gap-2"><ViewAsPicker /><HomeViewToggle /></span>}
         sidebar={
-          <CommandRail sections={deriveSections(data)} arc={deriveArc(data)} user={RAIL_USER} />
+          <CommandRail sections={deriveSections(data)} arc={deriveArc(data)} user={railUser} />
         }
       >
         <Outlet />

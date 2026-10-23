@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Icon } from './iconMap';
+import { DriverTags, type QueueDriver } from './DriverTags';
 
 export type QueueSeverity = 'high' | 'medium' | 'low';
 export type QueueDueTier = 'today' | 'week' | 'watch';
@@ -25,6 +26,8 @@ export interface PriorityQueueCardItem {
   /** Signal-native ISO due date (YYYY-MM-DD). Drives the "Due …" label +
    *  the "Due date" sort. When present it supersedes `tier`. */
   dueDate?: string;
+  /** Blended-score drivers, shown as tags under the reason. */
+  drivers?: QueueDriver[];
 }
 
 type SortKey = 'priority' | 'due';
@@ -256,6 +259,7 @@ export function PriorityQueueCard<T extends PriorityQueueCardItem>({
                   <span className="mt-0.5 block truncate text-[12.5px] text-muted" title={item.reason}>
                     {item.reason}
                   </span>
+                  <DriverTags drivers={item.drivers} className="mt-1" />
                 </span>
                 {/* Severity pill */}
                 <span

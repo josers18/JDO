@@ -3,6 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
+import type { DataFreshness, DepositAttritionResult, WebEngagementResult, FinancialStressResult, LifeStageMixResult, PropertyRiskResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -32,6 +33,8 @@ export interface CallItem {
   /** Signal-native ISO due date (YYYY-MM-DD) — set by the priority-queue
    *  blender so the card can sort/label by real dates, not severity. */
   dueDate?: string;
+  /** R7 blended-score drivers — tags on the Who-to-Call rows. */
+  drivers?: { label: string; points: number; tone: 'risk' | 'opportunity' }[];
 }
 
 /**
@@ -131,6 +134,19 @@ export interface LeadReferral {
   lastName?: string;
   /** Lead.Company — required to edit/create; the org the lead belongs to. */
   company?: string;
+  /** S4 warm intro (relationship graph) — not a Lead yet. A row click opens the
+   *  Lead modal in create mode with these prefilled. */
+  intro?: {
+    accountId: string;
+    referrer: string;
+    owned: boolean;
+    confidencePct: number;
+    discovered: string;
+    scope: 'book' | 'org';
+    firstName?: string;
+    lastName?: string;
+    company: string;
+  };
 }
 
 /** A recent-activity feed row for the cockpit supporting band. */
@@ -214,6 +230,9 @@ export interface HomeDashboard {
   aiBrief: string;
   kpis: HomeKpi[];
   callList: CallItem[];
+  /** Extra dated queue feeds — S2 AML screening escalations, S1 Gong call sentiment, plus S5 inflows (Retail/Wealth) or
+   *  C9 fee spikes (Commercial). Each item carries its own dueDate. */
+  transactionSignals?: CallItem[];
   pipeline: PipelineItem[];
   bankerGoals: BankerGoal[];
   lifeEvents: LifeEventSignal[];
@@ -232,4 +251,14 @@ export interface HomeDashboard {
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;
+  /** S8 — per-source as-of dates behind the hero meter (real data only). */
+  dataFreshness?: DataFreshness;
+  /** R2 — CoreLogic flood / wildfire exposure across the book (real data only). */
+  propertyRisk?: PropertyRiskResult;
+  /** R3 — persistent financial stress (Claritas) + overdraft corroboration. */
+  financialStress?: FinancialStressResult;
+  /** R4 — clients per Claritas life stage with propensities. */
+  lifeStageMix?: LifeStageMixResult;
+  depositAttrition?: DepositAttritionResult;
+  webEngagement?: WebEngagementResult;
 }

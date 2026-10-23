@@ -18,6 +18,9 @@ export function TaskModal({
   clientName,
   clientId,
   subjectDefault,
+  dueDateDefault,
+  commentsDefault,
+  priorityDefault,
   onSaved,
 }: {
   open: boolean;
@@ -25,6 +28,11 @@ export function TaskModal({
   clientName: string;
   clientId?: string;
   subjectDefault?: string;
+  /** ISO yyyy-mm-dd; defaults to tomorrow. */
+  dueDateDefault?: string;
+  commentsDefault?: string;
+  /** Defaults to High. */
+  priorityDefault?: 'High' | 'Normal' | 'Low';
   /** Fired only after a successful write (before close) — e.g. to refetch. */
   onSaved?: () => void;
 }) {
@@ -33,9 +41,9 @@ export function TaskModal({
     onClose();
   });
   const [subject, setSubject] = useState(subjectDefault ?? `Follow up — ${clientName}`);
-  const [dueDate, setDueDate] = useState(tomorrow());
-  const [priority, setPriority] = useState('High');
-  const [comments, setComments] = useState('Discuss next steps and confirm outstanding items.');
+  const [dueDate, setDueDate] = useState(dueDateDefault ?? tomorrow());
+  const [priority, setPriority] = useState<string>(priorityDefault ?? 'High');
+  const [comments, setComments] = useState(commentsDefault ?? 'Discuss next steps and confirm outstanding items.');
 
   const create = () =>
     void submit(

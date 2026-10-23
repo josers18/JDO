@@ -4,6 +4,8 @@ import {
   CommandRail,
   HomeViewProvider,
   HomeViewToggle,
+  ViewAsPicker,
+  useViewAs,
   WorkspaceSelectionProvider,
   tagSchedule,
   type CommandRailSection,
@@ -186,6 +188,9 @@ export default function HomeLayout() {
 
 function HomeLayoutInner() {
   const { data, loading } = useHomeData();
+  // "View as" preview — the rail names the banker whose book is on screen.
+  const viewAs = useViewAs();
+  const railUser = viewAs ? { name: viewAs.name, sub: `Viewing as · ${RAIL_USER.sub}` } : RAIL_USER;
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const groups = deriveGroups(data);
@@ -203,7 +208,7 @@ function HomeLayoutInner() {
     return (
       <AppShell
         title="Relationship Command Center"
-        titleAside={<HomeViewToggle />}
+        titleAside={<span className="inline-flex items-center gap-2"><ViewAsPicker /><HomeViewToggle /></span>}
         sidebar={
           <CommandRail
             groups={groups}
@@ -211,7 +216,7 @@ function HomeLayoutInner() {
             onNavigate={navigate}
             sections={deriveSections(null, pathname)}
             arc={FALLBACK_ARC}
-            user={RAIL_USER}
+            user={railUser}
           />
         }
       >
@@ -228,7 +233,7 @@ function HomeLayoutInner() {
     <WorkspaceSelectionProvider initialPinned={pins} storageKey="cumulus.pinned.retail">
       <AppShell
         title="Relationship Command Center"
-        titleAside={<HomeViewToggle />}
+        titleAside={<span className="inline-flex items-center gap-2"><ViewAsPicker /><HomeViewToggle /></span>}
         sidebar={
           <CommandRail
             groups={groups}
@@ -236,7 +241,7 @@ function HomeLayoutInner() {
             onNavigate={navigate}
             sections={sections}
             arc={arc}
-            user={RAIL_USER}
+            user={railUser}
           />
         }
       >

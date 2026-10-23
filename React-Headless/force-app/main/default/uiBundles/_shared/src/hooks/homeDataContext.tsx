@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { useAsyncData } from './useAsyncData';
+import { useViewAs } from '../data/viewAs';
 
 /** What the Home dashboard fetch exposes to layout + page (one shared fetch). */
 interface HomeDataValue<T> {
@@ -15,7 +16,7 @@ interface HomeDataValue<T> {
  * generic over T and each bundle instantiates it as
  * `createHomeDataContext<HomeDashboard>()`.
  *
- * HomeDataProvider runs a single `useAsyncData(fetch, [])` and provides its
+ * HomeDataProvider runs a single `useAsyncData(fetch, [viewAs])` and provides its
  * result to both HomeLayout and HomePage — one fetch, two consumers — so the
  * layout's CommandRail and the page's cards derive from the same live snapshot.
  */
@@ -29,7 +30,9 @@ export function createHomeDataContext<T>(): {
     fetch,
     children,
   }) => {
-    const { data, loading, refetch } = useAsyncData(fetch, []);
+    // Re-run when the "View as" banker changes — the fetch reads it at call time.
+    const viewAs = useViewAs();
+    const { data, loading, refetch } = useAsyncData(fetch, [viewAs?.userId]);
     return (
       <HomeDataContext.Provider value={{ data, loading, refetch }}>
         {children}
