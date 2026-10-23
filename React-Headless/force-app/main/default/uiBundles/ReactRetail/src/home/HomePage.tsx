@@ -1546,6 +1546,9 @@ function HomeContent({ mode }: { mode: HomeMode }) {
                   })}
                   className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
                 >
+                  <span className="flex-none rounded-full bg-accent-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-accent">
+                    Lead
+                  </span>
                   <span className="flex-none rounded-full bg-track px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
                     {mortgageLeadTag(r)}
                   </span>
