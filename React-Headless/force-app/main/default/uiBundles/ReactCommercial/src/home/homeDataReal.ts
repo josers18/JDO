@@ -699,6 +699,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     lifeEvents,
     schedule,
     transactionSignals,
+    // Outlook / Gong / fee alerts skip clients the blended Who-to-Call already carries.
     alerts: [
       ...footprint.rows.filter(z => z.recommendation === 'Consolidate').slice(0, 2).map((z, i) => ({
         id: `afp${i}`, title: `Branch consolidation — ZIP ${z.zip}, ${z.state}`,
@@ -711,7 +712,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         tone: 'opportunity' as const, severity: h.netWorthBand === '$5M+' ? 'High' as const : 'Medium' as const, when: 'relationship graph',
       })),
       // C2 — Watch (review for downgrade) first, then Negative.
-      ...outlook.rows.slice(0, 2).map((o, i) => ({
+      ...dropCovered(outlook.rows, callList, o => o.accountId).slice(0, 2).map((o, i) => ({
         id: `ao${i}`, title: `Outlook ${o.outlook} — ${nameOf(o.accountId)}`,
         detail: `Moody's ${o.rating || 'rating'} · outlook ${o.outlook} since ${shortDate(o.since)}${o.flags ? ` · ${o.flags} agency flag${o.flags === 1 ? '' : 's'}` : ''}${o.px30 != null ? ` · price ${o.px30 > 0 ? '+' : ''}${o.px30.toFixed(1)}% 30d` : ''} · Credit review before the next renewal`,
         tone: 'risk' as const, severity: o.outlook === 'Watch' ? 'High' as const : 'Medium' as const, when: 'current outlook',
@@ -747,14 +748,14 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',
       })),
       ...callList.slice(0, 4).map((c, i) => ({
-        id: `a${i}`, title: `Credit risk — ${c.clientName}`, detail: c.reason,
-        tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
+        id: `a${i}`, title: `Call first — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: c.drivers?.[0]?.tone ?? 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
       })),
-      ...gongSignals.slice(0, 2).map((g, i) => ({
+      ...dropCovered(gongSignals, callList).slice(0, 2).map((g, i) => ({
         id: `ag${i}`, title: `Call tone sliding — ${g.clientName}`, detail: `${g.reason} · ${g.action}`,
         tone: 'risk' as const, severity: g.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
       })),
-      ...txSignals.slice(0, 3).map((t, i) => ({
+      ...dropCovered(txSignals, callList).slice(0, 3).map((t, i) => ({
         id: `ax${i}`, title: `Fee spike — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'risk' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 30d',
       })),

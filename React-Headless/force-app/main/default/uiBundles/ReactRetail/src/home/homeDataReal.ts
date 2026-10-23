@@ -653,6 +653,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     lifeEvents,
     schedule,
     transactionSignals,
+    // Gong / stress alerts skip clients the blended Who-to-Call already carries.
     alerts: [
       // R2 — the most exposed homes (both hazards first, then value).
       ...propRisk.rows.slice(0, 2).map((h, i) => ({
@@ -661,7 +662,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         tone: 'risk' as const, severity: h.floodZone && h.wildfire >= 70 ? 'High' as const : 'Medium' as const, when: 'this quarter',
       })),
       // R3 — persistent stress, fee-corroborated first (the rows are ranked that way).
-      ...stressSignals.slice(0, 2).map((f, i) => ({
+      ...dropCovered(stressSignals, callList).slice(0, 2).map((f, i) => ({
         id: `af${i}`, title: `Financial stress — ${f.clientName}`, detail: `${f.reason} · ${f.action}`,
         tone: 'risk' as const, severity: f.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this month',
       })),
@@ -682,7 +683,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         id: `a${i}`, title: `Call first — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'recent',
       })),
-      ...gongSignals.slice(0, 2).map((g, i) => ({
+      ...dropCovered(gongSignals, callList).slice(0, 2).map((g, i) => ({
         id: `ag${i}`, title: `Call tone sliding — ${g.clientName}`, detail: `${g.reason} · ${g.action}`,
         tone: 'risk' as const, severity: g.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
       })),

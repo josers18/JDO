@@ -114,10 +114,15 @@ function isEscalation(title: string, priority?: string): boolean {
 }
 
 /** Drop items for clients the blended Who-to-Call already carries — its row names
- *  the same driver (Gong, fees, concentration…), so a second queue item repeats it. */
-export function dropCovered<T extends { clientId: string }>(items: T[], covered: readonly { clientId: string }[]): T[] {
+ *  the same driver (Gong, fees, concentration…), so a second queue item or alert
+ *  repeats it. `idOf` reads the client id from raw signal rows (default `clientId`). */
+export function dropCovered<T>(
+  items: T[],
+  covered: readonly { clientId: string }[],
+  idOf: (it: T) => string = it => (it as { clientId: string }).clientId,
+): T[] {
   const ids = new Set(covered.map(c => c.clientId).filter(Boolean));
-  return items.filter(it => !ids.has(it.clientId));
+  return items.filter(it => !ids.has(idOf(it)));
 }
 
 /**
