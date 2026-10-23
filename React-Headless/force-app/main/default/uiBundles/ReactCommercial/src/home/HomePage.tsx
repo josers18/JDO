@@ -1963,7 +1963,7 @@ function HomeContent() {
             <Pill tone={c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'neutral'}>{c.severity}</Pill>
           ) },
         ]}
-        footNote="Source · CSAT + Data Cloud signals"
+        footNote="Source · blended D&B credit + Gong + Moody's + fee spikes + offer model"
       />
 
       <DataExplorerModal<CaseItem>

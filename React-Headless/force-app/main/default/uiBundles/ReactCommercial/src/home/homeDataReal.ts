@@ -39,12 +39,14 @@
  *     billing ZIP: clients in Consolidate-branch ZIPs → Health KPI + retention
  *     alerts; wealth index + foot traffic → footprint card
  *
- * The persona signal is CREDIT RISK: the RM's "who to call" ranks accounts by
- * the weakest PAYDEX / delinquency-predictor scores (the borrowers most
- * likely to need a covenant or credit review). Field names + DMO columns
+ *   · C10 blended Who-to-Call: C1 credit + S1 Gong + C2 outlook + C9 fees + S3 offer
+ *     → one weighted score per client, driver tags on each row
+ *
+ * The persona signal is CREDIT RISK: it anchors Credit Watch and is the heaviest
+ * driver in the blended "who to call" score. Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -250,19 +252,6 @@ const sd = (n: Node, k: string) => decodeHtml(s(n, k));
 const relName = (n: Node, k: string): string =>
   String((n as Record<string, { Name?: { value?: unknown } } | undefined>)[k]?.Name?.value ?? '');
 
-/** Severe failure tier or PAYDEX < 60 (late payer) = high; High tier or
- *  PAYDEX < 75 = medium. PAYDEX 80 = prompt payment. */
-function severityForCredit(tier: string, paydex: number): CallItem['severity'] {
-  if (tier === 'Severe' || paydex < 60) return 'high';
-  if (tier === 'High' || paydex < 75) return 'medium';
-  return 'low';
-}
-
-/** Map a call item's severity to its priority-queue tier. */
-function tierForSeverity(sev: CallItem['severity']): CallItem['tier'] {
-  return sev === 'high' ? 'today' : sev === 'medium' ? 'week' : 'watch';
-}
-
 interface CoreShape {
   uiapi?: { query?: {
     Opportunity?: { totalCount?: number; edges?: { node: Node & { Account?: { Name?: { value?: string } } } }[] };
@@ -284,9 +273,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, credit, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint] = await Promise.all([
+  const [core, credit, who, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
+    userP.then(u => fetchCommercialWhoToCall(u?.userId)),
     userP,
     // C9 is additive — a failed transaction query must not blank the page.
     userP.then(u => fetchFeeSpikes(u?.userId))
@@ -347,7 +337,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...credit.rows.map(r => r.account_id), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId), ...esg.rows.map(r => r.accountId), ...firmo.rows.map(r => r.accountId), ...handoffs.rows.map(r => r.businessId)].filter(Boolean))];
+  const ids = [...new Set([...who.rows.map(r => r.accountId), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId), ...esg.rows.map(r => r.accountId), ...firmo.rows.map(r => r.accountId), ...handoffs.rows.map(r => r.businessId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   if (ids.length) {
     try {
@@ -384,25 +374,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const toneNow = toneSeries.length ? toneSeries[toneSeries.length - 1] : gong.rows.length;
   const tonePrev = toneSeries.length > 1 ? toneSeries[toneSeries.length - 2] : 0;
 
-  const callList: CallItem[] = credit.rows.map((row, i) => {
-    const paydex = Number(row.paydex || 0);
-    const dbt = Number(row.days_beyond || 0);
-    const tier = String(row.tier || '');
-    const severity = severityForCredit(tier, paydex);
-    return {
-      id: `c${i}`,
-      clientId: row.account_id,
-      clientName: nameById[row.account_id] || row.account_id,
-      segment: `D&B ${row.rating || 'unrated'}`,
-      reason: `Failure score ${Math.round(Number(row.failure || 0))}${tier ? ` (${tier})` : ''} · PAYDEX ${Math.round(paydex)}${dbt ? `, ${Math.round(dbt)} days beyond terms` : ''} · delinquency score ${Math.round(Number(row.delinquency || 0))}`,
-      action: 'Credit / covenant review',
-      score: Math.min(1, Number(row.risk_idx || 0) / 100),
-      severity,
-      source: `D&B credit${scopeNote}`,
-      relationshipValue: 0,
-      tier: tierForSeverity(severity),
-    };
-  });
+  // C10 — the blended Who-to-Call: D&B credit, souring Gong calls, Moody's outlook,
+  // fee spikes and the best business offer, one score per client.
+  const callList: CallItem[] = commercialWhoToCallItems(who, nameById);
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -630,7 +604,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       evidence: 'High-value relationship with sparse recent engagement history',
     });
   }
-  const weakestCredit = callList[0];
+  const weakestCredit = callList.find(c => c.action === 'Credit / covenant review');
   if (weakestCredit) {
     const delinqNote = delinquency
       ? ` ${delinquency.lateAccounts.toLocaleString('en-US')} of ${delinquency.totalAccounts.toLocaleString('en-US')} ${delinquency.scope === 'book' ? 'borrowers in your book' : 'borrowers'} pay trade creditors beyond terms (D&B, ${delinquency.asOf}).`
@@ -638,7 +612,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     recommendations.push({
       id: 'rec-case', kind: 'case', objectLabel: 'Case', clientName: weakestCredit.clientName, clientId: weakestCredit.clientId,
       title: `Open a credit-review case for ${weakestCredit.clientName}`,
-      body: `The weakest business-credit signal in your book warrants a covenant and credit review before it deteriorates further.${delinqNote}`,
+      body: `A top-ranked weak business-credit signal in your book warrants a covenant and credit review before it deteriorates further.${delinqNote}`,
       evidence: weakestCredit.reason,
     });
   }
@@ -696,7 +670,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
+    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${feeSpikes.rows.length} operating accounts show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 86,
     dataSourceCount: freshness?.sources.length ?? 25,
