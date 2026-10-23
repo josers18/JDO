@@ -9,6 +9,9 @@ from prodrec.vocab import (
     CASH_FLOW_VOLATILITY_WEIGHTS, DIGITAL_BANKING_USAGE_WEIGHTS, INDUSTRIES,
 )
 
+DEC2 = ("DEBT_TO_REVENUE_RATIO", "DEBT_SERVICE_COVERAGE_RATIO")
+DEC1 = ("PAYROLL_BURDEN_PCT", "REVENUE_GROWTH_YOY_PCT", "PROFIT_MARGIN_PCT",
+        "ACH_TRANSACTIONS_PER_EMPLOYEE")
 T0 = datetime(2026, 10, 23)
 FLAGS = ("HAS_BUSINESS_CHECKING", "HAS_BUSINESS_SAVINGS", "HAS_BUSINESS_CREDIT_CARD",
          "HAS_BUSINESS_LOAN", "HAS_LINE_OF_CREDIT", "HAS_MERCHANT_SERVICES")
@@ -28,14 +31,13 @@ def test_anchor_values_copied_unclamped():
 
 def test_null_anchor_still_complete():
     p = business_profile(anchor(ANNUAL_REVENUE=None, EMPLOYEE_COUNT=None, INDUSTRY=None), {}, T0)
+    for c, v in p.items():
+        assert v is not None, c
     nonneg = [c for c in p if c not in ("NET_MONTHLY_CASH_FLOW", "REVENUE_GROWTH_YOY_PCT",
                                         "PROFIT_MARGIN_PCT")]
     for c in nonneg:
         if isinstance(p[c], (int, float)):
             assert p[c] >= 0, c
-    for c in ("ANNUAL_REVENUE", "NUMBER_OF_EMPLOYEES", "MONTHLY_AVG_DEPOSITS",
-              "NET_MONTHLY_CASH_FLOW", "OPERATING_ACCOUNT_BALANCE", "PROFIT_MARGIN_PCT"):
-        assert p[c] is not None
     assert 50_000 <= p["ANNUAL_REVENUE"] <= 50_000_000
 
 
@@ -116,7 +118,8 @@ def test_idempotent_within_month_bounded_drift(business_anchors):
         assert p1 == p2
         for c in p1:
             if c in cont:
-                assert abs(p3[c] - p1[c]) <= abs(p1[c]) * (1.03 / 0.97 - 1) + 1, c
+                slack = 0.01 if c in DEC2 else 0.1 if c in DEC1 else 1
+                assert abs(p3[c] - p1[c]) <= abs(p1[c]) * (1.03 / 0.97 - 1) + slack, c
             else:
                 assert p3[c] == p1[c], c
 
@@ -138,3 +141,24 @@ def test_training_key_changes_generated_fields():
     a = anchor(ANNUAL_REVENUE=None, EMPLOYEE_COUNT=None)
     assert business_profile(a, {}, T0) != business_profile(a, {}, T0, key=a["ACCOUNT_ID"] + "#T1")
     assert business_profile(a, {}, T0, key="x#T1")["ACCOUNTID"] == a["ACCOUNT_ID"]
+
+
+def test_large_firm_money_scales_with_revenue():
+    rev = 500_000_000
+    for i in range(100):
+        p = business_profile(anchor(ANNUAL_REVENUE=rev, EMPLOYEE_COUNT=None), {}, T0, key=f"big#{i}")
+        assert 0.05 <= p["MONTHLY_AVG_DEPOSITS"] / (rev / 12) <= 3
+        assert 0.01 <= p["OPERATING_ACCOUNT_BALANCE"] / rev <= 2
+        assert abs(p["NET_MONTHLY_CASH_FLOW"]) <= rev / 12
+        assert p["NUMBER_OF_EMPLOYEES"] > 370
+
+
+def test_feed_zero_flags_respected():
+    feats = {"DEPOSIT_BALANCE": 100_000, "HAS_LOAN": 0, "HAS_LINE": 0, "HAS_CARD": 0}
+    for i in range(300):
+        p = business_profile(anchor(), feats, T0, key=f"z#{i}")
+        assert p["HAS_BUSINESS_LOAN"] == p["HAS_LINE_OF_CREDIT"] == p["HAS_BUSINESS_CREDIT_CARD"] == 0
+        assert p["HAS_BUSINESS_CHECKING"] == 1
+    # uncovered (None) accounts still get drawn flags
+    assert any(business_profile(anchor(), {"HAS_LOAN": None}, T0, key=f"n#{i}")["HAS_BUSINESS_LOAN"]
+               for i in range(100))

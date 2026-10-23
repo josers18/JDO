@@ -6,6 +6,7 @@ values then get at most +/-3% drift from month_rng. Real values are never jitter
 """
 from __future__ import annotations
 
+import math
 from datetime import datetime
 
 from prodrec.common import as_date, as_float, clamp, jitter, month_rng, stable_rng
@@ -105,14 +106,17 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
         revenue = round(rev_a)
         rev_base = rev_a
     elif emp_a is not None:
-        rev_base = clamp(max(emp_a, 1.0) * rpe_draw, *_biz_REV_RANGE)
-        revenue = _biz_fin(rev_base, *_biz_REV_RANGE, 0, jf["ANNUAL_REVENUE"])
+        rev_base = max(emp_a, 1.0) * rpe_draw  # scaled from a real anchor: no absolute cap
+        revenue = _biz_fin(rev_base, 1, math.inf, 0, jf["ANNUAL_REVENUE"])
     else:
         rev_base = clamp(rev_draw, *_biz_REV_RANGE)
         revenue = _biz_fin(rev_base, *_biz_REV_RANGE, 0, jf["ANNUAL_REVENUE"])
     rev_eff = max(rev_base, 1.0)
+    anchored = rev_a is not None or emp_a is not None
     if emp_a is not None:
         employees = round(emp_a)
+    elif rev_a is not None:  # derived from a real revenue: min 1, no fixed max
+        employees = _biz_fin(rev_eff / rpe_draw, 1, math.inf, 0, jf["NUMBER_OF_EMPLOYEES"])
     else:
         employees = _biz_fin(rev_eff / rpe_draw, *_biz_EMP_RANGE, 0, jf["NUMBER_OF_EMPLOYEES"])
     monthly_rev = rev_eff / 12.0
@@ -126,21 +130,37 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     bal_gen = rev_eff * rng.uniform(0.08, 0.2)
     net_gen = margin_base / 100.0 * monthly_rev * rng.uniform(0.8, 1.2)
 
+    # Scale-relative bounds when anchored; absolute Appendix A bounds only when nothing anchors the size.
+    if anchored:
+        dep_b = (DEPOSITS_WINDOW[0] * monthly_rev, DEPOSITS_WINDOW[1] * monthly_rev)
+        bal_b = (BALANCE_WINDOW[0] * rev_eff, BALANCE_WINDOW[1] * rev_eff)
+        net_b = (NET_FLOW_WINDOW[0] * monthly_rev, NET_FLOW_WINDOW[1] * monthly_rev)
+    else:
+        dep_b, bal_b, net_b = _biz_DEP_RANGE, _biz_BAL_RANGE, _biz_NET_RANGE
+
+    # Scale-relative bounds when anchored; absolute Appendix A bounds only when nothing anchors the size.
+    if anchored:
+        dep_b = (DEPOSITS_WINDOW[0] * monthly_rev, DEPOSITS_WINDOW[1] * monthly_rev)
+        bal_b = (BALANCE_WINDOW[0] * rev_eff, BALANCE_WINDOW[1] * rev_eff)
+        net_b = (NET_FLOW_WINDOW[0] * monthly_rev, NET_FLOW_WINDOW[1] * monthly_rev)
+    else:
+        dep_b, bal_b, net_b = _biz_DEP_RANGE, _biz_BAL_RANGE, _biz_NET_RANGE
+
     credits = as_float(feats.get("MONTHLY_CREDITS"))
     if _biz_in_window(credits, monthly_rev, DEPOSITS_WINDOW):
         deposits = round(credits)
     else:
-        deposits = _biz_fin(dep_gen, *_biz_DEP_RANGE, 0, jf["MONTHLY_AVG_DEPOSITS"])
+        deposits = _biz_fin(dep_gen, *dep_b, 0, jf["MONTHLY_AVG_DEPOSITS"])
     dbal = as_float(feats.get("DEPOSIT_BALANCE"))
     if _biz_in_window(dbal, rev_eff, BALANCE_WINDOW):
         balance = round(dbal)
     else:
-        balance = _biz_fin(bal_gen, *_biz_BAL_RANGE, 0, jf["OPERATING_ACCOUNT_BALANCE"])
+        balance = _biz_fin(bal_gen, *bal_b, 0, jf["OPERATING_ACCOUNT_BALANCE"])
     net = as_float(feats.get("MONTHLY_NET"))
     if _biz_in_window(net, monthly_rev, NET_FLOW_WINDOW):
         net_flow = round(net)
     else:
-        net_flow = _biz_fin(net_gen, *_biz_NET_RANGE, 0, jf["NET_MONTHLY_CASH_FLOW"])
+        net_flow = _biz_fin(net_gen, *net_b, 0, jf["NET_MONTHLY_CASH_FLOW"])
 
     # --- categoricals / flags (stable only) ---------------------------------------------
     structure = _voc_weighted_pick(BUSINESS_STRUCTURE_WEIGHTS, rng)
@@ -153,12 +173,11 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     flags = dict(draws)
     if as_float(feats.get("DEPOSIT_BALANCE")) is not None:  # any FTA deposit account
         flags["HAS_BUSINESS_CHECKING"] = 1
-    if _biz_truthy(feats.get("HAS_LOAN")):
-        flags["HAS_BUSINESS_LOAN"] = 1
-    if _biz_truthy(feats.get("HAS_LINE")):
-        flags["HAS_LINE_OF_CREDIT"] = 1
-    if _biz_truthy(feats.get("HAS_CARD")):
-        flags["HAS_BUSINESS_CREDIT_CARD"] = 1
+    # A feed value (0 or 1) is authoritative; only a missing feed (None) falls back to the draw.
+    for feat, flag in (("HAS_LOAN", "HAS_BUSINESS_LOAN"), ("HAS_LINE", "HAS_LINE_OF_CREDIT"),
+                       ("HAS_CARD", "HAS_BUSINESS_CREDIT_CARD")):
+        if as_float(feats.get(feat)) is not None:
+            flags[flag] = int(_biz_truthy(feats.get(feat)))
 
     # --- tenure ---------------------------------------------------------------------------
     size_factor = clamp((rev_eff / 1_288_538.0) ** 0.1, 0.6, 1.8)
