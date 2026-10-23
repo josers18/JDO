@@ -38,6 +38,8 @@ export interface QueueSignalItem {
   tier?: QueueDueTier;
   /** ISO date (YYYY-MM-DD) the item is due / actionable. */
   dueDate?: string;
+  /** Blended-score drivers (R7 Who-to-Call), strongest first. */
+  drivers?: { label: string; points: number; tone: 'risk' | 'opportunity' }[];
 }
 
 export interface QueueOppInput {

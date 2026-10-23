@@ -167,6 +167,9 @@ export async function fetchWhoToCall(ownerId: string | null | undefined): Promis
   };
 }
 
+/** Short tag labels for the card's driver tags. */
+const DRIVER_TAG: Record<WhoToCallDriver, string> = { csat: 'CSAT', gong: 'Gong', stress: 'Stress', offer: 'Offer' };
+
 const DRIVER_LABEL: Record<WhoToCallDriver, string> = {
   csat: 'CSAT', gong: 'Gong', stress: 'Claritas stress', offer: 'Offer model',
 };
@@ -216,6 +219,7 @@ export function whoToCallItems(
       severity,
       source: `Blended · ${r.drivers.map(d => DRIVER_LABEL[d.driver]).join(' + ')}${res.scope === 'org' ? ' · org-wide' : ''}`,
       relationshipValue: 0,
+      drivers: r.drivers.map(d => ({ label: DRIVER_TAG[d.driver], points: d.points, tone: d.driver === 'offer' ? 'opportunity' as const : 'risk' as const })),
       tier: severity === 'high' ? 'today' : severity === 'medium' ? 'week' : 'watch',
     };
   });

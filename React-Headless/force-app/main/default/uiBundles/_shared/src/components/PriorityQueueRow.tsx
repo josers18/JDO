@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { ScoreRing, type RingTone } from './ScoreRing';
 import { Icon } from './iconMap';
+import { DriverTags, type QueueDriver } from './DriverTags';
 
 export type QueueTier = 'today' | 'week' | 'watch';
 
@@ -12,6 +13,8 @@ export interface PriorityQueueRowItem {
   /** 0..1 AI priority score. */
   score: number;
   tier?: QueueTier;
+  /** Blended-score drivers, shown as tags under the reason. */
+  drivers?: QueueDriver[];
 }
 
 const TIER_TONE: Record<QueueTier, RingTone> = {
@@ -95,6 +98,7 @@ export function PriorityQueueRow({
           <span className="flex-none text-[12px] text-faint">›</span>
         </div>
         <p className="mt-1.5 truncate text-[13px] text-muted" title={item.reason}>{item.reason}</p>
+        <DriverTags drivers={item.drivers} className="mt-1.5" />
         <span className="mt-1.5 inline-block font-mono text-[10px] uppercase tracking-[0.1em] text-faint">{item.source}</span>
       </div>
       {/* Per-row action rail — inline at the row's right edge. The content box

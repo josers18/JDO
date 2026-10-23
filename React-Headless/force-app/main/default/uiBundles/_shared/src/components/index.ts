@@ -39,6 +39,7 @@ export {
   type CommandRailPinned,
 } from './CommandRail';
 export { RightNowCard, type RightNowCardItem } from './RightNowCard';
+export { DriverTags, type QueueDriver } from './DriverTags';
 export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
 export {
   PriorityQueueCard,
