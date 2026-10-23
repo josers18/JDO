@@ -67,6 +67,7 @@ import {
   propertyHazards,
   PERSISTENT_MONTHS,
   needsHardshipCheckIn,
+  HARDSHIP_CHECK_IN,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1415,7 +1416,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
             <li key={r.accountId}>
               <button
                 type="button"
-                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                // Check-in rows go straight to a prefilled hardship Task; the rest open the quick view.
+                onClick={() => needsHardshipCheckIn(r)
+                  ? open('task', r.clientName ?? 'Client', r.accountId, HARDSHIP_CHECK_IN)
+                  : open('quickview', r.clientName ?? 'Client', r.accountId)}
+                title={needsHardshipCheckIn(r) ? 'Create a hardship check-in task' : undefined}
                 className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
               >
                 <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>

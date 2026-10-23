@@ -131,6 +131,9 @@ export async function fetchFinancialStress(ownerId: string | null | undefined): 
 /** Months High at which an overdraft-corroborated client still earns a check-in. */
 const CORROBORATED_MONTHS = 3;
 
+/** The hardship check-in — queue action and the Task subject the card prefills. */
+export const HARDSHIP_CHECK_IN = 'Hardship check-in — relief options, fee waiver';
+
 /** Persistent stress, or 3+ months High corroborated by overdraft fees — earns a hardship check-in. */
 export const needsHardshipCheckIn = (r: StressedClientRow) =>
   r.monthsHigh >= PERSISTENT_MONTHS || (r.overdraftFees > 0 && r.monthsHigh >= CORROBORATED_MONTHS);
@@ -153,7 +156,7 @@ export function financialStressQueueItems(
       clientName: nameById[r.accountId] || r.accountId,
       segment: opts.segment,
       reason: `High financial stress ${r.monthsHigh} of 6 months${r.overdraftFees ? ` · ${r.overdraftFees} overdraft fee${r.overdraftFees > 1 ? 's' : ''} in 30d` : ''}`,
-      action: 'Hardship check-in — relief options, fee waiver',
+      action: HARDSHIP_CHECK_IN,
       score: Math.min(0.85, 0.4 + r.monthsHigh * 0.06 + (r.overdraftFees ? 0.1 : 0)),
       severity: r.overdraftFees || r.monthsHigh >= 5 ? 'medium' : 'low',
       source: src,
