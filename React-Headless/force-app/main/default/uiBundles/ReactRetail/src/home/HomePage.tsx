@@ -1416,17 +1416,24 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       {stress.rows.length > 0 && (
         <ul className="mt-3 divide-y divide-line border-t border-line">
           {stress.rows.map(r => (
-            <li key={r.accountId}>
+            <li key={r.accountId} className="flex items-center gap-3">
+              {/* The name always opens the quick view; the rest of the row opens the
+                  prefilled hardship Task on Check-in rows (quick view otherwise). */}
               <button
                 type="button"
-                // Check-in rows go straight to a prefilled hardship Task; the rest open the quick view.
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
+              >
+                {r.clientName}
+              </button>
+              <button
+                type="button"
                 onClick={() => needsHardshipCheckIn(r)
                   ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: HARDSHIP_CHECK_IN, dueDate: hardshipCheckInDue(), comments: hardshipCheckInReason(r), priority: hardshipCheckInPriority(r) })
                   : open('quickview', r.clientName ?? 'Client', r.accountId)}
                 title={needsHardshipCheckIn(r) ? 'Create a hardship check-in task' : undefined}
-                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+                className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
               >
-                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
                 {needsHardshipCheckIn(r) && (
                   <span className="flex-none rounded-full bg-warn-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-warn">
                     Check-in
