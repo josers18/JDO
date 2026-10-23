@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 import prodrec.sp_main as sp
@@ -93,16 +95,10 @@ def test_inputs_mode_replaces_both_subsets_in_transaction(business_anchors, pers
     out = main(sess, "INPUTS")
     assert "SUCCEEDED" in out and TASK_NAME in out
     for subset in (BIZ_SUBSET, PER_SUBSET):
-        seq = [
-            q for q in sess.log
-            if q in ("BEGIN", "COMMIT") or (subset in q and q.startswith(("DELETE", "INSERT")))
-        ]
-        # filter to this side's statements plus the transaction markers around them
         i = next(i for i, q in enumerate(sess.log) if q.startswith("DELETE FROM") and subset in q)
         assert sess.log[i - 1] == "BEGIN"
         assert sess.log[i + 1].startswith("INSERT INTO") and subset in sess.log[i + 1]
         assert sess.log[i + 2] == "COMMIT"
-        assert seq
     cols = {t: list(df.columns) for t, df in sess.frames}
     assert cols[BIZ_SUBSET + "_STAGING"] == list(BUSINESS_SUBSET_COLUMNS)
     assert cols[PER_SUBSET + "_STAGING"] == list(PERSONAL_SUBSET_COLUMNS)
@@ -131,7 +127,7 @@ def test_training_gate_blocks_write(monkeypatch, business_anchors, person_anchor
     monkeypatch.setattr(sp, "_sp_BIZ_TRAINING_SIZE", 50)
     monkeypatch.setattr(sp, "_sp_PER_TRAINING_SIZE", 50)
     sess = FakeSession(_features(business_anchors, person_anchors))
-    with pytest.raises(RuntimeError, match="label mix gate"):
+    with pytest.raises(RuntimeError, match=r"label mix gate: business: max share exceeded.*classes: only 1"):
         main(sess, "TRAINING")
     assert not any(q.startswith("DELETE") or q == "BEGIN" for q in sess.log)
     assert sess.frames == []
@@ -166,8 +162,8 @@ def test_assert_inputs_duplicates_and_bad_prefix_raise():
 
 
 def test_assert_inputs_more_rows_than_audience_raises():
-    sess = FakeSession(canned={"SELECT COUNT(*) FROM aud": [[0]], f"SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.{BIZ_SUBSET}": [[5]]})
-    with pytest.raises(RuntimeError, match="^coverage gap:"):
+    sess = FakeSession(canned={"WHERE ACCOUNTID NOT LIKE": [[0]], f"SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.{BIZ_SUBSET}": [[5]]})
+    with pytest.raises(RuntimeError, match=r"^coverage gap: business subset has 5 rows, audience has 0"):
         assert_inputs(sess)
 
 
@@ -185,3 +181,46 @@ def test_idempotent_rerun(business_anchors, person_anchors):
         frames.append({t: df for t, df in sess.frames})
     for t in frames[0]:
         assert frames[0][t].equals(frames[1][t])
+
+
+def test_empty_audience_raises_before_write(business_anchors):
+    sess = FakeSession({"'BUSINESS'": [], "'PERSON'": []})
+    with pytest.raises(RuntimeError, match="empty audience"):
+        main(sess, "INPUTS")
+    assert not any(q.startswith("DELETE") or q == "BEGIN" for q in sess.log)
+    assert sess.frames == []
+    assert sess.params[-1][3] == "FAILED" and "empty audience" in sess.params[-1][6]
+
+
+def test_factory_failure_is_zero_tolerance(monkeypatch, business_anchors, person_anchors):
+    real = sp.business_profile
+    bad = business_anchors[2]["ACCOUNT_ID"]
+
+    def flaky(anchor, feats, run_ts, key=None):
+        if anchor["ACCOUNT_ID"] == bad:
+            raise ValueError("kaput")
+        return real(anchor, feats, run_ts, key)
+
+    monkeypatch.setattr(sp, "business_profile", flaky)
+    sess = FakeSession(_features(business_anchors, person_anchors))
+    with pytest.raises(RuntimeError, match=f"failed on 1 accounts.*{bad}.*kaput"):
+        main(sess, "INPUTS")
+    assert not any(q.startswith("DELETE") or q == "BEGIN" for q in sess.log)
+    assert sess.frames == []
+    assert sess.params[-1][3] == "FAILED" and "kaput" in sess.params[-1][6]
+
+
+def _has_alias(sql, key):
+    return re.search(rf"\bAS {key}\b", sql) or re.search(rf"\b\w+\.{key}\b", sql)
+
+
+def test_factory_feature_keys_are_selected():
+    biz = ["DEPOSIT_BALANCE", "PRODUCT_COUNT", "FIRST_OPEN_DATE", "HAS_LOAN", "HAS_LINE", "HAS_CARD",
+           "MONTHLY_CREDITS", "MONTHLY_NET", "MONTHLY_NET_SD", "FEED_MONTHS", "FOUNDED_YEAR"]
+    per = ["DEPOSIT_BALANCE", "PRODUCT_COUNT", "FIRST_OPEN_DATE", "HAS_LOAN", "HAS_CARD", "HAS_INVESTMENT",
+           "DIRECT_DEPOSIT", "MONTHLY_CREDITS", "IS_OWNER", "MORTGAGE_BALANCE", "INVESTMENT_PROPENSITY",
+           "LIFE_STAGE"]
+    for k in biz:
+        assert _has_alias(BUSINESS_FEATURES_SQL, k), k
+    for k in per:
+        assert _has_alias(PERSONAL_FEATURES_SQL, k), k

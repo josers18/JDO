@@ -191,20 +191,15 @@ def assert_inputs(session) -> None:
         raise RuntimeError(f"coverage gap: {overlap} accounts appear in both subsets")
 
 
-def _sp_build_inputs(rows, profile_fn, input_fn, run_ts, side):
+def _sp_build_inputs(rows, profile_fn, input_fn, run_ts):
+    """Zero tolerance: returns (input_rows, errors); the caller raises if errors is non-empty."""
     out, errors = [], []
     for r in rows:
         try:
             out.append(input_fn(profile_fn(r, r, run_ts)))
-        except Exception as exc:  # noqa: BLE001 - tolerance counted below
+        except Exception as exc:  # noqa: BLE001 - collected and raised by main
             errors.append((r.get("ACCOUNT_ID"), str(exc)[:200]))
-    tolerated = max(10, len(rows) // 100)
-    if len(errors) > tolerated:
-        raise RuntimeError(
-            f"{side} row factory failed on {len(errors)}/{len(rows)} accounts "
-            f"(tolerance {tolerated}); first: {errors[0]}"
-        )
-    return out
+    return out, errors
 
 
 def main(session, mode: str = "INPUTS") -> str:
@@ -221,10 +216,18 @@ def main(session, mode: str = "INPUTS") -> str:
         biz = dedupe_anchors([_sp_to_dict(r) for r in session.sql(BUSINESS_FEATURES_SQL).collect()])
         per = dedupe_anchors([_sp_to_dict(r) for r in session.sql(PERSONAL_FEATURES_SQL).collect()])
         accounts_processed = len(biz) + len(per)
+        if not biz or not per:
+            empty = "business" if not biz else "personal"
+            raise RuntimeError(f"empty audience: {empty} feature query returned no accounts")
 
         if mode in ("INPUTS", "ALL"):
-            biz_in = _sp_build_inputs(biz, business_profile, business_input_row, run_ts, "business")
-            per_in = _sp_build_inputs(per, personal_profile, personal_input_row, run_ts, "personal")
+            biz_in, biz_err = _sp_build_inputs(biz, business_profile, business_input_row, run_ts)
+            per_in, per_err = _sp_build_inputs(per, personal_profile, personal_input_row, run_ts)
+            errors = [("business",) + e for e in biz_err] + [("personal",) + e for e in per_err]
+            if errors:
+                raise RuntimeError(
+                    f"input row factory failed on {len(errors)} accounts; first 3: {errors[:3]}"
+                )
             rows_inserted += replace_table(session, _sp_BIZ_SUBSET, BUSINESS_SUBSET_COLUMNS, biz_in)
             rows_inserted += replace_table(session, _sp_PER_SUBSET, PERSONAL_SUBSET_COLUMNS, per_in)
             assert_inputs(session)
