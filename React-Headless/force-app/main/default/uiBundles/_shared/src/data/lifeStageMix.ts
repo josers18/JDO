@@ -13,9 +13,9 @@
  * CoreLogic (`BT_Corelogic_Property__dlm`, latest quarter) — renters first (a
  * first-home purchase), then free-and-clear owners (move-up), then mortgaged
  * owners (move-up / rate review); propensity breaks ties. Sarah Smith 2,536 →
- * 903 renters / 475 free-and-clear / 1,158 mortgaged. Renters and owners are
- * fetched as separate buckets so an owner always makes the three when the book
- * has one, over-fetched so exclusions still leave three.
+ * 903 renters / 475 free-and-clear / 1,158 mortgaged. Each tenure is fetched as
+ * its own bucket so a mortgaged owner (or failing that, any owner) always makes
+ * the three when the book has one, over-fetched so exclusions still leave three.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
@@ -37,7 +37,7 @@ const mixSql = (accountFilter: string) => `
   ORDER BY n DESC
 `;
 
-/** Leads fetched per bucket (renters / owners): the queue shows three, the rest absorb
+/** Leads fetched per tenure bucket: the queue shows three, the rest absorb
  *  exclusions (up to eight R1 home-equity clients — all owners), so three still survive. */
 const LEAD_FETCH = 11;
 
@@ -45,7 +45,7 @@ const LEAD_FETCH = 11;
 const TENURE = `CASE WHEN p.is_owner__c = true AND p.outstanding_mortgage_balance__c > 0 THEN 2
                      WHEN p.is_owner__c = true THEN 1 ELSE 0 END`;
 
-// l = every lead with its tenure; r ranks renters and owners as separate buckets.
+// l = every lead with its tenure; r ranks each tenure as its own bucket.
 const mortgageLeadSql = (accountFilter: string) => `
   WITH l AS (
     SELECT c.account_id__c AS account_id, c.mortgage_propensity_score__c AS score,
@@ -58,8 +58,7 @@ const mortgageLeadSql = (accountFilter: string) => `
       AND c.account_id__c ${accountFilter}
   ),
   r AS (
-    SELECT l.*, ROW_NUMBER() OVER (PARTITION BY CASE WHEN tenure = 0 THEN 0 ELSE 1 END
-                                   ORDER BY tenure, score DESC) AS rn
+    SELECT l.*, ROW_NUMBER() OVER (PARTITION BY tenure ORDER BY score DESC) AS rn
     FROM l
   )
   SELECT account_id, score, tenure, balance, rate FROM r
@@ -98,7 +97,7 @@ export interface LifeStageMixResult {
   clients: number;
   mortgageReady: number;
   investReady: number;
-  /** Top Young Families mortgage 70+ clients, renters first (up to eleven per bucket; the queue shows three). */
+  /** Top Young Families mortgage 70+ clients, renters first (up to eleven per tenure; the queue shows three). */
   mortgageLeads: MortgageLead[];
   scope: BookScope;
 }
@@ -115,7 +114,7 @@ const leanOf = (m: number, i: number, w: number): PropensityLean =>
 /** R4 — the book's clients by life stage, with each stage's propensities. */
 export async function fetchLifeStageMix(ownerId: string | null | undefined): Promise<LifeStageMixResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(mixSql, ownerId, 20);
-  const leads = await queryDataCloud<Record<string, unknown>>(mortgageLeadSql(res.accountFilter), LEAD_FETCH * 2)
+  const leads = await queryDataCloud<Record<string, unknown>>(mortgageLeadSql(res.accountFilter), LEAD_FETCH * 3)
     .then(r => r.rows)
     .catch((): Record<string, unknown>[] => []);
   const rows = res.rows.map(r => {
@@ -162,12 +161,13 @@ const MORTGAGE_ANGLE: Record<MortgageLeadTenure, { why: string; action: string; 
 export const mortgageLeadTag = (r: MortgageLead) => MORTGAGE_ANGLE[r.tenure].tag;
 
 /** The three leads the queue shows — and the card lists — after exclusions. Renters
- *  rank first, but the top owner takes the third slot when no owner made the three. */
+ *  rank first, but the top mortgaged owner (a rate review; failing that, the top
+ *  free-and-clear owner) takes the third slot when none of its tenure made the three. */
 export function selectMortgageLeads(res: LifeStageMixResult, exclude?: ReadonlySet<string>): MortgageLead[] {
   const kept = res.mortgageLeads.filter(r => !exclude?.has(r.accountId));
   const top = kept.slice(0, 3);
-  const owner = kept.find(r => r.tenure !== 'renter');
-  return owner && !top.includes(owner) ? [...top.slice(0, 2), owner] : top;
+  const pick = kept.find(r => r.tenure === 'mortgaged') ?? kept.find(r => r.tenure === 'owner');
+  return pick && !top.some(r => r.tenure === pick.tenure) ? [...top.slice(0, 2), pick] : top;
 }
 
 const money = (n: number) =>
