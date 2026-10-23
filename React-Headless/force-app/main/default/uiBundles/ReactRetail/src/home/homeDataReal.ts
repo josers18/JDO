@@ -329,8 +329,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const equitySignals: CallItem[] = homeEquityQueueItems(equity, nameById, { segment: 'Retail' });
   // R3 — persistent financial stress: a hardship check-in.
   const stressSignals: CallItem[] = financialStressQueueItems(stress, nameById, { segment: 'Retail' });
-  // R4 — Young Families likely to need a mortgage, renters first.
-  const mortgageSignals: CallItem[] = mortgageLeadQueueItems(lifeStages, nameById, { segment: 'Retail' });
+  // R4 — Young Families likely to need a mortgage, renters first; a client with an
+  // R1 refi item already has the mortgage conversation queued, so skip them here.
+  const refiClients = new Set(equity.rows.filter(r => r.angle === 'refi').map(r => r.accountId));
+  const mortgageSignals: CallItem[] = mortgageLeadQueueItems(lifeStages, nameById, { segment: 'Retail', exclude: refiClients });
   const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...stressSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.

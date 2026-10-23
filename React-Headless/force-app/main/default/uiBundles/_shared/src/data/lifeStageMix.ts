@@ -13,7 +13,8 @@
  * CoreLogic (`BT_Corelogic_Property__dlm`, latest quarter) — renters first (a
  * first-home purchase), then free-and-clear owners (move-up), then mortgaged
  * owners (move-up / rate review); propensity breaks ties. Sarah Smith 2,536 →
- * 903 renters / 475 free-and-clear / 1,158 mortgaged.
+ * 903 renters / 475 free-and-clear / 1,158 mortgaged. Over-fetched so the queue
+ * can skip clients another signal already covers and still fill three.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
@@ -35,6 +36,9 @@ const mixSql = (accountFilter: string) => `
   ORDER BY n DESC
 `;
 
+/** Leads fetched: the queue shows three, the rest absorb exclusions (R1 refi clients). */
+const LEAD_FETCH = 8;
+
 // Renter → 0, free-and-clear owner → 1, mortgaged owner → 2 (ranked in that order).
 const TENURE = `CASE WHEN p.is_owner__c = true AND p.outstanding_mortgage_balance__c > 0 THEN 2
                      WHEN p.is_owner__c = true THEN 1 ELSE 0 END`;
@@ -49,7 +53,7 @@ const mortgageLeadSql = (accountFilter: string) => `
     AND c.life_stage__c = 'Young Families' AND c.mortgage_propensity_score__c >= ${PROPENSITY_READY}
     AND c.account_id__c ${accountFilter}
   ORDER BY ${TENURE}, c.mortgage_propensity_score__c DESC
-  LIMIT 3
+  LIMIT ${LEAD_FETCH}
 `;
 
 export type MortgageLeadTenure = 'renter' | 'owner' | 'mortgaged';
@@ -82,7 +86,7 @@ export interface LifeStageMixResult {
   clients: number;
   mortgageReady: number;
   investReady: number;
-  /** Top Young Families mortgage 70+ clients, renters first. */
+  /** Top Young Families mortgage 70+ clients, renters first (up to eight; the queue shows three). */
   mortgageLeads: MortgageLead[];
   scope: BookScope;
 }
@@ -99,7 +103,7 @@ const leanOf = (m: number, i: number, w: number): PropensityLean =>
 /** R4 — the book's clients by life stage, with each stage's propensities. */
 export async function fetchLifeStageMix(ownerId: string | null | undefined): Promise<LifeStageMixResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(mixSql, ownerId, 20);
-  const leads = await queryDataCloud<Record<string, unknown>>(mortgageLeadSql(res.accountFilter), 3)
+  const leads = await queryDataCloud<Record<string, unknown>>(mortgageLeadSql(res.accountFilter), LEAD_FETCH)
     .then(r => r.rows)
     .catch((): Record<string, unknown>[] => []);
   const rows = res.rows.map(r => {
@@ -145,16 +149,17 @@ const MORTGAGE_ANGLE: Record<MortgageLeadTenure, { why: string; action: string }
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-/** R4 Young Families mortgage 70+ → queue: a mortgage lead. */
+/** R4 Young Families mortgage 70+ → queue: a mortgage lead. `exclude` drops
+ *  clients another queue item already covers (Retail passes its R1 refi clients). */
 export function mortgageLeadQueueItems(
   res: LifeStageMixResult,
   nameById: Record<string, string>,
-  opts: { segment: string; now?: Date },
+  opts: { segment: string; now?: Date; exclude?: ReadonlySet<string> },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
   const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10);
   const src = `Claritas propensity${res.scope === 'org' ? ' · org-wide' : ''}`;
-  return res.mortgageLeads.map((r, i) => {
+  return res.mortgageLeads.filter(r => !opts.exclude?.has(r.accountId)).slice(0, 3).map((r, i) => {
     const angle = MORTGAGE_ANGLE[r.tenure];
     const loan = r.tenure === 'mortgaged' && r.balance
       ? ` (${money(r.balance)}${r.ratePct != null ? ` at ${r.ratePct.toFixed(2)}%` : ''})`
