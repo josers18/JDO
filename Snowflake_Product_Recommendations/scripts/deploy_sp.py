@@ -114,6 +114,32 @@ def _bare_ampersand(text: str) -> bool:
     return re.search(r"(?<! )&|&(?! )", text) is not None
 
 
+def _top_level_names(src: str) -> set[str]:
+    names: set[str] = set()
+    for node in ast.parse(src).body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for t in targets:
+                for n in ast.walk(t):
+                    if isinstance(n, ast.Name):
+                        names.add(n.id)
+    return names
+
+
+def check_name_collisions(sources: dict[str, str]) -> None:
+    """Raise ValueError if a top-level name is defined in more than one source."""
+    seen: dict[str, list[str]] = {}
+    for label, src in sources.items():
+        for name in _top_level_names(src):
+            seen.setdefault(name, []).append(label)
+    dups = {n: sorted(ls) for n, ls in seen.items() if len(ls) > 1}
+    if dups:
+        detail = "; ".join(f"{n} in {', '.join(ls)}" for n, ls in sorted(dups.items()))
+        raise ValueError(f"top-level name collision across concatenated modules: {detail}")
+
+
 def build_sql() -> str:
     helpers = (
         "import hashlib\n\n"
@@ -122,6 +148,11 @@ def build_sql() -> str:
         + "\n# Inlined from cumulus_common.coverage\n"
         + _extract_helper(COVERAGE_PY.read_text(), "assert_coverage")
     )
+    check_name_collisions({
+        "seed_for": _extract_helper(SEED_PY.read_text(), "seed_for"),
+        "assert_coverage": _extract_helper(COVERAGE_PY.read_text(), "assert_coverage"),
+        **{m: (PKG_DIR / f"{m}.py").read_text() for m in MODULE_ORDER},
+    })
     parts = [
         f"# ---- prodrec.{name} ----\n" + _strip_module((PKG_DIR / f"{name}.py").read_text())
         for name in MODULE_ORDER
@@ -142,7 +173,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--no-deploy", action="store_true",
-        help="Generate sp_create_procedure.sql but skip running snow sql -f.",
+        help="Only generate procedures/sp_create_procedure.sql; do not run snow sql -f (no Snowflake access).",
     )
     args = parser.parse_args()
 

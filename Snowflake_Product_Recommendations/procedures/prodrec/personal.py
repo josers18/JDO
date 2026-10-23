@@ -27,7 +27,7 @@ from prodrec.vocab import (
 PERSONAL_SALT = "product_rec_personal"
 
 # Sanity windows (multiples of annual income, or of income/12 for monthly figures).
-BALANCE_WINDOW = (0.0, 5.0)        # DEPOSIT_BALANCE vs income
+PER_BALANCE_WINDOW = (0.0, 5.0)        # DEPOSIT_BALANCE vs income
 DEPOSIT_WINDOW = (0.05, 1.5)       # DIRECT_DEPOSIT / MONTHLY_CREDITS vs income/12
 GEN_DEPOSIT_FRACTION = (0.25, 0.6)  # generated deposit = income/12 * U(...)
 GEN_BALANCE_FLOOR = 0.01           # generated balance >= 1% of income
@@ -231,11 +231,11 @@ def personal_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
 
     # --- money: real feed inside the income-relative window, else generated ---------------
     dbal = as_float(feats.get("DEPOSIT_BALANCE"))
-    if _per_in_window(dbal, inc_eff, BALANCE_WINDOW):
+    if _per_in_window(dbal, inc_eff, PER_BALANCE_WINDOW):
         bal_base, balance = dbal, round(dbal)
     else:
-        bal_base = clamp(bal_ratio * inc_eff, GEN_BALANCE_FLOOR * inc_eff, BALANCE_WINDOW[1] * inc_eff)
-        balance = _per_fin(bal_base, GEN_BALANCE_FLOOR * inc_eff, BALANCE_WINDOW[1] * inc_eff, 0,
+        bal_base = clamp(bal_ratio * inc_eff, GEN_BALANCE_FLOOR * inc_eff, PER_BALANCE_WINDOW[1] * inc_eff)
+        balance = _per_fin(bal_base, GEN_BALANCE_FLOOR * inc_eff, PER_BALANCE_WINDOW[1] * inc_eff, 0,
                            jf["TOTAL_ACCOUNT_BALANCE"])
     monthly_inc = inc_eff / 12.0
     deposit = None

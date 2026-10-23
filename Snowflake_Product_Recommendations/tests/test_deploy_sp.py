@@ -62,3 +62,16 @@ def test_task_sql_suspended_and_wrapped():
     assert "'USING CRON 0 4 2 * * America/New_York'" in code
     assert "SP_RETRY_WRAPPER(\n        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PRODUCT_RECOMMENDATION_INPUTS(''INPUTS'')',\n        2" in code
     assert "Task 10" in sql
+
+
+def test_collision_checker_rejects_duplicates():
+    import pytest
+    with pytest.raises(ValueError, match="X"):
+        deploy_sp.check_name_collisions({"a": "X = 1\n", "b": "X = 2\n"})
+    with pytest.raises(ValueError, match="f"):
+        deploy_sp.check_name_collisions({"a": "def f(): pass\n", "b": "f = 1\n"})
+    deploy_sp.check_name_collisions({"a": "X = 1\n", "b": "Y = 2\n"})
+
+
+def test_real_modules_have_no_collisions():
+    deploy_sp.build_sql()  # raises ValueError on any cross-module duplicate

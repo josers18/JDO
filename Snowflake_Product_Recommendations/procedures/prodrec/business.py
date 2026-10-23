@@ -28,7 +28,7 @@ VOL_MED_MAX = 0.40
 VOL_MIN_FEED_MONTHS = 2
 # Sanity windows (multiples of annual revenue, or of revenue/12 for monthly figures).
 DEPOSITS_WINDOW = (0.05, 3.0)      # MONTHLY_CREDITS vs revenue/12
-BALANCE_WINDOW = (0.01, 2.0)       # DEPOSIT_BALANCE vs revenue
+BIZ_BALANCE_WINDOW = (0.01, 2.0)       # DEPOSIT_BALANCE vs revenue
 NET_FLOW_WINDOW = (-1.0, 1.0)      # MONTHLY_NET vs revenue/12
 REVENUE_PER_EMPLOYEE = 150_000.0
 
@@ -133,7 +133,7 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     # Scale-relative bounds when anchored; absolute Appendix A bounds only when nothing anchors the size.
     if anchored:
         dep_b = (DEPOSITS_WINDOW[0] * monthly_rev, DEPOSITS_WINDOW[1] * monthly_rev)
-        bal_b = (BALANCE_WINDOW[0] * rev_eff, BALANCE_WINDOW[1] * rev_eff)
+        bal_b = (BIZ_BALANCE_WINDOW[0] * rev_eff, BIZ_BALANCE_WINDOW[1] * rev_eff)
         net_b = (NET_FLOW_WINDOW[0] * monthly_rev, NET_FLOW_WINDOW[1] * monthly_rev)
     else:
         dep_b, bal_b, net_b = _biz_DEP_RANGE, _biz_BAL_RANGE, _biz_NET_RANGE
@@ -144,7 +144,7 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     else:
         deposits = _biz_fin(dep_gen, *dep_b, 0, jf["MONTHLY_AVG_DEPOSITS"])
     dbal = as_float(feats.get("DEPOSIT_BALANCE"))
-    if _biz_in_window(dbal, rev_eff, BALANCE_WINDOW):
+    if _biz_in_window(dbal, rev_eff, BIZ_BALANCE_WINDOW):
         balance = round(dbal)
     else:
         balance = _biz_fin(bal_gen, *bal_b, 0, jf["OPERATING_ACCOUNT_BALANCE"])
