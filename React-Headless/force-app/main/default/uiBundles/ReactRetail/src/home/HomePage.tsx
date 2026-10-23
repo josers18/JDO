@@ -75,6 +75,11 @@ import {
   LEAN_LABEL,
   PROPENSITY_READY,
   needsRetentionCall,
+  browsingReason,
+  browsingAction,
+  isBrowsingNow,
+  needsBrowsingFollowUp,
+  browsingFollowUpDue,
   DEPOSIT_RETENTION,
   retentionCallDue,
   retentionCallReason,
@@ -1404,6 +1409,60 @@ function HomeContent({ mode }: { mode: HomeMode }) {
     </div>
   );
 
+  // R6 — recognized clients on product pages, the book's latest week of activity (Growth tab).
+  const web = data.webEngagement;
+  const webEngagementCard = web && web.rows.length > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pulse" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Browsing product pages</b>
+        <span className="font-mono text-[10.5px] text-faint">
+          Website · recognized visitors · 7 days to {new Date(web.windowEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{web.scope === 'org' ? ' · org-wide' : ''}
+        </span>
+      </div>
+      <p className="mt-2 text-[13px] leading-snug text-muted">
+        {web.clients.toLocaleString('en-US')} client{web.clients === 1 ? '' : 's'} viewed product pages {web.views.toLocaleString('en-US')} times. Repeat views of one product
+        are a buying signal — follow up while it's fresh.
+      </p>
+      <ul className="mt-3 divide-y divide-line border-t border-line">
+        {web.rows.map(r => (
+          <li key={r.accountId} className="flex items-center gap-3">
+            {/* The name opens the quick view; the rest of the row opens the prefilled
+                follow-up Task on Follow-up rows (quick view otherwise). */}
+            <button
+              type="button"
+              onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+              className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
+            >
+              {r.clientName}
+            </button>
+            <button
+              type="button"
+              onClick={() => needsBrowsingFollowUp(r)
+                ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: browsingAction(r), dueDate: browsingFollowUpDue(), comments: browsingReason(r), priority: isBrowsingNow(r) ? 'High' : 'Normal' })
+                : open('quickview', r.clientName ?? 'Client', r.accountId)}
+              title={needsBrowsingFollowUp(r) ? 'Create a product follow-up task' : undefined}
+              className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
+            >
+              {needsBrowsingFollowUp(r) && (
+                <span className="flex-none rounded-full bg-accent-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-accent">
+                  {isBrowsingNow(r) ? 'Now' : 'Follow up'}
+                </span>
+              )}
+              <span className="min-w-0 truncate font-mono text-[11px] text-muted">
+                {r.products.slice(0, 2).map(p => `${p.product} ×${p.views}`).join(' · ')}
+                {r.products.length > 2 ? ` · +${r.products.length - 2}` : ''}
+              </span>
+              <span className="w-[70px] flex-none text-right font-mono text-[11px] text-muted">
+                {new Date(r.lastSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   // R5 — checking + savings at other banks, and who's moving money there this month (Health tab).
   const attrition = data.depositAttrition;
   const depositAttritionCard = attrition && attrition.clients > 0 && (
@@ -1979,6 +2038,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       </section>
       <section id="whitespace" className="mt-8 scroll-mt-[82px]">{whitespaceSection}</section>
       {lifeStageCard && <section id="lifeStages" className="mt-8 scroll-mt-[82px]">{lifeStageCard}</section>}
+      {webEngagementCard && <section id="webEngagement" className="mt-4 scroll-mt-[82px]">{webEngagementCard}</section>}
       <section id="pipeline" className="mt-8 scroll-mt-[82px]">
         <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
           {pipelineControls}
@@ -2116,6 +2176,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 
               {/* ---------- LIFE-STAGE MIX ---------- */}
               {lifeStageCard && <section id="lifeStages" className="mt-8 scroll-mt-[82px]">{lifeStageCard}</section>}
+      {webEngagementCard && <section id="webEngagement" className="mt-4 scroll-mt-[82px]">{webEngagementCard}</section>}
 
               {/* ---------- PIPELINE ---------- */}
               <section id="pipeline" className="mt-8 scroll-mt-[82px]">

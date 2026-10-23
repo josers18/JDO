@@ -31,12 +31,16 @@
  *   · R5 money leaving to other banks (BT_Plaid_Held_Away__dlm): held-away Bank /
  *     Credit Union checking + savings with a positive monthly net flow → Health-tab
  *     card, deposit-retention calls ($5K+/mo) in the queue + alerts
+ *   · R6 digital-engagement surges (ssot__WebsiteEngagement__dlm RTOM site +
+ *     CumulusWeb_Engagements__dlm, recognized via UnifiedLinkssotAccountAcc__dlm):
+ *     product-page views, book's latest week → Growth card; 5+ views in the last
+ *     14 days → queue; a visit in the last 2 days → Right Now
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -241,7 +245,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition] = await Promise.all([
+  const [core, csat, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition, web] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CsatRow>(lowCsatSql, u?.userId, 8)),
     userP,
@@ -281,6 +285,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // R5 deposits leaving to other banks (Plaid held-away) — additive.
     userP.then(u => fetchDepositAttrition(u?.userId))
       .catch((): DepositAttritionResult => ({ rows: [], clients: 0, balance: 0, leaving: 0, outflow: 0, retention: 0, scope: 'org' })),
+    // R6 recognized clients browsing product pages — additive.
+    userP.then(u => fetchWebEngagement(u?.userId))
+      .catch((): WebEngagementResult => ({ rows: [], clients: 0, views: 0, windowEnd: '', scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -289,7 +296,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve CSAT + inflow account IDs → names in one follow-up query
-  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
   if (csatIds.length) {
@@ -339,9 +346,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // R1 item (refi or HELOC) already has a home-lending conversation queued, so skip them.
   const equityClients = new Set(equity.rows.map(r => r.accountId));
   const mortgageSignals: CallItem[] = mortgageLeadQueueItems(lifeStages, nameById, { segment: 'Retail', exclude: equityClients });
+  // R6 — recognized clients surging on product pages: a timely product follow-up.
+  const webSignals: CallItem[] = webEngagementQueueItems(web, nameById, { segment: 'Retail' });
   // R5 — $5K+/mo moving to another bank: a deposit retention call.
   const attritionSignals: CallItem[] = depositAttritionQueueItems(attrition, nameById, { segment: 'Retail' });
-  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...stressSignals, ...attritionSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
+  const transactionSignals: CallItem[] = [...amlSignals, ...webSignals, ...gongSignals, ...stressSignals, ...attritionSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -576,9 +585,19 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     });
   }
 
-  // ── Right Now — the single first move, from the top-priority call item.
+  // ── Right Now — the single first move: a client on a product page in the last
+  //    two days (R6) beats the top-priority call item.
   const top = callList[0];
-  const rightNow: RightNowItem | undefined = top
+  const browsing = web.rows.find(r => isBrowsingNow(r));
+  const rightNow: RightNowItem | undefined = browsing
+    ? {
+        clientId: browsing.accountId,
+        clientName: nameById[browsing.accountId] ?? 'Client',
+        headline: `Reach out to ${nameById[browsing.accountId] ?? 'your client'} — browsing ${browsing.products[0]?.product ?? 'product pages'} on the website now.`,
+        detail: browsingReason(browsing),
+        taskSubject: browsingAction(browsing),
+      }
+    : top
     ? {
         clientId: top.clientId,
         clientName: top.clientName,
@@ -643,6 +662,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       ...lifeStages,
       mortgageLeads: selectMortgageLeads(lifeStages, equityClients)
         .map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
+    },
+    webEngagement: {
+      ...web,
+      rows: web.rows.slice(0, 5).map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
     },
     depositAttrition: {
       ...attrition,
