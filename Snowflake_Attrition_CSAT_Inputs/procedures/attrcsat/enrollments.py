@@ -7,8 +7,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from attrcsat.checks import row_problems
 from attrcsat.common import clamp, month_rng, stable_rng
-from attrcsat.vocab import BOOL_COLUMNS, CATEGORIES, ENROLLMENT_COLUMNS, RANGES
+from attrcsat.vocab import ENROLLMENT_COLUMNS
 
 _EN_DRIFT_P = 0.02
 _EN_LOW_WIRE_P = 0.10  # cohorts below this base rate only drift toward False
@@ -112,24 +113,7 @@ def enrollment_problems(rows: list[dict], profiles: list[dict]) -> list[str]:
         return [f"row/profile length mismatch: {len(rows)} vs {len(profiles)}"]
     for r, p in zip(rows, profiles):
         aid = str(r.get("ACCOUNTID"))
-        if tuple(r) != ENROLLMENT_COLUMNS:
-            out.append(f"{aid}: columns differ from ENROLLMENT_COLUMNS")
-        for c in ENROLLMENT_COLUMNS:
-            if r.get(c) is None:
-                out.append(f"{aid}: {c} is NULL")
-        if not aid.startswith("001am"):
-            out.append(f"{aid}: ACCOUNTID does not start with 001am")
-        for c in BOOL_COLUMNS:
-            if r.get(c) is not None and not isinstance(r[c], bool):
-                out.append(f"{aid}: {c} is not a boolean")
-        for c in ("KYC_STATUS", "AML_STATUS"):
-            if r.get(c) is not None and r[c] not in CATEGORIES[c]:
-                out.append(f"{aid}: {c}={r[c]!r} outside vocabulary")
-        for c, key in (("SAVINGS_RATE", "ENR.SAVINGS_RATE"), ("CROSS_SELL_SCORE", "ENR.CROSS_SELL_SCORE")):
-            v = r.get(c)
-            lo, hi = RANGES[key]
-            if v is not None and not (lo <= v <= hi):
-                out.append(f"{aid}: {c}={v} outside [{lo}, {hi}]")
+        out.extend(row_problems("ENROLLMENTS", r))
         if r.get("MFA_STATUS") is True and not (r.get("ONLINE_ENROLLED") or r.get("MOBILE_ENROLLED")):
             out.append(f"{aid}: MFA_STATUS true but neither online nor mobile enrolled")
         kyc, aml = r.get("KYC_STATUS"), r.get("AML_STATUS")
