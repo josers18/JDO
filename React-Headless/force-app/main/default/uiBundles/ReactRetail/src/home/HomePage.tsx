@@ -1419,6 +1419,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
                 className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
               >
                 <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                {needsHardshipCheckIn(r) && (
+                  <span className="flex-none rounded-full bg-warn-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-warn">
+                    Check-in
+                  </span>
+                )}
                 <span className={`font-mono text-[11px] ${needsHardshipCheckIn(r) ? 'text-warn' : 'text-muted'}`}>
                   High {r.monthsHigh}/6 mo{r.overdraftFees ? ` · ${r.overdraftFees} overdraft` : ''}
                 </span>
