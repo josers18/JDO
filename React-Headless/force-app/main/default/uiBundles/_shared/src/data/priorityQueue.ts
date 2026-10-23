@@ -113,6 +113,13 @@ function isEscalation(title: string, priority?: string): boolean {
   );
 }
 
+/** Drop items for clients the blended Who-to-Call already carries — its row names
+ *  the same driver (Gong, fees, concentration…), so a second queue item repeats it. */
+export function dropCovered<T extends { clientId: string }>(items: T[], covered: readonly { clientId: string }[]): T[] {
+  const ids = new Set(covered.map(c => c.clientId).filter(Boolean));
+  return items.filter(it => !ids.has(it.clientId));
+}
+
 /**
  * Blend the persona's primary risk feed with opportunity- and task-derived items
  * into a single diverse, dated queue. Deduplicates by client+action, caps at

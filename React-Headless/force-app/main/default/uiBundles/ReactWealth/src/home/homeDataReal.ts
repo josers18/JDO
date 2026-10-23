@@ -42,7 +42,7 @@
  * opportunity driver in the blended "who to call" score. Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems, dropCovered } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -339,7 +339,6 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const upgradeSignals: CallItem[] = wealthUpgradeQueueItems(upgrades, nameById, { segment: 'Wealth' });
   // W8 — a single stock ≥ 20% of the client's holdings: diversification review.
   const concentrationSignals: CallItem[] = concentrationQueueItems(concentration, nameById, { segment: 'Wealth' });
-  const transactionSignals: CallItem[] = [...amlSignals, ...planRiskSignals, ...gongSignals, ...txSignals, ...campaignSignals, ...reviewSignals, ...sellerSignals, ...upgradeSignals, ...concentrationSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -354,6 +353,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // W9 — the blended Who-to-Call: held-away balance + outflow, plans at risk,
   // souring Gong calls and single-stock concentration, one score per client.
   const callList: CallItem[] = wealthWhoToCallItems(who, nameById, { segment: 'Private Wealth' });
+  // Plan-risk / Gong / concentration clients already in the blended Who-to-Call don't repeat as their own item.
+  const transactionSignals: CallItem[] = [...amlSignals, ...dropCovered(planRiskSignals, callList), ...dropCovered(gongSignals, callList), ...txSignals, ...campaignSignals, ...reviewSignals, ...sellerSignals, ...upgradeSignals, ...dropCovered(concentrationSignals, callList)];
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
