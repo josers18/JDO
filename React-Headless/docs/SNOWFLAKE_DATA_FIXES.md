@@ -32,8 +32,12 @@ Fixes:
    `source_customer_id` column if the model pipeline needs it.
 2. Produce a **personal output** table (`recommended_product`, score, rank) like the
    business one.
-3. DC side (not Snowflake): both business streams currently map into the INPUT DMO
-   `BUSINESS_PRODUCT_RECOMMENDATION_INPU__dlm`. Map the output stream to its own output DMO.
+3. ✅ DC side, done 2026-10-23: the output stream now maps all 36 fields to its own DMO
+   `BT_Business_Product_Recommendations__dlm` (3,500 rows, 12 `recommended_product` values led by
+   Credit_Cards 853 / Line_of_Credit 827 / Savings 555). The input DMO holds only the input stream
+   (4,240 rows, was 7,740). Still blocked on fix 1: all 3,500 output rows are `B-` keys. The two input
+   tables share the same 741 non-synthetic keys (159 local `001am`, 529 other-org `001`, 53 hashes),
+   so re-keying must split business and person accounts.
 
 ## 2. Attrition, CSAT prediction and enrollments: backfill to the full population
 
