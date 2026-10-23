@@ -26,13 +26,14 @@
  *     ≥ 4 of the last 6 months, corroborated by overdraft fees → Health-tab card,
  *     hardship check-ins in the queue, At-Risk KPI note + alerts
  *   · R4 life-stage mix (same DMO): clients per life stage with mortgage /
- *     investment / wealth propensity → Growth-tab donut
+ *     investment / wealth propensity → Growth-tab donut; Young Families mortgage
+ *     70+ (renters first, via CoreLogic tenure) → Mortgage-lead queue items
  *
  * All field names + DMO columns below were VERIFIED live against the org
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, type LifeStageMixResult } from '@shared';
+import { executeGraphQL, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, type LifeStageMixResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -273,7 +274,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): FinancialStressResult => ({ rows: [], highNow: 0, persistent: 0, withFees: 0, both: 0, lifeStages: [], scope: 'org' })),
     // R4 life-stage mix (Claritas) — additive.
     userP.then(u => fetchLifeStageMix(u?.userId))
-      .catch((): LifeStageMixResult => ({ rows: [], clients: 0, mortgageReady: 0, investReady: 0, scope: 'org' })),
+      .catch((): LifeStageMixResult => ({ rows: [], clients: 0, mortgageReady: 0, investReady: 0, mortgageLeads: [], scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -282,7 +283,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve CSAT + inflow account IDs → names in one follow-up query
-  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...csat.rows.map(r => r.account_id), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
   if (csatIds.length) {
@@ -328,7 +329,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const equitySignals: CallItem[] = homeEquityQueueItems(equity, nameById, { segment: 'Retail' });
   // R3 — persistent financial stress: a hardship check-in.
   const stressSignals: CallItem[] = financialStressQueueItems(stress, nameById, { segment: 'Retail' });
-  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...stressSignals, ...txSignals, ...campaignSignals, ...equitySignals];
+  // R4 — Young Families likely to need a mortgage, renters first.
+  const mortgageSignals: CallItem[] = mortgageLeadQueueItems(lifeStages, nameById, { segment: 'Retail' });
+  const transactionSignals: CallItem[] = [...amlSignals, ...gongSignals, ...stressSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);

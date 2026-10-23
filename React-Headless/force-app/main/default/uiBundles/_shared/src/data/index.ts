@@ -86,4 +86,4 @@ export { fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult,
 export { fetchHoldingsConcentration, concentrationQueueItems, CONCENTRATION_THRESHOLD, type HoldingsConcentrationResult, type ConcentratedClientRow, type StockExposure } from './holdingsConcentration';
 export { fetchMarketFootprint, type MarketFootprintResult, type FootprintZip } from './marketFootprint';
 export { fetchFinancialStress, financialStressQueueItems, needsHardshipCheckIn, HARDSHIP_CHECK_IN, hardshipCheckInDue, hardshipCheckInReason, hardshipCheckInPriority, PERSISTENT_MONTHS, type FinancialStressResult, type StressedClientRow } from './financialStress';
-export { fetchLifeStageMix, LEAN_LABEL, PROPENSITY_READY, type LifeStageMixResult, type LifeStageRow, type PropensityLean } from './lifeStageMix';
+export { fetchLifeStageMix, mortgageLeadQueueItems, LEAN_LABEL, PROPENSITY_READY, type LifeStageMixResult, type LifeStageRow, type PropensityLean, type MortgageLead, type MortgageLeadTenure } from './lifeStageMix';
