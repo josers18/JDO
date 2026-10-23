@@ -138,14 +138,6 @@ def business_profile(anchor: dict, feats: dict, run_ts: datetime, key: str | Non
     else:
         dep_b, bal_b, net_b = _biz_DEP_RANGE, _biz_BAL_RANGE, _biz_NET_RANGE
 
-    # Scale-relative bounds when anchored; absolute Appendix A bounds only when nothing anchors the size.
-    if anchored:
-        dep_b = (DEPOSITS_WINDOW[0] * monthly_rev, DEPOSITS_WINDOW[1] * monthly_rev)
-        bal_b = (BALANCE_WINDOW[0] * rev_eff, BALANCE_WINDOW[1] * rev_eff)
-        net_b = (NET_FLOW_WINDOW[0] * monthly_rev, NET_FLOW_WINDOW[1] * monthly_rev)
-    else:
-        dep_b, bal_b, net_b = _biz_DEP_RANGE, _biz_BAL_RANGE, _biz_NET_RANGE
-
     credits = as_float(feats.get("MONTHLY_CREDITS"))
     if _biz_in_window(credits, monthly_rev, DEPOSITS_WINDOW):
         deposits = round(credits)
