@@ -85,4 +85,4 @@ export { fetchBusinessOwners, fetchOwnerWealthHandoffs, ownerHandoffLeads, OWNER
 export { fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, type WealthUpgradeRow } from './wealthUpgrades';
 export { fetchHoldingsConcentration, concentrationQueueItems, CONCENTRATION_THRESHOLD, type HoldingsConcentrationResult, type ConcentratedClientRow, type StockExposure } from './holdingsConcentration';
 export { fetchMarketFootprint, type MarketFootprintResult, type FootprintZip } from './marketFootprint';
-export { fetchFinancialStress, financialStressQueueItems, PERSISTENT_MONTHS, type FinancialStressResult, type StressedClientRow } from './financialStress';
+export { fetchFinancialStress, financialStressQueueItems, needsHardshipCheckIn, PERSISTENT_MONTHS, type FinancialStressResult, type StressedClientRow } from './financialStress';

@@ -66,6 +66,7 @@ import {
   DataFreshnessMeter,
   propertyHazards,
   PERSISTENT_MONTHS,
+  needsHardshipCheckIn,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -1418,7 +1419,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
                 className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
               >
                 <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
-                <span className={`font-mono text-[11px] ${r.monthsHigh >= PERSISTENT_MONTHS ? 'text-warn' : 'text-muted'}`}>
+                <span className={`font-mono text-[11px] ${needsHardshipCheckIn(r) ? 'text-warn' : 'text-muted'}`}>
                   High {r.monthsHigh}/6 mo{r.overdraftFees ? ` · ${r.overdraftFees} overdraft` : ''}
                 </span>
                 <span className="w-[150px] flex-none truncate text-right font-mono text-[11px] text-muted">{r.lifeStage}</span>
