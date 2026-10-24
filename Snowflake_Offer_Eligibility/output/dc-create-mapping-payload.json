@@ -1,0 +1,66 @@
+{
+  "sourceEntityDeveloperName": "BT_Offer_Eligibility__dll",
+  "targetEntityDeveloperName": "BT_Offer_Eligibility__dlm",
+  "fieldMapping": [
+    {
+      "sourceFieldDeveloperName": "org_id__c",
+      "targetFieldDeveloperName": "org_id__c"
+    },
+    {
+      "sourceFieldDeveloperName": "record_id__c",
+      "targetFieldDeveloperName": "record_id__c"
+    },
+    {
+      "sourceFieldDeveloperName": "account_id__c",
+      "targetFieldDeveloperName": "account_id__c"
+    },
+    {
+      "sourceFieldDeveloperName": "action_code__c",
+      "targetFieldDeveloperName": "action_code__c"
+    },
+    {
+      "sourceFieldDeveloperName": "product_family__c",
+      "targetFieldDeveloperName": "product_family__c"
+    },
+    {
+      "sourceFieldDeveloperName": "recommended_action_rank__c",
+      "targetFieldDeveloperName": "recommended_action_rank__c"
+    },
+    {
+      "sourceFieldDeveloperName": "conversion_probability__c",
+      "targetFieldDeveloperName": "conversion_probability__c"
+    },
+    {
+      "sourceFieldDeveloperName": "noaction_conversion__c",
+      "targetFieldDeveloperName": "noaction_conversion__c"
+    },
+    {
+      "sourceFieldDeveloperName": "expected_value_uplift__c",
+      "targetFieldDeveloperName": "expected_value_uplift__c"
+    },
+    {
+      "sourceFieldDeveloperName": "recommended_channels__c",
+      "targetFieldDeveloperName": "recommended_channels__c"
+    },
+    {
+      "sourceFieldDeveloperName": "em_probability__c",
+      "targetFieldDeveloperName": "em_probability__c"
+    },
+    {
+      "sourceFieldDeveloperName": "cc_probability__c",
+      "targetFieldDeveloperName": "cc_probability__c"
+    },
+    {
+      "sourceFieldDeveloperName": "start_date__c",
+      "targetFieldDeveloperName": "start_date__c"
+    },
+    {
+      "sourceFieldDeveloperName": "generated_at__c",
+      "targetFieldDeveloperName": "generated_at__c"
+    },
+    {
+      "sourceFieldDeveloperName": "KQ_record_id__c",
+      "targetFieldDeveloperName": "KQ_record_id__c"
+    }
+  ]
+}

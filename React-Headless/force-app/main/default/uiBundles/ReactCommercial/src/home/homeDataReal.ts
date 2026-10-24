@@ -12,7 +12,7 @@
  *     negative + declining → queue + alerts, same book scoping
  *   · S2 World-Check AML / PEP screening (BT_WorldCheck_AML__dlm), latest
  *     run, ratings that escalated since the previous run → queue + alerts
- *   · S3 next-best offers (Offer_Eligibility_Model__dlm), this app's product
+ *   · S3 next-best offers (Offer_Eligibility_Model__dlm + BT_Offer_Eligibility__dlm for business accounts), this app's product
  *     family, one card per product → top of Recommendations
  *   · S5 business slice — $10K+ ACH customer receipts in 7 days → queue,
  *     alerts (opportunity tone) + AI brief
@@ -300,7 +300,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // S7 ServiceNow open cases (book-only) + S8 per-source freshness.
     userP.then(u => fetchServiceNowDrag(u?.userId))
       .catch((): ServiceNowDrag => ({ open: 0, aged: 0, scope: 'org' })),
-    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'dnb', 'moodys', 'boardex', 'msci', 'zoominfo', 'claritas', 'esri'])
+    fetchDataFreshness(['transactions', 'worldCheck', 'marketing', 'serviceNow', 'gong', 'graph', 'offers', 'bizOffers', 'dnb', 'moodys', 'boardex', 'msci', 'zoominfo', 'claritas', 'esri'])
       .catch((): DataFreshness | undefined => undefined),
     // C2 Moody's outlook + C3 BoardEx leadership change — additive.
     userP.then(u => fetchOutlookWatch(u?.userId))

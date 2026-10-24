@@ -1,0 +1,330 @@
+{
+  "advancedAttributes": {
+    "DATABASE": "DATA_JEDAIS",
+    "SCHEMA": "FINS__PUBLIC",
+    "objectName": "OFFER_ELIGIBILITY"
+  },
+  "capabilities": {},
+  "connectorInfo": {
+    "connectorDetails": {
+      "name": "BT_Managed_Snowflake",
+      "type": "SNOWFLAKE"
+    },
+    "connectorType": "SNOWFLAKE"
+  },
+  "dataAccessMode": "DIRECT_ACCESS",
+  "dataLakeObjectInfo": {
+    "capabilities": {},
+    "category": "Other",
+    "dataLakeFieldInfoRepresentation": [
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "KQ_record_id",
+        "name": "KQ_record_id"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "RECOMMENDED_ACTION_RANK",
+        "name": "recommended_action_rank"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "CC_PROBABILITY",
+        "name": "cc_probability"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "EXPECTED_VALUE_UPLIFT",
+        "name": "expected_value_uplift"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "RECOMMENDED_CHANNELS",
+        "name": "recommended_channels"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ACCOUNT_ID",
+        "name": "account_id"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "Data Source Object",
+        "name": "DataSourceObject"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": true,
+        "label": "RECORD_ID",
+        "name": "record_id"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "CONVERSION_PROBABILITY",
+        "name": "conversion_probability"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "Internal Organization",
+        "name": "InternalOrganization"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "NOACTION_CONVERSION",
+        "name": "noaction_conversion"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ACTION_CODE",
+        "name": "action_code"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ORG_ID",
+        "name": "org_id"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "Data Source",
+        "name": "DataSource"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "PRODUCT_FAMILY",
+        "name": "product_family"
+      },
+      {
+        "dataType": "DateTime",
+        "isPrimaryKey": false,
+        "label": "GENERATED_AT",
+        "name": "generated_at"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "EM_PROBABILITY",
+        "name": "em_probability"
+      },
+      {
+        "dataType": "Date",
+        "isPrimaryKey": false,
+        "label": "START_DATE",
+        "name": "start_date"
+      }
+    ],
+    "dataSpaceInfo": [
+      {
+        "label": "default",
+        "name": "default"
+      }
+    ],
+    "fields": [
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "KQ_record_id",
+        "name": "KQ_record_id"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "RECOMMENDED_ACTION_RANK",
+        "name": "recommended_action_rank"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "CC_PROBABILITY",
+        "name": "cc_probability"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "EXPECTED_VALUE_UPLIFT",
+        "name": "expected_value_uplift"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "RECOMMENDED_CHANNELS",
+        "name": "recommended_channels"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ACCOUNT_ID",
+        "name": "account_id"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "Data Source Object",
+        "name": "DataSourceObject"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": true,
+        "label": "RECORD_ID",
+        "name": "record_id"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "CONVERSION_PROBABILITY",
+        "name": "conversion_probability"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "Internal Organization",
+        "name": "InternalOrganization"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "NOACTION_CONVERSION",
+        "name": "noaction_conversion"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ACTION_CODE",
+        "name": "action_code"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ORG_ID",
+        "name": "org_id"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "Data Source",
+        "name": "DataSource"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "PRODUCT_FAMILY",
+        "name": "product_family"
+      },
+      {
+        "dataType": "DateTime",
+        "isPrimaryKey": false,
+        "label": "GENERATED_AT",
+        "name": "generated_at"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "EM_PROBABILITY",
+        "name": "em_probability"
+      },
+      {
+        "dataType": "Date",
+        "isPrimaryKey": false,
+        "label": "START_DATE",
+        "name": "start_date"
+      }
+    ],
+    "id": "0gOam000000av7pEAA",
+    "label": "BT_Offer_Eligibility",
+    "name": "BT_Offer_Eligibility__dll",
+    "status": "ACTIVE"
+  },
+  "dataSource": "BT_Managed_Snowflake",
+  "dataStreamType": "CONNECTORSFRAMEWORK",
+  "isEnabled": true,
+  "label": "BT_Offer_Eligibility",
+  "lastRunStatus": "NONE",
+  "mappings": [],
+  "name": "BT_Offer_Eligibility",
+  "problemRecordDataLakeObjectName": "PR_BT_Offer_Eligibility__dll",
+  "recordId": "1dsam000000Q1gPAAS",
+  "refreshConfig": {
+    "frequency": {
+      "hours": [],
+      "refreshDayOfMonth": []
+    },
+    "hasHeaders": false,
+    "isAccelerationEnabled": false,
+    "refreshMode": "TOTAL_REPLACE",
+    "shouldFetchImmediately": false,
+    "shouldTreatMissingFilesAsFailures": false
+  },
+  "sourceFields": [
+    {
+      "datatype": "Text",
+      "name": "ORG_ID"
+    },
+    {
+      "datatype": "Text",
+      "name": "RECORD_ID"
+    },
+    {
+      "datatype": "Text",
+      "name": "ACCOUNT_ID"
+    },
+    {
+      "datatype": "Text",
+      "name": "ACTION_CODE"
+    },
+    {
+      "datatype": "Text",
+      "name": "PRODUCT_FAMILY"
+    },
+    {
+      "datatype": "Number",
+      "name": "RECOMMENDED_ACTION_RANK"
+    },
+    {
+      "datatype": "Number",
+      "name": "CONVERSION_PROBABILITY"
+    },
+    {
+      "datatype": "Number",
+      "name": "NOACTION_CONVERSION"
+    },
+    {
+      "datatype": "Number",
+      "name": "EXPECTED_VALUE_UPLIFT"
+    },
+    {
+      "datatype": "Text",
+      "name": "RECOMMENDED_CHANNELS"
+    },
+    {
+      "datatype": "Number",
+      "name": "EM_PROBABILITY"
+    },
+    {
+      "datatype": "Number",
+      "name": "CC_PROBABILITY"
+    },
+    {
+      "datatype": "Date",
+      "format": "MM/dd/yyyy",
+      "name": "START_DATE"
+    },
+    {
+      "datatype": "DateTime",
+      "name": "GENERATED_AT"
+    }
+  ],
+  "status": "ACTIVE"
+}

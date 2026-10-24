@@ -12,6 +12,10 @@
  * best-ranked eligible offer, then the strongest client per product, so the
  * recommendations rail shows distinct offers rather than three copies of the
  * same mortgage. Verified live 2026-10-22.
+ *
+ * Business accounts aren't in that model, so the commercial family also reads
+ * `BT_Offer_Eligibility__dlm` (Snowflake `OFFER_ELIGIBILITY`, keyed to the
+ * Account Id) — see `eligibleOffersSql`. Added 2026-10-24.
  */
 import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
 
@@ -33,25 +37,65 @@ const OFFER_LABEL: Record<string, string> = {
   'IRA-RTH': 'Roth IRA',
   'WM-MAS': 'managed account',
   'BIZ-CHK': 'business checking',
+  'BIZ-TM-ACH': 'ACH origination',
+  'BIZ-TM-RDC': 'remote deposit capture',
+  'BIZ-TM-PP': 'positive pay',
+  'BIZ-TM-SWP': 'liquidity sweep',
+  'BIZ-LOC': 'working-capital line of credit',
+  'BIZ-TL': 'term loan',
+  'BIZ-EQF': 'equipment financing',
+  'BIZ-CRE': 'commercial real estate loan',
+  'BIZ-SBA': 'SBA 7(a) loan',
 };
 
 /** Human product name for an action code ("MTG-30" → "30-year fixed mortgage"). */
 export const offerLabel = (code: string) => OFFER_LABEL[code] ?? code;
 
-const bestOfferSql = (family: OfferFamily) => (accountFilter: string) => `
-  SELECT account_id, code, action_rank, conv, noaction, ev, channels, em_p, cc_p FROM (
-    SELECT y.*, ROW_NUMBER() OVER (PARTITION BY code ORDER BY ev DESC, conv DESC) AS pn FROM (
+const BT_FAMILY_FILTER: Record<OfferFamily, string | null> = {
+  retail: null,
+  wealth: null,
+  commercial: "b.action_code__c LIKE 'BIZ-%'",
+};
+
+/**
+ * Eligible offers for the book, one row per client × code. Unions the
+ * Databricks model (person accounts, joined through the MDM key) with the
+ * Snowflake `BT_Offer_Eligibility__dlm` (business accounts, keyed directly to
+ * the Account Id; treasury `BIZ-TM-*` and lending `BIZ-*` codes).
+ */
+const eligibleOffersSql = (family: OfferFamily, accountFilter: string) => {
+  const model = `
       SELECT a.ssot__Id__c AS account_id, o.Action_Code__c AS code, o.Recommended_Action_Rank__c AS action_rank,
              o.Conversion_Probability__c AS conv, o.NoAction_Conversion__c AS noaction,
              o.Expected_Value_Uplift__c AS ev, o.Recommended_Channels__c AS channels,
-             o.EM_Probability__c AS em_p, o.CC_Probability__c AS cc_p,
-             ROW_NUMBER() OVER (PARTITION BY a.ssot__Id__c ORDER BY o.Recommended_Action_Rank__c) AS rn
+             o.EM_Probability__c AS em_p, o.CC_Probability__c AS cc_p
       FROM Offer_Eligibility_Model__dlm o
       JOIN ssot__Account__dlm a ON a.External_ID_c__c = o.MDM_ID__c
       WHERE ${FAMILY_FILTER[family]}
         AND o.Recommended_Action_Rank__c IS NOT NULL
         AND o.Expected_Value_Uplift__c > 0
-        AND a.ssot__Id__c ${accountFilter}
+        AND a.ssot__Id__c ${accountFilter}`;
+  const bt = BT_FAMILY_FILTER[family];
+  if (!bt) return model;
+  return `${model}
+      UNION ALL
+      SELECT b.account_id__c, b.action_code__c, b.recommended_action_rank__c,
+             b.conversion_probability__c, b.noaction_conversion__c,
+             b.expected_value_uplift__c, b.recommended_channels__c,
+             b.em_probability__c, b.cc_probability__c
+      FROM BT_Offer_Eligibility__dlm b
+      WHERE ${bt}
+        AND b.recommended_action_rank__c IS NOT NULL
+        AND b.expected_value_uplift__c > 0
+        AND b.account_id__c ${accountFilter}`;
+};
+
+const bestOfferSql = (family: OfferFamily) => (accountFilter: string) => `
+  SELECT account_id, code, action_rank, conv, noaction, ev, channels, em_p, cc_p FROM (
+    SELECT y.*, ROW_NUMBER() OVER (PARTITION BY code ORDER BY ev DESC, conv DESC) AS pn FROM (
+      SELECT e.*, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY action_rank, ev DESC) AS rn
+      FROM (${eligibleOffersSql(family, accountFilter)}
+      ) e
     ) y
     WHERE rn = 1
   ) x
@@ -114,14 +158,9 @@ export async function fetchNextBestOffers(
 // offer per client), summed over the whole book and split by product.
 const upliftSql = (family: OfferFamily) => (accountFilter: string) => `
   SELECT code, COUNT(*) AS clients, SUM(ev) AS uplift FROM (
-    SELECT o.Action_Code__c AS code, o.Expected_Value_Uplift__c AS ev,
-           ROW_NUMBER() OVER (PARTITION BY a.ssot__Id__c ORDER BY o.Recommended_Action_Rank__c) AS rn
-    FROM Offer_Eligibility_Model__dlm o
-    JOIN ssot__Account__dlm a ON a.External_ID_c__c = o.MDM_ID__c
-    WHERE ${FAMILY_FILTER[family]}
-      AND o.Recommended_Action_Rank__c IS NOT NULL
-      AND o.Expected_Value_Uplift__c > 0
-      AND a.ssot__Id__c ${accountFilter}
+    SELECT code, ev, ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY action_rank, ev DESC) AS rn
+    FROM (${eligibleOffersSql(family, accountFilter)}
+    ) e
   ) y
   WHERE rn = 1
   GROUP BY code
