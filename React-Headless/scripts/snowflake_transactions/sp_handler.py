@@ -36,6 +36,18 @@ def rebuild_daily_balance(session):
     """).collect()
 
 
+def stressed_accounts(session):
+    """Account Ids High on financial stress in the latest Claritas month (empty if unreadable)."""
+    try:
+        return frozenset(r['ACCOUNT_ID'] for r in session.sql("""
+            SELECT ACCOUNT_ID FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS
+            WHERE FINANCIAL_STRESS_INDICATOR = 'High'
+              AND PROFILE_MONTH = (SELECT MAX(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS)
+        """).collect())
+    except Exception:
+        return frozenset()
+
+
 def generate_transactions(session, transactions_per_account):
     # transactions_per_account is kept for the task signature; volume now comes from each product's pattern.
     import pandas as pd, time
@@ -56,7 +68,7 @@ def generate_transactions(session, transactions_per_account):
             log_execution(session, 'SKIPPED', 0, 0, 'No active accounts found', int((time.time() - start_time) * 1000))
             return "No active accounts found"
 
-        rows = list(generate(accounts, today, today, now))
+        rows = list(generate(accounts, today, today, now, stressed=stressed_accounts(session)))
         if rows:
             session.write_pandas(pd.DataFrame(rows, columns=COLUMNS), 'FINANCIAL_TRANSACTIONS',
                                  database='DATA_JEDAIS', schema='FINS__PUBLIC', auto_create_table=False)

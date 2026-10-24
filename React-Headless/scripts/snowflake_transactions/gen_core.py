@@ -117,8 +117,67 @@ def loan_payment(r, bal, name):
     return round(bal * mr / (1 - (1 + mr) ** -left), 2) if mr else round(bal / left, 2)
 
 
-def generate(rows, start, end, now, id_prefix='FS-'):
-    """Yield FINANCIAL_TRANSACTIONS tuples for every open, classifiable account."""
+# Fee spells (2026-10-24). A fee spike (3+ NSF / overdraft / late fees within days) is a
+# per-checking-account "spell" decided once per 28-day block, so the backfill and the
+# one-day daily runs draw the same spells, and the fees spread over a week or so instead of
+# landing on one day. Rates are per checking account per block, so every book gets spikes in
+# proportion to its checking accounts. The old rule (business checking only, 5% per 90-day
+# window, all fees in the window's last 30 days) left the person books (Sarah, Justin, Kim,
+# Vince, Adam) with no spikes at all. Jose Sifontes's book still gets almost none: it has only
+# 5 open FinServ business checking accounts for ~5,087 clients (a CRM gap, not a rate).
+SPELL_EPOCH = date(2026, 1, 5)          # a Monday; blocks are [epoch + 28k, epoch + 28k + 27]
+SPELL_DAYS = 28
+SPELL_RATE = {'Business': 0.04, 'Personal': 0.02}
+SPELL_RATE_STRESSED = 0.12              # personal clients High on Claritas financial stress
+BUSINESS_FEES = {'NSF Returned Item Fee': 36.0, 'Overdraft Fee': 38.0, 'Late Payment Fee': 75.0}
+PERSONAL_FEES = {'NSF Returned Item Fee': 35.0, 'Overdraft Fee': 35.0}
+
+
+def spell_block(d):
+    return SPELL_EPOCH + timedelta(days=(d - SPELL_EPOCH).days // SPELL_DAYS * SPELL_DAYS)
+
+
+def spell_plan(fa, person, block, stressed=False):
+    """[(date, description, amount)] for one checking account's fee spell in `block`, or []."""
+    S = rng(fa, 'spell' + block.isoformat())
+    rate = SPELL_RATE_STRESSED if person and stressed else SPELL_RATE['Personal' if person else 'Business']
+    if S.random() >= rate: return []
+    fees = PERSONAL_FEES if person else BUSINESS_FEES
+    n = S.randint(3, 6)
+    lo = S.randint(0, SPELL_DAYS - 10)
+    # The first fee is the bounced item; the rest are mostly overdrafts (personal) or a mix (business).
+    names = ['NSF Returned Item Fee' if person else S.choice(('NSF Returned Item Fee', 'Late Payment Fee'))]
+    names += [S.choice(('Overdraft Fee', 'Overdraft Fee', 'NSF Returned Item Fee')) if person else S.choice(tuple(fees))
+              for _ in range(n - 1)]
+    days = sorted(block + timedelta(days=lo + S.randint(0, 9)) for _ in range(n))
+    return [(d, nm, fees[nm]) for d, nm in zip(days, names)]
+
+
+def spell_fees(r, start, end, now, stressed=frozenset(), id_prefix='FS-'):
+    """FINANCIAL_TRANSACTIONS tuples for the fee-spell fees of checking account `r` dated in [start, end]."""
+    fa, owner = r['ACCOUNTID'], r['SFACCOUNTID']
+    person = (r.get('ACCOUNTTYPE') or '') == 'Personal'
+    contact = (r.get('CONTACTID') or None) if person else None
+    opened = pdate(r.get('OPEN_DATE')) or date(2020, 1, 1)
+    data_date = now.strftime('%Y-%m-%d %H:%M:%S')
+    block = spell_block(max(start, opened))
+    while block <= end:
+        for i, (d, desc, amount) in enumerate(spell_plan(fa, person, block, owner in stressed)):
+            if not (max(start, opened) <= d <= end): continue
+            R = rng(fa, f'spell{block.isoformat()}#{i}')
+            last_hour = min(22, max(6, now.hour - 1)) if d == now.date() else 22
+            t = datetime(d.year, d.month, d.day, R.randint(min(6, last_hour), last_hour), R.randint(0, 59), R.randint(0, 59))
+            posted = t + timedelta(days=R.choice((0, 1, 1, 2)))
+            yield (fa, id_prefix + str(uuid.UUID(int=R.getrandbits(128))), posted.strftime('%Y-%m-%d %H:%M:%S'),
+                   t.strftime('%Y-%m-%d %H:%M:%S'), amount, desc, 'Fees & Charges', 6012, FIN,
+                   'Pending' if posted > now else 'Posted', 'USD', 'Debit', 'Debit', data_date, owner, contact,
+                   'Personal' if person else 'Business')
+        block += timedelta(days=SPELL_DAYS)
+
+
+def generate(rows, start, end, now, id_prefix='FS-', stressed=frozenset()):
+    """Yield FINANCIAL_TRANSACTIONS tuples for every open, classifiable account.
+    `stressed` = Account Ids High on Claritas financial stress (raises their fee-spell rate)."""
     span_all = (end - start).days + 1
     scale = span_all / BASE_DAYS
     data_date = now.strftime('%Y-%m-%d %H:%M:%S')
@@ -212,6 +271,7 @@ def generate(rows, start, end, now, id_prefix='FS-'):
                 if R.random() < p(0.03):
                     for _ in range(R.randint(1, 3)):
                         yield E(day_in(recent(30)), 35.00, 'Debit', 'Fees & Charges', 6012, FIN, 'Overdraft Fee')
+                yield from spell_fees(r, start, end, now, stressed, id_prefix)  # hardship: NSF + overdraft spike
             elif dt == 'chk':  # business operating account
                 sc = max(0.3, min(8.0, bal / 150000))
                 payroll = round(18000 * sc * S.uniform(0.6, 1.4), 2)
@@ -231,10 +291,7 @@ def generate(rows, start, end, now, id_prefix='FS-'):
                             yield E(d, amount, 'Debit', 'Fees & Charges', 9980, 'Loan Payment')
                 for d in days(28, d0):
                     yield E(d, R.uniform(25, 95), 'Debit', 'Fees & Charges', 6012, FIN, 'Monthly Service Fee')
-                if R.random() < p(0.05):  # cash-flow stress: fee spike
-                    for _ in range(R.randint(3, 8)):
-                        yield E(day_in(recent(30)), R.choice((36.0, 38.0, 75.0)), 'Debit', 'Fees & Charges', 6012, FIN,
-                                R.choice(('NSF Returned Item Fee', 'Overdraft Fee', 'Late Payment Fee')))
+                yield from spell_fees(r, start, end, now, stressed, id_prefix)  # cash-flow stress: fee spike
             else:  # savings / money market / CD
                 rate = f(r.get('INTEREST_RATE')) or {'sav': 0.0035, 'mm': 0.025, 'cd': 0.042}[dt]
                 rate = rate if rate < 1 else rate / 100
