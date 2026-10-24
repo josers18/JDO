@@ -295,35 +295,60 @@ Fixes:
   Live and in the DMO: 38,360 rows, all `001…` (SELF 32,161, REFERRAL 3,471, ADVISOR_BOOK 2,410, BUSINESS_OWNER 318).
   REFERRAL confidence runs 30–94.99 (1,146 rows ≥ 70). Edges discovered in October: 384 REFERRAL and 38 BUSINESS_OWNER;
   the latest is 2026-10-18. Weekly runs keep adding edges.
-- `Marketing_Engagements` is thin by design until 2026-11-01. The original backfill ends 2026-09-24 (Personal 186,126,
-  Business 65,487). The hourly Heroku worker (`Marketing_Engagement/feed.py`) only starts generating campaigns at
-  `FIRST_MONTH = 2026-11-01`: one Personal and one Business campaign a month, plus the "All" templates. Business touches
-  return then. To close the October gap, move `FIRST_MONTH` to 2026-10-01 and redeploy the worker.
+- ✅ **`Marketing_Engagements` October gap closed** (2026-10-24). The hourly Heroku worker
+  (`Marketing_Engagement/feed.py`) now generates campaigns from `FIRST_MONTH = 2026-10-01` (Heroku v16, commit
+  `80ea4269`): one Personal and one Business campaign a month, plus the "All" templates. October added 32,295 rows,
+  so business touches are back.
 - ✅ **`BT_Gong_Call_Sentiment.last_call_date__c`** (2026-10-24). After each MERGE, the generator fills a null
   `LAST_CALL_DATE` (a week with no calls) with the account's latest earlier call. An account with no call in its
   history gets a fixed hashed date before 2025-12-15. 1,344,919 nulls → 0; existing call dates are unchanged; every
   value is before `PROFILE_WEEK`. Latest week in the DMO: 36,940 of 36,940 filled, median 32 days ago. Backup:
   `GONG_CALL_SENTIMENT_BAK_20261024`.
-- Offer model `Offer_Eligibility_Model__dlm` — **not Snowflake.** The source is Databricks
-  (`DataSourceObject__c = rraso_offer_eligability_model`, connector `Databricks_Databricks`). Every account (25,431)
-  has a row for all 11 action codes, and `BIZ-CHK` is the only business one. `SFID__c` is the model row's `1Xh…` Id.
-  The join key is `MDM_ID__c` = `ssot__Account__dlm.External_ID_c__c`. An `account_id` column and treasury or lending
-  codes have to be added in the Databricks model, or supplied by a separate Snowflake BT_ stream unioned in the reader.
+- ✅ **Business offers: `BT_Offer_Eligibility`** (2026-10-24, commit `e9b7360c`). The Databricks model
+  `Offer_Eligibility_Model__dlm` stays as is. It covers only 25,431 person-account MDM ids, joined on `MDM_ID__c` =
+  `ssot__Account__dlm.External_ID_c__c`, and its only business code is `BIZ-CHK`. A new Snowflake table,
+  `OFFER_ELIGIBILITY` (project `Snowflake_Offer_Eligibility/`), scores every BUSINESS account by `account_id`
+  against 4 treasury codes (`BIZ-TM-ACH/RDC/PP/SWP`) and 5 lending codes (`BIZ-LOC/TL/EQF/CRE/SBA`):
+  - Eligibility uses revenue, industry and D&B credit.
+  - It is rebuilt monthly by `TASK_MONTHLY_OFFER_ELIGIBILITY` (1st, 08:00 UTC).
+  - It reaches Data Cloud as `BT_Offer_Eligibility__dlm` (zero-copy, `BT_Managed_Snowflake`).
+  - `offerModel.ts` and `commercialWhoToCall.ts` union it with the model.
 
-## 9. Market feeds and the relationship graph: realism (probed 2026-10-23)
+  First run: 204,192 rows; 11,026 of 11,344 accounts have at least one eligible offer.
 
-- **Moody's outlook (`BT_Moodys_Market_Context`)**: no account's `rating_outlook__c` has changed since 2025, so the
-  Commercial C2 "outlook changed in the last 90 days" view never fires. Generate a few real outlook moves in 2026
-  (Stable → Negative / Watch, and some back to Stable), dated across the last 90 days, in Allen's and Jose's books.
-- **MSCI ESG ratings (`BT_MSCI_ESG`)**: the ratings change at random. 8,089 of 11,484 accounts changed rating from
-  September to October, some by up to 6 notches. The upgrade/downgrade flag matches the actual change on only 668 of
-  1,679 flagged rows. The cockpit now works out direction from the rating change itself and ignores the flag (moves of
-  ≤ 2 notches whose score moved ≥ 1 point the same way). Make ratings sticky: most accounts keep last month's rating,
-  a few move one notch, the score moves with the rating, and the flag matches the move.
-- **Business owners (`BT_Synth_Relationship_Graph`, `BUSINESS_OWNER` edges)**: they exist only in Vince's, Kim's and
-  Adam's books. Sarah's and Justin's books have none, so Wealth W6 falls back to org-wide for them. Seed
-  `BUSINESS_OWNER` edges from Sarah's and Justin's person accounts to business accounts in Allen's or Jose's books.
-- **Fee spikes and financial stress are uneven across books**: Sarah, Kim and Jose have no business accounts with 3+
-  NSF / overdraft / late fees in 30 days (Allen has 97). Kim and Allen have no clients High on stress now (Sarah has
-  1,751; Jose has 2). Those feeds are now book-only, so their cards are empty in those books. Spread fee events and
-  `financial_stress_indicator` = High across every book.
+## 9. Market feeds and the relationship graph: realism (fixed 2026-10-24, two writes pending)
+
+- ✅ **Moody's outlook (`BT_Moodys_Market_Context`)**, commit `2899a769`. Outlooks now move: 10% per 180-day slot,
+  and 50% for owners with fewer than 500 business accounts, so small books get moves too. Today's snapshot is
+  regenerated. Live, over the last 90 days:
+  - Allen: 162 moves to Negative/Watch, 233 back to Stable.
+  - Jose: 153 moves to Negative/Watch, 209 back to Stable.
+  - The 17 other owners: 14 moves to Negative/Watch, 16 back to Stable.
+
+  C2 rows now sort by most recent change (`51504d1a`).
+  - ⏳ **History rewrite not applied.** 2026-03-01..10-23 still shows the old outlooks, so recent movers jump in a
+    single day. The patch is staged as `MOODYS_OUTLOOK_MOVES_PATCH_20261024C`: 249,427 rows, outlook columns only.
+    Apply with `/tmp/moodys_work2/apply.sql`. Backup: `MOODYS_MARKET_CONTEXT_BAK_20261024C`. Afterwards, drop both
+    patch tables. The older `…_PATCH_20261024` was built from the 5% code and must not be applied.
+  - The procedure is now `EXECUTE AS CALLER` (it was `OWNER`), in both repo and live.
+- ✅ **MSCI ESG ratings (`BT_MSCI_ESG`)**, commit `adae03f6`. Each month carries over from the last: about 90% of
+  accounts hold their rating, 10% move one notch and 1% move two. The score moves with the rating, and the flag
+  always matches. May–Oct are regenerated: about 10% change per month, 0 moves over 2 notches, and every flag
+  matches.
+  - Kim's, Adam's, Justin's and Vince's books hold only 2–9 MSCI accounts each, so they mostly show no movers.
+- ✅ **Business owners (`BT_Synth_Relationship_Graph`)**, commit `1ba1815e`. Retail persons with income ≥ $100K in
+  Sarah's and Justin's books now own businesses in Allen's or Jose's books: 3% standing, plus 0.2% a week since
+  2026-08-03. Live: Sarah has 111 owners and Justin 104, so W6 stays book-scoped. BUSINESS_OWNER edges went from
+  318 to 536.
+- ✅ **Financial stress (`BT_Claritas_Demographics`)**, commit `2950125c`. Business and Household anchors are now
+  profiled as the principal's household. The Wealth strain rate went from 4% to 20%. High stress is now non-zero in
+  every book: Justin 1,763 / Sarah 1,751 / Jose 743 / Allen 644 / Vince 148 / Adam 129 / Kim 117. Backup:
+  `CLARITAS_DEMOGRAPHICS_BAK_20261024c`.
+- ⏳ **Fee spikes, not live.** Only Allen has any (96); every other book has 0. The fix is ready but not applied:
+  - The working-tree changes to `scripts/snowflake_transactions/` (`gen_core.py`, `sp_handler.py`,
+    `fee_spell_backfill.py`) are uncommitted.
+  - The backfill insert (`/tmp/f89b/tx_ins.sql`) and the `GENERATE_DAILY_TRANSACTIONS` redeploy
+    (`/tmp/f89b/tx_sp.sql`) are both pending. Run the insert first, then the deploy, before the 03:05 ET daily run.
+  - Backup: `FINANCIAL_TRANSACTIONS_BAK_20261024b`.
+  - Jose's book can't get fee spikes: his 5,071 FSC Households own only 13 open checking accounts. Fixing that needs
+    household-owned FinServ checking accounts in CRM.
