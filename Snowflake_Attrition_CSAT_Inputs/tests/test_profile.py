@@ -161,3 +161,13 @@ def test_profile_person_without_birthdate_gets_seeded_age():
         assert p["age"] == build_profile(dict(row), datetime(2026, 11, 2))["age"]
         ages.append(p["age"])
     assert len(set(ages)) > 20
+
+
+def test_profile_canonicalizes_spaced_live_categories():
+    # Live V_ACCOUNT_ANCHORS spells categories with spaces; downstream code keys on the compact form.
+    wm = build_profile(make_feature(ACCOUNT_TYPE_FLAG="PERSON", CLIENT_CATEGORY="Wealth Management"), RUN_TS)
+    assert (wm["kind"], wm["client_category"]) == ("PERSON", "WealthManagement")
+    sb = build_profile(make_feature(ACCOUNT_TYPE_FLAG="BUSINESS", CLIENT_CATEGORY="Small Business"), RUN_TS)
+    assert (sb["kind"], sb["client_category"]) == ("BUSINESS", "SmallBusiness")
+    cb = build_profile(make_feature(ACCOUNT_TYPE_FLAG="BUSINESS", CLIENT_CATEGORY=" Commercial Banking "), RUN_TS)
+    assert (cb["kind"], cb["client_category"]) == ("BUSINESS", "CommercialBanking")

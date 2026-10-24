@@ -25,8 +25,13 @@ _PF_PERSON_CATEGORIES = ("retail", "wealthmanagement", "gold", "silver", "bronze
 _PF_BUSINESS_CATEGORIES = ("smallbusiness", "commercialbanking", "corporate", "commercial", "business")
 
 
+def _pf_category(feature: dict) -> str:
+    """Compact CLIENT_CATEGORY ('Wealth Management' live -> 'WealthManagement'), the form downstream keys on."""
+    return "".join(str(feature.get("CLIENT_CATEGORY") or "").split())
+
+
 def _pf_kind(feature: dict) -> str:
-    cat = str(feature.get("CLIENT_CATEGORY") or "").strip().lower()
+    cat = _pf_category(feature).lower()
     if cat == "household":
         return "HOUSEHOLD"
     if cat in _PF_BUSINESS_CATEGORIES:
@@ -222,7 +227,7 @@ def build_profile(feature: dict, run_ts: datetime) -> dict:
     return {
         "account_id": aid,
         "kind": kind,
-        "client_category": str(feature.get("CLIENT_CATEGORY") or ""),
+        "client_category": _pf_category(feature),
         "age": int(age),
         "income": float(income),
         "credit_score": float(credit),
