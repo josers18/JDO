@@ -64,7 +64,7 @@ When `CALL_COUNT_LAST_7D == 0`, six fields collapse together to their no-call de
 | `CUSTOMER_TALK_RATIO_PCT` | `0.00` |
 | `OVERALL_SENTIMENT` | `'Neutral'` |
 | `KEY_TOPICS_FLAGS` | `NULL` |
-| `LAST_CALL_DATE` | `NULL` |
+| `LAST_CALL_DATE` | `NULL` from the row factory; the post-MERGE carry-forward fills it with the latest earlier call |
 | `ACTION_ITEMS_COUNT` | `0` |
 
 The boring case (no activity that week) is itself a meaningful row, not a row that's filtered out. Coverage invariant still holds — every anchor emits one row per week even on no-call weeks. Plan 12 is the first Cumulus dataset where the boring case has cascade-NULL semantics off a single Boolean predicate (Plan 8's NULL gating was driven by a 3-value enum; Plan 6's was per-row flagged accounts). `NEXT_SCHEDULED_CALL_DATE` carries an independent ~40% NULL gate (RMs don't always schedule the next touch).

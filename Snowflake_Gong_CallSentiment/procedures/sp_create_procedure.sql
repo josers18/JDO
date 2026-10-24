@@ -37,7 +37,7 @@ LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+EXECUTE AS OWNER
 AS
 $$
 from __future__ import annotations
@@ -126,8 +126,10 @@ _AUDIENCE_PREDICATE = ""  # all-accounts
 AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
-# 15-column output contract (kept in sync with the table DDL by the L1 schema test).
+# 16-column output contract (kept in sync with the table DDL by the L1 schema test).
+# v1.x multi-org-additive: ORG_ID is the first key in every emitted row.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_WEEK",
     "CALL_COUNT_LAST_7D", "TOTAL_TALK_TIME_MINUTES", "CUSTOMER_TALK_RATIO_PCT",
     "OVERALL_SENTIMENT", "SENTIMENT_TREND",
@@ -366,7 +368,7 @@ def _deal_risk_score(call_count: int, sentiment: str,
 def _last_call_date(call_count: int, profile_week: date,
                      rng: random.Random) -> date | None:
     """Most-recent call date in the prior 7 days. None when no calls (cascade
-    gate). Returns a date strictly BEFORE profile_week (the Monday of the
+    gate; _carry_forward_last_call fills it in the table after the MERGE). Returns a date strictly BEFORE profile_week (the Monday of the
     run-week) so the rowspec invariant holds for any run during the week.
     Subtracting from profile_week (not run_ts) keeps the value
     week-bucket-stable across mid-week re-runs (Plan 8 lesson)."""
@@ -495,7 +497,12 @@ def _rows_for(anchor: dict, profile_week: date) -> list[dict]:
     # Stage 4: year-stable RM name (separate salt; not from rng above).
     rm_name = _rm_name(account_id, profile_week)
 
+    # v1.x multi-org-additive: stamp ORG_ID first key from the anchor row.
+    # V_ACCOUNT_ANCHORS exposes ORG_ID as the first column post-Phase-A.
+    # Fixture anchors that omit ORG_ID fall back to 'JDO' so legacy L1 tests
+    # keep passing without rewriting the 100-anchor sample.
     return [{
+        "ORG_ID":                    anchor.get("ORG_ID") or "JDO",
         "ACCOUNT_ID":                account_id,
         "PROFILE_WEEK":              profile_week,
         "CALL_COUNT_LAST_7D":        call_count,
@@ -603,7 +610,11 @@ def _anchor_to_dict(row: Any) -> dict:
 
 
 # -------------------------------------------------------------------
-# _merge — idempotent MERGE on composite PK (ACCOUNT_ID, PROFILE_WEEK).
+# _merge — idempotent MERGE on composite PK (ORG_ID, ACCOUNT_ID, PROFILE_WEEK).
+#
+# v1.x multi-org-additive: ORG_ID is the first PK component (per ROLLOUT.md
+# Phase A6); UPDATE SET deliberately skips ORG_ID — the PK component is
+# fixed per row and never gets re-stamped to a different tenant.
 #
 # Exposed at module scope so the backfill SP can reuse it for batch MERGEs.
 # -------------------------------------------------------------------
@@ -641,13 +652,14 @@ def _merge(session: Any, records: list[dict],
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_WEEK::DATE AS PROFILE_WEEK,
                 CALL_COUNT_LAST_7D,
@@ -665,7 +677,8 @@ def _merge(session: Any, records: list[dict],
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_WEEK = src.PROFILE_WEEK
         WHEN MATCHED THEN UPDATE SET
             CALL_COUNT_LAST_7D       = src.CALL_COUNT_LAST_7D,
@@ -682,7 +695,7 @@ def _merge(session: Any, records: list[dict],
             RM_LAST_LOGGED_NOTE_DATE = src.RM_LAST_LOGGED_NOTE_DATE,
             GENERATED_AT             = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_WEEK,
+            ORG_ID, ACCOUNT_ID, PROFILE_WEEK,
             CALL_COUNT_LAST_7D, TOTAL_TALK_TIME_MINUTES, CUSTOMER_TALK_RATIO_PCT,
             OVERALL_SENTIMENT, SENTIMENT_TREND,
             KEY_TOPICS_FLAGS, ACTION_ITEMS_COUNT, DEAL_RISK_SCORE,
@@ -690,7 +703,7 @@ def _merge(session: Any, records: list[dict],
             RM_NAME, RM_LAST_LOGGED_NOTE_DATE,
             GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_WEEK,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_WEEK,
             src.CALL_COUNT_LAST_7D, src.TOTAL_TALK_TIME_MINUTES, src.CUSTOMER_TALK_RATIO_PCT,
             src.OVERALL_SENTIMENT, src.SENTIMENT_TREND,
             src.KEY_TOPICS_FLAGS, src.ACTION_ITEMS_COUNT, src.DEAL_RISK_SCORE,
@@ -700,5 +713,39 @@ def _merge(session: Any, records: list[dict],
         )
     """
     rows = session.sql(merge_sql).collect()
+    _carry_forward_last_call(session)
     return int(rows[0][0]) if rows else len(records)
+
+
+# Accounts with no call anywhere in their history get a fixed pseudo-random
+# date 8-365 days before this date (the table's first PROFILE_WEEK).
+_NO_CALL_HISTORY_ANCHOR = "2025-12-15"
+
+
+def _carry_forward_last_call(session: Any) -> None:
+    """Fill NULL LAST_CALL_DATE with the account's most recent earlier call.
+
+    Runs over the whole table, so it also covers multi-week backfills and
+    re-runs (a re-merged week resets to NULL, then gets refilled to the same
+    value). Already-filled rows carry their own value forward, which equals
+    the original call date, so the pass is idempotent.
+    """
+    session.sql(f"""
+        UPDATE DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT tgt
+        SET LAST_CALL_DATE = c.FILLED
+        FROM (
+            SELECT ORG_ID, ACCOUNT_ID, PROFILE_WEEK, LAST_CALL_DATE,
+                   COALESCE(
+                       LAST_VALUE(LAST_CALL_DATE) IGNORE NULLS OVER (
+                           PARTITION BY ORG_ID, ACCOUNT_ID ORDER BY PROFILE_WEEK
+                           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW),
+                       DATEADD(day, -(8 + ABS(HASH(ACCOUNT_ID)) % 358),
+                               '{_NO_CALL_HISTORY_ANCHOR}'::DATE)
+                   ) AS FILLED
+            FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT
+        ) c
+        WHERE tgt.LAST_CALL_DATE IS NULL AND c.LAST_CALL_DATE IS NULL
+          AND tgt.ORG_ID = c.ORG_ID AND tgt.ACCOUNT_ID = c.ACCOUNT_ID
+          AND tgt.PROFILE_WEEK = c.PROFILE_WEEK
+    """).collect()
 $$;
