@@ -19,25 +19,22 @@ tables, and those must carry real Account Ids.
 
 ---
 
-## 1. Product recommendations: re-key to Salesforce Account Ids
+## 1. Product recommendations: ✅ inputs re-keyed 2026-10-23
 
-| DLO | Rows | Problem |
-|---|---|---|
-| `BT_Business_Product_Recommendations__dll` | 3,500 | `accountid__c` = `B-000001…` in the Snowflake source itself. It has `recommended_product__c`, so it's the **output** table |
-| `BT_Personal_Product_Recommendations__dll` | 8,240 | `accountid__c` = `P-000001…`. Input-shaped, with no `recommended_product` column |
+Was: the business stream read as an output table keyed `B-000001…`, and the personal input covered
+only 741 real keys.
 
-Fixes:
-1. Replace the `B-/P-` keys with real `001am…` Account Ids. Business recs go to business
-   accounts, personal recs to person accounts. Keep the synthetic key as a separate
-   `source_customer_id` column if the model pipeline needs it.
-2. Produce a **personal output** table (`recommended_product`, score, rank) like the
-   business one.
-3. ✅ DC side, done 2026-10-23: the output stream now maps all 36 fields to its own DMO
-   `BT_Business_Product_Recommendations__dlm` (3,500 rows, 12 `recommended_product` values led by
-   Credit_Cards 853 / Line_of_Credit 827 / Savings 555). The input DMO holds only the input stream
-   (4,240 rows, was 7,740). Still blocked on fix 1: all 3,500 output rows are `B-` keys. The two input
-   tables share the same 741 non-synthetic keys (159 local `001am`, 529 other-org `001`, 53 hashes),
-   so re-keying must split business and person accounts.
+Done (generator `Snowflake_Product_Recommendations`, SP `SP_GENERATE_PRODUCT_RECOMMENDATION_INPUTS`,
+monthly task `TASK_MONTHLY_PRODUCT_RECOMMENDATION_INPUTS`, `0 4 2 * * America/New_York`, resumed):
+- **Inputs carry real Account Ids.** `BUSINESS_PRODUCT_RECOMMENDATION_INPU__dlm` reads 5,725 rows and
+  `PERSONAL_PRODUCT_RECOMMENDATION_INPU__dlm` reads 25,424, one per `001am` account (business = non-Household
+  business accounts, personal = person accounts; no account on both sides).
+- **`BT_Business_Product_Recommendations__dlm` is the business training set**, not an output table.
+  It reads `BUSINESS_PRODUCT_RECOMMENDATION_SET` (3,500 labelled rows). Its `B-` keys stay, per the ML rule
+  above. All 12 classes now have at least 100 rows (Line_of_Credit 817, Merchant_Services 736 … CDs 100).
+- **No batch output table is needed.** The retrained models score one account at a time: the flows
+  `DC_Multiclass_Business` and `DC_MLProdPersonal` read the input row by `accountid__c`, and the
+  Multiclass Prediction card on the Account page shows the result. No cockpit reads product recommendations yet.
 
 ## 2. Attrition, CSAT prediction and enrollments: ✅ inputs backfilled 2026-10-23
 
