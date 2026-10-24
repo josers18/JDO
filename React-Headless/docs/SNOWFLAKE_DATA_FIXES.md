@@ -57,8 +57,9 @@ monthly task `TASK_MONTHLY_ATTRITION_CSAT_INPUTS`, `0 5 2 * * America/New_York`,
 Still open (D360 side, not Snowflake):
 - Re-score so the output DMOs (`Attrition_Prediction__dlm`, `Predicted_CSAT_Output__dlm`)
   get one current row per account.
-- Delete the dead Jedi stream `Attrition_Inputs_Snowflake` (FAILURE; no longer the input DMO's
-  source, nothing references its DLO) in the DC Setup UI.
+
+The dead Jedi stream `Attrition_Inputs_Snowflake` (FAILURE) and its DLO are gone from the org
+(confirmed 2026-10-23); `BT_Attrition_Inputs__dll` is the input DMO's only source.
 
 ## 3. Heroku (Deposits / Loans / Lines / Investments): ✅ backfilled 2026-10-20
 
