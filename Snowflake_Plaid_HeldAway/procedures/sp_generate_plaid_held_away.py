@@ -6,8 +6,10 @@ rollout — `_rows_for(anchor, run_ts) -> list[dict]` returns 1-5 rows per
 anchor (versus Plans 1-5's `_row_for(...) -> dict`).
 
 Audience: CLIENT_CATEGORY IN ('Retail', 'Wealth Management')
-Cadence:  MONTHLY (first-of-month at 07:00 UTC)
-Salt:     "plaid" (month-bucketed)
+Cadence:  MONTHLY (1st of the month, 03:35 America/New_York)
+Salt:     "plaid" (month-bucketed: balance, activity, flow) and
+          "plaid_identity" (identity-stable: row count, institution, account
+          type, link date, risk tier, rate)
 Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-6-plaid-held-away.md
 Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-6-plaid-held-away-rowspec.md
 """
@@ -31,6 +33,10 @@ from cumulus_common import seed_for, assert_coverage
 TABLE        = "DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY"
 TASK_NAME    = "TASK_MONTHLY_PLAID_HELD_AWAY"
 DATASET_SALT = "plaid"
+IDENTITY_SALT = "plaid_identity"
+# Link dates count back from this fixed date, so they never move between runs and
+# never land after the earliest generated month (2026-05).
+_LINK_REFERENCE = date(2026, 5, 1)
 
 # Audience predicate — repeated in 2 places (AUDIENCE_SQL + COVERAGE_SQL).
 # Both strings must match exactly to keep the coverage assertion meaningful.
@@ -38,44 +44,59 @@ _AUDIENCE_PREDICATE = "CLIENT_CATEGORY IN ('Retail', 'Wealth Management')"
 AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
-# 15-column output contract (kept in sync with table DDL by the L1 schema test).
+# 16-column output contract (kept in sync with table DDL by the L1 schema test).
 # v1.x multi-org-additive: ORG_ID leads the contract list; stamped from anchor.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "ORG_ID",
     "ACCOUNT_ID", "HELD_AWAY_ACCOUNT_ID", "PROFILE_MONTH",
     "INSTITUTION_NAME", "INSTITUTION_TYPE", "ACCOUNT_TYPE",
-    "BALANCE_USD", "LAST_LINKED_DATE", "IS_ACTIVE",
+    "BALANCE_USD", "BALANCE_CATEGORY", "LAST_LINKED_DATE", "IS_ACTIVE",
     "LAST_TRANSACTION_DATE", "MONTHLY_NET_FLOW_USD",
     "INVESTMENT_RISK_TIER", "INTEREST_RATE_PCT", "GENERATED_AT",
 })
 
 # 20-institution pool — recognisable names mapped to types. NOT license-grade
-# Plaid data; mirrors the rowspec attachment.
-_INSTITUTIONS = [
-    ("Vanguard", "Brokerage"), ("Fidelity", "Brokerage"), ("Charles Schwab", "Brokerage"),
-    ("E*TRADE", "Brokerage"), ("Robinhood", "Brokerage"),
-    ("Chase", "Bank"), ("Wells Fargo", "Bank"), ("Bank of America", "Bank"),
-    ("Citi", "Bank"), ("US Bank", "Bank"), ("Capital One", "Bank"),
-    ("PNC", "Bank"), ("Ally", "Bank"),
-    ("Navy Federal", "Credit Union"), ("PenFed", "Credit Union"),
-    ("State Employees CU", "Credit Union"),
-    ("Betterment", "Robo-Advisor"), ("Wealthfront", "Robo-Advisor"),
-    ("Coinbase", "Crypto Exchange"), ("Kraken", "Crypto Exchange"),
+# Plaid data. Two-stage pick: institution type first (weights keep the type mix
+# the cockpits were built on), then a market-share-style weight within the type,
+# so the big custodians (Fidelity, Schwab, Vanguard) and big banks dominate.
+_INSTITUTION_TYPE_WEIGHTS = [
+    ("Brokerage", 30), ("Bank", 38), ("Credit Union", 14),
+    ("Robo-Advisor", 9), ("Crypto Exchange", 9),
 ]
+_INSTITUTIONS: dict[str, list[tuple[str, int]]] = {
+    "Brokerage": [("Fidelity", 32), ("Charles Schwab", 28), ("Vanguard", 26),
+                  ("E*TRADE", 8), ("Robinhood", 6)],
+    "Bank": [("Chase", 26), ("Bank of America", 22), ("Wells Fargo", 18),
+             ("Citi", 10), ("Capital One", 9), ("US Bank", 7), ("PNC", 5),
+             ("Ally", 3)],
+    "Credit Union": [("Navy Federal", 60), ("PenFed", 25),
+                     ("State Employees CU", 15)],
+    "Robo-Advisor": [("Betterment", 60), ("Wealthfront", 40)],
+    "Crypto Exchange": [("Coinbase", 75), ("Kraken", 25)],
+}
 
-_INVESTMENT_TYPES = {"Brokerage", "IRA", "401k", "HSA"}
-_LOAN_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
+# INVESTMENT_RISK_TIER is populated only for these account types.
+_INVESTMENT_TYPES = {"Brokerage", "IRA", "401k", "HSA", "Managed Portfolio"}
+# BALANCE_CATEGORY = 'liability' for these; BALANCE_USD is always the positive
+# amount (owed, for liabilities).
+_LIABILITY_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
 
 
 # -------------------------------------------------------------------
 # Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_PLAID_HELD_AWAY
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
+def main(session: Any, run_month: date | None = None) -> str:
     """The 5-step canonical pattern, adapted for 1:N output:
-    read -> build (extend) -> MERGE -> two-part assert -> log."""
+    read -> build (extend) -> MERGE -> two-part assert -> log.
+
+    run_month (optional): regenerate that month instead of the current one,
+    e.g. CALL SP_GENERATE_PLAID_HELD_AWAY('2026-05-01'::DATE). The month's rows
+    are replaced exactly (orphan slots from an earlier run are deleted)."""
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
+    run_ts = datetime(run_month.year, run_month.month, 1) if run_month else started
+    profile_month = run_ts.date().replace(day=1)
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
 
     try:
@@ -89,7 +110,7 @@ def main(session: Any) -> str:
             anchor_dict = _anchor_to_dict(row)
             try:
                 # Flatten 1:N — each anchor produces 1-5 rows.
-                records.extend(_rows_for(anchor_dict, started))
+                records.extend(_rows_for(anchor_dict, run_ts))
             except Exception as exc:
                 errors.append((row.ACCOUNT_ID, str(exc)[:200]))
         max_tolerated = max(10, len(audience) // 100)
@@ -105,19 +126,22 @@ def main(session: Any) -> str:
             )
 
         # 3. Idempotent MERGE on composite PK
-        # (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH).
+        # (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH).
         rows_inserted = _merge(session, records)
 
-        # 4. Two-part coverage assertion. Plans 1-5's coverage is "rows = audience".
-        # Plan 6 is (a) every anchor must have >=1 row AND (b) total rows in band.
-        actual_distinct_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
+        # 4. Two-part coverage assertion, scoped to the generated month:
+        # (a) every anchor has >=1 row AND (b) the month's rows are in band.
+        actual_distinct_sql = (
+            f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE} "
+            f"WHERE PROFILE_MONTH = '{profile_month.isoformat()}'"
+        )
         assert_coverage(session, COVERAGE_SQL, actual_distinct_sql)
 
         audience_size = accounts_processed
-        total_rows = session.sql(f"SELECT COUNT(*) FROM {TABLE}").collect()[0][0]
-        if not (audience_size <= total_rows <= 5 * audience_size):
+        month_rows = len(records)
+        if not (audience_size <= month_rows <= 5 * audience_size):
             raise RuntimeError(
-                f"row count {total_rows} outside band "
+                f"month rows {month_rows} outside band "
                 f"[{audience_size}, {5 * audience_size}]"
             )
 
@@ -174,10 +198,13 @@ def _anchor_in_audience(anchor: dict) -> bool:
 def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
     """Pure function: anchor -> sorted list of 1-5 held-away rows. Deterministic.
 
-    Two seed levels:
-      - Parent seed `seed_for(account_id, "plaid", run_ts)` drives `_row_count`.
-      - Per-slot seed `seed_for(f"{account_id}_slot{i}", "plaid", run_ts)`
-        drives the 13 other fields per row — independent stream per slot.
+    Two seed streams per slot:
+      - Identity seed `_identity_rng(key)` (no run_ts): row count, institution,
+        account type, link date, risk tier and rate. A customer keeps the same
+        held-away accounts at the same institutions month after month.
+      - Monthly seed `seed_for(f"{account_id}_slot{i}", "plaid", run_ts)`:
+        the balance drift around the slot's base, connection health, last
+        transaction date and net flow.
 
     HELD_AWAY_ACCOUNT_ID = sha256(f"{account_id}_slot{i}_plaid")[:16] hex —
     NO run_ts in the hash, so the value is constant across all months for the
@@ -198,38 +225,40 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
     birthdate  = anchor.get("BIRTHDATE")
     client_cat = anchor.get("CLIENT_CATEGORY") or ""
 
-    # Parent-level seed (drives row_count, doesn't change per slot).
-    parent_seed = seed_for(account_id, DATASET_SALT, run_ts)
-    parent_rng = random.Random(parent_seed)
+    # Identity-level stream (drives row_count; no run_ts, so it holds across months).
+    parent_rng = _identity_rng(account_id)
 
-    age = _age_from_birthdate(birthdate, run_ts.date())
+    # Age bands are read at the fixed link reference so identity attributes
+    # don't flip when a birthday crosses a band edge between months.
+    age = _age_from_birthdate(birthdate, _LINK_REFERENCE)
     n = _row_count(income, age, client_cat, parent_rng)
 
     month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     rows: list[dict] = []
     for slot in range(n):
-        # Per-slot seed — independent stream per slot.
-        slot_seed = seed_for(f"{account_id}_slot{slot}", DATASET_SALT, run_ts)
-        slot_rng = random.Random(slot_seed)
+        # Per-slot streams: identity (stable) and monthly (month-bucketed).
+        id_rng = _identity_rng(f"{account_id}_slot{slot}")
+        slot_rng = random.Random(seed_for(f"{account_id}_slot{slot}", DATASET_SALT, run_ts))
 
         # Identity-stable hash — NO run_ts in the key.
         held_away_id = hashlib.sha256(
             f"{account_id}_slot{slot}_plaid".encode()
         ).hexdigest()[:16]
 
-        institution_name, institution_type = slot_rng.choice(_INSTITUTIONS)
-        account_type = _account_type(institution_type, age, slot_rng)
-        balance      = _balance(account_type, income, age, client_cat, slot_rng)
-        # Pass month_start (not raw run_ts) to date-arithmetic helpers so
-        # mid-month re-runs produce byte-identical rows. The seed is
-        # month-bucketed but the arithmetic on run_ts.date() is not.
-        last_linked  = _last_linked_date(month_start, slot_rng)
+        # Identity attributes — drawn in a fixed order from id_rng.
+        institution_name, institution_type = _institution(id_rng)
+        account_type = _account_type(institution_type, age, id_rng)
+        base_balance = _balance(account_type, income, age, client_cat, id_rng)
+        last_linked  = _last_linked_date(id_rng)
+        risk_tier    = _investment_risk_tier(account_type, age, id_rng)
+        rate         = _interest_rate(account_type, id_rng)
+        # Monthly attributes. Pass month_start (not raw run_ts) to date
+        # arithmetic so mid-month re-runs produce byte-identical rows.
+        balance      = _drift_balance(base_balance, account_type, slot_rng)
         is_active    = _is_active(slot_rng)
         last_txn     = _last_txn_date(is_active, month_start, slot_rng)
         monthly_flow = _monthly_net_flow(is_active, account_type, balance, slot_rng)
-        risk_tier    = _investment_risk_tier(account_type, age, slot_rng)
-        rate         = _interest_rate(account_type, slot_rng)
 
         rows.append({
             # v1.x multi-org-additive: ORG_ID leads EVERY emitted record (1:N
@@ -244,6 +273,7 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
             "INSTITUTION_TYPE":      institution_type,
             "ACCOUNT_TYPE":          account_type,
             "BALANCE_USD":           balance,
+            "BALANCE_CATEGORY":      "liability" if account_type in _LIABILITY_TYPES else "asset",
             "LAST_LINKED_DATE":      last_linked,
             "IS_ACTIVE":             is_active,
             "LAST_TRANSACTION_DATE": last_txn,
@@ -261,6 +291,19 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
 # -------------------------------------------------------------------
 # Bias-logic helpers — translate the rowspec faithfully
 # -------------------------------------------------------------------
+
+def _identity_rng(key: str) -> random.Random:
+    """Month-independent stream: sha256(key|plaid_identity), no run_ts."""
+    return random.Random(hashlib.sha256(f"{key}|{IDENTITY_SALT}".encode()).digest())
+
+
+def _institution(rng: random.Random) -> tuple[str, str]:
+    """(INSTITUTION_NAME, INSTITUTION_TYPE): type first, then name within type."""
+    types, type_weights = zip(*_INSTITUTION_TYPE_WEIGHTS)
+    institution_type = rng.choices(types, weights=type_weights)[0]
+    names, name_weights = zip(*_INSTITUTIONS[institution_type])
+    return rng.choices(names, weights=name_weights)[0], institution_type
+
 
 def _age_from_birthdate(birthdate: Any, today: date) -> int:
     """Tolerate ISO string, datetime, date, or None inputs."""
@@ -309,7 +352,8 @@ def _account_type(institution_type: str, age: int,
         pool = ["Checking", "Savings", "Credit Card", "Auto Loan"]
         weights = [0.35, 0.30, 0.20, 0.15]
     elif institution_type == "Robo-Advisor":
-        pool = ["Brokerage", "IRA"]
+        # Robo accounts are managed portfolios, never self-directed "Brokerage".
+        pool = ["Managed Portfolio", "IRA"]
         weights = [0.65, 0.35]
     else:  # Crypto Exchange
         return "Crypto Wallet"
@@ -318,7 +362,8 @@ def _account_type(institution_type: str, age: int,
 
 def _balance(account_type: str, income: float, age: int,
              client_cat: str, rng: random.Random) -> float:
-    """Balance ranges differ wildly by account_type. Loans return negative."""
+    """Base balance for the slot (positive). Ranges differ wildly by account_type;
+    for liabilities it is the amount owed."""
     is_wealth = client_cat == "Wealth Management"
     if income >= 250_000:
         income_mult = 3.0
@@ -333,7 +378,7 @@ def _balance(account_type: str, income: float, age: int,
         base = rng.uniform(500, 25_000)
     elif account_type == "Savings":
         base = rng.uniform(1_000, 80_000)
-    elif account_type == "Brokerage":
+    elif account_type in ("Brokerage", "Managed Portfolio"):
         base = rng.uniform(5_000, 800_000) * (2.0 if is_wealth else 1.0)
     elif account_type == "IRA":
         # IRA accumulates with age.
@@ -345,12 +390,11 @@ def _balance(account_type: str, income: float, age: int,
     elif account_type == "HSA":
         base = rng.uniform(500, 12_000)
     elif account_type == "Credit Card":
-        # Credit-card balance is debt — negative.
-        return -round(rng.uniform(0, 18_000), 2)
+        return round(rng.uniform(0, 18_000), 2)
     elif account_type == "Mortgage":
-        return -round(rng.uniform(50_000, 1_200_000) * income_mult, 2)
+        return round(rng.uniform(50_000, 1_200_000) * income_mult, 2)
     elif account_type == "Auto Loan":
-        return -round(rng.uniform(3_000, 65_000), 2)
+        return round(rng.uniform(3_000, 65_000), 2)
     else:  # Crypto Wallet — long tail, mostly small balances.
         base = rng.choices(
             [rng.uniform(50, 2_500), rng.uniform(2_500, 30_000),
@@ -360,13 +404,26 @@ def _balance(account_type: str, income: float, age: int,
     return round(min(10_000_000, base * income_mult), 2)
 
 
-def _last_linked_date(run_ts: datetime, rng: random.Random) -> date:
-    """Connection age 1-48 months ago, mode ~12 months."""
+def _drift_balance(base: float, account_type: str, rng: random.Random) -> float:
+    """This month's balance: the slot's base with a small monthly move.
+    Assets move -3%..+4%; liabilities -2%..+1% (paydown bias); cards swing more."""
+    if account_type == "Credit Card":
+        factor = rng.uniform(0.6, 1.4)
+    elif account_type in _LIABILITY_TYPES:
+        factor = rng.uniform(0.98, 1.01)
+    else:
+        factor = rng.uniform(0.97, 1.04)
+    return round(min(10_000_000, base * factor), 2)
+
+
+def _last_linked_date(rng: random.Random) -> date:
+    """Connection date 1-48 months before _LINK_REFERENCE, mode ~12 months.
+    Identity-stable: the same slot keeps the same link date every month."""
     months_ago = rng.choices(
         range(1, 49),
         weights=[max(1, 50 - abs(m - 12)) for m in range(1, 49)],
     )[0]
-    return run_ts.date().replace(day=1) - timedelta(days=months_ago * 30)
+    return _LINK_REFERENCE - timedelta(days=months_ago * 30)
 
 
 def _is_active(rng: random.Random) -> bool:
@@ -391,12 +448,12 @@ def _monthly_net_flow(is_active: bool, account_type: str, balance: float,
         return None
     if account_type in ("Mortgage", "Auto Loan"):
         # Loans: monthly principal+interest payment outflow (4-7% of balance/12).
-        return -round(abs(balance) * rng.uniform(0.04, 0.07) / 12, 2)
+        return -round(balance * rng.uniform(0.04, 0.07) / 12, 2)
     if account_type == "Credit Card":
         return round(rng.uniform(-1500, 800), 2)  # mix of charges + payoffs
     if account_type in ("Checking", "Savings"):
         return round(rng.uniform(-3000, 5000), 2)
-    if account_type in ("Brokerage", "IRA", "401k"):
+    if account_type in ("Brokerage", "Managed Portfolio", "IRA", "401k"):
         return round(rng.uniform(-500, 2500), 2)  # contributions skew positive
     return round(rng.uniform(-200, 600), 2)  # HSA, Crypto
 
@@ -428,7 +485,7 @@ def _interest_rate(account_type: str, rng: random.Random) -> float | None:
         return round(rng.uniform(4.00, 12.00), 3)
     if account_type == "Credit Card":
         return round(rng.uniform(14.00, 28.00), 3)
-    return None  # Checking, Brokerage, IRA, 401k, HSA, Crypto
+    return None  # Checking, Brokerage, Managed Portfolio, IRA, 401k, HSA, Crypto
 
 
 # -------------------------------------------------------------------
@@ -437,7 +494,8 @@ def _interest_rate(account_type: str, rng: random.Random) -> float | None:
 # -------------------------------------------------------------------
 
 def _merge(session: Any, records: list[dict]) -> int:
-    """MERGE records into TABLE. Returns rows MERGED.
+    """MERGE records into TABLE, then delete the month's stale slots.
+    Returns rows written (inserted + updated).
 
     Implementation: write_pandas -> staging table -> MERGE statement.
     The staging table is overwrite-truncated each call so re-runs produce
@@ -464,7 +522,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     # v1.x multi-org-additive: ORG_ID is part of the join eligibility; we
@@ -481,6 +539,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 INSTITUTION_TYPE,
                 ACCOUNT_TYPE,
                 BALANCE_USD,
+                BALANCE_CATEGORY,
                 LAST_LINKED_DATE,
                 IS_ACTIVE::BOOLEAN AS IS_ACTIVE,
                 LAST_TRANSACTION_DATE,
@@ -499,6 +558,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             INSTITUTION_TYPE      = src.INSTITUTION_TYPE,
             ACCOUNT_TYPE          = src.ACCOUNT_TYPE,
             BALANCE_USD           = src.BALANCE_USD,
+            BALANCE_CATEGORY      = src.BALANCE_CATEGORY,
             LAST_LINKED_DATE      = src.LAST_LINKED_DATE,
             IS_ACTIVE             = src.IS_ACTIVE,
             LAST_TRANSACTION_DATE = src.LAST_TRANSACTION_DATE,
@@ -509,16 +569,30 @@ def _merge(session: Any, records: list[dict]) -> int:
         WHEN NOT MATCHED THEN INSERT (
             ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH,
             INSTITUTION_NAME, INSTITUTION_TYPE, ACCOUNT_TYPE,
-            BALANCE_USD, LAST_LINKED_DATE, IS_ACTIVE,
+            BALANCE_USD, BALANCE_CATEGORY, LAST_LINKED_DATE, IS_ACTIVE,
             LAST_TRANSACTION_DATE, MONTHLY_NET_FLOW_USD,
             INVESTMENT_RISK_TIER, INTEREST_RATE_PCT, GENERATED_AT
         ) VALUES (
             src.ORG_ID, src.ACCOUNT_ID, src.HELD_AWAY_ACCOUNT_ID, src.PROFILE_MONTH,
             src.INSTITUTION_NAME, src.INSTITUTION_TYPE, src.ACCOUNT_TYPE,
-            src.BALANCE_USD, src.LAST_LINKED_DATE, src.IS_ACTIVE,
+            src.BALANCE_USD, src.BALANCE_CATEGORY, src.LAST_LINKED_DATE, src.IS_ACTIVE,
             src.LAST_TRANSACTION_DATE, src.MONTHLY_NET_FLOW_USD,
             src.INVESTMENT_RISK_TIER, src.INTEREST_RATE_PCT, src.GENERATED_AT
         )
     """
     rows = session.sql(merge_sql).collect()
-    return int(rows[0][0]) if rows else len(records)
+
+    # Replace the month exactly: drop slots an earlier run of the same month
+    # wrote that this run no longer emits (row counts can differ between
+    # generator versions).
+    session.sql(f"""
+        DELETE FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY tgt
+        WHERE tgt.PROFILE_MONTH IN (SELECT DISTINCT PROFILE_MONTH FROM DATA_JEDAIS.FINS__PUBLIC.{staging})
+          AND NOT EXISTS (
+              SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.{staging} s
+              WHERE s.ORG_ID = tgt.ORG_ID AND s.ACCOUNT_ID = tgt.ACCOUNT_ID
+                AND s.HELD_AWAY_ACCOUNT_ID = tgt.HELD_AWAY_ACCOUNT_ID
+                AND s.PROFILE_MONTH = tgt.PROFILE_MONTH)
+    """).collect()
+    # MERGE returns (rows inserted, rows updated); report both as rows written.
+    return int(rows[0][0]) + int(rows[0][1]) if rows else len(records)

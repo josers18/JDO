@@ -145,28 +145,37 @@ Still open:
 Owner gap (CRM side, not Snowflake): 684 D&B-keyed accounts have a null `OwnerId` in
 `ssot__Account`, so they appear in no banker's book.
 
-## 6. Plaid held-away (`BT_Plaid_Held_Away`)
+## 6. Plaid held-away (`BT_Plaid_Held_Away`): ✅ generator v2 2026-10-24
 
-Monthly snapshots, the same 25,381 accounts every month (~55K rows/month; 4,377 inactive).
-The Wealth cockpit reads active Brokerage + Robo-Advisor rows with positive balances.
+Was: liabilities were stored as negative balances, Robo-Advisor rows carried `account_type = 'Brokerage'`,
+the 20 institutions were uniform (~2.8K rows each), and each month redrew every customer's institutions and
+account types (38,358 of 40,330 September→October pairs changed institution).
 
-1. **Add an asset/liability category.** Liabilities are stored as negative balances
-   under institution_type Bank/Credit Union:
-   - Credit Card: 4,547 Bank + 1,621 CU.
-   - Mortgage: 3,335.
-   - Auto Loan: 2,250 Bank + 1,321 CU.
+Done (project `Snowflake_Plaid_HeldAway`, SP `SP_GENERATE_PLAID_HELD_AWAY` v2; all six months May–October
+regenerated, 55,247 rows / 25,381 accounts each):
+- **Positive balances plus `BALANCE_CATEGORY`** (`asset` / `liability`). Credit Card, Mortgage and Auto Loan are
+  `liability` (12,070 rows a month); the balance is the amount owed. 0 negative balances in every month.
+  Net worth = `SUM(asset) − SUM(liability)`.
+- **Account type follows institution type.** Robo-Advisor rows are `Managed Portfolio` or `IRA`; 0 are `Brokerage`.
+  `institution_type` values are unchanged, so the Wealth cockpit filters still work.
+- **Nulls are by design** and the column comments say so: `investment_risk_tier` is null unless the account type
+  is Brokerage / Managed Portfolio / IRA / 401k / HSA, and `interest_rate_pct` is null unless Savings / Mortgage /
+  Auto Loan / Credit Card. They stay NULL (no `N/A`: the rate column is numeric).
+- **Weighted institutions.** October Brokerage: Fidelity 5,486, Schwab 4,652, Vanguard 4,259, E*TRADE 1,316,
+  Robinhood 923. Bank: Chase 5,467 down to Ally 632. The type mix stayed close to before.
+- **Stable from month to month.** Each customer keeps the same held-away accounts, institutions, account types,
+  link dates, risk tiers and rates. September→October: 0 of 55,247 pairs changed institution or type, and balances
+  moved by a median of 2%. Activity (`is_active`, about 4.4K inactive a month) and net flow still vary monthly.
+- Live in the DMO: every month reads 55,247 rows and 25,381 accounts, with 0 negative balances and 0 Robo `Brokerage` rows.
+- Sanity: no future link or transaction dates; max balance $7.39M (June).
+- Rollback: `PLAID_HELD_AWAY_BAK_20261024`.
 
-   Add `balance_category` (`asset` / `liability`), and store balances as positive amounts with the category.
-2. **Type consistency.** `account_type = 'Brokerage'` appears under institution_type
-   Robo-Advisor. Constrain account_type per institution_type.
-3. **Nulls by design.** `investment_risk_tier` is null on non-investment rows, and
-   `interest_rate` is null on investment/checking rows. That's fine, but make it explicit
-   (or `N/A`) so consumers don't treat it as missing data.
-4. **Distribution realism.** Each institution has ~2.8K rows (perfectly uniform). Skew
-   toward the big custodians (Fidelity, Schwab, Vanguard).
-5. **Coverage is persons only.** Business held-away (treasury and operating accounts at
-   other banks) would power a Commercial deposit-capture signal. Add it if desired.
-6. Sanity checks pass: there are no future dates, and the max balance is $7.18M (401k).
+Still open:
+- **DC mapping:** `BALANCE_CATEGORY` is in Snowflake but not yet in the stream / DMO (`balance_category__c`).
+  Until it's mapped, liabilities read as positive balances with no category. Every current cockpit reader
+  filters to asset types, so nothing on screen changes.
+- **Business held-away (optional).** Coverage is still persons only. Treasury and operating accounts at other
+  banks would power a Commercial deposit-capture signal.
 
 ## 7. Financial transactions: key them to FinServ financial accounts: ✅ done 2026-10-22
 

@@ -12,7 +12,7 @@ Five property classes per rowspec §"Anchor-influence test target":
      b. Income -> balance shift (high vs low income)
      c. Age -> investment risk shift (older = more Conservative)
      d. Wealth -> row count shift (Wealth >= 2x Retail)
-  5. Schema contract — output dict keys EXACTLY match the 14 table columns
+  5. Schema contract — output dict keys EXACTLY match the 16 generated columns
      plus EXPECTED_OUTPUT_COLUMNS in the SP module matches.
 
 Plus bonus tests:
@@ -21,8 +21,10 @@ Plus bonus tests:
   - Sorted output by HELD_AWAY_ACCOUNT_ID
   - Active ratio approximately right (~92%)
   - NULL semantics (IS_ACTIVE=false; investment-only fields; rate-only fields)
-  - Loan accounts have negative balance
-  - Institution-type cohesion
+  - Balances positive; BALANCE_CATEGORY = liability exactly for loans/cards
+  - Institution-type cohesion; Robo-Advisor never emits "Brokerage"
+  - Identity attributes stable across months; balances drift
+  - Institution mix skews to the big custodians
 """
 from datetime import datetime
 from statistics import mean
@@ -39,7 +41,7 @@ from sp_generate_plaid_held_away import (
 
 # Loan and investment account-type sets used by multiple tests.
 _LOAN_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
-_INVESTMENT_TYPES = {"Brokerage", "IRA", "401k", "HSA"}
+_INVESTMENT_TYPES = {"Brokerage", "IRA", "401k", "HSA", "Managed Portfolio"}
 _RATE_BEARING = {"Savings", "Mortgage", "Auto Loan", "Credit Card"}
 
 
@@ -274,8 +276,6 @@ def test_4e_held_away_account_id_stable_across_months(in_audience_anchors):
         # Both must have at least one row (per audience contract).
         if not may or not june:
             continue
-        # Row-count CAN change month-to-month (parent_seed changes), so we
-        # find the slot-0 hash deterministically rather than relying on len.
         # Slot 0 hash is sha256("{account_id}_slot0_plaid")[:16]; it must
         # appear in both lists.
         import hashlib
@@ -301,14 +301,14 @@ EXPECTED_KEYS = {
     "ORG_ID",
     "ACCOUNT_ID", "HELD_AWAY_ACCOUNT_ID", "PROFILE_MONTH",
     "INSTITUTION_NAME", "INSTITUTION_TYPE", "ACCOUNT_TYPE",
-    "BALANCE_USD", "LAST_LINKED_DATE", "IS_ACTIVE",
+    "BALANCE_USD", "BALANCE_CATEGORY", "LAST_LINKED_DATE", "IS_ACTIVE",
     "LAST_TRANSACTION_DATE", "MONTHLY_NET_FLOW_USD",
     "INVESTMENT_RISK_TIER", "INTEREST_RATE_PCT", "GENERATED_AT",
 }
 
 
 def test_output_schema_matches_table(in_audience_anchors):
-    """Each row's keys EXACTLY match the 14 table columns."""
+    """Each row's keys EXACTLY match the 16 generated columns (RECORD_ID is a table default)."""
     if not in_audience_anchors:
         pytest.skip("empty audience")
     rows = _rows_for(in_audience_anchors[0], datetime(2026, 5, 1))
@@ -445,27 +445,26 @@ def test_interest_rate_null_unless_rate_bearing(in_audience_anchors):
                     )
 
 
-def test_loan_accounts_have_negative_balance(in_audience_anchors):
-    """Mortgage / Auto Loan / Credit Card rows have BALANCE_USD < 0."""
+def test_balances_positive_with_category(in_audience_anchors):
+    """BALANCE_USD >= 0 on every row; BALANCE_CATEGORY is 'liability' exactly
+    for Mortgage / Auto Loan / Credit Card and 'asset' otherwise."""
     if not in_audience_anchors:
         pytest.skip("empty audience")
-    seen = 0
+    liabilities = 0
     for anchor in in_audience_anchors:
         for m in range(1, 13):
             for r in _rows_for(anchor, datetime(2026, m, 1)):
-                if r["ACCOUNT_TYPE"] in _LOAN_TYPES:
-                    assert r["BALANCE_USD"] < 0, (
-                        f"{r['ACCOUNT_TYPE']} has non-negative balance: "
-                        f"{r['BALANCE_USD']!r}"
-                    )
-                    seen += 1
-    assert seen >= 3, f"too few loan rows seen ({seen}) — distribution off"
+                assert r["BALANCE_USD"] >= 0, r
+                expected = "liability" if r["ACCOUNT_TYPE"] in _LOAN_TYPES else "asset"
+                assert r["BALANCE_CATEGORY"] == expected, r
+                liabilities += expected == "liability"
+    assert liabilities >= 3, f"too few liability rows seen ({liabilities})"
 
 
 def test_institution_type_cohesion(in_audience_anchors):
-    """`_INSTITUTIONS` mapping is respected: each (name, type) pair in the
-    output must match the canonical mapping."""
-    canonical = dict(_INSTITUTIONS)
+    """Each (name, type) pair in the output matches the canonical mapping,
+    and Robo-Advisor rows never carry the self-directed "Brokerage" type."""
+    canonical = {name: t for t, pool in _INSTITUTIONS.items() for name, _ in pool}
     if not in_audience_anchors:
         pytest.skip("empty audience")
     seen_names = set()
@@ -481,9 +480,49 @@ def test_institution_type_cohesion(in_audience_anchors):
                     f"{name} has type {r['INSTITUTION_TYPE']!r}, "
                     f"expected {expected_type!r}"
                 )
+                if expected_type == "Robo-Advisor":
+                    assert r["ACCOUNT_TYPE"] in {"Managed Portfolio", "IRA"}, r
                 seen_names.add(name)
     # Should sample many institutions across the audience.
     assert len(seen_names) >= 10, (
         f"only {len(seen_names)} distinct institutions seen — "
         f"distribution looks narrow"
     )
+
+
+_IDENTITY_FIELDS = ("INSTITUTION_NAME", "INSTITUTION_TYPE", "ACCOUNT_TYPE",
+                    "LAST_LINKED_DATE", "INVESTMENT_RISK_TIER", "INTEREST_RATE_PCT",
+                    "BALANCE_CATEGORY")
+
+
+def test_identity_attributes_stable_across_months(in_audience_anchors):
+    """Same anchor in May and October: same slots, and each slot keeps its
+    institution, type, link date, risk tier and rate. Balances move."""
+    if not in_audience_anchors:
+        pytest.skip("empty audience")
+    moved = 0
+    for anchor in in_audience_anchors:
+        may = {r["HELD_AWAY_ACCOUNT_ID"]: r for r in _rows_for(anchor, datetime(2026, 5, 1))}
+        october = {r["HELD_AWAY_ACCOUNT_ID"]: r for r in _rows_for(anchor, datetime(2026, 10, 1))}
+        assert may.keys() == october.keys(), anchor["ACCOUNT_ID"]
+        for key, a in may.items():
+            b = october[key]
+            for field in _IDENTITY_FIELDS:
+                assert a[field] == b[field], (anchor["ACCOUNT_ID"], field, a[field], b[field])
+            assert b["LAST_LINKED_DATE"] <= datetime(2026, 5, 1).date()
+            moved += a["BALANCE_USD"] != b["BALANCE_USD"]
+    assert moved > 0, "balances never drift between months"
+
+
+def test_institution_mix_skews_to_big_custodians(in_audience_anchors):
+    """Within Brokerage rows, Fidelity + Schwab + Vanguard hold most of the share."""
+    if not in_audience_anchors:
+        pytest.skip("empty audience")
+    brokerage = [r["INSTITUTION_NAME"]
+                 for anchor in in_audience_anchors
+                 for r in _rows_for(anchor, datetime(2026, 5, 1))
+                 if r["INSTITUTION_TYPE"] == "Brokerage"]
+    if len(brokerage) < 20:
+        pytest.skip(f"only {len(brokerage)} brokerage rows in fixture")
+    big = sum(n in {"Fidelity", "Charles Schwab", "Vanguard"} for n in brokerage)
+    assert big / len(brokerage) >= 0.7, f"big-3 share {big / len(brokerage):.0%}"

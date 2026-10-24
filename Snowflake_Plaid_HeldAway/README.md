@@ -4,7 +4,7 @@ Synthetic Plaid-style held-away financial accounts per Retail/Wealth anchor for 
 [Snowflake_CoreLogic_Property](../Snowflake_CoreLogic_Property) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
-**Plan 6 is account-scoped with monthly cadence — the first 1:N dataset in the Cumulus rollout.** Each anchor produces 1–5 held-away account rows. Rows are keyed by composite PK `(ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)` (~52,300 rows/month at mean ~2.06 rows/anchor). The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK is the single-column `heldAwayAccountId__c` with `accountId__c` and `profileMonth__c` as KQ qualifiers.
+**Plan 6 is account-scoped with monthly cadence — the first 1:N dataset in the Cumulus rollout.** Each anchor produces 1–5 held-away account rows. Rows are keyed by composite PK `(ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)` (~55,000 rows/month). Each customer keeps the same held-away accounts every month; balances drift and are always positive, with `BALANCE_CATEGORY` = asset/liability. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK is the single-column `heldAwayAccountId__c` with `accountId__c` and `profileMonth__c` as KQ qualifiers.
 
 ## Plan
 - Plan 6, instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -14,9 +14,9 @@ Synthetic Plaid-style held-away financial accounts per Retail/Wealth anchor for 
 
 ## Snowflake objects
 - Table: `DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY`
-- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY()`
-- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
-- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusPlaidHeldAway__dll` → DMO `CumulusPlaidHeldAway__dlm`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY(RUN_MONTH DATE DEFAULT NULL)` (`EXECUTE AS OWNER`; pass a month to regenerate it)
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_PLAID_HELD_AWAY` (MONTHLY, `35 3 1 * * America/New_York`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Egress: DC "Snowflake (Federate / Zero Copy)" connector → stream `BT_Plaid_Held_Away` → DMO `BT_Plaid_Held_Away__dlm`
 
 ## Audience
 **Account-scoped** — enrolls Retail + Wealth Management anchors:
@@ -27,7 +27,7 @@ FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 WHERE CLIENT_CATEGORY IN ('Retail', 'Wealth Management')
 ```
 
-Live cardinality (probed 2026-05-28): **25,381 anchors** (Retail 21,461 + Wealth Management 3,920). BIRTHDATE and ANNUAL_INCOME both 100% populated on this audience. Each anchor emits 1–5 held-away rows per month — expected mean ~2.06 → **~52,300 rows/month** (largest Cumulus table to date).
+Live cardinality (probed 2026-05-28): **25,381 anchors** (Retail 21,461 + Wealth Management 3,920). BIRTHDATE and ANNUAL_INCOME both 100% populated on this audience. Each anchor emits 1–5 held-away rows per month — ~55,000 rows/month live (largest Cumulus table to date).
 
 ## Tests
 ```bash
@@ -40,6 +40,7 @@ pytest tests/ -v
 ## Deploy
 ```bash
 snow sql -f schemas/plaid_held_away.sql
+python scripts/deploy_sp.py --no-deploy      # rebuilds procedures/sp_create_procedure.sql
 snow sql -f procedures/sp_create_procedure.sql
 snow sql -f tasks/task_monthly_plaid_held_away.sql
 ```
