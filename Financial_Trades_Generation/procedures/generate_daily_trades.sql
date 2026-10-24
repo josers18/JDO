@@ -5,8 +5,10 @@
 --            based on their configured frequency (DAILY/WEEKLY/MONTHLY).
 --            Reads from INSTRUMENT_UNIVERSE and TRADE_GENERATION_CONFIG,
 --            applies risk-based price jitter, exchange/currency weighting,
---            and batch-inserts into FINANCIAL_TRADES (500 rows per batch).
+--            and batch-inserts into FINANCIAL_TRADES (5,000 rows per batch).
 --            Updates LAST_GENERATED_DATE on each processed account.
+--            Only active configs with a Salesforce Account Id (ACCOUNT_ID LIKE '001%')
+--            get trades; non-Account keys such as the old TRD-xxx are skipped.
 -- Called by: DAILY_TRADE_GENERATOR task (1:00 AM ET)
 -- Language:  Python 3.11 (Snowpark)
 -- Execution: EXECUTE AS OWNER
@@ -25,19 +27,19 @@ import uuid
 import time
 from datetime import date, datetime, timedelta, timezone
 
-EXCHANGES = [""NYSE"", ""NASDAQ"", ""LSE"", ""HKEX"", ""JPX""]
+EXCHANGES = ["NYSE", "NASDAQ", "LSE", "HKEX", "JPX"]
 SOURCE_SYSTEMS = [
-    ""Bloomberg"", ""E*TRADE"", ""Fidelity Investments"", ""Interactive Brokers"",
-    ""Charles Schwab"", ""TD Ameritrade"", ""TradeStation"", ""SimCorp"",
-    ""FlexTrade"", ""AlgoTrader"", ""QuantConnect"", ""Rithmic"", ""CQG"",
-    ""IG Group"", ""Saxo Bank"", ""Plus500"", ""Robinhood"", ""Reuters"",
-    ""X_TRADER"", ""OANDA"",
+    "Bloomberg", "E*TRADE", "Fidelity Investments", "Interactive Brokers",
+    "Charles Schwab", "TD Ameritrade", "TradeStation", "SimCorp",
+    "FlexTrade", "AlgoTrader", "QuantConnect", "Rithmic", "CQG",
+    "IG Group", "Saxo Bank", "Plus500", "Robinhood", "Reuters",
+    "X_TRADER", "OANDA",
 ]
-TRADE_TYPES = [""Market Order"", ""Limit Order"", ""Stop Order""]
-TRADE_CONDITIONS = [""None"", ""FOK"", ""IOC""]
-TRADE_STATUSES = [""Pending"", ""Confirmed"", ""Cancelled""]
+TRADE_TYPES = ["Market Order", "Limit Order", "Stop Order"]
+TRADE_CONDITIONS = ["None", "FOK", "IOC"]
+TRADE_STATUSES = ["Pending", "Confirmed", "Cancelled"]
 STATUS_WEIGHTS = [2, 6, 2]
-CURRENCIES = [""USD"", ""EUR"", ""GBP""]
+CURRENCIES = ["USD", "EUR", "GBP"]
 
 
 def _weighted_choice(rng, population, weights):
@@ -55,18 +57,18 @@ def _add_weekdays(d, n):
 
 
 def _pick_exchange(rng, ticker):
-    european = {""BP"", ""RDSA""}
+    european = {"BP", "RDSA"}
     if ticker in european:
         return _weighted_choice(rng, EXCHANGES, [1, 1, 4, 1, 1])
     return _weighted_choice(rng, EXCHANGES, [4, 4, 2, 1, 1])
 
 
 def _pick_currency(rng, exchange):
-    if exchange in (""NYSE"", ""NASDAQ""):
+    if exchange in ("NYSE", "NASDAQ"):
         return _weighted_choice(rng, CURRENCIES, [8, 1, 1])
-    if exchange == ""LSE"":
+    if exchange == "LSE":
         return _weighted_choice(rng, CURRENCIES, [3, 2, 4])
-    if exchange == ""HKEX"":
+    if exchange == "HKEX":
         return _weighted_choice(rng, CURRENCIES, [6, 1, 1])
     return _weighted_choice(rng, CURRENCIES, [5, 2, 1])
 
@@ -91,18 +93,18 @@ def _fees(rng, total):
 def _to_iso_z(dt):
     micro = dt.microsecond - dt.microsecond % 1000
     dt = dt.replace(microsecond=micro)
-    return dt.strftime(""%Y-%m-%dT%H:%M:%S."") + f""{dt.microsecond // 1000:03d}Z""
+    return dt.strftime("%Y-%m-%dT%H:%M:%S.") + f"{dt.microsecond // 1000:03d}Z"
 
 
 def _is_due(frequency, last_gen_date, today):
     if last_gen_date is None:
         return True
-    if frequency == ""DAILY"":
+    if frequency == "DAILY":
         return last_gen_date < today
-    if frequency == ""WEEKLY"":
+    if frequency == "WEEKLY":
         days_since = (today - last_gen_date).days
         return days_since >= 7 or today.weekday() == 0
-    if frequency == ""MONTHLY"":
+    if frequency == "MONTHLY":
         days_since = (today - last_gen_date).days
         return days_since >= 28 or today.day == 1
     return last_gen_date < today
@@ -111,7 +113,7 @@ def _is_due(frequency, last_gen_date, today):
 def _filter_instruments(instruments, preferred_sectors):
     if not preferred_sectors:
         return instruments
-    sectors = [s.strip() for s in preferred_sectors.split("","") if s.strip()]
+    sectors = [s.strip() for s in preferred_sectors.split(",") if s.strip()]
     if not sectors:
         return instruments
     filtered = [i for i in instruments if i[0] in sectors]
@@ -121,17 +123,17 @@ def _filter_instruments(instruments, preferred_sectors):
 def _filter_exchanges(exchanges, preferred_exchanges):
     if not preferred_exchanges:
         return exchanges
-    prefs = [e.strip() for e in preferred_exchanges.split("","") if e.strip()]
+    prefs = [e.strip() for e in preferred_exchanges.split(",") if e.strip()]
     filtered = [e for e in exchanges if e in prefs]
     return filtered if filtered else exchanges
 
 
 def _risk_params(risk_profile):
-    if risk_profile == ""Aggressive"":
-        return {""jitter"": 0.12, ""buy_weight"": 5, ""sell_weight"": 5}
-    if risk_profile == ""Conservative"":
-        return {""jitter"": 0.04, ""buy_weight"": 6, ""sell_weight"": 4}
-    return {""jitter"": 0.08, ""buy_weight"": 5, ""sell_weight"": 5}
+    if risk_profile == "Aggressive":
+        return {"jitter": 0.12, "buy_weight": 5, "sell_weight": 5}
+    if risk_profile == "Conservative":
+        return {"jitter": 0.04, "buy_weight": 6, "sell_weight": 4}
+    return {"jitter": 0.08, "buy_weight": 5, "sell_weight": 5}
 
 
 def generate_trade(rng, account_id, trade_day, instrument, risk, max_val, avail_exchanges):
@@ -142,7 +144,7 @@ def generate_trade(rng, account_id, trade_day, instrument, risk, max_val, avail_
         exchange = rng.choice(avail_exchanges)
     currency = _pick_currency(rng, exchange)
 
-    price = _shake_price(rng, base_price, risk[""jitter""])
+    price = _shake_price(rng, base_price, risk["jitter"])
     qty = _pick_quantity(rng, price, max_val)
     total = round(qty * price, 2)
 
@@ -154,7 +156,7 @@ def generate_trade(rng, account_id, trade_day, instrument, risk, max_val, avail_
     hour = rng.randint(9, 16)
     minute = rng.randint(0, 59)
     second = rng.randint(0, 59)
-    trade_time = f""{hour:02d}:{minute:02d}:{second:02d}""
+    trade_time = f"{hour:02d}:{minute:02d}:{second:02d}"
 
     trade_dt = datetime(trade_day.year, trade_day.month, trade_day.day,
                         hour, minute, second, tzinfo=timezone.utc)
@@ -164,43 +166,62 @@ def generate_trade(rng, account_id, trade_day, instrument, risk, max_val, avail_
     snap_delay = timedelta(seconds=rng.randint(30, 12 * 3600))
     snapshot_dt = trade_dt + snap_delay
 
-    side = _weighted_choice(rng, [""Buy"", ""Sell""],
-                            [risk[""buy_weight""], risk[""sell_weight""]])
+    side = _weighted_choice(rng, ["Buy", "Sell"],
+                            [risk["buy_weight"], risk["sell_weight"]])
 
     return {
-        ""TRADE_ID"": str(uuid.uuid4()),
-        ""ORDER_ID"": str(uuid.uuid4()),
-        ""ACCOUNT_ID"": account_id,
-        ""TRADE_DATE"": _to_iso_z(trade_dt),
-        ""TRADE_TIME"": trade_time,
-        ""SETTLEMENT_DATE"": _to_iso_z(settlement_dt),
-        ""SNAPSHOT_DATE"": _to_iso_z(snapshot_dt),
-        ""INSTRUMENT_IDENTIFIER"": ticker,
-        ""INSTRUMENT_NAME"": name,
-        ""INSTRUMENT_CATEGORY"": category,
-        ""PRICE"": price,
-        ""QUANTITY"": qty,
-        ""TOTAL_TRADE"": total,
-        ""FEES"": fees,
-        ""TRADE_SIDE"": side,
-        ""TRADE_TYPE"": rng.choice(TRADE_TYPES),
-        ""TRADE_CONDITION"": rng.choice(TRADE_CONDITIONS),
-        ""TRADE_STATUS"": _weighted_choice(rng, TRADE_STATUSES, STATUS_WEIGHTS),
-        ""EXCHANGE"": exchange,
-        ""CURRENCY"": currency,
-        ""SOURCE_SYSTEM"": rng.choice(SOURCE_SYSTEMS),
-        ""COUNTERPARTY_BROKER_ID"": f""BRK{rng.randint(1000, 9999)}"",
-        ""REGULATORY_CODE"": f""REG{rng.randint(100, 999)}"",
-        ""COMMENTS"": ""Simulated trade"",
+        "TRADE_ID": str(uuid.uuid4()),
+        "ORDER_ID": str(uuid.uuid4()),
+        "ACCOUNT_ID": account_id,
+        "TRADE_DATE": _to_iso_z(trade_dt),
+        "TRADE_TIME": trade_time,
+        "SETTLEMENT_DATE": _to_iso_z(settlement_dt),
+        "SNAPSHOT_DATE": _to_iso_z(snapshot_dt),
+        "INSTRUMENT_IDENTIFIER": ticker,
+        "INSTRUMENT_NAME": name,
+        "INSTRUMENT_CATEGORY": category,
+        "PRICE": price,
+        "QUANTITY": qty,
+        "TOTAL_TRADE": total,
+        "FEES": fees,
+        "TRADE_SIDE": side,
+        "TRADE_TYPE": rng.choice(TRADE_TYPES),
+        "TRADE_CONDITION": rng.choice(TRADE_CONDITIONS),
+        "TRADE_STATUS": _weighted_choice(rng, TRADE_STATUSES, STATUS_WEIGHTS),
+        "EXCHANGE": exchange,
+        "CURRENCY": currency,
+        "SOURCE_SYSTEM": rng.choice(SOURCE_SYSTEMS),
+        "COUNTERPARTY_BROKER_ID": f"BRK{rng.randint(1000, 9999)}",
+        "REGULATORY_CODE": f"REG{rng.randint(100, 999)}",
+        "COMMENTS": "Simulated trade",
+        "CREATED_AT": _to_iso_z(datetime.now(timezone.utc)),
     }
+
+
+def _flush_batch(session, batch):
+    """Insert a batch of trades into FINANCIAL_TRADES."""
+    if not batch:
+        return
+    cols = list(batch[0].keys())
+    col_list = ", ".join(cols)
+    values_clauses = []
+    all_params = []
+    placeholders = ", ".join(["?"] * len(cols))
+    for t in batch:
+        values_clauses.append(f"({placeholders})")
+        for c in cols:
+            all_params.append(t[c])
+    values_sql = ", ".join(values_clauses)
+    insert_sql = f"INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ({col_list}) VALUES {values_sql}"
+    session.sql(insert_sql, params=all_params).collect()
 
 
 def log_execution(session, task_name, status, rows_inserted=0,
                   accounts_processed=0, error_message=None, duration_ms=0):
     session.sql(
-        ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
-        ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
-        ""VALUES (?, ?, ?, ?, ?, ?)"",
+        "INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG "
+        "(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
         params=[task_name, status, rows_inserted, accounts_processed,
                 error_message, duration_ms]
     ).collect()
@@ -208,46 +229,49 @@ def log_execution(session, task_name, status, rows_inserted=0,
 
 def generate_trades(session):
     start_time = time.time()
-    task_name = ""DAILY_TRADE_GENERATOR""
+    task_name = "DAILY_TRADE_GENERATOR"
     today = date.today()
     rng = random.Random()
+    BATCH_SIZE = 5000
 
     try:
         # Load instruments from reference table
         inst_rows = session.sql(
-            ""SELECT SECTOR, TICKER, INSTRUMENT_NAME, BASE_PRICE ""
-            ""FROM DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE""
+            "SELECT SECTOR, TICKER, INSTRUMENT_NAME, BASE_PRICE "
+            "FROM DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE"
         ).collect()
         INSTRUMENTS = [
-            (r[""SECTOR""], r[""TICKER""], r[""INSTRUMENT_NAME""], float(r[""BASE_PRICE""]))
+            (r["SECTOR"], r["TICKER"], r["INSTRUMENT_NAME"], float(r["BASE_PRICE"]))
             for r in inst_rows
         ]
 
         if not INSTRUMENTS:
-            log_execution(session, task_name, ""FAILED"", 0, 0,
-                          ""No instruments in INSTRUMENT_UNIVERSE"", 0)
-            return ""ERROR: INSTRUMENT_UNIVERSE table is empty.""
+            log_execution(session, task_name, "FAILED", 0, 0,
+                          "No instruments in INSTRUMENT_UNIVERSE", 0)
+            return "ERROR: INSTRUMENT_UNIVERSE table is empty."
 
         configs = session.sql(
-            ""SELECT ACCOUNT_ID, ACCOUNT_NAME, ACCOUNT_TYPE, FREQUENCY, ""
-            ""TRADES_PER_PERIOD, PREFERRED_SECTORS, PREFERRED_EXCHANGES, ""
-            ""RISK_PROFILE, MAX_TRADE_VALUE, LAST_GENERATED_DATE ""
-            ""FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG ""
-            ""WHERE ACTIVE = TRUE""
+            "SELECT ACCOUNT_ID, ACCOUNT_NAME, ACCOUNT_TYPE, FREQUENCY, "
+            "TRADES_PER_PERIOD, PREFERRED_SECTORS, PREFERRED_EXCHANGES, "
+            "RISK_PROFILE, MAX_TRADE_VALUE, LAST_GENERATED_DATE "
+            "FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG "
+            "WHERE ACTIVE = TRUE AND ACCOUNT_ID LIKE ''001%''"
         ).collect()
 
         if not configs:
-            log_execution(session, task_name, ""SUCCEEDED"", 0, 0, ""No active configs"",
+            log_execution(session, task_name, "SUCCEEDED", 0, 0, "No active configs",
                           int((time.time() - start_time) * 1000))
-            return ""No active configurations found.""
+            return "No active configurations found."
 
-        all_trades = []
+        total_rows = 0
         accounts_processed = 0
+        batch = []
+        accounts_to_update = []
 
         for row in configs:
-            acct_id = row[""ACCOUNT_ID""]
-            frequency = row[""FREQUENCY""] or ""DAILY""
-            last_gen = row[""LAST_GENERATED_DATE""]
+            acct_id = row["ACCOUNT_ID"]
+            frequency = row["FREQUENCY"] or "DAILY"
+            last_gen = row["LAST_GENERATED_DATE"]
 
             if isinstance(last_gen, datetime):
                 last_gen = last_gen.date()
@@ -256,11 +280,11 @@ def generate_trades(session):
                 continue
 
             accounts_processed += 1
-            trades_count = row[""TRADES_PER_PERIOD""] or 5
-            pref_sectors = row[""PREFERRED_SECTORS""]
-            pref_exchanges = row[""PREFERRED_EXCHANGES""]
-            risk_profile = row[""RISK_PROFILE""] or ""Moderate""
-            max_val = float(row[""MAX_TRADE_VALUE""] or 500000)
+            trades_count = row["TRADES_PER_PERIOD"] or 5
+            pref_sectors = row["PREFERRED_SECTORS"]
+            pref_exchanges = row["PREFERRED_EXCHANGES"]
+            risk_profile = row["RISK_PROFILE"] or "Moderate"
+            max_val = float(row["MAX_TRADE_VALUE"] or 500000)
 
             instruments = _filter_instruments(INSTRUMENTS, pref_sectors)
             avail_exchanges = _filter_exchanges(EXCHANGES, pref_exchanges)
@@ -270,46 +294,52 @@ def generate_trades(session):
                 inst = rng.choice(instruments)
                 trade = generate_trade(rng, acct_id, today, inst, risk,
                                        max_val, avail_exchanges)
-                all_trades.append(trade)
+                batch.append(trade)
 
+                # Flush batch when it reaches BATCH_SIZE
+                if len(batch) >= BATCH_SIZE:
+                    _flush_batch(session, batch)
+                    total_rows += len(batch)
+                    batch = []
+
+            accounts_to_update.append(acct_id)
+
+            # Update LAST_GENERATED_DATE in batches of 500 accounts
+            if len(accounts_to_update) >= 500:
+                ids_str = "'',''".join(accounts_to_update)
+                session.sql(
+                    f"UPDATE DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG "
+                    f"SET LAST_GENERATED_DATE = ''{today}'', LAST_UPDATED = CURRENT_TIMESTAMP() "
+                    f"WHERE ACCOUNT_ID IN (''{ids_str}'')"
+                ).collect()
+                accounts_to_update = []
+
+        # Flush remaining trades
+        if batch:
+            _flush_batch(session, batch)
+            total_rows += len(batch)
+
+        # Update remaining accounts
+        if accounts_to_update:
+            ids_str = "'',''".join(accounts_to_update)
             session.sql(
-                ""UPDATE DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG ""
-                ""SET LAST_GENERATED_DATE = ?, LAST_UPDATED = CURRENT_TIMESTAMP() ""
-                ""WHERE ACCOUNT_ID = ?"",
-                params=[str(today), acct_id]
+                f"UPDATE DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG "
+                f"SET LAST_GENERATED_DATE = ''{today}'', LAST_UPDATED = CURRENT_TIMESTAMP() "
+                f"WHERE ACCOUNT_ID IN (''{ids_str}'')"
             ).collect()
 
-        if all_trades:
-            cols = list(all_trades[0].keys())
-            values_clauses = []
-            all_params = []
-            for t in all_trades:
-                placeholders = "", "".join([""?""] * len(cols))
-                values_clauses.append(f""({placeholders})"")
-                for c in cols:
-                    all_params.append(t[c])
-
-            col_list = "", "".join(cols)
-            values_sql = "", "".join(values_clauses)
-            insert_sql = (
-                f""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ({col_list}) ""
-                f""VALUES {values_sql}""
-            )
-            session.sql(insert_sql, params=all_params).collect()
-
         duration_ms = int((time.time() - start_time) * 1000)
-        total_rows = len(all_trades)
 
-        log_execution(session, task_name, ""SUCCEEDED"", total_rows,
+        log_execution(session, task_name, "SUCCEEDED", total_rows,
                       accounts_processed, None, duration_ms)
 
-        return (f""Generated {total_rows} trades for {accounts_processed} ""
-                f""accounts in {duration_ms}ms. ""
-                f""Instrument universe: {len(INSTRUMENTS)} tickers."")
+        return (f"Generated {total_rows} trades for {accounts_processed} "
+                f"accounts in {duration_ms}ms. "
+                f"Instrument universe: {len(INSTRUMENTS)} tickers.")
 
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
         err_msg = str(e)[:2000]
-        log_execution(session, task_name, ""FAILED"", 0, 0, err_msg, duration_ms)
+        log_execution(session, task_name, "FAILED", 0, 0, err_msg, duration_ms)
         raise
 ';

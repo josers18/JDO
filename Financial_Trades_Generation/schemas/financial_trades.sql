@@ -11,11 +11,11 @@
 CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES (
     TRADE_ID               VARCHAR(36)     NOT NULL,    -- UUID, unique trade identifier
     ORDER_ID               VARCHAR(36)     NOT NULL,    -- UUID, groups related trades
-    ACCOUNT_ID             VARCHAR(50)     NOT NULL,    -- FK to TRADE_GENERATION_CONFIG
-    TRADE_DATE             TIMESTAMP_TZ(9) NOT NULL,    -- Trade execution date (with timezone)
+    ACCOUNT_ID             VARCHAR(50),                 -- FK to TRADE_GENERATION_CONFIG; NULL = old TRD- placeholder (migration 001)
+    TRADE_DATE             DATE NOT NULL,               -- Trade execution date (DATE: see migration 002)
     TRADE_TIME             VARCHAR(8),                  -- HH:MM:SS format trade time
-    SETTLEMENT_DATE        TIMESTAMP_TZ(9),             -- T+2 business days from trade date
-    SNAPSHOT_DATE          TIMESTAMP_TZ(9),             -- Point-in-time snapshot reference
+    SETTLEMENT_DATE        DATE,                        -- T+2 business days from trade date
+    SNAPSHOT_DATE          DATE,                        -- Point-in-time snapshot reference
     INSTRUMENT_IDENTIFIER  VARCHAR(10)     NOT NULL,    -- Ticker symbol (FK to INSTRUMENT_UNIVERSE)
     INSTRUMENT_NAME        VARCHAR(200),                -- Full instrument name
     INSTRUMENT_CATEGORY    VARCHAR(50),                 -- Sector/category from INSTRUMENT_UNIVERSE

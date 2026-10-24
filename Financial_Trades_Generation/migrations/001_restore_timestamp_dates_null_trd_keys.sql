@@ -1,0 +1,66 @@
+-- =============================================================================
+-- Migration 001 (applied 2026-10-24): repair the BT_Financial_Trades incremental
+-- stream and drop the TRD- placeholder account keys.
+--
+-- Why: on 2026-08-21 TRADE_DATE / SETTLEMENT_DATE / SNAPSHOT_DATE were converted
+-- to DATE (and kept as DATE by the 2026-09-01 table rebuild). The Data Cloud
+-- stream BT_Financial_Trades uses TRADE_DATE as its INCREMENTAL watermark and
+-- registered all three as DateTime; every incremental run since 2026-08-21
+-- failed after reading max(TRADE_DATE). This restores TIMESTAMP_TZ(9) (the type
+-- in schemas/financial_trades.sql), at UTC midnight like the original values.
+--
+-- SUPERSEDED (type change only) by migration 002: with TIMESTAMP_TZ the stream's
+-- registered date format misread every date (2025-01-01 landed as 0006-07-18).
+-- The columns are DATE again; the TRD- cleanup below still stands.
+--
+-- The 5 manual TRD-00x config accounts are not Salesforce Accounts: their trades
+-- get a NULL ACCOUNT_ID and the configs are deactivated so no new ones appear.
+--
+-- In place (ADD / UPDATE / DROP / RENAME) so the table object, grants and the
+-- connector's metadata stay the same. Run as ACCOUNTADMIN outside the 03:00-03:10 ET
+-- task window. Afterwards run one Full Refresh of BT_Financial_Trades (DC Setup UI):
+-- incremental only picks up new trade dates, not the nulled keys on old rows.
+-- Rollback: FINANCIAL_TRADES_BAK_20261024 / TRADE_GENERATION_CONFIG_BAK_20261024.
+-- =============================================================================
+
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
+
+CREATE TABLE IF NOT EXISTS FINANCIAL_TRADES_BAK_20261024 CLONE FINANCIAL_TRADES;
+CREATE TABLE IF NOT EXISTS TRADE_GENERATION_CONFIG_BAK_20261024 CLONE TRADE_GENERATION_CONFIG;
+
+ALTER TABLE FINANCIAL_TRADES ALTER COLUMN ACCOUNT_ID DROP NOT NULL;
+
+ALTER TABLE FINANCIAL_TRADES ADD COLUMN TRADE_DATE_TZ TIMESTAMP_TZ(9);
+ALTER TABLE FINANCIAL_TRADES ADD COLUMN SETTLEMENT_DATE_TZ TIMESTAMP_TZ(9);
+ALTER TABLE FINANCIAL_TRADES ADD COLUMN SNAPSHOT_DATE_TZ TIMESTAMP_TZ(9);
+
+UPDATE FINANCIAL_TRADES SET
+    TRADE_DATE_TZ      = TIMESTAMP_TZ_FROM_PARTS(YEAR(TRADE_DATE), MONTH(TRADE_DATE), DAY(TRADE_DATE), 0, 0, 0, 0, 'UTC'),
+    SETTLEMENT_DATE_TZ = IFF(SETTLEMENT_DATE IS NULL, NULL,
+                             TIMESTAMP_TZ_FROM_PARTS(YEAR(SETTLEMENT_DATE), MONTH(SETTLEMENT_DATE), DAY(SETTLEMENT_DATE), 0, 0, 0, 0, 'UTC')),
+    SNAPSHOT_DATE_TZ   = IFF(SNAPSHOT_DATE IS NULL, NULL,
+                             TIMESTAMP_TZ_FROM_PARTS(YEAR(SNAPSHOT_DATE), MONTH(SNAPSHOT_DATE), DAY(SNAPSHOT_DATE), 0, 0, 0, 0, 'UTC')),
+    ACCOUNT_ID         = IFF(ACCOUNT_ID LIKE 'TRD-%', NULL, ACCOUNT_ID);
+
+ALTER TABLE FINANCIAL_TRADES DROP COLUMN TRADE_DATE;
+ALTER TABLE FINANCIAL_TRADES DROP COLUMN SETTLEMENT_DATE;
+ALTER TABLE FINANCIAL_TRADES DROP COLUMN SNAPSHOT_DATE;
+ALTER TABLE FINANCIAL_TRADES RENAME COLUMN TRADE_DATE_TZ TO TRADE_DATE;
+ALTER TABLE FINANCIAL_TRADES RENAME COLUMN SETTLEMENT_DATE_TZ TO SETTLEMENT_DATE;
+ALTER TABLE FINANCIAL_TRADES RENAME COLUMN SNAPSHOT_DATE_TZ TO SNAPSHOT_DATE;
+ALTER TABLE FINANCIAL_TRADES ALTER COLUMN TRADE_DATE SET NOT NULL;
+
+UPDATE TRADE_GENERATION_CONFIG
+   SET ACTIVE = FALSE,
+       LAST_UPDATED = CURRENT_TIMESTAMP(),
+       NOTES = 'Deactivated 2026-10-24: TRD- placeholder, not a Salesforce Account'
+ WHERE ACCOUNT_ID LIKE 'TRD-%';
+
+-- Verify
+SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE FROM DATA_JEDAIS.INFORMATION_SCHEMA.COLUMNS
+ WHERE TABLE_SCHEMA = 'FINS__PUBLIC' AND TABLE_NAME = 'FINANCIAL_TRADES'
+   AND COLUMN_NAME IN ('ACCOUNT_ID', 'TRADE_DATE', 'SETTLEMENT_DATE', 'SNAPSHOT_DATE');
+SELECT COUNT(*) AS n, COUNT_IF(ACCOUNT_ID IS NULL) AS null_keys, COUNT_IF(ACCOUNT_ID LIKE 'TRD-%') AS trd_keys,
+       MIN(TRADE_DATE) AS mn, MAX(TRADE_DATE) AS mx
+  FROM FINANCIAL_TRADES;
+SELECT COUNT_IF(ACTIVE) AS active_trd FROM TRADE_GENERATION_CONFIG WHERE ACCOUNT_ID LIKE 'TRD-%';
