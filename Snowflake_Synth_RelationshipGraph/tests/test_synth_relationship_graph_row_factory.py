@@ -354,3 +354,57 @@ def test_edge_count_distribution_smoke(in_audience_anchors, available_edge_types
     )
     # No anchor returns 0 rows.
     assert min(counts) >= 1, f"some anchor returned 0 rows: min={min(counts)}"
+
+
+# ---------- v2: stable standing graph + weekly discoveries ----------
+
+def _non_self(rows):
+    return [r for r in rows if r["EDGE_TYPE"] != "SELF"]
+
+
+def test_standing_edges_stable_across_weeks(in_audience_anchors, available_edge_types):
+    """An edge that exists one week keeps its discovered date, weight and
+    confidence the next week (only LAST_SEEN / GENERATED_AT move)."""
+    w1 = datetime(2026, 10, 5)
+    w2 = datetime(2026, 10, 12)
+    ids = [a["ACCOUNT_ID"] for a in in_audience_anchors]
+    lookup = {"all_account_ids": ids, "business_account_ids": ids}
+    checked = 0
+    for anchor in in_audience_anchors * 10:
+        a = {(r["DST_ACCOUNT_ID"], r["EDGE_TYPE"]): r for r in _non_self(_rows_for(
+            anchor, w1, available_edge_types=available_edge_types, lookup_tables=lookup))}
+        b = {(r["DST_ACCOUNT_ID"], r["EDGE_TYPE"]): r for r in _non_self(_rows_for(
+            anchor, w2, available_edge_types=available_edge_types, lookup_tables=lookup))}
+        checked += len(a)
+        assert a.keys() <= b.keys(), "edges disappeared between weeks"
+        for k, r in a.items():
+            for col in ("EDGE_DISCOVERED_DATE", "EDGE_WEIGHT", "CONFIDENCE_PCT"):
+                assert r[col] == b[k][col], (k, col)
+    assert checked > 0, "fixture produced no non-SELF edges"
+
+
+def test_discoveries_fall_inside_elapsed_weeks(in_audience_anchors, available_edge_types):
+    """Over the whole audience, recent weeks produce new edges, all dated on
+    or after the reference Monday and before the run's Monday."""
+    from sp_generate_synth_relationship_graph import _GRAPH_REFERENCE, _discovered_edges
+    run_ts = datetime(2026, 10, 26)
+    lookup = {"all_account_ids": [a["ACCOUNT_ID"] for a in in_audience_anchors],
+              "business_account_ids": [a["ACCOUNT_ID"] for a in in_audience_anchors]}
+    found = []
+    for anchor in in_audience_anchors * 20:
+        found.extend(_discovered_edges(anchor, lookup, run_ts))
+    assert found, "no discoveries over 12 weeks x audience"
+    for r in found:
+        assert _GRAPH_REFERENCE <= r["EDGE_DISCOVERED_DATE"] < run_ts.date()
+        assert r["EDGE_DISCOVERED_DATE"] <= r["EDGE_LAST_SEEN_DATE"]
+
+
+def test_referral_confidence_spread():
+    """REFERRAL confidence spans well past 70 (warm-intro ranking needs it)."""
+    import random
+    from sp_generate_synth_relationship_graph import _confidence_pct
+    rng = random.Random(7)
+    vals = [_confidence_pct("REFERRAL", date(2026, 10, 1), date(2026, 10, 5), rng)
+            for _ in range(500)]
+    assert max(vals) >= 90
+    assert min(vals) >= 30

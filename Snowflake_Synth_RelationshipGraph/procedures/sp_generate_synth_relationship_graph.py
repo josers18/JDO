@@ -11,9 +11,16 @@ Mimic: composition (no single vendor) — synthesized from the outputs of prior
 Cumulus plans plus internally-generated structure. Conceptual source is the
 brainstorming doc section 17.
 
-Audience: all accounts (1=1 predicate; SELECT DISTINCT to dedupe MASTER_ACCOUNTS).
+Audience: all Salesforce accounts (ACCOUNT_ID LIKE '001%'; QUALIFY dedupes MASTER_ACCOUNTS).
 Cadence:  WEEKLY (Monday 05:00 UTC).
-Salt:     "synth-graph" (week-bucketed, single-salt — Plan 6's simpler shape).
+Seeds (v2, 2026-10-24):
+  - Identity seed sha256(f"{account_id}|synth-graph-identity"): the standing
+    graph (which edges exist, weight, confidence spread, discovery date
+    relative to _GRAPH_REFERENCE). Stable from week to week.
+  - Discovery seed sha256(f"{account_id}|synth-graph|{week_monday}"): new
+    REFERRAL / BUSINESS_OWNER edges discovered on a day inside each week since
+    _GRAPH_REFERENCE. Every run replays all elapsed weeks, so the output is the
+    whole graph as of the run date and the MERGE deletes edges no longer in it.
 Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-9-synth-relationship-graph.md
 Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-9-synth-relationship-graph-rowspec.md
 
@@ -37,6 +44,7 @@ Structural deviations from earlier plans:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 import uuid
@@ -45,7 +53,7 @@ from typing import Any
 
 # Locally + in Snowflake, cumulus_common is shipped via pip install -e or
 # the IMPORTS clause on CREATE PROCEDURE.
-from cumulus_common import seed_for, assert_coverage
+from cumulus_common import assert_coverage
 
 
 # -------------------------------------------------------------------
@@ -59,8 +67,24 @@ DATASET_SALT = "synth-graph"
 # Plan 9 has no audience predicate — every distinct account contributes.
 # Kept as empty string for symmetry with Plans 1-8.
 _AUDIENCE_PREDICATE = ""  # all-accounts
-AUDIENCE_SQL = "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
-COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+# Salesforce Account Ids only: V_ACCOUNT_ANCHORS also carries ~170 non-CRM
+# Account DMO rows keyed by 16-char hashes, which join to nothing in the cockpits.
+AUDIENCE_SQL = (
+    "SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE ACCOUNT_ID LIKE '001%' "
+    "QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID ORDER BY SNAPSHOT_DATE DESC) = 1"
+)
+COVERAGE_SQL = (
+    "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS "
+    "WHERE ACCOUNT_ID LIKE '001%'"
+)
+
+IDENTITY_SALT = "synth-graph-identity"
+# Standing-graph discovery dates are drawn relative to this Monday; weekly
+# discoveries start here. Fixed so the standing graph doesn't drift.
+_GRAPH_REFERENCE = date(2026, 8, 3)
+# Weekly probability that an anchor discovers a new edge of each type.
+_WEEKLY_REFERRAL_P = 0.004
+_WEEKLY_BUSINESS_OWNER_P = 0.004
 
 # 10-column output contract (kept in sync with the table DDL by the L1 schema test).
 # ORG_ID is the multi-tenant prefix; cross-org edges are not modeled (DST anchors
@@ -90,9 +114,12 @@ _EDGE_TYPE_CONFIDENCE_BASE: dict[str, float] = {
     "CORPORATE_PARENT": 95.0,
     "BOARD_MEMBER":     80.0,
     "ADVISOR_BOOK":     70.0,
-    "REFERRAL":         60.0,
+    "REFERRAL":         70.0,
     "BUSINESS_OWNER":   85.0,
 }
+# +/- jitter around the base. REFERRAL is wide (45-95) so warm-intro cards
+# can rank strong referrals above weak ones.
+_EDGE_TYPE_CONFIDENCE_JITTER: dict[str, float] = {"REFERRAL": 25.0}
 
 # Cross-plan dependency table -> edge_type. Probed via try/except in main().
 _CROSS_PLAN_TABLES: list[tuple[str, str]] = [
@@ -149,21 +176,22 @@ def _edge_weight(edge_type: str, rng: random.Random | None) -> float:
 
 
 def _edge_dates(edge_type: str, run_ts: datetime,
-                rng: random.Random | None) -> tuple[date, date]:
+                rng: random.Random | None,
+                discovered: date | None = None) -> tuple[date, date]:
     """Return (EDGE_DISCOVERED_DATE, EDGE_LAST_SEEN_DATE).
 
-    Discovered: 1-60 months ago (deterministic per edge via rng).
-    Last-seen: between discovered and today.
+    Discovered: the given date (weekly discoveries), else 30-1800 days before
+    _GRAPH_REFERENCE (standing graph, stable across runs).
+    Last-seen: 0-45 days before the run, never before discovered.
     SELF rows: discovered == last_seen == week_start.date().
     """
     week_start = _week_start(run_ts)
     if edge_type == "SELF" or rng is None:
         d = week_start.date()
         return d, d
-    discovered_days_ago = rng.randint(30, 1800)
-    discovered = run_ts.date() - timedelta(days=discovered_days_ago)
-    seen_offset = rng.randint(0, max(1, discovered_days_ago - 1))
-    last_seen = discovered + timedelta(days=seen_offset)
+    if discovered is None:
+        discovered = _GRAPH_REFERENCE - timedelta(days=rng.randint(30, 1800))
+    last_seen = max(discovered, week_start.date() - timedelta(days=rng.randint(0, 45)))
     return discovered, last_seen
 
 
@@ -180,7 +208,8 @@ def _confidence_pct(edge_type: str, edge_discovered_date: date,
     age_decay = max(0, age_days - 365) / 30  # decay starts after a year
     base = _EDGE_TYPE_CONFIDENCE_BASE[edge_type]
     if rng is not None:
-        base += rng.uniform(-5.0, 5.0)
+        jitter = _EDGE_TYPE_CONFIDENCE_JITTER.get(edge_type, 5.0)
+        base += rng.uniform(-jitter, jitter)
     base -= age_decay
     return round(max(30.0, min(99.99, base)), 2)
 
@@ -188,7 +217,8 @@ def _confidence_pct(edge_type: str, edge_discovered_date: date,
 def _make_edge(src: str, dst: str, edge_type: str,
                rng: random.Random | None, run_ts: datetime,
                metadata: str | None = None,
-               org_id: str = "JDO") -> dict:
+               org_id: str = "JDO",
+               discovered: date | None = None) -> dict:
     """Edge factory — assembles one 10-key dict.
 
     Ordering is load-bearing: discovered first (so confidence age-decay can
@@ -196,9 +226,11 @@ def _make_edge(src: str, dst: str, edge_type: str,
     tenant prefix; cross-org edges are not modeled (callers stamp the anchor's
     ORG_ID on every edge in the 1:N loop).
     """
-    discovered, last_seen = _edge_dates(edge_type, run_ts, rng)
+    discovered, last_seen = _edge_dates(edge_type, run_ts, rng, discovered)
     weight = _edge_weight(edge_type, rng)
-    confidence = _confidence_pct(edge_type, discovered, run_ts.date(), rng)
+    # Decay is measured at _GRAPH_REFERENCE so a standing edge's confidence
+    # doesn't creep down every week.
+    confidence = _confidence_pct(edge_type, discovered, _GRAPH_REFERENCE, rng)
     return {
         "ORG_ID":               org_id,
         "SRC_ACCOUNT_ID":       src,
@@ -245,8 +277,8 @@ def _household_bucket(anchor: dict) -> str:
 def _advisor_bucket(anchor: dict) -> str:
     """Hash a Wealth anchor into one of ~200 advisor-book buckets."""
     aid = anchor.get("ACCOUNT_ID") or ""
-    # Stable per anchor; modulo 200 buckets via integer hash.
-    return f"book{abs(hash(aid)) % 200:03d}"
+    # Stable per anchor; sha256, not hash(), which is salted per process.
+    return f"book{int(hashlib.sha256(aid.encode()).hexdigest(), 16) % 200:03d}"
 
 
 def _household_edges(anchor: dict, lookup: dict,
@@ -392,6 +424,46 @@ _EDGE_TYPE_GENERATORS: dict[str, Any] = {
 }
 
 
+def _identity_rng(account_id: str) -> random.Random:
+    return random.Random(hashlib.sha256(f"{account_id}|{IDENTITY_SALT}".encode()).digest())
+
+
+def _discovered_edges(anchor: dict, lookup: dict, run_ts: datetime) -> list[dict]:
+    """New REFERRAL / BUSINESS_OWNER edges discovered week by week.
+
+    Replays every full week from _GRAPH_REFERENCE up to the run's Monday, each
+    with its own seed, and dates each new edge on a day inside its week. The
+    result depends only on the run date, so mid-week re-runs are identical
+    and a past week's discoveries never change.
+    """
+    aid = anchor["ACCOUNT_ID"]
+    org_id = anchor.get("ORG_ID") or "JDO"
+    all_ids = lookup.get("all_account_ids") or []
+    biz_ids = lookup.get("business_account_ids") or []
+    can_own = (anchor.get("ACCOUNT_TYPE_FLAG") == "PERSON"
+               and float(anchor.get("ANNUAL_INCOME") or 0) >= 200_000)
+    run_week = _week_start(run_ts).date()
+    rows: list[dict] = []
+    week = _GRAPH_REFERENCE
+    while week < run_week:
+        rng = random.Random(hashlib.sha256(
+            f"{aid}|{DATASET_SALT}|{week.isoformat()}".encode()).digest())
+        if all_ids and rng.random() < _WEEKLY_REFERRAL_P:
+            referrer = rng.choice(all_ids)
+            day = week + timedelta(days=rng.randint(0, 6))
+            if referrer != aid:
+                rows.append(_make_edge(aid, referrer, "REFERRAL", rng, run_ts,
+                                       org_id=org_id, discovered=day))
+        if can_own and biz_ids and rng.random() < _WEEKLY_BUSINESS_OWNER_P:
+            target = rng.choice(biz_ids)
+            day = week + timedelta(days=rng.randint(0, 6))
+            rows.append(_make_edge(aid, target, "BUSINESS_OWNER", rng, run_ts,
+                                   metadata=json.dumps({"ownership_pct": "majority"}),
+                                   org_id=org_id, discovered=day))
+        week += timedelta(days=7)
+    return rows
+
+
 # -------------------------------------------------------------------
 # _rows_for — substantive 1:N synthesis logic (per rowspec).
 # -------------------------------------------------------------------
@@ -401,9 +473,10 @@ def _rows_for(anchor: dict, run_ts: datetime, *,
               lookup_tables: dict | None = None) -> list[dict]:
     """Return a deterministically-ordered list of edge rows for one anchor.
 
-    Single salt, week-bucketed seed: `seed_for(account_id, "synth-graph",
-    week_start)`. Re-running mid-week produces byte-identical output because
-    the seed and GENERATED_AT both anchor on the week's Monday.
+    Standing edges come from the per-account identity seed (stable across
+    weeks); weekly discoveries replay every elapsed week (_discovered_edges).
+    Re-running mid-week produces byte-identical output because discoveries,
+    LAST_SEEN and GENERATED_AT all anchor on the week's Monday.
 
     Generator dispatch order is part of the contract — each generator
     consumes rng draws in sequence; reordering would change every row.
@@ -434,14 +507,25 @@ def _rows_for(anchor: dict, run_ts: datetime, *,
         )
 
     lookup = lookup_tables or {}
-    week = _week_start(run_ts)
-    rng = random.Random(seed_for(anchor["ACCOUNT_ID"], DATASET_SALT, week))
+    rng = _identity_rng(anchor["ACCOUNT_ID"])
 
     rows: list[dict] = []
     for edge_type, edge_fn in _EDGE_TYPE_GENERATORS.items():
         if edge_type not in available_edge_types:
             continue
         rows.extend(edge_fn(anchor, lookup, rng, run_ts))
+    rows.extend(_discovered_edges(anchor, lookup, run_ts))
+
+    # One row per (DST, EDGE_TYPE): the standing edge wins over a later
+    # rediscovery of the same pair.
+    seen: set[tuple[str, str]] = set()
+    unique: list[dict] = []
+    for r in rows:
+        key = (r["DST_ACCOUNT_ID"], r["EDGE_TYPE"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(r)
+    rows = unique
 
     # SELF fallback — every anchor must contribute at least one row.
     if not rows:
@@ -574,7 +658,7 @@ _anchor_to_dict = _row_to_dict
 # Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_SYNTH_RELATIONSHIP_GRAPH.
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
+def main(session: Any, run_date: date | None = None) -> str:
     """The 5-step canonical pattern, adapted for edge-scoped 1:N output:
     probe -> read -> build (extend) -> MERGE -> assert -> log.
 
@@ -584,6 +668,8 @@ def main(session: Any) -> str:
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
+    # run_date (optional) replays the graph as of that date; defaults to now.
+    run_ts = datetime.combine(run_date, datetime.min.time()) if run_date else started
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
 
     try:
@@ -625,7 +711,7 @@ def main(session: Any) -> str:
         for anchor in audience:
             try:
                 anchor_rows = _rows_for(
-                    anchor, started,
+                    anchor, run_ts,
                     available_edge_types=available_edge_types,
                     lookup_tables=lookup_tables,
                 )
@@ -723,7 +809,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
@@ -741,6 +827,9 @@ def _merge(session: Any, records: list[dict]) -> int:
                 METADATA::VARCHAR(500)            AS METADATA,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY ORG_ID, SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE
+                ORDER BY EDGE_DISCOVERED_DATE) = 1
         ) src
         ON tgt.ORG_ID = src.ORG_ID
            AND tgt.SRC_ACCOUNT_ID = src.SRC_ACCOUNT_ID
@@ -768,4 +857,13 @@ def _merge(session: Any, records: list[dict]) -> int:
         )
     """
     rows = session.sql(merge_sql).collect()
-    return int(rows[0][0]) if rows else len(records)
+    # The run emits the whole graph, so drop edges that are no longer in it
+    # (and pre-v2 leftovers from the old reshuffling seed).
+    session.sql(f"""
+        DELETE FROM DATA_JEDAIS.FINS__PUBLIC.SYNTH_RELATIONSHIP_GRAPH tgt
+        WHERE NOT EXISTS (
+            SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.{staging} s
+            WHERE s.ORG_ID = tgt.ORG_ID AND s.SRC_ACCOUNT_ID = tgt.SRC_ACCOUNT_ID
+              AND s.DST_ACCOUNT_ID = tgt.DST_ACCOUNT_ID AND s.EDGE_TYPE = tgt.EDGE_TYPE)
+    """).collect()
+    return int(rows[0][0]) + int(rows[0][1]) if rows else len(records)

@@ -4,7 +4,7 @@ Synthesized directed relationship-graph dataset stitching together household mem
 [Snowflake_Plaid_HeldAway](../Snowflake_Plaid_HeldAway) (the closer 1:N template) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
-**Plan 9 is all-accounts with weekly cadence — the second 1:N dataset (Plan 6 was first), the second weekly cadence (Plan 6 first; Plan 12 third), and the only edge-scoped dataset in the rollout. First Cumulus dataset with cross-plan SOFT dependencies (Claritas / D&B / BoardEx) — SP runs green even if any/all of those upstream tables are absent, courtesy of the SELF self-edge fallback.** Each anchor produces 1–N edge rows describing relationships to other accounts. Rows are keyed by composite PK `(SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE)` (~110K–180K rows/week — largest Cumulus table). Re-runs same calendar week MERGE-replace in place. The DMO is joinable to `ssot__Account__dlm` via FK `srcAccountId__c`; DC PK collapses to single-column `edgeId__c` (a projected `sha256(src||'|'||dst||'|'||edge_type)[:32]` derived at the DLO source view) with `srcAccountId__c`, `dstAccountId__c`, `edgeType__c` as KQ qualifiers (single-column-PK rule from Plan 4).
+**Plan 9 is all-accounts with weekly cadence — the second 1:N dataset (Plan 6 was first), the second weekly cadence (Plan 6 first; Plan 12 third), and the only edge-scoped dataset in the rollout. First Cumulus dataset with cross-plan SOFT dependencies (Claritas / D&B / BoardEx) — SP runs green even if any/all of those upstream tables are absent, courtesy of the SELF self-edge fallback.** Each anchor produces 1–N edge rows describing relationships to other accounts. Rows are keyed by composite PK `(SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE)` (38,360 rows on 2026-10-24). Each run MERGEs the whole graph as of the run date and deletes edges no longer in it; the standing graph is stable week to week and new REFERRAL / BUSINESS_OWNER edges are discovered daily (see AGENTS.md § v2 seeds). The DMO is joinable to `ssot__Account__dlm` via FK `srcAccountId__c`; DC PK collapses to single-column `edgeId__c` (a projected `sha256(src||'|'||dst||'|'||edge_type)[:32]` derived at the DLO source view) with `srcAccountId__c`, `dstAccountId__c`, `edgeType__c` as KQ qualifiers (single-column-PK rule from Plan 4).
 
 ## Plan
 - Plan 9, instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -20,15 +20,15 @@ Synthesized directed relationship-graph dataset stitching together household mem
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusRelationshipGraph__dll` → DMO `CumulusRelationshipGraph__dlm`
 
 ## Audience
-**All accounts** — every distinct anchor in `V_ACCOUNT_ANCHORS`. A relationship graph that excludes any account is a graph with holes. The audience predicate is the most permissive in the rollout:
+**All Salesforce accounts** — every distinct `001…` anchor in `V_ACCOUNT_ANCHORS` (36,768 on 2026-10-24; ~170 non-CRM hash-keyed anchors are excluded). A relationship graph that excludes any account is a graph with holes. The audience predicate is the most permissive in the rollout:
 
 ```sql
-SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
+SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
+WHERE ACCOUNT_ID LIKE '001%'
+QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID ORDER BY SNAPSHOT_DATE DESC) = 1
 ```
 
-Live cardinality (probed 2026-05-28): **36,813 distinct anchors** (37,445 raw `V_ACCOUNT_ANCHORS` rows due to the known 1.7% MASTER_ACCOUNTS dup discovered in Plan 0 v1.5). Audience SQL must use `SELECT DISTINCT` defensively until the upstream MASTER_ACCOUNTS dedup ships. Second all-accounts audience in the rollout (Plan 7 World-Check AML was first); same dedup caveat applies.
-
-Each anchor emits **1–N edge rows** per week — minimum 1 (SELF-fallback) when no cross-plan edge applies, maximum bounded by HOUSEHOLD bidirectional pairs + ADVISOR_BOOK peers + sparse REFERRAL / BUSINESS_OWNER edges + CORPORATE_PARENT (BUSINESS only) + BOARD_MEMBER (when Plan 10 ships). Mean target 3-5 edges/anchor at full population → **~110K–180K rows/week**. With Plan 10 (BoardEx) absent at deploy time, expect ~80K-120K rows.
+Each anchor emits **1–N edge rows** per week — minimum 1 (SELF-fallback) when no cross-plan edge applies, maximum bounded by HOUSEHOLD bidirectional pairs + ADVISOR_BOOK peers + sparse REFERRAL / BUSINESS_OWNER edges + CORPORATE_PARENT (BUSINESS only) + BOARD_MEMBER (when Plan 10 ships). Live 2026-10-24 (Claritas / D&B / BoardEx edges currently not emitted): SELF 32,161, REFERRAL 3,471 (confidence 30–95), ADVISOR_BOOK 2,410, BUSINESS_OWNER 318 — 38,360 rows.
 
 ## Tests
 ```bash
