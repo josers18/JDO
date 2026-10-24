@@ -86,43 +86,60 @@ Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgr
   `Financial_Transactions` stream stays suppressed: it's a Profile-category DLO that can't map to the
   Engagement DMO `ssot__FinancialAccountTransaction`.
 
-## 4. Financial trades: land the latest data
+## 4. Financial trades: ✅ latest data landed and TRD keys gone 2026-10-24 (nightly incremental still broken)
 
-- Stream `BT_Financial_Trades` is INCREMENTAL. Its **last run was a FAILURE**; last refresh was 2026-10-01.
-- DLO `MAX(trade_date__c)` = **2026-09-01** (min 2024-06-03), so DC is a month-plus behind Snowflake.
-- Some keys are junk (`TRD-001…`, `TRD-004…` prefixes in the account column).
+Was: stream `BT_Financial_Trades` (INCREMENTAL on `TRADE_DATE`) last ran on 2026-10-01 and failed.
+DLO `MAX(trade_date__c)` was 2026-09-01, and some account keys were `TRD-001…` placeholders.
 
-Fixes:
-1. Repair the incremental stream so the newest Snowflake trade dates land. Check the
-   watermark column and any schema drift.
-2. Null out or remap non-Account keys.
+Done (project `Financial_Trades_Generation`, `DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES`):
+- **TRD keys nulled** (migration `001`): 35,116 rows now have a NULL `ACCOUNT_ID`. The 5 `TRD-` configs are
+  deactivated. `GENERATE_DAILY_TRADES` and `GENERATE_HISTORICAL_TRADES` read only `ACCOUNT_ID LIKE '001%'`.
+- **Dates stay `DATE`** (migration `002`). The stream registered the three date fields with format
+  `MM/dd/yyyy HH:mm:ss.SSS zzz`. As `TIMESTAMP_TZ` the connector unloads them as strings that this format
+  misreads, so 2025-01-01 landed as 0006-07-18. `DATE` columns unload natively and read correctly.
+  The Connect API rejects format changes on an existing stream.
+- One Full Refresh (DC Setup UI) reloaded the stream. Verified in the DLO: 8,984,809 rows, 2024-06-03 → 2026-10-23,
+  0 `TRD-` keys and 35,116 NULL keys.
+
+Still open (DC side):
+- **The nightly INCREMENTAL run fails** with `DATE` columns. It reads `max(TRADE_DATE)` and errors, so
+  new days only land with a manual Full Refresh. Refresh mode can't be switched: an accelerated stream with
+  an incremental column must stay INCREMENTAL. The lasting fix is a rebuilt stream (correct date format or
+  TOTAL_REPLACE). That stream feeds a data graph, prompt templates and a semantic model, so rebuilding needs
+  a planned re-point.
+- Rollback: `FINANCIAL_TRADES_BAK_20261024` (pre-001), `FINANCIAL_TRADES_BAK_20261024_TZ` (pre-002),
+  `TRADE_GENERATION_CONFIG_BAK_20261024`.
 
 App side: any trade widget (W5) anchors its window on `MAX(trade_date)`, not `CURRENT_DATE`. No home page reads trades yet.
 
-## 5. D&B business credit (`BT_DNB_Business_Credit`)
+## 5. D&B business credit (`BT_DNB_Business_Credit`): ✅ generator v1.6 2026-10-24
 
-Monthly May–Oct 2026, ~11.4K rows/month, 10,798 local accounts keyed. The cockpit now
-reads it. Recommendations:
+Was: PAYDEX never fell below 55, days beyond terms topped out at 42, the Severe tier had only ~50 rows,
+1A/2A ratings landed in High, and October held a duplicate account row.
 
-1. **Document the score directions.** They're mixed:
-   - `failure_risk_score__c`: higher = safer. Low tier averages ~83–89; Severe ~25.
-   - `delinquency_predictor_score__c`: higher = safer.
-   - `composite_risk_score__c` (1–4): higher = riskier.
+Done (project `Snowflake_DnB_BusinessCredit`, SP `SP_GENERATE_DNB_BUSINESS_CREDIT` v1.6; October re-run,
+11,516 rows / 11,516 accounts):
+- **Score directions are documented**, not renamed (AGENTS.md and column comments):
+  - `failure_risk_score__c` and `delinquency_predictor_score__c`: higher = safer.
+  - `composite_risk_score__c` (1–4): higher = riskier.
+- **Late-payer tail.** About 2–10% of accounts per industry are chronic late payers, and the set holds steady
+  through the year. October: 728 rows with PAYDEX < 50 (73 below 25, min 1).
+- **Days beyond terms follows PAYDEX.** October: 728 rows at 30+ days, 160 at 90+, max 179.
+- **Risk level blends** failure score, composite digit and PAYDEX:
+  - October: 4,356 Low, 5,570 Moderate, 1,427 High, **163 Severe (1.4%)**.
+  - No 1A–5A rating is Severe.
+- **One row per account.** The duplicate October row was deleted, and the SP now dedupes anchors.
+- **`MATCH_CONFIDENCE_CODE`** (1–10) is added and drives verification status:
+  - 8–10 Verified (8,693).
+  - 5–7 Probable (2,373).
+  - 1–4 Unverified (450).
+- **Corporate families: no change needed.** `ultimate_parent_duns` is null exactly on standalone rows
+  (family size 1). The earlier "946 rows" reading was wrong.
 
-   Either rename (e.g. `*_safety_score`) or add a column comment. The old app query
-   ranked delinquency DESC, which was wrong because of this.
-2. **Widen PAYDEX.** The minimum is 55, so there are no severely late payers (<50). Real
-   distributions reach 1–20 for chronic late payers. Seed a tail of 30–50.
-3. **Tier and risk-level consistency.** `supplier_risk_level = 'High'` includes the
-   strongest ratings (1A/2A). Derive risk level from rating, PAYDEX and failure score.
-4. **Severe tier is tiny** (50 rows). For a usable watchlist, seed ~1–2% Severe.
-5. **Corporate families.** `ultimate_parent_duns` is null on 10,536 rows, while 946
-   rows report family size > 1. Populate parent DUNS where family size > 1.
-6. **Dedupe.** October has 11,482 rows for 11,481 distinct accounts. Enforce one row per
-   `(account_id, profile_month)`.
-7. **Verification status**: 2,350 Probable and 446 Unverified. That's fine, but add the
-   match-confidence code if available.
-8. Days-beyond-terms tops out at 42 org-wide, and the 30+ band is empty in Jose's book. Real late payers run 30–90+, so seed a realistic tail.
+Still open:
+- The DC stream and DMO don't carry `match_confidence_code` yet. Add the source field and DMO mapping
+  (zero-copy, so no reload is needed).
+- May–September stay on the v1.5 distribution until they're re-generated (the SP writes only the current month).
 
 Owner gap (CRM side, not Snowflake): 684 D&B-keyed accounts have a null `OwnerId` in
 `ssot__Account`, so they appear in no banker's book.
