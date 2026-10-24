@@ -8,6 +8,7 @@ Five property classes per spec §7.2:
    (a) revenue → MSCI_ESG_RATING distribution shifts
    (b) industry → ENVIRONMENTAL_SCORE means differ ≥1.0
 5. Schema contract — output dict matches the 14 table columns
+6. Sticky chain — month N evolves from month N-1; flag == actual move
 """
 from datetime import datetime
 from collections import Counter
@@ -244,3 +245,57 @@ def test_top_controversy_category_null_when_count_zero(in_audience_anchors):
             )
         else:
             assert row["TOP_CONTROVERSY_CATEGORY"] is not None
+
+
+# ---------- Property 6: Sticky month-over-month chain ----------
+
+_LEVEL = {"AAA": 7, "AA": 6, "A": 5, "BBB": 4, "BB": 3, "B": 2, "CCC": 1}
+
+
+def _chain(anchors, months=6, copies=40):
+    """Run the factory month by month, each month evolving from the last."""
+    pool = [{**a, "ACCOUNT_ID": f"{a['ACCOUNT_ID']}-{i}"} for a in anchors for i in range(copies)]
+    prev, pairs = {}, []
+    for m in range(5, 5 + months):
+        cur = {a["ACCOUNT_ID"]: _row_for(a, datetime(2026, m, 1), prev.get(a["ACCOUNT_ID"])) for a in pool}
+        pairs += [(prev[k], v) for k, v in cur.items() if k in prev]
+        prev = cur
+    return pairs
+
+
+def test_first_month_flag_is_unchanged(in_audience_anchors):
+    for anchor in in_audience_anchors[:20]:
+        assert _row_for(anchor, datetime(2026, 5, 1))["LAST_RATING_CHANGE_DIRECTION"] == "Unchanged"
+
+
+def test_chain_is_sticky_and_flag_matches_move(in_audience_anchors):
+    pairs = _chain(in_audience_anchors)
+    moved = 0
+    for before, after in pairs:
+        notches = _LEVEL[after["MSCI_ESG_RATING"]] - _LEVEL[before["MSCI_ESG_RATING"]]
+        assert abs(notches) <= 2
+        expected = "Upgrade" if notches > 0 else "Downgrade" if notches < 0 else "Unchanged"
+        assert after["LAST_RATING_CHANGE_DIRECTION"] == expected
+        if notches:
+            moved += 1
+            score_move = after["ESG_SCORE_OVERALL"] - before["ESG_SCORE_OVERALL"]
+            assert score_move * notches > 0, "overall score must move with the rating"
+            assert abs(score_move) >= 1.0 - 1e-9
+    rate = moved / len(pairs)
+    assert 0.08 <= rate <= 0.15, f"month-over-month change rate {rate:.1%} outside 8-15%"
+
+
+def test_chain_is_deterministic(in_audience_anchors):
+    anchor = in_audience_anchors[0]
+    prior = _row_for(anchor, datetime(2026, 5, 1))
+    assert _row_for(anchor, datetime(2026, 6, 1), prior) == _row_for(anchor, datetime(2026, 6, 20), prior)
+
+
+def test_chain_rows_respect_contract(in_audience_anchors):
+    for _, row in _chain(in_audience_anchors[:10], months=3, copies=5):
+        assert set(row) == EXPECTED_KEYS
+        for f in ("ESG_SCORE_OVERALL", "ENVIRONMENTAL_SCORE", "SOCIAL_SCORE", "GOVERNANCE_SCORE"):
+            assert 0.0 <= row[f] <= 10.0
+        assert 0.0 <= row["CARBON_INTENSITY_TONS_PER_M_REVENUE"] <= 2000.0
+        assert (row["CONTROVERSY_FLAG_COUNT"] == 0) == (row["TOP_CONTROVERSY_CATEGORY"] is None)
+        assert 0 <= row["CONTROVERSY_FLAG_COUNT"] <= 15

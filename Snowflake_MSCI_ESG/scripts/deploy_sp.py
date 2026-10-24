@@ -77,13 +77,18 @@ SQL_HEADER = f"""\
 -- Table:    {TABLE_FQN}
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}()
+-- Signature: one optional arg. NULL (the task's bare CALL ...()) = this month;
+-- 'YYYY-MM-DD' rebuilds that month from the month before (README "Rebuild history").
+-- Changing the signature? DROP the old one first or both overloads coexist.
+CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}(P_PROFILE_MONTH VARCHAR DEFAULT NULL)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+-- OWNER (ACCOUNTADMIN), matching the live SP: the Sep-2026 CALLER build failed
+-- under the task's SYSADMIN context (no CREATE TABLE for the write_pandas staging table).
+EXECUTE AS OWNER
 AS
 $$
 """

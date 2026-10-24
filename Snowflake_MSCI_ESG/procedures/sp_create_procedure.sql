@@ -14,18 +14,24 @@
 -- Table:    DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MSCI_ESG_SCORES()
+-- Signature: one optional arg. NULL (the task's bare CALL ...()) = this month;
+-- 'YYYY-MM-DD' rebuilds that month from the month before (README "Rebuild history").
+-- Changing the signature? DROP the old one first or both overloads coexist.
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MSCI_ESG_SCORES(P_PROFILE_MONTH VARCHAR DEFAULT NULL)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+-- OWNER (ACCOUNTADMIN), matching the live SP: the Sep-2026 CALLER build failed
+-- under the task's SYSADMIN context (no CREATE TABLE for the write_pandas staging table).
+EXECUTE AS OWNER
 AS
 $$
 from __future__ import annotations
 
 
+import math
 import random
 import uuid
 from datetime import date, datetime
@@ -113,8 +119,10 @@ COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC
 # population stops leaking into ACCOUNT_TYPE_FLAG = 'BUSINESS'.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
 
-# 14-column output contract (kept in sync with table DDL by the L1 schema test)
+# 15-column output contract (kept in sync with table DDL by the L1 schema test).
+# v1.x multi-org-additive: ORG_ID stamped from anchor (V_ACCOUNT_ANCHORS).
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
+    "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "MSCI_ESG_RATING", "INDUSTRY_CLASSIFICATION",
     "ESG_SCORE_OVERALL", "ENVIRONMENTAL_SCORE", "SOCIAL_SCORE", "GOVERNANCE_SCORE",
@@ -129,25 +137,59 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 # Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_MSCI_ESG_SCORES
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
+def main(session: Any, p_profile_month: str | None = None) -> str:
     """5-step canonical pattern + BUSINESS-cardinality warning between 1 and 2.
 
-    1. Read audience.
+    1. Read audience (+ last month's rows, which each new row chains from).
     1.5. (Plan 2 only) Warn if accounts_processed > 10K — do NOT fail.
     2. Build deterministic rows (tolerate up to 1% per-row failures).
-    3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_MONTH).
+    3. Idempotent MERGE on PK (ORG_ID, ACCOUNT_ID, PROFILE_MONTH).
     4. Coverage assertion vs V_ACCOUNT_ANCHORS.
     5. Always log to TASK_EXECUTION_LOG (success or failure).
+
+    ``p_profile_month`` ('YYYY-MM-DD', any day of the month; NULL = this
+    month) regenerates one month. Ratings are sticky — every row evolves from
+    the account's row for the month before — so rebuilding history means
+    calling the SP once per month, OLDEST FIRST (see README "Rebuild history").
+    A past month keeps the account population it already has.
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
+    run_ts = _month_start(p_profile_month) if p_profile_month else datetime(started.year, started.month, 1)
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
     warning_msg: str | None = None
 
     try:
         # 1. Read audience from the shared view (zero-copy fresh anchors).
         audience = session.sql(AUDIENCE_SQL).collect()
+        month = run_ts.date().isoformat()
+        if run_ts < datetime(started.year, started.month, 1):
+            # Rebuilding a past month: keep the accounts that month already has.
+            existing = {
+                (r["ORG_ID"], r["ACCOUNT_ID"])
+                for r in session.sql(
+                    f"SELECT ORG_ID, ACCOUNT_ID FROM {TABLE} WHERE PROFILE_MONTH = ?",
+                    params=[month],
+                ).collect()
+            }
+            if existing:
+                audience = [
+                    r for r in audience
+                    if (_anchor_to_dict(r).get("ORG_ID", "JDO"), _anchor_to_dict(r)["ACCOUNT_ID"]) in existing
+                ]
         accounts_processed = len(audience)
+
+        # 1.1. Last month's rows — the state this month's ratings move from.
+        priors = {
+            (d["ORG_ID"], d["ACCOUNT_ID"]): d
+            for d in (
+                _anchor_to_dict(r)
+                for r in session.sql(
+                    f"SELECT * FROM {TABLE} WHERE PROFILE_MONTH = DATEADD(month, -1, ?::DATE)",
+                    params=[month],
+                ).collect()
+            )
+        }
 
         # 1.5. BUSINESS over-count warning (per spec §3 v1.2 finding #3).
         # We warn but do not fail — the SP must keep running so downstream
@@ -163,7 +205,9 @@ def main(session: Any) -> str:
         records, errors = [], []
         for row in audience:
             try:
-                records.append(_row_for(_anchor_to_dict(row), started))
+                anchor = _anchor_to_dict(row)
+                prior = priors.get((anchor.get("ORG_ID", "JDO"), anchor["ACCOUNT_ID"]))
+                records.append(_row_for(anchor, run_ts, prior))
             except Exception as exc:
                 errors.append((row.ACCOUNT_ID, str(exc)[:200]))
         max_tolerated = max(10, len(audience) // 100)
@@ -182,12 +226,15 @@ def main(session: Any) -> str:
         if warning_msg:
             err = f"{warning_msg} | {err}" if err else warning_msg
 
-        # 3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_MONTH).
+        # 3. Idempotent MERGE on PK (ORG_ID, ACCOUNT_ID, PROFILE_MONTH).
         rows_inserted = _merge(session, records)
 
         # 4. Coverage assertion — canonical message format from spec §6.2.
-        actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
-        assert_coverage(session, COVERAGE_SQL, actual_sql)
+        # Current-month runs only: a past-month rebuild keeps that month's
+        # population, so accounts new to the audience since then aren't its job.
+        if run_ts >= datetime(started.year, started.month, 1):
+            actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
+            assert_coverage(session, COVERAGE_SQL, actual_sql)
 
     except Exception as exc:
         status = "FAILED"
@@ -208,7 +255,15 @@ def main(session: Any) -> str:
                     rows_inserted, accounts_processed, err, duration_ms],
         ).collect()
 
-    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"
+    return f"{TASK_NAME}: {status} month={run_ts:%Y-%m} rows={rows_inserted} accounts={accounts_processed}"
+
+
+def _month_start(value: Any) -> datetime:
+    """'2026-05-01' / '2026-05-17' / date / datetime → datetime(2026, 5, 1)."""
+    if isinstance(value, (date, datetime)):
+        return datetime(value.year, value.month, 1)
+    d = date.fromisoformat(str(value).strip()[:10])
+    return datetime(d.year, d.month, 1)
 
 
 def _anchor_to_dict(row: Any) -> dict:
@@ -347,11 +402,17 @@ def _clamp_score(x: float) -> float:
     return round(max(0.0, min(10.0, x)), 2)
 
 
-def _row_for(anchor: dict, run_ts: datetime) -> dict:
-    """Pure function: BUSINESS anchor → MSCI ESG row. Deterministic.
+def _row_for(anchor: dict, run_ts: datetime, prior: dict | None = None) -> dict:
+    """Pure function: BUSINESS anchor (+ last month's row) → MSCI ESG row. Deterministic.
 
     Per rowspec: seed = SHA-256(account_id || "msci" || YYYY-MM).
     Mid-month re-runs replay exactly; new month rolls a new seed.
+
+    With ``prior`` (the account's row for the month before) the row EVOLVES
+    from it — see ``_evolve_row``: the rating usually holds, sometimes moves
+    one notch (rarely two), the overall score moves with it, and
+    LAST_RATING_CHANGE_DIRECTION records that move. Without a prior (first
+    month for this account) the row is a fresh draw flagged 'Unchanged'.
     """
     if not _anchor_in_audience(anchor):
         raise ValueError(
@@ -366,6 +427,9 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
     seed = seed_for(account_id, DATASET_SALT, run_ts)
     rng  = random.Random(seed)
+
+    if prior and prior.get("MSCI_ESG_RATING") in _RATING_ADJ:
+        return _evolve_row(anchor, run_ts, prior, rng)
 
     # 1. Letter rating — biased by revenue band.
     weights = _rating_weights(revenue)
@@ -413,13 +477,13 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     tags = sorted(rng.sample(pool, k=min(tag_count, len(pool))))
     materiality = ",".join(tags)
 
-    # 7. Rating change direction — most firms unchanged.
-    last_change = rng.choices(
-        ["Upgrade", "Downgrade", "Unchanged"],
-        weights=[0.08, 0.07, 0.85],
-    )[0]
+    # 7. Rating change direction — a first row has no prior month to move from.
+    last_change = "Unchanged"
 
     return {
+        # v1.x multi-org-additive: stamp ORG_ID from the audience row.
+        # V_ACCOUNT_ANCHORS supplies ORG_ID as the first column (post-A3).
+        "ORG_ID":                              anchor.get("ORG_ID", "JDO"),
         "ACCOUNT_ID":                          account_id,
         "PROFILE_MONTH":                       run_ts.replace(day=1).date(),
         "MSCI_ESG_RATING":                     rating,
@@ -436,6 +500,152 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
         # Bucket GENERATED_AT to month-start so same-month re-runs produce
         # byte-identical rows (deterministic-month-bucket contract). Wall-clock
         # execution time is captured separately in TASK_EXECUTION_LOG.
+        "GENERATED_AT":                        datetime(run_ts.year, run_ts.month, 1),
+    }
+
+
+# -------------------------------------------------------------------
+# _evolve_row — sticky month-over-month rating dynamics
+# -------------------------------------------------------------------
+
+# Monthly move odds. Real MSCI ratings are sticky: ~89-90% of firms hold, ~10%
+# move one notch, ~1% two. One-notch odds between adjacent ratings are set by
+# detailed balance against _STATIONARY (the fresh-draw base mix, AAA..CCC), so
+# the walk keeps the book's rating mix steady instead of diffusing to the
+# extremes month after month. A move past AAA / CCC is impossible (holds).
+_P_ONE_NOTCH = 0.05
+_P_TWO_NOTCH = 0.005
+_STATIONARY = [5, 10, 18, 25, 22, 13, 7]  # AAA..CCC — same as _rating_weights' base
+# Overall ESG score points per notch moved, always in the rating's direction
+# (the cockpit's C4 card wants >= 1 point to corroborate a move).
+_SCORE_PER_NOTCH = (1.0, 1.5)
+# Unchanged months: pillars drift a little and revert slowly toward the
+# industry + rating baseline.
+_REVERSION = 0.15
+_PILLAR_JITTER = 0.2
+
+
+def _level(rating: str) -> int:
+    """AAA → 7 … CCC → 1 (the cockpit's ESG_LEVEL ladder)."""
+    return len(_RATINGS) - _RATINGS.index(rating)
+
+
+def _rating_at(level: int) -> str:
+    return _RATINGS[len(_RATINGS) - level]
+
+
+def _share(level: int) -> float:
+    return _STATIONARY[len(_RATINGS) - level]
+
+
+def _draw_notches(level: int, rng: random.Random) -> int:
+    """Signed notch move for one month: 0 (mostly), ±1 (sometimes), ±2 (rarely)."""
+    top = len(_RATINGS)
+    p_up1 = _P_ONE_NOTCH * math.sqrt(_share(level + 1) / _share(level)) if level < top else 0.0
+    p_dn1 = _P_ONE_NOTCH * math.sqrt(_share(level - 1) / _share(level)) if level > 1 else 0.0
+    p_up2 = _P_TWO_NOTCH if level + 2 <= top else 0.0
+    p_dn2 = _P_TWO_NOTCH if level - 2 >= 1 else 0.0
+    r = rng.random()
+    for move, p in ((2, p_up2), (1, p_up1), (-2, p_dn2), (-1, p_dn1)):
+        if r < p:
+            return move
+        r -= p
+    return 0
+
+
+def _num(value: Any, default: float = 0.0) -> float:
+    return default if value is None else float(value)
+
+
+def _evolve_row(anchor: dict, run_ts: datetime, prior: dict, rng: random.Random) -> dict:
+    """Last month's row → this month's. The flag always equals the actual move."""
+    industry  = (anchor.get("INDUSTRY") or "").strip()
+    revenue   = float(anchor.get("ANNUAL_REVENUE") or 0)
+    employees = int(anchor.get("EMPLOYEE_COUNT") or 0)
+
+    prev_rating = prior["MSCI_ESG_RATING"]
+    prev_level  = _level(prev_rating)
+    prev_overall = _num(prior.get("ESG_SCORE_OVERALL"), 5.0)
+    prev_pillars = [
+        _num(prior.get("ENVIRONMENTAL_SCORE"), 5.0),
+        _num(prior.get("SOCIAL_SCORE"), 5.0),
+        _num(prior.get("GOVERNANCE_SCORE"), 5.0),
+    ]
+
+    # 1. Rating move; the overall score moves with it by 1.0-1.5 pts per notch.
+    notches = _draw_notches(prev_level, rng)
+    delta = 0.0
+    if notches:
+        step = sum(rng.uniform(*_SCORE_PER_NOTCH) for _ in range(abs(notches)))
+        delta = step if notches > 0 else -step
+        if not 0.0 <= prev_overall + delta <= 10.0:
+            notches, delta = 0, 0.0   # no score headroom for the move → hold
+    rating = _rating_at(prev_level + notches)
+    direction = "Upgrade" if notches > 0 else "Downgrade" if notches < 0 else "Unchanged"
+
+    # 2. Pillars + overall.
+    if notches:
+        pillars = [_clamp_score(p + delta + (rng.random() - 0.5) * 0.6) for p in prev_pillars]
+        overall = _clamp_score(prev_overall + delta)
+    else:
+        e_base, s_base, g_base, _, _ = _industry_base(industry)
+        adj = _RATING_ADJ[rating]
+        targets = [
+            e_base + adj,
+            s_base + adj + (0.3 if employees >= 500 else 0.0),
+            g_base + adj + (0.5 if revenue >= 100_000_000 else 0.0),
+        ]
+        pillars = [
+            _clamp_score(p + _REVERSION * (t - p) + (rng.random() - 0.5) * 2 * _PILLAR_JITTER)
+            for p, t in zip(prev_pillars, targets)
+        ]
+        overall = _clamp_score(
+            prev_overall + (sum(pillars) - sum(prev_pillars)) / 3 + (rng.random() - 0.5) * 0.1
+        )
+    env_score, soc_score, gov_score = pillars
+
+    # 3. Industry classification holds unless the rating moved.
+    industry_class = prior.get("INDUSTRY_CLASSIFICATION") or _industry_class(rating, rng)
+    if notches:
+        industry_class = _industry_class(rating, rng)
+
+    # 4. Controversies: downgrades add flags, upgrades clear one, else mostly hold.
+    count = int(_num(prior.get("CONTROVERSY_FLAG_COUNT")))
+    if notches < 0:
+        count += rng.choice([1, 1, 2])
+    elif notches > 0:
+        count -= 1
+    elif rng.random() < 0.10:
+        count += rng.choice([-1, 1])
+    count = max(1 if industry_class == "Laggard" else 0, min(15, count))
+    category = prior.get("TOP_CONTROVERSY_CATEGORY")
+    if count == 0:
+        category = None
+    elif not category:
+        category = rng.choice(_CONTROVERSY_CATEGORIES)
+
+    # 5. Carbon intensity drifts; downgrades nudge it up, upgrades down.
+    carbon_lo, carbon_hi = (1.02, 1.08) if notches < 0 else (0.92, 0.98) if notches > 0 else (0.97, 1.03)
+    carbon = _num(prior.get("CARBON_INTENSITY_TONS_PER_M_REVENUE"), 100.0) * rng.uniform(carbon_lo, carbon_hi)
+    carbon = round(min(2000.0, max(0.0, carbon)), 2)
+
+    materiality = prior.get("MATERIALITY_TAGS") or ",".join(sorted(rng.sample(_tag_pool(industry), k=2)))
+
+    return {
+        "ORG_ID":                              anchor.get("ORG_ID", "JDO"),
+        "ACCOUNT_ID":                          anchor["ACCOUNT_ID"],
+        "PROFILE_MONTH":                       run_ts.replace(day=1).date(),
+        "MSCI_ESG_RATING":                     rating,
+        "INDUSTRY_CLASSIFICATION":             industry_class,
+        "ESG_SCORE_OVERALL":                   overall,
+        "ENVIRONMENTAL_SCORE":                 env_score,
+        "SOCIAL_SCORE":                        soc_score,
+        "GOVERNANCE_SCORE":                    gov_score,
+        "CARBON_INTENSITY_TONS_PER_M_REVENUE": carbon,
+        "CONTROVERSY_FLAG_COUNT":              count,
+        "TOP_CONTROVERSY_CATEGORY":            category,
+        "MATERIALITY_TAGS":                    materiality,
+        "LAST_RATING_CHANGE_DIRECTION":        direction,
         "GENERATED_AT":                        datetime(run_ts.year, run_ts.month, 1),
     }
 
@@ -461,13 +671,14 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID, PROFILE_MONTH,
                 MSCI_ESG_RATING, INDUSTRY_CLASSIFICATION,
                 ESG_SCORE_OVERALL, ENVIRONMENTAL_SCORE, SOCIAL_SCORE, GOVERNANCE_SCORE,
@@ -477,7 +688,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             MSCI_ESG_RATING                     = src.MSCI_ESG_RATING,
@@ -493,12 +705,14 @@ def _merge(session: Any, records: list[dict]) -> int:
             LAST_RATING_CHANGE_DIRECTION        = src.LAST_RATING_CHANGE_DIRECTION,
             GENERATED_AT                        = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
+            ORG_ID,
             ACCOUNT_ID, PROFILE_MONTH, MSCI_ESG_RATING, INDUSTRY_CLASSIFICATION,
             ESG_SCORE_OVERALL, ENVIRONMENTAL_SCORE, SOCIAL_SCORE, GOVERNANCE_SCORE,
             CARBON_INTENSITY_TONS_PER_M_REVENUE,
             CONTROVERSY_FLAG_COUNT, TOP_CONTROVERSY_CATEGORY,
             MATERIALITY_TAGS, LAST_RATING_CHANGE_DIRECTION, GENERATED_AT
         ) VALUES (
+            src.ORG_ID,
             src.ACCOUNT_ID, src.PROFILE_MONTH, src.MSCI_ESG_RATING, src.INDUSTRY_CLASSIFICATION,
             src.ESG_SCORE_OVERALL, src.ENVIRONMENTAL_SCORE, src.SOCIAL_SCORE, src.GOVERNANCE_SCORE,
             src.CARBON_INTENSITY_TONS_PER_M_REVENUE,
