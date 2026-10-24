@@ -316,7 +316,7 @@ Fixes:
 
   First run: 204,192 rows; 11,026 of 11,344 accounts have at least one eligible offer.
 
-## 9. Market feeds and the relationship graph: realism (fixed 2026-10-24, two writes pending)
+## 9. Market feeds and the relationship graph: realism (fixed 2026-10-24)
 
 - ✅ **Moody's outlook (`BT_Moodys_Market_Context`)**, commit `2899a769`. Outlooks now move: 10% per 180-day slot,
   and 50% for owners with fewer than 500 business accounts, so small books get moves too. Today's snapshot is
@@ -326,11 +326,9 @@ Fixes:
   - The 17 other owners: 14 moves to Negative/Watch, 16 back to Stable.
 
   C2 rows now sort by most recent change (`51504d1a`).
-  - ⏳ **History rewrite not applied.** 2026-03-01..10-23 still shows the old outlooks, so recent movers jump in a
-    single day. The patch is staged as `MOODYS_OUTLOOK_MOVES_PATCH_20261024C`: 249,427 rows, outlook columns only.
-    Apply with `/tmp/moodys_work2/apply.sql`. Backup: `MOODYS_MARKET_CONTEXT_BAK_20261024C`. Afterwards, drop both
-    patch tables. The older `…_PATCH_20261024` was built from the 5% code and must not be applied.
-  - The procedure is now `EXECUTE AS CALLER` (it was `OWNER`), in both repo and live.
+  - ✅ **History rewritten** (2026-10-24): 249,427 rows, 2026-03-01..10-23, outlook columns only. 0 day-to-day jumps
+    now disagree with the change date. Backup: `MOODYS_MARKET_CONTEXT_BAK_20261024C`. Patch tables dropped.
+  - Procedure restored to `EXECUTE AS OWNER` in repo and live.
 - ✅ **MSCI ESG ratings (`BT_MSCI_ESG`)**, commit `adae03f6`. Each month carries over from the last: about 90% of
   accounts hold their rating, 10% move one notch and 1% move two. The score moves with the rating, and the flag
   always matches. May–Oct are regenerated: about 10% change per month, 0 moves over 2 notches, and every flag
@@ -344,11 +342,9 @@ Fixes:
   profiled as the principal's household. The Wealth strain rate went from 4% to 20%. High stress is now non-zero in
   every book: Justin 1,763 / Sarah 1,751 / Jose 743 / Allen 644 / Vince 148 / Adam 129 / Kim 117. Backup:
   `CLARITAS_DEMOGRAPHICS_BAK_20261024c`.
-- ⏳ **Fee spikes, not live.** Only Allen has any (96); every other book has 0. The fix is ready but not applied:
-  - The working-tree changes to `scripts/snowflake_transactions/` (`gen_core.py`, `sp_handler.py`,
-    `fee_spell_backfill.py`) are uncommitted.
-  - The backfill insert (`/tmp/f89b/tx_ins.sql`) and the `GENERATE_DAILY_TRANSACTIONS` redeploy
-    (`/tmp/f89b/tx_sp.sql`) are both pending. Run the insert first, then the deploy, before the 03:05 ET daily run.
-  - Backup: `FINANCIAL_TRANSACTIONS_BAK_20261024b`.
-  - Jose's book can't get fee spikes: his 5,071 FSC Households own only 13 open checking accounts. Fixing that needs
+- ✅ **Fee spikes** (2026-10-24). Backfilled 3,597 fee rows into `FINANCIAL_TRANSACTIONS` and redeployed
+  `GENERATE_DAILY_TRANSACTIONS` (`scripts/snowflake_transactions/`). The daily run keeps adding fee spells. Live C9
+  fee spikes: Justin 297 / Sarah 240 / Allen 96 / Vince 14 / Adam 10 / Kim 7. Backup:
+  `FINANCIAL_TRANSACTIONS_BAK_20261024b`.
+  - Jose's book still has none: his 5,071 FSC Households own only 13 open checking accounts. Fixing that needs
     household-owned FinServ checking accounts in CRM.
