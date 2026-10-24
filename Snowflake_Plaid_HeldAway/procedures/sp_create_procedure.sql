@@ -20,7 +20,7 @@
 --           Composite PK (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH).
 --           DC DMO collapses to single-column PK heldAwayAccountId__c.
 -- 1:N:      First 1:N dataset in the rollout — each anchor produces 1-5
---           rows/month. Total ~52,300 rows/month.
+--           rows/month. Total ~55,000 rows/month.
 -- Vendor:   Plaid-style (held-away financial accounts) — README uses
 --           canonical name.
 -- =============================================================================
@@ -117,7 +117,11 @@ _LINK_REFERENCE = date(2026, 5, 1)
 
 # Audience predicate — repeated in 2 places (AUDIENCE_SQL + COVERAGE_SQL).
 # Both strings must match exactly to keep the coverage assertion meaningful.
-_AUDIENCE_PREDICATE = "CLIENT_CATEGORY IN ('Retail', 'Wealth Management')"
+_PERSON_CATEGORIES = ("Retail", "Wealth Management")
+_BUSINESS_CATEGORIES = ("Small Business", "Commercial Banking")
+_AUDIENCE_PREDICATE = (
+    "CLIENT_CATEGORY IN ('Retail', 'Wealth Management', 'Small Business', 'Commercial Banking')"
+)
 AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
@@ -152,11 +156,27 @@ _INSTITUTIONS: dict[str, list[tuple[str, int]]] = {
     "Crypto Exchange": [("Coinbase", 75), ("Kraken", 25)],
 }
 
+# Business held-away: banks plus business fintechs. Fintech share is larger for
+# small businesses. Type weights are per CLIENT_CATEGORY.
+_BUSINESS_TYPE_WEIGHTS = {
+    "Small Business": [("Bank", 80), ("Fintech", 20)],
+    "Commercial Banking": [("Bank", 94), ("Fintech", 6)],
+}
+_BUSINESS_INSTITUTIONS: dict[str, list[tuple[str, int]]] = {
+    "Bank": [("Chase", 24), ("Bank of America", 20), ("Wells Fargo", 17),
+             ("Citi", 10), ("PNC", 9), ("US Bank", 8), ("Truist", 7),
+             ("Capital One", 5)],
+    "Fintech": [("Mercury", 55), ("Brex", 45)],
+}
+_BUSINESS_DEPOSIT_TYPES = {"Business Checking", "Business Savings",
+                           "Money Market", "Sweep Account"}
+
 # INVESTMENT_RISK_TIER is populated only for these account types.
 _INVESTMENT_TYPES = {"Brokerage", "IRA", "401k", "HSA", "Managed Portfolio"}
 # BALANCE_CATEGORY = 'liability' for these; BALANCE_USD is always the positive
 # amount (owed, for liabilities).
-_LIABILITY_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
+_LIABILITY_TYPES = {"Mortgage", "Auto Loan", "Credit Card",
+                    "Line of Credit", "Commercial Loan", "Commercial Card"}
 
 
 # -------------------------------------------------------------------
@@ -262,10 +282,10 @@ def _anchor_to_dict(row: Any) -> dict:
 def _anchor_in_audience(anchor: dict) -> bool:
     """Translate the AUDIENCE_PREDICATE into a Python predicate.
 
-    Retail / Wealth Management anchors are in-audience.
-    Household / Small Business / Commercial Banking / null are out.
+    Retail / Wealth Management (personal) and Small Business / Commercial
+    Banking (business) anchors are in-audience. Household / null are out.
     """
-    return anchor.get("CLIENT_CATEGORY") in ("Retail", "Wealth Management")
+    return anchor.get("CLIENT_CATEGORY") in _PERSON_CATEGORIES + _BUSINESS_CATEGORIES
 
 
 # -------------------------------------------------------------------
@@ -301,6 +321,8 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
     income     = float(anchor.get("ANNUAL_INCOME") or 0)
     birthdate  = anchor.get("BIRTHDATE")
     client_cat = anchor.get("CLIENT_CATEGORY") or ""
+    is_business = client_cat in _BUSINESS_CATEGORIES
+    revenue    = float(anchor.get("ANNUAL_REVENUE") or 0) or 1_000_000.0
 
     # Identity-level stream (drives row_count; no run_ts, so it holds across months).
     parent_rng = _identity_rng(account_id)
@@ -308,7 +330,10 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
     # Age bands are read at the fixed link reference so identity attributes
     # don't flip when a birthday crosses a band edge between months.
     age = _age_from_birthdate(birthdate, _LINK_REFERENCE)
-    n = _row_count(income, age, client_cat, parent_rng)
+    if is_business:
+        n = _business_row_count(client_cat, parent_rng)
+    else:
+        n = _row_count(income, age, client_cat, parent_rng)
 
     month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
@@ -324,9 +349,15 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
         ).hexdigest()[:16]
 
         # Identity attributes — drawn in a fixed order from id_rng.
-        institution_name, institution_type = _institution(id_rng)
-        account_type = _account_type(institution_type, age, id_rng)
-        base_balance = _balance(account_type, income, age, client_cat, id_rng)
+        if is_business:
+            institution_name, institution_type = _institution(
+                id_rng, _BUSINESS_TYPE_WEIGHTS[client_cat], _BUSINESS_INSTITUTIONS)
+            account_type = _business_account_type(institution_type, client_cat, id_rng)
+            base_balance = _business_balance(account_type, revenue, id_rng)
+        else:
+            institution_name, institution_type = _institution(id_rng)
+            account_type = _account_type(institution_type, age, id_rng)
+            base_balance = _balance(account_type, income, age, client_cat, id_rng)
         last_linked  = _last_linked_date(id_rng)
         risk_tier    = _investment_risk_tier(account_type, age, id_rng)
         rate         = _interest_rate(account_type, id_rng)
@@ -335,7 +366,7 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
         balance      = _drift_balance(base_balance, account_type, slot_rng)
         is_active    = _is_active(slot_rng)
         last_txn     = _last_txn_date(is_active, month_start, slot_rng)
-        monthly_flow = _monthly_net_flow(is_active, account_type, balance, slot_rng)
+        monthly_flow = _monthly_net_flow(is_active, account_type, balance, slot_rng, revenue)
 
         rows.append({
             # v1.x multi-org-additive: ORG_ID leads EVERY emitted record (1:N
@@ -374,11 +405,14 @@ def _identity_rng(key: str) -> random.Random:
     return random.Random(hashlib.sha256(f"{key}|{IDENTITY_SALT}".encode()).digest())
 
 
-def _institution(rng: random.Random) -> tuple[str, str]:
+def _institution(rng: random.Random,
+                 type_weights: list[tuple[str, int]] = _INSTITUTION_TYPE_WEIGHTS,
+                 institutions: dict[str, list[tuple[str, int]]] = _INSTITUTIONS,
+                 ) -> tuple[str, str]:
     """(INSTITUTION_NAME, INSTITUTION_TYPE): type first, then name within type."""
-    types, type_weights = zip(*_INSTITUTION_TYPE_WEIGHTS)
-    institution_type = rng.choices(types, weights=type_weights)[0]
-    names, name_weights = zip(*_INSTITUTIONS[institution_type])
+    types, weights = zip(*type_weights)
+    institution_type = rng.choices(types, weights=weights)[0]
+    names, name_weights = zip(*institutions[institution_type])
     return rng.choices(names, weights=name_weights)[0], institution_type
 
 
@@ -481,10 +515,53 @@ def _balance(account_type: str, income: float, age: int,
     return round(min(10_000_000, base * income_mult), 2)
 
 
+def _business_row_count(client_cat: str, rng: random.Random) -> int:
+    """1-5 business held-away accounts; commercial clients bank more widely."""
+    if client_cat == "Commercial Banking":
+        weights = [10, 25, 30, 22, 13]
+    else:
+        weights = [45, 35, 15, 5, 0]
+    return rng.choices([1, 2, 3, 4, 5], weights=weights)[0]
+
+
+def _business_account_type(institution_type: str, client_cat: str,
+                           rng: random.Random) -> str:
+    """Business ACCOUNT_TYPE conditional on INSTITUTION_TYPE and segment.
+    Sweep accounts are commercial-only."""
+    if institution_type == "Fintech":
+        pool = ["Business Checking", "Commercial Card"]
+        weights = [0.60, 0.40]
+    elif client_cat == "Commercial Banking":
+        pool = ["Business Checking", "Money Market", "Sweep Account",
+                "Business Savings", "Line of Credit", "Commercial Loan",
+                "Commercial Card"]
+        weights = [0.28, 0.14, 0.14, 0.06, 0.16, 0.14, 0.08]
+    else:
+        pool = ["Business Checking", "Business Savings", "Money Market",
+                "Line of Credit", "Commercial Loan", "Commercial Card"]
+        weights = [0.38, 0.14, 0.10, 0.14, 0.12, 0.12]
+    return rng.choices(pool, weights=weights)[0]
+
+
+def _business_balance(account_type: str, revenue: float,
+                      rng: random.Random) -> float:
+    """Base balance scaled to ANNUAL_REVENUE (positive; owed for liabilities)."""
+    share = {
+        "Business Checking": (0.03, 0.12),
+        "Business Savings":  (0.01, 0.06),
+        "Money Market":      (0.02, 0.10),
+        "Sweep Account":     (0.05, 0.15),
+        "Line of Credit":    (0.00, 0.08),   # drawn amount
+        "Commercial Loan":   (0.05, 0.30),
+        "Commercial Card":   (0.002, 0.02),
+    }[account_type]
+    return round(min(10_000_000, revenue * rng.uniform(*share)), 2)
+
+
 def _drift_balance(base: float, account_type: str, rng: random.Random) -> float:
     """This month's balance: the slot's base with a small monthly move.
     Assets move -3%..+4%; liabilities -2%..+1% (paydown bias); cards swing more."""
-    if account_type == "Credit Card":
+    if account_type in ("Credit Card", "Commercial Card", "Line of Credit"):
         factor = rng.uniform(0.6, 1.4)
     elif account_type in _LIABILITY_TYPES:
         factor = rng.uniform(0.98, 1.01)
@@ -520,9 +597,18 @@ def _last_txn_date(is_active: bool, run_ts: datetime,
 
 
 def _monthly_net_flow(is_active: bool, account_type: str, balance: float,
-                      rng: random.Random) -> float | None:
+                      rng: random.Random, revenue: float = 0.0) -> float | None:
     if not is_active:
         return None
+    if account_type in _BUSINESS_DEPOSIT_TYPES:
+        # Operating cash moves with monthly revenue; slight inflow skew.
+        return round(revenue / 12 * rng.uniform(-0.15, 0.20), 2)
+    if account_type == "Commercial Loan":
+        return -round(balance * rng.uniform(0.06, 0.10) / 12, 2)
+    if account_type == "Line of Credit":
+        return round(balance * rng.uniform(-0.10, 0.10), 2)  # draws vs paydowns
+    if account_type == "Commercial Card":
+        return round(balance * rng.uniform(-0.30, 0.10), 2)
     if account_type in ("Mortgage", "Auto Loan"):
         # Loans: monthly principal+interest payment outflow (4-7% of balance/12).
         return -round(balance * rng.uniform(0.04, 0.07) / 12, 2)
@@ -562,7 +648,19 @@ def _interest_rate(account_type: str, rng: random.Random) -> float | None:
         return round(rng.uniform(4.00, 12.00), 3)
     if account_type == "Credit Card":
         return round(rng.uniform(14.00, 28.00), 3)
-    return None  # Checking, Brokerage, Managed Portfolio, IRA, 401k, HSA, Crypto
+    if account_type == "Business Savings":
+        return round(rng.uniform(0.25, 4.50), 3)
+    if account_type == "Money Market":
+        return round(rng.uniform(1.50, 5.00), 3)
+    if account_type == "Sweep Account":
+        return round(rng.uniform(2.00, 5.00), 3)
+    if account_type == "Line of Credit":
+        return round(rng.uniform(6.50, 11.50), 3)
+    if account_type == "Commercial Loan":
+        return round(rng.uniform(5.50, 10.00), 3)
+    if account_type == "Commercial Card":
+        return round(rng.uniform(15.00, 26.00), 3)
+    return None  # Checking, Brokerage, Managed Portfolio, IRA, 401k, HSA, Crypto, Business Checking
 
 
 # -------------------------------------------------------------------

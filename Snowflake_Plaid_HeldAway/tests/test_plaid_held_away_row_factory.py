@@ -36,13 +36,20 @@ from sp_generate_plaid_held_away import (
     _rows_for,
     EXPECTED_OUTPUT_COLUMNS,
     _INSTITUTIONS,
+    _BUSINESS_INSTITUTIONS,
+    _LIABILITY_TYPES,
 )
 
 
 # Loan and investment account-type sets used by multiple tests.
 _LOAN_TYPES = {"Mortgage", "Auto Loan", "Credit Card"}
 _INVESTMENT_TYPES = {"Brokerage", "IRA", "401k", "HSA", "Managed Portfolio"}
-_RATE_BEARING = {"Savings", "Mortgage", "Auto Loan", "Credit Card"}
+_RATE_BEARING = {"Savings", "Mortgage", "Auto Loan", "Credit Card",
+                 "Business Savings", "Money Market", "Sweep Account",
+                 "Line of Credit", "Commercial Loan", "Commercial Card"}
+_BUSINESS_TYPES = {"Business Checking", "Business Savings", "Money Market",
+                   "Sweep Account", "Line of Credit", "Commercial Loan",
+                   "Commercial Card"}
 
 
 # ---------- Property 1: Determinism ----------
@@ -149,11 +156,11 @@ def test_4a_multi_row_determinism(in_audience_anchors):
         assert a == b
 
 
-def test_4b_income_correlates_with_balance(in_audience_anchors):
+def test_4b_income_correlates_with_balance(person_audience_anchors):
     """High-income (>=$250K) anchors have >=3x mean total balance (across
     non-loan rows) vs low-income (<$40K). Roll over 6+ months for stability."""
-    high = [a for a in in_audience_anchors if (a["ANNUAL_INCOME"] or 0) >= 250_000]
-    low = [a for a in in_audience_anchors if (a["ANNUAL_INCOME"] or 0) < 40_000]
+    high = [a for a in person_audience_anchors if (a["ANNUAL_INCOME"] or 0) >= 250_000]
+    low = [a for a in person_audience_anchors if (a["ANNUAL_INCOME"] or 0) < 40_000]
     if not high or not low:
         pytest.skip(
             f"need both income cohorts; got high={len(high)}, low={len(low)}"
@@ -181,12 +188,12 @@ def test_4b_income_correlates_with_balance(in_audience_anchors):
     )
 
 
-def test_4c_age_correlates_with_investment_risk_tier(in_audience_anchors):
+def test_4c_age_correlates_with_investment_risk_tier(person_audience_anchors):
     """Within INVESTMENT_RISK_TIER rows (Brokerage/IRA/401k/HSA), the rate of
     'Conservative' tier is >=2x higher in age 65+ vs age <30. Multi-month roll."""
     today = datetime(2026, 5, 28)
-    older = [a for a in in_audience_anchors if _age_at(a, today) >= 65]
-    young = [a for a in in_audience_anchors if _age_at(a, today) < 30]
+    older = [a for a in person_audience_anchors if _age_at(a, today) >= 65]
+    young = [a for a in person_audience_anchors if _age_at(a, today) < 30]
     if not older or not young:
         pytest.skip(
             f"need both age cohorts; got older={len(older)}, young={len(young)}"
@@ -224,7 +231,7 @@ def test_4c_age_correlates_with_investment_risk_tier(in_audience_anchors):
     )
 
 
-def test_4d_wealth_correlates_with_row_count(in_audience_anchors):
+def test_4d_wealth_correlates_with_row_count(person_audience_anchors):
     """Wealth Management anchors have meaningfully higher mean row count
     than Retail anchors with comparable income.
 
@@ -240,9 +247,9 @@ def test_4d_wealth_correlates_with_row_count(in_audience_anchors):
     L3 smoke check. See "Wealth -> row count shift" deviation note in
     the T3+T4 implementation report.
     """
-    wealth = [a for a in in_audience_anchors
+    wealth = [a for a in person_audience_anchors
               if a["CLIENT_CATEGORY"] == "Wealth Management"]
-    retail_mid = [a for a in in_audience_anchors
+    retail_mid = [a for a in person_audience_anchors
                   if a["CLIENT_CATEGORY"] == "Retail"
                   and 50_000 <= (a["ANNUAL_INCOME"] or 0) <= 150_000]
     if not wealth or not retail_mid:
@@ -447,7 +454,7 @@ def test_interest_rate_null_unless_rate_bearing(in_audience_anchors):
 
 def test_balances_positive_with_category(in_audience_anchors):
     """BALANCE_USD >= 0 on every row; BALANCE_CATEGORY is 'liability' exactly
-    for Mortgage / Auto Loan / Credit Card and 'asset' otherwise."""
+    for loan / card / credit-line types and 'asset' otherwise."""
     if not in_audience_anchors:
         pytest.skip("empty audience")
     liabilities = 0
@@ -455,20 +462,20 @@ def test_balances_positive_with_category(in_audience_anchors):
         for m in range(1, 13):
             for r in _rows_for(anchor, datetime(2026, m, 1)):
                 assert r["BALANCE_USD"] >= 0, r
-                expected = "liability" if r["ACCOUNT_TYPE"] in _LOAN_TYPES else "asset"
+                expected = "liability" if r["ACCOUNT_TYPE"] in _LIABILITY_TYPES else "asset"
                 assert r["BALANCE_CATEGORY"] == expected, r
                 liabilities += expected == "liability"
     assert liabilities >= 3, f"too few liability rows seen ({liabilities})"
 
 
-def test_institution_type_cohesion(in_audience_anchors):
+def test_institution_type_cohesion(person_audience_anchors):
     """Each (name, type) pair in the output matches the canonical mapping,
     and Robo-Advisor rows never carry the self-directed "Brokerage" type."""
     canonical = {name: t for t, pool in _INSTITUTIONS.items() for name, _ in pool}
-    if not in_audience_anchors:
+    if not person_audience_anchors:
         pytest.skip("empty audience")
     seen_names = set()
-    for anchor in in_audience_anchors:
+    for anchor in person_audience_anchors:
         for m in range(1, 13):
             for r in _rows_for(anchor, datetime(2026, m, 1)):
                 name = r["INSTITUTION_NAME"]
@@ -514,15 +521,48 @@ def test_identity_attributes_stable_across_months(in_audience_anchors):
     assert moved > 0, "balances never drift between months"
 
 
-def test_institution_mix_skews_to_big_custodians(in_audience_anchors):
+def test_institution_mix_skews_to_big_custodians(person_audience_anchors):
     """Within Brokerage rows, Fidelity + Schwab + Vanguard hold most of the share."""
-    if not in_audience_anchors:
+    if not person_audience_anchors:
         pytest.skip("empty audience")
     brokerage = [r["INSTITUTION_NAME"]
-                 for anchor in in_audience_anchors
+                 for anchor in person_audience_anchors
                  for r in _rows_for(anchor, datetime(2026, 5, 1))
                  if r["INSTITUTION_TYPE"] == "Brokerage"]
     if len(brokerage) < 20:
         pytest.skip(f"only {len(brokerage)} brokerage rows in fixture")
     big = sum(n in {"Fidelity", "Charles Schwab", "Vanguard"} for n in brokerage)
     assert big / len(brokerage) >= 0.7, f"big-3 share {big / len(brokerage):.0%}"
+
+
+# ---------- Business held-away ----------
+
+def test_business_rows_use_business_types_and_institutions(business_audience_anchors):
+    """Business anchors get business account types at banks or fintechs, no
+    risk tier, and balances that scale with ANNUAL_REVENUE."""
+    if not business_audience_anchors:
+        pytest.skip("no business anchors in fixture")
+    canonical = {name: t for t, pool in _BUSINESS_INSTITUTIONS.items() for name, _ in pool}
+    for anchor in business_audience_anchors:
+        revenue = float(anchor.get("ANNUAL_REVENUE") or 0) or 1_000_000.0
+        for m in range(1, 13):
+            rows = _rows_for(anchor, datetime(2026, m, 1))
+            assert 1 <= len(rows) <= 5
+            for r in rows:
+                assert r["ACCOUNT_TYPE"] in _BUSINESS_TYPES, r
+                assert canonical[r["INSTITUTION_NAME"]] == r["INSTITUTION_TYPE"], r
+                assert r["INVESTMENT_RISK_TIER"] is None, r
+                assert 0 <= r["BALANCE_USD"] <= max(revenue * 0.42, 1), r
+                if r["INSTITUTION_TYPE"] == "Fintech":
+                    assert r["ACCOUNT_TYPE"] in {"Business Checking", "Commercial Card"}, r
+                if r["ACCOUNT_TYPE"] == "Sweep Account":
+                    assert anchor["CLIENT_CATEGORY"] == "Commercial Banking", r
+
+
+def test_person_rows_never_get_business_types(person_audience_anchors):
+    if not person_audience_anchors:
+        pytest.skip("empty audience")
+    for anchor in person_audience_anchors:
+        for r in _rows_for(anchor, datetime(2026, 10, 1)):
+            assert r["ACCOUNT_TYPE"] not in _BUSINESS_TYPES, r
+            assert r["INSTITUTION_TYPE"] != "Fintech", r

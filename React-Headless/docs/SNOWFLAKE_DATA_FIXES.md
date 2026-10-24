@@ -145,14 +145,14 @@ Still open:
 Owner gap (CRM side, not Snowflake): 684 D&B-keyed accounts have a null `OwnerId` in
 `ssot__Account`, so they appear in no banker's book.
 
-## 6. Plaid held-away (`BT_Plaid_Held_Away`): ✅ generator v2 2026-10-24
+## 6. Plaid held-away (`BT_Plaid_Held_Away`): ✅ generator v2 + business 2026-10-24
 
 Was: liabilities were stored as negative balances, Robo-Advisor rows carried `account_type = 'Brokerage'`,
 the 20 institutions were uniform (~2.8K rows each), and each month redrew every customer's institutions and
 account types (38,358 of 40,330 September→October pairs changed institution).
 
 Done (project `Snowflake_Plaid_HeldAway`, SP `SP_GENERATE_PLAID_HELD_AWAY` v2; all six months May–October
-regenerated, 55,247 rows / 25,381 accounts each):
+regenerated; personal 55,247 rows / 25,381 accounts each):
 - **Positive balances plus `BALANCE_CATEGORY`** (`asset` / `liability`). Credit Card, Mortgage and Auto Loan are
   `liability` (12,070 rows a month); the balance is the amount owed. 0 negative balances in every month.
   Net worth = `SUM(asset) − SUM(liability)`.
@@ -166,16 +166,18 @@ regenerated, 55,247 rows / 25,381 accounts each):
 - **Stable from month to month.** Each customer keeps the same held-away accounts, institutions, account types,
   link dates, risk tiers and rates. September→October: 0 of 55,247 pairs changed institution or type, and balances
   moved by a median of 2%. Activity (`is_active`, about 4.4K inactive a month) and net flow still vary monthly.
-- Live in the DMO: every month reads 55,247 rows and 25,381 accounts, with 0 negative balances and 0 Robo `Brokerage` rows.
-- Sanity: no future link or transaction dates; max balance $7.39M (June).
-- Rollback: `PLAID_HELD_AWAY_BAK_20261024`.
-
-Still open:
-- **DC mapping:** `BALANCE_CATEGORY` is in Snowflake but not yet in the stream / DMO (`balance_category__c`).
-  Until it's mapped, liabilities read as positive balances with no category. Every current cockpit reader
-  filters to asset types, so nothing on screen changes.
-- **Business held-away (optional).** Coverage is still persons only. Treasury and operating accounts at other
-  banks would power a Commercial deposit-capture signal.
+- **`BALANCE_CATEGORY` mapped** as `balance_category__c`: 0 nulls in the DMO in every month.
+- **Business held-away (added 2026-10-24).** Small Business and Commercial Banking anchors now get operating,
+  treasury and credit accounts at other banks: `Business Checking`, `Business Savings`, `Money Market`,
+  `Sweep Account` (Commercial only); `Line of Credit`, `Commercial Loan`, `Commercial Card` as liabilities.
+  Institutions are banks (Chase 2,252 … Capital One 446 in October) or the new `Fintech` type (Mercury, Brex).
+  Balances scale with `ANNUAL_REVENUE`, capped at $10M (Commercial sweep median $2.46M). All 5,616 business accounts
+  are covered, with 11,296 rows a month. Business types are named apart from personal ones, so the Wealth and
+  deposit-attrition readers are unaffected. This feeds a Commercial deposit-capture signal.
+- Live in the DMO, every month: 66,543 rows (55,247 personal, unchanged, + 11,296 business), 16,412 liabilities
+  (12,070 personal + 4,342 business), 0 null `balance_category__c`, 0 negative balances, 0 Robo `Brokerage` rows.
+- Sanity: no future link or transaction dates; max balance $10M (the cap, Commercial sweep).
+- Rollback: `PLAID_HELD_AWAY_BAK_20261024` (v1 state).
 
 ## 7. Financial transactions: key them to FinServ financial accounts: ✅ done 2026-10-22
 

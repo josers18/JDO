@@ -1,6 +1,6 @@
 # Plaid Held-Away — Cumulus Synthetic Dataset (External Financial Accounts)
 
-Synthetic Plaid-style held-away financial accounts per Retail/Wealth anchor for Cumulus's customer footprint. Mirrors
+Synthetic Plaid-style held-away financial accounts per Retail/Wealth (personal) and Small Business/Commercial Banking (business) anchor for Cumulus's customer footprint. Mirrors
 [Snowflake_CoreLogic_Property](../Snowflake_CoreLogic_Property) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
@@ -19,15 +19,17 @@ Synthetic Plaid-style held-away financial accounts per Retail/Wealth anchor for 
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → stream `BT_Plaid_Held_Away` → DMO `BT_Plaid_Held_Away__dlm`
 
 ## Audience
-**Account-scoped** — enrolls Retail + Wealth Management anchors:
+**Account-scoped** — enrolls Retail + Wealth Management (personal) and Small Business + Commercial Banking (business) anchors:
 
 ```sql
 SELECT DISTINCT ACCOUNT_ID
 FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
-WHERE CLIENT_CATEGORY IN ('Retail', 'Wealth Management')
+WHERE CLIENT_CATEGORY IN ('Retail', 'Wealth Management', 'Small Business', 'Commercial Banking')
 ```
 
-Live cardinality (probed 2026-05-28): **25,381 anchors** (Retail 21,461 + Wealth Management 3,920). BIRTHDATE and ANNUAL_INCOME both 100% populated on this audience. Each anchor emits 1–5 held-away rows per month — ~55,000 rows/month live (largest Cumulus table to date).
+Live cardinality (2026-10-24): **30,997 anchors** — 25,381 personal (Retail 21,461 + Wealth Management 3,920) and 5,616 business (Small Business 4,656 + Commercial Banking 960). Each anchor emits 1–5 held-away rows per month — 66,543 rows/month live (55,247 personal + 11,296 business).
+
+**Business held-away** (added 2026-10-24): account types `Business Checking`, `Business Savings`, `Money Market`, `Sweep Account` (Commercial only) as assets and `Line of Credit`, `Commercial Loan`, `Commercial Card` as liabilities, at banks (Chase, Bank of America, Wells Fargo, Citi, PNC, US Bank, Truist, Capital One) or `Fintech` (Mercury, Brex; checking and cards only). Balances scale with `ANNUAL_REVENUE` (capped at $10M); `INVESTMENT_RISK_TIER` is null. Small Business gets 1–4 accounts, Commercial 1–5. The personal path's draws are unchanged, so personal rows are identical to v2.
 
 ## Tests
 ```bash

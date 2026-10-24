@@ -8,7 +8,7 @@ Synthetic Plaid-style held-away financial accounts dataset for the Cumulus FSC d
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY`, `SP_GENERATE_PLAID_HELD_AWAY`, `TASK_MONTHLY_PLAID_HELD_AWAY`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
-- **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1–5 rows per Retail/Wealth anchor per month.**
+- **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1–5 rows per Retail/Wealth/Small Business/Commercial Banking anchor per month.**
 
 ## Conventions
 - **v2 (2026-10-24): identity-stable held-away accounts.** Two seed streams:
@@ -24,7 +24,7 @@ Synthetic Plaid-style held-away financial accounts dataset for the Cumulus FSC d
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` for the **distinct-account** half of coverage; the row-count band check is inline (different shape than Plans 1-5's single-equality assert).
 - The MERGE replaces on composite PK `(ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)`. Re-runs are idempotent within a calendar month.
 - **Rows are sorted by `HELD_AWAY_ACCOUNT_ID` before MERGE** — deterministic ordering across re-runs (the `random.choices`-based row count means natural emission order is non-deterministic across slot iterations otherwise).
-- Audience SQL is `WHERE CLIENT_CATEGORY IN ('Retail', 'Wealth Management')` on `V_ACCOUNT_ANCHORS` — 25,381 anchors (Retail 21,461 + Wealth Management 3,920, probed 2026-05-28). BIRTHDATE and ANNUAL_INCOME both 100% populated, no NULL-fallback needed in bias logic.
+- Audience SQL is `WHERE CLIENT_CATEGORY IN ('Retail', 'Wealth Management', 'Small Business', 'Commercial Banking')` on `V_ACCOUNT_ANCHORS` — 30,997 anchors (25,381 personal + 5,616 business, 2026-10-24). Business anchors take a separate branch in `_rows_for` (`_business_row_count`, `_business_account_type`, `_business_balance` scaled by `ANNUAL_REVENUE`); keep the personal branch's draw order untouched so personal rows stay byte-identical.
 - 20-institution pool spans Brokerage / Bank / Credit Union / Robo-Advisor / Crypto Exchange. Recognisable names grouped by type in `_INSTITUTIONS` (with weights). NOT license-grade Plaid data.
 - `accounts_processed` in `TASK_EXECUTION_LOG` is `len(audience)` — the **distinct customer count**, NOT `len(records)`. The row count goes in a separate audit field (or just into the SP's RuntimeError messages).
 
@@ -43,7 +43,7 @@ Synthetic Plaid-style held-away financial accounts dataset for the Cumulus FSC d
 - **4 NULLable columns, NULL by design (not missing data).** `LAST_TRANSACTION_DATE` and `MONTHLY_NET_FLOW_USD` are NULL when `IS_ACTIVE=false` (~8% of rows). `INVESTMENT_RISK_TIER` is NULL unless `ACCOUNT_TYPE` ∈ {Brokerage, Managed Portfolio, IRA, 401k, HSA}. `INTEREST_RATE_PCT` is NULL unless `ACCOUNT_TYPE` ∈ {Savings, Mortgage, Auto Loan, Credit Card}. NULL stays (no `N/A` sentinel: the rate column is numeric); the column comments say so. The DDL marks all 4 as NULL; the MERGE source SELECT must preserve `None` → `NULL`.
 - **`IS_ACTIVE` is BOOLEAN.** DC needs explicit `Boolean` declaration in the DLO + DMO field input (Plan 5 finding — defaulting to Text fails the Boolean parse). Snowflake stores BOOLEAN natively; the MERGE source SELECT casts via `IS_ACTIVE::BOOLEAN` to be explicit (write_pandas could mis-type it on an empty target).
 - **`accounts_processed` ≠ `row_count`.** `TASK_EXECUTION_LOG.accounts_processed = len(audience)` (~25,381) for customer-coverage audit. `ROWS_INSERTED` logs rows written (MERGE inserted + updated, ~55,000).
-- **Audience predicate** `CLIENT_CATEGORY IN ('Retail', 'Wealth Management')` — 25,381 anchors. BIRTHDATE and ANNUAL_INCOME both 100% populated, no NULL-fallback needed.
+- **Audience predicate** includes Small Business + Commercial Banking since 2026-10-24 — 30,997 anchors. Business account types are named distinctly (`Business Checking`, not `Checking`) so cockpit readers that filter personal types are unaffected.
 - Salt is `"plaid"`.
 - Cadence is **monthly** (`'USING CRON 35 3 1 * * America/New_York'`, matching live).
 - The `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
