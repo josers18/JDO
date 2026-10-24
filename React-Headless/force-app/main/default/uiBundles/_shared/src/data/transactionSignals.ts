@@ -62,20 +62,40 @@ const businessInflowSql = (accountFilter: string) => `
 `;
 
 // 'Overdraft Fee' alone also hits personal checking (1–3 per account), so a spike
-// must include at least one NSF / late fee — those only post on business accounts.
+// must include at least one NSF / late fee.
 // Ranked by the C10 blended score first, so the clients Who-to-Call already holds
 // lead the feed and drop out in the dedupe; FEE_SPIKE_SPARE extra rows backfill them.
-const feeSpikeSql = (accountFilter: string) => `${commercialWhoToCallScoreCtes(accountFilter)},
-  fs AS (
-  SELECT SFAccountID__c AS account_id, COUNT(*) AS fees,
+//
+// Book scope also rolls up to households, the FSC way: households can't own
+// financial accounts (PrimaryOwner lookup filter), so a book of households would
+// otherwise never show a spike. `hh` maps each member person account
+// (AccountContactRelation → PersonContactId) to one of the book's households, and
+// member spikes are reported against that household. Org-wide scope skips it.
+// Verified live 2026-10-24, Jose Sifontes' book: 0 → 525 households.
+const feeSpikeSql = (accountFilter: string, households: boolean) => `${commercialWhoToCallScoreCtes(accountFilter)},
+  hh AS (
+  SELECT m.ssot__Id__c AS member, MIN(ac.ssot__AccountId__c) AS household
+  FROM ssot__AccountContact__dlm ac
+  JOIN ssot__Account__dlm m ON m.PersonContactId__c = ac.ssot__IndividualId__c
+  WHERE ${households ? `ac.ssot__AccountId__c ${accountFilter}` : '1 = 0'}
+  GROUP BY m.ssot__Id__c
+  ),
+  fa AS (
+  SELECT SFAccountID__c AS acct, COUNT(*) AS fees,
          SUM(ssot__TransactionAmount__c) AS fee_total, MAX(ssot__TransactionDate__c) AS last_fee
   FROM ssot__FinancialAccountTransaction__dlm
   WHERE ssot__FinancialAccountTransactionType__c = 'Debit'
     AND ssot__Description__c IN ('NSF Returned Item Fee', 'Overdraft Fee', 'Late Payment Fee')
     AND ssot__TransactionDate__c >= current_date - INTERVAL '30' DAY
-    AND SFAccountID__c ${accountFilter}
+    AND (SFAccountID__c ${accountFilter} OR SFAccountID__c IN (SELECT member FROM hh))
   GROUP BY SFAccountID__c
   HAVING COUNT(*) >= 3 AND MAX(CASE WHEN ssot__Description__c <> 'Overdraft Fee' THEN 1 ELSE 0 END) = 1
+  ),
+  fs AS (
+  SELECT COALESCE(hh.household, fa.acct) AS account_id, SUM(fa.fees) AS fees,
+         SUM(fa.fee_total) AS fee_total, MAX(fa.last_fee) AS last_fee
+  FROM fa LEFT JOIN hh ON hh.member = fa.acct
+  GROUP BY COALESCE(hh.household, fa.acct)
   )
   SELECT fs.account_id AS account_id, fs.fees AS fees, fs.fee_total AS fee_total, fs.last_fee AS last_fee
   FROM fs LEFT JOIN b ON b.account_id = fs.account_id
@@ -132,11 +152,11 @@ export async function fetchBusinessInflows(ownerId: string | null | undefined): 
   };
 }
 
-/** C9 — business accounts with 3+ NSF / overdraft / late fees in 30 days, highest C10 score first (book-only). */
+/** C9 — accounts with 3+ NSF / overdraft / late fees in 30 days (household members rolled up), highest C10 score first (book-only). */
 export async function fetchFeeSpikes(ownerId: string | null | undefined): Promise<TxSignalResult<FeeSpike>> {
   // Book-only: another banker's fee spikes are no one to call, so an empty book stays empty.
   const { accountFilter, scope } = bookAccountFilter(ownerId);
-  const res = await queryDataCloud<Record<string, unknown>>(feeSpikeSql(accountFilter), FEE_SPIKES + FEE_SPIKE_SPARE);
+  const res = await queryDataCloud<Record<string, unknown>>(feeSpikeSql(accountFilter, scope === 'book'), FEE_SPIKES + FEE_SPIKE_SPARE);
   return {
     scope,
     rows: res.rows.map(r => ({

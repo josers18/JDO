@@ -346,5 +346,7 @@ Fixes:
   `GENERATE_DAILY_TRANSACTIONS` (`scripts/snowflake_transactions/`). The daily run keeps adding fee spells. Live C9
   fee spikes: Justin 297 / Sarah 240 / Allen 96 / Vince 14 / Adam 10 / Kim 7. Backup:
   `FINANCIAL_TRANSACTIONS_BAK_20261024b`.
-  - Jose's book still has none: his 5,071 FSC Households own only 13 open checking accounts. Fixing that needs
-    household-owned FinServ checking accounts in CRM.
+  - Jose's book had none: it holds 5,071 FSC Households, and households can't own financial accounts (a required
+    `FinServ__PrimaryOwner__c` lookup filter rejects them). The C9 reader now rolls up to households the FSC way:
+    in book scope, member person accounts (`ssot__AccountContact__dlm` → `PersonContactId__c`) count toward
+    their household. Jose: 0 → 525 households with a spike. No CRM writes.
