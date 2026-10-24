@@ -53,7 +53,7 @@ Complete inventory of all database objects in `DATA_JEDAIS.FINS__PUBLIC`.
 | **DNB_BUSINESS_CREDIT** | 34,170 | ACCOUNTADMIN | Cumulus Plan 3 — DnB-style business credit ratings | Cumulus |
 | **ESRI_GEO_FOOTPRINT** | 39,981 | ACCOUNTADMIN | Cumulus Plan 4 — geo-keyed (BRANCH_ZIP, PROFILE_MONTH) demographics | Cumulus |
 | **CORELOGIC_PROPERTY** | 50,848 | ACCOUNTADMIN | Cumulus Plan 5 — quarterly property records (PERSON-only) | Cumulus |
-| **PLAID_HELD_AWAY** | 165,680 | ACCOUNTADMIN | Cumulus Plan 6 — 1:N held-away financial accounts per anchor | Cumulus |
+| **PLAID_HELD_AWAY** | 399,258 | ACCOUNTADMIN | Cumulus Plan 6 — 1:N held-away financial accounts per anchor (personal + business since 2026-10-24) | Cumulus |
 | **WORLD_CHECK_AML** | 1,472,592 | ACCOUNTADMIN | Cumulus Plan 7 — AML screening daily snapshots | Cumulus |
 | **MGP_FINANCIAL_PLANS** | 957,141 | ACCOUNTADMIN | Cumulus Plan 8 — MoneyGuidePro-style monthly financial plans | Cumulus |
 | **SYNTH_RELATIONSHIP_GRAPH** | 70,897 | ACCOUNTADMIN | Cumulus Plan 9 — directed-edge relationship graph | Cumulus |
@@ -75,7 +75,7 @@ Complete inventory of all database objects in `DATA_JEDAIS.FINS__PUBLIC`.
 | MGP_FINANCIAL_PLANS_STAGING | 36,816 | Staging for Plan 8 SP |
 | MOODYS_MARKET_CONTEXT_STAGING | 11,392 | Staging for Plan 13 SP |
 | MSCI_ESG_SCORES_STAGING | 11,392 | Staging for Plan 2 SP |
-| PLAID_HELD_AWAY_STAGING | 55,082 | Staging for Plan 6 SP |
+| PLAID_HELD_AWAY_STAGING | 66,543 | Staging for Plan 6 SP |
 | SYNTH_RELATIONSHIP_GRAPH_STAGING | 38,089 | Staging for Plan 9 SP |
 | WORLD_CHECK_AML_STAGING | 36,816 | Staging for Plan 7 SP |
 | ZOOMINFO_FIRMOGRAPHICS_STAGING | 11,392 | Staging for Plan 11 SP |
