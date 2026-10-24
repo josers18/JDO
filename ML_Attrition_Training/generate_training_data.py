@@ -13,8 +13,10 @@ promotional product, short tenure, low balance; down with direct deposit,
 online/mobile banking, transactions, cross-sell, Preferred segment. The draw is
 Bernoulli, so the label stays noisy (holdout AUC ~0.8, not 1.0).
 
-Pct_Balance_Drop_6_Months_Avg_c is written but not used by the label: the Heroku
-column name carries leading/trailing spaces and the stream never ingested it.
+Pct_Balance_Drop_6_Months_Avg_c is written but not used by the label. Until
+2026-10-24 the Heroku column was named " Pct_Balance_Drop_6_Months_Avg_c " (with
+spaces) and the stream never ingested it; it was renamed and added to the stream
+that day.
 
 Input: CSV export of DATA_JEDAIS.FINS__PUBLIC.ATTRITION_INPUTS, e.g.
     snow sql -c SFDC_DC_TECH_ARCH_jwt --format csv \
@@ -54,7 +56,7 @@ COLUMNS = {
     'NPS_Score_c': 'NPS_SCORE_C',
     'Single_Product_Customer_c': 'SINGLE_PRODUCT_CUSTOMER_C',
     'Promotional_Product_c': 'PROMOTIONAL_PRODUCT_C',
-    ' Pct_Balance_Drop_6_Months_Avg_c ': 'PCT_BALANCE_DROP_6_MONTHS_AVG_C',
+    'Pct_Balance_Drop_6_Months_Avg_c': 'PCT_BALANCE_DROP_6_MONTHS_AVG_C',
     'Days_Since_Last_Interaction_c': 'DAYS_SINCE_LAST_INTERACTION_C',
     'Churned_c': 'CHURNED_C',
     'UniqueID': 'UNIQUEID',
@@ -121,10 +123,10 @@ def build(live, rng):
 
 
 def holdout_auc(rows):
-    """AUC of a gradient-boosted model on the 14 ingested features, 70/30 split."""
+    """AUC of a gradient-boosted model on the 15 ingested features, 70/30 split."""
     from sklearn.ensemble import HistGradientBoostingClassifier
     from sklearn.metrics import roc_auc_score
-    feats = [c for c in COLUMNS.values() if c not in ('CHURNED_C', 'UNIQUEID', 'PCT_BALANCE_DROP_6_MONTHS_AVG_C')]
+    feats = [c for c in COLUMNS.values() if c not in ('CHURNED_C', 'UNIQUEID')]
     cats = {c: sorted({r[c] for r in rows}) for c in feats if isinstance(rows[0][c], str)}
     X = [[cats[c].index(r[c]) if c in cats else float(r[c]) for c in feats] for r in rows]
     y = [r['CHURNED_C'] == 'Yes' for r in rows]
