@@ -178,7 +178,8 @@ def test_desired_status():
 
 def test_no_generated_campaigns_before_first_month(pg):
     fake = FakeSf()
-    assert feed.run(pg, lambda: fake, datetime(2026, 10, 20, 7)) is True
+    before = datetime.combine(feed.FIRST_MONTH - timedelta(days=11), time(7))
+    assert feed.run(pg, lambda: fake, before) is True
     assert [c for c in db.campaigns(pg) if c["template_key"]] == [] and fake.creates == 0
 
 

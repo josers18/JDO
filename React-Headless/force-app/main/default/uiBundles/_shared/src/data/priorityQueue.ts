@@ -38,6 +38,8 @@ export interface QueueSignalItem {
   tier?: QueueDueTier;
   /** ISO date (YYYY-MM-DD) the item is due / actionable. */
   dueDate?: string;
+  /** Blended-score drivers (R7 Who-to-Call), strongest first. */
+  drivers?: { label: string; points: number; tone: 'risk' | 'opportunity' }[];
 }
 
 export interface QueueOppInput {
@@ -109,6 +111,40 @@ function isEscalation(title: string, priority?: string): boolean {
     (priority ?? '').toLowerCase() === 'high' ||
     /escalat|declin|complaint|dispute|fraud|urgent|overdue|breach|churn/.test(t)
   );
+}
+
+/** Drop items for clients the blended Who-to-Call already carries — its row names
+ *  the same driver (Gong, fees, concentration…), so a second queue item or alert
+ *  repeats it. `idOf` reads the client id from raw signal rows (default `clientId`). */
+export function dropCovered<T>(
+  items: T[],
+  covered: readonly { clientId: string }[],
+  idOf: (it: T) => string = it => (it as { clientId: string }).clientId,
+): T[] {
+  const ids = new Set(covered.map(c => c.clientId).filter(Boolean));
+  return items.filter(it => !ids.has(idOf(it)));
+}
+
+/** Give each Who-to-Call row the live due date of the single-driver signals it
+ *  covers (Gong's day-before-the-next-call, a stress check-in, a plan review…) when
+ *  that comes before its severity SLA; otherwise leave it for the blender's SLA.
+ *  Run it on the full signal lists, before `dropCovered` removes the overlaps. */
+export function inheritDue<T extends QueueSignalItem>(
+  items: T[],
+  signals: readonly (readonly QueueSignalItem[])[],
+  now: Date = new Date(),
+): T[] {
+  const earliest = new Map<string, string>();
+  for (const s of signals.flat()) {
+    if (!s.clientId || !s.dueDate) continue;
+    const cur = earliest.get(s.clientId);
+    if (!cur || s.dueDate < cur) earliest.set(s.clientId, s.dueDate);
+  }
+  const today = startOfDay(now);
+  return items.map((it, i) => {
+    const due = earliest.get(it.clientId);
+    return due && due < addDays(today, SEV_SLA_DAYS[it.severity] + (i % 2)) ? { ...it, dueDate: due } : it;
+  });
 }
 
 /**

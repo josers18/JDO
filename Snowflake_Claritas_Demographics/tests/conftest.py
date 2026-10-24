@@ -33,11 +33,13 @@ def all_anchors():
 
 @pytest.fixture
 def in_audience_anchors(all_anchors):
-    """Plan 1 audience predicate: ACCOUNT_TYPE_FLAG = 'PERSON'."""
-    return [a for a in all_anchors if a["ACCOUNT_TYPE_FLAG"] == "PERSON"]
+    """PERSON anchors (the fixture's BUSINESS anchors carry TEST-BIZ ids, not real 001... Ids)."""
+    from sp_generate_claritas_demographics import _anchor_in_audience
+    return [a for a in all_anchors if _anchor_in_audience(a)]
 
 
 @pytest.fixture
 def out_of_audience_anchors(all_anchors):
-    """Anchors that fail the predicate."""
-    return [a for a in all_anchors if a["ACCOUNT_TYPE_FLAG"] != "PERSON"]
+    """Anchors that fail the predicate (fixture BUSINESS anchors: no real 001... Id)."""
+    from sp_generate_claritas_demographics import _anchor_in_audience
+    return [a for a in all_anchors if not _anchor_in_audience(a)]

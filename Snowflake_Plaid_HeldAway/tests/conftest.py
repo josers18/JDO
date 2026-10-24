@@ -1,5 +1,6 @@
 """Per-dataset pytest config — pulls the shared 100-anchor fixture from
-Snowflake_Cumulus_Common and provides Plan 6 Retail+Wealth audience overrides."""
+Snowflake_Cumulus_Common and provides the held-away audience overrides
+(personal: Retail + Wealth; business: Small Business + Commercial Banking)."""
 import importlib.util
 import sys
 from pathlib import Path
@@ -31,24 +32,34 @@ def all_anchors():
     return SAMPLE_ANCHORS
 
 
-@pytest.fixture
-def in_audience_anchors(all_anchors):
-    """Plan 6 audience: CLIENT_CATEGORY IN ('Retail', 'Wealth Management').
+_PERSON = ("Retail", "Wealth Management")
+_BUSINESS = ("Small Business", "Commercial Banking")
 
-    Per the v1.5 anchor distribution, these are entries 1-44 of the
-    PERSON cohort (25 Retail + 19 Wealth Management) — 44 in-audience anchors.
+
+@pytest.fixture
+def person_audience_anchors(all_anchors):
+    """Personal held-away: CLIENT_CATEGORY IN ('Retail', 'Wealth Management')."""
+    return [a for a in all_anchors if a.get("CLIENT_CATEGORY") in _PERSON]
+
+
+@pytest.fixture
+def business_audience_anchors(all_anchors):
+    """Business held-away: CLIENT_CATEGORY IN ('Small Business', 'Commercial Banking').
+
+    Includes the BUSINESS-flag rows and the PA-as-SMB / PA-as-Commercial
+    PERSON rows (sole proprietors get business accounts too).
     """
-    return [a for a in all_anchors
-            if a.get("CLIENT_CATEGORY") in ("Retail", "Wealth Management")]
+    return [a for a in all_anchors if a.get("CLIENT_CATEGORY") in _BUSINESS]
+
+
+@pytest.fixture
+def in_audience_anchors(person_audience_anchors, business_audience_anchors):
+    """Full audience: personal + business."""
+    return person_audience_anchors + business_audience_anchors
 
 
 @pytest.fixture
 def out_of_audience_anchors(all_anchors):
-    """Anchors that fail the predicate (Household / Small Business /
-    Commercial Banking / null CLIENT_CATEGORY).
-
-    Includes BUSINESS-flag rows (Small Business + Commercial Banking) AND
-    the PA-as-SMB / PA-as-Commercial PERSON rows (entries 45-50).
-    """
+    """Anchors that fail the predicate (Household / null CLIENT_CATEGORY)."""
     return [a for a in all_anchors
-            if a.get("CLIENT_CATEGORY") not in ("Retail", "Wealth Management")]
+            if a.get("CLIENT_CATEGORY") not in _PERSON + _BUSINESS]

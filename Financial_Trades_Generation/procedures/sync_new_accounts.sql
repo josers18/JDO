@@ -22,47 +22,47 @@ import time
 
 def sync_accounts(session):
     start_time = time.time()
-    task_name = ""ACCOUNT_SYNC""
+    task_name = "ACCOUNT_SYNC"
 
     try:
         # Get existing count before sync
         existing_count = session.sql(
-            ""SELECT COUNT(*) AS cnt FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG""
-        ).collect()[0][""CNT""]
+            "SELECT COUNT(*) AS cnt FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG"
+        ).collect()[0]["CNT"]
 
         # Get existing account IDs into a Python set for comparison
         existing_ids_rows = session.sql(
-            ""SELECT ACCOUNT_ID FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG""
+            "SELECT ACCOUNT_ID FROM DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG"
         ).collect()
-        existing_ids = {r[""ACCOUNT_ID""] for r in existing_ids_rows}
+        existing_ids = {r["ACCOUNT_ID"] for r in existing_ids_rows}
 
         # Read source accounts (001% IDs with non-blank names)
         source_rows = session.sql(''''''
-            SELECT ""ssot__Id__c"" AS ACCOUNT_ID,
-                   ""ssot__Name__c"" AS ACCOUNT_NAME,
-                   ""ssot__AccountTypeId__c"" AS ACCOUNT_TYPE_SRC
-            FROM FINSDC3_DATASHARE.""schema_Jedi_Snowflake"".""ssot__Account__dlm""
-            WHERE ""ssot__Id__c"" LIKE ''001%''
-              AND ""ssot__Name__c"" IS NOT NULL
-              AND TRIM(""ssot__Name__c"") != ''''
+            SELECT "ssot__Id__c" AS ACCOUNT_ID,
+                   "ssot__Name__c" AS ACCOUNT_NAME,
+                   "ssot__AccountTypeId__c" AS ACCOUNT_TYPE_SRC
+            FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
+            WHERE "ssot__Id__c" LIKE ''001%''
+              AND "ssot__Name__c" IS NOT NULL
+              AND TRIM("ssot__Name__c") != ''''
         '''''').collect()
 
         source_count = len(source_rows)
 
         # Filter to new accounts only
-        new_accounts = [r for r in source_rows if r[""ACCOUNT_ID""] not in existing_ids]
+        new_accounts = [r for r in source_rows if r["ACCOUNT_ID"] not in existing_ids]
         new_count = len(new_accounts)
 
         if new_count == 0:
             duration_ms = int((time.time() - start_time) * 1000)
             session.sql(
-                ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
-                ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
-                ""VALUES (?, ?, ?, ?, ?, ?)"",
-                params=[task_name, ""SUCCEEDED"", 0, source_count, ""No new accounts"", duration_ms]
+                "INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG "
+                "(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                params=[task_name, "SUCCEEDED", 0, source_count, "No new accounts", duration_ms]
             ).collect()
-            return (f""No new accounts found. Source: {source_count}, ""
-                    f""Config: {existing_count}. Duration: {duration_ms}ms."")
+            return (f"No new accounts found. Source: {source_count}, "
+                    f"Config: {existing_count}. Duration: {duration_ms}ms.")
 
         # Map account type to config values
         def map_config(acct_type):
@@ -79,18 +79,18 @@ def sync_accounts(session):
             return type_map.get(acct_type or '''', (''Retail'', ''WEEKLY'', 5, ''Moderate'', 150000))
 
         # Build batch INSERT
-        cols = (""ACCOUNT_ID, ACCOUNT_NAME, ACCOUNT_TYPE, FREQUENCY, ""
-                ""TRADES_PER_PERIOD, RISK_PROFILE, MAX_TRADE_VALUE, ACTIVE, NOTES"")
-        placeholders = "", "".join([""?""] * 9)
+        cols = ("ACCOUNT_ID, ACCOUNT_NAME, ACCOUNT_TYPE, FREQUENCY, "
+                "TRADES_PER_PERIOD, RISK_PROFILE, MAX_TRADE_VALUE, ACTIVE, NOTES")
+        placeholders = ", ".join(["?"] * 9)
         values_clauses = []
         all_params = []
 
         for r in new_accounts:
-            acct_type, freq, trades, risk, max_val = map_config(r[""ACCOUNT_TYPE_SRC""])
-            values_clauses.append(f""({placeholders})"")
+            acct_type, freq, trades, risk, max_val = map_config(r["ACCOUNT_TYPE_SRC"])
+            values_clauses.append(f"({placeholders})")
             all_params.extend([
-                r[""ACCOUNT_ID""], r[""ACCOUNT_NAME""], acct_type, freq,
-                trades, risk, max_val, True, ""Auto-imported from ssot__Account__dlm""
+                r["ACCOUNT_ID"], r["ACCOUNT_NAME"], acct_type, freq,
+                trades, risk, max_val, True, "Auto-imported from ssot__Account__dlm"
             ])
 
         # Insert in batches of 500 to avoid parameter limits
@@ -99,7 +99,7 @@ def sync_accounts(session):
         for i in range(0, len(new_accounts), batch_size):
             batch_clauses = values_clauses[i:i+batch_size]
             batch_params = all_params[i*9:(i+batch_size)*9]
-            insert_sql = f""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG ({cols}) VALUES {'', ''.join(batch_clauses)}""
+            insert_sql = f"INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG ({cols}) VALUES {'', ''.join(batch_clauses)}"
             session.sql(insert_sql, params=batch_params).collect()
             inserted += len(batch_clauses)
 
@@ -107,24 +107,24 @@ def sync_accounts(session):
         final_count = existing_count + inserted
 
         session.sql(
-            ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
-            ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
-            ""VALUES (?, ?, ?, ?, ?, ?)"",
-            params=[task_name, ""SUCCEEDED"", inserted, source_count, None, duration_ms]
+            "INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG "
+            "(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            params=[task_name, "SUCCEEDED", inserted, source_count, None, duration_ms]
         ).collect()
 
-        return (f""Synced {inserted} new accounts. ""
-                f""Source: {source_count} (001% with names). ""
-                f""Config total: {final_count}. Duration: {duration_ms}ms."")
+        return (f"Synced {inserted} new accounts. "
+                f"Source: {source_count} (001% with names). "
+                f"Config total: {final_count}. Duration: {duration_ms}ms.")
 
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
         err_msg = str(e)[:2000]
         session.sql(
-            ""INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG ""
-            ""(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) ""
-            ""VALUES (?, ?, ?, ?, ?, ?)"",
-            params=[task_name, ""FAILED"", 0, 0, err_msg, duration_ms]
+            "INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG "
+            "(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            params=[task_name, "FAILED", 0, 0, err_msg, duration_ms]
         ).collect()
         raise
 ';

@@ -1,0 +1,107 @@
+{
+  "name": "BT_Offer_Eligibility",
+  "label": "BT_Offer_Eligibility",
+  "description": "Next-best-offer scores (treasury + lending) per BUSINESS account x action code. Federated from DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY. account_id = ssot__Account__dlm.ssot__Id__c. See Snowflake_Offer_Eligibility/.",
+  "dataSpaceName": "default",
+  "category": "OTHER",
+  "fields": [
+    {
+      "name": "org_id",
+      "label": "ORG_ID",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Text"
+    },
+    {
+      "name": "record_id",
+      "label": "RECORD_ID",
+      "isPrimaryKey": true,
+      "isDynamicLookup": false,
+      "dataType": "Text"
+    },
+    {
+      "name": "account_id",
+      "label": "ACCOUNT_ID",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Text"
+    },
+    {
+      "name": "action_code",
+      "label": "ACTION_CODE",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Text"
+    },
+    {
+      "name": "product_family",
+      "label": "PRODUCT_FAMILY",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Text"
+    },
+    {
+      "name": "recommended_action_rank",
+      "label": "RECOMMENDED_ACTION_RANK",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Number"
+    },
+    {
+      "name": "conversion_probability",
+      "label": "CONVERSION_PROBABILITY",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Number"
+    },
+    {
+      "name": "noaction_conversion",
+      "label": "NOACTION_CONVERSION",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Number"
+    },
+    {
+      "name": "expected_value_uplift",
+      "label": "EXPECTED_VALUE_UPLIFT",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Number"
+    },
+    {
+      "name": "recommended_channels",
+      "label": "RECOMMENDED_CHANNELS",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Text"
+    },
+    {
+      "name": "em_probability",
+      "label": "EM_PROBABILITY",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Number"
+    },
+    {
+      "name": "cc_probability",
+      "label": "CC_PROBABILITY",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Number"
+    },
+    {
+      "name": "start_date",
+      "label": "START_DATE",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "Date"
+    },
+    {
+      "name": "generated_at",
+      "label": "GENERATED_AT",
+      "isPrimaryKey": false,
+      "isDynamicLookup": false,
+      "dataType": "DateTime"
+    }
+  ]
+}

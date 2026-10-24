@@ -85,13 +85,13 @@ SQL_HEADER = f"""\
 -- Vendor:   DnB-style (Dun and Bradstreet shape) — README uses canonical name
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}()
+CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}(RUN_MONTH DATE DEFAULT NULL)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+EXECUTE AS OWNER
 AS
 $$
 """

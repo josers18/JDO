@@ -30,7 +30,7 @@ CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES (
     CONTROVERSY_FLAG_COUNT                NUMBER(3,0)       NOT NULL  COMMENT '0-15 active controversy flags. Most firms 0-2; Laggards skew higher.',
     TOP_CONTROVERSY_CATEGORY              VARCHAR(40)                 COMMENT 'NULL when CONTROVERSY_FLAG_COUNT=0; else one of 7 categories.',
     MATERIALITY_TAGS                      VARCHAR(200)      NOT NULL  COMMENT 'Comma-separated 2-4 tags from a 12-tag pool, biased by industry.',
-    LAST_RATING_CHANGE_DIRECTION          VARCHAR(10)       NOT NULL  COMMENT 'Upgrade / Downgrade / Unchanged (~85% Unchanged).',
+    LAST_RATING_CHANGE_DIRECTION          VARCHAR(10)       NOT NULL  COMMENT 'Actual rating move vs the prior month: Upgrade / Downgrade / Unchanged (~90% Unchanged; first row Unchanged).',
     GENERATED_AT                          TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed for byte-identical mid-month re-runs (audit time → TASK_EXECUTION_LOG).',
     CONSTRAINT pk_msci_esg_scores PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )

@@ -22,7 +22,7 @@ interface DataConfig {
 }
 
 // ReactCommercial runs LIVE. Core (GraphQL: Opportunity/Case/Task/Event/
-// FinancialGoal) + Data Cloud (business credit via CumulusDnBBusinessCredit__dlm)
+// FinancialGoal) + Data Cloud (business credit via BT_DNB_Business_Credit__dlm)
 // are verified against jdo-1lrnov, so both are 'real'. Agentforce summaries stay
 // 'mock' until the Agentforce prompt path is wired.
 const config: DataConfig = {

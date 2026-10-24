@@ -23,10 +23,11 @@ CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT (
     AVERAGE_DAYS_BEYOND_TERMS    NUMBER(4,0)       NOT NULL  COMMENT '0-180. Inverse correlate of PAYDEX (~(80 - PAYDEX) * 1.5 plus jitter).',
     FAILURE_RISK_SCORE           NUMBER(3,0)       NOT NULL  COMMENT '1-100. 1=very high probability of business failure; 100=very low. Industry + revenue biased.',
     DELINQUENCY_PREDICTOR_SCORE  NUMBER(3,0)       NOT NULL  COMMENT '1-100. 1=very high delinquency probability; 100=very low. Correlated with PAYDEX.',
-    SUPPLIER_RISK_LEVEL          VARCHAR(10)       NOT NULL  COMMENT 'Low / Moderate / High / Severe. Derived from FAILURE_RISK_SCORE bands.',
+    SUPPLIER_RISK_LEVEL          VARCHAR(10)       NOT NULL  COMMENT 'Low / Moderate / High / Severe. Points blend of failure risk (45%), composite (25%) and PAYDEX (30%); ~1-2% Severe.',
     CORPORATE_FAMILY_SIZE        NUMBER(5,0)       NOT NULL  COMMENT 'Total entities in the corporate family (incl. self). 1=standalone, 2-5 mid-market, 50+ large enterprise.',
     ULTIMATE_PARENT_DUNS         VARCHAR(9)                  COMMENT 'NULL when CORPORATE_FAMILY_SIZE=1 (standalone). Otherwise a deterministic 9-digit DUNS for the parent.',
     VERIFICATION_STATUS          VARCHAR(20)       NOT NULL  COMMENT 'Verified / Probable / Unverified. Most rows Verified; smaller firms more often Probable.',
+    MATCH_CONFIDENCE_CODE        NUMBER(2,0)                 COMMENT '1-10, 10 = exact match. Drives VERIFICATION_STATUS: 8-10 Verified, 5-7 Probable, 1-4 Unverified. Added v1.6.',
     GENERATED_AT                 TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed for byte-identical mid-month re-runs (audit time -> TASK_EXECUTION_LOG).',
     CONSTRAINT pk_dnb_business_credit PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )

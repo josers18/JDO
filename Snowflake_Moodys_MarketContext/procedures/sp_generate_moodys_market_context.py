@@ -205,7 +205,8 @@ def _credit_rating(account_id: str, industry: Any, run_ts: datetime) -> str:
 
 
 def _rating_outlook(account_id: str, run_ts: datetime) -> str:
-    """Year-stable outlook. ~78% Stable; rare changes."""
+    """Year-stable baseline outlook. ~78% Stable. In-year moves are layered
+    on top by `_apply_outlook_moves`."""
     seed = _year_seed(account_id, run_ts, "_outlook")
     rng = random.Random(seed)
     return rng.choices(_OUTLOOKS, weights=_OUTLOOK_WEIGHTS)[0]
@@ -238,6 +239,156 @@ def _outlook_last_changed_date(account_id: str, outlook: str,
     # year_start (year-stable).
     days_ago = rng.randint(1, 365)
     return (year_start - timedelta(days=days_ago)).date()
+
+
+# -------------------------------------------------------------------
+# Outlook moves (2026-10-24) — real outlook changes inside the year.
+#
+# The year-stable outlook above never moves between Jan 1 and Dec 31, and
+# its OUTLOOK_LAST_CHANGED_DATE always lands in the prior year, so a
+# "changed in the last 90 days" view had nothing to show. On top of that
+# baseline, accounts whose baseline is Stable get occasional *episodes*:
+#
+#   Stable -> Negative (65%) or Watch (35%)
+#          -> (30% of Negative starts) escalate to Watch 14-45 days later
+#          -> back to Stable before the episode's slot ends.
+#
+# Episodes are laid out on fixed 180-day slots in absolute time (days since
+# 2000-01-01, shifted by a per-account phase offset so slot boundaries and
+# reverts don't bunch on one calendar day). Each (account, slot) has a 10%
+# chance (_MOVE_EPISODE_PROB) of one episode, starting in the slot's first 120 days. Everything
+# is seeded from (account, slot) under the "moodys_moves" salt with a fixed
+# anchor date, so the outlook on any PROFILE_DATE is a pure function of
+# (account, date): the daily run, a NUM_DAYS backfill and every re-run agree,
+# and future runs keep producing fresh moves relative to their own date.
+#
+# Only slots starting on/after _MOVE_FIRST_SLOT_START carry episodes, so the
+# set of past events is finite and OUTLOOK_LAST_CHANGED_DATE can carry the
+# latest event on or before PROFILE_DATE forever (never earlier than the
+# baseline date) — no lookback window that would silently drop a date.
+# Only accounts on the local Salesforce Account key prefix
+# (_MOVE_ACCOUNT_PREFIX) get episodes, so the moves land on accounts the
+# cockpits can see. Accounts with a non-Stable
+# baseline keep the baseline unchanged.
+# -------------------------------------------------------------------
+
+DATASET_SALT_MOVES     = "moodys_moves"
+_MOVE_EPOCH            = date(2000, 1, 1)
+_MOVE_SEED_ANCHOR      = datetime(2000, 1, 1)   # fixed: moves are not year-bucketed
+_MOVE_SLOT_DAYS        = 180
+_MOVE_START_WINDOW     = 120                    # episode starts in slot day [0, 120)
+_MOVE_EPISODE_PROB     = 0.10
+_MOVE_FIRST_SLOT_START = date(2025, 9, 1)       # no episodes in slots starting earlier
+_MOVE_ACCOUNT_PREFIX   = "001am"                # JDO local Account Ids
+# Small-book boost: nearly every business account sits in two big advisor
+# books, so at the base rate the ~100 accounts spread over the other
+# advisors would almost never move. Accounts whose owner has fewer than
+# _MOVE_SMALL_BOOK_MAX business accounts in the audience get the higher
+# per-slot rate so every cockpit book sees an occasional move. Book sizes
+# come from OWNER_BOOK_SQL; when that lookup fails the base rate applies.
+_MOVE_SMALL_BOOK_MAX        = 500
+_MOVE_EPISODE_PROB_SMALL    = 0.50
+
+# account -> owner's business-book size, read live from the inbound
+# Account share (same dedup as V_ACCOUNT_ANCHORS).
+OWNER_BOOK_SQL = """
+WITH acc AS (
+    SELECT "ssot__Id__c" AS ACCOUNT_ID, "ssot__OwnerId__c" AS OWNER_ID
+    FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY "ssot__Id__c" ORDER BY "ssot__Id__c") = 1
+), biz AS (
+    SELECT DISTINCT v.ACCOUNT_ID, acc.OWNER_ID
+    FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS v
+    JOIN acc ON acc.ACCOUNT_ID = v.ACCOUNT_ID
+    WHERE v.ACCOUNT_TYPE_FLAG = 'BUSINESS' AND acc.OWNER_ID IS NOT NULL
+)
+SELECT ACCOUNT_ID, COUNT(*) OVER (PARTITION BY OWNER_ID) AS OWNER_BOOK_SIZE
+FROM biz
+"""
+
+
+def _move_episode_prob(owner_book_size: Any) -> float:
+    if owner_book_size is not None and int(owner_book_size) < _MOVE_SMALL_BOOK_MAX:
+        return _MOVE_EPISODE_PROB_SMALL
+    return _MOVE_EPISODE_PROB
+
+
+def _move_seed(account_id: str, suffix: str) -> bytes:
+    return seed_for(account_id + suffix, DATASET_SALT_MOVES, _MOVE_SEED_ANCHOR)
+
+
+def _move_slot_offset(account_id: str) -> int:
+    """Per-account phase offset in [0, _MOVE_SLOT_DAYS). Fixed forever."""
+    return random.Random(_move_seed(account_id, "_slot_offset")).randrange(_MOVE_SLOT_DAYS)
+
+
+def _move_slot(account_id: str, d: date) -> int:
+    return ((d - _MOVE_EPOCH).days + _move_slot_offset(account_id)) // _MOVE_SLOT_DAYS
+
+
+def _move_slot_bounds(account_id: str, k: int) -> tuple[date, date]:
+    """[start, end) of slot k for this account."""
+    start = _MOVE_EPOCH + timedelta(days=k * _MOVE_SLOT_DAYS - _move_slot_offset(account_id))
+    return start, start + timedelta(days=_MOVE_SLOT_DAYS)
+
+
+def _move_first_slot(account_id: str) -> int:
+    """First slot index whose start is on/after _MOVE_FIRST_SLOT_START."""
+    n = (_MOVE_FIRST_SLOT_START - _MOVE_EPOCH).days + _move_slot_offset(account_id)
+    return -(-n // _MOVE_SLOT_DAYS)
+
+
+_EPISODE_CACHE: dict[tuple[str, int, float], tuple] = {}
+
+
+def _outlook_episode(account_id: str, k: int,
+                     prob: float = _MOVE_EPISODE_PROB) -> tuple:
+    """Ordered ((event_date, new_outlook), ...) for slot k; () when the slot
+    has no episode. Every episode starts Stable -> Negative/Watch and ends
+    back on Stable strictly inside the slot, so consecutive events always
+    differ and the next slot starts from Stable."""
+    key = (account_id, k, prob)
+    if key in _EPISODE_CACHE:
+        return _EPISODE_CACHE[key]
+    rng = random.Random(_move_seed(account_id, f"_episode_{k}"))
+    events: tuple = ()
+    if k >= _move_first_slot(account_id) and rng.random() < prob:
+        start, end = _move_slot_bounds(account_id, k)
+        first_day = start + timedelta(days=rng.randrange(_MOVE_START_WINDOW))
+        first = "Negative" if rng.random() < 0.65 else "Watch"
+        evs = [(first_day, first)]
+        last = first_day
+        if first == "Negative" and rng.random() < 0.30:
+            last = first_day + timedelta(days=rng.randint(14, 45))
+            evs.append((last, "Watch"))
+        gap = (end - last).days - 1          # >= 14 by construction
+        revert = last + timedelta(days=rng.randint(min(21, gap), gap))
+        evs.append((revert, "Stable"))
+        events = tuple(evs)
+    _EPISODE_CACHE[key] = events
+    return events
+
+
+def _apply_outlook_moves(account_id: str, profile_date: date,
+                         outlook: str, changed: Any,
+                         owner_book_size: Any = None) -> tuple[str, Any]:
+    """Overlay episode moves on the year-stable (outlook, last-changed)."""
+    prob = _move_episode_prob(owner_book_size)
+    if outlook != "Stable" or not str(account_id).startswith(_MOVE_ACCOUNT_PREFIX):
+        return outlook, changed
+    k = _move_slot(account_id, profile_date)
+    current = outlook
+    for ev_date, ev_outlook in _outlook_episode(account_id, k, prob):
+        if ev_date <= profile_date:
+            current = ev_outlook
+    latest = None
+    for j in range(_move_first_slot(account_id), k + 1):
+        for ev_date, _ in _outlook_episode(account_id, j, prob):
+            if ev_date <= profile_date and (latest is None or ev_date > latest):
+                latest = ev_date
+    if latest is not None and (changed is None or latest > changed):
+        changed = latest
+    return current, changed
 
 
 def _year_stable_revenue_multiple(account_id: str, run_ts: datetime) -> float:
@@ -411,6 +562,11 @@ def _rows_for(anchor: dict, profile_date: date) -> list[dict]:
     rating = _credit_rating(account_id, industry, run_ts)
     outlook = _rating_outlook(account_id, run_ts)
     outlook_changed = _outlook_last_changed_date(account_id, outlook, run_ts)
+    # 1b. In-year outlook moves on top of the year-stable baseline.
+    outlook, outlook_changed = _apply_outlook_moves(
+        account_id, day_start.date(), outlook, outlook_changed,
+        anchor.get("OWNER_BOOK_SIZE"),
+    )
     flag_count = _rating_agency_flag_count(account_id, run_ts)
 
     # 2. Daily-bucketed market signals.
@@ -474,6 +630,15 @@ def main(session: Any, num_days: int = 1) -> str:
     try:
         audience = session.sql(AUDIENCE_SQL).collect()
         accounts_processed = len(audience)
+        # Owner book sizes for the small-book move boost. Best-effort: a
+        # failed lookup falls back to the base move rate for every account.
+        try:
+            book_sizes = {
+                r["ACCOUNT_ID"]: int(r["OWNER_BOOK_SIZE"])
+                for r in session.sql(OWNER_BOOK_SQL).collect()
+            }
+        except Exception:
+            book_sizes = {}
 
         # Build N profile_dates walking backward from today.
         current_profile_date = _day_start(started).date()
@@ -484,6 +649,7 @@ def main(session: Any, num_days: int = 1) -> str:
         records, errors = [], []
         for row in audience:
             anchor = _anchor_to_dict(row)
+            anchor["OWNER_BOOK_SIZE"] = book_sizes.get(anchor.get("ACCOUNT_ID"))
             for pd in profile_dates:
                 try:
                     records.extend(_rows_for(anchor, pd))
@@ -584,7 +750,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""

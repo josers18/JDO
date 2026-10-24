@@ -3,6 +3,7 @@
  * standard Salesforce home). Banker-centric, across the whole book. Mock now,
  * swappable to executeGraphQL / queryDataCloud later.
  */
+import type { DataFreshness, FirmographicMixResult, MarketFootprintResult } from '@shared';
 
 export interface HomeKpi {
   key: string;
@@ -32,6 +33,8 @@ export interface CallItem {
   /** Signal-native ISO due date (YYYY-MM-DD) — set by the priority-queue
    *  blender so the card can sort/label by real dates, not severity. */
   dueDate?: string;
+  /** C10 blended-score drivers — tags on the Who-to-Call rows. */
+  drivers?: { label: string; points: number; tone: 'risk' | 'opportunity' }[];
 }
 
 /**
@@ -131,6 +134,19 @@ export interface LeadReferral {
   lastName?: string;
   /** Lead.Company — required to edit/create; the org the lead belongs to. */
   company?: string;
+  /** S4 warm intro (relationship graph) — not a Lead yet. A row click opens the
+   *  Lead modal in create mode with these prefilled. */
+  intro?: {
+    accountId: string;
+    referrer: string;
+    owned: boolean;
+    confidencePct: number;
+    discovered: string;
+    scope: 'book' | 'org';
+    firstName?: string;
+    lastName?: string;
+    company: string;
+  };
 }
 
 /** A recent-activity feed row for the cockpit supporting band. */
@@ -174,12 +190,16 @@ export interface CaseItem {
   ageDays: number;
 }
 
-/** Book-level loan delinquency aggregate (NOT client-joinable — a book metric). */
+/** Book-level payment-behaviour aggregate from D&B days-beyond-terms bands
+ *  (latest monthly snapshot). */
 export interface DelinquencyWatch {
-  totalDelinquentBalance: number;
-  totalRecovered: number;
-  byStatus: { status: string; count: number; balance: number }[];
+  totalAccounts: number;
+  /** Accounts paying 1+ days beyond terms. */
+  lateAccounts: number;
+  byBand: { band: string; count: number; avgPaydex: number }[];
   asOf: string;
+  /** 'book' = the banker's own accounts; 'org' = org-wide fallback. */
+  scope: 'book' | 'org';
 }
 
 /** An upcoming customer financial goal (FSC FinancialGoal) for the supporting
@@ -222,6 +242,9 @@ export interface HomeDashboard {
   aiBrief: string;
   kpis: HomeKpi[];
   callList: CallItem[];
+  /** Extra dated queue feeds — S2 AML screening escalations, S1 Gong call sentiment, plus S5 inflows (Retail/Wealth) or
+   *  C9 fee spikes (Commercial). Each item carries its own dueDate. */
+  transactionSignals?: CallItem[];
   pipeline: PipelineItem[];
   bankerGoals: BankerGoal[];
   lifeEvents: LifeEventSignal[];
@@ -240,6 +263,12 @@ export interface HomeDashboard {
   rightNow?: RightNowItem;
   confidencePct: number;
   dataSourceCount: number;
+  /** S8 — per-source as-of dates behind the hero meter (real data only). */
+  dataFreshness?: DataFreshness;
+  /** C5 — ZoomInfo revenue / employee band mix + upmarket clients (real data only). */
+  firmographics?: FirmographicMixResult;
+  /** C7 — ESRI branch-ZIP footprint of the book (real data only). */
+  marketFootprint?: MarketFootprintResult;
   /** Book-level delinquency aggregate (null when not wired for this persona). */
   delinquency: DelinquencyWatch | null;
 }

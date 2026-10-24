@@ -39,6 +39,9 @@ Cascade-NULL boring case:
   (TOTAL_TALK_TIME_MINUTES = 0, CUSTOMER_TALK_RATIO_PCT = 0.00,
   OVERALL_SENTIMENT = 'Neutral', KEY_TOPICS_FLAGS IS NULL,
   LAST_CALL_DATE IS NULL, ACTION_ITEMS_COUNT = 0) but the row still emits.
+  _merge then back-fills LAST_CALL_DATE in the table (2026-10-24): a no-call
+  week carries the account's most recent earlier call, so the column reads
+  "last call ever" rather than "last call this week" (see _carry_forward_last_call).
   After rebroadcast the dominant-cascade case is Retail and Household
   anchors, which always have call_count == 0. Coverage invariant still
   holds — the boring case is a meaningful row, not a row that's filtered out.
@@ -316,7 +319,7 @@ def _deal_risk_score(call_count: int, sentiment: str,
 def _last_call_date(call_count: int, profile_week: date,
                      rng: random.Random) -> date | None:
     """Most-recent call date in the prior 7 days. None when no calls (cascade
-    gate). Returns a date strictly BEFORE profile_week (the Monday of the
+    gate; _carry_forward_last_call fills it in the table after the MERGE). Returns a date strictly BEFORE profile_week (the Monday of the
     run-week) so the rowspec invariant holds for any run during the week.
     Subtracting from profile_week (not run_ts) keeps the value
     week-bucket-stable across mid-week re-runs (Plan 8 lesson)."""
@@ -600,7 +603,7 @@ def _merge(session: Any, records: list[dict],
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
@@ -661,4 +664,38 @@ def _merge(session: Any, records: list[dict],
         )
     """
     rows = session.sql(merge_sql).collect()
+    _carry_forward_last_call(session)
     return int(rows[0][0]) if rows else len(records)
+
+
+# Accounts with no call anywhere in their history get a fixed pseudo-random
+# date 8-365 days before this date (the table's first PROFILE_WEEK).
+_NO_CALL_HISTORY_ANCHOR = "2025-12-15"
+
+
+def _carry_forward_last_call(session: Any) -> None:
+    """Fill NULL LAST_CALL_DATE with the account's most recent earlier call.
+
+    Runs over the whole table, so it also covers multi-week backfills and
+    re-runs (a re-merged week resets to NULL, then gets refilled to the same
+    value). Already-filled rows carry their own value forward, which equals
+    the original call date, so the pass is idempotent.
+    """
+    session.sql(f"""
+        UPDATE DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT tgt
+        SET LAST_CALL_DATE = c.FILLED
+        FROM (
+            SELECT ORG_ID, ACCOUNT_ID, PROFILE_WEEK, LAST_CALL_DATE,
+                   COALESCE(
+                       LAST_VALUE(LAST_CALL_DATE) IGNORE NULLS OVER (
+                           PARTITION BY ORG_ID, ACCOUNT_ID ORDER BY PROFILE_WEEK
+                           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW),
+                       DATEADD(day, -(8 + ABS(HASH(ACCOUNT_ID)) % 358),
+                               '{_NO_CALL_HISTORY_ANCHOR}'::DATE)
+                   ) AS FILLED
+            FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT
+        ) c
+        WHERE tgt.LAST_CALL_DATE IS NULL AND c.LAST_CALL_DATE IS NULL
+          AND tgt.ORG_ID = c.ORG_ID AND tgt.ACCOUNT_ID = c.ACCOUNT_ID
+          AND tgt.PROFILE_WEEK = c.PROFILE_WEEK
+    """).collect()

@@ -50,6 +50,7 @@ import {
   type IconKey,
   type RingTone,
   formatValue,
+  OWNER_ANGLE_LABEL,
   crmWrite,
   AiResultModal,
   DraftFollowupsModal,
@@ -62,6 +63,7 @@ import {
   type AiGenerateResult,
   type AiActionKey,
   type CommandCenterConfig,
+  DataFreshnessMeter,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -307,7 +309,7 @@ function HomeContent() {
   const queueItems = useMemo(
     () =>
       buildPriorityQueue({
-        primary: data?.callList ?? [],
+        primary: [...(data?.callList ?? []), ...(data?.transactionSignals ?? [])],
         opportunities: data?.pipeline ?? [],
         tasks: (data?.schedule ?? []).filter(it => it.bucket === 'overdue' || it.kind === 'task'),
       }) as CallItem[],
@@ -600,6 +602,11 @@ function HomeContent() {
   // FirstName / Company / Status / LeadSource / Email / AnnualRevenue back
   // through crmWrite; onSaved refetches so the card reflects the edit.
   const showLead = (l: LeadReferral) => {
+    // S4 warm intro — not a Lead yet, so open create mode with the prospect prefilled.
+    if (l.intro) {
+      setLeadItem({ create: true, firstName: l.intro.firstName, lastName: l.intro.lastName, company: l.intro.company, leadSource: 'Referral', status: 'New' });
+      return;
+    }
     if (!l.recordId) { showLeadDetail(l); return; }
     setLeadItem({
       recordId: l.recordId,
@@ -809,6 +816,20 @@ function HomeContent() {
       .map(p => `${p.clientName} · ${p.name} · ${p.stage} · ${Math.round(p.propensity * 100)}% · $${p.amount}`)
       .join('\n');
 
+  // W3 — MoneyGuidePro reviews coming due lead the prep chip.
+  const reviews = data.planReviews ?? [];
+  const reviewContext = () =>
+    reviews
+      .map(r => `Plan review ${r.date} · ${r.clientName} · success ${Math.round(r.successPct)}% · goals $${r.goalUsd}${r.stale ? ' · plan stale' : ''}`)
+      .join('\n');
+  const reviewFallback = () => {
+    if (!reviews.length) return '';
+    const lines = reviews.slice(0, 4).map(
+      r => `• ${r.clientName}: review ${new Date(`${r.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, plan at ${Math.round(r.successPct)}% success, ${formatValue(r.goalUsd, 'currencyCompact')} in goals${r.stale ? ' (plan stale, refresh assumptions first)' : ''}.`,
+    );
+    return `${(data.planReviewsDue ?? reviews.length).toLocaleString('en-US')} MoneyGuidePro plan reviews are due in the next 30 days. Soonest:\n${lines.join('\n')}`;
+  };
+
   const stalledFallback = () => {
     const stalled = data.pipeline.filter(p => p.propensity < 0.7).sort((a, b) => b.amount - a.amount).slice(0, 4);
     if (!stalled.length) return 'No stalled deals — every open opportunity is above a 70% propensity to close.';
@@ -874,8 +895,8 @@ function HomeContent() {
         queueContext(), queueFallback());
     } else if (key === 'prep') {
       openAi('pipeline_summary', 'Meetings needing prep',
-        'Which of today’s meetings and deals need the most preparation, and what should I focus on for each? 3-4 sentences.',
-        stalledContext(), stalledFallback());
+        'Which of today’s meetings, plan reviews and deals need the most preparation, and what should I focus on for each? 3-4 sentences.',
+        [reviewContext(), stalledContext()].filter(Boolean).join('\n'), [reviewFallback(), stalledFallback()].filter(Boolean).join('\n\n'));
     } else {
       openAi('queue_rationale', 'Which accounts need attention',
         'Which accounts need attention today and why? List the top 3-4 with the single most important reason for each.',
@@ -977,7 +998,7 @@ function HomeContent() {
           label={k.label}
           value={formatValue(k.value, k.format)}
           note={k.note}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -992,7 +1013,8 @@ function HomeContent() {
   // card carries the open-opportunity count in its note), freeing a slot for the
   // Leads & referrals vital. `openOpps` still lives in data.kpis for the classic
   // 5-KPI grid and pipelineNarrative().
-  const VITAL_KEYS = ['pipeline', 'leads', 'atRisk', 'goals'];
+  // W1 — held-away assets lead the vitals: the wealth book's biggest growth lever.
+  const VITAL_KEYS = ['heldAway', 'pipeline', 'leads', 'atRisk'];
   const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridVitals = (
     <div className="@container/vitals">
@@ -1005,7 +1027,7 @@ function HomeContent() {
           note={k.note}
           deltaPct={k.deltaPct}
           trend={k.trend}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -1184,7 +1206,7 @@ function HomeContent() {
         </thead>
         <tbody>
           {leadsReveal.visible.map(l => (
-            <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name, undefined, undefined, l.email)} />
+            <LeadRow key={l.id} lead={l} onClick={() => (l.intro ? showLead(l) : open('email', l.name, undefined, undefined, l.email))} />
           ))}
         </tbody>
       </table>
@@ -1259,6 +1281,241 @@ function HomeContent() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const showRightNow = !!data.rightNow && !dismissed.has('rightNow');
+  // W4 — crypto-exchange + robo-advisor balances held away (growth insight).
+  const leak = data.digitalLeakage;
+  const leakageCard = leak && (leak.crypto.clients > 0 || leak.robo.clients > 0) && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Crypto &amp; robo leakage</b>
+        <span className="font-mono text-[10.5px] text-faint">Plaid held-away{leak.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {formatValue(leak.crypto.balance + leak.robo.balance, 'currencyCompact')} sits with crypto exchanges and robo-advisors,
+          with {formatValue(leak.crypto.inflow + leak.robo.inflow, 'currencyCompact')}/mo still flowing in. Open with a digital-asset
+          offering for crypto holders and a managed-account comparison for robo clients.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label={`Crypto · ${leak.crypto.clients.toLocaleString('en-US')}`} value={formatValue(leak.crypto.balance, 'currencyCompact')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`Robo · ${leak.robo.clients.toLocaleString('en-US')}`} value={formatValue(leak.robo.balance, 'currencyCompact')} />
+        </div>
+      </div>
+      {leak.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {leak.rows.map(r => (
+            <li key={`${r.kind}-${r.accountId}`}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="font-mono text-[11px] text-muted">
+                  {r.kind === 'crypto' ? 'Crypto' : 'Robo'} · {r.institution}
+                  {r.netFlow > 0 ? ` · +${formatValue(r.netFlow, 'currencyCompact')}/mo` : ''}
+                </span>
+                <span className="w-[80px] flex-none text-right font-mono text-[11px] text-fg">{formatValue(r.balance, 'currencyCompact')}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // W5 — trading pulse: eight weeks of confirmed USD buys vs sells, as of the
+  // latest trade (the stream is stale), plus the latest week's net sellers.
+  const tp = data.tradingPulse;
+  const tradeAsOf = tp?.asOf ? new Date(`${tp.asOf}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const tradingCard = tp && tp.weeks.length > 1 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Trading activity pulse</b>
+        <span className="font-mono text-[10.5px] text-faint">Confirmed USD trades{tp.scope === 'org' ? ' · org-wide' : ''}</span>
+        <span className="ml-auto rounded-full border border-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">As of {tradeAsOf}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <div className="flex min-w-[240px] flex-1 items-center gap-4">
+          <div className="flex flex-col gap-1">
+            <Sparkline points={tp.weeks.map(w => w.buys)} width={150} height={22} stroke="var(--wp-pos)" />
+            <Sparkline points={tp.weeks.map(w => w.sells)} width={150} height={22} stroke="var(--wp-neg)" />
+          </div>
+          <p className="min-w-0 flex-1 text-[13px] leading-snug text-muted">
+            Buys (green) vs sells (red) over {tp.weeks.length} trade weeks. The latest week was a net
+            {tp.net >= 0 ? ' buy' : ' sell'} of {formatValue(Math.abs(tp.net), 'currencyCompact')}; net sellers below raised cash to reinvest.
+          </p>
+        </div>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Buys · latest wk" value={formatValue(tp.buys, 'currencyCompact')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Sells · latest wk" value={formatValue(tp.sells, 'currencyCompact')} />
+        </div>
+      </div>
+      {tp.sellers.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {tp.sellers.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.trades} trade{r.trades === 1 ? '' : 's'}{r.instrument ? ` · ${r.instrument}` : ''}
+                </span>
+                <span className="w-[90px] flex-none text-right font-mono text-[11px] text-fg">net sold {formatValue(r.netSold, 'currencyCompact')}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // W6 — clients who own a business: liquidity-event / 401(k) / succession angle.
+  const bo = data.businessOwners;
+  const ownersCard = bo && bo.owners > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Business-owner clients</b>
+        <span className="font-mono text-[10.5px] text-faint">Relationship graph · ZoomInfo{bo.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {bo.owners.toLocaleString('en-US')} clients are majority owners of {bo.businesses.toLocaleString('en-US')} businesses
+          {bo.upmarket ? `, ${bo.upmarket.toLocaleString('en-US')} of them at $50M+ revenue` : ''}. Lead with liquidity-event planning for
+          the larger companies, a 401(k) for those with staff, and succession planning for the rest — and loop in the commercial RM.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Owners" value={bo.owners.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="$50M+ businesses" value={bo.upmarket.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {bo.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {bo.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.businessName}{r.revenueBand ? ` · ${r.revenueBand}` : ''}
+                </span>
+                <span className="w-[150px] flex-none text-right font-mono text-[11px] text-fg">{OWNER_ANGLE_LABEL[r.angle]}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // W7 — clients who look like Wealth clients (Claritas) but are still categorised Retail.
+  const wu = data.wealthUpgrades;
+  const upgradesCard = wu && wu.candidates > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Wealth upgrade prospects</b>
+        <span className="font-mono text-[10.5px] text-faint">Claritas propensity{wu.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {wu.candidates.toLocaleString('en-US')} clients carry an estimated $1M+ net worth or a high wealth propensity but aren't in the
+          Wealth Management category yet. Prospect from inside the book: a planning review is the natural opener.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Prospects" value={wu.candidates.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="$5M+" value={wu.fiveM.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {wu.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {wu.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.lifeStage}{r.prizm ? ` · ${r.prizm}` : ''} · wealth {Math.round(r.wealthScore)} · invest {Math.round(r.investScore)}
+                </span>
+                <span className="w-[80px] flex-none text-right font-mono text-[11px] text-fg">{r.netWorthBand}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // W8 — single-stock concentration across CRM holdings (one stock ≥ 20% of a client).
+  const hc = data.holdingsConcentration;
+  const usd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+  const concentrationCard = hc && hc.clients > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Concentration risk</b>
+        <span className="font-mono text-[10.5px] text-faint">CRM holdings · funds excluded{hc.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {hc.concentrated.toLocaleString('en-US')} of {hc.clients.toLocaleString('en-US')} clients hold a single stock worth 20% or more of
+          {' '}their holdings. Single stocks are {Math.round(hc.singleStockShare * 100)}% of {usd(hc.aum)} held
+          {hc.exposures[0] ? <>; the largest exposure is {hc.exposures[0].issuer} at {Math.round(hc.exposures[0].share * 100)}%</> : null}.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Concentrated" value={hc.concentrated.toLocaleString('en-US')} tone={hc.concentrated ? 'warn' : undefined} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="In single stocks" value={`${Math.round(hc.singleStockShare * 100)}%`} />
+        </div>
+      </div>
+      {hc.exposures.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {hc.exposures.map(e => (
+            <span key={e.ticker} className="rounded-full bg-track px-2.5 py-1 font-mono text-[10.5px] text-muted" title={e.issuer}>
+              <b className="text-fg">{e.ticker}</b> {Math.round(e.share * 100)}% · {e.holders} client{e.holders === 1 ? '' : 's'}
+            </span>
+          ))}
+        </div>
+      )}
+      {hc.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {hc.rows.map(r => (
+            <li key={r.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{r.clientName}</span>
+                <span className="truncate font-mono text-[11px] text-muted">
+                  {r.ticker} · {usd(r.positionUsd)} of {usd(r.totalUsd)} · {r.positions} positions
+                </span>
+                <span className={`w-[48px] flex-none text-right font-mono text-[11px] ${r.weight >= 0.35 ? 'text-warn' : 'text-fg'}`}>
+                  {Math.round(r.weight * 100)}%
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
   const briefStrip = (
     <div className="@container/brief rounded-card border border-line bg-surface-glass px-6 py-5 shadow-card">
       {/* Two columns like the classic hero: greeting + AI brief on the left,
@@ -1509,12 +1766,7 @@ function HomeContent() {
                 </h1>
                 <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
-                      <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
-                    </div>
-                    <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
-                  </div>
+                  <DataFreshnessMeter freshness={data.dataFreshness} fallbackPct={data.confidencePct} />
                   <button
                     type="button"
                     onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
@@ -1598,6 +1850,32 @@ function HomeContent() {
                 </ColumnCard>
               </div>
               </div>
+
+              {leakageCard && (
+                <section id="leakage" className="mt-4 scroll-mt-[82px]">
+                  {leakageCard}
+                </section>
+              )}
+              {tradingCard && (
+                <section id="trading" className="mt-4 scroll-mt-[82px]">
+                  {tradingCard}
+                </section>
+              )}
+              {ownersCard && (
+                <section id="owners" className="mt-4 scroll-mt-[82px]">
+                  {ownersCard}
+                </section>
+              )}
+              {upgradesCard && (
+                <section id="upgrades" className="mt-4 scroll-mt-[82px]">
+                  {upgradesCard}
+                </section>
+              )}
+              {concentrationCard && (
+                <section id="concentration" className="mt-4 scroll-mt-[82px]">
+                  {concentrationCard}
+                </section>
+              )}
             </div>
 
             {/* ---- RIGHT: the dynamic context panel (sticky) ---- */}
@@ -1632,6 +1910,31 @@ function HomeContent() {
           <section id="kpis" className="mt-8 scroll-mt-[82px]">
             {kpiGrid}
           </section>
+          {leakageCard && (
+            <section id="leakage" className="mt-4 scroll-mt-[82px]">
+              {leakageCard}
+            </section>
+          )}
+          {tradingCard && (
+            <section id="trading" className="mt-4 scroll-mt-[82px]">
+              {tradingCard}
+            </section>
+          )}
+          {ownersCard && (
+            <section id="owners" className="mt-4 scroll-mt-[82px]">
+              {ownersCard}
+            </section>
+          )}
+          {upgradesCard && (
+            <section id="upgrades" className="mt-4 scroll-mt-[82px]">
+              {upgradesCard}
+            </section>
+          )}
+          {concentrationCard && (
+            <section id="concentration" className="mt-4 scroll-mt-[82px]">
+              {concentrationCard}
+            </section>
+          )}
 
           {/* ---------- TASKS & SCHEDULE ---------- */}
           <section id="schedule" className="mt-8 scroll-mt-[82px]">
@@ -1784,7 +2087,7 @@ function HomeContent() {
             <Pill tone={c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'neutral'}>{c.severity}</Pill>
           ) },
         ]}
-        footNote="Source · CSAT + Data Cloud signals"
+        footNote="Source · blended held-away + MoneyGuidePro + Gong + holdings concentration"
       />
 
       <DataExplorerModal<CaseItem>
@@ -2133,6 +2436,9 @@ function HomeContent() {
 }
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
+/** KPIs styled as risk metrics (red accent). */
+const RISK_KPIS = new Set(['plansAtRisk', 'atRisk', 'callTone', 'concentrated']);
+
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
@@ -2140,6 +2446,13 @@ const KPI_TARGET: Record<string, string> = {
   openCases: 'events',
   goals: 'pulse',
   atRisk: 'events',
+  callTone: 'alerts',
+  uplift: 'actions',
+  heldAway: 'queue',
+  plansAtRisk: 'queue',
+  bizOwners: 'owners',
+  upgrades: 'upgrades',
+  concentrated: 'concentration',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
@@ -2150,7 +2463,10 @@ const KPI_EXPLORER: Record<string, ExplorerKey> = {
   leads: 'leads',
   goals: 'goals',
   atRisk: 'atRisk',
+  callTone: 'atRisk',
   openCases: 'atRisk',
+  heldAway: 'atRisk',
+  plansAtRisk: 'atRisk',
 };
 
 /* ── CommandRail section id → drill-in explorer (cockpit view) ─────

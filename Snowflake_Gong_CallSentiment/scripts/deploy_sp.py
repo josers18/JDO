@@ -147,7 +147,7 @@ LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+EXECUTE AS OWNER
 AS
 $$
 """

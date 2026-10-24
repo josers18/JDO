@@ -41,8 +41,9 @@ COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
 
-# 16-column output contract (kept in sync with table DDL by the L1 schema test)
+# 17-column output contract (kept in sync with table DDL by the L1 schema test)
 # v1.5 (multi-org): ORG_ID first per umbrella ROLLOUT.md Phase A.
+# v1.6 (2026-10-24): MATCH_CONFIDENCE_CODE added.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "ORG_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
@@ -52,6 +53,7 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "FAILURE_RISK_SCORE", "DELINQUENCY_PREDICTOR_SCORE",
     "SUPPLIER_RISK_LEVEL", "CORPORATE_FAMILY_SIZE",
     "ULTIMATE_PARENT_DUNS", "VERIFICATION_STATUS",
+    "MATCH_CONFIDENCE_CODE",
     "GENERATED_AT",
 })
 
@@ -60,8 +62,14 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 # Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_DNB_BUSINESS_CREDIT
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
+def main(session: Any, run_month: Any = None) -> str:
     """5-step canonical pattern + BUSINESS-cardinality warning between 1 and 2.
+
+    run_month (DATE, default NULL): backfill one past month with the current
+    logic. Generates as of that month's first day, for only the accounts
+    already present in that month, so its cohort keeps the same accounts. The
+    monthly task passes nothing and generates the current month for the full
+    audience.
 
     1. Read audience.
     1.5. Warn if accounts_processed > 10K — do NOT fail (Plan 2 precedent).
@@ -72,12 +80,19 @@ def main(session: Any) -> str:
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
+    run_ts = datetime(run_month.year, run_month.month, 1) if run_month else started
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
     warning_msg: str | None = None
 
     try:
         # 1. Read audience from the shared view (zero-copy fresh anchors).
-        audience = session.sql(AUDIENCE_SQL).collect()
+        audience_sql = AUDIENCE_SQL
+        if run_month:
+            audience_sql += (
+                f" AND ACCOUNT_ID IN (SELECT ACCOUNT_ID FROM {TABLE}"
+                f" WHERE PROFILE_MONTH = '{run_ts.date().isoformat()}')"
+            )
+        audience = session.sql(audience_sql).collect()
         accounts_processed = len(audience)
 
         # 1.5. BUSINESS over-count warning (per spec §3 v1.2 finding #3).
@@ -91,7 +106,7 @@ def main(session: Any) -> str:
         records, errors = [], []
         for row in audience:
             try:
-                records.append(_row_for(_anchor_to_dict(row), started))
+                records.append(_row_for(_anchor_to_dict(row), run_ts))
             except Exception as exc:
                 errors.append((row.ACCOUNT_ID, str(exc)[:200]))
         max_tolerated = max(10, len(audience) // 100)
@@ -105,6 +120,10 @@ def main(session: Any) -> str:
                 f"row factory failed on {len(errors)}/{len(audience)} accounts; "
                 f"first: {errors[0]}"
             )
+
+        # One row per (ORG_ID, ACCOUNT_ID): a duplicated anchor would insert
+        # two NOT MATCHED rows in the same MERGE (seen once in 2026-10).
+        records = _dedupe(records)
 
         # Stack the warning onto err so both surface in TASK_EXECUTION_LOG.
         if warning_msg:
@@ -137,6 +156,17 @@ def main(session: Any) -> str:
         ).collect()
 
     return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"
+
+
+def _dedupe(records: list[dict]) -> list[dict]:
+    """Keep the first record per (ORG_ID, ACCOUNT_ID)."""
+    seen, out = set(), []
+    for rec in records:
+        key = (rec["ORG_ID"], rec["ACCOUNT_ID"])
+        if key not in seen:
+            seen.add(key)
+            out.append(rec)
+    return out
 
 
 def _anchor_to_dict(row: Any) -> dict:
@@ -278,8 +308,68 @@ def _paydex_base(industry: str) -> int:
     return _PAYDEX_DEFAULT_BASE
 
 
+# Chronic late payers (v1.6): share of accounts per industry whose PAYDEX sits
+# below 50. Year-stable per account (salt "dnb_payer"), so the same firms stay
+# late month over month. Lower tiers are 1.5x as likely.
+_LATE_PAYER_RATES: list[tuple[str, float]] = [
+    ("Construction",    0.10),
+    ("Retail",          0.07),
+    ("Consumer",        0.07),
+    ("Food & Beverage", 0.07),
+    ("Hospitality",     0.07),
+    ("Real Estate",     0.05),
+    ("Finance",         0.02),
+    ("Banking",         0.02),
+    ("Healthcare",      0.03),
+    ("Tech",            0.03),
+    ("Software",        0.03),
+]
+_LATE_PAYER_DEFAULT_RATE = 0.05
+
+
+def _late_payer_rate(industry: str, tier: str) -> float:
+    rate = _LATE_PAYER_DEFAULT_RATE
+    low = (industry or "").lower()
+    for key, r in _LATE_PAYER_RATES:
+        if key.lower() in low:
+            rate = r
+            break
+    return rate * 1.5 if tier in _LOWER_TIERS else rate
+
+
+def _is_late_payer(account_id: str, industry: str, tier: str, run_ts: datetime) -> bool:
+    seed = seed_for(account_id, "dnb_payer", datetime(run_ts.year, 1, 1))
+    draw = int.from_bytes(seed[:4], "big") / 2**32
+    return draw < _late_payer_rate(industry, tier)
+
+
+def _late_paydex(rng: random.Random) -> int:
+    """PAYDEX 1-49: mostly 30-49, a thin tail of severely late payers."""
+    band = rng.choices([(40, 49), (25, 39), (1, 24)], weights=[0.55, 0.35, 0.10])[0]
+    return rng.randint(*band)
+
+
+# D&B's published PAYDEX -> days-beyond-terms points (100 = 30 days early,
+# 80 = prompt, 50 = 30 days late, 20 = 120 days late). Interpolated between.
+_PAYDEX_DBT_POINTS: list[tuple[int, int]] = [
+    (1, 180), (20, 120), (30, 90), (40, 60), (50, 30),
+    (60, 22), (70, 15), (80, 0), (100, 0),
+]
+
+
+def _days_beyond_terms(paydex: int, rng: random.Random) -> int:
+    base = 0.0
+    for (p0, d0), (p1, d1) in zip(_PAYDEX_DBT_POINTS, _PAYDEX_DBT_POINTS[1:]):
+        if p0 <= paydex <= p1:
+            base = d0 + (d1 - d0) * (paydex - p0) / (p1 - p0)
+            break
+    jitter = (rng.random() - 0.5) * 6  # ±3
+    return int(max(0, min(180, round(base + jitter))))
+
+
 def _paydex(industry: str, revenue: float, rng: random.Random) -> int:
-    """PAYDEX = clamp(0, 100, base + size_bonus + ±10 jitter)."""
+    """PAYDEX = clamp(50, 100, base + size_bonus + ±10 jitter). Scores below 50
+    come only from chronic late payers (_late_paydex)."""
     base = _paydex_base(industry)
     if revenue >= 100_000_000:
         size_bonus = 5
@@ -288,7 +378,7 @@ def _paydex(industry: str, revenue: float, rng: random.Random) -> int:
     else:
         size_bonus = 0
     jitter = (rng.random() - 0.5) * 20  # ±10
-    return int(max(0, min(100, round(base + size_bonus + jitter))))
+    return int(max(50, min(100, round(base + size_bonus + jitter))))
 
 
 # Failure-risk industry adjustments (per rowspec §"Failure Risk Score").
@@ -334,13 +424,20 @@ def _failure_risk(tier: str, industry: str, rng: random.Random) -> int:
     return int(max(1, min(100, round(base + jitter))))
 
 
-def _supplier_risk_band(failure_risk: int) -> str:
-    """Bands per rowspec §"Supplier Risk Level"."""
-    if failure_risk >= 80:
+def _supplier_risk_level(failure_risk: int, composite: int, paydex: int) -> str:
+    """v1.6: blend of the failure score, the rating's composite digit and PAYDEX
+    (each 0-3 points, 3 = worst), so a strong rating that pays on time can't
+    land High on the failure score alone."""
+    fail_pts = 0 if failure_risk >= 80 else 1 if failure_risk >= 60 else 2 if failure_risk >= 30 else 3
+    pay_pts = 0 if paydex >= 80 else 1 if paydex >= 70 else 2 if paydex >= 50 else 3
+    points = 0.45 * fail_pts + 0.25 * (composite - 1) + 0.30 * pay_pts
+    # Cuts calibrated on 2026-10 (rating mix skews B/C/D): ~38% Low, ~48%
+    # Moderate, ~12% High, ~1.4% Severe (worst on all three components).
+    if points < 1.4:
         return "Low"
-    if failure_risk >= 60:
+    if points < 2.0:
         return "Moderate"
-    if failure_risk >= 30:
+    if points < 2.9:
         return "High"
     return "Severe"
 
@@ -388,17 +485,25 @@ def _family_size(revenue: float, rng: random.Random) -> int:
     return rng.randint(101, 500)
 
 
-def _verification_status(revenue: float, tier: str, rng: random.Random) -> str:
-    """Distribution per rowspec §"Verification Status"."""
+def _match_confidence_code(revenue: float, tier: str, rng: random.Random) -> int:
+    """D&B match confidence code 1-10 (10 = exact match). Larger, stronger
+    firms match more confidently."""
     strong_tiers = {"5A", "4A", "3A", "2A", "1A", "BA", "BB"}
     if revenue >= 1_000_000 and tier in strong_tiers:
-        # 95% Verified, 5% Probable
-        return rng.choices(["Verified", "Probable"], weights=[0.95, 0.05])[0]
-    # 70% Verified, 25% Probable, 5% Unverified
+        return rng.choices([10, 9, 8, 7, 6], weights=[0.55, 0.25, 0.15, 0.04, 0.01])[0]
     return rng.choices(
-        ["Verified", "Probable", "Unverified"],
-        weights=[0.70, 0.25, 0.05],
+        [10, 9, 8, 7, 6, 5, 4, 3],
+        weights=[0.30, 0.22, 0.18, 0.12, 0.08, 0.05, 0.03, 0.02],
     )[0]
+
+
+def _verification_status(confidence_code: int) -> str:
+    """D&B's usual cut-offs: 8-10 auto-accept, 5-7 review, 1-4 reject."""
+    if confidence_code >= 8:
+        return "Verified"
+    if confidence_code >= 5:
+        return "Probable"
+    return "Unverified"
 
 
 # -------------------------------------------------------------------
@@ -435,17 +540,23 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     composite = _composite_from_tier(tier, rng)
     dnb_rating = f"{tier}{composite}"
 
-    # 4. PAYDEX (industry- and size-biased).
+    # 4. PAYDEX (industry- and size-biased); chronic late payers sit below 50.
+    late_payer = _is_late_payer(account_id, industry, tier, run_ts)
     paydex = _paydex(industry, revenue, rng)
+    if late_payer:
+        paydex = _late_paydex(rng)
 
-    # 5. Average days beyond terms (inverse PAYDEX).
-    avg_dbt = max(0, round((80 - paydex) * 1.5 + (rng.random() - 0.5) * 10))
+    # 5. Average days beyond terms (D&B's PAYDEX -> days table).
+    avg_dbt = _days_beyond_terms(paydex, rng)
 
-    # 6. Failure risk (tier base + industry adjustment + jitter).
+    # 6. Failure risk (tier base + industry adjustment + jitter); late payers
+    #    are more likely to fail.
     failure_risk = _failure_risk(tier, industry, rng)
+    if late_payer:
+        failure_risk = max(1, failure_risk - 25)
 
-    # 7. Supplier-risk band derived from failure risk.
-    supplier_risk = _supplier_risk_band(failure_risk)
+    # 7. Supplier-risk level from failure risk, composite and PAYDEX.
+    supplier_risk = _supplier_risk_level(failure_risk, composite, paydex)
 
     # 8. Delinquency predictor — correlated with PAYDEX, biased slightly worse.
     delinquency = max(1, min(100, round(paydex + (rng.random() - 0.5) * 20 - 5)))
@@ -456,8 +567,9 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     # 10. Ultimate parent DUNS — None when standalone.
     parent_duns = _parent_duns_for(account_id, run_ts) if family_size > 1 else None
 
-    # 11. Verification status (revenue + tier biased).
-    verification = _verification_status(revenue, tier, rng)
+    # 11. Match confidence code (revenue + tier biased) -> verification status.
+    confidence = _match_confidence_code(revenue, tier, rng)
+    verification = _verification_status(confidence)
 
     return {
         "ORG_ID":                      anchor["ORG_ID"],
@@ -475,6 +587,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
         "CORPORATE_FAMILY_SIZE":       family_size,
         "ULTIMATE_PARENT_DUNS":        parent_duns,
         "VERIFICATION_STATUS":         verification,
+        "MATCH_CONFIDENCE_CODE":       confidence,
         # Bucket GENERATED_AT to month-start so same-month re-runs produce
         # byte-identical rows. Wall-clock execution time is captured in
         # TASK_EXECUTION_LOG separately.
@@ -503,7 +616,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
@@ -516,7 +629,7 @@ def _merge(session: Any, records: list[dict]) -> int:
                 PAYDEX_SCORE, AVERAGE_DAYS_BEYOND_TERMS,
                 FAILURE_RISK_SCORE, DELINQUENCY_PREDICTOR_SCORE,
                 SUPPLIER_RISK_LEVEL, CORPORATE_FAMILY_SIZE,
-                ULTIMATE_PARENT_DUNS, VERIFICATION_STATUS,
+                ULTIMATE_PARENT_DUNS, VERIFICATION_STATUS, MATCH_CONFIDENCE_CODE,
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
@@ -536,6 +649,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             CORPORATE_FAMILY_SIZE        = src.CORPORATE_FAMILY_SIZE,
             ULTIMATE_PARENT_DUNS         = src.ULTIMATE_PARENT_DUNS,
             VERIFICATION_STATUS          = src.VERIFICATION_STATUS,
+            MATCH_CONFIDENCE_CODE        = src.MATCH_CONFIDENCE_CODE,
             GENERATED_AT                 = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
             ORG_ID,
@@ -544,7 +658,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             PAYDEX_SCORE, AVERAGE_DAYS_BEYOND_TERMS,
             FAILURE_RISK_SCORE, DELINQUENCY_PREDICTOR_SCORE,
             SUPPLIER_RISK_LEVEL, CORPORATE_FAMILY_SIZE,
-            ULTIMATE_PARENT_DUNS, VERIFICATION_STATUS, GENERATED_AT
+            ULTIMATE_PARENT_DUNS, VERIFICATION_STATUS, MATCH_CONFIDENCE_CODE, GENERATED_AT
         ) VALUES (
             src.ORG_ID,
             src.ACCOUNT_ID, src.PROFILE_MONTH, src.DUNS_NUMBER, src.DNB_RATING,
@@ -552,7 +666,8 @@ def _merge(session: Any, records: list[dict]) -> int:
             src.PAYDEX_SCORE, src.AVERAGE_DAYS_BEYOND_TERMS,
             src.FAILURE_RISK_SCORE, src.DELINQUENCY_PREDICTOR_SCORE,
             src.SUPPLIER_RISK_LEVEL, src.CORPORATE_FAMILY_SIZE,
-            src.ULTIMATE_PARENT_DUNS, src.VERIFICATION_STATUS, src.GENERATED_AT
+            src.ULTIMATE_PARENT_DUNS, src.VERIFICATION_STATUS, src.MATCH_CONFIDENCE_CODE,
+            src.GENERATED_AT
         )
     """
     rows = session.sql(merge_sql).collect()

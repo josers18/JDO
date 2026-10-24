@@ -9,8 +9,8 @@
  *   · Meeting_Note_c_Home__dlm (meeting notes)                        → Data Cloud
  *   · CSAT_Snowflake__dlm (CSAT/NPS + trend + verbatims)              → Data Cloud
  *   · Marketing_Engagements__dlm (campaign events, one row per send)  → Data Cloud
- *   · CumulusGongCallSentiment__dlm (call sentiment summaries)        → Data Cloud
- *   · CumulusWorldCheckAml__dlm (KYC / AML card)                      → Data Cloud
+ *   · BT_Gong_Call_Sentiment__dlm (weekly call sentiment summaries)   → Data Cloud
+ *   · BT_WorldCheck_AML__dlm (KYC / AML card)                      → Data Cloud
  *   · Attrition_Prediction__dlm + Predicted_CSAT_Output__dlm (ML)     → Data Cloud
  *   · Agentforce summaries are composed deterministically from the above
  *     live values (no LLM call is wired) — per-account correct, not hardcoded.
@@ -48,7 +48,8 @@ function shortDate(v: unknown): string {
   const raw = String(v ?? '').replace(' UTC', 'Z').replace(' ', 'T');
   const d = new Date(raw);
   if (isNaN(d.getTime())) return String(v ?? '—');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Dates arrive as UTC midnight; format in UTC so they don't slip a day west of GMT.
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
@@ -107,15 +108,15 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Date_c__c dt, Title_c__c ttl, Notes_c__c notes FROM Meeting_Note_c_Home__dlm WHERE Account_c__c = '${acct}' ORDER BY Date_c__c DESC LIMIT 6`, 6)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT csat_score__c csat, nps_score__c nps, csat_description__c csatd, nps_description__c npsd, score_date__c dt FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY score_date__c DESC LIMIT 8`, 8)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT campaign_name__c nm, product_category__c cat, product_name__c prod, MAX(CASE engagement_type__c WHEN 'Unsubscribed' THEN 5 WHEN 'Clicked' THEN 4 WHEN 'Opened' THEN 3 WHEN 'Delivered' THEN 2 WHEN 'Bounced' THEN 1 ELSE 0 END) rk, MIN(engagement_at__c) dt FROM Marketing_Engagements__dlm WHERE account_id__c = '${acct}' GROUP BY send_id__c, campaign_name__c, product_category__c, product_name__c ORDER BY dt DESC LIMIT 8`, 8)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT overallSentiment__c sent, sentimentTrend__c trend, dealRiskScore__c risk, rmName__c rm, lastCallDate__c dt, generatedAt__c gen FROM CumulusGongCallSentiment__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY generatedAt__c DESC LIMIT 4`, 4)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT overallRiskRating__c rating, sanctionsHit__c sanc, pepHit__c pep, adverseMediaHit__c media, lastScreenedAt__c dt FROM CumulusWorldCheckAml__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileDate__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT overall_sentiment__c sent, sentiment_trend__c trend, deal_risk_score__c risk, rm_name__c rm, last_call_date__c dt, generated_at__c gen FROM BT_Gong_Call_Sentiment__dlm WHERE account_id__c = '${acct}' ORDER BY profile_week__c DESC LIMIT 4`, 4)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT overall_risk_rating__c rating, sanctions_hit__c sanc, pep_hit__c pep, adverse_media_hit__c media, last_screened_at__c dt FROM BT_WorldCheck_AML__dlm WHERE account_id__c = '${acct}' ORDER BY profile_date__c DESC LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Churned_c__c churned FROM Attrition_Prediction__dlm WHERE PrimaryObjectPk__c = '${acct}' LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT CSAT_Score_prediction__c pred, Cross_Sell_Score__c xsell, Digital_Engagement__c dig, Complaint_Count__c comp, Segment__c seg FROM Predicted_CSAT_Output__dlm WHERE accountid__c = '${acct}' LIMIT 1`, 1)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT estimatedPropertyValue__c val, equityUsd__c eq, outstandingMortgageBalance__c mtg, helocOpportunityScore__c heloc, primaryPropertyType__c ptype, floodZoneCode__c flood, wildfireRiskScore__c fire, isOwner__c owner, profileQuarter__c q FROM CumulusCoreLogicProperty__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileQuarter__c DESC LIMIT 1`, 1)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT planStatus__c st, retirementTargetAge__c age, monthlyIncomeTargetUsd__c inc, totalGoalAmountUsd__c goal, goalCount__c gc, recommendedAssetAllocation__c alloc, nextReviewDate__c review, profileMonth__c m FROM CumulusMgpFinancialPlans__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT revenueBand__c rev, employeeBand__c emp, industryNaicsCode__c naics, industrySicCode__c sic, foundedYear__c founded, websiteDomain__c web, hqStateCode__c state, hqCountryCode__c country, linkedinFollowers__c li, techStackFlags__c tech, profileMonth__c m FROM CumulusZoomInfoFirmographics__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT boardSize__c size, ceoTenureYears__c ceo, boardAvgTenureYears__c avg, governanceRating__c rating, keyDirectorName__c dir, interlockCount__c interlock, execTurnoverFlag__c turnover, recentGovernanceEventDate__c evt, profileMonth__c m FROM CumulusBoardExExecIntel__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT esgScoreOverall__c overall, environmentalScore__c env, socialScore__c soc, governanceScore__c gov, msciEsgRating__c rating, carbonIntensityTonsPerMRevenue__c carbon, controversyFlagCount__c ctrl, topControversyCategory__c topc, lastRatingChangeDirection__c dir, profileMonth__c m FROM CumulusMSCIESG__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT estimated_property_value__c val, equity_usd__c eq, outstanding_mortgage_balance__c mtg, heloc_opportunity_score__c heloc, primary_property_type__c ptype, flood_zone_code__c flood, wildfire_risk_score__c fire, is_owner__c owner, profile_quarter__c q FROM BT_Corelogic_Property__dlm WHERE account_id__c = '${acct}' ORDER BY profile_quarter__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT plan_status__c st, retirement_target_age__c age, monthly_income_target_usd__c inc, total_goal_amount_usd__c goal, goal_count__c gc, recommended_asset_allocation__c alloc, next_review_date__c review, profile_month__c m FROM BT_MoneyGuidePro_Financial_Plans__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT revenue_band__c rev, employee_band__c emp, industry_naics_code__c naics, industry_sic_code__c sic, founded_year__c founded, website_domain__c web, hq_state_code__c state, hq_country_code__c country, linkedin_followers__c li, tech_stack_flags__c tech, profile_month__c m FROM BT_Zoominfo_Firmographics__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT board_size__c size, ceo_tenure_years__c ceo, board_avg_tenure_years__c avg, governance_rating__c rating, key_director_name__c dir, interlock_count__c interlock, exec_turnover_flag__c turnover, recent_governance_event_date__c evt, profile_month__c m FROM BT_Boardex__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT esg_score_overall__c overall, environmental_score__c env, social_score__c soc, governance_score__c gov, msci_esg_rating__c rating, carbon_intensity_tons_per_m_revenue__c carbon, controversy_flag_count__c ctrl, top_controversy_category__c topc, last_rating_change_direction__c dir, profile_month__c m FROM BT_MSCI_ESG_Scores__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT filingtype__c ftype, section__c sect, section_text__c txt, uniqueid__c uid FROM SEC_Filings__dlm WHERE accountid__c = '${acct}' LIMIT 40`, 40)),
   ]);
 
@@ -251,15 +252,17 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
       date: shortDate(r.dt ?? r.gen),
       duration: '—',
       channel: 'Call',
-      sentiment: sent === 'Positive' ? 'positive' : sent === 'Negative' ? 'negative' : 'neutral',
+      sentiment: sent.endsWith('Positive') ? 'positive' : sent.endsWith('Negative') ? 'negative' : 'neutral',
       summary: `RM ${String(r.rm ?? '—')} · sentiment ${sent} (${String(r.trend ?? '—')}) · deal-risk score ${Math.round(dcNum(r.risk))}.`,
     };
   });
 
   /* ---- KYC / AML (WorldCheck) ---- */
+  // DC booleans can arrive as true or 'true' depending on the path.
+  const dcTrue = (v: unknown) => v === true || String(v) === 'true';
   const a = aml[0];
   const flags = a
-    ? [a.sanc ? 'sanctions' : '', a.pep ? 'PEP' : '', a.media ? 'adverse media' : ''].filter(Boolean)
+    ? [dcTrue(a.sanc) ? 'sanctions' : '', dcTrue(a.pep) ? 'PEP' : '', dcTrue(a.media) ? 'adverse media' : ''].filter(Boolean)
     : [];
   const kyc: KycSummary = {
     id: 'kyc1',
@@ -343,7 +346,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     propertyType: String(p.ptype ?? '—'),
     floodZone: String(p.flood ?? '—'),
     wildfireRiskScore: Math.round(dcNum(p.fire)),
-    isOwner: p.owner === true || String(p.owner) === 'true',
+    isOwner: dcTrue(p.owner),
     asOf: shortDate(p.q),
   } : null;
 

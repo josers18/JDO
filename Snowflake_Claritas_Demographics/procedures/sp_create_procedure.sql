@@ -7,7 +7,8 @@
 --          (with cumulus_common.seed_for + cumulus_common.assert_coverage
 --          inlined so the SP body is self-contained — no IMPORTS / no stage).
 --
--- Audience: ACCOUNT_TYPE_FLAG = 'PERSON'
+-- Audience: PERSON accounts + (2026-10-24) FSC Household / business clients with a
+--           client category and a real 001... Id, profiled as the principal's household
 -- Cadence:  MONTHLY (TASK_MONTHLY_CLARITAS_DEMOGRAPHICS)
 -- Salt:     "claritas"
 -- =============================================================================
@@ -18,12 +19,13 @@ LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+EXECUTE AS OWNER
 AS
 $$
 from __future__ import annotations
 
 import hashlib
+import math
 import random
 import uuid
 from datetime import date, datetime
@@ -62,7 +64,14 @@ TABLE        = "DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS"
 TASK_NAME    = "TASK_MONTHLY_CLARITAS_DEMOGRAPHICS"
 DATASET_SALT = "claritas"
 
-_AUDIENCE_PREDICATE = "ACCOUNT_TYPE_FLAG = 'PERSON'"
+# 2026-10-24: Household and business clients are profiled too (as the household of
+# the relationship's principal), so the business books (Allen Carter, Jose Sifontes)
+# get demographics and financial stress. Only real Salesforce Account Ids (001...)
+# with a client category; the ~700 ownerless, category-less shells stay out.
+_AUDIENCE_PREDICATE = (
+    "(ACCOUNT_TYPE_FLAG = 'PERSON' OR (ACCOUNT_TYPE_FLAG = 'BUSINESS' "
+    "AND CLIENT_CATEGORY IS NOT NULL AND ACCOUNT_ID LIKE '001%'))"
+)
 AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
@@ -134,7 +143,31 @@ def _anchor_to_dict(row: Any) -> dict:
 
 
 def _anchor_in_audience(anchor: dict) -> bool:
-    return anchor.get("ACCOUNT_TYPE_FLAG") == "PERSON"
+    flag = anchor.get("ACCOUNT_TYPE_FLAG")
+    if flag == "PERSON":
+        return True
+    return (flag == "BUSINESS" and anchor.get("CLIENT_CATEGORY") is not None
+            and str(anchor.get("ACCOUNT_ID") or "").startswith("001"))
+
+
+# Principal profile (2026-10-24). A Household or business anchor has no birthdate or
+# personal income, so the row describes the household of the relationship's
+# principal (the head of household / the owner): a stable per-account age and
+# household income drawn from a separate salt. Every other step is the person path.
+PRINCIPAL_SALT = "claritas-principal"
+PRINCIPAL_MEDIAN_INCOME = {"Household": 95_000}   # business owners: PRINCIPAL_DEFAULT_INCOME
+PRINCIPAL_DEFAULT_INCOME = 140_000
+PRINCIPAL_INCOME_SIGMA = 0.55
+
+
+def _principal_profile(account_id: str, client_cat: str) -> tuple[int, float]:
+    """(age, household income) for a Household / business anchor. Stable across months."""
+    r = random.Random(hashlib.sha256(f"{account_id}|{PRINCIPAL_SALT}".encode("utf-8")).digest())
+    age = r.randint(34, 72)
+    median = PRINCIPAL_MEDIAN_INCOME.get(client_cat, PRINCIPAL_DEFAULT_INCOME)
+    income = round(median * math.exp(r.gauss(0, PRINCIPAL_INCOME_SIGMA)), -2)
+    return age, income
+
 
 
 # -------------------------------------------------------------------
@@ -302,6 +335,32 @@ def _financial_stress(income, client_cat, rng):
     return rng.choices(["Low", "Moderate", "High"], weights=[0.1, 0.4, 0.5])[0]
 
 
+# Liquidity strain (2026-10-24): income alone never makes an affluent / Wealth
+# Management client High, so books made of them (Kim, Vince, Adam) had no
+# stressed clients. A small, stable share is asset-rich and cash-poor
+# (concentrated stock, a business under strain, divorce, a large tax bill).
+# The trait is per account, not per month, so the stress persists month to
+# month; the month seed only picks High vs Moderate. A separate salt keeps the
+# main per-month draw sequence (and every other column) unchanged.
+STRAIN_SALT = "claritas-strain"
+# Tuned 2026-10-24 (second pass) from 4% / 75%: ~10% of a Wealth book High in a
+# month (Retail books run ~16%), ~7% persistent (High in >= 4 of 6 months).
+STRAIN_RATE = 0.20   # share of affluent / WM clients under liquidity strain
+STRAIN_HIGH = 0.50   # chance a strained client reads High in a given month
+
+
+def _liquidity_strained(account_id: str, income: float, client_cat: str) -> bool:
+    if not (client_cat == "Wealth Management" or income >= 250_000):
+        return False
+    h = hashlib.sha256(f"{account_id}|{STRAIN_SALT}".encode("utf-8")).digest()
+    return int.from_bytes(h[:8], "big") / 2 ** 64 < STRAIN_RATE
+
+
+def _strained_stress(account_id: str, run_ts: datetime) -> str:
+    r = random.Random(seed_for(account_id, STRAIN_SALT, run_ts))
+    return "High" if r.random() < STRAIN_HIGH else "Moderate"
+
+
 def _row_for(anchor: dict, run_ts: datetime) -> dict:
     if not _anchor_in_audience(anchor):
         raise ValueError(
@@ -310,15 +369,16 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
         )
 
     account_id  = anchor["ACCOUNT_ID"]
-    birthdate   = anchor.get("BIRTHDATE")
-    income      = float(anchor.get("ANNUAL_INCOME") or 0)
     client_cat  = anchor.get("CLIENT_CATEGORY") or ""
     postal_code = anchor.get("POSTAL_CODE")
+    if anchor.get("ACCOUNT_TYPE_FLAG") == "PERSON":
+        income = float(anchor.get("ANNUAL_INCOME") or 0)
+        age    = _age_from_birthdate(anchor.get("BIRTHDATE"), run_ts.date())
+    else:
+        age, income = _principal_profile(account_id, client_cat)
 
     seed = seed_for(account_id, DATASET_SALT, run_ts)
     rng  = random.Random(seed)
-
-    age          = _age_from_birthdate(birthdate, run_ts.date())
     life_stage   = _life_stage(age, rng)
     urbanicity   = _urbanicity_from_zip(postal_code, rng)
     pool         = _prizm_pool(income, life_stage, urbanicity, client_cat)
@@ -329,6 +389,8 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     investment_p = _investment_propensity(income, life_stage, rng)
     mortgage_p   = _mortgage_propensity(life_stage, client_cat, rng)
     stress       = _financial_stress(income, client_cat, rng)
+    if _liquidity_strained(account_id, income, client_cat):
+        stress = _strained_stress(account_id, run_ts)
 
     return {
         "ACCOUNT_ID":                 account_id,
@@ -359,7 +421,7 @@ def _merge(session: Any, records: list) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     # write_pandas serializes Python datetime as datetime64[ns], which Snowflake

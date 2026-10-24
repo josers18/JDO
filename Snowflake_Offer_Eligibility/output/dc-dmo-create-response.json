@@ -1,0 +1,161 @@
+{
+  "category": "OTHER",
+  "creationType": "Custom",
+  "dataSpaceName": "default",
+  "description": "Next-best-offer scores (treasury + lending) per BUSINESS account x action code. Federated from DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY. account_id = ssot__Account__dlm.ssot__Id__c. See Snowflake_Offer_Eligibility/.",
+  "fields": [
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "ACCOUNT_ID",
+      "name": "account_id__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "ACTION_CODE",
+      "name": "action_code__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "CC_PROBABILITY",
+      "name": "cc_probability__c",
+      "type": "Number",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "CONVERSION_PROBABILITY",
+      "name": "conversion_probability__c",
+      "type": "Number",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "System",
+      "isDistinct": false,
+      "label": "Data Source",
+      "name": "DataSource__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "System",
+      "isDistinct": false,
+      "label": "Data Source Object",
+      "name": "DataSourceObject__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "EM_PROBABILITY",
+      "name": "em_probability__c",
+      "type": "Number",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "EXPECTED_VALUE_UPLIFT",
+      "name": "expected_value_uplift__c",
+      "type": "Number",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "GENERATED_AT",
+      "name": "generated_at__c",
+      "type": "DateTime",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "System",
+      "isDistinct": false,
+      "label": "Internal Organization",
+      "name": "InternalOrganization__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "System",
+      "isDistinct": false,
+      "label": "Key Qualifier RECORD_ID",
+      "name": "KQ_record_id__c",
+      "type": "Text",
+      "usageTag": "KeyQualifier"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "NOACTION_CONVERSION",
+      "name": "noaction_conversion__c",
+      "type": "Number",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "ORG_ID",
+      "name": "org_id__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "PRODUCT_FAMILY",
+      "name": "product_family__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "RECOMMENDED_ACTION_RANK",
+      "name": "recommended_action_rank__c",
+      "type": "Number",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "RECOMMENDED_CHANNELS",
+      "name": "recommended_channels__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "isPrimaryKey": true,
+      "keyQualifierName": "KQ_record_id",
+      "label": "RECORD_ID",
+      "name": "record_id__c",
+      "type": "Text",
+      "usageTag": "None"
+    },
+    {
+      "creationType": "Custom",
+      "isDistinct": false,
+      "label": "START_DATE",
+      "name": "start_date__c",
+      "type": "Date",
+      "usageTag": "None"
+    }
+  ],
+  "hasExternalDataLakeObjectMappings": false,
+  "id": "0gjam000001EhULAA0",
+  "isEditable": true,
+  "isEnabled": false,
+  "isSegmentable": false,
+  "label": "BT_Offer_Eligibility",
+  "name": "BT_Offer_Eligibility__dlm"
+}

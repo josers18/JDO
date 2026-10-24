@@ -1,11 +1,40 @@
 export { executeGraphQL } from './graphqlClient';
 export {
-  buildPriorityQueue,
+  buildPriorityQueue, dropCovered, inheritDue,
   type QueueSignalItem,
   type QueueOppInput,
   type QueueTaskInput,
 } from './priorityQueue';
-export { queryDataCloud, type DataCloudColumn, type DataCloudResult } from './dataCloudClient';
+export {
+  fetchLargeInflows,
+  fetchFeeSpikes,
+  fetchBusinessInflows,
+  inflowQueueItems,
+  feeSpikeQueueItems,
+  fetchCallSentiment,
+  callSentimentQueueItems,
+  fetchAmlChanges,
+  amlChangeQueueItems,
+  type CallSentiment,
+  type CallSentimentResult,
+  type AmlChange,
+  type AmlRating,
+  type LargeInflow,
+  type FeeSpike,
+  FEE_SPIKES,
+  type TxSignalResult,
+} from './transactionSignals';
+export { fetchNextBestOffers, offerRecommendations, offerLabel, fetchModeledUplift, type NextBestOffer, type NextBestOfferResult, type OfferFamily, type ModeledUplift } from './offerModel';
+export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type CampaignTouchResult, type CampaignPersona } from './campaignTouches';
+export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
+export { getViewAs, setViewAs, useViewAs, fetchEffectiveUser, ownerScopedQuery, fetchBankers, type ViewAsUser } from './viewAs';
+export { fetchOutlookWatch, fetchLeadershipChanges, fetchEsgMovers, type OutlookResult, type OutlookRow, type LeadershipResult, type LeadershipRow, type EsgMoversResult, type EsgMoverRow } from './marketSignals';
+export { fetchDigitalLeakage, type DigitalLeakageResult, type LeakageRow, type LeakageTotals, type LeakageKind } from './digitalLeakage';
+export { fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, type PlanRow } from './planSignals';
+export { fetchHomeEquity, homeEquityQueueItems, fetchPropertyRisk, propertyHazards, type HomeEquityResult, type HomeEquityLead, type PropertyRiskResult, type PropertyRiskHome } from './propertySignals';
+export { fetchServiceNowDrag, type ServiceNowDrag } from './serviceDrag';
+export { fetchDataFreshness, type DataFreshness, type SourceFreshness, type FreshnessSource, type Cadence } from './dataFreshness';
+export { queryDataCloud, queryDataCloudForBook, bookAccountFilter, type DataCloudColumn, type DataCloudResult, type BookScope, type BookScopedResult } from './dataCloudClient';
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';
 export { fetchAccountEmail } from './accountLookup';
@@ -51,3 +80,16 @@ export {
   logoutUrl,
   currentPersonaDevName,
 } from './orgEnv';
+export { fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, type TradeWeek, type NetSellerRow } from './tradingPulse';
+export { fetchFirmographicMix, techPitch, REVENUE_BANDS, EMPLOYEE_BANDS, type FirmographicMixResult, type UpmarketRow, type BandCount } from './firmographics';
+export { fetchBusinessOwners, fetchOwnerWealthHandoffs, ownerHandoffLeads, OWNER_ANGLE_LABEL, type BusinessOwnersResult, type BusinessOwnerRow, type OwnerAngle, type OwnerHandoffResult, type OwnerHandoffRow } from './businessOwners';
+export { fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, type WealthUpgradeRow } from './wealthUpgrades';
+export { fetchHoldingsConcentration, concentrationQueueItems, CONCENTRATION_THRESHOLD, type HoldingsConcentrationResult, type ConcentratedClientRow, type StockExposure } from './holdingsConcentration';
+export { fetchMarketFootprint, type MarketFootprintResult, type FootprintZip } from './marketFootprint';
+export { fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, needsHardshipCheckIn, HARDSHIP_CHECK_IN, hardshipCheckInDue, hardshipCheckInReason, hardshipCheckInPriority, PERSISTENT_MONTHS, type FinancialStressResult, type StressedClientRow } from './financialStress';
+export { fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, needsBrowsingFollowUp, browsingFollowUpDue, SURGE_VIEWS, type WebEngagementResult, type BrowsingClientRow, type ProductInterest } from './webEngagement';
+export { fetchDepositAttrition, depositAttritionQueueItems, needsRetentionCall, DEPOSIT_RETENTION, retentionCallDue, retentionCallReason, retentionCallPriority, RETENTION_FLOW_USD, type DepositAttritionResult, type DepositAttritionRow } from './depositAttrition';
+export { fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, mortgageLeadTag, mortgageLeadLoan, mortgageLeadAction, mortgageLeadReason, mortgageLeadDue, mortgageLeadSeverity, mortgageLeadPriority, LEAN_LABEL, PROPENSITY_READY, type LifeStageMixResult, type LifeStageRow, type PropensityLean, type MortgageLead, type MortgageLeadTenure } from './lifeStageMix';
+export { fetchWhoToCall, whoToCallItems, WHO_TO_CALL_WEIGHTS, type WhoToCallRow, type WhoToCallResult, type WhoToCallDriver } from './whoToCall';
+export { fetchWealthWhoToCall, wealthWhoToCallItems, WEALTH_WHO_TO_CALL_WEIGHTS, type WealthWhoToCallRow, type WealthWhoToCallResult, type WealthWhoToCallDriver } from './wealthWhoToCall';
+export { fetchCommercialWhoToCall, commercialWhoToCallItems, COMMERCIAL_WHO_TO_CALL_WEIGHTS, type CommercialWhoToCallRow, type CommercialWhoToCallResult, type CommercialWhoToCallDriver } from './commercialWhoToCall';

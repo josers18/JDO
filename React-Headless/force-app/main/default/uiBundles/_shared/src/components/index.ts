@@ -39,6 +39,7 @@ export {
   type CommandRailPinned,
 } from './CommandRail';
 export { RightNowCard, type RightNowCardItem } from './RightNowCard';
+export { DriverTags, type QueueDriver } from './DriverTags';
 export { PriorityQueueRow, type PriorityQueueRowItem, type QueueTier } from './PriorityQueueRow';
 export {
   PriorityQueueCard,
@@ -63,6 +64,7 @@ export { LifeEventModal } from './home/LifeEventModal';
 export type { LifeEventItem } from './home/types';
 export { LIFE_EVENT_TYPE_OPTIONS } from './home/types';
 export { LeadModal } from './home/LeadModal';
+export { ViewAsPicker } from './home/ViewAsPicker';
 export type { LeadItem } from './home/types';
 export { LEAD_STATUS_OPTIONS, LEAD_SOURCE_OPTIONS } from './home/types';
 export { tagSchedule, scheduleCounts } from './home/schedule';
@@ -119,3 +121,4 @@ export {
 export { ConfigPage } from './config/ConfigPage';
 export { BrandThemeSection } from './config/BrandThemeSection';
 export { DisplaySizeControl } from './config/DisplaySizeControl';
+export { DataFreshnessMeter } from './home/DataFreshnessMeter';

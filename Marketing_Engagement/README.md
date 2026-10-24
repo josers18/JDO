@@ -31,7 +31,7 @@ Inserted rows can't be removed, so the writers also guard against rows that woul
 ## Heroku
 
 - **App:** `data-cloud`, which also owns the database `postgresql-trapezoidal-29488` (`DATABASE_URL`). Salesforce internal users can't create personal apps, and a team app would expose the JWT key to team admins.
-- **Schedule:** Heroku Scheduler (`scheduler-sinuous-98351`) runs `python feed.py` every hour at :10. Generated campaigns start in November 2026 (`feed.FIRST_MONTH`).
+- **Schedule:** Heroku Scheduler (`scheduler-sinuous-98351`) runs `python feed.py` every hour at :10. Generated campaigns start in October 2026 (`feed.FIRST_MONTH`; moved up from November on 2026-10-24 to fill the October gap).
 - **Missed runs:** the next run catches up. Campaigns keep generating for 7 days past their cap (`feed.GRACE`), so an outage shorter than that loses nothing. A Postgres advisory lock makes an overlapping run (a Scheduler double-fire or a manual run) skip, so it can't create duplicate CRM Campaigns.
 - **Config vars:** `DATABASE_URL`, `SF_LOGIN_URL`, `SF_CLIENT_ID`, `SF_USERNAME`, `SF_PRIVATE_KEY`. The JWT key pair is in `~/.jdo-marketing-feed/`, and the Connected App is `JDO Marketing Feed` in JDO.
 - **Deploy:**

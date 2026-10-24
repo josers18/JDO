@@ -1,0 +1,233 @@
+{
+  "name": "BT_Offer_Eligibility",
+  "label": "BT_Offer_Eligibility",
+  "datastreamType": "EXTERNAL",
+  "connectorInfo": {
+    "connectorType": "DataConnector",
+    "connectorDetails": {
+      "name": "BT_Managed_Snowflake"
+    }
+  },
+  "dataLakeObjectInfo": {
+    "dataspaceInfo": [
+      {
+        "name": "default"
+      }
+    ],
+    "category": "Other",
+    "label": "BT_Offer_Eligibility",
+    "name": "BT_Offer_Eligibility__dll",
+    "dataLakeFieldInputRepresentations": [
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ORG_ID",
+        "name": "org_id"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": true,
+        "label": "RECORD_ID",
+        "name": "record_id"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ACCOUNT_ID",
+        "name": "account_id"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "ACTION_CODE",
+        "name": "action_code"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "PRODUCT_FAMILY",
+        "name": "product_family"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "RECOMMENDED_ACTION_RANK",
+        "name": "recommended_action_rank"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "CONVERSION_PROBABILITY",
+        "name": "conversion_probability"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "NOACTION_CONVERSION",
+        "name": "noaction_conversion"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "EXPECTED_VALUE_UPLIFT",
+        "name": "expected_value_uplift"
+      },
+      {
+        "dataType": "Text",
+        "isPrimaryKey": false,
+        "label": "RECOMMENDED_CHANNELS",
+        "name": "recommended_channels"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "EM_PROBABILITY",
+        "name": "em_probability"
+      },
+      {
+        "dataType": "Number",
+        "isPrimaryKey": false,
+        "label": "CC_PROBABILITY",
+        "name": "cc_probability"
+      },
+      {
+        "dataType": "Date",
+        "isPrimaryKey": false,
+        "label": "START_DATE",
+        "name": "start_date"
+      },
+      {
+        "dataType": "DateTime",
+        "isPrimaryKey": false,
+        "label": "GENERATED_AT",
+        "name": "generated_at"
+      }
+    ]
+  },
+  "mappings": [
+    {
+      "sourceFieldLabel": "ORG_ID",
+      "targetFieldName": "org_id"
+    },
+    {
+      "sourceFieldLabel": "RECORD_ID",
+      "targetFieldName": "record_id"
+    },
+    {
+      "sourceFieldLabel": "ACCOUNT_ID",
+      "targetFieldName": "account_id"
+    },
+    {
+      "sourceFieldLabel": "ACTION_CODE",
+      "targetFieldName": "action_code"
+    },
+    {
+      "sourceFieldLabel": "PRODUCT_FAMILY",
+      "targetFieldName": "product_family"
+    },
+    {
+      "sourceFieldLabel": "RECOMMENDED_ACTION_RANK",
+      "targetFieldName": "recommended_action_rank"
+    },
+    {
+      "sourceFieldLabel": "CONVERSION_PROBABILITY",
+      "targetFieldName": "conversion_probability"
+    },
+    {
+      "sourceFieldLabel": "NOACTION_CONVERSION",
+      "targetFieldName": "noaction_conversion"
+    },
+    {
+      "sourceFieldLabel": "EXPECTED_VALUE_UPLIFT",
+      "targetFieldName": "expected_value_uplift"
+    },
+    {
+      "sourceFieldLabel": "RECOMMENDED_CHANNELS",
+      "targetFieldName": "recommended_channels"
+    },
+    {
+      "sourceFieldLabel": "EM_PROBABILITY",
+      "targetFieldName": "em_probability"
+    },
+    {
+      "sourceFieldLabel": "CC_PROBABILITY",
+      "targetFieldName": "cc_probability"
+    },
+    {
+      "sourceFieldLabel": "START_DATE",
+      "targetFieldName": "start_date"
+    },
+    {
+      "sourceFieldLabel": "GENERATED_AT",
+      "targetFieldName": "generated_at"
+    }
+  ],
+  "refreshConfig": {
+    "refreshMode": "TOTAL_REPLACE"
+  },
+  "sourceFields": [
+    {
+      "dataType": "Text",
+      "name": "ORG_ID"
+    },
+    {
+      "dataType": "Text",
+      "name": "RECORD_ID"
+    },
+    {
+      "dataType": "Text",
+      "name": "ACCOUNT_ID"
+    },
+    {
+      "dataType": "Text",
+      "name": "ACTION_CODE"
+    },
+    {
+      "dataType": "Text",
+      "name": "PRODUCT_FAMILY"
+    },
+    {
+      "dataType": "Number",
+      "name": "RECOMMENDED_ACTION_RANK"
+    },
+    {
+      "dataType": "Number",
+      "name": "CONVERSION_PROBABILITY"
+    },
+    {
+      "dataType": "Number",
+      "name": "NOACTION_CONVERSION"
+    },
+    {
+      "dataType": "Number",
+      "name": "EXPECTED_VALUE_UPLIFT"
+    },
+    {
+      "dataType": "Text",
+      "name": "RECOMMENDED_CHANNELS"
+    },
+    {
+      "dataType": "Number",
+      "name": "EM_PROBABILITY"
+    },
+    {
+      "dataType": "Number",
+      "name": "CC_PROBABILITY"
+    },
+    {
+      "dataType": "Date",
+      "name": "START_DATE",
+      "format": "MM/dd/yyyy"
+    },
+    {
+      "dataType": "DateTime",
+      "name": "GENERATED_AT"
+    }
+  ],
+  "advancedAttributes": {
+    "schema": "FINS__PUBLIC",
+    "database": "DATA_JEDAIS",
+    "object": "OFFER_ELIGIBILITY"
+  },
+  "dataAccessMode": "Direct_Access"
+}

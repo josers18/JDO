@@ -10,7 +10,7 @@
 -- =============================================================================
 
 CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG (
-    ACCOUNT_ID          VARCHAR(50)     NOT NULL,    -- Account identifier (TRD-xxx or 001%)
+    ACCOUNT_ID          VARCHAR(50)     NOT NULL,    -- Salesforce Account Id (001%); TRD-xxx placeholders are inactive (migration 001)
     ACCOUNT_NAME        VARCHAR(200),                -- Display name (from source or manual)
     ACCOUNT_TYPE        VARCHAR(20)     DEFAULT 'Retail',        -- Institutional or Retail
     FREQUENCY           VARCHAR(20)     DEFAULT 'DAILY',         -- DAILY, WEEKLY, or MONTHLY

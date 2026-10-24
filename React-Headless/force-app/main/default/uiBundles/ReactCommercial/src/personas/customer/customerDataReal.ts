@@ -37,7 +37,7 @@ function core360Query(id: string): string {
         FinServ__FinancialAccount__c(first: 30, where: { FinServ__PrimaryOwner__c: { eq: "${acct}" } }) {
           edges { node { Id Name @optional { value } FinServ__Balance__c @optional { value } FinServ__FinancialAccountType__c @optional { value } } }
         }
-        FinancialGoal(first: 6) {
+        FinancialGoal(first: 6, where: { FinancialPlan: { AccountId: { eq: "${acct}" } } }) {
           edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
         }
       }
@@ -57,7 +57,7 @@ interface Core360Shape {
 
 interface ClaritasRow { segment: string; life_stage: string; net_worth: string; wealth_prop: number; }
 interface CsatRow { csat: number; nps: number; }
-/** Commercial persona signal: D&B business credit (CumulusDnBBusinessCredit__dlm). */
+/** Commercial persona signal: D&B business credit (BT_DNB_Business_Credit__dlm). */
 interface DnbRow { paydex: number; risk: number; delinq: number; rating: string; dbt: number; }
 
 const LENDING_RE = /mortgage|loan|heloc|line of credit/i;
@@ -73,9 +73,9 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
   const [core, claritas, csat, dnb] = await Promise.all([
     executeGraphQL<Core360Shape>(core360Query(acct)),
-    queryDataCloud<ClaritasRow>(`SELECT prizmSegmentName__c AS segment, lifeStage__c AS life_stage, estimatedNetWorthBand__c AS net_worth, wealthPropensityScore__c AS wealth_prop FROM CumulusClaritasDemographics__dlm WHERE ssot__AccountId__c = '${acct}' LIMIT 1`, 1).catch(() => ({ rows: [] as ClaritasRow[] })),
+    queryDataCloud<ClaritasRow>(`SELECT prizm_segment_name__c AS segment, life_stage__c AS life_stage, estimated_net_worth_band__c AS net_worth, wealth_propensity_score__c AS wealth_prop FROM BT_Claritas_Demographics__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1).catch(() => ({ rows: [] as ClaritasRow[] })),
     queryDataCloud<CsatRow>(`SELECT csat_score__c AS csat, nps_score__c AS nps FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY csat_score__c ASC LIMIT 1`, 1).catch(() => ({ rows: [] as CsatRow[] })),
-    queryDataCloud<DnbRow>(`SELECT paydexScore__c AS paydex, compositeRiskScore__c AS risk, delinquencyPredictorScore__c AS delinq, dnbRating__c AS rating, averageDaysBeyondTerms__c AS dbt FROM CumulusDnBBusinessCredit__dlm WHERE ssot__AccountId__c = '${acct}' LIMIT 1`, 1).catch(() => ({ rows: [] as DnbRow[] })),
+    queryDataCloud<DnbRow>(`SELECT paydex_score__c AS paydex, composite_risk_score__c AS risk, delinquency_predictor_score__c AS delinq, dnb_rating__c AS rating, average_days_beyond_terms__c AS dbt FROM BT_DNB_Business_Credit__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1).catch(() => ({ rows: [] as DnbRow[] })),
   ]);
   const db = dnb.rows[0];
   const paydex = db ? Number(db.paydex) : NaN;

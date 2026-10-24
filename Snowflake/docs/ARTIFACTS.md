@@ -53,13 +53,13 @@ Complete inventory of all database objects in `DATA_JEDAIS.FINS__PUBLIC`.
 | **DNB_BUSINESS_CREDIT** | 34,170 | ACCOUNTADMIN | Cumulus Plan 3 — DnB-style business credit ratings | Cumulus |
 | **ESRI_GEO_FOOTPRINT** | 39,981 | ACCOUNTADMIN | Cumulus Plan 4 — geo-keyed (BRANCH_ZIP, PROFILE_MONTH) demographics | Cumulus |
 | **CORELOGIC_PROPERTY** | 50,848 | ACCOUNTADMIN | Cumulus Plan 5 — quarterly property records (PERSON-only) | Cumulus |
-| **PLAID_HELD_AWAY** | 165,680 | ACCOUNTADMIN | Cumulus Plan 6 — 1:N held-away financial accounts per anchor | Cumulus |
+| **PLAID_HELD_AWAY** | 399,258 | ACCOUNTADMIN | Cumulus Plan 6 — 1:N held-away financial accounts per anchor (personal + business since 2026-10-24) | Cumulus |
 | **WORLD_CHECK_AML** | 1,472,592 | ACCOUNTADMIN | Cumulus Plan 7 — AML screening daily snapshots | Cumulus |
 | **MGP_FINANCIAL_PLANS** | 957,141 | ACCOUNTADMIN | Cumulus Plan 8 — MoneyGuidePro-style monthly financial plans | Cumulus |
-| **SYNTH_RELATIONSHIP_GRAPH** | 70,897 | ACCOUNTADMIN | Cumulus Plan 9 — directed-edge relationship graph | Cumulus |
+| **SYNTH_RELATIONSHIP_GRAPH** | 38,360 | ACCOUNTADMIN | Cumulus Plan 9 — directed-edge relationship graph | Cumulus |
 | **BOARDEX_EXEC_INTEL** | 957,141 | ACCOUNTADMIN | Cumulus Plan 10 — BUSINESS executive intelligence | Cumulus |
 | **ZOOMINFO_FIRMOGRAPHICS** | 34,170 | ACCOUNTADMIN | Cumulus Plan 11 — BUSINESS firmographics | Cumulus |
-| **GONG_CALL_SENTIMENT** | 1,104,401 | ACCOUNTADMIN | Cumulus Plan 12 — weekly call sentiment | Cumulus |
+| **GONG_CALL_SENTIMENT** | 1,657,268 | ACCOUNTADMIN | Cumulus Plan 12 — weekly call sentiment | Cumulus |
 | **MOODYS_MARKET_CONTEXT** | 1,446,471 | ACCOUNTADMIN | Cumulus Plan 13 — daily commercial credit risk × 90-day history | Cumulus |
 
 ### Staging Tables (Cumulus)
@@ -71,12 +71,12 @@ Complete inventory of all database objects in `DATA_JEDAIS.FINS__PUBLIC`.
 | CORELOGIC_PROPERTY_STAGING | 25,424 | Staging for Plan 5 SP |
 | DNB_BUSINESS_CREDIT_STAGING | 11,392 | Staging for Plan 3 SP |
 | ESRI_GEO_FOOTPRINT_STAGING | 13,327 | Staging for Plan 4 SP |
-| GONG_CALL_SENTIMENT_STAGING | 36,816 | Staging for Plan 12 SP |
+| GONG_CALL_SENTIMENT_STAGING | 36,940 | Staging for Plan 12 SP |
 | MGP_FINANCIAL_PLANS_STAGING | 36,816 | Staging for Plan 8 SP |
 | MOODYS_MARKET_CONTEXT_STAGING | 11,392 | Staging for Plan 13 SP |
 | MSCI_ESG_SCORES_STAGING | 11,392 | Staging for Plan 2 SP |
-| PLAID_HELD_AWAY_STAGING | 55,082 | Staging for Plan 6 SP |
-| SYNTH_RELATIONSHIP_GRAPH_STAGING | 38,089 | Staging for Plan 9 SP |
+| PLAID_HELD_AWAY_STAGING | 66,543 | Staging for Plan 6 SP |
+| SYNTH_RELATIONSHIP_GRAPH_STAGING | 38,360 | Staging for Plan 9 SP |
 | WORLD_CHECK_AML_STAGING | 36,816 | Staging for Plan 7 SP |
 | ZOOMINFO_FIRMOGRAPHICS_STAGING | 11,392 | Staging for Plan 11 SP |
 

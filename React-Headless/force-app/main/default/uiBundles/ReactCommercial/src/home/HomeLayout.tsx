@@ -4,6 +4,8 @@ import {
   CommandRail,
   HomeViewProvider,
   HomeViewToggle,
+  ViewAsPicker,
+  useViewAs,
   WorkspaceSelectionProvider,
   tagSchedule,
   type CommandRailSection,
@@ -75,6 +77,9 @@ export default function HomeLayout() {
  */
 function HomeLayoutInner() {
   const { data, loading } = useHomeData();
+  // "View as" preview — the rail names the banker whose book is on screen.
+  const viewAs = useViewAs();
+  const railUser = viewAs ? { name: viewAs.name, sub: `Viewing as · ${RAIL_USER.sub}` } : RAIL_USER;
 
   // ── Loading branch: static shell, no WorkspaceSelectionProvider (CommandRail
   //    falls back to an empty pinned list when no provider is mounted, and
@@ -83,8 +88,8 @@ function HomeLayoutInner() {
     return (
       <AppShell
         title="Relationship Command"
-        titleAside={<HomeViewToggle />}
-        sidebar={<CommandRail sections={RAIL_SECTIONS} arc={FALLBACK_ARC} user={RAIL_USER} />}
+        titleAside={<span className="inline-flex items-center gap-2"><ViewAsPicker /><HomeViewToggle /></span>}
+        sidebar={<CommandRail sections={RAIL_SECTIONS} arc={FALLBACK_ARC} user={railUser} />}
       >
         <Outlet />
       </AppShell>
@@ -136,8 +141,8 @@ function HomeLayoutInner() {
     <WorkspaceSelectionProvider initialPinned={pins} storageKey={PINNED_STORAGE_KEY}>
       <AppShell
         title="Relationship Command"
-        titleAside={<HomeViewToggle />}
-        sidebar={<CommandRail sections={sections} arc={arc} user={RAIL_USER} />}
+        titleAside={<span className="inline-flex items-center gap-2"><ViewAsPicker /><HomeViewToggle /></span>}
+        sidebar={<CommandRail sections={sections} arc={arc} user={railUser} />}
       >
         <Outlet />
       </AppShell>

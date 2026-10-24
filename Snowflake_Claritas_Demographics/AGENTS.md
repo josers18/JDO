@@ -21,6 +21,9 @@ Synthetic Claritas-style dataset for the Cumulus FSC demo. One of 13.
 - L3 (manual smoke, post-deploy): one run against `jdo-uqj0jr`, then row count ≈ 25K + sample plausibility.
 
 ## Gotchas
-- Audience predicate `ACCOUNT_TYPE_FLAG = 'PERSON'` lives in BOTH `AUDIENCE_SQL` and `COVERAGE_SQL` constants in the SP. They MUST stay in sync — drift is the sneakiest way to silently produce a coverage gap.
+- Audience predicate (`_AUDIENCE_PREDICATE`) lives in BOTH `AUDIENCE_SQL` and `COVERAGE_SQL` constants in the SP. They MUST stay in sync — drift is the sneakiest way to silently produce a coverage gap.
 - The 12 PRIZM segment codes (UC, MB, YA, MS, PP, BB, CR, CD, SS, HR, FS, MT) are a recognisable subset — NOT a license-grade Claritas Premier mapping. See rowspec.
 - A given account's PRIZM_SEGMENT_CODE may flip month-over-month with the seed roll — that's intentional (random walk simulating life changes), not a bug.
+- `procedures/sp_create_procedure.sql` is a hand-synced, inlined copy of `procedures/sp_generate_claritas_demographics.py` (plus `seed_for` / `assert_coverage`). Edit both. The live SP is `EXECUTE AS OWNER` and stages into `DATA_JEDAIS.FINS__PUBLIC`.
+- Liquidity strain (2026-10-24): `_liquidity_strained` / `_strained_stress` override `FINANCIAL_STRESS_INDICATOR` for a stable 20% (`STRAIN_RATE`) of Wealth Management / ≥ $250K clients, who are otherwise never High; a strained client is High in 50% (`STRAIN_HIGH`) of months. Separate salt `claritas-strain`, applied after the main draw, so every other column and every non-strained row is byte-identical to before. See README "Financial stress".
+- Audience widened (2026-10-24): BUSINESS anchors with a client category and a real `001…` Id (FSC Households, Small Business, Commercial Banking) are in the audience. `_principal_profile` (salt `claritas-principal`) supplies their age and household income; the rest is the person path. The predicate lives in `_AUDIENCE_PREDICATE` (SQL) and `_anchor_in_audience` (Python): keep them in sync. The shared fixture's BUSINESS anchors use `TEST-BIZ-*` ids, so they are still out of audience in the L1 tests.

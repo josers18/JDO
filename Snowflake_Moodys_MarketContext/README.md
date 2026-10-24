@@ -17,7 +17,7 @@ Each instrument in `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` produces one m
 ## Snowflake objects
 - Table: `DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT`
 - Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()`
-- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT` (DAILY, `0 1 * * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT` (DAILY, `15 3 * * * America/New_York`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusMoodysMarketContext__dll` → DMO `CumulusMoodysMarketContext__dlm`
 
 ## Audience
@@ -41,6 +41,34 @@ After Plan 8's single-salt simplification, Plan 13 returns to the two-salt patte
 
 ## Snowflake identifier rename — digit-leading column names
 Snowflake identifiers cannot begin with a digit, so the rowspec's market-data fields are renamed at the column-name level: `52_WEEK_HIGH_PRICE` → `FIFTY_TWO_WEEK_HIGH_PRICE`, `52_WEEK_LOW_PRICE` → `FIFTY_TWO_WEEK_LOW_PRICE`, `30_DAY_PRICE_CHANGE_PCT` → `THIRTY_DAY_PRICE_CHANGE_PCT`. The DC field-mapping in T7 maps these to `fiftyTwoWeekHighPrice__c`, `fiftyTwoWeekLowPrice__c`, `thirtyDayPriceChangePct__c` accordingly.
+
+## Outlook moves (2026-10-24)
+The year-stable baseline outlook never moved inside a calendar year and its `OUTLOOK_LAST_CHANGED_DATE` always fell in
+the prior year, so the Commercial cockpit's C2 "outlook changed in the last 90 days" view never fired.
+`_apply_outlook_moves` now layers **episodes** on accounts whose baseline is Stable and whose id carries the local
+Account key prefix (`001am`):
+
+- Stable -> Negative (65%) or Watch (35%); 30% of Negative starts escalate to Watch 14-45 days later; every episode
+  returns to Stable before its slot ends.
+- Episodes sit on fixed 180-day slots in absolute time (per-account phase offset, 10% chance per slot, start in the
+  first 120 days, no slots before 2025-09-01).
+- **Small-book boost:** almost every business account sits in two advisor books (Allen Carter ~5.6k, Jose Sifontes
+  ~5.1k), leaving ~100 accounts across ~17 other owners. Accounts whose owner has fewer than 500 business accounts in
+  the audience (`_MOVE_SMALL_BOOK_MAX`) use a 50% per-slot rate so those books still see moves. Book sizes come from
+  `OWNER_BOOK_SQL` (`ssot__OwnerId__c` on the inbound `FINSDC3_DATASHARE` Account share, same dedup as
+  `V_ACCOUNT_ANCHORS`); if that lookup fails the SP uses the base rate for everyone. Base-rate episodes are a subset
+  of boosted ones (same seed stream), so an owner change only adds or removes episodes. Salt `moodys_moves` with a fixed seed anchor, so the outlook on any
+  `PROFILE_DATE` is a pure function of (account, date): daily runs, `NUM_DAYS` backfills and re-runs agree, and every
+  future run keeps producing fresh moves relative to its own date.
+- `OUTLOOK_LAST_CHANGED_DATE` = the latest episode event on/before `PROFILE_DATE` (never earlier than the baseline
+  date). Every change is dated on the day it happens; the date never moves while the outlook stays put.
+- Live 2026-10-24 (latest snapshot, changed in the last 90 days): Allen 89 Negative + 73 Watch (233 back to Stable),
+  Jose 77 Negative + 76 Watch (209 back to Stable), other books 9 Negative + 5 Watch (16 back to Stable). About 3 in 4
+  accounts are Stable on any day.
+- **History:** the generator only writes the day it runs (or `NUM_DAYS` back). Snapshots written before the moves
+  shipped (2026-03-01..2026-10-23) still carry the baseline outlook until they are rewritten with the same logic.
+
+Tests: `tests/test_moodys_outlook_moves.py`.
 
 ## Tests
 ```bash

@@ -63,6 +63,34 @@ import {
   type AiGenerateResult,
   type AiActionKey,
   type CommandCenterConfig,
+  DataFreshnessMeter,
+  propertyHazards,
+  PERSISTENT_MONTHS,
+  needsHardshipCheckIn,
+  HARDSHIP_CHECK_IN,
+  hardshipCheckInDue,
+  hardshipCheckInReason,
+  hardshipCheckInPriority,
+  DonutChart,
+  LEAN_LABEL,
+  PROPENSITY_READY,
+  needsRetentionCall,
+  browsingReason,
+  browsingAction,
+  isBrowsingNow,
+  needsBrowsingFollowUp,
+  browsingFollowUpDue,
+  DEPOSIT_RETENTION,
+  retentionCallDue,
+  retentionCallReason,
+  retentionCallPriority,
+  RETENTION_FLOW_USD,
+  mortgageLeadTag,
+  mortgageLeadLoan,
+  mortgageLeadAction,
+  mortgageLeadReason,
+  mortgageLeadDue,
+  mortgageLeadPriority,
 } from '@shared';
 import { useHomeData } from './homeDataContext';
 import type { CallItem, CaseItem, CustomerGoal, PipelineItem, LeadReferral, LifeEventSignal, AlertSignal, Recommendation, ScheduleItem, ActivityItem, PipelineMovement, BankerGoal } from './homeTypes';
@@ -81,7 +109,7 @@ const DEFAULT_ACCOUNT_ID = '001am00000qvjsAAAQ';
 type ModalKind = 'task' | 'schedule' | 'case' | 'email' | 'prep' | 'quickview' | 'why' | 'airesult' | 'drafts';
 type ModalState =
   | { type: 'none' }
-  | { type: ModalKind; name: string; id?: string; subject?: string; toAddress?: string };
+  | { type: ModalKind; name: string; id?: string; subject?: string; toAddress?: string; dueDate?: string; comments?: string; priority?: 'High' | 'Normal' | 'Low' };
 
 const KIND_TO_ACTION: Record<Recommendation['kind'], CrmWriteInput['action']> = {
   task: 'task',
@@ -323,7 +351,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   const queueItems = useMemo(
     () =>
       buildPriorityQueue({
-        primary: data?.callList ?? [],
+        primary: [...(data?.callList ?? []), ...(data?.transactionSignals ?? [])],
         opportunities: data?.pipeline ?? [],
         tasks: (data?.schedule ?? []).filter(it => it.bucket === 'overdue' || it.kind === 'task'),
       }) as CallItem[],
@@ -613,6 +641,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   // FirstName / Company / Status / LeadSource / Email / AnnualRevenue back
   // through crmWrite; onSaved refetches so the card reflects the edit.
   const showLead = (l: LeadReferral) => {
+    // S4 warm intro — not a Lead yet, so open create mode with the prospect prefilled.
+    if (l.intro) {
+      setLeadItem({ create: true, firstName: l.intro.firstName, lastName: l.intro.lastName, company: l.intro.company, leadSource: 'Referral', status: 'New' });
+      return;
+    }
     if (!l.recordId) { showLeadDetail(l); return; }
     setLeadItem({
       recordId: l.recordId,
@@ -990,7 +1023,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           label={k.label}
           value={formatValue(k.value, k.format)}
           note={k.note}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -1002,18 +1035,43 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   // up to a 6th column at xl so the 6-KPI set doesn't orphan Active Goals onto a
   // second row (grid-cols-5 wraps the 6th). Falls back to 5/3/2 on narrower
   // content regions so it never overflows.
+  // The strip holds six cards, so it swaps Opportunities (a growth number, and
+  // already the Pipeline card's note) for the S1 Gong call-tone count. Picked by
+  // key like the vitals; falls back to the full set when a key is missing.
+  const HEALTH_KEYS = ['pipeline', 'leads', 'openCases', 'atRisk', 'callTone', 'goals'];
+  const healthKpis = HEALTH_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridWide = (
     <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-      {data.kpis.map(k => (
+      {(healthKpis.length === HEALTH_KEYS.length ? healthKpis : data.kpis).map(k => (
         <KpiCard
           key={k.key}
           label={k.label}
           value={formatValue(k.value, k.format)}
           note={k.note}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
+    </div>
+  );
+
+  // Growth-page variant: the book's upside in one row: pipeline, opportunities,
+  // leads, the S3 offer model's modeled uplift and R1 CoreLogic home equity. Picked by key like the others.
+  const GROWTH_KEYS = ['pipeline', 'openOpps', 'leads', 'uplift', 'homeEquity'];
+  const growthKpis = GROWTH_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
+  const kpiGridGrowth = (
+    <div className="@container/gkpis">
+    <div className="grid grid-cols-2 gap-3.5 @[560px]/gkpis:grid-cols-3 @[900px]/gkpis:grid-cols-5">
+      {growthKpis.map(k => (
+        <KpiCard
+          key={k.key}
+          label={k.label}
+          value={formatValue(k.value, k.format)}
+          note={k.note}
+          onClick={() => kpiClick(k.key)}
+        />
+      ))}
+    </div>
     </div>
   );
 
@@ -1037,7 +1095,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           note={k.note}
           deltaPct={k.deltaPct}
           trend={k.trend}
-          risk={k.key === 'atRisk'}
+          risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
       ))}
@@ -1239,7 +1297,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
         </thead>
         <tbody>
           {leadsReveal.visible.map(l => (
-            <LeadRow key={l.id} lead={l} onClick={() => open('email', l.name, undefined, undefined, l.email)} />
+            <LeadRow key={l.id} lead={l} onClick={() => (l.intro ? showLead(l) : open('email', l.name, undefined, undefined, l.email))} />
           ))}
         </tbody>
       </table>
@@ -1303,6 +1361,341 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+
+  // R2 — CoreLogic flood / wildfire exposure across the book (Health tab).
+  const risk = data.propertyRisk;
+  const propertyRiskCard = risk && risk.homes > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="alerts" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Property risk exposure</b>
+        <span className="font-mono text-[10.5px] text-faint">CoreLogic · latest quarter{risk.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {risk.homes.toLocaleString('en-US')} client homes sit in a high-risk flood zone or score 70+ on wildfire:{' '}
+          {formatValue(risk.homeValue, 'currencyCompact')} of property carrying {formatValue(risk.mortgage, 'currencyCompact')} of mortgage.
+          An insurance review / proactive check-in list, not a credit flag.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Flood zone" value={risk.flood.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Wildfire 70+" value={risk.wildfire.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Both" value={risk.both.toLocaleString('en-US')} tone="warn" />
+        </div>
+      </div>
+      {risk.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {risk.rows.map(h => (
+            <li key={h.accountId}>
+              <button
+                type="button"
+                onClick={() => open('quickview', h.clientName ?? 'Client', h.accountId)}
+                className="flex w-full items-center gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{h.clientName}</span>
+                <span className={`font-mono text-[11px] ${h.floodZone && h.wildfire >= 70 ? 'text-risk' : 'text-warn'}`}>{propertyHazards(h)}</span>
+                <span className="w-[150px] flex-none text-right font-mono text-[11px] text-muted">
+                  {formatValue(h.value, 'currencyCompact')} {h.propertyType.toLowerCase() || 'home'}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // R6 — recognized clients on product pages, the book's latest week of activity (Growth tab).
+  const web = data.webEngagement;
+  const webEngagementCard = web && web.rows.length > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pulse" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Browsing product pages</b>
+        <span className="font-mono text-[10.5px] text-faint">
+          Website · recognized visitors · 7 days to {new Date(web.windowEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{web.scope === 'org' ? ' · org-wide' : ''}
+        </span>
+      </div>
+      <p className="mt-2 text-[13px] leading-snug text-muted">
+        {web.clients.toLocaleString('en-US')} client{web.clients === 1 ? '' : 's'} viewed product pages {web.views.toLocaleString('en-US')} times. Repeat views of one product
+        are a buying signal — follow up while it's fresh.
+      </p>
+      <ul className="mt-3 divide-y divide-line border-t border-line">
+        {web.rows.map(r => (
+          <li key={r.accountId} className="flex items-center gap-3">
+            {/* The name opens the quick view; the rest of the row opens the prefilled
+                follow-up Task on Follow-up rows (quick view otherwise). */}
+            <button
+              type="button"
+              onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+              className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
+            >
+              {r.clientName}
+            </button>
+            <button
+              type="button"
+              onClick={() => needsBrowsingFollowUp(r)
+                ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: browsingAction(r), dueDate: browsingFollowUpDue(), comments: browsingReason(r), priority: isBrowsingNow(r) ? 'High' : 'Normal' })
+                : open('quickview', r.clientName ?? 'Client', r.accountId)}
+              title={needsBrowsingFollowUp(r) ? 'Create a product follow-up task' : undefined}
+              className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
+            >
+              {needsBrowsingFollowUp(r) && (
+                <span className="flex-none rounded-full bg-accent-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-accent">
+                  {isBrowsingNow(r) ? 'Now' : 'Follow up'}
+                </span>
+              )}
+              <span className="min-w-0 truncate font-mono text-[11px] text-muted">
+                {r.products.slice(0, 2).map(p => `${p.product} ×${p.views}`).join(' · ')}
+                {r.products.length > 2 ? ` · +${r.products.length - 2}` : ''}
+              </span>
+              <span className="w-[70px] flex-none text-right font-mono text-[11px] text-muted">
+                {new Date(r.lastSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  // R5 — checking + savings at other banks, and who's moving money there this month (Health tab).
+  const attrition = data.depositAttrition;
+  const depositAttritionCard = attrition && attrition.clients > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="alerts" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Deposits leaving to other banks</b>
+        <span className="font-mono text-[10.5px] text-faint">Plaid held-away · latest month{attrition.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {attrition.clients.toLocaleString('en-US')} clients keep {formatValue(attrition.balance, 'currencyCompact')} in checking and savings elsewhere;{' '}
+          {attrition.leaving.toLocaleString('en-US')} moved more money there this month ({formatValue(attrition.outflow, 'currencyCompact')}).{' '}
+          {attrition.retention.toLocaleString('en-US')} are sending {formatValue(RETENTION_FLOW_USD, 'currencyCompact')}+ a month — a rate-match / consolidation call.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="Held away" value={formatValue(attrition.balance, 'currencyCompact')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="Leaving / mo" value={formatValue(attrition.outflow, 'currencyCompact')} tone="warn" />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`${formatValue(RETENTION_FLOW_USD, 'currencyCompact')}+ / mo`} value={attrition.retention.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {attrition.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {attrition.rows.map(r => (
+            <li key={r.accountId} className="flex items-center gap-3">
+              {/* The name opens the quick view; the rest of the row opens the prefilled
+                  retention Task on Retain rows (quick view otherwise). */}
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
+              >
+                {r.clientName}
+              </button>
+              <button
+                type="button"
+                onClick={() => needsRetentionCall(r)
+                  ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: DEPOSIT_RETENTION, dueDate: retentionCallDue(), comments: retentionCallReason(r), priority: retentionCallPriority(r) })
+                  : open('quickview', r.clientName ?? 'Client', r.accountId)}
+                title={needsRetentionCall(r) ? 'Create a deposit retention task' : undefined}
+                className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                {needsRetentionCall(r) && (
+                  <span className="flex-none rounded-full bg-warn-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-warn">
+                    Retain
+                  </span>
+                )}
+                <span className={`font-mono text-[11px] ${needsRetentionCall(r) ? 'text-warn' : 'text-muted'}`}>
+                  +{formatValue(r.monthlyFlow, 'currencyCompact')}/mo
+                </span>
+                <span className="w-[170px] flex-none truncate text-right font-mono text-[11px] text-muted">
+                  {r.institution} · {formatValue(r.balance, 'currencyCompact')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // R3 — Claritas financial stress that has persisted, corroborated by overdraft fees (Health tab).
+  const stress = data.financialStress;
+  const financialStressCard = stress && stress.highNow > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="alerts" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Financial-stress watchlist</b>
+        <span className="font-mono text-[10.5px] text-faint">Claritas · last 6 months + overdraft fees 30d{stress.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2.5">
+        <p className="min-w-[240px] flex-1 text-[13px] leading-snug text-muted">
+          {stress.highNow.toLocaleString('en-US')} clients are flagged high-stress this month, but the monthly flag churns;{' '}
+          {stress.persistent.toLocaleString('en-US')} have carried it {PERSISTENT_MONTHS}+ of the last 6 months.
+          {stress.lifeStages[0] ? ` Most are ${stress.lifeStages[0].stage} (${stress.lifeStages[0].count.toLocaleString('en-US')}).` : ''}{' '}
+          A hardship-support check-in list (relief options, fee waivers), not a collections flag.
+        </p>
+        <div className="flex flex-none items-center gap-5">
+          <PulseStat label="High now" value={stress.highNow.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`${PERSISTENT_MONTHS}+ months`} value={stress.persistent.toLocaleString('en-US')} tone="warn" />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label="+ Overdraft" value={stress.withFees.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {stress.rows.length > 0 && (
+        <ul className="mt-3 divide-y divide-line border-t border-line">
+          {stress.rows.map(r => (
+            <li key={r.accountId} className="flex items-center gap-3">
+              {/* The name always opens the quick view; the rest of the row opens the
+                  prefilled hardship Task on Check-in rows (quick view otherwise). */}
+              <button
+                type="button"
+                onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
+              >
+                {r.clientName}
+              </button>
+              <button
+                type="button"
+                onClick={() => needsHardshipCheckIn(r)
+                  ? setModal({ type: 'task', name: r.clientName ?? 'Client', id: r.accountId, subject: HARDSHIP_CHECK_IN, dueDate: hardshipCheckInDue(), comments: hardshipCheckInReason(r), priority: hardshipCheckInPriority(r) })
+                  : open('quickview', r.clientName ?? 'Client', r.accountId)}
+                title={needsHardshipCheckIn(r) ? 'Create a hardship check-in task' : undefined}
+                className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
+              >
+                {needsHardshipCheckIn(r) && (
+                  <span className="flex-none rounded-full bg-warn-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-warn">
+                    Check-in
+                  </span>
+                )}
+                <span className={`font-mono text-[11px] ${needsHardshipCheckIn(r) ? 'text-warn' : 'text-muted'}`}>
+                  High {r.monthsHigh}/6 mo{r.overdraftFees ? ` · ${r.overdraftFees} overdraft` : ''}
+                </span>
+                <span className="w-[150px] flex-none truncate text-right font-mono text-[11px] text-muted">{r.lifeStage}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  // R4 — Claritas life-stage mix: donut of the book by life stage, each stage's
+  // mortgage / investment / wealth propensity and its strongest lean.
+  const mix = data.lifeStageMix;
+  const STAGE_COLORS = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e', '#64748b', '#0ea5e9'];
+  const topStage = mix?.rows[0];
+  const lifeStageCard = mix && mix.clients > 0 && (
+    <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-2">
+        <Icon name="pipeline" size={14} className="text-muted" />
+        <b className="font-mono text-[11px] uppercase tracking-[0.14em]">Life-stage mix</b>
+        <span className="font-mono text-[10.5px] text-faint">Claritas · latest month{mix.scope === 'org' ? ' · org-wide' : ''}</span>
+      </div>
+      <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-4">
+        <div className="flex-none">
+          <DonutChart
+            slices={mix.rows.map((r, i) => ({ label: r.stage, value: r.clients, color: STAGE_COLORS[i % STAGE_COLORS.length] }))}
+            size={150}
+            thickness={20}
+            centerValue={formatValue(mix.clients, 'number')}
+            centerLabel="Profiled"
+            legend={false}
+          />
+        </div>
+        <div className="min-w-[300px] flex-1">
+          <div className="grid grid-cols-[minmax(0,1fr)_56px_56px_56px_76px] gap-x-2 border-b border-line pb-1 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+            <span>Stage</span>
+            <span className="text-right">Mortg.</span>
+            <span className="text-right">Invest</span>
+            <span className="text-right">Wealth</span>
+            <span className="text-right">Lean</span>
+          </div>
+          <ul className="divide-y divide-line">
+            {mix.rows.map((r, i) => (
+              <li key={r.stage} className="grid grid-cols-[minmax(0,1fr)_56px_56px_56px_76px] items-center gap-x-2 py-1.5 font-mono text-[11px]">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="h-2.5 w-2.5 flex-none rounded-[3px]" style={{ background: STAGE_COLORS[i % STAGE_COLORS.length] }} />
+                  <span className="truncate font-sans text-[12.5px] font-semibold text-fg">{r.stage}</span>
+                  <span className="flex-none text-muted">{r.clients.toLocaleString('en-US')}</span>
+                </span>
+                {(['mortgage', 'invest', 'wealth'] as const).map(k => (
+                  <span key={k} className={`text-right ${r.lean === k ? 'font-semibold text-fg' : 'text-muted'}`}>{Math.round(r[k])}</span>
+                ))}
+                <span className="text-right text-accent">{LEAN_LABEL[r.lean]}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-none items-center gap-5 self-center">
+          <PulseStat label={`Mortgage ${PROPENSITY_READY}+`} value={mix.mortgageReady.toLocaleString('en-US')} />
+          <span className="h-8 w-px bg-line" />
+          <PulseStat label={`Invest ${PROPENSITY_READY}+`} value={mix.investReady.toLocaleString('en-US')} />
+        </div>
+      </div>
+      {topStage && (
+        <p className="mt-2 text-[12.5px] leading-snug text-muted">
+          Largest segment: <b className="text-fg">{topStage.stage}</b>, {topStage.clients.toLocaleString('en-US')} clients leaning{' '}
+          {LEAN_LABEL[topStage.lean].toLowerCase()} ({Math.round(topStage[topStage.lean])}). Propensities are Claritas scores, 0–100 averages per stage.
+        </p>
+      )}
+      {mix.mortgageLeads.length > 0 && (
+        <>
+          <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.08em] text-faint">
+            Young Families · mortgage {PROPENSITY_READY}+ ·{' '}
+            {mix.mortgageLeads.length} of {formatValue(mix.rows.find(s => s.stage === 'Young Families')?.mortgageReady ?? mix.mortgageLeads.length, 'number')}
+            {' '}· in your queue
+          </p>
+          <ul className="mt-1 divide-y divide-line border-t border-line">
+            {mix.mortgageLeads.map(r => (
+              <li key={r.accountId} className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => open('quickview', r.clientName ?? 'Client', r.accountId)}
+                  className="min-w-0 truncate py-2 text-left text-[13px] font-semibold text-fg transition hover:underline"
+                >
+                  {r.clientName}
+                </button>
+                <button
+                  type="button"
+                  title={mortgageLeadAction(r)}
+                  onClick={() => setModal({
+                    type: 'task',
+                    name: r.clientName ?? 'Client',
+                    id: r.accountId,
+                    subject: mortgageLeadAction(r),
+                    dueDate: mortgageLeadDue(),
+                    comments: mortgageLeadReason(r),
+                    priority: mortgageLeadPriority(r),
+                  })}
+                  className="flex flex-1 items-center justify-end gap-3 py-2 text-left transition hover:opacity-80"
+                >
+                  <span className="flex-none rounded-full bg-accent-bg px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-accent">
+                    Lead
+                  </span>
+                  <span className="flex-none rounded-full bg-track px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
+                    {mortgageLeadTag(r)}
+                  </span>
+                  {mortgageLeadLoan(r) && (
+                    <span className="flex-none font-mono text-[11px] text-fg">{mortgageLeadLoan(r)}</span>
+                  )}
+                  <span className="w-[90px] flex-none text-right font-mono text-[11px] text-muted">
+                    Mortgage {Math.round(r.score)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 
@@ -1575,12 +1968,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
             </h1>
             <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-[5px] w-[120px] overflow-hidden rounded-full bg-track">
-                  <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${data.confidencePct}%` }} />
-                </div>
-                <small className="font-mono text-[11px] text-muted">AI confidence {data.confidencePct}%</small>
-              </div>
+              <DataFreshnessMeter freshness={data.dataFreshness} fallbackPct={data.confidencePct} />
               <button
                 type="button"
                 onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}
@@ -1644,7 +2032,13 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 
   const growthLeft = (
     <>
-      <section id="whitespace" className="scroll-mt-[82px]">{whitespaceSection}</section>
+      <section id="kpis" className="scroll-mt-[82px]">
+        <SectionHead eyebrow="Book-wide · offer model" title="Growth metrics" />
+        {kpiGridGrowth}
+      </section>
+      <section id="whitespace" className="mt-8 scroll-mt-[82px]">{whitespaceSection}</section>
+      {lifeStageCard && <section id="lifeStages" className="mt-8 scroll-mt-[82px]">{lifeStageCard}</section>}
+      {webEngagementCard && <section id="webEngagement" className="mt-4 scroll-mt-[82px]">{webEngagementCard}</section>}
       <section id="pipeline" className="mt-8 scroll-mt-[82px]">
         <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
           {pipelineControls}
@@ -1669,6 +2063,21 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       <section id="pulse" className="mt-4 scroll-mt-[82px]">
         {pulseStrip}
       </section>
+      {propertyRiskCard && (
+        <section id="propertyRisk" className="mt-4 scroll-mt-[82px]">
+          {propertyRiskCard}
+        </section>
+      )}
+      {financialStressCard && (
+        <section id="financialStress" className="mt-4 scroll-mt-[82px]">
+          {financialStressCard}
+        </section>
+      )}
+      {depositAttritionCard && (
+        <section id="depositAttrition" className="mt-4 scroll-mt-[82px]">
+          {depositAttritionCard}
+        </section>
+      )}
       <section id="alerts" className="mt-8 scroll-mt-[82px]">
         <SectionHead eyebrow="At-risk relationships · act now" title="Risk alerts" />
         {alertsBody}
@@ -1765,6 +2174,10 @@ function HomeContent({ mode }: { mode: HomeMode }) {
                 {whitespaceSection}
               </section>
 
+              {/* ---------- LIFE-STAGE MIX ---------- */}
+              {lifeStageCard && <section id="lifeStages" className="mt-8 scroll-mt-[82px]">{lifeStageCard}</section>}
+      {webEngagementCard && <section id="webEngagement" className="mt-4 scroll-mt-[82px]">{webEngagementCard}</section>}
+
               {/* ---------- PIPELINE ---------- */}
               <section id="pipeline" className="mt-8 scroll-mt-[82px]">
                 <SectionHead eyebrow="Open opportunities · sorted by value" title="Pipeline">
@@ -1818,7 +2231,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 
       {/* ---------- MODALS ---------- */}
       {modal.type === 'task' && (
-        <TaskModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} onSaved={refetch} />
+        <TaskModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject} dueDateDefault={modal.dueDate} commentsDefault={modal.comments} priorityDefault={modal.priority} onSaved={refetch} />
       )}
       {modal.type === 'schedule' && (
         <ScheduleModal open onClose={close} clientName={modal.name} clientId={modal.id} subjectDefault={modal.subject ?? 'Call'} onSaved={refetch} />
@@ -1911,7 +2324,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
             <Pill tone={c.severity === 'high' ? 'risk' : c.severity === 'medium' ? 'warn' : 'neutral'}>{c.severity}</Pill>
           ) },
         ]}
-        footNote="Source · CSAT + Data Cloud signals"
+        footNote="Source · blended CSAT + Gong + Claritas stress + offer model"
       />
 
       <DataExplorerModal<CaseItem>
@@ -2260,6 +2673,9 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 }
 
 /* ── KPI → scroll-target section (classic view) ──────────────────── */
+/** KPIs styled as risk metrics (red accent). */
+const RISK_KPIS = new Set(['atRisk', 'callTone']);
+
 const KPI_TARGET: Record<string, string> = {
   pipeline: 'pipeline',
   openOpps: 'pipeline',
@@ -2267,6 +2683,9 @@ const KPI_TARGET: Record<string, string> = {
   openCases: 'events',
   goals: 'pulse',
   atRisk: 'events',
+  callTone: 'alerts',
+  uplift: 'actions',
+  homeEquity: 'queue',
 };
 
 /* ── KPI → drill-in explorer (cockpit view) ──────────────────────── */
@@ -2277,7 +2696,9 @@ const KPI_EXPLORER: Record<string, ExplorerKey> = {
   leads: 'leads',
   goals: 'goals',
   atRisk: 'atRisk',
+  callTone: 'atRisk',
   openCases: 'atRisk',
+  homeEquity: 'atRisk',
 };
 
 /* ── CommandRail section id → drill-in explorer (cockpit view) ─────

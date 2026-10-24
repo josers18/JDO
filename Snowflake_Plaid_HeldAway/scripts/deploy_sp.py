@@ -109,26 +109,27 @@ SQL_HEADER = f"""\
 -- Audience: CLIENT_CATEGORY IN ('Retail', 'Wealth Management')
 --           — 25,381 anchors (Retail 21,461 + Wealth Management 3,920).
 -- Cadence:  MONTHLY ({TASK_NAME})
--- Salt:     "{DATASET_SALT}" (month-bucketed). Single salt — no year-stable
---           variant (Plan 6 has no fields that hold across months).
---           HELD_AWAY_ACCOUNT_ID IS identity-stable across months, but uses
---           plain sha256 (NOT seed_for) to bypass month-bucketing.
+-- Salt:     "{DATASET_SALT}" (month-bucketed: balance drift, activity, flow) and
+--           "plaid_identity" (no run_ts: row count, institution, account type,
+--           link date, risk tier, rate). HELD_AWAY_ACCOUNT_ID is plain sha256,
+--           identity-stable across months.
+-- Backfill: CALL {PROCEDURE_FQN}('2026-05-01'::DATE) regenerates one month.
 -- Table:    {TABLE_FQN}
---           Composite PK (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH).
+--           Composite PK (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH).
 --           DC DMO collapses to single-column PK heldAwayAccountId__c.
 -- 1:N:      First 1:N dataset in the rollout — each anchor produces 1-5
---           rows/month. Total ~52,300 rows/month.
+--           rows/month. Total ~55,000 rows/month.
 -- Vendor:   Plaid-style (held-away financial accounts) — README uses
 --           canonical name.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}()
+CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}(RUN_MONTH DATE DEFAULT NULL)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+EXECUTE AS OWNER
 AS
 $$
 """

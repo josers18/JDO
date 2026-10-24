@@ -40,11 +40,11 @@ def test_determinism_buckets_by_year_month(in_audience_anchors):
 # ---------- Property 2: Audience scoping ----------
 
 def test_audience_violators_raise(out_of_audience_anchors):
-    """BUSINESS anchors must raise ValueError (defense in depth).
+    """Out-of-audience anchors must raise ValueError (defense in depth).
 
-    Caller-side audience SQL filters them out, but if a BUSINESS row
-    leaks through (e.g., misclassified by ACCOUNT_TYPE_FLAG heuristic),
-    the row factory catches it loudly."""
+    Since 2026-10-24 BUSINESS anchors are in the audience only with a client
+    category and a real 001... Account Id; the fixture's TEST-BIZ anchors have
+    neither id, so the row factory must reject them loudly."""
     if not out_of_audience_anchors:
         pytest.skip("no out-of-audience anchors in fixture")
     for bad in out_of_audience_anchors[:3]:
@@ -196,3 +196,82 @@ def test_prizm_code_is_in_canonical_set(in_audience_anchors):
     for anchor in in_audience_anchors[:20]:
         row = _row_for(anchor, datetime(2026, 5, 1))
         assert row["PRIZM_SEGMENT_CODE"] in canonical, f"unknown PRIZM code {row['PRIZM_SEGMENT_CODE']}"
+
+
+# ---------- Liquidity strain (2026-10-24) ----------
+
+from sp_generate_claritas_demographics import (  # noqa: E402
+    STRAIN_RATE, _financial_stress, _liquidity_strained, _strained_stress,
+)
+
+
+def _wm_anchor(i):
+    return {"ACCOUNT_ID": f"001am00002WM{i:06d}", "ACCOUNT_TYPE_FLAG": "PERSON",
+            "BIRTHDATE": "1965-03-01", "ANNUAL_INCOME": 400_000,
+            "CLIENT_CATEGORY": "Wealth Management", "POSTAL_CODE": "94105"}
+
+
+def test_strain_only_affluent_or_wealth_management():
+    """Retail-income clients keep the income-driven draw; the trait never fires for them."""
+    assert not any(_liquidity_strained(f"001am00002RT{i:06d}", 60_000, "Retail") for i in range(2000))
+
+
+def test_strain_gives_wealth_books_a_persistent_high_minority():
+    """~STRAIN_RATE of WM clients are strained; a good share are High in >= 4 of 6 months, the rest never are."""
+    ids = [_wm_anchor(i)["ACCOUNT_ID"] for i in range(5000)]
+    strained = [a for a in ids if _liquidity_strained(a, 400_000, "Wealth Management")]
+    assert 0.5 * STRAIN_RATE < len(strained) / len(ids) < 1.5 * STRAIN_RATE
+    months = [datetime(2026, m, 1) for m in range(5, 11)]
+    persistent = sum(1 for a in strained if sum(_strained_stress(a, ts) == "High" for ts in months) >= 4)
+    assert persistent / len(strained) > 0.2
+    rows = [_row_for(_wm_anchor(i), datetime(2026, 10, 1)) for i in range(5000)]
+    high = [r["ACCOUNT_ID"] for r in rows if r["FINANCIAL_STRESS_INDICATOR"] == "High"]
+    assert high and set(high) <= set(strained)
+
+
+def test_strain_leaves_other_columns_unchanged():
+    """The strain draw uses its own salt, so a strained row differs only in stress."""
+    import random
+    from sp_generate_claritas_demographics import seed_for, DATASET_SALT
+    for i in range(5000):
+        a = _wm_anchor(i)
+        if _liquidity_strained(a["ACCOUNT_ID"], 400_000, "Wealth Management"):
+            break
+    ts = datetime(2026, 10, 1)
+    row = _row_for(a, ts)
+    assert row["FINANCIAL_STRESS_INDICATOR"] == _strained_stress(a["ACCOUNT_ID"], ts)
+    assert _financial_stress(400_000, "Wealth Management", random.Random(0)) in ("Low", "Moderate")
+
+
+# ---------- Household / business principals (2026-10-24) ----------
+
+from sp_generate_claritas_demographics import _anchor_in_audience, _principal_profile  # noqa: E402
+
+
+def _biz_anchor(i, cat):
+    return {"ACCOUNT_ID": f"001am00002BZ{i:06d}", "ACCOUNT_TYPE_FLAG": "BUSINESS",
+            "BIRTHDATE": None, "ANNUAL_INCOME": None, "CLIENT_CATEGORY": cat,
+            "ANNUAL_REVENUE": 750_000, "POSTAL_CODE": "60601"}
+
+
+def test_business_audience_needs_real_id_and_category():
+    assert _anchor_in_audience(_biz_anchor(1, "Household"))
+    assert _anchor_in_audience(_biz_anchor(1, "Small Business"))
+    assert not _anchor_in_audience({**_biz_anchor(1, "Household"), "CLIENT_CATEGORY": None})
+    assert not _anchor_in_audience({**_biz_anchor(1, "Household"), "ACCOUNT_ID": "TEST-BIZ-01"})
+
+
+def test_principal_profile_is_stable_across_months():
+    a = _biz_anchor(7, "Household")
+    assert _principal_profile(a["ACCOUNT_ID"], "Household") == _principal_profile(a["ACCOUNT_ID"], "Household")
+    r5, r6 = _row_for(a, datetime(2026, 5, 1)), _row_for(a, datetime(2026, 6, 1))
+    assert r5["ACCOUNT_ID"] == r6["ACCOUNT_ID"] == a["ACCOUNT_ID"]
+    assert set(r5) == EXPECTED_KEYS
+
+
+def test_business_books_get_a_plausible_high_stress_share():
+    """Households and business principals land near the Retail High rate (~10-20%), not 0 and not 50%."""
+    for cat in ("Household", "Small Business", "Commercial Banking"):
+        rows = [_row_for(_biz_anchor(i, cat), datetime(2026, 10, 1)) for i in range(3000)]
+        share = sum(r["FINANCIAL_STRESS_INDICATOR"] == "High" for r in rows) / len(rows)
+        assert 0.07 < share < 0.22, (cat, share)

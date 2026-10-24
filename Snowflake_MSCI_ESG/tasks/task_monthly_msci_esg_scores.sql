@@ -6,7 +6,7 @@
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-2-msci-esg.md
 -- Task:     Plan 2 T6
 -- Cadence:  MONTHLY
--- Schedule: 0 7 1 * * UTC  (1st of month, 07:00 UTC)
+-- Schedule: 30 3 1 * * America/New_York  (1st of month, 03:30 ET — matches live as of 2026-10-24)
 -- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MSCI_ESG_SCORES()', 2)
 --
 -- Pattern parity:
@@ -18,7 +18,7 @@
 
 CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_MSCI_ESG_SCORES
     WAREHOUSE = MAIN_WH_XS
-    SCHEDULE  = 'USING CRON 0 7 1 * * UTC'
+    SCHEDULE  = 'USING CRON 30 3 1 * * America/New_York'
 AS
     CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
         'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MSCI_ESG_SCORES()',
