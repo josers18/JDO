@@ -8,12 +8,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Aug_14_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Oct_24_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
 
 ---
+
+## [October 2026]
+
+### 2026-10-24 — home name lookup, per-client goals, renter property card, UTC dates
+
+Fixes from the live browser check of Commercial C2/C4/C9 and the Retail/Wealth Full 360 (`679e4ace`, `dbabe1ca`, PR [#133](https://github.com/josers18/JDO/pull/133)). All four bundles built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors).
+
+#### Fixed
+
+- **Raw account IDs on the home cards.** `accountNamesQuery` returns at most 50 rows, so cards with more accounts showed IDs for the rest. `homeDataReal.ts` (Retail, Wealth, Commercial) now looks names up in chunks of 50.
+- **Every Full 360 showed the same goals.** The `FinancialGoal` query in `customerDataReal.ts` now filters on `FinancialPlan.AccountId`. `JourneyGoals` shows "No financial goals on file." when a client has none (also in ReactHeadless, whose 360 is mock data).
+- **Renters got a property valuation.** The Full 360 property tab shows "—" for value, equity, mortgage and HELOC score when the client isn't an owner on the latest CoreLogic quarter, with "Not a homeowner on the latest CoreLogic quarter — no HELOC angle."
+- **Dates a day early.** `shortDate` in `full360DataReal.ts` formats with `timeZone: 'UTC'`.
 
 ## [July 2026]
 

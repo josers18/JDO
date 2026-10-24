@@ -98,6 +98,8 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 - HTTP 200 ≠ success — always parse the `errors` array (`executeGraphQL` does this and throws).
 - `@optional` on every read field (FLS); `first:` mandatory on every query.
 - **`Id` returns as a plain string on nodes; every other scalar is wrapped in `{ value }`.** Read `node.Id` directly; read others via `node.Field.value`.
+- `accountNamesQuery` (home cards) has `first: 50`, so look account IDs up in chunks of 50 (`homeDataReal.ts` does). One call with more IDs silently drops the rest, and those rows render as raw IDs.
+- Scope a client's goals through the plan: `FinancialGoal(where: { FinancialPlan: { AccountId: { eq: "<accountId>" } } })`. `FinancialGoal` has no account field of its own; an unfiltered query shows every client the same goals.
 
 ## CSS
 
@@ -116,6 +118,8 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 - **Reading `CustomApplication.Metadata` to check the `uiBundle` binding** — Tooling doesn't surface that field; it looks dropped even when correct. Verify in the browser.
 - **`sf project delete source` on this repo** — errors on the non-deployable `_shared` bundle. Use a destructiveChanges manifest from a throwaway DX project.
 - **Treating `Id` as `{ value }`-wrapped** — it isn't; you'll get empty strings.
+- **Formatting date-only values in local time.** `new Date('2026-10-24')` is UTC midnight, so `toLocaleDateString` shows the day before in US time zones. Pass `timeZone: 'UTC'` (see `shortDate` in `full360DataReal.ts`).
+- **Showing CoreLogic value/equity/HELOC for renters.** Renters have null property values on the latest quarter; gate the Full 360 property card on `is_owner__c` and show "—".
 - **Assuming `PERSONAL_PRODUCT_RECOMMENDATION__dlm` exists** — only the `_INPU` feature-input DMO does; next-best-product must be derived. `Bank_Churner__dlm` keys on email/Id, not Account — use `CSAT_Snowflake__dlm` (account-joinable) for per-client signals.
 - **Switching Agentforce agents by mutating the mounted frame's `configuration`** — it only relabels the chrome. ACC's inner LWC reads `configuration` once at mount, so the running conversation stays on the original agent. Switch by **re-embedding** (`embedAgentforceClient` teardown + re-mount keyed on the agent id) with one `requestAnimationFrame` between teardown and re-embed so Lightning Out's global registry settles. The "already registered to another App" console error during re-embed is **non-fatal** — the fresh session loads regardless; don't "fix" it by abandoning re-embed.
 
