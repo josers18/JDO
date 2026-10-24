@@ -144,8 +144,11 @@ Still open:
   same accounts per month). In the DMO, every month has 0 null `match_confidence_code__c`, Severe 1.2–1.4%,
   ~720 rows with PAYDEX < 50 and days beyond terms up to ~180.
 
-Owner gap (CRM side, not Snowflake): 684 D&B-keyed accounts have a null `OwnerId` in
-`ssot__Account`, so they appear in no banker's book.
+Owner gap: not a home-org gap. Cross-checked 2026-10-24 against `MASTER_ACCOUNTS.DATA_SOURCE`: of the
+11,516 October rows, 10,815 are `Salesforce_Home` (all owned, all in CRM) and every home business account
+(10,808) has a row. The other 701 are keyed to companion-org CRM records (InsuranceAFDC 167, FinsDC4 146,
+FinsDC1 127, DCCDO1 89) and 172 web identities. They have no local owner and appear in no banker's book.
+The generator could filter to `DATA_SOURCE = 'Salesforce_Home'` to stop producing them.
 
 ## 6. Plaid held-away (`BT_Plaid_Held_Away`): ✅ generator v2 + business 2026-10-24
 
