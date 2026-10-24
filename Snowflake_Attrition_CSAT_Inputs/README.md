@@ -39,7 +39,7 @@ The tables federate zero-copy into Data Cloud:
 ```bash
 cd Snowflake_Attrition_CSAT_Inputs
 python -m venv .venv && .venv/bin/pip install -e ".[dev]" -e ../Snowflake_Cumulus_Common
-.venv/bin/pytest            # 78 tests
+.venv/bin/pytest            # 116 tests
 ```
 
 `tests/test_deploy_sp.py` checks that the committed `procedures/sp_create_procedure.sql` matches `build_sql()`. Regenerate it with `.venv/bin/python scripts/deploy_sp.py --no-deploy` after any module change.

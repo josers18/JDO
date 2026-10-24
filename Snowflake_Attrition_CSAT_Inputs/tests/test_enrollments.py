@@ -133,3 +133,83 @@ def test_enrollment_problems_flags_violations():
     bad(c, p_clean, WIRE_ENABLED=None)
     bad(c, p_clean, KYC_STATUS="Bogus")
     bad(c, p_clean, ACCOUNTID="003am00000AAAA0001")
+
+
+def _month(i):
+    y, m = divmod(9 + i, 12)  # i=0 -> 2026-10
+    return datetime(2026 + y, m + 1, 4, 5, 0)
+
+
+def _book():
+    return (_features() + _features(kind="BUSINESS", category="SmallBusiness")
+            + _features(kind="BUSINESS", category="Household", n=500) + _features(category="WealthManagement", n=500))
+
+
+def _trajectories(feats, months):
+    profs = [build_profile(f, _month(0)) for f in feats]
+    return [[enrollment_row(p, _month(i)) for p in profs] for i in range(months)]
+
+
+def _assert_no_reverts(traj):
+    for j in range(len(traj[0])):
+        for c in BOOL_COLUMNS:
+            seq = [traj[i][j][c] for i in range(len(traj))]
+            changes = sum(a != b for a, b in zip(seq, seq[1:]))
+            assert changes <= 1, (traj[0][j]["ACCOUNTID"], c, seq)
+
+
+def test_enrollment_drift_never_reverts_3_months():
+    _assert_no_reverts(_trajectories(_book(), 3))
+
+
+def test_enrollment_drift_never_reverts_12_months():
+    traj = _trajectories(_book(), 12)
+    _assert_no_reverts(traj)
+    # drift still happens over a year
+    assert any(traj[0][j][c] != traj[-1][j][c] for j in range(len(traj[0])) for c in BOOL_COLUMNS)
+
+
+def test_enrollment_month_over_month_changed_share_small():
+    traj = _trajectories(_book(), 12)
+    n = len(traj[0])
+    for a, b in zip(traj, traj[1:]):
+        changed = sum(any(x[c] != y[c] for c in BOOL_COLUMNS) for x, y in zip(a, b))
+        assert changed / n <= 0.02
+
+
+def test_enrollment_mfa_implies_digital_every_month():
+    for month in _trajectories(_book(), 12):
+        assert not [r for r in month if r["MFA_STATUS"] and not (r["ONLINE_ENROLLED"] or r["MOBILE_ENROLLED"])]
+
+
+def test_no_wire_for_young_retail_persons():
+    for i in range(12):
+        _, rows = _pairs(_features(age=21, balance=50000.0), _month(i))
+        assert not any(r["WIRE_ENABLED"] for r in rows)
+    # wealth or high-balance young persons may still wire
+    _, wm = _pairs(_features(age=21, category="WealthManagement", balance=50000.0))
+    _, rich = _pairs(_features(age=21, balance=400000.0))
+    assert any(r["WIRE_ENABLED"] for r in wm) and any(r["WIRE_ENABLED"] for r in rich)
+
+
+def test_enrollment_problems_young_wire():
+    p = build_profile(make_feature(ACCOUNT_ID="001am00000YOUNG001", BIRTHDATE=date(2004, 5, 1),
+                                   TOTAL_BALANCE=20000.0, AVG_BALANCE=20000.0), OCT)
+    r = enrollment_row(p, OCT)
+    assert r["WIRE_ENABLED"] is False and enrollment_problems([r], [p]) == []
+    out = enrollment_problems([dict(r, WIRE_ENABLED=True)], [p])
+    assert any("001am00000YOUNG001" in s and "WIRE" in s for s in out)
+
+
+def test_enrollment_problems_retail_wire_cap():
+    profs, rows = _pairs(_features(age=40, balance=20000.0, n=1200))
+    assert enrollment_problems(rows, profs) == []
+    bad = [dict(r, WIRE_ENABLED=(i % 10 == 0)) for i, r in enumerate(rows)]  # 10% of Retail persons
+    assert any("Retail" in s and "wire" in s.lower() for s in enrollment_problems(bad, profs))
+
+
+def test_rich_retail_book_stays_under_wire_cap():
+    for ts in (_month(0), _month(11)):
+        profs, rows = _pairs(_features(age=40, balance=400000.0, n=1500), ts)
+        assert sum(r["WIRE_ENABLED"] for r in rows) / len(rows) <= 0.06
+        assert enrollment_problems(rows, profs) == []

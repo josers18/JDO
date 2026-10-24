@@ -19,11 +19,22 @@ def _pf_rng(account_id: str, field: str):
     return stable_rng(account_id, "attrcsat-" + field)
 
 
+# CLIENT_CATEGORY decides the kind; ACCOUNT_TYPE_FLAG (= BIRTHDATE IS NOT NULL in V_ACCOUNT_ANCHORS)
+# is only the fallback for an unknown or empty category, since persons without a birthdate carry 'BUSINESS'.
+_PF_PERSON_CATEGORIES = ("retail", "wealthmanagement", "gold", "silver", "bronze", "platinum")
+_PF_BUSINESS_CATEGORIES = ("smallbusiness", "commercialbanking", "corporate", "commercial", "business")
+
+
 def _pf_kind(feature: dict) -> str:
+    cat = str(feature.get("CLIENT_CATEGORY") or "").strip().lower()
+    if cat == "household":
+        return "HOUSEHOLD"
+    if cat in _PF_BUSINESS_CATEGORIES:
+        return "BUSINESS"
+    if cat in _PF_PERSON_CATEGORIES:
+        return "PERSON"
     if str(feature.get("ACCOUNT_TYPE_FLAG") or "").upper() == "PERSON":
         return "PERSON"
-    if str(feature.get("CLIENT_CATEGORY") or "").strip().lower() == "household":
-        return "HOUSEHOLD"
     return "BUSINESS"
 
 

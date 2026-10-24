@@ -203,11 +203,22 @@ def _pf_rng(account_id: str, field: str):
     return stable_rng(account_id, "attrcsat-" + field)
 
 
+# CLIENT_CATEGORY decides the kind; ACCOUNT_TYPE_FLAG (= BIRTHDATE IS NOT NULL in V_ACCOUNT_ANCHORS)
+# is only the fallback for an unknown or empty category, since persons without a birthdate carry 'BUSINESS'.
+_PF_PERSON_CATEGORIES = ("retail", "wealthmanagement", "gold", "silver", "bronze", "platinum")
+_PF_BUSINESS_CATEGORIES = ("smallbusiness", "commercialbanking", "corporate", "commercial", "business")
+
+
 def _pf_kind(feature: dict) -> str:
+    cat = str(feature.get("CLIENT_CATEGORY") or "").strip().lower()
+    if cat == "household":
+        return "HOUSEHOLD"
+    if cat in _PF_BUSINESS_CATEGORIES:
+        return "BUSINESS"
+    if cat in _PF_PERSON_CATEGORIES:
+        return "PERSON"
     if str(feature.get("ACCOUNT_TYPE_FLAG") or "").upper() == "PERSON":
         return "PERSON"
-    if str(feature.get("CLIENT_CATEGORY") or "").strip().lower() == "household":
-        return "HOUSEHOLD"
     return "BUSINESS"
 
 
@@ -478,11 +489,18 @@ def cross_table_problems(att: list, csat: list, enr: list) -> list[str]:
 
 
 # ---- attrcsat.enrollments ----
+import math
 from datetime import datetime
 
 
-_EN_DRIFT_P = 0.02
-_EN_LOW_WIRE_P = 0.10  # cohorts below this base rate only drift toward False
+_EN_EPOCH = 2026 * 12  # month index of 2026-01; change months are counted from here
+_EN_ENROL_P = 0.004    # monthly hazard for False -> True
+_EN_UNENROL_P = 0.0015  # monthly hazard for True -> False
+_EN_LOW_WIRE_P = 0.10  # cohorts below this base rate never drift toward wire-enabled
+_EN_YOUNG_AGE = 25
+_EN_WIRE_BALANCE = 250000
+_EN_RETAIL_WIRE_CAP = 0.06  # book-level cap on the Retail-person wire rate
+_EN_RETAIL_WIRE_MIN_N = 1000  # the cap is only meaningful on a book with at least this many Retail persons
 _EN_REVIEW_STATUS = ("Under Review", "Pending")
 _EN_REVIEW_KYC_CLEAN = ("Current", "Expired")
 _EN_REVIEW_AML_CLEAN = ("Cleared", "None")
@@ -492,11 +510,31 @@ def _en_draw(aid: str, flag: str) -> float:
     return stable_rng(aid, "attrcsat-enr-" + flag).random()
 
 
-def _en_drift(aid: str, flag: str, run_ts: datetime) -> bool:
-    return month_rng(aid, "attrcsat-drift-" + flag, run_ts).random() < _EN_DRIFT_P
+def _en_month_index(run_ts: datetime) -> int:
+    return run_ts.year * 12 + run_ts.month - 1
+
+
+def _en_change_month(aid: str, flag: str, base: bool) -> int:
+    """Month index at which the flag flips from base (geometric, drawn once per account and flag)."""
+    p = _EN_UNENROL_P if base else _EN_ENROL_P
+    u = stable_rng(aid, "attrcsat-chg-" + flag).random()
+    return _EN_EPOCH + 1 + int(math.log(1.0 - u) / math.log(1.0 - p))
+
+
+def _en_changed(aid: str, flag: str, base: bool, month: int) -> bool:
+    return month >= _en_change_month(aid, flag, base)
+
+
+def _en_young_retail(p: dict) -> bool:
+    """Young, non-wealth, modest-balance persons (students, first jobs) never have wires enabled."""
+    return (p["kind"] == "PERSON" and p["age"] < _EN_YOUNG_AGE and p["client_category"] != "WealthManagement"
+            and p["total_balance"] < _EN_WIRE_BALANCE)
 
 
 def _en_wire_p(p: dict) -> float:
+    if _en_young_retail(p):
+        return 0.0
+    rich = p["total_balance"] >= _EN_WIRE_BALANCE
     if p["kind"] == "BUSINESS":
         base = 0.6
     elif p["kind"] == "HOUSEHOLD":
@@ -504,10 +542,9 @@ def _en_wire_p(p: dict) -> float:
     elif p["client_category"] == "WealthManagement":
         base = 0.35
     else:
-        base = 0.03
-    if p["total_balance"] >= 250000:
-        base += 0.1
-    return base
+        # other persons stay under _EN_LOW_WIRE_P even when rich: no drift on, and the Retail cap holds
+        return 0.05 if rich else 0.03
+    return base + (0.1 if rich else 0.0)
 
 
 def _en_status(aid: str, salt: str, options: tuple, weights: tuple) -> str:
@@ -534,25 +571,52 @@ def _en_kyc_aml(p: dict) -> tuple[str, str]:
 
 def enrollment_row(profile: dict, run_ts: datetime) -> dict:
     aid = profile["account_id"]
+    month = _en_month_index(run_ts)
     aff = profile["digital_affinity"]
     online_p = clamp(0.55 + 0.35 * aff + (0.1 if profile["kind"] == "BUSINESS" else 0.0), 0.0, 1.0)
     mobile_p = clamp(0.15 + 0.75 * aff, 0.0, 1.0)
 
-    def flip(col: str, value: bool) -> bool:
-        return (not value) if _en_drift(aid, col, run_ts) else value
+    def drift(col: str, base: bool, allow: bool = True) -> bool:
+        return base != (allow and _en_changed(aid, col, base, month))
 
-    online = flip("ONLINE_ENROLLED", _en_draw(aid, "online") < online_p)
-    mobile = flip("MOBILE_ENROLLED", _en_draw(aid, "mobile") < mobile_p)
-    digital = online or mobile
-    # same sticky uniform, threshold follows the final digital state, then a small drift
-    mfa = flip("MFA_STATUS", _en_draw(aid, "mfa") < 0.85) and digital
-    paperless = flip("PAPERLESS_ENROLLED", _en_draw(aid, "paperless") < (0.6 if digital else 0.05))
-    alerts = flip("ALERT_ENROLLED", _en_draw(aid, "alerts") < (0.65 if digital else 0.05))
+    # Base state (month-independent). Paperless/alerts thresholds follow the base digital state.
+    online0 = _en_draw(aid, "online") < online_p
+    mobile0 = _en_draw(aid, "mobile") < mobile_p
+    digital0 = online0 or mobile0
+    mfa0 = _en_draw(aid, "mfa") < 0.85 and digital0
+    paperless0 = _en_draw(aid, "paperless") < (0.6 if digital0 else 0.05)
+    alerts0 = _en_draw(aid, "alerts") < (0.65 if digital0 else 0.05)
     wire_p = _en_wire_p(profile)
-    wire = _en_draw(aid, "wire") < wire_p
-    if _en_drift(aid, "WIRE_ENABLED", run_ts):
-        # low-wire cohorts only drift toward off, so their rate stays within the calibrated cap
-        wire = False if wire_p < _EN_LOW_WIRE_P else not wire
+    wire0 = _en_draw(aid, "wire") < wire_p
+
+    # Digital never goes True -> False: an account keeps at least one channel, so when both are on only the
+    # channel with the earlier change month may un-enrol; a sole channel never un-enrols.
+    if online0 and mobile0:
+        first = ("ONLINE_ENROLLED" if _en_change_month(aid, "ONLINE_ENROLLED", True)
+                 <= _en_change_month(aid, "MOBILE_ENROLLED", True) else "MOBILE_ENROLLED")
+        online = drift("ONLINE_ENROLLED", online0, first == "ONLINE_ENROLLED")
+        mobile = drift("MOBILE_ENROLLED", mobile0, first == "MOBILE_ENROLLED")
+    else:
+        online = drift("ONLINE_ENROLLED", online0, not online0)
+        mobile = drift("MOBILE_ENROLLED", mobile0, not mobile0)
+    digital = online or mobile
+    # digital is constant (base on) or only switches on (base off), so MFA = pref and digital stays
+    # monotone as long as pref moves the same way: with digital off at base, pref may only switch on.
+    mfa_pref0 = _en_draw(aid, "mfa") < 0.85
+    if digital0:
+        mfa = drift("MFA_STATUS", mfa0)
+    else:
+        mfa = drift("MFA_STATUS", mfa_pref0, not mfa_pref0) and digital
+    # Paperless/alerts follow digital: with digital off at base they may only switch on once digital is on
+    # (both monotone, so the AND is too); with digital on at base they drift either way.
+    if digital0:
+        paperless = drift("PAPERLESS_ENROLLED", paperless0)
+        alerts = drift("ALERT_ENROLLED", alerts0)
+    else:
+        paperless = paperless0 if paperless0 else (drift("PAPERLESS_ENROLLED", False) and digital)
+        alerts = alerts0 if alerts0 else (drift("ALERT_ENROLLED", False) and digital)
+    # low-wire cohorts (young retail included) never drift on, so their rate stays within the cap
+    wire = drift("WIRE_ENABLED", wire0, wire0 or wire_p >= _EN_LOW_WIRE_P)
     flags = {
         "ONLINE_ENROLLED": online, "MOBILE_ENROLLED": mobile, "MFA_STATUS": mfa,
         "PAPERLESS_ENROLLED": paperless, "ALERT_ENROLLED": alerts, "WIRE_ENABLED": wire,
@@ -597,6 +661,13 @@ def enrollment_problems(rows: list[dict], profiles: list[dict]) -> list[str]:
                 out.append(f"{aid}: CLEAN profile has review KYC_STATUS {kyc}")
             if aml in _EN_REVIEW_STATUS:
                 out.append(f"{aid}: CLEAN profile has review AML_STATUS {aml}")
+        if r.get("WIRE_ENABLED") is True and _en_young_retail(p):
+            out.append(f"{aid}: WIRE_ENABLED on a young non-wealth person under {_EN_YOUNG_AGE}")
+    retail = [r for r, p in zip(rows, profiles) if p["kind"] == "PERSON" and p["client_category"] == "Retail"]
+    if len(retail) >= _EN_RETAIL_WIRE_MIN_N:
+        rate = sum(1 for r in retail if r.get("WIRE_ENABLED") is True) / len(retail)
+        if rate > _EN_RETAIL_WIRE_CAP:
+            out.append(f"Retail-person wire rate {rate:.3f} above cap {_EN_RETAIL_WIRE_CAP}")
     return out
 
 
@@ -722,21 +793,24 @@ _sp_AUD = f"""aud AS (
 # Feed windows end at the run month's first day (exclusive): re-runs inside a month read the same data.
 _sp_ANCHOR = "DATE_TRUNC('month', CURRENT_DATE())"
 
+# Deposit and investment products hold customer wealth; loans and lines (cards) are liabilities.
+_sp_WEALTH_KINDS = "PRODUCT_KIND IN ('deposit', 'investment')"
+
 FEATURES_SQL = f"""WITH {_sp_AUD},
 nps AS (
   SELECT ACCOUNTID AS ACCOUNT_ID, NPS_SCORE, NPS_DESCRIPTION,
-         COUNT_IF(NPS_SCORE <= 4 AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
+         COUNT_IF(NPS_SCORE <= 6 AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
            OVER (PARTITION BY ACCOUNTID) AS DETRACTOR_12M
   FROM {_sp_PREFIX}.CSAT_NPS_DATA
   WHERE SCORE_DATE < {_sp_ANCHOR}
-  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNTID ORDER BY SCORE_DATE DESC) = 1
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNTID ORDER BY SCORE_DATE DESC, ROWID DESC) = 1
 ),
 fta_raw AS (
   SELECT * FROM {_sp_PREFIX}.FINANCIAL_TRANSACTION_ACCOUNTS WHERE COALESCE(ACTIVE, TRUE)
 ),
 fta AS (
   SELECT SFACCOUNTID AS ACCOUNT_ID,
-         COUNT(DISTINCT FINANCIAL_ACCOUNT_TYPE) AS N_PRODUCTS,
+         COUNT(DISTINCT ACCOUNTID) AS N_PRODUCTS,
          COUNT_IF(PRODUCT_KIND = 'deposit') AS N_DEPOSIT,
          COUNT_IF(PRODUCT_KIND = 'loan') AS N_LOAN,
          COUNT_IF(FINANCIAL_ACCOUNT_TYPE = 'Investments') AS N_INVESTMENT,
@@ -744,25 +818,34 @@ fta AS (
          SUM(DIRECT_DEPOSIT_AMOUNT) AS DD_AMOUNT,
          SUM(BONUS_AMOUNT) AS BONUS_AMOUNT,
          MIN(OPEN_DATE) AS FIRST_OPEN_DATE,
-         SUM(BALANCE) AS TOTAL_BALANCE
+         SUM(IFF({_sp_WEALTH_KINDS}, COALESCE(BALANCE, 0), 0)) AS TOTAL_BALANCE
   FROM fta_raw GROUP BY 1
 ),
 fta_map AS (
-  SELECT DISTINCT ACCOUNTID, SFACCOUNTID AS ACCOUNT_ID FROM fta_raw
+  SELECT DISTINCT ACCOUNTID, SFACCOUNTID AS ACCOUNT_ID, {_sp_WEALTH_KINDS} AS IS_WEALTH FROM fta_raw
 ),
-adb_day AS (
-  SELECT m.ACCOUNT_ID, b.BALANCE_DATE, SUM(b.BALANCE) AS BAL, SUM(b.DAILY_CREDITS) AS CR,
-         SUM(b.DAILY_DEBITS) AS DR, SUM(b.TRANSACTION_COUNT) AS TXN
+adb_acct AS (
+  -- ADB rows exist only on transacting days: average each financial account over its own rows first.
+  SELECT m.ACCOUNT_ID, b.ACCOUNTID, m.IS_WEALTH,
+         AVG(b.CLOSING_BALANCE) AS ACCT_AVG,
+         AVG(IFF(b.BALANCE_DATE < DATEADD(month, -3, {_sp_ANCHOR}), b.CLOSING_BALANCE, NULL)) AS ACCT_EARLY,
+         AVG(IFF(b.BALANCE_DATE >= DATEADD(month, -3, {_sp_ANCHOR}), b.CLOSING_BALANCE, NULL)) AS ACCT_LATE,
+         SUM(b.DAILY_CREDITS) AS CR, SUM(b.DAILY_DEBITS) AS DR, SUM(b.TRANSACTION_COUNT) AS TXN
   FROM {_sp_PREFIX}.ACCOUNT_DAILY_BALANCE b JOIN fta_map m ON b.ACCOUNTID = m.ACCOUNTID
   WHERE b.BALANCE_DATE >= DATEADD(month, -6, {_sp_ANCHOR}) AND b.BALANCE_DATE < {_sp_ANCHOR}
-  GROUP BY 1, 2
+  GROUP BY m.ACCOUNT_ID, b.ACCOUNTID, m.IS_WEALTH
 ),
 adb AS (
-  SELECT ACCOUNT_ID, AVG(BAL) AS AVG_BALANCE,
-         AVG(IFF(BALANCE_DATE < DATEADD(month, -3, {_sp_ANCHOR}), BAL, NULL)) AS EARLY_AVG_BALANCE,
-         AVG(IFF(BALANCE_DATE >= DATEADD(month, -3, {_sp_ANCHOR}), BAL, NULL)) AS LATE_AVG_BALANCE,
-         SUM(CR) AS CREDITS, SUM(DR) AS DEBITS, SUM(TXN) AS ADB_TXN, COUNT(DISTINCT BALANCE_DATE) AS ADB_DAYS
-  FROM adb_day GROUP BY 1
+  SELECT ACCOUNT_ID,
+         SUM(IFF(IS_WEALTH, ACCT_AVG, NULL)) AS AVG_BALANCE,
+         SUM(IFF(IS_WEALTH AND ACCT_EARLY IS NOT NULL AND ACCT_LATE IS NOT NULL, ACCT_EARLY, NULL))
+           AS EARLY_AVG_BALANCE,
+         SUM(IFF(IS_WEALTH AND ACCT_EARLY IS NOT NULL AND ACCT_LATE IS NOT NULL, ACCT_LATE, NULL))
+           AS LATE_AVG_BALANCE,
+         SUM(IFF(IS_WEALTH, CR, NULL)) AS CREDITS, SUM(IFF(IS_WEALTH, DR, NULL)) AS DEBITS,
+         SUM(TXN) AS ADB_TXN,
+         ANY_VALUE(DATEDIFF(day, DATEADD(month, -6, {_sp_ANCHOR}), {_sp_ANCHOR})) AS ADB_DAYS
+  FROM adb_acct GROUP BY 1
 ),
 ft AS (
   SELECT SFACCOUNTID AS ACCOUNT_ID, COUNT(*) AS FT_TXN
@@ -772,8 +855,8 @@ ft AS (
 ),
 gong AS (
   SELECT ACCOUNT_ID, SUM(CALL_COUNT_LAST_7D) AS CALLS, COUNT(*) AS GONG_WEEKS, MAX(LAST_CALL_DATE) AS LAST_CALL_DATE,
-         COUNT_IF(OVERALL_SENTIMENT IN ('Negative', 'VeryNegative')) AS NEG_WEEKS,
-         COUNT_IF(OVERALL_SENTIMENT = 'VeryNegative') AS VNEG_WEEKS
+         COUNT_IF(OVERALL_SENTIMENT IN ('Negative', 'Very Negative')) AS NEG_WEEKS,
+         COUNT_IF(OVERALL_SENTIMENT = 'Very Negative') AS VNEG_WEEKS
   FROM {_sp_PREFIX}.GONG_CALL_SENTIMENT
   WHERE PROFILE_WEEK >= DATEADD(week, -12, {_sp_ANCHOR}) AND PROFILE_WEEK < {_sp_ANCHOR}
   GROUP BY 1
@@ -781,8 +864,9 @@ gong AS (
 wc AS (
   SELECT ACCOUNT_ID, OVERALL_RISK_RATING AS RISK_RATING, SANCTIONS_HIT, PEP_HIT, ADVERSE_MEDIA_HIT
   FROM {_sp_PREFIX}.WORLD_CHECK_AML
-  WHERE PROFILE_DATE <= {_sp_ANCHOR}
-  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID ORDER BY PROFILE_DATE DESC) = 1
+  WHERE PROFILE_DATE < {_sp_ANCHOR}
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID
+                             ORDER BY PROFILE_DATE DESC, LAST_SCREENED_AT DESC, GENERATED_AT DESC, ORG_ID) = 1
 )
 SELECT aud.*, nps.* EXCLUDE (ACCOUNT_ID), fta.* EXCLUDE (ACCOUNT_ID), adb.* EXCLUDE (ACCOUNT_ID),
        ft.* EXCLUDE (ACCOUNT_ID), gong.* EXCLUDE (ACCOUNT_ID), wc.* EXCLUDE (ACCOUNT_ID)
@@ -834,7 +918,26 @@ def _sp_build_all(features: list[dict], run_ts):
     return profiles, att, csat, enr
 
 
-def gate_problems(profiles, att, csat, enr) -> list[str]:
+# Columns that may legitimately be constant across the book: CHURNED_C is always 'No', keys are unique ids.
+_sp_DEGENERACY_SKIP = {"ATTRITION": ("CHURNED_C", "UNIQUEID"), "CSAT": ("ACCOUNTID",)}
+
+
+def _sp_degenerate(label: str, columns: tuple, rows: list[dict]) -> list[str]:
+    """Model-input columns holding one value across the whole book (a broken feed or formula)."""
+    if len(rows) < 2:
+        return []
+    skip = _sp_DEGENERACY_SKIP[label]
+    out = []
+    for c in columns:
+        if c in skip:
+            continue
+        values = {r.get(c) for r in rows}
+        if len(values) == 1:
+            out.append(f"{label}: column {c} is constant ({next(iter(values))!r}) across {len(rows)} rows")
+    return out
+
+
+def gate_problems(profiles, att, csat, enr, run_ts) -> list[str]:
     """Every in-memory gate; an empty list means the rows may be written."""
     out: list[str] = []
     for r in att:
@@ -848,6 +951,12 @@ def gate_problems(profiles, att, csat, enr) -> list[str]:
         keys = [r.get(key) for r in rows]
         if len(set(keys)) != len(keys):
             out.append(f"{label}: {len(keys) - len(set(keys))} duplicate {key} values")
+    snap = f"{run_ts:%Y-%m}-01 00:00:00"
+    off = [r.get("ACCOUNTID") for r in enr if r.get("SNAPSHOT_DATE") != snap]
+    if off:
+        out.append(f"ENROLLMENTS: {len(off)} rows with SNAPSHOT_DATE other than {snap}; first 3: {off[:3]}")
+    out.extend(_sp_degenerate("ATTRITION", ATTRITION_COLUMNS, att))
+    out.extend(_sp_degenerate("CSAT", CSAT_COLUMNS, csat))
     return out
 
 
@@ -942,7 +1051,7 @@ def main(session, mode: str = "INPUTS") -> str:
     run_ts = started
     log_id = str(uuid.uuid4())
     status, err = "SUCCEEDED", None
-    rows_inserted = accounts_processed = 0
+    rows_inserted = accounts_processed = grounded = 0
     try:
         features = dedupe_anchors([_sp_to_dict(r) for r in session.sql(FEATURES_SQL).collect()])
         accounts_processed = len(features)
@@ -951,7 +1060,9 @@ def main(session, mode: str = "INPUTS") -> str:
 
         # Build every row and pass every gate before any staging or DML.
         profiles, att, csat, enr = _sp_build_all(features, run_ts)
-        problems = gate_problems(profiles, att, csat, enr)
+        # feed coverage: accounts with real FINANCIAL_TRANSACTION_ACCOUNTS holdings vs seeded fallbacks
+        grounded = sum(1 for p in profiles if p["grounded"])
+        problems = gate_problems(profiles, att, csat, enr, run_ts)
         if problems:
             raise RuntimeError(f"input gate failed with {len(problems)} problems; first 3: {problems[:3]}")
 
@@ -976,5 +1087,5 @@ def main(session, mode: str = "INPUTS") -> str:
                     err or "", duration_ms],
         ).collect()
 
-    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"
+    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed} grounded={grounded}"
 $$;

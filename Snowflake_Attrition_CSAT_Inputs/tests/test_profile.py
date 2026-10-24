@@ -127,3 +127,37 @@ def test_profile_snowflake_typed_values():
     p = build_profile(row, RUN_TS)
     assert set(p) == KEYS and all(v is not None for v in p.values())
     assert p["complaints"] == 3 and p["escalations"] == 1
+
+
+@pytest.mark.parametrize("flag,category,expected", [
+    ("BUSINESS", "Retail", "PERSON"),
+    ("BUSINESS", "WealthManagement", "PERSON"),
+    ("BUSINESS", "Gold", "PERSON"),
+    ("BUSINESS", "Silver", "PERSON"),
+    ("BUSINESS", "Bronze", "PERSON"),
+    ("BUSINESS", "Platinum", "PERSON"),
+    ("PERSON", "SmallBusiness", "BUSINESS"),
+    ("PERSON", "CommercialBanking", "BUSINESS"),
+    ("PERSON", "Household", "HOUSEHOLD"),
+    ("BUSINESS", " household ", "HOUSEHOLD"),
+    ("PERSON", "SomethingNew", "PERSON"),
+    ("BUSINESS", "SomethingNew", "BUSINESS"),
+    ("PERSON", None, "PERSON"),
+    ("BUSINESS", "", "BUSINESS"),
+])
+def test_profile_kind_from_category_first(flag, category, expected):
+    p = build_profile(make_feature(ACCOUNT_TYPE_FLAG=flag, CLIENT_CATEGORY=category), RUN_TS)
+    assert p["kind"] == expected
+
+
+def test_profile_person_without_birthdate_gets_seeded_age():
+    ages = []
+    for i in range(300):
+        row = make_feature(ACCOUNT_ID=f"001am{i:013d}", ACCOUNT_TYPE_FLAG="BUSINESS", CLIENT_CATEGORY="Retail",
+                           BIRTHDATE=None)
+        p = build_profile(row, RUN_TS)
+        assert p["kind"] == "PERSON"
+        assert 25 <= p["age"] <= 78
+        assert p["age"] == build_profile(dict(row), datetime(2026, 11, 2))["age"]
+        ages.append(p["age"])
+    assert len(set(ages)) > 20

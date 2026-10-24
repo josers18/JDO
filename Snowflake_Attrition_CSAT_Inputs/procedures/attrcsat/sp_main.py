@@ -31,21 +31,24 @@ _sp_AUD = f"""aud AS (
 # Feed windows end at the run month's first day (exclusive): re-runs inside a month read the same data.
 _sp_ANCHOR = "DATE_TRUNC('month', CURRENT_DATE())"
 
+# Deposit and investment products hold customer wealth; loans and lines (cards) are liabilities.
+_sp_WEALTH_KINDS = "PRODUCT_KIND IN ('deposit', 'investment')"
+
 FEATURES_SQL = f"""WITH {_sp_AUD},
 nps AS (
   SELECT ACCOUNTID AS ACCOUNT_ID, NPS_SCORE, NPS_DESCRIPTION,
-         COUNT_IF(NPS_SCORE <= 4 AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
+         COUNT_IF(NPS_SCORE <= 6 AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
            OVER (PARTITION BY ACCOUNTID) AS DETRACTOR_12M
   FROM {_sp_PREFIX}.CSAT_NPS_DATA
   WHERE SCORE_DATE < {_sp_ANCHOR}
-  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNTID ORDER BY SCORE_DATE DESC) = 1
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNTID ORDER BY SCORE_DATE DESC, ROWID DESC) = 1
 ),
 fta_raw AS (
   SELECT * FROM {_sp_PREFIX}.FINANCIAL_TRANSACTION_ACCOUNTS WHERE COALESCE(ACTIVE, TRUE)
 ),
 fta AS (
   SELECT SFACCOUNTID AS ACCOUNT_ID,
-         COUNT(DISTINCT FINANCIAL_ACCOUNT_TYPE) AS N_PRODUCTS,
+         COUNT(DISTINCT ACCOUNTID) AS N_PRODUCTS,
          COUNT_IF(PRODUCT_KIND = 'deposit') AS N_DEPOSIT,
          COUNT_IF(PRODUCT_KIND = 'loan') AS N_LOAN,
          COUNT_IF(FINANCIAL_ACCOUNT_TYPE = 'Investments') AS N_INVESTMENT,
@@ -53,25 +56,34 @@ fta AS (
          SUM(DIRECT_DEPOSIT_AMOUNT) AS DD_AMOUNT,
          SUM(BONUS_AMOUNT) AS BONUS_AMOUNT,
          MIN(OPEN_DATE) AS FIRST_OPEN_DATE,
-         SUM(BALANCE) AS TOTAL_BALANCE
+         SUM(IFF({_sp_WEALTH_KINDS}, COALESCE(BALANCE, 0), 0)) AS TOTAL_BALANCE
   FROM fta_raw GROUP BY 1
 ),
 fta_map AS (
-  SELECT DISTINCT ACCOUNTID, SFACCOUNTID AS ACCOUNT_ID FROM fta_raw
+  SELECT DISTINCT ACCOUNTID, SFACCOUNTID AS ACCOUNT_ID, {_sp_WEALTH_KINDS} AS IS_WEALTH FROM fta_raw
 ),
-adb_day AS (
-  SELECT m.ACCOUNT_ID, b.BALANCE_DATE, SUM(b.BALANCE) AS BAL, SUM(b.DAILY_CREDITS) AS CR,
-         SUM(b.DAILY_DEBITS) AS DR, SUM(b.TRANSACTION_COUNT) AS TXN
+adb_acct AS (
+  -- ADB rows exist only on transacting days: average each financial account over its own rows first.
+  SELECT m.ACCOUNT_ID, b.ACCOUNTID, m.IS_WEALTH,
+         AVG(b.CLOSING_BALANCE) AS ACCT_AVG,
+         AVG(IFF(b.BALANCE_DATE < DATEADD(month, -3, {_sp_ANCHOR}), b.CLOSING_BALANCE, NULL)) AS ACCT_EARLY,
+         AVG(IFF(b.BALANCE_DATE >= DATEADD(month, -3, {_sp_ANCHOR}), b.CLOSING_BALANCE, NULL)) AS ACCT_LATE,
+         SUM(b.DAILY_CREDITS) AS CR, SUM(b.DAILY_DEBITS) AS DR, SUM(b.TRANSACTION_COUNT) AS TXN
   FROM {_sp_PREFIX}.ACCOUNT_DAILY_BALANCE b JOIN fta_map m ON b.ACCOUNTID = m.ACCOUNTID
   WHERE b.BALANCE_DATE >= DATEADD(month, -6, {_sp_ANCHOR}) AND b.BALANCE_DATE < {_sp_ANCHOR}
-  GROUP BY 1, 2
+  GROUP BY m.ACCOUNT_ID, b.ACCOUNTID, m.IS_WEALTH
 ),
 adb AS (
-  SELECT ACCOUNT_ID, AVG(BAL) AS AVG_BALANCE,
-         AVG(IFF(BALANCE_DATE < DATEADD(month, -3, {_sp_ANCHOR}), BAL, NULL)) AS EARLY_AVG_BALANCE,
-         AVG(IFF(BALANCE_DATE >= DATEADD(month, -3, {_sp_ANCHOR}), BAL, NULL)) AS LATE_AVG_BALANCE,
-         SUM(CR) AS CREDITS, SUM(DR) AS DEBITS, SUM(TXN) AS ADB_TXN, COUNT(DISTINCT BALANCE_DATE) AS ADB_DAYS
-  FROM adb_day GROUP BY 1
+  SELECT ACCOUNT_ID,
+         SUM(IFF(IS_WEALTH, ACCT_AVG, NULL)) AS AVG_BALANCE,
+         SUM(IFF(IS_WEALTH AND ACCT_EARLY IS NOT NULL AND ACCT_LATE IS NOT NULL, ACCT_EARLY, NULL))
+           AS EARLY_AVG_BALANCE,
+         SUM(IFF(IS_WEALTH AND ACCT_EARLY IS NOT NULL AND ACCT_LATE IS NOT NULL, ACCT_LATE, NULL))
+           AS LATE_AVG_BALANCE,
+         SUM(IFF(IS_WEALTH, CR, NULL)) AS CREDITS, SUM(IFF(IS_WEALTH, DR, NULL)) AS DEBITS,
+         SUM(TXN) AS ADB_TXN,
+         ANY_VALUE(DATEDIFF(day, DATEADD(month, -6, {_sp_ANCHOR}), {_sp_ANCHOR})) AS ADB_DAYS
+  FROM adb_acct GROUP BY 1
 ),
 ft AS (
   SELECT SFACCOUNTID AS ACCOUNT_ID, COUNT(*) AS FT_TXN
@@ -81,8 +93,8 @@ ft AS (
 ),
 gong AS (
   SELECT ACCOUNT_ID, SUM(CALL_COUNT_LAST_7D) AS CALLS, COUNT(*) AS GONG_WEEKS, MAX(LAST_CALL_DATE) AS LAST_CALL_DATE,
-         COUNT_IF(OVERALL_SENTIMENT IN ('Negative', 'VeryNegative')) AS NEG_WEEKS,
-         COUNT_IF(OVERALL_SENTIMENT = 'VeryNegative') AS VNEG_WEEKS
+         COUNT_IF(OVERALL_SENTIMENT IN ('Negative', 'Very Negative')) AS NEG_WEEKS,
+         COUNT_IF(OVERALL_SENTIMENT = 'Very Negative') AS VNEG_WEEKS
   FROM {_sp_PREFIX}.GONG_CALL_SENTIMENT
   WHERE PROFILE_WEEK >= DATEADD(week, -12, {_sp_ANCHOR}) AND PROFILE_WEEK < {_sp_ANCHOR}
   GROUP BY 1
@@ -90,8 +102,9 @@ gong AS (
 wc AS (
   SELECT ACCOUNT_ID, OVERALL_RISK_RATING AS RISK_RATING, SANCTIONS_HIT, PEP_HIT, ADVERSE_MEDIA_HIT
   FROM {_sp_PREFIX}.WORLD_CHECK_AML
-  WHERE PROFILE_DATE <= {_sp_ANCHOR}
-  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID ORDER BY PROFILE_DATE DESC) = 1
+  WHERE PROFILE_DATE < {_sp_ANCHOR}
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID
+                             ORDER BY PROFILE_DATE DESC, LAST_SCREENED_AT DESC, GENERATED_AT DESC, ORG_ID) = 1
 )
 SELECT aud.*, nps.* EXCLUDE (ACCOUNT_ID), fta.* EXCLUDE (ACCOUNT_ID), adb.* EXCLUDE (ACCOUNT_ID),
        ft.* EXCLUDE (ACCOUNT_ID), gong.* EXCLUDE (ACCOUNT_ID), wc.* EXCLUDE (ACCOUNT_ID)
@@ -143,7 +156,26 @@ def _sp_build_all(features: list[dict], run_ts):
     return profiles, att, csat, enr
 
 
-def gate_problems(profiles, att, csat, enr) -> list[str]:
+# Columns that may legitimately be constant across the book: CHURNED_C is always 'No', keys are unique ids.
+_sp_DEGENERACY_SKIP = {"ATTRITION": ("CHURNED_C", "UNIQUEID"), "CSAT": ("ACCOUNTID",)}
+
+
+def _sp_degenerate(label: str, columns: tuple, rows: list[dict]) -> list[str]:
+    """Model-input columns holding one value across the whole book (a broken feed or formula)."""
+    if len(rows) < 2:
+        return []
+    skip = _sp_DEGENERACY_SKIP[label]
+    out = []
+    for c in columns:
+        if c in skip:
+            continue
+        values = {r.get(c) for r in rows}
+        if len(values) == 1:
+            out.append(f"{label}: column {c} is constant ({next(iter(values))!r}) across {len(rows)} rows")
+    return out
+
+
+def gate_problems(profiles, att, csat, enr, run_ts) -> list[str]:
     """Every in-memory gate; an empty list means the rows may be written."""
     out: list[str] = []
     for r in att:
@@ -157,6 +189,12 @@ def gate_problems(profiles, att, csat, enr) -> list[str]:
         keys = [r.get(key) for r in rows]
         if len(set(keys)) != len(keys):
             out.append(f"{label}: {len(keys) - len(set(keys))} duplicate {key} values")
+    snap = f"{run_ts:%Y-%m}-01 00:00:00"
+    off = [r.get("ACCOUNTID") for r in enr if r.get("SNAPSHOT_DATE") != snap]
+    if off:
+        out.append(f"ENROLLMENTS: {len(off)} rows with SNAPSHOT_DATE other than {snap}; first 3: {off[:3]}")
+    out.extend(_sp_degenerate("ATTRITION", ATTRITION_COLUMNS, att))
+    out.extend(_sp_degenerate("CSAT", CSAT_COLUMNS, csat))
     return out
 
 
@@ -251,7 +289,7 @@ def main(session, mode: str = "INPUTS") -> str:
     run_ts = started
     log_id = str(uuid.uuid4())
     status, err = "SUCCEEDED", None
-    rows_inserted = accounts_processed = 0
+    rows_inserted = accounts_processed = grounded = 0
     try:
         features = dedupe_anchors([_sp_to_dict(r) for r in session.sql(FEATURES_SQL).collect()])
         accounts_processed = len(features)
@@ -260,7 +298,9 @@ def main(session, mode: str = "INPUTS") -> str:
 
         # Build every row and pass every gate before any staging or DML.
         profiles, att, csat, enr = _sp_build_all(features, run_ts)
-        problems = gate_problems(profiles, att, csat, enr)
+        # feed coverage: accounts with real FINANCIAL_TRANSACTION_ACCOUNTS holdings vs seeded fallbacks
+        grounded = sum(1 for p in profiles if p["grounded"])
+        problems = gate_problems(profiles, att, csat, enr, run_ts)
         if problems:
             raise RuntimeError(f"input gate failed with {len(problems)} problems; first 3: {problems[:3]}")
 
@@ -285,4 +325,4 @@ def main(session, mode: str = "INPUTS") -> str:
                     err or "", duration_ms],
         ).collect()
 
-    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"
+    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed} grounded={grounded}"
