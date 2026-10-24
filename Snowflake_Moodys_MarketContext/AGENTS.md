@@ -4,6 +4,16 @@ Synthetic Moody's Investors Service / Moody's Analytics-style credit-rating + ma
 
 > **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(TICKER, PROFILE_DATE)` to `(ORG_ID, TICKER, PROFILE_DATE)`. SP row factory stamps `"ORG_ID": instrument.get("ORG_ID", "JDO")` as the first key (instrument record rather than account anchor — Plan 13 is instrument-scoped); MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). **OUTLOOK_LAST_CHANGED_DATE defensive casts preserved** through the Phase A change — `pd.to_datetime(df[col])` coercion on the Pandas side and `TO_DATE(TO_TIMESTAMP_NTZ(col / 1e9))` in the MERGE source SELECT (the all-NULL date mistype guard from commit `64812af`). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
 
+> **Outlook moves (2026-10-24).** `RATING_OUTLOOK` / `OUTLOOK_LAST_CHANGED_DATE` are no longer purely year-stable:
+> `_apply_outlook_moves` overlays deterministic Stable -> Negative/Watch -> Stable episodes (salt `moodys_moves`, fixed
+> 180-day slots with a per-account phase, 10%/slot — 50%/slot for owners with < 500 business accounts via
+> `OWNER_BOOK_SQL` — slots from 2025-09-01, `001am` ids with a Stable baseline only).
+> The rest of this file's "year-stable outlook" wording describes the *baseline*. Don't re-anchor the move seeds to
+> the year or add a lookback window — either breaks the "every change is dated, dates never move silently" history
+> contract pinned by `tests/test_moodys_outlook_moves.py`. The staging `write_pandas` target is
+> `DATA_JEDAIS.FINS__PUBLIC` (the old `FINS.PUBLIC` target failed 21 runs Jul-Aug 2026). Live task schedule is
+> `15 3 * * * America/New_York`. See README "Outlook moves".
+
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT`, `SP_GENERATE_MOODYS_MARKET_CONTEXT`, `TASK_DAILY_MOODYS_MARKET_CONTEXT`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `INSTRUMENT_UNIVERSE`, the seed/coverage helpers — see `Snowflake_Cumulus_Common` (seed helpers) and the existing trades pipeline (which populates `INSTRUMENT_UNIVERSE`).
