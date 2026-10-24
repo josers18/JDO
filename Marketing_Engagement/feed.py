@@ -19,8 +19,8 @@ import engine
 from catalog import MEMBER_SOURCE, NEW_CAMPAIGN_DESCRIPTION, SEGMENT_SOURCE
 
 RECONCILE_HOUR_UTC = 6
-# Generated campaigns start here; earlier months were covered by the original backfill.
-FIRST_MONTH = date(2026, 11, 1)
+# Generated campaigns start here (moved up from Nov to fill the Oct 2026 gap); earlier months came from the original backfill.
+FIRST_MONTH = date(2026, 10, 1)
 # Keep generating this long past a campaign's cap, so an outage spanning the cap loses nothing.
 GRACE = timedelta(days=7)
 
