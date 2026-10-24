@@ -6,19 +6,19 @@ Spec: [`../docs/superpowers/specs/2026-10-23-attrition-csat-inputs-generator-des
 
 ## Snowflake objects
 
-| Object | Role | Rows |
+| Object | Role | Rows (2026-10-23) |
 |---|---|---|
-| `DATA_JEDAIS.FINS__PUBLIC.ATTRITION_INPUTS` | Attrition model inputs (16 columns, key `UNIQUEID`) | TBD-live |
-| `DATA_JEDAIS.FINS__PUBLIC.CSAT_ATTRITION_INPUTS` | CSAT model inputs (14 columns, key `ACCOUNTID`) | TBD-live |
-| `DATA_JEDAIS.FINS__PUBLIC.ENROLLMENTS` | Digital/KYC enrollment profile (12 columns, key `ACCOUNTID`) | TBD-live |
+| `DATA_JEDAIS.FINS__PUBLIC.ATTRITION_INPUTS` | Attrition model inputs (16 columns, key `UNIQUEID`) | 36,239 |
+| `DATA_JEDAIS.FINS__PUBLIC.CSAT_ATTRITION_INPUTS` | CSAT model inputs (14 columns, key `ACCOUNTID`) | 36,239 |
+| `DATA_JEDAIS.FINS__PUBLIC.ENROLLMENTS` | Digital/KYC enrollment profile (12 columns, key `ACCOUNTID`) | 36,239 |
 | `SP_GENERATE_ATTRITION_CSAT_INPUTS(MODE)` | `INPUTS` (the only mode, default) | — |
-| `TASK_MONTHLY_ATTRITION_CSAT_INPUTS` | `INPUTS` via `SP_RETRY_WRAPPER` (retries 2), `0 5 2 * * America/New_York`, `MAIN_WH_XS`. Created SUSPENDED | — |
+| `TASK_MONTHLY_ATTRITION_CSAT_INPUTS` | `INPUTS` via `SP_RETRY_WRAPPER` (retries 2), `0 5 2 * * America/New_York`, `MAIN_WH_XS`. **Resumed 2026-10-23**; first scheduled run 2026-11-02 05:00 ET | — |
 
 Each run replaces all three tables atomically and logs to `TASK_EXECUTION_LOG` as `TASK_MONTHLY_ATTRITION_CSAT_INPUTS[INPUTS]`.
 
 ## Audience
 
-Every `V_ACCOUNT_ANCHORS` row with `ACCOUNT_ID LIKE '001am%'`, one row per `ACCOUNT_ID`: TBD-live accounts (36,239 at planning: 25,424 PERSON, 5,725 BUSINESS, 5,090 Household).
+Every `V_ACCOUNT_ANCHORS` row with `ACCOUNT_ID LIKE '001am%'`, one row per `ACCOUNT_ID`: 36,239 accounts. Kind comes from `CLIENT_CATEGORY` (spaces stripped, so live `Wealth Management` → `WealthManagement`), falling back to `ACCOUNT_TYPE_FLAG`: 25,516 PERSON (incl. 92 Gold/Silver/Bronze/Platinum persons with no birthdate), 5,633 BUSINESS, 5,090 HOUSEHOLD.
 
 **Ruling R1:** households are included. The spec's "excluding households" conflicts with its "about 36.2k, matching CSAT_NPS_DATA"; excluding them gives 31,149. Households have no financial accounts, so they use the feed-less fallbacks.
 

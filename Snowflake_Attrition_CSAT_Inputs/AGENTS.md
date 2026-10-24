@@ -39,7 +39,7 @@ Module concatenation order is `common, vocab, profile, checks, enrollments, attr
 
 ## Tests
 - `pytest`: 116 tests over vocab, profile, enrollments, rows, SP SQL text and the `deploy_sp` build. `test_deploy_sp.py` fails if `sp_create_procedure.sql` is stale. Regenerate with `deploy_sp.py --no-deploy`.
-- Live check after `INPUTS`: row counts equal the audience (TBD-live), 0 NULLs in every column, no duplicate keys.
+- Live check after `INPUTS`: row counts equal the audience (36,239 on 2026-10-23), 0 NULLs in every column, no duplicate keys.
 
 ## Gotchas
 - **No `$$` and no bare `&` in module source.** `build_sql()` rejects both: `$$` would end the procedure literal, and `snow sql -f` treats `&{...}` as a template. Write "and".

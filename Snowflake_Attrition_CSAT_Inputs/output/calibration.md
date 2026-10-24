@@ -1,7 +1,7 @@
 # Calibration record
 
-Aggregate-only. Anything holding account ids is gitignored (`output/*pool*.json`). Live results are filled
-in after the first real run; entries marked `TBD-live` are not measured yet.
+Aggregate-only. Anything holding account ids is gitignored (`output/*pool*.json`). Live results below are from
+the first real run, 2026-10-23 (run month 2026-10).
 
 ## Feed map
 
@@ -79,9 +79,9 @@ across the whole book (`CHURNED_C`, always `No`, and the key columns are exempt)
 
 | Check | Result |
 |---|---|
-| ATTRITION_INPUTS rows / NULL cells / duplicate keys | TBD-live |
-| CSAT_ATTRITION_INPUTS rows / NULL cells / duplicate keys | TBD-live |
-| ENROLLMENTS rows / NULL cells / duplicate keys | TBD-live |
-| Feed coverage (`grounded=` in the SP return string vs `accounts=`) | TBD-live |
-| Enrollment flag rates | TBD-live |
-| Cross-table gate | TBD-live |
+| ATTRITION_INPUTS rows / NULL cells / duplicate keys | 36,239 / 0 / 0; 0 non-`001am` keys |
+| CSAT_ATTRITION_INPUTS rows / NULL cells / duplicate keys | 36,239 / 0 / 0; 0 non-`001am` keys |
+| ENROLLMENTS rows / NULL cells / duplicate keys | 36,239 / 0 / 0; 0 non-`001am` keys; SNAPSHOT_DATE all 2026-10-01 |
+| Feed coverage (`grounded=` in the SP return string vs `accounts=`) | 17,838 / 36,239 have financial accounts; NPS and World-Check cover 36,222 |
+| Enrollment flag rates | Book: online 74.4%, mobile 53.5%, MFA 73.7% (0 without digital), paperless 52.9%, alerts 57.5%, wire 19.0%. Wire by cohort: Retail 3.0%, Wealth Management 40.8%, Small Business 64.6%, Commercial Banking 68.9%, Household 18.7% |
+| Cross-table gate | Passed. KYC/AML: all 6,947 World-Check-flagged accounts are Under Review/Pending (0 Current/Cleared). NPS category matches the feed's latest `NPS_DESCRIPTION` for every fed account (Detractor 23,842 / Passive 10,989 / Promoter 1,408 — the feed's own skew) |
