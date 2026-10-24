@@ -3,12 +3,13 @@
  * `Service_Now`) added to the CRM open-case count on the Cases KPI.
  *
  * ServiceNow statuses are lowercase `open` / `in_progress` / `closed` and
- * `ssot__IsClosed__c` is null, so open = status. ⚠ Verified live 2026-10-22: the
- * 4,009 ServiceNow cases are keyed by synthetic `account_id_<n>` ids that match
- * no Account. Only 6 rows (one account) carry a local `001am…` id, and the
- * newest case is 2025-02-13. So book counts are ~0 until the source is re-keyed. Unlike
- * the other DC signals this one never falls back to org-wide: adding 2,687
- * unscoped cases to a banker's KPI would overstate their book.
+ * `ssot__IsClosed__c` is null, so open = status. The original 4,009 cases are
+ * keyed by synthetic `account_id_<n>` ids that match no Account; 3,260 `SN-HOME-*`
+ * cases on home `001am…` accounts were added 2026-10-24
+ * (`JDO/ServiceNow_Cases/generate_service_now_cases.py`). Verified live that day:
+ * 24–137 open per book, about half aged 30d+. Unlike the other DC signals this
+ * one never falls back to org-wide: adding thousands of unscoped cases to a
+ * banker's KPI would overstate their book.
  */
 import { bookAccountFilter, queryDataCloud, type BookScope } from './dataCloudClient';
 
