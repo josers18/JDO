@@ -117,8 +117,8 @@ App side: any trade widget (W5) anchors its window on `MAX(trade_date)`, not `CU
 Was: PAYDEX never fell below 55, days beyond terms topped out at 42, the Severe tier had only ~50 rows,
 1A/2A ratings landed in High, and October held a duplicate account row.
 
-Done (project `Snowflake_DnB_BusinessCredit`, SP `SP_GENERATE_DNB_BUSINESS_CREDIT` v1.6; October re-run,
-11,516 rows / 11,516 accounts):
+Done (project `Snowflake_DnB_BusinessCredit`, SP `SP_GENERATE_DNB_BUSINESS_CREDIT` v1.6; all six months regenerated,
+October 11,516 rows / 11,516 accounts):
 - **Score directions are documented**, not renamed (AGENTS.md and column comments):
   - `failure_risk_score__c` and `delinquency_predictor_score__c`: higher = safer.
   - `composite_risk_score__c` (1–4): higher = riskier.
@@ -138,7 +138,9 @@ Done (project `Snowflake_DnB_BusinessCredit`, SP `SP_GENERATE_DNB_BUSINESS_CREDI
   (family size 1). The earlier "946 rows" reading was wrong.
 
 Still open:
-- May–September stay on the v1.5 distribution until they're re-generated (the SP writes only the current month).
+- None. May–September were backfilled with v1.6 (`CALL SP_GENERATE_DNB_BUSINESS_CREDIT('2026-0M-01'::DATE)`,
+  same accounts per month). In the DMO, every month has 0 null `match_confidence_code__c`, Severe 1.2–1.4%,
+  ~720 rows with PAYDEX < 50 and days beyond terms up to ~180.
 
 Owner gap (CRM side, not Snowflake): 684 D&B-keyed accounts have a null `OwnerId` in
 `ssot__Account`, so they appear in no banker's book.

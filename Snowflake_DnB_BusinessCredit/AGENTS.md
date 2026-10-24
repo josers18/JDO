@@ -10,6 +10,7 @@ Synthetic D&B-style business credit dataset for the Cumulus FSC demo. One of 13.
 > - **`SUPPLIER_RISK_LEVEL`** blends failure risk, the composite digit and PAYDEX. The cuts are calibrated to ~38% Low, ~48% Moderate, ~12% High and ~1.4% Severe.
 > - **`MATCH_CONFIDENCE_CODE`** (1–10) is new and drives `VERIFICATION_STATUS`.
 > - **Dedupe.** The SP keeps one row per `(ORG_ID, ACCOUNT_ID)`.
+> - **Backfill.** The signature is `SP_GENERATE_DNB_BUSINESS_CREDIT(RUN_MONTH DATE DEFAULT NULL)`. With a month, it regenerates only that month's existing accounts as of the 1st. The task's `()` call is unchanged. May–Sep 2026 were backfilled this way. On a signature change, `DROP PROCEDURE ...()` first, or the old overload makes `()` ambiguous.
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT`, `SP_GENERATE_DNB_BUSINESS_CREDIT`, `TASK_MONTHLY_DNB_BUSINESS_CREDIT`, and the DC Data Stream / DLO / DMO that federates this table.

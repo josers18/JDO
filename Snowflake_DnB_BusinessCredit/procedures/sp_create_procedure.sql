@@ -15,7 +15,7 @@
 -- Vendor:   DnB-style (Dun and Bradstreet shape) — README uses canonical name
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DNB_BUSINESS_CREDIT(RUN_MONTH DATE DEFAULT NULL)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -131,8 +131,14 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 # Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY → SP_GENERATE_DNB_BUSINESS_CREDIT
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
+def main(session: Any, run_month: Any = None) -> str:
     """5-step canonical pattern + BUSINESS-cardinality warning between 1 and 2.
+
+    run_month (DATE, default NULL): backfill one past month with the current
+    logic. Generates as of that month's first day, for only the accounts
+    already present in that month, so its cohort keeps the same accounts. The
+    monthly task passes nothing and generates the current month for the full
+    audience.
 
     1. Read audience.
     1.5. Warn if accounts_processed > 10K — do NOT fail (Plan 2 precedent).
@@ -143,12 +149,19 @@ def main(session: Any) -> str:
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
+    run_ts = datetime(run_month.year, run_month.month, 1) if run_month else started
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
     warning_msg: str | None = None
 
     try:
         # 1. Read audience from the shared view (zero-copy fresh anchors).
-        audience = session.sql(AUDIENCE_SQL).collect()
+        audience_sql = AUDIENCE_SQL
+        if run_month:
+            audience_sql += (
+                f" AND ACCOUNT_ID IN (SELECT ACCOUNT_ID FROM {TABLE}"
+                f" WHERE PROFILE_MONTH = '{run_ts.date().isoformat()}')"
+            )
+        audience = session.sql(audience_sql).collect()
         accounts_processed = len(audience)
 
         # 1.5. BUSINESS over-count warning (per spec §3 v1.2 finding #3).
@@ -162,7 +175,7 @@ def main(session: Any) -> str:
         records, errors = [], []
         for row in audience:
             try:
-                records.append(_row_for(_anchor_to_dict(row), started))
+                records.append(_row_for(_anchor_to_dict(row), run_ts))
             except Exception as exc:
                 errors.append((row.ACCOUNT_ID, str(exc)[:200]))
         max_tolerated = max(10, len(audience) // 100)
