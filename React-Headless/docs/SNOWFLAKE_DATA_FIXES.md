@@ -86,7 +86,7 @@ Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgr
   `Financial_Transactions` stream stays suppressed: it's a Profile-category DLO that can't map to the
   Engagement DMO `ssot__FinancialAccountTransaction`.
 
-## 4. Financial trades: ✅ latest data landed and TRD keys gone 2026-10-24 (nightly incremental still broken)
+## 4. Financial trades: ✅ latest data landed and TRD keys gone 2026-10-24 (nightly incremental succeeding, confirm 10-25)
 
 Was: stream `BT_Financial_Trades` (INCREMENTAL on `TRADE_DATE`) last ran on 2026-10-01 and failed.
 DLO `MAX(trade_date__c)` was 2026-09-01, and some account keys were `TRD-001…` placeholders.
@@ -101,12 +101,14 @@ Done (project `Financial_Trades_Generation`, `DATA_JEDAIS.FINS__PUBLIC.FINANCIAL
 - One Full Refresh (DC Setup UI) reloaded the stream. Verified in the DLO: 8,984,809 rows, 2024-06-03 → 2026-10-23,
   0 `TRD-` keys and 35,116 NULL keys.
 
-Still open (DC side):
-- **The nightly INCREMENTAL run fails** with `DATE` columns. It reads `max(TRADE_DATE)` and errors, so
-  new days only land with a manual Full Refresh. Refresh mode can't be switched: an accelerated stream with
-  an incremental column must stay INCREMENTAL. The lasting fix is a rebuilt stream (correct date format or
-  TOTAL_REPLACE). That stream feeds a data graph, prompt templates and a semantic model, so rebuilding needs
-  a planned re-point.
+Nightly incremental (DC side):
+- **The last nightly INCREMENTAL run succeeded** after the switch to `DATE`: `ImportRunStatus` SUCCESS at
+  2026-10-24 06:01 UTC, 0 rows added. 0 was expected: `DAILY_TRADE_GENERATOR` runs at 03:10 ET (07:10 UTC), after
+  the stream, so the 3,061 rows for 2026-10-24 were written after it ran. The DLO stays at 2026-10-23 until the next run.
+- Each day's trades therefore land the next night (one-day lag). Confirm after the 2026-10-25 ~06:00 UTC run:
+  DLO `MAX(trade_date__c)` should be 2026-10-24.
+- If it fails again, the fallback is a rebuilt stream (correct date format or TOTAL_REPLACE). That stream feeds a
+  data graph, prompt templates and a semantic model, so a rebuild needs a planned re-point.
 - Rollback: `FINANCIAL_TRADES_BAK_20261024` (pre-001), `FINANCIAL_TRADES_BAK_20261024_TZ` (pre-002),
   `TRADE_GENERATION_CONFIG_BAK_20261024`.
 
