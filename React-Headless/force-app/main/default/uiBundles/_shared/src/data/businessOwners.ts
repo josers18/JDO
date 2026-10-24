@@ -12,9 +12,9 @@
  *     Leads row referring the owner to Wealth.
  *
  * Verified live 2026-10-22: owners sit in Vince West / Kim Johnson / Adam
- * Watson's books (207–234 owners, ~1K businesses each); Sarah Smith and Justin
- * Chen hold none, so W6 falls back org-wide for them. Businesses sit with Jose
- * Sifontes (~1.3K) and Allen Carter (~1.5K).
+ * Watson's books (207–234 owners, ~1K businesses each). Since 2026-10-24 Sarah
+ * Smith and Justin Chen's books carry ~100 owners each too. Businesses sit with
+ * Jose Sifontes (~1.3K) and Allen Carter (~1.5K).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 

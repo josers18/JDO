@@ -440,7 +440,8 @@ spurious results.`)}}return!1};class Gb{constructor(a,i="GraphQL request",s={lin
   FROM BT_Moodys_Market_Context__dlm
   WHERE ${B1}
     AND account_id__c ${t}
-  ORDER BY CASE WHEN rating_outlook__c = 'Watch' THEN 1 ELSE 0 END DESC,
+  ORDER BY outlook_last_changed_date__c DESC NULLS LAST,
+           CASE WHEN rating_outlook__c = 'Watch' THEN 1 ELSE 0 END DESC,
            rating_agency_flag_count__c DESC, annual_revenue_usd__c DESC
   LIMIT 4
 `,WR=t=>`

@@ -3,10 +3,10 @@
  *
  *   · C2 rating outlook (`BT_Moodys_Market_Context__dlm`, daily snapshots by
  *     `profile_date__c`): clients currently on a Negative or Watch outlook,
- *     Watch first (review-for-downgrade), then agency flag count, then revenue.
- *     ⚠ The outlook doesn't move between snapshots and every
- *     `outlook_last_changed_date__c` is in 2025, so this is "currently on
- *     Negative / Watch, since <date>", not "changed this quarter".
+ *     most recent change first, then Watch (review-for-downgrade), agency flag
+ *     count, revenue. Outlooks move over time (2026-10-24 generator fix), so
+ *     the top rows are fresh moves; the counts are everyone currently on
+ *     Negative / Watch.
  *   · C3 leadership change (`BT_Boardex__dlm`, monthly by `profile_month__c`):
  *     `exec_turnover_flag__c` accounts. Two angles: turnover with a governance
  *     event in the last 90 days is a treasury-management opportunity (new team,
@@ -27,7 +27,8 @@ const outlookRowsSql = (accountFilter: string) => `
   FROM BT_Moodys_Market_Context__dlm
   WHERE ${OUTLOOK_SLICE}
     AND account_id__c ${accountFilter}
-  ORDER BY CASE WHEN rating_outlook__c = 'Watch' THEN 1 ELSE 0 END DESC,
+  ORDER BY outlook_last_changed_date__c DESC NULLS LAST,
+           CASE WHEN rating_outlook__c = 'Watch' THEN 1 ELSE 0 END DESC,
            rating_agency_flag_count__c DESC, annual_revenue_usd__c DESC
   LIMIT 4
 `;
