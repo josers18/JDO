@@ -39,17 +39,26 @@ Fixes:
    tables share the same 741 non-synthetic keys (159 local `001am`, 529 other-org `001`, 53 hashes),
    so re-keying must split business and person accounts.
 
-## 2. Attrition, CSAT prediction and enrollments: backfill to the full population
+## 2. Attrition, CSAT prediction and enrollments: ✅ inputs backfilled 2026-10-23
 
-`Attrition_Inputs_Snowflake`, `CSAT_Prediction_Input` and `Enrollments` cover only
-**159 local accounts** (741 rows total). The rest of the keys are other-org Ids or UUID-like.
+Was: `Attrition_Inputs_Snowflake`, `CSAT_Prediction_Input` and `Enrollments` covered only
+**159 local accounts** (741 rows total); the rest of the keys were other-org Ids or UUID-like.
 
-Fixes:
-- Regenerate each table for all ~36,222 local accounts, keyed on `accountid` = `001am…` 18-char.
+Done (generator `Snowflake_Attrition_CSAT_Inputs`, SP `SP_GENERATE_ATTRITION_CSAT_INPUTS`,
+monthly task `TASK_MONTHLY_ATTRITION_CSAT_INPUTS`, `0 5 2 * * America/New_York`, resumed):
+- `ATTRITION_INPUTS`, `CSAT_ATTRITION_INPUTS` and `ENROLLMENTS` are rewritten monthly for every
+  `001am` account in `V_ACCOUNT_ANCHORS`: **36,239 rows each**, 0 NULLs, 0 duplicate or
+  non-`001am` keys. Values are grounded in the Cumulus feeds (CSAT/NPS, balances, transactions,
+  holdings, Gong, World-Check).
+- Live in Data Cloud (federated, `jdo-gj9q5q`): `Attrition_Inputs_Snowflake__dlm`,
+  `CSAT_Prediction_Input__dlm` and `Enrollments__dlm` each read 36,239 rows / 36,239 distinct keys.
+- `ENROLLMENTS.SNAPSHOT_DATE` = run month's first day (one current row per customer).
+
+Still open (D360 side, not Snowflake):
 - Re-score so the output DMOs (`Attrition_Prediction__dlm`, `Predicted_CSAT_Output__dlm`)
   get one current row per account.
-- Add a `scored_at` / snapshot date so the UI can pin the latest run.
-- `Attrition_Inputs_Snowflake` stream is in **FAILURE**. Fix it before the backfill lands.
+- Delete the dead Jedi stream `Attrition_Inputs_Snowflake` (FAILURE; no longer the input DMO's
+  source, nothing references its DLO) in the DC Setup UI.
 
 ## 3. Heroku (Deposits / Loans / Lines / Investments): ✅ backfilled 2026-10-20
 
