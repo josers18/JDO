@@ -9,7 +9,7 @@
  *   · Meeting_Note_c_Home__dlm (meeting notes)                        → Data Cloud
  *   · CSAT_Snowflake__dlm (CSAT/NPS + trend + verbatims)              → Data Cloud
  *   · Marketing_Engagements__dlm (campaign events, one row per send)  → Data Cloud
- *   · CumulusGongCallSentiment__dlm (call sentiment summaries)        → Data Cloud
+ *   · BT_Gong_Call_Sentiment__dlm (weekly call sentiment summaries)   → Data Cloud
  *   · CumulusWorldCheckAml__dlm (KYC / AML card)                      → Data Cloud
  *   · Attrition_Prediction__dlm + Predicted_CSAT_Output__dlm (ML)     → Data Cloud
  *   · Agentforce summaries are composed deterministically from the above
@@ -107,7 +107,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Date_c__c dt, Title_c__c ttl, Notes_c__c notes FROM Meeting_Note_c_Home__dlm WHERE Account_c__c = '${acct}' ORDER BY Date_c__c DESC LIMIT 6`, 6)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT csat_score__c csat, nps_score__c nps, csat_description__c csatd, nps_description__c npsd, score_date__c dt FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY score_date__c DESC LIMIT 8`, 8)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT campaign_name__c nm, product_category__c cat, product_name__c prod, MAX(CASE engagement_type__c WHEN 'Unsubscribed' THEN 5 WHEN 'Clicked' THEN 4 WHEN 'Opened' THEN 3 WHEN 'Delivered' THEN 2 WHEN 'Bounced' THEN 1 ELSE 0 END) rk, MIN(engagement_at__c) dt FROM Marketing_Engagements__dlm WHERE account_id__c = '${acct}' GROUP BY send_id__c, campaign_name__c, product_category__c, product_name__c ORDER BY dt DESC LIMIT 8`, 8)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT overallSentiment__c sent, sentimentTrend__c trend, dealRiskScore__c risk, rmName__c rm, lastCallDate__c dt, generatedAt__c gen FROM CumulusGongCallSentiment__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY generatedAt__c DESC LIMIT 4`, 4)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT overall_sentiment__c sent, sentiment_trend__c trend, deal_risk_score__c risk, rm_name__c rm, last_call_date__c dt, generated_at__c gen FROM BT_Gong_Call_Sentiment__dlm WHERE account_id__c = '${acct}' ORDER BY profile_week__c DESC LIMIT 4`, 4)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT overallRiskRating__c rating, sanctionsHit__c sanc, pepHit__c pep, adverseMediaHit__c media, lastScreenedAt__c dt FROM CumulusWorldCheckAml__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileDate__c DESC LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Churned_c__c churned FROM Attrition_Prediction__dlm WHERE PrimaryObjectPk__c = '${acct}' LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT CSAT_Score_prediction__c pred, Cross_Sell_Score__c xsell, Digital_Engagement__c dig, Complaint_Count__c comp, Segment__c seg FROM Predicted_CSAT_Output__dlm WHERE accountid__c = '${acct}' LIMIT 1`, 1)),
@@ -251,7 +251,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
       date: shortDate(r.dt ?? r.gen),
       duration: '—',
       channel: 'Call',
-      sentiment: sent === 'Positive' ? 'positive' : sent === 'Negative' ? 'negative' : 'neutral',
+      sentiment: sent.endsWith('Positive') ? 'positive' : sent.endsWith('Negative') ? 'negative' : 'neutral',
       summary: `RM ${String(r.rm ?? '—')} · sentiment ${sent} (${String(r.trend ?? '—')}) · deal-risk score ${Math.round(dcNum(r.risk))}.`,
     };
   });
