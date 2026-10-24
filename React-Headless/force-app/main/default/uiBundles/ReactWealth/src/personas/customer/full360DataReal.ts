@@ -10,7 +10,7 @@
  *   · CSAT_Snowflake__dlm (CSAT/NPS + trend + verbatims)              → Data Cloud
  *   · Marketing_Campaigns__dlm (campaigns)                            → Data Cloud
  *   · BT_Gong_Call_Sentiment__dlm (weekly call sentiment summaries)   → Data Cloud
- *   · CumulusWorldCheckAml__dlm (KYC / AML card)                      → Data Cloud
+ *   · BT_WorldCheck_AML__dlm (KYC / AML card)                      → Data Cloud
  *   · Attrition_Prediction__dlm + Predicted_CSAT_Output__dlm (ML)     → Data Cloud
  *   · Agentforce summaries are composed deterministically from the above
  *     live values (no LLM call is wired) — per-account correct, not hardcoded.
@@ -108,11 +108,11 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     rows(queryDataCloud<Record<string, unknown>>(`SELECT csat_score__c csat, nps_score__c nps, csat_description__c csatd, nps_description__c npsd, score_date__c dt FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY score_date__c DESC LIMIT 8`, 8)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Campaign_Name__c nm, Category__c cat, Product_Name__c prod, Email_Action__c act, Send_Date__c dt FROM Marketing_Campaigns__dlm WHERE AccountID__c = '${acct}' ORDER BY Send_Date__c DESC LIMIT 8`, 8)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT overall_sentiment__c sent, sentiment_trend__c trend, deal_risk_score__c risk, rm_name__c rm, last_call_date__c dt, generated_at__c gen FROM BT_Gong_Call_Sentiment__dlm WHERE account_id__c = '${acct}' ORDER BY profile_week__c DESC LIMIT 4`, 4)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT overallRiskRating__c rating, sanctionsHit__c sanc, pepHit__c pep, adverseMediaHit__c media, lastScreenedAt__c dt FROM CumulusWorldCheckAml__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileDate__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT overall_risk_rating__c rating, sanctions_hit__c sanc, pep_hit__c pep, adverse_media_hit__c media, last_screened_at__c dt FROM BT_WorldCheck_AML__dlm WHERE account_id__c = '${acct}' ORDER BY profile_date__c DESC LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Churned_c__c churned FROM Attrition_Prediction__dlm WHERE PrimaryObjectPk__c = '${acct}' LIMIT 1`, 1)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT CSAT_Score_prediction__c pred, Cross_Sell_Score__c xsell, Digital_Engagement__c dig, Complaint_Count__c comp, Segment__c seg FROM Predicted_CSAT_Output__dlm WHERE accountid__c = '${acct}' LIMIT 1`, 1)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT estimatedPropertyValue__c val, equityUsd__c eq, outstandingMortgageBalance__c mtg, helocOpportunityScore__c heloc, primaryPropertyType__c ptype, floodZoneCode__c flood, wildfireRiskScore__c fire, isOwner__c owner, profileQuarter__c q FROM CumulusCoreLogicProperty__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileQuarter__c DESC LIMIT 1`, 1)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT planStatus__c st, retirementTargetAge__c age, monthlyIncomeTargetUsd__c inc, totalGoalAmountUsd__c goal, goalCount__c gc, recommendedAssetAllocation__c alloc, nextReviewDate__c review, profileMonth__c m FROM CumulusMgpFinancialPlans__dlm WHERE ssot__AccountId__c = '${acct}' ORDER BY profileMonth__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT estimated_property_value__c val, equity_usd__c eq, outstanding_mortgage_balance__c mtg, heloc_opportunity_score__c heloc, primary_property_type__c ptype, flood_zone_code__c flood, wildfire_risk_score__c fire, is_owner__c owner, profile_quarter__c q FROM BT_Corelogic_Property__dlm WHERE account_id__c = '${acct}' ORDER BY profile_quarter__c DESC LIMIT 1`, 1)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT plan_status__c st, retirement_target_age__c age, monthly_income_target_usd__c inc, total_goal_amount_usd__c goal, goal_count__c gc, recommended_asset_allocation__c alloc, next_review_date__c review, profile_month__c m FROM BT_MoneyGuidePro_Financial_Plans__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1)),
   ]);
 
   const q = core.uiapi?.query;
@@ -251,9 +251,11 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
   });
 
   /* ---- KYC / AML (WorldCheck) ---- */
+  // DC booleans can arrive as true or 'true' depending on the path.
+  const dcTrue = (v: unknown) => v === true || String(v) === 'true';
   const a = aml[0];
   const flags = a
-    ? [a.sanc ? 'sanctions' : '', a.pep ? 'PEP' : '', a.media ? 'adverse media' : ''].filter(Boolean)
+    ? [dcTrue(a.sanc) ? 'sanctions' : '', dcTrue(a.pep) ? 'PEP' : '', dcTrue(a.media) ? 'adverse media' : ''].filter(Boolean)
     : [];
   const kyc: KycSummary = {
     id: 'kyc1',
@@ -337,7 +339,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     propertyType: String(p.ptype ?? '—'),
     floodZone: String(p.flood ?? '—'),
     wildfireRiskScore: Math.round(dcNum(p.fire)),
-    isOwner: p.owner === true || String(p.owner) === 'true',
+    isOwner: dcTrue(p.owner),
     asOf: shortDate(p.q),
   } : null;
 
