@@ -57,7 +57,7 @@ interface Core360Shape {
 
 interface ClaritasRow { segment: string; life_stage: string; net_worth: string; wealth_prop: number; }
 interface CsatRow { csat: number; nps: number; }
-/** Wealth persona signal: held-away assets in reach (CumulusPlaidHeldAway__dlm). */
+/** Wealth persona signal: held-away assets in reach (BT_Plaid_Held_Away__dlm). */
 interface HeldAwayRow { total: number; institutions: number; }
 
 const LENDING_RE = /mortgage|loan|heloc|line of credit/i;
@@ -73,9 +73,9 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
   const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
   const [core, claritas, csat, heldAway] = await Promise.all([
     executeGraphQL<Core360Shape>(core360Query(acct)),
-    queryDataCloud<ClaritasRow>(`SELECT prizmSegmentName__c AS segment, lifeStage__c AS life_stage, estimatedNetWorthBand__c AS net_worth, wealthPropensityScore__c AS wealth_prop FROM CumulusClaritasDemographics__dlm WHERE ssot__AccountId__c = '${acct}' LIMIT 1`, 1).catch(() => ({ rows: [] as ClaritasRow[] })),
+    queryDataCloud<ClaritasRow>(`SELECT prizm_segment_name__c AS segment, life_stage__c AS life_stage, estimated_net_worth_band__c AS net_worth, wealth_propensity_score__c AS wealth_prop FROM BT_Claritas_Demographics__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1).catch(() => ({ rows: [] as ClaritasRow[] })),
     queryDataCloud<CsatRow>(`SELECT csat_score__c AS csat, nps_score__c AS nps FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY csat_score__c ASC LIMIT 1`, 1).catch(() => ({ rows: [] as CsatRow[] })),
-    queryDataCloud<HeldAwayRow>(`SELECT SUM(balanceUsd__c) AS total, COUNT(institutionName__c) AS institutions FROM CumulusPlaidHeldAway__dlm WHERE ssot__AccountId__c = '${acct}' AND isActive__c = true`, 1).catch(() => ({ rows: [] as HeldAwayRow[] })),
+    queryDataCloud<HeldAwayRow>(`SELECT SUM(balance_usd__c) AS total, COUNT(institution_name__c) AS institutions FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '${acct}' AND is_active__c = true AND Balance_Category__c = 'asset' AND profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '${acct}')`, 1).catch(() => ({ rows: [] as HeldAwayRow[] })),
   ]);
   const held = heldAway.rows[0];
   const heldTotal = held ? Number(held.total) : 0;

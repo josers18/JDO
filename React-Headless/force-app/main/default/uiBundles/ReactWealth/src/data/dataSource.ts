@@ -22,7 +22,7 @@ interface DataConfig {
 }
 
 // ReactWealth runs LIVE. Core (GraphQL: Opportunity/Case/Task/Event/
-// FinancialGoal) + Data Cloud (held-away via CumulusPlaidHeldAway__dlm) are
+// FinancialGoal) + Data Cloud (held-away via BT_Plaid_Held_Away__dlm) are
 // verified against jdo-1lrnov, so both are 'real'. Agentforce summaries stay
 // 'mock' until the Agentforce prompt path is wired.
 const config: DataConfig = {
