@@ -145,9 +145,10 @@ Source-side fixes are written up for the Snowflake agent in
   - The daily generator keeps them current from its account master. Details in §7 of the fixes doc.
   - This unblocks S5 and C9.
 - **Trades anchor on the latest Snowflake date.** Windows key on `MAX(trade_date)`. The
-  `BT_Financial_Trades` stream is failing (DC max 2026-09-01) and needs repair to land newer data.
-- **Failing streams (inventory `FAILURE`):** `BT_Financial_Trades`, `Loan_Delinquencies`,
-  `Financial_Transactions_Snow/_XL/_GCP`, `GCP_Transactions`, `Attrition_Inputs_Snowflake`.
+  `BT_Financial_Trades` incremental succeeds nightly (~06:00 UTC), but it runs before the 03:10 ET
+  trade generator, so Data Cloud lags Snowflake by one day.
+- **Streams in ERROR (2026-10-24):** `Loan_Delinquencies`, `Financial_Transactions_Snow/_XL/_GCP`,
+  `GCP_Transactions`. None feeds the home pages.
 - `BT_Gong_Call_Sentiment.last_call_date__c` is null on sampled rows. Use `profile_week__c` + `call_count_last_7d__c`.
 - **ServiceNow cases: ✅ home-keyed rows added 2026-10-24.** The original 4,009 `Service_Now` rows carry `account_id_<n>` and stop at 2025-02-13. 3,260 `SN-HOME-*` cases on home `001am…` accounts (Mar 2025 – Oct 2026) were inserted into Heroku `"Fins".service_now` and ingested by an incremental refresh. The stream is INCREMENTAL on `createddate`, so later status changes to existing rows won't re-ingest.
 - `SEC_Filings__dlm` has only 11 rows of section text. It's record-page RAG material, not a home-page metric.
