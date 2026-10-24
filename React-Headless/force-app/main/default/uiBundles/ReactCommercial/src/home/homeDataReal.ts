@@ -339,15 +339,17 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   const ids = [...new Set([...who.rows.map(r => r.accountId), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId), ...esg.rows.map(r => r.accountId), ...firmo.rows.map(r => r.accountId), ...handoffs.rows.map(r => r.businessId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
-  if (ids.length) {
+  // accountNamesQuery caps at first: 50, so look the ids up in chunks of 50.
+  const idChunks = Array.from({ length: Math.ceil(ids.length / 50) }, (_, i) => ids.slice(i * 50, i * 50 + 50));
+  await Promise.all(idChunks.map(async chunk => {
     try {
-      const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(accountNamesQuery(ids));
+      const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(accountNamesQuery(chunk));
       for (const e of names.uiapi?.query?.Account?.edges ?? []) {
         const id = (e.node as { Id?: string }).Id ?? '';
         if (id) nameById[id] = s(e.node, 'Name');
       }
     } catch { /* names best-effort */ }
-  }
+  }));
 
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 

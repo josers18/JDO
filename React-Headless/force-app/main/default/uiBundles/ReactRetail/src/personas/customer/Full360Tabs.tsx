@@ -199,9 +199,9 @@ function PropertyTab({ full }: { full: Full360 }) {
       <Panel title="Property Value & Equity" action={<span style={sub}>CoreLogic · {p.asOf}</span>}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
           {[
-            ['Estimated Value', cur(p.estimatedValue)],
-            ['Home Equity', cur(p.equity)],
-            ['Mortgage Balance', cur(p.mortgageBalance)],
+            ['Estimated Value', p.isOwner ? cur(p.estimatedValue) : '—'],
+            ['Home Equity', p.isOwner ? cur(p.equity) : '—'],
+            ['Mortgage Balance', p.isOwner ? cur(p.mortgageBalance) : '—'],
             ['Property Type', p.propertyType],
             ['Owner-Occupied', p.isOwner ? 'Yes' : 'No'],
           ].map(([k, v]) => (
@@ -215,11 +215,13 @@ function PropertyTab({ full }: { full: Full360 }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
         <Panel title="HELOC Opportunity" action={<span style={sub}>✦ lending signal</span>}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: p.helocOpportunityScore >= 66 ? 'var(--wp-pos)' : 'var(--wp-text)' }}>{p.helocOpportunityScore}</span>
+            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: p.helocOpportunityScore >= 66 ? 'var(--wp-pos)' : 'var(--wp-text)' }}>{p.isOwner ? p.helocOpportunityScore : '—'}</span>
             <span style={{ color: 'var(--wp-text-muted)', fontSize: '0.85rem' }}>/ 100 propensity</span>
           </div>
           <p style={{ margin: '0.5rem 0 0', fontSize: '0.82rem', color: 'var(--wp-text-muted)', lineHeight: 1.5 }}>
-            {p.helocOpportunityScore >= 66
+            {!p.isOwner
+              ? 'Not a homeowner on the latest CoreLogic quarter — no HELOC angle.'
+              : p.helocOpportunityScore >= 66
               ? `Strong HELOC candidate — ${cur(p.equity)} in tappable equity with ${p.mortgageBalance === 0 ? 'no outstanding mortgage' : cur(p.mortgageBalance) + ' remaining'}.`
               : 'Moderate HELOC fit based on current equity and property profile.'}
           </p>

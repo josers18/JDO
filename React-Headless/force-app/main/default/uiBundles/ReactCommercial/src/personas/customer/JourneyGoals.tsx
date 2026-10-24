@@ -54,6 +54,7 @@ export function JourneyGoals({ journey, goals }: { journey: JourneyEvent[]; goal
       <div>
         <SectionLabel>Goals</SectionLabel>
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 6, marginTop: 12 }} className="wp-noscroll">
+          {!goals.length && <div style={{ fontSize: 12, color: 'var(--wp-text-muted)' }}>No financial goals on file.</div>}
           {goals.map(g => (
             <div
               key={g.id}

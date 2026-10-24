@@ -37,7 +37,7 @@ function core360Query(id: string): string {
         FinServ__FinancialAccount__c(first: 30, where: { FinServ__PrimaryOwner__c: { eq: "${acct}" } }) {
           edges { node { Id Name @optional { value } FinServ__Balance__c @optional { value } FinServ__FinancialAccountType__c @optional { value } } }
         }
-        FinancialGoal(first: 6) {
+        FinancialGoal(first: 6, where: { FinancialPlan: { AccountId: { eq: "${acct}" } } }) {
           edges { node { Id Name @optional { value } TargetAmount @optional { value } ActualAmount @optional { value } } }
         }
       }

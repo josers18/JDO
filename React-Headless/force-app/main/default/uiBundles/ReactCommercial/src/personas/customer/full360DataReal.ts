@@ -48,7 +48,8 @@ function shortDate(v: unknown): string {
   const raw = String(v ?? '').replace(' UTC', 'Z').replace(' ', 'T');
   const d = new Date(raw);
   if (isNaN(d.getTime())) return String(v ?? '—');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Dates arrive as UTC midnight; format in UTC so they don't slip a day west of GMT.
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });

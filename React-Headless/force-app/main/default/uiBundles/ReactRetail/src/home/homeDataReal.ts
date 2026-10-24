@@ -270,10 +270,12 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const csatIds = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...stress.queueRows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
   const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
-  if (csatIds.length) {
+  // accountNamesQuery caps at first: 50, so look the ids up in chunks of 50.
+  const idChunks = Array.from({ length: Math.ceil(csatIds.length / 50) }, (_, i) => csatIds.slice(i * 50, i * 50 + 50));
+  await Promise.all(idChunks.map(async chunk => {
     try {
       const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(
-        accountNamesQuery(csatIds)
+        accountNamesQuery(chunk)
       );
       for (const e of names.uiapi?.query?.Account?.edges ?? []) {
         // Id is a PLAIN string on GraphQL nodes (not wrapped in {value}); Name is wrapped.
@@ -281,7 +283,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         if (id) nameById[id] = s(e.node, 'Name');
       }
     } catch { /* names are best-effort; fall back to raw ID */ }
-  }
+  }));
 
   const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
 

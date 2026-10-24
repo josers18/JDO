@@ -310,15 +310,17 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // resolve held-away + inflow account IDs → names
   const ids = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId), ...upgrades.rows.map(r => r.accountId), ...concentration.rows.map(r => r.accountId)].filter(Boolean))];
   const nameById: Record<string, string> = {};
-  if (ids.length) {
+  // accountNamesQuery caps at first: 50, so look the ids up in chunks of 50.
+  const idChunks = Array.from({ length: Math.ceil(ids.length / 50) }, (_, i) => ids.slice(i * 50, i * 50 + 50));
+  await Promise.all(idChunks.map(async chunk => {
     try {
-      const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(accountNamesQuery(ids));
+      const names = await executeGraphQL<{ uiapi?: { query?: { Account?: { edges?: { node: Node }[] } } } }>(accountNamesQuery(chunk));
       for (const e of names.uiapi?.query?.Account?.edges ?? []) {
         const id = (e.node as { Id?: string }).Id ?? '';
         if (id) nameById[id] = s(e.node, 'Name');
       }
     } catch { /* names best-effort; fall back to raw ID */ }
-  }
+  }));
 
   // S1 — clients whose recorded-call sentiment is negative and sliding.
   // S2 — screening ratings that escalated on the latest World-Check run.
