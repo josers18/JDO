@@ -93,11 +93,13 @@ const feeSpikeSql = (accountFilter: string, households: boolean) => `${commercia
   ),
   fs AS (
   SELECT COALESCE(hh.household, fa.acct) AS account_id, SUM(fa.fees) AS fees,
-         SUM(fa.fee_total) AS fee_total, MAX(fa.last_fee) AS last_fee
+         SUM(fa.fee_total) AS fee_total, MAX(fa.last_fee) AS last_fee,
+         MAX(CASE WHEN hh.household IS NOT NULL THEN 1 ELSE 0 END) AS household
   FROM fa LEFT JOIN hh ON hh.member = fa.acct
   GROUP BY COALESCE(hh.household, fa.acct)
   )
-  SELECT fs.account_id AS account_id, fs.fees AS fees, fs.fee_total AS fee_total, fs.last_fee AS last_fee
+  SELECT fs.account_id AS account_id, fs.fees AS fees, fs.fee_total AS fee_total, fs.last_fee AS last_fee,
+         fs.household AS household
   FROM fs LEFT JOIN b ON b.account_id = fs.account_id
   ORDER BY COALESCE(b.score, 0) DESC, fs.fees DESC, fs.fee_total DESC
   LIMIT ${FEE_SPIKES + FEE_SPIKE_SPARE}
@@ -115,7 +117,14 @@ export interface LargeInflow {
   /** Business receipts only — who paid, e.g. "Wayne Logistics". */
   payer?: string;
 }
-export interface FeeSpike { accountId: string; fees: number; feeTotal: number; lastFee: string; }
+export interface FeeSpike {
+  accountId: string;
+  fees: number;
+  feeTotal: number;
+  lastFee: string;
+  /** Rolled up from household members' personal checking, not a business account. */
+  household: boolean;
+}
 export interface TxSignalResult<T> { rows: T[]; scope: BookScope; }
 
 const isoDate = (v: unknown) => String(v ?? '').slice(0, 10);
@@ -164,6 +173,7 @@ export async function fetchFeeSpikes(ownerId: string | null | undefined): Promis
       fees: Number(r.fees) || 0,
       feeTotal: Number(r.fee_total) || 0,
       lastFee: isoDate(r.last_fee),
+      household: Number(r.household) === 1,
     })),
   };
 }
@@ -206,7 +216,8 @@ export function inflowQueueItems(
   });
 }
 
-/** C9 rows → priority-queue items, due today (fees compound daily). */
+/** C9 rows → priority-queue items, due today (fees compound daily). Household rows are
+ *  personal checking, so they get a budgeting / overdraft-protection ask instead of credit. */
 export function feeSpikeQueueItems(
   res: TxSignalResult<FeeSpike>,
   nameById: Record<string, string>,
@@ -219,7 +230,7 @@ export function feeSpikeQueueItems(
     clientName: nameById[r.accountId] || r.accountId,
     segment: opts.segment,
     reason: `${r.fees} NSF / overdraft / late fees in 30d (${money(r.feeTotal)})`,
-    action: 'Cash-flow check-in — line of credit / sweep',
+    action: r.household ? 'Household check-in — overdraft protection / budgeting' : 'Cash-flow check-in — line of credit / sweep',
     score: Math.min(0.95, 0.55 + r.fees * 0.05),
     severity: r.fees >= 6 ? 'high' : 'medium',
     source: sourceLabel(res.scope),
