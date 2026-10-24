@@ -338,6 +338,9 @@ Fixes:
   Sarah's and Justin's books now own businesses in Allen's or Jose's books: 3% standing, plus 0.2% a week since
   2026-08-03. Live: Sarah has 111 owners and Justin 104, so W6 stays book-scoped. BUSINESS_OWNER edges went from
   318 to 536.
+  - The four books are listed by hand (`_RETAIL_OWNER_BOOKS`, `_BUSINESS_BOOKS`), so reassigning a book means
+    editing them. Owner ids come from the datashare Account table; if that share is lost, the retail-owner edges
+    drop to zero without failing the run.
 - ✅ **Financial stress (`BT_Claritas_Demographics`)**, commit `2950125c`. Business and Household anchors are now
   profiled as the principal's household. The Wealth strain rate went from 4% to 20%. High stress is now non-zero in
   every book: Justin 1,763 / Sarah 1,751 / Jose 743 / Allen 644 / Vince 148 / Adam 129 / Kim 117. Backup:
@@ -349,4 +352,4 @@ Fixes:
   - Jose's book had none: it holds 5,071 FSC Households, and households can't own financial accounts (a required
     `FinServ__PrimaryOwner__c` lookup filter rejects them). The C9 reader now rolls up to households the FSC way:
     in book scope, member person accounts (`ssot__AccountContact__dlm` → `PersonContactId__c`) count toward
-    their household. Jose: 0 → 525 households with a spike. No CRM writes.
+    their household (commit `48efc8bc`). Jose: 0 → 525 households with a spike. No CRM writes.
