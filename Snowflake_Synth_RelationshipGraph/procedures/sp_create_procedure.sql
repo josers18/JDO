@@ -150,6 +150,34 @@ _GRAPH_REFERENCE = date(2026, 8, 3)
 _WEEKLY_REFERRAL_P = 0.004
 _WEEKLY_BUSINESS_OWNER_P = 0.004
 
+# Retail business owners (2026-10-24). The income-gated BUSINESS_OWNER edges
+# above only fire in the high-income Wealth books (Vince West / Kim Johnson /
+# Adam Watson); the Retail person books top out at $180K, so they had none.
+# Persons in these books with income >= $100K own a business in one of the
+# business books: ~3% standing (identity seed) plus 0.2% per elapsed week,
+# ~100-120 owners per book, comparable to the Wealth books. Own salt so the
+# existing edges' rng draws are untouched.
+RETAIL_OWNER_SALT = "synth-graph-retail-owner"
+_RETAIL_OWNER_BOOKS: frozenset[str] = frozenset({
+    "005am000006ffBpAAI",  # Sarah Smith (person book)
+    "005am000003PbFBAA0",  # Justin Chen (person book)
+})
+_BUSINESS_BOOKS: frozenset[str] = frozenset({
+    "005am000003PbFDAA0",  # Allen Carter (business book)
+    "005am000003PbCLAA0",  # Jose Sifontes (business book)
+})
+_RETAIL_OWNER_MIN_INCOME = 100_000
+_RETAIL_OWNER_STANDING_P = 0.03
+_WEEKLY_RETAIL_OWNER_P = 0.002
+# Account -> owning User. V_ACCOUNT_ANCHORS doesn't carry OwnerId; read it from
+# the same datashare Account DMO the view joins.
+ACCOUNT_OWNER_SQL = (
+    'SELECT "ssot__Id__c" AS ACCOUNT_ID, "ssot__OwnerId__c" AS OWNER_ID '
+    'FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" '
+    "WHERE \"ssot__Id__c\" LIKE '001%' AND \"ssot__OwnerId__c\" IS NOT NULL "
+    'QUALIFY ROW_NUMBER() OVER (PARTITION BY "ssot__Id__c" ORDER BY "ssot__OwnerId__c") = 1'
+)
+
 # 10-column output contract (kept in sync with the table DDL by the L1 schema test).
 # ORG_ID is the multi-tenant prefix; cross-org edges are not modeled (DST anchors
 # come from the same audience, so within-anchor=within-org is naturally enforced).
@@ -528,6 +556,44 @@ def _discovered_edges(anchor: dict, lookup: dict, run_ts: datetime) -> list[dict
     return rows
 
 
+def _retail_owner_edges(anchor: dict, lookup: dict, run_ts: datetime) -> list[dict]:
+    """Retail-book person -> business-book business BUSINESS_OWNER edges.
+
+    Only persons whose owner is in _RETAIL_OWNER_BOOKS with income >=
+    _RETAIL_OWNER_MIN_INCOME qualify; targets are BUSINESS accounts in
+    _BUSINESS_BOOKS (lookup 'book_business_ids', sorted). Standing edge from
+    sha256(f"{aid}|{RETAIL_OWNER_SALT}"); weekly discoveries replay every
+    elapsed week like _discovered_edges, each week with its own seed.
+    """
+    owners = lookup.get("account_owner") or {}
+    pool = lookup.get("book_business_ids") or []
+    aid = anchor["ACCOUNT_ID"]
+    if (not pool or anchor.get("ACCOUNT_TYPE_FLAG") != "PERSON"
+            or owners.get(aid) not in _RETAIL_OWNER_BOOKS
+            or float(anchor.get("ANNUAL_INCOME") or 0) < _RETAIL_OWNER_MIN_INCOME):
+        return []
+    org_id = anchor.get("ORG_ID") or "JDO"
+    meta = json.dumps({"ownership_pct": "majority"})
+    rows: list[dict] = []
+    rng = random.Random(hashlib.sha256(f"{aid}|{RETAIL_OWNER_SALT}".encode()).digest())
+    if rng.random() < _RETAIL_OWNER_STANDING_P:
+        target = rng.choice(pool)
+        rows.append(_make_edge(aid, target, "BUSINESS_OWNER", rng, run_ts,
+                               metadata=meta, org_id=org_id))
+    run_week = _week_start(run_ts).date()
+    week = _GRAPH_REFERENCE
+    while week < run_week:
+        rng = random.Random(hashlib.sha256(
+            f"{aid}|{RETAIL_OWNER_SALT}|{week.isoformat()}".encode()).digest())
+        if rng.random() < _WEEKLY_RETAIL_OWNER_P:
+            target = rng.choice(pool)
+            day = week + timedelta(days=rng.randint(0, 6))
+            rows.append(_make_edge(aid, target, "BUSINESS_OWNER", rng, run_ts,
+                                   metadata=meta, org_id=org_id, discovered=day))
+        week += timedelta(days=7)
+    return rows
+
+
 # -------------------------------------------------------------------
 # _rows_for — substantive 1:N synthesis logic (per rowspec).
 # -------------------------------------------------------------------
@@ -557,7 +623,10 @@ def _rows_for(anchor: dict, run_ts: datetime, *,
             SELF is conceptually always present.
         lookup_tables: cross-plan lookup tables built once in main().
             Keys: 'household_pool', 'dnb_parents', 'boardex_seats',
-            'advisor_books', 'all_account_ids', 'business_account_ids'.
+            'advisor_books', 'all_account_ids', 'business_account_ids',
+            'account_owner', 'book_business_ids'. Id pools must be sorted:
+            rng.choice indexes into them, and the audience query has no
+            stable row order.
             Missing keys are treated as empty (generator short-circuits).
 
     Returns:
@@ -579,6 +648,8 @@ def _rows_for(anchor: dict, run_ts: datetime, *,
             continue
         rows.extend(edge_fn(anchor, lookup, rng, run_ts))
     rows.extend(_discovered_edges(anchor, lookup, run_ts))
+    if "BUSINESS_OWNER" in available_edge_types:
+        rows.extend(_retail_owner_edges(anchor, lookup, run_ts))
 
     # One row per (DST, EDGE_TYPE): the standing edge wins over a later
     # rediscovery of the same pair.
@@ -690,14 +761,29 @@ def _build_boardex_seats(session: Any) -> dict[str, list[str]]:
 
 
 def _build_advisor_books(audience: list[dict]) -> dict[str, list[str]]:
-    """Hash Wealth Management anchors into ~200 advisor-book buckets."""
+    """Hash Wealth Management anchors into ~200 advisor-book buckets.
+    Buckets are sorted so peer selection doesn't follow query row order."""
     books: dict[str, list[str]] = {}
     for a in audience:
         if a.get("CLIENT_CATEGORY") != "Wealth Management":
             continue
         bucket = _advisor_bucket(a)
         books.setdefault(bucket, []).append(a["ACCOUNT_ID"])
-    return books
+    return {k: sorted(v) for k, v in books.items()}
+
+
+def _build_account_owners(session: Any) -> dict[str, str]:
+    """Map ACCOUNT_ID -> OwnerId from the datashare Account DMO. Empty on
+    failure (retail BUSINESS_OWNER edges then short-circuit)."""
+    try:
+        rows = session.sql(ACCOUNT_OWNER_SQL).collect()
+    except Exception:
+        return {}
+    owners: dict[str, str] = {}
+    for r in rows:
+        d = _row_to_dict(r)
+        owners[d["ACCOUNT_ID"]] = d["OWNER_ID"]
+    return owners
 
 
 # -------------------------------------------------------------------
@@ -745,6 +831,8 @@ def main(session: Any, run_date: date | None = None) -> str:
         audience = [_anchor_to_dict(r) for r in raw_audience]
         accounts_processed = len(audience)  # NOT len(records); customer count.
 
+        account_owner = _build_account_owners(session)
+
         # Build cross-plan lookup tables once. Absent tables yield empty dicts.
         lookup_tables = {
             "household_pool":        (_build_household_pool(session)
@@ -757,10 +845,17 @@ def main(session: Any, run_date: date | None = None) -> str:
                                       if "BOARD_MEMBER" in available_edge_types
                                       else {}),
             "advisor_books":         _build_advisor_books(audience),
-            "all_account_ids":       [a["ACCOUNT_ID"] for a in audience
-                                      if a.get("ACCOUNT_ID")],
-            "business_account_ids":  [a["ACCOUNT_ID"] for a in audience
-                                      if a.get("ACCOUNT_TYPE_FLAG") == "BUSINESS"],
+            # Sorted: the audience query's row order varies run to run, and
+            # rng.choice over an unsorted pool would reshuffle every edge.
+            "all_account_ids":       sorted(a["ACCOUNT_ID"] for a in audience
+                                            if a.get("ACCOUNT_ID")),
+            "business_account_ids":  sorted(a["ACCOUNT_ID"] for a in audience
+                                            if a.get("ACCOUNT_TYPE_FLAG") == "BUSINESS"),
+            "account_owner":         account_owner,
+            "book_business_ids":     sorted(
+                a["ACCOUNT_ID"] for a in audience
+                if a.get("ACCOUNT_TYPE_FLAG") == "BUSINESS"
+                and account_owner.get(a["ACCOUNT_ID"]) in _BUSINESS_BOOKS),
         }
 
         # 2. Build deterministic rows; tolerate up to 1% per-anchor failures.

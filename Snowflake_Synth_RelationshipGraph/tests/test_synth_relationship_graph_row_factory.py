@@ -408,3 +408,61 @@ def test_referral_confidence_spread():
             for _ in range(500)]
     assert max(vals) >= 90
     assert min(vals) >= 30
+
+
+# ---------- retail business owners (Sarah / Justin books -> Allen / Jose books) ----------
+
+_SARAH = "005am000006ffBpAAI"
+_ALLEN = "005am000003PbFDAA0"
+
+
+def _retail_fixture(n=4000):
+    persons = [{"ACCOUNT_ID": f"001am00002P{i:07d}", "ACCOUNT_TYPE_FLAG": "PERSON",
+                "CLIENT_CATEGORY": "Retail Banking", "ANNUAL_INCOME": 150_000,
+                "ORG_ID": "JDO"} for i in range(n)]
+    biz = [f"001am00002B{i:07d}" for i in range(50)]
+    owners = {p["ACCOUNT_ID"]: _SARAH for p in persons}
+    owners.update({b: _ALLEN for b in biz})
+    lookup = {"all_account_ids": sorted(owners), "business_account_ids": biz,
+              "account_owner": owners, "book_business_ids": biz}
+    return persons, set(biz), lookup
+
+
+def test_retail_owner_edges_target_business_books(available_edge_types):
+    """Retail-book persons with income >= $100K get BUSINESS_OWNER edges, at a
+    rate near 3% standing + 0.2%/week, all into the business-book pool."""
+    persons, biz, lookup = _retail_fixture()
+    run_ts = datetime(2026, 10, 26)  # 12 elapsed weeks
+    edges = [r for p in persons for r in _rows_for(
+        p, run_ts, available_edge_types=available_edge_types, lookup_tables=lookup)
+        if r["EDGE_TYPE"] == "BUSINESS_OWNER"]
+    owners = {r["SRC_ACCOUNT_ID"] for r in edges}
+    assert 0.03 <= len(owners) / len(persons) <= 0.08
+    assert all(r["DST_ACCOUNT_ID"] in biz for r in edges)
+    assert all(r["METADATA"] == '{"ownership_pct": "majority"}' for r in edges)
+    assert all(0.85 <= r["EDGE_WEIGHT"] <= 1.0 for r in edges)
+
+
+def test_retail_owner_edges_gated_on_book_and_income(available_edge_types):
+    persons, _, lookup = _retail_fixture(2000)
+    run_ts = datetime(2026, 10, 26)
+    low = [dict(p, ANNUAL_INCOME=90_000) for p in persons]
+    other_book = dict(lookup, account_owner={k: "005am000003PbFGAA0" for k in lookup["account_owner"]})
+    for anchors, lk in ((low, lookup), (persons, other_book)):
+        for p in anchors:
+            rows = _rows_for(p, run_ts, available_edge_types=available_edge_types, lookup_tables=lk)
+            assert not [r for r in rows if r["EDGE_TYPE"] == "BUSINESS_OWNER"]
+
+
+def test_retail_owner_edges_stable_across_weeks(available_edge_types):
+    persons, _, lookup = _retail_fixture()
+    w1, w2 = datetime(2026, 10, 19), datetime(2026, 10, 26)
+    def edges(ts):
+        return {(r["SRC_ACCOUNT_ID"], r["DST_ACCOUNT_ID"]): r for p in persons for r in _rows_for(
+            p, ts, available_edge_types=available_edge_types, lookup_tables=lookup)
+            if r["EDGE_TYPE"] == "BUSINESS_OWNER"}
+    a, b = edges(w1), edges(w2)
+    assert a and a.keys() <= b.keys()
+    for k, r in a.items():
+        for col in ("EDGE_DISCOVERED_DATE", "EDGE_WEIGHT", "CONFIDENCE_PCT"):
+            assert r[col] == b[k][col]
