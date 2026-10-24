@@ -282,15 +282,33 @@ Fixes:
 
 ## 8. Minor
 
-- Relationship graph `BT_Synth_Relationship_Graph`: REFERRAL `confidence_pct` never reaches 70 (max ~65), and no edge
-  was discovered after 2026-09-18. Spread confidence up to ~95 and keep discovering edges daily so "new this month" works.
-  Some `dst_account_id` values are 16-char hashes, not Account Ids.
-- `Marketing_Engagements` feed is thin: 16 events in 30 days, Personal only.
-- `BT_Gong_Call_Sentiment.last_call_date__c` is null on sampled rows. Populate it.
-- Offer model `Offer_Eligibility_Model__dlm`: `SFID__c` is a `1Xh…` Id, not an Account Id.
-  The join key is `MDM_ID__c` = `ssot__Account__dlm.External_ID_c__c` (MDM party key, `MDMP#####`);
-  only 7 rows use `GEN-<AccountId>`. Consider adding a plain `account_id` column. The model also has
-  a single business action code (`BIZ-CHK`), so Commercial gets one offer card. Add treasury / lending codes.
+- ✅ **Relationship graph `BT_Synth_Relationship_Graph`** (generator v2, 2026-10-24). Before: REFERRAL `confidence_pct` never
+  reached 70, no edge was discovered after 2026-09-18, and some ids were 16-char hashes. Now:
+  - The standing graph comes from a per-account identity seed, so it stays the same from week to week.
+  - A per-week seed adds new REFERRAL and BUSINESS_OWNER edges, each dated on a day inside its week, starting
+    2026-08-03.
+  - REFERRAL confidence is 70 ± 25.
+  - The audience is limited to `001…` Account Ids.
+  - The MERGE now also deletes edges that are no longer generated. The old seed re-drew every month and nothing was
+    deleted, so edges had piled up to ~137K rows. Backup: `SYNTH_RELATIONSHIP_GRAPH_BAK_20261024`.
+
+  Live and in the DMO: 38,360 rows, all `001…` (SELF 32,161, REFERRAL 3,471, ADVISOR_BOOK 2,410, BUSINESS_OWNER 318).
+  REFERRAL confidence runs 30–94.99 (1,146 rows ≥ 70). Edges discovered in October: 384 REFERRAL and 38 BUSINESS_OWNER;
+  the latest is 2026-10-18. Weekly runs keep adding edges.
+- `Marketing_Engagements` is thin by design until 2026-11-01. The original backfill ends 2026-09-24 (Personal 186,126,
+  Business 65,487). The hourly Heroku worker (`Marketing_Engagement/feed.py`) only starts generating campaigns at
+  `FIRST_MONTH = 2026-11-01`: one Personal and one Business campaign a month, plus the "All" templates. Business touches
+  return then. To close the October gap, move `FIRST_MONTH` to 2026-10-01 and redeploy the worker.
+- ✅ **`BT_Gong_Call_Sentiment.last_call_date__c`** (2026-10-24). After each MERGE, the generator fills a null
+  `LAST_CALL_DATE` (a week with no calls) with the account's latest earlier call. An account with no call in its
+  history gets a fixed hashed date before 2025-12-15. 1,344,919 nulls → 0; existing call dates are unchanged; every
+  value is before `PROFILE_WEEK`. Latest week in the DMO: 36,940 of 36,940 filled, median 32 days ago. Backup:
+  `GONG_CALL_SENTIMENT_BAK_20261024`.
+- Offer model `Offer_Eligibility_Model__dlm` — **not Snowflake.** The source is Databricks
+  (`DataSourceObject__c = rraso_offer_eligability_model`, connector `Databricks_Databricks`). Every account (25,431)
+  has a row for all 11 action codes, and `BIZ-CHK` is the only business one. `SFID__c` is the model row's `1Xh…` Id.
+  The join key is `MDM_ID__c` = `ssot__Account__dlm.External_ID_c__c`. An `account_id` column and treasury or lending
+  codes have to be added in the Databricks model, or supplied by a separate Snowflake BT_ stream unioned in the reader.
 
 ## 9. Market feeds and the relationship graph: realism (probed 2026-10-23)
 
