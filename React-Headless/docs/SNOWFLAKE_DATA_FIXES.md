@@ -133,12 +133,11 @@ Done (project `Snowflake_DnB_BusinessCredit`, SP `SP_GENERATE_DNB_BUSINESS_CREDI
   - 8–10 Verified (8,693).
   - 5–7 Probable (2,373).
   - 1–4 Unverified (450).
+  - The column is mapped in DC as `match_confidence_code__c` (DLO and DMO). Rows before v1.6 read NULL.
 - **Corporate families: no change needed.** `ultimate_parent_duns` is null exactly on standalone rows
   (family size 1). The earlier "946 rows" reading was wrong.
 
 Still open:
-- The DC stream and DMO don't carry `match_confidence_code` yet. Add the source field and DMO mapping
-  (zero-copy, so no reload is needed).
 - May–September stay on the v1.5 distribution until they're re-generated (the SP writes only the current month).
 
 Owner gap (CRM side, not Snowflake): 684 D&B-keyed accounts have a null `OwnerId` in
