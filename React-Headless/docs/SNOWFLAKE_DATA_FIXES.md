@@ -116,7 +116,7 @@ Nightly incremental (DC side):
   `LastRefreshDate` still 2026-10-24 06:01, 0 rows added, no error code in `LastDataChangeStatusErrorCode` or
   `ExternalStreamErrorCode` (the reason is only in the stream's Refresh History in DC Setup). The DLO is unchanged:
   8,984,809 rows, `MAX(trade_date__c)` 2026-10-23. Snowflake is fine: 8,990,931 rows, 3,061 each for 10-24 and 10-25.
-  The 10-24 success that added 0 rows means the `DATE` switch alone didn't fix incremental reads that have new rows.
+  The only success since the `DATE` switch added 0 rows, so a run with new rows has not yet succeeded.
 - If it fails again, the fallback is a rebuilt stream (correct date format or TOTAL_REPLACE). That stream feeds a
   data graph, prompt templates and a semantic model, so a rebuild needs a planned re-point.
 - Rollback: `FINANCIAL_TRADES_BAK_20261024` (pre-001), `FINANCIAL_TRADES_BAK_20261024_TZ` (pre-002),
