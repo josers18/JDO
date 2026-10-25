@@ -92,7 +92,7 @@ Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgr
   `Financial_Transactions` stream stays suppressed: it's a Profile-category DLO that can't map to the
   Engagement DMO `ssot__FinancialAccountTransaction`.
 
-## 4. Financial trades: ✅ latest data landed and TRD keys gone 2026-10-24 (nightly incremental succeeding, confirm 10-25)
+## 4. Financial trades: ⚠️ TRD keys gone 2026-10-24, but the nightly incremental failed 2026-10-25 (DLO stuck at 10-23)
 
 Was: stream `BT_Financial_Trades` (INCREMENTAL on `TRADE_DATE`) last ran on 2026-10-01 and failed.
 DLO `MAX(trade_date__c)` was 2026-09-01, and some account keys were `TRD-001…` placeholders.
@@ -111,8 +111,12 @@ Nightly incremental (DC side):
 - **The last nightly INCREMENTAL run succeeded** after the switch to `DATE`: `ImportRunStatus` SUCCESS at
   2026-10-24 06:01 UTC, 0 rows added. 0 was expected: `DAILY_TRADE_GENERATOR` runs at 03:10 ET (07:10 UTC), after
   the stream, so the 3,061 rows for 2026-10-24 were written after it ran. The DLO stays at 2026-10-23 until the next run.
-- Each day's trades therefore land the next night (one-day lag). Confirm after the 2026-10-25 ~06:00 UTC run:
-  DLO `MAX(trade_date__c)` should be 2026-10-24.
+- Each day's trades therefore land the next night (one-day lag).
+- ❌ **The 2026-10-25 06:00 UTC run failed** (checked 08:48 UTC). `DataStream`: `ImportRunStatus` FAILURE,
+  `LastRefreshDate` still 2026-10-24 06:01, 0 rows added, no error code in `LastDataChangeStatusErrorCode` or
+  `ExternalStreamErrorCode` (the reason is only in the stream's Refresh History in DC Setup). The DLO is unchanged:
+  8,984,809 rows, `MAX(trade_date__c)` 2026-10-23. Snowflake is fine: 8,990,931 rows, 3,061 each for 10-24 and 10-25.
+  The 10-24 success that added 0 rows means the `DATE` switch alone didn't fix incremental reads that have new rows.
 - If it fails again, the fallback is a rebuilt stream (correct date format or TOTAL_REPLACE). That stream feeds a
   data graph, prompt templates and a semantic model, so a rebuild needs a planned re-point.
 - Rollback: `FINANCIAL_TRADES_BAK_20261024` (pre-001), `FINANCIAL_TRADES_BAK_20261024_TZ` (pre-002),
@@ -360,6 +364,10 @@ Fixes:
   `GENERATE_DAILY_TRANSACTIONS` (`scripts/snowflake_transactions/`). The daily run keeps adding fee spells. Live C9
   fee spikes: Justin 297 / Sarah 240 / Allen 96 / Vince 14 / Adam 10 / Kim 7. Backup:
   `FINANCIAL_TRANSACTIONS_BAK_20261024b`.
+  - Checked 2026-10-25: `DAILY_TRANSACTION_GENERATOR` SUCCEEDED (17,496 rows, 31,905 accounts). 150 fee rows for
+    10-24 (68 NSF, 78 overdraft, 4 late), in line with 10-15 → 10-23 (103–188 a day), and all 150 are in the DMO.
+    Live C9 vs the 10-24 baseline: Justin 297 (=) / Sarah 246 (+6) / Allen 95 (−1) / Vince 14 (=) / Adam 10 (=) /
+    Kim 6 (−1) / Jose 529 households (+4). The 30-day window rolls, so small moves are expected.
   - Jose's book had none: it holds 5,071 FSC Households, and households can't own financial accounts (a required
     `FinServ__PrimaryOwner__c` lookup filter rejects them). The C9 reader now rolls up to households the FSC way:
     in book scope, member person accounts (`ssot__AccountContact__dlm` → `PersonContactId__c`) count toward
