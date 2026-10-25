@@ -31,7 +31,7 @@ def test_profile_keys_and_types(feature_rows):
 def test_profile_feedless_account_is_complete():
     row = make_feature(**{k: None for k in FEED_KEYS}, CALLS=None, GONG_WEEKS=None, LAST_CALL_DATE=None,
                        NPS_SCORE=None, NPS_DESCRIPTION=None, RISK_RATING=None, SANCTIONS_HIT=None,
-                       PEP_HIT=None, ADVERSE_MEDIA_HIT=None, DETRACTOR_12M=None, NEG_WEEKS=None,
+                       PEP_HIT=None, ADVERSE_MEDIA_HIT=None, LOW_NPS_12M=None, NEG_WEEKS=None,
                        VNEG_WEEKS=None)
     p = build_profile(row, RUN_TS)
     assert set(p) == KEYS
@@ -102,9 +102,9 @@ def test_profile_deterministic(feature_rows):
         assert build_profile(row, RUN_TS) == build_profile(dict(row), RUN_TS)
 
 
-def test_profile_complaints_counts_detractors():
-    p = build_profile(make_feature(DETRACTOR_12M=3, NEG_WEEKS=8), RUN_TS)
-    assert p["complaints"] == 5
+def test_profile_complaints_counts_low_nps_and_negative_weeks():
+    p = build_profile(make_feature(LOW_NPS_12M=1, NEG_WEEKS=5), RUN_TS)
+    assert p["complaints"] == 3
 
 
 def test_profile_savings_without_debits_uses_seeded_rate():
@@ -122,11 +122,11 @@ def test_profile_snowflake_typed_values():
         CREDITS=Decimal("0"), DEBITS=Decimal("10"), ADB_TXN=Decimal("40"), ADB_DAYS=Decimal("0"),
         FT_TXN=Decimal("9"), CALLS=Decimal("5"), GONG_WEEKS=Decimal("0"),
         FIRST_OPEN_DATE=datetime(2019, 4, 2, 10, 0), LAST_CALL_DATE=datetime(2026, 9, 20, 8, 30),
-        DETRACTOR_12M=Decimal("2"), NEG_WEEKS=Decimal("4"), VNEG_WEEKS=Decimal("1"),
+        LOW_NPS_12M=Decimal("2"), NEG_WEEKS=Decimal("4"), VNEG_WEEKS=Decimal("1"),
     )
     p = build_profile(row, RUN_TS)
     assert set(p) == KEYS and all(v is not None for v in p.values())
-    assert p["complaints"] == 3 and p["escalations"] == 1
+    assert p["complaints"] == 4 and p["escalations"] == 1
 
 
 @pytest.mark.parametrize("flag,category,expected", [

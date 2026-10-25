@@ -11,7 +11,7 @@ ATT, CSAT, ENR = "ATTRITION_INPUTS", "CSAT_ATTRITION_INPUTS", "ENROLLMENTS"
 TABLES = {ATT: ATTRITION_COLUMNS, CSAT: CSAT_COLUMNS, ENR: ENROLLMENT_COLUMNS}
 FEATURE_KEYS = (
     "ACCOUNT_ID", "ACCOUNT_TYPE_FLAG", "CLIENT_CATEGORY", "BIRTHDATE", "ANNUAL_INCOME", "ANNUAL_REVENUE",
-    "CREDIT_SCORE", "NPS_SCORE", "NPS_DESCRIPTION", "DETRACTOR_12M", "N_PRODUCTS", "N_DEPOSIT", "N_LOAN",
+    "CREDIT_SCORE", "NPS_SCORE", "NPS_DESCRIPTION", "LOW_NPS_12M", "N_PRODUCTS", "N_DEPOSIT", "N_LOAN",
     "N_INVESTMENT", "N_LINE", "DD_AMOUNT", "BONUS_AMOUNT", "FIRST_OPEN_DATE", "TOTAL_BALANCE", "AVG_BALANCE",
     "EARLY_AVG_BALANCE", "LATE_AVG_BALANCE", "CREDITS", "DEBITS", "ADB_TXN", "ADB_DAYS", "FT_TXN", "CALLS",
     "GONG_WEEKS", "LAST_CALL_DATE", "NEG_WEEKS", "VNEG_WEEKS", "RISK_RATING", "SANCTIONS_HIT", "PEP_HIT",
@@ -277,9 +277,9 @@ def test_features_sql_worldcheck_strict_and_tiebreaks():
     assert "ORDER BY SCORE_DATE DESC, ROWID DESC" in s
 
 
-def test_features_sql_detractor_threshold_matches_csat_nps():
+def test_features_sql_complaints_count_only_low_nps():
     s = _sql()
-    assert "NPS_SCORE <= 6" in s and "NPS_SCORE <= 4" not in s
+    assert "COUNT_IF(NPS_SCORE <= 3 AND SCORE_DATE" in s and "NPS_SCORE <= 6" not in s
 
 
 def test_gate_snapshot_date_must_be_run_month(feature_rows):

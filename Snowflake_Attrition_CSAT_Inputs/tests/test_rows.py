@@ -70,8 +70,8 @@ def test_attrition_semantics(feature_rows):
 
 
 def test_csat_segment_mapping():
-    cases = [("PERSON", "Retail", "Banking"), ("PERSON", "WealthManagement", "WealthManagement"),
-             ("PERSON", "Gold", "WealthManagement"), ("PERSON", "Platinum", "WealthManagement"),
+    cases = [("PERSON", "Retail", "Banking"), ("PERSON", "WealthManagement", "Wealth Management"),
+             ("PERSON", "Gold", "Wealth Management"), ("PERSON", "Platinum", "Wealth Management"),
              ("PERSON", "Other", "Banking"), ("BUSINESS", "CommercialBanking", "Corporate"),
              ("BUSINESS", "SmallBusiness", "Commercial"), ("HOUSEHOLD", "Household", "Banking")]
     for kind, cat, want in cases:

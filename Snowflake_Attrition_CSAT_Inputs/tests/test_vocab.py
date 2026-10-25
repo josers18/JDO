@@ -21,7 +21,7 @@ def test_categories():
     c = v.CATEGORIES
     assert c["CUSTOMER_SEGMENT_C"] == ("Regular", "Premium", "Preferred")
     assert c["NPS_SCORE_C"] == ("Promoter", "Passive", "Detractor")
-    assert c["SEGMENT"] == ("Corporate", "WealthManagement", "Commercial", "Banking")
+    assert c["SEGMENT"] == ("Corporate", "Wealth Management", "Commercial", "Banking")
     assert c["KYC_STATUS"] == ("Current", "Pending", "Expired", "Under Review")
     assert c["AML_STATUS"] == ("Cleared", "Under Review", "Pending", "None")
     assert c["CHURNED_C"] == ("No",)

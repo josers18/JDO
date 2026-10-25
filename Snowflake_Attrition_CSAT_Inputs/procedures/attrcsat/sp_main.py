@@ -31,14 +31,18 @@ _sp_AUD = f"""aud AS (
 # Feed windows end at the run month's first day (exclusive): re-runs inside a month read the same data.
 _sp_ANCHOR = "DATE_TRUNC('month', CURRENT_DATE())"
 
+# A complaint is an NPS response at or below this score (the bottom of the 0-6 Detractor band). Counting every
+# detractor put 60% of accounts at the COMPLAINT_COUNT cap of 4: nearly everyone has 5 surveys a year, 66% detractor.
+_sp_COMPLAINT_NPS_MAX = 3
+
 # Deposit and investment products hold customer wealth; loans and lines (cards) are liabilities.
 _sp_WEALTH_KINDS = "PRODUCT_KIND IN ('deposit', 'investment')"
 
 FEATURES_SQL = f"""WITH {_sp_AUD},
 nps AS (
   SELECT ACCOUNTID AS ACCOUNT_ID, NPS_SCORE, NPS_DESCRIPTION,
-         COUNT_IF(NPS_SCORE <= 6 AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
-           OVER (PARTITION BY ACCOUNTID) AS DETRACTOR_12M
+         COUNT_IF(NPS_SCORE <= {_sp_COMPLAINT_NPS_MAX} AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
+           OVER (PARTITION BY ACCOUNTID) AS LOW_NPS_12M
   FROM {_sp_PREFIX}.CSAT_NPS_DATA
   WHERE SCORE_DATE < {_sp_ANCHOR}
   QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNTID ORDER BY SCORE_DATE DESC, ROWID DESC) = 1
