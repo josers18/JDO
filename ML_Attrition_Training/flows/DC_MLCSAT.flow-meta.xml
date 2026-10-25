@@ -90,9 +90,15 @@
             </value>
         </inputParameters>
         <inputParameters>
-            <name>param_Customer_ID__c</name>
+            <name>param_Annual_Income__c</name>
             <value>
-                <numberValue>0.0</numberValue>
+                <elementReference>Get_Zero_Copy_Inputs.Annual_Income__c</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>param_Escalated_Cases__c</name>
+            <value>
+                <elementReference>Get_Zero_Copy_Inputs.Escalated_Cases__c</elementReference>
             </value>
         </inputParameters>
         <nameSegment>Predicted_CSAT_Score_Latest_CM_12l_32q76ffeebd</nameSegment>
