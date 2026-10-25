@@ -6,13 +6,14 @@ CSAT_Score Latest" Model Builder model trains on. The original 5,000 rows didn't
 the accounts the model scores (CSAT_Prediction_Input__dlm): 71% had zero complaints
 where 60% of live accounts have four, products spread 1-9 where live sits at 1-3,
 transaction volume averaged 77 against 14 live, and the segment was spelled
-"Wealth Management" where scoring sends "WealthManagement". So every live score
-extrapolated, and Complaint_Count dominated every explanation.
+"Wealth Management" where scoring sent "WealthManagement". So every live score
+extrapolated, and Complaint_Count dominated every explanation. Since 2026-10-24 the
+scoring generator spells it "Wealth Management" and caps far fewer complaints.
 
 Features are bootstrapped from the live rows with jitter, so training matches scoring.
 CSAT_Score (20-100) is a noisy linear score: down with complaints, escalations and
 service contacts; up with digital engagement, tenure, products, cross-sell, credit score
-and the WealthManagement / Corporate segments.
+and the Wealth Management / Corporate segments.
 
 Input: CSV export of DATA_JEDAIS.FINS__PUBLIC.CSAT_ATTRITION_INPUTS (the CSAT scoring
 table, despite the name), e.g.
@@ -37,7 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'Marketing_Engag
 SEED = 20261025
 ROWS = 5_000
 TARGET_MEAN = 72.0
-NOISE_SD = 6.0
+NOISE_SD = 4.0
 TABLE = '"Fins".csat_prediction_training'
 
 # Heroku column -> scoring column. Order matches the table; Customer_ID is the stream's
@@ -64,7 +65,7 @@ INT_JITTER = {
     'AGE': (21, 79, 2), 'TENURE_YEARS': (1, 29, 1), 'CROSS_SELL_SCORE': (15, 92, 3),
     'TRANSACTION_VOLUME': (1, 36, 2), 'ANNUAL_INCOME': (40000, 14800000, None),
 }
-SEGMENT = {'WealthManagement': 4.0, 'Corporate': 2.0, 'Commercial': 0.0, 'Banking': -1.0}
+SEGMENT = {'Wealth Management': 4.0, 'Corporate': 2.0, 'Commercial': 0.0, 'Banking': -1.0}
 
 
 def jitter(rng, row):
