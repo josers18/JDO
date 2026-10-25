@@ -13,10 +13,10 @@ promotional product, short tenure, low balance; down with direct deposit,
 online/mobile banking, transactions, cross-sell, Preferred segment. The draw is
 Bernoulli, so the label stays noisy (holdout AUC ~0.8, not 1.0).
 
-Pct_Balance_Drop_6_Months_Avg_c is written but not used by the label. Until
-2026-10-24 the Heroku column was named " Pct_Balance_Drop_6_Months_Avg_c " (with
-spaces) and the stream never ingested it; it was renamed and added to the stream
-that day.
+Pct_Balance_Drop_6_Months_Avg_c is the strongest single driver. Live rows sit near
+0 (p90 0.1), so a third of training rows draw a wider drop (0-0.84) to give the
+model the full range. Until 2026-10-24 the Heroku column was named
+" Pct_Balance_Drop_6_Months_Avg_c " (with spaces) and the stream never ingested it.
 
 Input: CSV export of DATA_JEDAIS.FINS__PUBLIC.ATTRITION_INPUTS, e.g.
     snow sql -c SFDC_DC_TECH_ARCH_jwt --format csv \
@@ -41,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'Marketing_Engag
 SEED = 20261024
 ROWS = 10_000
 TARGET_CHURN = 0.25
+DROP_WIDEN = 0.35  # share of rows whose balance drop is redrawn across 0-0.84
 TABLE = '"Fins"."Retail_Attrition_Training_Data"'
 
 # Heroku column -> ATTRITION_INPUTS column. Order matches the table.
@@ -79,6 +80,8 @@ def jitter(rng, row):
     out['AVG_BALANCE_6_MONTHS_C'] = round(max(0.0, float(row['AVG_BALANCE_6_MONTHS_C']) * rng.uniform(0.85, 1.15)), 2)
     out['PCT_BALANCE_DROP_6_MONTHS_AVG_C'] = round(min(0.84, max(0.0, float(row['PCT_BALANCE_DROP_6_MONTHS_AVG_C'] or 0)
                                                               + rng.uniform(-0.02, 0.02))), 2)
+    if rng.random() < DROP_WIDEN:
+        out['PCT_BALANCE_DROP_6_MONTHS_AVG_C'] = round(0.84 * rng.betavariate(1.4, 3.2), 2)
     # Widen the live NPS mix a little (4% Promoter) so every level is learnable.
     if rng.random() < 0.12:
         out['NPS_SCORE_C'] = rng.choice(('Promoter', 'Passive', 'Detractor'))
@@ -98,6 +101,7 @@ def risk(r):
             - 0.18 * math.log10(1 + r['AVG_BALANCE_6_MONTHS_C'])
             + 0.8 * YES(r['SINGLE_PRODUCT_CUSTOMER_C'])
             + 0.6 * YES(r['PROMOTIONAL_PRODUCT_C'])
+            + 4.5 * r['PCT_BALANCE_DROP_6_MONTHS_AVG_C']
             - 2.0 * YES(r['DIRECT_DEPOSIT_C'])
             - 0.45 * YES(r['ONLINE_BANKING_C'])
             - 0.4 * YES(r['MOBILE_BANKING_C']))
@@ -138,6 +142,9 @@ def holdout_auc(rows):
 def profile(rows):
     n = len(rows)
     print(f'{n} rows, churn {sum(r["CHURNED_C"] == "Yes" for r in rows) / n:.3f}')
+    for lo, hi in ((0, 0.05), (0.05, 0.15), (0.15, 0.3), (0.3, 0.5), (0.5, 0.85)):
+        sub = [r for r in rows if lo <= r['PCT_BALANCE_DROP_6_MONTHS_AVG_C'] < hi]
+        print(f'  {"PCT_BALANCE_DROP":28} {lo:.2f}-{hi:.2f} n={len(sub):5} churn {sum(r["CHURNED_C"] == "Yes" for r in sub) / max(1, len(sub)):.3f}')
     for col in ('NPS_SCORE_C', 'DIRECT_DEPOSIT_C', 'SINGLE_PRODUCT_CUSTOMER_C', 'CUSTOMER_SEGMENT_C'):
         for v in sorted({r[col] for r in rows}):
             sub = [r for r in rows if r[col] == v]
