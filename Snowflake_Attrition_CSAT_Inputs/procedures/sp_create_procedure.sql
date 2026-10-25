@@ -159,7 +159,7 @@ CATEGORIES: dict[str, tuple[str, ...]] = {
     "CUSTOMER_SEGMENT_C": ("Regular", "Premium", "Preferred"),
     "NPS_SCORE_C": ("Promoter", "Passive", "Detractor"),
     "CHURNED_C": ("No",),
-    "SEGMENT": ("Corporate", "WealthManagement", "Commercial", "Banking"),
+    "SEGMENT": ("Corporate", "Wealth Management", "Commercial", "Banking"),
     "KYC_STATUS": ("Current", "Pending", "Expired", "Under Review"),
     "AML_STATUS": ("Cleared", "Under Review", "Pending", "None"),
     **{c: ("Yes", "No") for c in YES_NO_COLUMNS},
@@ -195,6 +195,9 @@ RANGES: dict[str, tuple[float, float]] = {
 import math
 from datetime import date, datetime
 
+
+# Negative Gong weeks per complaint, on top of the low NPS responses.
+_PF_NEG_WEEKS_PER_COMPLAINT = 2
 
 _PF_KIND_WEIGHTS = (("N_DEPOSIT", 0.20), ("N_LOAN", 0.25), ("N_INVESTMENT", 0.30), ("N_LINE", 0.25))
 
@@ -394,7 +397,7 @@ def build_profile(feature: dict, run_ts: datetime) -> dict:
         days_since = _pf_rng(aid, "days_since").randint(20, 90)
 
     neg_weeks = int(as_float(feature.get("NEG_WEEKS")) or 0)
-    complaints = int(as_float(feature.get("DETRACTOR_12M")) or 0) + neg_weeks // 4
+    complaints = int(as_float(feature.get("LOW_NPS_12M")) or 0) + neg_weeks // _PF_NEG_WEEKS_PER_COMPLAINT
     escalations = int(as_float(feature.get("VNEG_WEEKS")) or 0)
 
     breadth = sum(w for c, w in _PF_KIND_WEIGHTS if held.get(c, 0) > 0)
@@ -745,7 +748,7 @@ def _cs_segment(p: dict) -> str:
     if p["kind"] == "BUSINESS":
         return "Corporate" if p["client_category"] == "CommercialBanking" else "Commercial"
     if p["kind"] == "PERSON" and p["client_category"] in _CS_WEALTH:
-        return "WealthManagement"
+        return "Wealth Management"  # the training label's spelling, not the compact category
     return "Banking"
 
 
@@ -798,14 +801,18 @@ _sp_AUD = f"""aud AS (
 # Feed windows end at the run month's first day (exclusive): re-runs inside a month read the same data.
 _sp_ANCHOR = "DATE_TRUNC('month', CURRENT_DATE())"
 
+# A complaint is an NPS response at or below this score (the bottom of the 0-6 Detractor band). Counting every
+# detractor put 60% of accounts at the COMPLAINT_COUNT cap of 4: nearly everyone has 5 surveys a year, 66% detractor.
+_sp_COMPLAINT_NPS_MAX = 3
+
 # Deposit and investment products hold customer wealth; loans and lines (cards) are liabilities.
 _sp_WEALTH_KINDS = "PRODUCT_KIND IN ('deposit', 'investment')"
 
 FEATURES_SQL = f"""WITH {_sp_AUD},
 nps AS (
   SELECT ACCOUNTID AS ACCOUNT_ID, NPS_SCORE, NPS_DESCRIPTION,
-         COUNT_IF(NPS_SCORE <= 6 AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
-           OVER (PARTITION BY ACCOUNTID) AS DETRACTOR_12M
+         COUNT_IF(NPS_SCORE <= {_sp_COMPLAINT_NPS_MAX} AND SCORE_DATE >= DATEADD(month, -12, {_sp_ANCHOR}))
+           OVER (PARTITION BY ACCOUNTID) AS LOW_NPS_12M
   FROM {_sp_PREFIX}.CSAT_NPS_DATA
   WHERE SCORE_DATE < {_sp_ANCHOR}
   QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNTID ORDER BY SCORE_DATE DESC, ROWID DESC) = 1

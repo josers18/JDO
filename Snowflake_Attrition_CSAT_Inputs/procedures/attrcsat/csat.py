@@ -21,7 +21,7 @@ def _cs_segment(p: dict) -> str:
     if p["kind"] == "BUSINESS":
         return "Corporate" if p["client_category"] == "CommercialBanking" else "Commercial"
     if p["kind"] == "PERSON" and p["client_category"] in _CS_WEALTH:
-        return "WealthManagement"
+        return "Wealth Management"  # the training label's spelling, not the compact category
     return "Banking"
 
 

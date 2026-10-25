@@ -34,7 +34,7 @@ CATEGORIES: dict[str, tuple[str, ...]] = {
     "CUSTOMER_SEGMENT_C": ("Regular", "Premium", "Preferred"),
     "NPS_SCORE_C": ("Promoter", "Passive", "Detractor"),
     "CHURNED_C": ("No",),
-    "SEGMENT": ("Corporate", "WealthManagement", "Commercial", "Banking"),
+    "SEGMENT": ("Corporate", "Wealth Management", "Commercial", "Banking"),
     "KYC_STATUS": ("Current", "Pending", "Expired", "Under Review"),
     "AML_STATUS": ("Cleared", "Under Review", "Pending", "None"),
     **{c: ("Yes", "No") for c in YES_NO_COLUMNS},

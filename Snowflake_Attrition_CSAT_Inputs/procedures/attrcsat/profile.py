@@ -12,6 +12,9 @@ from datetime import date, datetime
 
 from attrcsat.common import as_date, as_float, clamp, stable_rng
 
+# Negative Gong weeks per complaint, on top of the low NPS responses.
+_PF_NEG_WEEKS_PER_COMPLAINT = 2
+
 _PF_KIND_WEIGHTS = (("N_DEPOSIT", 0.20), ("N_LOAN", 0.25), ("N_INVESTMENT", 0.30), ("N_LINE", 0.25))
 
 
@@ -210,7 +213,7 @@ def build_profile(feature: dict, run_ts: datetime) -> dict:
         days_since = _pf_rng(aid, "days_since").randint(20, 90)
 
     neg_weeks = int(as_float(feature.get("NEG_WEEKS")) or 0)
-    complaints = int(as_float(feature.get("DETRACTOR_12M")) or 0) + neg_weeks // 4
+    complaints = int(as_float(feature.get("LOW_NPS_12M")) or 0) + neg_weeks // _PF_NEG_WEEKS_PER_COMPLAINT
     escalations = int(as_float(feature.get("VNEG_WEEKS")) or 0)
 
     breadth = sum(w for c, w in _PF_KIND_WEIGHTS if held.get(c, 0) > 0)

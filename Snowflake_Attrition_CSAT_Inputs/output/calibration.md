@@ -7,7 +7,7 @@ the first real run, 2026-10-23 (run month 2026-10).
 
 | Profile field | Source | Window / rule | Fallback (stable_rng salt `attrcsat-<field>`) |
 |---|---|---|---|
-| NPS category, detractor count | `CSAT_NPS_DATA` (latest `SCORE_DATE < month start`, tie-break `ROWID DESC`; detractors = score <= 6 in last 12 months, the CSAT_NPS pipeline's own Detractor band 0-6) | `NPS_DESCRIPTION` prefix, else score (>=9 Promoter, >=7 Passive, else Detractor); source `Passives` maps to `Passive` (R3) | `nps`: 35% Promoter, 40% Passive, 25% Detractor |
+| NPS category, low-NPS count | `CSAT_NPS_DATA` (latest `SCORE_DATE < month start`, tie-break `ROWID DESC`; low-NPS count = responses scored 0-3 in the last 12 months) | `NPS_DESCRIPTION` prefix, else score (>=9 Promoter, >=7 Passive, else Detractor); source `Passives` maps to `Passive` (R3) | `nps`: 35% Promoter, 40% Passive, 25% Detractor |
 | Holdings, balance, tenure, direct deposit, promo | `FINANCIAL_TRANSACTION_ACCOUNTS` (active only) | read unbounded (current state). Products = count of distinct financial accounts (all kinds). `TOTAL_BALANCE` = sum of `BALANCE` over deposit + investment accounts only (`PRODUCT_KIND IN ('deposit', 'investment')`; loans and lines are liabilities); 0 when the customer holds none | `n_products` 1-3 (deposit always), `tenure` 12-240 months, `direct_deposit` p=0.55 person / 0.20 other, `promo` p=0.30, `balance` income x 0.25 x lognormal(0, 0.5) |
 | Avg balance, balance drop, transactions, savings rate | `ACCOUNT_DAILY_BALANCE` (6 months before month start; early vs late 3 months). Rows exist only on transacting days | per deposit/investment account: AVG(`CLOSING_BALANCE`) over the window, early half and late half; then summed per customer (early/late only over accounts present in both halves). `drop = (early - late) / early` when late < early. Monthly txn = SUM(`TRANSACTION_COUNT`, all products) / window length in days x 30. Savings rate = (credits - debits) / credits over deposit/investment accounts | `balance_drop`: 30% of accounts draw U(0, 0.15); `monthly_txn` U(2, 30) (or 30-day `FINANCIAL_TRANSACTIONS` count); `savings_rate` U(0.02, 0.12) |
 | Calls, last interaction, complaints, escalations | `GONG_CALL_SENTIMENT` (12 weeks; sentiment labels `Negative`, `Very Negative`) | calls / weeks x 4.33 | `monthly_calls` U(0.3, 2.0); `days_since` 20-90 |
@@ -16,11 +16,11 @@ the first real run, 2026-10-23 (run month 2026-10).
 
 ## Derivation rules
 
-- **Complaints** = detractor scores in the last 12 months + (negative Gong weeks // 4). **Escalations** = very-negative Gong weeks.
+- **Complaints** = NPS responses scored 0-3 in the last 12 months + (negative Gong weeks // 2). **Escalations** = very-negative Gong weeks.
 - **Cross-sell** = clamp(0.7 x breadth + 0.25 x min(products, 8) / 8 + U(-0.02, 0.02), 0, 1), where breadth is the sum of kind weights held (deposit 0.20, loan 0.25, investment 0.30, line 0.25). Attrition: `1 + round(6 x x)`; CSAT: `round(100 x x)`; enrollment: `1 + round(9 x x)`.
 - **Digital affinity** = logistic(-0.06 x (age - 50) + 0.02 x (monthly_txn - 15)), +0.6 logit for business, -0.5 for household.
 - **Attrition**: segment Preferred if category in (WealthManagement, Gold, Platinum) or balance >= 250k; Premium if category in (CommercialBanking, Silver) or balance >= 75k; else Regular. `CHURNED_C` is always `No`. `SINGLE_PRODUCT_CUSTOMER_C` = 1 product. Online/mobile banking copy the enrollment flags.
-- **CSAT**: segment Corporate/Commercial (business by category), WealthManagement (person in wealth categories), else Banking (R2 spelling). `DIGITAL_ENGAGEMENT` = 40 + 59 x (digital affinity + share of the six boolean flags set) / 2. `TENURE_YEARS` = tenure months / 12.
+- **CSAT**: segment Corporate/Commercial (business by category), `Wealth Management` (person in wealth categories; spelled with the space, as the CSAT model's training label is), else Banking. `DIGITAL_ENGAGEMENT` = 40 + 59 x (digital affinity + share of the six boolean flags set) / 2. `TENURE_YEARS` = tenure months / 12.
 - All numeric outputs are clamped to `RANGES` in `vocab.py`.
 
 ## Enrollment flags
@@ -74,6 +74,13 @@ across the whole book (`CHURNED_C`, always `No`, and the key columns are exempt)
 - Tenure caps differ by table contract: attrition `TENURE_IN_MONTHS_C` <= 74, CSAT `TENURE_YEARS` <= 34.
 - The SQL anchor `CURRENT_DATE()` uses the session timezone while `run_ts` is UTC. This is safe because the cron runs on day 2 at 05:00 ET, far from a month boundary.
 - `FINANCIAL_TRANSACTION_ACCOUNTS` holdings are read unbounded (current state), not windowed.
+
+## Changes
+
+| Date | Change | Why |
+|---|---|---|
+| 2026-10-24 | Complaints: detractor responses (score <= 6) + negative Gong weeks // 4 -> responses scored 0-3 + negative Gong weeks // 2 | Nearly every account has 5 surveys a year and 66% of responses are detractors, so 60% of accounts sat at the `COMPLAINT_COUNT` cap of 4 (avg 3.02). Now 0: 78.5%, 1: 14.6%, 2: 3.9%, 3: 1.8%, 4: 1.2% (avg 0.33) |
+| 2026-10-24 | CSAT `SEGMENT` `WealthManagement` -> `Wealth Management` | The CSAT training label is spelled with the space; the compact form was an unseen category for 3,967 rows. Internal `client_category` stays compact |
 
 ## Live run
 
