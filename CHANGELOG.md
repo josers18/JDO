@@ -50,6 +50,16 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
   - New tables: `marketing_campaign`, `marketing_campaign_template`, `marketing_feed_run`.
   - 49 tests. See [`Marketing_Engagement/README.md`](Marketing_Engagement/README.md).
 - **jdo-announce**: `/announce <component>` drafts a JDO launch post from the component's README using the `announce-jdo-component` skill's tone and template (read at runtime). The review pane sends to your DM first; **Post to #JDO** appears only once that exact draft is in your DM, and any revision re-locks it. 3 tests.
+- **Snowflake_Attrition_CSAT_Inputs** (PR [#137](https://github.com/josers18/JDO/pull/137)) — one Snowpark SP, `SP_GENERATE_ATTRITION_CSAT_INPUTS('INPUTS')`, builds a shared profile per `001am` account from the Cumulus feeds and atomically replaces `ATTRITION_INPUTS`, `CSAT_ATTRITION_INPUTS` and `ENROLLMENTS` (36,239 rows each, previously 741 rows across 159 accounts). Gates on vocabulary, cross-table agreement and sticky enrollment flags. Monthly task `TASK_MONTHLY_ATTRITION_CSAT_INPUTS` (2nd, 05:00 ET) is resumed. See [`Snowflake_Attrition_CSAT_Inputs/README.md`](Snowflake_Attrition_CSAT_Inputs/README.md).
+- **ML_Attrition_Training** (PRs [#135](https://github.com/josers18/JDO/pull/135), [#139](https://github.com/josers18/JDO/pull/139)) — generators that rebuild the Heroku training tables behind the `ML_Attrition_Training_Data` and `CSAT_Prediction_Training` streams from the live scoring rows, so training matches scoring:
+  - Attrition: 10,000 rows with a learnable churn label (25% churn; holdout AUC 0.82, was 0.555 on a label independent of every feature). Balance drop is now a real driver.
+  - CSAT: 5,000 rows, CSAT mean 72 (sd 8.4), holdout R² 0.74; segment spelled `Wealth Management` like scoring.
+  - `DC_MLAttrition` and `DC_MLCSAT` flows point at the retrained `*_Latest` models.
+
+### Fixed
+
+- **DC_Prediction_Model_LWC** (PR [#136](https://github.com/josers18/JDO/pull/136)) — the AI summary read "`<ENTITY_TYPE_0>` has an input value of 4" because the Trust Layer masks raw field API names. `ClassificationModelLwcController` now sends field labels instead.
+- **Snowflake_Attrition_CSAT_Inputs** (PR [#138](https://github.com/josers18/JDO/pull/138)) — `COMPLAINT_COUNT` counted every detractor NPS response, putting 60% of accounts at the cap of 4; it now counts responses of 3 or below plus one per 2 negative Gong weeks (78.5% at 0, mean 0.33). CSAT `SEGMENT` is spelled `Wealth Management` to match the training label.
 
 ---
 

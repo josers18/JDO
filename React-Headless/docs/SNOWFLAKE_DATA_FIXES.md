@@ -14,7 +14,8 @@ keyed to all 36,222) as the reference list of valid account Ids.
 
 Rule for all ML datasets: **training tables train the model; they are never read by
 the UI.** `Churn_Training_Data`, `ML_Attrition_Training_Data` and `CSAT_Prediction_Training`
-stay as-is (synthetic keys are fine there). The UI only reads *input* and *output/scoring*
+keep synthetic keys (that's fine there). The last two were regenerated from the live input rows
+on 2026-10-24 by `ML_Attrition_Training/` so the models train on what they score. The UI only reads *input* and *output/scoring*
 tables, and those must carry real Account Ids.
 
 ---
@@ -50,8 +51,13 @@ monthly task `TASK_MONTHLY_ATTRITION_CSAT_INPUTS`, `0 5 2 * * America/New_York`,
 - Live in Data Cloud (federated, `jdo-gj9q5q`): `Attrition_Inputs_Snowflake__dlm`,
   `CSAT_Prediction_Input__dlm` and `Enrollments__dlm` each read 36,239 rows / 36,239 distinct keys.
 - `ENROLLMENTS.SNAPSHOT_DATE` = run month's first day (one current row per customer).
+- 2026-10-24 (#138): `COMPLAINT_COUNT` no longer saturates at 4 (0 = 78.5%, mean 0.33; was 60% at 4),
+  and CSAT `SEGMENT` is spelled `Wealth Management` like the training label.
+- Training sets regenerated from these rows (#135, #139): attrition holdout AUC 0.82, CSAT holdout R² 0.74.
+  `DC_MLAttrition` and `DC_MLCSAT` call the `*_Latest` models.
 
 Still open (D360 side, not Snowflake):
+- Retrain and activate "Predicted CSAT_Score Latest" on the 2026-10-25 `CSAT_Prediction_Training` refresh.
 - Re-score so the output DMOs (`Attrition_Prediction__dlm`, `Predicted_CSAT_Output__dlm`)
   get one current row per account.
 

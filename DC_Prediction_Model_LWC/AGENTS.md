@@ -104,6 +104,8 @@ classificationModelLwc renders:
 
 `generateAnalysisSummary(promptTemplateId, promptInputApiName, prediction, factorsJson, recommendationsJson, predictionOutputFormat)` packs `{prediction, factors, recommendations, predictionOutputFormat}` into a single JSON string and submits as one `ConnectApi.WrappedValue` keyed by `promptInputApiName` (default `Input:Prediction_Context`). The prompt template must declare a single flex text input matching that API name; see `docs/PROMPT_TEMPLATE_GUIDE.md`.
 
+Before packing, `humanizeFieldNames` rewrites each factor/recommendation field `name` to its `label` (or `humanizeApiName`, e.g. `Complaint_Count__c` → `Complaint Count`). The Einstein Trust Layer masks raw API names as `<ENTITY_TYPE_n>` and never restores them, so sending API names makes the summary unreadable.
+
 # Conventions
 
 ## Apex

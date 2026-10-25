@@ -18,7 +18,7 @@ Each run replaces all three tables atomically and logs to `TASK_EXECUTION_LOG` a
 
 ## Audience
 
-Every `V_ACCOUNT_ANCHORS` row with `ACCOUNT_ID LIKE '001am%'`, one row per `ACCOUNT_ID`: 36,239 accounts. Kind comes from `CLIENT_CATEGORY` (spaces stripped, so live `Wealth Management` → `WealthManagement`), falling back to `ACCOUNT_TYPE_FLAG`: 25,516 PERSON (incl. 92 Gold/Silver/Bronze/Platinum persons with no birthdate), 5,633 BUSINESS, 5,090 HOUSEHOLD.
+Every `V_ACCOUNT_ANCHORS` row with `ACCOUNT_ID LIKE '001am%'`, one row per `ACCOUNT_ID`: 36,239 accounts. Kind comes from `CLIENT_CATEGORY` (spaces stripped, so live `Wealth Management` → `WealthManagement`; the CSAT `SEGMENT` column keeps the space, to match the CSAT training label), falling back to `ACCOUNT_TYPE_FLAG`: 25,516 PERSON (incl. 92 Gold/Silver/Bronze/Platinum persons with no birthdate), 5,633 BUSINESS, 5,090 HOUSEHOLD.
 
 **Ruling R1:** households are included. The spec's "excluding households" conflicts with its "about 36.2k, matching CSAT_NPS_DATA"; excluding them gives 31,149. Households have no financial accounts, so they use the feed-less fallbacks.
 
@@ -39,7 +39,7 @@ The tables federate zero-copy into Data Cloud:
 ```bash
 cd Snowflake_Attrition_CSAT_Inputs
 python -m venv .venv && .venv/bin/pip install -e ".[dev]" -e ../Snowflake_Cumulus_Common
-.venv/bin/pytest            # 116 tests
+.venv/bin/pytest            # 117 tests
 ```
 
 `tests/test_deploy_sp.py` checks that the committed `procedures/sp_create_procedure.sql` matches `build_sql()`. Regenerate it with `.venv/bin/python scripts/deploy_sp.py --no-deploy` after any module change.
@@ -47,10 +47,10 @@ python -m venv .venv && .venv/bin/pip install -e ".[dev]" -e ../Snowflake_Cumulu
 ## Deploy and run
 
 ```bash
-.venv/bin/python scripts/deploy_sp.py --connection SFDC_DC_TECH_ARCH --role ACCOUNTADMIN   # regenerate + CREATE OR REPLACE
-snow sql -c SFDC_DC_TECH_ARCH --role ACCOUNTADMIN -q \
+.venv/bin/python scripts/deploy_sp.py --connection SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN   # regenerate + CREATE OR REPLACE
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -q \
   "CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ATTRITION_CSAT_INPUTS(''INPUTS'')', 2)"
-snow sql -c SFDC_DC_TECH_ARCH --role ACCOUNTADMIN -f tasks/task_monthly_attrition_csat_inputs.sql
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_monthly_attrition_csat_inputs.sql
 ```
 
 The task file recreates the task suspended. Run `ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_ATTRITION_CSAT_INPUTS RESUME;` after verifying the first live run.

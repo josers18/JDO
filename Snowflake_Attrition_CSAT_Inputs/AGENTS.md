@@ -38,14 +38,14 @@ Module concatenation order is `common, vocab, profile, checks, enrollments, attr
 - Tuning lives in named constants. Record every change in `output/calibration.md` (old -> new, why).
 
 ## Tests
-- `pytest`: 116 tests over vocab, profile, enrollments, rows, SP SQL text and the `deploy_sp` build. `test_deploy_sp.py` fails if `sp_create_procedure.sql` is stale. Regenerate with `deploy_sp.py --no-deploy`.
+- `pytest`: 117 tests over vocab, profile, enrollments, rows, SP SQL text and the `deploy_sp` build. `test_deploy_sp.py` fails if `sp_create_procedure.sql` is stale. Regenerate with `deploy_sp.py --no-deploy`.
 - Live check after `INPUTS`: row counts equal the audience (36,239 on 2026-10-23), 0 NULLs in every column, no duplicate keys.
 
 ## Gotchas
 - **No `$$` and no bare `&` in module source.** `build_sql()` rejects both: `$$` would end the procedure literal, and `snow sql -f` treats `&{...}` as a template. Write "and".
 - **SP-local top-level names use the `_sp_` prefix.** `check_name_collisions` rejects duplicates across the concatenated modules.
 - **Snowpark binds `None` as `'None'`.** The log insert passes `''` and wraps it in `NULLIF`.
-- **`snow` connection flags go after `sql`:** `snow sql -c SFDC_DC_TECH_ARCH --role ACCOUNTADMIN ...`. The `FINS__PUBLIC` objects belong to ACCOUNTADMIN.
+- **`snow` connection flags go after `sql`:** `snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN ...`. The `FINS__PUBLIC` objects belong to ACCOUNTADMIN. Use the `_jwt` key-pair connection; the plain one opens an OAuth browser prompt.
 - **The task file recreates the task SUSPENDED.** Run `ALTER TASK ... RESUME` after re-running it.
 - **`ENROLLMENTS` is downstream profile data**: flags must stay consistent (MFA implies digital; KYC/AML follow the risk profile) and sticky month to month. The other two tables are D360 model inputs only.
 - **`output/*pool*.json` is gitignored** and may hold real account ids. Keep `calibration.md` aggregate-only.
@@ -53,4 +53,6 @@ Module concatenation order is `common, vocab, profile, checks, enrollments, attr
 - **Feeds carry `ORG_ID`; the feature CTEs don't filter on it.** Fine while JDO is the only org. Add `ORG_ID = 'JDO'` (or the run's org) to every feed CTE in Phase B.
 - **Staging table names are fixed** (`<table>_STAGING`, overwritten by `write_pandas`). Never run two `INPUTS` calls concurrently.
 - **Kind comes from `CLIENT_CATEGORY` first.** `ACCOUNT_TYPE_FLAG` is just `BIRTHDATE IS NOT NULL`; it is only the fallback for unknown categories.
+- **CSAT `SEGMENT` is spelled `Wealth Management`** (with the space) because the CSAT training label uses it. The internal category stays `WealthManagement`; `_cs_segment` maps it.
+- **`COMPLAINT_COUNT` is not "detractor responses".** Almost every account has 5 NPS responses a year and two thirds are detractors, so counting every response of 6 or below caps 60% of accounts at 4. It counts responses of `_sp_COMPLAINT_NPS_MAX` (3) or below plus one per 2 negative Gong weeks (`_PF_NEG_WEEKS_PER_COMPLAINT`).
 - **`ACCOUNT_DAILY_BALANCE` rows exist only on transacting days.** Balances are averaged per financial account before summing; the transaction rate divides by the window length in days.
