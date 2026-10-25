@@ -113,8 +113,8 @@ public with sharing class ClassificationModelLwcController {
 
         Map<String, Object> payload = new Map<String, Object>{
             'prediction' => prediction,
-            'factors' => factorsJson,
-            'recommendations' => recommendationsJson
+            'factors' => humanizeFieldNames(factorsJson),
+            'recommendations' => humanizeFieldNames(recommendationsJson)
         };
         if (String.isNotBlank(predictionOutputFormat)) {
             payload.put('predictionOutputFormat', predictionOutputFormat.trim());
@@ -159,6 +159,68 @@ public with sharing class ClassificationModelLwcController {
                 'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.'
             );
         }
+    }
+
+    /**
+     * Rewrites each factor/prescription field `name` from its API name to a readable label
+     * ("Complaint_Count__c" -> "Complaint Count") before the JSON reaches the prompt.
+     * The Einstein Trust Layer masks raw API names as <ENTITY_TYPE_n> and doesn't restore
+     * them in the response, so the summary would otherwise read "<ENTITY_TYPE_0> ...".
+     * Returns the input unchanged when it isn't a JSON array of factor objects.
+     */
+    @TestVisible
+    private static String humanizeFieldNames(String factorJson) {
+        if (String.isBlank(factorJson)) {
+            return factorJson;
+        }
+        Object parsed;
+        try {
+            parsed = JSON.deserializeUntyped(factorJson);
+        } catch (JSONException e) {
+            return factorJson;
+        }
+        if (!(parsed instanceof List<Object>)) {
+            return factorJson;
+        }
+        for (Object item : (List<Object>) parsed) {
+            if (!(item instanceof Map<String, Object>)) {
+                continue;
+            }
+            Object fields = ((Map<String, Object>) item).get('fields');
+            if (!(fields instanceof List<Object>)) {
+                continue;
+            }
+            for (Object f : (List<Object>) fields) {
+                if (f instanceof Map<String, Object>) {
+                    Map<String, Object> field = (Map<String, Object>) f;
+                    Object label = field.get('label');
+                    Object name = field.get('name');
+                    if (label instanceof String && String.isNotBlank((String) label)) {
+                        field.put('name', label);
+                    } else if (name instanceof String) {
+                        field.put('name', humanizeApiName((String) name));
+                    }
+                }
+            }
+        }
+        return JSON.serialize(parsed);
+    }
+
+    /** Mirrors the LWC's humanizeApiName: strip custom suffixes, underscores to spaces. */
+    @TestVisible
+    private static String humanizeApiName(String apiName) {
+        String n = apiName.trim();
+        for (Integer pass = 0; pass < 2; pass++) {
+            for (String suffix : new List<String>{ '_c__c', '__c', '__r', '_c' }) {
+                if (n.toLowerCase().endsWith(suffix)) {
+                    n = n.left(n.length() - suffix.length());
+                    break;
+                }
+            }
+        }
+        n = n.replace('_', ' ');
+        n = n.replaceAll('([a-z0-9])([A-Z])', '$1 $2').replaceAll('([A-Z]+)([A-Z][a-z])', '$1 $2');
+        return n.normalizeSpace();
     }
 
     /**
