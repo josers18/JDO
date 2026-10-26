@@ -4,7 +4,7 @@
  * Verified live against jdo-1lrnov (storm-16a17dc388fbe6, 2026-07-07). Sources:
  *   · Account, Case, Opportunity, FinServ__FinancialAccount__c        → GraphQL (uiapi)
  *   · ssot__FinancialAccountTransaction__dlm (transactions)           → Data Cloud
- *   · Financial_Trades__dlm (trades)                                  → Data Cloud
+ *   · BT_Financial_Trades__dlm (trades)                                  → Data Cloud
  *   · InteractionSummary_Home__dlm (interactions)                     → Data Cloud
  *   · Meeting_Note_c_Home__dlm (meeting notes)                        → Data Cloud
  *   · CSAT_Snowflake__dlm (CSAT/NPS + trend + verbatims)              → Data Cloud
@@ -103,7 +103,7 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
   const [core, txns, tradeRows, inters, notes, csatRows, camps, gong, aml, attr, pcsat, propRows, planRows, ziRows, bxRows, esgRows, secRows] = await Promise.all([
     executeGraphQL<CoreShape>(coreQuery(acct)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT ssot__TransactionDate__c dt, ssot__FinancialTransactionCategory__c cat, ssot__FinancialAccountTransactionType__c typ, ssot__TransactionAmount__c amt FROM ssot__FinancialAccountTransaction__dlm WHERE SFAccountID__c = '${acct}' ORDER BY ssot__TransactionDate__c DESC LIMIT 12`, 12)),
-    rows(queryDataCloud<Record<string, unknown>>(`SELECT TradeDate__c dt, TradeSide__c side, InstrumentName__c inst, InstrumentIdentifier__c sym, Quantity__c qty, Price__c px, Total_Trade__c tot FROM Financial_Trades__dlm WHERE AccountID__c = '${acct}' ORDER BY TradeDate__c DESC LIMIT 10`, 10)),
+    rows(queryDataCloud<Record<string, unknown>>(`SELECT trade_date__c dt, trade_side__c side, instrument_name__c inst, instrument_identifier__c sym, quantity__c qty, price__c px, total_trade__c tot FROM BT_Financial_Trades__dlm WHERE account_id__c = '${acct}' ORDER BY trade_date__c DESC LIMIT 10`, 10)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT CreatedDate__c dt, Name__c nm, InteractionPurpose__c purp, MeetingNotes__c notes, NextSteps__c nxt FROM InteractionSummary_Home__dlm WHERE AccountId__c = '${acct}' ORDER BY CreatedDate__c DESC LIMIT 8`, 8)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT Date_c__c dt, Title_c__c ttl, Notes_c__c notes FROM Meeting_Note_c_Home__dlm WHERE Account_c__c = '${acct}' ORDER BY Date_c__c DESC LIMIT 6`, 6)),
     rows(queryDataCloud<Record<string, unknown>>(`SELECT csat_score__c csat, nps_score__c nps, csat_description__c csatd, nps_description__c npsd, score_date__c dt FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY score_date__c DESC LIMIT 8`, 8)),

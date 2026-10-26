@@ -26,7 +26,7 @@
  *     "What meetings need prep?" chip; stale plans counted on the KPI note
  *   · W4 crypto & robo leakage (Plaid held-away, Crypto Exchange / Robo-Advisor)
  *     → digital-assets insight card under the queue
- *   · W5 trading pulse (Financial_Trades__dlm, confirmed USD): eight weeks of
+ *   · W5 trading pulse (BT_Financial_Trades__dlm, confirmed USD): eight weeks of
  *     buys vs sells "as of" the latest trade → card; net sellers → reinvest queue
  *   · W6 business-owner clients (relationship graph BUSINESS_OWNER + ZoomInfo on
  *     the business): liquidity-event / 401(k) / succession angle → growth card + KPI

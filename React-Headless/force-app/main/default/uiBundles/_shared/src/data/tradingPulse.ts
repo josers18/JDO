@@ -1,43 +1,44 @@
 /**
- * W5 — trading activity pulse from `Financial_Trades__dlm`: buys vs sells per
+ * W5 — trading activity pulse from `BT_Financial_Trades__dlm`: buys vs sells per
  * trade date over the eight weeks up to the latest CRM-account trade, plus the
  * book's biggest net sellers in that latest week (cash raised → reinvest call).
  * Confirmed USD trades only — the stream mixes currencies with no FX rate.
  *
- * ⚠ The trade stream lands in weekly batches and has been failing: the latest
- * trade is 2026-08-31, so the card is presented "as of" that date.
- * Verified live 2026-10-22, Sarah Smith's book: ~$680–700M each way per week;
- * top net seller $550K in the latest week.
+ * Since 2026-10-26 BT_Financial_Trades is zero-copy direct access (no
+ * acceleration), so these queries read Snowflake FINANCIAL_TRADES live; the old
+ * Financial_Trades__dlm only keeps the Streaming API trades.
+ * Generation covers every account from 2026-10-26, so that day jumps from
+ * ~$15–18M to ~$8.6B each way (278K confirmed USD trades across CRM accounts).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
 
-const LATEST = "(SELECT MAX(TradeDate__c) FROM Financial_Trades__dlm WHERE AccountID__c LIKE '001am%')";
-const SLICE = "TradeStatus__c = 'Confirmed' AND Currency__c = 'USD'";
+const LATEST = "(SELECT MAX(trade_date__c) FROM BT_Financial_Trades__dlm WHERE account_id__c LIKE '001am%')";
+const SLICE = "trade_status__c = 'Confirmed' AND currency__c = 'USD'";
 
 const weeklySql = (accountFilter: string) => `
-  SELECT CAST(CAST(TradeDate__c AS DATE) AS VARCHAR) AS d,
-         SUM(CASE WHEN TradeSide__c = 'Buy' THEN Total_Trade__c ELSE 0 END) AS buys,
-         SUM(CASE WHEN TradeSide__c = 'Sell' THEN Total_Trade__c ELSE 0 END) AS sells,
+  SELECT CAST(CAST(trade_date__c AS DATE) AS VARCHAR) AS d,
+         SUM(CASE WHEN trade_side__c = 'Buy' THEN total_trade__c ELSE 0 END) AS buys,
+         SUM(CASE WHEN trade_side__c = 'Sell' THEN total_trade__c ELSE 0 END) AS sells,
          COUNT(*) AS n
-  FROM Financial_Trades__dlm
-  WHERE TradeDate__c >= ${LATEST} - INTERVAL '56' DAY
+  FROM BT_Financial_Trades__dlm
+  WHERE trade_date__c >= ${LATEST} - INTERVAL '56' DAY
     AND ${SLICE}
-    AND AccountID__c ${accountFilter}
-  GROUP BY CAST(TradeDate__c AS DATE)
+    AND account_id__c ${accountFilter}
+  GROUP BY CAST(trade_date__c AS DATE)
   ORDER BY 1
 `;
 
 const sellersSql = (accountFilter: string) => `
-  SELECT AccountID__c AS account_id,
-         SUM(CASE WHEN TradeSide__c = 'Sell' THEN Total_Trade__c ELSE -Total_Trade__c END) AS net_sold,
-         COUNT(*) AS trades, MAX(InstrumentName__c) AS instrument
-  FROM Financial_Trades__dlm
-  WHERE TradeDate__c >= ${LATEST} - INTERVAL '6' DAY
+  SELECT account_id__c AS account_id,
+         SUM(CASE WHEN trade_side__c = 'Sell' THEN total_trade__c ELSE -total_trade__c END) AS net_sold,
+         COUNT(*) AS trades, MAX(instrument_name__c) AS instrument
+  FROM BT_Financial_Trades__dlm
+  WHERE trade_date__c >= ${LATEST} - INTERVAL '6' DAY
     AND ${SLICE}
-    AND AccountID__c ${accountFilter}
-  GROUP BY AccountID__c
-  HAVING SUM(CASE WHEN TradeSide__c = 'Sell' THEN Total_Trade__c ELSE -Total_Trade__c END) > 0
+    AND account_id__c ${accountFilter}
+  GROUP BY account_id__c
+  HAVING SUM(CASE WHEN trade_side__c = 'Sell' THEN total_trade__c ELSE -total_trade__c END) > 0
   ORDER BY 2 DESC
   LIMIT 4
 `;

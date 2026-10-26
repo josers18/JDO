@@ -92,7 +92,37 @@ Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgr
   `Financial_Transactions` stream stays suppressed: it's a Profile-category DLO that can't map to the
   Engagement DMO `ssot__FinancialAccountTransaction`.
 
-## 4. Financial trades: ⚠️ TRD keys gone 2026-10-24, but the nightly incremental failed 2026-10-25 (DLO stuck at 10-23)
+## 4. Financial trades: ✅ switched to zero-copy direct access 2026-10-26 (no more nightly incremental)
+
+**Now (2026-10-26):** `BT_Financial_Trades` (`1dsam000000PrFjAAK`) is zero-copy **direct access**
+(`dataAccessMode` `DIRECT_ACCESS`, `isAccelerationEnabled` false, no refresh schedule). Queries read Snowflake
+`FINANCIAL_TRADES` live, so the incremental watermark failure below can't recur. The history below explains why.
+- **Why acceleration was locked:** a data graph needs every object in it cached, so while `Financial_Trades__dlm`
+  sat in `Account_DataGraph`, `RT_Web_Engagements` and `RT_Web_Engagementsv2`, the stream had to stay accelerated.
+  `Account_Main_DG` (its consumer prompt templates were cleaned up first) was deleted the same day.
+- **Mapping moved to a new DMO.** `BT_Financial_Trades__dll` was unmapped from `Financial_Trades__dlm`. That was
+  allowed because the DMO has a second source, `Streaming_API_TradeTransaction_D688A535__dll`. It now maps 1:1 (30
+  fields, snake_case, PK `trade_id__c`) to the new **`BT_Financial_Trades__dlm`**. Verified live: 9,657,982 rows,
+  `MAX(trade_date__c)` 2026-10-26, 7,988,717 on CRM `001am…` accounts.
+- **`Financial_Trades__dlm` now holds only the Streaming API trades** (88 rows, 2 accounts, latest 2026-08-27). So
+  the three data graphs above now return only those trades, too.
+- **Cockpits repointed** (branch `fix/trades-bt-dmo`): `_shared/src/data/tradingPulse.ts` (W5),
+  `_shared/src/data/dataFreshness.ts` (Trades pill, cadence now `daily`), and the trades query in each cockpit's
+  `personas/customer/full360DataReal.ts`. Field map: `TradeDate__c`→`trade_date__c`, `AccountID__c`→`account_id__c`,
+  `TradeSide__c`→`trade_side__c`, `Total_Trade__c`→`total_trade__c`, `TradeStatus__c`→`trade_status__c`,
+  `Currency__c`→`currency__c`, `InstrumentName__c`→`instrument_name__c`,
+  `InstrumentIdentifier__c`→`instrument_identifier__c`, `Quantity__c`→`quantity__c`, `Price__c`→`price__c`.
+  All four queries ran live, and Retail, Wealth and Commercial were built and deployed (388 components, 0 errors).
+- **Semantic model `Trades`: still on `Financial_Trades__dlm`.** Its `Financial_Trades` object holds 23 dimensions
+  and 4 measurements, and it feeds the `Financial_Trades_Account` relationship, `Total_Trade_Count_clc` and 3 metrics
+  (`Trade_Buys_mtc` and two others). `PUT /ssot/semantic/models/Trades/data-objects/Financial_Trades` with
+  `dataObjectName` changed is rejected: `UPDATE_ENTITY_API_NAME_ERROR … Updating API name on DIMENSION object field is
+  not allowed` (PATCH isn't allowed at all). Repointing means adding a `BT_Financial_Trades` data object, then moving
+  the relationship, calculated measure and metrics onto it, then dropping the old object.
+- **Volume:** from 2026-10-26 trade generation covers every account in `TRADE_GENERATION_CONFIG` (36,773 rows,
+  previously 1–2 test accounts). The day jumped from ~3K to 667,051 rows. W5 shows that day at ~$8.6B each way
+  versus ~$15–18M on earlier days. Live queries scan more as the table grows, so a retention window may be needed.
+
 
 Was: stream `BT_Financial_Trades` (INCREMENTAL on `TRADE_DATE`) last ran on 2026-10-01 and failed.
 DLO `MAX(trade_date__c)` was 2026-09-01, and some account keys were `TRD-001…` placeholders.
@@ -131,7 +161,7 @@ Nightly incremental (DC side):
 - Rollback: `FINANCIAL_TRADES_BAK_20261024` (pre-001), `FINANCIAL_TRADES_BAK_20261024_TZ` (pre-002),
   `TRADE_GENERATION_CONFIG_BAK_20261024`.
 
-App side: any trade widget (W5) anchors its window on `MAX(trade_date)`, not `CURRENT_DATE`. No home page reads trades yet.
+App side: any trade widget (W5) anchors its window on `MAX(trade_date__c)`, not `CURRENT_DATE`. Read trades from `BT_Financial_Trades__dlm` (see the top of this section).
 
 ## 5. D&B business credit (`BT_DNB_Business_Credit`): ✅ generator v1.6 2026-10-24
 
