@@ -117,6 +117,15 @@ Nightly incremental (DC side):
   `ExternalStreamErrorCode` (the reason is only in the stream's Refresh History in DC Setup). The DLO is unchanged:
   8,984,809 rows, `MAX(trade_date__c)` 2026-10-23. Snowflake is fine: 8,990,931 rows, 3,061 each for 10-24 and 10-25.
   The only success since the `DATE` switch added 0 rows, so a run with new rows has not yet succeeded.
+- **Cause** (DC Setup → Refresh History): `ConnectorException … DateTimeParseException: Text '2026-10-23' could not be
+  parsed at index 10`. The stream's incremental column is `TRADE_DATE` (`advancedAttributes.incrementalColumn`). The
+  connector stores the column's last max value as the watermark and parses it as a date-time, so it expects a time
+  after the 10-character date. A `DATE` column gives a bare date and the parse fails. `TIMESTAMP_TZ` parsed as a
+  watermark but its values were misread (0006-07-18). The 10-24 run likely passed only because the Full Refresh left
+  no `DATE`-typed watermark. So no column type works for both the values and the watermark.
+- `FINANCIAL_TRADES.CREATED_AT` (`TIMESTAMP_NTZ`) would suit an incremental column, but `DataStreamPatchInputRepresentation`
+  has no `advancedAttributes`, so an existing stream's incremental column can't be changed. Options: rebuild the stream
+  on `CREATED_AT`, switch it to `TOTAL_REPLACE` (~9M rows a night), or run a Full Refresh by hand until then.
 - If it fails again, the fallback is a rebuilt stream (correct date format or TOTAL_REPLACE). That stream feeds a
   data graph, prompt templates and a semantic model, so a rebuild needs a planned re-point.
 - Rollback: `FINANCIAL_TRADES_BAK_20261024` (pre-001), `FINANCIAL_TRADES_BAK_20261024_TZ` (pre-002),
