@@ -113,12 +113,14 @@ Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgr
   `Currency__c`→`currency__c`, `InstrumentName__c`→`instrument_name__c`,
   `InstrumentIdentifier__c`→`instrument_identifier__c`, `Quantity__c`→`quantity__c`, `Price__c`→`price__c`.
   All four queries ran live, and Retail, Wealth and Commercial were built and deployed (388 components, 0 errors).
-- **Semantic model `Trades`: still on `Financial_Trades__dlm`.** Its `Financial_Trades` object holds 23 dimensions
-  and 4 measurements, and it feeds the `Financial_Trades_Account` relationship, `Total_Trade_Count_clc` and 3 metrics
-  (`Trade_Buys_mtc` and two others). `PUT /ssot/semantic/models/Trades/data-objects/Financial_Trades` with
-  `dataObjectName` changed is rejected: `UPDATE_ENTITY_API_NAME_ERROR … Updating API name on DIMENSION object field is
-  not allowed` (PATCH isn't allowed at all). Repointing means adding a `BT_Financial_Trades` data object, then moving
-  the relationship, calculated measure and metrics onto it, then dropping the old object.
+- **Semantic model `Trades`: repointed 2026-10-26.** The API won't repoint a data object in place (PATCH isn't
+  allowed; PUT with a new `dataObjectName` fails with `UPDATE_ENTITY_API_NAME_ERROR … Updating API name on DIMENSION
+  object field is not allowed`). So a new `BT_Financial_Trades` object (→ `BT_Financial_Trades__dlm`) was added, with
+  relationship `BT_Financial_Trades_Account` (`ACCOUNT_ID` = `Account3.Account_Id4`) and calculated measures
+  `Total_Trades_clc` and `BT_Financial_Trades_rowCount`. `Trade_Buys_mtc`, `Trade_Count_mtc` and `Trade_Sells_mtc` now
+  read only `BT_Financial_Trades` + `Account3`. Still in the model and safe to delete: the old `Financial_Trades`
+  object (no relationship, 88-row DMO) and `Total_Trade_Count_clc` (`COUNT([Financial_Trades].[OrderID])`). Delete
+  the calculated measure first.
 - **Volume:** from 2026-10-26 trade generation covers every account in `TRADE_GENERATION_CONFIG` (36,773 rows,
   previously 1–2 test accounts). The day jumped from ~3K to 667,051 rows. W5 shows that day at ~$8.6B each way
   versus ~$15–18M on earlier days. Live queries scan more as the table grows, so a retention window may be needed.
