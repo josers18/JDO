@@ -186,7 +186,7 @@ Probed the real org (GraphQL `uiapi` + Data Cloud `ssot/queryv2`). Findings that
 | `CumulusCoreLogicProperty__dlm` | `ssot__AccountId__c` ✅ | 17 cols |
 | `CumulusGongCallSentiment__dlm` | `ssot__AccountId__c` ✅ | 18 cols |
 | `CumulusWorldCheckAml__dlm` | `ssot__AccountId__c` ✅ | 17 cols (AML) |
-| `Financial_Trades__dlm` | `AccountID__c` / `KQ_AccountID__c` ✅ | 28 cols |
+| `BT_Financial_Trades__dlm` | `account_id__c` / `KQ_account_id__c` ✅ | 30 cols (zero-copy direct; replaced `Financial_Trades__dlm` 2026-10-26, which now holds only Streaming API trades) |
 | `CumulusSynthRelationshipGraph__dlm` | (none — 10 cols, own key) | join via relationship id, not account |
 | `Bank_Churner__dlm` | ❌ **email/Id only** | Raw Kaggle churn feature set (`Attrition_Flag__c` label: 8,500 existing / 1,627 attrited). Keyed on `EmailAddress__c`+`Id__c`; does NOT join to Account → cannot drive an account-level churn score directly. Use for aggregate/segment churn, not per-client. |
 | `PERSONAL_PRODUCT_RECOMMENDATION__dlm` | ❌ **404 — does not exist** | Only `PERSONAL_PRODUCT_RECOMMENDATION_INPU__dlm` exists (input FEATURES keyed on `accountid__c`: income, credit_score, deposit, dti, risk_tolerance…) — NO recommendation OUTPUT column. "Next best product" must be derived, not read. |

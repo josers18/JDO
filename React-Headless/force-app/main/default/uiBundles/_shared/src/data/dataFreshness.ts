@@ -33,7 +33,7 @@ const SOURCES = {
   moodys: { label: "Moody's market context", cadence: 'daily', sql: 'MAX(profile_date__c) FROM BT_Moodys_Market_Context__dlm' },
   boardex: { label: 'BoardEx governance', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Boardex__dlm' },
   msci: { label: 'MSCI ESG', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_MSCI_ESG_Scores__dlm' },
-  trades: { label: 'Trades', cadence: 'weekly', sql: "MAX(TradeDate__c) FROM Financial_Trades__dlm WHERE AccountID__c LIKE '001am%'" },
+  trades: { label: 'Trades', cadence: 'daily', sql: "MAX(trade_date__c) FROM BT_Financial_Trades__dlm WHERE account_id__c LIKE '001am%'" },
   claritas: { label: 'Claritas demographics', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm' },
   esri: { label: 'ESRI geo footprint', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_ESRI_GEO_Footprint__dlm' },
   zoominfo: { label: 'ZoomInfo firmographics', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Zoominfo_Firmographics__dlm' },
