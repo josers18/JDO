@@ -35,6 +35,18 @@ function clampSummaryFontScale(raw) {
     return p / 100;
 }
 
+// Gemini Flash tacks a courtesy line ("Your attention ... is appreciated.")
+// onto the summary no matter how the prompt forbids it, so drop trailing ones.
+const COURTESY_SENTENCE = /\b(appreciat\w*|thank\w*|acknowledg\w*|grateful)\b/i;
+
+function stripCourtesyTail(text) {
+    const sentences = String(text).trim().split(/(?<=[.!?])\s+/);
+    while (sentences.length > 1 && COURTESY_SENTENCE.test(sentences[sentences.length - 1])) {
+        sentences.pop();
+    }
+    return sentences.join(' ');
+}
+
 function easeOutExpo(t) {
     return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 }
@@ -692,7 +704,7 @@ export default class ClassificationModelLwc extends LightningElement {
                 recommendationsJson: this.recommendationsJson || '[]',
                 predictionOutputFormat: this.predictionFormatKey
             });
-            this.summaryText = text || 'The model returned an empty response.';
+            this.summaryText = text ? stripCourtesyTail(text) : 'The model returned an empty response.';
         } catch (e) {
             this.summaryError = this.reduceError(e);
             this.dispatchEvent(
@@ -970,7 +982,9 @@ export default class ClassificationModelLwc extends LightningElement {
         if (kind === 'factor') {
             rows.sort((a, b) => (b.displayValue || 0) - (a.displayValue || 0));
         } else {
-            rows.sort((a, b) => (a.displayValue || 0) - (b.displayValue || 0));
+            // Biggest impact first. An ascending signed sort only works when every
+            // recommendation lowers the score (attrition); CSAT's raise it.
+            rows.sort((a, b) => Math.abs(b.displayValue || 0) - Math.abs(a.displayValue || 0));
         }
         return this.applyBarScales(rows);
     }

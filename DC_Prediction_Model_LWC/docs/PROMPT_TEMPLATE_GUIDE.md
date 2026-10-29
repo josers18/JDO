@@ -56,6 +56,10 @@ Example snippet you might put in the template instructions:
 
 > You are assisting a banker. You receive JSON with `prediction` (number), `predictionOutputFormat` (`percent` | `integer` | `decimal` | `currency`), `factors` and `recommendations` (stringified JSON arrays). If format is `percent`, treat prediction as 0–100% risk-style; otherwise describe the numeric outcome appropriately. Parse the string fields if needed. Summarize in 2–3 sentences without inventing data.
 
+A working reference template ships in this repo: `force-app/main/default/genAiPromptTemplates/DC_MLModelExplanation.genAiPromptTemplate-meta.xml`. Its active version explains each JSON field to the model, says that `value` is the points a driver or target moves the score, merges recommendations that name the same input, and includes one example paragraph. The example made Gemini Flash follow the style more reliably than a list of rules did. To change it, add a new `templateVersions` block and point `activeVersionIdentifier` at it. Published versions can't be edited in place.
+
+Gemini Flash often ends with a courtesy line ("Your attention to these metrics is appreciated.") even when the prompt forbids it. The LWC removes trailing sentences that thank, appreciate or acknowledge the reader (`stripCourtesyTail`), so the template doesn't need to fight that habit.
+
 ---
 
 ## Template Id vs API name
@@ -93,6 +97,7 @@ If one form fails, try the other from Setup → Prompt Builder → your template
 | Toast “AI summary failed” | Template Id/API name; user prompt access; Einstein not enabled; input API name mismatch. |
 | Empty summary | Template returns no generation; inspect Apex exception message (controller appends details). |
 | Hallucinations | Tighten template instructions: “Only use fields present in the JSON.” |
+| Summary says "units"/"weight" or names Salesforce as the company | Explain in the template what `value` means (points of score movement) and who the reader and client are; see the reference template. |
 
 ---
 
