@@ -76,7 +76,46 @@
 
                 <section class="improve-section" aria-labelledby="recs-heading">
                     <span id="recs-heading" class="section-label">{recommendationsSectionTitleDisplay}</span>
-                    <template lwc:if={hasRecommendationRows}>
+                    <template lwc:if={isKeyDriversMode}>
+                        <template lwc:if={hasRecommendationRows}>
+                            <span class="section-caption">What the model weighed most for this prediction</span>
+                            <template for:each={processedKeyDrivers} for:item="item">
+                                <div key={item.key} class="driver-row" title={item.tooltip}>
+                                    <span class="driver-rank">{item.rank}</span>
+                                    <span class="driver-label">
+                                        {item.labelText}
+                                        <template lwc:if={item.valueText}>
+                                            <span class="driver-value"> {item.valueText}</span>
+                                        </template>
+                                    </span>
+                                    <div class="driver-track">
+                                        <div
+                                            class="bar-fill driver-bar"
+                                            style={item.barStyle}
+                                            data-scale={item.barScale}
+                                        ></div>
+                                    </div>
+                                    <span class="driver-tier">
+                                        <span class="legend-dot" style={item.barStyle}></span>
+                                        {item.tierLabel}
+                                    </span>
+                                </div>
+                            </template>
+                            <div class="diverge-legend" role="presentation">
+                                <template for:each={keyDriverTiers} for:item="tier">
+                                    <div key={tier.key} class="legend-item">
+                                        <span class="legend-dot" style={tier.dotStyle}></span>
+                                        <span>{tier.label}</span>
+                                    </div>
+                                </template>
+                            </div>
+                            <p class="driver-note">Strength is relative to the top driver. Direction isn't shown.</p>
+                        </template>
+                        <template lwc:else>
+                            <p class="lwc-empty">No key drivers returned.</p>
+                        </template>
+                    </template>
+                    <template lwc:elseif={hasRecommendationRows}>
                         <template for:each={processedRecommendations} for:item="item">
                             <div key={item.key} class="factor-row">
                                 <div class="factor-label-col">

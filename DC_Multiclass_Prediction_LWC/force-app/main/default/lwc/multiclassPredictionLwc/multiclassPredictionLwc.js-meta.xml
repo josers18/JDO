@@ -41,6 +41,13 @@
             <property name="goodColor" type="String" label="Default good color" default="#1D9E75" />
             <property name="recommendationsRiskColor" type="String" label="Recommendations: risk color override" />
             <property name="recommendationsGoodColor" type="String" label="Recommendations: good color override" />
+            <property name="recommendationsDisplayMode" type="String" label="Recommendations display" default="diverging"
+                datasource="diverging,keyDrivers"
+                description="diverging = supports / works-against bars from the factor sign. keyDrivers = rank factors by strength only, colored by tier (Very strong, Strong, Moderate, Minor). Use keyDrivers when factor signs aren't relative to the predicted class." />
+            <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default=""
+                description="Comma-separated #hex for Very strong, Strong, Moderate, Minor. Blank = blue ramp #104281,#256abf,#5598e7,#86b6ef." />
+            <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default=""
+                description="Comma-separated % of the top driver where Very strong, Strong, Moderate start. Blank = 80,55,30; below the last is Minor." />
             <property name="promptTemplateId" type="String" label="Prompt template Id or API name"
                 description="JSON payload includes prediction (string), predictionType multiclass_label, recommendations." />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
@@ -84,6 +91,9 @@
             <property name="goodColor" type="String" label="Default good color" default="#1D9E75" />
             <property name="recommendationsRiskColor" type="String" label="Recommendations: risk color override" />
             <property name="recommendationsGoodColor" type="String" label="Recommendations: good color override" />
+            <property name="recommendationsDisplayMode" type="String" label="Recommendations display" default="diverging" datasource="diverging,keyDrivers" />
+            <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default="" />
+            <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default="" />
             <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
             <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />
@@ -118,6 +128,9 @@
             <property name="goodColor" type="String" label="Default good color" default="#1D9E75" />
             <property name="recommendationsRiskColor" type="String" label="Recommendations: risk color override" />
             <property name="recommendationsGoodColor" type="String" label="Recommendations: good color override" />
+            <property name="recommendationsDisplayMode" type="String" label="Recommendations display" default="diverging" datasource="diverging,keyDrivers" />
+            <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default="" />
+            <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default="" />
             <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
             <property name="autoGenerateSummary" type="Boolean" label="Auto-generate AI summary" default="true" />

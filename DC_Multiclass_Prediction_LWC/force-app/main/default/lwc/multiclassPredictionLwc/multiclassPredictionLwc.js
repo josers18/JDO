@@ -8,6 +8,12 @@ const BAR_TRANSITION = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
 const PROB_OPACITY_FLOOR = 0.35;
 const PROB_OPACITY_RANGE = 0.65;
 
+// Key drivers mode: one-hue ordinal ramp, darkest = strongest. Validated with the
+// dataviz palette checker (monotone lightness, visible gaps, light end >= 2:1 on white).
+const KEY_DRIVER_TIER_LABELS = ['Very strong', 'Strong', 'Moderate', 'Minor'];
+const DEFAULT_KEY_DRIVER_TIER_COLORS = ['#104281', '#256abf', '#5598e7', '#86b6ef'];
+const DEFAULT_KEY_DRIVER_TIER_THRESHOLDS = [80, 55, 30];
+
 function sanitizePmTextColor(raw) {
     const s = String(raw == null ? '' : raw).trim();
     if (!s || s.length > 120) {
@@ -55,6 +61,16 @@ export default class MulticlassPredictionLwc extends LightningElement {
     @api goodColor = '#1D9E75';
     @api recommendationsRiskColor = '';
     @api recommendationsGoodColor = '';
+    /**
+     * diverging (default): supports / works-against bars from the factor sign.
+     * keyDrivers: rank factors by magnitude only, colored by strength tier. Use it when the
+     * model's factor signs aren't relative to the predicted class (multiclass explainers).
+     */
+    @api recommendationsDisplayMode = 'diverging';
+    /** Comma-separated colors for Very strong, Strong, Moderate, Minor. Blank = default blue ramp. */
+    @api keyDriverTierColors = '';
+    /** Comma-separated % of the top driver where Very strong, Strong, Moderate start. Blank = 80,55,30. */
+    @api keyDriverTierThresholds = '';
     /** Label under the predicted class (e.g. Predicted class, Product line). */
     @api classSubtitle;
     /** When true (default), show title-style text (underscores → spaces, capitalized words). When false, show raw flow string. */
@@ -195,6 +211,45 @@ export default class MulticlassPredictionLwc extends LightningElement {
         const colors = this.resolveColors(this.recommendationsRiskColor, this.recommendationsGoodColor);
         const treatPositiveAsGood = this.recommendationsPositiveMeansGood === true;
         return this.applyProcessedRowColors(rows, colors, treatPositiveAsGood);
+    }
+
+    get isKeyDriversMode() {
+        return String(this.recommendationsDisplayMode || '').trim().toLowerCase() === 'keydrivers';
+    }
+
+    get keyDriverTiers() {
+        const colors = String(this.keyDriverTierColors || '')
+            .split(',')
+            .map((c) => sanitizePmTextColor(c));
+        const thresholds = String(this.keyDriverTierThresholds || '')
+            .split(',')
+            .map((t) => (t.trim() === '' ? NaN : Number(t)));
+        return KEY_DRIVER_TIER_LABELS.map((label, i) => {
+            const color = colors[i] || DEFAULT_KEY_DRIVER_TIER_COLORS[i];
+            // The last tier (Minor) catches everything below the Moderate threshold.
+            let minPercent = 0;
+            if (i < DEFAULT_KEY_DRIVER_TIER_THRESHOLDS.length) {
+                minPercent = Number.isFinite(thresholds[i]) ? thresholds[i] : DEFAULT_KEY_DRIVER_TIER_THRESHOLDS[i];
+            }
+            return { key: `tier-${i}`, label, color, minPercent, dotStyle: `--row-color:${color}` };
+        });
+    }
+
+    /** Rows are already sorted by |value| with barScale = share of the top driver. */
+    get processedKeyDrivers() {
+        const rows = this.buildInsightRowsFromArray(this.normalizeInsightSource(this.recommendationsJson), 'driver');
+        const tiers = this.keyDriverTiers;
+        return rows.map((row, index) => {
+            const pct = Math.round(row.barScale * 100);
+            const tier = tiers.find((t) => pct >= t.minPercent) || tiers[tiers.length - 1];
+            return {
+                ...row,
+                rank: index + 1,
+                tierLabel: tier.label,
+                barStyle: `--row-color:${tier.color}`,
+                tooltip: `${row.detail} · ${tier.label} (${pct}% of the top driver)`
+            };
+        });
     }
 
     get processedClassProbabilities() {
@@ -701,6 +756,8 @@ export default class MulticlassPredictionLwc extends LightningElement {
             return {
                 key: `${kind}-${index}`,
                 detail,
+                labelText: baseLabel,
+                valueText: prescribedStr,
                 displayValue,
                 formattedPercent: this.formatPercent(displayValue),
                 barScale: 0,

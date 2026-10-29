@@ -7,12 +7,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-May_17_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Oct_29_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
 
 ---
+
+## [2026-10-29]
+
+### Added
+- **Key drivers display mode.** Three new App Builder properties: `recommendationsDisplayMode` (`diverging` | `keyDrivers`, default `diverging`), `keyDriverTierColors` and `keyDriverTierThresholds`. In `keyDrivers` mode, factors render as ranked one-sided bars scaled to the top driver. Each bar is tagged Very strong (≥80%), Strong (≥55%), Moderate (≥30%) or Minor, and colored on a validated blue ordinal ramp. The mode exists because multiclass factor signs proved unreliable: the personal model reported 23 of 25 factors as negative, including ones that clearly raise the predicted class.
+- **`DC_MulticlassModelExplanation` prompt template v3** is now tracked in this project and active. The summary covers what the model weighed, never whether a driver helped or hurt, and skips drivers below 10% of the top one.
+
+### Changed
+- On `FINS_PersonAccount_Retail_Banking_Starter`, both the personal (`DC_MLProdPersonal`) and business (`DC_Multiclass_Business`) Product Recommendation cards now use `keyDrivers`. The section is titled "Key Drivers". The flexipage was deployed from outside this repo.
 
 ## [2026-05-17]
 

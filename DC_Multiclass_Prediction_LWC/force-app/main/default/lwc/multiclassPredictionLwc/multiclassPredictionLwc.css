@@ -276,6 +276,73 @@
     background: var(--row-color, var(--wp-accent, #b8956a));
 }
 
+/* Key drivers mode: magnitude-only ranked bars, colored by strength tier. */
+.section-caption {
+    display: block;
+    margin: -4px 0 6px;
+    font-size: 11px;
+    color: var(--wp-text-secondary, #5c5c5c);
+}
+
+.driver-row {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1.4fr) minmax(4rem, 1fr) 6.25rem;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 0.5px solid var(--wp-border-soft, #f0f0f0);
+}
+
+.driver-rank {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wp-text-secondary, #9ca3af);
+}
+
+.driver-label {
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--lwc-pm-summary-label-color, var(--wp-text-primary, #1a1a1a));
+    overflow-wrap: anywhere;
+}
+
+.driver-value {
+    color: var(--wp-text-secondary, #8a8a8a);
+}
+
+.driver-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--wp-border-soft, #f0efec);
+    overflow: hidden;
+}
+
+.driver-bar {
+    height: 100%;
+    width: 100%;
+    border-radius: 4px;
+    transform-origin: left center;
+    transform: scaleX(0);
+    background: var(--row-color, #256abf);
+}
+
+.driver-tier {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--lwc-pm-summary-label-color, var(--wp-text-primary, #374151));
+}
+
+.driver-note {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: var(--wp-text-secondary, #5c5c5c);
+}
+
 .agent-summary {
     box-sizing: border-box;
     width: 100%;

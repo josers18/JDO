@@ -63,6 +63,20 @@ Signed **contribution** values (for example SHAP scores) drive **diverging** bar
 
 ---
 
+## Key drivers mode (magnitude only)
+
+Multiclass models explain each prediction with factor weights whose **sign isn't a reliable for/against signal**. A perturbation check on the personal model showed `has_mortgage = 1` lifting HELOC from about 1% to 45%, yet the platform reported it as −5.0. Key drivers mode drops direction. It ranks rows by \|value\|, draws one-sided bars scaled to the top driver, and labels each row with a strength tier. A legend and the note "Strength is relative to the top driver. Direction isn't shown." sit under the list.
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| **Recommendations display** (`recommendationsDisplayMode`) | `diverging` | `diverging` keeps the signed bars described above. `keyDrivers` switches to ranked, tier-colored bars. |
+| **Key drivers: tier colors (optional)** (`keyDriverTierColors`) | blank | Four comma-separated hex values, from Very strong to Minor. A blank or invalid slot uses the default ramp `#104281, #256abf, #5598e7, #86b6ef`, a one-hue ordinal ramp that passes the dataviz palette validator. |
+| **Key drivers: tier thresholds (optional)** (`keyDriverTierThresholds`) | blank | Three comma-separated minimums, each a % of the top driver, for Very strong, Strong and Moderate. The defaults are `80, 55, 30`. Rows below the Moderate cutoff are Minor. A blank slot uses its default. |
+
+Hovering a row shows its share of the top driver, for example "Strong (62% of the top driver)". If you switch a card to key drivers, use a prompt template that doesn't describe direction either. `DC_MulticlassModelExplanation` v3 says so explicitly.
+
+---
+
 ## Theme (profile-aligned)
 
 Same **preset names** and **CSS variables** as the profile widgets and **Prediction Model** (`--wp-shell-bg`, `--wp-accent`, etc.).
