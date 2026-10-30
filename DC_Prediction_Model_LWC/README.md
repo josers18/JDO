@@ -80,7 +80,7 @@ Tests: **[docs/DEPLOY.md](docs/DEPLOY.md)**. Then permission set + Flow + **[doc
 ## Features (short)
 
 - **Percent** → animated gauge; **integer / decimal / currency** → large formatted value.  
-- **Top predictors** and **recommendations** from JSON.  
+- **Top predictors** and **recommendations** from JSON, as signed bars or (opt-in `insightsDisplayMode=keyDrivers`) ranked drivers with strength tiers and Raises/Lowers in points.  
 - **Refresh** reruns Flow (and summary when on).  
 - Detail: **[docs/UI_LAYOUT.md](docs/UI_LAYOUT.md)**.
 

@@ -127,7 +127,47 @@
                 <div class="lwc-right-col">
                     <section class="predict-section" aria-labelledby="factors-heading">
                         <span id="factors-heading" class="section-label">{factorsSectionTitleDisplay}</span>
-                        <template lwc:if={hasFactorRows}>
+                        <template lwc:if={isKeyDriversMode}>
+                            <template lwc:if={hasFactorRows}>
+                                <span class="section-caption">What moved this score, and which way</span>
+                                <template for:each={keyDriverFactors} for:item="item">
+                                    <div key={item.key} class="kd-row" title={item.tooltip}>
+                                        <span class="kd-rank">{item.rank}</span>
+                                        <span class="kd-label">
+                                            {item.labelText}
+                                            <template lwc:if={item.valueText}>
+                                                <span class="kd-value"> {item.valueText}</span>
+                                            </template>
+                                        </span>
+                                        <span class="kd-dir">
+                                            <span class="kd-glyph" style={item.dirStyle} aria-hidden="true">{item.dirGlyph}</span>
+                                            {item.dirText}
+                                        </span>
+                                        <div class="kd-track">
+                                            <div
+                                                class="bar-fill kd-bar"
+                                                style={item.barStyle}
+                                                data-scale={item.barScale}
+                                            ></div>
+                                        </div>
+                                        <span class="kd-tier">{item.tierLabel}</span>
+                                    </div>
+                                </template>
+                                <div class="kd-legend" role="presentation">
+                                    <template for:each={keyDriverTiers} for:item="tier">
+                                        <span key={tier.key} class="kd-legend-item">
+                                            <span class="kd-dot" style={tier.dotStyle}></span>{tier.label}
+                                        </span>
+                                    </template>
+                                    <span class="kd-legend-item">▲ raises · ▼ lowers</span>
+                                </div>
+                                <p class="kd-note">Strength is relative to the top driver.</p>
+                            </template>
+                            <template lwc:else>
+                                <p class="lwc-empty">No predictors returned.</p>
+                            </template>
+                        </template>
+                        <template lwc:elseif={hasFactorRows}>
                             <template for:each={processedFactors} for:item="item">
                                 <div key={item.key} class="factor-row">
                                     <span class={item.deltaClass}>{item.formattedPercent}</span>
@@ -151,7 +191,35 @@
 
                     <section class="improve-section" aria-labelledby="recs-heading">
                         <span id="recs-heading" class="section-label">{recommendationsSectionTitleDisplay}</span>
-                        <template lwc:if={hasRecommendationRows}>
+                        <template lwc:if={isKeyDriversMode}>
+                            <template lwc:if={hasKeyDriverImprovements}>
+                                <span class="section-caption">Change one input, estimated score lift</span>
+                                <template for:each={keyDriverImprovements} for:item="item">
+                                    <div key={item.key} class="kd-row kd-row--improve" title={item.tooltip}>
+                                        <span class="kd-rank">{item.rank}</span>
+                                        <span class="kd-label">
+                                            {item.labelText}
+                                            <template lwc:if={item.hasCurrent}>
+                                                <span class="kd-value"> {item.currentText}</span>
+                                            </template>
+                                            <span class="kd-value"> → {item.targetText}</span>
+                                        </span>
+                                        <span class="kd-pts">{item.ptsText} pts</span>
+                                        <div class="kd-track">
+                                            <div
+                                                class="bar-fill kd-bar"
+                                                style={item.barStyle}
+                                                data-scale={item.barScale}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                            <template lwc:else>
+                                <p class="lwc-empty">No recommendations returned.</p>
+                            </template>
+                        </template>
+                        <template lwc:elseif={hasRecommendationRows}>
                             <template for:each={processedRecommendations} for:item="item">
                                 <div key={item.key} class="factor-row">
                                     <span class={item.deltaClass}>{item.formattedPercent}</span>

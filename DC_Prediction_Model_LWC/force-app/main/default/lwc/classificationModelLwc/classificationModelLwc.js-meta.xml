@@ -34,6 +34,12 @@
                 description="Minimum fraction digits when format is decimal or currency (0–8)." />
             <property name="predictionMaximumFractionDigits" type="Integer" label="Max decimal places (decimal/currency)" default="2"
                 description="Maximum fraction digits when format is decimal or currency (0–8). Integer format forces 0." />
+            <property name="insightsDisplayMode" type="String" label="Predictors and improvements display" default="bars" datasource="bars,keyDrivers"
+                description="bars (default): signed bars with a % per row. keyDrivers: ranked drivers with a strength tier and a Raises/Lowers direction in points, plus one improvement row per input (current → target, +pts). Labels wrap instead of truncating." />
+            <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default=""
+                description="Four comma-separated hex colors for Very strong, Strong, Moderate, Minor. Blank slots use #104281, #256abf, #5598e7, #86b6ef." />
+            <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default=""
+                description="Three comma-separated minimums (% of the top driver) for Very strong, Strong, Moderate. Defaults 80, 55, 30." />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false"
                 description="Unchecked (default): positive contribution uses risk color; negative uses good color. Checked: invert." />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false"
@@ -103,6 +109,9 @@
             <property name="currencyCode" type="String" label="Currency code (ISO 4217)" default="USD" />
             <property name="predictionMinimumFractionDigits" type="Integer" label="Min decimal places (decimal/currency)" default="0" />
             <property name="predictionMaximumFractionDigits" type="Integer" label="Max decimal places (decimal/currency)" default="2" />
+            <property name="insightsDisplayMode" type="String" label="Predictors and improvements display" default="bars" datasource="bars,keyDrivers" />
+            <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default="" />
+            <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default="" />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
             <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
@@ -146,6 +155,9 @@
             <property name="currencyCode" type="String" label="Currency code (ISO 4217)" default="USD" />
             <property name="predictionMinimumFractionDigits" type="Integer" label="Min decimal places (decimal/currency)" default="0" />
             <property name="predictionMaximumFractionDigits" type="Integer" label="Max decimal places (decimal/currency)" default="2" />
+            <property name="insightsDisplayMode" type="String" label="Predictors and improvements display" default="bars" datasource="bars,keyDrivers" />
+            <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default="" />
+            <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default="" />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
             <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
