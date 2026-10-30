@@ -78,6 +78,22 @@ Model explanations often use signed **contribution** values (positive vs negativ
 
 ---
 
+## Key drivers + direction mode
+
+An opt-in alternative to the signed bars, built for regression cards such as CSAT, where the factor signs are trustworthy. Predictors render as ranked rows (largest \|value\| first). Each row shows the label and current value, a ▲ **Raises** / ▼ **Lowers X.X pts** direction, a bar scaled to the top driver, and a strength tier (Very strong / Strong / Moderate / Minor). The tier sets the bar color; the arrow uses the good/risk colors above, and the Raises/Lowers wording means direction never relies on color alone. A legend and the note "Strength is relative to the top driver." sit under the list.
+
+Improvements render as **current → target** with the estimated lift (for example "Transaction Volume 8 → 34.5, +6.5 pts"). The current value appears only when the same input is also a predictor. Rows that name the same input are merged: the strongest is kept and the others are listed in its tooltip. Labels wrap rather than truncate.
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| **Predictors and improvements display** (`insightsDisplayMode`) | `bars` | `bars` keeps the signed bars with a % per row. `keyDrivers` switches to the mode described here. |
+| **Key drivers: tier colors (optional)** (`keyDriverTierColors`) | blank | Four comma-separated hex values, Very strong to Minor. A blank or invalid slot uses `#104281, #256abf, #5598e7, #86b6ef` (same ramp as the Multiclass card). |
+| **Key drivers: tier thresholds (optional)** (`keyDriverTierThresholds`) | blank | Three comma-separated minimums, each a % of the top driver, for Very strong, Strong and Moderate. Defaults `80, 55, 30`. |
+
+The **treat positive as good** flags still decide whether ▲ is drawn in the good or the risk color. Values print as points (`pts`), not %, so use this mode for regression outputs; the CSAT card on `FINS_PersonAccount_Retail_Banking_Starter` uses it.
+
+---
+
 ## Theme (profile-aligned)
 
 The card can use the same **CSS variable tokens** as the Customer / Business profile widgets so prediction tiles match adjacent profile chrome on FSI demos.

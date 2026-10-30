@@ -32,6 +32,15 @@ How the **Prediction Model** component (`classificationModelLwc`) lays out the *
 
 ---
 
+## Predictor and improvement lists
+
+`insightsDisplayMode` picks the list layout (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md#key-drivers--direction-mode)):
+
+- **`bars`** (default): label column plus a diverging bar with the signed % per row.
+- **`keyDrivers`**: `.kd-row` grid (`1.25rem minmax(0,1fr) auto`). Line 1 holds rank, label + value (`overflow-wrap: anywhere`, never truncated) and the direction or lift; line 2 holds the `.kd-track` bar and the tier. Bars reuse `.bar-fill`, so the existing scale animation applies.
+
+---
+
 ## Responsive behavior
 
 - The shell (`.lwc-shell`) uses **`container-type: inline-size`** so font sizes can scale with the card width (`cqw` units).

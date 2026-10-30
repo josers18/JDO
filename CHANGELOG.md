@@ -7,7 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-Oct_25_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Oct_29_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Theme System](https://img.shields.io/badge/Theme_System-Cookbook-7F56D9?style=for-the-badge)](docs/THEME_CATALOG.md)
 [![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
 [![Commits](https://img.shields.io/badge/Commits-630%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
@@ -57,6 +57,7 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
   - `DC_MLAttrition` and `DC_MLCSAT` flows point at the retrained `*_Latest` models.
 - **ServiceNow_Cases** (PR [#134](https://github.com/josers18/JDO/pull/134)) — `generate_service_now_cases.py` inserts home-keyed `SN-HOME-*` cases on owned `001am` accounts into Heroku `"Fins".service_now`. Seeded, refuses to double-insert (`--replace` to regenerate). 3,260 rows written 2026-10-24 and ingested by incremental refresh.
 - **Snowflake_Product_Recommendations** (branch `feat/product-recommendation-generator`, no PR yet) — `SP_GENERATE_PRODUCT_RECOMMENDATION_INPUTS(MODE)` (`INPUTS` default, `TRAINING`, `ALL`) re-keys the multiclass inputs to live accounts: `BUSINESS_PRODUCT_RECOMMENDATION_SUBSET` (5,725 rows) and `PERSONAL_PRODUCT_RECOMMENDATION_SUBSET` (25,424), plus training sets `BUSINESS_PRODUCT_RECOMMENDATION_SET` (3,500, every one of 12 classes at 100+ rows) and `PERSONAL_PRODUCT_RECOMMENDATION_TRAINING_SET` (7,500). `TASK_MONTHLY_PRODUCT_RECOMMENDATION_INPUTS` (`0 4 2 * * America/New_York`) resumed 2026-10-23; training runs are never scheduled. Feeds the `DC_Multiclass_Business` / `DC_MLProdPersonal` prediction cards.
+- **DC_Prediction_Model_LWC — key drivers + direction mode** — opt-in `insightsDisplayMode=keyDrivers` on `classificationModelLwc`: predictors as ranked rows with a strength tier and ▲ Raises / ▼ Lowers in points, improvements as current → target with the estimated lift, duplicate improvement rows merged, labels wrapped instead of truncated. The CSAT card on `FINS_PersonAccount_Retail_Banking_Starter` uses it; Attrition keeps the default bars. Mirrors the Multiclass card's key drivers mode (PR [#142](https://github.com/josers18/JDO/pull/142)), which drops direction because multiclass signs are unreliable.
 
 ### Fixed
 
