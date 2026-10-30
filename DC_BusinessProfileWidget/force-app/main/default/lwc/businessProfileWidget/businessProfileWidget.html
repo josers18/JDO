@@ -50,42 +50,20 @@
                         <div class="wp-theme-switcher">
                             <span class="wp-theme-lbl">Theme</span>
                             <div class="wp-theme-btns">
-                                <button
-                                    type="button"
-                                    class={themeBtn_obsidian}
-                                    data-theme="obsidian"
-                                    onclick={handleThemeSwitch}
-                                    title="Obsidian"
-                                >
-                                    ◑
-                                </button>
-                                <button
-                                    type="button"
-                                    class={themeBtn_midnight}
-                                    data-theme="midnight"
-                                    onclick={handleThemeSwitch}
-                                    title="Midnight"
-                                >
-                                    ●
-                                </button>
-                                <button
-                                    type="button"
-                                    class={themeBtn_graphite}
-                                    data-theme="graphite"
-                                    onclick={handleThemeSwitch}
-                                    title="Graphite"
-                                >
-                                    ◐
-                                </button>
-                                <button
-                                    type="button"
-                                    class={themeBtn_ivory}
-                                    data-theme="ivory"
-                                    onclick={handleThemeSwitch}
-                                    title="Ivory"
-                                >
-                                    ○
-                                </button>
+                                <template for:each={themeButtons} for:item="btn">
+                                    <button
+                                        key={btn.id}
+                                        type="button"
+                                        class={btn.cls}
+                                        data-theme={btn.id}
+                                        onclick={handleThemeSwitch}
+                                        title={btn.title}
+                                        aria-label={btn.title}
+                                        aria-pressed={btn.pressed}
+                                    >
+                                        {btn.glyph}
+                                    </button>
+                                </template>
                             </div>
                         </div>
                     </template>
@@ -118,11 +96,23 @@
             </div>
         </div>
 
-        <div class="wp-tab-bar">
+        <div class="wp-tab-bar" role="tablist">
             <template for:each={visibleTabs} for:item="tab">
-                <div key={tab.id} class={tab.tabClass} data-tab={tab.id} onclick={handleTabClick} role="presentation">
+                <button
+                    key={tab.id}
+                    id={tab.domId}
+                    type="button"
+                    role="tab"
+                    class={tab.tabClass}
+                    data-tab={tab.id}
+                    aria-selected={tab.ariaSelected}
+                    aria-controls="wp-tabpanel"
+                    tabindex={tab.tabIndex}
+                    onclick={handleTabClick}
+                    onkeydown={handleTabKeydown}
+                >
                     {tab.label}
-                </div>
+                </button>
             </template>
         </div>
 
@@ -137,7 +127,7 @@
             </div>
         </template>
         <template lwc:elseif={hasData}>
-            <div class="wp-panel">
+            <div class="wp-panel" id="wp-tabpanel" role="tabpanel" aria-labelledby={activeTabDomId}>
                 <template lwc:if={isTab_overview}>
                     <template lwc:if={showAgentforceSummaryBlock}>
                         <div class="wp-slbl">{agentforceSummarySectionTitle}</div>
@@ -649,7 +639,7 @@
                     <template lwc:if={showAiActionsResolved}>
                         <section class="wp-improve-section" aria-labelledby="wp-insight-recs-heading">
                             <span id="wp-insight-recs-heading" class="wp-section-lbl">{insightRecommendationsSectionTitleDisplay}</span>
-                            <template lwc:if={processedInsightRecommendations.length}>
+                            <template lwc:if={hasInsightRecommendations}>
                                 <template for:each={processedInsightRecommendations} for:item="item">
                                     <div key={item.rowKey} class="wp-factor-row">
                                         <span class={item.deltaClass}>{item.formattedPercent}</span>

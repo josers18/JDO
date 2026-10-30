@@ -183,10 +183,11 @@ public with sharing class BusinessProfileWidgetController {
             if (String.isBlank(rel)) {
                 return stringVal(o);
             }
-            curRow = curRow.getSObject(rel);
-            if (curRow == null) {
+            Object relRow = populatedValue(curRow, rel);
+            if (!(relRow instanceof SObject)) {
                 return null;
             }
+            curRow = (SObject) relRow;
             curType = d.getReferenceTo()[0];
         }
         if (leaf == null) {
@@ -277,9 +278,24 @@ public with sharing class BusinessProfileWidgetController {
         }
         Map<String, String> fieldMappings = new Map<String, String>();
         if (!String.isBlank(fieldMappingsJson)) {
-            fieldMappings = (Map<String, String>) JSON.deserialize(fieldMappingsJson, Map<String, String>.class);
+            try {
+                fieldMappings = (Map<String, String>) JSON.deserialize(fieldMappingsJson, Map<String, String>.class);
+            } catch (JSONException e) {
+                throw buildAuraException('Field mappings are not valid JSON.');
+            }
         }
-        Id accId = (Id) recordId;
+        Id accId;
+        try {
+            accId = (Id) recordId;
+        } catch (StringException e) {
+            throw buildAuraException('Invalid record Id.');
+        }
+        if (String.isNotBlank(flowApiName)) {
+            assertActionAllowed(ACTION_TYPE_FLOW, flowApiName);
+        }
+        if (String.isNotBlank(insightFlowApiName)) {
+            assertActionAllowed(ACTION_TYPE_FLOW, insightFlowApiName);
+        }
 
         Boolean anyFlowMapping = false;
         for (String mapVal : fieldMappings.values()) {
@@ -316,6 +332,8 @@ public with sharing class BusinessProfileWidgetController {
         try {
             enrichStructureTabData(accId, profile);
         } catch (Exception e) {
+            // Structure tab is optional enrichment: degrade to empty lists, but leave a trace.
+            System.debug(LoggingLevel.WARN, 'BusinessProfileWidget structure tab enrichment failed: ' + e.getTypeName() + ': ' + e.getMessage());
             if (profile.keyContacts == null) {
                 profile.keyContacts = new List<Map<String, String>>();
             }
@@ -426,6 +444,7 @@ public with sharing class BusinessProfileWidgetController {
         if (!isSafeInvocableConfigurationToken(cls)) {
             throw buildAuraException('Invalid Apex class API name for unified relationships.');
         }
+        assertActionAllowed(ACTION_TYPE_APEX, cls);
         String inName = String.isBlank(invocableRecordIdInputApiName) ? 'id' : invocableRecordIdInputApiName.trim();
         String outName = String.isBlank(invocableJsonOutputApiName) ? 'queryResultJSON' : invocableJsonOutputApiName.trim();
         if (!isSafeInvocableConfigurationToken(inName) || !isSafeInvocableConfigurationToken(outName)) {
@@ -442,12 +461,12 @@ public with sharing class BusinessProfileWidgetController {
             }
             Invocable.Action.Result first = results[0];
             if (!first.isSuccess()) {
-                String detail = 'Invocable Apex action failed.';
+                // Invocable error text can carry query or internal detail; keep it in the debug log only.
                 List<Invocable.Action.Error> errs = first.getErrors();
-                if (errs != null && !errs.isEmpty() && String.isNotBlank(errs[0].getMessage())) {
-                    detail += ' ' + errs[0].getMessage();
+                if (errs != null && !errs.isEmpty()) {
+                    System.debug(LoggingLevel.ERROR, 'Unified relationships invocable ' + cls + ' failed: ' + errs[0].getMessage());
                 }
-                throw buildAuraException(detail);
+                throw buildAuraException('Unified relationships Apex action "' + cls + '" failed; see debug logs for details.');
             }
             Map<String, Object> outs = first.getOutputParameters();
             Object raw = null;
@@ -553,7 +572,7 @@ public with sharing class BusinessProfileWidgetController {
             if (o instanceof Decimal) {
                 return ((Decimal) o).intValue();
             }
-        } catch (Exception e) {
+        } catch (TypeException e) {
             return null;
         }
         String s = String.valueOf(o).trim();
@@ -564,35 +583,39 @@ public with sharing class BusinessProfileWidgetController {
         if (m.find()) {
             try {
                 return Integer.valueOf(m.group(1));
-            } catch (Exception e) {
+            } catch (TypeException e) {
+                // Not a year after all; try the next pattern.
             }
         }
         Matcher mUs = Pattern.compile('^(\\d{1,2})/(\\d{1,2})/(\\d{4})\\b').matcher(s);
         if (mUs.find()) {
             try {
                 return Integer.valueOf(mUs.group(3));
-            } catch (Exception e) {
+            } catch (TypeException e) {
+                // Not a year after all; try the next pattern.
             }
         }
         Matcher mEu = Pattern.compile('^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})\\b').matcher(s);
         if (mEu.find()) {
             try {
                 return Integer.valueOf(mEu.group(3));
-            } catch (Exception e) {
+            } catch (TypeException e) {
+                // Not a year after all; try the next pattern.
             }
         }
         Matcher mYearWord = Pattern.compile('\\b(19|20)\\d{2}\\b').matcher(s);
         if (mYearWord.find()) {
             try {
                 return Integer.valueOf(mYearWord.group(0));
-            } catch (Exception e) {
+            } catch (TypeException e) {
+                // Not a year after all; try the next pattern.
             }
         }
         try {
             return Integer.valueOf(s);
-        } catch (Exception e) {
+        } catch (TypeException e) {
+            return null;
         }
-        return null;
     }
 
     /** Strip BOM / zero-width characters from a Prompt Template developer name or Id pasted from the UI. */
@@ -661,10 +684,19 @@ public with sharing class BusinessProfileWidgetController {
                 profile.agentforceSummaryPromptHint +=
                     ' Detail: ' + overviewAgentforceEinsteinDiagnostic;
             }
-        } catch (Exception e) {
+        } catch (ConnectApi.ConnectApiException e) {
+            // Salesforce-curated Connect messages ("template not found", "timed out") are safe to show admins.
             System.debug(LoggingLevel.WARN, 'Business profile Agentforce summary prompt failed: ' + e.getMessage());
             profile.agentforceSummaryPromptHint =
                 'Prompt invocation failed: ' + truncateForUiHint(e.getMessage(), 220);
+        } catch (Exception e) {
+            // Anything else can carry internal detail; keep it in the debug log only.
+            System.debug(
+                LoggingLevel.WARN,
+                'Business profile Agentforce summary prompt failed: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString()
+            );
+            profile.agentforceSummaryPromptHint =
+                'Prompt invocation failed. Confirm Einstein Generative AI, prompt template access, and the template input API names; see debug logs for details.';
         }
     }
 
@@ -716,9 +748,12 @@ public with sharing class BusinessProfileWidgetController {
                     if (String.isNotBlank(t)) {
                         return t;
                     }
-                } catch (Exception e) {
+                } catch (ConnectApi.ConnectApiException e) {
                     overviewAgentforceEinsteinDiagnostic = truncateForUiHint(e.getMessage(), 220);
                     System.debug(LoggingLevel.FINE, 'Einstein dual prompt attempt skipped: ' + e.getMessage());
+                } catch (Exception e) {
+                    overviewAgentforceEinsteinDiagnostic = 'Prompt attempt failed (' + e.getTypeName() + '); see debug logs.';
+                    System.debug(LoggingLevel.FINE, 'Einstein dual prompt attempt skipped: ' + e.getTypeName() + ': ' + e.getMessage());
                 }
             }
         }
@@ -779,15 +814,14 @@ public with sharing class BusinessProfileWidgetController {
         }
         if (output.generations == null || output.generations.isEmpty()) {
             if (recordOverviewDiagnostic == true) {
-                String payloadSnippet = '';
+                // The raw Connect response can echo resolved record data; log it, don't send it to the UI.
                 try {
-                    payloadSnippet = truncateForUiHint(JSON.serialize(output), 420);
-                } catch (Exception serEx) {
-                    payloadSnippet = truncateForUiHint(String.valueOf(output), 220);
+                    System.debug(LoggingLevel.DEBUG, 'Einstein zero generations; Connect response: ' + JSON.serialize(output));
+                } catch (JSONException serEx) {
+                    System.debug(LoggingLevel.DEBUG, 'Einstein zero generations; Connect response: ' + String.valueOf(output));
                 }
                 overviewAgentforceEinsteinDiagnostic =
-                    'Zero generations. Compare template id/API name to Execute Anonymous; Connect response: '
-                    + (String.isBlank(payloadSnippet) ? '(unserializable)' : payloadSnippet);
+                    'Zero generations. Compare the template id/API name to an Execute Anonymous run; the Connect response is in the debug log.';
             }
             return null;
         }
@@ -983,10 +1017,7 @@ public with sharing class BusinessProfileWidgetController {
                 mergeFoundedCandidatesIntoSelect(leg);
             }
             mergeLastUsedChannelCandidatesIntoSelect(leg);
-            List<String> legOrdered = new List<String>(leg);
-            legOrdered.sort();
-            String legSoql = 'SELECT ' + String.join(legOrdered, ', ') + ' FROM Account WHERE Id = :accId LIMIT 1';
-            acc = (Account) Database.query(legSoql)[0];
+            acc = queryAccountRow(accessibleSelectPaths(leg), accId);
             BusinessProfileResult legResult = legacyAccountToResult(acc);
             if (!hasExplicitFoundedMapping(fieldMappings)) {
                 enrichFoundedFromAccountIfMissing(legResult, acc);
@@ -1000,10 +1031,7 @@ public with sharing class BusinessProfileWidgetController {
         }
         mergeLastUsedChannelCandidatesIntoSelect(selectParts);
 
-        List<String> ordered = new List<String>(selectParts);
-        ordered.sort();
-        String soql = 'SELECT ' + String.join(ordered, ', ') + ' FROM Account WHERE Id = :accId LIMIT 1';
-        acc = (Account) Database.query(soql)[0];
+        acc = queryAccountRow(accessibleSelectPaths(selectParts), accId);
 
         BusinessProfileResult result = new BusinessProfileResult();
         result.keyContacts = new List<Map<String, String>>();
@@ -1031,23 +1059,24 @@ public with sharing class BusinessProfileWidgetController {
 
     private static BusinessProfileResult legacyAccountToResult(Account acc) {
         BusinessProfileResult result = new BusinessProfileResult();
-        result.companyName = acc.Name;
-        result.legalName = acc.Name;
-        result.city = acc.BillingCity;
-        result.state = acc.BillingState;
-        result.street = acc.BillingStreet;
-        result.zip = acc.BillingPostalCode;
-        result.industry = acc.Industry;
-        result.employees = acc.NumberOfEmployees;
-        result.website = acc.Website;
-        result.revenue = acc.AnnualRevenue;
-        result.primaryRm = acc.Owner != null ? acc.Owner.Name : null;
-        result.accountType = acc.Type;
-        if (acc.BillingLatitude != null && acc.BillingLongitude != null) {
-            if (isReasonableLatLon(acc.BillingLatitude, acc.BillingLongitude)) {
-                result.mapLatitude = acc.BillingLatitude;
-                result.mapLongitude = acc.BillingLongitude;
-            }
+        // Base fields are only selected when readable, so read through the populated-field map.
+        result.companyName = stringVal(populatedValue(acc, 'Name'));
+        result.legalName = result.companyName;
+        result.city = stringVal(populatedValue(acc, 'BillingCity'));
+        result.state = stringVal(populatedValue(acc, 'BillingState'));
+        result.street = stringVal(populatedValue(acc, 'BillingStreet'));
+        result.zip = stringVal(populatedValue(acc, 'BillingPostalCode'));
+        result.industry = stringVal(populatedValue(acc, 'Industry'));
+        result.employees = toInteger(stringVal(populatedValue(acc, 'NumberOfEmployees')));
+        result.website = stringVal(populatedValue(acc, 'Website'));
+        result.revenue = decVal(populatedValue(acc, 'AnnualRevenue'));
+        result.primaryRm = stringVal(getFieldValueByPath(acc, 'Owner.Name'));
+        result.accountType = stringVal(populatedValue(acc, 'Type'));
+        Decimal lat = decVal(populatedValue(acc, 'BillingLatitude'));
+        Decimal lon = decVal(populatedValue(acc, 'BillingLongitude'));
+        if (lat != null && lon != null && isReasonableLatLon(lat, lon)) {
+            result.mapLatitude = lat;
+            result.mapLongitude = lon;
         }
         result.keyContacts = new List<Map<String, String>>();
         result.nearbyBranches = new List<Map<String, String>>();
@@ -1058,6 +1087,7 @@ public with sharing class BusinessProfileWidgetController {
     /**
      * Canonical Account SELECT path (e.g. Name, BillingCity, Owner.Name). Null if invalid or flow: token.
      */
+    @TestVisible
     private static String validateAccountFieldPath(String path) {
         if (String.isBlank(path) || isFlowToken(path)) {
             return null;
@@ -1079,6 +1109,10 @@ public with sharing class BusinessProfileWidgetController {
                 return null;
             }
             Schema.DescribeFieldResult fr = f.getDescribe();
+            // FLS: the path may arrive from the client, so every hop must be readable by the running user.
+            if (!fr.isAccessible()) {
+                return null;
+            }
             Boolean isLast = (i == parts.size() - 1);
             if (isLast) {
                 out.add(fr.getName());
@@ -1116,12 +1150,62 @@ public with sharing class BusinessProfileWidgetController {
         List<String> parts = canonicalPath.split('\\.', 0);
         SObject cur = row;
         for (Integer i = 0; i < parts.size(); i++) {
+            Object v = populatedValue(cur, parts[i]);
             if (i == parts.size() - 1) {
-                return cur.get(parts[i]);
+                return v;
             }
-            cur = cur.getSObject(parts[i]);
-            if (cur == null) {
+            if (!(v instanceof SObject)) {
                 return null;
+            }
+            cur = (SObject) v;
+        }
+        return null;
+    }
+
+    /**
+     * Drops SELECT paths the running user cannot read (every relationship hop and the leaf),
+     * so the USER_MODE query below never fails on FLS and never returns hidden fields.
+     */
+    private static List<String> accessibleSelectPaths(Set<String> selectNames) {
+        Set<String> kept = new Set<String>{ 'Id' };
+        for (String path : selectNames) {
+            String canon = validateAccountFieldPath(path);
+            if (String.isNotBlank(canon)) {
+                kept.add(canon);
+            }
+        }
+        List<String> ordered = new List<String>(kept);
+        ordered.sort();
+        return ordered;
+    }
+
+    private static Account queryAccountRow(List<String> selectPaths, Id accId) {
+        String soql = 'SELECT ' + String.join(selectPaths, ', ') + ' FROM Account WHERE Id = :accId LIMIT 1';
+        List<Account> rows;
+        try {
+            rows = Database.queryWithBinds(soql, new Map<String, Object>{ 'accId' => accId }, AccessLevel.USER_MODE);
+        } catch (QueryException e) {
+            System.debug(LoggingLevel.WARN, 'BusinessProfileWidget profile query failed: ' + e.getMessage());
+            throw buildAuraException('You do not have access to this Account.');
+        }
+        if (rows.isEmpty()) {
+            throw buildAuraException('Account not found or not shared with you.');
+        }
+        return rows[0];
+    }
+
+    /** Field (or parent SObject) value if it was selected; null otherwise instead of an SObjectException. */
+    private static Object populatedValue(SObject row, String fieldOrRelationship) {
+        if (row == null || String.isBlank(fieldOrRelationship)) {
+            return null;
+        }
+        Map<String, Object> populated = row.getPopulatedFieldsAsMap();
+        if (populated.containsKey(fieldOrRelationship)) {
+            return populated.get(fieldOrRelationship);
+        }
+        for (String k : populated.keySet()) {
+            if (k.equalsIgnoreCase(fieldOrRelationship)) {
+                return populated.get(k);
             }
         }
         return null;
@@ -1601,11 +1685,14 @@ public with sharing class BusinessProfileWidgetController {
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (JSONException e) {
+            // Not JSON-serializable as a map; fall through to the text parse in decVal.
+            return null;
         }
         return null;
     }
 
+    @TestVisible
     private static Decimal decVal(Object o) {
         if (o == null) {
             return null;
@@ -1652,7 +1739,9 @@ public with sharing class BusinessProfileWidgetController {
 
     /**
      * Nominatim then Photon (same as Customer Profile widget). Requires Remote Site Settings.
+     * Cached in local.BusinessProfileWidget and capped at MAX_GEOCODE_CALLOUTS so a slow geocoder can't stall the page.
      */
+    @TestVisible
     private static void applyGeocodeIfNeeded(BusinessProfileResult r) {
         if (r == null) {
             return;
@@ -1667,21 +1756,116 @@ public with sharing class BusinessProfileWidgetController {
         if (queries.isEmpty()) {
             return;
         }
-        for (String q : queries) {
-            GeocodeHit hit = nominatimGeocodeOne(q);
-            if (hit != null && hit.lat != null && hit.lon != null && isReasonableLatLon(hit.lat, hit.lon)) {
-                r.mapLatitude = hit.lat;
-                r.mapLongitude = hit.lon;
-                return;
-            }
+        // Nominatim's usage policy asks for caching and ~1 req/s; the cache also keeps repeat page loads instant.
+        String cacheKey = geocodeCacheKey(queries[0]);
+        String cached = readGeocodeCache(cacheKey);
+        if (cached != null) {
+            applyCachedGeocode(r, cached);
+            return;
         }
-        for (String q : queries) {
-            GeocodeHit hit = photonGeocodeOne(q);
-            if (hit != null && hit.lat != null && hit.lon != null && isReasonableLatLon(hit.lat, hit.lon)) {
-                r.mapLatitude = hit.lat;
-                r.mapLongitude = hit.lon;
-                return;
+        Integer calloutsLeft = MAX_GEOCODE_CALLOUTS;
+        try {
+            for (String q : queries) {
+                if (calloutsLeft <= 0) {
+                    break;
+                }
+                calloutsLeft--;
+                if (applyGeocodeHit(r, nominatimGeocodeOne(q), cacheKey)) {
+                    return;
+                }
             }
+            for (String q : queries) {
+                if (calloutsLeft <= 0) {
+                    break;
+                }
+                calloutsLeft--;
+                if (applyGeocodeHit(r, photonGeocodeOne(q), cacheKey)) {
+                    return;
+                }
+            }
+        } catch (CalloutException e) {
+            // Timeout / unreachable host: the next candidate would stall the page the same way, so stop here.
+            System.debug(LoggingLevel.WARN, 'Geocode callouts aborted: ' + e.getMessage());
+            return;
+        }
+        writeGeocodeCache(cacheKey, GEOCODE_CACHE_MISS, GEOCODE_MISS_TTL_SECONDS);
+    }
+
+    @TestVisible
+    private static final Integer MAX_GEOCODE_CALLOUTS = 3;
+    private static final Integer GEOCODE_TIMEOUT_MS = 6000;
+    private static final String GEOCODE_CACHE_PARTITION = 'local.BusinessProfileWidget';
+    private static final String GEOCODE_CACHE_MISS = 'miss';
+    private static final Integer GEOCODE_HIT_TTL_SECONDS = 172800;
+    private static final Integer GEOCODE_MISS_TTL_SECONDS = 86400;
+
+    private static Boolean applyGeocodeHit(BusinessProfileResult r, GeocodeHit hit, String cacheKey) {
+        if (hit == null || hit.lat == null || hit.lon == null || !isReasonableLatLon(hit.lat, hit.lon)) {
+            return false;
+        }
+        r.mapLatitude = hit.lat;
+        r.mapLongitude = hit.lon;
+        writeGeocodeCache(cacheKey, hit.lat + ',' + hit.lon, GEOCODE_HIT_TTL_SECONDS);
+        return true;
+    }
+
+    private static void applyCachedGeocode(BusinessProfileResult r, String cached) {
+        if (cached == GEOCODE_CACHE_MISS) {
+            return;
+        }
+        List<String> bits = cached.split(',');
+        if (bits.size() != 2) {
+            return;
+        }
+        try {
+            r.mapLatitude = Decimal.valueOf(bits[0]);
+            r.mapLongitude = Decimal.valueOf(bits[1]);
+        } catch (TypeException e) {
+            r.mapLatitude = null;
+            r.mapLongitude = null;
+        }
+    }
+
+    /** Cache keys must be alphanumeric and at most 50 chars: 'geo' + 32-char MD5 hex of the normalized address. */
+    @TestVisible
+    private static String geocodeCacheKey(String query) {
+        String norm = query == null ? '' : query.trim().toLowerCase();
+        return 'geo' + EncodingUtil.convertToHex(Crypto.generateDigest('MD5', Blob.valueOf(norm)));
+    }
+
+    private static Cache.OrgPartition geocodePartition() {
+        try {
+            return Cache.Org.getPartition(GEOCODE_CACHE_PARTITION);
+        } catch (Exception e) {
+            // Deliberately broad: a missing or zero-capacity partition must degrade to "no cache", never fail the profile.
+            return null;
+        }
+    }
+
+    private static String readGeocodeCache(String key) {
+        Cache.OrgPartition part = geocodePartition();
+        if (part == null) {
+            return null;
+        }
+        try {
+            Object v = part.get(key);
+            return v instanceof String ? (String) v : null;
+        } catch (Exception e) {
+            // Deliberately broad: see geocodePartition().
+            return null;
+        }
+    }
+
+    private static void writeGeocodeCache(String key, String value, Integer ttlSeconds) {
+        Cache.OrgPartition part = geocodePartition();
+        if (part == null) {
+            return;
+        }
+        try {
+            part.put(key, value, ttlSeconds);
+        } catch (Exception e) {
+            // Deliberately broad: see geocodePartition().
+            System.debug(LoggingLevel.FINE, 'Geocode cache write skipped: ' + e.getMessage());
         }
     }
 
@@ -1774,7 +1958,7 @@ public with sharing class BusinessProfileWidgetController {
         try {
             HttpRequest req = new HttpRequest();
             req.setMethod('GET');
-            req.setTimeout(12000);
+            req.setTimeout(GEOCODE_TIMEOUT_MS);
             req.setHeader(
                 'User-Agent',
                 'JDO-BusinessProfileWidget/1.0 (Salesforce Apex; financial services CRM profile widget)'
@@ -1806,7 +1990,10 @@ public with sharing class BusinessProfileWidgetController {
             h.lat = lat;
             h.lon = lng;
             return h;
-        } catch (Exception e) {
+        } catch (JSONException e) {
+            return null;
+        } catch (TypeException e) {
+            // Unexpected response shape (cast failure); treat as no hit. CalloutException propagates to the budget loop.
             return null;
         }
     }
@@ -1815,7 +2002,7 @@ public with sharing class BusinessProfileWidgetController {
         try {
             HttpRequest req = new HttpRequest();
             req.setMethod('GET');
-            req.setTimeout(12000);
+            req.setTimeout(GEOCODE_TIMEOUT_MS);
             req.setHeader('User-Agent', 'JDO-BusinessProfileWidget/1.0 (Salesforce Apex)');
             req.setHeader('Accept', 'application/json');
             req.setEndpoint(
@@ -1856,7 +2043,10 @@ public with sharing class BusinessProfileWidgetController {
             h.lat = lat;
             h.lon = lng;
             return h;
-        } catch (Exception e) {
+        } catch (JSONException e) {
+            return null;
+        } catch (TypeException e) {
+            // Unexpected response shape (cast failure); treat as no hit. CalloutException propagates to the budget loop.
             return null;
         }
     }
@@ -2393,7 +2583,12 @@ public with sharing class BusinessProfileWidgetController {
                 ' FROM Opportunity WHERE AccountId = :accountId AND IsClosed = false' +
                 orderBy +
                 ' LIMIT :lim';
-            for (Opportunity o : (List<Opportunity>) Database.query(soql)) {
+            List<Opportunity> opps = (List<Opportunity>) Database.queryWithBinds(
+                soql,
+                new Map<String, Object>{ 'accountId' => accountId, 'lim' => lim },
+                AccessLevel.USER_MODE
+            );
+            for (Opportunity o : opps) {
                 PipelineOpportunityRow row = new PipelineOpportunityRow();
                 row.id = o.Id;
                 row.name = o.Name;
@@ -2428,7 +2623,11 @@ public with sharing class BusinessProfileWidgetController {
         String activeClause = buildFinancialAccountActiveFilterClause(fm);
         String soql = 'SELECT COUNT() FROM ' + apiName + ' WHERE ' + accFld + ' = :accountId' + activeClause;
         try {
-            return Database.countQuery(soql);
+            return Database.countQueryWithBinds(
+                soql,
+                new Map<String, Object>{ 'accountId' => accountId },
+                AccessLevel.USER_MODE
+            );
         } catch (Exception e) {
             System.debug(LoggingLevel.WARN, 'countActiveFinancialAccountsForAccount: ' + e.getMessage());
             return null;
@@ -2479,6 +2678,52 @@ public with sharing class BusinessProfileWidgetController {
             }
         }
         return '';
+    }
+
+    @TestVisible
+    private static final String ACTION_TYPE_FLOW = 'Flow';
+    @TestVisible
+    private static final String ACTION_TYPE_APEX = 'Apex';
+    /** Test seam: replaces the Profile_Widget_Allowed_Action__mdt rows so tests don't depend on org metadata. */
+    @TestVisible
+    private static List<Profile_Widget_Allowed_Action__mdt> allowedActionsOverride;
+
+    /**
+     * Flow / invocable API names arrive from App Builder properties, i.e. from the client. When any
+     * Profile_Widget_Allowed_Action__mdt rows exist, only listed actions may run; with none, every action is
+     * allowed (back-compat for orgs that haven't seeded the allowlist).
+     */
+    @TestVisible
+    private static Boolean isActionAllowed(String actionType, String apiName) {
+        if (String.isBlank(apiName)) {
+            return false;
+        }
+        List<Profile_Widget_Allowed_Action__mdt> rows = allowedActionsOverride != null
+            ? allowedActionsOverride
+            : Profile_Widget_Allowed_Action__mdt.getAll().values();
+        if (rows.isEmpty()) {
+            return true;
+        }
+        String wanted = apiName.trim();
+        for (Profile_Widget_Allowed_Action__mdt row : rows) {
+            if (
+                row.Action_Type__c != null &&
+                row.Action_Type__c.equalsIgnoreCase(actionType) &&
+                row.Api_Name__c != null &&
+                row.Api_Name__c.trim().equalsIgnoreCase(wanted)
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void assertActionAllowed(String actionType, String apiName) {
+        if (!isActionAllowed(actionType, apiName)) {
+            throw buildAuraException(
+                actionType + ' "' + apiName.trim() + '" is not in the Profile Widget allowlist (Profile_Widget_Allowed_Action__mdt).'
+            );
+        }
     }
 
     /**

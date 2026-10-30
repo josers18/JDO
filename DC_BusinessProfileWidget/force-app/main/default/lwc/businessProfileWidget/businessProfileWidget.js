@@ -1,4 +1,4 @@
-import { LightningElement, api, track } from 'lwc';
+import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getProfileData from '@salesforce/apex/BusinessProfileWidgetController.getProfileData';
@@ -1894,7 +1894,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     /** Fallback chain when Use website logo is enabled (CSP-safe order). */
     _websiteLogoCandidates = [];
 
-    @track _websiteLogoAttempt = 0;
+    _websiteLogoAttempt = 0;
 
     @api accentColor = '#b8956a';
     @api warningColor = '#d4900a';
@@ -1997,6 +1997,10 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     _isConnected = false;
     _animationPending = false;
     _lastAppliedThemeKey = '';
+    /** Bumped per loadProfile (and on disconnect) so stale Apex responses never overwrite newer state. */
+    _loadSeq = 0;
+    /** Pending requestAnimationFrame ids, cancelled in disconnectedCallback. */
+    _rafIds = new Set();
 
     @api
     get recordId() {
@@ -2108,6 +2112,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             this.textColorPrimaryOverride || '',
             this.textColorSecondaryOverride || '',
             this.textColorTertiaryOverride || '',
+            this.aiSummaryTextColor || '',
             String(this.textScalePercent ?? ''),
             String(this.backgroundLightenPercent ?? ''),
             String(targets.length)
@@ -2185,25 +2190,25 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         }
     }
 
-    get themeBtn_obsidian() {
-        return 'wp-theme-btn wp-tb-obsidian' + (this._themeMode === 'obsidian' ? ' wp-tb-active' : '');
-    }
-    get themeBtn_midnight() {
-        return 'wp-theme-btn wp-tb-midnight' + (this._themeMode === 'midnight' ? ' wp-tb-active' : '');
-    }
-    get themeBtn_graphite() {
-        return 'wp-theme-btn wp-tb-graphite' + (this._themeMode === 'graphite' ? ' wp-tb-active' : '');
-    }
-    get themeBtn_ivory() {
-        return 'wp-theme-btn wp-tb-ivory' + (this._themeMode === 'ivory' ? ' wp-tb-active' : '');
+    get themeButtons() {
+        return [
+            { id: 'obsidian', title: 'Obsidian', glyph: '◑' },
+            { id: 'midnight', title: 'Midnight', glyph: '●' },
+            { id: 'graphite', title: 'Graphite', glyph: '◐' },
+            { id: 'ivory', title: 'Ivory', glyph: '○' }
+        ].map((b) => ({
+            ...b,
+            cls: `wp-theme-btn wp-tb-${b.id}${this._themeMode === b.id ? ' wp-tb-active' : ''}`,
+            pressed: this._themeMode === b.id ? 'true' : 'false'
+        }));
     }
 
     connectedCallback() {
         this._isConnected = true;
         this.applyTheme();
-        requestAnimationFrame(() => {
+        this.queueFrame(() => {
             this.applyTheme();
-            requestAnimationFrame(() => this.applyTheme());
+            this.queueFrame(() => this.applyTheme());
         });
         if (this._recordId) {
             this.loadProfile();
@@ -2213,6 +2218,22 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     disconnectedCallback() {
         // Lock out late @api setter calls firing after teardown.
         this._isConnected = false;
+        this._rafIds.forEach((id) => cancelAnimationFrame(id));
+        this._rafIds.clear();
+        // Invalidate in-flight loads so their responses don't write to a detached component.
+        this._loadSeq += 1;
+    }
+
+    queueFrame(fn) {
+        const id = requestAnimationFrame(() => {
+            this._rafIds.delete(id);
+            fn();
+        });
+        this._rafIds.add(id);
+    }
+
+    isCurrentLoad(seq) {
+        return seq === this._loadSeq && this._isConnected;
     }
 
     renderedCallback() {
@@ -2225,7 +2246,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             this._animationPending = false;
             // RAF guarantees the new tab body is committed to the DOM before we
             // query for .bar-fill nodes. No setTimeout needed.
-            requestAnimationFrame(() => this.animateBars());
+            this.queueFrame(() => this.animateBars());
         }
     }
 
@@ -2263,6 +2284,8 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
     }
 
     async loadProfile() {
+        this._loadSeq += 1;
+        const seq = this._loadSeq;
         this.loading = true;
         this.errorMessage = null;
         this.summaryText = null;
@@ -2283,9 +2306,13 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 geocodeBillingAddress: this.geocodeBillingAddress !== false,
                 pipelineOpportunityLimit: this.pipelineOpportunityLimitForApex
             });
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.profileData = JSON.parse(result);
-            await this.loadAgentforceOverviewEinsteinIfNeeded();
-            await this.loadUnifiedRelationshipsIfNeeded();
+            // Render the profile now; the Agentforce summary, unified relationships and the AI summary
+            // fill in independently instead of holding every tab behind the spinner.
+            this.loading = false;
             this.logoLoadFailed = false;
             this._websiteLogoAttempt = 0;
             this.refreshWebsiteLogoCandidates();
@@ -2293,10 +2320,15 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             // avoids @lwc/lwc/no-async-operation lint hit and the timing race against
             // the LWC engine's batched re-render after profileData is reassigned.
             this._animationPending = true;
+            void this.loadAgentforceOverviewEinsteinIfNeeded(seq);
+            void this.loadUnifiedRelationshipsIfNeeded(seq);
             if (this.promptTemplateId && this.autoGenerateSummary) {
-                this.loadSummary();
+                void this.loadSummary(seq);
             }
         } catch (error) {
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.errorMessage = error.body?.message || 'Failed to load profile data.';
             this.profileData = null;
             this.unifiedRelationshipsRawJson = null;
@@ -2310,14 +2342,16 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 })
             );
         } finally {
-            this.loading = false;
+            if (seq === this._loadSeq) {
+                this.loading = false;
+            }
         }
     }
 
     /**
      * Separate Apex request from getProfileData so Einstein Connect runs like Execute Anonymous (minimal transaction).
      */
-    async loadAgentforceOverviewEinsteinIfNeeded() {
+    async loadAgentforceOverviewEinsteinIfNeeded(seq = this._loadSeq) {
         if (!this.showAgentforceSummary || !this.profileData || !this._recordId) {
             return;
         }
@@ -2335,6 +2369,9 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 agentforceSummaryPromptInputApiName:
                     this.agentforceSummaryPromptInputApiName || 'Input:Account.Id'
             });
+            if (!this.isCurrentLoad(seq) || !this.profileData) {
+                return;
+            }
             const ein = JSON.parse(payload);
             const summary = String(ein.agentforceSummary ?? '').trim();
             const hint = String(ein.agentforceSummaryPromptHint ?? '').trim();
@@ -2344,6 +2381,9 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 agentforceSummaryPromptHint: hint
             };
         } catch (e) {
+            if (!this.isCurrentLoad(seq) || !this.profileData) {
+                return;
+            }
             const msg = this.reduceError(e);
             this.profileData = {
                 ...this.profileData,
@@ -2352,7 +2392,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         }
     }
 
-    async loadUnifiedRelationshipsIfNeeded() {
+    async loadUnifiedRelationshipsIfNeeded(seq = this._loadSeq) {
         this.unifiedRelationshipsLoadError = null;
         this.unifiedRelationshipsRawJson = null;
         const cls = (this.unifiedRelationshipsInvocableApexClass || '').trim();
@@ -2373,14 +2413,22 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 invocableRecordIdInputApiName: (this.unifiedRelationshipsInvocableIdInput || 'id').trim(),
                 invocableJsonOutputApiName: (this.unifiedRelationshipsInvocableJsonOutput || 'queryResultJSON').trim()
             });
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             const json = res?.queryResultJson;
             this.unifiedRelationshipsRawJson =
                 json != null && String(json).trim() !== '' ? String(json) : null;
         } catch (e) {
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.unifiedRelationshipsLoadError = this.reduceError(e);
             this.unifiedRelationshipsRawJson = null;
         } finally {
-            this.unifiedRelationshipsLoading = false;
+            if (seq === this._loadSeq) {
+                this.unifiedRelationshipsLoading = false;
+            }
         }
     }
 
@@ -2394,7 +2442,7 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         return 'Unknown error';
     }
 
-    async loadSummary() {
+    async loadSummary(seq = this._loadSeq) {
         if (!this.promptTemplateId || !this.profileData) {
             return;
         }
@@ -2407,11 +2455,19 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
                 predictionLabel: this.profileData.predictionLabel,
                 recommendationsJson: this.profileData.recommendationsJson || '[]'
             });
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.summaryText = text;
         } catch (e) {
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.summaryError = this.reduceError(e);
         } finally {
-            this.summaryLoading = false;
+            if (seq === this._loadSeq) {
+                this.summaryLoading = false;
+            }
         }
     }
 
@@ -2568,6 +2624,50 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
         this._animationPending = true;
     }
 
+    /** WAI-ARIA tabs pattern: arrows move between tabs (wrapping), Home/End jump to the ends. */
+    handleTabKeydown(event) {
+        const ids = this.visibleTabIds;
+        const cur = ids.indexOf(this.activeTab);
+        if (cur < 0 || !ids.length) {
+            return;
+        }
+        let next;
+        switch (event.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+                next = (cur + 1) % ids.length;
+                break;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+                next = (cur - 1 + ids.length) % ids.length;
+                break;
+            case 'Home':
+                next = 0;
+                break;
+            case 'End':
+                next = ids.length - 1;
+                break;
+            default:
+                return;
+        }
+        event.preventDefault();
+        this.activeTab = ids[next];
+        this._animationPending = true;
+        const btns = this.template.querySelectorAll('button[role="tab"]');
+        if (btns[next]) {
+            btns[next].focus();
+        }
+    }
+
+    get activeTabDomId() {
+        return `wp-tab-${this.activeTab}`;
+    }
+
+    get hasInsightRecommendations() {
+        const rows = this.processedInsightRecommendations;
+        return Array.isArray(rows) && rows.length > 0;
+    }
+
     get visibleTabs() {
         return [
             { id: 'overview', label: this.overviewTabLabel, show: this.showOverviewTab },
@@ -2580,7 +2680,11 @@ export default class BusinessProfileWidget extends NavigationMixin(LightningElem
             .filter((t) => t.show)
             .map((t) => ({
                 ...t,
-                tabClass: 'wp-tab' + (t.id === this.activeTab ? ' wp-tab--active' : '')
+                tabClass: 'wp-tab' + (t.id === this.activeTab ? ' wp-tab--active' : ''),
+                ariaSelected: t.id === this.activeTab ? 'true' : 'false',
+                domId: `wp-tab-${t.id}`,
+                // Roving tabindex: only the selected tab is in the Tab order; arrows move within the list.
+                tabIndex: t.id === this.activeTab ? '0' : '-1'
             }));
     }
 
