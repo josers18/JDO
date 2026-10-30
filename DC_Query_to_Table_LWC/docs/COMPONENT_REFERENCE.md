@@ -39,8 +39,8 @@ Record pages use the same properties as app/home; record target additionally res
 | **Default column width (px)** | Integer | (empty) | Optional initial width for every column. |
 | **Show selection checkboxes** | Boolean | `false` | Row selection column (off by default for read-only Data Cloud results). |
 | **Show row numbers** | Boolean | `false` | Row index column. |
-| **Column widths mode** | String | `auto` | `auto` or `fixed` (platform datatable). |
-| **Minimum column width (px)** | Integer | `120` | Floor for column sizing when resize is enabled. |
+| **Column widths mode (legacy)** | String | `auto` | Ignored. Columns always fit the card width; kept so saved pages still load. |
+| **Minimum column width (px)** | Integer | `120` | Floor for column sizing. If the columns can't all fit the card at this width, rows show as stacked cards instead of a table. |
 | **Disable column resize** | Boolean | `false` | Disables user column resize. |
 | **Wrap table header** | Boolean | `false` | Maps to `wrap-table-header` on `lightning-datatable`. |
 | **Wrap text max lines** | Integer | `3` | Max lines when wrapping is active. |

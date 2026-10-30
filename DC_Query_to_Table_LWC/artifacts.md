@@ -46,8 +46,8 @@ Source of truth: `force-app/main/default/`.
 | File | Role |
 |------|------|
 | `lwc/dcQueryToTableLwc/dcQueryToTableLwc.js` | Auto-run vs **Run query**, Apex invoke, client-side sort, column normalization, shell class modifiers when title/header hidden. |
-| `lwc/dcQueryToTableLwc/dcQueryToTableLwc.html` | Optional header (icon, title, actions), error area, `lightning-datatable`. |
-| `lwc/dcQueryToTableLwc/dcQueryToTableLwc.css` | Card shell, title color via CSS variable, compact layout when title absent. |
+| `lwc/dcQueryToTableLwc/dcQueryToTableLwc.html` | Optional header (icon, title, actions), error area, `lightning-datatable` or stacked-rows layout when columns don't fit. |
+| `lwc/dcQueryToTableLwc/dcQueryToTableLwc.css` | Card shell, title color via CSS variable, compact layout when title absent, vertical-only table scroll, stacked-row (`.dcqt-stack*`) styles. |
 | `lwc/dcQueryToTableLwc/dcQueryToTableLwc.js-meta.xml` | Targets: App, Home, Record; designer properties; **Account** on record pages. |
 
 ---
