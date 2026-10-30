@@ -1636,6 +1636,11 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
     _isConnected = false;
     _animationPending = false;
     _lastAppliedThemeKey = '';
+    /** Incremented per loadProfile(); late Apex responses for an earlier record compare against it and bail. */
+    _loadSeq = 0;
+    /** Pending requestAnimationFrame ids, cancelled on disconnect so no frame writes to a torn-down tree. */
+    _rafIds = new Set();
+    agentforceSummaryLoading = false;
 
     @api
     get recordId() {
@@ -1660,9 +1665,9 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         this._isConnected = true;
         this.applyTheme();
         // .wp-shell may not exist until after first paint; rAF re-applies after DOM is ready (live record pages).
-        requestAnimationFrame(() => {
+        this.queueFrame(() => {
             this.applyTheme();
-            requestAnimationFrame(() => this.applyTheme());
+            this.queueFrame(() => this.applyTheme());
         });
         this.ensureActiveTab();
         if (this._recordId) {
@@ -1673,6 +1678,22 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
     disconnectedCallback() {
         // Lock out late @api setter calls firing after teardown.
         this._isConnected = false;
+        this._rafIds.forEach((id) => cancelAnimationFrame(id));
+        this._rafIds.clear();
+        // Invalidate in-flight loads so their responses don't write to a detached component.
+        this._loadSeq += 1;
+    }
+
+    queueFrame(fn) {
+        const id = requestAnimationFrame(() => {
+            this._rafIds.delete(id);
+            fn();
+        });
+        this._rafIds.add(id);
+    }
+
+    isCurrentLoad(seq) {
+        return seq === this._loadSeq && this._isConnected;
     }
 
     renderedCallback() {
@@ -1681,7 +1702,7 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
             this._animationPending = false;
             // RAF guarantees the new tab body is committed to the DOM before we
             // query for .bar-fill nodes. No setTimeout needed.
-            requestAnimationFrame(() => this.animateBars());
+            this.queueFrame(() => this.animateBars());
         }
     }
 
@@ -1746,12 +1767,9 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
             this.backgroundSecondary || '',
             this.textPrimary || '',
             this.textSecondary || '',
-            this.textTertiary || '',
-            this.textColorPrimaryOverride || '',
-            this.textColorSecondaryOverride || '',
-            this.textColorTertiaryOverride || '',
+            this.fieldKeyColor || '',
+            this.aiSummaryTextColor || '',
             String(this.textScalePercent ?? ''),
-            String(this.backgroundLightenPercent ?? ''),
             String(targets.length)
         ].join('|');
         if (key === this._lastAppliedThemeKey) {
@@ -1884,7 +1902,10 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         if (!this._recordId) {
             return;
         }
+        this._loadSeq += 1;
+        const seq = this._loadSeq;
         this.loading = true;
+        this.agentforceSummaryLoading = false;
         this.errorMessage = null;
         this.summaryText = null;
         this.summaryError = null;
@@ -1907,19 +1928,28 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 profileFlowOutputMapJson: this.buildAssemblyOutputMapJson(),
                 geocodeBillingAddress: this.geocodeBillingAddress !== false
             });
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.profileData = result;
             this.ensureActiveTab();
-            await this.loadAgentforceOverviewEinsteinIfNeeded();
-            await this.loadUnifiedRelationshipsIfNeeded();
-            void this.refreshSignalGaugeFlows();
+            // Render the profile now; the Agentforce summary, unified relationships, gauges and the AI summary
+            // fill in independently instead of holding every tab behind the spinner.
+            this.loading = false;
             // Defer animation to renderedCallback once the new tab body is mounted —
             // avoids @lwc/lwc/no-async-operation lint hit and the timing race against
             // the LWC engine's batched re-render after profileData is reassigned.
             this._animationPending = true;
+            void this.loadAgentforceOverviewEinsteinIfNeeded(seq);
+            void this.loadUnifiedRelationshipsIfNeeded(seq);
+            void this.refreshSignalGaugeFlows(seq);
             if (this.promptTemplateId && this.autoGenerateSummary !== false) {
-                this.loadSummary();
+                void this.loadSummary(seq);
             }
         } catch (e) {
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.errorMessage = this.reduceError(e);
             this.profileData = null;
             this.gaugeInferencePredictions = [null, null, null];
@@ -1937,7 +1967,9 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 })
             );
         } finally {
-            this.loading = false;
+            if (seq === this._loadSeq) {
+                this.loading = false;
+            }
         }
     }
 
@@ -1956,7 +1988,7 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         return 'Input:Contact.Id';
     }
 
-    async loadAgentforceOverviewEinsteinIfNeeded() {
+    async loadAgentforceOverviewEinsteinIfNeeded(seq = this._loadSeq) {
         if (!this.showAgentforceSummary || !this.profileData || !this._recordId) {
             return;
         }
@@ -1967,12 +1999,16 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         if (this.autoGenerateAgentforceSummary === false) {
             return;
         }
+        this.agentforceSummaryLoading = true;
         try {
             const payload = await getAgentforceOverviewSummary({
                 recordId: this._recordId,
                 agentforceSummaryPromptTemplateId: tmpl,
                 agentforceSummaryPromptInputApiName: this.resolvedAgentforcePromptInputApiName()
             });
+            if (!this.isCurrentLoad(seq) || !this.profileData) {
+                return;
+            }
             const ein = JSON.parse(payload);
             const summary = String(ein.agentforceSummary ?? '').trim();
             const hint = String(ein.agentforceSummaryPromptHint ?? '').trim();
@@ -1982,15 +2018,22 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 agentforceSummaryPromptHint: hint
             };
         } catch (e) {
+            if (!this.isCurrentLoad(seq) || !this.profileData) {
+                return;
+            }
             const msg = this.reduceError(e);
             this.profileData = {
                 ...this.profileData,
                 agentforceSummaryPromptHint: msg
             };
+        } finally {
+            if (seq === this._loadSeq) {
+                this.agentforceSummaryLoading = false;
+            }
         }
     }
 
-    async loadUnifiedRelationshipsIfNeeded() {
+    async loadUnifiedRelationshipsIfNeeded(seq = this._loadSeq) {
         this.unifiedRelationshipsLoadError = null;
         this.unifiedRelationshipsRawJson = null;
         const cls = (this.unifiedRelationshipsInvocableApexClass || '').trim();
@@ -2011,14 +2054,22 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 invocableRecordIdInputApiName: (this.unifiedRelationshipsInvocableIdInput || 'id').trim(),
                 invocableJsonOutputApiName: (this.unifiedRelationshipsInvocableJsonOutput || 'queryResultJSON').trim()
             });
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             const json = res?.queryResultJson;
             this.unifiedRelationshipsRawJson =
                 json != null && String(json).trim() !== '' ? String(json) : null;
         } catch (e) {
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.unifiedRelationshipsLoadError = this.reduceError(e);
             this.unifiedRelationshipsRawJson = null;
         } finally {
-            this.unifiedRelationshipsLoading = false;
+            if (seq === this._loadSeq) {
+                this.unifiedRelationshipsLoading = false;
+            }
         }
     }
 
@@ -2064,7 +2115,7 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         this.gaugeInferenceErrors = errs;
     }
 
-    async refreshSignalGaugeFlows() {
+    async refreshSignalGaugeFlows(seq = this._loadSeq) {
         const rid = this._recordId;
         if (!rid) {
             return;
@@ -2075,14 +2126,14 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
             if (!flowApiName) {
                 continue;
             }
-            jobs.push(this.runSignalGaugeFlowAt(i, flowApiName, rid));
+            jobs.push(this.runSignalGaugeFlowAt(i, flowApiName, rid, seq));
         }
         if (jobs.length) {
             await Promise.all(jobs);
         }
     }
 
-    async runSignalGaugeFlowAt(index, flowApiName, recordId) {
+    async runSignalGaugeFlowAt(index, flowApiName, recordId, seq = this._loadSeq) {
         const cfg = this.signalGaugeConfig(index);
         this.patchGaugeSlot(index, { pred: null, loading: true, err: null });
         try {
@@ -2092,6 +2143,9 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 recordIdVariableName: cfg.recordVar,
                 predictionVariableName: cfg.predVar
             });
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             const p = res?.prediction;
             const n = p != null ? Number(p) : NaN;
             this.patchGaugeSlot(index, {
@@ -2100,6 +2154,9 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 err: null
             });
         } catch (e) {
+            if (!this.isCurrentLoad(seq)) {
+                return;
+            }
             this.patchGaugeSlot(index, {
                 pred: null,
                 loading: false,
@@ -2178,7 +2235,7 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
         });
     }
 
-    async loadSummary() {
+    async loadSummary(seq = this._loadSeq) {
         if (!this.promptTemplateId || !this.profileData) {
             return;
         }
@@ -2191,16 +2248,25 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 predictionLabel: this.profileData.predictionLabel,
                 recommendationsJson: this.profileData.recommendationsJson || '[]'
             });
-            this.summaryText = text;
+            if (this.isCurrentLoad(seq)) {
+                this.summaryText = text;
+            }
         } catch (e) {
-            this.summaryError = this.reduceError(e);
+            if (this.isCurrentLoad(seq)) {
+                this.summaryError = this.reduceError(e);
+            }
         } finally {
-            this.summaryLoading = false;
+            if (seq === this._loadSeq) {
+                this.summaryLoading = false;
+            }
         }
     }
 
     handleTabClick(event) {
-        const tab = event.currentTarget.dataset.tab;
+        this.selectTab(event.currentTarget.dataset.tab);
+    }
+
+    selectTab(tab) {
         if (tab) {
             this.activeTab = tab;
             if (tab === 'insight' || tab === 'signals') {
@@ -2209,6 +2275,44 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 this._animationPending = true;
             }
         }
+    }
+
+    /** WAI-ARIA tabs pattern: arrows move between tabs (wrapping), Home/End jump to the ends. */
+    handleTabKeydown(event) {
+        const ids = this.visibleTabs.map((t) => t.id);
+        const cur = ids.indexOf(this.activeTab);
+        if (cur < 0 || !ids.length) {
+            return;
+        }
+        let next;
+        switch (event.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+                next = (cur + 1) % ids.length;
+                break;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+                next = (cur - 1 + ids.length) % ids.length;
+                break;
+            case 'Home':
+                next = 0;
+                break;
+            case 'End':
+                next = ids.length - 1;
+                break;
+            default:
+                return;
+        }
+        event.preventDefault();
+        this.selectTab(ids[next]);
+        const btns = this.template.querySelectorAll('button[role="tab"]');
+        if (btns[next]) {
+            btns[next].focus();
+        }
+    }
+
+    get activeTabDomId() {
+        return `wp-tab-${this.activeTab}`;
     }
 
     animateBars() {
@@ -2239,7 +2343,10 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
                 id: t.id,
                 label: t.label,
                 tabClass: `wp-tab${this.activeTab === t.id ? ' wp-tab--active' : ''}`,
-                ariaSelected: this.activeTab === t.id ? 'true' : 'false'
+                ariaSelected: this.activeTab === t.id ? 'true' : 'false',
+                domId: `wp-tab-${t.id}`,
+                // Roving tabindex: only the selected tab is in the Tab order; arrows move within the list.
+                tabIndex: this.activeTab === t.id ? '0' : '-1'
             }));
     }
 
@@ -2898,6 +3005,10 @@ export default class CustomerProfileWidget extends NavigationMixin(LightningElem
     get insightRecommendationsSectionTitleDisplay() {
         const s = (this.insightRecommendationsSectionTitle || '').trim();
         return s || 'Recommended actions';
+    }
+
+    get hasProcessedInsightRecommendations() {
+        return this.processedInsightRecommendations.length > 0;
     }
 
     get processedInsightRecommendations() {

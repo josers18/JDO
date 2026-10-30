@@ -1088,6 +1088,12 @@
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .wp-ai-pulse {
+        animation: none;
+    }
+}
+
 .wp-insight-card {
     background: var(--wp-insight-bg);
     border-radius: 12px;
