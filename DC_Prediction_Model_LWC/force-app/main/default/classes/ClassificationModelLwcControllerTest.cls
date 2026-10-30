@@ -73,9 +73,61 @@ private class ClassificationModelLwcControllerTest {
                 'factors',
                 'recommendations'
             );
-        } catch (Exception e) {
+        } catch (AuraHandledException e) {
             threw = true;
+            System.assert(e.getMessage().contains('Nonexistent_Flow_Invalid_ZZZ'), 'Message names the flow: ' + e.getMessage());
         }
-        System.assert(threw, 'Expected exception when flow is missing');
+        System.assert(threw, 'Expected AuraHandledException when flow is missing');
+    }
+
+    @IsTest
+    static void buildPromptContext_withRiskContext_includesIt() {
+        Map<String, Object> ctx = (Map<String, Object>) JSON.deserializeUntyped(
+            ClassificationModelLwcController.buildPromptContext(
+                38.2,
+                '[]',
+                '[]',
+                ' percent ',
+                '{"band":"Moderate risk","actions":[{"input":"Complaint Count","projectedRisk":12}]}'
+            )
+        );
+        System.assertEquals(38.2, (Decimal) ctx.get('prediction'));
+        System.assertEquals('percent', ctx.get('predictionOutputFormat'), 'Format is trimmed');
+        Map<String, Object> risk = (Map<String, Object>) ctx.get('riskContext');
+        System.assertEquals('Moderate risk', risk.get('band'));
+        System.assertEquals(1, ((List<Object>) risk.get('actions')).size());
+    }
+
+    @IsTest
+    static void buildPromptContext_noRiskContext_omitsKey() {
+        Map<String, Object> ctx = (Map<String, Object>) JSON.deserializeUntyped(
+            ClassificationModelLwcController.buildPromptContext(72, '[]', '[]', null, null)
+        );
+        System.assert(!ctx.containsKey('riskContext'), 'Score cards must not send riskContext');
+        System.assert(!ctx.containsKey('predictionOutputFormat'), 'Blank format is omitted');
+    }
+
+    @IsTest
+    static void buildPromptContext_malformedRiskContext_dropsIt() {
+        Map<String, Object> ctx = (Map<String, Object>) JSON.deserializeUntyped(
+            ClassificationModelLwcController.buildPromptContext(40, '[]', '[]', 'percent', '{not json')
+        );
+        System.assert(!ctx.containsKey('riskContext'), 'Malformed riskContext is dropped, not thrown');
+        System.assertEquals('percent', ctx.get('predictionOutputFormat'));
+    }
+
+    @IsTest
+    static void buildPromptContext_humanizesFactorNames() {
+        Map<String, Object> ctx = (Map<String, Object>) JSON.deserializeUntyped(
+            ClassificationModelLwcController.buildPromptContext(
+                40,
+                '[{"fields":[{"name":"Complaint_Count__c"}],"value":-17.1}]',
+                '[]',
+                null,
+                null
+            )
+        );
+        List<Object> factors = (List<Object>) JSON.deserializeUntyped((String) ctx.get('factors'));
+        System.assertEquals('Complaint Count', fieldName(factors, 0));
     }
 }

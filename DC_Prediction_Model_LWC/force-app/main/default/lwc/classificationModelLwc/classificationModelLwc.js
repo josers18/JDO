@@ -35,7 +35,7 @@ function sanitizePmTextColor(raw) {
     if (/[;}<>]|url\s*\(|expression\s*\(/i.test(s)) {
         return null;
     }
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) {
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s)) {
         return s;
     }
     if (/^rgba?\(/i.test(s)) {
@@ -93,7 +93,10 @@ export default class ClassificationModelLwc extends LightningElement {
     @api gaugeSubtitle;
     @api gaugeGradientReverse;
     @api gaugeColorLow = '';
-    /** Reserved for a future 3-stop gradient mode. Solid arc only blends low → high (lerpColorHex). */
+    /**
+     * Reserved, not read anywhere: kept so saved flexipages that set it still deploy. The solid arc
+     * only blends low → high (lerpColorHex); wire this up only if a 3-stop gradient mode is added.
+     */
     @api gaugeColorMid = '';
     @api gaugeColorHigh = '';
     @api gaugeArcBadColor = '';
@@ -170,6 +173,9 @@ export default class ClassificationModelLwc extends LightningElement {
     _animationPending = false;
     _isConnected = false;
     _lastAppliedThemeKey = '';
+    _requestSeq = 0;
+    // factorsJson / recommendationsJson are re-read by many getters per render; parse each once.
+    _parseCache = new Map();
 
     @api
     get recordId() {
@@ -333,8 +339,8 @@ export default class ClassificationModelLwc extends LightningElement {
     /** Factors ranked by |value|, colored by strength tier, with a Raises/Lowers direction. */
     get keyDriverFactors() {
         const rows = this.buildInsightRowsFromArray(this.normalizeInsightSource(this.factorsJson), 'factor');
+        // Bar scales are order-independent (already set by buildInsightRowsFromArray); only re-rank.
         rows.sort((a, b) => Math.abs(b.displayValue || 0) - Math.abs(a.displayValue || 0));
-        this.applyBarScales(rows);
         const tiers = this.keyDriverTiers;
         const colors = this.resolveColors(this.factorsRiskColor, this.factorsGoodColor);
         const directional = this.applyProcessedRowColors(rows, colors, this.factorsPositiveMeansGood === true);
@@ -420,6 +426,8 @@ export default class ClassificationModelLwc extends LightningElement {
                 ptsText,
                 liftGlyph: riskNow != null ? (v < 0 ? '▼' : '▲') : '',
                 liftText: riskNow != null ? `${Math.abs(v).toFixed(1)} pts` : `${ptsText} pts`,
+                // The glyph is aria-hidden, so risk-framed rows spell the direction out for screen readers.
+                liftSrText: riskNow != null ? (v < 0 ? 'Lowers risk' : 'Raises risk') : '',
                 dirStyle: row.barStyle,
                 hasProjection: projected != null,
                 projected,
@@ -441,9 +449,9 @@ export default class ClassificationModelLwc extends LightningElement {
         const cut = String(this.riskBandThresholds || '')
             .split(',')
             .map((t) => (t.trim() === '' ? NaN : Number(t)));
-        let low = Number.isFinite(cut[0]) ? cut[0] : DEFAULT_RISK_BAND_THRESHOLDS[0];
-        let high = Number.isFinite(cut[1]) ? cut[1] : DEFAULT_RISK_BAND_THRESHOLDS[1];
-        if (low > high) {
+        let low = Number.isFinite(cut[0]) ? clampPercent(cut[0]) : DEFAULT_RISK_BAND_THRESHOLDS[0];
+        let high = Number.isFinite(cut[1]) ? clampPercent(cut[1]) : DEFAULT_RISK_BAND_THRESHOLDS[1];
+        if (low >= high) {
             [low, high] = DEFAULT_RISK_BAND_THRESHOLDS;
         }
         return {
@@ -462,10 +470,11 @@ export default class ClassificationModelLwc extends LightningElement {
     }
 
     get riskBand() {
-        if (!this.isRiskFramed || this.predictionNumber == null) {
+        if (!this.isRiskFramed || this.scorePercentRounded == null) {
             return null;
         }
-        const band = this.riskBandFor(clampPercent(this.predictionNumber));
+        // Band the rounded score so the chip always agrees with the number on the gauge.
+        const band = this.riskBandFor(clampPercent(this.scorePercentRounded));
         return { ...band, chipStyle: `--band-color:${band.color}` };
     }
 
@@ -480,7 +489,9 @@ export default class ClassificationModelLwc extends LightningElement {
         if (!band) {
             return null;
         }
-        const actions = this.keyDriverImprovements
+        // Projections only render in keyDrivers mode; don't let the summary quote numbers the card hides.
+        const improvements = this.isKeyDriversMode ? this.keyDriverImprovements : [];
+        const actions = improvements
             .filter((item) => item.projected)
             .map((item) => ({
                 input: item.labelText,
@@ -891,6 +902,7 @@ export default class ClassificationModelLwc extends LightningElement {
         this.errorMessage = undefined;
         this.summaryText = undefined;
         this.summaryError = undefined;
+        this.loadingSummary = false;
         this.runFlow();
     }
 
@@ -898,6 +910,9 @@ export default class ClassificationModelLwc extends LightningElement {
         if (!this.flowApiName || !this._recordId) {
             return;
         }
+        // A newer refresh (button or record change) invalidates any response still in flight.
+        this._requestSeq += 1;
+        const seq = this._requestSeq;
         this.loadingFlow = true;
         try {
             const result = await runPredictionFlow({
@@ -908,10 +923,17 @@ export default class ClassificationModelLwc extends LightningElement {
                 factorsVariableName: this.factorsVariableName,
                 recommendationsVariableName: this.recommendationsVariableName
             });
+            if (seq !== this._requestSeq) {
+                return;
+            }
+            this._parseCache.clear();
             this.prediction = result.prediction;
             this.factorsJson = result.factorsJson;
             this.recommendationsJson = result.recommendationsJson;
         } catch (e) {
+            if (seq !== this._requestSeq) {
+                return;
+            }
             this.errorMessage = this.reduceError(e);
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -922,8 +944,10 @@ export default class ClassificationModelLwc extends LightningElement {
                 })
             );
         } finally {
-            this.loadingFlow = false;
-            this._animationPending = true;
+            if (seq === this._requestSeq) {
+                this.loadingFlow = false;
+                this._animationPending = true;
+            }
         }
 
         if (!this.errorMessage && this.hasPromptTemplate && this.autoGenerateSummary !== false) {
@@ -935,6 +959,7 @@ export default class ClassificationModelLwc extends LightningElement {
         if (!this.hasPromptTemplate) {
             return;
         }
+        const seq = this._requestSeq;
         this.loadingSummary = true;
         this.summaryError = undefined;
         try {
@@ -947,8 +972,14 @@ export default class ClassificationModelLwc extends LightningElement {
                 predictionOutputFormat: this.predictionFormatKey,
                 riskContextJson: this.riskContextJson
             });
+            if (seq !== this._requestSeq) {
+                return;
+            }
             this.summaryText = text ? stripCourtesyTail(text) : 'The model returned an empty response.';
         } catch (e) {
+            if (seq !== this._requestSeq) {
+                return;
+            }
             this.summaryError = this.reduceError(e);
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -959,7 +990,9 @@ export default class ClassificationModelLwc extends LightningElement {
                 })
             );
         } finally {
-            this.loadingSummary = false;
+            if (seq === this._requestSeq) {
+                this.loadingSummary = false;
+            }
         }
     }
 
@@ -1033,15 +1066,22 @@ export default class ClassificationModelLwc extends LightningElement {
         if (!trimmed) {
             return [];
         }
+        if (this._parseCache.has(trimmed)) {
+            return this._parseCache.get(trimmed);
+        }
+        let parsed = [];
         try {
             let data = JSON.parse(trimmed);
             if (typeof data === 'string') {
                 data = JSON.parse(data.trim());
             }
-            return Array.isArray(data) ? data : [];
+            parsed = Array.isArray(data) ? data : [];
         } catch (e) {
-            return [];
+            parsed = [];
         }
+        // Callers only map over the items, never mutate them, so sharing the parsed array is safe.
+        this._parseCache.set(trimmed, parsed);
+        return parsed;
     }
 
     insightItemCount(jsonString) {

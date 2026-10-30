@@ -214,6 +214,9 @@
                                         </span>
                                         <span class="kd-pts">
                                             <span class="kd-glyph" style={item.dirStyle} aria-hidden="true">{item.liftGlyph}</span>
+                                            <template lwc:if={item.liftSrText}>
+                                                <span class="pm-sr-only">{item.liftSrText}</span>
+                                            </template>
                                             {item.liftText}
                                         </span>
                                         <div class="kd-track">
@@ -228,6 +231,7 @@
                                                 Risk <b>{item.projected.fromText}</b> →
                                                 <span class="kd-proj__to" style={item.projected.bandStyle} title={item.projected.bandLabel}>
                                                     <span class="kd-proj__dot" aria-hidden="true"></span><b>{item.projected.toText}</b>
+                                                    <span class="pm-sr-only"> ({item.projected.bandLabel})</span>
                                                 </span>
                                                 if only this changes
                                             </span>
@@ -266,6 +270,7 @@
 
             <template lwc:if={showSummaryCard}>
                 <div class="agent-summary">
+                    <span class="section-label agent-summary__title">{summaryCardTitleDisplay}</span>
                     <template lwc:if={loadingSummary}>
                         <div class="lwc-spinner-wrap lwc-spinner-wrap--small">
                             <lightning-spinner alternative-text="Generating summary" size="small"></lightning-spinner>

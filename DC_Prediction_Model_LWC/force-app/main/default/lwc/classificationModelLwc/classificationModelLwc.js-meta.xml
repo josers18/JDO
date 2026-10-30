@@ -72,7 +72,7 @@
                 description="Unchecked: score 0% uses bad color, 100% uses good color. Checked: invert (high score toward bad color)." />
             <property name="gaugeColorLow" type="String" label="Gauge fallback: low / bad color"
                 description="Optional hex used when Gauge arc bad color is blank (e.g. #E74C3C). Default red if blank." />
-            <property name="gaugeColorMid" type="String" label="Gauge (legacy — unused for solid arc)"
+            <property name="gaugeColorMid" type="String" label="Gauge mid color (reserved — not used)"
                 description="Reserved for future use; solid arc only uses bad and good endpoints." />
             <property name="gaugeColorHigh" type="String" label="Gauge fallback: high / good color"
                 description="Optional hex used when Gauge arc good color is blank (e.g. #1D9E75). Default green if blank." />
@@ -134,7 +134,7 @@
             <property name="gaugeArcGoodColor" type="String" label="Gauge arc color (100% score — good)" />
             <property name="gaugeGradientReverse" type="Boolean" label="Gauge: reverse arc colors" default="false" />
             <property name="gaugeColorLow" type="String" label="Gauge fallback: low / bad color" />
-            <property name="gaugeColorMid" type="String" label="Gauge (legacy — unused for solid arc)" />
+            <property name="gaugeColorMid" type="String" label="Gauge mid color (reserved — not used)" />
             <property name="gaugeColorHigh" type="String" label="Gauge fallback: high / good color" />
             <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />
@@ -183,7 +183,7 @@
             <property name="gaugeArcGoodColor" type="String" label="Gauge arc color (100% score — good)" />
             <property name="gaugeGradientReverse" type="Boolean" label="Gauge: reverse arc colors" default="false" />
             <property name="gaugeColorLow" type="String" label="Gauge fallback: low / bad color" />
-            <property name="gaugeColorMid" type="String" label="Gauge (legacy — unused for solid arc)" />
+            <property name="gaugeColorMid" type="String" label="Gauge mid color (reserved — not used)" />
             <property name="gaugeColorHigh" type="String" label="Gauge fallback: high / good color" />
             <property name="promptTemplateId" type="String" label="Prompt template Id or API name" />
             <property name="promptInputApiName" type="String" label="Prompt template text input API name" default="Input:Prediction_Context" />

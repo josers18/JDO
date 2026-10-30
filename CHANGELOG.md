@@ -64,6 +64,14 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
 ### Fixed
 
 - **DC_Prediction_Model_LWC** (PR [#136](https://github.com/josers18/JDO/pull/136)) — the AI summary read "`<ENTITY_TYPE_0>` has an input value of 4" because the Trust Layer masks raw field API names. `ClassificationModelLwcController` now sends field labels instead.
+- **DC_Prediction_Model_LWC — review fixes** — fixes from a full component review of `classificationModelLwc`:
+  - The risk band now uses the rounded score, so a 24.6% card reads "25%" with a Moderate chip instead of Low.
+  - `summaryCardTitle` now renders above the AI summary; it was set in App Builder but never shown.
+  - A fast Refresh or record change can no longer paint an older flow or summary response over a newer one.
+  - Bars-mode risk cards no longer send projected actions to the prompt, since the card doesn't show them.
+  - Flow errors show a clear message (flow not found, flow fault, non-numeric prediction) instead of the raw platform text. A malformed `riskContext` is dropped rather than failing the summary.
+  - Smaller items: `riskBandThresholds` are clamped to 0–100; 8-digit hex colors are accepted; screen readers hear "Lowers risk" and the projected band on improvement rows; `gaugeColorMid` is labeled reserved; repeated factor-JSON parsing is cached.
+  - Apex: `buildPromptContext` extracted with 4 new tests (10 total, all passing).
 - **Snowflake_Attrition_CSAT_Inputs** (PR [#138](https://github.com/josers18/JDO/pull/138)) — `COMPLAINT_COUNT` counted every detractor NPS response, putting 60% of accounts at the cap of 4; it now counts responses of 3 or below plus one per 2 negative Gong weeks (78.5% at 0, mean 0.33). CSAT `SEGMENT` is spelled `Wealth Management` to match the training label.
 
 ---

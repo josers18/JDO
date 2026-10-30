@@ -35,17 +35,37 @@ public with sharing class ClassificationModelLwcController {
         Map<String, Object> inputs = new Map<String, Object>();
         inputs.put(recordVar, recordId);
 
-        Flow.Interview interview = Flow.Interview.createInterview(flowApiName, inputs);
-        interview.start();
+        Flow.Interview interview;
+        try {
+            interview = Flow.Interview.createInterview(flowApiName, inputs);
+        } catch (TypeException e) {
+            // Unknown flow API name surfaces as "Invalid type: ..." — log it, show a clear message.
+            System.debug(LoggingLevel.ERROR, 'runPredictionFlow createInterview: ' + e.getMessage());
+            throw buildAuraException(
+                'Prediction flow "' + flowApiName + '" was not found. Confirm the flow API name and that it is active.'
+            );
+        }
+        try {
+            interview.start();
+        } catch (FlowException e) {
+            // Flow fault messages can carry element names and query detail; keep those in the debug log.
+            System.debug(LoggingLevel.ERROR, 'runPredictionFlow fault: ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('The prediction flow failed while running. Check the flow fault details in the debug log.');
+        }
 
         PredictionResult result = new PredictionResult();
         Object pred = interview.getVariableValue(predVar);
         if (pred instanceof Decimal) {
             result.prediction = (Decimal) pred;
-        } else if (pred instanceof Integer) {
-            result.prediction = Decimal.valueOf(String.valueOf(pred));
         } else if (pred != null) {
-            result.prediction = Decimal.valueOf(String.valueOf(pred));
+            // String indirection avoids Double binary-float artifacts and covers Integer/Long/String.
+            try {
+                result.prediction = Decimal.valueOf(String.valueOf(pred));
+            } catch (TypeException e) {
+                throw buildAuraException(
+                    'Flow output "' + predVar + '" is not a number. Map the model prediction to a Number variable.'
+                );
+            }
         }
 
         result.factorsJson = flowOutputToJsonString(resolveFlowOutput(interview, factorsVar));
@@ -92,6 +112,8 @@ public with sharing class ClassificationModelLwcController {
         try {
             return JSON.serialize(value);
         } catch (Exception e) {
+            // Deliberately broad: Apex-defined flow types can fail serialization with several
+            // exception types (JSONException, SerializationException); text fallback is fine here.
             return String.valueOf(value);
         }
     }
@@ -111,20 +133,13 @@ public with sharing class ClassificationModelLwcController {
         }
 
         String inputName = String.isBlank(promptInputApiName) ? 'Input:Prediction_Context' : promptInputApiName;
-
-        Map<String, Object> payload = new Map<String, Object>{
-            'prediction' => prediction,
-            'factors' => humanizeFieldNames(factorsJson),
-            'recommendations' => humanizeFieldNames(recommendationsJson)
-        };
-        if (String.isNotBlank(predictionOutputFormat)) {
-            payload.put('predictionOutputFormat', predictionOutputFormat.trim());
-        }
-        // Risk-framed cards send the band and per-action projected risk the card displays.
-        if (String.isNotBlank(riskContextJson)) {
-            payload.put('riskContext', JSON.deserializeUntyped(riskContextJson));
-        }
-        String contextJson = JSON.serialize(payload);
+        String contextJson = buildPromptContext(
+            prediction,
+            factorsJson,
+            recommendationsJson,
+            predictionOutputFormat,
+            riskContextJson
+        );
 
         try {
             ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput = new ConnectApi.EinsteinPromptTemplateGenerationsInput();
@@ -164,6 +179,38 @@ public with sharing class ClassificationModelLwcController {
                 'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.'
             );
         }
+    }
+
+    /**
+     * The single JSON string the prompt template reads: {prediction, factors, recommendations,
+     * predictionOutputFormat?, riskContext?}. Template v8 branches on whether riskContext is present.
+     * Malformed riskContextJson is dropped (the summary falls back to the score framing) rather than failing.
+     */
+    @TestVisible
+    private static String buildPromptContext(
+        Decimal prediction,
+        String factorsJson,
+        String recommendationsJson,
+        String predictionOutputFormat,
+        String riskContextJson
+    ) {
+        Map<String, Object> payload = new Map<String, Object>{
+            'prediction' => prediction,
+            'factors' => humanizeFieldNames(factorsJson),
+            'recommendations' => humanizeFieldNames(recommendationsJson)
+        };
+        if (String.isNotBlank(predictionOutputFormat)) {
+            payload.put('predictionOutputFormat', predictionOutputFormat.trim());
+        }
+        // Risk-framed cards send the band and per-action projected risk the card displays.
+        if (String.isNotBlank(riskContextJson)) {
+            try {
+                payload.put('riskContext', JSON.deserializeUntyped(riskContextJson));
+            } catch (JSONException e) {
+                System.debug(LoggingLevel.WARN, 'buildPromptContext: ignoring malformed riskContextJson');
+            }
+        }
+        return JSON.serialize(payload);
     }
 
     /**

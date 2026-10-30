@@ -13,7 +13,7 @@ All properties are configured in **Lightning App Builder** when you select the *
 | **Main card title** | String | `Model prediction` | Main heading above the prediction area (e.g. “Attrition Risk”). |
 | **Top drivers section title** | String | `Top predictors` | Heading for the positive-impact / driver list. |
 | **Recommendations section title** | String | `Suggested improvements` | Heading for the recommendations list. |
-| **AI summary card title** | String | `Analysis summary` | Heading above the Einstein narrative block. |
+| **AI summary card title** | String | `Analysis summary` | Section label shown at the top of the Einstein narrative block. |
 | **Gauge subtitle (under score)** | String | `Prediction score` | **Percent mode:** small label under the score + **%**. **Numeric modes:** caption under the large formatted value (e.g. “CSAT”, “Predicted revenue”). See [UI_LAYOUT.md](UI_LAYOUT.md). |
 
 ---
@@ -100,12 +100,12 @@ For percent cards where a higher probability is a worse outcome, such as attriti
 
 - **Gauge:** the arc takes the color of the current risk band instead of the bad→good blend. A chip under the gauge names the band ("● Moderate risk"), followed by the scale "Low <25 · Moderate 25–50 · High >50". The chip text stays dark. The band color goes only on the dot and a 14% tint, because amber text on white fails contrast.
 - **With `insightsDisplayMode=keyDrivers`:** captions and the legend talk about risk ("What moved this risk", "▲ raises risk · ▼ lowers risk", "Raises risk 17.3 pts"). Each improvement shows "▼ 25.8 pts" and a projected line "Risk 38% → ● 12% if only this changes". The dot takes the projected band's color. The projection is `round(prediction + value)`, clamped to 0–100. A note says the estimates assume one change at a time and don't add up. Probability points aren't strictly additive.
-- **AI summary:** the card sends the band and each action's projected risk to the prompt as `riskContext`. `DC_MLModelExplanation` v8 then names the band and quotes the same projections; see [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md).
+- **AI summary:** the card sends the band to the prompt as `riskContext`, plus each action's projected risk when `insightsDisplayMode=keyDrivers` (bars mode shows no projections, so none are sent). `DC_MLModelExplanation` v8 then names the band and quotes the same projections; see [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md).
 
 | Property | Default | Meaning |
 |----------|---------|---------|
 | **Risk-framed gauge and actions** (`riskFramed`) | off | Turns the mode on for percent cards. |
-| **Risk bands: thresholds (optional)** (`riskBandThresholds`) | blank | Two comma-separated % cutoffs, `low,high`. Below `low` is Low, above `high` is High, and anything between (inclusive) is Moderate. Defaults `25, 50`. Values in the wrong order fall back to the defaults. |
+| **Risk bands: thresholds (optional)** (`riskBandThresholds`) | blank | Two comma-separated % cutoffs, `low,high`. Below `low` is Low, above `high` is High, and anything between (inclusive) is Moderate. Defaults `25, 50`. Each cutoff is clamped to 0–100; if `low` ≥ `high` after clamping, the defaults are used. The band is picked from the rounded score, so the chip always matches the number on the gauge. |
 | **Risk bands: colors (optional)** (`riskBandColors`) | blank | Three comma-separated hex values for Low, Moderate and High. A blank or invalid slot uses `#1d9e75, #d97706, #c23934`. |
 
 Leave the **treat positive as good** flags off (the default) so a rising-risk driver is drawn in the risk color. The Attrition card on `FINS_PersonAccount_Retail_Banking_Starter` uses `riskFramed=true` with `keyDrivers` and the section title "Actions that lower risk".
@@ -124,6 +124,8 @@ The card can use the same **CSS variable tokens** as the Customer / Business pro
 | **Theme** (`themeMode`) | `default` | **`default`** — original light card. **Other values** — same named presets as profile widgets (see App Builder picklist: obsidian, midnight, graphite, ivory, and extended presets through **union**, etc.). |
 | **Show theme switcher in header** | false | When true, four quick buttons (**obsidian / midnight / graphite / ivory**) appear next to **Refresh**. Prefer **false** in production. |
 | **Theme accent (optional)** | (empty) | Optional hex accent mixed into themed shells (useful with dark presets). |
+
+**Summary & label text color**, **Key drivers: tier colors** and **Risk bands: colors** accept `#RGB`, `#RRGGBB`, `#RRGGBBAA` or `rgb()/rgba()`; anything else is ignored and the default is used.
 | **Theme warning override** / **Theme negative / error tint** | defaults in meta | Override semantic tokens used with themes. |
 | **Summary & label text color (optional)** | (empty) | Maps to **`summaryAndLabelTextColor`** — GenAI summary body, section titles, driver/recommendation row labels; blank uses theme default. |
 | **GenAI summary text size (%)** | `100` | **`summaryTextSizePercent`** (80–200); section titles and labels are not scaled. |
@@ -145,7 +147,7 @@ The arc is a **single stroke color** blended between two endpoints by score (0�
 | **Gauge: reverse arc colors** | **Unchecked:** 0% maps toward bad color, 100% toward good. **Checked:** swap (e.g. “high probability = bad”). |
 | **Gauge fallback: low / bad color** | Used when arc bad color is blank. |
 | **Gauge fallback: high / good color** | Used when arc good color is blank. |
-| **Gauge (legacy — unused for solid arc)** | Reserved; mid color is not used for the current solid arc implementation. |
+| **Gauge mid color (reserved — not used)** (`gaugeColorMid`) | Not read anywhere. Kept so saved flexipages that set it still deploy. |
 
 **Note:** Near **50%**, normal vs reversed modes look almost the same. Differences are obvious at very low or high scores.
 

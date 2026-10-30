@@ -90,7 +90,9 @@ classificationModelLwc renders:
    gauge OR value-hero  →  Top predictors list  →  Suggested improvements list  →  optional AI summary
 ```
 
-`prediction` coercion: the controller accepts `Decimal | Integer | other` from `Flow.Interview.getVariableValue` and routes non-Decimals through `Decimal.valueOf(String.valueOf(pred))` to avoid binary-float artifacts.
+`prediction` coercion: the controller accepts `Decimal` as-is and routes anything else (Integer, Long, Double, String) through `Decimal.valueOf(String.valueOf(pred))` to avoid binary-float artifacts. A non-numeric output throws a sanitized "is not a number" `AuraHandledException`.
+
+Flow failures are split by type: an unknown flow API name (`TypeException` from `createInterview`) and a flow fault (`FlowException` from `start()`) each surface a sanitized message via `buildAuraException`; full detail goes to the debug log only.
 
 ## Key LWC getters (single sources of truth)
 
@@ -98,11 +100,14 @@ classificationModelLwc renders:
 - `showPercentGauge` — drives the gauge-vs-hero branch in the template.
 - `hasData` — gates the entire render. True if prediction number OR any factor OR any recommendation exists, AND not currently loading.
 - `processedFactors` / `processedRecommendations` — sorted, color-coded rows with `barScale`, `formattedPercent`, `barStyle`, `deltaClass`. Both call `applyProcessedRowColors` which is the single place that decides "positive delta = risk or good?" via `*PositiveMeansGood` toggles.
+- `keyDriverFactors` / `keyDriverImprovements` — the `keyDrivers` display mode rows (strength tiers, direction glyphs, projected-risk rows for risk-framed cards). Improvement rows carry `liftSrText` ("Lowers risk"/"Raises risk") for screen readers, since the ▲/▼ glyph is `aria-hidden`.
+- `riskBands` / `riskBandFor(percent)` / `riskBand` — band cutoffs from `riskBandThresholds`, clamped to 0–100; falls back to the defaults (25/50) when low ≥ high. `riskBand` uses `scorePercentRounded` so the chip always agrees with the number shown.
+- `riskContextJson` — the band + per-action projected risk sent to the prompt for risk-framed cards. Actions are only included in `keyDrivers` mode (bars mode doesn't show projections, so the summary mustn't quote them).
 - `gaugeArcSolidColor` — interpolates from `gaugeArcBadColor` to `gaugeArcGoodColor` (with `gaugeColorLow/High` as fallbacks) by score 0–100. Blending happens in **HSL via `lerpColorHex`** so endpoint pairs like orange-red → teal don't muddy through gray-brown at t=0.5. `gaugeGradientReverse` flips the t.
 
 ## AI summary path
 
-`generateAnalysisSummary(promptTemplateId, promptInputApiName, prediction, factorsJson, recommendationsJson, predictionOutputFormat, riskContextJson)` packs `{prediction, factors, recommendations, predictionOutputFormat, riskContext}` (`riskContext` only for `riskFramed` cards) into a single JSON string and submits as one `ConnectApi.WrappedValue` keyed by `promptInputApiName` (default `Input:Prediction_Context`). The prompt template must declare a single flex text input matching that API name; see `docs/PROMPT_TEMPLATE_GUIDE.md`.
+`generateAnalysisSummary(promptTemplateId, promptInputApiName, prediction, factorsJson, recommendationsJson, predictionOutputFormat, riskContextJson)` calls the `@TestVisible` `buildPromptContext(...)` helper, which packs `{prediction, factors, recommendations, predictionOutputFormat, riskContext}` (`riskContext` only for `riskFramed` cards) into a single JSON string and submits as one `ConnectApi.WrappedValue` keyed by `promptInputApiName` (default `Input:Prediction_Context`). Malformed `riskContextJson` is logged and dropped (the summary falls back to score framing) rather than failing the call. The prompt template must declare a single flex text input matching that API name; see `docs/PROMPT_TEMPLATE_GUIDE.md`.
 
 Before packing, `humanizeFieldNames` rewrites each factor/recommendation field `name` to its `label` (or `humanizeApiName`, e.g. `Complaint_Count__c` → `Complaint Count`). The Einstein Trust Layer masks raw API names as `<ENTITY_TYPE_n>` and never restores them, so sending API names makes the summary unreadable.
 
@@ -114,17 +119,19 @@ Before packing, `humanizeFieldNames` rewrites each factor/recommendation field `
 - All DTO fields must be `@AuraEnabled` to deserialize on the JS side (see `PredictionResult`).
 - **Reserved keyword `in`** — Apex parses `in` as the SOQL IN operator. Never use it as a local variable name (`inVal`, `input`, `arg`).
 - `Decimal.valueOf(Double)` produces binary-float artifacts (e.g. `0.7` → `0.6999...`). Always route Doubles through `Decimal.valueOf(String.valueOf(d))`.
-- `generateAnalysisSummary` re-throws as `AuraHandledException` with concatenated `e.getMessage()` — be cautious about leaking platform internals; sanitize before adding new catches.
+- Every throw goes through `buildAuraException(safeMsg)` (sets both the constructor arg and `setMessage()`). `generateAnalysisSummary` surfaces `ConnectApi.ConnectApiException` messages verbatim (Salesforce-curated) and sanitizes everything else; follow that split for new catches.
 
 ## LWC
-- **LWC1503 — Boolean `@api` defaults must be `false`.** Compiler rejects `@api foo = true;` because `<my-cmp foo>` (attribute presence) flips it to `true` anyway. The codebase works around this on `autoGenerateSummary` by leaving the JS field undeclared (no default) and setting `default="true"` in `js-meta.xml`, then reading via `this.autoGenerateSummary !== false` (line 632 of the JS). Mirror this pattern for any new "default-on" toggles.
+- **LWC1503 — Boolean `@api` defaults must be `false`.** Compiler rejects `@api foo = true;` because `<my-cmp foo>` (attribute presence) flips it to `true` anyway. The codebase works around this on `autoGenerateSummary` by leaving the JS field undeclared (no default) and setting `default="true"` in `js-meta.xml`, then reading via `this.autoGenerateSummary !== false` (in `runFlow`). Mirror this pattern for any new "default-on" toggles.
 - **All three targetConfig blocks must stay in sync.** RecordPage, AppPage, HomePage. Every new `@api` property MUST be added to all three, and to the `datasource` enum if applicable. RecordPage uses verbose `description="..."`; AppPage/HomePage use the terse form. Match this pattern.
-- `@api` properties currently number ~39 — keep an eye on App Builder UX; if the list grows further, group with `<supportedFormFactors>` or split.
+- `@api` properties currently number 45 (`gaugeColorMid` is reserved/unused, kept so saved flexipages still deploy) — keep an eye on App Builder UX; if the list grows further, group with `<supportedFormFactors>` or split.
 - Reactivity uses plain class fields (no `@track`); reassignment triggers re-render. Do not mutate arrays/objects in place — replace them.
 - Use `Array.isArray(...)` and `Number.isFinite(...)` defensively — Apex `null` becomes JS `null`/`undefined`, and `Number(null)` is `0`, which masks bugs.
 - `connectedCallback` runs `applyTheme()` then schedules two more frames before applying again — this defends against flexipage paint races where the host node briefly loses inline custom properties.
-- `setTimeout` inside `connectedCallback` (`animateGauge`/`animateBars`) currently triggers `@lwc/lwc/no-async-operation`. Prefer `requestAnimationFrame` + `data-scale` reads in `renderedCallback` with an `_animated` guard if you refactor.
-- Color sanitization: `sanitizePmTextColor` rejects anything containing `; } < > url( expression(`. When adding new color-typed `@api` properties for CSS custom properties, run through a similar guard — never pipe raw user input directly into `style.setProperty`.
+- Animation: `runFlow` sets `_animationPending`; `renderedCallback` consumes it and runs `animateGauge`/`animateBars` in a `requestAnimationFrame`, snapping to final state under `prefers-reduced-motion: reduce`. No `setTimeout`.
+- Stale responses: `runFlow` bumps `_requestSeq` and `runSummary` captures it; a response whose seq no longer matches is discarded (rapid Refresh or record change can't paint old data or clear the newer spinner).
+- `parseJsonToInsightArray` memoizes by the raw JSON string in `_parseCache` (cleared on each new flow result) because several getters parse the same factor JSON per render. Callers must not mutate the returned items.
+- Color sanitization: `sanitizePmTextColor` accepts `#RGB`/`#RRGGBB`/`#RRGGBBAA` and rejects anything containing `; } < > url( expression(`. When adding new color-typed `@api` properties for CSS custom properties, run through a similar guard — never pipe raw user input directly into `style.setProperty`.
 
 ## CSS
 - Reuse existing `--wp-*` theme tokens (`--wp-shell-bg`, `--wp-text-primary`, `--wp-border-soft`, `--wp-accent`, `--wp-track-bg`, etc.). Do NOT introduce new tokens unless updating BOTH `predictionThemes.js` files (this LWC + multiclass sibling).
