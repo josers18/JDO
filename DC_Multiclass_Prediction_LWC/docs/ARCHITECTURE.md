@@ -106,7 +106,7 @@ flowchart TD
 - **Bar length:** `scaleX(probability)` — a 0.99 row fills 99% of the track (absolute, not relative to max).
 - **Opacity gradient:** `0.35 + 0.65 × probability` so zero-probability rows stay faintly visible while the top class is fully solid.
 - **Winner detection:** `apiName.toLowerCase() === resolvedWinnerApiName.toLowerCase()` — case-insensitive to match the Apex `resolveFlowOutput` casing tolerance. The hero label and the highlighted row both read from `resolvedWinnerApiName`, so they cannot disagree.
-- **Reduced motion:** `@media (prefers-reduced-motion: reduce)` forces `.prob-bar` to `scaleX(1)` so bars are visible even if the JS animation is suppressed.
+- **Reduced motion:** `animateBars()` sets `transition: none` and snaps each bar to its final scale. The CSS media query only removes the transition; it no longer forces `scaleX(1)`, which flashed every bar at full width before the real scale was applied.
 
 ---
 

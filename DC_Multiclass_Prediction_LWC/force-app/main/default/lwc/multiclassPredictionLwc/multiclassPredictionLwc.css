@@ -353,6 +353,10 @@
     border-radius: 8px;
 }
 
+.agent-summary__title {
+    margin-bottom: 6px;
+}
+
 .agent-summary__text {
     margin: 0;
     font-size: calc(12px * var(--lwc-pm-summary-font-scale, 1));
@@ -580,9 +584,9 @@
     }
 }
 
+/* animateBars() sets the real scale inline; keep bars at scaleX(0) until then so they don't flash full width. */
 @media (prefers-reduced-motion: reduce) {
     .prob-bar {
-        transform: scaleX(1);
         transition: none;
     }
 }

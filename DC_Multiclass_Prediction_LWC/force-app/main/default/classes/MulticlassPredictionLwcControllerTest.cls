@@ -8,7 +8,8 @@ private class MulticlassPredictionLwcControllerTest {
                 null,
                 'Input:Prediction_Context',
                 'Wealth_Management',
-                '[]'
+                '[]',
+                null
             )
         );
     }
@@ -36,33 +37,86 @@ private class MulticlassPredictionLwcControllerTest {
                 'recommendations',
                 null
             );
-        } catch (Exception e) {
+        } catch (AuraHandledException e) {
             threw = true;
+            System.assert(e.getMessage().contains('Nonexistent_Flow_Invalid_ZZZ'), 'Message names the flow: ' + e.getMessage());
         }
-        System.assert(threw, 'Expected exception when flow is missing');
+        System.assert(threw, 'Expected AuraHandledException when flow is missing');
     }
 
     @IsTest
-    static void runPredictionFlow_blankClassCsv_returnsEmptyClassProbabilities() {
-        Boolean threw = false;
-        MulticlassPredictionLwcController.MulticlassResult result;
-        try {
-            result = MulticlassPredictionLwcController.runPredictionFlow(
-                'Nonexistent_Flow_Invalid_ZZZ',
-                UserInfo.getUserId(),
-                'recordId',
-                'prediction',
-                'recommendations',
-                ''
-            );
-        } catch (Exception e) {
-            threw = true;
-        }
-        // Either the bogus flow throws OR (if it somehow ran) classProbabilities is non-null and empty.
-        if (!threw) {
-            System.assertNotEquals(null, result.classProbabilities, 'classProbabilities must default to non-null');
-            System.assertEquals(0, result.classProbabilities.size(), 'Blank CSV → empty list');
-        }
+    static void parseClassProbabilities_blankCsv_returnsEmptyList() {
+        // A blank CSV returns before the interview is touched, so a null interview is safe.
+        List<MulticlassPredictionLwcController.ClassProbability> out =
+            MulticlassPredictionLwcController.parseClassProbabilities(null, '  ');
+        System.assertNotEquals(null, out, 'classProbabilities must default to non-null');
+        System.assertEquals(0, out.size(), 'Blank CSV -> empty list');
+    }
+
+    @IsTest
+    static void humanizeFieldNames_rewritesApiNamesAndPrefersLabels() {
+        String input =
+            '[{"fields":[{"name":"Complaint_Count__c","label":null,"inputValue":"4"}],"value":-17.1},' +
+            '{"fields":[{"name":"Tenure_Years__c","label":"Tenure (Years)"}],"value":7.0},' +
+            '{"name":"Direct_Deposit_c__c","inputValue":"Yes","value":15.2}]';
+        List<Object> out = (List<Object>) JSON.deserializeUntyped(
+            MulticlassPredictionLwcController.humanizeFieldNames(input)
+        );
+        System.assertEquals('Complaint Count', fieldName(out, 0));
+        System.assertEquals('Tenure (Years)', fieldName(out, 1));
+        System.assertEquals('Direct Deposit', ((Map<String, Object>) out[2]).get('name'), 'Flat factor shape is humanized');
+        Map<String, Object> first = (Map<String, Object>) ((List<Object>) ((Map<String, Object>) out[0]).get('fields'))[0];
+        System.assertEquals('4', first.get('inputValue'), 'Other keys are preserved');
+    }
+
+    @IsTest
+    static void humanizeFieldNames_doubleEncoded_isUnwrapped() {
+        String innerJson = '[{"fields":[{"name":"ARRGrowth__c"}],"value":3}]';
+        List<Object> out = (List<Object>) JSON.deserializeUntyped(
+            MulticlassPredictionLwcController.humanizeFieldNames(JSON.serialize(innerJson))
+        );
+        System.assertEquals('ARR Growth', fieldName(out, 0));
+    }
+
+    @IsTest
+    static void humanizeFieldNames_nonArrayInput_returnedUnchanged() {
+        System.assertEquals('not json', MulticlassPredictionLwcController.humanizeFieldNames('not json'));
+        System.assertEquals('{"a":1}', MulticlassPredictionLwcController.humanizeFieldNames('{"a":1}'));
+        System.assertEquals(null, MulticlassPredictionLwcController.humanizeFieldNames(null));
+    }
+
+    @IsTest
+    static void buildPromptContext_includesClassProbabilitiesAndHumanizes() {
+        Map<String, Object> ctx = (Map<String, Object>) JSON.deserializeUntyped(
+            MulticlassPredictionLwcController.buildPromptContext(
+                'Wealth_Management',
+                '[{"fields":[{"name":"Complaint_Count__c"}],"value":-17.1}]',
+                '[{"label":"Wealth Management","percent":41.2},{"label":"Retail","percent":38.0}]'
+            )
+        );
+        System.assertEquals('Wealth_Management', ctx.get('prediction'));
+        System.assertEquals('multiclass_label', ctx.get('predictionType'));
+        List<Object> factors = (List<Object>) JSON.deserializeUntyped((String) ctx.get('recommendations'));
+        System.assertEquals('Complaint Count', fieldName(factors, 0));
+        System.assertEquals(2, ((List<Object>) ctx.get('classProbabilities')).size());
+    }
+
+    @IsTest
+    static void buildPromptContext_blankOrMalformedProbabilities_omitsKey() {
+        Map<String, Object> blank = (Map<String, Object>) JSON.deserializeUntyped(
+            MulticlassPredictionLwcController.buildPromptContext('A', null, null)
+        );
+        System.assert(!blank.containsKey('classProbabilities'), 'Blank probabilities are omitted');
+        System.assertEquals('[]', blank.get('recommendations'), 'Null recommendations default to an empty array');
+        Map<String, Object> bad = (Map<String, Object>) JSON.deserializeUntyped(
+            MulticlassPredictionLwcController.buildPromptContext('A', '[]', '{not json')
+        );
+        System.assert(!bad.containsKey('classProbabilities'), 'Malformed probabilities are dropped, not thrown');
+    }
+
+    private static String fieldName(List<Object> factors, Integer i) {
+        List<Object> fields = (List<Object>) ((Map<String, Object>) factors[i]).get('fields');
+        return (String) ((Map<String, Object>) fields[0]).get('name');
     }
 
     @IsTest

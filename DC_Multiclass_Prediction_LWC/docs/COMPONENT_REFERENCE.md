@@ -12,9 +12,9 @@ All properties are configured in **Lightning App Builder** when you select the *
 |----------|------|---------|---------|
 | **Main card title** | String | `Model prediction` | Heading at the top of the card. |
 | **Recommendations section title** | String | `Feature contributions` | Heading above the SHAP-style contribution rows. (Renamed from "Suggested improvements" on 2026-05-16; existing placements that override this title keep their custom value.) |
-| **AI summary card title** | String | `Analysis summary` | Reserved; the summary block has no separate heading in the current markup. |
+| **AI summary card title** | String | `Analysis summary` | Section label above the AI summary text. A blank value shows `Analysis summary`. |
 | **Subtitle under predicted class** | String | `Predicted class` | Caption under the large class label (e.g. “Product line”, “Segment”). |
-| **Humanize class label for display** | Boolean | true | When true, underscores/spaces split and words are title-cased (`Wealth_Management` → `Wealth Management`). When false, show the exact string from the flow. |
+| **Humanize class label for display** | Boolean | true | When true, underscores/spaces split and words are title-cased (`Wealth_Management` → `Wealth Management`); short all-caps words stay as acronyms (`ARR_Growth` → `ARR Growth`). The hero and the probability chart use the same formatting. When false, show the exact string from the flow. |
 
 ---
 
@@ -70,10 +70,10 @@ Multiclass models explain each prediction with factor weights whose **sign isn't
 | Property | Default | Meaning |
 |----------|---------|---------|
 | **Recommendations display** (`recommendationsDisplayMode`) | `diverging` | `diverging` keeps the signed bars described above. `keyDrivers` switches to ranked, tier-colored bars. |
-| **Key drivers: tier colors (optional)** (`keyDriverTierColors`) | blank | Four comma-separated hex values, from Very strong to Minor. A blank or invalid slot uses the default ramp `#104281, #256abf, #5598e7, #86b6ef`, a one-hue ordinal ramp that passes the dataviz palette validator. |
-| **Key drivers: tier thresholds (optional)** (`keyDriverTierThresholds`) | blank | Three comma-separated minimums, each a % of the top driver, for Very strong, Strong and Moderate. The defaults are `80, 55, 30`. Rows below the Moderate cutoff are Minor. A blank slot uses its default. |
+| **Key drivers: tier colors (optional)** (`keyDriverTierColors`) | blank | Four comma-separated colors (`#RGB`, `#RRGGBB`, `#RRGGBBAA` or `rgb()`/`rgba()`), from Very strong to Minor. A blank or invalid slot uses the default ramp `#104281, #256abf, #5598e7, #86b6ef`, a one-hue ordinal ramp that passes the dataviz palette validator. |
+| **Key drivers: tier thresholds (optional)** (`keyDriverTierThresholds`) | blank | Three comma-separated minimums, each a % of the top driver, for Very strong, Strong and Moderate. The defaults are `80, 55, 30`. Rows below the Moderate cutoff are Minor. A blank slot uses its default; each value is clamped to 0–100. If the three don't strictly decrease (for example `30, 55, 80`), all three defaults are used instead, since lower tiers would otherwise be unreachable. |
 
-Hovering a row shows its share of the top driver, for example "Strong (62% of the top driver)". If you switch a card to key drivers, use a prompt template that doesn't describe direction either. `DC_MulticlassModelExplanation` v3 says so explicitly.
+Hovering a row shows its share of the top driver, for example "Strong (62% of the top driver)". If you switch a card to key drivers, use a prompt template that doesn't describe direction either. `DC_MulticlassModelExplanation` v3 and later say so explicitly.
 
 ---
 
