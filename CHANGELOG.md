@@ -71,7 +71,14 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
   - Tabs are now keyboard-accessible ARIA tabs (arrow / Home / End). The AI pulse and hover transitions honor reduced motion, and the theme key picks up `aiSummaryTextColor` changes.
   - Raw Apex / Connect payloads no longer reach the user. Malformed field mappings and bad record Ids return friendly errors, and empty catches are narrowed.
   - 10 new Apex tests (22 total) via `@TestVisible` seams, including `HttpCalloutMock` geocode tests.
-
+- **DC_PersonProfileWidget — review fixes** — fixes from a full component review of `customerProfileWidget`:
+  - The fallback profile queries and admin-mapped field paths now respect field-level security: they run in `USER_MODE`, and any field the user can't read is skipped instead of shown.
+  - Flows and Apex classes named in App Builder must appear in a new `Profile_Widget_Allowed_Action__mdt` allowlist. There are 5 seed rows; if the allowlist has no rows, everything is allowed.
+  - Address geocoding is cached in Platform Cache (new `CustomerProfileWidget` partition, 2-day hit / 1-day miss TTL) and limited to 3 callouts with a 6 s timeout each.
+  - The profile now renders as soon as its data arrives. The Agentforce summary, gauges, unified relationships and the AI summary load afterwards, and a sequence guard drops responses from a stale record.
+  - Prompt-template errors from anything other than ConnectApi show a generic message. Prediction-flow failures are logged and the flow is not re-run.
+  - Smaller items: the tabs follow the ARIA pattern (arrow, Home and End keys); the AI pulse respects reduced motion; pending animation frames are cancelled when the component is removed; the theme cache key now includes every theme input; `decVal` avoids float noise.
+  - Apex tests 19 → 28.
 - **DC_Multiclass_Prediction_LWC — review fixes** — the AI summary payload now humanizes factor field names (`buildPromptContext` + `humanizeFieldNames`), so the Trust Layer no longer masks them as `<ENTITY_TYPE_n>`, and it carries the displayed class probabilities (prompt template v4 calls out close calls). Also: `summaryCardTitle` is rendered, a `_requestSeq` guard drops stale flow/summary responses, flow errors are sanitized (`TypeException` / `FlowException`), key driver thresholds are validated, `#RRGGBBAA` colors are accepted, hero and chart share one class-label formatter, and the reduced-motion full-width bar flash is gone. Apex tests 12 → 18.
 - **DC_Prediction_Model_LWC** (PR [#136](https://github.com/josers18/JDO/pull/136)) — the AI summary read "`<ENTITY_TYPE_0>` has an input value of 4" because the Trust Layer masks raw field API names. `ClassificationModelLwcController` now sends field labels instead.
 - **DC_Prediction_Model_LWC — review fixes** — fixes from a full component review of `classificationModelLwc`:

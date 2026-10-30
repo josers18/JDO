@@ -14,7 +14,7 @@ Sibling project `DC_BusinessProfileWidget` covers the **business/account** side 
 
 # Tech stack
 
-- **Apex** — `with sharing` controller; Flow runner via `Flow.Interview` for assembly + signal-gauge Flows; `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` for the AI summary; isolated `private without sharing class EinsteinOverviewConnectBridge` (deliberately) at line 1220 for one specific Connect invocation
+- **Apex** — `with sharing` controller; Flow runner via `Flow.Interview` for assembly + signal-gauge Flows; `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate` for the AI summary; isolated `private without sharing class EinsteinOverviewConnectBridge` (deliberately; grep the class name — line numbers drift) for one specific Connect invocation
 - **LWC** — single bundle `customerProfileWidget` with one helper module `profileInsightRows.js`. Inline `THEMES` map (42 entries; intentionally inline rather than extracted, see CSS conventions)
 - **`NavigationMixin`** for record-page navigation
 - **Salesforce DX** — `sourceApiVersion: 66.0`, `sf` CLI v2 (NOT `sfdx`)
@@ -26,10 +26,13 @@ Sibling project `DC_BusinessProfileWidget` covers the **business/account** side 
 DC_PersonProfileWidget/
 ├── force-app/main/default/
 │   ├── classes/
-│   │   ├── CustomerProfileWidgetController.cls       ← 3,659-line controller
-│   │   └── CustomerProfileWidgetControllerTest.cls   ← 19 tests, 2 @TestVisible seams
+│   │   ├── CustomerProfileWidgetController.cls       ← ~3,900-line controller
+│   │   └── CustomerProfileWidgetControllerTest.cls   ← 28 tests incl. HttpCalloutMock + runAs FLS
+│   ├── objects/Profile_Widget_Allowed_Action__mdt/   ← flow / invocable allowlist (CMDT)
+│   ├── customMetadata/                               ← allowlist seed rows (5)
+│   ├── cachePartitions/CustomerProfileWidget…        ← org cache for geocode results
 │   └── lwc/customerProfileWidget/                    ← bundle name diverges from folder
-│       ├── customerProfileWidget.js                  ← 3,276-line main bundle (THEMES inline at top)
+│       ├── customerProfileWidget.js                  ← ~3,450-line main bundle (THEMES inline at top)
 │       ├── customerProfileWidget.html                ← 877-line template
 │       ├── customerProfileWidget.css                 ← 1,754-line CSS (consumes --wp-* tokens)
 │       ├── customerProfileWidget.js-meta.xml         ← THREE targetConfig blocks; 148 RecordPage / 108 AppPage / 108 HomePage
@@ -132,14 +135,18 @@ Smaller asymmetry than `DC_BusinessProfileWidget` (122 missing). Some of these a
 
 ## Apex
 - `with sharing` on the public controller. Never `without sharing` for `@AuraEnabled` code.
-- The `private without sharing class EinsteinOverviewConnectBridge` at line 1220 is **deliberate** — same pattern as the business widget. Documented inline; isolates a Connect invocation that interacts oddly with sharing on the parent class. Don't unify it back into the main class.
+- The `private without sharing class EinsteinOverviewConnectBridge` (grep the name) is **deliberate** — same pattern as the business widget. Documented inline; isolates a Connect invocation that interacts oddly with sharing on the parent class. Don't unify it back into the main class.
 - Public methods callable from LWC must be `@AuraEnabled`.
 - All DTO fields must be `@AuraEnabled` (the controller mostly returns `String` via `JSON.serialize`, so this rarely bites).
 - **Reserved keyword `in`** — Apex parses it as the SOQL IN operator. Never use it as a local variable name.
 - **`Decimal.valueOf(Double)` produces binary-float artifacts.** `Decimal.valueOf(0.7)` becomes `0.6999...`. Always route Doubles through `Decimal.valueOf(String.valueOf((Double) o))`. The numeric coercion path in this controller is the canonical entry point for Flow-sourced numeric data — keep it correct.
 - **`AuraHandledException` requires both the constructor argument AND `setMessage()`** to surface a custom message to the LWC layer. Without `setMessage()` the JS toast falls back to a generic "Script-thrown exception" string. Use the `buildAuraException(safeMsg)` private static helper at the bottom of the controller — same pattern as the four sibling `DC_*_LWC` controllers and `DC_BusinessProfileWidget`.
 - Catch by exception subclass where the message is known to be safe (e.g., `ConnectApi.ConnectApiException` is Salesforce-curated and safe to surface verbatim). Log full detail via `System.debug(LoggingLevel.ERROR, ...)` before sanitizing for the user.
-- **`@TestVisible private static`** is used in 2 places already in this controller — better discipline than the business widget. Continue the pattern when adding new helpers.
+- **`@TestVisible private static`** seams exist for `decVal`, `validateAccountFieldPath`, `applyGeocodeIfNeeded`, `geocodeCacheKey`, `isActionAllowed` (+ the `allowedActionsOverride` test seam), and `buildFallbackFromSoql`. Continue the pattern when adding new helpers.
+- **FLS on dynamic SOQL.** Field paths come from App Builder JSON (client-supplied). `validateAccountFieldPath` / `validateContactFieldPath` reject any hop the running user can't read, the profile row is queried with `Database.queryWithBinds(..., AccessLevel.USER_MODE)`, and reads go through `populatedValue()` (never `row.get` / `getSObject` on a field that may have been dropped from the SELECT — that throws `SObjectException`).
+- **Action allowlist.** Flow and invocable-Apex API names also come from the client. `assertActionAllowed()` checks `Profile_Widget_Allowed_Action__mdt` before every `Flow.Interview.createInterview` / `Invocable.Action.createCustomAction`. **No rows = allow all** (back-compat); once any row exists, add a row for every flow/class a page uses or that card fails with an "allowlist" error.
+- **Geocoding is bounded.** At most `MAX_GEOCODE_CALLOUTS` (3) callouts at 6 s each; a `CalloutException` aborts the rest. Hits (48 h) and misses (24 h) are cached in the `local.CustomerProfileWidget` org partition; a zero-capacity or missing partition silently means "no cache".
+- **Don't surface non-Connect exception text** in `agentforceSummaryPromptHint` or the Einstein diagnostic — only `ConnectApi.ConnectApiException` messages; everything else is logged and replaced with a generic hint.
 
 ## LWC
 - **LWC1503 — Boolean `@api` defaults must be `false`.** Compiler rejects `@api foo = true;`. The codebase uses two workarounds: invert to a `hideX` toggle, or leave the JS field undeclared and set `default="true"` in `js-meta.xml`, reading via `this.foo !== false`.
@@ -149,6 +156,9 @@ Smaller asymmetry than `DC_BusinessProfileWidget` (122 missing). Some of these a
 - Reactivity uses plain class fields (no `@track`). This file already follows the modern pattern — keep it that way.
 - **Theme apply lifecycle**: `connectedCallback` triple-applies (sync + RAF + nested RAF) to defend against flexipage paint races. `renderedCallback` reschedules via `scheduleApplyTheme()`. The `_lastAppliedThemeKey` cache makes the duplicate applies into true no-ops.
 - **8-char `#RRGGBBAA` accent**: the alpha is stripped before deriving `--wp-accent-bg/border/dim`. Both 6-char and 8-char hex are accepted.
+- **`_lastAppliedThemeKey` must include every `@api` input `applyTheme()` reads** (incl. `fieldKeyColor`, `aiSummaryTextColor`) — a missing input means App Builder edits to it don't repaint.
+- **Async loads are sequence-guarded.** `loadProfile()` bumps `_loadSeq`; every follow-on load (Agentforce summary, unified relationships, gauges, AI summary) takes the `seq` and bails via `isCurrentLoad(seq)` after each `await`. The profile renders as soon as `getProfileData` returns — the follow-ons fill in afterwards and must never re-gate the spinner.
+- **RAFs go through `queueFrame()`** so `disconnectedCallback` can cancel them.
 
 ## CSS
 - This project (alongside `DC_BusinessProfileWidget`) **defines** the `--wp-*` token system. The CSS file (`customerProfileWidget.css`) consumes the tokens; the inline `THEMES` map in the JS is the canonical reference for what values each theme assigns.
@@ -172,7 +182,7 @@ sf apex run test --tests CustomerProfileWidgetControllerTest \
 npm run test:unit
 ```
 
-19 Apex test methods (more than the business widget's 13) covering happy paths through `getProfileData` (legacy SOQL, explicit Account-field path, contact fallback, assembly-flow path, last-used-channel coerce), `generateSummary` guards, signal-gauge flow guards, the `getByPath` list-index parser, and `buildFallbackFromSoql` invalid-id paths. **2 `@TestVisible` seams** are in use — when adding a new helper, prefer `@TestVisible private static` and write a focused test, especially for any numeric-coercion or field-mapping logic.
+28 Apex test methods covering happy paths through `getProfileData` (legacy SOQL, explicit Account-field path, contact fallback, assembly-flow path, last-used-channel coerce), `generateSummary` guards, signal-gauge flow guards, the `getByPath` list-index parser, `buildFallbackFromSoql` invalid-id paths, `decVal` Double round-trip (`0.7`), geocoding via `HttpCalloutMock` (hit / timeout abort / callout budget), FLS via `System.runAs` a Minimum Access user, and the action allowlist. Prefer `@TestVisible private static` + a focused test for new helpers. CMDT fields aren't writable in Apex — build allowlist rows with `JSON.deserialize` (and don't name a variable `json`: Apex is case-insensitive, so it shadows `JSON`).
 
 For numeric coercion specifically, the canonical reference test is `MulticlassPredictionLwcControllerTest.coerceToDecimal_handlesDoubleWithoutBinaryNoise` — it asserts `0.7` survives the round-trip without binary-float drift.
 
@@ -190,6 +200,9 @@ For numeric coercion specifically, the canonical reference test is `MulticlassPr
 - **Extracting `THEMES` to a separate module** — current convention is inline (matching the business widget). The prediction siblings extracted later for their own readability; mirroring that decision here would require a coordinated change with the business widget.
 - **Modifying the `private without sharing class EinsteinOverviewConnectBridge`** without re-reading its inline comment — the asymmetric sharing context is intentional.
 - **`setTimeout` for animation timing** — replaced with `_animationPending` + `requestAnimationFrame` in `renderedCallback`. Don't reintroduce.
+- **`Database.query` on client-supplied paths** — runs in system mode and leaks fields the user can't see. Use the USER_MODE + `accessibleSelectPaths` + `populatedValue` trio.
+- **Adding a flow/invocable to a page without an allowlist row** — once `Profile_Widget_Allowed_Action__mdt` has any rows, unlisted actions are rejected.
+- **Awaiting follow-on loads inside `loadProfile()` before clearing `loading`** — blanks every tab behind the spinner until the slowest Einstein call returns.
 
 # Related docs
 

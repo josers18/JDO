@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Allowlist of autolaunched flows and invocable Apex classes the Customer Profile Widget may run. When at least one row exists, only listed actions run; with no rows, every configured action is allowed.</description>
+    <label>Profile Widget Allowed Action</label>
+    <pluralLabel>Profile Widget Allowed Actions</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>
