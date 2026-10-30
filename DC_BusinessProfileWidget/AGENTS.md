@@ -22,12 +22,12 @@ Sibling project `DC_PersonProfileWidget` covers the **person/contact** side usin
 DC_BusinessProfileWidget/
 ├── force-app/main/default/
 │   ├── classes/
-│   │   ├── BusinessProfileWidgetController.cls       ← 2,692-line controller
-│   │   └── BusinessProfileWidgetControllerTest.cls   ← 13 tests
+│   │   ├── BusinessProfileWidgetController.cls       ← ~2,960-line controller
+│   │   └── BusinessProfileWidgetControllerTest.cls   ← 22 tests
 │   └── lwc/businessProfileWidget/
-│       ├── businessProfileWidget.js                  ← 3,448-line main bundle (THEMES inline at top)
-│       ├── businessProfileWidget.html                ← 682-line template
-│       ├── businessProfileWidget.css                 ← 1,831-line CSS (--wp-* tokens defined here)
+│       ├── businessProfileWidget.js                  ← ~3,620-line main bundle (THEMES inline at top)
+│       ├── businessProfileWidget.html                ← ~670-line template
+│       ├── businessProfileWidget.css                 ← ~1,860-line CSS (--wp-* tokens defined here)
 │       ├── businessProfileWidget.js-meta.xml         ← THREE targetConfig blocks; 122 RecordPage / 13 AppPage / 13 HomePage (see meta-xml asymmetry below)
 │       └── profileInsightRows.js                     ← buildProcessedRecommendationRows helper
 ├── docs/                                             ← INDEX.md is the entry point
@@ -95,7 +95,7 @@ The 42 named themes are inline at the top of `businessProfileWidget.js`. Each `-
 
 The prediction-model siblings (`DC_Prediction_Model_LWC`, `DC_Multiclass_Prediction_LWC`) extracted their copy of this map to a separate `predictionThemes.js` module so their bundle files stay readable. **This project intentionally keeps `THEMES` inline** — it's the theme-system origin, the siblings copied *from* here, and the inline pattern lets contributors see the token contract without an extra file hop. Do NOT extract `THEMES` to a separate module without a product-level decision.
 
-The 42-vs-43 cardinality difference vs the prediction siblings is intentional: the predictions have an extra `default` theme (a light card baseline for backwards-compat with their pre-revamp behavior). This project starts from `obsidian` as its baseline (see `applyTheme` line 2086: `mode || 'obsidian'`).
+The 42-vs-43 cardinality difference vs the prediction siblings is intentional: the predictions have an extra `default` theme (a light card baseline for backwards-compat with their pre-revamp behavior). This project starts from `obsidian` as its baseline (see `applyTheme`: `this._themeMode || 'obsidian'`).
 
 ## meta-xml asymmetry (RecordPage 135 vs AppPage/HomePage 13)
 
@@ -119,19 +119,24 @@ The standard family-wide rule "every `@api` must appear in all three blocks" doe
 - Public methods callable from LWC must be `@AuraEnabled`.
 - All DTO fields must be `@AuraEnabled` (the controller mostly returns `String` via `JSON.serialize`, so this rarely bites — but if you add a DTO class, every field needs the annotation).
 - **Reserved keyword `in`** — Apex parses it as the SOQL IN operator. Never use it as a local variable name (`inVal`, `input`, `arg`).
-- **`Decimal.valueOf(Double)` produces binary-float artifacts.** `Decimal.valueOf(0.7)` becomes `0.6999...`. Always route Doubles through `Decimal.valueOf(String.valueOf((Double) o))`. The `decVal` helper at line ~1607 is the canonical numeric-coercion entry point — keep it correct.
+- **`Decimal.valueOf(Double)` produces binary-float artifacts.** `Decimal.valueOf(0.7)` becomes `0.6999...`. Always route Doubles through `Decimal.valueOf(String.valueOf((Double) o))`. The `@TestVisible` `decVal` helper is the canonical numeric-coercion entry point — keep it correct.
 - **`AuraHandledException` requires both the constructor argument AND `setMessage()`** to surface a custom message to the LWC layer. Without `setMessage()` the JS toast falls back to a generic "Script-thrown exception" string. Use the `buildAuraException(safeMsg)` private static helper at the bottom of the controller — same pattern as the four sibling `DC_*_LWC` controllers.
 - Catch by exception subclass where the message is known to be safe. Log full detail via `System.debug(LoggingLevel.ERROR, ...)` before sanitizing for the user.
-- **`@TestVisible private static`** on helpers is currently **NOT used** in this controller — every test goes through the public surface. This is a known gap; when adding a new helper, prefer `@TestVisible private static` and write a direct unit test, especially for any numeric-coercion or field-mapping logic.
+- **`@TestVisible private static`** seams exist for `decVal`, `validateAccountFieldPath`, `geocodeCacheKey`, `applyGeocodeIfNeeded`, `isActionAllowed` and `allowedActionsOverride`. When adding a helper, follow the same pattern and write a direct unit test.
+- **FLS / USER_MODE.** Field paths arrive from App Builder (i.e. the client). `validateAccountFieldPath` rejects any hop the running user can't read, the profile row is fetched with `Database.queryWithBinds(..., AccessLevel.USER_MODE)`, and values are read through `populatedValue()` (never `acc.Field` / `getSObject`) so a dropped field reads as null instead of throwing. The Opportunity pipeline and Financial Account count queries are USER_MODE too.
+- **Action allowlist.** `flowApiName`, `insightFlowApiName` and the unified-relationships invocable class are checked against `Profile_Widget_Allowed_Action__mdt` (shared with `DC_PersonProfileWidget`). An empty table allows everything (back-compat); once any row exists, every action the widget runs needs a row — add one when you configure a new Flow/Apex action on a page.
+- **Geocoding** is cached in Platform Cache (`local.BusinessProfileWidget`, hits 48h / misses 24h), capped at `MAX_GEOCODE_CALLOUTS = 3` with a 6s timeout, and aborts on the first `CalloutException`. A missing or zero-capacity partition degrades to "no cache".
 
 ## LWC
 - **LWC1503 — Boolean `@api` defaults must be `false`.** Compiler rejects `@api foo = true;`. The codebase uses two workarounds: invert to a `hideX` toggle, or leave the JS field undeclared and set `default="true"` in `js-meta.xml`, reading via `this.foo !== false`.
 - **Three `targetConfig` blocks must stay in sync — but only for properties that apply to all three target types.** See "meta-xml asymmetry" above for the full rule.
-- **`setTimeout` outside `connectedCallback` is acceptable** when wired to user-action paths (e.g., `handleTabClick` → `setTimeout(() => animateBars())`). The lint rule `@lwc/lwc/no-async-operation` will still flag it; prefer `requestAnimationFrame` + an `_animationPending` flag consumed in `renderedCallback` once a refactor lands.
-- **`@api` setter for `recordId` must guard against re-entry.** The setter currently calls `loadProfile()` whenever the value flips truthy, AND `connectedCallback` calls it conditionally. Follow the four `DC_*_LWC` siblings' pattern: identity check + `_isConnected` flag set in `connectedCallback`, `disconnectedCallback` flips it back.
-- Reactivity uses plain class fields (no `@track`); reassignment triggers re-render. Modern LWC reactivity is automatic — do NOT add `@track` even though one historical use exists in this file.
-- **Theme apply lifecycle**: `connectedCallback` triple-applies (synchronously + RAF + nested RAF) to defend against flexipage paint races. `renderedCallback` reschedules via `scheduleApplyTheme()`. Both rely on the assumption that re-applies are cheap; in practice they touch ~10-15 CSS custom properties per pass. Future improvement: add a `_lastAppliedThemeKey` cache derived from inputs (mode + accent + warning + negative + positive + text overrides + scale + lighten + targets.length) so duplicate applies become true no-ops.
-- **8-char `#RRGGBBAA` accent** is silently dropped from the derived `--wp-accent-bg/border/dim` tokens — the `applyTheme` accent-derivation only fires when length is 7. Strip alpha first via `accent.slice(0, 7)` if length is 9.
+- **No `setTimeout`.** Animation timing uses an `_animationPending` flag consumed in `renderedCallback`, which schedules via `queueFrame()` (tracked RAF ids, cancelled in `disconnectedCallback`). Don't call `requestAnimationFrame` directly.
+- **Stale-response guard.** `loadProfile()` bumps `_loadSeq`; every async follow-on (`loadAgentforceOverviewEinsteinIfNeeded`, `loadUnifiedRelationshipsIfNeeded`, `loadSummary`) takes the seq and checks `isCurrentLoad(seq)` before writing state. The spinner clears as soon as `getProfileData` returns; the follow-ons fill in without blocking.
+- **Tabs follow the WAI-ARIA tabs pattern** — `<button role="tab">` with roving `tabindex`, `handleTabKeydown` for Arrow/Home/End, and a `role="tabpanel"` body.
+- **`@api` setter for `recordId` guards against re-entry** — identity check + `_isConnected` gate (set in `connectedCallback`, cleared in `disconnectedCallback`), same as the four `DC_*_LWC` siblings. Keep it when touching the setter.
+- Reactivity uses plain class fields (no `@track`); reassignment triggers re-render. Do NOT add `@track`.
+- **Theme apply lifecycle**: `connectedCallback` triple-applies (synchronously + RAF + nested RAF) to defend against flexipage paint races. `renderedCallback` reschedules via `scheduleApplyTheme()`. A `_lastAppliedThemeKey` derived from every input (mode, accent, semantic colors, text overrides, `aiSummaryTextColor`, scale, lighten, target count) makes duplicate applies no-ops — **add any new theme input to that key**, or changing it at runtime won't re-apply.
+- **8-char `#RRGGBBAA` accent** — `applyTheme` strips the alpha (`slice(0, 7)`) before deriving `--wp-accent-bg/border/dim`; keep that when touching the derivation.
 
 ## CSS
 - This project **defines** the `--wp-*` token system. The CSS file (`businessProfileWidget.css`) is the canonical reference for what tokens exist; the inline `THEMES` map in the JS is the canonical reference for what values each theme assigns.
@@ -155,7 +160,7 @@ sf apex run test --tests BusinessProfileWidgetControllerTest \
 npm run test:unit
 ```
 
-13 Apex test methods covering happy paths through `getProfileData` (legacy-SOQL path, explicit-Account-field path, blank-mappings path, contact-fallback). The internal coercion / field-mapping helpers are NOT directly unit-tested today (no `@TestVisible` seam) — coverage is end-to-end through the public surface.
+22 Apex test methods: end-to-end `getProfileData` paths (legacy SOQL, explicit Account fields, blank mappings, structure tab, pipeline, malformed mappings, bad record Id, blocked flow), the unified-relationships guards, plus direct unit tests through `@TestVisible` seams — `decVal` 0.7 round-trip, `validateAccountFieldPath`, `geocodeCacheKey`, the allowlist, and `applyGeocodeIfNeeded` with an `HttpCalloutMock` (hit short-circuits; miss stops at the callout budget). `getProfileData` skips geocoding under `Test.isRunningTest()`, so geocode tests call `applyGeocodeIfNeeded` directly.
 
 When adding a new helper:
 - Mark `@TestVisible private static` so direct unit coverage is possible.
@@ -172,7 +177,9 @@ When adding a new helper:
 - **Boolean `@api foo = true;`** — fails with LWC1503.
 - **Renaming a `--wp-*` token here without auditing the four siblings** — breaks theme parity across the family.
 - **Extracting `THEMES` to a separate module** — current convention is inline, copying the prediction siblings' extraction would make this the *follower* of a system this project *defines*. Decision needs product sign-off, not a routine refactor.
-- **Adding `@track`** to a new field — modern LWC reactivity is automatic on plain class fields. The one remaining `@track` in this file is a historical leftover.
+- **Adding `@track`** to a new field — modern LWC reactivity is automatic on plain class fields.
+- **Configuring a new Flow / invocable on a page without an allowlist row** — once `Profile_Widget_Allowed_Action__mdt` has any rows, unlisted actions are rejected with an "is not in the Profile Widget allowlist" error.
+- **Reading Account fields directly (`acc.Industry`, `getSObject`)** on the profile row — fields the user can't read are never selected, so direct access throws. Use `populatedValue()` / `getFieldValueByPath()`.
 - **Modifying the `private without sharing class EinsteinOverviewConnectBridge`** without re-reading its inline comment — the asymmetric sharing context is intentional.
 
 # Related docs

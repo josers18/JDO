@@ -7,7 +7,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-Oct_29_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Oct_30_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Theme System](https://img.shields.io/badge/Theme_System-Cookbook-7F56D9?style=for-the-badge)](docs/THEME_CATALOG.md)
 [![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
 [![Commits](https://img.shields.io/badge/Commits-630%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
@@ -62,6 +62,15 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
 - **DC_Prediction_Model_LWC — risk-aware AI summary** — risk-framed cards send `riskContext` (band plus per-action projected risk) to `generateAnalysisSummary`, a new optional parameter. `DC_MLModelExplanation` v8 (active) uses it, so the Attrition summary now names the band and says "setting up direct deposit would bring the risk from 38% to about 12%", matching the card. CSAT sends no `riskContext` and keeps the score wording.
 
 ### Fixed
+
+- **DC_BusinessProfileWidget — review fixes** — fixes from a full component review of `businessProfileWidget`:
+  - The profile query, the legacy fallback and admin-mapped field paths now respect field-level security. Every path hop is checked, the row is read in `USER_MODE`, and fields the user can't read are skipped. The Opportunity pipeline and Financial Account count queries also run in `USER_MODE`.
+  - The flow, insight flow and unified-relationships Apex class must appear in the shared `Profile_Widget_Allowed_Action__mdt` allowlist. Added `DC_Multiclass_Business` as a row; the type and seed rows ship in this project too.
+  - Address geocoding is cached in Platform Cache (new `BusinessProfileWidget` partition, 2-day hit / 1-day miss TTL) and limited to 3 callouts with a 6 s timeout each.
+  - The profile renders as soon as `getProfileData` returns; the Agentforce summary, unified relationships and AI summary load afterwards. A sequence guard drops responses from a stale record, and pending animation frames are cancelled on disconnect.
+  - Tabs are now keyboard-accessible ARIA tabs (arrow / Home / End). The AI pulse and hover transitions honor reduced motion, and the theme key picks up `aiSummaryTextColor` changes.
+  - Raw Apex / Connect payloads no longer reach the user. Malformed field mappings and bad record Ids return friendly errors, and empty catches are narrowed.
+  - 10 new Apex tests (22 total) via `@TestVisible` seams, including `HttpCalloutMock` geocode tests.
 
 - **DC_Multiclass_Prediction_LWC — review fixes** — the AI summary payload now humanizes factor field names (`buildPromptContext` + `humanizeFieldNames`), so the Trust Layer no longer masks them as `<ENTITY_TYPE_n>`, and it carries the displayed class probabilities (prompt template v4 calls out close calls). Also: `summaryCardTitle` is rendered, a `_requestSeq` guard drops stale flow/summary responses, flow errors are sanitized (`TypeException` / `FlowException`), key driver thresholds are validated, `#RRGGBBAA` colors are accepted, hero and chart share one class-label formatter, and the reduced-motion full-width bar flash is gone. Apex tests 12 → 18.
 - **DC_Prediction_Model_LWC** (PR [#136](https://github.com/josers18/JDO/pull/136)) — the AI summary read "`<ENTITY_TYPE_0>` has an input value of 4" because the Trust Layer masks raw field API names. `ClassificationModelLwcController` now sends field labels instead.

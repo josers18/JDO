@@ -283,4 +283,142 @@ private class BusinessProfileWidgetControllerTest {
         Test.stopTest();
         System.assert(threw, 'expected AuraHandledException for unsafe class token');
     }
+
+    private class GeocodeMock implements HttpCalloutMock {
+        Integer calls = 0;
+        String nominatimBody;
+        GeocodeMock(String nominatimBody) {
+            this.nominatimBody = nominatimBody;
+        }
+        public HttpResponse respond(HttpRequest req) {
+            calls++;
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setBody(req.getEndpoint().contains('nominatim') ? nominatimBody : '{"features":[]}');
+            return res;
+        }
+    }
+
+    private static BusinessProfileWidgetController.BusinessProfileResult geocodeTarget(String street) {
+        BusinessProfileWidgetController.BusinessProfileResult r = new BusinessProfileWidgetController.BusinessProfileResult();
+        r.street = street;
+        r.city = 'Springfield';
+        r.state = 'IL';
+        r.zip = '62701';
+        return r;
+    }
+
+    @IsTest
+    static void testGeocodeHitSetsCoordinates() {
+        GeocodeMock mock = new GeocodeMock('[{"lat":"39.7817","lon":"-89.6501"}]');
+        Test.setMock(HttpCalloutMock.class, mock);
+        BusinessProfileWidgetController.BusinessProfileResult r = geocodeTarget('100 Hit Test Way ' + Crypto.getRandomInteger());
+        Test.startTest();
+        BusinessProfileWidgetController.applyGeocodeIfNeeded(r);
+        Test.stopTest();
+        System.assertEquals(Decimal.valueOf('39.7817'), r.mapLatitude);
+        System.assertEquals(Decimal.valueOf('-89.6501'), r.mapLongitude);
+        System.assertEquals(1, mock.calls, 'first Nominatim hit should stop further callouts');
+    }
+
+    @IsTest
+    static void testGeocodeMissRespectsCalloutBudget() {
+        GeocodeMock mock = new GeocodeMock('[]');
+        Test.setMock(HttpCalloutMock.class, mock);
+        BusinessProfileWidgetController.BusinessProfileResult r = geocodeTarget('200 Miss Test Way ' + Crypto.getRandomInteger());
+        r.branchAddress = '1 Branch Plaza, Springfield, IL';
+        Test.startTest();
+        BusinessProfileWidgetController.applyGeocodeIfNeeded(r);
+        Test.stopTest();
+        System.assertEquals(null, r.mapLatitude);
+        System.assertEquals(BusinessProfileWidgetController.MAX_GEOCODE_CALLOUTS, mock.calls, 'callouts must stop at the budget');
+    }
+
+    @IsTest
+    static void testGeocodeCacheKeyIsNormalizedAndShort() {
+        String a = BusinessProfileWidgetController.geocodeCacheKey('  1 Main St, Springfield ');
+        String b = BusinessProfileWidgetController.geocodeCacheKey('1 MAIN ST, SPRINGFIELD');
+        System.assertEquals(a, b, 'cache key should ignore case and surrounding whitespace');
+        System.assert(a.length() <= 50, 'Platform Cache keys max out at 50 chars');
+        System.assert(a.isAlphanumeric(), 'Platform Cache keys must be alphanumeric');
+    }
+
+    @IsTest
+    static void testDecValAvoidsBinaryFloatDrift() {
+        Double d = 0.7;
+        System.assertEquals('0.7', String.valueOf(BusinessProfileWidgetController.decVal(d)));
+        System.assertEquals(Decimal.valueOf('1234.5'), BusinessProfileWidgetController.decVal('$1,234.5'));
+        System.assertEquals(null, BusinessProfileWidgetController.decVal('not a number'));
+    }
+
+    @IsTest
+    static void testValidateAccountFieldPath() {
+        System.assertEquals('Name', BusinessProfileWidgetController.validateAccountFieldPath('name'));
+        System.assertEquals('Owner.Name', BusinessProfileWidgetController.validateAccountFieldPath('owner.name'));
+        System.assertEquals(null, BusinessProfileWidgetController.validateAccountFieldPath('NotARealField__zz'));
+        System.assertEquals(null, BusinessProfileWidgetController.validateAccountFieldPath('Name; DELETE'));
+    }
+
+    @IsTest
+    static void testAllowlistEmptyTableAllowsEverything() {
+        BusinessProfileWidgetController.allowedActionsOverride = new List<Profile_Widget_Allowed_Action__mdt>();
+        System.assert(BusinessProfileWidgetController.isActionAllowed(BusinessProfileWidgetController.ACTION_TYPE_FLOW, 'Any_Flow'));
+        System.assert(!BusinessProfileWidgetController.isActionAllowed(BusinessProfileWidgetController.ACTION_TYPE_FLOW, ' '));
+    }
+
+    @IsTest
+    static void testAllowlistMatchesTypeAndName() {
+        BusinessProfileWidgetController.allowedActionsOverride = new List<Profile_Widget_Allowed_Action__mdt>{
+            new Profile_Widget_Allowed_Action__mdt(Action_Type__c = 'Flow', Api_Name__c = 'DC_Multiclass_Business'),
+            new Profile_Widget_Allowed_Action__mdt(Action_Type__c = 'Apex', Api_Name__c = 'DC_UnifiedAccounts')
+        };
+        System.assert(BusinessProfileWidgetController.isActionAllowed('Flow', ' dc_multiclass_business '));
+        System.assert(BusinessProfileWidgetController.isActionAllowed('Apex', 'DC_UnifiedAccounts'));
+        System.assert(!BusinessProfileWidgetController.isActionAllowed('Apex', 'DC_Multiclass_Business'), 'type must match');
+        System.assert(!BusinessProfileWidgetController.isActionAllowed('Flow', 'Evil_Flow'));
+    }
+
+    @IsTest
+    static void testGetProfileDataBlocksUnlistedFlow() {
+        BusinessProfileWidgetController.allowedActionsOverride = new List<Profile_Widget_Allowed_Action__mdt>{
+            new Profile_Widget_Allowed_Action__mdt(Action_Type__c = 'Flow', Api_Name__c = 'Some_Other_Flow')
+        };
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            BusinessProfileWidgetController.getProfileData(acc.Id, '{}', 'Evil_Flow', 'recordId', '', '', '', '', false, null);
+        } catch (AuraHandledException e) {
+            threw = e.getMessage().contains('allowlist');
+        }
+        Test.stopTest();
+        System.assert(threw, 'an unlisted flow must be rejected before it runs');
+    }
+
+    @IsTest
+    static void testGetProfileDataRejectsMalformedMappings() {
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            BusinessProfileWidgetController.getProfileData(acc.Id, '{not json', '', '', '', '', '', '', false, null);
+        } catch (AuraHandledException e) {
+            threw = e.getMessage() == 'Field mappings are not valid JSON.';
+        }
+        Test.stopTest();
+        System.assert(threw, 'malformed mappings must surface a friendly error');
+    }
+
+    @IsTest
+    static void testGetProfileDataRejectsBadRecordId() {
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            BusinessProfileWidgetController.getProfileData('not-an-id', '{}', '', '', '', '', '', '', false, null);
+        } catch (AuraHandledException e) {
+            threw = e.getMessage() == 'Invalid record Id.';
+        }
+        Test.stopTest();
+        System.assert(threw, 'a malformed record Id must surface a friendly error');
+    }
 }

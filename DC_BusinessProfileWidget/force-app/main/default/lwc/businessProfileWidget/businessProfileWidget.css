@@ -288,6 +288,19 @@
     text-align: center;
     letter-spacing: 0.02em;
     user-select: none;
+    /* Tabs are <button>s for keyboard access; reset UA button chrome. */
+    background: none;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    font-family: inherit;
+    margin: 0;
+}
+
+.wp-tab:focus-visible {
+    outline: 2px solid var(--wp-accent);
+    outline-offset: -2px;
 }
 
 .wp-tab--active {
@@ -1828,4 +1841,18 @@ button.wp-record-link:hover {
     font-size: calc(10px * var(--wp-text-scale, 1));
     color: var(--wp-text-tertiary);
     border-top: 1px solid var(--wp-border-soft);
+}
+
+/* Respect OS-level Reduce Motion: stop the AI pulse and snap hover / tab transitions. */
+@media (prefers-reduced-motion: reduce) {
+    .wp-ai-pulse {
+        animation: none;
+    }
+    .wp-tab,
+    .wp-theme-btn {
+        transition: none;
+    }
+    .wp-theme-btn:hover {
+        transform: none;
+    }
 }
