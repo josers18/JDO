@@ -47,6 +47,21 @@ Apex builds:
 
 The `predictionOutputFormat` field is set from App Builder (`percent`, `integer`, `decimal`, or `currency`) so the model knows whether `prediction` is a probability-style score or a regression value.
 
+Risk-framed cards (`riskFramed` on) also send `riskContext`, a parsed object rather than a string:
+
+```json
+"riskContext": {
+  "band": "Moderate risk",
+  "bandScale": "Low <25 · Moderate 25–50 · High >50",
+  "actions": [
+    { "input": "Direct Deposit", "current": "No", "target": "Yes",
+      "riskChangePoints": -25.8, "projectedRisk": 12, "projectedBand": "Low risk" }
+  ]
+}
+```
+
+The values come from the same getters that draw the card's band chip and "Risk 38% → 12%" lines, so the summary quotes the card's numbers instead of doing its own arithmetic. Other cards omit the key.
+
 Notes:
 
 - `prediction` is a JSON number (probability 0–100, a count, a currency amount in major units, etc., depending on your flow).
@@ -56,7 +71,7 @@ Example snippet you might put in the template instructions:
 
 > You are assisting a banker. You receive JSON with `prediction` (number), `predictionOutputFormat` (`percent` | `integer` | `decimal` | `currency`), `factors` and `recommendations` (stringified JSON arrays). If format is `percent`, treat prediction as 0–100% risk-style; otherwise describe the numeric outcome appropriately. Parse the string fields if needed. Summarize in 2–3 sentences without inventing data.
 
-A working reference template ships in this repo: `force-app/main/default/genAiPromptTemplates/DC_MLModelExplanation.genAiPromptTemplate-meta.xml`. Its active version explains each JSON field to the model, says that `value` is the points a driver or target moves the score, merges recommendations that name the same input, and includes one example paragraph. The example made Gemini Flash follow the style more reliably than a list of rules did. To change it, add a new `templateVersions` block and point `activeVersionIdentifier` at it. Published versions can't be edited in place.
+A working reference template ships in this repo: `force-app/main/default/genAiPromptTemplates/DC_MLModelExplanation.genAiPromptTemplate-meta.xml`. Its active version (v8) explains each JSON field to the model, says that `value` is the points a driver or target moves the score, and merges recommendations that name the same input. When `riskContext` is present, it names the risk band and states each action's projected risk ("would bring the risk from 38% to about 12%") without adding projections together. Otherwise it describes the score as before. It includes one example paragraph for a risk card and one for a score card. Examples made Gemini Flash follow the style more reliably than a list of rules did. Attrition and CSAT share this template. To change it, add a new `templateVersions` block and point `activeVersionIdentifier` at it. Published versions can't be edited in place.
 
 Gemini Flash often ends with a courtesy line ("Your attention to these metrics is appreciated.") even when the prompt forbids it. The LWC removes trailing sentences that thank, appreciate or acknowledge the reader (`stripCourtesyTail`), so the template doesn't need to fight that habit.
 
