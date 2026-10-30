@@ -77,6 +77,21 @@ Apex builds **one JSON string** and passes it to the flex text input (API name f
 
 `predictionOutputFormat` mirrors the LWC App Builder setting (`percent`, `integer`, `decimal`, `currency`). `factors` and `recommendations` are **strings** (often stringified JSON arrays). The prompt template should treat them as text or parse them inside the template instructions.
 
+Risk-framed cards (`riskFramed` on) also send `riskContext`, a parsed object rather than a string:
+
+```json
+"riskContext": {
+  "band": "Moderate risk",
+  "bandScale": "Low <25 · Moderate 25–50 · High >50",
+  "actions": [
+    { "input": "Direct Deposit", "current": "No", "target": "Yes",
+      "riskChangePoints": -25.8, "projectedRisk": 12, "projectedBand": "Low risk" }
+  ]
+}
+```
+
+The values come from the same getters that draw the card's band chip and "Risk 38% → 12%" lines, so the summary quotes the card's numbers instead of doing its own arithmetic. Other cards omit the key.
+
 ---
 
 ## Error handling

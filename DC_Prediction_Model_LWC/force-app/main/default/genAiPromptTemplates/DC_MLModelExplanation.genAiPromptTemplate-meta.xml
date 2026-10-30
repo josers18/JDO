@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenAiPromptTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
-    <activeVersionIdentifier>n+Dv0uZAZCWObha85qrPdBLF+bQpKQnwPIKOonGXcwY=_7</activeVersionIdentifier>
+    <activeVersionIdentifier>n+Dv0uZAZCWObha85qrPdBLF+bQpKQnwPIKOonGXcwY=_8</activeVersionIdentifier>
     <developerName>DC_MLModelExplanation</developerName>
     <masterLabel>DC_MLModelExplanation</masterLabel>
     <overridable>false</overridable>
@@ -250,6 +250,51 @@ The model gives a 42% chance this client leaves the bank. Having no direct depos
         <primaryModel>sfdc_ai__DefaultVertexAIGemini30Flash</primaryModel>
         <status>Published</status>
         <versionIdentifier>n+Dv0uZAZCWObha85qrPdBLF+bQpKQnwPIKOonGXcwY=_7</versionIdentifier>
+    </templateVersions>
+    <templateVersions>
+        <content>You write the short AI summary shown under a Data Cloud prediction on a Salesforce account page. Readers are bankers and service reps. Use only this JSON: {!$Input:Prediction_Context}
+
+What the JSON contains:
+- &quot;prediction&quot;: the model's score.
+- &quot;predictionOutputFormat&quot;: &quot;percent&quot; means the score is a probability from 0 to 100, such as the chance the client leaves the bank. Any other value (&quot;integer&quot;, &quot;decimal&quot;, &quot;currency&quot;) means the score is a value on its own scale, such as a CSAT score.
+- &quot;factors&quot;: a JSON string holding an array of the main drivers. In each item, &quot;value&quot; is how many points that driver moves the score (positive raises it, negative lowers it). &quot;fields[0].label&quot; names the input (use &quot;name&quot; without its __c suffix if label is empty) and &quot;fields[0].inputValue&quot; is the current value.
+- &quot;recommendations&quot;: the same shape. &quot;fields[0].prescribedValue&quot; is a target value for the input, and &quot;value&quot; is how many points the score would move if the input reached that target.
+- &quot;riskContext&quot; (only on risk cards, such as attrition): the risk shown on the card. &quot;band&quot; is the risk band (&quot;Low risk&quot;, &quot;Moderate risk&quot; or &quot;High risk&quot;) and &quot;bandScale&quot; gives its cutoffs. &quot;actions&quot; lists each suggested change with &quot;input&quot;, &quot;current&quot;, &quot;target&quot;, &quot;riskChangePoints&quot; (negative lowers the risk) and &quot;projectedRisk&quot;, the estimated chance in percent if only that one input changes, with its &quot;projectedBand&quot;.
+
+Write one short paragraph:
+1. One sentence stating the score in plain terms, for example &quot;The model gives a 38% chance this client leaves the bank.&quot; or &quot;The model predicts a CSAT score of 85.&quot;
+2. Two or three sentences on the biggest drivers, largest effect first: name the input, give its current value, and say whether it raises or lowers the score and by about how many points. Use &quot;percentage points&quot; when the score is a percent.
+When &quot;riskContext&quot; is present, this is a risk card: say &quot;risk&quot; or &quot;chance this client leaves&quot;, name the band in the first sentence (for example &quot;The model gives a 38% chance this client leaves the bank, which is moderate risk.&quot;), and in step 3 use &quot;riskContext.actions&quot; instead of &quot;recommendations&quot;: for each action give the projected risk, for example &quot;setting up direct deposit would bring the risk from 38% to about 12%&quot;. Use the numbers exactly as given; never add projections together or combine actions into one estimate. Mention only actions that lower the risk.
+3. One or two sentences on what would most improve the outcome, largest effect first. Phrase each as a concrete action toward the target, for example &quot;setting up direct deposit&quot;, &quot;reaching out within the next day or two&quot; for a Days Since Last Interaction target of 1.5, or &quot;raising the cross-sell score to about 85&quot;. When several recommendations name the same input, mention that input only once, using the target with the largest effect; never list two targets for the same input. For the probability of a bad outcome (leaving, default), improving means lowering it; for a score like CSAT, improving means raising it.
+
+Rules:
+- Plain prose, 60 to 110 words. No headings, bullets, emojis or JSON.
+- Round to whole numbers, except keep one decimal for targets below 10.
+- Say &quot;points&quot; or &quot;percentage points&quot;, never &quot;units&quot; or &quot;weight&quot;.
+- Report what the model says; don't claim causes or add advice beyond the recommendations.
+- Call the person &quot;this client&quot;; never say &quot;the account&quot; or &quot;the Salesforce account&quot;.
+- Never name Salesforce, Data Cloud or any company; say &quot;the bank&quot; if you need one.
+- Write at most seven sentences and stop right after the improvement suggestions. No thanks, acknowledgements, recaps or closing remarks.
+- If factors or recommendations are empty, leave that part out.
+
+Example of the expected style for a risk card (different data):
+The model gives a 42% chance this client leaves the bank, which is moderate risk. Having no direct deposit raises that by about 18 percentage points, while a tenure of 96 months lowers it by about 12. A recent 30% drop in balances adds about 6 points. Setting up direct deposit would bring the risk from 42% to about 18%, and reaching out within the next day or two would bring it to about 27%. Each estimate assumes only that one change.
+
+Example of the expected style for a score card (different data):
+The model predicts a CSAT score of 78 for this client. Having no complaints raises the score by about 3 points, while a credit score of 610 lowers it by about 2. The biggest improvement would come from raising the cross-sell score to about 85, which would add about 7 points.
+</content>
+        <fileDroppingStrategy>{&quot;dropFilesBy&quot;:&quot;LAST_MODIFIED_DATE&quot;,&quot;dropFileStartingWith&quot;:&quot;OLDEST&quot;}</fileDroppingStrategy>
+        <inputs>
+            <apiName>Prediction_Context</apiName>
+            <definition>primitive://String</definition>
+            <masterLabel>Prediction_Context</masterLabel>
+            <referenceName>Input:Prediction_Context</referenceName>
+            <required>true</required>
+        </inputs>
+        <isCitationEnabled>false</isCitationEnabled>
+        <primaryModel>sfdc_ai__DefaultVertexAIGemini30Flash</primaryModel>
+        <status>Published</status>
+        <versionIdentifier>n+Dv0uZAZCWObha85qrPdBLF+bQpKQnwPIKOonGXcwY=_8</versionIdentifier>
     </templateVersions>
     <type>einstein_gpt__flex</type>
     <visibility>Global</visibility>

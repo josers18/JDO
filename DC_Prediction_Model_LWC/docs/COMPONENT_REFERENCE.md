@@ -100,6 +100,7 @@ For percent cards where a higher probability is a worse outcome, such as attriti
 
 - **Gauge:** the arc takes the color of the current risk band instead of the bad→good blend. A chip under the gauge names the band ("● Moderate risk"), followed by the scale "Low <25 · Moderate 25–50 · High >50". The chip text stays dark. The band color goes only on the dot and a 14% tint, because amber text on white fails contrast.
 - **With `insightsDisplayMode=keyDrivers`:** captions and the legend talk about risk ("What moved this risk", "▲ raises risk · ▼ lowers risk", "Raises risk 17.3 pts"). Each improvement shows "▼ 25.8 pts" and a projected line "Risk 38% → ● 12% if only this changes". The dot takes the projected band's color. The projection is `round(prediction + value)`, clamped to 0–100. A note says the estimates assume one change at a time and don't add up. Probability points aren't strictly additive.
+- **AI summary:** the card sends the band and each action's projected risk to the prompt as `riskContext`. `DC_MLModelExplanation` v8 then names the band and quotes the same projections; see [PROMPT_TEMPLATE_GUIDE.md](PROMPT_TEMPLATE_GUIDE.md).
 
 | Property | Default | Meaning |
 |----------|---------|---------|

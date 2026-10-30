@@ -12,7 +12,7 @@ Source of truth: `force-app/main/default/`. This file describes each deployable 
 
 | Artifact | File(s) | Role |
 |----------|---------|------|
-| **ClassificationModelLwcController** | `classes/ClassificationModelLwcController.cls` (+ `-meta.xml`) | `runPredictionFlow`: starts an autolaunched `Flow.Interview` with a configurable record Id input and reads configurable output variables for prediction (Decimal/Integer/String coerced), factors, and recommendations (serialized to JSON strings). `generateAnalysisSummary`: builds JSON (`prediction`, `predictionOutputFormat`, `factors`, `recommendations`) and calls `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`. |
+| **ClassificationModelLwcController** | `classes/ClassificationModelLwcController.cls` (+ `-meta.xml`) | `runPredictionFlow`: starts an autolaunched `Flow.Interview` with a configurable record Id input and reads configurable output variables for prediction (Decimal/Integer/String coerced), factors, and recommendations (serialized to JSON strings). `generateAnalysisSummary`: builds JSON (`prediction`, `predictionOutputFormat`, `factors`, `recommendations`, plus `riskContext` on risk-framed cards) and calls `ConnectApi.EinsteinLLM.generateMessagesForPromptTemplate`. |
 | **ClassificationModelLwcControllerTest** | `classes/ClassificationModelLwcControllerTest.cls` (+ `-meta.xml`) | Minimal tests: null prompt returns null; missing/invalid flow throws. |
 
 **Sharing:** `with sharing` — respects sharing of the running user when combined with flow and object security.
