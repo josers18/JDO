@@ -78,6 +78,11 @@ Don't name a parameter, local, or property `in` — Apex reserves it. (Same inci
 ### "Next batch" rows are dropped
 If `nextBatchId` is non-null, [buildResult](force-app/main/default/classes/DcQueryToTableController.cls#L269) sets a warning and the LWC **shows the first batch only**. This is by design; pagination is out of scope.
 
+### No horizontal scroll: table or stacked rows
+The LWC measures `.dcqt-shell__body` and compares it with `requiredTableWidth` (each column at `max(minColumnWidth, initialWidth)` plus the selection and row-number columns). If the columns fit, it renders `lightning-datatable` with `column-widths-mode="fixed"` and pins the datatable to an **integer px width** (`datatableStyle`). Without the pin, fixed mode rounds widths up on fractional containers and shows a 1px scrollbar. If they don't fit, it renders `stackedRows` as label: value cards instead. `columnWidthsMode` stays in the meta XML only so saved pages keep loading.
+
+Width changes come from a `ResizeObserver` **and** a `window` `resize` listener. Under Lightning Web Security the component's `ResizeObserver` was seen not to fire, so don't remove the window listener. Both are torn down in `disconnectedCallback`.
+
 ### Sorting is client-side over loaded rows only
 `handleSort` resorts `tableRows` in memory. Don't mistake it for re-querying — sort never re-hits Data Cloud.
 

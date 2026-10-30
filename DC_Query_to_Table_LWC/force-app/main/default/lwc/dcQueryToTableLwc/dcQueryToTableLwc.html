@@ -34,9 +34,10 @@
             <template if:true={errorMessage}>
                 <div class="dcqt-shell__error slds-text-color_error" role="alert">{errorMessage}</div>
             </template>
-            <template if:true={hasGrid}>
+            <template if:true={showTable}>
                 <div class="dcqt-shell__table">
                     <lightning-datatable
+                        style={datatableStyle}
                         key-field="_rowUid"
                         data={tableRows}
                         columns={tableColumns}
@@ -53,6 +54,25 @@
                         onsort={handleSort}
                     >
                     </lightning-datatable>
+                </div>
+            </template>
+            <template if:true={useStackedLayout}>
+                <div class="dcqt-shell__table dcqt-stack" role="list">
+                    <template for:each={stackedRows} for:item="row">
+                        <div key={row.key} class="dcqt-stack__row" role="listitem">
+                            <template if:true={row.indexLabel}>
+                                <div class="dcqt-stack__index">{row.indexLabel}</div>
+                            </template>
+                            <dl class="dcqt-stack__fields">
+                                <template for:each={row.fields} for:item="field">
+                                    <div key={field.key} class="dcqt-stack__field">
+                                        <dt class="dcqt-stack__label">{field.label}</dt>
+                                        <dd class="dcqt-stack__value">{field.value}</dd>
+                                    </div>
+                                </template>
+                            </dl>
+                        </div>
+                    </template>
                 </div>
             </template>
         </div>
