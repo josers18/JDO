@@ -13,6 +13,15 @@ const KEY_DRIVER_TIER_LABELS = ['Very strong', 'Strong', 'Moderate', 'Minor'];
 const DEFAULT_KEY_DRIVER_TIER_COLORS = ['#104281', '#256abf', '#5598e7', '#86b6ef'];
 const DEFAULT_KEY_DRIVER_TIER_THRESHOLDS = [80, 55, 30];
 
+// Risk-framed mode (percent gauge only): bands by probability, bad colors rise with risk.
+const RISK_BAND_LABELS = ['Low risk', 'Moderate risk', 'High risk'];
+const DEFAULT_RISK_BAND_COLORS = ['#1d9e75', '#d97706', '#c23934'];
+const DEFAULT_RISK_BAND_THRESHOLDS = [25, 50];
+
+function clampPercent(n) {
+    return Math.min(100, Math.max(0, n));
+}
+
 function formatPoints(abs) {
     return `${abs.toFixed(1)} pts`;
 }
@@ -107,6 +116,16 @@ export default class ClassificationModelLwc extends LightningElement {
     @api keyDriverTierColors = '';
     /** Key drivers: optional minimum % of the top driver for Very strong, Strong, Moderate. */
     @api keyDriverTierThresholds = '';
+    /**
+     * Risk-framed mode for percent (probability-of-a-bad-outcome) cards such as attrition:
+     * the gauge arc takes the risk band color, a band label sits under the gauge, and in
+     * keyDrivers mode each improvement shows the projected risk if only that input changes.
+     */
+    @api riskFramed = false;
+    /** Risk-framed: optional "low,high" cutoffs in % (default 25,50). Below low = Low, above high = High. */
+    @api riskBandThresholds = '';
+    /** Risk-framed: optional comma-separated hex colors for Low, Moderate, High. */
+    @api riskBandColors = '';
 
     _themeMode = 'default';
     _themeScheduleToken = 0;
@@ -319,6 +338,8 @@ export default class ClassificationModelLwc extends LightningElement {
         const tiers = this.keyDriverTiers;
         const colors = this.resolveColors(this.factorsRiskColor, this.factorsGoodColor);
         const directional = this.applyProcessedRowColors(rows, colors, this.factorsPositiveMeansGood === true);
+        const riskWord = this.isRiskFramed ? ' risk' : '';
+        const subject = this.isRiskFramed ? 'risk' : 'score';
         return directional.map((row, index) => {
             const pct = Math.round(row.barScale * 100);
             const tier = tiers.find((t) => pct >= t.minPercent) || tiers[tiers.length - 1];
@@ -332,8 +353,8 @@ export default class ClassificationModelLwc extends LightningElement {
                 barStyle: `--row-color:${tier.color}`,
                 dirStyle: row.barStyle,
                 dirGlyph: raises ? '▲' : '▼',
-                dirText: `${raises ? 'Raises' : 'Lowers'} ${pts}`,
-                tooltip: `${row.detail} · ${raises ? 'raises' : 'lowers'} the score ${pts} · ${tier.label} (${pct}% of the top driver)`
+                dirText: `${raises ? 'Raises' : 'Lowers'}${riskWord} ${pts}`,
+                tooltip: `${row.detail} · ${raises ? 'raises' : 'lowers'} the ${subject} ${pts} · ${tier.label} (${pct}% of the top driver)`
             };
         });
     }
@@ -370,10 +391,22 @@ export default class ClassificationModelLwc extends LightningElement {
         this.applyBarScales(merged);
         const colors = this.resolveColors(this.recommendationsRiskColor, this.recommendationsGoodColor);
         const colored = this.applyProcessedRowColors(merged, colors, this.recommendationsPositiveMeansGood === true);
+        const riskNow = this.isRiskFramed && this.predictionNumber != null ? clampPercent(this.predictionNumber) : null;
         return colored.map((row, index) => {
             const v = row.displayValue || 0;
             const current = currentByApi.get(row.apiName) || '';
             const ptsText = `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}`;
+            let projected = null;
+            if (riskNow != null) {
+                const next = Math.round(clampPercent(riskNow + v));
+                const band = this.riskBandFor(next);
+                projected = {
+                    fromText: `${Math.round(riskNow)}%`,
+                    toText: `${next}%`,
+                    bandStyle: `--band-color:${band.color}`,
+                    bandLabel: band.label
+                };
+            }
             const others = row.alternatives
                 .map((a) => `${a.valueText || '—'} (${a.displayValue > 0 ? '+' : ''}${(a.displayValue || 0).toFixed(1)} pts)`)
                 .join(', ');
@@ -384,11 +417,72 @@ export default class ClassificationModelLwc extends LightningElement {
                 targetText: row.valueText,
                 hasCurrent: Boolean(current),
                 ptsText,
+                liftGlyph: riskNow != null ? (v < 0 ? '▼' : '▲') : '',
+                liftText: riskNow != null ? `${Math.abs(v).toFixed(1)} pts` : `${ptsText} pts`,
+                dirStyle: row.barStyle,
+                hasProjection: projected != null,
+                projected,
                 tooltip:
                     `${row.labelText}${current ? ` ${current}` : ''} → ${row.valueText || '—'}: ${ptsText} pts` +
                     (others ? ` · also: ${others}` : '')
             };
         });
+    }
+
+    get isRiskFramed() {
+        return this.riskFramed === true && this.showPercentGauge;
+    }
+
+    get riskBands() {
+        const colors = String(this.riskBandColors || '')
+            .split(',')
+            .map((c) => sanitizePmTextColor(c));
+        const cut = String(this.riskBandThresholds || '')
+            .split(',')
+            .map((t) => (t.trim() === '' ? NaN : Number(t)));
+        let low = Number.isFinite(cut[0]) ? cut[0] : DEFAULT_RISK_BAND_THRESHOLDS[0];
+        let high = Number.isFinite(cut[1]) ? cut[1] : DEFAULT_RISK_BAND_THRESHOLDS[1];
+        if (low > high) {
+            [low, high] = DEFAULT_RISK_BAND_THRESHOLDS;
+        }
+        return {
+            low,
+            high,
+            bands: RISK_BAND_LABELS.map((label, i) => ({ label, color: colors[i] || DEFAULT_RISK_BAND_COLORS[i] }))
+        };
+    }
+
+    riskBandFor(percent) {
+        const { low, high, bands } = this.riskBands;
+        if (percent < low) {
+            return bands[0];
+        }
+        return percent <= high ? bands[1] : bands[2];
+    }
+
+    get riskBand() {
+        if (!this.isRiskFramed || this.predictionNumber == null) {
+            return null;
+        }
+        const band = this.riskBandFor(clampPercent(this.predictionNumber));
+        return { ...band, chipStyle: `--band-color:${band.color}` };
+    }
+
+    get riskBandScaleText() {
+        const { low, high } = this.riskBands;
+        return `Low <${low} · Moderate ${low}–${high} · High >${high}`;
+    }
+
+    get keyDriverFactorsCaption() {
+        return this.isRiskFramed ? 'What moved this risk, and which way' : 'What moved this score, and which way';
+    }
+
+    get keyDriverImprovementsCaption() {
+        return this.isRiskFramed ? 'Change one input, estimated new risk' : 'Change one input, estimated score lift';
+    }
+
+    get keyDriverDirectionLegend() {
+        return this.isRiskFramed ? '▲ raises risk · ▼ lowers risk' : '▲ raises · ▼ lowers';
     }
 
     get hasKeyDriverImprovements() {
@@ -420,6 +514,9 @@ export default class ClassificationModelLwc extends LightningElement {
         const p = this.scorePercentRounded;
         if (p == null || Number.isNaN(Number(p))) {
             return '#b0b0b0';
+        }
+        if (this.riskBand) {
+            return this.riskBand.color;
         }
         const t = Math.min(100, Math.max(0, Number(p))) / 100;
         const u = this.gaugeGradientReverse === true ? 1 - t : t;

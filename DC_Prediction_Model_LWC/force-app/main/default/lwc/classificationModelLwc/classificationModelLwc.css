@@ -335,6 +335,7 @@
 }
 
 .kd-glyph {
+    margin-right: 3px;
     color: var(--row-color, currentColor);
 }
 
@@ -389,6 +390,65 @@
     margin: 6px 0 0;
     font-size: 11px;
     color: var(--wp-text-secondary, #6b7280);
+}
+
+.risk-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: -6px;
+    text-align: center;
+}
+
+.risk-band__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wp-text-primary, #1f2937);
+    background: color-mix(in srgb, var(--band-color, #d97706) 14%, transparent);
+}
+
+.risk-band__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--band-color, #d97706);
+}
+
+.risk-band__scale {
+    font-size: 11px;
+    color: var(--wp-text-secondary, #6b7280);
+}
+
+.kd-proj {
+    grid-column: 2 / 4;
+    font-size: 11px;
+    color: var(--wp-text-secondary, #6b7280);
+}
+
+.kd-proj b {
+    font-weight: 600;
+    color: var(--lwc-pm-summary-label-color, var(--wp-text-primary, #1f2937));
+}
+
+.kd-proj__to {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 4px;
+    white-space: nowrap;
+}
+
+.kd-proj__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--band-color, #1d9e75);
 }
 
 .agent-summary {

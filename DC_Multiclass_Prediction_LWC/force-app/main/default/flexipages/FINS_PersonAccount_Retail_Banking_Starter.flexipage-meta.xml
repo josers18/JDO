@@ -4550,6 +4550,14 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
+                    <name>insightsDisplayMode</name>
+                    <value>keyDrivers</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>riskFramed</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
                     <name>autoGenerateSummary</name>
                     <value>true</value>
                 </componentInstanceProperties>
@@ -4646,7 +4654,7 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>recommendationsSectionTitle</name>
-                    <value>Suggested improvements</value>
+                    <value>Actions that lower risk</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>recommendationsVariableName</name>

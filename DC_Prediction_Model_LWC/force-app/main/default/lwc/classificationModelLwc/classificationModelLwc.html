@@ -89,6 +89,14 @@
                             <span class="score-sub">{gaugeSubtitleDisplay}</span>
                         </div>
                     </div>
+                    <template lwc:if={riskBand}>
+                        <div class="risk-band">
+                            <span class="risk-band__chip" style={riskBand.chipStyle}>
+                                <span class="risk-band__dot" aria-hidden="true"></span>{riskBand.label}
+                            </span>
+                            <span class="risk-band__scale">{riskBandScaleText}</span>
+                        </div>
+                    </template>
                 </template>
                 <template lwc:else>
                     <div class="value-hero-panel">
@@ -129,7 +137,7 @@
                         <span id="factors-heading" class="section-label">{factorsSectionTitleDisplay}</span>
                         <template lwc:if={isKeyDriversMode}>
                             <template lwc:if={hasFactorRows}>
-                                <span class="section-caption">What moved this score, and which way</span>
+                                <span class="section-caption">{keyDriverFactorsCaption}</span>
                                 <template for:each={keyDriverFactors} for:item="item">
                                     <div key={item.key} class="kd-row" title={item.tooltip}>
                                         <span class="kd-rank">{item.rank}</span>
@@ -159,7 +167,7 @@
                                             <span class="kd-dot" style={tier.dotStyle}></span>{tier.label}
                                         </span>
                                     </template>
-                                    <span class="kd-legend-item">▲ raises · ▼ lowers</span>
+                                    <span class="kd-legend-item">{keyDriverDirectionLegend}</span>
                                 </div>
                                 <p class="kd-note">Strength is relative to the top driver.</p>
                             </template>
@@ -193,7 +201,7 @@
                         <span id="recs-heading" class="section-label">{recommendationsSectionTitleDisplay}</span>
                         <template lwc:if={isKeyDriversMode}>
                             <template lwc:if={hasKeyDriverImprovements}>
-                                <span class="section-caption">Change one input, estimated score lift</span>
+                                <span class="section-caption">{keyDriverImprovementsCaption}</span>
                                 <template for:each={keyDriverImprovements} for:item="item">
                                     <div key={item.key} class="kd-row kd-row--improve" title={item.tooltip}>
                                         <span class="kd-rank">{item.rank}</span>
@@ -204,7 +212,10 @@
                                             </template>
                                             <span class="kd-value"> → {item.targetText}</span>
                                         </span>
-                                        <span class="kd-pts">{item.ptsText} pts</span>
+                                        <span class="kd-pts">
+                                            <span class="kd-glyph" style={item.dirStyle} aria-hidden="true">{item.liftGlyph}</span>
+                                            {item.liftText}
+                                        </span>
                                         <div class="kd-track">
                                             <div
                                                 class="bar-fill kd-bar"
@@ -212,7 +223,19 @@
                                                 data-scale={item.barScale}
                                             ></div>
                                         </div>
+                                        <template lwc:if={item.hasProjection}>
+                                            <span class="kd-proj">
+                                                Risk <b>{item.projected.fromText}</b> →
+                                                <span class="kd-proj__to" style={item.projected.bandStyle} title={item.projected.bandLabel}>
+                                                    <span class="kd-proj__dot" aria-hidden="true"></span><b>{item.projected.toText}</b>
+                                                </span>
+                                                if only this changes
+                                            </span>
+                                        </template>
                                     </div>
+                                </template>
+                                <template lwc:if={isRiskFramed}>
+                                    <p class="kd-note">Each estimate assumes only that one change. They don't add up.</p>
                                 </template>
                             </template>
                             <template lwc:else>
