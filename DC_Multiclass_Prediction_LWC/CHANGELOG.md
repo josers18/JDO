@@ -23,6 +23,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ### Changed
 - On `FINS_PersonAccount_Retail_Banking_Starter`, both the personal (`DC_MLProdPersonal`) and business (`DC_Multiclass_Business`) Product Recommendation cards now use `keyDrivers`. The section is titled "Key Drivers". The flexipage is now tracked at `force-app/main/default/flexipages/`, retrieved from jdo-gj9q5q. It also hosts components from sibling projects (for example `classificationModelLwc`), so deploy it only to an org that already has them.
 - The flexipage's CSAT card (`classificationModelLwc`, `DC_MLCSAT`) now sets `insightsDisplayMode=keyDrivers`, which needs the `DC_Prediction_Model_LWC` component from the same date deployed first.
+- The flexipage's Attrition card (`classificationModelLwc2`, `DC_MLAttrition`) now sets `insightsDisplayMode=keyDrivers` and `riskFramed=true`, and its improvements section is titled "Actions that lower risk". It needs the `DC_Prediction_Model_LWC` risk-framed mode from the same date.
 
 ## [2026-05-17]
 

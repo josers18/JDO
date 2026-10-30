@@ -40,6 +40,12 @@
                 description="Four comma-separated hex colors for Very strong, Strong, Moderate, Minor. Blank slots use #104281, #256abf, #5598e7, #86b6ef." />
             <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default=""
                 description="Three comma-separated minimums (% of the top driver) for Very strong, Strong, Moderate. Defaults 80, 55, 30." />
+            <property name="riskFramed" type="Boolean" label="Risk-framed gauge and actions" default="false"
+                description="Percent cards only. Colors the gauge by risk band, shows the band under it, and (with keyDrivers) the projected risk per suggested improvement." />
+            <property name="riskBandThresholds" type="String" label="Risk bands: thresholds (optional)" default=""
+                description="Two comma-separated % cutoffs: below the first is Low, above the second is High. Defaults 25, 50." />
+            <property name="riskBandColors" type="String" label="Risk bands: colors (optional)" default=""
+                description="Three comma-separated hex values for Low, Moderate, High. Defaults #1d9e75, #d97706, #c23934." />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false"
                 description="Unchecked (default): positive contribution uses risk color; negative uses good color. Checked: invert." />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false"
@@ -112,6 +118,9 @@
             <property name="insightsDisplayMode" type="String" label="Predictors and improvements display" default="bars" datasource="bars,keyDrivers" />
             <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default="" />
             <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default="" />
+            <property name="riskFramed" type="Boolean" label="Risk-framed gauge and actions" default="false" />
+            <property name="riskBandThresholds" type="String" label="Risk bands: thresholds (optional)" default="" />
+            <property name="riskBandColors" type="String" label="Risk bands: colors (optional)" default="" />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
             <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
@@ -158,6 +167,9 @@
             <property name="insightsDisplayMode" type="String" label="Predictors and improvements display" default="bars" datasource="bars,keyDrivers" />
             <property name="keyDriverTierColors" type="String" label="Key drivers: tier colors (optional)" default="" />
             <property name="keyDriverTierThresholds" type="String" label="Key drivers: tier thresholds (optional)" default="" />
+            <property name="riskFramed" type="Boolean" label="Risk-framed gauge and actions" default="false" />
+            <property name="riskBandThresholds" type="String" label="Risk bands: thresholds (optional)" default="" />
+            <property name="riskBandColors" type="String" label="Risk bands: colors (optional)" default="" />
             <property name="factorsPositiveMeansGood" type="Boolean" label="Top predictors: treat positive % as good" default="false" />
             <property name="recommendationsPositiveMeansGood" type="Boolean" label="Recommendations: treat positive % as good" default="false" />
             <property name="riskColor" type="String" label="Default risk color" default="#D4537E" />
