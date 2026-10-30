@@ -21,7 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - **`DC_MulticlassModelExplanation` prompt template v3** is now tracked in this project and active. The summary covers what the model weighed, never whether a driver helped or hurt, and skips drivers below 10% of the top one.
 
 ### Changed
-- On `FINS_PersonAccount_Retail_Banking_Starter`, both the personal (`DC_MLProdPersonal`) and business (`DC_Multiclass_Business`) Product Recommendation cards now use `keyDrivers`. The section is titled "Key Drivers". The flexipage was deployed from outside this repo.
+- On `FINS_PersonAccount_Retail_Banking_Starter`, both the personal (`DC_MLProdPersonal`) and business (`DC_Multiclass_Business`) Product Recommendation cards now use `keyDrivers`. The section is titled "Key Drivers". The flexipage is now tracked at `force-app/main/default/flexipages/`, retrieved from jdo-gj9q5q. It also hosts components from sibling projects (for example `classificationModelLwc`), so deploy it only to an org that already has them.
 
 ## [2026-05-17]
 
