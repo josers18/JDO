@@ -288,6 +288,109 @@
     text-overflow: ellipsis;
 }
 
+/* Key drivers mode: two-line rows so labels wrap instead of truncating in narrow columns. */
+.section-caption {
+    display: block;
+    margin: -4px 0 6px;
+    font-size: 11px;
+    color: var(--wp-text-secondary, #5c5c5c);
+}
+
+.kd-row {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 5px;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 0.5px solid var(--wp-border-soft, #f0f0f0);
+}
+
+.kd-rank {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wp-text-tertiary, #9ca3af);
+}
+
+.kd-label {
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--lwc-pm-summary-label-color, var(--wp-text-primary, #1a1a1a));
+    overflow-wrap: anywhere;
+}
+
+.kd-value {
+    color: var(--wp-text-secondary, #8a8a8a);
+}
+
+.kd-dir,
+.kd-pts {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--lwc-pm-summary-label-color, var(--wp-text-primary, #1f2937));
+}
+
+.kd-glyph {
+    color: var(--row-color, currentColor);
+}
+
+.kd-track {
+    grid-column: 2;
+    align-self: center;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--wp-track-bg, #f0efec);
+    overflow: hidden;
+}
+
+.kd-row--improve .kd-track {
+    grid-column: 2 / 4;
+}
+
+.kd-bar {
+    border-radius: 3px;
+}
+
+.kd-tier {
+    align-self: center;
+    font-size: 11px;
+    text-align: right;
+    white-space: nowrap;
+    color: var(--wp-text-secondary, #6b7280);
+}
+
+.kd-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--wp-text-secondary, #6b7280);
+}
+
+.kd-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.kd-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--row-color, #256abf);
+}
+
+.kd-note {
+    margin: 6px 0 0;
+    font-size: 11px;
+    color: var(--wp-text-secondary, #6b7280);
+}
+
 .agent-summary {
     box-sizing: border-box;
     width: 100%;

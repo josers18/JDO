@@ -8,6 +8,15 @@ const GAUGE_CIRC = 502;
 const GAUGE_DURATION_MS = 1400;
 const BAR_TRANSITION = 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)';
 
+// Key drivers mode: same one-hue ordinal ramp as multiclassPredictionLwc, darkest = strongest.
+const KEY_DRIVER_TIER_LABELS = ['Very strong', 'Strong', 'Moderate', 'Minor'];
+const DEFAULT_KEY_DRIVER_TIER_COLORS = ['#104281', '#256abf', '#5598e7', '#86b6ef'];
+const DEFAULT_KEY_DRIVER_TIER_THRESHOLDS = [80, 55, 30];
+
+function formatPoints(abs) {
+    return `${abs.toFixed(1)} pts`;
+}
+
 /** Safe color for CSS custom property (#hex, rgb/rgba only). */
 function sanitizePmTextColor(raw) {
     const s = String(raw == null ? '' : raw).trim();
@@ -88,6 +97,16 @@ export default class ClassificationModelLwc extends LightningElement {
     @api predictionMaximumFractionDigits = 2;
     /** Minimum fraction digits when format is decimal or currency. 0–8. */
     @api predictionMinimumFractionDigits = 0;
+    /**
+     * bars (default): signed bars with a % value per row.
+     * keyDrivers: ranked drivers with a strength tier plus a Raises/Lowers direction in points,
+     * and one improvement row per input (current → target, +pts). Labels wrap instead of truncating.
+     */
+    @api insightsDisplayMode = 'bars';
+    /** Key drivers: optional comma-separated hex colors for Very strong, Strong, Moderate, Minor. */
+    @api keyDriverTierColors = '';
+    /** Key drivers: optional minimum % of the top driver for Very strong, Strong, Moderate. */
+    @api keyDriverTierThresholds = '';
 
     _themeMode = 'default';
     _themeScheduleToken = 0;
@@ -268,6 +287,112 @@ export default class ClassificationModelLwc extends LightningElement {
         const colors = this.resolveColors(this.recommendationsRiskColor, this.recommendationsGoodColor);
         const treatPositiveAsGood = this.recommendationsPositiveMeansGood === true;
         return this.applyProcessedRowColors(rows, colors, treatPositiveAsGood);
+    }
+
+    get isKeyDriversMode() {
+        return String(this.insightsDisplayMode || '').trim().toLowerCase() === 'keydrivers';
+    }
+
+    get keyDriverTiers() {
+        const colors = String(this.keyDriverTierColors || '')
+            .split(',')
+            .map((c) => sanitizePmTextColor(c));
+        const thresholds = String(this.keyDriverTierThresholds || '')
+            .split(',')
+            .map((t) => (t.trim() === '' ? NaN : Number(t)));
+        return KEY_DRIVER_TIER_LABELS.map((label, i) => {
+            const color = colors[i] || DEFAULT_KEY_DRIVER_TIER_COLORS[i];
+            // The last tier (Minor) catches everything below the Moderate threshold.
+            let minPercent = 0;
+            if (i < DEFAULT_KEY_DRIVER_TIER_THRESHOLDS.length) {
+                minPercent = Number.isFinite(thresholds[i]) ? thresholds[i] : DEFAULT_KEY_DRIVER_TIER_THRESHOLDS[i];
+            }
+            return { key: `tier-${i}`, label, color, minPercent, dotStyle: `--row-color:${color}` };
+        });
+    }
+
+    /** Factors ranked by |value|, colored by strength tier, with a Raises/Lowers direction. */
+    get keyDriverFactors() {
+        const rows = this.buildInsightRowsFromArray(this.normalizeInsightSource(this.factorsJson), 'factor');
+        rows.sort((a, b) => Math.abs(b.displayValue || 0) - Math.abs(a.displayValue || 0));
+        this.applyBarScales(rows);
+        const tiers = this.keyDriverTiers;
+        const colors = this.resolveColors(this.factorsRiskColor, this.factorsGoodColor);
+        const directional = this.applyProcessedRowColors(rows, colors, this.factorsPositiveMeansGood === true);
+        return directional.map((row, index) => {
+            const pct = Math.round(row.barScale * 100);
+            const tier = tiers.find((t) => pct >= t.minPercent) || tiers[tiers.length - 1];
+            const v = row.displayValue || 0;
+            const raises = v > 0;
+            const pts = formatPoints(Math.abs(v));
+            return {
+                ...row,
+                rank: index + 1,
+                tierLabel: tier.label,
+                barStyle: `--row-color:${tier.color}`,
+                dirStyle: row.barStyle,
+                dirGlyph: raises ? '▲' : '▼',
+                dirText: `${raises ? 'Raises' : 'Lowers'} ${pts}`,
+                tooltip: `${row.detail} · ${raises ? 'raises' : 'lowers'} the score ${pts} · ${tier.label} (${pct}% of the top driver)`
+            };
+        });
+    }
+
+    /**
+     * One row per input: the model can suggest several targets for the same field, so keep the
+     * largest lift and list the rest in the tooltip. Shows current → target when that input is
+     * also among the returned factors.
+     */
+    get keyDriverImprovements() {
+        const rows = this.buildInsightRowsFromArray(
+            this.normalizeInsightSource(this.recommendationsJson),
+            'recommendation'
+        );
+        const currentByApi = new Map();
+        this.buildInsightRowsFromArray(this.normalizeInsightSource(this.factorsJson), 'factor').forEach((f) => {
+            if (f.apiName && f.valueText) {
+                currentByApi.set(f.apiName, f.valueText);
+            }
+        });
+        const merged = [];
+        const byApi = new Map();
+        rows.forEach((row) => {
+            const groupKey = row.apiName || row.labelText;
+            const existing = byApi.get(groupKey);
+            if (existing) {
+                existing.alternatives.push(row);
+                return;
+            }
+            const entry = { ...row, alternatives: [] };
+            byApi.set(groupKey, entry);
+            merged.push(entry);
+        });
+        this.applyBarScales(merged);
+        const colors = this.resolveColors(this.recommendationsRiskColor, this.recommendationsGoodColor);
+        const colored = this.applyProcessedRowColors(merged, colors, this.recommendationsPositiveMeansGood === true);
+        return colored.map((row, index) => {
+            const v = row.displayValue || 0;
+            const current = currentByApi.get(row.apiName) || '';
+            const ptsText = `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(1)}`;
+            const others = row.alternatives
+                .map((a) => `${a.valueText || '—'} (${a.displayValue > 0 ? '+' : ''}${(a.displayValue || 0).toFixed(1)} pts)`)
+                .join(', ');
+            return {
+                ...row,
+                rank: index + 1,
+                currentText: current,
+                targetText: row.valueText,
+                hasCurrent: Boolean(current),
+                ptsText,
+                tooltip:
+                    `${row.labelText}${current ? ` ${current}` : ''} → ${row.valueText || '—'}: ${ptsText} pts` +
+                    (others ? ` · also: ${others}` : '')
+            };
+        });
+    }
+
+    get hasKeyDriverImprovements() {
+        return this.keyDriverImprovements.length > 0;
     }
 
     get gaugeSubtitleDisplay() {
@@ -973,6 +1098,9 @@ export default class ClassificationModelLwc extends LightningElement {
             return {
                 key: `${kind}-${index}`,
                 detail,
+                apiName,
+                labelText: baseLabel,
+                valueText: prescribedStr,
                 displayValue,
                 formattedPercent: this.formatPercent(displayValue),
                 barScale: 0
