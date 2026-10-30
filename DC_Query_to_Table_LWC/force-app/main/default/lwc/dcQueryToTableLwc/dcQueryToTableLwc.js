@@ -47,9 +47,60 @@ export default class DcQueryToTableLwc extends LightningElement {
     sortedBy;
     sortedDirection;
 
+    /** Measured width of the body; decides table vs. stacked layout (never a horizontal scroll). */
+    _tableWidth = 0;
+    _resizeObserver;
+    _onWindowResize;
+    _observedEl;
+
     connectedCallback() {
         if (this.autoRunOnLoad !== false) {
             this.handleRun();
+        }
+    }
+
+    renderedCallback() {
+        const el = this.template.querySelector('.dcqt-shell__body');
+        if (el === this._observedEl) {
+            return;
+        }
+        this.disconnectResizeObserver();
+        this._observedEl = el;
+        if (!el) {
+            return;
+        }
+        this.updateTableWidth(el.clientWidth);
+        if (typeof ResizeObserver !== 'undefined') {
+            this._resizeObserver = new ResizeObserver(() => {
+                this.updateTableWidth(el.clientWidth);
+            });
+            this._resizeObserver.observe(el);
+        }
+        // Fallback for containers where ResizeObserver is unavailable or doesn't fire.
+        this._onWindowResize = () => this.updateTableWidth(el.clientWidth);
+        window.addEventListener('resize', this._onWindowResize);
+    }
+
+    disconnectedCallback() {
+        this.disconnectResizeObserver();
+        this._observedEl = undefined;
+    }
+
+    disconnectResizeObserver() {
+        if (this._resizeObserver) {
+            this._resizeObserver.disconnect();
+            this._resizeObserver = undefined;
+        }
+        if (this._onWindowResize) {
+            window.removeEventListener('resize', this._onWindowResize);
+            this._onWindowResize = undefined;
+        }
+    }
+
+    updateTableWidth(width) {
+        const w = Math.floor(Number(width) || 0);
+        if (w > 0 && w !== this._tableWidth) {
+            this._tableWidth = w;
         }
     }
 
@@ -115,9 +166,13 @@ export default class DcQueryToTableLwc extends LightningElement {
         return '--dcqt-title-color: ' + this.resolvedTitleColorHex + ';';
     }
 
+    /**
+     * Always 'fixed': columns share the container width. When they can't fit at their
+     * minimum width the grid switches to stacked rows instead of scrolling sideways.
+     * `columnWidthsMode` stays in App Builder only so saved pages keep loading.
+     */
     get resolvedColumnWidthsMode() {
-        const m = (this.columnWidthsMode || 'auto').toLowerCase();
-        return m === 'fixed' ? 'fixed' : 'auto';
+        return 'fixed';
     }
 
     get hideSelectionColumn() {
@@ -311,5 +366,66 @@ export default class DcQueryToTableLwc extends LightningElement {
 
     get hasGrid() {
         return this.tableColumns.length > 0;
+    }
+
+    /** Width the datatable needs: every column at its minimum (or initial) width, plus chrome. */
+    get requiredTableWidth() {
+        const minW = this.resolvedMinColumnWidth;
+        let total = 2; // wrapper border
+        if (!this.hideSelectionColumn) {
+            total += 32;
+        }
+        if (this.showRowNumberColumn === true) {
+            total += 52;
+        }
+        for (const c of this.tableColumns) {
+            total += Math.max(minW, c.initialWidth || 0);
+        }
+        return total;
+    }
+
+    /** Too many columns for the card width → stacked label/value rows, no side scroll. */
+    get useStackedLayout() {
+        return this.hasGrid && this._tableWidth > 0 && this.requiredTableWidth > this._tableWidth;
+    }
+
+    get showTable() {
+        return this.hasGrid && !this.useStackedLayout;
+    }
+
+    /**
+     * Pin the datatable to a whole-pixel width. On fractional card widths lightning-datatable
+     * rounds its fixed column widths up past the container and shows a sub-pixel scrollbar.
+     */
+    get datatableStyle() {
+        const w = this._tableWidth - 2; // wrapper border
+        return w > 0 ? 'display: block; width: ' + w + 'px;' : '';
+    }
+
+    get stackedRows() {
+        const cols = this.tableColumns;
+        const showIndex = this.showRowNumberColumn === true;
+        return this.tableRows.map((row, i) => ({
+            key: row._rowUid || String(i),
+            indexLabel: showIndex ? '#' + (i + 1) : '',
+            fields: cols.map((c) => ({
+                key: c.fieldName,
+                label: c.label,
+                value: this.formatStackedValue(row[c.fieldName], c.type)
+            }))
+        }));
+    }
+
+    formatStackedValue(value, colType) {
+        if (value == null || value === '') {
+            return '—';
+        }
+        if (typeof value === 'boolean') {
+            return value ? 'Yes' : 'No';
+        }
+        if (typeof value === 'number' && (colType || '').toLowerCase() === 'number') {
+            return value.toLocaleString();
+        }
+        return String(value);
     }
 }

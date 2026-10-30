@@ -78,6 +78,7 @@ Then **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)**.
 | **Load** | Optional **auto-run** on page open, or **Run query** button. |
 | **SQL** | **SELECT** / **WITH … SELECT**; mutating keywords rejected. **LIMIT** added if missing (capped). |
 | **Table** | Platform **lightning-datatable**; sorting and layout options come from App Builder. |
+| **Width** | Never scrolls sideways. Columns fit the card; when they can't fit at the minimum column width, each row shows as a stacked card of label: value pairs. **Column widths mode** is legacy and ignored. |
 | **More rows** | If the platform returns a “next batch,” only the **first batch** is shown unless you extend the code. |
 
 ---

@@ -78,7 +78,53 @@
 
 .dcqt-shell__table {
     max-height: 28rem;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     border: 1px solid #e5e5e5;
     border-radius: 0.25rem;
+}
+
+/* Stacked layout: used when columns can't fit the card width (never scroll sideways). */
+.dcqt-stack {
+    padding: 0.25rem 0.75rem;
+}
+
+.dcqt-stack__row {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.dcqt-stack__row:last-child {
+    border-bottom: 0;
+}
+
+.dcqt-stack__index {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #706e6b;
+    margin-bottom: 0.25rem;
+}
+
+.dcqt-stack__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+    gap: 0.375rem 1rem;
+    margin: 0;
+}
+
+.dcqt-stack__field {
+    min-width: 0;
+}
+
+.dcqt-stack__label {
+    font-size: 0.75rem;
+    color: #706e6b;
+    overflow-wrap: anywhere;
+}
+
+.dcqt-stack__value {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #181818;
+    overflow-wrap: anywhere;
 }

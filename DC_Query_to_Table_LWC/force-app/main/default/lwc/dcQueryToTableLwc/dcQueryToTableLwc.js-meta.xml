@@ -31,7 +31,8 @@
             <property name="showRowSelectionColumn" type="Boolean" label="Show selection checkboxes" default="false"
                 description="When enabled, shows row checkboxes. Off by default for immutable Data Cloud results." />
             <property name="showRowNumberColumn" type="Boolean" label="Show row numbers" default="false" />
-            <property name="columnWidthsMode" type="String" label="Column widths mode" default="auto" />
+            <property name="columnWidthsMode" type="String" label="Column widths mode (legacy)" default="auto"
+                description="Ignored: results too wide for the card switch to stacked rows (no horizontal scroll)." />
             <property name="minColumnWidth" type="Integer" label="Minimum column width (px)" default="120" />
             <property name="resizeColumnDisabled" type="Boolean" label="Disable column resize" default="false" />
             <property name="wrapTableHeader" type="Boolean" label="Wrap table header" default="false" />
@@ -68,8 +69,8 @@
                 description="When enabled, shows row checkboxes. Off by default for immutable Data Cloud results." />
             <property name="showRowNumberColumn" type="Boolean" label="Show row numbers" default="false"
                 description="Shows the row index column per SLDS data table patterns." />
-            <property name="columnWidthsMode" type="String" label="Column widths mode" default="auto"
-                description="lightning-datatable: auto or fixed." />
+            <property name="columnWidthsMode" type="String" label="Column widths mode (legacy)" default="auto"
+                description="Ignored: columns fit the card width. When they cannot fit at the minimum column width, each row is shown as a stacked card instead of scrolling sideways." />
             <property name="minColumnWidth" type="Integer" label="Minimum column width (px)" default="120"
                 description="Minimum width for resizable columns." />
             <property name="resizeColumnDisabled" type="Boolean" label="Disable column resize" default="false" />
