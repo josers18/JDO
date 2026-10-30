@@ -401,6 +401,7 @@ export default class ClassificationModelLwc extends LightningElement {
                 const next = Math.round(clampPercent(riskNow + v));
                 const band = this.riskBandFor(next);
                 projected = {
+                    value: next,
                     fromText: `${Math.round(riskNow)}%`,
                     toText: `${next}%`,
                     bandStyle: `--band-color:${band.color}`,
@@ -471,6 +472,25 @@ export default class ClassificationModelLwc extends LightningElement {
     get riskBandScaleText() {
         const { low, high } = this.riskBands;
         return `Low <${low} · Moderate ${low}–${high} · High >${high}`;
+    }
+
+    /** Risk-framed: the band and per-action projections the card shows, for the AI summary prompt. */
+    get riskContextJson() {
+        const band = this.riskBand;
+        if (!band) {
+            return null;
+        }
+        const actions = this.keyDriverImprovements
+            .filter((item) => item.projected)
+            .map((item) => ({
+                input: item.labelText,
+                current: item.currentText || null,
+                target: item.targetText || null,
+                riskChangePoints: Math.round((item.displayValue || 0) * 10) / 10,
+                projectedRisk: item.projected.value,
+                projectedBand: item.projected.bandLabel
+            }));
+        return JSON.stringify({ band: band.label, bandScale: this.riskBandScaleText, actions });
     }
 
     get keyDriverFactorsCaption() {
@@ -924,7 +944,8 @@ export default class ClassificationModelLwc extends LightningElement {
                 prediction: this.prediction,
                 factorsJson: this.factorsJson || '[]',
                 recommendationsJson: this.recommendationsJson || '[]',
-                predictionOutputFormat: this.predictionFormatKey
+                predictionOutputFormat: this.predictionFormatKey,
+                riskContextJson: this.riskContextJson
             });
             this.summaryText = text ? stripCourtesyTail(text) : 'The model returned an empty response.';
         } catch (e) {

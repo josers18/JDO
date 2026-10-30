@@ -103,7 +103,8 @@ public with sharing class ClassificationModelLwcController {
         Decimal prediction,
         String factorsJson,
         String recommendationsJson,
-        String predictionOutputFormat
+        String predictionOutputFormat,
+        String riskContextJson
     ) {
         if (String.isBlank(promptTemplateId)) {
             return null;
@@ -118,6 +119,10 @@ public with sharing class ClassificationModelLwcController {
         };
         if (String.isNotBlank(predictionOutputFormat)) {
             payload.put('predictionOutputFormat', predictionOutputFormat.trim());
+        }
+        // Risk-framed cards send the band and per-action projected risk the card displays.
+        if (String.isNotBlank(riskContextJson)) {
+            payload.put('riskContext', JSON.deserializeUntyped(riskContextJson));
         }
         String contextJson = JSON.serialize(payload);
 

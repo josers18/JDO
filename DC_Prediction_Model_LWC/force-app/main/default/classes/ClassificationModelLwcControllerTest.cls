@@ -44,6 +44,7 @@ private class ClassificationModelLwcControllerTest {
                 50.5,
                 '[]',
                 '[]',
+                null,
                 null
             )
         );
