@@ -81,6 +81,7 @@ Tests: **[docs/DEPLOY.md](docs/DEPLOY.md)**. Then permission set + Flow + **[doc
 
 - **Percent** → animated gauge; **integer / decimal / currency** → large formatted value.  
 - **Top predictors** and **recommendations** from JSON, as signed bars or (opt-in `insightsDisplayMode=keyDrivers`) ranked drivers with strength tiers and Raises/Lowers in points.  
+- Opt-in **risk-framed** mode (`riskFramed`) for percent cards such as attrition: band-colored gauge with a Low / Moderate / High chip, and the projected risk per suggested action.
 - **Refresh** reruns Flow (and summary when on).  
 - Detail: **[docs/UI_LAYOUT.md](docs/UI_LAYOUT.md)**.
 

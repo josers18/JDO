@@ -94,6 +94,23 @@ The **treat positive as good** flags still decide whether ▲ is drawn in the go
 
 ---
 
+## Risk-framed mode
+
+For percent cards where a higher probability is a worse outcome, such as attrition. Set **Risk-framed gauge and actions** (`riskFramed`) to on. It does nothing on non-percent cards.
+
+- **Gauge:** the arc takes the color of the current risk band instead of the bad→good blend. A chip under the gauge names the band ("● Moderate risk"), followed by the scale "Low <25 · Moderate 25–50 · High >50". The chip text stays dark. The band color goes only on the dot and a 14% tint, because amber text on white fails contrast.
+- **With `insightsDisplayMode=keyDrivers`:** captions and the legend talk about risk ("What moved this risk", "▲ raises risk · ▼ lowers risk", "Raises risk 17.3 pts"). Each improvement shows "▼ 25.8 pts" and a projected line "Risk 38% → ● 12% if only this changes". The dot takes the projected band's color. The projection is `round(prediction + value)`, clamped to 0–100. A note says the estimates assume one change at a time and don't add up. Probability points aren't strictly additive.
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| **Risk-framed gauge and actions** (`riskFramed`) | off | Turns the mode on for percent cards. |
+| **Risk bands: thresholds (optional)** (`riskBandThresholds`) | blank | Two comma-separated % cutoffs, `low,high`. Below `low` is Low, above `high` is High, and anything between (inclusive) is Moderate. Defaults `25, 50`. Values in the wrong order fall back to the defaults. |
+| **Risk bands: colors (optional)** (`riskBandColors`) | blank | Three comma-separated hex values for Low, Moderate and High. A blank or invalid slot uses `#1d9e75, #d97706, #c23934`. |
+
+Leave the **treat positive as good** flags off (the default) so a rising-risk driver is drawn in the risk color. The Attrition card on `FINS_PersonAccount_Retail_Banking_Starter` uses `riskFramed=true` with `keyDrivers` and the section title "Actions that lower risk".
+
+---
+
 ## Theme (profile-aligned)
 
 The card can use the same **CSS variable tokens** as the Customer / Business profile widgets so prediction tiles match adjacent profile chrome on FSI demos.
@@ -118,7 +135,7 @@ The card can use the same **CSS variable tokens** as the Customer / Business pro
 
 Shown only when **Prediction output format** is **`percent`** (or alias `classification`). Otherwise the main prediction uses the **metric panel** (no semicircle); see [UI_LAYOUT.md](UI_LAYOUT.md).
 
-The arc is a **single stroke color** blended between two endpoints by score (0–100%) using **HSL** interpolation.
+The arc is a **single stroke color** blended between two endpoints by score (0–100%) using **HSL** interpolation. With **`riskFramed`** on, the arc uses the risk band color instead and the properties below are ignored; see [Risk-framed mode](#risk-framed-mode).
 
 | Property | Meaning |
 |----------|---------|

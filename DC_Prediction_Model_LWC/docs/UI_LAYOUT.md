@@ -20,6 +20,7 @@ How the **Prediction Model** component (`classificationModelLwc`) lays out the *
 - **Markup:** `div.gauge-wrap` → SVG (track + `.gauge-arc`) + `div.gauge-label` with score line and `span.score-sub`.
 - **Behavior:** Arc length reflects clamped 0–100; color from `gaugeArcSolidColor` (HSL blend). Animation updates `stroke-dashoffset` only.
 - **Subtitle:** **Gauge subtitle (under score)** — shown as `.score-sub` (small, uppercase-style tracking).
+- **Risk band (`riskFramed`):** `div.risk-band` sits centered under `.gauge-wrap`. It holds `.risk-band__chip` (dot + band label; `--band-color` drives the dot and a `color-mix` 14% tint) and `.risk-band__scale` with the cutoffs. The arc takes the band color.
 
 ---
 
@@ -38,6 +39,7 @@ How the **Prediction Model** component (`classificationModelLwc`) lays out the *
 
 - **`bars`** (default): label column plus a diverging bar with the signed % per row.
 - **`keyDrivers`**: `.kd-row` grid (`1.25rem minmax(0,1fr) auto`). Line 1 holds rank, label + value (`overflow-wrap: anywhere`, never truncated) and the direction or lift; line 2 holds the `.kd-track` bar and the tier. Bars reuse `.bar-fill`, so the existing scale animation applies.
+- **`keyDrivers` + `riskFramed`**: each improvement row gains a `.kd-proj` line under the bar (grid columns 2–4): "Risk 38% → 12% if only this changes". The projected value sits in a nowrap `.kd-proj__to` chip with a `.kd-proj__dot` in its band color. A `.kd-note` under the list says the estimates don't add up.
 
 ---
 
