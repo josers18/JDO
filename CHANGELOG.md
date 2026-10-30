@@ -63,6 +63,7 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
 
 ### Fixed
 
+- **DC_PersonProfileWidget + DC_BusinessProfileWidget — no horizontal scrolling** — the Unified relationships table now uses a fixed layout and wraps cell text, so it no longer has a 480px minimum width with an `overflow-x: auto` scrollbar. The org chart and pipeline lists scroll vertically only; long names wrap inside their nodes. Tab labels truncate instead of overflowing the tab bar.
 - **DC_BusinessProfileWidget — review fixes** — fixes from a full component review of `businessProfileWidget`:
   - The profile query, the legacy fallback and admin-mapped field paths now respect field-level security. Every path hop is checked, the row is read in `USER_MODE`, and fields the user can't read are skipped. The Opportunity pipeline and Financial Account count queries also run in `USER_MODE`.
   - The flow, insight flow and unified-relationships Apex class must appear in the shared `Profile_Widget_Allowed_Action__mdt` allowlist. Added `DC_Multiclass_Business` as a row; the type and seed rows ship in this project too.
