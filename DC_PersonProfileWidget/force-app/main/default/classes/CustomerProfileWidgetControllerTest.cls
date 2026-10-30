@@ -406,4 +406,152 @@ private class CustomerProfileWidgetControllerTest {
         System.assert(threw, 'expected AuraHandledException for blank record Id');
     }
 
+    @IsTest
+    static void testDecVal_doubleRoundTripsWithoutFloatNoise() {
+        Double d = 0.7;
+        System.assertEquals(Decimal.valueOf('0.7'), CustomerProfileWidgetController.decVal(d));
+        System.assertEquals(Decimal.valueOf('13905.02'), CustomerProfileWidgetController.decVal('13,905.02'));
+        System.assertEquals(null, CustomerProfileWidgetController.decVal('n/a'));
+    }
+
+    private class GeocodeMock implements HttpCalloutMock {
+        Integer calls = 0;
+        String body;
+        Boolean fail = false;
+        GeocodeMock(String body) {
+            this.body = body;
+        }
+        public HttpResponse respond(HttpRequest req) {
+            calls++;
+            if (fail) {
+                throw new CalloutException('Read timed out');
+            }
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setBody(body);
+            return res;
+        }
+    }
+
+    private static CustomerProfileWidgetController.ProfileResult addressOnly(String street) {
+        CustomerProfileWidgetController.ProfileResult r = new CustomerProfileWidgetController.ProfileResult();
+        r.billingStreet = street;
+        r.billingCity = 'San Francisco';
+        r.billingState = 'CA';
+        r.billingPostalCode = '94105';
+        return r;
+    }
+
+    @IsTest
+    static void testApplyGeocode_nominatimHitSetsCoords() {
+        GeocodeMock mock = new GeocodeMock('[{"lat":"37.7936","lon":"-122.3958"}]');
+        Test.setMock(HttpCalloutMock.class, mock);
+        CustomerProfileWidgetController.ProfileResult r = addressOnly('1 Market St');
+        Test.startTest();
+        CustomerProfileWidgetController.applyGeocodeIfNeeded(r);
+        Test.stopTest();
+        System.assertEquals(Decimal.valueOf('37.7936'), r.mapLatitude);
+        System.assertEquals(Decimal.valueOf('-122.3958'), r.mapLongitude);
+        System.assertEquals(1, mock.calls, 'First hit should stop further callouts');
+    }
+
+    @IsTest
+    static void testApplyGeocode_calloutExceptionAbortsRemainingCandidates() {
+        GeocodeMock mock = new GeocodeMock('[]');
+        mock.fail = true;
+        Test.setMock(HttpCalloutMock.class, mock);
+        CustomerProfileWidgetController.ProfileResult r = addressOnly('2 Timeout Ave');
+        Test.startTest();
+        CustomerProfileWidgetController.applyGeocodeIfNeeded(r);
+        Test.stopTest();
+        System.assertEquals(null, r.mapLatitude);
+        System.assertEquals(1, mock.calls, 'A timeout must not be retried against the remaining candidates');
+    }
+
+    @IsTest
+    static void testApplyGeocode_noHitsStaysWithinCalloutBudget() {
+        GeocodeMock mock = new GeocodeMock('[]');
+        Test.setMock(HttpCalloutMock.class, mock);
+        CustomerProfileWidgetController.ProfileResult r = addressOnly('3 Nowhere Rd');
+        Test.startTest();
+        CustomerProfileWidgetController.applyGeocodeIfNeeded(r);
+        Test.stopTest();
+        System.assertEquals(null, r.mapLatitude);
+        System.assert(
+            mock.calls <= CustomerProfileWidgetController.MAX_GEOCODE_CALLOUTS,
+            'Callouts must stay within budget, got ' + mock.calls
+        );
+    }
+
+    @IsTest
+    static void testGeocodeCacheKey_isAlphanumericAndShort() {
+        String k = CustomerProfileWidgetController.geocodeCacheKey('1 Market St, San Francisco, CA 94105');
+        System.assert(k.isAlphanumeric(), k);
+        System.assert(k.length() <= 50, k);
+        System.assertEquals(k, CustomerProfileWidgetController.geocodeCacheKey('  1 MARKET ST, San Francisco, CA 94105 '));
+    }
+
+    @IsTest
+    static void testValidateAccountFieldPath_enforcesFls() {
+        System.assertEquals('AnnualRevenue', CustomerProfileWidgetController.validateAccountFieldPath('annualrevenue'));
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        User u = new User(
+            Alias = 'cpwfls',
+            Email = 'cpw.fls@example.com',
+            EmailEncodingKey = 'UTF-8',
+            LastName = 'FlsTest',
+            LanguageLocaleKey = 'en_US',
+            LocaleSidKey = 'en_US',
+            ProfileId = p.Id,
+            TimeZoneSidKey = 'America/Los_Angeles',
+            Username = 'cpw.fls.' + System.currentTimeMillis() + '@example.com'
+        );
+        insert u;
+        System.runAs(u) {
+            System.assertEquals(
+                null,
+                CustomerProfileWidgetController.validateAccountFieldPath('AnnualRevenue'),
+                'A field the running user cannot read must not be selectable'
+            );
+        }
+    }
+
+    private static List<Profile_Widget_Allowed_Action__mdt> allowRows(String rowsJson) {
+        return (List<Profile_Widget_Allowed_Action__mdt>) JSON.deserialize(rowsJson, List<Profile_Widget_Allowed_Action__mdt>.class);
+    }
+
+    @IsTest
+    static void testIsActionAllowed_emptyAllowlistAllowsAll() {
+        CustomerProfileWidgetController.allowedActionsOverride = new List<Profile_Widget_Allowed_Action__mdt>();
+        System.assert(CustomerProfileWidgetController.isActionAllowed('Flow', 'Anything_Goes'));
+        System.assert(!CustomerProfileWidgetController.isActionAllowed('Flow', ' '), 'Blank names are never allowed');
+    }
+
+    @IsTest
+    static void testIsActionAllowed_enforcesTypeAndName() {
+        CustomerProfileWidgetController.allowedActionsOverride = allowRows(
+            '[{"Action_Type__c":"Flow","Api_Name__c":"DC_MLCSAT"},{"Action_Type__c":"Apex","Api_Name__c":"DC_UnifiedAccounts"}]'
+        );
+        System.assert(CustomerProfileWidgetController.isActionAllowed('Flow', 'dc_mlcsat'));
+        System.assert(CustomerProfileWidgetController.isActionAllowed('Apex', 'DC_UnifiedAccounts'));
+        System.assert(!CustomerProfileWidgetController.isActionAllowed('Apex', 'DC_MLCSAT'), 'Type must match');
+        System.assert(!CustomerProfileWidgetController.isActionAllowed('Flow', 'Delete_All_Accounts'));
+    }
+
+    @IsTest
+    static void testRunSignalGaugeFlow_unlistedFlowThrows() {
+        CustomerProfileWidgetController.allowedActionsOverride = allowRows(
+            '[{"Action_Type__c":"Flow","Api_Name__c":"DC_MLCSAT"}]'
+        );
+        Account a = new Account(Name = 'Allowlist Co');
+        insert a;
+        Boolean threw = false;
+        try {
+            CustomerProfileWidgetController.runSignalGaugeFlow('Delete_All_Accounts', a.Id, 'recordId', 'prediction');
+        } catch (AuraHandledException e) {
+            threw = true;
+            System.assert(e.getMessage().contains('allowlist'), e.getMessage());
+        }
+        System.assert(threw, 'Unlisted flow must be rejected before it runs');
+    }
 }

@@ -110,12 +110,16 @@
             <template for:each={visibleTabs} for:item="tab">
                 <button
                     key={tab.id}
+                    id={tab.domId}
                     type="button"
                     role="tab"
                     class={tab.tabClass}
                     data-tab={tab.id}
                     aria-selected={tab.ariaSelected}
+                    aria-controls="wp-tabpanel"
+                    tabindex={tab.tabIndex}
                     onclick={handleTabClick}
+                    onkeydown={handleTabKeydown}
                 >
                     {tab.label}
                 </button>
@@ -133,13 +137,18 @@
             </div>
         </template>
         <template lwc:elseif={hasData}>
-            <div class="wp-panel">
+            <div class="wp-panel" id="wp-tabpanel" role="tabpanel" aria-labelledby={activeTabDomId}>
                 <template lwc:if={isTabOverview}>
                     <template lwc:if={showAgentforceSummaryBlock}>
                         <div class="wp-slbl">{agentforceSummarySectionTitle}</div>
                         <div class="wp-inset-card">
                             <template lwc:if={hasAgentforceSummaryText}>
                                 <p class="wp-ai-summary wp-agentforce-summary">{agentforceSummaryDisplay}</p>
+                            </template>
+                            <template lwc:elseif={agentforceSummaryLoading}>
+                                <p class="wp-ai-summary wp-agentforce-summary wp-agentforce-summary--empty" aria-live="polite">
+                                    Generating summary…
+                                </p>
                             </template>
                             <template lwc:else>
                                 <p class="wp-ai-summary wp-agentforce-summary wp-agentforce-summary--empty">
@@ -845,7 +854,7 @@
                     <template lwc:if={showAiActionsResolved}>
                         <section class="wp-improve-section" aria-labelledby="wp-insight-recs-heading">
                             <span id="wp-insight-recs-heading" class="wp-section-lbl">{insightRecommendationsSectionTitleDisplay}</span>
-                            <template lwc:if={processedInsightRecommendations.length}>
+                            <template lwc:if={hasProcessedInsightRecommendations}>
                                 <template for:each={processedInsightRecommendations} for:item="item">
                                     <div key={item.rowKey} class="wp-factor-row">
                                         <span class={item.deltaClass}>{item.formattedPercent}</span>
