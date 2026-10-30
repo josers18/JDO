@@ -22,7 +22,7 @@ function sanitizePmTextColor(raw) {
     if (/[;}<>]|url\s*\(|expression\s*\(/i.test(s)) {
         return null;
     }
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) {
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s)) {
         return s;
     }
     if (/^rgba?\(/i.test(s)) {
@@ -112,8 +112,12 @@ export default class MulticlassPredictionLwc extends LightningElement {
 
     _recordId;
     _animationPending = false;
+    _barsRafId = null;
     _isConnected = false;
     _lastAppliedThemeKey = '';
+    _requestSeq = 0;
+    // recommendationsJson is re-read by several getters per render; parse it once.
+    _parseCache = new Map();
 
     @api
     get recordId() {
@@ -169,11 +173,20 @@ export default class MulticlassPredictionLwc extends LightningElement {
         return this.humanizeClassLabel(raw);
     }
 
+    /**
+     * Class names are labels, not field API names: no __c stripping ("Plan_C" keeps its C).
+     * Short all-caps words read as acronyms and stay as-is ("ARR_Growth" -> "ARR Growth");
+     * everything else is title-cased. Shared by the hero and the probability chart.
+     */
     humanizeClassLabel(s) {
-        return s
+        return String(s)
             .split(/[\s_]+/)
             .filter((w) => w.length > 0)
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+            .map((w) =>
+                w.length <= 4 && w === w.toUpperCase()
+                    ? w
+                    : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+            )
             .join(' ');
     }
 
@@ -201,7 +214,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
     }
 
     get hasRecommendationRows() {
-        return this.processedRecommendations.length > 0;
+        return this.insightItemCount(this.recommendationsJson) > 0;
     }
 
     get processedRecommendations() {
@@ -221,18 +234,29 @@ export default class MulticlassPredictionLwc extends LightningElement {
         const colors = String(this.keyDriverTierColors || '')
             .split(',')
             .map((c) => sanitizePmTextColor(c));
-        const thresholds = String(this.keyDriverTierThresholds || '')
-            .split(',')
-            .map((t) => (t.trim() === '' ? NaN : Number(t)));
+        const thresholds = this.resolveKeyDriverThresholds();
         return KEY_DRIVER_TIER_LABELS.map((label, i) => {
             const color = colors[i] || DEFAULT_KEY_DRIVER_TIER_COLORS[i];
             // The last tier (Minor) catches everything below the Moderate threshold.
-            let minPercent = 0;
-            if (i < DEFAULT_KEY_DRIVER_TIER_THRESHOLDS.length) {
-                minPercent = Number.isFinite(thresholds[i]) ? thresholds[i] : DEFAULT_KEY_DRIVER_TIER_THRESHOLDS[i];
-            }
+            const minPercent = i < thresholds.length ? thresholds[i] : 0;
             return { key: `tier-${i}`, label, color, minPercent, dotStyle: `--row-color:${color}` };
         });
+    }
+
+    /**
+     * Admin cutoffs, each clamped to 0–100 and blanks filled from the defaults. Tiers are
+     * matched top-down, so cutoffs that don't strictly decrease (e.g. "30,55,80") would make
+     * lower tiers unreachable — fall back to the defaults in that case.
+     */
+    resolveKeyDriverThresholds() {
+        const raw = String(this.keyDriverTierThresholds || '').split(',');
+        const resolved = DEFAULT_KEY_DRIVER_TIER_THRESHOLDS.map((fallback, i) => {
+            const t = raw[i] == null ? '' : raw[i].trim();
+            const n = t === '' ? NaN : Number(t);
+            return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : fallback;
+        });
+        const descending = resolved.every((t, i) => i === 0 || t < resolved[i - 1]);
+        return descending ? resolved : DEFAULT_KEY_DRIVER_TIER_THRESHOLDS;
     }
 
     /** Rows are already sorted by |value| with barScale = share of the top driver. */
@@ -267,7 +291,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 const clamped = Math.min(1, Math.max(0, value));
                 const labelDisplay = this.humanizeClassName === false
                     ? apiName
-                    : this.humanizeApiName(apiName);
+                    : this.humanizeClassLabel(apiName);
                 const opacity = PROB_OPACITY_FLOOR + PROB_OPACITY_RANGE * clamped;
                 const apiNameKey = (apiName || '').trim().toLowerCase();
                 const isWinner = apiNameKey === winnerKey && winnerKey.length > 0;
@@ -317,12 +341,16 @@ export default class MulticlassPredictionLwc extends LightningElement {
         return typeof this.promptTemplateId === 'string' && this.promptTemplateId.trim().length > 0;
     }
 
+    get summaryCardTitleDisplay() {
+        return this.trimmedOr(this.summaryCardTitle, 'Analysis summary');
+    }
+
     get mainCardTitleDisplay() {
         return this.trimmedOr(this.cardTitle, 'Model prediction');
     }
 
     get recommendationsSectionTitleDisplay() {
-        return this.trimmedOr(this.recommendationsSectionTitle, 'Suggested improvements');
+        return this.trimmedOr(this.recommendationsSectionTitle, 'Feature contributions');
     }
 
     /** Matches bar colors: positive (right) vs negative (left), same as applyProcessedRowColors. */
@@ -366,13 +394,20 @@ export default class MulticlassPredictionLwc extends LightningElement {
 
     disconnectedCallback() {
         this._isConnected = false;
+        if (this._barsRafId != null) {
+            cancelAnimationFrame(this._barsRafId);
+            this._barsRafId = null;
+        }
     }
 
     renderedCallback() {
         this.scheduleApplyTheme();
         if (this._animationPending && this.hasData) {
             this._animationPending = false;
-            requestAnimationFrame(() => this.animateBars());
+            this._barsRafId = requestAnimationFrame(() => {
+                this._barsRafId = null;
+                this.animateBars();
+            });
         }
     }
 
@@ -497,6 +532,9 @@ export default class MulticlassPredictionLwc extends LightningElement {
         this.errorMessage = undefined;
         this.summaryText = undefined;
         this.summaryError = undefined;
+        this.loadingSummary = false;
+        this.predictionLabelRaw = undefined;
+        this.recommendationsJson = undefined;
         this.classProbabilities = [];
         this.runFlow();
     }
@@ -505,6 +543,9 @@ export default class MulticlassPredictionLwc extends LightningElement {
         if (!this.flowApiName || !this._recordId) {
             return;
         }
+        // A newer refresh (Refresh click, record change) supersedes this one; stale responses are dropped.
+        this._requestSeq += 1;
+        const seq = this._requestSeq;
         this.loadingFlow = true;
         try {
             const result = await runPredictionFlow({
@@ -515,10 +556,17 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 recommendationsVariableName: this.recommendationsVariableName,
                 classVariableNamesCsv: this.classProbabilityVariableNames || ''
             });
+            if (seq !== this._requestSeq) {
+                return;
+            }
+            this._parseCache.clear();
             this.predictionLabelRaw = result.predictionLabel;
             this.recommendationsJson = result.recommendationsJson;
             this.classProbabilities = Array.isArray(result.classProbabilities) ? result.classProbabilities : [];
         } catch (e) {
+            if (seq !== this._requestSeq) {
+                return;
+            }
             this.errorMessage = this.reduceError(e);
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -529,8 +577,10 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 })
             );
         } finally {
-            this.loadingFlow = false;
-            this._animationPending = true;
+            if (seq === this._requestSeq) {
+                this.loadingFlow = false;
+                this._animationPending = true;
+            }
         }
 
         if (!this.errorMessage && this.hasPromptTemplate && this.autoGenerateSummary !== false) {
@@ -542,6 +592,7 @@ export default class MulticlassPredictionLwc extends LightningElement {
         if (!this.hasPromptTemplate) {
             return;
         }
+        const seq = this._requestSeq;
         this.loadingSummary = true;
         this.summaryError = undefined;
         try {
@@ -549,10 +600,17 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 promptTemplateId: this.promptTemplateId,
                 promptInputApiName: this.promptInputApiName,
                 predictionLabel: this.predictionLabelRaw || '',
-                recommendationsJson: this.recommendationsJson || '[]'
+                recommendationsJson: this.recommendationsJson || '[]',
+                classProbabilitiesJson: this.classProbabilitiesPromptJson()
             });
+            if (seq !== this._requestSeq) {
+                return;
+            }
             this.summaryText = text || 'The model returned an empty response.';
         } catch (e) {
+            if (seq !== this._requestSeq) {
+                return;
+            }
             this.summaryError = this.reduceError(e);
             this.dispatchEvent(
                 new ShowToastEvent({
@@ -563,8 +621,21 @@ export default class MulticlassPredictionLwc extends LightningElement {
                 })
             );
         } finally {
-            this.loadingSummary = false;
+            if (seq === this._requestSeq) {
+                this.loadingSummary = false;
+            }
         }
+    }
+
+    /** The probabilities the card shows (top-N applied), as [{label, percent}] for the prompt. */
+    classProbabilitiesPromptJson() {
+        const rows = this.processedClassProbabilities;
+        if (rows.length === 0) {
+            return null;
+        }
+        return JSON.stringify(
+            rows.map((r) => ({ label: r.labelDisplay, percent: Math.round(r.sortValue * 1000) / 10 }))
+        );
     }
 
     animateBars() {
@@ -587,15 +658,21 @@ export default class MulticlassPredictionLwc extends LightningElement {
         if (!trimmed) {
             return [];
         }
+        if (this._parseCache.has(trimmed)) {
+            return this._parseCache.get(trimmed);
+        }
+        let parsed = [];
         try {
             let data = JSON.parse(trimmed);
             if (typeof data === 'string') {
                 data = JSON.parse(data.trim());
             }
-            return Array.isArray(data) ? data : [];
+            parsed = Array.isArray(data) ? data : [];
         } catch {
-            return [];
+            parsed = [];
         }
+        this._parseCache.set(trimmed, parsed);
+        return parsed;
     }
 
     insightItemCount(jsonString) {

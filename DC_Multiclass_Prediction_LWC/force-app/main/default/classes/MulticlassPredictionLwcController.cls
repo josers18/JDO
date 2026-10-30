@@ -46,8 +46,23 @@ public with sharing class MulticlassPredictionLwcController {
         Map<String, Object> inputs = new Map<String, Object>();
         inputs.put(recordVar, recordId);
 
-        Flow.Interview interview = Flow.Interview.createInterview(flowApiName, inputs);
-        interview.start();
+        Flow.Interview interview;
+        try {
+            interview = Flow.Interview.createInterview(flowApiName, inputs);
+        } catch (TypeException e) {
+            // Unknown flow API name surfaces as "Invalid type: ..." — log it, show a clear message.
+            System.debug(LoggingLevel.ERROR, 'runPredictionFlow createInterview: ' + e.getMessage());
+            throw buildAuraException(
+                'Prediction flow "' + flowApiName + '" was not found. Confirm the flow API name and that it is active.'
+            );
+        }
+        try {
+            interview.start();
+        } catch (FlowException e) {
+            // Flow fault messages can carry element names and query detail; keep those in the debug log.
+            System.debug(LoggingLevel.ERROR, 'runPredictionFlow fault: ' + e.getMessage() + '\n' + e.getStackTraceString());
+            throw buildAuraException('The prediction flow failed while running. Check the flow fault details in the debug log.');
+        }
 
         MulticlassResult result = new MulticlassResult();
         Object pred = interview.getVariableValue(predVar);
@@ -116,20 +131,15 @@ public with sharing class MulticlassPredictionLwcController {
         String promptTemplateId,
         String promptInputApiName,
         String predictionLabel,
-        String recommendationsJson
+        String recommendationsJson,
+        String classProbabilitiesJson
     ) {
         if (String.isBlank(promptTemplateId)) {
             return null;
         }
 
         String inputName = String.isBlank(promptInputApiName) ? 'Input:Prediction_Context' : promptInputApiName;
-
-        Map<String, Object> payload = new Map<String, Object>{
-            'prediction' => predictionLabel,
-            'predictionType' => 'multiclass_label',
-            'recommendations' => recommendationsJson != null ? recommendationsJson : '[]'
-        };
-        String contextJson = JSON.serialize(payload);
+        String contextJson = buildPromptContext(predictionLabel, recommendationsJson, classProbabilitiesJson);
 
         try {
             ConnectApi.EinsteinPromptTemplateGenerationsInput promptInput = new ConnectApi.EinsteinPromptTemplateGenerationsInput();
@@ -169,6 +179,112 @@ public with sharing class MulticlassPredictionLwcController {
                 'AI summary could not be generated. Confirm Einstein Generative AI, prompt access, and that the template input API name matches.'
             );
         }
+    }
+
+    /**
+     * The single JSON string the prompt template reads: {prediction, predictionType,
+     * recommendations, classProbabilities?}. classProbabilities is the card's displayed
+     * [{label, percent}] list, so the summary can tell a close call from a clear win.
+     * Malformed classProbabilitiesJson is dropped rather than failing the summary.
+     */
+    @TestVisible
+    private static String buildPromptContext(
+        String predictionLabel,
+        String recommendationsJson,
+        String classProbabilitiesJson
+    ) {
+        Map<String, Object> payload = new Map<String, Object>{
+            'prediction' => predictionLabel,
+            'predictionType' => 'multiclass_label',
+            'recommendations' => recommendationsJson != null ? humanizeFieldNames(recommendationsJson) : '[]'
+        };
+        if (String.isNotBlank(classProbabilitiesJson)) {
+            try {
+                Object parsed = JSON.deserializeUntyped(classProbabilitiesJson);
+                if (parsed instanceof List<Object> && !((List<Object>) parsed).isEmpty()) {
+                    payload.put('classProbabilities', parsed);
+                }
+            } catch (JSONException e) {
+                System.debug(LoggingLevel.WARN, 'buildPromptContext: ignoring malformed classProbabilitiesJson');
+            }
+        }
+        return JSON.serialize(payload);
+    }
+
+    /**
+     * Rewrites each factor field `name` (in fields[] or on the flat factor) from its API name to a readable label
+     * ("Complaint_Count__c" -> "Complaint Count") before the JSON reaches the prompt.
+     * The Einstein Trust Layer masks raw API names as <ENTITY_TYPE_n> and doesn't restore
+     * them in the response, so the summary would otherwise read "<ENTITY_TYPE_0> ...".
+     * Returns the input unchanged when it isn't a JSON array of factor objects.
+     */
+    @TestVisible
+    private static String humanizeFieldNames(String factorJson) {
+        if (String.isBlank(factorJson)) {
+            return factorJson;
+        }
+        Object parsed;
+        try {
+            parsed = JSON.deserializeUntyped(factorJson);
+        } catch (JSONException e) {
+            return factorJson;
+        }
+        // Flows sometimes return the array double-encoded as a JSON string; the LWC unwraps it too.
+        if (parsed instanceof String) {
+            try {
+                parsed = JSON.deserializeUntyped(((String) parsed).trim());
+            } catch (JSONException e) {
+                return factorJson;
+            }
+        }
+        if (!(parsed instanceof List<Object>)) {
+            return factorJson;
+        }
+        for (Object item : (List<Object>) parsed) {
+            if (!(item instanceof Map<String, Object>)) {
+                continue;
+            }
+            Map<String, Object> factor = (Map<String, Object>) item;
+            Object fields = factor.get('fields');
+            if (fields instanceof List<Object>) {
+                for (Object f : (List<Object>) fields) {
+                    if (f instanceof Map<String, Object>) {
+                        humanizeNameKey((Map<String, Object>) f);
+                    }
+                }
+            } else {
+                // Flat factor shape: {name, inputValue, value} with no fields[] wrapper.
+                humanizeNameKey(factor);
+            }
+        }
+        return JSON.serialize(parsed);
+    }
+
+    private static void humanizeNameKey(Map<String, Object> field) {
+        Object label = field.get('label');
+        Object name = field.get('name');
+        if (label instanceof String && String.isNotBlank((String) label)) {
+            field.put('name', label);
+        } else if (name instanceof String && String.isNotBlank((String) name)) {
+            field.put('name', humanizeApiName((String) name));
+        }
+    }
+
+    /** Mirrors the LWC's humanizeApiName: strip custom suffixes, underscores to spaces. */
+    @TestVisible
+    private static String humanizeApiName(String apiName) {
+        String n = apiName.trim();
+        for (Integer pass = 0; pass < 2; pass++) {
+            for (String suffix : new List<String>{ '_c__c', '__c', '__r', '_c' }) {
+                if (n.toLowerCase().endsWith(suffix)) {
+                    n = n.left(n.length() - suffix.length());
+                    break;
+                }
+            }
+        }
+        n = n.replace('_', ' ');
+        n = n.replaceAll('([a-z0-9])([A-Z])', '$1 $2').replaceAll('([A-Z]+)([A-Z][a-z])', '$1 $2');
+        return n.normalizeSpace();
     }
 
     /**

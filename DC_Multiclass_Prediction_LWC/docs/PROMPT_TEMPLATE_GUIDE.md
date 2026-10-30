@@ -40,7 +40,11 @@ Apex builds:
 {
   "prediction": "Wealth_Management",
   "predictionType": "multiclass_label",
-  "recommendations": "[{\"fields\":[{\"name\":\"risk_tolerance__c\",\"inputValue\":\"Aggressive\",\"prescribedValue\":\"\"}],\"value\":317.61}, ...]"
+  "recommendations": "[{\"fields\":[{\"name\":\"risk tolerance\",\"inputValue\":\"Aggressive\",\"prescribedValue\":\"\"}],\"value\":317.61}, ...]",
+  "classProbabilities": [
+    { "label": "Wealth Management", "percent": 41.2 },
+    { "label": "Retail", "percent": 38.0 }
+  ]
 }
 ```
 
@@ -48,7 +52,8 @@ Notes:
 
 - `prediction` is always a **JSON string**: the raw class label from the flow (not the humanized display string).
 - `predictionType` is always **`multiclass_label`** so one template family can distinguish this payload from numeric **DC_Prediction_Model_LWC** payloads if you reuse instructions.
-- `recommendations` is a **string** (often escaped JSON). In the prompt body, instruct the model to parse it or treat it as opaque text for summarization.
+- `recommendations` is a **string** (often escaped JSON). Before it's sent, each field `name` is rewritten to a readable label (the field's `label` if present, otherwise the API name with `__c` stripped and underscores turned into spaces, so `risk_tolerance__c` becomes `risk tolerance`). The Einstein Trust Layer masks raw API names as `<ENTITY_TYPE_n>` and doesn't restore them, so without this the summary would cite placeholders.
+- `classProbabilities` is optional: the class probabilities the card shows (top-N applied), highest first, as `{label, percent}`. It's omitted when the card has no class probability variables. Template v4 uses it to call out a close call when the top two are within 10 points. In the prompt body, instruct the model to parse it or treat it as opaque text for summarization.
 - There is **no** `factors` or `predictionOutputFormat` in this project.
 
 Example snippet you might put in the template instructions:

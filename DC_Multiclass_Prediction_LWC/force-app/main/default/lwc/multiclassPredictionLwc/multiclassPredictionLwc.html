@@ -161,6 +161,7 @@
 
             <template lwc:if={showSummaryCard}>
                 <div class="agent-summary">
+                    <span class="section-label agent-summary__title">{summaryCardTitleDisplay}</span>
                     <template lwc:if={loadingSummary}>
                         <div class="lwc-spinner-wrap lwc-spinner-wrap--small">
                             <lightning-spinner alternative-text="Generating summary" size="small"></lightning-spinner>

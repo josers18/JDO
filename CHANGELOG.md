@@ -63,6 +63,7 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
 
 ### Fixed
 
+- **DC_Multiclass_Prediction_LWC — review fixes** — the AI summary payload now humanizes factor field names (`buildPromptContext` + `humanizeFieldNames`), so the Trust Layer no longer masks them as `<ENTITY_TYPE_n>`, and it carries the displayed class probabilities (prompt template v4 calls out close calls). Also: `summaryCardTitle` is rendered, a `_requestSeq` guard drops stale flow/summary responses, flow errors are sanitized (`TypeException` / `FlowException`), key driver thresholds are validated, `#RRGGBBAA` colors are accepted, hero and chart share one class-label formatter, and the reduced-motion full-width bar flash is gone. Apex tests 12 → 18.
 - **DC_Prediction_Model_LWC** (PR [#136](https://github.com/josers18/JDO/pull/136)) — the AI summary read "`<ENTITY_TYPE_0>` has an input value of 4" because the Trust Layer masks raw field API names. `ClassificationModelLwcController` now sends field labels instead.
 - **Snowflake_Attrition_CSAT_Inputs** (PR [#138](https://github.com/josers18/JDO/pull/138)) — `COMPLAINT_COUNT` counted every detractor NPS response, putting 60% of accounts at the cap of 4; it now counts responses of 3 or below plus one per 2 negative Gong weeks (78.5% at 0, mean 0.33). CSAT `SEGMENT` is spelled `Wealth Management` to match the training label.
 

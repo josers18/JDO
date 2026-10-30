@@ -16,7 +16,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [2026-10-29]
 
+### Fixed (review pass)
+- **AI summary no longer cites `<ENTITY_TYPE_n>` placeholders.** `generateAnalysisSummary` now builds its payload in `buildPromptContext`, which rewrites each factor's field API name to a readable label (`humanizeFieldNames`, handling both the `fields[]` and flat factor shapes and double-encoded JSON) before the Einstein Trust Layer can mask it. Same fix the Prediction Model card got in PR #136.
+- **`summaryCardTitle` is rendered** as the section label above the AI summary. It was exposed in App Builder but never shown.
+- **Stale responses are dropped.** `runFlow` / `runSummary` carry a `_requestSeq`, so a slow earlier call can't overwrite a newer refresh or clear its spinner. `refreshData` also resets `loadingSummary`, the prediction label and the factor JSON.
+- **Flow errors are sanitized.** An unknown flow name (`TypeException`) and a flow fault (`FlowException`) now show a clear message instead of raw platform text; detail goes to the debug log.
+- Key driver tier thresholds are clamped to 0–100 and fall back to `80,55,30` unless they strictly decrease. Tier and label colors accept `#RRGGBBAA`.
+- The hero and the probability chart share one class-label formatter (`ARR_Growth` → `ARR Growth`; `Plan_C` keeps its `C`).
+- The reduced-motion CSS no longer forces `.prob-bar` to `scaleX(1)`, which flashed every bar full width before its real scale. The bar animation frame is cancelled on disconnect.
+- The factor JSON is parsed once per result (`_parseCache`); `hasRecommendationRows` no longer builds the diverging rows in key drivers mode.
+- The blank recommendations-title fallback now matches the meta default, `Feature contributions`.
+- Tests: 12 → 18. The invalid-flow test asserts `AuraHandledException` and the flow name; the vacuous blank-CSV test now calls `parseClassProbabilities` directly; new `humanizeFieldNames_*` and `buildPromptContext_*` tests.
+
 ### Added
+- **Class probabilities in the AI summary.** The summary payload now includes the card's displayed `classProbabilities` (`[{label, percent}]`, top-N applied). Prompt template **v4** (now active) describes it and calls out a close call when the top two classes are within 10 points.
 - **Key drivers display mode.** Three new App Builder properties: `recommendationsDisplayMode` (`diverging` | `keyDrivers`, default `diverging`), `keyDriverTierColors` and `keyDriverTierThresholds`. In `keyDrivers` mode, factors render as ranked one-sided bars scaled to the top driver. Each bar is tagged Very strong (≥80%), Strong (≥55%), Moderate (≥30%) or Minor, and colored on a validated blue ordinal ramp. The mode exists because multiclass factor signs proved unreliable: the personal model reported 23 of 25 factors as negative, including ones that clearly raise the predicted class.
 - **`DC_MulticlassModelExplanation` prompt template v3** is now tracked in this project and active. The summary covers what the model weighed, never whether a driver helped or hurt, and skips drivers below 10% of the top one.
 

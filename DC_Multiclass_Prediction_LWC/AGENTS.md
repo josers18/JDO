@@ -22,14 +22,14 @@ Sibling project `DC_Prediction_Model_LWC` covers the **numeric/regression** case
 DC_Multiclass_Prediction_LWC/
 ├── force-app/main/default/
 │   ├── classes/
-│   │   ├── MulticlassPredictionLwcController.cls   ← Flow runner + Einstein caller
-│   │   ├── MulticlassPredictionLwcControllerTest.cls   ← 13 tests, including @TestVisible coerceToDecimal_*
+│   │   ├── MulticlassPredictionLwcController.cls   ← Flow runner + Einstein caller + prompt-context builder
+│   │   ├── MulticlassPredictionLwcControllerTest.cls   ← 18 tests: coerceToDecimal_*, humanizeFieldNames_*, buildPromptContext_*
 │   │   ├── LlmOutputSanitizer.cls                  ← strips LLM closing courtesy text
 │   │   └── LlmOutputSanitizerTest.cls
 │   ├── lwc/multiclassPredictionLwc/
 │   │   ├── multiclassPredictionLwc.js              ← getters, Apex roundtrip, animations
 │   │   ├── multiclassPredictionLwc.html            ← hero + class-prob-section + improve-section + summary
-│   │   ├── multiclassPredictionLwc.css             ← reuses --wp-* tokens; ~510 lines
+│   │   ├── multiclassPredictionLwc.css             ← reuses --wp-* tokens; ~590 lines
 │   │   ├── multiclassPredictionLwc.js-meta.xml     ← THREE targetConfig blocks (RecordPage, AppPage, HomePage) — keep all in sync
 │   │   └── predictionThemes.js                     ← 43 theme presets; parity with classificationModelLwc
 │   └── permissionsets/DC_Multiclass_Prediction_User.permissionset-meta.xml
@@ -87,6 +87,8 @@ MulticlassPredictionLwcController.runPredictionFlow(flowApiName, recordId, recor
 multiclassPredictionLwc renders 3 sections
 ```
 
+`generateAnalysisSummary(promptTemplateId, promptInputApiName, predictionLabel, recommendationsJson, classProbabilitiesJson)` builds the prompt input via `buildPromptContext` (`@TestVisible`): `{prediction, predictionType: "multiclass_label", recommendations, classProbabilities?}`. `recommendations` goes through `humanizeFieldNames` first (field API names → labels, e.g. `Complaint_Count__c` → `Complaint Count`) because the Einstein Trust Layer masks raw API names as `<ENTITY_TYPE_n>` and never restores them. `classProbabilities` is the card's displayed `[{label, percent}]` list (top-N applied); prompt template v4 uses it to call out close calls. Flow errors are caught as `TypeException` (unknown flow name) and `FlowException` (flow fault) and surfaced through `buildAuraException` with a sanitized message.
+
 `ClassProbability` is the wire DTO: `{ apiName: String, value: Decimal }`. CSV is parsed by `parseClassProbabilities` (`@TestVisible private static`); each value is coerced via `coerceToDecimal` (also `@TestVisible`) which handles null, Decimal, Double, Integer, Long, numeric String, with `try { } catch (TypeException)` on parse failure.
 
 ## Key LWC getters
@@ -95,6 +97,9 @@ multiclassPredictionLwc renders 3 sections
 - `processedClassProbabilities` — sorted descending, with `barScale`, `percentDisplay`, `barStyle` (opacity), `rowClass` (with `prob-row--winner` flag), and tiebreak by original CSV index. Sliced to top-N when `enableTopNClasses === true` and `topNClassCount > 0`.
 - `showClassProbChart` — visibility flag; respects `hideClassProbabilities` toggle AND data presence.
 - `hasData` — gates the entire render; truthy if any of: prediction label, recommendations, OR class probabilities exist.
+- `humanizeClassLabel` — the one class-name formatter, used by the hero AND the chart rows: splits on `_`/spaces, keeps short all-caps words as acronyms (`ARR_Growth` → `ARR Growth`), title-cases the rest, and never strips `__c` (class names aren't field names). Factor rows use `humanizeApiName` instead.
+- Key drivers mode (`recommendationsDisplayMode=keyDrivers`): `processedKeyDrivers` ranks factors by |value| and tags each with a tier from `keyDriverTiers` (Very strong / Strong / Moderate / Minor). Tier cutoffs come from `resolveKeyDriverThresholds`, which clamps `keyDriverTierThresholds` to 0–100 and falls back to `80,55,30` unless the values strictly decrease. Tier colors accept `#RGB`, `#RRGGBB`, `#RRGGBBAA` or `rgb()/rgba()`.
+- Stale-response guard: `runFlow` bumps `_requestSeq`; `runFlow`/`runSummary` drop any response whose sequence is no longer current, so a slow earlier call can't overwrite a newer refresh. `parseJsonToInsightArray` memoizes by string in `_parseCache` (cleared on each new flow result).
 
 # Conventions
 
@@ -103,18 +108,18 @@ multiclassPredictionLwc renders 3 sections
 - All public methods that LWC calls must be `@AuraEnabled`.
 - All DTO fields must be `@AuraEnabled` to deserialize on the JS side.
 - Helpers exposed only for tests use `@TestVisible private static`.
-- **Reserved keyword `in`** — Apex parses `in` as the SOQL IN operator. Never use it as a local variable name (use `inVal`, `input`, `arg`).
+- **Reserved keywords `in` / `inner`** — Apex parses `in` as the SOQL IN operator, and `inner` fails with "Identifier name is reserved". Never use either as a local variable name (use `inVal`, `input`, `innerJson`).
 - `Decimal.valueOf(Double)` produces binary-float artifacts (e.g. `0.7` → `0.6999...`). Always route Doubles through `Decimal.valueOf(String.valueOf(d))`.
 - Catch the narrowest exception. `Decimal.valueOf(String)` throws `TypeException` — catch that, not bare `Exception` (which would swallow `LimitException`).
 
 ## LWC
-- **LWC1503 — Boolean `@api` defaults must be `false`.** The compiler rejects `@api foo = true;` because `<my-cmp foo>` (attribute presence) flips the property to `true`. If you want a "show by default" toggle, invert it to a "hide" toggle (`hideX = false`) and adjust both the consuming getter AND meta-xml `default="false"`.
+- **LWC1503 — Boolean `@api` defaults must be `false`.** The compiler rejects `@api foo = true;` because `<my-cmp foo>` (attribute presence) flips the property to `true`. Two workarounds are in use: invert to a "hide" toggle (`hideClassProbabilities = false`), or leave the JS field undeclared (`@api autoGenerateSummary;`), set `default="true"` in the meta, and read it with `!== false` (`autoGenerateSummary`, `humanizeClassName`).
 - Public properties expose to App Builder via `@api` + `<property>` in `js-meta.xml`. Every new `@api` property MUST be added to ALL THREE `targetConfig` blocks (RecordPage, AppPage, HomePage) — it's easy to forget the AppPage/HomePage variants.
 - RecordPage block uses verbose property `description="..."`; AppPage/HomePage blocks use terse form (no descriptions). Match this pattern.
 - Use `Array.isArray(...)` and `Number.isFinite(...)` defensively — Apex `null` becomes JS `null`/`undefined`, and `Number(null)` is `0`, which can mask bugs.
 - Reactivity uses plain class fields (no `@track`); reassignment triggers re-render. Never mutate arrays/objects in place — replace them.
-- For animation: bars carry `data-scale="<number>"` and the `bar-fill` (or `prob-bar`) class. The `animateBars()` setTimeout in `connectedCallback` reads `data-scale` and applies `transform: scaleX(...)`.
-- `prefers-reduced-motion: reduce` is honored — `.prob-bar` falls back to `scaleX(1)` so the chart is visible without JS animation.
+- For animation: bars carry `data-scale="<number>"` and the `bar-fill` (or `prob-bar`) class. `runFlow` sets `_animationPending`; `renderedCallback` consumes it and schedules `animateBars()` in a `requestAnimationFrame` (id kept in `_barsRafId`, cancelled in `disconnectedCallback`), which reads `data-scale` and applies `transform: scaleX(...)`. No `setTimeout`.
+- `prefers-reduced-motion: reduce` is honored in JS — `animateBars()` sets `transition: none` and snaps to the final scale. The CSS media query only removes the transition; it must NOT set `scaleX(1)`, or every bar flashes full width before the real scale lands.
 
 ## CSS
 - Reuse existing `--wp-*` theme tokens (e.g. `--wp-accent`, `--wp-accent-bg`, `--wp-text-primary`, `--wp-border-soft`). Do NOT introduce new tokens unless updating `predictionThemes.js`.
@@ -125,7 +130,7 @@ multiclassPredictionLwc renders 3 sections
 - README is the entry point; `docs/INDEX.md` is the table of contents.
 - Mermaid diagrams in markdown — keep balanced arrows and nodes, validate by eye.
 - `CHANGELOG.md` (this project) follows Keep a Changelog. Parent monorepo at `../CHANGELOG.md` rolls up.
-- Section labels (`CLASS PROBABILITIES`, `CONTRIBUTING FACTORS`) use 12px / weight 600 / `--wp-text-primary` — kept dark to delineate sections.
+- Section labels (`CLASS PROBABILITIES`, `FEATURE CONTRIBUTIONS` / `KEY DRIVERS`, `ANALYSIS SUMMARY` from `summaryCardTitle`) use 12px / weight 600 / `--wp-text-primary` — kept dark to delineate sections.
 
 # Testing
 
@@ -153,7 +158,8 @@ Apex test patterns to follow:
 
 - **Forgetting AppPage/HomePage targetConfig blocks** — always add new `@api` properties to all 3.
 - **Boolean `@api foo = true;`** — fails with LWC1503; invert.
-- **`Decimal in = ...;`** — Apex compile error; rename.
+- **`Decimal in = ...;`** / **`String inner = ...;`** — Apex compile errors; rename.
+- **Sending raw field API names to a prompt** — the Trust Layer masks them as `<ENTITY_TYPE_n>`; route factor JSON through `humanizeFieldNames`.
 - **`Decimal.valueOf(Double)`** — produces noise; route through `String.valueOf`.
 - **Trying to fast-forward `main` after the feature branch was rebased** — fast-forward only works when the branches are linearly ahead. Use a regular merge commit (`--no-ff`) when both branches have unique commits.
 - **Subagent scope creep** — when delegating implementation tasks, be explicit about which files may change. Subagents will sometimes "fix things they noticed" in unrelated files. Surface and drop those commits via `git rebase --onto`.
