@@ -8,6 +8,10 @@
 |---------|--------------|-----|
 | Component error “Apex not allowed” or similar | **BusinessProfileWidgetController** not enabled for user | Grant Apex class access on profile or permission set ([SETUP.md](SETUP.md)). |
 | Deploy compile error | API version / org mismatch | Project uses **62.0**; resolve with developer. |
+| Error **Flow "X" is not in the Profile Widget allowlist** (or **Apex "X"**) | The Flow / invocable class isn't in `Profile_Widget_Allowed_Action__mdt` | Add a record with **Action Type** `Flow`/`Apex` and **Api Name** `X` ([SETUP.md](SETUP.md#action-allowlist)). |
+| **You do not have access to this Account.** | A mapped field or the base query isn't readable in `USER_MODE` | Check the user's object/field permissions on Account. |
+| **Account not found or not shared with you.** | Sharing hides the record from the user | Confirm the user can open the Account itself. |
+| Deploy fails on the **cache partition** | No free Platform Cache capacity | Set `allocatedCapacity` to `0` in the partition XML; geocoding works uncached. |
 
 ---
 
@@ -15,7 +19,7 @@
 
 | Symptom | Likely cause | Try |
 |---------|--------------|-----|
-| Slot always empty | Invalid Account path | Use **Setup → Object Manager → Account → Fields** API names; test dotted paths like `Owner.Name`. |
+| Slot always empty | Invalid Account path, or the user can't read that field | Use **Setup → Object Manager → Account → Fields** API names; test dotted paths like `Owner.Name`. Fields hidden by field-level security are **skipped** (shown blank) rather than erroring — check FLS on every hop of the path. |
 | Flow value ignored | Missing `flow:` prefix or wrong variable API name | Use **`flow:OutputVar`**; match Flow **variable** API name. Apex also tries space→underscore and common case variants (same resolution as Insight Flow outputs). |
 | Assembly Flow never runs | All mappings are valid SOQL only | Expected: Flow is optional when every field resolves from Account. |
 | Waterfall **Int. expense** (or other slot) shows **$0** with `flow:…` while Account/Flow debugger looks fine | **Assembly flow never ran**, **variable not readable from Apex**, or **value only exists in a subflow** | **(1)** Set **Profile assembly Flow API name** to the **same** autolaunched flow you debug (namespace prefix if managed). If this is blank, other waterfall rows can still fill from SOQL while `flow:` slots stay empty. **(2)** In Flow Builder → **Manager** → **Variables** → mark the variable **Available for output**; otherwise `getVariableValue` in Apex often returns null. **(3)** If the number is assigned inside a **subflow**, copy it to a variable on the **parent** assembly flow and map `flow:` to that parent name. **(4)** Refresh the page and read the **orange hint** under **Liquidity waterfall** (when present); it summarizes the most likely fix. See [FLOW_GUIDE.md](FLOW_GUIDE.md) → *Troubleshooting: liquidity waterfall Int. expense stays $0*. |
@@ -47,6 +51,7 @@
 |---------|--------------|-----|
 | No pin | No coordinates and geocode off | Set **Field: map latitude/longitude** or enable geocoding + remote sites. |
 | Callout errors | Remote sites missing or blocked | Deploy **Nominatim** / **Photon** remote sites or disable geocoding. |
+| Pin missing for an address that was just fixed | Previous miss is cached for 24 h | Wait, or clear the `BusinessProfileWidget` partition in **Setup → Platform Cache**. |
 
 ---
 

@@ -38,12 +38,31 @@ If you turn **off** geocoding on the widget, these matter less.
 
 ---
 
+## Action allowlist (custom metadata)
+
+| File / folder | In simple terms |
+|---------------|-----------------|
+| `objects/Profile_Widget_Allowed_Action__mdt/` | A list of the Flows and Apex classes the widget is **allowed** to run (`Action_Type__c` = `Flow` / `Apex`, `Api_Name__c`). **Shared** with `DC_BusinessProfileWidget`, which ships an identical copy. If the list is empty, everything is allowed. |
+| `customMetadata/Profile_Widget_Allowed_Action.*` | 5 starter rows: Flows `DC_CustomerProfile_Widget`, `DC_MLAttrition`, `DC_MLCSAT`, `DC_MLProdPersonal`; Apex `DC_UnifiedAccounts`. |
+
+---
+
+## Platform Cache (map lookups)
+
+| File | In simple terms |
+|------|-----------------|
+| `cachePartitions/CustomerProfileWidget.cachePartition-meta.xml` | Org partition `local.CustomerProfileWidget` (1 MB) that remembers address lookups — found addresses for 48 h, misses for 24 h — so the map doesn't call the geocoders on every page load. With zero capacity the widget still works, just with live lookups (max 3 per load, 6 s timeout each). |
+
+---
+
 ## Apex (server code)
 
 | Class | Role |
 |-------|------|
 | **CustomerProfileWidgetController** | Loads profile data (Salesforce + optional Flows + optional address lookup), optional **Insight** Einstein summary (`generateSummary`), optional **Overview** Einstein narrative via **`getAgentforceOverviewSummary`** (separate request; **Contact** / **Account** dual **Id + object** Connect inputs, anonymous-parity path, `without sharing` Connect bridge), optional **Overview Unified relationships** via **`getUnifiedRelationshipsQueryJson`** (**`Invocable.Action`** on an **`@InvocableMethod`** class), optional Flow calls for gauge rings; **Account** enrichment may set **`openCasesCount`** and **`openOpportunitiesAmount`**. |
-| **CustomerProfileWidgetControllerTest** | Automated tests for deployment pipelines (includes **`getAgentforceOverviewSummary`** blank template, non–person record hint, blank record Id). |
+| **CustomerProfileWidgetControllerTest** | 28 automated tests for deployment pipelines (includes **`getAgentforceOverviewSummary`** blank template, non–person record hint, blank record Id, geocode cache/budget, allowlist, FLS paths). |
+
+Fallback profile queries run in **`USER_MODE`** and skip fields the user can't read. Flows and Apex classes named in App Builder must be on the allowlist above.
 
 ---
 

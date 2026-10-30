@@ -22,6 +22,7 @@
 | Field empty though Flow sets it | Output variable **API name** does not match the mapping | For Flow-backed slots use **`flow:VarName`**; check spelling/case. For SOQL slots, use a valid **field path** (see [COMPONENT_REFERENCE.md](COMPONENT_REFERENCE.md)). |
 | Assembly Flow runs when you expected SOQL only | A mapping string is not a valid field path | Apex treats invalid paths as **legacy Flow** names. Fix the path or prefix Flow outputs with **`flow:`**. |
 | **Branches** list missing or broken | Output is not valid JSON list | Use **Text** with a JSON array, or a collection Apex can serialize. [Sample](samples/nearby-branches.sample.json). |
+| Error **Flow "X" is not in the Profile Widget allowlist** (or **Apex "X"**) | That Flow / Apex class has no **Profile Widget Allowed Action** record | Add one ([SETUP.md](SETUP.md#allowlist)). |
 | **Insight** has no prediction | Prediction Flow not set or Flow failed silently | Set **Autolaunched flow API name (predictions)**; developer checks **debug logs** (errors are not always shown to the user). |
 
 ---
@@ -32,7 +33,7 @@
 |--------------|--------------|-------------|
 | Some fields empty after using a profile Flow | **Expected** when Flow leaves them blank | Salesforce fills **only empty** slots when assembly Flow is on. |
 | Wrong object type | Record is not Account/Contact | Widget is built for those objects. |
-| Custom field missing | Not mapped or user cannot see field | Add to **Core custom fields** JSON; check field-level security. |
+| Custom field missing | Not mapped or user cannot see field | Add to **Core custom fields** JSON; check field-level security. Fields the user can't read are **skipped** (left blank) instead of erroring. |
 
 ---
 
@@ -67,6 +68,7 @@
 | Signal bars do not animate | No numeric data | Bars need scores; animation runs shortly after load. |
 | Tab hidden | Visibility toggled off | Set **Show … tab** to visible (or leave default). |
 | **Theme** right in preview, wrong on live page | Page not active or cache | **Save** and **Activate** the Lightning page; hard refresh; redeploy if users still see an old version. Confirm users open the **activated** page assignment. |
+| Pin missing for an address that was just fixed | A previous failed lookup is remembered for 24 h | Wait, or clear the `CustomerProfileWidget` partition in **Setup → Platform Cache**. |
 | Map shows “unavailable” | No coordinates and geocode off, or remote sites missing | Pass lat/long from Flow, or turn geocoding on and deploy **Nominatim** / **Photon** remote sites. |
 
 ---

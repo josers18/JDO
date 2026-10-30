@@ -45,6 +45,8 @@ Wait until the command prints **Succeeded**. If it fails, see **If deploy fails*
 | **Customer_Profile_Widget_User** (permission set) | **Required.** Users need this to use the widget |
 | **Customer_Profile_Widget_DC_Callout** (permission set) | **Optional.** Only if you use the bundled Data Cloud–style Named Credential elsewhere |
 | **Remote sites** (Nominatim, Photon) | Lets the map **look up coordinates** from a billing address when you leave that option on |
+| **Profile Widget Allowed Action** (custom metadata type + 5 records) | The list of Flows / Apex classes the widget may run. Shared with `DC_BusinessProfileWidget` |
+| **CustomerProfileWidget** (Platform Cache partition, 1 MB) | Remembers map address lookups so they aren't repeated on every page load |
 | **Connected App / External Credential / Named Credential** (if in package) | **Optional** integration pieces; the widget does not require them for normal Account/Contact + Flow use |
 
 ---
@@ -52,7 +54,8 @@ Wait until the command prints **Succeeded**. If it fails, see **If deploy fails*
 ## After deploy (do not skip)
 
 1. Assign **Customer_Profile_Widget_User** to everyone who should see the widget.  
-2. Open **[SETUP.md](SETUP.md)** and add the component to a Lightning page, then **Save** and **Activate**.
+2. Open **[SETUP.md](SETUP.md)** and add the component to a Lightning page, then **Save** and **Activate**.  
+3. If the page uses a Flow or Apex class that isn't one of the 5 starter rows, add it to the **allowlist** ([SETUP.md](SETUP.md#allowlist)).
 
 ---
 
@@ -88,6 +91,7 @@ To **avoid** any external address lookup: turn **Geocode billing address for map
 | Error about **External Credential** or **D360** | Your org may not have that credential. Deploy without the optional permission set **Customer_Profile_Widget_DC_Callout**, or ask a developer to align the permission set XML with your org. |
 | You only want the widget, not Data Cloud extras | Deploy `force-app` but exclude optional Connected App / credential files if your process allows, or fix errors in Setup after deploy. |
 | “Insufficient access” | Your user needs permission to deploy metadata in that org. |
+| Error on the **cache partition** | The org has no free Platform Cache. Set `allocatedCapacity` to `0` in `cachePartitions/CustomerProfileWidget.cachePartition-meta.xml` and redeploy — maps still work, just without caching. |
 
 More symptoms: **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
 

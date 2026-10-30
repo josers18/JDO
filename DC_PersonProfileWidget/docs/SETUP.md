@@ -53,6 +53,11 @@ sf org assign permset --name Customer_Profile_Widget_User --target-org <alias> -
 
 ---
 
+<a id="allowlist"></a>
+**Allowlist (required when you use Flows or Apex):** every Flow or Apex class you type into the widget — profile assembly Flow, prediction Flow, signal-gauge Flows, Unified relationships class — must have a **Profile Widget Allowed Action** record. Setup → **Custom Metadata Types** → **Profile Widget Allowed Action** → **Manage Records** → **New**; set **Action Type** to `Flow` or `Apex` and **Api Name** to the API name. Five starter rows deploy with the package (`DC_CustomerProfile_Widget`, `DC_MLAttrition`, `DC_MLCSAT`, `DC_MLProdPersonal`, `DC_UnifiedAccounts`). If you delete every row, the check is off.
+
+---
+
 ## 4. Optional — Flow that fills the card
 
 1. Build an **autolaunched** Flow with an input for the open record (often named `recordId`).  

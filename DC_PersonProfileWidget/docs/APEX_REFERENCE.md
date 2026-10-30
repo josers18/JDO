@@ -26,7 +26,7 @@ Returns **`ProfileResult`** for the open record.
 | `profileAssemblyFlowApiName` | Profile assembly Flow API name. |
 | `profileAssemblyFlowRecordIdVariable` | Assembly Flow input for record Id. |
 | `profileFlowOutputMapJson` | JSON map merged with LWC **[Asm flow output]** props: each value is a **field path**, **`flow:`/`flows:`** variable, or legacy bare Flow name. |
-| `geocodeBillingAddress` | If true/null and coordinates missing, may call external geocoders (not in unit tests). |
+| `geocodeBillingAddress` | If true/null and coordinates missing, may call external geocoders. Results cached in `local.CustomerProfileWidget` (hit 48 h / miss 24 h); max **3** callouts per load, 6 s timeout, stops on `CalloutException`. Tests use `HttpCalloutMock`. |
 
 **Assembly Flow** runs when the name is set **and** there is at least one mapping that **requires** Flow (**`flow:`/`flows:`**, core custom flow token, or non-validating legacy name), **or** the prediction Flow shares the same API name. **SOQL-only** assembly maps skip the assembly interview otherwise. SOQL-bound slots are loaded in **`buildFallbackFromSoql`** via **`applyProfileAssemblyFromSoql`**.
 

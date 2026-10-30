@@ -63,6 +63,10 @@ Adjust `--test-level` per your pipeline.
 
 Assign **Customer_Profile_Widget_User** for the Person Profile Widget; optional **Customer_Profile_Widget_DC_Callout** only if you use the shipped Named Credential for other callouts. See [DC_PersonProfileWidget/docs/SETUP.md](../DC_PersonProfileWidget/docs/SETUP.md).
 
+### Profile widgets — shared action allowlist and Platform Cache
+
+**DC_PersonProfileWidget** and **DC_BusinessProfileWidget** both ship the custom metadata type **`Profile_Widget_Allowed_Action__mdt`**: the Flows and invocable Apex classes the widgets may run. The two copies are identical, so whichever package deploys last sets the type definition; keep them in sync. The seed records add up across both packages: Person ships 5, Business ships 3, and they overlap on 2. Any Flow or Apex class a page uses that isn't seeded needs its own record, or the widget shows *"… is not in the Profile Widget allowlist"*. Each package also ships a 1 MB org Platform Cache partition for geocode results (`CustomerProfileWidget`, `BusinessProfileWidget`). If the org has no free cache, set `allocatedCapacity` to `0` before deploying.
+
 ### Standard profile — JDO Apex (Business Profile package)
 
 The **DC_BusinessProfileWidget** project includes **`profiles/Standard.profile-meta.xml`**, which grants **Apex class access** on the org’s **Standard** profile for every JDO Apex class versioned in Git: six widget controllers (**`BusinessProfileWidgetController`**, **`CustomerProfileWidgetController`**, **`ClassificationModelLwcController`**, **`MulticlassPredictionLwcController`**, **`DcAgentforceOutputController`**, **`DcQueryToTableController`**), **`LlmOutputSanitizer`**, and all **`*Test`** classes for those types. Deploy that file (or the whole `force-app` from **DC_BusinessProfileWidget**) so **Standard** users can run the LWCs without separate permission sets for those classes (and can run those tests from the UI when the profile allows). You still need object/field access, **Run Flow**, Data Cloud rights, etc., per component docs.

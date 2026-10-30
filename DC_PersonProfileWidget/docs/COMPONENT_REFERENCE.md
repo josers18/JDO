@@ -33,7 +33,7 @@ The **assembly Flow runs** when its API name is set **and** at least one mapping
 | `assemblyOut*` | String | `''` | Per-slot mapping: **field path**, **`flow:Var`**, **`flows:Var`**, or legacy Flow variable name. Labels: **[Asm flow output] …**. |
 | `profilePhotoFlowOutputVariable` | String | `''` | Assembly Flow **Text** output for avatar URL (same slot as `assemblyOutProfilePhotoUrl` / JSON `profilePhotoUrl`). Prefer **`flow:`** in **`assemblyOutProfilePhotoUrl`** or core JSON for consistency. |
 | `profileFlowOutputMapJson` | String | `''` | **Advanced.** JSON map merged with `assemblyOut*`; per-slot properties **override** keys. Values: SOQL path or **`flow:`/`flows:`** (see [mixed sample](samples/profile-output-map-mixed.sample.json)). |
-| `geocodeBillingAddress` | Boolean | `true` (meta) | When true and map coordinates are unset, Apex geocodes billing address (Remote Sites required). |
+| `geocodeBillingAddress` | Boolean | `true` (meta) | When true and map coordinates are unset, Apex geocodes billing address (Remote Sites required). Cached; max 3 callouts per load. |
 | `flowApiName` | String | `''` | Autolaunched Flow API name for **prediction** and **recommendations** (Insight tab). |
 | `flowRecordIdVariable` | String | `recordId` | Flow input variable for the current record Id. |
 | `flowPredictionVariable` | String | `prediction` | Flow output for prediction text. |

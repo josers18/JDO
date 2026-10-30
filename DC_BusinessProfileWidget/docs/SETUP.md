@@ -24,6 +24,12 @@ If **Geocode billing address for map** is **on** (default), the org needs the de
 
 If geocoding is **off**, external callouts are skipped; coordinates must come from mapped fields or Flow.
 
+Results are cached in the **`BusinessProfileWidget`** Platform Cache partition (found: 48 h, not found: 24 h). Each load makes at most **3** callouts with a **6 s** timeout.
+
+### Action allowlist
+
+Every **Profile assembly Flow**, **Insight Flow** and **Unified relationships** Apex class you enter must have a **Profile Widget Allowed Action** record (Setup → Custom Metadata Types → **Profile Widget Allowed Action** → Manage Records; **Action Type** `Flow` or `Apex`, **Api Name** = the API name). The package seeds `DC_CustomerProfile_Widget`, `DC_Multiclass_Business` and `DC_UnifiedAccounts`. Deleting **every** row turns the check off.
+
 ---
 
 ## 3. Lightning page

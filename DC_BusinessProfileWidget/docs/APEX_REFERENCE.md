@@ -19,7 +19,7 @@ Returns a **JSON string** representing **`BusinessProfileResult`** (the LWC pars
 | `insightFlowRecordIdVariable` | Insight Flow record Id input (default `recordId`). |
 | `flowPredictionVariable` | Flow output for prediction text (default `prediction`). |
 | `flowRecommendationsVariable` | Flow output for recommendations (default `recommendations`). |
-| `geocodeBillingAddress` | If true/null, may call Nominatim/Photon when lat/lng missing (skipped in tests). |
+| `geocodeBillingAddress` | If true/null, may call Nominatim/Photon when lat/lng missing. Results cached in `local.BusinessProfileWidget` (hit 48 h / miss 24 h); max **3** callouts per load, 6 s timeout, stops on `CalloutException`. Tests use `HttpCalloutMock`. |
 | `pipelineOpportunityLimit` | **Null** or **≤ 0** → load up to **2000** open **Opportunity** rows for the Pipeline tab. **1–2000** → that `LIMIT` (capped at 2000). |
 
 Overview **Agentforce summary** Einstein calls are **not** part of `getProfileData`; the LWC invokes **`getAgentforceOverviewSummary`** in a separate request (minimal transaction, same pattern as Execute Anonymous). Optional **Overview Unified relationships** use **`getUnifiedRelationshipsQueryJson`** in another separate request (**`Invocable.Action`**).

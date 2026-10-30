@@ -23,7 +23,9 @@
 | `unifiedRelationshipsInvocableApexClass` | String | `''` | **Overview — Unified relationships (table):** Apex class API name for an **`@InvocableMethod`** (e.g. **`DC_UnifiedAccounts`**). **Class only**, not `Class.method`. **Blank** hides the **Overview** table. After **`getProfileData`** (+ optional Agentforce), the LWC calls **`getUnifiedRelationshipsQueryJson`** (**`Invocable.Action`**) with the page **`recordId`**. |
 | `unifiedRelationshipsInvocableIdInput` | String | `id` | Invocable request variable that receives the **Account Id** string. |
 | `unifiedRelationshipsInvocableJsonOutput` | String | `queryResultJSON` | Invocable output variable for JSON or plain text (non-strings serialized in Apex). |
-| `geocodeBillingAddress` | Boolean | `true` | When true, Nominatim then Photon if map lat/lng missing (remote sites required). |
+| `geocodeBillingAddress` | Boolean | `true` | When true, Nominatim then Photon if map lat/lng missing (remote sites required). Cached; max 3 callouts per load. |
+
+Every Flow and Unified-relationships Apex class named here must be in the **`Profile_Widget_Allowed_Action__mdt`** allowlist ([SETUP.md](SETUP.md#action-allowlist)).
 
 ---
 
