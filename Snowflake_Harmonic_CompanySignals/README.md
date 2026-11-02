@@ -48,10 +48,8 @@ WHERE a.ACCOUNT_TYPE_FLAG = 'BUSINESS'
 ## Columns (22 data + ORG_ID + RECORD_ID)
 `ORG_ID`, `RECORD_ID`, `ACCOUNT_ID`, `PROFILE_MONTH`, `FUNDING_STATUS` (Bootstrapped / Angel-Seed / Venture-Backed / PE-Backed), `LAST_FUNDING_STAGE`\*, `LAST_FUNDING_DATE`\*, `LAST_ROUND_USD`\*, `TOTAL_RAISED_USD`, `FUNDING_ROUNDS_COUNT`, `LEAD_INVESTOR`\*, `EST_VALUATION_USD`\*, `EST_RUNWAY_MONTHS`\* (0–60, Angel-Seed / Venture-Backed only), `RECENTLY_FUNDED_FLAG` (BOOLEAN), `HEADCOUNT` (inside the same-month ZoomInfo band), `HEADCOUNT_GROWTH_6M_PCT` (−60…300), `TRACTION_SCORE` (0–100), `ENG_HEADCOUNT_PCT`, `SALES_HEADCOUNT_PCT`, `OPS_HEADCOUNT_PCT` (sum ≤ 100), `OPEN_JOB_POSTINGS`, `POSTINGS_TREND` (Accelerating / Steady / Slowing / Frozen), `LAST_DATA_REFRESH_DATE`, `GENERATED_AT`. \* = NULLable (6 columns). Full DDL: [schemas/harmonic_company_signals.sql](schemas/harmonic_company_signals.sql).
 
-## Expected volume
-Plan §2 figures, from the live audience probe (not from generated rows):
-- ~650–672 rows/month.
-- 4,587 rows after the one-time 7-month backfill, `CALL …(6)`.
+## Live volume (L3, 2026-11-02)
+`CALL …(6)` wrote **4,587 rows**: 7 months (2026-05 … 2026-11), 650 / 650 / 650 / 650 / 651 / 664 / 672 rows per month, each equal to that month's re-probed §2 audience. 672 distinct accounts, 4,587 distinct RECORD_IDs. Full L3 results are in AGENTS.md → "L3 smoke" and plan §7.
 
 ## Tests
 ```bash
@@ -69,7 +67,7 @@ pytest tests/ -v      # L1 suite; cumulus_common resolves via pyproject pythonpa
 ```bash
 snow sql -f schemas/harmonic_company_signals.sql   # table + _STAGING
 python scripts/deploy_sp.py --role ACCOUNTADMIN    # inline-source SP (Task 5; deployed 2026-11-02)
-snow sql -f tasks/task_monthly_harmonic_company_signals.sql   # Task 6, not yet run
-# Task 6 one-time backfill: CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS(6);
+snow sql -f tasks/task_monthly_harmonic_company_signals.sql   # Task 6; created + RESUMEd 2026-11-02 (state: started)
+# Task 6 one-time backfill (run 2026-11-02, 4,587 rows): CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS(6);
 ```
 See AGENTS.md → Gotchas → "Deploy connection" for the snow CLI connection to use.

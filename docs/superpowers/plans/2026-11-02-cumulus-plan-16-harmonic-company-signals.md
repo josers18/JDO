@@ -233,7 +233,7 @@ The attachment contains:
 - [x] Dept percentages sum ≤ 100.
 - [x] 6 NULLable (incl. NULLable DATE) / 1 BOOLEAN handled in the MERGE casts.
 - [x] `BACKFILL_MONTHS` arg; TASK calls the no-arg form.
-- [ ] No `<<` placeholders left.
+- [x] No `<<` placeholders left (the only `<<…>>` tokens are the §1 placeholder-definition table; none remain in the repo).
 
 ## §6 Out of scope
 
@@ -245,6 +245,27 @@ The attachment contains:
 
 ## §7 Status
 
-Pending implementation. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE.
+**LIVE in Snowflake 2026-11-02; DC mapping pending UI.** Drafted 2026-11-02 from the vendor-gap assessment. Tasks 0–6 and 8 are done; Task 7's mapping table is recorded in `Snowflake_Harmonic_CompanySignals/AGENTS.md` with status "DC mapping pending UI" (same as Plans 1–13). Plan-owner sign-off on the revised timeline / destiny / runway / postings parameters (rowspec revision note) is still pending.
+
+**Task 6 (deploy).** `SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)` deployed to `DATA_JEDAIS.FINS__PUBLIC` (the live namespace this plan's `FINS.PUBLIC` means). `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` created and resumed: state `started`, `USING CRON 0 9 1 * * UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`. The one-time `CALL …(6)` returned `SUCCEEDED rows=4587 accounts=672 months=7 (2026-05-01..2026-11-01)` (log `DURATION_MS` 52367).
+
+**Task 8 (L3 smoke, 2026-11-02): every check passes.** All figures are from live query output.
+
+| Check | Target | Live |
+|---|---|---|
+| Rows per month = re-probed §2 audience | equal, 7 months | 650 / 650 / 650 / 650 / 651 / 664 / 672 (2026-05 … 2026-11), all equal; 4,587 rows, 672 accounts, 7 months |
+| Latest audience | 550–850 | 672 |
+| Monotonicity (TOTAL_RAISED, ROUNDS; plus stage index, funded→Bootstrapped) | 0 | 0 / 0 / 0 / 0 |
+| `LAST_FUNDING_DATE > LAST_DAY(PROFILE_MONTH)` | 0 | 0 |
+| HEADCOUNT outside same-month ZoomInfo band | 0 | 0 of 4,587 |
+| Mix | Boot 55–70, Angel 15–25, VC 8–18, PE 3–10 % | 61.91 / 22.17 / 11.79 / 4.12 % |
+| RECENTLY_FUNDED per month | 2–6 % | 3.38 / 2.62 / 3.54 / 3.38 / 3.23 / 2.86 / 2.38 % |
+| Bootstrapped→funded transitions | ≥ 1 | 10 (10 accounts) |
+| Runway < 9 among Angel-Seed + VC | 15–30 % | 22.40 % (349 / 1,558) |
+| Frozen, negative vs positive growth | ≥ 2× | 53.58 % vs 22.60 % = 2.37× |
+| Demo: CB + fresh round ≥ $5M | non-empty | 6 / 6 / 8 / 8 / 7 / 6 / 3 per month |
+| Demo: VC, runway < 6, Slowing/Frozen | non-empty | 3 / 5 / 2 / 4 / 6 / 8 / 7 per month |
+
+Also 0 on every 4a / 4d check, 0 duplicate PKs, 0 RECORD_ID mismatches against the SQL formula, and an unchanged `HASH_AGG(*)` after re-running `CALL …()`. No mix band missed, so no estimate had to be revised. The closest call is 2026-11's RECENTLY_FUNDED share (2.38 % vs the 2 % floor). One ZoomInfo account changed band in the window, but it is outside this audience, so the monotonicity SQL needed no band-change exclusion. Full detail: `Snowflake_Harmonic_CompanySignals/AGENTS.md` → "L3 smoke".
 
 Plan 16 is the first dataset with a **three-way audience** (anchor × ZoomInfo × Moody's), the first to **ship a prerequisite fix to an upstream plan** (Task 0), and the first to model a **lifetime event timeline viewed as-of each period**.

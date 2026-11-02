@@ -19,8 +19,8 @@
 -- Cadence:  MONTHLY (TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS), 1st of month at 09:00 UTC, after
 --           ZoomInfo (07:00 UTC).
 -- Salts:    "harmonic" (month-bucketed) and "harmonic_funding"
---           (account-stable funding timeline; per-round seed keyed on
---           ACCOUNT_ID plus the round index).
+--           (account-stable funding timeline; per-round valuation seed
+--           keyed on ACCOUNT_ID, round date and stage).
 -- RECORD_ID: record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH), written on
 --           INSERT and UPDATE.
 -- Table:    DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS

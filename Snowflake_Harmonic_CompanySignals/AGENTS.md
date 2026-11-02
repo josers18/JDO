@@ -12,7 +12,8 @@ Synthetic Harmonic-style **private-company funding and traction** signals, with 
 | T3 row factory + L1 tests (`procedures/sp_generate_harmonic_company_signals.py`) | done; **timeline revised 2026-11-02** after review (era-anchored rounds, planned-horizon runway, growth-coupled postings, industry prefix normalisation). 40 L1 tests green (33 row-factory + 7 live-shape distribution); `main` / MERGE land in T4 |
 | T4 SP entry point (`main`, MERGE, hard-dep probes, coverage, log) | done 2026-11-02; 26 L1 tests in `tests/test_harmonic_company_signals_sp_main.py` |
 | T5 `scripts/deploy_sp.py` (both salts) + TASK SQL + L2 | done 2026-11-02. SP **deployed live** (`SP_GENERATE_HARMONIC_COMPANY_SIGNALS(DEFAULT NUMBER)`, procedure only; the real table is still 0 rows). L2 `tests/integration/test_harmonic_company_signals_sp.sql`: 18/18 TRUE, including 5 negative tests. 7 L1 tests for the deploy script and TASK SQL |
-| T6 create TASK + `CALL …(6)` backfill / T8 L3 smoke | pending (TASK SQL is written but not executed) |
+| T6 create TASK + `CALL …(6)` backfill | done 2026-11-02. SP redeployed from this commit (generated SQL byte-identical to the committed file). `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` created and RESUMEd (`started`, `USING CRON 0 9 1 * * UTC`, `MAIN_WH_XS`). `CALL …(6)` returned `SUCCEEDED rows=4587 accounts=672 months=7 (2026-05-01..2026-11-01)` in ~52 s (TASK_EXECUTION_LOG `DURATION_MS` 52367) |
+| T8 L3 smoke | done 2026-11-02; **every check passes**, see "L3 smoke" below |
 | T7 DC stream + DMO | **DC mapping pending UI** (mapping table below) |
 
 ## Boundaries
@@ -73,6 +74,33 @@ Synthetic Harmonic-style **private-company funding and traction** signals, with 
 - **No bare `&` anywhere in SQL or in the inlined SP body** (snow sql template trap). The investor is `Founder friends and family`, and the dept remainder is written "G and A".
 - **Deploy connection.** `~/.snowflake/config.toml` sets `default_connection_name` to the dead `GSB13421_jwt` account. Select the JWT connection with `SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt` and pass `--role ACCOUNTADMIN` (the siblings' objects are owned by ACCOUNTADMIN). Never pass `-c`, which triggers an OAuth popup.
 - DC mapping descriptions must be ≤521 chars (Plan 6 finding).
+
+## L3 smoke (Task 8) — live results 2026-11-02
+
+Read from `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS` right after `CALL …(6)`. All numbers come from query output.
+
+| Check | Target | Live |
+|---|---|---|
+| Rows / months / accounts | 7 months, distinct accts = §2 audience per month | 4,587 rows, 7 months, 672 accounts. Per month 650 / 650 / 650 / 650 / 651 / 664 / 672 (2026-05 … 2026-11), each equal to the re-probed §2 audience (all 7 TRUE) |
+| Audience size (latest) | 550–850 | 672 |
+| PK / RECORD_ID | unique, SQL formula | 0 duplicate `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`; 4,587 distinct RECORD_IDs; 0 mismatches against the SQL `record_id_for` formula |
+| Monotonicity | 0 | TOTAL_RAISED_USD 0, FUNDING_ROUNDS_COUNT 0, stage-ladder index 0, funded→Bootstrapped 0 |
+| Date sanity | 0 rows with `LAST_FUNDING_DATE > LAST_DAY(PROFILE_MONTH)` | 0 |
+| Band sanity | 0 out-of-band vs same-month ZoomInfo | 0 of 4,587 (every row joined a same-month ZoomInfo row) |
+| Mix (all rows) | Boot 55–70 / Angel 15–25 / VC 8–18 / PE 3–10 % | Bootstrapped 61.91 % (2,840), Angel-Seed 22.17 % (1,017), Venture-Backed 11.79 % (541), PE-Backed 4.12 % (189). Per month: Boot 61.2–62.5, Angel 21.7–23.1, VC 11.7–12.0, PE 4.0–4.2 |
+| RECENTLY_FUNDED per month | 2–6 % | 3.38 / 2.62 / 3.54 / 3.38 / 3.23 / 2.86 / 2.38 % (22 / 17 / 23 / 22 / 21 / 19 / 16 rows). Lowest is 2026-11 at 2.38 %, inside the band but close to the 2 % floor |
+| Bootstrapped→funded transitions | ≥ 1 | 10 transitions on 10 accounts |
+| Runway < 9 (Angel-Seed + VC) | 15–30 % | 349 of 1,558 = 22.40 %. 0 NULL runway on those statuses, 0 non-NULL runway on Bootstrapped / PE-Backed. Distribution: runway 0 on 196 Angel-Seed + 63 VC rows, 1–8 on 74 + 16, 9–24 on 151 + 139, > 24 on 596 + 323 |
+| Postings: Frozen ratio | ≥ 2× (negative vs positive growth) | negative growth 322 / 601 = 53.58 % Frozen; positive growth 292 / 1,292 = 22.60 %; ratio 2.37×. (Zero growth: 1,959 / 2,694 = 72.72 %, mostly 1-10 firms pinned at a band edge.) Trend mix: Frozen 2,573, Accelerating 970, Steady 706, Slowing 338 |
+| 4d cross-field / 4a ranges | 0 | 0 on every check: Bootstrapped ⇔ rounds = 0 ⇔ raised = 0, Bootstrapped NULLables, funded non-NULLs, RECENTLY_FUNDED ⇔ 90-day rule, LAST_ROUND ≤ TOTAL, dept sum ≤ 100, traction 0–100, growth −60…300, postings ≥ 0, refresh date in [M, M+27], GENERATED_AT = PROFILE_MONTH 00:00 |
+| Idempotency | checksum unchanged | `HASH_AGG(*)` = -4940624338310171557 over 4,587 rows before and after a re-run of `CALL …()` (2026-11, 672 rows MERGEd) |
+
+**Demo picks.**
+- Treasury / sweep list (Commercial Banking, RECENTLY_FUNDED, LAST_ROUND_USD ≥ $5M): 6 / 6 / 8 / 8 / 7 / 6 / 3 accounts per month (2026-05 … 2026-11). Any category: 9 / 9 / 11 / 11 / 9 / 8 / 7.
+- Risk list (Venture-Backed, runway < 6, POSTINGS_TREND Slowing / Frozen): 3 / 5 / 2 / 4 / 6 / 8 / 7.
+- 2026-11 audience by CLIENT_CATEGORY: Small Business 446, NULL 117, Commercial Banking 93, Gold 4, Silver 4, empty string 4, Bronze 3, Platinum 1.
+
+**Band change.** One ZoomInfo account changed band in the window (`001am00000qvjs6AAA`, 5001-25000 → 1-10 in 2026-10, the same account with the duplicate 2026-10 ZoomInfo row). It isn't in the Harmonic audience, so the monotonicity SQL didn't need a band-change exclusion.
 
 ## DC mapping (Task 7) — status: DC mapping pending UI
 

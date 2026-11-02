@@ -34,8 +34,9 @@ Plan 16 deviations from the Plan 11 template:
     drift, job postings, refresh-date jitter). "harmonic_funding" is the
     account-stable funding timeline stream (rounds, amounts, investors),
     seeded with seed_for(account_id, "harmonic_funding", 2000-01-01). Each
-    round then draws from a seed keyed on ACCOUNT_ID plus the round index,
-    so the history never re-draws from month to month.
+    round's valuation multiple draws from a seed keyed on
+    f"{ACCOUNT_ID}_{round_date}_{stage}", so the history never re-draws
+    from month to month.
   - **Hard cross-plan dependencies.** The SP reads ZOOMINFO_FIRMOGRAPHICS
     (Plan 11) and MOODYS_MARKET_CONTEXT (Plan 13 v2), and raises before any
     write when either is missing, Moody's is empty, or ZoomInfo has no row
@@ -99,8 +100,8 @@ SQL_HEADER = f"""\
 -- Cadence:  MONTHLY ({TASK_NAME}), 1st of month at 09:00 UTC, after
 --           ZoomInfo (07:00 UTC).
 -- Salts:    "{DATASET_SALT}" (month-bucketed) and "{FUNDING_SALT}"
---           (account-stable funding timeline; per-round seed keyed on
---           ACCOUNT_ID plus the round index).
+--           (account-stable funding timeline; per-round valuation seed
+--           keyed on ACCOUNT_ID, round date and stage).
 -- RECORD_ID: record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH), written on
 --           INSERT and UPDATE.
 -- Table:    {TABLE_FQN}
