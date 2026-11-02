@@ -124,12 +124,12 @@ SQL_HEADER = f"""\
 --
 -- Audience: ALL ACCOUNTS (rebroadcast) — SELECT DISTINCT * FROM V_ACCOUNT_ANCHORS
 --           (~36.9K anchors; PERSON anchors take the personal-household row).
--- Cadence:  MONTHLY ({TASK_NAME})  — first of month at 07:00 UTC.
---           Matches Plans 1-3 / Plan 6 / Plan 8 PRECISELY.
+-- Cadence:  MONTHLY ({TASK_NAME})  — first of month at 03:00
+--           America/New_York (live schedule 'USING CRON 0 3 1 * * America/New_York').
 -- Salt:     "{DATASET_SALT}"  (month-bucketed; SINGLE salt — no year-stable
 --           subfields. Same simpler shape as Plan 8 / Plan 6.)
 -- Table:    {TABLE_FQN}
---           Composite PK (ACCOUNT_ID, PROFILE_MONTH).
+--           Composite PK (ORG_ID, ACCOUNT_ID, PROFILE_MONTH); MERGE keys on all 3.
 --           DC DMO collapses to single-column PK profileMonth__c.
 -- 1:1:      Each anchor produces exactly one row per calendar month.
 -- Turnover: EXEC_TURNOVER_FLAG / CEO_TENURE_YEARS are window reads over an
@@ -137,9 +137,9 @@ SQL_HEADER = f"""\
 --           flag is trailing-12-month sticky.
 -- RECORD_ID: computed in the MERGE source SELECT (SQL form of
 --           cumulus_common.record_id_for) and written on INSERT + UPDATE.
--- Schema:   15 columns — 13 NOT NULL + 1 NULLable (RECENT_GOVERNANCE_EVENT_DATE)
---           + 1 BOOLEAN (EXEC_TURNOVER_FLAG; explicit ::BOOLEAN cast in MERGE
---           source) + 1 GENERATED_AT timestamp.
+-- Schema:   17 columns — ORG_ID + 14 data columns + GENERATED_AT + RECORD_ID;
+--           1 NULLable (RECENT_GOVERNANCE_EVENT_DATE), 1 BOOLEAN
+--           (EXEC_TURNOVER_FLAG; explicit ::BOOLEAN cast in MERGE source).
 -- NULL semantics: RECENT_GOVERNANCE_EVENT_DATE NULL ~70% of rows via a flat
 --                 30%/70% Bernoulli draw — INDEPENDENT, no multi-column
 --                 coordination (compare Plan 8's PLAN_STATUS-gated 2-NULL

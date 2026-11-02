@@ -681,3 +681,38 @@ def test_person_anchor_flag_still_false():
     for r in _history(person):
         assert r["EXEC_TURNOVER_FLAG"] is False
         assert r["CEO_TENURE_YEARS"] == 5.0
+
+
+# -------------------------------------------------------------------
+# MERGE result accounting — update-only re-runs must not be logged as
+# inserts (review finding 2026-11-02).
+# -------------------------------------------------------------------
+
+from sp_generate_boardex_exec_intel import _merge_counts  # noqa: E402
+
+
+class _FakeRow:
+    def __init__(self, d):
+        self._d = d
+
+    def asDict(self):
+        return dict(self._d)
+
+    def __iter__(self):
+        return iter(self._d.values())
+
+
+def test_merge_counts_full_merge_reads_by_name():
+    row = _FakeRow({"number of rows inserted": 7, "number of rows updated": 36000})
+    assert _merge_counts([row], update_only=False) == (7, 36000)
+
+
+def test_merge_counts_update_only_is_not_an_insert():
+    row = _FakeRow({"number of rows updated": 36813})
+    assert _merge_counts([row], update_only=True) == (0, 36813)
+
+
+def test_merge_counts_positional_fallback_and_empty():
+    assert _merge_counts([(5, 9)], update_only=False) == (5, 9)
+    assert _merge_counts([(9,)], update_only=True) == (0, 9)
+    assert _merge_counts([], update_only=False) == (0, 0)

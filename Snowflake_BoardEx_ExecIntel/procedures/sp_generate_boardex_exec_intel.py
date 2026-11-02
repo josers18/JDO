@@ -10,7 +10,7 @@ backfill SP (sp_backfill_boardex_exec_intel.py) iterates audience x 24
 months for ~883K rows.
 
 Audience: all accounts (1=1 predicate; SELECT DISTINCT to dedupe MASTER_ACCOUNTS).
-Cadence:  MONTHLY (07:00 UTC on the 1st).
+Cadence:  MONTHLY (03:00 America/New_York on the 1st — live task schedule).
 Salt:     "boardex" (month-bucketed) for every field EXCEPT the exec-turnover
           pair, which reads an account-lifetime C-suite timeline seeded on
           seed_for(account_id + "_csuite", "boardex", 2000-01).
@@ -42,14 +42,15 @@ PERSON-anchor personal-governance fallback (rebroadcast deviation):
     - KEY_DIRECTOR_NAME = 'Self'
     - RECENT_GOVERNANCE_EVENT_DATE = None
     - LAST_DATA_REFRESH_DATE = month_start.date() - small random offset
-  This keeps the schema invariant (15 columns) and makes coverage hold
+  This keeps the schema invariant (16 row-dict columns; the live table
+  has 17 — RECORD_ID is computed in the MERGE) and makes coverage hold
   trivially (every anchor produces exactly one row).
 
 Contract for the L1 sibling tests (Plan 10 T3):
     from sp_generate_boardex_exec_intel import (
         _rows_for,                # (anchor, profile_month) -> [dict] (len 1)
         _anchor_in_audience,      # (anchor) -> bool — True iff ACCOUNT_ID non-empty
-        EXPECTED_OUTPUT_COLUMNS,  # frozenset of 15 unchanged column names
+        EXPECTED_OUTPUT_COLUMNS,  # frozenset of the 16 row-dict column names
     )
 """
 from __future__ import annotations
@@ -560,10 +561,18 @@ def main(session: Any, num_months: int = 1, history_update_only: bool = False) -
 
     Rows are generated and MERGEd one month at a time to bound SP memory
     (~37K rows per batch instead of ~1.1M dicts for a 30-month re-run).
+    Consequence: a row-factory tolerance breach (or any exception) part-way
+    through a multi-month run leaves the earlier months already rewritten
+    and the later ones untouched. The run is idempotent, so re-running the
+    same CALL repairs it.
+
+    TASK_EXECUTION_LOG.ROWS_INSERTED counts only INSERTs; UPDATE counts are
+    reported in the return string (`updated=`) since the log has no column
+    for them.
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
-    rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
+    rows_inserted, rows_updated, accounts_processed, status, err = 0, 0, 0, "SUCCEEDED", None
 
     try:
         audience = session.sql(AUDIENCE_SQL).collect()
@@ -585,7 +594,6 @@ def main(session: Any, num_months: int = 1, history_update_only: bool = False) -
         total_pairs = len(anchors) * len(month_starts)
         max_tolerated = max(10, total_pairs // 100)
         errors = []
-        rows_inserted = 0
         for ms in month_starts:
             records = []
             for anchor in anchors:
@@ -599,7 +607,9 @@ def main(session: Any, num_months: int = 1, history_update_only: bool = False) -
                     f"(tolerance {max_tolerated}); first: {errors[0]}"
                 )
             update_only = bool(history_update_only) and ms != current_month_start
-            rows_inserted += _merge(session, records, update_only=update_only)
+            ins, upd = _merge(session, records, update_only=update_only)
+            rows_inserted += ins
+            rows_updated += upd
         if errors:
             err = (
                 f"row factory failed on {len(errors)}/{total_pairs} pairs; "
@@ -627,7 +637,8 @@ def main(session: Any, num_months: int = 1, history_update_only: bool = False) -
                     rows_inserted, accounts_processed, err, duration_ms],
         ).collect()
 
-    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed}"
+    return (f"{TASK_NAME}: {status} rows={rows_inserted} updated={rows_updated} "
+            f"accounts={accounts_processed}")
 
 
 def _anchor_to_dict(row: Any) -> dict:
@@ -642,12 +653,12 @@ def _anchor_to_dict(row: Any) -> dict:
 
 
 # -------------------------------------------------------------------
-# _merge — idempotent MERGE on composite PK (ACCOUNT_ID, PROFILE_MONTH)
+# _merge — idempotent MERGE on composite PK (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 # -------------------------------------------------------------------
 
-def _merge(session: Any, records: list[dict], update_only: bool = False) -> int:
-    """MERGE records into TABLE. Returns rows inserted (rows updated when
-    update_only=True, which drops the WHEN NOT MATCHED clause).
+def _merge(session: Any, records: list[dict], update_only: bool = False) -> tuple[int, int]:
+    """MERGE records into TABLE. Returns (rows_inserted, rows_updated);
+    update_only=True drops the WHEN NOT MATCHED clause, so inserted is 0.
 
     RECORD_ID is computed in the source SELECT with the SQL form of
     cumulus_common.record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH) and is
@@ -668,7 +679,7 @@ def _merge(session: Any, records: list[dict], update_only: bool = False) -> int:
         NULLable date column serialises Python None -> SQL NULL.
     """
     if not records:
-        return 0
+        return 0, 0
 
     import pandas as pd
     df = pd.DataFrame(records)
@@ -746,4 +757,32 @@ def _merge(session: Any, records: list[dict], update_only: bool = False) -> int:
     if not update_only:
         merge_sql += insert_sql
     rows = session.sql(merge_sql).collect()
-    return int(rows[0][0]) if rows else len(records)
+    return _merge_counts(rows, update_only)
+
+
+def _merge_counts(rows: list, update_only: bool) -> tuple[int, int]:
+    """(inserted, updated) from a MERGE result, read by column name.
+
+    Snowflake's MERGE result has one column per clause present:
+    "number of rows inserted" and/or "number of rows updated". With
+    update_only=True there is no WHEN NOT MATCHED clause, so the only
+    column is the UPDATE count — reading rows[0][0] positionally would
+    misreport updates as inserts.
+    """
+    if not rows:
+        return 0, 0
+    row = rows[0]
+    if hasattr(row, "asDict"):
+        d = {str(k).lower(): v for k, v in row.asDict().items()}
+    elif isinstance(row, dict):
+        d = {str(k).lower(): v for k, v in row.items()}
+    else:
+        d = {}
+    if d:
+        return (int(d.get("number of rows inserted") or 0),
+                int(d.get("number of rows updated") or 0))
+    # Positional fallback (no column names): INSERT column precedes UPDATE.
+    vals = list(row)
+    if update_only:
+        return 0, int(vals[0] or 0)
+    return int(vals[0] or 0), int(vals[1] or 0) if len(vals) > 1 else 0

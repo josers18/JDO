@@ -4,7 +4,7 @@
 -- intelligence dataset per Commercial Banking Cumulus customer.
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_BOARDEX_EXEC_INTEL
---             (Cron: 0 7 1 * * UTC — first of month at 07:00 UTC)
+--             (Cron: 0 3 1 * * America/New_York — first of month, 03:00 ET; live schedule)
 -- Audience:   Commercial Banking only (CLIENT_CATEGORY = 'Commercial Banking')
 --             — distinct accounts from V_ACCOUNT_ANCHORS, ~960 distinct
 --             anchors. 1:1 — each anchor emits exactly one row per month

@@ -4,8 +4,11 @@
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-10-boardex-exec-intel.md
 -- Task:     Plan 10 T6
--- Cadence:  MONTHLY (first of month at 07:00 UTC).
--- Schedule: 0 7 1 * * UTC  (5-field cron: minute hour day-of-month month day-of-week)
+-- Cadence:  MONTHLY (first of month at 03:00 America/New_York).
+-- Schedule: 0 3 1 * * America/New_York  (5-field cron: minute hour day-of-month month day-of-week)
+--           Synced to the live task 2026-11-02 (the repo previously said
+--           `0 7 1 * * UTC`; the live task had been re-created with the ET
+--           schedule and the repo never caught up).
 -- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()', 2)
 -- Warehouse: MAIN_WH_XS
 --
@@ -34,12 +37,12 @@
 --   ~960 rows/month — smallest Cumulus dataset by 4.1× (next-smallest is
 --   Plan 8 MGP at 3,920). SP runtime expected <1s; warehouse spin-up
 --   dominates wall time. Re-runs same calendar month are byte-identical
---   (idempotent MERGE on composite PK ACCOUNT_ID, PROFILE_MONTH).
+--   (idempotent MERGE on composite PK ORG_ID, ACCOUNT_ID, PROFILE_MONTH).
 -- =============================================================================
 
 CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL
     WAREHOUSE = MAIN_WH_XS
-    SCHEDULE  = 'USING CRON 0 7 1 * * UTC'
+    SCHEDULE  = 'USING CRON 0 3 1 * * America/New_York'
 AS
     CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
         'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()',

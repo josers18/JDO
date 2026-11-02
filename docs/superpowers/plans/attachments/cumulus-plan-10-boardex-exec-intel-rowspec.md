@@ -112,8 +112,8 @@ CEO_TENURE_YEARS(M)   = round((month_end(M) - last CEO start/change <= month_end
 
 Consequences:
 
-- **Sticky.** A FALSE→TRUE rise at M implies TRUE for M..M+11. TRUE→TRUE stays outnumber rises ~12× (offline synthetic run: 26,356 stays vs 2,094 rises over 4,000 anchors × 36 months).
-- **~20% TRUE.** For a homogeneous Poisson process, P(TRUE) = 1 − exp(−1.8 / mean_tenure). With the live BUSINESS band mix (90% < 100 employees) the offline synthetic rate is 20.3%. Large employers (≥10k) sit near 16%.
+- **Sticky.** A FALSE→TRUE rise at M implies TRUE for M..M+11. TRUE→TRUE stays outnumber rises ~12×. Projected on the live audience (offline replay of the deployed SP logic over the live `V_ACCOUNT_ANCHORS` audience (36,949 anchors, 10,864 BUSINESS) for 2024-06 → 2026-11, run 2026-11-02: monthly TRUE rate 19.85%-21.12% (20.55% overall), 4,682 rises / 60,110 stays / 4,673 falls (stays ≈ 12.8× rises), 0 stickiness violations out of 2,929 checkable rises). The logic is deterministic, so the live in-place re-run must reproduce these exact numbers; it has not run yet (see Snowflake_BoardEx_ExecIntel/AGENTS.md).
+- **~20% TRUE.** For a homogeneous Poisson process, P(TRUE) = 1 − exp(−1.8 / mean_tenure). With the live BUSINESS band mix (90% < 100 employees) the projected rate is 20.55%. Per band, the band means imply a lower rate for the larger bands, and that holds on average over a synthetic population (enforced by L1). On the live audience the bands are tiny, so the per-band numbers are noisy. Projected: <1k 20.6% (10,728 anchors), 1k-9,999 16.1% (119), ≥10k 20.6% (only 17 anchors).
 - **Biased lower for long-tenure firms.** Firms with a longer mean CEO tenure change both CEO and other C-suite less often. Rows with CEO_TENURE ≥ 7 have a lower TRUE rate than the population.
 - **A CEO change implies the flag is TRUE** (the change is inside the window), and CEO_TENURE_YEARS resets below 1.0.
 - **No monthly-rng draws.** The tenure/flag pair no longer consumes the monthly rng, so every later draw in the row (GOVERNANCE_RATING noise, INTERLOCK_COUNT, KEY_DIRECTOR_NAME, dates) shifted once on 2026-11-02. `_governance_rating` still reads `exec_turnover`.
@@ -301,7 +301,7 @@ The L1 conftest does **not** filter SAMPLE_ANCHORS for Plan 10 — it ignores SA
 
 ## Cadence
 
-**Monthly.** CRON: `'USING CRON 0 7 1 * * UTC'` (matches Plans 1-3, 6, 8). Idempotent re-runs same month replace.
+**Monthly.** CRON: `'USING CRON 0 3 1 * * America/New_York'` (live task schedule; the original spec said `0 7 1 * * UTC`). Idempotent re-runs same month replace.
 
 Why monthly (vs weekly): board composition and CEO tenure are slow-moving signals — boards reorganize quarterly at most, and most months no anchor sees a real governance change. A weekly cadence would emit ~52× the rows for the same demo signal. (Compare Plan 12 Gong, which is weekly because call sentiment is genuinely week-over-week volatile.)
 
