@@ -208,6 +208,32 @@ The rowspec attachment has been amended to match the code. Summary:
 
 ## §7 Status
 
-Pending implementation. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE.
+**Deployed; backfill pending a human run** (2026-11-02). Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Branch `feat/cumulus-chainC-plan14`.
+
+| Task | State (2026-11-02) |
+|---|---|
+| T1–T4 scaffold, DDL, row factory, SP | done. L1: **77 passed** (row factory 46, SP write path 23, deploy 8) |
+| T2 DDL | LIVE in `DATA_JEDAIS.FINS__PUBLIC`: `DEMANDBASE_INTENT_SIGNALS` + `_STAGING`, 19 columns each, PK `PK_DEMANDBASE_INTENT_SIGNALS` |
+| T5 L2 | 38 of 38 assertion columns TRUE (Passes A–D 34, Pass E 4). `c09` rewritten as JOIN + HAVING after a false FALSE from correlated `EXISTS OR EXISTS`; `c10` added as its negative control. Pass E (real audience, `CALL (25)` on the `_TIMING` clone): 274,143 rows, 6,435 accounts, 26 weeks, 201,818 ms |
+| T6 SP + TASK | LIVE. `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(BACKFILL_WEEKS NUMBER)`; `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS` started, `USING CRON 15 3 * * 1 America/New_York`, MAIN_WH_XS, via `SP_RETRY_WRAPPER(..., 2)`. First scheduled run Monday 2026-11-09 03:15 ET |
+| T6 backfill `CALL …(25)` | **not run**: the agent session's permission classifier refused the write to the shared live table. Needs a human: `SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt snow sql --role ACCOUNTADMIN -q "CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)"`. The real table has 0 rows until then |
+| T7 DC stream + DMO | **DC mapping pending UI** (mapping recorded in the sub-project AGENTS.md) |
+| T8 L3 smoke | `tests/integration/l3_smoke_demandbase_intent_signals.sql` written. **Dry run on the Pass E clone: 18 of 18 checks TRUE.** The real-table run waits for the backfill |
+
+L3 dry-run figures (clone, 26 weeks 2026-05-11 … 2026-11-02):
+- 6,435 accounts and 6,435 top rows every week; 10,469–10,659 rows/week (avg 10,544); 0 duplicate RECORD_IDs or keys; 0 Household rows.
+- Surging rows 13.5–14.8% per week; surging accounts 20.1–22.1%.
+- Restaurant top topic in set 91.7%; Real Estate CRE top-2 92.6%; Logistics/WD FX-or-AP 57.8%.
+- Treasury Management 0.545 vs 0.013 rows per anchor-week (≥$10M vs <$1M); SBA Lending 0.437 vs 0.015 (<$1M vs ≥$10M).
+- Trajectory: all 35,966 checkable surging rows (18,943 multi-week) match the table.
+- Gong coherence: 69.7% of 16,436 flagged top rows have a competitor, vs 4.7% of 150,874 unflagged rows. `gong_rows_joined` > 0 for 26 of 26 weeks.
+- Demo pick (Commercial Banking, longest Treasury surge): Powell-Wood Holdings (8 weeks, score 91), then Sloan-Mccullough Industries (7).
+
+Deviations from the task text:
+- L3 Real Estate check counts CRE as "top 2" if it is IS_TOP_TOPIC or rank ≤ 2 by score.
+- L3 trajectory checks every surging row, not 20 random ones.
+- `deploy_sp.py` takes `--role` and gets its connection from `SNOWFLAKE_DEFAULT_CONNECTION_NAME`, never `-c`.
+
+Still open: the backfill; the L3 run on the real table; the byte-identity check on the first TASK run (2026-11-09); DC stream + DMO in the UI.
 
 Plan 14 is the **third 1:N dataset** (after Plan 6 and Plan 9), the **fourth weekly plan** (after Plans 6, 9, 12), and the first to derive multi-week trajectory fields by **stateless recomputation** rather than self-reads or year-stable salts.

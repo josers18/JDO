@@ -7,13 +7,26 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 | Task | State |
 |---|---|
 | T1 scaffold | done |
-| T2 DDL (`schemas/demandbase_intent_signals.sql`, table + `_STAGING`) | written; **live apply pending: needs ACCOUNTADMIN** (see Gotchas → "Deploy connection"). Not yet present on SSC18700 (INFORMATION_SCHEMA re-checked 2026-11-02; default snow CLI connection still 404s on login). Blocks T4/T5 |
+| T2 DDL (`schemas/demandbase_intent_signals.sql`, table + `_STAGING`) | **LIVE 2026-11-02** (applied as ACCOUNTADMIN). Both tables: 19 columns, 2 BOOLEAN, 2 NULLable, PK `PK_DEMANDBASE_INTENT_SIGNALS` (the `LIKE`-copied `_STAGING` carries it too), 0 rows at creation |
 | T3 row factory + L1 tests | done; `_rows_for` lives in `procedures/sp_generate_demandbase_intent_signals.py` |
-| T4 SP entry point (`main`, DELETE+INSERT, coverage, log) | done (L1 against a fake session, `tests/test_demandbase_intent_signals_sp.py`); not deployed live |
-| T5 L2 (`tests/integration/test_demandbase_intent_signals_sp.sql`) | written; **not run live** (blocked on T2 apply + CLI connection) |
-| T6 deploy (`scripts/deploy_sp.py`) + TASK (`tasks/task_weekly_demandbase_intent_signals.sql`) + `CALL …(25)` backfill | written, `procedures/sp_create_procedure.sql` generated; **not deployed live** |
-| T8 L3 smoke | pending (needs T6) |
+| T4 SP entry point (`main`, DELETE+INSERT, coverage, log) | done; **deployed 2026-11-02** as `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(BACKFILL_WEEKS NUMBER)`, owner ACCOUNTADMIN |
+| T5 L2 (`tests/integration/test_demandbase_intent_signals_sp.sql`) | **run live 2026-11-02: 38 of 38 assertion columns TRUE** (Passes A–D 34, Pass E 4). `c09` was rewritten after a false FALSE (see Gotchas); `c10` is its new negative control. Pass D split (flagged/unflagged hits per week): 5/1, 5/0, 5/0, 5/0, 3/1 → 5 of 5 weeks pass; `gong_rows_joined=6` all 5 weeks. Pass E (real audience, `CALL (25)` on the `_TIMING` clone): 26 weeks, 6,435 accounts and 6,435 top rows every week, 274,143 rows, DURATION_MS 201,818 (3.4 min) |
+| T6 deploy (`scripts/deploy_sp.py`) + TASK (`tasks/task_weekly_demandbase_intent_signals.sql`) | **SP + TASK LIVE 2026-11-02.** `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS`: state `started`, owner ACCOUNTADMIN, MAIN_WH_XS, `USING CRON 15 3 * * 1 America/New_York`, body `SP_RETRY_WRAPPER('…SP_GENERATE_DEMANDBASE_INTENT_SIGNALS()', 2)`. First scheduled run: Monday 2026-11-09 03:15 ET |
+| T6 one-time backfill `CALL …(25)` | **NOT RUN on the real table.** The agent session's permission classifier refused the write to the shared live table, so it needs a human: `snow sql --role ACCOUNTADMIN -q "CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)"` (~3.4 min, per Pass E). `DEMANDBASE_INTENT_SIGNALS` has 0 rows until then |
+| T8 L3 smoke (`tests/integration/l3_smoke_demandbase_intent_signals.sql`) | **Pending on the real table** (needs the backfill). **Dry run on the Pass E clone (same SP, audience and Gong; the SP is deterministic per week, so the real backfill should match): 18 of 18 `l3_*` checks TRUE**, figures below |
 | T7 DC stream + DMO | **DC mapping pending UI** (mapping table below) |
+
+**L3 dry-run figures (2026-11-02, `_TIMING` clone, 26 weeks 2026-05-11 … 2026-11-02):**
+- 26 weeks; 6,435 accounts and 6,435 IS_TOP_TOPIC rows every week; 10,469–10,659 rows/week (avg 10,544); 274,143 rows total.
+- 0 duplicate RECORD_IDs, 0 duplicate 4-part keys, 0 Household or non-business rows, 0 rows with `SURGE_FLAG = FALSE AND WEEKS_SURGING > 0`.
+- Surging rows 13.5–14.8% per week (band 8–15%); accounts with ≥1 surging topic 20.1–22.1% per week (band 15–25%).
+- Restaurant top topic in {Merchant, Payroll, Equipment, Cards}: 91.7% (≥75%). Real Estate / RE Holdings with CRE as top topic or top-2 by score: 92.6% (≥70%). Logistics / Wholesale Distribution rows that are FX or AP Automation: 57.8% (≥50%).
+- Revenue tilt (rows per anchor-week): Treasury Management 0.545 at ≥$10M vs 0.013 at <$1M; SBA Lending 0.437 at <$1M vs 0.015 at ≥$10M (both ≥2×).
+- Trajectory: every surging row whose run fits in the window (35,966 rows, 18,943 of them multi-week) has WEEKS_SURGING equal to the consecutive surge run in the table. This checks all rows, not a sample of 20.
+- Gong coherence (top rows): 69.7% have a competitor in Gong-Competitor account-weeks (16,436 rows, gate ≥55%) vs 4.7% elsewhere (150,874 rows, gate ≤30%).
+- Run log: `gong=present`, `gong_rows_joined` > 0 for all 26 weeks, no WARN.
+- Demo pick (latest week, Commercial Banking, longest Treasury Management surge): Powell-Wood Holdings (8 weeks, score 91), Sloan-Mccullough Industries (7), Myers Industries (6), Yates Corp (6), Bell Industries (6), Flores PLC Enterprises (5), Christensen-Blair Corp (5), Clark Enterprises (5), Hopkins PLC Industries (5), Hayden-Jordan Enterprises (5). Re-run section 9 of the L3 file after the real backfill to confirm.
+- Still to check after the first scheduled run (2026-11-09): that run is byte-identical (HASH_AGG) to a no-arg re-run of the same week.
 
 ## Boundaries
 - Owns `DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS` and `..._STAGING`, plus `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS`, `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS`, and the DC Data Stream / DLO / DMO `CumulusDemandbaseIntentSignals__dlm`.
@@ -29,7 +42,8 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - `accounts_processed` = audience size (distinct accounts). The row count is ~1.6× that.
 
 ## Tests
-- **L1 totals: 76 tests** = row factory 46 + SP write path 23 (`tests/test_demandbase_intent_signals_sp.py`: week list, epoch-ns and RECORD_ID pinned to live Snowflake results, casts, transaction order, idempotency, stale-topic delete, rollback, Gong absent / probe error / duplicates / empty-week WARN, PK and coverage guards, backfill == standalone, memo keying, timing budget) + deploy 7 (`tests/test_deploy_sp.py`: signature, self-contained inlined body that executes and matches the module, committed SQL == generator, no `&` in any SQL file, TASK cron / wrapper).
+- **L1 totals: 77 tests** = row factory 46 + SP write path 23 (`tests/test_demandbase_intent_signals_sp.py`: week list, epoch-ns and RECORD_ID pinned to live Snowflake results, casts, transaction order, idempotency, stale-topic delete, rollback, Gong absent / probe error / duplicates / empty-week WARN, PK and coverage guards, backfill == standalone, memo keying, timing budget) + deploy 8 (`tests/test_deploy_sp.py`: signature, self-contained inlined body that executes and matches the module, committed SQL == generator, no `&` in any SQL file, TASK cron / wrapper, snow command never carries `-c` and forwards `--role`).
+- **L3** (`tests/integration/l3_smoke_demandbase_intent_signals.sql`): SELECT-only Task 8 smoke over the real table (or the Pass E clone, by editing its two `SET` lines). Every `l3_*` column must be TRUE.
 - **L2** (`tests/integration/test_demandbase_intent_signals_sp.sql`): fixture-clone pattern (GET_DDL + sentinel REPLACE). Pass A runs with no Gong (12 anchors, exclusions, PK / RECORD_ID, NOT NULLs, vocab, surge semantics). Pass B is an idempotent re-run (HASH_AGG). Pass C covers `CALL (4)` / `CALL (1)` byte-identity per week. Pass D adds a Gong fixture (6 flagged anchors × 5 weeks plus a duplicate row): the ≥4-of-5-weeks split, PK unique, `gong_rows_joined=6` every week. Pass E runs the real-audience 26-week timing clone.
 - **L1 row factory** (`tests/test_demandbase_intent_signals_row_factory.py`, 46 tests) runs on an inline 12-anchor fixture in `tests/conftest.py`. It does not use the shared SAMPLE_ANCHORS. The fixture covers 8 industries, a NULL industry, a Commercial Banking anchor at $29M, a NULL-revenue anchor and the all-NULL boring anchor. Out-of-audience anchors (Household, PERSON, empty id) must raise.
   - Determinism (same week, any weekday)
@@ -93,11 +107,16 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - **Cost / memo:** ~10 + 13×rows `_score_for` calls per anchor-week. Memoized with `functools.lru_cache` (16,384 entries each) on pure kernels keyed by the anchor fields the score reads, `(ACCOUNT_ID, INDUSTRY, ANNUAL_REVENUE, topic, week|year)`: `_base_affinity_k`, `_episode_phase`, `_score_k`. Keying on attributes, not just ACCOUNT_ID, keeps a stale entry from leaking across anchors (L1 test). Output is byte-identical to the unmemoized factory. The loop is anchor-outer / week-inner so the W-1 and surge-lookback scores hit the cache. Local timing (Apple Silicon, Python 3.14): the 6,435 × 26 backfill row build went from ~84 s to ~34 s (~0.2 ms per anchor-week); a single week takes ~1.3 s. L1 enforces < 5 ms per anchor-week; L2 Pass E measures the live `CALL (25)` via `TASK_EXECUTION_LOG.DURATION_MS` (< 30 min gate).
 - **Write path as built (T4):** `write_pandas(auto_create_table=True, overwrite=True)` stages each week **before** `BEGIN`, because its DDL would implicitly commit an open transaction. Then `BEGIN; DELETE week; INSERT … SELECT casts FROM _STAGING; COMMIT`, with `ROLLBACK` on error. Dates ship as int64 epoch-ns so the staging column is deterministically NUMBER. Per week, in order: `_assert_unique_pk`, one IS_TOP_TOPIC per account, write, then `assert_coverage`. Only the DELETE and the coverage COUNT reference the target table (L1 self-read guard). The run summary (weeks, gong present/absent, per-week `rows` / `gong_rows_joined` / `gong_competitor_accounts`, plus any WARN) goes into `TASK_EXECUTION_LOG.ERROR_MESSAGE` on success. `BACKFILL_WEEKS` must be in [0, 104].
 - **No bare `&` anywhere in SQL or in the inlined SP body** (snow sql template trap). The topic is `International Payments and FX`, and an L1 test asserts no `&` in any vocabulary string.
-- **Deploy connection (2026-11-02).** The default snow CLI connection (`GSB13421_jwt`, account `eob55465`) returns `404 Not Found` on login. The `snowflake` MCP (`SFDC_DC_TECH_ARCH_jwt`, account SSC18700, SYSADMIN) can read `DATA_JEDAIS.FINS__PUBLIC` but gets `Insufficient privileges … CREATE TABLE on SCHEMA DATA_JEDAIS.FINS__PUBLIC`. The DDL is therefore committed but not yet applied live.
-  - **Siblings are owned by ACCOUNTADMIN, not SYSADMIN.** `TABLE_OWNER = ACCOUNTADMIN` for `GONG_CALL_SENTIMENT` and `PLAID_HELD_AWAY` (verified 2026-11-02). ACCOUNTADMIN is in the MCP user's available roles.
-  - Apply the DDL (and later the SP / TASK) as ACCOUNTADMIN on SSC18700, e.g. `snow sql -f schemas/demandbase_intent_signals.sql --role ACCOUNTADMIN` on a working default connection.
-  - Then verify `COUNT(*) = 0` and `DESCRIBE TABLE` on both tables: 19 columns, 2 BOOLEAN, 2 NULLable, 4-column PK.
-  - The namespace is settled: every sibling lives in `DATA_JEDAIS.FINS__PUBLIC`, and the plan's `FINS.PUBLIC.*` is stale text.
+- **Deploy connection (resolved 2026-11-02).** `~/.snowflake/config.toml` sets `default_connection_name` to `GSB13421_jwt` (account `eob55465`), which returns `404 Not Found` on login. Select the SSC18700 JWT connection through the environment and pass the role. Never pass `-c` (it opens an OAuth popup):
+  ```bash
+  export SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt
+  snow sql --role ACCOUNTADMIN -f schemas/demandbase_intent_signals.sql
+  python scripts/deploy_sp.py --role ACCOUNTADMIN
+  snow sql --role ACCOUNTADMIN -f tasks/task_weekly_demandbase_intent_signals.sql
+  ```
+  - **Siblings are owned by ACCOUNTADMIN, not SYSADMIN.** The `snowflake` MCP runs as SYSADMIN: it can read `DATA_JEDAIS.FINS__PUBLIC` but has no CREATE TABLE there, and `SHOW` statements are disabled in its config. Use it for read-only checks only.
+  - Every sibling lives in `DATA_JEDAIS.FINS__PUBLIC`; there is no `FINS` database.
+- **L2 SQL: no `EXISTS (...) OR EXISTS (...)` in a WHERE clause.** Live on 2026-11-02 the original `c09` check (correlated EXISTS OR EXISTS) flagged `001DB0000000001AAA` / Equipment Finance / 2026-10-26 even though both EXISTS were FALSE for that row when projected in the SELECT list, and the row's history (63 → 71 surging/1 → 63) is correct. `c09` and the L3 trajectory check use JOIN + `GROUP BY` / `HAVING COUNT_IF` instead, and `c10` is a negative control that must catch an off-by-one.
 - DC mapping descriptions must be ≤521 chars (Plan 6 finding).
 
 ## DC mapping (Task 7) — status: DC mapping pending UI

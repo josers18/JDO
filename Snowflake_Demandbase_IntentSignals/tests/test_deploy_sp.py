@@ -82,3 +82,13 @@ def test_task_sql_schedule_and_wrapper():
     assert ("SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC."
             "SP_GENERATE_DEMANDBASE_INTENT_SIGNALS()', 2)") in t
     assert "ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS RESUME" in t
+
+
+def test_snow_cmd_never_passes_connection_flag_and_forwards_role():
+    """Deploy must stay on the unflagged default/env-selected JWT connection
+    (never -c, which opens an OAuth popup); --role is forwarded after `sql`."""
+    cmd = deploy_sp.build_snow_cmd(role=None)
+    assert cmd[1:] == ["sql", "-f", str(deploy_sp.SP_SQL)]
+    cmd = deploy_sp.build_snow_cmd(role="ACCOUNTADMIN")
+    assert cmd[1:] == ["sql", "-f", str(deploy_sp.SP_SQL), "--role", "ACCOUNTADMIN"]
+    assert "-c" not in cmd and "--connection" not in cmd

@@ -42,15 +42,16 @@ These are row-factory estimates on a 791-anchor live sample (1/8 hash sample, 10
 ```bash
 cd Snowflake_Demandbase_IntentSignals
 pytest tests/ -v      # L1: row factory + SP write path (fake session) + deploy script; cumulus_common resolves via pyproject pythonpath
-snow sql -f tests/integration/test_demandbase_intent_signals_sp.sql   # L2: every assertion column must be TRUE (needs DDL + SP deployed)
+snow sql --role ACCOUNTADMIN -f tests/integration/test_demandbase_intent_signals_sp.sql   # L2: every assertion column must be TRUE (needs DDL + SP deployed)
 ```
 
 ## Deploy
 ```bash
-snow sql -f schemas/demandbase_intent_signals.sql   # table + _STAGING
-python scripts/deploy_sp.py                          # Task 6: inline-source SP (--drop-old-signature if a no-arg version exists)
-snow sql -f tasks/task_weekly_demandbase_intent_signals.sql
-snow sql -q "CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)"   # one-time 26-week backfill
+export SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt   # the configured default (GSB13421_jwt) 404s
+snow sql --role ACCOUNTADMIN -f schemas/demandbase_intent_signals.sql   # table + _STAGING
+python scripts/deploy_sp.py --role ACCOUNTADMIN                          # Task 6: inline-source SP (--drop-old-signature if a no-arg version exists)
+snow sql --role ACCOUNTADMIN -f tasks/task_weekly_demandbase_intent_signals.sql
+snow sql --role ACCOUNTADMIN -q "CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)"   # one-time 26-week backfill
+snow sql --role ACCOUNTADMIN -f tests/integration/l3_smoke_demandbase_intent_signals.sql             # Task 8 L3 smoke
 ```
-Use unflagged `snow sql` (the default JWT connection). Passing `-c` to an OAuth connection opens a browser popup.
-See AGENTS.md → Gotchas → "Deploy connection" for the current state of the snow CLI connection.
+Never pass `-c` (an OAuth connection opens a browser popup); pick the JWT connection with the environment variable. The objects are owned by ACCOUNTADMIN. See AGENTS.md → Gotchas → "Deploy connection".

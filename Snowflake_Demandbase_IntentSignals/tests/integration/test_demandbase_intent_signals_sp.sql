@@ -257,23 +257,41 @@ SELECT
 
 -- Trajectory: WEEKS_SURGING equals the consecutive surge run visible in the
 -- table (only checkable where the run fits inside the 5 stored weeks).
+-- Written as JOIN + GROUP BY / HAVING COUNT_IF, NOT as `EXISTS (...) OR
+-- EXISTS (...)` in WHERE: live on 2026-11-02 Snowflake returned a false
+-- violation for the OR-of-correlated-EXISTS form (both EXISTS were FALSE
+-- for that row when projected in the SELECT list).
 SELECT COUNT(*) = 0 AS c09_weeks_surging_matches_table_run
-FROM DEMANDBASE_INTENT_SIGNALS_FIXTURE cur
-WHERE cur.SURGE_FLAG AND cur.WEEKS_SURGING < 5
-  AND cur.PROFILE_WEEK >= DATEADD('week', -4 + cur.WEEKS_SURGING, $fx_week)
-  AND (
-      -- every week in the claimed run must surge (where the topic emitted)
-      EXISTS (SELECT 1 FROM DEMANDBASE_INTENT_SIGNALS_FIXTURE p
-              WHERE p.ACCOUNT_ID = cur.ACCOUNT_ID AND p.INTENT_TOPIC = cur.INTENT_TOPIC
-                AND p.PROFILE_WEEK BETWEEN DATEADD('week', 1 - cur.WEEKS_SURGING, cur.PROFILE_WEEK)
-                                       AND cur.PROFILE_WEEK
-                AND NOT p.SURGE_FLAG)
-      -- and the week before the run must not
-      OR EXISTS (SELECT 1 FROM DEMANDBASE_INTENT_SIGNALS_FIXTURE p
-                 WHERE p.ACCOUNT_ID = cur.ACCOUNT_ID AND p.INTENT_TOPIC = cur.INTENT_TOPIC
-                   AND p.PROFILE_WEEK = DATEADD('week', -cur.WEEKS_SURGING, cur.PROFILE_WEEK)
-                   AND p.SURGE_FLAG)
-  );
+FROM (
+    SELECT cur.ACCOUNT_ID
+    FROM DEMANDBASE_INTENT_SIGNALS_FIXTURE cur
+    JOIN DEMANDBASE_INTENT_SIGNALS_FIXTURE p
+      ON p.ACCOUNT_ID = cur.ACCOUNT_ID AND p.INTENT_TOPIC = cur.INTENT_TOPIC
+    WHERE cur.SURGE_FLAG AND cur.WEEKS_SURGING < 5
+      AND cur.PROFILE_WEEK >= DATEADD('week', -4 + cur.WEEKS_SURGING, $fx_week)
+    GROUP BY cur.ACCOUNT_ID, cur.INTENT_TOPIC, cur.PROFILE_WEEK, cur.WEEKS_SURGING
+    -- every emitted week in the claimed run must surge, and the week before
+    -- the run must not
+    HAVING COUNT_IF(p.PROFILE_WEEK BETWEEN DATEADD('week', 1 - cur.WEEKS_SURGING, cur.PROFILE_WEEK)
+                                       AND cur.PROFILE_WEEK AND NOT p.SURGE_FLAG) > 0
+        OR COUNT_IF(p.PROFILE_WEEK = DATEADD('week', -cur.WEEKS_SURGING, cur.PROFILE_WEEK)
+                    AND p.SURGE_FLAG) > 0
+);
+
+-- Negative control for c09: claiming one week fewer than stored must be caught
+-- (non-vacuous only when the fixture has a 2-4 week run inside the window).
+SELECT COUNT(*) > 0 AS c10_c09_negative_control_detects_off_by_one
+FROM (
+    SELECT cur.ACCOUNT_ID
+    FROM DEMANDBASE_INTENT_SIGNALS_FIXTURE cur
+    JOIN DEMANDBASE_INTENT_SIGNALS_FIXTURE p
+      ON p.ACCOUNT_ID = cur.ACCOUNT_ID AND p.INTENT_TOPIC = cur.INTENT_TOPIC
+    WHERE cur.SURGE_FLAG AND cur.WEEKS_SURGING BETWEEN 2 AND 4
+      AND cur.PROFILE_WEEK >= DATEADD('week', -4 + cur.WEEKS_SURGING, $fx_week)
+    GROUP BY cur.ACCOUNT_ID, cur.INTENT_TOPIC, cur.PROFILE_WEEK, cur.WEEKS_SURGING
+    HAVING COUNT_IF(p.PROFILE_WEEK = DATEADD('week', -(cur.WEEKS_SURGING - 1), cur.PROFILE_WEEK)
+                    AND p.SURGE_FLAG) > 0
+);
 
 -- =============================================================================
 -- PASS D -- Gong soft-dep: Competitor for anchors 1-6 in all 5 weeks

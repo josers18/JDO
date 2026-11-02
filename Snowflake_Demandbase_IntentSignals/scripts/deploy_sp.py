@@ -24,11 +24,19 @@ What this script does:
   3. Write a single inline-source `CREATE OR REPLACE PROCEDURE ...` to
      `procedures/sp_create_procedure.sql` (no IMPORTS / no stage -- the org
      has no internal stage, and inter-SP imports are unsupported).
-  4. Run it with an UNFLAGGED `snow sql -f <file>` (default JWT connection;
-     passing -c to an OAuth connection opens a browser popup).
+  4. Run it with an UNFLAGGED `snow sql -f <file>` (never -c: passing -c to
+     an OAuth connection opens a browser popup). `--role` is forwarded; the
+     sibling objects are owned by ACCOUNTADMIN.
+
+Connection (2026-11-02): `default_connection_name` (GSB13421_jwt, account
+eob55465) 404s on login. Select the JWT connection for SSC18700 through the
+environment instead of -c:
+
+    SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt \
+        python scripts/deploy_sp.py --role ACCOUNTADMIN
 
 Usage:
-    python scripts/deploy_sp.py [--no-deploy] [--drop-old-signature] [--connection NAME]
+    python scripts/deploy_sp.py [--no-deploy] [--drop-old-signature] [--role ROLE]
 """
 from __future__ import annotations
 
@@ -163,11 +171,20 @@ def _snow() -> str:
     return shutil.which("snow") or "/opt/homebrew/bin/snow"
 
 
+def build_snow_cmd(role: str | None = None) -> list[str]:
+    """`snow sql -f <SP_SQL>` with no -c (the connection comes from the default
+    or SNOWFLAKE_DEFAULT_CONNECTION_NAME); `--role` appended when given."""
+    cmd = [_snow(), "sql", "-f", str(SP_SQL)]
+    if role:
+        cmd += ["--role", role]
+    return cmd
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--connection", "-c", default=None,
-                        help="snow CLI connection (default: unflagged = active JWT connection)")
+    parser.add_argument("--role", default=None,
+                        help="Role passed to snow sql (siblings are owned by ACCOUNTADMIN).")
     parser.add_argument("--no-deploy", action="store_true",
                         help="Generate sp_create_procedure.sql but skip snow sql -f.")
     parser.add_argument("--drop-old-signature", action="store_true",
@@ -187,9 +204,7 @@ def main() -> int:
         print("--no-deploy set; skipping snow sql.")
         return 0
 
-    cmd = [_snow(), "sql", "-f", str(SP_SQL)]
-    if args.connection:
-        cmd[1:1] = ["-c", args.connection]
+    cmd = build_snow_cmd(args.role)
     print(f"Deploying SP via: {' '.join(cmd)}")
     rc = subprocess.call(cmd)
     if rc != 0:
