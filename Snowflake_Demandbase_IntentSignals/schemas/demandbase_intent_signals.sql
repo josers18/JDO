@@ -35,7 +35,7 @@ CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS (
     SCORE_DELTA_WOW         NUMBER(4,0)       NOT NULL COMMENT 'score(W) - score(W-1), recomputed (valid even if the topic did not emit last week). Range [-100, 100].',
     JOURNEY_STAGE           VARCHAR(15)       NOT NULL COMMENT 'Awareness / Consideration / Decision / Purchase -- from score and WEEKS_SURGING.',
     UNIQUE_RESEARCHERS      NUMBER(2,0)       NOT NULL COMMENT 'Distinct anonymous researchers [1, 40]; capped by EMPLOYEE_COUNT tier (3 / 12 / 40) and scaled by score.',
-    RESEARCHING_COMPETITOR  VARCHAR(30)       NULL     COMMENT 'Rival the account compared on G2 (year-stable per account-topic). NULL below score 50; otherwise NULL ~80 pct, ~30 pct when same-week Gong KEY_TOPICS_FLAGS has Competitor.',
+    RESEARCHING_COMPETITOR  VARCHAR(30)       NULL     COMMENT 'Rival the account compared on G2 (year-stable per account-topic). NULL below score 50 (except the IS_TOP_TOPIC row in a Gong Competitor week); where the gate is open NULL ~80 pct, ~30 pct when same-week Gong KEY_TOPICS_FLAGS has Competitor.',
     KEYWORD_SAMPLE          VARCHAR(200)      NOT NULL COMMENT '2-3 keywords from the topic keyword bank, joined with semicolon-space.',
     SIGNAL_SOURCE           VARCHAR(12)       NOT NULL COMMENT 'Demandbase 55 pct / Bombora 30 pct / G2 15 pct; forced to G2 when RESEARCHING_COMPETITOR is non-NULL.',
     LAST_SIGNAL_DATE        DATE              NOT NULL COMMENT 'Most recent signal day, within the 7 days ending on PROFILE_WEEK (never after the Monday run date).',

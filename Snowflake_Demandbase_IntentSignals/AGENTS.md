@@ -7,7 +7,7 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 | Task | State |
 |---|---|
 | T1 scaffold | done |
-| T2 DDL (`schemas/demandbase_intent_signals.sql`, table + `_STAGING`) | written; **live deploy pending** (see Gotchas → "Deploy connection") |
+| T2 DDL (`schemas/demandbase_intent_signals.sql`, table + `_STAGING`) | written; **live apply pending: needs ACCOUNTADMIN** (see Gotchas → "Deploy connection"). Not yet present on SSC18700 (INFORMATION_SCHEMA re-checked 2026-11-02) |
 | T3 row factory + L1 tests | done; `_rows_for` lives in `procedures/sp_generate_demandbase_intent_signals.py` |
 | T4 SP entry point (`main`, DELETE+INSERT, coverage, log) | pending |
 | T5 L2 / T6 deploy + TASK + 26-week backfill / T8 L3 smoke | pending |
@@ -27,16 +27,20 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - `accounts_processed` = audience size (distinct accounts). The row count is ~1.6× that.
 
 ## Tests
-- **L1** (`tests/test_demandbase_intent_signals_row_factory.py`, 39 tests) runs on an inline 12-anchor fixture in `tests/conftest.py`. It does not use the shared SAMPLE_ANCHORS. The fixture covers 8 industries, a NULL industry, a Commercial Banking anchor at $29M, a NULL-revenue anchor and the all-NULL boring anchor. Out-of-audience anchors (Household, PERSON, empty id) must raise.
+- **L1** (`tests/test_demandbase_intent_signals_row_factory.py`, 42 tests) runs on an inline 12-anchor fixture in `tests/conftest.py`. It does not use the shared SAMPLE_ANCHORS. The fixture covers 8 industries, a NULL industry, a Commercial Banking anchor at $29M, a NULL-revenue anchor and the all-NULL boring anchor. Out-of-audience anchors (Household, PERSON, empty id) must raise.
   - Determinism (same week, any weekday)
   - Fan-out (1–4 rows, exactly one IS_TOP_TOPIC, unique topics)
   - 50-week top-topic stability
   - 4a range
   - 4b vocabulary
-  - 4c trajectory coherence: `SCORE_DELTA_WOW == score(W) - score(W-1)`; `WEEKS_SURGING(W) == min(WEEKS_SURGING(W-1)+1, 12)`; `SURGE_FLAG` false ⇒ 0; brute-force consecutive count
+  - 4c trajectory coherence: `SCORE_DELTA_WOW == score(W) - score(W-1)`; `WEEKS_SURGING(W) == min(WEEKS_SURGING(W-1)+1, 12)`, asserted non-vacuous (`checked_chain > 0`); `SURGE_FLAG` false ⇒ 0; brute-force consecutive count. Also a Dec→Jan year-boundary case, where `_base_affinity` reshuffles.
   - 4d bias bands: Restaurant top topic ≥80% over 200 samples; Real Estate has CRE in its top 2 ≥75%; revenue tilt; researcher scaling
   - 4e schema (17 keys)
-  - Gong soft-dep (competitor rate up with the flag, NULL below 50, G2 forced, year-stable rival, flag touches only competitor/source/note)
+  - Gong soft-dep:
+    - competitor rate rises with the flag
+    - NULL below 50, except a flagged top row
+    - G2 forced; year-stable rival; the flag touches only competitor/source/note
+    - **top-row metrics that mirror L2/L3:** flagged top rows ≥55% non-NULL vs unflagged ≤30% (L1 measures 72% / 4.2%); and the Task 5 split, 6 of 12 fixture anchors flagged ⇒ ≥3 flagged hits and ≤3 unflagged hits on the run week, and on ≥80% of 26 weeks (25 of 26 pass)
   - Numeric coercion (int / Decimal / str)
   - Boring case
   - A no-self-read guard
@@ -59,9 +63,14 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - **Anchor numerics are coerced through `float()`** (`_num`). Snowpark returns NUMBER as int or Decimal, and JSON exports return it as str.
 - **Gong soft-dep.** Probe `INFORMATION_SCHEMA.TABLES` for `GONG_CALL_SENTIMENT`.
   - If it's present, left-join same-week `KEY_TOPICS_FLAGS` on `(ACCOUNT_ID, PROFILE_WEEK)` and pass the string to `_rows_for`. If it's absent, pass `None`; never fail.
-  - A `Competitor` token (pipe-delimited) raises the competitor probability from 20% to 70%, applied only on rows with score ≥50. The gate draw is unconditional, so the flag changes only RESEARCHING_COMPETITOR, SIGNAL_SOURCE (forced to G2) and INTENT_NOTE.
+  - A `Competitor` token (pipe-delimited) raises the competitor probability from 20% to 70% on rows with score ≥50.
+  - **Top-row override:** on the IS_TOP_TOPIC row, a Competitor flag also lifts the score ≥50 gate, so p = 0.70 applies at any score.
+    - Why: top rows rest at `min(55, 12×aff)` and mostly score below 50. With the gate kept, only ~18% of top rows got a competitor on 868 live anchors even when every week was flagged. The plan's L2 (≥3 of 6 flagged top rows) and L3 (≥55% of top rows in Competitor weeks) gates were unreachable.
+    - Non-top rows keep the gate. Recorded in plan §4a and in the rowspec.
+  - The gate draw is unconditional, so the flag changes only RESEARCHING_COMPETITOR, SIGNAL_SOURCE (forced to G2) and INTENT_NOTE.
   - Gong's live coverage is all accounts × weeks. The cron (05:30) runs 30 min after Gong (05:00).
 - **Household exclusion uses `COALESCE`.** `NULL <> 'Household'` is NULL in SQL and would drop the ~711 NULL-category anchors. Don't "simplify" it.
+- **`record_id_for` is NOT exported from `cumulus_common/__init__.py`**, which exports only `seed_for` and `assert_coverage`. Task 4 must `from cumulus_common.record_id import record_id_for` (don't edit Cumulus_Common from this chain). `scripts/deploy_sp.py` must inline `cumulus_common/record_id.py` alongside `seed.py` / `coverage.py`. `RECORD_ID` is `NOT NULL` with **no default** in both tables (the `LIKE`-copied `_STAGING` included), so every staged and inserted row must carry it or the INSERT fails.
 - **Write path (Task 4):**
   - Per-week **DELETE + INSERT in one transaction**. Snowflake MERGE has no `NOT MATCHED BY SOURCE`, and topics that fall below threshold must disappear for that week.
   - `SURGE_FLAG::BOOLEAN` / `IS_TOP_TOPIC::BOOLEAN`.
@@ -72,7 +81,11 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - **SP signature:** `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(BACKFILL_WEEKS INTEGER DEFAULT 0)`. `0` runs the current week only (the TASK path). `N` runs weeks W-N … W in ascending order. One SP, no inter-SP imports. DROP the procedure before redeploying if the signature changes.
 - **Cost:** ~10 + 13×rows `_score_for` calls per anchor-week. Time the 26-week backfill in L2; memoize `_score_for` per (account, topic, week) inside the backfill loop if it's slow.
 - **No bare `&` anywhere in SQL or in the inlined SP body** (snow sql template trap). The topic is `International Payments and FX`, and an L1 test asserts no `&` in any vocabulary string.
-- **Deploy connection (2026-11-02).** The default snow CLI connection (`GSB13421_jwt`, account `eob55465`) returns `404 Not Found` on login. The `snowflake` MCP (`SFDC_DC_TECH_ARCH_jwt`, account SSC18700, SYSADMIN) can read `DATA_JEDAIS.FINS__PUBLIC` but gets `Insufficient privileges … CREATE TABLE on SCHEMA DATA_JEDAIS.FINS__PUBLIC`. The DDL is therefore committed but not yet applied live. Object names follow the 13 live siblings (`DATA_JEDAIS.FINS__PUBLIC.*`). The plan text says `FINS.PUBLIC.*`, so confirm the writable namespace before deploying.
+- **Deploy connection (2026-11-02).** The default snow CLI connection (`GSB13421_jwt`, account `eob55465`) returns `404 Not Found` on login. The `snowflake` MCP (`SFDC_DC_TECH_ARCH_jwt`, account SSC18700, SYSADMIN) can read `DATA_JEDAIS.FINS__PUBLIC` but gets `Insufficient privileges … CREATE TABLE on SCHEMA DATA_JEDAIS.FINS__PUBLIC`. The DDL is therefore committed but not yet applied live.
+  - **Siblings are owned by ACCOUNTADMIN, not SYSADMIN.** `TABLE_OWNER = ACCOUNTADMIN` for `GONG_CALL_SENTIMENT` and `PLAID_HELD_AWAY` (verified 2026-11-02). ACCOUNTADMIN is in the MCP user's available roles.
+  - Apply the DDL (and later the SP / TASK) as ACCOUNTADMIN on SSC18700, e.g. `snow sql -f schemas/demandbase_intent_signals.sql --role ACCOUNTADMIN` on a working default connection.
+  - Then verify `COUNT(*) = 0` and `DESCRIBE TABLE` on both tables: 19 columns, 2 BOOLEAN, 2 NULLable, 4-column PK.
+  - The namespace is settled: every sibling lives in `DATA_JEDAIS.FINS__PUBLIC`, and the plan's `FINS.PUBLIC.*` is stale text.
 - DC mapping descriptions must be ≤521 chars (Plan 6 finding).
 
 ## DC mapping (Task 7) — status: DC mapping pending UI

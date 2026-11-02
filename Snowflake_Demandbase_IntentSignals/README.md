@@ -14,7 +14,7 @@ Trajectory fields (`WEEKS_SURGING`, `SCORE_DELTA_WOW`) come from **recomputing**
 - Plan: `../docs/superpowers/plans/2026-11-02-cumulus-plan-14-demandbase-intent-signals.md` (template v1.5)
 - Rowspec: `../docs/superpowers/plans/attachments/cumulus-plan-14-demandbase-intent-signals-rowspec.md`
 - Depends on: [Snowflake_Cumulus_Common](../Snowflake_Cumulus_Common) (Plan 0)
-- Soft-depends on: [Snowflake_Gong_CallSentiment](../Snowflake_Gong_CallSentiment) (Plan 12). A same-week Gong `Competitor` flag raises `RESEARCHING_COMPETITOR` from 20% to 70% on score ≥50 rows. If the table is absent, the bias is skipped.
+- Soft-depends on: [Snowflake_Gong_CallSentiment](../Snowflake_Gong_CallSentiment) (Plan 12). A same-week Gong `Competitor` flag raises `RESEARCHING_COMPETITOR` from 20% to 70% on score ≥50 rows. On the account's top-topic row it also lifts the score ≥50 gate, so 70% applies at any score. If the table is absent, the bias is skipped.
 
 ## Snowflake objects
 - Table: `DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS` (+ `_STAGING`, identical columns)

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development.
 
-**Goal:** Stand up the fourteenth per-dataset Cumulus pipeline, the first **third-party buying-intent** dataset. It produces Demandbase/G2/Bombora-style weekly topic-intent scores per non-household business account, covering which banking products the company is researching off-site right now. Weekly cadence. The SP emits **1–4 topic rows per anchor per week** into `FINS.PUBLIC.DEMANDBASE_INTENT_SIGNALS`, roughly 11.5K rows/week and ~300K rows with the 26-week backfill. The table is federated as `CumulusDemandbaseIntentSignals__dlm`.
+**Goal:** Stand up the fourteenth per-dataset Cumulus pipeline, the first **third-party buying-intent** dataset. It produces Demandbase/G2/Bombora-style weekly topic-intent scores per non-household business account, covering which banking products the company is researching off-site right now. Weekly cadence. The SP emits **1–4 topic rows per anchor per week** into `FINS.PUBLIC.DEMANDBASE_INTENT_SIGNALS`, roughly 10.4K rows/week and ~270K rows with the 26-week backfill (amended 2026-11-02; see §4a). The table is federated as `CumulusDemandbaseIntentSignals__dlm`.
 
 **Why this dataset:** the 2026-11-02 vendor-gap assessment found intent was the one category with **zero** coverage. Every existing behavioral signal is first-party: Gong `KEY_TOPICS_FLAGS`, website prospects, web engagements. Third-party intent answers a question none of the 13 shipped plans can: *"which commercial clients are shopping for a product we sell, before they ask us?"*
 
@@ -59,7 +59,7 @@
 
 **Why not the "rebroadcast all-accounts" shape Plans 8/10/12 adopted?** PERSON anchors have no B2B research footprint. Emitting zero-score rows for 25K people adds about 650K rows of noise per 26 weeks for no demo value. This dataset stays audience-scoped, as Plan 11 (ZoomInfo) did.
 
-**Size ladder:** 6,435 anchors × ~1.8 topics/week ≈ **11.6K rows/week**. With the 26-week backfill (§4 Task 6) the total is **~300K rows**.
+**Size ladder (amended 2026-11-02):** 6,435 anchors × ~1.63 topics/week ≈ **10.4K rows/week**. With the 26-week backfill (§4 Task 6) the total is **~270K rows**. Both figures are projected from 1.625 rows per anchor-week on 868 real anchors over 10 weeks; the original estimate was 11.6K / 300K at ~1.8 topics/week.
 
 ## §3 Rowspec attachment
 
@@ -122,7 +122,7 @@ The attachment contains:
 6. **Task 6 (deploy).**
    - Clone Plan 12's `scripts/deploy_sp.py` (weekly cadence + two salts). Inline `seed_for`, `assert_coverage` and `record_id_for`.
    - Cron `30 5 * * 1 UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS()', 2)`.
-   - **After deploy, run the backfill once by hand:** `CALL FINS.PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)`. That gives 26 weeks ≈ 300K rows. The TASK runs the no-arg form.
+   - **After deploy, run the backfill once by hand:** `CALL FINS.PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)`. That gives 26 weeks ≈ 270K rows. The TASK runs the no-arg form.
    - No bare `&` anywhere in SQL files: the topic name is `International Payments and FX`, never `&` (snow-sql render trap).
 
 7. **Task 7 (DC stream + DMO).** API path identical to Plans 1–13. Mapping table:
@@ -153,7 +153,7 @@ The attachment contains:
    - Booleans are declared **Boolean** in the stream schema, not Text.
    - Both DATE columns need `format: "MM/dd/yyyy"` (v1.4.1).
 
-8. **Task 8 (L3 smoke).** Verify the SP run and backfill: **6,435** distinct accounts per week, ~11.6K rows/week (band 9K–15K), 26 distinct weeks. Spot-check:
+8. **Task 8 (L3 smoke).** Verify the SP run and backfill: **6,435** distinct accounts per week, ~10.4K rows/week (band 9K–15K), 26 distinct weeks. Spot-check:
    - **Coverage:** every audience anchor has exactly 1 `IS_TOP_TOPIC` row per week; 0 Household-category accounts present.
    - **Surge rate:** `SURGE_FLAG` on 8–15% of rows; ≥1 surging topic for 15–25% of accounts each week.
    - **Industry bias:**
@@ -166,6 +166,19 @@ The attachment contains:
      - For 20 random surging (account, topic) pairs, `WEEKS_SURGING` equals the actual consecutive-surge count in the table.
    - **Gong coherence:** among top rows in weeks where Gong `KEY_TOPICS_FLAGS ILIKE '%Competitor%'`, `RESEARCHING_COMPETITOR` is non-NULL ≥55%. Elsewhere it's ≤30%.
    - **Demo pick:** list the 10 Commercial Banking accounts with the longest current Treasury Management surge. Those names go in the demo script.
+
+## §4a Implementation deviations (recorded 2026-11-02, Tasks 1–3 review)
+
+The rowspec attachment has been amended to match the code. Summary:
+
+| Item | Original spec | Shipped | Why |
+|---|---|---|---|
+| Restaurant × SBA Lending multiplier | 1.5 | 1.2 | 1.5 gives 66.8% vs 88.5% for 1.2 against the ≥80% L1 / ≥75% L3 Restaurant band (4,000 synthetic anchor-years) |
+| Surge episodes | hazard `min(0.6, 0.08·aff)`, bump U(28,45), blocks aligned book-wide | hazard `min(0.70, 0.15·aff)`, bump U(35,50), per-(account, topic) block phase | The spec values missed every L3 surge band and caused a synchronized 12-week sawtooth. Tuned values: 1.625 rows per anchor-week, 14.4% surging rows, 21.3% of accounts surging (868 live anchors × 10 weeks) |
+| LAST_SIGNAL_DATE | [PROFILE_WEEK, +6] clamped ≤ run date | [PROFILE_WEEK−6, PROFILE_WEEK] | The clamp broke same-week determinism. Plan 12 `LAST_CALL_DATE` precedent |
+| Boring case | exactly one row | one row in most weeks (≥60% asserted) | A tuned episode occasionally lifts a second topic over 40 |
+| Gong competitor gate | score ≥50 gate on every row | gate lifted on the top row when Gong flags Competitor | With the gate, top rows (resting ≤55) hit only ~18% even when fully flagged. The Task 5 / Task 8 top-row Gong assertions were unreachable. They now hold: L1 measures 72% flagged vs 4.2% unflagged, and the L2-fixture split passes 25 of 26 weeks |
+| Volume | 11.6K/week, 300K total | ~10.4K/week, ~270K total | Follows from the tuned fan-out (still inside the 9K–15K band) |
 
 ## §5 Self-review checklist
 

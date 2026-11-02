@@ -46,10 +46,10 @@ The book is **main-street-heavy**: about 75% of the audience is under $1M revenu
 | `SCORE_DELTA_WOW` | NUMBER(4,0) | NOT NULL | `score(W) - score(W-1)`, recomputed |
 | `JOURNEY_STAGE` | VARCHAR(15) | NOT NULL | `Awareness` / `Consideration` / `Decision` / `Purchase` — from score + WEEKS_SURGING |
 | `UNIQUE_RESEARCHERS` | NUMBER(2,0) | NOT NULL | [1, 40] distinct anonymous researchers; scales with EMPLOYEE_COUNT and score |
-| `RESEARCHING_COMPETITOR` | VARCHAR(30) | NULL | Competitor the account compared on G2; NULL ~80% baseline, ~30% when Gong flags Competitor |
+| `RESEARCHING_COMPETITOR` | VARCHAR(30) | NULL | Competitor the account compared on G2. NULL below score 50, except on the top row in a Gong-Competitor week. Where the gate is open: NULL ~80% baseline, ~30% when Gong flags Competitor |
 | `KEYWORD_SAMPLE` | VARCHAR(200) | NOT NULL | 2–3 keywords from the topic's keyword bank, `; `-joined |
 | `SIGNAL_SOURCE` | VARCHAR(12) | NOT NULL | `Demandbase` 55% / `Bombora` 30% / `G2` 15%; G2 forced when RESEARCHING_COMPETITOR is non-NULL |
-| `LAST_SIGNAL_DATE` | DATE | NOT NULL | Day within [PROFILE_WEEK, PROFILE_WEEK+6], and ≤ run_ts.date() |
+| `LAST_SIGNAL_DATE` | DATE | NOT NULL | Day within [PROFILE_WEEK-6, PROFILE_WEEK] (the 7 days ending on the Monday run date). This keeps it ≤ the run date and identical for any run_ts in the week (amended 2026-11-02; was [PROFILE_WEEK, PROFILE_WEEK+6]) |
 | `INTENT_NOTE` | VARCHAR(200) | NULL | Human-readable one-liner for surging rows only (e.g. `"3-week surge: 7 researchers comparing treasury platforms"`); NULL when not surging |
 | `GENERATED_AT` | TIMESTAMP_NTZ(9) | NOT NULL | Week-bucketed (`week_start`) for byte-identical same-week re-runs |
 
@@ -83,7 +83,7 @@ _COMPETITORS = ["JPMorgan Chase", "Bank of America", "Wells Fargo", "U.S. Bank",
 
 ```python
 _INDUSTRY_AFFINITY = {  # topic -> multiplier on base affinity; unlisted topics = 1.0
-    "Restaurant":        {"Merchant Services": 3.0, "Payroll Services": 2.0, "Equipment Finance": 1.8, "Business Credit Cards": 1.6, "SBA Lending": 1.5},
+    "Restaurant":        {"Merchant Services": 3.0, "Payroll Services": 2.0, "Equipment Finance": 1.8, "Business Credit Cards": 1.6, "SBA Lending": 1.2},  # amended from 1.5, see note
     "Retail Trade":      {"Merchant Services": 3.0, "Business Credit Cards": 1.8, "SBA Lending": 1.5, "Payroll Services": 1.4},
     "Construction":      {"Equipment Finance": 3.0, "Commercial Lending": 1.8, "Payroll Services": 1.5, "SBA Lending": 1.4},
     "Professional Services": {"Business Credit Cards": 2.0, "Payroll Services": 1.8, "AP Automation": 1.4},
@@ -116,6 +116,8 @@ def _base_affinity(anchor, topic, year):
     return rng.uniform(0.6, 1.4) * ind.get(topic, 1.0) * _revenue_tilt(topic, anchor.get("ANNUAL_REVENUE"))
 ```
 
+**Amended 2026-11-02 (Task 3):** Restaurant × SBA Lending is **1.2**, not 1.5. With the <$1M revenue tilt (SBA ×1.8), 1.5 put SBA at 2.7 against Merchant Services at 3.0. Only 66.8% of main-street restaurant anchor-years then got a top topic in {Merchant, Payroll, Equipment, Cards}, below the ≥80% L1 / ≥75% L3 band. With 1.2 the figure is 88.5% (4,000 synthetic anchor-years, re-run in review).
+
 ## `_score_for` — the trajectory function (load-bearing)
 
 This is a pure function of `(anchor, topic, week_start)`. It must **not** depend on any other week's output, because `WEEKS_SURGING` and `SCORE_DELTA_WOW` call it for prior weeks.
@@ -138,6 +140,13 @@ def _score_for(anchor, topic, week_start):
     score = base + bump + wrng.gauss(0, 6)
     return int(max(0, min(100, round(score))))
 ```
+
+**Amended 2026-11-02 (Task 3): tuned episode values. The code is authoritative.** The values above (hazard `min(0.6, 0.08*aff)`, bump `U(28, 45)`, blocks aligned for every account) gave ~1.3 rows per anchor-week, ~6% surging rows and ~7% of accounts surging on a live sample, below every L3 band. They also gave a book-wide 12-week sawtooth. The shipped scheme is:
+- 12-week blocks counted from a Monday epoch (1970-01-05), each shifted by a fixed per-(account, topic) phase.
+- At most one 2–8-week episode per block.
+- Hazard `min(0.70, 0.15*aff)`, bump `U(35, 50)`.
+
+On 868 real audience anchors over 10 weeks this gave 1.625 rows per anchor-week, 14.4% surging rows and 21.3% of accounts surging.
 
 The `block` math is illustrative. The implementer may choose any recomputable episode scheme, provided that:
 - (a) an episode spans consecutive weeks;
@@ -204,6 +213,8 @@ def _researching_competitor(anchor, topic, week, gong_flags, rng):
 
 The `p` applies only on rows with `score >= 50`. Below that, the value is always NULL, because nobody compares vendors at the awareness stage.
 
+**Amended 2026-11-02 (Task 3 review): Gong override on the top row.** When same-week Gong flags `Competitor`, the score ≥50 gate is **lifted on the IS_TOP_TOPIC row**, so p = 0.70 applies at any score. Non-top rows keep the gate. The reason is that top rows rest at `min(55, 12*aff)` and mostly score below 50. With the gate kept, only ~18% of top rows got a competitor on 868 live anchors even with every week flagged. That would fail the plan's L2 gate (≥3 of 6 flagged anchors' top rows) and its L3 gate (≥55% of top rows in Gong-Competitor weeks). A Gong `Competitor` mention is first-party evidence that the account is comparing banks, and the top topic is its core product need. Measured on L1 synthetic data: 72% of top rows are non-NULL when flagged and 4.2% when unflagged.
+
 ## Bias logic for `_rows_for`
 
 - INDUSTRY × topic multiplier, then ANNUAL_REVENUE tilt, then per-(account, topic) year-stable jitter, which gives base affinity.
@@ -213,7 +224,7 @@ The `p` applies only on rows with `score >= 50`. Below that, the value is always
 
 ## Boring case (must still emit)
 
-Take an anchor with `INDUSTRY=None`, `ANNUAL_REVENUE=None` and `EMPLOYEE_COUNT=None`, with no Gong row. It emits exactly **one** row: its year-stable top topic (seed-chosen from uniform affinities), with INTENT_SCORE in roughly [5, 25] in most weeks, SURGE_FLAG=False, WEEKS_SURGING=0, JOURNEY_STAGE=`Awareness`, UNIQUE_RESEARCHERS=1, RESEARCHING_COMPETITOR=None and INTENT_NOTE=None. It never raises.
+Take an anchor with `INDUSTRY=None`, `ANNUAL_REVENUE=None` and `EMPLOYEE_COUNT=None`, with no Gong row. In most weeks it emits exactly **one** row (amended 2026-11-02: ≥60% of weeks asserted, 71% observed over 52 weeks; with the tuned episode hazard a second topic occasionally crosses 40). That row is its year-stable top topic (seed-chosen from uniform affinities), with INTENT_SCORE in roughly [5, 25] in most weeks, SURGE_FLAG=False, WEEKS_SURGING=0, JOURNEY_STAGE=`Awareness`, UNIQUE_RESEARCHERS=1, RESEARCHING_COMPETITOR=None and INTENT_NOTE=None. It never raises.
 
 ## L1 property targets
 

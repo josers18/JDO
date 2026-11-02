@@ -228,6 +228,34 @@ def test_trajectory_coherence_week_over_week(in_audience_anchors):
                     assert n["WEEKS_SURGING"] == min(p["WEEKS_SURGING"] + 1, 12)
                     checked_chain += 1
     assert checked_delta > 0
+    assert checked_chain > 0  # the load-bearing chain check must not pass vacuously
+
+
+def test_trajectory_coherence_across_year_boundary(in_audience_anchors):
+    """W in early January, W-1 in December: _base_affinity reshuffles by year
+    (so the top topic may change), but SCORE_DELTA_WOW and the WEEKS_SURGING
+    chain must stay coherent because _score_for is pure in (anchor, topic, week)."""
+    anchors = in_audience_anchors + _synthetic("Real Estate", 40, revenue=3_000_000,
+                                               employees=25, prefix="YB")
+    checked_delta = 0
+    checked_chain = 0
+    for jan_monday in (datetime(2026, 1, 5), datetime(2027, 1, 4), datetime(2028, 1, 3)):
+        for w in (jan_monday, jan_monday + timedelta(weeks=1)):
+            prev = w - timedelta(weeks=1)
+            for a in anchors:
+                now_rows = {r["INTENT_TOPIC"]: r for r in _rows_for(a, w, None)}
+                prev_rows = {r["INTENT_TOPIC"]: r for r in _rows_for(a, prev, None)}
+                for t, n in now_rows.items():
+                    # delta is recomputed even if t did not emit in W-1
+                    assert n["SCORE_DELTA_WOW"] == n["INTENT_SCORE"] - _score_for(a, t, prev)
+                    checked_delta += 1
+                    p = prev_rows.get(t)
+                    if p is not None and n["SURGE_FLAG"] and p["SURGE_FLAG"]:
+                        assert n["WEEKS_SURGING"] == min(p["WEEKS_SURGING"] + 1, 12)
+                        checked_chain += 1
+    assert datetime(2026, 1, 5).year != (datetime(2026, 1, 5) - timedelta(weeks=1)).year
+    assert checked_delta > 0
+    assert checked_chain > 0
 
 
 def test_surge_flag_semantics(in_audience_anchors):
@@ -343,9 +371,64 @@ def test_researchers_scale_with_employees():
 # ---------- Gong soft-dep ----------
 
 def test_competitor_null_below_consideration(in_audience_anchors):
-    for _, _, r in _all_rows(in_audience_anchors, ROLL_WEEKS, gong_flags="Competitor"):
+    """Score < 50 => NULL competitor, except on the TOP row in a Gong
+    Competitor week (first-party evidence lifts the gate there)."""
+    for _, _, r in _all_rows(in_audience_anchors, ROLL_WEEKS, gong_flags=None):
         if r["INTENT_SCORE"] < 50:
             assert r["RESEARCHING_COMPETITOR"] is None
+    for _, _, r in _all_rows(in_audience_anchors, ROLL_WEEKS, gong_flags="Competitor"):
+        if r["INTENT_SCORE"] < 50 and not r["IS_TOP_TOPIC"]:
+            assert r["RESEARCHING_COMPETITOR"] is None
+
+
+def _top_rows(anchors, weeks, flags):
+    return [r for _, _, r in _all_rows(anchors, weeks, gong_flags=flags) if r["IS_TOP_TOPIC"]]
+
+
+def _nonnull_rate(rows):
+    return sum(r["RESEARCHING_COMPETITOR"] is not None for r in rows) / len(rows)
+
+
+def test_gong_competitor_top_row_rate_meets_l3_band():
+    """Plan section 4 Task 8 metric: among TOP rows in Gong-Competitor weeks,
+    RESEARCHING_COMPETITOR non-NULL >= 55 pct; elsewhere <= 30 pct. Measured
+    over a mixed-industry synthetic book so most top rows score < 50."""
+    anchors = []
+    for ind in ("Restaurant", "Construction", "Technology", "Wholesale", "Healthcare"):
+        anchors += _synthetic(ind, 30, prefix="TR")
+    weeks = ROLL_WEEKS[:10]
+    flagged = _nonnull_rate(_top_rows(anchors, weeks, "Pricing|Competitor"))
+    plain = _nonnull_rate(_top_rows(anchors, weeks, None))
+    other = _nonnull_rate(_top_rows(anchors, weeks, "Pricing|Renewal"))
+    assert flagged >= 0.55, flagged
+    assert plain <= 0.30, plain
+    assert abs(other - plain) < 1e-9
+
+
+def test_gong_competitor_l2_fixture_split(in_audience_anchors):
+    """Plan section 4 Task 5 second pass: Gong flags Competitor for 6 of the
+    12 fixture anchors. Expect a non-NULL competitor on >= 3 of the 6 flagged
+    anchors' top rows and <= 3 of the other 6 -- asserted for the L2 run week
+    and for >= 80 pct of the 26-week roll."""
+    flagged_ids = {a["ACCOUNT_ID"] for a in in_audience_anchors[::2]}
+
+    def split(w):
+        hit_flagged = hit_other = 0
+        for a in in_audience_anchors:
+            is_flagged = a["ACCOUNT_ID"] in flagged_ids
+            top = next(r for r in _rows_for(a, w, "Competitor" if is_flagged else None)
+                       if r["IS_TOP_TOPIC"])
+            if top["RESEARCHING_COMPETITOR"] is not None:
+                if is_flagged:
+                    hit_flagged += 1
+                else:
+                    hit_other += 1
+        return hit_flagged, hit_other
+
+    hf, ho = split(BASE_MONDAY)
+    assert hf >= 3 and ho <= 3, (hf, ho)
+    passing = sum(1 for w in ROLL_WEEKS if (lambda s: s[0] >= 3 and s[1] <= 3)(split(w)))
+    assert passing / len(ROLL_WEEKS) >= 0.80, passing
 
 
 def test_g2_forced_when_competitor(in_audience_anchors):

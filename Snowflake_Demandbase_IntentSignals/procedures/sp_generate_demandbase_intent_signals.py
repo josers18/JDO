@@ -31,7 +31,9 @@ Salts:
 
 Gong soft-dep (Plan 12): `gong_flags` is the same-week KEY_TOPICS_FLAGS
 string (pipe-delimited) or None. A `Competitor` flag raises the chance that
-RESEARCHING_COMPETITOR is non-NULL on score >= 50 rows from 20% to 70%.
+RESEARCHING_COMPETITOR is non-NULL from 20% to 70% on score >= 50 rows, and
+on the IS_TOP_TOPIC row it also lifts the score >= 50 gate (70% at any
+score) -- see `_researching_competitor`.
 
 The SP entry point (main / per-week DELETE+INSERT / coverage / log) lands in
 Plan 14 Task 4; this module currently holds the pure row factory that the L1
@@ -303,15 +305,29 @@ def _gong_competitor_flag(gong_flags) -> bool:
 
 
 def _researching_competitor(anchor: dict, topic: str, week: datetime, score: int,
-                            gong_flags, rng: random.Random):
-    """NULL ~80% baseline / ~30% when Gong flags Competitor that week; always
-    NULL below score 50 (nobody compares vendors at the awareness stage).
+                            is_top: bool, gong_flags, rng: random.Random):
+    """Competitor gate.
+
+    - Baseline: NULL below score 50 (nobody compares vendors at the awareness
+      stage); at score >= 50 non-NULL with p = 0.20, or 0.70 when the
+      same-week Gong KEY_TOPICS_FLAGS carries `Competitor`.
+    - Gong override on the TOP row: a Gong `Competitor` flag is first-party
+      evidence that the account is comparing banks, whatever its third-party
+      score. So on the IS_TOP_TOPIC row (the account's core product need)
+      the score >= 50 gate is lifted when Gong flags Competitor, and p = 0.70
+      applies at any score. Without this, top rows -- which rest at
+      min(55, 12*aff) and mostly score < 50 -- got a competitor only ~18 pct
+      of the time on 868 live anchors even with every week flagged, failing
+      the plan's L2 (>=3 of 6 flagged anchors' top rows) and L3 (>=55 pct of
+      top rows in Gong-Competitor weeks) gates. Non-top rows keep the gate.
+
     The rng draw happens unconditionally so the gate is independent of the
     Gong flag (flagged and unflagged runs share every other field)."""
     gate = rng.random()
-    if score < 50:
+    gong_competitor = _gong_competitor_flag(gong_flags)
+    if score < 50 and not (is_top and gong_competitor):
         return None
-    p = 0.70 if _gong_competitor_flag(gong_flags) else 0.20
+    p = 0.70 if gong_competitor else 0.20
     if gate >= p:
         return None
     yrng = random.Random(_year_seed(anchor["ACCOUNT_ID"] + "_" + topic + "_comp", week.year))
@@ -355,7 +371,7 @@ def _row(anchor: dict, topic: str, week: datetime, score: int, is_top: bool,
     # future; anchoring to the trailing window keeps it <= run date AND
     # identical for any run_ts in the same week.
     last_signal = week.date() - timedelta(days=rng.randint(0, 6))
-    competitor = _researching_competitor(anchor, topic, week, score, gong_flags, rng)
+    competitor = _researching_competitor(anchor, topic, week, score, is_top, gong_flags, rng)
     source = _signal_source(competitor, rng)
     return {
         "ACCOUNT_ID":             anchor["ACCOUNT_ID"],
