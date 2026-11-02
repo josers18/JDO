@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development.
 
-**Goal:** Stand up the sixteenth per-dataset Cumulus pipeline, Harmonic-style **private-company funding and traction signals**. Coresignal-style **department headcount mix and job-posting velocity** are folded in as columns. Coverage is young, private commercial clients. Monthly cadence. The SP emits **one row per audience anchor per month** into `FINS.PUBLIC.HARMONIC_COMPANY_SIGNALS`, roughly 700 rows/month and ~4.9K rows with the 7-month backfill. The table is federated as `CumulusHarmonicCompanySignals__dlm`.
+**Goal:** Stand up the sixteenth per-dataset Cumulus pipeline, Harmonic-style **private-company funding and traction signals**. Coresignal-style **department headcount mix and job-posting velocity** are folded in as columns. Coverage is young, private commercial clients. Monthly cadence. The SP emits **one row per audience anchor per month** into `FINS.PUBLIC.HARMONIC_COMPANY_SIGNALS`, roughly 670 rows/month and ~4.6K rows with the 7-month backfill (re-probed after Task 0; see §2). The table is federated as `CumulusHarmonicCompanySignals__dlm`.
 
 **Why this dataset:** the 2026-11-02 vendor-gap assessment found that the existing company data is either static firmographics (ZoomInfo: band, NAICS, founded year) or public-market context (Moody's: rating, market cap, liquidity tier). Nothing describes the **private-company growth story**: who just raised, how much runway they have, and whether they're hiring or freezing. That story drives the highest-value commercial-banking moments:
 - **Fresh round:** treasury / sweep / deposit capture.
@@ -62,33 +62,44 @@ WHERE a.ACCOUNT_TYPE_FLAG = 'BUSINESS'
   AND z.FOUNDED_YEAR >= 2010
 ```
 
-**Live cardinality (probed 2026-11-02 against `DATA_JEDAIS.FINS__PUBLIC`, latest ZoomInfo month):** **703 anchors**.
+**Live cardinality (re-probed 2026-11-02 after Task 0, against `DATA_JEDAIS.FINS__PUBLIC`, every ZoomInfo month, §2 SQL verbatim):** **672 anchors** in the latest month (2026-11). FOUNDED_YEAR is now account-stable (0 accounts with >1 distinct value across all 7 months), so the month-to-month growth below is new BUSINESS anchors arriving, not churn: every account in an earlier month's audience is also in the 2026-11 audience (0 missing).
 
-| Founded cut | Anchors (latest month) |
+| ZoomInfo PROFILE_MONTH | Audience anchors (rows = distinct accounts) |
 |---|---|
-| ≥ 2005 | 1,237 |
-| ≥ 2008 | 909 |
-| **≥ 2010 (chosen)** | **703** |
-| ≥ 2012 | 537 |
-| ≥ 2015 | 322 |
+| 2026-05 | 650 |
+| 2026-06 | 650 |
+| 2026-07 | 650 |
+| 2026-08 | 650 |
+| 2026-09 | 651 |
+| 2026-10 | 664 |
+| **2026-11 (latest)** | **672** |
 
-| ZoomInfo EMPLOYEE_BAND (≥2010 cut) | Anchors |
+| Founded cut | Anchors (2026-11, stable FOUNDED_YEAR) |
 |---|---|
-| 1-10 | 563 |
-| 11-50 | 47 |
-| 51-200 | 30 |
-| 201-1000 | 58 |
-| 1001-5000 | 4 |
-| 5001-25000 | 1 |
+| ≥ 2005 | 1,242 |
+| ≥ 2008 | 898 |
+| **≥ 2010 (chosen)** | **672** |
+| ≥ 2012 | 498 |
+| ≥ 2015 | 280 |
+
+| ZoomInfo EMPLOYEE_BAND (≥2010 cut, 2026-11) | Anchors |
+|---|---|
+| 1-10 | 511 |
+| 11-50 | 46 |
+| 51-200 | 49 |
+| 201-1000 | 59 |
+| 1001-5000 | 5 |
+| 5001-25000 | 2 |
 
 **Why Moody's `Illiquid` and not "no Moody's row"?** Plan 13 v2 covers *every* BUSINESS account, so absence can't signal "private". `LIQUIDITY_TIER='Illiquid'` is stable per account and is the closest synthetic proxy for "not publicly traded". Moody's history is only 90 days deep, so the predicate reads the **latest** row per account rather than month-matching. That's safe because the tier doesn't move.
 
-**FOUNDED_YEAR churn (found at draft time, 2026-11-02) — the reason for Task 0.**
+**FOUNDED_YEAR churn (found at draft time, 2026-11-02) — the reason for Task 0. FIXED by Task 0 (2026-11-02).**
 - **Cause:** Plan 11 seeds `_founded_year` (`Snowflake_ZoomInfo_Firmographics/procedures/sp_generate_zoominfo_firmographics.py:293`) from the per-month rng (`seed_for(account_id, DATASET_SALT, month_start)`, line ~516).
 - **Effect:** a company's founding year is re-drawn every month. The same predicate run per ZoomInfo month gives 682 / 668 / 642 / 657 / 653 / 657 / 703, with different accounts each month.
-- **Conclusion:** the 703 figure is one random monthly draw. After Task 0 stabilizes the value, re-probe; expect roughly 640–720. L3 accepts 550–850.
+- **Conclusion (pre-fix):** the draft-time 703 was one random monthly draw.
+- **Resolution:** Task 0 landed; the stable counts are in the tables above (650–672 across the 7 months, 672 latest). That sits inside the L3 550–850 band, so the band is unchanged.
 
-**Size ladder:** ~700 anchors × 1 row/month ≈ **700 rows/month**. With the 7-month backfill (aligned to ZoomInfo's history) the total is **~4.9K rows**.
+**Size ladder:** ~650–672 anchors × 1 row/month ≈ **~670 rows/month**. With the 7-month backfill (aligned to ZoomInfo's history) the total is **4,587 rows** (sum of the per-month counts above).
 
 ## §3 Rowspec attachment
 
@@ -214,7 +225,7 @@ The attachment contains:
 
 ## §5 Self-review checklist
 
-- [ ] Task 0 landed first: FOUNDED_YEAR stable across all ZoomInfo months (0 accounts with >1 distinct value); audience re-probed and recorded.
+- [x] Task 0 landed first: FOUNDED_YEAR stable across all ZoomInfo months (0 accounts with >1 distinct value); audience re-probed and recorded.
 - [ ] Audience SQL reads Moody's latest row per account (QUALIFY), not month-matched.
 - [ ] SP raises when ZoomInfo or Moody's is missing, or ZoomInfo lacks the run month.
 - [ ] Funding timeline seeded account-only (`harmonic_funding`, `datetime(2000,1,1)`); monotonicity holds by construction.

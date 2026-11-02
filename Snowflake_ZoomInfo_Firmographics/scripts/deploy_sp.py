@@ -59,11 +59,21 @@ Plan 11 deviations from the v1.5 template:
 
   - **Single salt "zoominfo"** -- back to the simplest shape. Plan 5 had
     two salts; Plan 7 had three (worldcheck plus worldcheck_jurisdiction
-    plus worldcheck_case); Plan 11 reverts to one because no field is
-    year-stable in this dataset (FOUNDED_YEAR is per-anchor deterministic
-    and never re-rolled, but it's not multi-stream-salted; LINKEDIN /
+    plus worldcheck_case); Plan 11 keeps one salt. LINKEDIN /
     TECH_STACK_FLAGS / LAST_DATA_REFRESH_DATE jitter all month-bucket on
-    the single salt). Same shape as Plan 6 / Plan 8.
+    it. FOUNDED_YEAR (Plan 16 Task 0, 2026-11-02) draws from a second,
+    account-stable stream on the SAME salt:
+    seed_for(account_id + "_founded", "zoominfo", datetime(2000, 1, 1)).
+    Before that fix it rode the monthly stream and re-drew every month.
+
+  - **RECORD_ID** -- the live table carries RECORD_ID VARCHAR(36) NOT NULL
+    DEFAULT UUID_STRING(). The SP writes the deterministic
+    record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH) on INSERT and UPDATE;
+    this script inlines `record_id_for` from cumulus_common/record_id.py.
+
+  - **Live role.** The table, SP and TASK are owned by ACCOUNTADMIN, so
+    run the generated file under that role (e.g. `snow sql -f <file>
+    --role ACCOUNTADMIN`); SYSADMIN cannot replace the procedure.
 
   - **No ampersand-to-n sanitize.** "ZoomInfo" is path-clean -- the
     Jinja-templating gotcha that bit Plan 3 (the DnB pun originally written
@@ -117,6 +127,7 @@ SP_SQL = REPO_ROOT / "procedures" / "sp_create_procedure.sql"
 CUMULUS_COMMON_ROOT = REPO_ROOT.parent / "Snowflake_Cumulus_Common" / "cumulus_common"
 SEED_PY = CUMULUS_COMMON_ROOT / "seed.py"
 COVERAGE_PY = CUMULUS_COMMON_ROOT / "coverage.py"
+RECORD_ID_PY = CUMULUS_COMMON_ROOT / "record_id.py"
 
 PROCEDURE_FQN = "DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS"
 TABLE_FQN = "DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS"
@@ -145,9 +156,11 @@ SQL_HEADER = f"""\
 --           change. Same caveat as Plans 2/3.
 -- Cadence:  MONTHLY ({TASK_NAME})  -- first of month at 07:00 UTC.
 --           Matches Plans 1-3 / Plan 6 / Plan 8.
--- Salt:     "{DATASET_SALT}"  (month-bucketed; SINGLE salt -- no year-stable
---           subfields. Same shape as Plans 2/3/6/8; simpler than Plan 7's
---           three-salt arrangement).
+-- Salt:     "{DATASET_SALT}"  (month-bucketed) plus an account-stable
+--           FOUNDED_YEAR stream: seed_for(account_id + "_founded", salt,
+--           2000-01-01) -- Plan 16 Task 0, so FOUNDED_YEAR never re-draws.
+-- RECORD_ID: record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH), written on
+--           INSERT and UPDATE (live DEFAULT UUID_STRING() is random).
 -- Table:    {TABLE_FQN}
 --           Composite PK (ACCOUNT_ID, PROFILE_MONTH).
 --           DC DMO collapses to single-column PK profileMonth__c.
@@ -183,7 +196,7 @@ LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+EXECUTE AS OWNER
 AS
 $$
 """
@@ -238,6 +251,7 @@ def build_sql() -> str:
     sp_src = SP_PY.read_text()
     seed_src = SEED_PY.read_text()
     coverage_src = COVERAGE_PY.read_text()
+    record_id_src = RECORD_ID_PY.read_text()
 
     # No ampersand-to-n sanitize on the SP body. "ZoomInfo" is path-clean
     # -- the Jinja-templating gotcha that bit Plan 3 does not apply. Plan 7
@@ -245,6 +259,7 @@ def build_sql() -> str:
     sp_clean = _strip_module_docstring_and_imports(sp_src)
     seed_for_def = _extract_helper(seed_src, "seed_for")
     assert_coverage_def = _extract_helper(coverage_src, "assert_coverage")
+    record_id_for_def = _extract_helper(record_id_src, "record_id_for")
 
     # `seed_for` calls `hashlib.sha256`. The Plan 11 SP body does NOT import
     # hashlib at module-top, so we add an `import hashlib` line during splice.
@@ -259,6 +274,10 @@ def build_sql() -> str:
         "# Inlined from cumulus_common.coverage (kept in sync via scripts/deploy_sp.py)\n"
         "# -------------------------------------------------------------------\n"
         f"{assert_coverage_def}\n"
+        "# -------------------------------------------------------------------\n"
+        "# Inlined from cumulus_common.record_id (kept in sync via scripts/deploy_sp.py)\n"
+        "# -------------------------------------------------------------------\n"
+        f"{record_id_for_def}\n"
     )
 
     # Inject helpers after the prelude imports. We find the last *top-level*
@@ -303,7 +322,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    for path in (SP_PY, SEED_PY, COVERAGE_PY):
+    for path in (SP_PY, SEED_PY, COVERAGE_PY, RECORD_ID_PY):
         if not path.exists():
             print(f"ERROR: {path} does not exist", file=sys.stderr)
             return 1

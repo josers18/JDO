@@ -29,7 +29,9 @@ Audience: ACCOUNT_TYPE_FLAG = 'BUSINESS'  (~12K rows; over-count vs CRM ~5K
           is expected. The SP warns at >10K but does not fail; long-term fix
           is upstream PersonBirthdate__c backfill.)
 Cadence:  MONTHLY
-Salt:     "zoominfo"  (per-row randomness, month-bucketed)
+Salt:     "zoominfo"  (per-row randomness, month-bucketed) plus an
+          account-stable stream for FOUNDED_YEAR keyed on
+          account_id + "_founded" at the fixed epoch 2000-01-01 (Plan 16 Task 0).
 Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-11-zoominfo-firmographics.md
 Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-11-zoominfo-firmographics-rowspec.md
 """
@@ -44,6 +46,7 @@ from typing import Any
 # Locally and in Snowflake, cumulus_common is shipped via pip install -e or
 # the IMPORTS clause on CREATE PROCEDURE.
 from cumulus_common import seed_for, assert_coverage
+from cumulus_common.record_id import record_id_for
 
 
 # -------------------------------------------------------------------
@@ -62,12 +65,16 @@ COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC
 # Per spec §3 v1.2 #3: warn (do NOT fail) when BUSINESS over-count is detected.
 _BUSINESS_OVERCOUNT_THRESHOLD = 10000
 
-# 16-column output contract (kept in sync with table DDL by the L1 schema test).
+# 17-column output contract (kept in sync with table DDL by the L1 schema test).
 # v1.x multi-org-additive: ORG_ID stamped from anchor (V_ACCOUNT_ANCHORS) and
 # is the leading PK component. Falls back to 'JDO' when anchor lacks ORG_ID
 # (backward-compatible with single-org call sites and pre-migration fixtures).
+# RECORD_ID = record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH) — deterministic
+# UUID, identical to the SQL formula in
+# Snowflake_Cumulus_Common/scripts/backfill_record_ids.sql. The live column's
+# DEFAULT UUID_STRING() is random, so the SP always writes it explicitly.
 ROW_KEYS: tuple[str, ...] = (
-    "ORG_ID",
+    "ORG_ID", "RECORD_ID",
     "ACCOUNT_ID", "PROFILE_MONTH",
     "EMPLOYEE_BAND", "REVENUE_BAND",
     "INDUSTRY_NAICS_CODE", "INDUSTRY_SIC_CODE",
@@ -290,10 +297,24 @@ _FOUNDED_BANDS: list[tuple[str, int, int, int]] = [
 _FOUNDED_DEFAULT = (2000, 1960, 2024)  # Personal Services or unclassified
 
 
+def _founded_rng(account_id: str) -> random.Random:
+    """Account-stable rng for FOUNDED_YEAR (Plan 16 Task 0).
+
+    A founding year is a fact about the company, not monthly noise. Seeding it
+    from the per-month stream re-drew it every month, which churned any
+    audience cut on FOUNDED_YEAR (Plan 16 Harmonic: FOUNDED_YEAR >= 2010).
+    The fixed epoch 2000-01-01 makes seed_for's YYYY-MM component constant,
+    and the "_founded" key suffix keeps this stream independent of the monthly
+    one. Do NOT pass the monthly rng to _founded_year.
+    """
+    return random.Random(seed_for(account_id + "_founded", DATASET_SALT, datetime(2000, 1, 1)))
+
+
 def _founded_year(industry: str, current_year: int, rng: random.Random) -> int:
     """Year founded, biased by INDUSTRY. Clamped to [1900, current_year].
 
     Uses a triangular distribution around the band mean for a soft skew.
+    Callers pass the account-stable rng from _founded_rng(account_id).
     """
     mean, low, high = _FOUNDED_DEFAULT
     if industry:
@@ -303,6 +324,12 @@ def _founded_year(industry: str, current_year: int, rng: random.Random) -> int:
                 mean, low, high = m, lo, hi
                 break
     # Hard cap upper bound at current_year — no future-founded businesses.
+    # NOTE: this is a no-op today because every band's `high` is <= 2024 <
+    # current_year, which is what keeps FOUNDED_YEAR account-stable across
+    # years. If a band ever gets a `high` > current_year, this clamp (and the
+    # final min() below) start binding and the same account's draw would
+    # drift year-to-year again — keep every band `high` <= the earliest run
+    # year, or derive the clamp from a fixed year instead of run_ts.year.
     high = min(high, current_year)
     # Triangular gives a soft bias toward the mean.
     year = int(round(rng.triangular(low, high, mean)))
@@ -523,8 +550,12 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     # 2. Industry codes — deterministic from INDUSTRY.
     naics, sic = _industry_codes(industry)
 
-    # 3. Founded year — industry-biased, capped at run_ts.year.
-    founded_year = _founded_year(industry, run_ts.year, rng)
+    # 3. Founded year — industry-biased, capped at run_ts.year. Drawn from its
+    #    own account-stable rng (Plan 16 Task 0), NOT the monthly rng, so it
+    #    is identical every month. Taking it off the monthly stream shifted
+    #    the later monthly draws (LINKEDIN_FOLLOWERS, TECH_STACK_FLAGS,
+    #    LAST_DATA_REFRESH_DATE) — fine, those re-draw monthly anyway.
+    founded_year = _founded_year(industry, run_ts.year, _founded_rng(account_id))
 
     # 4. HQ geography — defensive (v1.5 findings #4 plus #5).
     hq_country = _hq_country_code(anchor)
@@ -550,6 +581,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
     return {
         "ORG_ID":                 org_id,
+        "RECORD_ID":              record_id_for(org_id, account_id, month_start.date()),
         "ACCOUNT_ID":             account_id,
         "PROFILE_MONTH":          month_start.date(),
         "EMPLOYEE_BAND":          employee_band,
@@ -595,14 +627,14 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
         USING (
             SELECT
-                ORG_ID,
+                ORG_ID, RECORD_ID,
                 ACCOUNT_ID, PROFILE_MONTH,
                 EMPLOYEE_BAND, REVENUE_BAND,
                 INDUSTRY_NAICS_CODE, INDUSTRY_SIC_CODE,
@@ -617,6 +649,7 @@ def _merge(session: Any, records: list[dict]) -> int:
            AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
+            RECORD_ID              = src.RECORD_ID,
             EMPLOYEE_BAND          = src.EMPLOYEE_BAND,
             REVENUE_BAND           = src.REVENUE_BAND,
             INDUSTRY_NAICS_CODE    = src.INDUSTRY_NAICS_CODE,
@@ -631,7 +664,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             LAST_DATA_REFRESH_DATE = src.LAST_DATA_REFRESH_DATE,
             GENERATED_AT           = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ORG_ID,
+            ORG_ID, RECORD_ID,
             ACCOUNT_ID, PROFILE_MONTH,
             EMPLOYEE_BAND, REVENUE_BAND,
             INDUSTRY_NAICS_CODE, INDUSTRY_SIC_CODE,
@@ -640,7 +673,7 @@ def _merge(session: Any, records: list[dict]) -> int:
             WEBSITE_DOMAIN, LINKEDIN_FOLLOWERS, TECH_STACK_FLAGS,
             LAST_DATA_REFRESH_DATE, GENERATED_AT
         ) VALUES (
-            src.ORG_ID,
+            src.ORG_ID, src.RECORD_ID,
             src.ACCOUNT_ID, src.PROFILE_MONTH,
             src.EMPLOYEE_BAND, src.REVENUE_BAND,
             src.INDUSTRY_NAICS_CODE, src.INDUSTRY_SIC_CODE,

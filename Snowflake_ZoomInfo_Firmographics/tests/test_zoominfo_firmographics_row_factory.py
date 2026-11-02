@@ -23,10 +23,11 @@ Five property classes per rowspec / Plan 11 §4 task 3:
         empty raw POSTAL_CODE per v1.5 finding #4)
      e. len(HQ_STATE_CODE) == 2 for every row (_state_from_zip fallback
         per v1.5 finding #4)
-     f. FOUNDED_YEAR <= run_ts.year (no future-founded businesses)
+     f. FOUNDED_YEAR <= run_ts.year (no future-founded businesses) and
+        account-stable across 12 consecutive months (Plan 16 Task 0)
      g. LINKEDIN_FOLLOWERS in [0, 5_000_000]
      h. NAICS 6 digits / SIC 4 digits (regex format)
-  5. Schema contract — output dict matches the 15 table columns
+  5. Schema contract — output dict matches the 17 table columns (incl. ORG_ID, RECORD_ID)
 
 Plus bonus tests:
   - EMPLOYEE_BAND in 7-band canonical set
@@ -386,6 +387,73 @@ def test_4f_founded_year_le_current(in_audience_anchors):
             )
 
 
+# ---------- Property 4f': FOUNDED_YEAR account-stable (Plan 16 Task 0) ----------
+
+def test_4f_founded_year_stable_across_12_months(in_audience_anchors):
+    """FOUNDED_YEAR is identical across 12 consecutive run_ts months for the
+    same anchor. A company's founding year is a fact, not monthly noise —
+    Plan 16's audience (FOUNDED_YEAR >= 2010) would churn otherwise.
+
+    The window deliberately straddles a calendar-year boundary (Jul 2026 ->
+    Jun 2027) so a `high = min(high, current_year)` clamp that ever started
+    binding would surface here as drift."""
+    if len(in_audience_anchors) < 3:
+        pytest.skip(
+            f"only {len(in_audience_anchors)} BUSINESS anchors in fixture"
+        )
+    months = [datetime(2026 + (6 + i) // 12, (6 + i) % 12 + 1, 1) for i in range(12)]
+    assert len({m.strftime("%Y-%m") for m in months}) == 12
+    for anchor in in_audience_anchors:
+        years = {_row_for(anchor, m)["FOUNDED_YEAR"] for m in months}
+        assert len(years) == 1, (
+            f"{anchor['ACCOUNT_ID']}: FOUNDED_YEAR drifted across 12 months: "
+            f"{sorted(years)}"
+        )
+
+
+def test_4f_founded_year_varies_across_accounts(in_audience_anchors):
+    """Guard against an over-correction: stabilizing per account must not
+    collapse FOUNDED_YEAR to a constant across the cohort."""
+    if len(in_audience_anchors) < 10:
+        pytest.skip("need >=10 BUSINESS anchors")
+    years = {_row_for(a, datetime(2026, 11, 1))["FOUNDED_YEAR"] for a in in_audience_anchors}
+    assert len(years) >= 10, f"only {len(years)} distinct FOUNDED_YEARs in cohort"
+
+
+# ---------- RECORD_ID: deterministic from PK (live column) ----------
+
+def _sql_formula_record_id(org_id, account_id, profile_month):
+    """Python mirror of the SQL backfill formula
+    REGEXP_REPLACE(LEFT(SHA2(CONCAT_WS('|', ORG_ID, ACCOUNT_ID,
+    PROFILE_MONTH::VARCHAR, 'record_id'), 256), 32), ...)."""
+    import hashlib
+    h = hashlib.sha256(
+        f"{org_id}|{account_id}|{profile_month.isoformat()}|record_id".encode()
+    ).hexdigest()[:32]
+    return f"{h[:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:]}"
+
+
+def test_record_id_deterministic_from_pk(in_audience_anchors):
+    """RECORD_ID = record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH), matching
+    the SQL backfill formula byte-for-byte, stable within a month, and
+    distinct across months."""
+    if not in_audience_anchors:
+        pytest.skip("no BUSINESS anchors in fixture")
+    seen = set()
+    for anchor in in_audience_anchors:
+        a = _row_for(anchor, datetime(2026, 11, 1))
+        b = _row_for(anchor, datetime(2026, 11, 20, 13, 5))
+        c = _row_for(anchor, datetime(2026, 12, 1))
+        assert a["RECORD_ID"] == b["RECORD_ID"]
+        assert a["RECORD_ID"] != c["RECORD_ID"]
+        assert a["RECORD_ID"] == _sql_formula_record_id(
+            a["ORG_ID"], a["ACCOUNT_ID"], a["PROFILE_MONTH"]
+        )
+        assert len(a["RECORD_ID"]) == 36
+        seen.add(a["RECORD_ID"])
+    assert len(seen) == len({a["ACCOUNT_ID"] for a in in_audience_anchors})
+
+
 # ---------- Property 4g: LINKEDIN_FOLLOWERS in [0, 5_000_000] ----------
 
 def test_4g_linkedin_followers_in_range(in_audience_anchors):
@@ -439,6 +507,7 @@ def test_4h_naics_sic_code_format(in_audience_anchors):
 
 EXPECTED_KEYS = {
     "ORG_ID",
+    "RECORD_ID",
     "ACCOUNT_ID",
     "PROFILE_MONTH",
     "EMPLOYEE_BAND",
@@ -458,7 +527,7 @@ EXPECTED_KEYS = {
 
 
 def test_output_schema_matches_table(in_audience_anchors):
-    """Output dict keys EXACTLY match the 15 table columns."""
+    """Output dict keys EXACTLY match the 17 table columns."""
     if not in_audience_anchors:
         pytest.skip("no BUSINESS anchors in fixture")
     row = _row_for(in_audience_anchors[0], datetime(2026, 5, 1))
