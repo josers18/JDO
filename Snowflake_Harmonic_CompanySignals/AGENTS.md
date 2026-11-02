@@ -8,7 +8,7 @@ Synthetic Harmonic-style **private-company funding and traction** signals, with 
 |---|---|
 | T0 ZoomInfo FOUNDED_YEAR account-stable | done (commit `3cba15fdc`, see `../Snowflake_ZoomInfo_Firmographics/AGENTS.md`) |
 | T1 scaffold | done |
-| T2 DDL (`schemas/harmonic_company_signals.sql`, table + `_STAGING`) | pending |
+| T2 DDL (`schemas/harmonic_company_signals.sql`, table + `_STAGING`) | done; **deployed live 2026-11-02** (both tables 24 columns, 6 NULLable, 0 rows) |
 | T3 row factory + L1 tests | pending |
 | T4 SP entry point (`main`, MERGE, hard-dep probes, coverage, log) | pending |
 | T5 L2 / T6 deploy + TASK + 7-month backfill / T8 L3 smoke | pending |
