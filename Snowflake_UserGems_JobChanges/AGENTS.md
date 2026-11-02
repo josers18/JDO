@@ -11,10 +11,10 @@ Synthetic UserGems-style **person-level job-change events** (departures, inbound
 |---|---|---|
 | T1 | Scaffold (this file, README, layout) | Done |
 | T2 | DDL `schemas/usergems_job_changes.sql` (+ `_STAGING`) | Done in repo. **Live apply pending:** `SYSADMIN` lacks CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC` (error 003001, 2026-11-02). The sibling tables are owned by `ACCOUNTADMIN`, so an operator has to apply it. |
-| T3 | Row factory `procedures/sp_generate_usergems_job_changes.py` + L1 tests | Done. 44 L1 tests pass. |
-| T4 | SP body (`main`, MERGE, `_assert_event_contract`) | Pending. See the "Weekly window" gotcha first. |
-| T5 | L2 integration (`tests/integration/`) | Pending |
-| T6 | Deploy (`scripts/deploy_sp.py`, `tasks/task_weekly_usergems_job_changes.sql`) + 104-week backfill | Pending. **Blocked:** the backfill must wait for the BoardEx 30-month re-run (see "BoardEx gate"). |
+| T3 | Row factory `procedures/sp_generate_usergems_job_changes.py` + L1 tests | Done. |
+| T4 | SP body (`main`, run window, MERGE, `_assert_event_contract`) + `scripts/deploy_sp.py` + `tasks/task_weekly_usergems_job_changes.sql` | Done in repo (2026-11-02). 79 L1 tests pass. The production SP and TASK are **not deployed** (that is T6). |
+| T5 | L2 integration (`tests/integration/`) | Done. Ran live 2026-11-02 in the scratch schema `DEMO_DB.CUMULUS_L2_USERGEMS`: 29/29 checks TRUE, schema dropped. |
+| T6 | Live deploy of the SP + TASK, then the 104-week backfill | Pending. **Blocked:** the backfill must wait for the BoardEx 30-month re-run (see "BoardEx gate"). |
 | T7 | DC stream + DMO | DC mapping pending UI (no live DC work in this pass). Mapping table below. |
 | T8 | L3 smoke | Pending |
 
@@ -54,17 +54,22 @@ Synthetic UserGems-style **person-level job-change events** (departures, inbound
   - The Plan 10 sticky fix is deployed but its `CALL SP_GENERATE_BOARDEX_EXEC_INTEL(30, TRUE)` re-run has not happened.
   - Offline replay of the sticky logic over the 6,435 employers projects 2,494 rises / 31,878 stays / 2,452 falls, 69-110 rises a month (mean 86), TRUE rate 18.4%.
   - **Do not run the T6 backfill until the BoardEx re-run lands and a re-probe matches the projection.**
-- **Weekly window (design issue for T4).** The TASK fires Monday 09:00 UTC. If the default run processed only the current week, it would see only Monday's detections, and events detected Tuesday through Sunday would never be written. The default run (`BACKFILL_WEEKS=0`) must therefore process **the previous complete week plus the current partial week**. The MERGE on `(ORG_ID, EVENT_ID)` is idempotent, so the overlap is free. Contract (a) [30, 200] applies to complete weeks only. A partial Monday week holds about 9 rows.
+- **Weekly window (implemented in T4: `_run_weeks`).** The TASK fires Monday 09:00 UTC. If the default run processed only the current week, it would see only Monday's detections, and events detected Tuesday through Sunday would never be written. The default run (`BACKFILL_WEEKS=0`) must therefore process **the previous complete week plus the current partial week**. The MERGE on `(ORG_ID, EVENT_ID)` is idempotent, so the overlap is free. Contract (a) [30, 200] applies to complete weeks only. A partial Monday week holds about 9 rows.
 - **Contract (d) needs a completeness window.** Check (d) has two parts:
   - Every C-suite `Departed` falls in a rise month.
   - Every rise month that is **complete** (`run_date - month_end > 52` days) and **inside the window** (`month_start + 3 ≥ window_start`) has exactly one.
 
   Incomplete or edge months are skipped because their departure may not be detected yet, or was detected before the window. `_csuite_gate_violations` is the Python mirror of this check.
+  - The SQL is split into d1 (C-suite departure outside a rise), d2 (more than one in an account-month) and d3 (a complete in-window rise with none). All three report as `contract (d)`.
+  - **Scope is the run window** (`DETECTED_DATE` in `[first run week, run date]`), not the whole table. A default weekly run therefore effectively checks d1/d2 only, since no rise month is complete inside a 2-week window. The full d3 check happens on the backfill.
+  - **If BoardEx history is ever rewritten after the backfill** (as the pending sticky re-run will do), C-suite rows already stored for months that are no longer rises stay in the table (events never delete) and d1 fails. Delete the `C-Suite` `Departed` rows, or the whole table, and re-run `CALL ...(104)`.
 - **Paired events write to another account.** The destination comes from the same-INDUSTRY pool when that pool has ≥ 2 members, otherwise from the full employer pool. It is never the source account (index + 1 skip). If the pool is a single member, Existing Client degrades to Prospect. The mirror's detection is up to 7 days later and can land in a later week, so window edges can leave a `PAIRED_EVENT_ID` whose partner is outside the backfill (5 in the simulation). L3 must exempt rows within 7 days of the window edges.
 - **Wealth pool.** The SP loads the Wealth Management PERSON `ACCOUNT_ID`s (3,920) sorted ascending, and picks one by `sha256(event_id + "_wealth") % len(pool)`. That is only for C-Suite / VP `Departed`, at 6%. An empty pool returns None.
 - **Employer audience predicate** is `ACCOUNT_TYPE_FLAG = 'BUSINESS' AND COALESCE(CLIENT_CATEGORY, '') <> 'Household'` (6,435 anchors). Without `COALESCE`, NULL categories would drop. 661 of the employers have NULL `EMPLOYEE_COUNT`, so they get the 2-slot roster and BoardEx never flags them.
 - **write_pandas types.** `write_pandas` mistypes datetimes and all-NULL date columns as NUMBER. In the MERGE source, use `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER/1e9)` and `TO_DATE(TO_TIMESTAMP_NTZ(col::NUMBER/1e9))` for the 3 DATE columns. Cast the 3 BOOLEANs with `::BOOLEAN`. `RECORD_ID` has no default, so set it on INSERT **and** UPDATE. Snowflake MERGE has no `NOT MATCHED BY SOURCE`, and events never delete anyway.
 - **Deploy connection.** `scripts/deploy_sp.py` must run an unflagged `/opt/homebrew/bin/snow sql -f` (never `-c`). On 2026-11-02 the CLI default connection `GSB13421_jwt` returned 404. `SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt` works: it is still JWT, still unflagged, and opens no OAuth popup.
+- **Contract (a) under the current iid BoardEx fails by design.** Until the BoardEx re-run lands, any run of the production SP raises `contract (a)` (about 298 rows a week against [30, 200]). That failure is the precondition guard; do not widen the band.
+- **L2 runs in a scratch schema.** SYSADMIN cannot create fixture tables in `FINS__PUBLIC`, so `scripts/deploy_sp.py --fixture-schema DEMO_DB.CUMULUS_L2_USERGEMS` builds the real SP body retargeted at the scratch schema (the module's `_DB` / `_SCHEMA` lines are swapped and no `DATA_JEDAIS` reference survives). It builds two procs: the loose one with week band (0, 25), and `_STRICT` with the production band. Both read the run clock from `L2_RUN_CLOCK` through the `_RUN_TS_SQL` hook, which is `None` in production. The fixture proc file is gitignored.
 - One SP per dataset, with no inter-SP imports. DROP the procedure before redeploying if the signature changes. The TASK runs on `MAIN_WH_XS` via `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES()', 2)`.
 - DC mapping descriptions must be ≤ 521 characters.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream body.
@@ -72,8 +77,15 @@ Synthetic UserGems-style **person-level job-change events** (departures, inbound
 ## Tests
 ```bash
 cd Snowflake_UserGems_JobChanges
-python3 -m pytest -q -p no:cacheprovider
+python3 -m pytest -q -p no:cacheprovider          # L1: 79 tests
+
+# L2 (live, scratch schema; the last statement drops it)
+python3 tests/integration/build_l2.py             # regenerate the .sql after any row-factory change
+SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt python3 scripts/deploy_sp.py --fixture-schema DEMO_DB.CUMULUS_L2_USERGEMS
+SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt /opt/homebrew/bin/snow sql -f tests/integration/test_usergems_job_changes_sp.sql
 ```
+L2 passes when the final `L2_ALL_PASS` is TRUE. `tests/integration/build_l2.py` computes the expected rows with the same Python row factory and embeds them, so parity covers all 24 columns: the write_pandas staging types, the MERGE casts and the SQL `RECORD_ID` form. The file also covers the BoardEx gate both ways, pair cross-links, the audience, an idempotent re-run, `contract (a)` and both `contract (d)` raises, and the weekly overlap. For the overlap, two default runs a week apart re-derive identical rows for the shared Monday, and their union equals the backfill for those weeks with no gap. An L1 test fails if the committed `.sql` is stale.
+
 The L1 fixture has 10 employers (2 per employee band, with repeated industries and one NULL industry), a boring all-NULL anchor, a 5-id Wealth pool and a synthetic BoardEx dict (`tests/conftest.py`). The property classes follow plan §4 Task 3: schema, determinism, sparsity, gate, 4a-4e, bias, lag-window completeness and the boring case.
 
 ## DC mapping (T7) — status: DC mapping pending UI

@@ -32,10 +32,20 @@ Salts:
   account-month stream is genuinely month-bucketed; the person stream is keyed
   by the (unique) EVENT_ID, so its timestamp is irrelevant.
 
-The SP entry point (main / MERGE / _assert_event_contract / log) lands in
-Plan 15 Task 4; this module currently holds the pure row factory that the L1
-tests exercise, plus `_csuite_gate_violations`, the Python mirror of the
-contract's check (d).
+SP entry point (Plan 15 Task 4): `main(session, backfill_weeks=0)`.
+  - Run window: the previous `max(1, backfill_weeks)` complete weeks plus the
+    current partial week. The TASK fires Monday 09:00 UTC, so the default run
+    writes last week's Tuesday-Sunday detections and today's; the MERGE on
+    (ORG_ID, EVENT_ID) makes the overlap free.
+  - Reads: the employer audience, the sorted Wealth pool, and BoardEx for the
+    run's candidate months plus the month before the earliest (hard
+    dependency: a missing or empty table raises).
+  - Writes: write_pandas -> USERGEMS_JOB_CHANGES_STAGING -> MERGE (RECORD_ID
+    computed in SQL on INSERT and UPDATE; 3 DATE + GENERATED_AT casts from
+    nanosecond NUMBER; 3 ::BOOLEAN casts).
+  - Then `_assert_event_contract` (plan section 2 checks a-d) over the rows in
+    the run window, replacing the template's assert_coverage.
+  - One TASK_EXECUTION_LOG row per call (ROWS_INSERTED counts INSERTs only).
 
 Plan:    docs/superpowers/plans/2026-11-02-cumulus-plan-15-usergems-job-changes.md
 Rowspec: docs/superpowers/plans/attachments/cumulus-plan-15-usergems-job-changes-rowspec.md
@@ -44,11 +54,13 @@ from __future__ import annotations
 
 import hashlib
 import random
+import uuid
 from collections import Counter
 from datetime import date, datetime, time, timedelta
+from typing import Any
 
 # Locally, cumulus_common resolves via the pytest pythonpath; in Snowflake,
-# scripts/deploy_sp.py inlines seed_for / assert_coverage.
+# scripts/deploy_sp.py inlines seed_for.
 from cumulus_common import seed_for
 
 
@@ -56,10 +68,28 @@ from cumulus_common import seed_for
 # Constants — MUST stay in sync with the rowspec attachment + DDL
 # -------------------------------------------------------------------
 
-TABLE         = "DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES"
-STAGING_TABLE = "DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES_STAGING"
-BOARDEX_TABLE = "DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL"
-TASK_NAME     = "TASK_WEEKLY_USERGEMS_JOB_CHANGES"
+# Every FQN derives from _DB / _SCHEMA so scripts/deploy_sp.py --fixture-schema
+# can retarget the whole SP (tables, views, log) at an L2 scratch schema.
+_DB = "DATA_JEDAIS"
+_SCHEMA = "FINS__PUBLIC"
+_FQ = f"{_DB}.{_SCHEMA}"
+TABLE           = f"{_FQ}.USERGEMS_JOB_CHANGES"
+STAGING_NAME    = "USERGEMS_JOB_CHANGES_STAGING"
+STAGING_TABLE   = f"{_FQ}.{STAGING_NAME}"
+BOARDEX_TABLE   = f"{_FQ}.BOARDEX_EXEC_INTEL"
+ANCHORS_VIEW    = f"{_FQ}.V_ACCOUNT_ANCHORS"
+LOG_TABLE       = f"{_FQ}.TASK_EXECUTION_LOG"
+TASK_NAME       = "TASK_WEEKLY_USERGEMS_JOB_CHANGES"
+DEFAULT_ORG_ID  = "JDO"
+
+# L2 hook: the fixture build sets this to a SELECT returning the run
+# timestamp, so L2 runs are pinned to a fixed clock. None in production.
+_RUN_TS_SQL = None
+
+# Contract (a): rows per COMPLETE detection week (plan section 2). The current
+# partial week is exempt. The fixture build overrides the band.
+_WEEK_ROWS_MIN = 30
+_WEEK_ROWS_MAX = 200
 DATASET_SALT  = "usergems"         # account-month event draws
 PERSON_SALT   = "usergems_person"  # per-event attributes, keyed by EVENT_ID
 
@@ -71,12 +101,12 @@ _EMPLOYER_PREDICATE = (
 )
 _WEALTH_PREDICATE = "CLIENT_CATEGORY = 'Wealth Management'"   # 3,920 PERSON anchors
 EMPLOYER_SQL = (
-    "SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS "
+    f"SELECT DISTINCT * FROM {ANCHORS_VIEW} "
     f"WHERE {_EMPLOYER_PREDICATE}"
 )
 WEALTH_SQL = (
-    "SELECT DISTINCT ACCOUNT_ID FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS "
-    f"WHERE {_WEALTH_PREDICATE} ORDER BY ACCOUNT_ID"
+    f"SELECT DISTINCT ACCOUNT_ID FROM {ANCHORS_VIEW} "
+    f"WHERE {_WEALTH_PREDICATE} AND ACCOUNT_ID IS NOT NULL ORDER BY ACCOUNT_ID"
 )
 
 # 22 data columns emitted by the row factory. ORG_ID and RECORD_ID are
@@ -499,6 +529,8 @@ def _csuite_gate_violations(rows, boardex: dict, run_date: date, window_start: d
     """Python mirror of _assert_event_contract check (d), over a set of rows
     covering the detection window [window_start, run_date]:
       - every C-suite Departed is in a BoardEx rise month for its account;
+      - no account-month has more than one C-suite Departed (always checked:
+        "exactly one" holds even before the month is complete);
       - every rise month that is complete (month_end + 52 days < run_date) and
         whose earliest possible detection (month_start + 3 days) is inside the
         window has exactly one C-suite Departed.
@@ -512,6 +544,8 @@ def _csuite_gate_violations(rows, boardex: dict, run_date: date, window_start: d
     for (acct, m), n in sorted(counts.items()):
         if not _boardex_rise(boardex, acct, m):
             problems.append(f"C-suite departure in non-rise month {acct} {m}")
+        elif n > 1:
+            problems.append(f"rise month {acct} {m}: {n} C-suite departures, expected 1")
     for (acct, m) in sorted(boardex):
         if not _boardex_rise(boardex, acct, m):
             continue
@@ -520,6 +554,402 @@ def _csuite_gate_violations(rows, boardex: dict, run_date: date, window_start: d
             continue
         if (run_date - month_end).days <= _COMPLETE_AFTER_DAYS:
             continue
-        if counts.get((acct, m), 0) != 1:
+        if counts.get((acct, m), 0) == 0:
             problems.append(f"rise month {acct} {m}: {counts.get((acct, m), 0)} C-suite departures, expected 1")
     return problems
+
+
+# -------------------------------------------------------------------
+# Run window (SP side)
+# -------------------------------------------------------------------
+
+def _run_weeks(run_date: date, backfill_weeks) -> list[date]:
+    """Week starts (Mondays) the run processes, ascending: the previous
+    max(1, backfill_weeks) complete weeks plus the current partial week.
+
+    BACKFILL_WEEKS=0 (the TASK default) therefore covers last week and this
+    week. The TASK fires Monday 09:00 UTC, when the current week holds only
+    Monday's detections; processing only it would never write Tuesday-Sunday.
+    """
+    if backfill_weeks is None or int(backfill_weeks) < 0:
+        raise ValueError(f"BACKFILL_WEEKS must be >= 0, got {backfill_weeks!r}")
+    current = _monday(run_date)
+    n = max(1, int(backfill_weeks))
+    return [current - timedelta(days=7 * k) for k in range(n, -1, -1)]
+
+
+def _complete_weeks(weeks, run_date: date) -> list[date]:
+    """Weeks whose last day (Sunday) is on or before the run date."""
+    return [w for w in weeks if w + timedelta(days=6) <= run_date]
+
+
+def _boardex_month_span(weeks) -> tuple[date, date]:
+    """(first, last) BoardEx PROFILE_MONTH the run needs: the union of
+    _boardex_months_for_week over the run weeks."""
+    return _boardex_months_for_week(weeks[0])[0], _candidate_months(weeks[-1])[-1]
+
+
+def _rows_for_window(anchors, weeks, run_ts: datetime, boardex: dict, ctx: Ctx,
+                     errors: list | None = None) -> list[dict]:
+    """Rows for every run week at once, each (anchor, month) generated once.
+
+    Equivalent to concatenating _rows_for_week over `weeks` (L1 asserts it):
+    the candidate months of consecutive weeks overlap, so the window's months
+    are the union, and the detection filter is [weeks[0], run date] (each
+    week's upper bound is min(week_end, run date) and the weeks tile the
+    span). Stamps ORG_ID from the SOURCE anchor (a paired mirror carries its
+    source's ORG_ID).
+
+    errors: when a list, a failing anchor is recorded as (ACCOUNT_ID, message)
+    and skipped; when None the exception propagates.
+    """
+    lower = weeks[0]
+    upper = min(weeks[-1] + timedelta(days=6), run_ts.date())
+    first = _candidate_months(weeks[0])[0]
+    last = _candidate_months(weeks[-1])[-1]
+    months = []
+    m = first
+    while m <= last:
+        months.append(m)
+        m = _shift_months(m, 1)
+    rows: list[dict] = []
+    for a in anchors:
+        try:
+            org = a.get("ORG_ID") or DEFAULT_ORG_ID
+            out = []
+            for m in months:
+                rise = _boardex_rise(boardex, a["ACCOUNT_ID"], m)
+                for ev in _events_for(a, m, rise, ctx):
+                    if lower <= ev["DETECTED_DATE"] <= upper:
+                        ev["ORG_ID"] = org
+                        out.append(ev)
+        except Exception as exc:
+            if errors is None:
+                raise
+            errors.append((a.get("ACCOUNT_ID"), str(exc)[:200]))
+            continue
+        rows.extend(out)
+    return rows
+
+
+# -------------------------------------------------------------------
+# Event contract (replaces assert_coverage; plan section 2 checks a-d)
+# -------------------------------------------------------------------
+
+def _week_band_violations(counts: dict, complete_weeks, lo: int, hi: int) -> list[str]:
+    """Contract (a): each complete week's row count in [lo, hi]. A week with no
+    rows at all counts as 0 (it is not silently skipped)."""
+    out = []
+    for w in complete_weeks:
+        n = int(counts.get(w, 0))
+        if not lo <= n <= hi:
+            out.append(f"week {w.isoformat()}: {n} rows outside [{lo}, {hi}]")
+    return out
+
+
+def _employer_exists(col: str) -> str:
+    return (f"EXISTS (SELECT 1 FROM {ANCHORS_VIEW} e WHERE {_EMPLOYER_PREDICATE} "
+            f"AND e.ACCOUNT_ID = {col})")
+
+
+def _assert_event_contract(session: Any, weeks, run_date: date) -> None:
+    """Raise RuntimeError if the rows written for this run's window break the
+    event contract. Window = DETECTED_DATE in [weeks[0], run_date].
+
+      (a) each COMPLETE run week has [_WEEK_ROWS_MIN, _WEEK_ROWS_MAX] rows;
+      (b) every ACCOUNT_ID / non-NULL NEW_ACCOUNT_ID is in the employer audience;
+      (c) every non-NULL PERSON_ACCOUNT_ID is in the Wealth pool;
+      (d) BoardEx gate, both directions (SQL mirror of _csuite_gate_violations):
+          d1 no C-suite Departed outside a rise month (flag(M) TRUE and the
+             M-1 row present and FALSE);
+          d2 no account-month with more than one C-suite Departed;
+          d3 every rise month of an employer that is complete (more than 52
+             days from month end to run date) and inside the window
+             (month_start + 3 days >= window start) has a C-suite Departed.
+    """
+    ws, rd = weeks[0].isoformat(), run_date.isoformat()
+    problems: list[str] = []
+
+    # (a)
+    counts_sql = (
+        f"SELECT PROFILE_WEEK, COUNT(*) FROM {TABLE} "
+        f"WHERE PROFILE_WEEK BETWEEN '{ws}' AND '{weeks[-1].isoformat()}' "
+        f"AND DETECTED_DATE <= '{rd}' GROUP BY PROFILE_WEEK"
+    )
+    counts = {}
+    for r in session.sql(counts_sql).collect():
+        wk = r[0]
+        counts[wk.date() if isinstance(wk, datetime) else wk] = int(r[1])
+    for p in _week_band_violations(counts, _complete_weeks(weeks, run_date),
+                                   _WEEK_ROWS_MIN, _WEEK_ROWS_MAX):
+        problems.append(f"contract (a) {p}")
+
+    window = f"t.DETECTED_DATE BETWEEN '{ws}' AND '{rd}'"
+    # BoardEx rows of employer-audience accounts, and the rise months.
+    bx = (f"SELECT b.ACCOUNT_ID, b.PROFILE_MONTH, b.EXEC_TURNOVER_FLAG AS F "
+          f"FROM {BOARDEX_TABLE} b WHERE {_employer_exists('b.ACCOUNT_ID')}")
+    rises = (f"SELECT cur.ACCOUNT_ID, cur.PROFILE_MONTH FROM ({bx}) cur "
+             f"JOIN ({bx}) prev ON prev.ACCOUNT_ID = cur.ACCOUNT_ID "
+             f"AND prev.PROFILE_MONTH = DATEADD(month, -1, cur.PROFILE_MONTH) "
+             f"WHERE cur.F AND NOT prev.F")
+    dep = (f"SELECT t.ACCOUNT_ID, DATE_TRUNC('month', t.EVENT_DATE) AS PROFILE_MONTH, "
+           f"COUNT(*) AS N FROM {TABLE} t WHERE {window} "
+           f"AND t.EVENT_TYPE = 'Departed' AND t.SENIORITY = 'C-Suite' GROUP BY 1, 2")
+
+    checks = [
+        ("(b)", "rows whose ACCOUNT_ID or NEW_ACCOUNT_ID is outside the employer audience",
+         f"SELECT COUNT(*) FROM {TABLE} t WHERE {window} "
+         f"AND (NOT {_employer_exists('t.ACCOUNT_ID')} "
+         f"OR (t.NEW_ACCOUNT_ID IS NOT NULL AND NOT {_employer_exists('t.NEW_ACCOUNT_ID')}))"),
+        ("(c)", "rows whose PERSON_ACCOUNT_ID is outside the Wealth pool",
+         f"SELECT COUNT(*) FROM {TABLE} t WHERE {window} "
+         f"AND t.PERSON_ACCOUNT_ID IS NOT NULL AND NOT EXISTS ("
+         f"SELECT 1 FROM {ANCHORS_VIEW} w WHERE {_WEALTH_PREDICATE} "
+         f"AND w.ACCOUNT_ID = t.PERSON_ACCOUNT_ID)"),
+        ("(d1)", "C-suite departures in a month that is not a BoardEx rise",
+         f"SELECT COUNT(*) FROM ({dep}) d LEFT JOIN ({rises}) r "
+         f"ON r.ACCOUNT_ID = d.ACCOUNT_ID AND r.PROFILE_MONTH = d.PROFILE_MONTH "
+         f"WHERE r.ACCOUNT_ID IS NULL"),
+        ("(d2)", "account-months with more than one C-suite departure",
+         f"SELECT COUNT(*) FROM ({dep}) d WHERE d.N > 1"),
+        ("(d3)", "complete in-window rise months with no C-suite departure",
+         f"SELECT COUNT(*) FROM ({rises}) r LEFT JOIN ({dep}) d "
+         f"ON d.ACCOUNT_ID = r.ACCOUNT_ID AND d.PROFILE_MONTH = r.PROFILE_MONTH "
+         f"WHERE DATEADD(day, 3, r.PROFILE_MONTH) >= '{ws}' "
+         f"AND DATEDIFF(day, LAST_DAY(r.PROFILE_MONTH), '{rd}') > {_COMPLETE_AFTER_DAYS} "
+         f"AND d.ACCOUNT_ID IS NULL"),
+    ]
+    for tag, label, sql in checks:
+        n = int(session.sql(f"-- contract {tag}\n{sql}").collect()[0][0] or 0)
+        if n:
+            letter = tag[:2] + ")"
+            problems.append(f"contract {letter} {n} {label}")
+    if problems:
+        raise RuntimeError("event contract failed: " + "; ".join(problems))
+
+
+# -------------------------------------------------------------------
+# Entry point -- invoked by TASK_WEEKLY_USERGEMS_JOB_CHANGES via
+# DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('...SP_GENERATE_USERGEMS_JOB_CHANGES()', 2)
+# -------------------------------------------------------------------
+
+def _run_ts(session: Any) -> datetime:
+    if _RUN_TS_SQL:
+        value = session.sql(_RUN_TS_SQL).collect()[0][0]
+        return value.replace(tzinfo=None) if isinstance(value, datetime) else datetime.combine(value, time())
+    return datetime.utcnow()
+
+
+def _load_boardex(session: Any, weeks) -> dict:
+    """{(ACCOUNT_ID, PROFILE_MONTH): EXEC_TURNOVER_FLAG} for employer-audience
+    accounts over the run's BoardEx month span. Hard dependency: a missing
+    table, or no rows at all in the span, raises."""
+    lo, hi = _boardex_month_span(weeks)
+    sql = (f"SELECT b.ACCOUNT_ID, b.PROFILE_MONTH, b.EXEC_TURNOVER_FLAG FROM {BOARDEX_TABLE} b "
+           f"WHERE b.PROFILE_MONTH BETWEEN '{lo.isoformat()}' AND '{hi.isoformat()}' "
+           f"AND {_employer_exists('b.ACCOUNT_ID')}")
+    try:
+        rows = session.sql(sql).collect()
+    except Exception as exc:
+        raise RuntimeError(
+            f"BoardEx hard dependency (Plan 10): cannot read {BOARDEX_TABLE}: {str(exc)[:300]}"
+        ) from exc
+    if not rows:
+        raise RuntimeError(f"BoardEx hard dependency (Plan 10): {BOARDEX_TABLE} has no "
+                           f"employer rows for {lo.isoformat()}..{hi.isoformat()}")
+    out = {}
+    for r in rows:
+        month = r[1].date() if isinstance(r[1], datetime) else r[1]
+        out[(r[0], _month_start(month))] = None if r[2] is None else bool(r[2])
+    return out
+
+
+def main(session: Any, backfill_weeks: int = 0) -> str:
+    """Generate, MERGE and contract-check one run window.
+
+    backfill_weeks=0 (TASK default): last week + the current partial week.
+    backfill_weeks=104: the one-shot 24-month backfill (104 complete weeks
+    plus the current partial week). Precondition: BoardEx history is sticky
+    (plan section 2 "Backfill precondition").
+    """
+    log_id = str(uuid.uuid4())
+    started = datetime.utcnow()
+    rows_inserted, rows_updated, accounts_processed, status, err = 0, 0, 0, "SUCCEEDED", None
+    weeks: list[date] = []
+
+    try:
+        run_ts = _run_ts(session)
+        weeks = _run_weeks(run_ts.date(), backfill_weeks)
+
+        anchors = [_anchor_to_dict(r) for r in session.sql(EMPLOYER_SQL).collect()]
+        anchors = [a for a in anchors if a.get("ACCOUNT_ID")]
+        accounts_processed = len(anchors)
+        if not anchors:
+            raise RuntimeError("employer audience is empty")
+        wealth = [r[0] for r in session.sql(WEALTH_SQL).collect()]
+        ctx = Ctx(anchors, wealth)
+        boardex = _load_boardex(session, weeks)
+
+        errors: list = []
+        records = _rows_for_window(anchors, weeks, run_ts, boardex, ctx, errors=errors)
+        max_tolerated = len(anchors) // 100
+        if len(errors) > max_tolerated:
+            raise RuntimeError(
+                f"row factory failed on {len(errors)}/{len(anchors)} anchors "
+                f"(tolerance {max_tolerated}); first: {errors[0]}"
+            )
+        if errors:
+            err = f"row factory failed on {len(errors)}/{len(anchors)} anchors; first: {errors[0]}"
+        ids = [r["EVENT_ID"] for r in records]
+        if len(ids) != len(set(ids)):
+            raise RuntimeError("duplicate EVENT_IDs in one run (event identity broken)")
+
+        rows_inserted, rows_updated = _merge(session, records)
+        _assert_event_contract(session, weeks, run_ts.date())
+
+    except Exception as exc:
+        status = "FAILED"
+        err = str(exc)[:4000]
+        raise
+
+    finally:
+        duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+        session.sql(
+            f"""
+            INSERT INTO {LOG_TABLE}
+                (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
+                 ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            params=[log_id, TASK_NAME, started, status,
+                    rows_inserted, accounts_processed, err, duration_ms],
+        ).collect()
+
+    span = f"{weeks[0].isoformat()}..{weeks[-1].isoformat()}" if weeks else "-"
+    return (f"{TASK_NAME}: {status} rows={rows_inserted} updated={rows_updated} "
+            f"accounts={accounts_processed} weeks={len(weeks)} ({span})")
+
+
+def _anchor_to_dict(row: Any) -> dict:
+    """Snowpark Row -> plain dict so the row factory can be tested with dict literals."""
+    if isinstance(row, dict):
+        return row
+    if hasattr(row, "asDict"):
+        return dict(row.asDict())
+    if hasattr(row, "_fields"):
+        return {f.name: row[f.name] for f in row._fields}
+    return dict(row)
+
+
+# -------------------------------------------------------------------
+# _merge -- idempotent MERGE ON (ORG_ID, EVENT_ID); events never delete
+# -------------------------------------------------------------------
+
+MERGE_COLUMNS = [
+    "ORG_ID", "EVENT_ID", "ACCOUNT_ID", "PROFILE_WEEK", "EVENT_TYPE", "EVENT_DATE",
+    "DETECTED_DATE", "CONTACT_NAME", "CONTACT_PERSONA", "SENIORITY", "OLD_TITLE",
+    "NEW_TITLE", "NEW_EMPLOYER_NAME", "NEW_ACCOUNT_ID", "NEW_EMPLOYER_STATUS",
+    "PAIRED_EVENT_ID", "WAS_CHAMPION", "WAS_PRIMARY_CONTACT", "OPPORTUNITY_SCORE",
+    "RELATIONSHIP_RISK_SCORE", "PERSON_ACCOUNT_ID", "LIQUIDITY_EVENT_FLAG", "GENERATED_AT",
+]
+_DATE_COLUMNS = ("PROFILE_WEEK", "EVENT_DATE", "DETECTED_DATE")
+_BOOL_COLUMNS = ("WAS_CHAMPION", "WAS_PRIMARY_CONTACT", "LIQUIDITY_EVENT_FLAG")
+_NULLABLE_TEXT = ("OLD_TITLE", "NEW_TITLE", "NEW_EMPLOYER_NAME", "NEW_ACCOUNT_ID",
+                  "PAIRED_EVENT_ID", "PERSON_ACCOUNT_ID")
+
+
+def _merge_frame(records: list[dict]):
+    """DataFrame in MERGE_COLUMNS order with deterministic dtypes.
+
+    The 3 DATE columns and GENERATED_AT are forced to datetime64[ns], which
+    write_pandas stages as NUMBER (nanoseconds since epoch) whatever the
+    NULL pattern, so the MERGE's TO_TIMESTAMP_NTZ(x::NUMBER / 1e9) cast is
+    always right. Booleans are forced to bool.
+    """
+    import pandas as pd
+    df = pd.DataFrame(records, columns=MERGE_COLUMNS)
+    for c in _DATE_COLUMNS + ("GENERATED_AT",):
+        df[c] = pd.to_datetime(df[c]).astype("datetime64[ns]")
+    for c in _BOOL_COLUMNS:
+        df[c] = df[c].astype(bool)
+    return df
+
+
+def _src_expr(c: str) -> str:
+    if c in _DATE_COLUMNS:
+        return f"TO_DATE(TO_TIMESTAMP_NTZ({c}::NUMBER / 1000000000)) AS {c}"
+    if c == "GENERATED_AT":
+        return "TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT"
+    if c in _BOOL_COLUMNS:
+        return f"{c}::BOOLEAN AS {c}"
+    if c in _NULLABLE_TEXT:
+        return f"{c}::VARCHAR AS {c}"
+    if c in ("OPPORTUNITY_SCORE", "RELATIONSHIP_RISK_SCORE"):
+        return f"{c}::NUMBER(3,0) AS {c}"
+    return c
+
+
+def _merge_sql() -> str:
+    """MERGE from STAGING_TABLE into TABLE ON (ORG_ID, EVENT_ID).
+
+    RECORD_ID = SQL form of record_id_for(ORG_ID, EVENT_ID), written on
+    INSERT and UPDATE (the column has no default). The UPDATE branch exists
+    so a rowspec fix can be re-applied; events are immutable in practice.
+    Snowflake MERGE has no NOT MATCHED BY SOURCE, and events never delete.
+    """
+    src_cols = ",\n                ".join(_src_expr(c) for c in MERGE_COLUMNS)
+    non_pk = [c for c in MERGE_COLUMNS if c not in ("ORG_ID", "EVENT_ID")] + ["RECORD_ID"]
+    set_list = ",\n            ".join(f"{c} = src.{c}" for c in non_pk)
+    all_cols = MERGE_COLUMNS + ["RECORD_ID"]
+    return f"""
+        MERGE INTO {TABLE} tgt
+        USING (
+            SELECT
+                {src_cols},
+                REGEXP_REPLACE(
+                    LEFT(SHA2(CONCAT_WS('|', ORG_ID, EVENT_ID, 'record_id'), 256), 32),
+                    '(.{{8}})(.{{4}})(.{{4}})(.{{4}})(.{{12}})',
+                    '\\\\1-\\\\2-\\\\3-\\\\4-\\\\5'
+                ) AS RECORD_ID
+            FROM {STAGING_TABLE}
+        ) src
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.EVENT_ID = src.EVENT_ID
+        WHEN MATCHED THEN UPDATE SET
+            {set_list}
+        WHEN NOT MATCHED THEN INSERT (
+            {", ".join(all_cols)}
+        ) VALUES (
+            {", ".join("src." + c for c in all_cols)}
+        )
+    """
+
+
+def _merge(session: Any, records: list[dict]) -> tuple[int, int]:
+    """write_pandas -> staging -> MERGE. Returns (inserted, updated)."""
+    if not records:
+        return 0, 0
+    session.write_pandas(
+        _merge_frame(records), STAGING_NAME,
+        auto_create_table=True, overwrite=True,
+        database=_DB, schema=_SCHEMA,
+    )
+    return _merge_counts(session.sql(_merge_sql()).collect())
+
+
+def _merge_counts(rows: list) -> tuple[int, int]:
+    """(inserted, updated) from a MERGE result, read by column name."""
+    if not rows:
+        return 0, 0
+    row = rows[0]
+    if hasattr(row, "asDict"):
+        d = {str(k).lower(): v for k, v in row.asDict().items()}
+    elif isinstance(row, dict):
+        d = {str(k).lower(): v for k, v in row.items()}
+    else:
+        d = {}
+    if d:
+        return (int(d.get("number of rows inserted") or 0),
+                int(d.get("number of rows updated") or 0))
+    vals = list(row)
+    return int(vals[0] or 0), (int(vals[1] or 0) if len(vals) > 1 else 0)
