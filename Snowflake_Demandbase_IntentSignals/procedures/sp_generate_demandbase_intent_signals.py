@@ -44,22 +44,29 @@ pair at 2026-09-28), so the read is GROUP BY ACCOUNT_ID (`gong_flags_sql`)
 and `_merge_gong_flags` unions tokens per account. A plain LEFT JOIN would
 fan an anchor out into duplicate PK / RECORD_ID rows.
 
-The SP entry point (main / per-week DELETE+INSERT / coverage / log) lands in
-Plan 14 Task 4; this module currently holds the pure row factory that the L1
-tests exercise.
+Entry point: `main(session, backfill_weeks=0)` (SP arg BACKFILL_WEEKS).
+0 = current week only (TASK path); N > 0 = weeks W-N .. W ascending. Each
+week is staged, PK-checked, then rewritten wholesale (DELETE the week +
+INSERT, one transaction) and coverage-asserted. Per-week Gong join counts go
+to TASK_EXECUTION_LOG.ERROR_MESSAGE on success (Plan 9 emit-summary pattern).
 
 Plan:    docs/superpowers/plans/2026-11-02-cumulus-plan-14-demandbase-intent-signals.md
 Rowspec: docs/superpowers/plans/attachments/cumulus-plan-14-demandbase-intent-signals-rowspec.md
 """
 from __future__ import annotations
 
+import functools
 import random
+import uuid
 from collections import Counter
 from datetime import date, datetime, timedelta
+from typing import Any
 
 # Locally, cumulus_common resolves via the pytest pythonpath; in Snowflake,
-# scripts/deploy_sp.py inlines seed_for / assert_coverage / record_id_for.
-from cumulus_common import seed_for
+# scripts/deploy_sp.py strips these imports and inlines seed_for /
+# assert_coverage / record_id_for into the SP body.
+from cumulus_common import assert_coverage, seed_for
+from cumulus_common.record_id import record_id_for
 
 
 # -------------------------------------------------------------------
@@ -68,6 +75,12 @@ from cumulus_common import seed_for
 
 TABLE             = "DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS"
 STAGING_TABLE     = "DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS_STAGING"
+STAGING_NAME      = "DEMANDBASE_INTENT_SIGNALS_STAGING"  # write_pandas table_name
+LOG_TABLE         = "DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG"
+DEFAULT_ORG_ID    = "JDO"
+# BACKFILL_WEEKS upper bound: 104 weeks (two years) keeps a one-shot call
+# well under the SP time limit and inside the 2-year L1 calendar check.
+MAX_BACKFILL_WEEKS = 104
 TASK_NAME         = "TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS"
 DATASET_SALT      = "demandbase"       # week-bucketed
 DATASET_SALT_YEAR = "demandbase_year"  # year-stable affinity / competitor
@@ -293,12 +306,40 @@ def _revenue_tilt(topic: str, annual_revenue) -> float:
     return 1.0
 
 
+# Memoization (Plan 14 Task 5 timing check). The trajectory fields call
+# _score_for for up to 12 prior weeks, so a 26-week backfill recomputes the
+# same (account, topic, week) score many times. The cached kernels below are
+# keyed ONLY on the inputs that determine the value (ACCOUNT_ID, INDUSTRY,
+# ANNUAL_REVENUE, topic, week / year), so caching cannot change any output:
+# it stays a pure function and backfill == standalone run. main() iterates
+# anchor-outer / week-inner, so a bounded LRU holds one anchor's working set
+# (10 topics x ~40 weeks) with room to spare.
+_CACHE_SIZE = 16_384
+
+
+def _anchor_key(anchor: dict) -> tuple:
+    return (anchor["ACCOUNT_ID"], anchor.get("INDUSTRY") or "",
+            _num(anchor.get("ANNUAL_REVENUE")))
+
+
+@functools.lru_cache(maxsize=_CACHE_SIZE)
+def _base_affinity_k(account_id: str, industry: str, revenue: float,
+                     topic: str, year: int) -> float:
+    rng = random.Random(_year_seed(account_id + "_" + topic, year))
+    ind = _INDUSTRY_AFFINITY.get(industry, {})
+    return rng.uniform(0.6, 1.4) * ind.get(topic, 1.0) * _revenue_tilt(topic, revenue)
+
+
 def _base_affinity(anchor: dict, topic: str, year: int) -> float:
     """Year-stable per-(account, topic) affinity, ~0.1 .. ~7."""
-    rng = random.Random(_year_seed(anchor["ACCOUNT_ID"] + "_" + topic, year))
-    ind = _INDUSTRY_AFFINITY.get(anchor.get("INDUSTRY") or "", {})
-    return (rng.uniform(0.6, 1.4) * ind.get(topic, 1.0)
-            * _revenue_tilt(topic, anchor.get("ANNUAL_REVENUE")))
+    return _base_affinity_k(*_anchor_key(anchor), topic, year)
+
+
+@functools.lru_cache(maxsize=_CACHE_SIZE)
+def _episode_phase(account_id: str, topic: str) -> int:
+    key = f"{account_id}_{topic}"
+    return random.Random(seed_for(key + "_phase", DATASET_SALT_YEAR, _EPOCH_MONDAY)
+                         ).randrange(_EPISODE_BLOCK_WEEKS)
 
 
 def _in_surge_episode(anchor: dict, topic: str, week: datetime, aff: float) -> bool:
@@ -309,8 +350,7 @@ def _in_surge_episode(anchor: dict, topic: str, week: datetime, aff: float) -> b
     only on (account, topic, block index), so the result is recomputable from
     the week alone. Episodes running past the block end truncate."""
     key = f"{anchor['ACCOUNT_ID']}_{topic}"
-    phase = random.Random(seed_for(key + "_phase", DATASET_SALT_YEAR, _EPOCH_MONDAY)
-                          ).randrange(_EPISODE_BLOCK_WEEKS)
+    phase = _episode_phase(anchor["ACCOUNT_ID"], topic)
     n = (week - _EPOCH_MONDAY).days // 7 + phase
     block_idx, offset = divmod(n, _EPISODE_BLOCK_WEEKS)
     # seed_for buckets its datetime on %Y-%m only, so the block index lives
@@ -323,18 +363,24 @@ def _in_surge_episode(anchor: dict, topic: str, week: datetime, aff: float) -> b
     return has_episode and start <= offset < start + length
 
 
-def _score_for(anchor: dict, topic: str, week_start: datetime) -> int:
-    """INTENT_SCORE in [0, 100] — pure function of (anchor, topic, week).
-    Must never depend on any other week's output: WEEKS_SURGING and
-    SCORE_DELTA_WOW call it for prior weeks."""
-    week = _week_start(week_start)
-    aff = _base_affinity(anchor, topic, week.year)
+@functools.lru_cache(maxsize=_CACHE_SIZE)
+def _score_k(account_id: str, industry: str, revenue: float, topic: str,
+             week: datetime) -> int:
+    anchor = {"ACCOUNT_ID": account_id, "INDUSTRY": industry, "ANNUAL_REVENUE": revenue}
+    aff = _base_affinity_k(account_id, industry, revenue, topic, week.year)
     base = min(55.0, 12.0 * aff)
     surging = _in_surge_episode(anchor, topic, week, aff)
-    wrng = random.Random(_week_seed(anchor["ACCOUNT_ID"] + "_" + topic, DATASET_SALT, week))
+    wrng = random.Random(_week_seed(account_id + "_" + topic, DATASET_SALT, week))
     bump = wrng.uniform(*_SURGE_BUMP) if surging else 0.0
     score = base + bump + wrng.gauss(0, 6)
     return int(max(0, min(100, round(score))))
+
+
+def _score_for(anchor: dict, topic: str, week_start: datetime) -> int:
+    """INTENT_SCORE in [0, 100] — pure function of (anchor, topic, week).
+    Must never depend on any other week's output: WEEKS_SURGING and
+    SCORE_DELTA_WOW call it for prior weeks. Memoized via _score_k."""
+    return _score_k(*_anchor_key(anchor), topic, _week_start(week_start))
 
 
 def _weeks_surging(anchor: dict, topic: str, week: datetime, score_now: int) -> int:
@@ -488,3 +534,255 @@ def _rows_for(anchor: dict, run_ts: datetime, gong_flags=None) -> list[dict]:
     )[:_MAX_EXTRA_TOPICS]
     return [_row(anchor, t, week, scores[t], t == top, gong_flags)
             for t in [top] + extras]
+
+
+# -------------------------------------------------------------------
+# SP write path (Plan 14 Task 4)
+# -------------------------------------------------------------------
+
+# Column order of the staged DataFrame / INSERT (19 = 17 data + ORG_ID + RECORD_ID).
+STAGE_COLUMNS: tuple[str, ...] = (
+    "ORG_ID", "RECORD_ID", "ACCOUNT_ID", "PROFILE_WEEK", "INTENT_TOPIC",
+    "TOPIC_CATEGORY", "IS_TOP_TOPIC", "INTENT_SCORE", "SURGE_FLAG",
+    "WEEKS_SURGING", "SCORE_DELTA_WOW", "JOURNEY_STAGE", "UNIQUE_RESEARCHERS",
+    "RESEARCHING_COMPETITOR", "KEYWORD_SAMPLE", "SIGNAL_SOURCE",
+    "LAST_SIGNAL_DATE", "INTENT_NOTE", "GENERATED_AT",
+)
+
+# Date / datetime columns are shipped to staging as int64 epoch-nanoseconds,
+# so write_pandas' auto-created staging column is deterministically NUMBER
+# (the documented mistype, made explicit) and the INSERT casts back with
+# TO_TIMESTAMP_NTZ(col::NUMBER / 1e9).
+_NS_COLUMNS = ("PROFILE_WEEK", "LAST_SIGNAL_DATE", "GENERATED_AT")
+_UNIX_EPOCH = datetime(1970, 1, 1)
+
+
+def _epoch_ns(value) -> int:
+    """date / datetime (naive, UTC) -> integer nanoseconds since 1970-01-01."""
+    if not isinstance(value, datetime):
+        value = datetime(value.year, value.month, value.day)
+    delta = value - _UNIX_EPOCH
+    return (delta.days * 86_400 + delta.seconds) * 1_000_000_000 + delta.microseconds * 1_000
+
+
+def _target_weeks(started: datetime, backfill_weeks) -> list[datetime]:
+    """Mondays W-N .. W in ASCENDING order (W = week of `started`)."""
+    n = int(backfill_weeks or 0)
+    if n < 0 or n > MAX_BACKFILL_WEEKS:
+        raise ValueError(f"BACKFILL_WEEKS must be in [0, {MAX_BACKFILL_WEEKS}], got {n}")
+    current = _week_start(started)
+    return [current - timedelta(weeks=k) for k in range(n, -1, -1)]
+
+
+def _stamp(row: dict, org_id: str) -> dict:
+    """Add ORG_ID + RECORD_ID (all 4 PK parts) to a row-factory dict.
+    record_id_for stringifies PROFILE_WEEK as YYYY-MM-DD, the same text
+    CONCAT_WS produces for a DATE in the SQL backfill form."""
+    out = dict(row)
+    out["ORG_ID"] = org_id
+    out["RECORD_ID"] = record_id_for(org_id, row["ACCOUNT_ID"], row["PROFILE_WEEK"],
+                                     row["INTENT_TOPIC"])
+    return out
+
+
+def _assert_one_top_per_account(rows) -> None:
+    """Every staged account has exactly one IS_TOP_TOPIC row this week."""
+    tops = Counter(r["ACCOUNT_ID"] for r in rows if r["IS_TOP_TOPIC"])
+    accounts = {r["ACCOUNT_ID"] for r in rows}
+    bad = sorted(a for a in accounts if tops.get(a, 0) != 1)
+    if bad:
+        raise ValueError(f"{len(bad)} accounts without exactly one IS_TOP_TOPIC row, e.g. {bad[:3]!r}")
+
+
+def _staging_frame_records(rows) -> list[dict]:
+    """Rows -> plain records in STAGE_COLUMNS order with ns-encoded dates."""
+    out = []
+    for r in rows:
+        rec = {c: r[c] for c in STAGE_COLUMNS}
+        for c in _NS_COLUMNS:
+            rec[c] = _epoch_ns(rec[c])
+        out.append(rec)
+    return out
+
+
+def _delete_week_sql(week: datetime) -> str:
+    return (f"DELETE FROM {TABLE} WHERE PROFILE_WEEK = '{week.date().isoformat()}'")
+
+
+INSERT_FROM_STAGING_SQL = f"""
+    INSERT INTO {TABLE} (
+        ORG_ID, RECORD_ID, ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC, TOPIC_CATEGORY,
+        IS_TOP_TOPIC, INTENT_SCORE, SURGE_FLAG, WEEKS_SURGING, SCORE_DELTA_WOW,
+        JOURNEY_STAGE, UNIQUE_RESEARCHERS, RESEARCHING_COMPETITOR, KEYWORD_SAMPLE,
+        SIGNAL_SOURCE, LAST_SIGNAL_DATE, INTENT_NOTE, GENERATED_AT
+    )
+    SELECT
+        ORG_ID::VARCHAR(18),
+        RECORD_ID::VARCHAR(36),
+        ACCOUNT_ID::VARCHAR,
+        TO_DATE(TO_TIMESTAMP_NTZ(PROFILE_WEEK::NUMBER / 1000000000)),
+        INTENT_TOPIC::VARCHAR(40),
+        TOPIC_CATEGORY::VARCHAR(20),
+        IS_TOP_TOPIC::BOOLEAN,
+        INTENT_SCORE::NUMBER(3,0),
+        SURGE_FLAG::BOOLEAN,
+        WEEKS_SURGING::NUMBER(2,0),
+        SCORE_DELTA_WOW::NUMBER(4,0),
+        JOURNEY_STAGE::VARCHAR(15),
+        UNIQUE_RESEARCHERS::NUMBER(2,0),
+        RESEARCHING_COMPETITOR::VARCHAR(30),
+        KEYWORD_SAMPLE::VARCHAR(200),
+        SIGNAL_SOURCE::VARCHAR(12),
+        TO_DATE(TO_TIMESTAMP_NTZ(LAST_SIGNAL_DATE::NUMBER / 1000000000)),
+        INTENT_NOTE::VARCHAR(200),
+        TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)
+    FROM DATA_JEDAIS.FINS__PUBLIC.{STAGING_NAME}
+"""
+
+
+def _coverage_actual_sql(week: datetime) -> str:
+    return (f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE} "
+            f"WHERE PROFILE_WEEK = '{week.date().isoformat()}'")
+
+
+def _write_week(session: Any, week: datetime, rows: list[dict]) -> int:
+    """Stage one week, then DELETE that week + INSERT from staging in ONE
+    transaction (Snowflake MERGE has no NOT MATCHED BY SOURCE, and the topic
+    set changes week to week, so a topic that fell below threshold must
+    disappear). write_pandas runs BEFORE BEGIN: its CREATE TABLE is DDL and
+    would implicitly commit an open transaction. Returns rows inserted."""
+    import pandas as pd
+    df = pd.DataFrame(_staging_frame_records(rows), columns=list(STAGE_COLUMNS))
+    session.write_pandas(
+        df, STAGING_NAME,
+        auto_create_table=True, overwrite=True,
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
+    )
+    session.sql("BEGIN").collect()
+    try:
+        session.sql(_delete_week_sql(week)).collect()
+        res = session.sql(INSERT_FROM_STAGING_SQL).collect()
+        session.sql("COMMIT").collect()
+    except Exception:
+        session.sql("ROLLBACK").collect()
+        raise
+    return int(res[0][0]) if res else len(rows)
+
+
+def _anchor_to_dict(row: Any) -> dict:
+    """Snowpark Row -> plain dict so _rows_for can be tested with dict literals."""
+    if isinstance(row, dict):
+        return dict(row)
+    if hasattr(row, "asDict"):
+        return dict(row.asDict())
+    return dict(row)
+
+
+def _read_gong(session: Any, weeks: list[datetime]) -> dict | None:
+    """{week: {ACCOUNT_ID: flags}} or None when GONG_CALL_SENTIMENT is absent
+    (soft dep: skip the bias, never fail)."""
+    try:
+        present = int(session.sql(GONG_PROBE_SQL).collect()[0][0]) > 0
+    except Exception:
+        present = False
+    if not present:
+        return None
+    return {w: _merge_gong_flags(
+                (r[0], r[1]) for r in session.sql(gong_flags_sql(w.date())).collect())
+            for w in weeks}
+
+
+def _build_week_rows(audience: list[dict], weeks: list[datetime], gong: dict | None):
+    """Anchor-outer / week-inner (keeps the _score_k LRU working set to one
+    anchor). Returns ({week: [stamped rows]}, errors, gong stats per week)."""
+    by_week: dict[datetime, list[dict]] = {w: [] for w in weeks}
+    stats = {w: {"joined": 0, "competitor": 0} for w in weeks}
+    errors: list[tuple[Any, str]] = []
+    for anchor in audience:
+        org_id = anchor.get("ORG_ID") or DEFAULT_ORG_ID
+        for w in weeks:
+            flags = gong[w].get(anchor["ACCOUNT_ID"]) if gong is not None else None
+            try:
+                rows = _rows_for(anchor, w, flags)
+            except Exception as exc:
+                errors.append((anchor.get("ACCOUNT_ID"), str(exc)[:200]))
+                continue
+            if flags:
+                stats[w]["joined"] += 1
+                if _gong_competitor_flag(flags):
+                    stats[w]["competitor"] += 1
+            by_week[w].extend(_stamp(r, org_id) for r in rows)
+    return by_week, errors, stats
+
+
+def _summary(weeks, gong, stats, written) -> str:
+    """Operator-visible run summary for TASK_EXECUTION_LOG.ERROR_MESSAGE."""
+    parts = [f"weeks={len(weeks)}", "gong=" + ("present" if gong is not None else "absent(skipped)")]
+    for w in weeks:
+        parts.append(f"{w.date().isoformat()}:rows={written.get(w, 0)},"
+                     f"gong_rows_joined={stats[w]['joined']},"
+                     f"gong_competitor_accounts={stats[w]['competitor']}")
+    if gong is not None:
+        empty = [w.date().isoformat() for w in weeks if stats[w]["joined"] == 0]
+        if empty:
+            parts.insert(2, f"WARN gong present but gong_rows_joined=0 for {empty}")
+    return "; ".join(parts)
+
+
+# -------------------------------------------------------------------
+# Entry point -- SP_RETRY_WRAPPER -> SP_GENERATE_DEMANDBASE_INTENT_SIGNALS
+# -------------------------------------------------------------------
+
+def main(session: Any, backfill_weeks: int = 0) -> str:
+    """probe Gong -> read audience -> build -> per-week (PK guard, DELETE +
+    INSERT, coverage) -> log. `backfill_weeks=0` is the TASK path."""
+    log_id = str(uuid.uuid4())
+    started = datetime.utcnow()
+    rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
+    try:
+        weeks = _target_weeks(started, backfill_weeks)
+        gong = _read_gong(session, weeks)
+
+        audience = sorted((_anchor_to_dict(r) for r in session.sql(AUDIENCE_SQL).collect()),
+                          key=lambda a: a.get("ACCOUNT_ID") or "")
+        accounts_processed = len(audience)
+
+        by_week, errors, stats = _build_week_rows(audience, weeks, gong)
+        pairs = len(audience) * len(weeks)
+        max_tolerated = max(10, pairs // 100)
+        if len(errors) > max_tolerated:
+            raise RuntimeError(
+                f"row factory failed on {len(errors)}/{pairs} anchor-weeks "
+                f"(tolerance {max_tolerated}); first: {errors[0] if errors else 'n/a'}")
+
+        written: dict[datetime, int] = {}
+        for w in weeks:                      # ascending
+            rows = by_week[w]
+            _assert_unique_pk(rows)
+            _assert_one_top_per_account(rows)
+            written[w] = _write_week(session, w, rows)
+            rows_inserted += written[w]
+            assert_coverage(session, COVERAGE_SQL, _coverage_actual_sql(w))
+
+        err = _summary(weeks, gong, stats, written)
+        if errors:
+            err += f"; row factory failed on {len(errors)}/{pairs} anchor-weeks; first: {errors[0]}"
+        err = err[:4000]
+    except Exception as exc:
+        status = "FAILED"
+        err = str(exc)[:4000]
+        raise
+    finally:
+        duration_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+        session.sql(
+            f"""
+            INSERT INTO {LOG_TABLE}
+                (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
+                 ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            params=[log_id, TASK_NAME, started, status,
+                    rows_inserted, accounts_processed, err, duration_ms],
+        ).collect()
+
+    return f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed} weeks={len(weeks)}"

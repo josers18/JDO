@@ -629,8 +629,15 @@ def test_module_never_selects_from_own_table():
     import sp_generate_demandbase_intent_signals as mod
     src = inspect.getsource(mod)
     # SQL keywords are upper-case in this codebase; prose ("from") is not.
-    assert not re.search(r"\bFROM\s+(\S*\.)?DEMANDBASE_INTENT_SIGNALS\b(?!_STAGING)", src)
-    assert not re.search(r"\bFROM\s+\{TABLE\}", src)
+    # Only two statements may name the target after FROM: the per-week
+    # DELETE (wholesale rewrite) and the per-week coverage COUNT. Neither
+    # feeds row values, so neither makes backfill order-dependent.
+    allowed = ("DELETE ", "COUNT(DISTINCT ACCOUNT_ID) ")
+    pat = re.compile(r"\bFROM\s+(\{TABLE\}|(\S*\.)?DEMANDBASE_INTENT_SIGNALS\b(?!_STAGING))")
+    hits = list(pat.finditer(src))
+    assert hits, "guard regex no longer matches the DELETE / coverage SQL"
+    for m in hits:
+        assert src[:m.start()].endswith(allowed), src[max(0, m.start() - 80):m.end()]
 
 
 def test_no_ampersand_in_module_source_or_ddl():

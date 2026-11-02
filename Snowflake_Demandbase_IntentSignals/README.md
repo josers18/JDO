@@ -41,13 +41,16 @@ These are row-factory estimates on a 791-anchor live sample (1/8 hash sample, 10
 ## Tests
 ```bash
 cd Snowflake_Demandbase_IntentSignals
-pytest tests/ -v      # L1 row-factory suite; cumulus_common resolves via pyproject pythonpath
+pytest tests/ -v      # L1: row factory + SP write path (fake session) + deploy script; cumulus_common resolves via pyproject pythonpath
+snow sql -f tests/integration/test_demandbase_intent_signals_sp.sql   # L2: every assertion column must be TRUE (needs DDL + SP deployed)
 ```
 
 ## Deploy
 ```bash
 snow sql -f schemas/demandbase_intent_signals.sql   # table + _STAGING
-python scripts/deploy_sp.py                          # Task 6: inline-source SP
+python scripts/deploy_sp.py                          # Task 6: inline-source SP (--drop-old-signature if a no-arg version exists)
 snow sql -f tasks/task_weekly_demandbase_intent_signals.sql
+snow sql -q "CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)"   # one-time 26-week backfill
 ```
+Use unflagged `snow sql` (the default JWT connection). Passing `-c` to an OAuth connection opens a browser popup.
 See AGENTS.md → Gotchas → "Deploy connection" for the current state of the snow CLI connection.
