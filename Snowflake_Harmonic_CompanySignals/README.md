@@ -60,11 +60,16 @@ pytest tests/ -v      # L1 suite; cumulus_common resolves via pyproject pythonpa
 ```
 - `tests/test_harmonic_company_signals_row_factory.py`: invariants on the 10-anchor coverage fixture (not representative of the live audience).
 - `tests/test_harmonic_company_signals_distribution.py`: the plan Task 8 (L3) mix / fresh-round / runway / Frozen / transition targets, asserted offline over the live audience shape in `tests/fixtures/live_audience_shape.csv`.
+- `tests/test_harmonic_company_signals_sp_main.py`: the SP entry point (`main`, dependency probes, backfill month list, staging frame, MERGE SQL, coverage) on a fake Snowpark session.
+- `tests/test_harmonic_company_signals_deploy.py`: the generated `CREATE PROCEDURE` file and the TASK SQL.
+- `tests/integration/test_harmonic_company_signals_sp.sql`: L2 against a GET_DDL clone of the deployed SP on fixture tables, including negative tests. Every column must be TRUE:
+  `SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt snow sql -f tests/integration/test_harmonic_company_signals_sp.sql --role ACCOUNTADMIN`
 
 ## Deploy
 ```bash
 snow sql -f schemas/harmonic_company_signals.sql   # table + _STAGING
-python scripts/deploy_sp.py                         # Task 6: inline-source SP
-snow sql -f tasks/task_monthly_harmonic_company_signals.sql
+python scripts/deploy_sp.py --role ACCOUNTADMIN    # inline-source SP (Task 5; deployed 2026-11-02)
+snow sql -f tasks/task_monthly_harmonic_company_signals.sql   # Task 6, not yet run
+# Task 6 one-time backfill: CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS(6);
 ```
 See AGENTS.md → Gotchas → "Deploy connection" for the snow CLI connection to use.

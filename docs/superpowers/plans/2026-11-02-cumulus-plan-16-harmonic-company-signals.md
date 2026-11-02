@@ -226,13 +226,13 @@ The attachment contains:
 ## §5 Self-review checklist
 
 - [x] Task 0 landed first: FOUNDED_YEAR stable across all ZoomInfo months (0 accounts with >1 distinct value); audience re-probed and recorded.
-- [ ] Audience SQL reads Moody's latest row per account (QUALIFY), not month-matched.
-- [ ] SP raises when ZoomInfo or Moody's is missing, or ZoomInfo lacks the run month.
-- [ ] Funding timeline seeded account-only (`harmonic_funding`, `datetime(2000,1,1)`); monotonicity holds by construction.
-- [ ] HEADCOUNT within the same-month band; growth/trend recomputed, no self-read.
-- [ ] Dept percentages sum ≤ 100.
-- [ ] 6 NULLable (incl. NULLable DATE) / 1 BOOLEAN handled in the MERGE casts.
-- [ ] `BACKFILL_MONTHS` arg; TASK calls the no-arg form.
+- [x] Audience SQL reads Moody's latest row per account (QUALIFY), not month-matched.
+- [x] SP raises when ZoomInfo or Moody's is missing, or ZoomInfo lacks the run month.
+- [x] Funding timeline seeded account-only (`harmonic_funding`, `datetime(2000,1,1)`); monotonicity holds by construction.
+- [x] HEADCOUNT within the same-month band; growth/trend recomputed, no self-read.
+- [x] Dept percentages sum ≤ 100.
+- [x] 6 NULLable (incl. NULLable DATE) / 1 BOOLEAN handled in the MERGE casts.
+- [x] `BACKFILL_MONTHS` arg; TASK calls the no-arg form.
 - [ ] No `<<` placeholders left.
 
 ## §6 Out of scope

@@ -33,9 +33,12 @@ Salts:
     noise (_post), dept jitter (_dept), refresh day (_refresh).
   NOTE: cumulus_common.seed_for only uses %Y-%m of its run_ts argument.
 
-The SP entry point (main / hard-dep probes / MERGE / coverage / log) lands
-in Plan 16 Task 4; this module currently holds the pure row factory that the
-L1 tests exercise.
+Entry point (Plan 16 Task 4): main(session, backfill_months=0), registered
+as SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0).
+0 runs the current UTC month (the TASK path); N runs months M-N .. M in
+ascending order. Steps: hard-dependency probes (fail fast) -> per-month
+plan section 2 audience -> ZoomInfo history M-N-9 .. M -> row factory ->
+one MERGE -> per-month coverage vs the section 2 SQL -> TASK_EXECUTION_LOG.
 
 No ampersand character anywhere in this module: the body is inlined into a
 snow sql file, which treats it as a template directive.
@@ -46,12 +49,14 @@ Rowspec: docs/superpowers/plans/attachments/cumulus-plan-16-harmonic-company-sig
 from __future__ import annotations
 
 import calendar
+import uuid
 from datetime import date, datetime, timedelta
 from random import Random
+from typing import Any
 
 # Locally, cumulus_common resolves via the pytest pythonpath; in Snowflake,
 # scripts/deploy_sp.py inlines seed_for / assert_coverage / record_id_for.
-from cumulus_common import seed_for
+from cumulus_common import assert_coverage, seed_for
 from cumulus_common.record_id import record_id_for
 
 
@@ -62,6 +67,17 @@ from cumulus_common.record_id import record_id_for
 TABLE              = "DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS"
 STAGING_TABLE      = "DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS_STAGING"
 TASK_NAME          = "TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS"
+ANCHORS_VIEW       = "DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
+ZOOMINFO_TABLE     = "DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS"   # Plan 11, hard dep
+MOODYS_TABLE       = "DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT"    # Plan 13 v2, hard dep
+LOG_TABLE          = "DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG"
+ZOOMINFO_TASK      = "TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS"
+# BACKFILL_MONTHS upper bound. ZoomInfo history (7 months on 2026-11-02)
+# is the real limit: a month without ZoomInfo rows fails the dependency probe.
+_MAX_BACKFILL_MONTHS = 36
+# _month_state(M-3) reads the M-9 headcount, so ZoomInfo is read from the
+# earliest target month minus this many months.
+_ZI_LOOKBACK_MONTHS = 9
 DATASET_SALT       = "harmonic"          # month-bucketed noise
 FUNDING_SALT       = "harmonic_funding"  # account-lifetime timeline and baselines
 _LIFETIME_EPOCH    = datetime(2000, 1, 1)
@@ -588,3 +604,277 @@ def _with_ids(row: dict, org_id) -> dict:
     return {"ORG_ID": org,
             "RECORD_ID": record_id_for(org, row["ACCOUNT_ID"], row["PROFILE_MONTH"]),
             **row}
+
+
+# -------------------------------------------------------------------
+# SP entry point (Plan 16 Task 4)
+# -------------------------------------------------------------------
+
+def _utcnow() -> datetime:
+    """Wall clock, patchable in L1 tests."""
+    return datetime.utcnow()
+
+
+def _split_fqn(fqn: str) -> tuple[str, str, str]:
+    db, schema, name = fqn.split(".")
+    return db, schema, name
+
+
+def _date_lit(d: date) -> str:
+    return f"TO_DATE('{d.isoformat()}')"
+
+
+def _target_months(started: datetime, backfill_months) -> list[date]:
+    """First-of-month dates M-N .. M (ascending); M = the started UTC month."""
+    n = 0 if backfill_months is None else int(backfill_months)
+    if n < 0 or n > _MAX_BACKFILL_MONTHS:
+        raise ValueError(f"BACKFILL_MONTHS must be in [0, {_MAX_BACKFILL_MONTHS}], got {n}")
+    m = _month_start(started)
+    return [_add_months(m, -i) for i in range(n, -1, -1)]
+
+
+def _audience_sql_for(month: date) -> str:
+    """The plan section 2 SQL with :month bound to a DATE literal."""
+    return AUDIENCE_SQL.replace(":month", _date_lit(month))
+
+
+def _coverage_sql(month: date) -> tuple[str, str]:
+    """(expected, actual) for assert_coverage: distinct section 2 audience
+    accounts vs distinct accounts written for the same PROFILE_MONTH. This
+    post-MERGE count is the only statement that reads the target table; the
+    row factory never does (stateless recomputation)."""
+    expected = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM ({_audience_sql_for(month)})"
+    actual = (f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE} "
+              f"WHERE PROFILE_MONTH = {_date_lit(month)}")
+    return expected, actual
+
+
+def _check_dependencies(session: Any, months: list[date]) -> None:
+    """Fail fast on the two hard cross-plan dependencies.
+
+    Raises RuntimeError when ZOOMINFO_FIRMOGRAPHICS (Plan 11) or
+    MOODYS_MARKET_CONTEXT (Plan 13 v2) is absent, when Moody's is empty, or
+    when ZoomInfo has no row for a target month (its monthly task has not
+    run yet). An empty month must never be emitted silently.
+    """
+    db, schema, _ = _split_fqn(ZOOMINFO_TABLE)
+    wanted = [_split_fqn(ZOOMINFO_TABLE)[2], _split_fqn(MOODYS_TABLE)[2]]
+    in_list = ", ".join(f"'{t}'" for t in wanted)
+    found = {r[0] for r in session.sql(
+        f"SELECT TABLE_NAME FROM {db}.INFORMATION_SCHEMA.TABLES "
+        f"WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME IN ({in_list})").collect()}
+    missing = [fqn for fqn in (ZOOMINFO_TABLE, MOODYS_TABLE) if _split_fqn(fqn)[2] not in found]
+    if missing:
+        raise RuntimeError(
+            "hard dependency missing: " + ", ".join(missing)
+            + " not found (Plan 16 needs ZoomInfo Plan 11 and Moody's Plan 13 v2)")
+
+    moodys_n = session.sql(f"SELECT COUNT(*) FROM {MOODYS_TABLE}").collect()[0][0]
+    if not moodys_n:
+        raise RuntimeError(f"hard dependency not ready: {MOODYS_TABLE} has no rows")
+
+    month_list = ", ".join(_date_lit(m) for m in months)
+    have = {r[0] for r in session.sql(
+        f"SELECT PROFILE_MONTH, COUNT(*) AS N FROM {ZOOMINFO_TABLE} "
+        f"WHERE PROFILE_MONTH IN ({month_list}) GROUP BY PROFILE_MONTH").collect()}
+    have = {date(d.year, d.month, d.day) for d in have}
+    absent = [m for m in months if m not in have]
+    if absent:
+        raise RuntimeError(
+            f"hard dependency not ready: {ZOOMINFO_TABLE} has no rows for PROFILE_MONTH "
+            + ", ".join(m.isoformat() for m in absent)
+            + f" ({ZOOMINFO_TASK} has not run for that month yet); refusing to emit an empty month")
+
+
+def _load_audience(session: Any, month: date) -> list[dict]:
+    """Anchor attributes for the section 2 audience of `month` (one per account)."""
+    rows = session.sql(f"""
+SELECT anc.ORG_ID, anc.ACCOUNT_ID, anc.ACCOUNT_NAME, anc.ACCOUNT_TYPE_FLAG,
+       anc.CLIENT_CATEGORY, anc.INDUSTRY
+FROM {ANCHORS_VIEW} anc
+WHERE anc.ACCOUNT_ID IN (SELECT ACCOUNT_ID FROM ({_audience_sql_for(month)}))
+QUALIFY ROW_NUMBER() OVER (PARTITION BY anc.ACCOUNT_ID
+                           ORDER BY anc.SNAPSHOT_DATE DESC NULLS LAST, anc.ORG_ID) = 1
+ORDER BY anc.ACCOUNT_ID
+""").collect()
+    return [_anchor_to_dict(r) for r in rows]
+
+
+def _load_zoominfo(session: Any, months: list[date]) -> dict:
+    """{ACCOUNT_ID: {first-of-month date: {EMPLOYEE_BAND, FOUNDED_YEAR}}} for
+    every target-month audience account, from M_first - 9 through M_last, so
+    _month_state can use each month's own band (missing months fall back)."""
+    lo = _add_months(months[0], -_ZI_LOOKBACK_MONTHS)
+    hi = months[-1]
+    union = "\nUNION\n".join(f"SELECT ACCOUNT_ID FROM ({_audience_sql_for(m)})" for m in months)
+    rows = session.sql(f"""
+SELECT z.ACCOUNT_ID, z.PROFILE_MONTH, z.EMPLOYEE_BAND, z.FOUNDED_YEAR
+FROM {ZOOMINFO_TABLE} z
+WHERE z.PROFILE_MONTH BETWEEN {_date_lit(lo)} AND {_date_lit(hi)}
+  AND z.ACCOUNT_ID IN ({union})
+QUALIFY ROW_NUMBER() OVER (PARTITION BY z.ACCOUNT_ID, z.PROFILE_MONTH
+                           ORDER BY z.EMPLOYEE_BAND, z.FOUNDED_YEAR) = 1
+""").collect()
+    out: dict = {}
+    for r in rows:
+        d = _anchor_to_dict(r)
+        pm = d["PROFILE_MONTH"]
+        out.setdefault(d["ACCOUNT_ID"], {})[date(pm.year, pm.month, 1)] = {
+            "EMPLOYEE_BAND": d["EMPLOYEE_BAND"], "FOUNDED_YEAR": d["FOUNDED_YEAR"]}
+    return out
+
+
+def _anchor_to_dict(row: Any) -> dict:
+    """Snowpark Row -> plain dict so _row_for can be tested with dict literals."""
+    if isinstance(row, dict):
+        return row
+    if hasattr(row, "asDict"):
+        return dict(row.asDict())
+    if hasattr(row, "_fields"):
+        return {f.name: row[f.name] for f in row._fields}
+    return dict(row)
+
+
+# Staging dtypes. write_pandas(auto_create_table=True) types datetime64[ns]
+# (and an all-NULL date column) as NUMBER nanoseconds, so every DATE /
+# TIMESTAMP column is coerced to datetime64[ns] here and cast back in the
+# MERGE. Nullable integers use Int64 (NaN would not cast to NUMBER) and
+# nullable strings use the string dtype, so an all-NULL batch keeps a type.
+_DATE_COLUMNS = ("PROFILE_MONTH", "LAST_FUNDING_DATE", "LAST_DATA_REFRESH_DATE")
+_NULLABLE_INT_COLUMNS = ("LAST_ROUND_USD", "EST_VALUATION_USD", "EST_RUNWAY_MONTHS")
+_NULLABLE_STR_COLUMNS = ("LAST_FUNDING_STAGE", "LEAD_INVESTOR")
+STAGING_COLUMNS: tuple[str, ...] = ("ORG_ID", "RECORD_ID", *DATA_COLUMNS)
+
+
+def _staging_frame(records: list[dict]):
+    import pandas as pd
+    df = pd.DataFrame(records, columns=list(STAGING_COLUMNS))
+    for col in (*_DATE_COLUMNS, "GENERATED_AT"):
+        df[col] = pd.to_datetime(df[col]).astype("datetime64[ns]")
+    for col in _NULLABLE_INT_COLUMNS:
+        df[col] = df[col].astype("Int64")
+    for col in _NULLABLE_STR_COLUMNS:
+        df[col] = df[col].astype("string")
+    df["RECENTLY_FUNDED_FLAG"] = df["RECENTLY_FUNDED_FLAG"].astype(bool)
+    return df
+
+
+def _merge_sql(staging: str) -> str:
+    """MERGE the staging table into TABLE on (ORG_ID, ACCOUNT_ID, PROFILE_MONTH).
+
+    1:1 with no fan-out, so MERGE-only is enough (Snowflake MERGE has no
+    NOT MATCHED BY SOURCE). RECORD_ID is written on INSERT and UPDATE.
+    """
+    db, schema, _ = _split_fqn(TABLE)
+    casts = {
+        **{c: f"TO_DATE(TO_TIMESTAMP_NTZ({c}::NUMBER / 1000000000)) AS {c}" for c in _DATE_COLUMNS},
+        "GENERATED_AT": "TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT",
+        "RECENTLY_FUNDED_FLAG": "RECENTLY_FUNDED_FLAG::BOOLEAN AS RECENTLY_FUNDED_FLAG",
+    }
+    select = ",\n            ".join(casts.get(c, c) for c in STAGING_COLUMNS)
+    keys = ("ORG_ID", "ACCOUNT_ID", "PROFILE_MONTH")
+    update = ",\n            ".join(f"{c} = src.{c}" for c in STAGING_COLUMNS if c not in keys)
+    cols = ", ".join(STAGING_COLUMNS)
+    vals = ", ".join(f"src.{c}" for c in STAGING_COLUMNS)
+    return f"""
+        MERGE INTO {TABLE} tgt
+        USING (
+            SELECT
+            {select}
+            FROM {db}.{schema}.{staging}
+        ) src
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
+           AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
+        WHEN MATCHED THEN UPDATE SET
+            {update}
+        WHEN NOT MATCHED THEN INSERT ({cols})
+        VALUES ({vals})
+    """
+
+
+def _merge(session: Any, records: list[dict]) -> int:
+    """Stage via write_pandas, MERGE, return rows inserted + updated."""
+    if not records:
+        return 0
+    db, schema, staging = _split_fqn(STAGING_TABLE)
+    session.write_pandas(_staging_frame(records), staging,
+                         auto_create_table=True, overwrite=True,
+                         database=db, schema=schema)
+    rows = session.sql(_merge_sql(staging)).collect()
+    return int(sum(int(v or 0) for v in rows[0])) if rows else len(records)
+
+
+def main(session: Any, backfill_months: int = 0) -> str:
+    """Plan 16 SP entry point.
+
+    1. Month list M-N .. M (N = BACKFILL_MONTHS, default 0 = the TASK path).
+    2. Hard-dependency probes: raise before any write.
+    3. Per-month section 2 audience (raise on an empty month) and the
+       ZoomInfo history M_first-9 .. M_last.
+    4. Row factory; any row failure fails the run (it would be a coverage gap).
+    5. One MERGE on (ORG_ID, ACCOUNT_ID, PROFILE_MONTH).
+    6. assert_coverage vs the section 2 SQL for every target month.
+    7. Always log to TASK_EXECUTION_LOG (success or failure).
+    """
+    log_id = str(uuid.uuid4())
+    started = _utcnow()
+    rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
+    months: list[date] = []
+
+    try:
+        months = _target_months(started, backfill_months)
+        _check_dependencies(session, months)
+
+        audiences = {}
+        for m in months:
+            audiences[m] = _load_audience(session, m)
+            if not audiences[m]:
+                raise RuntimeError(
+                    f"empty audience for {m.isoformat()}: the section 2 join returned 0 anchors")
+        zi_all = _load_zoominfo(session, months)
+
+        records, errors, accounts = [], [], set()
+        for m in months:
+            run_ts = datetime(m.year, m.month, 1)
+            for anchor in audiences[m]:
+                acct = anchor.get("ACCOUNT_ID")
+                accounts.add(acct)
+                try:
+                    records.append(_with_ids(_row_for(anchor, zi_all.get(acct, {}), run_ts),
+                                             anchor.get("ORG_ID")))
+                except Exception as exc:
+                    errors.append((acct, m.isoformat(), str(exc)[:200]))
+        accounts_processed = len(accounts)
+        if errors:
+            raise RuntimeError(
+                f"row factory failed on {len(errors)}/{len(records) + len(errors)} rows; "
+                f"first: {errors[0]}")
+
+        rows_inserted = _merge(session, records)
+
+        for m in months:
+            expected_sql, actual_sql = _coverage_sql(m)
+            assert_coverage(session, expected_sql, actual_sql)
+
+    except Exception as exc:
+        status = "FAILED"
+        err = str(exc)[:4000]
+        raise
+
+    finally:
+        duration_ms = int((_utcnow() - started).total_seconds() * 1000)
+        session.sql(
+            f"""
+            INSERT INTO {LOG_TABLE}
+                (LOG_ID, TASK_NAME, EXECUTION_TIME, STATUS, ROWS_INSERTED,
+                 ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            params=[log_id, TASK_NAME, started, status,
+                    rows_inserted, accounts_processed, err, duration_ms],
+        ).collect()
+
+    span = f"{months[0].isoformat()}..{months[-1].isoformat()}" if months else "n/a"
+    return (f"{TASK_NAME}: {status} rows={rows_inserted} accounts={accounts_processed} "
+            f"months={len(months)} ({span})")
