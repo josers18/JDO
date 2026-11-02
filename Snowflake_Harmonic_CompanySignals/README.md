@@ -10,7 +10,7 @@ Those signals drive the highest-value commercial-banking moments:
 
 **Plan 16.** Monthly cadence, 1:1 (one row per audience anchor per month).
 - First Cumulus dataset with a **three-way audience** (anchor × ZoomInfo × Moody's).
-- First to view a **lifetime event timeline as of each period.** Each account's funding rounds are generated once, so `TOTAL_RAISED_USD` is monotone and `LAST_FUNDING_DATE ≤ PROFILE_MONTH` by construction.
+- First to view a **lifetime event timeline as of each period.** Each account's funding rounds are generated once, anchored on a 2022–2027 funding era (not the founding date), so `TOTAL_RAISED_USD` is monotone and `LAST_FUNDING_DATE ≤ PROFILE_MONTH` by construction, and fresh rounds keep landing in the live window.
 - `HEADCOUNT_GROWTH_6M_PCT` and `POSTINGS_TREND` are **recomputed** from pure functions for M-6 / M-3. They are never read back from the table.
 
 ## Plan
@@ -56,8 +56,10 @@ Plan §2 figures, from the live audience probe (not from generated rows):
 ## Tests
 ```bash
 cd Snowflake_Harmonic_CompanySignals
-pytest tests/ -v      # L1 row-factory suite; cumulus_common resolves via pyproject pythonpath
+pytest tests/ -v      # L1 suite; cumulus_common resolves via pyproject pythonpath
 ```
+- `tests/test_harmonic_company_signals_row_factory.py`: invariants on the 10-anchor coverage fixture (not representative of the live audience).
+- `tests/test_harmonic_company_signals_distribution.py`: the plan Task 8 (L3) mix / fresh-round / runway / Frozen / transition targets, asserted offline over the live audience shape in `tests/fixtures/live_audience_shape.csv`.
 
 ## Deploy
 ```bash

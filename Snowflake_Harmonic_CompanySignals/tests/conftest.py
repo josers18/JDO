@@ -5,19 +5,25 @@ SAMPLE_ANCHORS fixture. The Plan 16 row factory takes the anchor plus a
 per-account ZoomInfo dict (first-of-month date -> {EMPLOYEE_BAND,
 FOUNDED_YEAR}), and the tests need every band and specific industries.
 
-The inline 10-anchor fixture (plan section 4, Task 3) covers:
+The inline 10-anchor fixture (plan section 4, Task 3) is a CODE-COVERAGE
+fixture. It is NOT representative of the live audience: its band and
+industry mix is flat by design, and its ID suffixes are hand-picked so every
+destiny shows up. Distribution-level behaviour (Task 8 mix, fresh rounds,
+runway, Frozen ratio, transitions) is asserted against the live audience
+shape in test_harmonic_company_signals_distribution.py instead.
+
+It covers:
 
   - every EMPLOYEE_BAND in the audience: 1-10 x4, 11-50 x2, 51-200,
     201-1000, 1001-5000, 5001-25000
   - INDUSTRY: Technology, Healthcare, Restaurant, Construction,
     Professional Services and NULL
-  - FOUNDED_YEAR from 2010 to 2024. The 2024 Technology anchor is young
-    enough that its first round lands inside the 36-month test window,
-    so a Bootstrapped -> funded transition is exercised.
+  - FOUNDED_YEAR from 2010 to 2019, inside the live 2010-2023 range.
   - ID suffixes are chosen (not assumed) so the fixture shows every
-    FUNDING_STATUS: anchor 1 goes Bootstrapped -> Angel-Seed in 2025-10,
-    anchor 7 is Venture-Backed, anchor 8 is PE-Backed. The destiny test
-    asserts this, so a seeding change that breaks it fails loudly.
+    FUNDING_STATUS: anchor 1 goes Bootstrapped -> Angel-Seed inside the
+    36-month window, anchor 7 is Venture-Backed, anchor 8 is PE-Backed.
+    The destiny test asserts this, so a seeding change that breaks it fails
+    loudly (re-pick the suffixes, don't loosen the test).
   - the boring anchor: INDUSTRY NULL, band 1-10, founded 2010, with a
     bootstrapped destiny (asserted in the test, not assumed).
 
@@ -42,14 +48,14 @@ def _biz(n, industry, category="Small Business", suffix="AAA"):
 
 # (anchor, EMPLOYEE_BAND, FOUNDED_YEAR)
 HARMONIC_FIXTURE = [
-    (_biz(1, "Technology", suffix="AAL"),                    "1-10",       2024),  # Pre-Seed 2025-10, Seed 2027-01
+    (_biz(1, "Technology"),                                  "1-10",       2019),  # Bootstrapped -> Angel-Seed
     (_biz(2, "Restaurant"),                                  "1-10",       2015),
     (_biz(3, None, category=None),                           "1-10",       2010),  # boring
     (_biz(4, "Construction"),                                "1-10",       2012),
     (_biz(5, "Healthcare"),                                  "11-50",      2014),
     (_biz(6, "Professional Services"),                       "11-50",      2011),
-    (_biz(7, "Technology", category="Commercial Banking", suffix="AAC"), "51-200", 2016),  # venture to Series B
-    (_biz(8, "Technology", category="Commercial Banking", suffix="AAB"), "201-1000", 2013),  # PE-Backed
+    (_biz(7, "Technology", category="Commercial Banking"),   "51-200",     2016),  # Venture-Backed
+    (_biz(8, "Technology", category="Commercial Banking", suffix="AAC"), "201-1000", 2013),  # PE-Backed
     (_biz(9, "Healthcare", category="Commercial Banking"),   "1001-5000",  2010),
     (_biz(10, "Professional Services", category="Commercial Banking"), "5001-25000", 2012),
 ]

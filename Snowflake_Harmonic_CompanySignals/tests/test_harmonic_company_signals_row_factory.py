@@ -2,7 +2,7 @@
 
 Rowspec L1 property targets:
 1. Determinism (same inputs; any run_ts in the month)
-2. Timeline stability (_timeline identical across 36 run_ts values)
+2. Timeline stability (36 monthly rows imply one lifetime round list)
 3. Monotonicity (plan 4c)
 4. Invariants 4a-4e (range, vocabulary, timeline monotonicity, cross-field,
    bias band)
@@ -153,11 +153,34 @@ def test_with_ids_matches_sql_backfill_formula(fixture_rows):
 
 # ---------- 2. Timeline stability ----------
 
-def test_timeline_identical_across_36_run_ts(fixture_rows):
+def test_monthly_rows_imply_one_lifetime_timeline(fixture_rows, history):
+    """Rebuild the round list implied by 36 months of rows (each month exposes
+    only its last round plus running totals) and check it is one consistent
+    lifetime list: every newly exposed round raises FUNDING_ROUNDS_COUNT by
+    one and TOTAL_RAISED_USD by exactly that round's size, earlier rounds
+    never reappear, and the result equals the slice of _timeline visible in
+    the window."""
     for a, _zi, b, f in fixture_rows:
+        rows = history[a["ACCOUNT_ID"]]
+        implied = []
+        for prev, cur in zip([None] + rows, rows):
+            if cur["FUNDING_ROUNDS_COUNT"] == 0:
+                continue
+            rnd = (cur["LAST_FUNDING_DATE"], cur["LAST_FUNDING_STAGE"],
+                   cur["LAST_ROUND_USD"], cur["LEAD_INVESTOR"])
+            if not implied or implied[-1] != rnd:
+                assert rnd not in implied, a["ACCOUNT_ID"]
+                if prev is not None and prev["FUNDING_ROUNDS_COUNT"] > 0:
+                    assert cur["FUNDING_ROUNDS_COUNT"] == prev["FUNDING_ROUNDS_COUNT"] + 1
+                    assert cur["TOTAL_RAISED_USD"] == prev["TOTAL_RAISED_USD"] + rnd[2]
+                implied.append(rnd)
+            else:
+                assert cur["FUNDING_ROUNDS_COUNT"] == prev["FUNDING_ROUNDS_COUNT"]
+                assert cur["TOTAL_RAISED_USD"] == prev["TOTAL_RAISED_USD"]
         tl = _timeline(a, f, b)
-        for _ts in MONTHS:
-            assert _timeline(a, f, b) == tl
+        first_seen = rows[0]["FUNDING_ROUNDS_COUNT"]
+        visible = [r for r in tl if r[0] <= _month_end(MONTHS[-1])]
+        assert implied == visible[max(0, first_seen - 1):], a["ACCOUNT_ID"]
 
 
 def test_as_of_view_is_a_prefix_of_the_timeline(fixture_rows, history):
@@ -180,13 +203,50 @@ def test_timeline_shape(fixture_rows):
         assert dates == sorted(dates)
         idx = [_LADDER.index(r[1]) for r in tl]
         assert idx == sorted(idx) and len(set(idx)) == len(idx)
-        if tl:
-            assert tl[0][0] >= date(f, 1, 1) + timedelta(days=120)
-            assert tl[0][0] <= date(f, 1, 1) + timedelta(days=900)
+        for d in dates:
+            assert date(f, 1, 1) + timedelta(days=120) <= d <= sp._TIMELINE_END
+        for d0, d1 in zip(dates, dates[1:]):
+            assert 300 <= (d1 - d0).days <= 760            # 10-25 months between rounds
         for d, st, usd, lead in tl:
             lo, hi = sp._ROUND_USD[st]
             assert lo - 25_000 <= usd <= hi + 25_000 and usd % 50_000 == 0
             assert lead in {x for pool in sp._INVESTORS.values() for x in pool}
+
+
+def test_timeline_is_era_anchored_not_founding_anchored():
+    """Rounds cluster around the funding era (pivot in 2022-01 .. 2027-12; PE
+    two years earlier), whatever the founding year, so a 2010 founder can
+    still raise inside the live window."""
+    pivots_in_era = 0
+    funded = 0
+    for i in range(400):
+        a = {"ACCOUNT_ID": f"001ERA{i:06d}", "INDUSTRY": "Technology",
+             "ACCOUNT_TYPE_FLAG": "BUSINESS", "CLIENT_CATEGORY": "Small Business"}
+        tl = _timeline(a, 2010, "51-200")
+        if not tl:
+            continue
+        funded += 1
+        lo = sp._PIVOT_START - timedelta(days=sp._PE_ERA_SHIFT_DAYS)
+        pivots_in_era += any(lo <= r[0] <= sp._PIVOT_END for r in tl)
+    assert funded > 200
+    assert pivots_in_era == funded
+
+
+def test_industry_prefix_normalisation():
+    assert sp._canon_industry("Wholesale Distribution") == "Wholesale"
+    assert sp._canon_industry("Professional Services Mid-Market") == "Professional Services"
+    assert sp._canon_industry("Healthcare Systems") == "Healthcare"
+    assert sp._canon_industry("Real Estate Holdings") == "Real Estate"
+    assert sp._canon_industry("Retail") == "Retail Trade"
+    assert sp._canon_industry("Hospitality") == "Restaurant"
+    assert sp._canon_industry(None) == "" and sp._canon_industry("Insurance") == "Insurance"
+
+
+def test_pe_rolled_first_not_crowded_out():
+    """A high venture probability must not squeeze PE out of the PE bands."""
+    pe = sum(sp._destiny({"INDUSTRY": "Technology"}, "201-1000", random.Random(i)) == "pe"
+             for i in range(4000)) / 4000
+    assert abs(pe - sp._DESTINY_P["nonmicro"]["pe"]) < 0.03, pe
 
 
 def test_valuation_seed_includes_account_id():
@@ -398,6 +458,7 @@ def test_boring_case(boring):
     assert a["INDUSTRY"] is None and b == "1-10" and f == 2010
     assert _timeline(a, f, b) == [], "boring fixture anchor must have a bootstrapped destiny"
     trends = Counter()
+    traction = []
     for ts in MONTHS:
         r = _row_for(a, zi, ts)
         assert r["FUNDING_STATUS"] == "Bootstrapped"
@@ -411,4 +472,8 @@ def test_boring_case(boring):
         assert 0 <= r["OPEN_JOB_POSTINGS"] <= 1
         trends[r["POSTINGS_TREND"]] += 1
         assert 0 <= r["TRACTION_SCORE"] <= 60
+        traction.append(r["TRACTION_SCORE"])
     assert trends["Frozen"] + trends["Steady"] >= 0.75 * len(MONTHS)
+    # Rowspec: ~25-35 most months (40 base, -15 Frozen, ~0 growth at a band
+    # edge); a single opening (Accelerating / Steady) lifts it for a month.
+    assert sum(25 <= t <= 35 for t in traction) > len(MONTHS) / 2, traction

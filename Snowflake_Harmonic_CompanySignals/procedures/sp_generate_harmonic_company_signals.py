@@ -27,7 +27,7 @@ Structural deviations from the v1.5 template (Plan 11 baseline):
 Salts:
   - "harmonic_funding" (account-lifetime, epoch 2000-01-01): destiny and
     rounds (key ACCOUNT_ID), valuation multiple (ACCOUNT_ID_date_stage),
-    headcount position/drift (_hc), lean hirer (_post), burn (_burn), dept
+    headcount position/drift (_hc), lean hirer (_post), planned runway (_burn), dept
     baseline (_dept).
   - "harmonic" (month-bucketed): headcount jitter (ACCOUNT_ID), postings
     noise (_post), dept jitter (_dept), refresh day (_refresh).
@@ -67,6 +67,11 @@ FUNDING_SALT       = "harmonic_funding"  # account-lifetime timeline and baselin
 _LIFETIME_EPOCH    = datetime(2000, 1, 1)
 _MIN_FOUNDED_YEAR  = 2010
 _TIMELINE_END      = date(2030, 12, 31)
+# Funding era: each funded account raises its pivot round on a day drawn
+# uniformly from this window (see _timeline).
+_PIVOT_START       = date(2022, 1, 1)
+_PIVOT_END         = date(2027, 12, 31)
+_PE_ERA_SHIFT_DAYS = 730
 
 # Plan section 2 audience SQL, verbatim except for the live namespace
 # (DATA_JEDAIS.FINS__PUBLIC; there is no FINS database). `:month` is the
@@ -140,6 +145,39 @@ _VENTURE_TILT = {"Technology": 3.0, "Healthcare": 1.6, "Financial Services": 1.8
                  "Professional Services": 1.1, "Manufacturing": 0.8, "Logistics": 0.8,
                  "Restaurant": 0.3, "Construction": 0.3, "Retail Trade": 0.5,
                  "Real Estate": 0.4, "Wholesale": 0.5}
+# Prefix normalisation of live INDUSTRY variants onto the tilt / dept keys.
+# Order matters: the first matching prefix wins.
+_INDUSTRY_PREFIXES = (
+    ("Technology", "Technology"), ("Healthcare", "Healthcare"),
+    ("Financial Services", "Financial Services"),
+    ("Professional Services", "Professional Services"),
+    ("Manufacturing", "Manufacturing"), ("Logistics", "Logistics"),
+    ("Restaurant", "Restaurant"), ("Hospitality", "Restaurant"),
+    ("Construction", "Construction"), ("Retail", "Retail Trade"),
+    ("Real Estate", "Real Estate"), ("Wholesale", "Wholesale"),
+)
+# Destiny probability tables (tuned on the live audience shape, see
+# tests/test_harmonic_company_signals_distribution.py). p = base * tilt
+# (venture: tilt ** venture_exp), capped. PE only in _PE_BANDS, scaled by
+# min(1, tilt). Micro (1-10) venture resolves to Angel-Seed (cap = Seed).
+_DESTINY_P = {
+    "micro":    {"venture": 0.14, "venture_exp": 1.0, "venture_cap": 0.35,
+                 "angel": 0.30, "angel_cap": 0.45, "pe": 0.0},
+    "nonmicro": {"venture": 0.80, "venture_exp": 1.5, "venture_cap": 0.85,
+                 "angel": 0.08, "angel_cap": 0.20, "pe": 0.25},
+}
+# PE appetite by industry: roll-up favourites (distribution, logistics,
+# manufacturing, healthcare services) high; restaurants / construction low.
+_PE_TILT = {"Logistics": 1.5, "Wholesale": 1.5, "Manufacturing": 1.5, "Healthcare": 1.3,
+            "Professional Services": 1.2, "Restaurant": 0.4, "Construction": 0.4,
+            "Retail Trade": 0.8, "Real Estate": 0.8}
+# Planned runway a round is sized for, in months (uniform, account-stable).
+_PLANNED_RUNWAY = (30.0, 66.0)
+# Job postings: base rate per head, fresh-money (round in trailing 180
+# days) add-on, and (growing, shrinking) multipliers.
+_POSTINGS_BASE_RATE   = 0.04
+_POSTINGS_FRESH_MONEY = 0.05
+_POSTINGS_GROWTH_MULT = (2.5, 0.25)
 _PE_BANDS = ("51-200", "201-1000", "1001-5000", "5001-25000")
 
 # Headcount bounds per ZoomInfo EMPLOYEE_BAND. Unknown bands (incl. 25001+)
@@ -152,6 +190,7 @@ _DEPT_BASE = {
     "Technology": (45, 25, 10), "Healthcare": (10, 15, 55), "Professional Services": (15, 30, 35),
     "Restaurant": (0, 10, 80), "Construction": (5, 10, 75), "Manufacturing": (12, 12, 62),
     "Logistics": (8, 12, 68), "Retail Trade": (3, 45, 40), "Financial Services": (25, 30, 25),
+    "Wholesale": (5, 30, 55), "Real Estate": (3, 40, 30),
 }
 _DEPT_DEFAULT = (10, 25, 50)
 _DEPT_MAX_SUM_TENTHS = 980   # G and A keeps at least 2 pct
@@ -209,19 +248,45 @@ def _band_at(zi: dict, month: date, fallback: str) -> str:
 # Funding timeline (account-lifetime) and as-of view
 # -------------------------------------------------------------------
 
+def _canon_industry(industry) -> str:
+    """Normalise a raw INDUSTRY to a tilt / dept-mix key by prefix.
+
+    Live anchors carry variants ('Wholesale Distribution', 'Professional
+    Services Mid-Market', 'Healthcare Systems', 'Real Estate Holdings',
+    'Retail', 'Hospitality', ...). An exact-match lookup would hand them the
+    neutral defaults and weaken the industry bias.
+    """
+    s = (industry or "").strip()
+    for prefix, key in _INDUSTRY_PREFIXES:
+        if s.startswith(prefix):
+            return key
+    return s
+
+
 def _destiny(anchor: dict, band: str, frng: Random) -> str:
-    """'bootstrapped' | 'angel' | 'venture' | 'pe'. frng is seeded once per account."""
-    tilt = _VENTURE_TILT.get(anchor.get("INDUSTRY") or "", 1.0)
+    """'bootstrapped' | 'angel' | 'venture' | 'pe'. frng is seeded once per account.
+
+    Micro (1-10) and non-micro bands use separate probability tables, so
+    that the live audience (76 pct micro, main-street heavy) lands on the
+    plan Task 8 mix. PE (PE bands only) is tilted by _PE_TILT. Probabilities
+    are cumulative with PE first, so PE always gets its full probability;
+    when the three sum past 1 (Technology in PE bands) angel, then venture,
+    simply get the remainder.
+    """
+    industry = _canon_industry(anchor.get("INDUSTRY"))
+    tilt = _VENTURE_TILT.get(industry, 1.0)
     roll = frng.random()
-    p_venture = min(0.55, 0.10 * tilt) if band != "1-10" else min(0.25, 0.06 * tilt)
-    p_angel   = min(0.35, 0.14 * tilt)
-    p_pe      = 0.12 if band in _PE_BANDS else 0.0
-    if roll < p_venture:
-        return "venture"
-    if roll < p_venture + p_angel:
-        return "angel"
-    if roll < p_venture + p_angel + p_pe:
+    p = _DESTINY_P["micro" if band == "1-10" else "nonmicro"]
+    p_venture = min(p["venture_cap"], p["venture"] * tilt ** p["venture_exp"])
+    p_angel   = min(p["angel_cap"], p["angel"] * tilt)
+    p_pe      = (p["pe"] * _PE_TILT.get(industry, 1.0)) if band in _PE_BANDS else 0.0
+    # PE is rolled first so a high venture probability can't crowd it out.
+    if roll < p_pe:
         return "pe"
+    if roll < p_pe + p_venture:
+        return "venture"
+    if roll < p_pe + p_venture + p_angel:
+        return "angel"
     return "bootstrapped"
 
 
@@ -230,6 +295,15 @@ def _timeline(anchor: dict, founded_year: int, band: str) -> list[tuple]:
 
     Seeded from ACCOUNT_ID alone (harmonic_funding, epoch 2000-01-01). Never
     seed this from PROFILE_MONTH: that would break monotonicity.
+
+    Round dates are anchored on a funding era, not on the founding date:
+    the live audience is founded 2010-2023, so founding-relative rounds all
+    land years before the 2026 window (stale runway, no fresh rounds, no
+    transitions). The account draws a pivot month P uniformly in
+    [_PIVOT_START, _PIVOT_END] (2023-01 .. 2028-12) and raises the pivot
+    stage there; earlier stages are placed backwards from P and later
+    stages forwards, each 10-25 months apart. No round is dated before
+    founded + 120 days (earlier ones are dropped), none after 2030-12.
     """
     frng = _lifetime_rng(anchor["ACCOUNT_ID"])
     destiny = _destiny(anchor, band, frng)
@@ -242,16 +316,32 @@ def _timeline(anchor: dict, founded_year: int, band: str) -> list[tuple]:
         top = min(cap, _LADDER.index("Seed") if destiny == "angel" else cap)
         start = 0 if frng.random() < 0.6 else 1                 # skip Pre-Seed 40% of the time
         stages = _LADDER[start:top + 1]
-    d = date(founded_year, 1, 1) + timedelta(days=frng.randint(120, 900))  # 4-30 months after founding
+    # Pivot: the stage raised inside the funding era. Older companies with a
+    # long ladder are further along, so the pivot index skews towards the top.
+    pivot_idx = frng.randint(len(stages) // 2, len(stages) - 1)
+    # PE invests in established companies: its era sits _PE_ERA_SHIFT_DAYS
+    # earlier, so most PE-destiny accounts are already PE-Backed in 2026.
+    shift = timedelta(days=_PE_ERA_SHIFT_DAYS if destiny == "pe" else 0)
+    span = (_PIVOT_END - _PIVOT_START).days
+    pivot = _PIVOT_START - shift + timedelta(days=frng.randint(0, span))
+    gaps = [frng.randint(300, 760) for _ in stages]           # 10-25 months between rounds
+    dates = [None] * len(stages)
+    dates[pivot_idx] = pivot
+    for i in range(pivot_idx - 1, -1, -1):
+        dates[i] = dates[i + 1] - timedelta(days=gaps[i])
+    for i in range(pivot_idx + 1, len(stages)):
+        dates[i] = dates[i - 1] + timedelta(days=gaps[i])
+    earliest = date(founded_year, 1, 1) + timedelta(days=120)
     rounds = []
-    for st in stages:
+    for d, st in zip(dates, stages):
         lo, hi = _ROUND_USD[st]
         usd = round(frng.uniform(lo, hi) / 50_000) * 50_000
         pool = "pe" if st.startswith("PE") else (
             "angel" if st in ("Pre-Seed", "Seed") and frng.random() < 0.6 else "venture")
-        rounds.append((d, st, usd, frng.choice(_INVESTORS[pool])))
-        d = d + timedelta(days=frng.randint(300, 760))          # 10-25 months between rounds
-    return [r for r in rounds if r[0] <= _TIMELINE_END]
+        lead = frng.choice(_INVESTORS[pool])
+        if earliest <= d <= _TIMELINE_END:                     # draws stay aligned either way
+            rounds.append((d, st, usd, lead))
+    return rounds
 
 
 def _funding_as_of(rounds: list[tuple], month_end: date, account_id: str) -> dict:
@@ -293,28 +383,50 @@ def _headcount_for(anchor: dict, band: str, month: date, rounds: list[tuple]) ->
     return int(max(lo, min(hi, round(raw))))
 
 
-def _runway(funding: dict, hc: int, month_end: date, rrng: Random):
-    """Months of runway [0, 60]; Angel-Seed / Venture-Backed only, else None."""
+def _runway(funding: dict, hc: int, hc_at_round: int, month_end: date, rrng: Random):
+    """Months of runway [0, 60]; Angel-Seed / Venture-Backed only, else None.
+
+    A round is sized for a planned runway (account-stable, 30-66 months), so
+    the monthly net burn at the round is LAST_ROUND_USD / planned. Burn then
+    scales with headcount since the round (hiring burns cash faster):
+    burn = LAST_ROUND_USD / planned * hc / hc_at_round.
+    """
     if funding["FUNDING_STATUS"] not in ("Angel-Seed", "Venture-Backed"):
         return None
-    burn = hc * rrng.uniform(9_000, 16_000)                      # USD/month fully loaded
+    planned = rrng.uniform(_PLANNED_RUNWAY[0], _PLANNED_RUNWAY[1])
+    burn = funding["LAST_ROUND_USD"] / planned * hc / max(hc_at_round, 1)
     months_since = (month_end - funding["LAST_FUNDING_DATE"]).days / 30.4
     runway = funding["LAST_ROUND_USD"] / max(burn, 1) - months_since
     return int(max(0, min(60, round(runway))))
 
 
 def _postings_for(anchor: dict, band: str, month: date, rounds: list[tuple], hc: int,
-                  runway=None) -> int:
+                  runway=None, growth=0.0) -> int:
     """Open job postings for `month`. `band` is carried for signature parity with
-    _headcount_for (hc already reflects it)."""
-    rate = 0.03 + (0.05 if any(0 <= (month - r[0]).days <= 180 for r in rounds) else 0.0)
+    _headcount_for (hc already reflects it).
+
+    Hiring follows the headcount trajectory: a growing company (6-month
+    growth > 0) posts at 2.5x the base rate, a shrinking one at 0.25x, so
+    Frozen is much more common among negative-growth rows. The expected
+    count is stochastically rounded (floor plus a Bernoulli on the
+    fraction), so a growing 5-person company shows 1 opening some months
+    instead of always rounding to 0.
+    """
+    rate = _POSTINGS_BASE_RATE + (
+        _POSTINGS_FRESH_MONEY if any(0 <= (month - r[0]).days <= 180 for r in rounds) else 0.0)
+    if growth > 0:
+        rate *= _POSTINGS_GROWTH_MULT[0]
+    elif growth < 0:
+        rate *= _POSTINGS_GROWTH_MULT[1]
     frng = _lifetime_rng(anchor["ACCOUNT_ID"] + "_post")
     if frng.random() < 0.15:                                     # account-stable lean hirer
         rate *= 0.2
     if runway is not None and runway < 6:                        # burning company freezes hiring
         rate *= 0.3
     mrng = _monthly_rng(anchor["ACCOUNT_ID"] + "_post", month)
-    return max(0, int(round(hc * rate * mrng.uniform(0.4, 1.6))))
+    x = hc * rate * mrng.uniform(0.4, 1.6)
+    whole = int(x)
+    return max(0, whole + (1 if mrng.random() < x - whole else 0))
 
 
 def _postings_trend(now: int, prev3: int) -> str:
@@ -327,14 +439,29 @@ def _postings_trend(now: int, prev3: int) -> str:
     return "Steady"
 
 
-def _month_state(anchor: dict, band: str, month: date, rounds: list[tuple]) -> dict:
-    """Funding view, headcount, runway and postings for one month (pure)."""
+def _month_state(anchor: dict, zi: dict, month: date, fallback_band: str,
+                 rounds: list[tuple]) -> dict:
+    """Funding view, headcount, 6-month growth, runway and postings for one
+    month (pure). Each month uses its own ZoomInfo band; months missing from
+    `zi` fall back to the run month's band."""
     month_end = _month_end(month)
+    band = _band_at(zi, month, fallback_band)
     funding = _funding_as_of(rounds, month_end, anchor["ACCOUNT_ID"])
     hc = _headcount_for(anchor, band, month, rounds)
-    runway = _runway(funding, hc, month_end, _lifetime_rng(anchor["ACCOUNT_ID"] + "_burn"))
-    postings = _postings_for(anchor, band, month, rounds, hc, runway)
-    return {"funding": funding, "hc": hc, "runway": runway, "postings": postings}
+    m6 = _add_months(month, -6)
+    hc6 = _headcount_for(anchor, _band_at(zi, m6, fallback_band), m6, rounds)
+    growth = _growth_pct(hc, hc6)
+    runway = None
+    if funding["FUNDING_STATUS"] in ("Angel-Seed", "Venture-Backed"):
+        # Headcount at the round month, on this month's band (the round may
+        # predate ZoomInfo history).
+        rd = funding["LAST_FUNDING_DATE"]
+        hc_round = _headcount_for(anchor, band, date(rd.year, rd.month, 1), rounds)
+        runway = _runway(funding, hc, hc_round, month_end,
+                         _lifetime_rng(anchor["ACCOUNT_ID"] + "_burn"))
+    postings = _postings_for(anchor, band, month, rounds, hc, runway, growth)
+    return {"funding": funding, "hc": hc, "growth": growth, "runway": runway,
+            "postings": postings}
 
 
 def _growth_pct(hc: int, hc6: int) -> float:
@@ -352,7 +479,7 @@ def _traction(growth_pct: float, postings_trend: str, recently_funded: bool,
 
 def _dept_mix(anchor: dict, month: date, funding: dict) -> tuple[float, float, float]:
     """(eng, sales, ops) pct. Account-stable baseline + monthly jitter; sum <= 98."""
-    industry = anchor.get("INDUSTRY") or ""
+    industry = _canon_industry(anchor.get("INDUSTRY"))
     base = _DEPT_BASE.get(industry, _DEPT_DEFAULT)
     brng = _lifetime_rng(anchor["ACCOUNT_ID"] + "_dept")
     mrng = _monthly_rng(anchor["ACCOUNT_ID"] + "_dept", month)
@@ -397,7 +524,6 @@ def _row_for(anchor: dict, zi: dict, run_ts: datetime) -> dict:
 
     # 1. Month anchor.
     month = _month_start(run_ts)
-    month_end = _month_end(month)
 
     # 2. Same-month ZoomInfo band and founded year (hard dependency).
     zm = zi.get(month)
@@ -413,15 +539,13 @@ def _row_for(anchor: dict, zi: dict, run_ts: datetime) -> dict:
     # 3. Lifetime timeline and the as-of view.
     rounds = _timeline(anchor, founded, band)
 
-    # 4-6. Month M state (funding, headcount, runway, postings), M-6 headcount
-    #      and M-3 postings, each recomputed with that month's band.
-    now = _month_state(anchor, band, month, rounds)
+    # 4-6. Month M state (funding, headcount, M-6 growth, runway, postings) and
+    #      the M-3 state for the postings trend, each recomputed with that
+    #      month's band (and M-6 / M-9 for their growth).
+    now = _month_state(anchor, zi, month, band, rounds)
     funding = now["funding"]
-    m6 = _add_months(month, -6)
-    hc6 = _headcount_for(anchor, _band_at(zi, m6, band), m6, rounds)
-    growth = _growth_pct(now["hc"], hc6)
-    m3 = _add_months(month, -3)
-    prev3 = _month_state(anchor, _band_at(zi, m3, band), m3, rounds)
+    growth = now["growth"]
+    prev3 = _month_state(anchor, zi, _add_months(month, -3), band, rounds)
     trend = _postings_trend(now["postings"], prev3["postings"])
 
     # 7. Dept mix, traction, flag, refresh, generated-at.
@@ -429,7 +553,6 @@ def _row_for(anchor: dict, zi: dict, run_ts: datetime) -> dict:
     last_date = funding["LAST_FUNDING_DATE"]
     recently_funded = last_date is not None and last_date >= month - timedelta(days=90)
     traction = _traction(growth, trend, recently_funded, funding["TOTAL_RAISED_USD"])
-    _ = month_end  # month_end feeds _month_state; kept for assembly-order parity
 
     return {
         "ACCOUNT_ID":              anchor["ACCOUNT_ID"],
