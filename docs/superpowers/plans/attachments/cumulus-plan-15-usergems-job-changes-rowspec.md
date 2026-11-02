@@ -3,7 +3,8 @@
 > Per-dataset attachment for the dataset template. Authored 2026-11-02 from the vendor-gap assessment (Hunter B2B data list → "Job changes / champion tracking" category) plus live probes of:
 > - `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`: 6,435-anchor employer audience, 3,920 Wealth Management PERSON anchors, `ACCOUNT_NAME` available for destination naming.
 > - `BOARDEX_EXEC_INTEL.EXEC_TURNOVER_FLAG`: monthly TRUE rate ≈ 17.7% of the employer audience. The flag is iid per month, not sticky; see plan §2.
->   **Update 2026-11-02:** the Plan 10 fix landed. The flag is now trailing-12-month sticky (per-account C-suite timeline). The new SP is deployed, but the live 30-month in-place re-run has **not** run yet (it was blocked by a permission gate on 2026-11-02 and needs an operator). Projected post-re-run numbers from an offline replay over the live audience: 4,682 rises / 60,110 stays / 4,673 falls, monthly TRUE rate 19.85%-21.12%. See plan §2 "BoardEx fix landed".
+>   **Live data NOT yet sticky:** the live table still holds the iid flag (49,962 rises / 12,457 stays / 49,941 falls, re-checked 2026-11-02).
+>   **Update 2026-11-02:** the Plan 10 fix landed in code. The flag is now trailing-12-month sticky (per-account C-suite timeline). The new SP is deployed, but the live 30-month in-place re-run has **not** run yet (it was blocked by a permission gate on 2026-11-02 and needs an operator). Projected post-re-run numbers from an offline replay over the live audience: 4,682 rises / 60,110 stays / 4,673 falls, monthly TRUE rate 19.85%-21.12%. See plan §2 "BoardEx fix landed".
 >
 > **First event-scoped dataset.** Every earlier plan emits ≥1 row per anchor per period. Plan 15 emits rows only when something happened. The row factory returns `[]` for ~96% of (anchor, month) pairs, and that is the correct output.
 

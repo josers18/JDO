@@ -609,7 +609,8 @@ def _rows_for(anchor: dict, profile_month: datetime) -> list[dict]:
 
 
 # -------------------------------------------------------------------
-# Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
+# Entry point — invoked by TASK_MONTHLY_BOARDEX_EXEC_INTEL via
+# DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('...SP_GENERATE_BOARDEX_EXEC_INTEL()', 2)
 # -------------------------------------------------------------------
 
 def main(session: Any, num_months: int = 1, history_update_only: bool = False) -> str:

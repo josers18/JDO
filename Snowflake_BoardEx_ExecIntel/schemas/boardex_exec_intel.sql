@@ -5,11 +5,10 @@
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_BOARDEX_EXEC_INTEL
 --             (Cron: 0 3 1 * * America/New_York — first of month, 03:00 ET; live schedule)
--- Audience:   Commercial Banking only (CLIENT_CATEGORY = 'Commercial Banking')
---             — distinct accounts from V_ACCOUNT_ANCHORS, ~960 distinct
---             anchors. 1:1 — each anchor emits exactly one row per month
---             → ~960 rows/month. Smallest Cumulus audience of all 13 plans
---             by 4.1× (dethrones Plan 8 MGP Financial Plans, 3,920).
+-- Audience:   All accounts (rebroadcast): every distinct anchor in
+--             V_ACCOUNT_ANCHORS, ~36,821 anchors (PERSON + BUSINESS). 1:1 —
+--             each anchor emits exactly one row per month → ~36.8K rows/month.
+--             The v1 design was Commercial Banking only (~960 anchors/month).
 --             Re-runs same calendar month MERGE-replace in place.
 -- Generator:  SP_GENERATE_BOARDEX_EXEC_INTEL (Snowpark Python via SP_RETRY_WRAPPER)
 -- Egress:     DC Snowflake federation -> DLO/DMO CumulusBoardExExecIntel__dlm

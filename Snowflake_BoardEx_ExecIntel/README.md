@@ -15,7 +15,7 @@ Synthetic BoardEx / Equilar / ISS-style board director and executive intelligenc
 ## Snowflake objects
 - Table: `DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL`
 - Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL()`
-- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL` (MONTHLY, `0 7 1 * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
+- Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_BOARDEX_EXEC_INTEL` (MONTHLY, `0 3 1 * * America/New_York`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusBoardExExecIntel__dll` → DMO `CumulusBoardExExecIntel__dlm`
 
 ## Audience

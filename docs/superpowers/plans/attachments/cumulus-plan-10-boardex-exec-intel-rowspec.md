@@ -103,6 +103,8 @@ other_rate  = 0.8 * ceo_rate                  # CFO/COO/CRO/CTO/CIO/GC departure
 # role drawn from {CFO, COO, CRO, CTO, CIO, General Counsel}.
 ```
 
+> **Live data NOT yet sticky (re-checked 2026-11-02):** the live `BOARDEX_EXEC_INTEL` table still holds the old iid flag (BUSINESS rows: 49,962 rises / 12,457 stays / 49,941 falls). The fix is in code and deployed only; the numbers below are offline projections until an operator runs the 30-month re-run.
+
 Per profile month M (month_end = last day of M):
 
 ```python

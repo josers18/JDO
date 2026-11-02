@@ -14,29 +14,25 @@
 --
 -- Pattern parity:
 --   Plan 10 keeps the MONTHLY cadence Plan 8 reverted to after Plan 7's
---   daily-cadence first. Cron string `0 7 1 * * UTC` matches Plans 1-3 /
---   Plan 6 / Plan 8 PRECISELY — same minute, hour, day-of-month. Plan 5
---   was QUARTERLY (`0 8 1 1,4,7,10 * UTC`); Plan 7 established the daily
---   precedent (`0 6 * * * UTC`) for Plan 13 (Moody's). Same warehouse
---   (MAIN_WH_XS), same SP_RETRY_WRAPPER call shape, same retry count (2).
---   Only the SP target differs from prior monthly tasks.
+--   daily-cadence first. Same warehouse (MAIN_WH_XS), same SP_RETRY_WRAPPER
+--   call shape, same retry count (2) as the other monthly Cumulus tasks.
+--   The live schedule is `0 3 1 * * America/New_York` (the original Plan 10
+--   design said `0 7 1 * * UTC`; the live task was re-created on ET).
 --
--- Why first of month at 07:00 UTC?
+-- Why first of month at 03:00 America/New_York?
 --   Board / governance refresh data from BoardEx / Equilar / ISS-style
---   vendors lands on a monthly cadence — proxy filings, 10-K board
---   composition disclosures, and director interlock graphs are all
---   updated on a monthly review cycle by the data providers. The
---   1st-of-month timing models the cadence Commercial Banking
---   relationship managers actually use to refresh executive intel
---   snapshots before client-meeting prep. The 07:00 UTC slot gives 7h
---   of buffer after midnight UTC for any in-org schedules that touch
---   the same anchors earlier in the day. (Synthetic data here, but the
---   timing models the real-world cadence for downstream-team education.)
+--   vendors lands on a monthly cadence (proxy filings, 10-K board
+--   composition disclosures, director interlock graphs). The 1st-of-month
+--   timing models the cadence Commercial Banking relationship managers use
+--   to refresh executive intel snapshots before client-meeting prep. 03:00
+--   ET runs before the US business day starts, so the new month is in place
+--   before anyone opens a cockpit. (Synthetic data, but the timing models
+--   the real-world cadence.)
 --
 -- Volume note:
---   ~960 rows/month — smallest Cumulus dataset by 4.1× (next-smallest is
---   Plan 8 MGP at 3,920). SP runtime expected <1s; warehouse spin-up
---   dominates wall time. Re-runs same calendar month are byte-identical
+--   ~36.8K rows/month: the all-accounts audience (~36,821 anchors, PERSON +
+--   BUSINESS, 1:1 anchor:row). The v1 Commercial-Banking-only design was
+--   ~960 rows/month. Re-runs in the same calendar month are byte-identical
 --   (idempotent MERGE on composite PK ORG_ID, ACCOUNT_ID, PROFILE_MONTH).
 -- =============================================================================
 
