@@ -9,7 +9,7 @@ Synthetic Harmonic-style **private-company funding and traction** signals, with 
 | T0 ZoomInfo FOUNDED_YEAR account-stable | done (commit `3cba15fdc`, see `../Snowflake_ZoomInfo_Firmographics/AGENTS.md`) |
 | T1 scaffold | done |
 | T2 DDL (`schemas/harmonic_company_signals.sql`, table + `_STAGING`) | done; **deployed live 2026-11-02** (both tables 24 columns, 6 NULLable, 0 rows) |
-| T3 row factory + L1 tests | pending |
+| T3 row factory + L1 tests (`procedures/sp_generate_harmonic_company_signals.py`) | done (30 L1 tests green; `main` / MERGE land in T4) |
 | T4 SP entry point (`main`, MERGE, hard-dep probes, coverage, log) | pending |
 | T5 L2 / T6 deploy + TASK + 7-month backfill / T8 L3 smoke | pending |
 | T7 DC stream + DMO | **DC mapping pending UI** (mapping table below) |
@@ -30,7 +30,10 @@ Synthetic Harmonic-style **private-company funding and traction** signals, with 
 - `accounts_processed` = audience size = row count.
 
 ## Tests
-- **L1** (`tests/test_harmonic_company_signals_row_factory.py`) runs on the inline 10-anchor fixture in `tests/conftest.py`, not on the shared SAMPLE_ANCHORS.
+- **L1** (`tests/test_harmonic_company_signals_row_factory.py`, 30 tests) runs on the inline 10-anchor fixture in `tests/conftest.py`, not on the shared SAMPLE_ANCHORS. Run it with `python3 -m pytest -q` from this directory.
+  - Covers determinism, audience scoping, the AUDIENCE_SQL fragments, the 22-column contract, the RECORD_ID formula, timeline stability and shape, 4a range, 4b vocabulary, 4c monotonicity over 36 months, 4d cross-field, 4e bias over 1,000 synthetic anchors, the band bound, band-change and missing-month fallback, growth/trend recomputation, the no-self-read and no-ampersand guards, and the boring case.
+  - Fixture ID suffixes (anchor 1 `AAL`, 7 `AAC`, 8 `AAB`) were picked so the fixture shows all four FUNDING_STATUS values and a Bootstrapped→Angel-Seed transition inside 2025-01…2027-12. If seeding changes, re-pick them; `test_fixture_exercises_destinies` fails loudly.
+  - The test module imports helpers as `from tests.conftest import zi_const` (tests/ is a package).
 
 ## Gotchas
 - **Three-way audience.** Use the plan §2 SQL verbatim, comment included. It joins `V_ACCOUNT_ANCHORS` × `ZOOMINFO_FIRMOGRAPHICS` (same month, `FOUNDED_YEAR >= 2010`) × the **latest** `MOODYS_MARKET_CONTEXT` row per account (`QUALIFY ROW_NUMBER() … ORDER BY PROFILE_DATE DESC = 1`, `LIQUIDITY_TIER = 'Illiquid'`).
@@ -38,7 +41,7 @@ Synthetic Harmonic-style **private-company funding and traction** signals, with 
   - **Keep the `COALESCE(a.CLIENT_CATEGORY, '') <> 'Household'`.** `NULL <> 'Household'` is NULL in SQL and would drop the NULL-category anchors.
   - The Python mirror `_anchor_in_audience` checks the anchor half (BUSINESS, non-Household, non-empty id) and `_row_for` checks `FOUNDED_YEAR >= 2010` on the month's ZoomInfo row. It can't check Moody's.
 - **Hard dependencies.** Task 4 must probe `INFORMATION_SCHEMA.TABLES` for both `ZOOMINFO_FIRMOGRAPHICS` and `MOODYS_MARKET_CONTEXT` and raise if either is missing. It must also raise if ZoomInfo has **no row for `:month`**, which means the ZoomInfo task hasn't run yet. Don't silently emit an empty month. `_row_for` raises `ValueError` when `zi` lacks the run month too.
-- **Funding timeline is account-lifetime.** `_timeline(anchor, founded_year, band)` seeds `harmonic_funding` with `datetime(2000, 1, 1)` keyed on `ACCOUNT_ID`. **Never seed it from `PROFILE_MONTH`**: a per-month draw would break monotonicity. Each month's funding columns are `_funding_as_of(rounds, month_end)`, a filter on that one list. That gives non-decreasing `TOTAL_RAISED_USD` / `FUNDING_ROUNDS_COUNT` / stage index and `LAST_FUNDING_DATE ≤ month_end` by construction. Rounds dated after the month are simply not visible yet, which is how Bootstrapped→funded transitions show up.
+- **Funding timeline is account-lifetime.** `_timeline(anchor, founded_year, band)` seeds `harmonic_funding` with `datetime(2000, 1, 1)` keyed on `ACCOUNT_ID`. **Never seed it from `PROFILE_MONTH`**: a per-month draw would break monotonicity. Each month's funding columns are `_funding_as_of(rounds, month_end, account_id)`, a filter on that one list. That gives non-decreasing `TOTAL_RAISED_USD` / `FUNDING_ROUNDS_COUNT` / stage index and `LAST_FUNDING_DATE ≤ month_end` by construction. Rounds dated after the month are simply not visible yet, which is how Bootstrapped→funded transitions show up.
 - **Per-round valuation seed includes ACCOUNT_ID.** The rowspec's `_funding_as_of` sketch keys the valuation multiple on `f"{d}_{st}"` only. The rowspec text says to use `f"{account_id}_{d}_{st}"`, and so does the code. Otherwise two accounts with a same-day, same-stage round would share a multiple.
 - **Timeline inputs.** `ACCOUNT_ID`, `founded_year` (account-stable after Task 0) and `band` (deterministic from EMPLOYEE_COUNT in Plan 11). If the band changes upstream, the timeline can change. That's a genuine re-baseline. The L3 monotonicity SQL should exclude band-change months.
 - **Trajectory recomputation, no self-read.** `_headcount_for(anchor, band, month, rounds)` and `_postings_for(anchor, band, month, rounds, hc, runway)` are pure. Growth and trend call them for M-6 / M-3. **No `SELECT` from `HARMONIC_COMPANY_SIGNALS` inside the SP**; an L1 guard test greps the module for it.
