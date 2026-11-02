@@ -1,6 +1,6 @@
 # Cumulus Implementation Plans — Manifest
 
-> **For agentic workers:** This manifest is the index for all 14 Cumulus implementation plans. It is NOT itself an executable plan — it lists the per-plan documents and the placeholder values needed to instantiate Plans 1–13 from the dataset template.
+> **For agentic workers:** This manifest is the index for all 17 Cumulus implementation plans. It is NOT itself an executable plan — it lists the per-plan documents and the placeholder values needed to instantiate Plans 1–16 from the dataset template.
 
 **Source spec:** `docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md`
 
@@ -23,6 +23,9 @@
 | Plan 11 — ZoomInfo Firmographics | **LIVE** (11,389 rows; defensive-string handling holding 0 invariants violated; DC mapping pending UI) | `2026-05-28-cumulus-plan-11-zoominfo-firmographics.md` |
 | Plan 12 — Gong Call Sentiment | **LIVE** (883,512 rows; rebroadcast: all-accounts × 24-week history; per-CLIENT_CATEGORY call-rate tiering with cascade-NULL dominant for Retail/Household; DC mapping pending UI) | `2026-05-28-cumulus-plan-12-gong-call-sentiment.md` |
 | Plan 13 — Moody's Market Context | **LIVE v2** (1,025,010 rows; re-scoped from instrument to per-BUSINESS account; 90-day daily history; ANNUAL_REVENUE-driven market cap, INDUSTRY-driven credit rating; DC mapping pending UI) | `2026-05-28-cumulus-plan-13-moodys-market-context.md` |
+| Plan 14 — Demandbase Intent Signals | **Pending** (drafted 2026-11-02; weekly, 6,435-anchor BUSINESS non-Household audience, variable topic fan-out, Gong soft-dep) | `2026-11-02-cumulus-plan-14-demandbase-intent-signals.md` |
+| Plan 15 — UserGems Job Changes | **Pending** (drafted 2026-11-02; first event-scoped dataset, PK `EVENT_ID`; BoardEx hard-dep; ~8.5K events over 24 months) | `2026-11-02-cumulus-plan-15-usergems-job-changes.md` |
+| Plan 16 — Harmonic Company Signals | **Pending** (drafted 2026-11-02; 703-anchor three-way audience; Coresignal columns folded in; Task 0 fixes Plan 11 FOUNDED_YEAR churn first) | `2026-11-02-cumulus-plan-16-harmonic-company-signals.md` |
 
 **Why a template + manifest instead of 13 plan files:** the per-dataset variation is mechanical (audience predicate, table columns, salt), so a 700-line plan that's 95% identical for each of 13 datasets would be 9000 lines of copy-paste with drift risk. The template + per-dataset rowspec attachment captures the variation in ~50 lines per dataset instead.
 
@@ -53,13 +56,25 @@
    ▼   ▼   ▼   ▼
 Plan10 Plan11 Plan12 Plan13
 (BoardEx)(ZI)(Gong)(Moody's)
+   │      │     ┊      │
+   │      │     ┊      │          ┊ = soft dep (degrades, never fails)
+   ▼      └──┬──┼──────┘
+Plan 15      │  ┊
+(UserGems)   ▼  ▼
+          Plan 16  Plan 14
+        (Harmonic) (Demandbase)
 ```
 
-Plans 1–8 only depend on Plan 0; the visual ordering above reflects ship sequence (parallel-track per spec §4), not hard dependency. Plan 9 is the only one with hard cross-plan dependencies — it queries the previously-shipped tables to compute relationship edges.
+Plans 14–16 (drafted 2026-11-02 from the vendor-gap assessment):
+- **Plan 14** has only a soft dependency on Plan 12 (Gong `Competitor` flag).
+- **Plan 15** hard-depends on Plan 10 (BoardEx gates C-suite departures).
+- **Plan 16** hard-depends on Plan 11 (plus its Task 0 FOUNDED_YEAR fix) and Plan 13 v2.
+
+Plans 1–8 only depend on Plan 0; the visual ordering above reflects ship sequence (parallel-track per spec §4), not hard dependency. Plan 9 was the first with hard cross-plan dependencies (Plans 15 and 16 add more) — it queries the previously-shipped tables to compute relationship edges.
 
 ## Per-dataset placeholder substitution table
 
-Use this when instantiating Plans 1–13 from `2026-05-28-cumulus-plan-N-dataset-template.md`. Substitute every `<<...>>` with the column for that plan.
+Use this when instantiating Plans 1–16 from `2026-05-28-cumulus-plan-N-dataset-template.md`. Substitute every `<<...>>` with the column for that plan.
 
 | Placeholder | Plan 1 (Claritas) | Plan 2 (MSCI) | Plan 3 (D&B) | Plan 4 (Esri) | Plan 5 (CoreLogic) | Plan 6 (Plaid) | Plan 7 (WorldCheck) |
 |---|---|---|---|---|---|---|---|
@@ -93,6 +108,22 @@ Use this when instantiating Plans 1–13 from `2026-05-28-cumulus-plan-N-dataset
 | `<<AUDIENCE_PREDICATE>>` | `CLIENT_CATEGORY = 'Wealth Management'` | `1=1` (edge-scoped, see §3.2) | `CLIENT_CATEGORY = 'Commercial Banking'` | `ACCOUNT_TYPE_FLAG = 'BUSINESS'` | `CLIENT_CATEGORY IN ('Wealth Management','Commercial Banking')` | `1=1` (instrument-scoped, see §3.3) |
 | `<<COVERAGE_RULE>>` | distinct accts = audience | distinct src_acct = audience | distinct accts = audience | rows = audience | distinct accts = audience | rows = `COUNT(INSTRUMENT_UNIVERSE)` |
 
+| Placeholder | Plan 14 (Demandbase) | Plan 15 (UserGems) | Plan 16 (Harmonic) |
+|---|---|---|---|
+| `<<PLAN_N>>` | 14 | 15 | 16 |
+| `<<DATASET_SLUG>>` | demandbase-intent-signals | usergems-job-changes | harmonic-company-signals |
+| `<<MIMICS_VENDOR>>` | Demandbase (+ G2, Bombora) | UserGems | Harmonic (+ Coresignal) |
+| `<<DATASET_TABLE>>` | `DEMANDBASE_INTENT_SIGNALS` | `USERGEMS_JOB_CHANGES` | `HARMONIC_COMPANY_SIGNALS` |
+| `<<REPO_DIR>>` | `Snowflake_Demandbase_IntentSignals` | `Snowflake_UserGems_JobChanges` | `Snowflake_Harmonic_CompanySignals` |
+| `<<DC_DMO>>` | `CumulusDemandbaseIntentSignals__dlm` | `CumulusUserGemsJobChanges__dlm` | `CumulusHarmonicCompanySignals__dlm` |
+| `<<DATASET_SALT>>` | `demandbase` + `demandbase_year` | `usergems` + `usergems_person` | `harmonic` + `harmonic_funding` |
+| `<<CADENCE>>` | WEEKLY | WEEKLY | MONTHLY |
+| `<<TASK_NAME>>` | `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS` | `TASK_WEEKLY_USERGEMS_JOB_CHANGES` | `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` |
+| `<<SP_NAME>>` | `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS` | `SP_GENERATE_USERGEMS_JOB_CHANGES` | `SP_GENERATE_HARMONIC_COMPANY_SIGNALS` |
+| `<<CRON>>` | `'USING CRON 30 5 * * 1 UTC'` | `'USING CRON 0 9 * * 1 UTC'` | `'USING CRON 0 9 1 * * UTC'` |
+| `<<AUDIENCE_PREDICATE>>` | `ACCOUNT_TYPE_FLAG = 'BUSINESS' AND COALESCE(CLIENT_CATEGORY,'') <> 'Household'` | same as Plan 14 (employers) + Wealth Management pool | Plan 14 predicate × ZoomInfo `FOUNDED_YEAR >= 2010` × Moody's latest `LIQUIDITY_TIER = 'Illiquid'` (see §3.6) |
+| `<<COVERAGE_RULE>>` | distinct accts = audience | **event contract** (see §3.5) | distinct accts = audience |
+
 ## §3 — Plans needing template deviations
 
 Three datasets break the per-account pattern; their plan files must adjust the template's coverage assertion and audience SQL accordingly.
@@ -122,6 +153,24 @@ Keyed by `INSTRUMENT_ID`, not `ACCOUNT_ID`. Adjust:
 - Audience SQL: `SELECT * FROM FINS.PUBLIC.INSTRUMENT_UNIVERSE WHERE IS_ACTIVE = TRUE` (uses the existing trades-pipeline instrument table).
 - Coverage assertion: `actual_sql = "SELECT COUNT(DISTINCT INSTRUMENT_ID) FROM FINS.PUBLIC.MOODYS_MARKET_CONTEXT"`.
 - Skip the V_ACCOUNT_ANCHORS read entirely — instruments aren't account-scoped.
+
+### §3.4 Plan 14 — Demandbase Intent Signals (variable fan-out)
+
+1–4 topic rows per (account, week), and the count changes week to week as scores cross the reporting threshold. Each week is rewritten with DELETE+INSERT rather than MERGE-only, so stale topic rows don't survive a re-run. Trajectory fields (`WEEKS_SURGING`, `SCORE_DELTA_WOW`) are recomputed from a pure `_score_for(anchor, topic, week)`. There is no self-read.
+
+### §3.5 Plan 15 — UserGems Job Changes (event-scoped)
+
+The PK is a deterministic `EVENT_ID`, and most accounts emit zero rows in a given week. `assert_coverage` is replaced by `_assert_event_contract`, which checks:
+- the weekly row count is within [30, 200];
+- every account ID is in the employer audience;
+- every `PERSON_ACCOUNT_ID` is in the Wealth pool;
+- C-suite departures fall only in BoardEx-TRUE months.
+
+Paired `Joined` mirrors are written on accounts other than the one being processed.
+
+### §3.6 Plan 16 — Harmonic Company Signals (three-way audience + upstream fix)
+
+The audience joins anchors × ZoomInfo (same month) × Moody's (latest row per account). **Task 0 lands first.** It makes Plan 11's `FOUNDED_YEAR` account-stable (today it's re-drawn monthly) and rewrites the ZoomInfo history. Funding columns are an as-of view of a lifetime per-account round timeline, so they're monotone by construction.
 
 ## Per-dataset rowspec attachments
 
@@ -164,6 +213,7 @@ For maximum reviewer parallelism without dependency conflicts:
 5. **Plan 8** (MGP).
 6. **Plan 9** (Relationship Graph) — last in Tier 1.
 7. **Plans 10, 11, 12, 13** — parallel; ship after Plan 9.
+8. **Plans 14, 15, 16** — independent of each other; any order. Plan 16 starts with its Task 0 (the Plan 11 fix) as its own commit.
 
 ## v1.4 — Plan 1 deploy lessons (apply to Plans 2–13)
 
@@ -187,5 +237,7 @@ This manifest is the planning deliverable for the Cumulus brainstorm. After it's
 - Plan 0 is ready to execute as written. **Done — `V_ACCOUNT_ANCHORS` deployed live.**
 - Plan 1 (Claritas) is **shipping** — SP deployed, TASK scheduled, table populated. T7 (DC federation stream) and T8 (L3 smoke) remaining.
 - Plans 2–13 are instantiated on demand from the template + a per-dataset rowspec.
+
+- Plans 14–16 are **drafted (2026-11-02)** with plan files and rowspec attachments, pending implementation.
 
 After Plan 1 closes, Plans 2–13 follow the recommended execution order in §"Execution order recommendation" above.
