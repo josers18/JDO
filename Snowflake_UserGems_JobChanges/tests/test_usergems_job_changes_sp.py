@@ -392,3 +392,14 @@ def test_l2_sql_is_up_to_date():
     assert (root / "test_usergems_job_changes_sp.sql").read_text() == mod.build(), (
         "stale L2 SQL: run python3 tests/integration/build_l2.py"
     )
+
+
+def test_deploy_snow_cmd_is_unflagged_and_forwards_role():
+    """The deploy must stay on the active default (JWT) connection: never `-c`
+    unless explicitly overridden. `--role` is forwarded because the sibling
+    objects in DATA_JEDAIS.FINS__PUBLIC are owned by ACCOUNTADMIN."""
+    deploy = _load_deploy()
+    assert deploy.build_snow_cmd("x.sql") == [deploy.SNOW, "sql", "-f", "x.sql"]
+    assert deploy.build_snow_cmd("x.sql", role="ACCOUNTADMIN") == [
+        deploy.SNOW, "sql", "-f", "x.sql", "--role", "ACCOUNTADMIN"]
+    assert deploy.build_snow_cmd("x.sql", connection="c1")[:4] == [deploy.SNOW, "sql", "-c", "c1"]

@@ -30,16 +30,18 @@ L2 fixture build (`--fixture-schema DB.SCHEMA`):
   Then runs it. The L2 SQL (tests/integration/test_usergems_job_changes_sp.sql)
   creates the fixtures, calls both procs and DROPs the schema at the end.
 
-Why a scratch schema, not FINS__PUBLIC fixtures: the deploy role (SYSADMIN)
+Why a scratch schema, not FINS__PUBLIC fixtures: the default role (SYSADMIN)
 has CREATE PROCEDURE / CREATE TASK on DATA_JEDAIS.FINS__PUBLIC but no
-CREATE TABLE, and owns DEMO_DB.
+CREATE TABLE, and owns DEMO_DB. The production deploy runs with
+`--role ACCOUNTADMIN`, which owns the schema and every sibling object
+(Plan 14 / 16 pattern).
 
 Signature: `(BACKFILL_WEEKS INTEGER DEFAULT 0)`. If it ever changes, add a
 `DROP PROCEDURE IF EXISTS <fqn>(<old types>);` line to SQL_HEADER first
 (Snowflake overloads on signature; CREATE OR REPLACE would leave the old one).
 
 Usage:
-    python3 scripts/deploy_sp.py [--connection NAME] [--no-deploy]
+    python3 scripts/deploy_sp.py [--role ACCOUNTADMIN] [--connection NAME] [--no-deploy]
     python3 scripts/deploy_sp.py --fixture-schema DEMO_DB.CUMULUS_L2_USERGEMS [--week-band 0,25]
 """
 from __future__ import annotations
@@ -217,10 +219,20 @@ def build_fixture_sql(schema_fqn: str, band: tuple[int, int] = (0, 25)) -> str:
     return sql
 
 
-def _run(path: pathlib.Path, connection: str | None) -> int:
+def build_snow_cmd(path, connection: str | None = None, role: str | None = None) -> list[str]:
+    """`snow sql -f <path>` on the active default connection. `-c` only on an
+    explicit override (an OAuth connection opens a browser popup); `--role`
+    forwarded when given (sibling objects are owned by ACCOUNTADMIN)."""
     cmd = [SNOW, "sql", "-f", str(path)]
     if connection:
-        cmd[1:1] = ["-c", connection]
+        cmd[2:2] = ["-c", connection]
+    if role:
+        cmd += ["--role", role]
+    return cmd
+
+
+def _run(path: pathlib.Path, connection: str | None, role: str | None = None) -> int:
+    cmd = build_snow_cmd(path, connection, role)
     print(f"Running: {' '.join(cmd)}")
     return subprocess.call(cmd)
 
@@ -230,6 +242,8 @@ def main() -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--connection", "-c", default=None,
                         help="snow connection override (default: unflagged active connection)")
+    parser.add_argument("--role", default=None,
+                        help="role passed to snow sql (siblings are owned by ACCOUNTADMIN)")
     parser.add_argument("--no-deploy", action="store_true",
                         help="write the SQL file but skip snow sql -f")
     parser.add_argument("--fixture-schema", default=None,
@@ -252,7 +266,7 @@ def main() -> int:
     print(f"wrote {out} ({len(sql)} bytes)")
     if args.no_deploy:
         return 0
-    rc = _run(out, args.connection)
+    rc = _run(out, args.connection, args.role)
     if rc != 0:
         print(f"ERROR: snow sql exited with code {rc}", file=sys.stderr)
     return rc

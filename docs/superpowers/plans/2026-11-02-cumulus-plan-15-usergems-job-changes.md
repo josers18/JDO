@@ -78,7 +78,7 @@ Weekly rows over the complete weeks were min 61, median 86, max 109. The simulat
 - **Draws.** On a rise, `_events_for(..., boardex_rise, ...)` picks the C-suite persona with one `rng.choice` on the account-month rng, after the hazard loop. There is no probability draw.
 - **Why it waits for the Plan 10 fix.** The tightening only makes sense once the flag is trailing-12-month sticky (Plan 10 C-suite timeline). Under the old iid flag, rises are so frequent that this rule forces a C-suite departure at ~14% of accounts every month.
 
-**Live BoardEx rise counts (probed 2026-11-02, employer audience): still the iid flag.**
+**Live BoardEx rise counts (probed 2026-11-02, employer audience; re-probed in the Task 6 pass the same day with identical results): still the iid flag.**
 - 189,212 rows over 6,433 accounts, 2024-06 → 2026-11, TRUE rate 18.0%.
 - **26,450 FALSE→TRUE rises / 6,511 TRUE→TRUE stays / 26,433 TRUE→FALSE falls**, ~912 rises a month (828–957).
 - The same simulation against this live table gave 31,081 backfill rows (~298 a week, 258–344) and 21,848 C-suite departures. That would fail contract (a).
@@ -172,6 +172,12 @@ The attachment contains:
    - Clone Plan 12's `deploy_sp.py`, then swap the coverage inline for `_assert_event_contract`.
    - Cron `0 9 * * 1 UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES()', 2)`.
    - After deploy: `CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES(104)` once, for the 24-month backfill. That stays inside BoardEx's 2024-06 → present history (2024-10, the M-1 of the earliest candidate month, exists). **Precondition:** the BoardEx 30-month re-run has landed and the §2 re-probe matches the sticky projection.
+   - Run every step as `ACCOUNTADMIN`, which owns `DATA_JEDAIS.FINS__PUBLIC` and every sibling (`snow sql ... --role ACCOUNTADMIN`, `deploy_sp.py --role ACCOUNTADMIN`).
+   - **Attempted 2026-11-02, blocked, nothing created live.**
+     - Live BoardEx is still iid (re-probe: 26,450 / 6,511 / 26,433).
+     - The session's permission policy refused the `ACCOUNTADMIN` DDL apply.
+     - The SP MERGEs before it checks the contract, so a backfill on iid BoardEx would leave about 31K rows that later fail d1.
+     - The TASK was not created either; its SQL header forbids creating it before the backfill.
 
 7. **Task 7 (DC stream + DMO).** Mapping table:
 
@@ -204,7 +210,7 @@ The attachment contains:
 
    **Three relationships to the Account DMO** (employer, new employer, Wealth person). This is the first Cumulus DMO with more than one. Create the primary `ssot__AccountId__c` relationship via the API path. If the API rejects the second and third, add them through the DC Setup UI (DMO → Relationships), and record which path worked in AGENTS.md.
 
-8. **Task 8 (L3 smoke).** Backfill rows in **7K–11K**; rows per complete week in [30, 200]. The bands come from the §2 sticky-BoardEx simulation. Re-derive them if the live re-probe differs. Spot-check:
+8. **Task 8 (L3 smoke).** *Not run yet (2026-11-02): blocked on Task 6, so there are no live rows.* Backfill rows in **7K–11K**; rows per complete week in [30, 200]. The bands come from the §2 sticky-BoardEx simulation. Re-derive them if the live re-probe differs. Spot-check:
    - **BoardEx gate, both directions:**
      - (i) C-suite `Departed` grouped by `(ACCOUNT_ID, DATE_TRUNC('month', EVENT_DATE))`, joined to BoardEx M and M-1, where it is not `flag(M) AND NOT flag(M-1)` (both rows present): must be **0**.
      - (ii) BoardEx rise months that are complete (`DATEADD(day, 52, LAST_DAY(M)) < CURRENT_DATE`) and in the window (`DATEADD(day, 3, M) ≥` backfill start), left-joined to the C-suite departure counts, with count ≠ 1: must be **0**.
@@ -241,6 +247,18 @@ The attachment contains:
 
 ## §7 Status
 
-In progress. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Tasks 1–3 done 2026-11-02 (scaffold, DDL in repo, row factory). Tasks 4–5 done 2026-11-02: the SP, `deploy_sp.py` and the TASK SQL are in the repo, there are 79 L1 tests, and L2 passed 29/29 live in a scratch schema. The production SP and TASK are not deployed yet (Task 6). The live DDL apply is pending a role with CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC`, and the Task 6 backfill is blocked on the BoardEx re-run. See `Snowflake_UserGems_JobChanges/AGENTS.md`.
+In progress. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Tasks 1–3 done 2026-11-02 (scaffold, DDL in repo, row factory). Tasks 4–5 done 2026-11-02: the SP, `deploy_sp.py` and the TASK SQL are in the repo, there are 79 L1 tests, and L2 passed 29/29 live in a scratch schema. Task 6 was attempted 2026-11-02 and is **blocked**. Nothing is live: no table, no SP, no TASK, no backfill.
+- Live BoardEx is still the iid flag (re-probe identical: 26,450 rises / 6,511 stays / 26,433 falls).
+- The DDL / SP / TASK need `ACCOUNTADMIN`, and the agent session was not permitted to use it.
+- `deploy_sp.py` now takes `--role`, and L1 is 80 tests.
+
+Task 7: DC mapping pending UI (mapping table in §4 and AGENTS.md). Task 8 L3: pending, after the backfill.
+
+Operator sequence:
+1. `CALL SP_GENERATE_BOARDEX_EXEC_INTEL(30, TRUE)`, then the §2 re-probe.
+2. As ACCOUNTADMIN: apply the DDL, run `deploy_sp.py`, `CALL ...(104)`, then the TASK SQL.
+3. L3.
+
+See `Snowflake_UserGems_JobChanges/AGENTS.md`.
 
 Plan 15 is the **first event-scoped dataset** (PK is an event ID, sparse per account). It's the first to **replace the coverage assertion** with an event contract, the first to emit rows on **accounts other than the anchor being processed** (paired mirrors), and the first DMO with **three relationships** to `ssot__Account__dlm`.

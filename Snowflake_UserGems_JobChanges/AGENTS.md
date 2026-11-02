@@ -10,13 +10,13 @@ Synthetic UserGems-style **person-level job-change events** (departures, inbound
 | Task | What | Status |
 |---|---|---|
 | T1 | Scaffold (this file, README, layout) | Done |
-| T2 | DDL `schemas/usergems_job_changes.sql` (+ `_STAGING`) | Done in repo. **Live apply pending:** `SYSADMIN` lacks CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC` (error 003001, 2026-11-02). The sibling tables are owned by `ACCOUNTADMIN`, so an operator has to apply it. |
+| T2 | DDL `schemas/usergems_job_changes.sql` (+ `_STAGING`) | Done in repo. **Live apply pending:** `SYSADMIN` lacks CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC` (error 003001, 2026-11-02). The schema and sibling tables are owned by `ACCOUNTADMIN`. The T6 pass tried `snow sql -f schemas/usergems_job_changes.sql --role ACCOUNTADMIN`, and the agent session's permission policy refused it. An operator must run it. `SHOW TABLES LIKE 'USERGEMS%'` returned no rows on 2026-11-02. |
 | T3 | Row factory `procedures/sp_generate_usergems_job_changes.py` + L1 tests | Done. |
-| T4 | SP body (`main`, run window, MERGE, `_assert_event_contract`) + `scripts/deploy_sp.py` + `tasks/task_weekly_usergems_job_changes.sql` | Done in repo (2026-11-02). 79 L1 tests pass. The production SP and TASK are **not deployed** (that is T6). |
+| T4 | SP body (`main`, run window, MERGE, `_assert_event_contract`) + `scripts/deploy_sp.py` + `tasks/task_weekly_usergems_job_changes.sql` | Done in repo (2026-11-02). 80 L1 tests pass. `deploy_sp.py --role ACCOUNTADMIN` forwards the role (Plan 14 pattern). The production SP and TASK are **not deployed** (that is T6). |
 | T5 | L2 integration (`tests/integration/`) | Done. Ran live 2026-11-02 in the scratch schema `DEMO_DB.CUMULUS_L2_USERGEMS`: 29/29 checks TRUE, schema dropped. |
-| T6 | Live deploy of the SP + TASK, then the 104-week backfill | Pending. **Blocked:** the backfill must wait for the BoardEx 30-month re-run (see "BoardEx gate"). |
+| T6 | Live deploy of the SP + TASK, then the 104-week backfill | **Blocked (attempted 2026-11-02).** Two blockers: (1) live BoardEx is still the iid flag. A re-probe on 2026-11-02 matched the earlier one exactly: 26,450 rises / 6,511 stays / 26,433 falls, every `GENERATED_AT` still the month start, ~2,150 TRUE per month out of 36.8K. (2) The DDL, SP and TASK need `ACCOUNTADMIN`, which this session may not use. Nothing was created live: no table, no SP, no TASK, no `CALL ...(104)`. The SP MERGEs *before* `_assert_event_contract` runs, so a backfill on iid BoardEx would write about 31K rows, raise contract (a), and leave rows that fail d1 after the re-run. The TASK SQL header also forbids creating or resuming the task before the backfill. Operator sequence: see README "Deploy". |
 | T7 | DC stream + DMO | DC mapping pending UI (no live DC work in this pass). Mapping table below. |
-| T8 | L3 smoke | Pending |
+| T8 | L3 smoke | **Pending (blocked on T6).** No live rows, so no results to record. Run the plan section 4 Task 8 checks after the backfill. The bands (7K-11K rows, [30, 200] per complete week, 1.7K-2.6K C-suite departures) come from the projected sticky flag. Re-derive them if the post-re-run probe differs from 2,494 / 31,878 / 2,452. |
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES`, `USERGEMS_JOB_CHANGES_STAGING`, `SP_GENERATE_USERGEMS_JOB_CHANGES`, `TASK_WEEKLY_USERGEMS_JOB_CHANGES`, and the DC stream / DLO / DMO `CumulusUserGemsJobChanges__dlm`.
@@ -67,7 +67,7 @@ Synthetic UserGems-style **person-level job-change events** (departures, inbound
 - **Wealth pool.** The SP loads the Wealth Management PERSON `ACCOUNT_ID`s (3,920) sorted ascending, and picks one by `sha256(event_id + "_wealth") % len(pool)`. That is only for C-Suite / VP `Departed`, at 6%. An empty pool returns None.
 - **Employer audience predicate** is `ACCOUNT_TYPE_FLAG = 'BUSINESS' AND COALESCE(CLIENT_CATEGORY, '') <> 'Household'` (6,435 anchors). Without `COALESCE`, NULL categories would drop. 661 of the employers have NULL `EMPLOYEE_COUNT`, so they get the 2-slot roster and BoardEx never flags them.
 - **write_pandas types.** `write_pandas` mistypes datetimes and all-NULL date columns as NUMBER. In the MERGE source, use `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER/1e9)` and `TO_DATE(TO_TIMESTAMP_NTZ(col::NUMBER/1e9))` for the 3 DATE columns. Cast the 3 BOOLEANs with `::BOOLEAN`. `RECORD_ID` has no default, so set it on INSERT **and** UPDATE. Snowflake MERGE has no `NOT MATCHED BY SOURCE`, and events never delete anyway.
-- **Deploy connection.** `scripts/deploy_sp.py` must run an unflagged `/opt/homebrew/bin/snow sql -f` (never `-c`). On 2026-11-02 the CLI default connection `GSB13421_jwt` returned 404. `SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt` works: it is still JWT, still unflagged, and opens no OAuth popup.
+- **Deploy connection.** `scripts/deploy_sp.py` must run an unflagged `/opt/homebrew/bin/snow sql -f` (never `-c`). Production deploys add `--role ACCOUNTADMIN`, because `ACCOUNTADMIN` owns the schema and every sibling. `SYSADMIN` only has CREATE PROCEDURE / CREATE TASK there, and an owner's-rights SP owned by `SYSADMIN` could not MERGE into an `ACCOUNTADMIN`-owned table. On 2026-11-02 the CLI default connection `GSB13421_jwt` returned 404. `SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt` works: it is still JWT, still unflagged, and opens no OAuth popup.
 - **Contract (a) under the current iid BoardEx fails by design.** Until the BoardEx re-run lands, any run of the production SP raises `contract (a)` (about 298 rows a week against [30, 200]). That failure is the precondition guard; do not widen the band.
 - **L2 runs in a scratch schema.** SYSADMIN cannot create fixture tables in `FINS__PUBLIC`, so `scripts/deploy_sp.py --fixture-schema DEMO_DB.CUMULUS_L2_USERGEMS` builds the real SP body retargeted at the scratch schema (the module's `_DB` / `_SCHEMA` lines are swapped and no `DATA_JEDAIS` reference survives). It builds two procs: the loose one with week band (0, 25), and `_STRICT` with the production band. Both read the run clock from `L2_RUN_CLOCK` through the `_RUN_TS_SQL` hook, which is `None` in production. The fixture proc file is gitignored.
 - One SP per dataset, with no inter-SP imports. DROP the procedure before redeploying if the signature changes. The TASK runs on `MAIN_WH_XS` via `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES()', 2)`.
@@ -77,7 +77,7 @@ Synthetic UserGems-style **person-level job-change events** (departures, inbound
 ## Tests
 ```bash
 cd Snowflake_UserGems_JobChanges
-python3 -m pytest -q -p no:cacheprovider          # L1: 79 tests
+python3 -m pytest -q -p no:cacheprovider          # L1: 80 tests
 
 # L2 (live, scratch schema; the last statement drops it)
 python3 tests/integration/build_l2.py             # regenerate the .sql after any row-factory change
