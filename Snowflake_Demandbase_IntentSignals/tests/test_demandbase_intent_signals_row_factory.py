@@ -29,7 +29,10 @@ from sp_generate_demandbase_intent_signals import (  # noqa: E402
     _REPORT_THRESHOLD,
     _TOPICS,
     _anchor_in_audience,
+    _assert_unique_pk,
     _base_affinity,
+    _merge_gong_flags,
+    gong_flags_sql,
     _rows_for,
     _score_for,
     _week_start,
@@ -76,7 +79,7 @@ def test_determinism_same_inputs(in_audience_anchors):
 
 
 def test_determinism_any_run_ts_in_same_week(in_audience_anchors):
-    """Mon 05:30 vs Wed 23:59 vs Sun 12:00 collapse to the same week."""
+    """Mon 03:15 vs Wed 23:59 vs Sun 12:00 collapse to the same week."""
     mon = datetime(2026, 11, 2, 5, 30)
     wed = datetime(2026, 11, 4, 23, 59, 59)
     sun = datetime(2026, 11, 8, 12, 0)
@@ -168,7 +171,7 @@ def test_ranges(in_audience_anchors):
 
 def test_last_signal_date_in_trailing_week(in_audience_anchors):
     """LAST_SIGNAL_DATE is within the 7-day window ending on PROFILE_WEEK, so
-    it is never after the run date even for the Monday-05:30 TASK run."""
+    it is never after the run date even for the Monday-03:15-ET TASK run."""
     for _, w, r in _all_rows(in_audience_anchors, ROLL_WEEKS):
         d = r["LAST_SIGNAL_DATE"]
         assert isinstance(d, date) and not isinstance(d, datetime)
@@ -345,6 +348,27 @@ def test_real_estate_cre_in_top_two():
     assert hits / 200 >= 0.75
 
 
+def test_logistics_wholesale_distribution_fx_ap_band():
+    """Plan section 4 Task 8 band: Logistics / Wholesale Distribution carry
+    International Payments and FX or AP Automation in >= 50% of their rows.
+    Asserted at >= 0.55 on a mid-market synthetic book (live-shaped: $24-29M,
+    ~250 employees) so the L3 gate keeps margin; each industry >= 0.52."""
+    fx_ap = {"International Payments and FX", "AP Automation"}
+    books = {
+        "Logistics": _synthetic("Logistics", 40, revenue=26_000_000, employees=260, prefix="LWB"),
+        "Wholesale Distribution": _synthetic("Wholesale Distribution", 40, revenue=28_500_000,
+                                             employees=285, prefix="LWB"),
+    }
+    hits = total = 0
+    for ind, anchors in books.items():
+        rows = [r for _, _, r in _all_rows(anchors, ROLL_WEEKS)]
+        h = sum(r["INTENT_TOPIC"] in fx_ap for r in rows)
+        assert h / len(rows) >= 0.52, (ind, h / len(rows))
+        hits += h
+        total += len(rows)
+    assert hits / total >= 0.55, hits / total
+
+
 def test_revenue_tilt_treasury_vs_sba():
     """Mid-market (>= $10M) carries more Treasury Management rows than
     main street (< $1M); SBA Lending shows the inverse."""
@@ -425,10 +449,44 @@ def test_gong_competitor_l2_fixture_split(in_audience_anchors):
                     hit_other += 1
         return hit_flagged, hit_other
 
-    hf, ho = split(BASE_MONDAY)
-    assert hf >= 3 and ho <= 3, (hf, ho)
-    passing = sum(1 for w in ROLL_WEEKS if (lambda s: s[0] >= 3 and s[1] <= 3)(split(w)))
+    def ok(w):
+        hf, ho = split(w)
+        return hf >= 3 and ho <= 3
+
+    assert ok(BASE_MONDAY), split(BASE_MONDAY)
+    passing = sum(ok(w) for w in ROLL_WEEKS)
     assert passing / len(ROLL_WEEKS) >= 0.80, passing
+    # L2 evaluates the split over the 5 weeks of its CALL SP(4) backfill pass
+    # and requires >= 4 of 5 (a single calendar week fails ~3% of the time).
+    # Every 5-week window over two years must satisfy that.
+    span = [BASE_MONDAY + timedelta(weeks=n) for n in range(-25, 79)]
+    flags = [ok(w) for w in span]
+    bad = [span[i].date() for i in range(len(span) - 4) if sum(flags[i:i + 5]) < 4]
+    assert not bad, bad
+
+
+def test_gong_flags_sql_is_one_row_per_account():
+    """Live Gong has an unenforced UNIQUE(ACCOUNT_ID, PROFILE_WEEK) and a
+    duplicate pair, so the read must aggregate per account."""
+    sql = gong_flags_sql(date(2026, 9, 28))
+    assert "GROUP BY ACCOUNT_ID" in sql
+    assert "PROFILE_WEEK = '2026-09-28'" in sql
+    assert "GONG_CALL_SENTIMENT" in sql
+
+
+def test_merge_gong_flags_dedupes_and_unions():
+    pairs = [("A1", "Pricing"), ("A1", "Competitor|Renewal"), ("A2", None),
+             ("A3", ""), ("A4", "Pricing|Competitor"), ("A4", "Competitor|Pricing")]
+    merged = _merge_gong_flags(pairs)
+    assert merged == {"A1": "Competitor|Pricing|Renewal", "A4": "Competitor|Pricing"}
+    assert _merge_gong_flags(reversed(pairs)) == merged
+
+
+def test_assert_unique_pk_rejects_duplicate_staged_rows(in_audience_anchors):
+    rows = [r for _, _, r in _all_rows(in_audience_anchors, ROLL_WEEKS[:3])]
+    _assert_unique_pk(rows)  # the factory itself never duplicates
+    with pytest.raises(ValueError, match="duplicate"):
+        _assert_unique_pk(rows + rows[:1])
 
 
 def test_g2_forced_when_competitor(in_audience_anchors):
@@ -532,11 +590,12 @@ def test_boring_case_shape(boring_anchor):
     NULL revenue counts as main street, so an occasional SBA Lending episode
     can add a second row; that is allowed but must stay the minority."""
     weeks = [BASE_MONDAY - timedelta(weeks=n) for n in range(52)]
-    single = 0
+    single = low = 0
     for w in weeks:
         rows = _rows_for(boring_anchor, w, None)
         top = next(r for r in rows if r["IS_TOP_TOPIC"])
         if top["INTENT_SCORE"] < 50:
+            low += 1
             assert top["JOURNEY_STAGE"] == "Awareness"
             assert top["SURGE_FLAG"] is False
             assert top["WEEKS_SURGING"] == 0
@@ -553,6 +612,12 @@ def test_boring_case_shape(boring_anchor):
     )
     median = scores[len(scores) // 2]
     assert 5 <= median <= 25, median
+    # Keep the conditional shape checks above non-vacuous and pin the
+    # rowspec's "[5, 25] in most weeks" as a proportion, not just a median
+    # (observed: 94% of weeks < 50, 81% in [5, 25]).
+    assert low / len(weeks) >= 0.85, low
+    in_band = sum(5 <= s <= 25 for s in scores)
+    assert in_band / len(weeks) >= 0.75, in_band
 
 
 # ---------- Guard: trajectory is recomputed, never read ----------

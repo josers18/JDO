@@ -4,7 +4,8 @@
 -- topic scores per non-household Cumulus business account.
 -- =============================================================================
 -- Cadence:    WEEKLY via TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS
---             (Cron: 30 5 * * 1 UTC -- Monday 05:30 UTC, 30 min after Gong).
+--             (Cron: 15 3 * * 1 America/New_York -- Monday 03:15 ET, after
+--             Gong 03:00 / Graph 03:05 / balance report 03:10 ET).
 -- Audience:   ACCOUNT_TYPE_FLAG = 'BUSINESS'
 --             AND COALESCE(CLIENT_CATEGORY, '') <> 'Household'
 --             -- 6,435 anchors (probed 2026-11-02). COALESCE is required:
@@ -37,7 +38,7 @@ CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS (
     UNIQUE_RESEARCHERS      NUMBER(2,0)       NOT NULL COMMENT 'Distinct anonymous researchers [1, 40]; capped by EMPLOYEE_COUNT tier (3 / 12 / 40) and scaled by score.',
     RESEARCHING_COMPETITOR  VARCHAR(30)       NULL     COMMENT 'Rival the account compared on G2 (year-stable per account-topic). NULL below score 50 (except the IS_TOP_TOPIC row in a Gong Competitor week); where the gate is open NULL ~80 pct, ~30 pct when same-week Gong KEY_TOPICS_FLAGS has Competitor.',
     KEYWORD_SAMPLE          VARCHAR(200)      NOT NULL COMMENT '2-3 keywords from the topic keyword bank, joined with semicolon-space.',
-    SIGNAL_SOURCE           VARCHAR(12)       NOT NULL COMMENT 'Demandbase 55 pct / Bombora 30 pct / G2 15 pct; forced to G2 when RESEARCHING_COMPETITOR is non-NULL.',
+    SIGNAL_SOURCE           VARCHAR(12)       NOT NULL COMMENT 'Base draw Demandbase 55 pct / Bombora 30 pct / G2 15 pct; forced to G2 when RESEARCHING_COMPETITOR is non-NULL (effective mix ~50 / 28 / 22 pct without Gong flags).',
     LAST_SIGNAL_DATE        DATE              NOT NULL COMMENT 'Most recent signal day, within the 7 days ending on PROFILE_WEEK (never after the Monday run date).',
     INTENT_NOTE             VARCHAR(200)      NULL     COMMENT 'One-liner for surging rows only, e.g. 3-week surge: 7 researchers comparing treasury platforms. NULL when not surging.',
     GENERATED_AT            TIMESTAMP_NTZ(9)  NOT NULL COMMENT 'Week-bucketed (PROFILE_WEEK at 00:00:00) so same-week re-runs are byte-identical.',

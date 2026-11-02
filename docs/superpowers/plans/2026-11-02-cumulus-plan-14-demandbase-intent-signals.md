@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development.
 
-**Goal:** Stand up the fourteenth per-dataset Cumulus pipeline, the first **third-party buying-intent** dataset. It produces Demandbase/G2/Bombora-style weekly topic-intent scores per non-household business account, covering which banking products the company is researching off-site right now. Weekly cadence. The SP emits **1–4 topic rows per anchor per week** into `FINS.PUBLIC.DEMANDBASE_INTENT_SIGNALS`, roughly 10.4K rows/week and ~270K rows with the 26-week backfill (amended 2026-11-02; see §4a). The table is federated as `CumulusDemandbaseIntentSignals__dlm`.
+**Goal:** Stand up the fourteenth per-dataset Cumulus pipeline, the first **third-party buying-intent** dataset. It produces Demandbase/G2/Bombora-style weekly topic-intent scores per non-household business account, covering which banking products the company is researching off-site right now. Weekly cadence. The SP emits **1–4 topic rows per anchor per week** into `DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS`, roughly 10.5K rows/week and ~270K rows with the 26-week backfill (amended 2026-11-02; see §4a). The table is federated as `CumulusDemandbaseIntentSignals__dlm`.
 
 **Why this dataset:** the 2026-11-02 vendor-gap assessment found intent was the one category with **zero** coverage. Every existing behavioral signal is first-party: Gong `KEY_TOPICS_FLAGS`, website prospects, web engagements. Third-party intent answers a question none of the 13 shipped plans can: *"which commercial clients are shopping for a product we sell, before they ask us?"*
 
@@ -34,7 +34,7 @@
 | `<<TASK_NAME>>` | `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS` |
 | `<<TASK_NAME_LOWER>>` | `task_weekly_demandbase_intent_signals` |
 | `<<SP_NAME>>` | `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS` |
-| `<<CRON>>` | `'USING CRON 30 5 * * 1 UTC'` (Monday 05:30 UTC — 30 min after Gong's 05:00 so the soft-dep read sees the same week) |
+| `<<CRON>>` | `'USING CRON 15 3 * * 1 America/New_York'` (Monday 03:15 ET; amended 2026-11-02). Live Cumulus TASKs all use America/New_York 03:xx slots: Gong 03:00 (runs <1 min), Graph 03:05, WEEKLY_BALANCE_REPORT 03:10, MASTER_ACCOUNTS 03:25 daily. The original `30 5 * * 1 UTC` is 00:30 ET in winter, ~2.5 h *before* Gong writes the week, so every scheduled run would miss the soft-dep bias |
 | `<<AUDIENCE_PREDICATE>>` | `ACCOUNT_TYPE_FLAG = 'BUSINESS' AND COALESCE(CLIENT_CATEGORY, '') <> 'Household'` |
 | `<<COVERAGE_RULE>>` | distinct accts = audience (every anchor emits ≥1 topic row per week) |
 | `<<ROW_PK>>` | `(ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC)` |
@@ -59,7 +59,7 @@
 
 **Why not the "rebroadcast all-accounts" shape Plans 8/10/12 adopted?** PERSON anchors have no B2B research footprint. Emitting zero-score rows for 25K people adds about 650K rows of noise per 26 weeks for no demo value. This dataset stays audience-scoped, as Plan 11 (ZoomInfo) did.
 
-**Size ladder (amended 2026-11-02):** 6,435 anchors × ~1.63 topics/week ≈ **10.4K rows/week**. With the 26-week backfill (§4 Task 6) the total is **~270K rows**. Both figures are projected from 1.625 rows per anchor-week on 868 real anchors over 10 weeks; the original estimate was 11.6K / 300K at ~1.8 topics/week.
+**Size ladder (amended 2026-11-02):** 6,435 anchors × 1.634 topics/week ≈ **10.5K rows/week**. With the 26-week backfill (§4 Task 6) the total is **~270K rows**. Both figures are projected from the reference sample (791 live anchors, `MOD(ABS(HASH(ACCOUNT_ID)), 8) = 0`, 10 weeks ending 2026-11-02); the original estimate was 11.6K / 300K at ~1.8 topics/week.
 
 ## §3 Rowspec attachment
 
@@ -110,19 +110,22 @@ The attachment contains:
    - Boolean cast: `SURGE_FLAG::BOOLEAN`.
    - Datetime fix: `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)`.
    - `PROFILE_WEEK` / `LAST_SIGNAL_DATE` cast via `TO_DATE(TO_TIMESTAMP_NTZ(col::NUMBER/1e9))` (write_pandas all-NULL/date mistype lesson).
+   - **Gong read, deduped:** probe `GONG_PROBE_SQL`; if present, read `gong_flags_sql(week)` (one row per ACCOUNT_ID) into `_merge_gong_flags`. Never LEFT JOIN raw Gong onto the anchors: live Gong has a duplicate (ACCOUNT_ID, PROFILE_WEEK) pair (`001am00000qvjs6AAA` / 2026-09-28) that would duplicate PKs and RECORD_IDs.
+   - **Pre-write guard:** `_assert_unique_pk(staged_rows)` before DELETE+INSERT.
+   - **Log** `gong_rows_joined` and `gong_competitor_accounts` per week; warn when Gong exists but `gong_rows_joined = 0`.
    - **SP signature:** `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(BACKFILL_WEEKS INTEGER DEFAULT 0)`. With `0` it runs the current week only (the TASK path). With `N>0` it loops weeks W-N … W in ascending order. A single SP is required, because inter-SP imports are unsupported (Snowpark lesson).
 
 5. **Task 5 (L2).** Use the 12-anchor `V_ACCOUNT_ANCHORS_FIXTURE`, with no `GONG_CALL_SENTIMENT_FIXTURE` on the first pass. Assertions:
    - `COUNT(DISTINCT ACCOUNT_ID)=12`.
    - Every anchor has exactly one `IS_TOP_TOPIC` row.
    - Idempotent re-run leaves the row count and checksum unchanged.
-   - **Second pass** adds a Gong fixture flagging `Competitor` for 6 anchors. Expect `RESEARCHING_COMPETITOR` non-NULL on ≥3 of those 6 anchors' top rows, and ≤3 of the other 6.
+   - **Second pass** adds a Gong fixture flagging `Competitor` for 6 anchors. Expect `RESEARCHING_COMPETITOR` non-NULL on ≥3 of those 6 anchors' top rows, and ≤3 of the other 6. Evaluate it per week over the 5 weeks of the `CALL SP(4)` backfill pass (the fixture flags all 5) and require ≥4 of 5 weeks: a single calendar week fails ~3% of the time (101 of 104 weeks pass over two years; failing weeks include 2026-08-31). L1 asserts every 5-week window over those 104 weeks has ≥4 passing weeks.
    - **Backfill pass:** `CALL SP(4)` produces 5 distinct `PROFILE_WEEK`s. Week-W rows from the backfill must be byte-identical to a standalone week-W run (excluding GENERATED_AT). This is the trajectory-recomputation proof.
 
 6. **Task 6 (deploy).**
    - Clone Plan 12's `scripts/deploy_sp.py` (weekly cadence + two salts). Inline `seed_for`, `assert_coverage` and `record_id_for`.
-   - Cron `30 5 * * 1 UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS()', 2)`.
-   - **After deploy, run the backfill once by hand:** `CALL FINS.PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)`. That gives 26 weeks ≈ 270K rows. The TASK runs the no-arg form.
+   - Cron `15 3 * * 1 America/New_York`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS()', 2)`.
+   - **After deploy, run the backfill once by hand:** `CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(25)`. That gives 26 weeks ≈ 270K rows. The TASK runs the no-arg form.
    - No bare `&` anywhere in SQL files: the topic name is `International Payments and FX`, never `&` (snow-sql render trap).
 
 7. **Task 7 (DC stream + DMO).** API path identical to Plans 1–13. Mapping table:
@@ -153,7 +156,7 @@ The attachment contains:
    - Booleans are declared **Boolean** in the stream schema, not Text.
    - Both DATE columns need `format: "MM/dd/yyyy"` (v1.4.1).
 
-8. **Task 8 (L3 smoke).** Verify the SP run and backfill: **6,435** distinct accounts per week, ~10.4K rows/week (band 9K–15K), 26 distinct weeks. Spot-check:
+8. **Task 8 (L3 smoke).** Verify the SP run and backfill: **6,435** distinct accounts per week, ~10.5K rows/week (band 9K–15K), 26 distinct weeks. 0 duplicate `RECORD_ID`s and 0 duplicate (ORG_ID, ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC) keys. The run log shows `gong_rows_joined > 0` for every week, and the first scheduled TASK run (03:15 ET) is byte-identical to a re-run of the same week. Spot-check:
    - **Coverage:** every audience anchor has exactly 1 `IS_TOP_TOPIC` row per week; 0 Household-category accounts present.
    - **Surge rate:** `SURGE_FLAG` on 8–15% of rows; ≥1 surging topic for 15–25% of accounts each week.
    - **Industry bias:**
@@ -173,12 +176,15 @@ The rowspec attachment has been amended to match the code. Summary:
 
 | Item | Original spec | Shipped | Why |
 |---|---|---|---|
-| Restaurant × SBA Lending multiplier | 1.5 | 1.2 | 1.5 gives 66.8% vs 88.5% for 1.2 against the ≥80% L1 / ≥75% L3 Restaurant band (4,000 synthetic anchor-years) |
-| Surge episodes | hazard `min(0.6, 0.08·aff)`, bump U(28,45), blocks aligned book-wide | hazard `min(0.70, 0.15·aff)`, bump U(35,50), per-(account, topic) block phase | The spec values missed every L3 surge band and caused a synchronized 12-week sawtooth. Tuned values: 1.625 rows per anchor-week, 14.4% surging rows, 21.3% of accounts surging (868 live anchors × 10 weeks) |
+| Restaurant × SBA Lending multiplier | 1.5 | 1.2 | On all 876 live Restaurant anchors (2026 affinity year), 1.5 gives 77.2% vs 91.7% for 1.2 against the ≥80% L1 / ≥75% L3 Restaurant band |
+| Logistics / Wholesale Distribution FX, AP multipliers | Logistics FX 2.0, AP 1.8; WD FX 2.5, AP 2.0 | Logistics FX 2.2, AP 2.4; WD FX 2.8, AP 2.8 | The originals put FX-or-AP in 49.6% of rows for the 313 live anchors over 26 weeks, a coin flip against the L3 ≥50% band. Re-tuned: 57.8% (Logistics 58.5%, WD 56.6%); L1 pins ≥55% on a mid-market synthetic book |
+| Surge episodes | hazard `min(0.6, 0.08·aff)`, bump U(28,45), blocks aligned book-wide | hazard `min(0.70, 0.15·aff)`, bump U(35,50), per-(account, topic) block phase | The spec values missed every L3 surge band and caused a synchronized 12-week sawtooth. Tuned values on the reference sample (791 live anchors × 10 weeks): 1.634 rows per anchor-week, 13.9% surging rows, 20.6% of accounts surging |
 | LAST_SIGNAL_DATE | [PROFILE_WEEK, +6] clamped ≤ run date | [PROFILE_WEEK−6, PROFILE_WEEK] | The clamp broke same-week determinism. Plan 12 `LAST_CALL_DATE` precedent |
 | Boring case | exactly one row | one row in most weeks (≥60% asserted) | A tuned episode occasionally lifts a second topic over 40 |
-| Gong competitor gate | score ≥50 gate on every row | gate lifted on the top row when Gong flags Competitor | With the gate, top rows (resting ≤55) hit only ~18% even when fully flagged. The Task 5 / Task 8 top-row Gong assertions were unreachable. They now hold: L1 measures 72% flagged vs 4.2% unflagged, and the L2-fixture split passes 25 of 26 weeks |
-| Volume | 11.6K/week, 300K total | ~10.4K/week, ~270K total | Follows from the tuned fan-out (still inside the 9K–15K band) |
+| Gong competitor gate | score ≥50 gate on every row | gate lifted on the top row when Gong flags Competitor | With the gate, top rows (resting ≤55) hit only 15.3% even when fully flagged (reference sample; 69.6% with the override). The Task 5 / Task 8 top-row Gong assertions were unreachable. They now hold: L1 measures 72% flagged vs 4.2% unflagged, and the L2-fixture split passes 25 of 26 weeks (L2 now judged over its 5 backfill weeks, ≥4 of 5) |
+| TASK cron | `30 5 * * 1 UTC` | `15 3 * * 1 America/New_York` | The UTC slot fired before Gong (03:00 ET) in winter, so scheduled runs missed the soft-dep bias |
+| Gong join | left-join on (ACCOUNT_ID, PROFILE_WEEK) | per-account aggregate + `_assert_unique_pk` | Live Gong has an unenforced UNIQUE and a duplicate account-week |
+| Volume | 11.6K/week, 300K total | ~10.5K/week, ~270K total | Follows from the tuned fan-out (still inside the 9K–15K band) |
 
 ## §5 Self-review checklist
 

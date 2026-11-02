@@ -7,7 +7,7 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 | Task | State |
 |---|---|
 | T1 scaffold | done |
-| T2 DDL (`schemas/demandbase_intent_signals.sql`, table + `_STAGING`) | written; **live apply pending: needs ACCOUNTADMIN** (see Gotchas → "Deploy connection"). Not yet present on SSC18700 (INFORMATION_SCHEMA re-checked 2026-11-02) |
+| T2 DDL (`schemas/demandbase_intent_signals.sql`, table + `_STAGING`) | written; **live apply pending: needs ACCOUNTADMIN** (see Gotchas → "Deploy connection"). Not yet present on SSC18700 (INFORMATION_SCHEMA re-checked 2026-11-02; default snow CLI connection still 404s on login). Blocks T4/T5 |
 | T3 row factory + L1 tests | done; `_rows_for` lives in `procedures/sp_generate_demandbase_intent_signals.py` |
 | T4 SP entry point (`main`, DELETE+INSERT, coverage, log) | pending |
 | T5 L2 / T6 deploy + TASK + 26-week backfill / T8 L3 smoke | pending |
@@ -27,22 +27,23 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - `accounts_processed` = audience size (distinct accounts). The row count is ~1.6× that.
 
 ## Tests
-- **L1** (`tests/test_demandbase_intent_signals_row_factory.py`, 42 tests) runs on an inline 12-anchor fixture in `tests/conftest.py`. It does not use the shared SAMPLE_ANCHORS. The fixture covers 8 industries, a NULL industry, a Commercial Banking anchor at $29M, a NULL-revenue anchor and the all-NULL boring anchor. Out-of-audience anchors (Household, PERSON, empty id) must raise.
+- **L1** (`tests/test_demandbase_intent_signals_row_factory.py`, 46 tests) runs on an inline 12-anchor fixture in `tests/conftest.py`. It does not use the shared SAMPLE_ANCHORS. The fixture covers 8 industries, a NULL industry, a Commercial Banking anchor at $29M, a NULL-revenue anchor and the all-NULL boring anchor. Out-of-audience anchors (Household, PERSON, empty id) must raise.
   - Determinism (same week, any weekday)
   - Fan-out (1–4 rows, exactly one IS_TOP_TOPIC, unique topics)
   - 50-week top-topic stability
   - 4a range
   - 4b vocabulary
   - 4c trajectory coherence: `SCORE_DELTA_WOW == score(W) - score(W-1)`; `WEEKS_SURGING(W) == min(WEEKS_SURGING(W-1)+1, 12)`, asserted non-vacuous (`checked_chain > 0`); `SURGE_FLAG` false ⇒ 0; brute-force consecutive count. Also a Dec→Jan year-boundary case, where `_base_affinity` reshuffles.
-  - 4d bias bands: Restaurant top topic ≥80% over 200 samples; Real Estate has CRE in its top 2 ≥75%; revenue tilt; researcher scaling
+  - 4d bias bands: Restaurant top topic ≥80% over 200 samples; Real Estate has CRE in its top 2 ≥75%; Logistics + Wholesale Distribution mid-market book carries FX or AP Automation in ≥55% of rows (each industry ≥52%) so the L3 ≥50% gate keeps margin; revenue tilt; researcher scaling
   - 4e schema (17 keys)
   - Gong soft-dep:
     - competitor rate rises with the flag
     - NULL below 50, except a flagged top row
     - G2 forced; year-stable rival; the flag touches only competitor/source/note
-    - **top-row metrics that mirror L2/L3:** flagged top rows ≥55% non-NULL vs unflagged ≤30% (L1 measures 72% / 4.2%); and the Task 5 split, 6 of 12 fixture anchors flagged ⇒ ≥3 flagged hits and ≤3 unflagged hits on the run week, and on ≥80% of 26 weeks (25 of 26 pass)
+    - **top-row metrics that mirror L2/L3:** flagged top rows ≥55% non-NULL vs unflagged ≤30% (L1 measures 72% / 4.2%); and the Task 5 split, 6 of 12 fixture anchors flagged ⇒ ≥3 flagged hits and ≤3 unflagged hits on the run week, and on ≥80% of 26 weeks (25 of 26 pass; 101 of 104 over two years). Because a single calendar week fails ~3% of the time, L2 evaluates the split over the 5 weeks of its `CALL SP(4)` pass and needs ≥4 of 5; L1 asserts every 5-week window over 104 weeks meets that
+    - Gong dedup: `gong_flags_sql` aggregates per account; `_merge_gong_flags` unions duplicate rows' tokens order-independently; `_assert_unique_pk` rejects duplicate staged PKs
   - Numeric coercion (int / Decimal / str)
-  - Boring case
+  - Boring case (top score <50 in ≥85% of 52 weeks, in [5, 25] in ≥75%, median in [5, 25])
   - A no-self-read guard
 - Run with `pytest tests/ -v`. `pyproject.toml` adds `../Snowflake_Cumulus_Common` to `pythonpath`, so no `pip install` of Cumulus_Common is needed.
 
@@ -56,19 +57,25 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
   - Each block is shifted by a fixed per-(account, topic) phase, so the whole book doesn't surge on a synchronized 12-week sawtooth.
   - At most one episode per block, 2–8 weeks long. Episodes truncate at the block end.
   - Hazard is `min(0.70, 0.15 × affinity)`. The bump is `U(35, 50)`.
-  - On a 337-anchor live sample over 10 weeks this gave 1.62 rows per anchor-week (~10.4K rows/week), 13.3% surging rows and 18–24% of accounts surging each week. The rowspec values gave ~1.3 / 6% / 7%, below every L3 band. The constants are `_EPISODE_HAZARD_PER_AFF`, `_EPISODE_HAZARD_CAP` and `_SURGE_BUMP`.
-- **Restaurant SBA Lending multiplier is 1.2 (the rowspec says 1.5).** With the <$1M tilt (×1.8), 1.5 put SBA at 2.7 against Merchant Services at 3.0. Only ~69% of main-street restaurants then got a top topic in {Merchant, Payroll, Equipment, Cards}, failing the ≥80% L1 / ≥75% L3 band. 1.2 gives ~89%.
-- **LAST_SIGNAL_DATE falls in the 7 days *ending* on PROFILE_WEEK** (`PROFILE_WEEK - 0..6`), not `[PROFILE_WEEK, PROFILE_WEEK+6]`. The TASK runs Monday 05:30, so any later day would be in the future. The rowspec's "≤ run_ts.date()" clamp would break same-week determinism. This follows the Plan 12 `LAST_CALL_DATE` precedent.
+  - **Reference sample (use these figures everywhere):** 791 live audience anchors (`MOD(ABS(HASH(ACCOUNT_ID)), 8) = 0`), 10 weeks ending 2026-11-02, current constants: 1.634 rows per anchor-week (~10.5K rows/week, ~273K over 26 weeks), 13.9% surging rows, 20.6% of accounts surging per week. The rowspec values gave ~1.3 rows and ~6–7% surging, below every L3 band. The constants are `_EPISODE_HAZARD_PER_AFF`, `_EPISODE_HAZARD_CAP` and `_SURGE_BUMP`.
+- **Restaurant SBA Lending multiplier is 1.2 (the rowspec says 1.5).** With the <$1M tilt (×1.8), 1.5 put SBA at 2.7 against Merchant Services at 3.0. On all 876 live Restaurant anchors (2026 affinity year) only 77.2% then got a top topic in {Merchant, Payroll, Equipment, Cards}, failing the ≥80% L1 band. 1.2 gives 91.7%.
+- **Logistics / Wholesale Distribution FX and AP multipliers are raised.** Logistics FX 2.0→2.2, AP 1.8→2.4; Wholesale Distribution FX 2.5→2.8, AP 2.0→2.8. The rowspec values put FX-or-AP in 49.6% of rows for the 313 live Logistics + WD anchors over 26 weeks, a coin flip against the L3 ≥50% band (the ≥$10M tilt lifts Treasury and Commercial Lending, which crowd FX/AP out). Re-tuned: 57.8% on live IDs (Logistics 58.5%, WD 56.6%), 57.7–59.7% on three random ID sets. Book-wide volume and surge rates moved by <0.5 pt.
+- **Unmapped industries fall back to 1.0.** `Professional Services Mid-Market` (124 anchors), Healthcare and Life Sciences (25), `Financial Services` (33), the long tail and `''`/NULL have no `_INDUSTRY_AFFINITY` entry; only the revenue tilt shapes them. This is deliberate.
+- **Effective SIGNAL_SOURCE mix is not 55/30/15.** Competitor rows force G2, so on the reference sample with no Gong flags the mix is Demandbase 49.7% / Bombora 27.8% / G2 22.6%; with every account Competitor-flagged it would be 20% / 11% / 69%. Live Gong flags Competitor on ~6% of accounts a week, so expect roughly 49/27/24.
+- **LAST_SIGNAL_DATE falls in the 7 days *ending* on PROFILE_WEEK** (`PROFILE_WEEK - 0..6`), not `[PROFILE_WEEK, PROFILE_WEEK+6]`. The TASK runs Monday 03:15 ET, so any later day would be in the future. The rowspec's "≤ run_ts.date()" clamp would break same-week determinism. This follows the Plan 12 `LAST_CALL_DATE` precedent.
 - **NULL ANNUAL_REVENUE is treated as main street** (`rev or 0`, per the rowspec). The boring anchor therefore leans toward SBA Lending and Business Credit Cards. It emits exactly one Awareness row in most weeks (≥60% asserted; 71% observed over 52 weeks) and occasionally a second row when a topic episode crosses 40.
 - **Anchor numerics are coerced through `float()`** (`_num`). Snowpark returns NUMBER as int or Decimal, and JSON exports return it as str.
 - **Gong soft-dep.** Probe `INFORMATION_SCHEMA.TABLES` for `GONG_CALL_SENTIMENT`.
-  - If it's present, left-join same-week `KEY_TOPICS_FLAGS` on `(ACCOUNT_ID, PROFILE_WEEK)` and pass the string to `_rows_for`. If it's absent, pass `None`; never fail.
+  - If it's present, read same-week flags with `gong_flags_sql(week)` (one row per ACCOUNT_ID via `GROUP BY` + `LISTAGG(DISTINCT …)`), build a dict with `_merge_gong_flags`, and pass `flags.get(account_id)` to `_rows_for`. If it's absent, pass `None`; never fail.
+  - **Gong is NOT unique on `(ACCOUNT_ID, PROFILE_WEEK)` live.** Its PK is a random `RECORD_ID` (`DEFAULT UUID_STRING()`) and the UNIQUE is unenforced; `001am00000qvjs6AAA` / 2026-09-28 has two rows today, inside the 26-week backfill. **Never plain-LEFT-JOIN Gong onto the anchor query**: it fans that anchor out into duplicate 4-part PKs with identical RECORD_IDs, which Snowflake accepts and which collide on DC `recordId__c` and break the one-IS_TOP_TOPIC check. Task 4 must call `_assert_unique_pk(staged_rows)` before DELETE+INSERT.
+  - Task 4 logs `gong_rows_joined` (accounts with a same-week Gong row) and `gong_competitor_accounts`. If Gong exists but `gong_rows_joined = 0` for the run week, log a warning: the bias silently missed. Task 8 checks that every live week has `gong_rows_joined > 0`.
   - A `Competitor` token (pipe-delimited) raises the competitor probability from 20% to 70% on rows with score ≥50.
   - **Top-row override:** on the IS_TOP_TOPIC row, a Competitor flag also lifts the score ≥50 gate, so p = 0.70 applies at any score.
-    - Why: top rows rest at `min(55, 12×aff)` and mostly score below 50. With the gate kept, only ~18% of top rows got a competitor on 868 live anchors even when every week was flagged. The plan's L2 (≥3 of 6 flagged top rows) and L3 (≥55% of top rows in Competitor weeks) gates were unreachable.
+    - Why: top rows rest at `min(55, 12×aff)` and mostly score below 50. With the gate kept, only 15.3% of top rows got a competitor on the reference sample (791 live anchors × 10 weeks) even when every week was flagged; with the override it is 69.6% flagged vs 4.2% unflagged. The plan's L2 (≥3 of 6 flagged top rows) and L3 (≥55% of top rows in Competitor weeks) gates were unreachable.
     - Non-top rows keep the gate. Recorded in plan §4a and in the rowspec.
   - The gate draw is unconditional, so the flag changes only RESEARCHING_COMPETITOR, SIGNAL_SOURCE (forced to G2) and INTENT_NOTE.
-  - Gong's live coverage is all accounts × weeks. The cron (05:30) runs 30 min after Gong (05:00).
+  - Gong's live coverage is all accounts × weeks (36,948 rows for 2026-11-02, one per account).
+  - **Schedule: `USING CRON 15 3 * * 1 America/New_York`** (Monday 03:15 ET). Every live Cumulus TASK uses America/New_York 03:xx slots (SHOW TASKS, 2026-11-02): Gong 03:00 (ran 50 s on 2026-11-02), Graph 03:05, WEEKLY_BALANCE_REPORT 03:10, TASK_LOAD_MASTER_ACCOUNTS 03:25 daily. A UTC cron is wrong: `30 5 * * 1 UTC` is 00:30 ET in winter, ~2.5 h *before* Gong writes the week, so every scheduled run would miss the Gong bias and differ from a later backfill of the same week.
 - **Household exclusion uses `COALESCE`.** `NULL <> 'Household'` is NULL in SQL and would drop the ~711 NULL-category anchors. Don't "simplify" it.
 - **`record_id_for` is NOT exported from `cumulus_common/__init__.py`**, which exports only `seed_for` and `assert_coverage`. Task 4 must `from cumulus_common.record_id import record_id_for` (don't edit Cumulus_Common from this chain). `scripts/deploy_sp.py` must inline `cumulus_common/record_id.py` alongside `seed.py` / `coverage.py`. `RECORD_ID` is `NOT NULL` with **no default** in both tables (the `LIKE`-copied `_STAGING` included), so every staged and inserted row must carry it or the INSERT fails.
 - **Write path (Task 4):**

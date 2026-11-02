@@ -18,7 +18,12 @@ pure `_score_for(anchor, topic, week_start)` for weeks W-1 .. W-12. The SP
 never SELECTs from DEMANDBASE_INTENT_SIGNALS, so backfill and live runs are
 order-independent and byte-identical.
 
-Cadence:  WEEKLY (Monday 05:30 UTC, cron `30 5 * * 1 UTC`, 30 min after Gong)
+Cadence:  WEEKLY (Monday 03:15 America/New_York, cron
+          `15 3 * * 1 America/New_York`). Every live Cumulus TASK runs on
+          America/New_York 03:xx slots; Gong (TASK_WEEKLY_GONG_CALL_SENTIMENT)
+          fires 03:00 ET and finishes in under a minute, Graph 03:05, balance
+          03:10, so 03:15 ET reads the same-week Gong row. A UTC cron would
+          drift against Gong across DST.
 Salts:
   - "demandbase"      week-bucketed: score noise, surge bump, researchers,
                       keywords, source, last-signal day, competitor gate.
@@ -33,7 +38,11 @@ Gong soft-dep (Plan 12): `gong_flags` is the same-week KEY_TOPICS_FLAGS
 string (pipe-delimited) or None. A `Competitor` flag raises the chance that
 RESEARCHING_COMPETITOR is non-NULL from 20% to 70% on score >= 50 rows, and
 on the IS_TOP_TOPIC row it also lifts the score >= 50 gate (70% at any
-score) -- see `_researching_competitor`.
+score) -- see `_researching_competitor`. Gong is NOT unique on (ACCOUNT_ID,
+PROFILE_WEEK) live (random RECORD_ID PK, unenforced UNIQUE; one duplicate
+pair at 2026-09-28), so the read is GROUP BY ACCOUNT_ID (`gong_flags_sql`)
+and `_merge_gong_flags` unions tokens per account. A plain LEFT JOIN would
+fan an anchor out into duplicate PK / RECORD_ID rows.
 
 The SP entry point (main / per-week DELETE+INSERT / coverage / log) lands in
 Plan 14 Task 4; this module currently holds the pure row factory that the L1
@@ -45,6 +54,7 @@ Rowspec: docs/superpowers/plans/attachments/cumulus-plan-14-demandbase-intent-si
 from __future__ import annotations
 
 import random
+from collections import Counter
 from datetime import date, datetime, timedelta
 
 # Locally, cumulus_common resolves via the pytest pythonpath; in Snowflake,
@@ -77,6 +87,52 @@ COVERAGE_SQL = (
     f"WHERE {_AUDIENCE_PREDICATE}"
 )
 
+# Gong soft-dep read (Plan 12). Probe first; absent table => gong_flags=None.
+GONG_TABLE = "DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT"
+GONG_PROBE_SQL = (
+    "SELECT COUNT(*) FROM DATA_JEDAIS.INFORMATION_SCHEMA.TABLES "
+    "WHERE TABLE_SCHEMA = 'FINS__PUBLIC' AND TABLE_NAME = 'GONG_CALL_SENTIMENT'"
+)
+
+
+def gong_flags_sql(week: date) -> str:
+    """Same-week Gong flags, ONE row per ACCOUNT_ID. Gong's live UNIQUE
+    (ACCOUNT_ID, PROFILE_WEEK) is not enforced and a duplicate pair exists,
+    so never LEFT JOIN the raw table onto the anchors."""
+    return (
+        "SELECT ACCOUNT_ID, LISTAGG(DISTINCT KEY_TOPICS_FLAGS, '|') "
+        "WITHIN GROUP (ORDER BY KEY_TOPICS_FLAGS) AS KEY_TOPICS_FLAGS "
+        f"FROM {GONG_TABLE} WHERE PROFILE_WEEK = '{week.isoformat()}' "
+        "AND KEY_TOPICS_FLAGS IS NOT NULL GROUP BY ACCOUNT_ID"
+    )
+
+
+def _merge_gong_flags(pairs) -> dict[str, str]:
+    """(ACCOUNT_ID, KEY_TOPICS_FLAGS) pairs -> {ACCOUNT_ID: flags}, one entry
+    per account. Duplicate Gong rows are unioned token-wise (sorted, so the
+    result is independent of row order); NULL / empty flags are dropped."""
+    tokens: dict[str, set[str]] = {}
+    for account_id, flags in pairs:
+        if not account_id or not flags:
+            continue
+        tokens.setdefault(account_id, set()).update(t for t in str(flags).split("|") if t)
+    return {a: "|".join(sorted(ts)) for a, ts in tokens.items() if ts}
+
+
+def _assert_unique_pk(rows) -> None:
+    """Task 4 pre-write guard: staged rows must be unique on the 4-part PK
+    (Snowflake does not enforce PRIMARY KEY, and duplicate RECORD_IDs collide
+    on the DC single-column PK recordId__c)."""
+    seen = Counter(
+        (r.get("ORG_ID") or "JDO", r["ACCOUNT_ID"], r["PROFILE_WEEK"], r["INTENT_TOPIC"])
+        for r in rows
+    )
+    dupes = [k for k, n in seen.items() if n > 1]
+    if dupes:
+        raise ValueError(f"{len(dupes)} duplicate (ORG_ID, ACCOUNT_ID, PROFILE_WEEK, "
+                         f"INTENT_TOPIC) keys in staged rows, e.g. {dupes[:3]!r}")
+
+
 # 17 data columns emitted by the row factory. ORG_ID and RECORD_ID are
 # stamped by the SP (RECORD_ID = record_id_for(ORG_ID, ACCOUNT_ID,
 # PROFILE_WEEK, INTENT_TOPIC)).
@@ -95,12 +151,13 @@ _MAX_EXTRA_TOPICS = 3
 _EPISODE_BLOCK_WEEKS = 12
 # Episode tuning. The rowspec's illustrative values (hazard min(0.6, 0.08*aff),
 # bump U(28, 45), blocks aligned for every account) yielded ~1.3 rows per
-# anchor-week, ~6% surging rows and ~7% of accounts surging on a 337-anchor
-# live sample (5% hash sample of the 6,435 audience, 2026-11-02) -- below
-# every L3 band -- and a book-wide 12-week sawtooth because every account's
-# block started on the same Monday. With a per-(account, topic) block phase
-# and the values below, the same sample over 10 weeks gave 1.62 rows per
-# anchor-week (~10.4K rows/week), 13.3% surging rows and 18-24% of accounts
+# anchor-week and ~6-7% surging rows / accounts -- below every L3 band --
+# and a book-wide 12-week sawtooth because every account's block started on
+# the same Monday. With a per-(account, topic) block phase and the values
+# below, the reference sample (791 live audience anchors,
+# MOD(ABS(HASH(ACCOUNT_ID)), 8) = 0, 10 weeks ending 2026-11-02, re-measured
+# after the Logistics / Wholesale Distribution re-tune) gives 1.634 rows per
+# anchor-week (~10.5K rows/week), 13.9% surging rows and 20.6% of accounts
 # surging each week (L3 bands: 9K-15K rows, 8-15%, 15-25%).
 _EPISODE_HAZARD_PER_AFF = 0.15
 _EPISODE_HAZARD_CAP = 0.70
@@ -145,11 +202,21 @@ _TOPIC_ACTIVITY = {
 }
 
 # topic -> multiplier on base affinity; unlisted topics = 1.0
+# Industries not listed (e.g. 'Professional Services Mid-Market' -- 124
+# anchors; Healthcare and Life Sciences, whose live value is spelled with an
+# ampersand; 'Financial Services'; '' / NULL) deliberately fall back to 1.0 on every topic: only the revenue tilt applies.
 # Restaurant SBA Lending is 1.2, not the rowspec's 1.5: with the <$1M revenue
-# tilt (SBA x1.8) a 1.5 gave SBA 2.7 vs Merchant 3.0 and only ~69% of
-# main-street restaurants landed a top topic in the {Merchant, Payroll,
-# Equipment, Cards} set, failing the plan's >=80% (L1) / >=75% (L3) band.
-# 1.2 gives ~89% on 4,000 simulated $0.72M restaurant anchor-years.
+# tilt (SBA x1.8) a 1.5 gave SBA 2.7 vs Merchant 3.0, and on all 876 live
+# Restaurant anchors (2026 affinity year) only 77.2% landed a top topic in
+# the {Merchant, Payroll, Equipment, Cards} set, failing the plan's >=80%
+# (L1) band. 1.2 gives 91.7%.
+# Logistics (FX 2.0 -> 2.2, AP 1.8 -> 2.4) and Wholesale Distribution (FX
+# 2.5 -> 2.8, AP 2.0 -> 2.8) are raised over the rowspec: the original values
+# put FX-or-AP in 49.6% of the rows of the 313 live Logistics + Wholesale
+# Distribution anchors over 26 weeks, a coin flip against the L3 >=50% band
+# (the >=$10M tilt boosts Treasury / Commercial Lending, which crowd FX/AP
+# out). Re-tuned: 57.8% on the live IDs (Logistics 58.5%, WD 56.6%) and
+# 57.7-59.7% on three random ID sets.
 _INDUSTRY_AFFINITY: dict[str, dict[str, float]] = {
     "Restaurant":             {"Merchant Services": 3.0, "Payroll Services": 2.0, "Equipment Finance": 1.8, "Business Credit Cards": 1.6, "SBA Lending": 1.2},
     "Retail Trade":           {"Merchant Services": 3.0, "Business Credit Cards": 1.8, "SBA Lending": 1.5, "Payroll Services": 1.4},
@@ -160,8 +227,8 @@ _INDUSTRY_AFFINITY: dict[str, dict[str, float]] = {
     "Real Estate":            {"Commercial Real Estate Lending": 3.5, "Treasury Management": 1.2},
     "Real Estate Holdings":   {"Commercial Real Estate Lending": 3.5, "Treasury Management": 1.6},
     "Manufacturing":          {"Equipment Finance": 2.5, "International Payments and FX": 2.0, "Commercial Lending": 1.8, "Treasury Management": 1.5},
-    "Logistics":              {"Equipment Finance": 2.5, "International Payments and FX": 2.0, "AP Automation": 1.8},
-    "Wholesale Distribution": {"International Payments and FX": 2.5, "AP Automation": 2.0, "Treasury Management": 1.6},
+    "Logistics":              {"Equipment Finance": 2.5, "International Payments and FX": 2.2, "AP Automation": 2.4},
+    "Wholesale Distribution": {"International Payments and FX": 2.8, "AP Automation": 2.8, "Treasury Management": 1.6},
     "Healthcare Systems":     {"Treasury Management": 2.0, "AP Automation": 2.0, "Equipment Finance": 1.8},
     "Technology":             {"Treasury Management": 2.2, "Business Credit Cards": 2.0, "International Payments and FX": 1.6},
     "Hospitality":            {"Merchant Services": 2.5, "Commercial Real Estate Lending": 1.8, "Payroll Services": 1.6},
@@ -316,8 +383,9 @@ def _researching_competitor(anchor: dict, topic: str, week: datetime, score: int
       score. So on the IS_TOP_TOPIC row (the account's core product need)
       the score >= 50 gate is lifted when Gong flags Competitor, and p = 0.70
       applies at any score. Without this, top rows -- which rest at
-      min(55, 12*aff) and mostly score < 50 -- got a competitor only ~18 pct
-      of the time on 868 live anchors even with every week flagged, failing
+      min(55, 12*aff) and mostly score < 50 -- got a competitor only 15.3 pct
+      of the time on the 791-anchor reference sample even with every week
+      flagged (69.6 pct with the override, 4.2 pct unflagged), failing
       the plan's L2 (>=3 of 6 flagged anchors' top rows) and L3 (>=55 pct of
       top rows in Gong-Competitor weeks) gates. Non-top rows keep the gate.
 
@@ -367,7 +435,7 @@ def _row(anchor: dict, topic: str, week: datetime, score: int, is_top: bool,
     researchers = _unique_researchers(anchor.get("EMPLOYEE_COUNT"), score, rng)
     keywords = rng.sample(_TOPICS[topic][1], rng.randint(2, 3))
     # LAST_SIGNAL_DATE: within the 7-day window ending on PROFILE_WEEK. The
-    # TASK runs Monday 05:30, so a date later in the week would be in the
+    # TASK runs Monday 03:15 ET, so a date later in the week would be in the
     # future; anchoring to the trailing window keeps it <= run date AND
     # identical for any run_ts in the same week.
     last_signal = week.date() - timedelta(days=rng.randint(0, 6))

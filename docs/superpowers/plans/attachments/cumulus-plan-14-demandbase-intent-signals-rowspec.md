@@ -29,7 +29,7 @@ INDUSTRY mix of the audience (top rows):
 
 The book is **main-street-heavy**: about 75% of the audience is under $1M revenue with ~5 employees. The topic affinity map must make SBA Lending, Merchant Services and Business Credit Cards dominant for that cohort. Treasury Management and International Payments and FX belong to the ~1.2K mid-market anchors.
 
-## Table: `FINS.PUBLIC.DEMANDBASE_INTENT_SIGNALS`
+## Table: `DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS`
 
 | Column | Type | Null? | Source / synthesis |
 |---|---|---|---|
@@ -48,7 +48,7 @@ The book is **main-street-heavy**: about 75% of the audience is under $1M revenu
 | `UNIQUE_RESEARCHERS` | NUMBER(2,0) | NOT NULL | [1, 40] distinct anonymous researchers; scales with EMPLOYEE_COUNT and score |
 | `RESEARCHING_COMPETITOR` | VARCHAR(30) | NULL | Competitor the account compared on G2. NULL below score 50, except on the top row in a Gong-Competitor week. Where the gate is open: NULL ~80% baseline, ~30% when Gong flags Competitor |
 | `KEYWORD_SAMPLE` | VARCHAR(200) | NOT NULL | 2–3 keywords from the topic's keyword bank, `; `-joined |
-| `SIGNAL_SOURCE` | VARCHAR(12) | NOT NULL | `Demandbase` 55% / `Bombora` 30% / `G2` 15%; G2 forced when RESEARCHING_COMPETITOR is non-NULL |
+| `SIGNAL_SOURCE` | VARCHAR(12) | NOT NULL | Base draw `Demandbase` 55% / `Bombora` 30% / `G2` 15%; G2 forced when RESEARCHING_COMPETITOR is non-NULL. **Effective mix** (reference sample, no Gong flags): Demandbase 49.7% / Bombora 27.8% / G2 22.6%; all-Competitor-flagged it is 20% / 11% / 69%. Live Gong flags Competitor on ~6% of accounts a week, so expect roughly 49 / 27 / 24 |
 | `LAST_SIGNAL_DATE` | DATE | NOT NULL | Day within [PROFILE_WEEK-6, PROFILE_WEEK] (the 7 days ending on the Monday run date). This keeps it ≤ the run date and identical for any run_ts in the week (amended 2026-11-02; was [PROFILE_WEEK, PROFILE_WEEK+6]) |
 | `INTENT_NOTE` | VARCHAR(200) | NULL | Human-readable one-liner for surging rows only (e.g. `"3-week surge: 7 researchers comparing treasury platforms"`); NULL when not surging |
 | `GENERATED_AT` | TIMESTAMP_NTZ(9) | NOT NULL | Week-bucketed (`week_start`) for byte-identical same-week re-runs |
@@ -92,8 +92,8 @@ _INDUSTRY_AFFINITY = {  # topic -> multiplier on base affinity; unlisted topics 
     "Real Estate":       {"Commercial Real Estate Lending": 3.5, "Treasury Management": 1.2},
     "Real Estate Holdings": {"Commercial Real Estate Lending": 3.5, "Treasury Management": 1.6},
     "Manufacturing":     {"Equipment Finance": 2.5, "International Payments and FX": 2.0, "Commercial Lending": 1.8, "Treasury Management": 1.5},
-    "Logistics":         {"Equipment Finance": 2.5, "International Payments and FX": 2.0, "AP Automation": 1.8},
-    "Wholesale Distribution": {"International Payments and FX": 2.5, "AP Automation": 2.0, "Treasury Management": 1.6},
+    "Logistics":         {"Equipment Finance": 2.5, "International Payments and FX": 2.2, "AP Automation": 2.4},  # amended from FX 2.0 / AP 1.8, see note
+    "Wholesale Distribution": {"International Payments and FX": 2.8, "AP Automation": 2.8, "Treasury Management": 1.6},  # amended from FX 2.5 / AP 2.0, see note
     "Healthcare Systems": {"Treasury Management": 2.0, "AP Automation": 2.0, "Equipment Finance": 1.8},
     "Technology":        {"Treasury Management": 2.2, "Business Credit Cards": 2.0, "International Payments and FX": 1.6},
     "Hospitality":       {"Merchant Services": 2.5, "Commercial Real Estate Lending": 1.8, "Payroll Services": 1.6},
@@ -115,6 +115,12 @@ def _base_affinity(anchor, topic, year):
     ind = _INDUSTRY_AFFINITY.get(anchor.get("INDUSTRY") or "", {})
     return rng.uniform(0.6, 1.4) * ind.get(topic, 1.0) * _revenue_tilt(topic, anchor.get("ANNUAL_REVENUE"))
 ```
+
+**Amended 2026-11-02 (Task 3 review 2): Logistics / Wholesale Distribution FX and AP multipliers.** The original values put International Payments and FX or AP Automation in 49.6% of the rows of the 313 live Logistics + Wholesale Distribution anchors over 26 weeks, a coin flip against the L3 ≥50% band: the ≥$10M revenue tilt lifts Treasury Management and Commercial Lending, which crowd FX/AP out. The re-tuned values give 57.8% on the live IDs (Logistics 58.5%, WD 56.6%) and 57.7–59.7% on three random ID sets. Book-wide volume and surge rates moved by under 0.5 pt. An L1 test pins ≥55% on a mid-market synthetic book.
+
+**Unmapped industries.** Industries without an entry fall back to 1.0 on every topic, so only the revenue tilt shapes them. This is deliberate. On the live audience that covers `Professional Services Mid-Market` (124 anchors), Healthcare and Life Sciences (25; the live value is spelled with an ampersand), `Financial Services` (33), the small long tail (Communications, Retail, Insurance, Banking, ...) and `''` / NULL (640).
+
+**Restaurant figures.** On all 876 live Restaurant anchors (2026 affinity year), SBA 1.5 gives 77.2% top topics in {Merchant, Payroll, Equipment, Cards}, below the ≥80% L1 band; 1.2 gives 91.7%.
 
 **Amended 2026-11-02 (Task 3):** Restaurant × SBA Lending is **1.2**, not 1.5. With the <$1M revenue tilt (SBA ×1.8), 1.5 put SBA at 2.7 against Merchant Services at 3.0. Only 66.8% of main-street restaurant anchor-years then got a top topic in {Merchant, Payroll, Equipment, Cards}, below the ≥80% L1 / ≥75% L3 band. With 1.2 the figure is 88.5% (4,000 synthetic anchor-years, re-run in review).
 
@@ -146,7 +152,7 @@ def _score_for(anchor, topic, week_start):
 - At most one 2–8-week episode per block.
 - Hazard `min(0.70, 0.15*aff)`, bump `U(35, 50)`.
 
-On 868 real audience anchors over 10 weeks this gave 1.625 rows per anchor-week, 14.4% surging rows and 21.3% of accounts surging.
+**Reference sample** (the one figure set used in every Plan 14 doc): 791 live audience anchors (`MOD(ABS(HASH(ACCOUNT_ID)), 8) = 0`), 10 weeks ending 2026-11-02, current constants including the Logistics / Wholesale Distribution re-tune. It gives 1.634 rows per anchor-week (~10.5K rows/week), 13.9% surging rows and 20.6% of accounts surging per week.
 
 The `block` math is illustrative. The implementer may choose any recomputable episode scheme, provided that:
 - (a) an episode spans consecutive weeks;
@@ -213,7 +219,9 @@ def _researching_competitor(anchor, topic, week, gong_flags, rng):
 
 The `p` applies only on rows with `score >= 50`. Below that, the value is always NULL, because nobody compares vendors at the awareness stage.
 
-**Amended 2026-11-02 (Task 3 review): Gong override on the top row.** When same-week Gong flags `Competitor`, the score ≥50 gate is **lifted on the IS_TOP_TOPIC row**, so p = 0.70 applies at any score. Non-top rows keep the gate. The reason is that top rows rest at `min(55, 12*aff)` and mostly score below 50. With the gate kept, only ~18% of top rows got a competitor on 868 live anchors even with every week flagged. That would fail the plan's L2 gate (≥3 of 6 flagged anchors' top rows) and its L3 gate (≥55% of top rows in Gong-Competitor weeks). A Gong `Competitor` mention is first-party evidence that the account is comparing banks, and the top topic is its core product need. Measured on L1 synthetic data: 72% of top rows are non-NULL when flagged and 4.2% when unflagged.
+**Amended 2026-11-02 (Task 3 review): Gong override on the top row.** When same-week Gong flags `Competitor`, the score ≥50 gate is **lifted on the IS_TOP_TOPIC row**, so p = 0.70 applies at any score. Non-top rows keep the gate. The reason is that top rows rest at `min(55, 12*aff)` and mostly score below 50. With the gate kept, only 15.3% of top rows got a competitor on the reference sample (791 live anchors × 10 weeks) even with every week flagged. That would fail the plan's L2 gate (≥3 of 6 flagged anchors' top rows) and its L3 gate (≥55% of top rows in Gong-Competitor weeks). A Gong `Competitor` mention is first-party evidence that the account is comparing banks, and the top topic is its core product need. With the override the reference sample gives 69.6% non-NULL when flagged and 4.2% when unflagged (L1 synthetic book: 72% / 4.2%).
+
+**Gong read must be one row per account (2026-11-02 review).** Live `GONG_CALL_SENTIMENT` is not unique on `(ACCOUNT_ID, PROFILE_WEEK)`: its PK is a random `RECORD_ID` and the UNIQUE is unenforced, and `001am00000qvjs6AAA` / 2026-09-28 has two rows. A plain LEFT JOIN would duplicate that anchor's rows (same 4-part PK, same RECORD_ID). The SP reads `gong_flags_sql(week)` (GROUP BY ACCOUNT_ID, `LISTAGG(DISTINCT KEY_TOPICS_FLAGS, '|')`), merges via `_merge_gong_flags`, and asserts `_assert_unique_pk` on the staged rows before DELETE+INSERT.
 
 ## Bias logic for `_rows_for`
 
@@ -224,7 +232,7 @@ The `p` applies only on rows with `score >= 50`. Below that, the value is always
 
 ## Boring case (must still emit)
 
-Take an anchor with `INDUSTRY=None`, `ANNUAL_REVENUE=None` and `EMPLOYEE_COUNT=None`, with no Gong row. In most weeks it emits exactly **one** row (amended 2026-11-02: ≥60% of weeks asserted, 71% observed over 52 weeks; with the tuned episode hazard a second topic occasionally crosses 40). That row is its year-stable top topic (seed-chosen from uniform affinities), with INTENT_SCORE in roughly [5, 25] in most weeks, SURGE_FLAG=False, WEEKS_SURGING=0, JOURNEY_STAGE=`Awareness`, UNIQUE_RESEARCHERS=1, RESEARCHING_COMPETITOR=None and INTENT_NOTE=None. It never raises.
+Take an anchor with `INDUSTRY=None`, `ANNUAL_REVENUE=None` and `EMPLOYEE_COUNT=None`, with no Gong row. In most weeks it emits exactly **one** row (amended 2026-11-02: ≥60% of weeks asserted, 71% observed over 52 weeks; with the tuned episode hazard a second topic occasionally crosses 40). That row is its year-stable top topic (seed-chosen from uniform affinities), with INTENT_SCORE in [5, 25] in most weeks (asserted: ≥75% of 52 weeks in [5, 25] and ≥85% below 50; 81% / 94% observed), SURGE_FLAG=False, WEEKS_SURGING=0, JOURNEY_STAGE=`Awareness`, UNIQUE_RESEARCHERS=1, RESEARCHING_COMPETITOR=None and INTENT_NOTE=None. It never raises.
 
 ## L1 property targets
 
