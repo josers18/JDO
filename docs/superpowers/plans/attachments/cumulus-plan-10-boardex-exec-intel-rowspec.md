@@ -25,8 +25,8 @@ Why Commercial-Banking-only: BoardEx-style governance intelligence is a Commerci
 | `WOMEN_BOARD_PCT` | NUMBER(5,2) | NOT NULL | % women on the board. Range [0.00, 100.00]. Demographic distribution. |
 | `MINORITY_BOARD_PCT` | NUMBER(5,2) | NOT NULL | % racial / ethnic minorities. Range [0.00, 100.00]. |
 | `BOARD_AVG_TENURE_YEARS` | NUMBER(4,1) | NOT NULL | Average years on the board across all directors. Range [1.0, 20.0]. |
-| `CEO_TENURE_YEARS` | NUMBER(4,1) | NOT NULL | Current CEO tenure. Range [0.0, 25.0]. Larger employers skew longer. |
-| `EXEC_TURNOVER_FLAG` | BOOLEAN | NOT NULL | True if any C-suite change in the trailing 12 months. ~20% True overall, biased lower for long-CEO-tenure firms. |
+| `CEO_TENURE_YEARS` | NUMBER(4,1) | NOT NULL | Current CEO tenure: years since the last CEO change on the account's C-suite timeline (see below). Grows ~1/12 per month, resets on a CEO change. Range [0.0, 25.0]. Larger employers skew longer. |
+| `EXEC_TURNOVER_FLAG` | BOOLEAN | NOT NULL | True if any C-suite change in the trailing 12 months. ~20% True overall, biased lower for long-CEO-tenure firms. Window read over the account's C-suite timeline, so a change in month M keeps the flag True for M..M+11 (sticky; fixed 2026-11-02, was an iid monthly draw). |
 | `GOVERNANCE_RATING` | VARCHAR(15) | NOT NULL | One of `Excellent` / `Strong` / `Adequate` / `Weak` / `Concerning`. Biased by independence + tenure inputs. |
 | `INTERLOCK_COUNT` | NUMBER(2,0) | NOT NULL | Count of board members who sit on other Commercial Banking client boards. Range [0, 5]. |
 | `KEY_DIRECTOR_NAME` | VARCHAR(80) | NOT NULL | Exemplar synthesized director full name (single-row example for narrative). |
@@ -78,24 +78,46 @@ def _board_avg_tenure(rng):
     """Established commercial banks: avg board tenure 6-10 years. Range [1.0, 20.0]."""
     return round(rng.uniform(3.0, 14.0), 1)
 
-def _ceo_tenure(employee_count, rng):
-    """Larger firms have longer-tenured CEOs (succession planning). Range [0.0, 25.0]."""
-    if employee_count >= 10000:
-        return round(rng.uniform(2.0, 18.0), 1)
-    if employee_count >= 1000:
-        return round(rng.uniform(1.0, 12.0), 1)
-    return round(rng.uniform(0.0, 10.0), 1)
 ```
 
-## EXEC_TURNOVER_FLAG
+## C-suite change timeline → CEO_TENURE_YEARS + EXEC_TURNOVER_FLAG
+
+> **Fixed 2026-11-02.** Until then both fields were re-drawn independently every month from the monthly rng (`_ceo_tenure` uniform per band, then `_exec_turnover_flag` as an iid 35/20/10% Bernoulli keyed on that tenure). The flag flickered: live 2024-06 → 2026-11 on BUSINESS rows showed 49,962 FALSE→TRUE rises, 49,941 TRUE→FALSE falls and only 12,457 TRUE→TRUE stays. That contradicts "trailing 12 months", so both fields now read one account-lifetime timeline.
+
+Each BUSINESS anchor gets **one lifetime timeline of C-suite change events** from its own rng stream, independent of the profile month and run timestamp:
 
 ```python
-def _exec_turnover_flag(ceo_tenure, rng):
-    """Long-CEO-tenure firms less likely to have C-suite churn.
-    new CEO (<2yrs) → 35%; mid → 20%; long-tenure → 10%."""
-    rate = 0.35 if ceo_tenure < 2.0 else (0.20 if ceo_tenure < 7.0 else 0.10)
-    return rng.random() < rate
+rng = random.Random(seed_for(account_id + "_csuite", "boardex", datetime(2000, 1, 1)))
+
+# Firm stability: expected CEO tenure (years) per EMPLOYEE_COUNT band.
+# Same ordering as the retired _ceo_tenure bands (>=10k longest).
+_CEO_TENURE_MEAN_BANDS = ((10000, (8.0, 16.0)), (1000, (6.0, 13.0)), (0, (4.5, 13.0)))
+mean_tenure = rng.uniform(*band_range)        # per-firm
+ceo_rate    = 1 / mean_tenure                 # CEO changes per year
+other_rate  = 0.8 * ceo_rate                  # CFO/COO/CRO/CTO/CIO/GC departures
+
+# Incumbent CEO started 0-15 years before 2000-01-01 ("CEO_START", not a change).
+# CEO changes: exponential gaps (mean = mean_tenure), each clamped to
+# [0.25, 22] years so tenure stays inside [0, 25]; generated to 2031-01-01.
+# Other C-suite changes: Poisson process (exponential gaps) 2000-01-01 → 2031-01-01,
+# role drawn from {CFO, COO, CRO, CTO, CIO, General Counsel}.
 ```
+
+Per profile month M (month_end = last day of M):
+
+```python
+EXEC_TURNOVER_FLAG(M) = any change (CEO or other role) dated in (month_end(M-12), month_end(M)]
+CEO_TENURE_YEARS(M)   = round((month_end(M) - last CEO start/change <= month_end(M)) / 365.25, 1)
+```
+
+Consequences:
+
+- **Sticky.** A FALSE→TRUE rise at M implies TRUE for M..M+11. TRUE→TRUE stays outnumber rises ~12× (offline synthetic run: 26,356 stays vs 2,094 rises over 4,000 anchors × 36 months).
+- **~20% TRUE.** For a homogeneous Poisson process, P(TRUE) = 1 − exp(−1.8 / mean_tenure). With the live BUSINESS band mix (90% < 100 employees) the offline synthetic rate is 20.3%. Large employers (≥10k) sit near 16%.
+- **Biased lower for long-tenure firms.** Firms with a longer mean CEO tenure change both CEO and other C-suite less often. Rows with CEO_TENURE ≥ 7 have a lower TRUE rate than the population.
+- **A CEO change implies the flag is TRUE** (the change is inside the window), and CEO_TENURE_YEARS resets below 1.0.
+- **No monthly-rng draws.** The tenure/flag pair no longer consumes the monthly rng, so every later draw in the row (GOVERNANCE_RATING noise, INTERLOCK_COUNT, KEY_DIRECTOR_NAME, dates) shifted once on 2026-11-02. `_governance_rating` still reads `exec_turnover`.
+- PERSON anchors are unchanged: flag False, CEO_TENURE_YEARS = 5.0.
 
 ## GOVERNANCE_RATING
 
@@ -183,9 +205,11 @@ women_pct        = _women_board_pct(rng)
 minority_pct     = _minority_board_pct(rng)
 avg_tenure       = _board_avg_tenure(rng)
 
-# 2. CEO and exec-suite signals; governance rating is the composite.
-ceo_tenure        = _ceo_tenure(employee_count, rng)
-exec_turnover     = _exec_turnover_flag(ceo_tenure, rng)
+# 2. CEO and exec-suite signals come from the account-lifetime C-suite
+#    timeline (own rng stream — no monthly-rng draws); governance rating
+#    is the composite.
+timeline          = _csuite_timeline(account_id, _employee_band_floor(employee_count))
+ceo_tenure, exec_turnover = _exec_state_for_month(timeline, month_start.date())
 governance_rating = _governance_rating(independence_pct, avg_tenure, exec_turnover, rng)
 
 # 3. Network exemplar and dates.
@@ -209,7 +233,7 @@ return {
 
 ## Boring case (must still emit)
 
-A "boring" Commercial Banking anchor — mid-market enterprise, ~2,500 employees, INTERLOCK_DEGREE=2 — produces: BOARD_SIZE 8-10; BOARD_INDEPENDENCE_PCT 70-85; WOMEN/MINORITY 25-40 / 15-30; BOARD_AVG_TENURE 5-10; CEO_TENURE 4-12; EXEC_TURNOVER_FLAG False most likely (CEO tenure ≥ 2 → 20% True); GOVERNANCE_RATING `Strong` or `Adequate`; INTERLOCK_COUNT 1-3; KEY_DIRECTOR_NAME e.g. `Patricia Garcia`; RECENT_GOVERNANCE_EVENT_DATE NULL (70% likelihood); LAST_DATA_REFRESH_DATE 1-30 days before run_ts.
+A "boring" Commercial Banking anchor — mid-market enterprise, ~2,500 employees, INTERLOCK_DEGREE=2 — produces: BOARD_SIZE 8-10; BOARD_INDEPENDENCE_PCT 70-85; WOMEN/MINORITY 25-40 / 15-30; BOARD_AVG_TENURE 5-10; CEO_TENURE 4-12; EXEC_TURNOVER_FLAG False most months (~20% of months True, in runs of ≥12 consecutive months after each C-suite change); GOVERNANCE_RATING `Strong` or `Adequate`; INTERLOCK_COUNT 1-3; KEY_DIRECTOR_NAME e.g. `Patricia Garcia`; RECENT_GOVERNANCE_EVENT_DATE NULL (70% likelihood); LAST_DATA_REFRESH_DATE 1-30 days before run_ts.
 
 A large-enterprise anchor (25,000+ employees, INTERLOCK_DEGREE=4) skews to BOARD_SIZE 11-14, CEO_TENURE 5-15, INTERLOCK_COUNT 3-5, GOVERNANCE_RATING `Excellent` / `Strong`.
 

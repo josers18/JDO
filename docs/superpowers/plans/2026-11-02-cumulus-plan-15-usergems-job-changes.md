@@ -72,6 +72,8 @@ L3 accepts 6K–13K for the backfill.
 
 Enforcing "every TRUE month implies a departure" would therefore force ~26K C-suite departures at mostly 1–10-person firms, which is not credible. Plan 15 enforces only the **subset** direction. A follow-up to make BoardEx's flag trailing-window-sticky is listed in §6. Once that lands, the C-suite gate here can tighten to "a FALSE→TRUE rise in month M emits exactly one C-suite departure in M" with no code change beyond the gate function.
 
+**BoardEx fix landed (2026-11-02, branch `feat/cumulus-chainA-boardex-plan15`).** Plan 10 now derives `EXEC_TURNOVER_FLAG` and `CEO_TENURE_YEARS` from a per-account C-suite change timeline (see the Plan 10 rowspec, "C-suite change timeline"). The flag is trailing-12-month sticky: a rise in month M stays TRUE for M..M+11. The new SP is deployed as `SP_GENERATE_BOARDEX_EXEC_INTEL(NUM_MONTHS, HISTORY_UPDATE_ONLY)`. Offline synthetic run (4,000 live-band-mix anchors × 36 months): 20.3% TRUE, 2,094 rises / 26,356 stays / 2,084 falls. **Live history re-run still pending:** `CALL ...SP_GENERATE_BOARDEX_EXEC_INTEL(30, TRUE)` regenerates 2024-06 → 2026-11 in place. Until it runs, the live numbers above (pre-fix) still describe the table. After it runs, re-probe rises/stays/falls here, then tighten the gate to the bidirectional rule.
+
 ## §3 Rowspec attachment
 
 `docs/superpowers/plans/attachments/cumulus-plan-15-usergems-job-changes-rowspec.md`
@@ -196,7 +198,7 @@ The attachment contains:
 
 - Real UserGems / LinkedIn data, contact PII fidelity, emails or phone numbers. CONTACT_NAME is synthetic, drawn from the same name banks as Plan 10.
 - Writing back to CRM `Contact` records, or creating Leads/Tasks from events. Downstream Flow/Agentforce work.
-- **Making BoardEx `EXEC_TURNOVER_FLAG` trailing-12-month sticky.** This is a Plan 10 rowspec fix: derive the flag from a per-account C-suite-change timeline instead of an iid monthly draw. Recommended as a follow-up, after which §2's gate tightens to the bidirectional rule.
+- ~~**Making BoardEx `EXEC_TURNOVER_FLAG` trailing-12-month sticky.**~~ Landed 2026-11-02 (Plan 10 C-suite timeline; see §2 "BoardEx fix landed"). Remaining: the live 30-month in-place re-run, then §2's gate can tighten to the bidirectional rule.
 - `SYNTH_RELATIONSHIP_GRAPH` `TALENT_FLOW` edges (source employer → destination employer from paired events). Natural Plan 9 extension once this table is LIVE. Plan 9's soft-dep pattern supports adding it as a new edge type.
 - A persistent contact roster (the same named person across multiple events over years). Names are seeded per event.
 - PERSON-anchor employers (Retail/Wealth individuals as companies).

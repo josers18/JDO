@@ -11,9 +11,20 @@ months for ~883K rows.
 
 Audience: all accounts (1=1 predicate; SELECT DISTINCT to dedupe MASTER_ACCOUNTS).
 Cadence:  MONTHLY (07:00 UTC on the 1st).
-Salt:     "boardex" (month-bucketed; single salt — no year-stable subfields).
+Salt:     "boardex" (month-bucketed) for every field EXCEPT the exec-turnover
+          pair, which reads an account-lifetime C-suite timeline seeded on
+          seed_for(account_id + "_csuite", "boardex", 2000-01).
 Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-10-boardex-exec-intel.md
 Rowspec:  docs/superpowers/plans/attachments/cumulus-plan-10-boardex-exec-intel-rowspec.md
+
+EXEC_TURNOVER_FLAG / CEO_TENURE_YEARS (fixed 2026-11-02):
+  The rowspec defines the flag as "any C-suite change in the trailing 12
+  months", so it must be sticky. Each BUSINESS anchor gets one lifetime
+  timeline of CEO + other-C-suite change events (2000-2030, exponential
+  gaps, rate = 1 / per-firm mean CEO tenure drawn from EMPLOYEE_COUNT
+  bands). EXEC_TURNOVER_FLAG(M) = any event in (month_end(M-12),
+  month_end(M)]; CEO_TENURE_YEARS(M) = years since the last CEO change.
+  Previously both were re-drawn iid every month from the monthly rng.
 
 PERSON-anchor personal-governance fallback (rebroadcast deviation):
   PERSON anchors have NULL EMPLOYEE_COUNT and no real board. Rather than
@@ -43,6 +54,7 @@ Contract for the L1 sibling tests (Plan 10 T3):
 """
 from __future__ import annotations
 
+import functools
 import random
 import uuid
 from datetime import date, datetime, timedelta
@@ -167,22 +179,134 @@ def _board_avg_tenure(rng: random.Random) -> float:
     return round(rng.uniform(3.0, 14.0), 1)
 
 
-def _ceo_tenure(employee_count: int, rng: random.Random) -> float:
-    """Larger firms have longer-tenured CEOs (succession planning). Range [0.0, 25.0]."""
-    if employee_count >= 10000:
-        return round(rng.uniform(2.0, 18.0), 1)
-    if employee_count >= 1000:
-        return round(rng.uniform(1.0, 12.0), 1)
-    return round(rng.uniform(0.0, 10.0), 1)
+# -------------------------------------------------------------------
+# C-suite change timeline — account-lifetime, run_ts-independent.
+#
+# EXEC_TURNOVER_FLAG is "True if any C-suite change in the trailing 12
+# months" (rowspec), so it must be sticky: once a change happens the flag
+# stays True for that month and the following 11. The old model drew an
+# iid monthly Bernoulli, which flickered (live: ~1 rise per ~1 stay).
+#
+# Instead every BUSINESS anchor gets ONE lifetime timeline of C-suite
+# change events (CEO and other C-suite roles) from its own rng stream —
+# seeded on (account_id + "_csuite", salt, 2000-01) so it never depends on
+# the profile month or the run timestamp. Each month's row is a pure
+# window read over that timeline:
+#   EXEC_TURNOVER_FLAG(M) = any event in (month_end(M-12), month_end(M)]
+#   CEO_TENURE_YEARS(M)   = years since the last CEO change <= month_end(M)
+# -------------------------------------------------------------------
+
+_TIMELINE_START = date(2000, 1, 1)
+_TIMELINE_END   = date(2031, 1, 1)
+_DAYS_PER_YEAR  = 365.25
+
+# Expected CEO tenure (years) per EMPLOYEE_COUNT band — larger firms keep
+# CEOs longer (succession planning). Same ordering as the retired
+# _ceo_tenure() bands (>=10k: 2-18, >=1k: 1-12, else 0-10), shifted up to
+# realistic means so the trailing-12-month TRUE rate lands near ~20%.
+_CEO_TENURE_MEAN_BANDS = (
+    (10000, (8.0, 16.0)),
+    (1000,  (6.0, 13.0)),
+    (0,     (4.5, 13.0)),
+)
+# Non-CEO C-suite departures arrive at this multiple of the CEO change rate.
+_OTHER_CSUITE_RATE_MULT = 0.8
+# Clamp on any single CEO tenure gap (years) — keeps CEO_TENURE_YEARS
+# inside the column's [0.0, 25.0] range.
+_CEO_GAP_MIN_YEARS = 0.25
+_CEO_GAP_MAX_YEARS = 22.0
+_OTHER_CSUITE_ROLES = ("CFO", "COO", "CRO", "CTO", "CIO", "General Counsel")
 
 
-def _exec_turnover_flag(ceo_tenure_years: float, rng: random.Random) -> bool:
-    """Long-CEO-tenure firms less likely to have C-suite churn.
-    new CEO (<2yrs) -> 35%; mid -> 20%; long-tenure -> 10%.
-    Explicit bool(...) coercion guarantees a Python bool (not numpy.bool_) so
-    write_pandas does not stage as int8 and break the ::BOOLEAN cast at MERGE."""
-    rate = 0.35 if ceo_tenure_years < 2.0 else (0.20 if ceo_tenure_years < 7.0 else 0.10)
-    return bool(rng.random() < rate)
+def _employee_band_floor(employee_count: int) -> int:
+    for floor, _ in _CEO_TENURE_MEAN_BANDS:
+        if employee_count >= floor:
+            return floor
+    return 0
+
+
+def _add_years(d: date, years: float) -> date:
+    return d + timedelta(days=int(round(years * _DAYS_PER_YEAR)))
+
+
+@functools.lru_cache(maxsize=65536)
+def _csuite_timeline(account_id: str, band_floor: int) -> tuple:
+    """Lifetime C-suite change events for one BUSINESS anchor.
+
+    Returns a sorted tuple of (event_date, role) where role is "CEO" or a
+    non-CEO C-suite title. The first element is always the incumbent CEO's
+    start date (role "CEO_START", dated before 2000-01-01 so it never
+    counts as a change inside the 2000-2030 window).
+
+    Pure + deterministic on (account_id, band_floor): uses its own rng
+    stream so the monthly rng in _business_governance_row is untouched.
+    """
+    rng = random.Random(seed_for(account_id + "_csuite", DATASET_SALT, datetime(2000, 1, 1)))
+    lo, hi = dict(_CEO_TENURE_MEAN_BANDS)[band_floor]
+    mean_tenure = rng.uniform(lo, hi)          # firm-level stability
+    ceo_rate = 1.0 / mean_tenure
+    other_rate = ceo_rate * _OTHER_CSUITE_RATE_MULT
+
+    events: list = []
+    # Incumbent CEO started 0-15 years before the window opens.
+    ceo_start = _add_years(_TIMELINE_START, -rng.uniform(0.0, 15.0))
+    events.append((ceo_start, "CEO_START"))
+    cur = ceo_start
+    while True:
+        gap = min(max(rng.expovariate(ceo_rate), _CEO_GAP_MIN_YEARS), _CEO_GAP_MAX_YEARS)
+        cur = _add_years(cur, gap)
+        if cur >= _TIMELINE_END:
+            break
+        events.append((cur, "CEO"))
+
+    cur = _TIMELINE_START
+    while True:
+        cur = _add_years(cur, rng.expovariate(other_rate))
+        if cur >= _TIMELINE_END:
+            break
+        events.append((cur, rng.choice(_OTHER_CSUITE_ROLES)))
+
+    events.sort()
+    return tuple(events)
+
+
+def _month_end(month_start: date) -> date:
+    """Last calendar day of month_start's month."""
+    if month_start.month == 12:
+        nxt = date(month_start.year + 1, 1, 1)
+    else:
+        nxt = date(month_start.year, month_start.month + 1, 1)
+    return nxt - timedelta(days=1)
+
+
+def _shift_months(month_start: date, months: int) -> date:
+    idx = month_start.year * 12 + (month_start.month - 1) + months
+    return date(idx // 12, idx % 12 + 1, 1)
+
+
+def _exec_state_for_month(timeline: tuple, month_start: date) -> tuple[float, bool]:
+    """(CEO_TENURE_YEARS, EXEC_TURNOVER_FLAG) at the end of month_start's month.
+
+    EXEC_TURNOVER_FLAG = any C-suite change (CEO or other role) dated in
+    (month_end(M-12), month_end(M)] — i.e. inside months M-11..M — so a
+    change in month M keeps the flag True for M..M+11.
+    CEO_TENURE_YEARS = years from the latest CEO start/change <= month_end(M),
+    rounded to 0.1 and clamped to the column range [0.0, 25.0].
+    Explicit bool(...) so write_pandas never stages a numpy.bool_.
+    """
+    end = _month_end(month_start)
+    window_open = _month_end(_shift_months(month_start, -12))
+    last_ceo = None
+    flag = False
+    for ev_date, role in timeline:
+        if ev_date > end:
+            break
+        if role in ("CEO", "CEO_START"):
+            last_ceo = ev_date
+        if role != "CEO_START" and ev_date > window_open:
+            flag = True
+    tenure = (end - last_ceo).days / _DAYS_PER_YEAR
+    return round(min(max(tenure, 0.0), 25.0), 1), bool(flag)
 
 
 def _governance_rating(independence_pct: float, avg_tenure: float,
@@ -265,11 +389,12 @@ def _business_governance_row(anchor: dict, month_start: datetime) -> dict:
     minority_pct     = _minority_board_pct(rng)
     avg_tenure       = _board_avg_tenure(rng)
 
-    # 2. CEO + exec-suite chain. _exec_turnover depends on ceo_tenure;
-    #    _governance_rating depends on independence_pct + avg_tenure + exec_turnover.
-    #    Order MUST be ceo_tenure -> exec_turnover -> governance_rating.
-    ceo_tenure_years  = _ceo_tenure(employee_count, rng)
-    exec_turnover     = _exec_turnover_flag(ceo_tenure_years, rng)
+    # 2. CEO tenure + exec turnover come from the account-lifetime C-suite
+    #    timeline (own rng stream; no draws from the monthly rng), so the
+    #    flag is trailing-12-month sticky and tenure grows month over month.
+    #    _governance_rating still reads exec_turnover.
+    timeline = _csuite_timeline(account_id, _employee_band_floor(employee_count))
+    ceo_tenure_years, exec_turnover = _exec_state_for_month(timeline, month_start.date())
     governance_rating = _governance_rating(
         independence_pct, avg_tenure, exec_turnover, rng,
     )
@@ -422,11 +547,19 @@ def _rows_for(anchor: dict, profile_month: datetime) -> list[dict]:
 # Entry point — invoked by DATA_JEDAIS.FINS__PUBLIC.SP_RUN_WITH_RETRY -> SP_GENERATE_BOARDEX_EXEC_INTEL
 # -------------------------------------------------------------------
 
-def main(session: Any, num_months: int = 1) -> str:
+def main(session: Any, num_months: int = 1, history_update_only: bool = False) -> str:
     """5-step pattern with optional history backfill.
 
     `num_months=1` (default): cron-driven, current month only.
-    `num_months=24`: one-shot historical backfill.
+    `num_months=24`: one-shot historical backfill (INSERT + UPDATE).
+    `history_update_only=True`: regenerate history IN PLACE — months before
+        the current one only UPDATE existing rows (no INSERT), so a logic
+        change can be re-applied without back-filling rows for anchors that
+        joined the audience later. The current month always runs the full
+        MERGE (INSERT + UPDATE) so coverage still holds.
+
+    Rows are generated and MERGEd one month at a time to bound SP memory
+    (~37K rows per batch instead of ~1.1M dicts for a 30-month re-run).
     """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
@@ -435,6 +568,7 @@ def main(session: Any, num_months: int = 1) -> str:
     try:
         audience = session.sql(AUDIENCE_SQL).collect()
         accounts_processed = len(audience)
+        anchors = [_anchor_to_dict(row) for row in audience]
 
         current_month_start = started.replace(
             day=1, hour=0, minute=0, second=0, microsecond=0
@@ -448,31 +582,29 @@ def main(session: Any, num_months: int = 1) -> str:
                 m = 12
                 y -= 1
 
-        records, errors = [], []
-        for row in audience:
-            anchor = _anchor_to_dict(row)
-            for ms in month_starts:
+        total_pairs = len(anchors) * len(month_starts)
+        max_tolerated = max(10, total_pairs // 100)
+        errors = []
+        rows_inserted = 0
+        for ms in month_starts:
+            records = []
+            for anchor in anchors:
                 try:
                     records.extend(_rows_for(anchor, ms))
                 except Exception as exc:
-                    errors.append((row.ACCOUNT_ID, str(exc)[:200]))
-        max_tolerated = max(10, (len(audience) * len(month_starts)) // 100)
-        if len(errors) > max_tolerated:
-            raise RuntimeError(
-                f"row factory failed on {len(errors)}/{len(audience) * len(month_starts)} pairs "
-                f"(tolerance {max_tolerated}); first: {errors[0] if errors else 'n/a'}"
-            )
+                    errors.append((anchor.get("ACCOUNT_ID"), str(exc)[:200]))
+            if len(errors) > max_tolerated:
+                raise RuntimeError(
+                    f"row factory failed on {len(errors)}/{total_pairs} pairs "
+                    f"(tolerance {max_tolerated}); first: {errors[0]}"
+                )
+            update_only = bool(history_update_only) and ms != current_month_start
+            rows_inserted += _merge(session, records, update_only=update_only)
         if errors:
             err = (
-                f"row factory failed on {len(errors)}/{len(audience) * len(month_starts)} pairs; "
+                f"row factory failed on {len(errors)}/{total_pairs} pairs; "
                 f"first: {errors[0]}"
             )
-
-        BATCH_SIZE = 100_000
-        rows_inserted = 0
-        for batch_start in range(0, len(records), BATCH_SIZE):
-            batch = records[batch_start:batch_start + BATCH_SIZE]
-            rows_inserted += _merge(session, batch)
 
         actual_sql = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}"
         assert_coverage(session, COVERAGE_SQL, actual_sql)
@@ -513,8 +645,14 @@ def _anchor_to_dict(row: Any) -> dict:
 # _merge — idempotent MERGE on composite PK (ACCOUNT_ID, PROFILE_MONTH)
 # -------------------------------------------------------------------
 
-def _merge(session: Any, records: list[dict]) -> int:
-    """MERGE records into TABLE. Returns rows MERGED.
+def _merge(session: Any, records: list[dict], update_only: bool = False) -> int:
+    """MERGE records into TABLE. Returns rows inserted (rows updated when
+    update_only=True, which drops the WHEN NOT MATCHED clause).
+
+    RECORD_ID is computed in the source SELECT with the SQL form of
+    cumulus_common.record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH) and is
+    written on both INSERT and UPDATE (the live column's DEFAULT is a
+    random UUID_STRING(), which would break determinism).
 
     Casts in the source SELECT (defensive against write_pandas auto-typing
     on an empty target):
@@ -539,7 +677,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
@@ -561,7 +699,14 @@ def _merge(session: Any, records: list[dict]) -> int:
                 KEY_DIRECTOR_NAME,
                 RECENT_GOVERNANCE_EVENT_DATE,
                 LAST_DATA_REFRESH_DATE,
-                TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
+                TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT,
+                REGEXP_REPLACE(
+                    LEFT(SHA2(CONCAT_WS('|', ORG_ID, ACCOUNT_ID,
+                                        TO_VARCHAR(PROFILE_MONTH::DATE, 'YYYY-MM-DD'),
+                                        'record_id'), 256), 32),
+                    '(.{{8}})(.{{4}})(.{{4}})(.{{4}})(.{{12}})',
+                    '\\\\1-\\\\2-\\\\3-\\\\4-\\\\5'
+                ) AS RECORD_ID
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
@@ -580,20 +725,25 @@ def _merge(session: Any, records: list[dict]) -> int:
             KEY_DIRECTOR_NAME            = src.KEY_DIRECTOR_NAME,
             RECENT_GOVERNANCE_EVENT_DATE = src.RECENT_GOVERNANCE_EVENT_DATE,
             LAST_DATA_REFRESH_DATE       = src.LAST_DATA_REFRESH_DATE,
-            GENERATED_AT                 = src.GENERATED_AT
+            GENERATED_AT                 = src.GENERATED_AT,
+            RECORD_ID                    = src.RECORD_ID
+    """
+    insert_sql = """
         WHEN NOT MATCHED THEN INSERT (
             ORG_ID, ACCOUNT_ID, PROFILE_MONTH, BOARD_SIZE, BOARD_INDEPENDENCE_PCT,
             WOMEN_BOARD_PCT, MINORITY_BOARD_PCT, BOARD_AVG_TENURE_YEARS,
             CEO_TENURE_YEARS, EXEC_TURNOVER_FLAG, GOVERNANCE_RATING,
             INTERLOCK_COUNT, KEY_DIRECTOR_NAME, RECENT_GOVERNANCE_EVENT_DATE,
-            LAST_DATA_REFRESH_DATE, GENERATED_AT
+            LAST_DATA_REFRESH_DATE, GENERATED_AT, RECORD_ID
         ) VALUES (
             src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_MONTH, src.BOARD_SIZE, src.BOARD_INDEPENDENCE_PCT,
             src.WOMEN_BOARD_PCT, src.MINORITY_BOARD_PCT, src.BOARD_AVG_TENURE_YEARS,
             src.CEO_TENURE_YEARS, src.EXEC_TURNOVER_FLAG, src.GOVERNANCE_RATING,
             src.INTERLOCK_COUNT, src.KEY_DIRECTOR_NAME, src.RECENT_GOVERNANCE_EVENT_DATE,
-            src.LAST_DATA_REFRESH_DATE, src.GENERATED_AT
+            src.LAST_DATA_REFRESH_DATE, src.GENERATED_AT, src.RECORD_ID
         )
     """
+    if not update_only:
+        merge_sql += insert_sql
     rows = session.sql(merge_sql).collect()
     return int(rows[0][0]) if rows else len(records)
