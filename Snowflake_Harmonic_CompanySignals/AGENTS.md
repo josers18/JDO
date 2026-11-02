@@ -1,0 +1,90 @@
+# AGENTS.md — Snowflake_Harmonic_CompanySignals
+
+Synthetic Harmonic-style **private-company funding and traction** signals, with Coresignal-style department mix and job postings, for the Cumulus FSC demo. Plan 16 (one of 16). Monthly cadence, 1:1: one row per audience anchor per month. **It is the first plan with a three-way audience (anchor × ZoomInfo × Moody's), the first to ship a prerequisite fix to an upstream plan (Task 0, ZoomInfo FOUNDED_YEAR), and the first to view a lifetime event timeline as of each period.**
+
+## Status
+
+| Task | State |
+|---|---|
+| T0 ZoomInfo FOUNDED_YEAR account-stable | done (commit `3cba15fdc`, see `../Snowflake_ZoomInfo_Firmographics/AGENTS.md`) |
+| T1 scaffold | done |
+| T2 DDL (`schemas/harmonic_company_signals.sql`, table + `_STAGING`) | pending |
+| T3 row factory + L1 tests | pending |
+| T4 SP entry point (`main`, MERGE, hard-dep probes, coverage, log) | pending |
+| T5 L2 / T6 deploy + TASK + 7-month backfill / T8 L3 smoke | pending |
+| T7 DC stream + DMO | **DC mapping pending UI** (mapping table below) |
+
+## Boundaries
+- Owns `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS` and `..._STAGING`, plus `SP_GENERATE_HARMONIC_COMPANY_SIGNALS`, `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS`, and the DC Data Stream / DLO / DMO `CumulusHarmonicCompanySignals__dlm`.
+- Does NOT own `V_ACCOUNT_ANCHORS`, `ZOOMINFO_FIRMOGRAPHICS` (Plan 11), `MOODYS_MARKET_CONTEXT` (Plan 13 v2), or the `seed_for` / `assert_coverage` / `record_id_for` helpers. Those belong to their own repos and to `Snowflake_Cumulus_Common`; `scripts/deploy_sp.py` inlines the helpers. Don't edit Cumulus_Common from here.
+- **Account-scoped, 1:1 monthly.** PK `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. FK `ACCOUNT_ID` points to `ssot__Account__dlm`. The DC PK is the single column `recordId__c`.
+
+## Conventions
+- **Namespace.** Everything lives in `DATA_JEDAIS.FINS__PUBLIC` like the 13 live siblings. The plan text says `FINS.PUBLIC`, but there is no `FINS` database in the account.
+- **Two salts:**
+  - `harmonic_funding`, always at the fixed epoch `datetime(2000, 1, 1)`. Drives everything account-lifetime: the funding destiny and round timeline (key `ACCOUNT_ID`), per-round valuation multiple (key `f"{ACCOUNT_ID}_{round_date}_{stage}"`), headcount resting position and drift (`_hc`), lean-hirer flag (`_post`), burn rate (`_burn`) and the dept-mix baseline (`_dept`).
+  - `harmonic`, month-bucketed (`datetime(year, month, 1)`). Drives the monthly noise: headcount jitter (key `ACCOUNT_ID`), postings multiplier (`_post`), dept-mix jitter (`_dept`) and LAST_DATA_REFRESH_DATE (`_refresh`).
+  - Each field group gets its own `random.Random` with its own key suffix, so adding a draw to one group never shifts another.
+- **Month anchor.** `PROFILE_MONTH = run_ts` truncated to the 1st; `GENERATED_AT = PROFILE_MONTH 00:00:00`. Every `run_ts` in a month gives a byte-identical row.
+- **Row factory shape.** `_row_for(anchor, zi, run_ts)` returns exactly the 22 data columns. `zi` maps a first-of-month `date` to that month's ZoomInfo row (`EMPLOYEE_BAND`, `FOUNDED_YEAR`) for this account. The SP stamps `ORG_ID` and `RECORD_ID` with `_with_ids(row, org_id)`, which uses `record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`.
+- `accounts_processed` = audience size = row count.
+
+## Tests
+- **L1** (`tests/test_harmonic_company_signals_row_factory.py`) runs on the inline 10-anchor fixture in `tests/conftest.py`, not on the shared SAMPLE_ANCHORS.
+
+## Gotchas
+- **Three-way audience.** Use the plan §2 SQL verbatim, comment included. It joins `V_ACCOUNT_ANCHORS` × `ZOOMINFO_FIRMOGRAPHICS` (same month, `FOUNDED_YEAR >= 2010`) × the **latest** `MOODYS_MARKET_CONTEXT` row per account (`QUALIFY ROW_NUMBER() … ORDER BY PROFILE_DATE DESC = 1`, `LIQUIDITY_TIER = 'Illiquid'`).
+  - Moody's history is only 90 days deep, so don't month-match it. The tier is stable per account.
+  - **Keep the `COALESCE(a.CLIENT_CATEGORY, '') <> 'Household'`.** `NULL <> 'Household'` is NULL in SQL and would drop the NULL-category anchors.
+  - The Python mirror `_anchor_in_audience` checks the anchor half (BUSINESS, non-Household, non-empty id) and `_row_for` checks `FOUNDED_YEAR >= 2010` on the month's ZoomInfo row. It can't check Moody's.
+- **Hard dependencies.** Task 4 must probe `INFORMATION_SCHEMA.TABLES` for both `ZOOMINFO_FIRMOGRAPHICS` and `MOODYS_MARKET_CONTEXT` and raise if either is missing. It must also raise if ZoomInfo has **no row for `:month`**, which means the ZoomInfo task hasn't run yet. Don't silently emit an empty month. `_row_for` raises `ValueError` when `zi` lacks the run month too.
+- **Funding timeline is account-lifetime.** `_timeline(anchor, founded_year, band)` seeds `harmonic_funding` with `datetime(2000, 1, 1)` keyed on `ACCOUNT_ID`. **Never seed it from `PROFILE_MONTH`**: a per-month draw would break monotonicity. Each month's funding columns are `_funding_as_of(rounds, month_end)`, a filter on that one list. That gives non-decreasing `TOTAL_RAISED_USD` / `FUNDING_ROUNDS_COUNT` / stage index and `LAST_FUNDING_DATE ≤ month_end` by construction. Rounds dated after the month are simply not visible yet, which is how Bootstrapped→funded transitions show up.
+- **Per-round valuation seed includes ACCOUNT_ID.** The rowspec's `_funding_as_of` sketch keys the valuation multiple on `f"{d}_{st}"` only. The rowspec text says to use `f"{account_id}_{d}_{st}"`, and so does the code. Otherwise two accounts with a same-day, same-stage round would share a multiple.
+- **Timeline inputs.** `ACCOUNT_ID`, `founded_year` (account-stable after Task 0) and `band` (deterministic from EMPLOYEE_COUNT in Plan 11). If the band changes upstream, the timeline can change. That's a genuine re-baseline. The L3 monotonicity SQL should exclude band-change months.
+- **Trajectory recomputation, no self-read.** `_headcount_for(anchor, band, month, rounds)` and `_postings_for(anchor, band, month, rounds, hc, runway)` are pure. Growth and trend call them for M-6 / M-3. **No `SELECT` from `HARMONIC_COMPANY_SIGNALS` inside the SP**; an L1 guard test greps the module for it.
+- **Headcount stays inside the same-month ZoomInfo band.** The prior-month recomputation uses that month's band, so the SP must read the ZoomInfo rows for M, M-3 and M-6. If an older month is missing (pre-history), fall back to M's band.
+- **Postings ↔ runway coupling.** For Angel-Seed / Venture-Backed accounts with `EST_RUNWAY_MONTHS < 6`, the posting rate is ×0.3. Runway is computed before postings from the funding view and headcount, so there's no cycle. The M-3 postings used for the trend use M-3's own funding view, runway and headcount, so they equal what the M-3 row stores (with the same band).
+- **Write path (Task 4).**
+  - MERGE `ON (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. There's no fan-out, so MERGE-only is fine.
+  - `RECENTLY_FUNDED_FLAG::BOOLEAN`.
+  - `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)`.
+  - `TO_DATE(TO_TIMESTAMP_NTZ(col::NUMBER / 1e9))` for PROFILE_MONTH, LAST_FUNDING_DATE and LAST_DATA_REFRESH_DATE. LAST_FUNDING_DATE is NULLable and is often all-NULL in a batch, which is exactly the write_pandas mistype case. Coerce the date columns with `pd.to_datetime` on the pandas side first.
+  - Write `RECORD_ID` on INSERT **and** UPDATE.
+  - `write_pandas(auto_create_table=True, overwrite=True)` recreates `_STAGING` from the DataFrame dtypes, dropping the DDL'd types. Either keep that path with the casts, or TRUNCATE and `write_pandas(auto_create_table=False)` into the typed staging table.
+- **SP signature:** `SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)`. `0` runs the current month only (the TASK path). `N` runs months M-N … M in ascending order. One SP, no inter-SP imports. DROP the procedure before redeploying if the signature changes.
+- **Industry lookups are exact-match**, per the rowspec (`_VENTURE_TILT.get(INDUSTRY or "", 1.0)` and `_DEPT_BASE`). The live audience also carries variants like `Healthcare Systems`, `Wholesale Distribution`, `Professional Services Mid-Market` and the empty string. Those get the default tilt 1.0 and the default dept mix.
+- **Band coverage.** `_BAND_BOUNDS` covers the six bands present in the audience (1-10 … 5001-25000). An unknown band, including ZoomInfo's `25001+`, falls back to `(1, 10)` per the rowspec, which would fail the L3 band check. No `25001+` anchor is in the audience today (2026-11-02 probe).
+- **No bare `&` anywhere in SQL or in the inlined SP body** (snow sql template trap). The investor is `Founder friends and family`, and the dept remainder is written "G and A".
+- **Deploy connection.** `~/.snowflake/config.toml` sets `default_connection_name` to the dead `GSB13421_jwt` account. Select the JWT connection with `SNOWFLAKE_DEFAULT_CONNECTION_NAME=SFDC_DC_TECH_ARCH_jwt` and pass `--role ACCOUNTADMIN` (the siblings' objects are owned by ACCOUNTADMIN). Never pass `-c`, which triggers an OAuth popup.
+- DC mapping descriptions must be ≤521 chars (Plan 6 finding).
+
+## DC mapping (Task 7) — status: DC mapping pending UI
+
+Single-column PK `recordId__c` (Plan 4 rule). `RECENTLY_FUNDED_FLAG` is declared **Boolean** in the stream schema. All three DATE columns use `format: "MM/dd/yyyy"`.
+
+| Snowflake | DC field | Type |
+|---|---|---|
+| RECORD_ID | recordId__c | Text (PK) |
+| ORG_ID | orgId__c | Text |
+| ACCOUNT_ID | ssot__AccountId__c | Text (KQ → `ssot__Account__dlm`) |
+| PROFILE_MONTH | profileMonth__c | Date (MM/dd/yyyy) |
+| FUNDING_STATUS | fundingStatus__c | Text |
+| LAST_FUNDING_STAGE | lastFundingStage__c | Text (NULLable) |
+| LAST_FUNDING_DATE | lastFundingDate__c | Date (MM/dd/yyyy, NULLable) |
+| LAST_ROUND_USD | lastRoundUsd__c | Number (NULLable) |
+| TOTAL_RAISED_USD | totalRaisedUsd__c | Number |
+| FUNDING_ROUNDS_COUNT | fundingRoundsCount__c | Number |
+| LEAD_INVESTOR | leadInvestor__c | Text (NULLable) |
+| EST_VALUATION_USD | estValuationUsd__c | Number (NULLable) |
+| EST_RUNWAY_MONTHS | estRunwayMonths__c | Number (NULLable) |
+| RECENTLY_FUNDED_FLAG | recentlyFundedFlag__c | Boolean |
+| HEADCOUNT | headcount__c | Number |
+| HEADCOUNT_GROWTH_6M_PCT | headcountGrowth6mPct__c | Number |
+| TRACTION_SCORE | tractionScore__c | Number |
+| ENG_HEADCOUNT_PCT | engHeadcountPct__c | Number |
+| SALES_HEADCOUNT_PCT | salesHeadcountPct__c | Number |
+| OPS_HEADCOUNT_PCT | opsHeadcountPct__c | Number |
+| OPEN_JOB_POSTINGS | openJobPostings__c | Number |
+| POSTINGS_TREND | postingsTrend__c | Text |
+| LAST_DATA_REFRESH_DATE | lastDataRefreshDate__c | Date (MM/dd/yyyy) |
+| GENERATED_AT | generatedAt__c | DateTime |
