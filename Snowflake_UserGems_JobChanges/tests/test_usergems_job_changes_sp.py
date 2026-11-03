@@ -15,6 +15,9 @@ from sp_generate_usergems_job_changes import (
     MERGE_COLUMNS,
     Ctx,
     _assert_event_contract,
+    _boardex_coverage_violations,
+    _boardex_dict_from_rows,
+    _load_boardex,
     _boardex_month_span,
     _boardex_months_for_week,
     _complete_weeks,
@@ -250,6 +253,83 @@ def test_contract_d3_sql_uses_completeness_and_window_rules():
     d3 = next(q for q in s.statements if "-- contract (d3)" in q)
     assert "DATEADD(day, 3, r.PROFILE_MONTH) >= '2024-11-04'" in d3
     assert "DATEDIFF(day, LAST_DAY(r.PROFILE_MONTH), '2026-11-02') > 52" in d3
+
+
+# -------------------------------------------------------------------
+# BoardEx loader: duplicates and month coverage (review fix 2026-11-02)
+# -------------------------------------------------------------------
+
+def _bx_rows(accounts, months, flag=False):
+    return [(a, m, flag) for a in accounts for m in months]
+
+
+def test_boardex_dict_collapses_exact_duplicate():
+    rows = [("A", date(2026, 10, 1), False), ("A", datetime(2026, 10, 1), False)]
+    assert _boardex_dict_from_rows(rows) == {("A", date(2026, 10, 1)): False}
+
+
+def test_boardex_dict_raises_on_conflicting_duplicate():
+    rows = [("A", date(2026, 10, 1), False), ("A", date(2026, 10, 1), True)]
+    with pytest.raises(RuntimeError, match="conflicting duplicate"):
+        _boardex_dict_from_rows(rows)
+
+
+def test_boardex_coverage_flags_missing_current_month():
+    """Weekly run on 2026-11-09: 2026-11 events are detectable (11-01 + 3 <= 11-09),
+    so a missing 2026-11 BoardEx month must raise, not read as 'no rise'."""
+    weeks = _run_weeks(date(2026, 11, 9), 0)
+    lo, hi = _boardex_month_span(weeks)
+    accts = [f"A{i}" for i in range(10)]
+    present = months_between(lo, date(2026, 10, 1))
+    bx = _boardex_dict_from_rows(_bx_rows(accts, present))
+    gaps = _boardex_coverage_violations(bx, date(2024, 6, 1), lo, hi, date(2026, 11, 9))
+    assert len(gaps) == 1 and gaps[0].startswith("2026-11-01: 0")
+    full = _boardex_dict_from_rows(_bx_rows(accts, months_between(lo, hi)))
+    assert _boardex_coverage_violations(full, date(2024, 6, 1), lo, hi, date(2026, 11, 9)) == []
+
+
+def test_boardex_coverage_month_not_yet_detectable_is_not_needed():
+    """Run on Monday 2026-11-02 (the TASK on the 2nd): 2026-11 events are first
+    detected on 11-04, so a not-yet-generated 2026-11 month is fine."""
+    weeks = _run_weeks(RUN_TS.date(), 0)
+    lo, hi = _boardex_month_span(weeks)
+    bx = _boardex_dict_from_rows(_bx_rows(["A", "B"], months_between(lo, date(2026, 10, 1))))
+    assert _boardex_coverage_violations(bx, date(2024, 6, 1), lo, hi, RUN_TS.date()) == []
+
+
+def test_boardex_coverage_prehistory_and_thin_month():
+    weeks = _run_weeks(RUN_TS.date(), 104)
+    lo, hi = _boardex_month_span(weeks)
+    accts = [f"A{i}" for i in range(10)]
+    first = date(2024, 9, 1)                       # table starts after lo: pre-history
+    rows = _bx_rows(accts, months_between(first, hi))
+    rows = [r for r in rows if not (r[1] == date(2025, 5, 1) and r[0] not in ("A0", "A1"))]
+    gaps = _boardex_coverage_violations(_boardex_dict_from_rows(rows), first, lo, hi, RUN_TS.date())
+    assert gaps == ["2025-05-01: 2 employer rows (best month 10)"]
+
+
+class _BxSession:
+    def __init__(self, rows, first):
+        self.rows, self.first = rows, first
+
+    def sql(self, text, params=None):
+        outer = self
+
+        class _Q:
+            def collect(self_inner):
+                if "MIN(PROFILE_MONTH)" in text:
+                    return [(outer.first,)]
+                return outer.rows
+        return _Q()
+
+
+def test_load_boardex_raises_on_missing_needed_month():
+    weeks = _run_weeks(date(2026, 11, 9), 0)
+    lo, _ = _boardex_month_span(weeks)
+    s = _BxSession(_bx_rows(["A", "B"], months_between(lo, date(2026, 10, 1))), date(2024, 6, 1))
+    with pytest.raises(RuntimeError, match="missing needed months"):
+        _load_boardex(s, weeks, date(2026, 11, 9))
+    assert _load_boardex(s, weeks)  # no run date: coverage not checked
 
 
 # -------------------------------------------------------------------

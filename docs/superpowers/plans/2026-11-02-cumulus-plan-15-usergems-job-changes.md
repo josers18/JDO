@@ -243,10 +243,15 @@ The attachment contains:
 
 ## §7 Status
 
-In progress. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Tasks 1–3 done 2026-11-02 (scaffold, DDL in repo, row factory). Tasks 4–5 done 2026-11-02: the SP, `deploy_sp.py` (with `--role`) and the TASK SQL are in the repo, there are 80 L1 tests (all passing), and L2 passed 29/29 live in a scratch schema. Task 6 was attempted twice on 2026-11-02 and is **blocked on `ACCOUNTADMIN` only**. Nothing is live: no table, no SP, no TASK, no backfill.
+In progress. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Tasks 1–3 done 2026-11-02 (scaffold, DDL in repo, row factory). Tasks 4–5 done 2026-11-02: the SP, `deploy_sp.py` (with `--role`) and the TASK SQL are in the repo, there were 80 L1 tests (all passing; 86 after the review fix), and L2 passed 29/29 live in a scratch schema. Task 6 was attempted twice on 2026-11-02 and is **blocked on `ACCOUNTADMIN` only**. Nothing is live: no table, no SP, no TASK, no backfill.
 - The BoardEx precondition is met. Plan 10's 30-month re-run landed 2026-11-02, and live BoardEx on the employer audience is sticky: 2,494 rises / 31,878 stays / 2,452 falls (N=189,214, 6,435 accounts). That matches the projection exactly.
 - The volume table and L3 bands are confirmed by replaying against the live inputs: 9,006 rows, complete weeks 61–109, 2,119 C-suite departures, 0 gate violations.
 - The DDL / SP / TASK need `ACCOUNTADMIN`, and the agent session was refused it in both passes.
+- Second review-fix pass (2026-11-02 late evening):
+  - The `ACCOUNTADMIN` DDL apply was refused by the permission policy a third time, so T6/T8 are still not run live.
+  - The SP gained a **BoardEx freshness guard**. `_load_boardex` raises if a needed month is missing or has fewer than 0.5 × the best month's employer rows. A month M is needed when `M + 3 days <= run date`, from the table's first month onward. Without the guard, a failed or late `TASK_MONTHLY_BOARDEX_EXEC_INTEL` would silently read as "no rise" and drop C-suite departures from weekly windows that are never revisited, and d3 can't see that on a weekly run.
+  - The SP also gained a **conflicting-duplicate raise** in the BoardEx loader, plus `SELECT DISTINCT` in the contract (d) SQL. Live BoardEx has one exact duplicate key, which is a Plan 10 follow-up.
+  - L1 is now 86/86. L2 was re-run live: 29/29.
 
 Task 7: DC mapping pending UI (mapping table in §4 and AGENTS.md). Task 8 L3: pending, after the backfill.
 

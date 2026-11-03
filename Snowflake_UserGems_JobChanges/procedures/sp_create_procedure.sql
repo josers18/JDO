@@ -145,6 +145,10 @@ _MAX_MIRROR_OFFSET_DAYS = 7
 # (month_end + 45, + 7 for a mirror) has passed: > 52 days before run date.
 _COMPLETE_AFTER_DAYS = _MAX_DETECTION_LAG_DAYS + _MAX_MIRROR_OFFSET_DAYS
 _CANDIDATE_MONTHS_BACK = 3       # month(week_end) and the 3 prior months
+# A needed BoardEx month with fewer employer rows than this share of the best
+# month in the span is treated as missing (raise, don't read it as "no rise").
+# Live 2026-11-02: 6,299..6,435 employer rows per month (ratio 0.979).
+_BOARDEX_MIN_MONTH_COVERAGE = 0.5
 _WEALTH_P = 0.06
 _EXISTING_CLIENT_P = 0.12
 _PROSPECT_P = 0.50
@@ -702,8 +706,10 @@ def _assert_event_contract(session: Any, weeks, run_date: date) -> None:
         problems.append(f"contract (a) {p}")
 
     window = f"t.DETECTED_DATE BETWEEN '{ws}' AND '{rd}'"
-    # BoardEx rows of employer-audience accounts, and the rise months.
-    bx = (f"SELECT b.ACCOUNT_ID, b.PROFILE_MONTH, b.EXEC_TURNOVER_FLAG AS F "
+    # BoardEx rows of employer-audience accounts, and the rise months. DISTINCT
+    # collapses exact duplicate keys (one live, Plan 10 data issue) so the rise
+    # join stays one row per account-month, matching the Python dict loader.
+    bx = (f"SELECT DISTINCT b.ACCOUNT_ID, b.PROFILE_MONTH, b.EXEC_TURNOVER_FLAG AS F "
           f"FROM {BOARDEX_TABLE} b WHERE {_employer_exists('b.ACCOUNT_ID')}")
     rises = (f"SELECT cur.ACCOUNT_ID, cur.PROFILE_MONTH FROM ({bx}) cur "
              f"JOIN ({bx}) prev ON prev.ACCOUNT_ID = cur.ACCOUNT_ID "
@@ -757,27 +763,87 @@ def _run_ts(session: Any) -> datetime:
     return datetime.utcnow()
 
 
-def _load_boardex(session: Any, weeks) -> dict:
+def _as_date(v) -> date:
+    return v.date() if isinstance(v, datetime) else v
+
+
+def _boardex_dict_from_rows(rows) -> dict:
+    """{(ACCOUNT_ID, month): flag} from (ACCOUNT_ID, PROFILE_MONTH, FLAG) rows.
+
+    An exact duplicate key with the same flag collapses (live BoardEx has one,
+    001am00000qvjs6AAA 2026-10, a Plan 10 data issue). A duplicate key with
+    CONFLICTING flags raises: the Python gate and the SQL contract (d) would
+    disagree on whether that month is a rise.
+    """
+    out: dict = {}
+    for r in rows:
+        key = (r[0], _month_start(_as_date(r[1])))
+        flag = None if r[2] is None else bool(r[2])
+        if key in out and out[key] != flag:
+            raise RuntimeError(
+                f"BoardEx hard dependency (Plan 10): {BOARDEX_TABLE} has conflicting "
+                f"duplicate rows for {key[0]} {key[1].isoformat()} (flags {out[key]} and {flag})"
+            )
+        out[key] = flag
+    return out
+
+
+def _boardex_coverage_violations(boardex: dict, first_month: date, lo: date, hi: date,
+                                 run_date: date) -> list[str]:
+    """BoardEx months this run depends on that are missing or thin.
+
+    A month M is needed once any of its events can already be detected
+    (M + 3 days <= run date), and M-1 is needed to tell whether M is a rise.
+    Months before the table's first PROFILE_MONTH are pre-history (no rise, by
+    design). Any other needed month in [lo, hi] with fewer than
+    _BOARDEX_MIN_MONTH_COVERAGE x the best month's employer rows is a gap:
+    reading it as "no rise" would silently drop C-suite departures in weeks
+    that are never revisited (e.g. TASK_MONTHLY_BOARDEX_EXEC_INTEL failed or
+    ran late). Raise instead; re-run after BoardEx catches up.
+    """
+    per_month = Counter(m for (_, m) in boardex)
+    best = max(per_month.values(), default=0)
+    floor = best * _BOARDEX_MIN_MONTH_COVERAGE
+    out = []
+    m = max(lo, _month_start(first_month))
+    while m <= hi:
+        if m + timedelta(days=_MIN_DETECTION_LAG_DAYS) > run_date:
+            break
+        n = per_month.get(m, 0)
+        if n < floor or n == 0:
+            out.append(f"{m.isoformat()}: {n} employer rows (best month {best})")
+        m = _shift_months(m, 1)
+    return out
+
+
+def _load_boardex(session: Any, weeks, run_date: date | None = None) -> dict:
     """{(ACCOUNT_ID, PROFILE_MONTH): EXEC_TURNOVER_FLAG} for employer-audience
     accounts over the run's BoardEx month span. Hard dependency: a missing
-    table, or no rows at all in the span, raises."""
+    table, no rows at all in the span, a conflicting duplicate key, or a
+    needed month that is missing or thin (_boardex_coverage_violations) raises."""
     lo, hi = _boardex_month_span(weeks)
     sql = (f"SELECT b.ACCOUNT_ID, b.PROFILE_MONTH, b.EXEC_TURNOVER_FLAG FROM {BOARDEX_TABLE} b "
            f"WHERE b.PROFILE_MONTH BETWEEN '{lo.isoformat()}' AND '{hi.isoformat()}' "
            f"AND {_employer_exists('b.ACCOUNT_ID')}")
     try:
         rows = session.sql(sql).collect()
+        first = session.sql(f"SELECT MIN(PROFILE_MONTH) FROM {BOARDEX_TABLE}").collect()[0][0]
     except Exception as exc:
         raise RuntimeError(
             f"BoardEx hard dependency (Plan 10): cannot read {BOARDEX_TABLE}: {str(exc)[:300]}"
         ) from exc
-    if not rows:
+    if not rows or first is None:
         raise RuntimeError(f"BoardEx hard dependency (Plan 10): {BOARDEX_TABLE} has no "
                            f"employer rows for {lo.isoformat()}..{hi.isoformat()}")
-    out = {}
-    for r in rows:
-        month = r[1].date() if isinstance(r[1], datetime) else r[1]
-        out[(r[0], _month_start(month))] = None if r[2] is None else bool(r[2])
+    out = _boardex_dict_from_rows(rows)
+    if run_date is not None:
+        gaps = _boardex_coverage_violations(out, _as_date(first), lo, hi, run_date)
+        if gaps:
+            raise RuntimeError(
+                f"BoardEx hard dependency (Plan 10): {BOARDEX_TABLE} is missing needed "
+                f"months ({'; '.join(gaps[:5])}). Re-run after the BoardEx month lands "
+                f"(TASK_MONTHLY_BOARDEX_EXEC_INTEL)."
+            )
     return out
 
 
@@ -805,7 +871,7 @@ def main(session: Any, backfill_weeks: int = 0) -> str:
             raise RuntimeError("employer audience is empty")
         wealth = [r[0] for r in session.sql(WEALTH_SQL).collect()]
         ctx = Ctx(anchors, wealth)
-        boardex = _load_boardex(session, weeks)
+        boardex = _load_boardex(session, weeks, run_ts.date())
 
         errors: list = []
         records = _rows_for_window(anchors, weeks, run_ts, boardex, ctx, errors=errors)

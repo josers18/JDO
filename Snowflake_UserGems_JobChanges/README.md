@@ -63,7 +63,7 @@ Before the BoardEx re-run, the same replay against the old iid flag gave 31,081 
 ## Tests
 ```bash
 cd Snowflake_UserGems_JobChanges
-python3 -m pytest -q -p no:cacheprovider   # 80 L1 tests
+python3 -m pytest -q -p no:cacheprovider   # 86 L1 tests
 ```
 L2 runs live in a scratch schema that it drops at the end (29 checks, all TRUE on 2026-11-02):
 ```bash
