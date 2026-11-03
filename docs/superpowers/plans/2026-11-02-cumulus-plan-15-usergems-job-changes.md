@@ -170,10 +170,7 @@ The attachment contains:
    - Cron `0 9 * * 1 UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES()', 2)`.
    - After deploy: `CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES(104)` once, for the 24-month backfill. That stays inside BoardEx's 2024-06 → present history (2024-10, the M-1 of the earliest candidate month, exists). **Precondition:** the BoardEx 30-month re-run has landed and the §2 re-probe matches the sticky projection.
    - Run every step as `ACCOUNTADMIN`, which owns `DATA_JEDAIS.FINS__PUBLIC` and every sibling (`snow sql ... --role ACCOUNTADMIN`, `deploy_sp.py --role ACCOUNTADMIN`).
-   - **Attempted 2026-11-02 (twice), blocked on `ACCOUNTADMIN` only, nothing created live.**
-     - The BoardEx precondition is met: the re-probe after the 30-month re-run gives 2,494 / 31,878 / 2,452, an exact match for the sticky projection (§2). The first pass's "still iid" re-probe ran before the re-run landed.
-     - The session's permission policy refused the `ACCOUNTADMIN` DDL apply in both passes, the second in the review-fix pass on the evening of 2026-11-02.
-     - Because nothing was deployed, there was no `CALL ...(104)`. The TASK was not created either; its SQL header forbids creating it before the backfill.
+   - **Done 2026-11-02 (operator, ACCOUNTADMIN).** DDL applied, `deploy_sp.py --role ACCOUNTADMIN`, `CALL ...(104)` → `SUCCEEDED rows=9017 updated=0 accounts=6435 weeks=105 (2024-11-04..2026-11-02)` in ~39 s, then the TASK SQL created and RESUMEd `TASK_WEEKLY_USERGEMS_JOB_CHANGES` (`0 9 * * 1 UTC`). The earlier agent passes were refused `ACCOUNTADMIN` by the session permission policy; the operator ran the sequence from the main session.
 
 7. **Task 7 (DC stream + DMO).** Mapping table:
 
@@ -206,7 +203,7 @@ The attachment contains:
 
    **Three relationships to the Account DMO** (employer, new employer, Wealth person). This is the first Cumulus DMO with more than one. Create the primary `ssot__AccountId__c` relationship via the API path. If the API rejects the second and third, add them through the DC Setup UI (DMO → Relationships), and record which path worked in AGENTS.md.
 
-8. **Task 8 (L3 smoke).** *Not run yet (2026-11-02): blocked on Task 6, so there are no live rows.* Backfill rows in **7K–11K**; rows per complete week in [30, 200]. The bands come from the §2 replay against live sticky BoardEx (9,006 rows; weeks 61–109). Spot-check:
+8. **Task 8 (L3 smoke).** **Done 2026-11-02 — all checks pass:** 9,017 rows / 9,017 distinct EVENT_IDs over 105 weeks (2024-11-04 → 2026-11-02); complete weeks 61–109 (avg 86.5, 0 outside [30, 200]); 2,123 C-suite departures, gate (i) 0 violations, gate (ii) 1,941 complete rises with 0 ≠ 1; 984 paired rows, 0 self-pairs, 8 orphans all at the window edges (detected 2024-11-04..09 / 2026-11-02..03); mix Departed 48.1 / Joined 30.2 / Promoted 21.7; resolution Existing 11.4 / Prospect 49.8 / Unknown 38.8; champion 12.0% overall / 34.3% finance; liquidity 6.0% of C-suite+VP departures, 0 bad PERSON_ACCOUNT_IDs, 0 flag mismatches; 0 ACCOUNT_IDs outside the audience; size scaling 1.717 vs 0.525 events/acct/yr (3.27×). Backfill rows in **7K–11K**; rows per complete week in [30, 200]. The bands come from the §2 replay against live sticky BoardEx (9,006 rows; weeks 61–109). Spot-check:
    - **BoardEx gate, both directions:**
      - (i) C-suite `Departed` grouped by `(ACCOUNT_ID, DATE_TRUNC('month', EVENT_DATE))`, joined to BoardEx M and M-1, where it is not `flag(M) AND NOT flag(M-1)` (both rows present): must be **0**.
      - (ii) BoardEx rise months that are complete (`DATEADD(day, 52, LAST_DAY(M)) < CURRENT_DATE`) and in the window (`DATEADD(day, 3, M) ≥` backfill start), left-joined to the C-suite departure counts, with count ≠ 1: must be **0**.
@@ -243,17 +240,15 @@ The attachment contains:
 
 ## §7 Status
 
-In progress. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Tasks 1–3 done 2026-11-02 (scaffold, DDL in repo, row factory). Tasks 4–5 done 2026-11-02: the SP, `deploy_sp.py` (with `--role`) and the TASK SQL are in the repo, there were 80 L1 tests (all passing; 86 after the review fix), and L2 passed 29/29 live in a scratch schema. Task 6 was attempted twice on 2026-11-02 and is **blocked on `ACCOUNTADMIN` only**. Nothing is live: no table, no SP, no TASK, no backfill.
+**LIVE** (2026-11-02): 9,017 events over 105 weeks; every Task 8 check passes. Drafted 2026-11-02 from the vendor-gap assessment. Tasks 1–5 done 2026-11-02 (86 L1 tests, L2 29/29 live in a scratch schema). Task 6 done 2026-11-02 by the operator as ACCOUNTADMIN after three refused agent attempts.
 - The BoardEx precondition is met. Plan 10's 30-month re-run landed 2026-11-02, and live BoardEx on the employer audience is sticky: 2,494 rises / 31,878 stays / 2,452 falls (N=189,214, 6,435 accounts). That matches the projection exactly.
 - The volume table and L3 bands are confirmed by replaying against the live inputs: 9,006 rows, complete weeks 61–109, 2,119 C-suite departures, 0 gate violations.
-- The DDL / SP / TASK need `ACCOUNTADMIN`, and the agent session was refused it in both passes.
 - Second review-fix pass (2026-11-02 late evening):
-  - The `ACCOUNTADMIN` DDL apply was refused by the permission policy a third time, so T6/T8 are still not run live.
   - The SP gained a **BoardEx freshness guard**. `_load_boardex` raises if a needed month is missing or has fewer than 0.5 × the best month's employer rows. A month M is needed when `M + 3 days <= run date`, from the table's first month onward. Without the guard, a failed or late `TASK_MONTHLY_BOARDEX_EXEC_INTEL` would silently read as "no rise" and drop C-suite departures from weekly windows that are never revisited, and d3 can't see that on a weekly run.
   - The SP also gained a **conflicting-duplicate raise** in the BoardEx loader, plus `SELECT DISTINCT` in the contract (d) SQL. Live BoardEx has one exact duplicate key, which is a Plan 10 follow-up.
   - L1 is now 86/86. L2 was re-run live: 29/29.
 
-Task 7: DC mapping pending UI (mapping table in §4 and AGENTS.md). Task 8 L3: pending, after the backfill.
+Task 7: DC mapping pending UI (mapping table in §4 and AGENTS.md). Task 8 L3: done, all checks pass (see §4 Task 8).
 
 Operator sequence (README "Deploy"):
 1. As ACCOUNTADMIN: apply the DDL, run `deploy_sp.py --role ACCOUNTADMIN`, `CALL ...(104)`, then the TASK SQL (creates + RESUMEs).
