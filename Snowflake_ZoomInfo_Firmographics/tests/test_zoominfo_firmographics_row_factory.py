@@ -659,3 +659,13 @@ def test_last_data_refresh_in_90_day_window(in_audience_anchors):
                 f"{anchor['ACCOUNT_ID']} on {run_date}: LAST_DATA_REFRESH_DATE"
                 f"={refresh} not in [{floor}, {run_date}]"
             )
+
+
+def test_assert_unique_keys_raises_on_duplicate_pk():
+    from sp_generate_zoominfo_firmographics import _assert_unique_keys
+
+    row = {"ORG_ID": "JDO", "ACCOUNT_ID": "001A", "PROFILE_MONTH": date(2026, 11, 1)}
+    _assert_unique_keys([row, dict(row, ACCOUNT_ID="001B")])  # distinct: ok
+    _assert_unique_keys([])
+    with pytest.raises(RuntimeError, match="duplicate MERGE source key"):
+        _assert_unique_keys([row, dict(row)])

@@ -709,6 +709,19 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 # _merge — idempotent MERGE on PK with v1.4 datetime cast
 # -------------------------------------------------------------------
 
+def _assert_unique_keys(records: list[dict]) -> None:
+    """Raise if any (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) appears more than once
+    in a MERGE batch (e.g. an anchor duplicated upstream)."""
+    seen = set()
+    for r in records:
+        key = (r["ORG_ID"], r["ACCOUNT_ID"], r["PROFILE_MONTH"])
+        if key in seen:
+            raise RuntimeError(
+                f"duplicate MERGE source key (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)={key}"
+            )
+        seen.add(key)
+
+
 def _merge(session: Any, records: list[dict]) -> int:
     """MERGE records into TABLE. Returns rows MERGED.
 
@@ -722,6 +735,8 @@ def _merge(session: Any, records: list[dict]) -> int:
     if not records:
         return 0
 
+    _assert_unique_keys(records)
+
     import pandas as pd
     df = pd.DataFrame(records)
     staging = "ZOOMINFO_FIRMOGRAPHICS_STAGING"
@@ -731,6 +746,19 @@ def _merge(session: Any, records: list[dict]) -> int:
         auto_create_table=True, overwrite=True,
         database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
+
+    # Belt-and-braces: the staged MERGE source must be unique on the PK, or a
+    # MERGE could hit one target row twice (nondeterministic) or insert a
+    # duplicate key. Raise before touching the target.
+    n_rows, n_keys = session.sql(
+        f"SELECT COUNT(*), COUNT(DISTINCT ORG_ID, ACCOUNT_ID, PROFILE_MONTH) "
+        f"FROM DATA_JEDAIS.FINS__PUBLIC.{staging}"
+    ).collect()[0]
+    if n_rows != n_keys:
+        raise RuntimeError(
+            f"{staging} not unique on (ORG_ID, ACCOUNT_ID, PROFILE_MONTH): "
+            f"{n_rows} rows / {n_keys} distinct keys"
+        )
 
     merge_sql = f"""
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS tgt
