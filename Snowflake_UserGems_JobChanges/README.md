@@ -44,7 +44,7 @@ WHERE CLIENT_CATEGORY = 'Wealth Management' ORDER BY ACCOUNT_ID;
 - A Departed contact that resolves to an Existing Client gets a mirrored `Joined` row on the destination account, cross-linked through `PAIRED_EVENT_ID` and detected 0..7 days later.
 
 ## Expected volume (offline replay against live inputs, 2026-11-02)
-These are **not rows in the live table** (it doesn't exist yet). They come from replaying the row factory (`_rows_for_window`, the SP's own path) over live inputs pulled read-only on 2026-11-02: the 6,435-employer audience, the 3,920-id Wealth pool, and the live sticky BoardEx rows for 2024-07 → 2026-11 (after the Plan 10 30-month re-run). The window is the 104 weeks from 2024-11-04 plus the current partial week, with run date 2026-11-02.
+These figures predate the deploy; the live table (9,017 rows, 2,123 C-suite departures) replicates them within run-date drift. They come from replaying the row factory (`_rows_for_window`, the SP's own path) over live inputs pulled read-only on 2026-11-02: the 6,435-employer audience, the 3,920-id Wealth pool, and the live sticky BoardEx rows for 2024-07 → 2026-11 (after the Plan 10 30-month re-run). The window is the 104 weeks from 2024-11-04 plus the current partial week, with run date 2026-11-02.
 
 | Metric | Simulated |
 |---|---|
