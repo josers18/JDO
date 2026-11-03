@@ -82,7 +82,7 @@ Weekly rows over the 104 complete weeks were min 61, median 86, max 109, and the
 - 189,214 rows over 6,435 accounts, 2024-06 → 2026-11, TRUE rate 18.76%.
 - **2,494 FALSE→TRUE rises / 31,878 TRUE→TRUE stays / 2,452 TRUE→FALSE falls** over 29 transition months, with 2,179 rises in 2024-11 → 2026-11.
 - This is an exact match for the offline replay of the deployed Plan 10 logic over the same 6,435 employers, which projected 2,494 / 31,878 / 2,452 and 69–110 rises a month (mean 86). The 661 NULL-EMPLOYEE_COUNT employers are always FALSE.
-- One exact duplicate BoardEx row exists (`001am00000qvjs6AAA`, 2026-10, FALSE, same RECORD_ID). It is not a rise and doesn't affect the gate.
+- One exact duplicate BoardEx row existed (`001am00000qvjs6AAA`, 2026-10, FALSE, same RECORD_ID). It was not a rise and didn't affect the gate. Removed 2026-11-02; BoardEx is now unique on its PK.
 
 These numbers drive the volume table above and the L3 bands in Task 8.
 
@@ -246,7 +246,7 @@ The attachment contains:
 - The volume table and L3 bands are confirmed by replaying against the live inputs: 9,006 rows, complete weeks 61–109, 2,119 C-suite departures, 0 gate violations.
 - Second review-fix pass (2026-11-02 late evening):
   - The SP gained a **BoardEx freshness guard**. `_load_boardex` raises if a needed month is missing or has fewer than 0.5 × the best month's employer rows. A month M is needed when `M + 3 days <= run date`, from the table's first month onward. Without the guard, a failed or late `TASK_MONTHLY_BOARDEX_EXEC_INTEL` would silently read as "no rise" and drop C-suite departures from weekly windows that are never revisited, and d3 can't see that on a weekly run.
-  - The SP also gained a **conflicting-duplicate raise** in the BoardEx loader, plus `SELECT DISTINCT` in the contract (d) SQL. Live BoardEx has one exact duplicate key, which is a Plan 10 follow-up.
+  - The SP also gained a **conflicting-duplicate raise** in the BoardEx loader, plus `SELECT DISTINCT` in the contract (d) SQL. Live BoardEx had one exact duplicate key (a Plan 10 follow-up), removed on 2026-11-02.
   - L1 is now 86/86. L2 was re-run live: 29/29.
 
 Task 7: DC mapping pending UI (mapping table in §4 and AGENTS.md). Task 8 L3: done, all checks pass (see §4 Task 8).
