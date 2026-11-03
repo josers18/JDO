@@ -103,7 +103,7 @@ other_rate  = 0.8 * ceo_rate                  # CFO/COO/CRO/CTO/CIO/GC departure
 # role drawn from {CFO, COO, CRO, CTO, CIO, General Counsel}.
 ```
 
-> **Live data NOT yet sticky (re-checked 2026-11-02):** the live `BOARDEX_EXEC_INTEL` table still holds the old iid flag (BUSINESS rows: 49,962 rises / 12,457 stays / 49,941 falls). The fix is in code and deployed only; the numbers below are offline projections until an operator runs the 30-month re-run.
+> **Live data sticky since 2026-11-02.** The 30-month in-place re-run landed 2026-11-02 at about 15:36 PST. Live BUSINESS rows now give 4,682 rises / 60,110 stays / 4,673 falls (exactly the projection below) and 0 non-sticky rises. Before it, the table held the old iid flag (49,962 rises / 12,457 stays / 49,941 falls).
 
 Per profile month M (month_end = last day of M):
 
@@ -114,7 +114,7 @@ CEO_TENURE_YEARS(M)   = round((month_end(M) - last CEO start/change <= month_end
 
 Consequences:
 
-- **Sticky.** A FALSE→TRUE rise at M implies TRUE for M..M+11. TRUE→TRUE stays outnumber rises ~12×. Projected on the live audience (offline replay of the deployed SP logic over the live `V_ACCOUNT_ANCHORS` audience (36,949 anchors, 10,864 BUSINESS) for 2024-06 → 2026-11, run 2026-11-02: monthly TRUE rate 19.85%-21.12% (20.55% overall), 4,682 rises / 60,110 stays / 4,673 falls (stays ≈ 12.8× rises), 0 stickiness violations out of 2,929 checkable rises). The logic is deterministic, so the live in-place re-run must reproduce these exact numbers; it has not run yet (see Snowflake_BoardEx_ExecIntel/AGENTS.md).
+- **Sticky.** A FALSE→TRUE rise at M implies TRUE for M..M+11. TRUE→TRUE stays outnumber rises ~12×. Projected on the live audience (offline replay of the deployed SP logic over the live `V_ACCOUNT_ANCHORS` audience (36,949 anchors, 10,864 BUSINESS) for 2024-06 → 2026-11, run 2026-11-02: monthly TRUE rate 19.85%-21.12% (20.55% overall), 4,682 rises / 60,110 stays / 4,673 falls (stays ≈ 12.8× rises), 0 stickiness violations out of 2,929 checkable rises). The logic is deterministic, and the live in-place re-run (2026-11-02) reproduced the rise/stay/fall counts exactly (see Snowflake_BoardEx_ExecIntel/AGENTS.md).
 - **~20% TRUE.** For a homogeneous Poisson process, P(TRUE) = 1 − exp(−1.8 / mean_tenure). With the live BUSINESS band mix (90% < 100 employees) the projected rate is 20.55%. Per band, the band means imply a lower rate for the larger bands, and that holds on average over a synthetic population (enforced by L1). On the live audience the bands are tiny, so the per-band numbers are noisy. Projected: <1k 20.6% (10,728 anchors), 1k-9,999 16.1% (119), ≥10k 20.6% (only 17 anchors).
 - **Biased lower for long-tenure firms.** Firms with a longer mean CEO tenure change both CEO and other C-suite less often. Rows with CEO_TENURE ≥ 7 have a lower TRUE rate than the population.
 - **A CEO change implies the flag is TRUE** (the change is inside the window), and CEO_TENURE_YEARS resets below 1.0.

@@ -2,8 +2,8 @@
 
 > Per-dataset attachment for the dataset template. Authored 2026-11-02 from the vendor-gap assessment (Hunter B2B data list → "Job changes / champion tracking" category) plus live probes of:
 > - `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`: 6,435-anchor employer audience, 3,920 Wealth Management PERSON anchors, `ACCOUNT_NAME` available for destination naming.
-> - `BOARDEX_EXEC_INTEL.EXEC_TURNOVER_FLAG` on the employer audience (re-probed 2026-11-02): still the **iid** flag live, 189,212 rows / 6,433 accounts, TRUE rate 18.0%, 26,450 rises / 6,511 stays / 26,433 falls (~912 rises a month).
->   The Plan 10 sticky fix is deployed, but the 30-month in-place re-run has **not** run. An offline replay of the sticky logic over the 6,435 employers projects 2,494 rises / 31,878 stays / 2,452 falls, 69–110 rises a month (mean 86). This attachment's gate and volumes assume the sticky flag; see plan §2 "BoardEx gate" and "Backfill precondition".
+> - `BOARDEX_EXEC_INTEL.EXEC_TURNOVER_FLAG` on the employer audience (re-probed 2026-11-02 evening, after the Plan 10 30-month sticky re-run landed): **sticky** live, 189,214 rows / 6,435 accounts, TRUE rate 18.76%, 2,494 rises / 31,878 stays / 2,452 falls (69–110 rises a month, mean 86). That is an exact match for the offline replay of the sticky logic.
+>   The earlier probe that day (before the re-run) found the old iid flag: 26,450 rises / 6,511 stays / 26,433 falls. This attachment's gate and volumes use the live sticky flag; a replay of the row factory against the live inputs gives 9,006 backfill rows and 2,119 C-suite departures with 0 gate violations. See plan §2 "BoardEx gate".
 >
 > **First event-scoped dataset.** Every earlier plan emits ≥1 row per anchor per period. Plan 15 emits rows only when something happened. The row factory returns `[]` for ~91% of (anchor, month) pairs on the L1 fixture (9.2% emit), and that is the correct output.
 

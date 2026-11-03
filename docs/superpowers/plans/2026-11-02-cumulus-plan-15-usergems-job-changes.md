@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development.
 
-**Goal:** Stand up the fifteenth per-dataset Cumulus pipeline: UserGems-style **person-level job-change events** for contacts at non-household business accounts. It covers departures, inbound hires and promotions. Each event carries champion/primary-contact flags, a new-employer resolution (existing client / prospect / unknown), opportunity and relationship-risk scores, and a Wealth tie-in. That tie-in flags departing executives who are themselves Cumulus Wealth Management clients (liquidity event). Weekly cadence. The SP emits the events **detected** in the run week into `DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES`, roughly 86 events/week and ~9K events with the 24-month backfill (offline simulation against the projected sticky BoardEx flag; see §2). The table is federated as `CumulusUserGemsJobChanges__dlm`.
+**Goal:** Stand up the fifteenth per-dataset Cumulus pipeline: UserGems-style **person-level job-change events** for contacts at non-household business accounts. It covers departures, inbound hires and promotions. Each event carries champion/primary-contact flags, a new-employer resolution (existing client / prospect / unknown), opportunity and relationship-risk scores, and a Wealth tie-in. That tie-in flags departing executives who are themselves Cumulus Wealth Management clients (liquidity event). Weekly cadence. The SP emits the events **detected** in the run week into `DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES`, roughly 86 events/week and ~9K events with the 24-month backfill (offline replay of the row factory against the live sticky BoardEx flag; see §2). The table is federated as `CumulusUserGemsJobChanges__dlm`.
 
 **Why this dataset:** the 2026-11-02 vendor-gap assessment found that executive movement exists only as an **account-level** flag (BoardEx `EXEC_TURNOVER_FLAG`, `CEO_TENURE_YEARS`). No dataset says *who* moved, *where they went*, or *whether they were our champion*. That person-level answer is the whole UserGems value proposition. It powers two demo stories:
 - **Commercial:** "your CFO champion at Acme just joined Beta Corp, a prospect. Warm intro."
@@ -61,37 +61,34 @@
 
 **Expected volume.** Tracked contacts per account scale with EMPLOYEE_COUNT (2 / 3 / 5 / 8 / 12 by band). The monthly move hazard per tracked non-C-suite contact is 1.4% (≈16%/yr, in line with UserGems' published ~20% annual B2B contact churn). On top of that, every BoardEx rise adds exactly one C-suite departure. The audience is ~76% 1–10-employee firms (4,921 of 6,435 by EMPLOYEE_COUNT band, with the 661 NULL-count anchors in that band).
 
-The table below comes from an **offline simulation, not live data**: the row factory replayed over the real 6,435-employer audience for the 104-week window from 2024-11-04 (run date 2026-11-02), against the **projected sticky** BoardEx flag (offline replay of the deployed Plan 10 logic; see "BoardEx gate" below).
+The table below comes from an **offline replay against live inputs, not from rows in the table** (it isn't deployed yet). The row factory's own window path (`_rows_for_window`) was replayed over the live 6,435-employer audience, the live 3,920-id Wealth pool and the **live sticky** BoardEx rows for 2024-07 → 2026-11, all pulled read-only on 2026-11-02 after the Plan 10 re-run. The window is the 104 weeks from 2024-11-04 plus the current partial week, with run date 2026-11-02. These figures are confirmed against the live rise counts below. They agree with the earlier replay against the projected sticky flag (about 9,000 rows, 2,119 C-suite departures), as expected, since the projection matched live exactly.
 
 | Source | Events / month |
 |---|---|
 | Non-C-suite hazard (Departed / Promoted / Joined) | ~266 |
 | C-suite departures (one per BoardEx rise) | ~88 |
 | Paired `Joined` mirrors (~11% of departures) | ~20 |
-| **Total** | **~375 / month ≈ 86 / week → 9,000 over 104 weeks** |
+| **Total** | **~375 / month ≈ 86 / week → 9,006 over 104 weeks + the partial week** |
 
-Weekly rows over the complete weeks were min 61, median 86, max 109. The simulation had 2,119 C-suite departures and 0 gate violations. L3 accepts **7K–11K** for the backfill.
+Weekly rows over the 104 complete weeks were min 61, median 86, max 109, and the partial week (2026-11-02) had 9. The replay had 2,119 C-suite departures against 1,941 complete in-window rises, and 0 gate violations. L3 accepts **7K–11K** for the backfill.
 
 **BoardEx gate (bidirectional, tightened 2026-11-02).**
 - **Rule.** `rise(M)` = `EXEC_TURNOVER_FLAG(M)` TRUE and `EXEC_TURNOVER_FLAG(M-1)` FALSE. A missing M or M-1 row is NOT a rise: 2024-06 has no M-1, and a month may not be generated yet. A rise in M emits exactly one C-suite `Departed` in M, and a non-rise month emits zero.
 - **What the SP reads.** For each week it reads BoardEx for the 4 candidate months plus the month before the earliest (5 months).
 - **Draws.** On a rise, `_events_for(..., boardex_rise, ...)` picks the C-suite persona with one `rng.choice` on the account-month rng, after the hazard loop. There is no probability draw.
-- **Why it waits for the Plan 10 fix.** The tightening only makes sense once the flag is trailing-12-month sticky (Plan 10 C-suite timeline). Under the old iid flag, rises are so frequent that this rule forces a C-suite departure at ~14% of accounts every month.
+- **Why it needed the Plan 10 fix.** The tightening only makes sense once the flag is trailing-12-month sticky (Plan 10 C-suite timeline). Under the old iid flag, rises were so frequent that this rule forced a C-suite departure at ~14% of accounts every month.
 
-**Live BoardEx rise counts (probed 2026-11-02, employer audience; re-probed in the Task 6 pass the same day with identical results): still the iid flag.**
-- 189,212 rows over 6,433 accounts, 2024-06 → 2026-11, TRUE rate 18.0%.
-- **26,450 FALSE→TRUE rises / 6,511 TRUE→TRUE stays / 26,433 TRUE→FALSE falls**, ~912 rises a month (828–957).
-- The same simulation against this live table gave 31,081 backfill rows (~298 a week, 258–344) and 21,848 C-suite departures. That would fail contract (a).
-
-**Projected sticky rise counts.** These come from an offline replay of the deployed Plan 10 logic over the same 6,435 employers, 2024-06 → 2026-11.
-- TRUE rate 18.4%.
-- **2,494 rises / 31,878 stays / 2,452 falls** over 29 transition months.
-- 69–110 rises a month (mean 86), with 2,179 of them in 2024-11 → 2026-11.
-- The 661 NULL-EMPLOYEE_COUNT employers are always FALSE.
+**Live BoardEx rise counts (re-probed 2026-11-02 evening, employer audience): sticky.** Plan 10's `CALL SP_GENERATE_BOARDEX_EXEC_INTEL(30, TRUE)` ran 2026-11-02 at about 15:36 PST (table LAST_ALTERED 15:39 PST).
+- 189,214 rows over 6,435 accounts, 2024-06 → 2026-11, TRUE rate 18.76%.
+- **2,494 FALSE→TRUE rises / 31,878 TRUE→TRUE stays / 2,452 TRUE→FALSE falls** over 29 transition months, with 2,179 rises in 2024-11 → 2026-11.
+- This is an exact match for the offline replay of the deployed Plan 10 logic over the same 6,435 employers, which projected 2,494 / 31,878 / 2,452 and 69–110 rises a month (mean 86). The 661 NULL-EMPLOYEE_COUNT employers are always FALSE.
+- One exact duplicate BoardEx row exists (`001am00000qvjs6AAA`, 2026-10, FALSE, same RECORD_ID). It is not a rise and doesn't affect the gate.
 
 These numbers drive the volume table above and the L3 bands in Task 8.
 
-**Backfill precondition.** Plan 10's sticky SP is deployed, but `CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_BOARDEX_EXEC_INTEL(30, TRUE)` has not run yet (an operator has to run it, before the 2026-12-01 BoardEx task). **Do not run the Task 6 backfill until it has.** Then re-probe rises/stays/falls on the employer audience. Because the logic is deterministic, they should match the projection above. Replace the projected figures here with the live ones.
+**History.** Before the re-run, the first probe that day found the iid flag: 189,212 rows over 6,433 accounts, TRUE rate 18.0%, 26,450 rises / 6,511 stays / 26,433 falls. The same replay against that table gave 31,081 backfill rows (~298 a week), which would have failed contract (a). A probe in the first Task 6 pass also reported "still iid", but it ran before the re-run landed. Its other evidence (`GENERATED_AT` = month start, ~2,150 TRUE a month) holds for the sticky table too, so it can't tell iid from sticky. Compare rise/stay/fall counts instead.
+
+**Backfill precondition: met (2026-11-02).** The BoardEx re-run landed and the re-probe matches the sticky projection. If BoardEx is ever re-run again before the Task 6 backfill, repeat the rise/stay/fall probe first.
 
 ## §3 Rowspec attachment
 
@@ -173,11 +170,10 @@ The attachment contains:
    - Cron `0 9 * * 1 UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES()', 2)`.
    - After deploy: `CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES(104)` once, for the 24-month backfill. That stays inside BoardEx's 2024-06 → present history (2024-10, the M-1 of the earliest candidate month, exists). **Precondition:** the BoardEx 30-month re-run has landed and the §2 re-probe matches the sticky projection.
    - Run every step as `ACCOUNTADMIN`, which owns `DATA_JEDAIS.FINS__PUBLIC` and every sibling (`snow sql ... --role ACCOUNTADMIN`, `deploy_sp.py --role ACCOUNTADMIN`).
-   - **Attempted 2026-11-02, blocked, nothing created live.**
-     - Live BoardEx is still iid (re-probe: 26,450 / 6,511 / 26,433).
-     - The session's permission policy refused the `ACCOUNTADMIN` DDL apply.
-     - The SP MERGEs before it checks the contract, so a backfill on iid BoardEx would leave about 31K rows that later fail d1.
-     - The TASK was not created either; its SQL header forbids creating it before the backfill.
+   - **Attempted 2026-11-02 (twice), blocked on `ACCOUNTADMIN` only, nothing created live.**
+     - The BoardEx precondition is met: the re-probe after the 30-month re-run gives 2,494 / 31,878 / 2,452, an exact match for the sticky projection (§2). The first pass's "still iid" re-probe ran before the re-run landed.
+     - The session's permission policy refused the `ACCOUNTADMIN` DDL apply in both passes, the second in the review-fix pass on the evening of 2026-11-02.
+     - Because nothing was deployed, there was no `CALL ...(104)`. The TASK was not created either; its SQL header forbids creating it before the backfill.
 
 7. **Task 7 (DC stream + DMO).** Mapping table:
 
@@ -210,17 +206,17 @@ The attachment contains:
 
    **Three relationships to the Account DMO** (employer, new employer, Wealth person). This is the first Cumulus DMO with more than one. Create the primary `ssot__AccountId__c` relationship via the API path. If the API rejects the second and third, add them through the DC Setup UI (DMO → Relationships), and record which path worked in AGENTS.md.
 
-8. **Task 8 (L3 smoke).** *Not run yet (2026-11-02): blocked on Task 6, so there are no live rows.* Backfill rows in **7K–11K**; rows per complete week in [30, 200]. The bands come from the §2 sticky-BoardEx simulation. Re-derive them if the live re-probe differs. Spot-check:
+8. **Task 8 (L3 smoke).** *Not run yet (2026-11-02): blocked on Task 6, so there are no live rows.* Backfill rows in **7K–11K**; rows per complete week in [30, 200]. The bands come from the §2 replay against live sticky BoardEx (9,006 rows; weeks 61–109). Spot-check:
    - **BoardEx gate, both directions:**
      - (i) C-suite `Departed` grouped by `(ACCOUNT_ID, DATE_TRUNC('month', EVENT_DATE))`, joined to BoardEx M and M-1, where it is not `flag(M) AND NOT flag(M-1)` (both rows present): must be **0**.
      - (ii) BoardEx rise months that are complete (`DATEADD(day, 52, LAST_DAY(M)) < CURRENT_DATE`) and in the window (`DATEADD(day, 3, M) ≥` backfill start), left-joined to the C-suite departure counts, with count ≠ 1: must be **0**.
-     - The C-suite departure total should be ~1.7K–2.6K (simulation: 2,119).
-   - **Pairs:** 0 self-pairs. 0 orphan `PAIRED_EVENT_ID`s, except rows whose `DETECTED_DATE` is within 7 days of the window start or the run date, where the partner can fall outside the window (5 in the simulation).
-   - **Mix:** Departed 42–54%, Promoted 17–27%, Joined 25–36% (inbound + mirrors). The simulation gave 48.0 / 21.7 / 30.2.
-   - **Resolution:** among Departed rows, `Existing Client` 10–15%, `Prospect` 45–55%, `Unknown` the rest. The simulation gave 11.3 / 49.9 / 38.8.
-   - **Champion:** WAS_CHAMPION 9–16% overall, and ≥30% on Finance personas (CFO / Controller / Treasurer / VP Finance). The simulation gave 12.0 and 34.3.
-   - **Wealth tie-in:** `LIQUIDITY_EVENT_FLAG` rows are 5–8% of C-suite+VP departures (simulation: 6.0%), and every `PERSON_ACCOUNT_ID` resolves to a Wealth Management anchor.
-   - **Size scaling:** events per account per year for 201+ employee anchors are ≥ 3× the 1–10 cohort (simulation: 3.28×).
+     - The C-suite departure total should be ~1.7K–2.6K (replay: 2,119; 1,941 complete in-window rises).
+   - **Pairs:** 0 self-pairs. 0 orphan `PAIRED_EVENT_ID`s, except rows whose `DETECTED_DATE` is within 7 days of the window start or the run date, where the partner can fall outside the window (5 in the replay).
+   - **Mix:** Departed 42–54%, Promoted 17–27%, Joined 25–36% (inbound + mirrors). The replay gave 48.0 / 21.8 / 30.2.
+   - **Resolution:** among Departed rows, `Existing Client` 10–15%, `Prospect` 45–55%, `Unknown` the rest. The replay gave 11.3 / 49.9 / 38.8.
+   - **Champion:** WAS_CHAMPION 9–16% overall, and ≥30% on Finance personas (CFO / Controller / Treasurer / VP Finance). The replay gave 12.0 and 34.3.
+   - **Wealth tie-in:** `LIQUIDITY_EVENT_FLAG` rows are 5–8% of C-suite+VP departures (replay: 6.0%), and every `PERSON_ACCOUNT_ID` resolves to a Wealth Management anchor.
+   - **Size scaling:** events per account per year for 201+ employee anchors are ≥ 3× the 1–10 cohort (replay: 3.28× with the NULL-count anchors in the 1–10 cohort, 3.13× without).
    - **Demo pick:** list the Commercial Banking `Departed` + `WAS_CHAMPION` + `Prospect` events in the last 90 days, ordered by OPPORTUNITY_SCORE desc. That's the warm-intro list.
 
 ## §5 Self-review checklist
@@ -240,24 +236,23 @@ The attachment contains:
 
 - Real UserGems / LinkedIn data, contact PII fidelity, emails or phone numbers. CONTACT_NAME is synthetic, drawn from the same name banks as Plan 10.
 - Writing back to CRM `Contact` records, or creating Leads/Tasks from events. Downstream Flow/Agentforce work.
-- **Making BoardEx `EXEC_TURNOVER_FLAG` trailing-12-month sticky.** Code landed and deployed 2026-11-02 (Plan 10 C-suite timeline), and §2's gate is already bidirectional in code. The live data is NOT yet sticky. Remaining: the live 30-month in-place re-run (an operator task), then the §2 re-probe. It gates this plan's Task 6 backfill.
+- **Making BoardEx `EXEC_TURNOVER_FLAG` trailing-12-month sticky.** Done in Plan 10 on 2026-11-02: code landed and deployed (C-suite timeline), and the live 30-month in-place re-run landed the same day. The §2 re-probe matches the sticky projection exactly.
 - `SYNTH_RELATIONSHIP_GRAPH` `TALENT_FLOW` edges (source employer → destination employer from paired events). Natural Plan 9 extension once this table is LIVE. Plan 9's soft-dep pattern supports adding it as a new edge type.
 - A persistent contact roster (the same named person across multiple events over years). Names are seeded per event.
 - PERSON-anchor employers (Retail/Wealth individuals as companies).
 
 ## §7 Status
 
-In progress. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Tasks 1–3 done 2026-11-02 (scaffold, DDL in repo, row factory). Tasks 4–5 done 2026-11-02: the SP, `deploy_sp.py` and the TASK SQL are in the repo, there are 79 L1 tests, and L2 passed 29/29 live in a scratch schema. Task 6 was attempted 2026-11-02 and is **blocked**. Nothing is live: no table, no SP, no TASK, no backfill.
-- Live BoardEx is still the iid flag (re-probe identical: 26,450 rises / 6,511 stays / 26,433 falls).
-- The DDL / SP / TASK need `ACCOUNTADMIN`, and the agent session was not permitted to use it.
-- `deploy_sp.py` now takes `--role`, and L1 is 80 tests.
+In progress. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Tasks 1–3 done 2026-11-02 (scaffold, DDL in repo, row factory). Tasks 4–5 done 2026-11-02: the SP, `deploy_sp.py` (with `--role`) and the TASK SQL are in the repo, there are 80 L1 tests (all passing), and L2 passed 29/29 live in a scratch schema. Task 6 was attempted twice on 2026-11-02 and is **blocked on `ACCOUNTADMIN` only**. Nothing is live: no table, no SP, no TASK, no backfill.
+- The BoardEx precondition is met. Plan 10's 30-month re-run landed 2026-11-02, and live BoardEx on the employer audience is sticky: 2,494 rises / 31,878 stays / 2,452 falls (N=189,214, 6,435 accounts). That matches the projection exactly.
+- The volume table and L3 bands are confirmed by replaying against the live inputs: 9,006 rows, complete weeks 61–109, 2,119 C-suite departures, 0 gate violations.
+- The DDL / SP / TASK need `ACCOUNTADMIN`, and the agent session was refused it in both passes.
 
 Task 7: DC mapping pending UI (mapping table in §4 and AGENTS.md). Task 8 L3: pending, after the backfill.
 
-Operator sequence:
-1. `CALL SP_GENERATE_BOARDEX_EXEC_INTEL(30, TRUE)`, then the §2 re-probe.
-2. As ACCOUNTADMIN: apply the DDL, run `deploy_sp.py`, `CALL ...(104)`, then the TASK SQL.
-3. L3.
+Operator sequence (README "Deploy"):
+1. As ACCOUNTADMIN: apply the DDL, run `deploy_sp.py --role ACCOUNTADMIN`, `CALL ...(104)`, then the TASK SQL (creates + RESUMEs).
+2. L3 (§4 Task 8), and record the results here and in AGENTS.md.
 
 See `Snowflake_UserGems_JobChanges/AGENTS.md`.
 

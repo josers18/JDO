@@ -34,7 +34,10 @@ Why a scratch schema, not FINS__PUBLIC fixtures: the default role (SYSADMIN)
 has CREATE PROCEDURE / CREATE TASK on DATA_JEDAIS.FINS__PUBLIC but no
 CREATE TABLE, and owns DEMO_DB. The production deploy runs with
 `--role ACCOUNTADMIN`, which owns the schema and every sibling object
-(Plan 14 / 16 pattern).
+(Plan 14 / 16 pattern). The SP is EXECUTE AS CALLER (like the BoardEx
+sibling), so its rights come from whoever calls it; the TASK and every
+sibling procedure, task and table are ACCOUNTADMIN-owned, so the SP and
+TASK are deployed and owned as ACCOUNTADMIN too.
 
 Signature: `(BACKFILL_WEEKS INTEGER DEFAULT 0)`. If it ever changes, add a
 `DROP PROCEDURE IF EXISTS <fqn>(<old types>);` line to SQL_HEADER first
