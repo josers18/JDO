@@ -716,3 +716,13 @@ def test_merge_counts_positional_fallback_and_empty():
     assert _merge_counts([(5, 9)], update_only=False) == (5, 9)
     assert _merge_counts([(9,)], update_only=True) == (0, 9)
     assert _merge_counts([], update_only=False) == (0, 0)
+
+
+def test_assert_unique_keys_raises_on_duplicate_pk():
+    from sp_generate_boardex_exec_intel import _assert_unique_keys
+
+    row = {"ORG_ID": "JDO", "ACCOUNT_ID": "001A", "PROFILE_MONTH": date(2026, 10, 1)}
+    _assert_unique_keys([row, dict(row, ACCOUNT_ID="001B")])  # distinct: ok
+    _assert_unique_keys([])
+    with pytest.raises(RuntimeError, match="duplicate MERGE source key"):
+        _assert_unique_keys([row, dict(row)])

@@ -219,16 +219,16 @@ The attachment contains:
 
 ## §5 Self-review checklist
 
-- [ ] PK `EVENT_ID`; `PROFILE_WEEK` = detection week, not in PK.
-- [ ] EVENT_ID derives from `(account, event_month, slot, kind)` only, so recomputing from any week gives the same ID.
-- [ ] BoardEx gate bidirectional: a rise (flag(M) TRUE, flag(M-1) FALSE) emits exactly one C-suite departure, a non-rise month zero; missing M or M-1 row = not a rise; 5 BoardEx months read per week; missing table raises.
-- [ ] Default run covers the previous complete week plus the current partial week; contract (a) on complete weeks only.
-- [ ] Paired mirror: different account, cross-linked both ways, same contact + date.
-- [ ] `_assert_event_contract` replaces `assert_coverage`; all 4 checks implemented.
-- [ ] Wealth pool pick via sha256 mod over sorted IDs; LIQUIDITY flag only on C-suite/VP departures with PERSON_ACCOUNT_ID.
-- [ ] 6 NULLable / 3 BOOLEAN handled in the MERGE casts.
-- [ ] DMO: three Account relationships documented (API or UI path recorded).
-- [ ] No `<<` placeholders left.
+- [x] PK `EVENT_ID`; `PROFILE_WEEK` = detection week, not in PK.
+- [x] EVENT_ID derives from `(account, event_month, slot, kind)` only, so recomputing from any week gives the same ID.
+- [x] BoardEx gate bidirectional: a rise (flag(M) TRUE, flag(M-1) FALSE) emits exactly one C-suite departure, a non-rise month zero; missing M or M-1 row = not a rise; 5 BoardEx months read per week; missing table raises.
+- [x] Default run covers the previous complete week plus the current partial week; contract (a) on complete weeks only.
+- [x] Paired mirror: different account, cross-linked both ways, same contact + date.
+- [x] `_assert_event_contract` replaces `assert_coverage`; all 4 checks implemented.
+- [x] Wealth pool pick via sha256 mod over sorted IDs; LIQUIDITY flag only on C-suite/VP departures with PERSON_ACCOUNT_ID.
+- [x] 6 NULLable / 3 BOOLEAN handled in the MERGE casts.
+- [ ] DMO: three Account relationships documented (API or UI path recorded). *(Documented in the repo AGENTS.md mapping table; the path that worked (API vs UI) is still to be recorded, because the DC mapping is pending UI, same as Plans 1–13.)*
+- [x] No `<<` placeholders left.
 
 ## §6 Out of scope
 
