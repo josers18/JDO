@@ -22,7 +22,7 @@ Those signals drive the highest-value commercial-banking moments:
 ## Snowflake objects
 - Table: `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS` (+ `_STAGING`, identical columns)
 - Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)` (Task 4)
-- Task: `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS`, cron `0 9 1 * * UTC` (after ZoomInfo). Runs on `MAIN_WH_XS` via `SP_RETRY_WRAPPER('…SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)` (Task 6).
+- Task: `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS`, cron `0 5 1 * * America/New_York` (80 min after the live ZoomInfo task at 03:40 ET). Runs on `MAIN_WH_XS` via `SP_RETRY_WRAPPER('…SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)` (Task 6).
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DMO `CumulusHarmonicCompanySignals__dlm`. DC mapping is pending in the UI; see the mapping table in [AGENTS.md](AGENTS.md).
 
 The plan text says `FINS.PUBLIC.*`. The live namespace for every Cumulus sibling is `DATA_JEDAIS.FINS__PUBLIC.*` (there is no `FINS` database in the account), so this repo uses that.

@@ -91,14 +91,14 @@ SQL_HEADER = f"""\
 --
 -- Signature: ({PROCEDURE_SIGNATURE})
 --           0 (the TASK path) = current UTC month only; N = months M-N..M.
--- Audience: plan section 2 SQL: young private commercial clients (BUSINESS
---           anchors in the Commercial categories, ZoomInfo FOUNDED_YEAR at
---           or after 2010, latest Moody's LIQUIDITY_TIER not 'Liquid').
+-- Audience: plan section 2 SQL: young private commercial clients (BUSINESS,
+--           non-Household anchors, same-month ZoomInfo FOUNDED_YEAR >= 2010,
+--           latest Moody's LIQUIDITY_TIER = Illiquid).
 -- Hard deps: ZOOMINFO_FIRMOGRAPHICS (Plan 11) and MOODYS_MARKET_CONTEXT
 --           (Plan 13 v2). Missing table, empty Moody's or a ZoomInfo month
 --           with no rows raises before any write.
--- Cadence:  MONTHLY ({TASK_NAME}), 1st of month at 09:00 UTC, after
---           ZoomInfo (07:00 UTC).
+-- Cadence:  MONTHLY ({TASK_NAME}), 1st of month at 05:00
+--           America/New_York, 80 min after the live ZoomInfo task (03:40 ET).
 -- Salts:    "{DATASET_SALT}" (month-bucketed) and "{FUNDING_SALT}"
 --           (account-stable funding timeline; per-round valuation seed
 --           keyed on ACCOUNT_ID, round date and stage).

@@ -38,7 +38,7 @@
 | `<<TASK_NAME>>` | `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` |
 | `<<TASK_NAME_LOWER>>` | `task_monthly_harmonic_company_signals` |
 | `<<SP_NAME>>` | `SP_GENERATE_HARMONIC_COMPANY_SIGNALS` |
-| `<<CRON>>` | `'USING CRON 0 9 1 * * UTC'` (1st of month 09:00 UTC; 2 h after ZoomInfo's 07:00, so the same-month band exists) |
+| `<<CRON>>` | `'USING CRON 0 5 1 * * America/New_York'` (1st of month 05:00 ET). The LIVE ZoomInfo task runs `USING CRON 40 3 1 * * America/New_York` (03:40 ET, logged 08:40 UTC on 2026-11-01), not the `0 7 1 * * UTC` its repo SQL said. Same time zone keeps an 80-minute gap all year, so the same-month band exists. Revised 2026-11-02 from the draft `0 9 1 * * UTC`, which left only 20 min (EST) / 80 min (EDT). |
 | `<<AUDIENCE_PREDICATE>>` | See §2: anchor `BUSINESS` + non-Household, ZoomInfo `FOUNDED_YEAR >= 2010`, Moody's latest `LIQUIDITY_TIER = 'Illiquid'` |
 | `<<COVERAGE_RULE>>` | distinct accts = audience (one row per audience anchor per month) |
 | `<<ROW_PK>>` | `(ACCOUNT_ID, PROFILE_MONTH)` |
@@ -132,7 +132,7 @@ The attachment contains:
    - **Hard deps.** Probe `INFORMATION_SCHEMA.TABLES` for both `ZOOMINFO_FIRMOGRAPHICS` and `MOODYS_MARKET_CONTEXT`, and raise if either is missing. Also raise if ZoomInfo has **no row for `:month`**, which means the ZoomInfo task hasn't run yet. Don't silently emit an empty month.
    - **Funding timeline is account-lifetime.** Salt `harmonic_funding` with `datetime(2000, 1, 1)` and key `ACCOUNT_ID`. Never seed it from `PROFILE_MONTH`: that would break monotonicity.
    - **Trajectory recomputation.** `_headcount_for(anchor, band, month)` and `_postings_for(anchor, band, month)` are pure functions. Growth and trend call them for M-6 / M-3. No `SELECT` from `HARMONIC_COMPANY_SIGNALS` inside the SP.
-   - **Headcount stays inside the ZoomInfo band** of the *same* month. Prior-month recomputation uses that month's band, and the SP reads the ZoomInfo rows for M, M-3 and M-6. If an older month is missing (pre-history), fall back to M's band.
+   - **Headcount stays inside the ZoomInfo band** of the *same* month. Prior-month recomputation uses that month's band, and the SP reads ZoomInfo history from `M_first - 9` through `M_last` (M-3's growth needs the M-9 headcount). If an older month is missing (pre-history), fall back to M's band.
    - DC mapping descriptions ≤521 chars.
 
 2. **Task 2 (table DDL).**
@@ -181,7 +181,7 @@ The attachment contains:
 
 6. **Task 6 (deploy).**
    - Clone Plan 11's `deploy_sp.py` (monthly) and add the two salts.
-   - Cron `0 9 1 * * UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`.
+   - Cron `0 5 1 * * America/New_York` (revised from the draft `0 9 1 * * UTC`, see §1), `MAIN_WH_XS`, `SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`.
    - After deploy: `CALL FINS.PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS(6)` once. That gives 7 months, matching ZoomInfo's history.
 
 7. **Task 7 (DC stream + DMO).** Mapping table:
@@ -247,7 +247,7 @@ The attachment contains:
 
 **LIVE in Snowflake 2026-11-02; DC mapping pending UI.** Drafted 2026-11-02 from the vendor-gap assessment. Tasks 0–6 and 8 are done; Task 7's mapping table is recorded in `Snowflake_Harmonic_CompanySignals/AGENTS.md` with status "DC mapping pending UI" (same as Plans 1–13). Plan-owner sign-off on the revised timeline / destiny / runway / postings parameters (rowspec revision note) is still pending.
 
-**Task 6 (deploy).** `SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)` deployed to `DATA_JEDAIS.FINS__PUBLIC` (the live namespace this plan's `FINS.PUBLIC` means). `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` created and resumed: state `started`, `USING CRON 0 9 1 * * UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`. The one-time `CALL …(6)` returned `SUCCEEDED rows=4587 accounts=672 months=7 (2026-05-01..2026-11-01)` (log `DURATION_MS` 52367).
+**Task 6 (deploy).** `SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)` deployed to `DATA_JEDAIS.FINS__PUBLIC` (the live namespace this plan's `FINS.PUBLIC` means). `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` created and resumed: state `started`, `USING CRON 0 9 1 * * UTC` (re-created 2026-11-02 on `USING CRON 0 5 1 * * America/New_York` after the final review found the live ZoomInfo schedule drift), `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`. The one-time `CALL …(6)` returned `SUCCEEDED rows=4587 accounts=672 months=7 (2026-05-01..2026-11-01)` (log `DURATION_MS` 52367).
 
 **Task 8 (L3 smoke, 2026-11-02): every check passes.** All figures are from live query output.
 
@@ -267,5 +267,7 @@ The attachment contains:
 | Demo: VC, runway < 6, Slowing/Frozen | non-empty | 3 / 5 / 2 / 4 / 6 / 8 / 7 per month |
 
 Also 0 on every 4a / 4d check, 0 duplicate PKs, 0 RECORD_ID mismatches against the SQL formula, and an unchanged `HASH_AGG(*)` after re-running `CALL …()`. No mix band missed, so no estimate had to be revised. The closest call is 2026-11's RECENTLY_FUNDED share (2.38 % vs the 2 % floor). One ZoomInfo account changed band in the window, but it is outside this audience, so the monotonicity SQL needed no band-change exclusion. Full detail: `Snowflake_Harmonic_CompanySignals/AGENTS.md` → "L3 smoke".
+
+**Runway caveat (for plan-owner review, verified live 2026-11-02).** The runway band passes mostly on floor-clamped zeros: `EST_RUNWAY_MONTHS = 0` on 259 of the 349 under-9 rows (74 %), out of 1,558 Angel-Seed + Venture-Backed rows. So the under-9 list is a pile-up at 0 (including companies still operating after Series C), not a spread of short runways. Options: floor runway at 1–3 months, or model a bridge round / shutdown once runway is used up. Left as-is pending plan-owner sign-off on the revised parameters.
 
 Plan 16 is the first dataset with a **three-way audience** (anchor × ZoomInfo × Moody's), the first to **ship a prerequisite fix to an upstream plan** (Task 0), and the first to model a **lifetime event timeline viewed as-of each period**.

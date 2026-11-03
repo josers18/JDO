@@ -5,7 +5,8 @@
 -- young private Cumulus commercial account.
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS
---             (Cron: 0 9 1 * * UTC -- 1st of month 09:00 UTC, after ZoomInfo).
+--             (Cron: 0 5 1 * * America/New_York -- 1st of month 05:00 ET,
+--             80 min after the live ZoomInfo task at 03:40 ET).
 -- Audience:   Three-way join (plan section 2):
 --               V_ACCOUNT_ANCHORS ACCOUNT_TYPE_FLAG = 'BUSINESS'
 --               AND COALESCE(CLIENT_CATEGORY, '') <> 'Household'

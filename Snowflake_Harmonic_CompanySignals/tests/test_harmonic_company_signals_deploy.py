@@ -59,7 +59,7 @@ def test_task_sql_schedule_warehouse_wrapper():
     q = " ".join(body.split())
     assert "CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS" in q
     assert "WAREHOUSE = MAIN_WH_XS" in q
-    assert "SCHEDULE = 'USING CRON 0 9 1 * * UTC'" in q
+    assert "SCHEDULE = 'USING CRON 0 5 1 * * America/New_York'" in q
     assert ("CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER( "
             "'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2 );") in q
     assert "ALTER TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS RESUME;" in q

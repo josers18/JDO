@@ -4,8 +4,14 @@
 -- =============================================================================
 -- Plan:     docs/superpowers/plans/2026-05-28-cumulus-plan-11-zoominfo-firmographics.md
 -- Task:     Plan 11 T6
--- Cadence:  MONTHLY (first of month at 07:00 UTC).
--- Schedule: 0 7 1 * * UTC  (5-field cron: minute hour day-of-month month day-of-week)
+-- Cadence:  MONTHLY (first of month at 03:40 America/New_York).
+-- Schedule: 40 3 1 * * America/New_York  (5-field cron: minute hour day-of-month month day-of-week)
+--
+-- LIVE SCHEDULE IS THE SOURCE OF TRUTH (aligned 2026-11-02). The live TASK
+-- had been re-created on the account-wide ET stagger (monthly tasks at
+-- 03:00-03:45 America/New_York, 5 min apart). The Plan 11 draft below said
+-- 0 7 1 * * UTC. Plan 16 Harmonic (0 5 1 * * America/New_York) runs 80 min
+-- after this task and hard-depends on its current-month rows.
 -- Wrapper:  DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()', 2)
 -- Warehouse: MAIN_WH_XS
 --
@@ -32,7 +38,7 @@
 
 CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS
     WAREHOUSE = MAIN_WH_XS
-    SCHEDULE  = 'USING CRON 0 7 1 * * UTC'
+    SCHEDULE  = 'USING CRON 40 3 1 * * America/New_York'
 AS
     CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER(
         'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS()',

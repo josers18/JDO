@@ -10,14 +10,14 @@
 --
 -- Signature: (BACKFILL_MONTHS INTEGER DEFAULT 0)
 --           0 (the TASK path) = current UTC month only; N = months M-N..M.
--- Audience: plan section 2 SQL: young private commercial clients (BUSINESS
---           anchors in the Commercial categories, ZoomInfo FOUNDED_YEAR at
---           or after 2010, latest Moody's LIQUIDITY_TIER not 'Liquid').
+-- Audience: plan section 2 SQL: young private commercial clients (BUSINESS,
+--           non-Household anchors, same-month ZoomInfo FOUNDED_YEAR >= 2010,
+--           latest Moody's LIQUIDITY_TIER = Illiquid).
 -- Hard deps: ZOOMINFO_FIRMOGRAPHICS (Plan 11) and MOODYS_MARKET_CONTEXT
 --           (Plan 13 v2). Missing table, empty Moody's or a ZoomInfo month
 --           with no rows raises before any write.
--- Cadence:  MONTHLY (TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS), 1st of month at 09:00 UTC, after
---           ZoomInfo (07:00 UTC).
+-- Cadence:  MONTHLY (TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS), 1st of month at 05:00
+--           America/New_York, 80 min after the live ZoomInfo task (03:40 ET).
 -- Salts:    "harmonic" (month-bucketed) and "harmonic_funding"
 --           (account-stable funding timeline; per-round valuation seed
 --           keyed on ACCOUNT_ID, round date and stage).
@@ -244,7 +244,7 @@ _INDUSTRY_PREFIXES = (
 # Destiny probability tables (tuned on the live audience shape, see
 # tests/test_harmonic_company_signals_distribution.py). p = base * tilt
 # (venture: tilt ** venture_exp), capped. PE only in _PE_BANDS, scaled by
-# min(1, tilt). Micro (1-10) venture resolves to Angel-Seed (cap = Seed).
+# _PE_TILT[industry] (default 1.0). Micro (1-10) venture resolves to Angel-Seed (cap = Seed).
 _DESTINY_P = {
     "micro":    {"venture": 0.14, "venture_exp": 1.0, "venture_cap": 0.35,
                  "angel": 0.30, "angel_cap": 0.45, "pe": 0.0},
@@ -385,7 +385,7 @@ def _timeline(anchor: dict, founded_year: int, band: str) -> list[tuple]:
     the live audience is founded 2010-2023, so founding-relative rounds all
     land years before the 2026 window (stale runway, no fresh rounds, no
     transitions). The account draws a pivot month P uniformly in
-    [_PIVOT_START, _PIVOT_END] (2023-01 .. 2028-12) and raises the pivot
+    [_PIVOT_START, _PIVOT_END] (2022-01 .. 2027-12) and raises the pivot
     stage there; earlier stages are placed backwards from P and later
     stages forwards, each 10-25 months apart. No round is dated before
     founded + 120 days (earlier ones are dropped), none after 2030-12.
@@ -432,8 +432,8 @@ def _timeline(anchor: dict, founded_year: int, band: str) -> list[tuple]:
 def _funding_as_of(rounds: list[tuple], month_end: date, account_id: str) -> dict:
     """View of the lifetime timeline as of month_end.
 
-    The per-round valuation seed includes ACCOUNT_ID (rowspec: the sketch
-    omits it for brevity), so two accounts with a same-day same-stage round
+    The per-round valuation seed includes ACCOUNT_ID (as in the rowspec
+    sketch), so two accounts with a same-day same-stage round
     don't share a multiple.
     """
     seen = [r for r in rounds if r[0] <= month_end]

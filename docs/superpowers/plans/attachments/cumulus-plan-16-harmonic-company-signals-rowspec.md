@@ -1,12 +1,14 @@
 # Plan 16 — Harmonic Company Signals rowspec
 
 > Per-dataset attachment for the dataset template. Authored 2026-11-02 from the vendor-gap assessment (Hunter B2B data list → "Private-company funding / traction" and "Workforce / job postings" categories, merged), plus live probes of:
-> - the three-way audience: **703 anchors** on the latest ZoomInfo month;
-> - the ZoomInfo EMPLOYEE_BAND mix: 563 in 1-10 / 47 in 11-50 / 30 in 51-200 / 58 in 201-1000 / 5 in 1001+.
+> - the three-way audience: **672 anchors** on the latest ZoomInfo month (2026-11; 650–672 across the 7 ZoomInfo months), re-probed after plan Task 0 made FOUNDED_YEAR account-stable (the draft-time 703 was one random monthly draw);
+> - the ZoomInfo EMPLOYEE_BAND mix (2026-11): 511 in 1-10 / 46 in 11-50 / 49 in 51-200 / 59 in 201-1000 / 5 in 1001-5000 / 2 in 5001-25000.
+>
+> Plan §2 is the source of truth for these counts.
 >
 > **First dataset that views a lifetime timeline as-of each period.** Every funding column derives from a per-account round list generated once, so cross-month invariants hold by construction.
 >
-> **Revised 2026-11-02 (post-T3 review).** The draft timeline (first round 4–30 months after founding) failed nearly every Task 8 target on the live audience (founded 2010–2023, 76 % in 1-10): 81 % Bootstrapped, ~0 % recently funded, runway < 9 on 98 % of funded rows, Frozen ratio 0.81, 0 transitions. The destiny tables, timeline, runway and postings below are the revised versions, tuned so the row factory meets every Task 8 target over the live audience shape (asserted at L1 by `tests/test_harmonic_company_signals_distribution.py`). **Plan-owner sign-off on the revised parameters is pending.**
+> **Revised 2026-11-02 (post-T3 review).** The draft timeline (first round 4–30 months after founding) failed nearly every Task 8 target on the live audience (founded 2010–2023, 76 % in 1-10: 511 / 672 on the stable 2026-11 audience): 81 % Bootstrapped, ~0 % recently funded, runway < 9 on 98 % of funded rows, Frozen ratio 0.81, 0 transitions. The destiny tables, timeline, runway and postings below are the revised versions, tuned so the row factory meets every Task 8 target over the live audience shape (asserted at L1 by `tests/test_harmonic_company_signals_distribution.py`). **Plan-owner sign-off on the revised parameters is pending.**
 
 ## Mimics
 
@@ -19,7 +21,7 @@ Three-way join; SQL is in plan §2. The audience is:
 - ZoomInfo `FOUNDED_YEAR >= 2010` for the run month (stable after plan Task 0);
 - latest Moody's `LIQUIDITY_TIER = 'Illiquid'`.
 
-**703 anchors** on the latest month at draft time. Re-probe after Task 0.
+**672 anchors** on the latest month (2026-11), 650–672 across the 7 ZoomInfo months, re-probed after Task 0. Plan §2 has the per-month counts and the band mix.
 
 ## Table: `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS`
 
@@ -115,7 +117,7 @@ def _destiny(anchor, band, frng):
     return "bootstrapped"
 ```
 
-The 1-10 band caps at `Seed`, so a 1-10 "venture" destiny climbs only Pre-Seed→Seed and resolves to `Angel-Seed` status. That's intended: 76 % of the audience is tiny, so the Venture-Backed and PE-Backed shares come from the ~160 non-micro anchors, which is why the non-micro table is much more aggressive. Probabilities are cumulative; where they sum past 1 (Technology in PE bands) angel, then venture, get the remainder.
+The 1-10 band caps at `Seed`, so a 1-10 "venture" destiny climbs only Pre-Seed→Seed and resolves to `Angel-Seed` status. That's intended: 76 % of the audience is tiny, so the Venture-Backed and PE-Backed shares come from the ~161 non-micro anchors (672 − 511 on 2026-11), which is why the non-micro table is much more aggressive. Probabilities are cumulative; where they sum past 1 (Technology in PE bands) angel, then venture, get the remainder.
 
 ### Industry normalisation — `_canon_industry`
 
