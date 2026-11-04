@@ -138,7 +138,7 @@ For a full year (~252 business days), expect approximately 730,000 trades.
 
 ### Timeout errors
 
-If the procedure times out, the trades inserted so far are committed (each batch INSERT is auto-committed). Re-run the same chunk and the resume capability will handle continuity.
+If the procedure times out, the trades loaded so far are committed (each 5,000-row `write_pandas` batch commits on its own). Don't re-run the same chunk as is: the resume step reads only trades dated before `START_DATE`, so the days already written would be generated again. Delete the chunk's partial rows first, or start the next run at the last day written (after deleting that day's partial rows).
 
 ### Checking for gaps
 

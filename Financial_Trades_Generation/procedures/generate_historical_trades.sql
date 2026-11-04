@@ -8,6 +8,7 @@
 --            warehouse with chunked date ranges.
 --            Only active configs with a Salesforce Account Id (ACCOUNT_ID LIKE '001%')
 --            get trades; non-Account keys such as the old TRD-xxx are skipped.
+--            Loads FINANCIAL_TRADES with session.write_pandas (5,000 rows per batch).
 -- Usage:     CALL GENERATE_HISTORICAL_TRADES('2024-06-01'::DATE, '2024-12-31'::DATE);
 -- Language:  Python 3.11 (Snowpark)
 -- Execution: EXECUTE AS OWNER
@@ -17,7 +18,7 @@ CREATE OR REPLACE PROCEDURE "GENERATE_HISTORICAL_TRADES"("START_DATE" DATE, "END
 RETURNS VARCHAR
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
-PACKAGES = ('snowflake-snowpark-python')
+PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'generate_historical'
 EXECUTE AS OWNER
 AS '
@@ -25,6 +26,8 @@ import random
 import uuid
 import time
 from datetime import date, datetime, timedelta, timezone
+
+import pandas as pd
 
 EXCHANGES = ["NYSE", "NASDAQ", "LSE", "HKEX", "JPX"]
 SOURCE_SYSTEMS = [
@@ -192,28 +195,32 @@ def generate_historical(session, START_DATE, END_DATE):
         total_biz_days = len(business_days)
         total_inserted = 0
         batch = []
-        batch_size = 500
+        batch_size = 5000
         flush_count = 0
 
-        cols = ("TRADE_ID, ORDER_ID, ACCOUNT_ID, TRADE_DATE, TRADE_TIME, "
-                "SETTLEMENT_DATE, SNAPSHOT_DATE, INSTRUMENT_IDENTIFIER, "
-                "INSTRUMENT_NAME, INSTRUMENT_CATEGORY, PRICE, QUANTITY, "
-                "TOTAL_TRADE, FEES, TRADE_SIDE, TRADE_TYPE, TRADE_CONDITION, "
-                "TRADE_STATUS, EXCHANGE, CURRENCY, SOURCE_SYSTEM, "
-                "COUNTERPARTY_BROKER_ID, REGULATORY_CODE, COMMENTS, CREATED_AT")
-        n_cols = 25
-        placeholders = ", ".join(["?"] * n_cols)
+        cols = ["TRADE_ID", "ORDER_ID", "ACCOUNT_ID", "TRADE_DATE", "TRADE_TIME",
+                "SETTLEMENT_DATE", "SNAPSHOT_DATE", "INSTRUMENT_IDENTIFIER",
+                "INSTRUMENT_NAME", "INSTRUMENT_CATEGORY", "PRICE", "QUANTITY",
+                "TOTAL_TRADE", "FEES", "TRADE_SIDE", "TRADE_TYPE", "TRADE_CONDITION",
+                "TRADE_STATUS", "EXCHANGE", "CURRENCY", "SOURCE_SYSTEM",
+                "COUNTERPARTY_BROKER_ID", "REGULATORY_CODE", "COMMENTS", "CREATED_AT"]
 
         def flush_batch():
+            # One PUT + COPY per batch via write_pandas, replacing a multi-row
+            # bind INSERT whose compile dominated the run. COPY from parquet
+            # does not cast the isoformat strings the way the binds did, so
+            # they are parsed here: DATE columns keep the UTC calendar day,
+            # CREATED_AT (built naive) stays naive.
             nonlocal batch, flush_count, total_inserted
             if not batch:
                 return
-            values_clauses = [f"({placeholders})"] * len(batch)
-            params = []
-            for row in batch:
-                params.extend(row)
-            sql = f"INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ({cols}) VALUES {'', ''.join(values_clauses)}"
-            session.sql(sql, params=params).collect()
+            df = pd.DataFrame(batch, columns=cols)
+            for c in ("TRADE_DATE", "SETTLEMENT_DATE", "SNAPSHOT_DATE"):
+                df[c] = pd.to_datetime(df[c], utc=True).dt.date
+            df["CREATED_AT"] = pd.to_datetime(df["CREATED_AT"])
+            session.write_pandas(df, "FINANCIAL_TRADES", database="DATA_JEDAIS",
+                                 schema="FINS__PUBLIC", auto_create_table=False,
+                                 overwrite=False, use_logical_type=True)
             total_inserted += len(batch)
             flush_count += 1
             batch = []

@@ -169,7 +169,7 @@ def _flush_batch(session, batch):
 
 Until 2026-11-04 the batch went out as one parameterized multi-row `INSERT INTO ... VALUES (?, ...)`. Snowflake spent ~18 s compiling each 5,000-row statement (0.7 s executing it), so a large Monday run hit the 1,800 s procedure timeout. A `write_pandas` flush of 5,000 rows takes ~2 s.
 
-`GENERATE_HISTORICAL_TRADES` still uses parameterized INSERTs of 500 rows.
+`GENERATE_HISTORICAL_TRADES` uses the same load in its `flush_batch`, since 2026-11-04 (it used 500-row parameterized INSERTs before). Its rows are lists, its dates come from `isoformat()` with a `+00:00` offset, and its `CREATED_AT` is built naive, so that column is parsed without a timezone. On a 400-account, two-month scratch run it finished in 6.6 s, against 44 s for the INSERT version, with identical per-(account, day) row counts.
 
 ## Daily Volume Estimates
 
