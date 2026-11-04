@@ -2,7 +2,7 @@
 
 ## Overview
 
-The account sync pipeline imports new accounts from a Salesforce Data Cloud shared table into the local `TRADE_GENERATION_CONFIG` table. It runs daily at midnight ET via the `DAILY_ACCOUNT_SYNC` task.
+The account sync pipeline imports new accounts from a Salesforce Data Cloud shared table into the local `TRADE_GENERATION_CONFIG` table. It runs daily at 3:00 AM ET via the `DAILY_ACCOUNT_SYNC` task (through `SP_RETRY_WRAPPER`, 2 retries), ten minutes before `DAILY_TRADE_GENERATOR`. It is **insert-only**: rows already in the table are never updated (see [Existing rows are never updated](#existing-rows-are-never-updated)).
 
 ## Source Data
 
@@ -40,9 +40,9 @@ The source `AccountTypeId` is mapped to five configuration columns:
 
 ```mermaid
 graph TD
-    A["DAILY_ACCOUNT_SYNC task<br/>Midnight ET"] --> B["CALL SYNC_NEW_ACCOUNTS()"]
+    A["DAILY_ACCOUNT_SYNC task<br/>3:00 AM ET"] --> B["CALL SYNC_NEW_ACCOUNTS()"]
     B --> C["Load existing ACCOUNT_IDs<br/>into Python set"]
-    C --> D["Query source table<br/>FINSDC3_DATASHARE<br/>WHERE ssot__Id__c LIKE '001%'"]
+    C --> D["Query source table<br/>FINSDC3_DATASHARE<br/>WHERE ssot__Id__c LIKE '001%'<br/>QUALIFY: one row per ssot__Id__c"]
     D --> E["Python-side filter:<br/>new = source - existing"]
     E --> F{New accounts?}
     F -->|No| G["Log: SUCCEEDED, 0 rows"]
@@ -65,18 +65,45 @@ The source table is a shared/secure object from Salesforce Data Cloud. This impo
 ## Implementation Details
 
 - **Duplicate prevention**: Existing account IDs are loaded into a Python `set` before querying the source. New accounts are identified by set difference, not by SQL anti-join (which would fail on the secure object).
+- **Source dedupe**: the share carries more than one copy of some IDs (for example an `Account` copy and a `PartyRelationshipGroup` copy). The read keeps one row per `ssot__Id__c` with a total ordering: `Account` data-source object first, then newest `ssot__LastModifiedDate__c`, then `HASH(s.*)` as the tie-break. Without it a duplicated new ID would be inserted twice with an arbitrary name and type.
+- **No org filter**: the share holds accounts from five Salesforce orgs (`ssot__DataSourceId__c`), and the sync doesn't filter by org, so all of them are imported. No ID appears in more than one org. See the distribution below.
 - **Batch size**: 500 rows per INSERT to stay within Snowflake parameter limits.
 - **Notes field**: All imported accounts are tagged with `"Auto-imported from ssot__Account__dlm"`.
 - **ACTIVE flag**: All new accounts default to `TRUE`.
 - **LAST_GENERATED_DATE**: Left as `NULL` for new accounts -- the trade generator will treat them as due on its first run.
 
+## Existing rows are never updated
+
+`SYNC_NEW_ACCOUNTS()` only inserts IDs it hasn't seen, and `GENERATE_DAILY_TRADES()` only updates `LAST_GENERATED_DATE` and `LAST_UPDATED`. So:
+
+- a Salesforce rename or account-type change never reaches an existing config row;
+- an edit to the type mapping above applies to new accounts only;
+- manual edits to a config row persist.
+
+To bring existing rows back in line, write a one-off migration in [`migrations/`](../migrations/) that clones the table first, then runs `UPDATE ... FROM` the deduped source joined to the type map. The dedupe and the type map must match `procedures/sync_new_accounts.sql`. Two such backfills ran on 2026-11-04:
+
+| Migration | Rows | Change | Rollback clone |
+|---|---|---|---|
+| [`003`](../migrations/003_backfill_config_name_type_from_source.sql) | 31,053 | `ACCOUNT_NAME` from source on 25,425 rows (mostly a middle initial added in Salesforce, e.g. "Harry Gray" → "Harry P Gray"). On 5,628 `Partner` rows stored as Retail: `ACCOUNT_TYPE` → Institutional plus the Partner settings (WEEKLY / 10 / Aggressive / $400K) | `TRADE_GENERATION_CONFIG_BAK_20261104` |
+| [`004`](../migrations/004_backfill_config_profile_from_type_map.sql) | 25,379 | `Person` rows on the default WEEKLY / 5 / Moderate / $150K → MONTHLY / 3 / Conservative / $50K | `TRADE_GENERATION_CONFIG_BAK_20261104_M004` |
+
+After both, 0 of the 36,768 source-matched rows differ from the source on name or type, or from the type map on frequency, trades per period, risk profile or max trade value. Touched rows carry a `| ... (migration 003)` / `(migration 004)` suffix on `NOTES`. Trades already generated weren't rewritten. All updated rows are `Salesforce_Home` accounts.
+
 ## Current Account Distribution
 
-| Source | Count | ID Pattern |
-|---|---|---|
-| Original manual accounts | 5 | `TRD-xxx` |
-| Imported from org | 640 | `001%` |
-| **Total** | **645** | |
+As of 2026-11-04:
+
+| Source (`ssot__DataSourceId__c`) | Config rows | Active | Trades |
+|---|---|---|---|
+| `Salesforce_Home` | 36,239 | 36,239 | 8.92M |
+| `Salesforce_InsuranceAFDC` | 167 | 167 | 471K |
+| `Salesforce_FinsDC4` | 146 | 146 | 462K |
+| `Salesforce_FinsDC1` | 127 | 127 | 390K |
+| `Salesforce_DCCDO1` | 89 | 89 | 341K |
+| Manual `TRD-xxx` placeholders | 5 | 0 (deactivated by migration 001) | trades have NULL `ACCOUNT_ID` |
+| **Total** | **36,773** | **36,768** | |
+
+The 529 accounts from the four non-Home orgs don't join to the Home org the cockpits read. Whether to filter them out of the sync and deactivate them is still open.
 
 ## Execution Logging
 

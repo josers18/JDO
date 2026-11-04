@@ -21,7 +21,7 @@
 -- 5 TRD- rows (not in the source). Existing FINANCIAL_TRADES rows are not rewritten.
 --
 -- Dedupe and type_map must match procedures/sync_new_accounts.sql. Run as
--- ACCOUNTADMIN outside the 00:00-01:10 ET task window.
+-- ACCOUNTADMIN outside the 03:00-03:10 ET task window.
 -- Rollback: TRADE_GENERATION_CONFIG_BAK_20261104.
 -- =============================================================================
 

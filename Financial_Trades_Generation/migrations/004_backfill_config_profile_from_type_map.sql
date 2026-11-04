@@ -13,7 +13,7 @@
 -- Not changed: ACCOUNT_NAME / ACCOUNT_TYPE (done by 003), PREFERRED_*, ACTIVE,
 -- LAST_GENERATED_DATE, rows whose type differs (none after 003), and the 5 TRD- rows.
 -- Dedupe and type_map must match procedures/sync_new_accounts.sql. Run as
--- ACCOUNTADMIN outside the 00:00-01:10 ET task window.
+-- ACCOUNTADMIN outside the 03:00-03:10 ET task window.
 -- Rollback: TRADE_GENERATION_CONFIG_BAK_20261104_M004 (state after migration 003).
 -- =============================================================================
 
