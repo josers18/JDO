@@ -185,7 +185,7 @@ SHOW TASKS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 |---|---|
 | Database | `DATA_JEDAIS` |
 | Schema | `FINS__PUBLIC` |
-| Task Warehouse | `TASK_WH` (X-Small) |
+| Task Warehouses | `TASK_WH` (X-Small) for the account sync; `LARGE_LOAD` for the trade generator |
 | Backfill Warehouse | `LARGE_LOAD` (X-Large, recommended) |
 | Role | `SYSADMIN` |
 | Source Database | `FINSDC3_DATASHARE` (shared/secure) |

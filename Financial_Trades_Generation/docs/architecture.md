@@ -65,8 +65,8 @@ graph TB
     end
 
     subgraph "Snowflake Scheduled Tasks"
-        T1["DAILY_ACCOUNT_SYNC<br/>Midnight ET<br/>TASK_WH (X-Small)"]
-        T2["DAILY_TRADE_GENERATOR<br/>1:00 AM ET<br/>TASK_WH (X-Small)"]
+        T1["DAILY_ACCOUNT_SYNC<br/>3:00 AM ET<br/>TASK_WH (X-Small)"]
+        T2["DAILY_TRADE_GENERATOR<br/>3:10 AM ET<br/>LARGE_LOAD (X-Large)"]
     end
 
     subgraph "Stored Procedures"
@@ -120,7 +120,7 @@ sequenceDiagram
     participant FT as FINANCIAL_TRADES
     participant LOG as TASK_EXECUTION_LOG
 
-    Note over CRON: Midnight ET
+    Note over CRON: 3:00 AM ET
     CRON->>SYNC: trigger
     SYNC->>SP1: CALL
     SP1->>CFG: SELECT existing ACCOUNT_IDs
@@ -130,7 +130,7 @@ sequenceDiagram
     SP1->>CFG: INSERT new accounts (batch 500)
     SP1->>LOG: INSERT execution result
 
-    Note over CRON: 1:00 AM ET (1 hour gap)
+    Note over CRON: 3:10 AM ET (10 minute gap)
     CRON->>GEN: trigger
     GEN->>SP2: CALL
     SP2->>IU: SELECT all instruments
@@ -149,8 +149,8 @@ sequenceDiagram
 
 | Warehouse | Size | Purpose | Used By |
 |---|---|---|---|
-| `TASK_WH` | X-Small | Daily automated operations | `DAILY_ACCOUNT_SYNC`, `DAILY_TRADE_GENERATOR` |
-| `LARGE_LOAD` | X-Large | Bulk historical backfill | `GENERATE_HISTORICAL_TRADES()` (manual) |
+| `TASK_WH` | X-Small | Daily account sync | `DAILY_ACCOUNT_SYNC` |
+| `LARGE_LOAD` | X-Large | Daily trade generation and bulk historical backfill | `DAILY_TRADE_GENERATOR`, `GENERATE_HISTORICAL_TRADES()` (manual) |
 
 The daily tasks run on X-Small since they process a single day's trades (~3,100 per run). Historical backfill requires X-Large to handle hundreds of days and millions of rows without timeouts.
 
@@ -164,6 +164,6 @@ The daily tasks run on X-Small since they process a single day's trades (~3,100 
 
 4. **Frequency gating in Python**: The `_is_due()` function runs client-side (in the procedure) rather than as a SQL filter, because the logic depends on per-account state that evolves as the procedure iterates through days.
 
-5. **1-hour task gap**: Account sync at midnight, trade generation at 1 AM. This ensures newly imported accounts are committed and visible before the generator reads them.
+5. **10-minute task gap**: Account sync at 3:00 AM ET, trade generation at 3:10 AM ET. This ensures newly imported accounts are committed and visible before the generator reads them. The sync has a 300 s statement timeout, so it finishes or fails inside the gap. Both tasks call their procedure through `SP_RETRY_WRAPPER(…, 2)`.
 
 6. **Resume capability**: The historical backfill procedure reads existing trades from `FINANCIAL_TRADES` to initialize the `last_gen` dict, allowing it to resume correctly across chunked executions without duplicating WEEKLY/MONTHLY triggers.

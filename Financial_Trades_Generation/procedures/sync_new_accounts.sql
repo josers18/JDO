@@ -10,7 +10,7 @@
 --            copy), so the source read collapses them with a total ordering:
 --            Account DSO first, newest LastModifiedDate, then a row hash.
 --            Without it a new duplicated ID would be inserted twice.
--- Called by: DAILY_ACCOUNT_SYNC task (midnight ET)
+-- Called by: DAILY_ACCOUNT_SYNC task (3:00 AM ET, via SP_RETRY_WRAPPER)
 -- Language:  Python 3.11 (Snowpark)
 -- Execution: EXECUTE AS OWNER
 -- =============================================================================

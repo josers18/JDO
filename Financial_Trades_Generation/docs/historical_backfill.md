@@ -131,8 +131,8 @@ For a full year (~252 business days), expect approximately 730,000 trades.
 | Resume support | Not needed (single day) | Yes -- reads existing trades to init state |
 | Progress logging | Single log entry on completion | Every 50 business days + completion |
 | LAST_GENERATED_DATE update | Yes (per account) | No (avoids overwriting daily task state) |
-| Recommended warehouse | `TASK_WH` (X-Small) | `LARGE_LOAD` (X-Large) |
-| Invocation | Automated (1 AM ET task) | Manual |
+| Recommended warehouse | `LARGE_LOAD` (X-Large; the task uses it) | `LARGE_LOAD` (X-Large) |
+| Invocation | Automated (3:10 AM ET task) | Manual |
 
 ## Troubleshooting
 

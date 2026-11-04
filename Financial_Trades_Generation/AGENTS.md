@@ -1,6 +1,6 @@
 # AGENTS.md — Financial_Trades_Generation
 
-Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Generates ~1.5M trades for 645 accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
+Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Has generated ~10.6M trades (as of 2026-11-04) for 36,768 active accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
 
 For user-facing install / quick-start / row counts, see [README.md](README.md). This file is the agent-orientation primer.
 
@@ -22,7 +22,7 @@ Financial_Trades_Generation/
 │   ├── account_sync.md
 │   └── historical_backfill.md
 ├── schemas/                               ← table DDL
-│   ├── financial_trades.sql               ← FINANCIAL_TRADES (1.5M+ rows, 25 cols)
+│   ├── financial_trades.sql               ← FINANCIAL_TRADES (10.6M+ rows, 25 cols)
 │   ├── trade_generation_config.sql        ← per-account settings (frequency, risk, max value)
 │   ├── instrument_universe.sql            ← 2,004 tickers across 8 sectors
 │   └── task_execution_log.sql             ← audit trail
@@ -31,8 +31,8 @@ Financial_Trades_Generation/
 │   ├── sync_new_accounts.sql              ← SYNC_NEW_ACCOUNTS() — DC datashare ingest
 │   └── generate_historical_trades.sql     ← GENERATE_HISTORICAL_TRADES(start, end)
 ├── tasks/                                 ← scheduled CRON tasks
-│   ├── daily_account_sync.sql             ← Midnight ET daily
-│   └── daily_trade_generator.sql          ← 1:00 AM ET daily
+│   ├── daily_account_sync.sql             ← 3:00 AM ET daily
+│   └── daily_trade_generator.sql          ← 3:10 AM ET daily
 └── README.md
 ```
 
@@ -57,11 +57,11 @@ To re-deploy a procedure or task after editing the `.sql`, execute the file's CR
 
 See [README.md § Architecture](README.md#architecture) for the data-flow Mermaid diagram. In short:
 
-1. `DAILY_ACCOUNT_SYNC` (midnight ET) → `SYNC_NEW_ACCOUNTS()` reads `ssot__Account__dlm` from the inbound datashare, maps account type → trade-generation config row (frequency / risk / volume), and inserts new accounts into `TRADE_GENERATION_CONFIG`.
-2. `DAILY_TRADE_GENERATOR` (1:00 AM ET) → `GENERATE_DAILY_TRADES()` iterates active accounts, gates by frequency (DAILY / WEEKLY / MONTHLY), and writes rows to `FINANCIAL_TRADES`.
-3. The 1-hour gap between the two tasks is **deliberate** — it ensures newly synced accounts are visible to the trade generator before it runs.
+1. `DAILY_ACCOUNT_SYNC` (3:00 AM ET, `TASK_WH`) → `SYNC_NEW_ACCOUNTS()` reads `ssot__Account__dlm` from the inbound datashare, maps account type → trade-generation config row (frequency / risk / volume), and inserts new accounts into `TRADE_GENERATION_CONFIG`.
+2. `DAILY_TRADE_GENERATOR` (3:10 AM ET, `LARGE_LOAD`) → `GENERATE_DAILY_TRADES()` iterates active accounts, gates by frequency (DAILY / WEEKLY / MONTHLY), and writes rows to `FINANCIAL_TRADES`.
+3. The 10-minute gap between the two tasks is **deliberate**: newly synced accounts must be in the config table before the generator reads it. Both tasks call their procedure through `SP_RETRY_WRAPPER(…, 2)` and also set `TASK_AUTO_RETRY_ATTEMPTS = 2`. The sync took 34 s and the generator 42 s on the 2026-11-04 run, and the sync's 300 s statement timeout keeps a slow run inside the gap.
 
-The historical-backfill procedure (`GENERATE_HISTORICAL_TRADES`) is a separate, manually-invoked path used to seed the system from June 2024 forward. It uses a **larger warehouse** (`LARGE_LOAD`, X-Large) because the backfill volume blows past `TASK_WH`'s X-Small budget.
+The historical-backfill procedure (`GENERATE_HISTORICAL_TRADES`) is a separate, manually-invoked path used to seed the system from June 2024 forward. It uses a **larger warehouse** (`LARGE_LOAD`, X-Large) because the backfill volume blows past `TASK_WH`'s X-Small budget. The daily generator now runs on `LARGE_LOAD` too; only the account sync stays on `TASK_WH`.
 
 # Conventions
 
@@ -89,8 +89,8 @@ The mapping from Salesforce account type → trade frequency / risk / volume is 
 
 # Common mistakes
 
-- **Forgetting the 1-hour gap between tasks.** The `DAILY_TRADE_GENERATOR` runs at 1:00 AM ET specifically because `DAILY_ACCOUNT_SYNC` runs at midnight ET. Don't compress the schedule — newly-synced accounts won't be in `TRADE_GENERATION_CONFIG` when the generator queries it.
-- **Running historical backfill on `TASK_WH`.** It's an X-Small warehouse sized for daily generation. Backfills should run on `LARGE_LOAD` (X-Large). Failing to switch causes long-running queries that cost more than they should and may hit auto-suspend.
+- **Breaking the ordering between tasks.** `DAILY_TRADE_GENERATOR` runs at 3:10 AM ET specifically because `DAILY_ACCOUNT_SYNC` runs at 3:00 AM ET. Don't move the generator ahead of the sync or shrink the gap below the sync's 300 s timeout: newly-synced accounts won't be in `TRADE_GENERATION_CONFIG` when the generator queries it. The `tasks/*.sql` files mirror the live `GET_DDL` as of 2026-11-04. Until then they said midnight / 1 AM on `TASK_WH` with no retry wrapper, so diff against `GET_DDL('TASK', …)` before any `CREATE OR REPLACE TASK`.
+- **Running historical backfill on `TASK_WH`.** It's an X-Small warehouse sized for the account sync. Backfills should run on `LARGE_LOAD` (X-Large). Failing to switch causes long-running queries that cost more than they should and may hit auto-suspend.
 - **Adding a new procedure without `TASK_EXECUTION_LOG` writes.** Silent failures in a scheduled task look like "the task ran, nothing happened" — actually-failed runs are indistinguishable from "no work to do" without the log.
 - **Editing `procedures/*.sql` without re-deploying.** The repo file is the source of truth, but Snowflake holds the deployed object. Always `CREATE OR REPLACE` against `DATA_JEDAIS.FINS__PUBLIC` after editing — there's no automatic sync.
 - **Hard-coding date ranges in the daily generator.** It reads `CURRENT_DATE()` for the trade date. If you want to generate trades for a specific date, use `GENERATE_HISTORICAL_TRADES` (which takes explicit start/end), not a temporary edit to the daily generator.

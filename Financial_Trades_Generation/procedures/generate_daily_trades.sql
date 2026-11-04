@@ -9,7 +9,7 @@
 --            Updates LAST_GENERATED_DATE on each processed account.
 --            Only active configs with a Salesforce Account Id (ACCOUNT_ID LIKE '001%')
 --            get trades; non-Account keys such as the old TRD-xxx are skipped.
--- Called by: DAILY_TRADE_GENERATOR task (1:00 AM ET)
+-- Called by: DAILY_TRADE_GENERATOR task (3:10 AM ET, via SP_RETRY_WRAPPER)
 -- Language:  Python 3.11 (Snowpark)
 -- Execution: EXECUTE AS OWNER
 -- =============================================================================
