@@ -17,7 +17,7 @@ CALL DATA_JEDAIS.FINS__PUBLIC.GENERATE_HISTORICAL_TRADES('2024-06-01'::DATE, '20
 
 ## Chunking Strategy
 
-For large date ranges (more than ~4 months), the procedure should be called in chunks to avoid query timeouts. The procedure has built-in resume capability, so chunks can be run sequentially without data issues.
+For large date ranges (more than ~4 months), the procedure should be called in chunks to avoid query timeouts. Chunks can be run back to back, and a chunk can be re-run safely: (account, day) pairs it already wrote are skipped (see [Resume Capability](#resume-capability)).
 
 ### Recommended Chunk Sizes
 
@@ -58,28 +58,43 @@ CALL GENERATE_HISTORICAL_TRADES('2025-12-01'::DATE, '2026-04-16'::DATE);
 
 ## Resume Capability
 
-The procedure reads existing trades from `FINANCIAL_TRADES` to initialize the per-account `last_gen` dictionary before iterating through the date range. This enables:
+The procedure reads `FINANCIAL_TRADES` twice before it iterates through the date range:
 
-1. **Chunk boundaries**: WEEKLY and MONTHLY frequency gating works correctly across chunk transitions. Without this, every account would appear "due" on Day 1 of each new chunk.
+1. **Chunk boundaries**: each account's last trade *before* `START_DATE` seeds the per-account `last_gen` dictionary, so WEEKLY and MONTHLY gating carries across chunk transitions. Without it, every account would appear "due" on day 1 of each new chunk.
 
-2. **Failure recovery**: If a chunk fails partway through, re-running it with the same parameters will skip already-generated days (per account) and continue from where it left off.
+2. **Re-run safety** (since 2026-11-04): every (account, day) pair already in the table *between* `START_DATE` and `END_DATE` goes into a `done` set. In the loop a pair in `done` is skipped before `_is_due()`, and it still advances `last_gen`, so the gating after it matches what the earlier run did. Re-running a chunk after a timeout therefore writes only the pairs that are missing, and re-running a finished chunk writes nothing.
 
-3. **Idempotency within frequency**: Because `_is_due()` checks `last_gen`, re-running a chunk won't create duplicate trigger points for WEEKLY/MONTHLY accounts. However, DAILY accounts will generate new (different) trades for the same day if the existing trades aren't detected -- the resume reads `MAX(TRADE_DATE)` per account.
+3. **Whole account-days per batch**: the 5,000-row flush happens between accounts, never inside one account's trades, so each `write_pandas` COPY commits complete account-days. A run cut off by a timeout can't leave a partial day that the next run would then skip.
 
 ### Resume Logic
 
 ```python
-# Query existing trades to initialize state
-existing = session.sql("""
-    SELECT ACCOUNT_ID, MAX(TRADE_DATE)::DATE AS last_date
-    FROM FINANCIAL_TRADES
-    WHERE TRADE_DATE >= ? AND TRADE_DATE <= ?
-    GROUP BY ACCOUNT_ID
-""", params=[start_date_str, end_date_str]).collect()
+# 1. Seed the gating state from the last trade before the chunk
+resume_rows = session.sql(
+    f"SELECT ACCOUNT_ID, MAX(TRADE_DATE)::DATE AS LAST_DATE "
+    f"FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES "
+    f"WHERE TRADE_DATE < '{start_d.isoformat()}'::TIMESTAMP_TZ "
+    f"GROUP BY ACCOUNT_ID").collect()
 
-for row in existing:
-    last_gen[row["ACCOUNT_ID"]] = row["LAST_DATE"]
+# 2. Pairs already written inside the chunk
+done = {(r["ACCOUNT_ID"], r["TRADE_DATE"]) for r in session.sql(
+    f"SELECT DISTINCT ACCOUNT_ID, TRADE_DATE "
+    f"FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES "
+    f"WHERE TRADE_DATE BETWEEN '{start_d.isoformat()}'::DATE "
+    f"AND '{end_d.isoformat()}'::DATE AND ACCOUNT_ID LIKE '001%'").collect()}
+
+# 3. In the loop, before _is_due()
+if (acct["id"], trade_day) in done:
+    last_gen[acct["id"]] = trade_day
+    skipped += 1
+    continue
 ```
+
+The count of skipped pairs is in the return string and in the `ERROR_MESSAGE` column of the `IN_PROGRESS` and `SUCCEEDED` log rows (for example `Chunk 2026-09-01-2026-10-30: skipped 952 existing (account, day) pairs`).
+
+Tested 2026-11-04 on scratch copies of the three tables (400 sampled accounts, 2026-09-01 to 2026-10-30). A clean run wrote 11,245 trades. After 6,421 of them were deleted (every day from 10-01, plus a third of the accounts from 09-15), a re-run wrote exactly 6,421 and skipped 952 pairs. A third run wrote 0 and skipped all 2,235. The final table matched the clean run on every (account, day) row count.
+
+The skip works per (account, day), not per trade. A pair with fewer rows than `TRADES_PER_PERIOD`, left by a pre-2026-11-04 run that was cut off mid-account, is skipped as is. Pairs written by something other than this procedure (for example the daily generator on the same day) are skipped too.
 
 ## Progress Tracking
 
@@ -128,7 +143,7 @@ For a full year (~252 business days), expect approximately 730,000 trades.
 | Aspect | Daily (`GENERATE_DAILY_TRADES`) | Historical (`GENERATE_HISTORICAL_TRADES`) |
 |---|---|---|
 | Date range | Today only | Arbitrary START_DATE to END_DATE |
-| Resume support | Not needed (single day) | Yes -- reads existing trades to init state |
+| Resume / re-run | Through `LAST_GENERATED_DATE` (`_is_due` gate) | Seeds gating from trades before the chunk; skips (account, day) pairs already in the chunk |
 | Progress logging | Single log entry on completion | Every 50 business days + completion |
 | LAST_GENERATED_DATE update | Yes (per account) | No (avoids overwriting daily task state) |
 | Recommended warehouse | `LARGE_LOAD` (X-Large; the task uses it) | `LARGE_LOAD` (X-Large) |
@@ -138,7 +153,7 @@ For a full year (~252 business days), expect approximately 730,000 trades.
 
 ### Timeout errors
 
-If the procedure times out, the trades loaded so far are committed (each 5,000-row `write_pandas` batch commits on its own). Don't re-run the same chunk as is: the resume step reads only trades dated before `START_DATE`, so the days already written would be generated again. Delete the chunk's partial rows first, or start the next run at the last day written (after deleting that day's partial rows).
+If the procedure times out, the batches loaded so far stay committed (each `write_pandas` COPY commits on its own, and each holds whole account-days). Re-run the same chunk with the same parameters: it skips the pairs already written and fills in the rest. Manual CALLs aren't limited by a statement timeout in practice (account, user and warehouse `STATEMENT_TIMEOUT_IN_SECONDS` are 172,800 s), so a timeout usually means the session or client gave up.
 
 ### Checking for gaps
 

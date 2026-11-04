@@ -7,20 +7,25 @@
 --            available when the generator fires.
 -- Schedule:  Daily at 3:00 AM America/New_York
 -- Warehouse: TASK_WH (X-Small)
--- Calls:     SYNC_NEW_ACCOUNTS() through SP_RETRY_WRAPPER (2 retries)
--- Live DDL:  matches GET_DDL('TASK', 'DATA_JEDAIS.FINS__PUBLIC.DAILY_ACCOUNT_SYNC')
---            as of 2026-11-04. Check it before redeploying.
+-- Calls:     SYNC_NEW_ACCOUNTS() directly. TASK_AUTO_RETRY_ATTEMPTS is the
+--            only retry layer, so one attempt (300 s statement timeout) always
+--            ends before the generator fires at 3:10. Until migration 006 the
+--            body went through SP_RETRY_WRAPPER(..., 2).
+-- Live DDL:  this file is the state AFTER migrations/006_task_timeout_layering.sql.
+--            Before 006 is applied the live task still uses the wrapper.
+--            Check GET_DDL('TASK', ...) before redeploying.
 -- =============================================================================
 
 CREATE OR REPLACE TASK DATA_JEDAIS.FINS__PUBLIC.DAILY_ACCOUNT_SYNC
     WAREHOUSE                       = TASK_WH
     SCHEDULE                        = 'USING CRON 0 3 * * * America/New_York'
     STATEMENT_TIMEOUT_IN_SECONDS    = 300
+    USER_TASK_TIMEOUT_MS            = 360000
     SUSPEND_TASK_AFTER_NUM_FAILURES = 0
     TASK_AUTO_RETRY_ATTEMPTS        = 2
     COMMENT                         = 'Sync new accounts from ssot__Account__dlm to TRADE_GENERATION_CONFIG daily'
 AS
-    CALL DATA_JEDAIS.FINS__PUBLIC.SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SYNC_NEW_ACCOUNTS()', 2);
+    CALL DATA_JEDAIS.FINS__PUBLIC.SYNC_NEW_ACCOUNTS();
 
 -- Enable the task after creation:
 -- ALTER TASK DATA_JEDAIS.FINS__PUBLIC.DAILY_ACCOUNT_SYNC RESUME;

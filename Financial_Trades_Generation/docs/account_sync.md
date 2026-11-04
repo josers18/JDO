@@ -2,7 +2,7 @@
 
 ## Overview
 
-The account sync pipeline imports new accounts from a Salesforce Data Cloud shared table into the local `TRADE_GENERATION_CONFIG` table. It runs daily at 3:00 AM ET via the `DAILY_ACCOUNT_SYNC` task (through `SP_RETRY_WRAPPER`, 2 retries), ten minutes before `DAILY_TRADE_GENERATOR`. It is **insert-only**: rows already in the table are never updated (see [Existing rows are never updated](#existing-rows-are-never-updated)).
+The account sync pipeline imports new accounts from a Salesforce Data Cloud shared table into the local `TRADE_GENERATION_CONFIG` table. It runs daily at 3:00 AM ET via the `DAILY_ACCOUNT_SYNC` task (through `SP_RETRY_WRAPPER`, 2 retries, until [migration 006](../migrations/006_task_timeout_layering.sql) makes it a direct call), ten minutes before `DAILY_TRADE_GENERATOR`. It is **insert-only**: rows already in the table are never updated (see [Existing rows are never updated](#existing-rows-are-never-updated)).
 
 ## Source Data
 

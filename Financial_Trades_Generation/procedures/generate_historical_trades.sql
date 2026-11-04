@@ -1,9 +1,13 @@
 -- =============================================================================
 -- Procedure: GENERATE_HISTORICAL_TRADES(START_DATE DATE, END_DATE DATE)
 -- Database:  DATA_JEDAIS.FINS__PUBLIC
--- Purpose:   Backfills historical trades for a given date range. Supports
---            resume capability by reading existing trade dates per account
---            to initialize frequency gating state. Logs progress every 50
+-- Purpose:   Backfills historical trades for a given date range. Seeds the
+--            frequency gating state from each account's last trade before
+--            START_DATE. Safe to re-run on the same chunk: (account, day)
+--            pairs already in FINANCIAL_TRADES between START_DATE and
+--            END_DATE are skipped, and each batch holds whole account-days
+--            only, so a run cut off by a timeout never leaves a partial day
+--            behind. Logs progress every 50
 --            business days. Designed for bulk execution on LARGE_LOAD (X-Large)
 --            warehouse with chunked date ranges.
 --            Only active configs with a Salesforce Account Id (ACCOUNT_ID LIKE '001%')
@@ -184,6 +188,23 @@ def generate_historical(session, START_DATE, END_DATE):
                 elif isinstance(ld, date):
                     last_gen[aid] = ld
 
+        # Re-run safety: pairs already written inside this chunk are skipped.
+        # A skipped pair still advances last_gen, so the gating after it
+        # matches what the earlier run did.
+        done = set()
+        done_rows = session.sql(
+            f"SELECT DISTINCT ACCOUNT_ID, TRADE_DATE "
+            f"FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES "
+            f"WHERE TRADE_DATE BETWEEN ''{start_d.isoformat()}''::DATE "
+            f"AND ''{end_d.isoformat()}''::DATE AND ACCOUNT_ID LIKE ''001%''"
+        ).collect()
+        for r in done_rows:
+            td = r["TRADE_DATE"]
+            if isinstance(td, datetime):
+                td = td.date()
+            done.add((r["ACCOUNT_ID"], td))
+        skipped = 0
+
         # Build business days
         business_days = []
         cur = start_d
@@ -227,6 +248,10 @@ def generate_historical(session, START_DATE, END_DATE):
 
         for day_idx, trade_day in enumerate(business_days):
             for acct in accounts:
+                if (acct["id"], trade_day) in done:
+                    last_gen[acct["id"]] = trade_day
+                    skipped += 1
+                    continue
                 if not _is_due(acct["freq"], last_gen[acct["id"]], trade_day):
                     continue
                 last_gen[acct["id"]] = trade_day
@@ -279,8 +304,11 @@ def generate_historical(session, START_DATE, END_DATE):
                         "Simulated trade", created_at.isoformat()
                     ]
                     batch.append(row)
-                    if len(batch) >= batch_size:
-                        flush_batch()
+
+                # Flush only between accounts, so every COPY commits whole
+                # account-days and a re-run can trust the pairs it finds.
+                if len(batch) >= batch_size:
+                    flush_batch()
 
             if (day_idx + 1) % 50 == 0:
                 elapsed = int((time.time() - start_time) * 1000)
@@ -289,7 +317,7 @@ def generate_historical(session, START_DATE, END_DATE):
                     "(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) "
                     "VALUES (?, ?, ?, ?, ?, ?)",
                     params=[task_name, "IN_PROGRESS", total_inserted, len(accounts),
-                            f"Chunk {start_d}-{end_d}: Day {day_idx+1}/{total_biz_days}", elapsed]
+                            f"Chunk {start_d}-{end_d}: Day {day_idx+1}/{total_biz_days}, skipped {skipped} existing", elapsed]
                 ).collect()
 
         flush_batch()
@@ -299,13 +327,16 @@ def generate_historical(session, START_DATE, END_DATE):
             "INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG "
             "(TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS) "
             "VALUES (?, ?, ?, ?, ?, ?)",
-            params=[task_name, "SUCCEEDED", total_inserted, len(accounts), None, duration_ms]
+            params=[task_name, "SUCCEEDED", total_inserted, len(accounts),
+                    f"Chunk {start_d}-{end_d}: skipped {skipped} existing (account, day) pairs",
+                    duration_ms]
         ).collect()
 
         return (f"Historical backfill complete. "
                 f"Generated {total_inserted:,} trades across {total_biz_days} business days "
                 f"for {len(accounts)} accounts. "
                 f"Date range: {start_d} to {end_d}. "
+                f"Skipped {skipped:,} existing (account, day) pairs. "
                 f"Batches: {flush_count}. Duration: {duration_ms:,}ms.")
 
     except Exception as e:
