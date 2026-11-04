@@ -73,7 +73,8 @@ The historical-backfill procedure (`GENERATE_HISTORICAL_TRADES`) is a separate, 
 
 ## Idempotency
 
-- `SYNC_NEW_ACCOUNTS()` is idempotent — uses `MERGE INTO TRADE_GENERATION_CONFIG` with the Salesforce `ACCOUNT_ID` as the natural key. Re-running on the same datashare snapshot is a no-op.
+- `SYNC_NEW_ACCOUNTS()` is idempotent and insert-only. It reads the share, drops IDs already in `TRADE_GENERATION_CONFIG`, and batch-INSERTs the rest (500 per batch), keyed on the Salesforce `ACCOUNT_ID`. Re-running on the same datashare snapshot is a no-op.
+- **The source read dedupes `ssot__Id__c` with a total ordering** (since 2026-11-04): Account DSO first, then newest `ssot__LastModifiedDate__c`, then `HASH(s.*)`. The share carries duplicate copies per ID (e.g. Omega `001am00000qvjs6AAA`: an Account copy and a PartyRelationshipGroup copy). Without the `QUALIFY`, a duplicated new ID would be inserted twice with an arbitrary name/type. The body is a single-quoted string, so quotes inside it are doubled (`''Account''`). Deploy with `--database DATA_JEDAIS --schema FINS__PUBLIC`, because the `CREATE` uses an unqualified name.
 - `GENERATE_DAILY_TRADES()` is idempotent **per (account, date)** — uses a `WHERE NOT EXISTS` gate against `FINANCIAL_TRADES` for the current trade date. Re-running mid-day after a partial failure resumes cleanly.
 - `GENERATE_HISTORICAL_TRADES(start, end)` is idempotent the same way — but is **CPU-heavy at scale**. Backfill in chunks (week-by-week or month-by-month) to keep individual procedure runs under the warehouse's auto-suspend timeout.
 

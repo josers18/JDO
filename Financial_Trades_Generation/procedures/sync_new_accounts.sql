@@ -5,6 +5,11 @@
 --            FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
 --            into TRADE_GENERATION_CONFIG. Filters for 001% IDs, maps source
 --            account types to trading profiles, and batch-inserts in groups of 500.
+--            The share holds duplicate rows per ssot__Id__c (e.g. Omega
+--            001am00000qvjs6AAA has an Account and a PartyRelationshipGroup
+--            copy), so the source read collapses them with a total ordering:
+--            Account DSO first, newest LastModifiedDate, then a row hash.
+--            Without it a new duplicated ID would be inserted twice.
 -- Called by: DAILY_ACCOUNT_SYNC task (midnight ET)
 -- Language:  Python 3.11 (Snowpark)
 -- Execution: EXECUTE AS OWNER
@@ -41,10 +46,19 @@ def sync_accounts(session):
             SELECT "ssot__Id__c" AS ACCOUNT_ID,
                    "ssot__Name__c" AS ACCOUNT_NAME,
                    "ssot__AccountTypeId__c" AS ACCOUNT_TYPE_SRC
-            FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
+            FROM (
+                SELECT s.*, HASH(s.*) AS "_row_hash"
+                FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" s
+            )
             WHERE "ssot__Id__c" LIKE ''001%''
               AND "ssot__Name__c" IS NOT NULL
               AND TRIM("ssot__Name__c") != ''''
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY "ssot__Id__c"
+                ORDER BY IFF("ssot__DataSourceObjectId__c" = ''Account'', 0, 1),
+                         "ssot__LastModifiedDate__c" DESC NULLS LAST,
+                         "_row_hash"
+            ) = 1
         '''''').collect()
 
         source_count = len(source_rows)

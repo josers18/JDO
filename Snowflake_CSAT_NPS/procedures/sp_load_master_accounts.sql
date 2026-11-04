@@ -11,6 +11,13 @@
 -- for existing accounts and inserts any new ones. Duplicate source rows are
 -- collapsed via ROW_NUMBER() before reaching the MERGE.
 --
+-- Dedupe ordering (2026-11-04): mirrors V_ACCOUNT_ANCHORS v1.4 so MASTER_ACCOUNTS
+-- .ACCOUNT_NAME comes from the same copy the view takes its attributes from:
+-- most-populated row, then the Account DSO over PartyRelationshipGroup, then
+-- newest LastModifiedDate, then a full-row hash as the total tiebreak. The old
+-- ORDER BY "ssot__DataSourceId__c" tied on Omega (001am00000qvjs6AAA — both
+-- copies are Salesforce_Home) and nondeterministically picked "Omega Group".
+--
 -- Logging: Writes execution outcome to DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG.
 -- =============================================================================
 
@@ -28,22 +35,38 @@ BEGIN
     BEGIN
         -- MERGE with source deduplication: ROW_NUMBER collapses duplicate
         -- ssot__Id__c rows that appear in the Data Cloud secure view due to
-        -- multi-source ingestion or replication lag.
+        -- multi-source ingestion or replication lag. Ordering is total
+        -- (ends on a row hash) so every run picks the same copy; keep it in
+        -- lockstep with V_ACCOUNT_ANCHORS v1.4. HASH(s.*) is computed in the
+        -- inner SELECT because HASH(*) is not allowed in a window ORDER BY.
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS AS tgt
         USING (
-            SELECT ACCOUNT_ID, ACCOUNT_NAME, DATA_SOURCE
+            SELECT
+                "ssot__Id__c"           AS ACCOUNT_ID,
+                "ssot__Name__c"         AS ACCOUNT_NAME,
+                "ssot__DataSourceId__c" AS DATA_SOURCE
             FROM (
-                SELECT
-                    "ssot__Id__c"           AS ACCOUNT_ID,
-                    "ssot__Name__c"         AS ACCOUNT_NAME,
-                    "ssot__DataSourceId__c" AS DATA_SOURCE,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY "ssot__Id__c"
-                        ORDER BY "ssot__DataSourceId__c"
-                    ) AS rn
-                FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
+                SELECT s.*, HASH(s.*) AS "_row_hash"
+                FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" s
             )
-            WHERE rn = 1
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY "ssot__Id__c"
+                ORDER BY
+                    ( IFF("FinServ_ClientCategory_c__c"   IS NULL, 0, 1)
+                    + IFF("PersonBirthdate__c"            IS NULL, 0, 1)
+                    + IFF("FinServ_AnnualIncome_pc__c"    IS NULL, 0, 1)
+                    + IFF("FinServ_CreditScore_c__c"      IS NULL, 0, 1)
+                    + IFF("ssot__PrimaryIndustry__c"      IS NULL, 0, 1)
+                    + IFF("ssot__AnnualRevenueAmount__c"  IS NULL, 0, 1)
+                    + IFF("ssot__EmployeeCount__c"        IS NULL, 0, 1)
+                    + IFF(COALESCE("PersonMailingPostalCode__c", "BillingPostalCode__c") IS NULL, 0, 1)
+                    + IFF(COALESCE("PersonMailingState__c",      "BillingState__c")      IS NULL, 0, 1)
+                    + IFF(COALESCE("PersonMailingCountry__c",    "BillingCountry__c")    IS NULL, 0, 1)
+                    + IFF("External_ID_c__c"              IS NULL, 0, 1) ) DESC,
+                    IFF("ssot__DataSourceObjectId__c" = 'Account', 0, 1),
+                    "ssot__LastModifiedDate__c" DESC NULLS LAST,
+                    "_row_hash"
+            ) = 1
         ) AS src
         ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
         WHEN MATCHED THEN UPDATE SET
