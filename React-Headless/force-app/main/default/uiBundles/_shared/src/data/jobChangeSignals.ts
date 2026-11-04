@@ -13,6 +13,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { decodeEntities } from './decodeEntities';
 import { dueFrom } from './transactionSignals';
 
 /** Champion-departure rows the queue shows (after the Who-to-Call dedupe). */
@@ -41,7 +42,7 @@ const championRowsSql = (accountFilter: string) => `
 `;
 
 const championSummarySql = (accountFilter: string) => `
-  SELECT COUNT(*) AS total
+  SELECT COUNT(DISTINCT account_id__c) AS total
   FROM BT_UserGems_Job_Changes__dlm${championWhere(accountFilter)}
 `;
 
@@ -60,7 +61,7 @@ const liquidityRowsSql = (accountFilter: string) => `
 `;
 
 const liquiditySummarySql = (accountFilter: string) => `
-  SELECT COUNT(*) AS total
+  SELECT COUNT(DISTINCT person_account_id__c) AS total
   FROM BT_UserGems_Job_Changes__dlm${liquidityWhere(accountFilter)}
 `;
 
@@ -96,15 +97,15 @@ const numOrNull = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const strOrNull = (v: unknown): string | null => (v == null || v === '' ? null : String(v));
+const strOrNull = (v: unknown): string | null => (v == null || v === '' ? null : decodeEntities(String(v)));
 
 const toRow = (r: Record<string, unknown>, accountKey: 'account_id__c' | 'person_account_id__c'): JobChangeRow => ({
   accountId: String(r[accountKey] ?? ''),
   employerId: String(r.account_id__c ?? ''),
   newEmployerId: strOrNull(r.new_account_id__c),
   newEmployerName: strOrNull(r.new_employer_name__c),
-  contactName: String(r.contact_name__c ?? ''),
-  title: String(r.old_title__c ?? ''),
+  contactName: decodeEntities(String(r.contact_name__c ?? '')),
+  title: decodeEntities(String(r.old_title__c ?? '')),
   persona: String(r.contact_persona__c ?? ''),
   wasChampion: r.was_champion__c === true || r.was_champion__c === 'true',
   riskScore: numOrNull(r.relationship_risk_score__c),
@@ -181,7 +182,7 @@ export function liquidityQueueItems(
       clientId: r.accountId,
       clientName: nameById[r.accountId] || r.accountId,
       segment: opts.segment,
-      reason: `${r.contactName} left ${nameById[r.employerId] || 'their employer'}`
+      reason: `${nameById[r.accountId] || r.contactName} left ${nameById[r.employerId] || 'their employer'}`
         + (newEmployer ? ` for ${newEmployer}` : '') + ' · liquidity event',
       action: 'Liquidity conversation — rollover / equity proceeds',
       score: Math.min(0.85, 0.5 + (r.opportunityScore ?? 0) / 300),

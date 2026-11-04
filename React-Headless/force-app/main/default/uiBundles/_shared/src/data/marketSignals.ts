@@ -16,6 +16,7 @@
  * 1,015 turnover flags, 40 on Weak governance, ~330 governance events in 90d.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { decodeEntities } from './decodeEntities';
 
 const OUTLOOK_SLICE = `profile_date__c = (SELECT MAX(profile_date__c) FROM BT_Moodys_Market_Context__dlm)
     AND rating_outlook__c IN ('Negative', 'Watch')`;
@@ -129,8 +130,7 @@ export interface LeadershipResult {
 }
 
 // BoardEx names arrive HTML-escaped (e.g. "O&#39;Connor").
-const decode = (s: string) =>
-  s.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const decode = decodeEntities;
 
 /** C3 — exec-turnover accounts: three opportunity + three risk rows, plus counts. */
 export async function fetchLeadershipChanges(ownerId: string | null | undefined): Promise<LeadershipResult> {

@@ -242,7 +242,6 @@ export function buildPriorityQueue(input: {
   if (!top.some(it => it.reserveSlot)) {
     const best = deduped.find(it => it.reserveSlot); // deduped is already sorted
     if (best && top.length === limit) top[limit - 1] = best;
-    else if (best) top.push(best);
   }
   top.sort(byPriority);
 

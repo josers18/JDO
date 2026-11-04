@@ -20,6 +20,7 @@
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
 import { dueFrom } from './transactionSignals';
+import { decodeEntities } from './decodeEntities';
 
 /** Intent-surge rows the queue shows (after the Who-to-Call dedupe). */
 export const INTENT_SURGE_ROWS = 2;
@@ -104,12 +105,12 @@ export async function fetchIntentSignals(ownerId: string | null | undefined): Pr
     rows: res.rows.map(r => ({
       accountId: String(r.account_id ?? ''),
       kind: r.kind === 'competitor' ? 'competitor' as const : 'surge' as const,
-      topic: String(r.topic ?? ''),
+      topic: decodeEntities(String(r.topic ?? '')),
       stage: String(r.stage ?? ''),
       // DC returns decimals as strings.
       intentScore: Number(r.score) || 0,
       researchers: Number(r.researchers) || 0,
-      competitor: r.competitor == null || r.competitor === '' ? null : String(r.competitor),
+      competitor: r.competitor == null || r.competitor === '' ? null : decodeEntities(String(r.competitor)),
       signalDate: String(r.signal_date ?? '').slice(0, 10),
     })),
   };

@@ -15,6 +15,7 @@
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
 import { dueFrom } from './transactionSignals';
+import { decodeEntities } from './decodeEntities';
 
 /** Funding rows the queue shows (after the Who-to-Call dedupe). */
 export const FUNDING_ROWS = 2;
@@ -83,7 +84,7 @@ export async function fetchFundingSignals(ownerId: string | null | undefined): P
       status: String(r.funding_status__c ?? ''),
       roundUsd: numOrNull(r.last_round_usd__c),
       runwayMonths: numOrNull(r.est_runway_months__c),
-      leadInvestor: r.lead_investor__c == null || r.lead_investor__c === '' ? null : String(r.lead_investor__c),
+      leadInvestor: r.lead_investor__c == null || r.lead_investor__c === '' ? null : decodeEntities(String(r.lead_investor__c)),
       fundingDate: String(r.last_funding_date__c ?? '').slice(0, 10),
     })),
   };
