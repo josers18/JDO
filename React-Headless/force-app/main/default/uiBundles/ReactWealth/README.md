@@ -8,7 +8,7 @@ Shared plumbing (Aurora Glass theme, data clients, component primitives, home-ac
 
 ## What's inside
 
-- **Home** (`/`) — the advisory-desk dashboard plus a schedule table (Tasks + Events bucketed Overdue / Today / Upcoming). AI briefs turn into one-click actions (draft with Einstein via `AiGenerateRest`; create tasks / meetings / emails / cases via `CrmWriteRest`), refetching in place with no spinner.
+- **Home** (`/`) — the advisory-desk dashboard plus a schedule table (Tasks + Events bucketed Overdue / Today / Upcoming). AI briefs turn into one-click actions (draft with Einstein via `AiGenerateRest`; create tasks / meetings / emails / cases via `CrmWriteRest`), refetching in place with no spinner. The Priority Queue and alerts rail also carry UserGems **liquidity events** (a client left an employer with a rollover / equity-proceeds opportunity), with one queue row held for the strongest of them.
 - **Configuration** (`/config`) — org-level admin page to pick which Agentforce model runs each generative action, from a self-updating catalog (`CommandCenterConfigRest` → `/config/*`); plus a brand theming section (custom logo/palette per org, two pinned default Light/Dark themes). See the project README for both mechanisms.
 - Native-style Salesforce chrome (app-launcher waffle, global search, user menu, notifications) and real Agentforce chat embedded via the Conversation Client.
 
