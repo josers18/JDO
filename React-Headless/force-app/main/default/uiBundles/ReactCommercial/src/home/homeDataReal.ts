@@ -46,7 +46,7 @@
  * driver in the blended "who to call" score. Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered, inheritDue } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered, inheritDue, fetchIntentSignals, intentQueueItems, INTENT_SURGE_ROWS, COMPETITOR_ROWS, type IntentSignalResult, fetchFundingSignals, fundingQueueItems, FUNDING_ROWS, type FundingSignalResult, fetchChampionDepartures, championQueueItems, CHAMPION_ROWS, type JobChangeResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -273,7 +273,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, credit, who, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint] = await Promise.all([
+  const [core, credit, who, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint, intent, funding, champions] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
     userP.then(u => fetchCommercialWhoToCall(u?.userId)),
@@ -318,6 +318,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // C7 ESRI branch footprint — additive.
     userP.then(u => fetchMarketFootprint(u?.userId))
       .catch((): MarketFootprintResult => ({ rows: [], clients: 0, zips: 0, consolidate: 0, affluent: 0, avgWealthIndex: 0, avgFootTraffic: 0, avgDistanceMi: 0, scope: 'org' })),
+    // Plans 14–16 — Demandbase intent, Harmonic funding, UserGems job changes — additive.
+    userP.then(u => fetchIntentSignals(u?.userId))
+      .catch((): IntentSignalResult => ({ rows: [], surging: 0, competitor: 0, scope: 'org' })),
+    userP.then(u => fetchFundingSignals(u?.userId))
+      .catch((): FundingSignalResult => ({ rows: [], funded: 0, scope: 'org' })),
+    userP.then(u => fetchChampionDepartures(u?.userId))
+      .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
   const [delinq, watch] = await Promise.all([
     queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
@@ -337,7 +344,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
-  const ids = [...new Set([...who.rows.map(r => r.accountId), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId), ...esg.rows.map(r => r.accountId), ...firmo.rows.map(r => r.accountId), ...handoffs.rows.map(r => r.businessId)].filter(Boolean))];
+  const ids = [...new Set([...who.rows.map(r => r.accountId), ...feeSpikes.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...receipts.rows.map(r => r.accountId), ...outlook.rows.map(r => r.accountId), ...leadership.rows.map(r => r.accountId), ...esg.rows.map(r => r.accountId), ...firmo.rows.map(r => r.accountId), ...handoffs.rows.map(r => r.businessId), ...intent.rows.map(r => r.accountId), ...funding.rows.map(r => r.accountId), ...champions.rows.flatMap(r => [r.accountId, r.newEmployerId ?? ''])].filter(Boolean))];
   const nameById: Record<string, string> = {};
   // accountNamesQuery caps at first: 50, so look the ids up in chunks of 50.
   const idChunks = Array.from({ length: Math.ceil(ids.length / 50) }, (_, i) => ids.slice(i * 50, i * 50 + 50));
@@ -382,7 +389,16 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // Gong / fee-spike clients already in the blended Who-to-Call don't repeat as their own item;
   // the fee feed ranks by the same score and fetches spares, so cap it after the dedupe.
   const feeQueue = dropCovered(txSignals, callList).slice(0, FEE_SPIKES);
-  const transactionSignals: CallItem[] = [...amlSignals, ...dropCovered(gongSignals, callList), ...feeQueue, ...receiptSignals, ...campaignSignals];
+  // Demandbase intent / Harmonic funding / UserGems champion departures — each
+  // deduped against Who-to-Call, then capped per feed (competitor research and
+  // surges have separate caps).
+  const intentItems = dropCovered(intentQueueItems(intent, nameById, { segment: 'Commercial' }), callList);
+  const competitorQueue = intentItems.filter(i => i.action === 'Defend the relationship').slice(0, COMPETITOR_ROWS);
+  const surgeQueue = intentItems.filter(i => i.action !== 'Defend the relationship').slice(0, INTENT_SURGE_ROWS);
+  const intentQueue = [...competitorQueue, ...surgeQueue];
+  const fundingQueue = dropCovered(fundingQueueItems(funding, nameById, { segment: 'Commercial' }), callList).slice(0, FUNDING_ROWS);
+  const championQueue = dropCovered(championQueueItems(champions, nameById, { segment: 'Commercial' }), callList).slice(0, CHAMPION_ROWS);
+  const transactionSignals: CallItem[] = [...amlSignals, ...dropCovered(gongSignals, callList), ...feeQueue, ...receiptSignals, ...campaignSignals, ...intentQueue, ...fundingQueue, ...championQueue];
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -676,7 +692,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${Math.min(FEE_SPIKES, feeSpikes.rows.length)} clients show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}`,
+    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${Math.min(FEE_SPIKES, feeSpikes.rows.length)} clients show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}${intent.surging + intent.competitor + funding.funded + champions.total ? ` Market signals: ${intent.surging.toLocaleString('en-US')} accounts surging on intent, ${intent.competitor.toLocaleString('en-US')} researching a competitor, ${funding.funded.toLocaleString('en-US')} just raised a round, and ${champions.total.toLocaleString('en-US')} lost a champion or primary contact in the last 30 days.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 86,
     dataSourceCount: freshness?.sources.length ?? 25,
@@ -751,6 +767,22 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       ...amlSignals.slice(0, 2).map((w, i) => ({
         id: `aw${i}`, title: `Screening escalated — ${w.clientName}`, detail: `${w.reason} · ${w.action}`,
         tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',
+      })),
+      ...competitorQueue.slice(0, 2).map((c, i) => ({
+        id: `adc${i}`, title: `Researching a competitor — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
+      })),
+      ...surgeQueue.slice(0, 2).map((c, i) => ({
+        id: `adi${i}`, title: `Intent surge — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
+      })),
+      ...fundingQueue.slice(0, 2).map((c, i) => ({
+        id: `ahf${i}`, title: `New funding — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this month',
+      })),
+      ...championQueue.slice(0, 2).map((c, i) => ({
+        id: `aug${i}`, title: `Champion left — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 30d',
       })),
       ...callList.slice(0, 4).map((c, i) => ({
         id: `a${i}`, title: `Call first — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
