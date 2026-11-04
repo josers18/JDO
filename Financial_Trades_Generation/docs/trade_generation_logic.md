@@ -150,23 +150,26 @@ def _filter_instruments(instruments, preferred_sectors):
     return filtered if filtered else instruments
 ```
 
-## Batch Insert Pattern
+## Batch Load Pattern
 
-Trades are accumulated in Python and inserted in batches of 500:
+`GENERATE_DAILY_TRADES` accumulates trades as dicts and loads them in batches of 5,000 with `session.write_pandas` (one PUT + COPY per batch):
 
 ```python
-batch_size = 500
-for i in range(0, len(all_trades), batch_size):
-    batch = all_trades[i:i+batch_size]
-    values_clauses = ", ".join(["(?, ?, ?, ..., ?)"] * len(batch))
-    params = [val for trade in batch for val in trade]
-    session.sql(f"INSERT INTO FINANCIAL_TRADES (...) VALUES {values_clauses}", params=params).collect()
+def _flush_batch(session, batch):
+    df = pd.DataFrame(batch)
+    for c in DATE_COLS:  # TRADE_DATE, SETTLEMENT_DATE, SNAPSHOT_DATE
+        df[c] = pd.to_datetime(df[c], utc=True).dt.date
+    df["CREATED_AT"] = pd.to_datetime(df["CREATED_AT"], utc=True).dt.tz_localize(None)
+    session.write_pandas(df, "FINANCIAL_TRADES", database="DATA_JEDAIS",
+                         schema="FINS__PUBLIC", auto_create_table=False,
+                         overwrite=False, use_logical_type=True)
 ```
 
-This pattern was chosen over DataFrame inserts because:
-- Predictable memory usage (500-row batches)
-- No Snowpark DataFrame overhead for simple inserts
-- Compatible with `EXECUTE AS OWNER` restriction (no temp tables)
+`generate_trade` emits the dates as ISO-Z strings. A bind INSERT cast those itself, but COPY from parquet doesn't, so `_flush_batch` parses them. The three date columns keep the UTC calendar day, and `CREATED_AT` (`TIMESTAMP_NTZ`) is stored as naive UTC. The batch is also flushed before each 500-account `LAST_GENERATED_DATE` update (see [Frequency Gating](#frequency-gating)).
+
+Until 2026-11-04 the batch went out as one parameterized multi-row `INSERT INTO ... VALUES (?, ...)`. Snowflake spent ~18 s compiling each 5,000-row statement (0.7 s executing it), so a large Monday run hit the 1,800 s procedure timeout. A `write_pandas` flush of 5,000 rows takes ~2 s.
+
+`GENERATE_HISTORICAL_TRADES` still uses parameterized INSERTs of 500 rows.
 
 ## Daily Volume Estimates
 

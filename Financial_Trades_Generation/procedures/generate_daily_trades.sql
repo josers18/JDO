@@ -5,7 +5,8 @@
 --            based on their configured frequency (DAILY/WEEKLY/MONTHLY).
 --            Reads from INSTRUMENT_UNIVERSE and TRADE_GENERATION_CONFIG,
 --            applies risk-based price jitter, exchange/currency weighting,
---            and batch-inserts into FINANCIAL_TRADES (5,000 rows per batch).
+--            and loads FINANCIAL_TRADES with session.write_pandas (5,000 rows
+--            per batch).
 --            Updates LAST_GENERATED_DATE on each processed account.
 --            Only active configs with a Salesforce Account Id (ACCOUNT_ID LIKE '001%')
 --            get trades; non-Account keys such as the old TRD-xxx are skipped.
@@ -18,7 +19,7 @@ CREATE OR REPLACE PROCEDURE "GENERATE_DAILY_TRADES"()
 RETURNS VARCHAR
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
-PACKAGES = ('snowflake-snowpark-python')
+PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'generate_trades'
 EXECUTE AS OWNER
 AS '
@@ -26,6 +27,8 @@ import random
 import uuid
 import time
 from datetime import date, datetime, timedelta, timezone
+
+import pandas as pd
 
 EXCHANGES = ["NYSE", "NASDAQ", "LSE", "HKEX", "JPX"]
 SOURCE_SYSTEMS = [
@@ -203,22 +206,26 @@ def generate_trade(rng, account_id, trade_day, instrument, risk, max_val, avail_
     }
 
 
+DATE_COLS = ("TRADE_DATE", "SETTLEMENT_DATE", "SNAPSHOT_DATE")
+
+
 def _flush_batch(session, batch):
-    """Insert a batch of trades into FINANCIAL_TRADES."""
+    """Load a batch of trades into FINANCIAL_TRADES with write_pandas.
+
+    One PUT + COPY per batch. The multi-row bind INSERT it replaces spent
+    ~18 s compiling each 5,000-row statement. COPY from parquet does not
+    cast the ISO-Z strings the way the INSERT binds did, so they are parsed
+    here: DATE columns keep the UTC calendar day, CREATED_AT is naive UTC.
+    """
     if not batch:
         return
-    cols = list(batch[0].keys())
-    col_list = ", ".join(cols)
-    values_clauses = []
-    all_params = []
-    placeholders = ", ".join(["?"] * len(cols))
-    for t in batch:
-        values_clauses.append(f"({placeholders})")
-        for c in cols:
-            all_params.append(t[c])
-    values_sql = ", ".join(values_clauses)
-    insert_sql = f"INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ({col_list}) VALUES {values_sql}"
-    session.sql(insert_sql, params=all_params).collect()
+    df = pd.DataFrame(batch)
+    for c in DATE_COLS:
+        df[c] = pd.to_datetime(df[c], utc=True).dt.date
+    df["CREATED_AT"] = pd.to_datetime(df["CREATED_AT"], utc=True).dt.tz_localize(None)
+    session.write_pandas(df, "FINANCIAL_TRADES", database="DATA_JEDAIS",
+                         schema="FINS__PUBLIC", auto_create_table=False,
+                         overwrite=False, use_logical_type=True)
 
 
 def log_execution(session, task_name, status, rows_inserted=0,

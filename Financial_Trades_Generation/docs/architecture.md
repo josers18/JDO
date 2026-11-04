@@ -96,7 +96,7 @@ graph TB
     CFG -->|"active + due accounts"| P2
     IU -->|"instruments + base prices"| P2
     T2 --> P2
-    P2 -->|"batch INSERT 500/batch"| FT
+    P2 -->|"write_pandas 5,000/batch"| FT
     P2 -->|"log result"| LOG
     P2 -->|"update LAST_GENERATED_DATE"| CFG
 
@@ -158,9 +158,9 @@ The daily tasks run on X-Small since they process a single day's trades (~3,100 
 
 1. **Python Snowpark over SQL**: Trade generation requires complex randomization (weighted choices, jitter, UUID generation) that is more naturally expressed in Python than SQL.
 
-2. **EXECUTE AS OWNER**: Procedures run with owner privileges to access shared database objects. This introduces a limitation: temporary tables cannot be created inside these procedures.
+2. **EXECUTE AS OWNER**: Procedures run with owner privileges to access shared database objects. This introduces a limitation: temporary tables cannot be created inside these procedures. (`write_pandas` still works in `GENERATE_DAILY_TRADES`: its temporary stage is allowed.)
 
-3. **Batch INSERT pattern**: Trades are accumulated in Python lists and inserted in batches of 500 using parameterized `INSERT INTO ... VALUES` statements. This avoids DataFrame overhead and provides predictable performance.
+3. **Batch loading**: Trades are accumulated in Python lists and flushed in batches. `GENERATE_DAILY_TRADES` loads each 5,000-row batch with `session.write_pandas` (one PUT + COPY, ~2 s), since 2026-11-04. Before that it used a parameterized multi-row `INSERT INTO ... VALUES`, which spent ~18 s compiling each 5,000-row statement. `GENERATE_HISTORICAL_TRADES` still uses parameterized INSERTs of 500 rows.
 
 4. **Frequency gating in Python**: The `_is_due()` function runs client-side (in the procedure) rather than as a SQL filter, because the logic depends on per-account state that evolves as the procedure iterates through days.
 
