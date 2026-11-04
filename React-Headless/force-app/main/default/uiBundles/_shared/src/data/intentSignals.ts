@@ -136,7 +136,7 @@ export function intentQueueItems(
       segment: opts.segment,
       reason: competitor
         ? `Researching ${r.competitor} · ${r.stage} · ${r.topic}`
-        : `Surging on ${r.topic} · ${r.stage} stage · ${r.researchers} researchers`,
+        : `Surging on ${r.topic} · ${r.stage} stage · ${r.researchers} ${r.researchers === 1 ? 'researcher' : 'researchers'}`,
       action: competitor ? 'Defend the relationship' : 'Get ahead of the evaluation',
       score: competitor ? Math.min(0.85, 0.55 + r.intentScore / 400) : Math.min(0.8, 0.5 + r.intentScore / 400),
       severity,

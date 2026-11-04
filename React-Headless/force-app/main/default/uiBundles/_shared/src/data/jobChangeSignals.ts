@@ -155,7 +155,7 @@ export function championQueueItems(
       clientId: r.accountId,
       clientName: nameById[r.accountId] || r.accountId,
       segment: opts.segment,
-      reason: `${r.wasChampion ? 'Champion' : 'Primary contact'} ${r.contactName} (${r.title}) left`
+      reason: `${r.wasChampion ? 'Champion' : 'Primary contact'} ${r.contactName}${r.title ? ` (${r.title})` : ''} left`
         + (newEmployer ? ` · now at ${newEmployer}` : ''),
       action: 'Re-establish the relationship',
       score: Math.min(0.85, 0.5 + (r.riskScore ?? 0) / 300),

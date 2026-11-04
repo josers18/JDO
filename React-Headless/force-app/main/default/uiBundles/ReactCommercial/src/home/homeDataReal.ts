@@ -399,6 +399,13 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const fundingQueue = dropCovered(fundingQueueItems(funding, nameById, { segment: 'Commercial' }), callList).slice(0, FUNDING_ROWS);
   const championQueue = dropCovered(championQueueItems(champions, nameById, { segment: 'Commercial' }), callList).slice(0, CHAMPION_ROWS);
   const transactionSignals: CallItem[] = [...amlSignals, ...dropCovered(gongSignals, callList), ...feeQueue, ...receiptSignals, ...campaignSignals, ...intentQueue, ...fundingQueue, ...championQueue];
+  // Alerts rail: one new-signal alert per account. Risk (competitor, champion) beats opportunity (funding, surge).
+  const alertSeen = new Set<string>();
+  const firstPerAccount = (items: CallItem[]) => items.filter(c => !alertSeen.has(c.clientId) && !!alertSeen.add(c.clientId));
+  const competitorAlerts = firstPerAccount(competitorQueue);
+  const championAlerts = firstPerAccount(championQueue);
+  const fundingAlerts = firstPerAccount(fundingQueue);
+  const surgeAlerts = firstPerAccount(surgeQueue);
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -768,19 +775,19 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
         id: `aw${i}`, title: `Screening escalated — ${w.clientName}`, detail: `${w.reason} · ${w.action}`,
         tone: 'risk' as const, severity: w.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'today',
       })),
-      ...competitorQueue.slice(0, 2).map((c, i) => ({
+      ...competitorAlerts.slice(0, 2).map((c, i) => ({
         id: `adc${i}`, title: `Researching a competitor — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
       })),
-      ...surgeQueue.slice(0, 2).map((c, i) => ({
+      ...surgeAlerts.slice(0, 2).map((c, i) => ({
         id: `adi${i}`, title: `Intent surge — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
         tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this week',
       })),
-      ...fundingQueue.slice(0, 2).map((c, i) => ({
+      ...fundingAlerts.slice(0, 2).map((c, i) => ({
         id: `ahf${i}`, title: `New funding — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
         tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'this month',
       })),
-      ...championQueue.slice(0, 2).map((c, i) => ({
+      ...championAlerts.slice(0, 2).map((c, i) => ({
         id: `aug${i}`, title: `Champion left — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
         tone: 'risk' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 30d',
       })),
