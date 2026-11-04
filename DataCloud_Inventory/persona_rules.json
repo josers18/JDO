@@ -34,8 +34,8 @@
     {"tags": ["Platform"], "label": "DC / org metadata", "pattern": "^DataCategory|^DataLakeObject|^DataObject|DataPackageKit|DataSemanticSearch|DataSrcDataModel|^DataStream|^Mkt|ObjectMetadataTag|NotebookFiles|SetupPageSearch|remote_connection|ManagedContent|ExperimentationLog|AbnExperiment|test_ej"},
     {"tags": ["Platform"], "label": "users / security / billing", "pattern": "^Tenant|Permission|^User|^Group|Collaboration|Territory2|BusinessHours|CurrencyType_(?!Brokerage)|ForecastingGroup|^Skill_|ServicePresence|^Flow|EventStream|EventBusConnector|_Salesforce_Platform|^RecordView$|^SearchQuery$|MessagingChannel|ConversationDefinition"},
 
-    {"tags": ["Personal", "Business"], "label": "all-account BT_ datasets", "pattern": "Boardex|Gong|Synth_Relationship|ESRI|MGP_|MoneyGuide|Financial_Trades|Financial_Transactions_BT"},
-    {"tags": ["Business"], "label": "firmographics / KYB", "pattern": "DNB|Zoominfo|MSCI|SEC_Filings|Business_Product|Lead_Demo|AccountAccountRelation|^Lines$"},
+    {"tags": ["Personal", "Business"], "label": "all-account BT_ datasets", "pattern": "Boardex|Gong|Synth_Relationship|ESRI|MGP_|MoneyGuide|Financial_Trades|Financial_Transactions_BT|UserGems"},
+    {"tags": ["Business"], "label": "firmographics / KYB", "pattern": "DNB|Zoominfo|MSCI|SEC_Filings|Business_Product|Lead_Demo|AccountAccountRelation|^Lines$|Demandbase|Harmonic"},
     {"tags": ["Personal", "Business"], "label": "AML / market context", "pattern": "WorldCheck|Moodys"},
 
     {"tags": ["All"], "label": "FSC financial-account core", "pattern": "^FinancialAccountTransaction|Financial_Account_Role|Meeting_Note"},

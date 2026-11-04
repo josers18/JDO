@@ -6,6 +6,17 @@ are dated newest-first and grouped by month. Treat shipped entries as immutable
 history — when new work lands, add a NEW dated entry rather than retroactively
 editing prior ones.
 
+## [November 2026] — 2026-11-04
+
+### 2026-11-04 — Persona rules for the Plans 14–16 BT_ streams
+
+- `data(datacloud-inventory)` — `BT_Demandbase_Intent_Signals` and
+  `BT_Harmonic_Company_Signals` join the `firmographics / KYB` rule (Business:
+  B2B intent and company funding/headcount signals).
+  `BT_UserGems_Job_Changes` joins the `all-account BT_ datasets` rule
+  (Personal + Business: employer-account job changes that also link to the
+  Wealth person account). Without these, all three were `Unclassified`.
+
 ## [October 2026] — 2026-10-20
 
 ### 2026-10-20 — Stale browser edits clear themselves
