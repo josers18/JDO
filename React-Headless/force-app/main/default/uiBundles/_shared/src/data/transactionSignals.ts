@@ -182,7 +182,7 @@ const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
 /** Due date = signal date + SLA days, never earlier than today. */
-function dueFrom(iso: string, slaDays: number, now: Date): string {
+export function dueFrom(iso: string, slaDays: number, now: Date): string {
   const base = iso ? new Date(iso + 'T00:00:00').getTime() : now.getTime();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   return new Date(Math.max(base + slaDays * DAY, today)).toISOString().slice(0, 10);

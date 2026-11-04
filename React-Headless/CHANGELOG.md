@@ -8,12 +8,47 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Oct_24_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Nov_04_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
 
 ---
+
+## [November 2026]
+
+### 2026-11-04 — intent, funding and job-change signals in the Priority Queue
+
+The three Plans 14–16 BT_ Data Cloud streams now reach the banker home (PR [#156](https://github.com/josers18/JDO/pull/156)). ReactCommercial and ReactWealth were built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors). Retail was rebuilt for the shared queue change.
+
+#### Added
+
+- **Commercial queue items, alerts and an AI-brief sentence** for four signals. Each gets 2 queue rows:
+  - **Intent surge** → "Get ahead of the evaluation"
+  - **Competitor research** → "Defend the relationship"
+  - **New funding** → "Excess-cash / treasury conversation"
+  - **Champion or primary-contact departure** → "Re-establish the relationship"
+
+  The data comes from `BT_Demandbase_Intent_Signals__dlm`, `BT_Harmonic_Company_Signals__dlm` and `BT_UserGems_Job_Changes__dlm`, read by the new `_shared/src/data/intentSignals.ts`, `fundingSignals.ts` and `jobChangeSignals.ts`.
+- **Wealth liquidity events.** UserGems departures that carry a liquidity event and a person account become 3 queue rows ("Liquidity conversation — rollover / equity proceeds"), plus an alert and an AI-brief sentence.
+- **Reserved queue slot.** `QueueSignalItem.reserveSlot`: when no flagged item ranks into the top 8 on score, `buildPriorityQueue` puts the strongest one in the last row. Only the new feeds set the flag, so Retail's queue is unchanged.
+
+#### Details
+
+- **Who-to-Call scoring is unchanged.** The new items sit beside it, and `dropCovered` drops any client Who-to-Call already carries.
+- **Feeds are book-scoped**, with the usual org-wide fallback.
+- **Due dates come from each signal** and are never earlier than today:
+  - intent / competitor: signal date + 7 days
+  - funding: funding date + 14 days
+  - champion / liquidity: detected date + 7 days
+
+#### Fixed
+
+- **HTML-escaped names.** Data Cloud returns names like `O&#39;Connor`. The BoardEx decoder moved to the shared `decodeEntities`, which now runs on the new feeds' text fields too.
+- **Counts.** The champion and liquidity counts in the AI brief now count distinct accounts.
+- **Wealth liquidity reasons** name the client rather than the UserGems contact; in the synthetic data the two names don't match.
+- **Copy.** "1 researcher" is now singular, and a champion with no job title no longer renders "()".
+- **One new-signal alert per account.** An account gets at most one alert from these feeds, in priority order competitor, champion, funding, then intent surge. Before, one account could get both "New funding" and "Champion left".
 
 ## [October 2026]
 

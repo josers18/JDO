@@ -29,6 +29,8 @@ export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type
 export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
 export { getViewAs, setViewAs, useViewAs, fetchEffectiveUser, ownerScopedQuery, fetchBankers, type ViewAsUser } from './viewAs';
 export { fetchOutlookWatch, fetchLeadershipChanges, fetchEsgMovers, type OutlookResult, type OutlookRow, type LeadershipResult, type LeadershipRow, type EsgMoversResult, type EsgMoverRow } from './marketSignals';
+export { fetchIntentSignals, intentQueueItems, INTENT_SURGE_ROWS, COMPETITOR_ROWS, type IntentSignalResult, type IntentSignalRow } from './intentSignals';
+export { fetchFundingSignals, fundingQueueItems, FUNDING_ROWS, type FundingSignalResult, type FundingSignalRow } from './fundingSignals';
 export { fetchDigitalLeakage, type DigitalLeakageResult, type LeakageRow, type LeakageTotals, type LeakageKind } from './digitalLeakage';
 export { fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, type PlanRow } from './planSignals';
 export { fetchHomeEquity, homeEquityQueueItems, fetchPropertyRisk, propertyHazards, type HomeEquityResult, type HomeEquityLead, type PropertyRiskResult, type PropertyRiskHome } from './propertySignals';
@@ -93,3 +95,4 @@ export { fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, mortgag
 export { fetchWhoToCall, whoToCallItems, WHO_TO_CALL_WEIGHTS, type WhoToCallRow, type WhoToCallResult, type WhoToCallDriver } from './whoToCall';
 export { fetchWealthWhoToCall, wealthWhoToCallItems, WEALTH_WHO_TO_CALL_WEIGHTS, type WealthWhoToCallRow, type WealthWhoToCallResult, type WealthWhoToCallDriver } from './wealthWhoToCall';
 export { fetchCommercialWhoToCall, commercialWhoToCallItems, COMMERCIAL_WHO_TO_CALL_WEIGHTS, type CommercialWhoToCallRow, type CommercialWhoToCallResult, type CommercialWhoToCallDriver } from './commercialWhoToCall';
+export { fetchChampionDepartures, fetchLiquidityEvents, championQueueItems, liquidityQueueItems, CHAMPION_ROWS, LIQUIDITY_ROWS, type JobChangeResult, type JobChangeRow } from './jobChangeSignals';
