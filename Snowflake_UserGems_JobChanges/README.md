@@ -25,7 +25,7 @@ Status and gotchas are in [AGENTS.md](AGENTS.md).
 - Table: `DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES`, plus `USERGEMS_JOB_CHANGES_STAGING`. DDL is in `schemas/usergems_job_changes.sql`. Live 2026-11-02 (applied as `ACCOUNTADMIN`); 9,017 rows after the 104-week backfill.
 - Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_USERGEMS_JOB_CHANGES(BACKFILL_WEEKS INTEGER DEFAULT 0)`. Built in repo by `scripts/deploy_sp.py` (`procedures/sp_create_procedure.sql`), deployed 2026-11-02 as `ACCOUNTADMIN`. `BACKFILL_WEEKS=0` processes last week plus the current partial week; `104` is the 24-month backfill. The row factory is in `procedures/sp_generate_usergems_job_changes.py`.
 - Task: `TASK_WEEKLY_USERGEMS_JOB_CHANGES` (`0 9 * * 1 UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER` retries=2). SQL is in `tasks/task_weekly_usergems_job_changes.sql`; live and RESUMEd 2026-11-02.
-- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DMO `CumulusUserGemsJobChanges__dlm`. DC mapping pending UI.
+- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DMO `BT_UserGems_Job_Changes__dlm`. DC stream + DMO LIVE 2026-11-04 (category Other).
 
 ## Audience
 ```sql

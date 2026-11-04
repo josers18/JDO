@@ -20,7 +20,7 @@ Trajectory fields (`WEEKS_SURGING`, `SCORE_DELTA_WOW`) come from **recomputing**
 - Table: `DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS` (+ `_STAGING`: identical columns at DDL time, replaced by `write_pandas` on each SP run)
 - Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(BACKFILL_WEEKS NUMBER DEFAULT 0)` (Task 4)
 - Task: `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS`, cron `15 3 * * 1 America/New_York` (Monday 03:15 ET, after Gong 03:00 / Graph 03:05 / balance report 03:10, matching the live America/New_York slot convention). Runs on `MAIN_WH_XS` via `SP_RETRY_WRAPPER('…SP_GENERATE_DEMANDBASE_INTENT_SIGNALS()', 2)` (Task 6).
-- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DMO `CumulusDemandbaseIntentSignals__dlm`. DC mapping is pending in the UI; see the mapping table in [AGENTS.md](AGENTS.md).
+- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DMO `BT_Demandbase_Intent_Signals__dlm`. DC stream + DMO LIVE 2026-11-04 (category Other); IDs and mapping in [AGENTS.md](AGENTS.md).
 
 ## Audience
 ```sql

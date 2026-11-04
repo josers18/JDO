@@ -14,7 +14,7 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 | T6 deploy (`scripts/deploy_sp.py`) + TASK (`tasks/task_weekly_demandbase_intent_signals.sql`) | **SP + TASK LIVE 2026-11-02.** `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS`: state `started`, owner ACCOUNTADMIN, MAIN_WH_XS, `USING CRON 15 3 * * 1 America/New_York`, body `SP_RETRY_WRAPPER('…SP_GENERATE_DEMANDBASE_INTENT_SIGNALS()', 2)`. First scheduled run: Monday 2026-11-09 03:15 ET |
 | T6 one-time backfill `CALL …(25)` | **RUN 2026-11-02** (logged 2026-11-03 00:07:49 UTC): `SUCCEEDED rows=274143 accounts=6435 weeks=26`, DURATION_MS 217,113 (3.6 min). Real table: 274,143 rows, 26 distinct weeks 2026-05-11 … 2026-11-02 |
 | T8 L3 smoke (`tests/integration/l3_smoke_demandbase_intent_signals.sql`) | **run on the real table 2026-11-02: 18 of 18 `l3_*` checks TRUE**, figures below. The checks are scoped to the 26-week window of the latest 26-week backfill run, so weeks the TASK adds later don't break them |
-| T7 DC stream + DMO | **DC mapping pending UI** (mapping table below) |
+| T7 DC stream + DMO | **LIVE 2026-11-04** via REST (`BT_Demandbase_Intent_Signals`, category Other; see below) |
 
 **L3 figures (2026-11-02, real `DEMANDBASE_INTENT_SIGNALS`, window 2026-05-11 … 2026-11-02):**
 - 26 weeks; 6,435 accounts and 6,435 IS_TOP_TOPIC rows every week (audience = the backfill run's ACCOUNTS_PROCESSED, 6,435); 10,469–10,659 rows/week (avg 10,544); 274,143 rows total.
@@ -29,7 +29,7 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - Still to check after the first scheduled run (2026-11-09 03:15 ET): `TASK_HISTORY` and `TASK_EXECUTION_LOG` show a `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS` entry for week 2026-11-09 (the TASK → `SP_RETRY_WRAPPER` → SP path has never run unattended; every run so far was a direct CALL), and that week is byte-identical (HASH_AGG) to a no-arg re-run of the same week.
 
 ## Boundaries
-- Owns `DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS` and `..._STAGING`, plus `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS`, `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS`, and the DC Data Stream / DLO / DMO `CumulusDemandbaseIntentSignals__dlm`.
+- Owns `DATA_JEDAIS.FINS__PUBLIC.DEMANDBASE_INTENT_SIGNALS` and `..._STAGING`, plus `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS`, `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS`, and the DC Data Stream / DLO / DMO `BT_Demandbase_Intent_Signals__dlm`.
 - Does NOT own `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, `GONG_CALL_SENTIMENT` (read-only soft dependency) or the `seed_for` / `assert_coverage` / `record_id_for` helpers. Those belong to `Snowflake_Cumulus_Common`, and `scripts/deploy_sp.py` inlines them. Don't edit Cumulus_Common from here.
 - **Account-scoped, sparse 1:N.** PK `(ORG_ID, ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC)`. FK `ACCOUNT_ID` points to `ssot__Account__dlm`. The DC PK is the single column `recordId__c`.
 
@@ -119,28 +119,40 @@ Synthetic Demandbase / G2 / Bombora-style **third-party buying-intent** signals 
 - **L2 SQL: no `EXISTS (...) OR EXISTS (...)` in a WHERE clause.** Live on 2026-11-02 the original `c09` check (correlated EXISTS OR EXISTS) flagged `001DB0000000001AAA` / Equipment Finance / 2026-10-26 even though both EXISTS were FALSE for that row when projected in the SELECT list, and the row's history (63 → 71 surging/1 → 63) is correct. `c09` and the L3 trajectory check use JOIN + `GROUP BY` / `HAVING COUNT_IF` instead, and `c10` is a negative control that must catch an off-by-one.
 - DC mapping descriptions must be ≤521 chars (Plan 6 finding).
 
-## DC mapping (Task 7) — status: DC mapping pending UI
+## DC mapping (Task 7) — status: LIVE 2026-11-04 (REST API path)
 
-Single-column PK `recordId__c` (Plan 4 rule). Booleans are declared **Boolean** in the stream schema. Both DATE columns use `format: "MM/dd/yyyy"`.
+Created through the Connect REST API (no UI steps), on the BT_ convention: connection `BT_Managed_Snowflake`, DIRECT_ACCESS zero copy (never needs a Full Refresh), `TOTAL_REPLACE`, category **Other** (DLO) / **OTHER** (DMO), not Profile.
+
+| Asset | Name | Id |
+|---|---|---|
+| Data stream | `BT_Demandbase_Intent_Signals` | `1dsam000000Q2ar` |
+| DLO | `BT_Demandbase_Intent_Signals__dll` | `0gOam000000awThEAI` |
+| DMO | `BT_Demandbase_Intent_Signals__dlm` | `0gjam000001Ejr7AAC` |
+
+Account relationships (ManyToOne → `ssot__Account__dlm.ssot__Id__c`, all ACTIVE): `account_id__c` (`0geam000003B3gnAAC`).
+
+Verified 2026-11-04: DMO `COUNT(*)` = 274,143 = Snowflake; every row's `account_id__c` matches an Account. DMO field names are the lowercased Snowflake column + `__c` (the camelCase names in the original plan are superseded). The PK is `record_id__c`.
+
+Single-column PK `record_id__c` (Plan 4 rule). Booleans are declared **Boolean** in the stream schema. Both DATE columns use `format: "MM/dd/yyyy"`.
 
 | Snowflake | DC field | Type |
 |---|---|---|
-| RECORD_ID | recordId__c | Text (PK) |
-| ORG_ID | orgId__c | Text |
-| ACCOUNT_ID | ssot__AccountId__c | Text (KQ → `ssot__Account__dlm`) |
-| PROFILE_WEEK | profileWeek__c | Date (MM/dd/yyyy) |
-| INTENT_TOPIC | intentTopic__c | Text |
-| TOPIC_CATEGORY | topicCategory__c | Text |
-| IS_TOP_TOPIC | isTopTopic__c | Boolean |
-| INTENT_SCORE | intentScore__c | Number |
-| SURGE_FLAG | surgeFlag__c | Boolean |
-| WEEKS_SURGING | weeksSurging__c | Number |
-| SCORE_DELTA_WOW | scoreDeltaWow__c | Number |
-| JOURNEY_STAGE | journeyStage__c | Text |
-| UNIQUE_RESEARCHERS | uniqueResearchers__c | Number |
-| RESEARCHING_COMPETITOR | researchingCompetitor__c | Text (NULLable) |
-| KEYWORD_SAMPLE | keywordSample__c | Text |
-| SIGNAL_SOURCE | signalSource__c | Text |
-| LAST_SIGNAL_DATE | lastSignalDate__c | Date (MM/dd/yyyy) |
-| INTENT_NOTE | intentNote__c | Text (NULLable) |
-| GENERATED_AT | generatedAt__c | DateTime |
+| RECORD_ID | record_id__c | Text (PK) |
+| ORG_ID | org_id__c | Text |
+| ACCOUNT_ID | account_id__c | Text (relationship → `ssot__Account__dlm.ssot__Id__c`) |
+| PROFILE_WEEK | profile_week__c | Date (MM/dd/yyyy) |
+| INTENT_TOPIC | intent_topic__c | Text |
+| TOPIC_CATEGORY | topic_category__c | Text |
+| IS_TOP_TOPIC | is_top_topic__c | Boolean |
+| INTENT_SCORE | intent_score__c | Number |
+| SURGE_FLAG | surge_flag__c | Boolean |
+| WEEKS_SURGING | weeks_surging__c | Number |
+| SCORE_DELTA_WOW | score_delta_wow__c | Number |
+| JOURNEY_STAGE | journey_stage__c | Text |
+| UNIQUE_RESEARCHERS | unique_researchers__c | Number |
+| RESEARCHING_COMPETITOR | researching_competitor__c | Text (NULLable) |
+| KEYWORD_SAMPLE | keyword_sample__c | Text |
+| SIGNAL_SOURCE | signal_source__c | Text |
+| LAST_SIGNAL_DATE | last_signal_date__c | Date (MM/dd/yyyy) |
+| INTENT_NOTE | intent_note__c | Text (NULLable) |
+| GENERATED_AT | generated_at__c | DateTime |

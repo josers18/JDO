@@ -227,7 +227,7 @@ The attachment contains:
 - [x] `_assert_event_contract` replaces `assert_coverage`; all 4 checks implemented.
 - [x] Wealth pool pick via sha256 mod over sorted IDs; LIQUIDITY flag only on C-suite/VP departures with PERSON_ACCOUNT_ID.
 - [x] 6 NULLable / 3 BOOLEAN handled in the MERGE casts.
-- [ ] DMO: three Account relationships documented (API or UI path recorded). *(Documented in the repo AGENTS.md mapping table; the path that worked (API vs UI) is still to be recorded, because the DC mapping is pending UI, same as Plans 1–13.)*
+- [x] DMO: three Account relationships documented (API or UI path recorded). *(2026-11-04: all three (`account_id__c`, `new_account_id__c`, `person_account_id__c` → `ssot__Account__dlm.ssot__Id__c`) created in one REST call and ACTIVE. No UI step was needed. IDs in the sub-project AGENTS.md.)*
 - [x] No `<<` placeholders left.
 
 ## §6 Out of scope
@@ -249,7 +249,7 @@ The attachment contains:
   - The SP also gained a **conflicting-duplicate raise** in the BoardEx loader, plus `SELECT DISTINCT` in the contract (d) SQL. Live BoardEx had one exact duplicate key (a Plan 10 follow-up), removed on 2026-11-02.
   - L1 is now 86/86. L2 was re-run live: 29/29.
 
-Task 7: DC mapping pending UI (mapping table in §4 and AGENTS.md). Task 8 L3: done, all checks pass (see §4 Task 8).
+Task 7: LIVE 2026-11-04 via REST (`BT_UserGems_Job_Changes`, category Other, 9,017 rows match Snowflake, three Account relationships ACTIVE). Task 8 L3: done, all checks pass (see §4 Task 8).
 
 Operator sequence (README "Deploy"), done 2026-11-02: as ACCOUNTADMIN, apply the DDL, run `deploy_sp.py --role ACCOUNTADMIN`, `CALL ...(104)`, then the TASK SQL (creates + RESUMEs). L3 is recorded in §4 Task 8 and AGENTS.md.
 

@@ -15,11 +15,11 @@ Synthetic UserGems-style **person-level job-change events** (departures, inbound
 | T4 | SP body (`main`, run window, MERGE, `_assert_event_contract`) + `scripts/deploy_sp.py` + `tasks/task_weekly_usergems_job_changes.sql` | Done in repo (2026-11-02). 86 L1 tests pass after the review fix (BoardEx freshness guard + conflicting-duplicate raise). `deploy_sp.py --role ACCOUNTADMIN` forwards the role (Plan 14 pattern). The production SP and TASK are **not deployed** (that is T6). |
 | T5 | L2 integration (`tests/integration/`) | Done. Ran live 2026-11-02 in the scratch schema `DEMO_DB.CUMULUS_L2_USERGEMS`: 29/29 checks TRUE, schema dropped. Re-run with the review-fix SP body later the same day: 29/29 TRUE again. |
 | T6 | Live deploy of the SP + TASK, then the 104-week backfill | **Live 2026-11-02** (operator, `ACCOUNTADMIN`; the agent passes were refused that role by the session permission policy). Preconditions: BoardEx sticky re-run landed 2026-11-02 (employer audience 2,494 rises / 31,878 stays / 2,452 falls). `CALL ...(104)` → `SUCCEEDED rows=9017 updated=0 accounts=6435 weeks=105 (2024-11-04..2026-11-02)` (logged 31 s; UTC run date 2026-11-03). `TASK_WEEKLY_USERGEMS_JOB_CHANGES` created and RESUMEd (`0 9 * * 1 UTC`, `MAIN_WH_XS`). |
-| T7 | DC stream + DMO | DC mapping pending UI (no live DC work in this pass). Mapping table below. |
+| T7 | DC stream + DMO | **LIVE 2026-11-04** via REST (`BT_UserGems_Job_Changes`, category Other; all three Account relationships ACTIVE). See below. |
 | T8 | L3 smoke | **Done 2026-11-02, all checks pass.** 9,017 rows / 9,017 distinct EVENT_IDs over 105 weeks (2024-11-04 → 2026-11-02); complete weeks 61–109 (avg 86.5, 0 outside [30, 200]); 2,123 C-suite departures, gate (i) 0 violations, gate (ii) 1,941 complete rises with 0 ≠ 1; 984 paired rows, 0 self-pairs, 8 orphans all at the window edges (detected 2024-11-04..09 / 2026-11-02..03); mix Departed 48.1 / Joined 30.2 / Promoted 21.7; resolution Existing 11.4 / Prospect 49.8 / Unknown 38.8; champion 12.0% overall / 34.3% finance; liquidity 6.0% of C-suite+VP departures, 0 bad PERSON_ACCOUNT_IDs, 0 flag mismatches; 0 ACCOUNT_IDs outside the audience; size scaling 1.717 vs 0.525 events/acct/yr (3.27×). The offline replay predicted 9,006 rows / 2,119 C-suite departures; live differs by run-date drift only. |
 
 ## Boundaries
-- Owns: `DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES`, `USERGEMS_JOB_CHANGES_STAGING`, `SP_GENERATE_USERGEMS_JOB_CHANGES`, `TASK_WEEKLY_USERGEMS_JOB_CHANGES`, and the DC stream / DLO / DMO `CumulusUserGemsJobChanges__dlm`.
+- Owns: `DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES`, `USERGEMS_JOB_CHANGES_STAGING`, `SP_GENERATE_USERGEMS_JOB_CHANGES`, `TASK_WEEKLY_USERGEMS_JOB_CHANGES`, and the DC stream / DLO / DMO `BT_UserGems_Job_Changes__dlm`.
 - Reads (does not own): `V_ACCOUNT_ANCHORS` (employers + the Wealth pool) and `BOARDEX_EXEC_INTEL` (Plan 10, a hard dependency).
 - Does NOT own `Snowflake_Cumulus_Common`. Do not modify it from here. Helpers this SP needs that Common doesn't export are defined locally in the SP module.
 - The tables live in `DATA_JEDAIS.FINS__PUBLIC`, like every sibling. The plan's `FINS.PUBLIC` name is from before the account migration and is stale.
@@ -97,33 +97,45 @@ L2 passes when the final `L2_ALL_PASS` is TRUE. `tests/integration/build_l2.py` 
 
 The L1 fixture has 10 employers (2 per employee band, with repeated industries and one NULL industry), a boring all-NULL anchor, a 5-id Wealth pool and a synthetic BoardEx dict (`tests/conftest.py`). The property classes follow plan §4 Task 3: schema, determinism, sparsity, gate, 4a-4e, bias, lag-window completeness and the boring case.
 
-## DC mapping (T7) — status: DC mapping pending UI
+## DC mapping (Task 7) — status: LIVE 2026-11-04 (REST API path)
+
+Created through the Connect REST API (no UI steps), on the BT_ convention: connection `BT_Managed_Snowflake`, DIRECT_ACCESS zero copy (never needs a Full Refresh), `TOTAL_REPLACE`, category **Other** (DLO) / **OTHER** (DMO), not Profile.
+
+| Asset | Name | Id |
+|---|---|---|
+| Data stream | `BT_UserGems_Job_Changes` | `1dsam000000Q2cT` |
+| DLO | `BT_UserGems_Job_Changes__dll` | `0gOam000000awVJEAY` |
+| DMO | `BT_UserGems_Job_Changes__dlm` | `0gjam000001EjsjAAC` |
+
+Account relationships (ManyToOne → `ssot__Account__dlm.ssot__Id__c`, all ACTIVE): `account_id__c` (`0geam000003B3iPAAS`); `new_account_id__c` (`0geam000003B3iQAAS`); `person_account_id__c` (`0geam000003B3iRAAS`).
+
+Verified 2026-11-04: DMO `COUNT(*)` = 9,017 = Snowflake; every row's `account_id__c` matches an Account. DMO field names are the lowercased Snowflake column + `__c` (the camelCase names in the original plan are superseded). The PK is `record_id__c`.
 
 | Snowflake | DC field | Type |
 |---|---|---|
-| RECORD_ID | recordId__c | Text (PK) |
-| ORG_ID | orgId__c | Text |
-| EVENT_ID | eventId__c | Text |
-| ACCOUNT_ID | ssot__AccountId__c | Text (KQ → `ssot__Account__dlm`) |
-| PROFILE_WEEK | profileWeek__c | Date (MM/dd/yyyy) |
-| EVENT_TYPE | eventType__c | Text |
-| EVENT_DATE | eventDate__c | Date (MM/dd/yyyy) |
-| DETECTED_DATE | detectedDate__c | Date (MM/dd/yyyy) |
-| CONTACT_NAME | contactName__c | Text |
-| CONTACT_PERSONA | contactPersona__c | Text |
+| RECORD_ID | record_id__c | Text (PK) |
+| ORG_ID | org_id__c | Text |
+| EVENT_ID | event_id__c | Text |
+| ACCOUNT_ID | account_id__c | Text (relationship → `ssot__Account__dlm.ssot__Id__c`) |
+| PROFILE_WEEK | profile_week__c | Date (MM/dd/yyyy) |
+| EVENT_TYPE | event_type__c | Text |
+| EVENT_DATE | event_date__c | Date (MM/dd/yyyy) |
+| DETECTED_DATE | detected_date__c | Date (MM/dd/yyyy) |
+| CONTACT_NAME | contact_name__c | Text |
+| CONTACT_PERSONA | contact_persona__c | Text |
 | SENIORITY | seniority__c | Text |
-| OLD_TITLE | oldTitle__c | Text (NULLable) |
-| NEW_TITLE | newTitle__c | Text (NULLable) |
-| NEW_EMPLOYER_NAME | newEmployerName__c | Text (NULLable) |
-| NEW_ACCOUNT_ID | newAccountId__c | Text (NULLable; second relationship to `ssot__Account__dlm`) |
-| NEW_EMPLOYER_STATUS | newEmployerStatus__c | Text |
-| PAIRED_EVENT_ID | pairedEventId__c | Text (NULLable) |
-| WAS_CHAMPION | wasChampion__c | Boolean |
-| WAS_PRIMARY_CONTACT | wasPrimaryContact__c | Boolean |
-| OPPORTUNITY_SCORE | opportunityScore__c | Number |
-| RELATIONSHIP_RISK_SCORE | relationshipRiskScore__c | Number |
-| PERSON_ACCOUNT_ID | personAccountId__c | Text (NULLable; third relationship to `ssot__Account__dlm`) |
-| LIQUIDITY_EVENT_FLAG | liquidityEventFlag__c | Boolean |
-| GENERATED_AT | generatedAt__c | DateTime |
+| OLD_TITLE | old_title__c | Text (NULLable) |
+| NEW_TITLE | new_title__c | Text (NULLable) |
+| NEW_EMPLOYER_NAME | new_employer_name__c | Text (NULLable) |
+| NEW_ACCOUNT_ID | new_account_id__c | Text (NULLable; second relationship to `ssot__Account__dlm`) |
+| NEW_EMPLOYER_STATUS | new_employer_status__c | Text |
+| PAIRED_EVENT_ID | paired_event_id__c | Text (NULLable) |
+| WAS_CHAMPION | was_champion__c | Boolean |
+| WAS_PRIMARY_CONTACT | was_primary_contact__c | Boolean |
+| OPPORTUNITY_SCORE | opportunity_score__c | Number |
+| RELATIONSHIP_RISK_SCORE | relationship_risk_score__c | Number |
+| PERSON_ACCOUNT_ID | person_account_id__c | Text (NULLable; third relationship to `ssot__Account__dlm`) |
+| LIQUIDITY_EVENT_FLAG | liquidity_event_flag__c | Boolean |
+| GENERATED_AT | generated_at__c | DateTime |
 
-This is the first Cumulus DMO with three Account relationships. Create the primary relationship (`ssot__AccountId__c`) via the API. If the API rejects the second and third, add them in the DC Setup UI, and record here which path worked.
+This is the first Cumulus DMO with three Account relationships. All three were created in one REST call (`POST /ssot/data-model-objects/BT_UserGems_Job_Changes__dlm/relationships`); no UI step was needed. Joins on `new_account_id__c` (493 non-null) and `person_account_id__c` (137 non-null) resolve 100%.

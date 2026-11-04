@@ -14,10 +14,10 @@ Synthetic Harmonic-style **private-company funding and traction** signals, with 
 | T5 `scripts/deploy_sp.py` (both salts) + TASK SQL + L2 | done 2026-11-02. SP **deployed live** (`SP_GENERATE_HARMONIC_COMPANY_SIGNALS(DEFAULT NUMBER)`, procedure only; the real table is still 0 rows). L2 `tests/integration/test_harmonic_company_signals_sp.sql`: 18/18 TRUE, including 5 negative tests. 7 L1 tests for the deploy script and TASK SQL |
 | T6 create TASK + `CALL …(6)` backfill | done 2026-11-02. SP redeployed from this commit (generated SQL byte-identical to the committed file). `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` created and RESUMEd (`started`, `USING CRON 0 9 1 * * UTC`, `MAIN_WH_XS`). Re-created the same day on `USING CRON 0 5 1 * * America/New_York` after the final review: live ZoomInfo runs at 03:40 ET (08:40 UTC in winter), so 09:00 UTC left a 20-minute gap. The SP was redeployed at the same time (comment-only changes, `--role ACCOUNTADMIN` so ownership stays ACCOUNTADMIN; without `--role` the default SYSADMIN takes ownership). `CALL …()` then returned `SUCCEEDED rows=672 accounts=672 months=1`, and table `HASH_AGG(* EXCLUDE (GENERATED_AT))` was unchanged (4,587 rows). `CALL …(6)` returned `SUCCEEDED rows=4587 accounts=672 months=7 (2026-05-01..2026-11-01)` in ~52 s (TASK_EXECUTION_LOG `DURATION_MS` 52367) |
 | T8 L3 smoke | done 2026-11-02; **every check passes**, see "L3 smoke" below |
-| T7 DC stream + DMO | **DC mapping pending UI** (mapping table below) |
+| T7 DC stream + DMO | **LIVE 2026-11-04** via REST (`BT_Harmonic_Company_Signals`, category Other; see below) |
 
 ## Boundaries
-- Owns `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS` and `..._STAGING`, plus `SP_GENERATE_HARMONIC_COMPANY_SIGNALS`, `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS`, and the DC Data Stream / DLO / DMO `CumulusHarmonicCompanySignals__dlm`.
+- Owns `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS` and `..._STAGING`, plus `SP_GENERATE_HARMONIC_COMPANY_SIGNALS`, `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS`, and the DC Data Stream / DLO / DMO `BT_Harmonic_Company_Signals__dlm`.
 - Does NOT own `V_ACCOUNT_ANCHORS`, `ZOOMINFO_FIRMOGRAPHICS` (Plan 11), `MOODYS_MARKET_CONTEXT` (Plan 13 v2), or the `seed_for` / `assert_coverage` / `record_id_for` helpers. Those belong to their own repos and to `Snowflake_Cumulus_Common`; `scripts/deploy_sp.py` inlines the helpers. Don't edit Cumulus_Common from here.
 - **Account-scoped, 1:1 monthly.** PK `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. FK `ACCOUNT_ID` points to `ssot__Account__dlm`. The DC PK is the single column `recordId__c`.
 
@@ -102,33 +102,45 @@ Read from `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS` right after `CALL 
 
 **Band change.** One ZoomInfo account changed band in the window (`001am00000qvjs6AAA`, 5001-25000 → 1-10 in 2026-10, the same account with the duplicate 2026-10 ZoomInfo row). It isn't in the Harmonic audience, so the monotonicity SQL didn't need a band-change exclusion.
 
-## DC mapping (Task 7) — status: DC mapping pending UI
+## DC mapping (Task 7) — status: LIVE 2026-11-04 (REST API path)
 
-Single-column PK `recordId__c` (Plan 4 rule). `RECENTLY_FUNDED_FLAG` is declared **Boolean** in the stream schema. All three DATE columns use `format: "MM/dd/yyyy"`.
+Created through the Connect REST API (no UI steps), on the BT_ convention: connection `BT_Managed_Snowflake`, DIRECT_ACCESS zero copy (never needs a Full Refresh), `TOTAL_REPLACE`, category **Other** (DLO) / **OTHER** (DMO), not Profile.
+
+| Asset | Name | Id |
+|---|---|---|
+| Data stream | `BT_Harmonic_Company_Signals` | `1dsam000000Q2as` |
+| DLO | `BT_Harmonic_Company_Signals__dll` | `0gOam000000awTjEAI` |
+| DMO | `BT_Harmonic_Company_Signals__dlm` | `0gjam000001EjpVAAS` |
+
+Account relationships (ManyToOne → `ssot__Account__dlm.ssot__Id__c`, all ACTIVE): `account_id__c` (`0geam000003B3fBAAS`).
+
+Verified 2026-11-04: DMO `COUNT(*)` = 4,587 = Snowflake; every row's `account_id__c` matches an Account. DMO field names are the lowercased Snowflake column + `__c` (the camelCase names in the original plan are superseded). The PK is `record_id__c`.
+
+Single-column PK `record_id__c` (Plan 4 rule). `RECENTLY_FUNDED_FLAG` is declared **Boolean** in the stream schema. All three DATE columns use `format: "MM/dd/yyyy"`.
 
 | Snowflake | DC field | Type |
 |---|---|---|
-| RECORD_ID | recordId__c | Text (PK) |
-| ORG_ID | orgId__c | Text |
-| ACCOUNT_ID | ssot__AccountId__c | Text (KQ → `ssot__Account__dlm`) |
-| PROFILE_MONTH | profileMonth__c | Date (MM/dd/yyyy) |
-| FUNDING_STATUS | fundingStatus__c | Text |
-| LAST_FUNDING_STAGE | lastFundingStage__c | Text (NULLable) |
-| LAST_FUNDING_DATE | lastFundingDate__c | Date (MM/dd/yyyy, NULLable) |
-| LAST_ROUND_USD | lastRoundUsd__c | Number (NULLable) |
-| TOTAL_RAISED_USD | totalRaisedUsd__c | Number |
-| FUNDING_ROUNDS_COUNT | fundingRoundsCount__c | Number |
-| LEAD_INVESTOR | leadInvestor__c | Text (NULLable) |
-| EST_VALUATION_USD | estValuationUsd__c | Number (NULLable) |
-| EST_RUNWAY_MONTHS | estRunwayMonths__c | Number (NULLable) |
-| RECENTLY_FUNDED_FLAG | recentlyFundedFlag__c | Boolean |
+| RECORD_ID | record_id__c | Text (PK) |
+| ORG_ID | org_id__c | Text |
+| ACCOUNT_ID | account_id__c | Text (relationship → `ssot__Account__dlm.ssot__Id__c`) |
+| PROFILE_MONTH | profile_month__c | Date (MM/dd/yyyy) |
+| FUNDING_STATUS | funding_status__c | Text |
+| LAST_FUNDING_STAGE | last_funding_stage__c | Text (NULLable) |
+| LAST_FUNDING_DATE | last_funding_date__c | Date (MM/dd/yyyy, NULLable) |
+| LAST_ROUND_USD | last_round_usd__c | Number (NULLable) |
+| TOTAL_RAISED_USD | total_raised_usd__c | Number |
+| FUNDING_ROUNDS_COUNT | funding_rounds_count__c | Number |
+| LEAD_INVESTOR | lead_investor__c | Text (NULLable) |
+| EST_VALUATION_USD | est_valuation_usd__c | Number (NULLable) |
+| EST_RUNWAY_MONTHS | est_runway_months__c | Number (NULLable) |
+| RECENTLY_FUNDED_FLAG | recently_funded_flag__c | Boolean |
 | HEADCOUNT | headcount__c | Number |
-| HEADCOUNT_GROWTH_6M_PCT | headcountGrowth6mPct__c | Number |
-| TRACTION_SCORE | tractionScore__c | Number |
-| ENG_HEADCOUNT_PCT | engHeadcountPct__c | Number |
-| SALES_HEADCOUNT_PCT | salesHeadcountPct__c | Number |
-| OPS_HEADCOUNT_PCT | opsHeadcountPct__c | Number |
-| OPEN_JOB_POSTINGS | openJobPostings__c | Number |
-| POSTINGS_TREND | postingsTrend__c | Text |
-| LAST_DATA_REFRESH_DATE | lastDataRefreshDate__c | Date (MM/dd/yyyy) |
-| GENERATED_AT | generatedAt__c | DateTime |
+| HEADCOUNT_GROWTH_6M_PCT | headcount_growth_6m_pct__c | Number |
+| TRACTION_SCORE | traction_score__c | Number |
+| ENG_HEADCOUNT_PCT | eng_headcount_pct__c | Number |
+| SALES_HEADCOUNT_PCT | sales_headcount_pct__c | Number |
+| OPS_HEADCOUNT_PCT | ops_headcount_pct__c | Number |
+| OPEN_JOB_POSTINGS | open_job_postings__c | Number |
+| POSTINGS_TREND | postings_trend__c | Text |
+| LAST_DATA_REFRESH_DATE | last_data_refresh_date__c | Date (MM/dd/yyyy) |
+| GENERATED_AT | generated_at__c | DateTime |

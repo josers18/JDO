@@ -245,7 +245,7 @@ The attachment contains:
 
 ## §7 Status
 
-**LIVE in Snowflake 2026-11-02; DC mapping pending UI.** Drafted 2026-11-02 from the vendor-gap assessment. Tasks 0–6 and 8 are done; Task 7's mapping table is recorded in `Snowflake_Harmonic_CompanySignals/AGENTS.md` with status "DC mapping pending UI" (same as Plans 1–13). Plan-owner sign-off on the revised timeline / destiny / runway / postings parameters (rowspec revision note) is still pending.
+**LIVE in Snowflake 2026-11-02; DC stream + DMO `BT_Harmonic_Company_Signals` LIVE 2026-11-04 via REST (category Other, 4,587 rows match).** Drafted 2026-11-02 from the vendor-gap assessment. Tasks 0–8 are done; Task 7 is done (2026-11-04); IDs and the mapping table are in `Snowflake_Harmonic_CompanySignals/AGENTS.md`. Plan-owner sign-off on the revised timeline / destiny / runway / postings parameters (rowspec revision note) is still pending.
 
 **Task 6 (deploy).** `SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)` deployed to `DATA_JEDAIS.FINS__PUBLIC` (the live namespace this plan's `FINS.PUBLIC` means). `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` created and resumed: state `started`, `USING CRON 0 9 1 * * UTC` (re-created 2026-11-02 on `USING CRON 0 5 1 * * America/New_York` after the final review found the live ZoomInfo schedule drift), `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`. The one-time `CALL …(6)` returned `SUCCEEDED rows=4587 accounts=672 months=7 (2026-05-01..2026-11-01)` (log `DURATION_MS` 52367).
 

@@ -208,7 +208,7 @@ The rowspec attachment has been amended to match the code. Summary:
 
 ## §7 Status
 
-**LIVE; DC mapping pending UI** (2026-11-02). Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Branch `feat/cumulus-chainC-plan14`.
+**LIVE** (Snowflake 2026-11-02; DC stream + DMO `BT_Demandbase_Intent_Signals` LIVE 2026-11-04 via REST, category Other). Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE. Branch `feat/cumulus-chainC-plan14`.
 
 | Task | State (2026-11-02) |
 |---|---|
@@ -217,7 +217,7 @@ The rowspec attachment has been amended to match the code. Summary:
 | T5 L2 | 38 of 38 assertion columns TRUE (Passes A–D 34, Pass E 4). `c09` rewritten as JOIN + HAVING after a false FALSE from correlated `EXISTS OR EXISTS`; `c10` added as its negative control. Pass E (real audience, `CALL (25)` on the `_TIMING` clone): 274,143 rows, 6,435 accounts, 26 weeks, 201,818 ms |
 | T6 SP + TASK | LIVE. `SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(BACKFILL_WEEKS NUMBER DEFAULT 0)`; `TASK_WEEKLY_DEMANDBASE_INTENT_SIGNALS` started, `USING CRON 15 3 * * 1 America/New_York`, MAIN_WH_XS, via `SP_RETRY_WRAPPER(..., 2)`. First scheduled run Monday 2026-11-09 03:15 ET |
 | T6 backfill `CALL …(25)` | **done**: `SUCCEEDED rows=274143 accounts=6435 weeks=26`, DURATION_MS 217,113. Real table: 274,143 rows, 26 weeks 2026-05-11 … 2026-11-02 |
-| T7 DC stream + DMO | **DC mapping pending UI** (mapping recorded in the sub-project AGENTS.md) |
+| T7 DC stream + DMO | **LIVE 2026-11-04** via REST: `BT_Demandbase_Intent_Signals` stream/DLO/DMO, category Other, Account relationship ACTIVE, 274,143 rows match Snowflake (IDs in the sub-project AGENTS.md) |
 | T8 L3 smoke | **Real table: 18 of 18 checks TRUE** (`tests/integration/l3_smoke_demandbase_intent_signals.sql`, scoped to the backfill run's 26-week window) |
 
 L3 figures (real table, 26 weeks 2026-05-11 … 2026-11-02):
