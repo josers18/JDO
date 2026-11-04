@@ -29,6 +29,7 @@ export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type
 export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
 export { getViewAs, setViewAs, useViewAs, fetchEffectiveUser, ownerScopedQuery, fetchBankers, type ViewAsUser } from './viewAs';
 export { fetchOutlookWatch, fetchLeadershipChanges, fetchEsgMovers, type OutlookResult, type OutlookRow, type LeadershipResult, type LeadershipRow, type EsgMoversResult, type EsgMoverRow } from './marketSignals';
+export { fetchIntentSignals, intentQueueItems, INTENT_SURGE_ROWS, COMPETITOR_ROWS, type IntentSignalResult, type IntentSignalRow } from './intentSignals';
 export { fetchDigitalLeakage, type DigitalLeakageResult, type LeakageRow, type LeakageTotals, type LeakageKind } from './digitalLeakage';
 export { fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, type PlanRow } from './planSignals';
 export { fetchHomeEquity, homeEquityQueueItems, fetchPropertyRisk, propertyHazards, type HomeEquityResult, type HomeEquityLead, type PropertyRiskResult, type PropertyRiskHome } from './propertySignals';
