@@ -95,3 +95,4 @@ export { fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, mortgag
 export { fetchWhoToCall, whoToCallItems, WHO_TO_CALL_WEIGHTS, type WhoToCallRow, type WhoToCallResult, type WhoToCallDriver } from './whoToCall';
 export { fetchWealthWhoToCall, wealthWhoToCallItems, WEALTH_WHO_TO_CALL_WEIGHTS, type WealthWhoToCallRow, type WealthWhoToCallResult, type WealthWhoToCallDriver } from './wealthWhoToCall';
 export { fetchCommercialWhoToCall, commercialWhoToCallItems, COMMERCIAL_WHO_TO_CALL_WEIGHTS, type CommercialWhoToCallRow, type CommercialWhoToCallResult, type CommercialWhoToCallDriver } from './commercialWhoToCall';
+export { fetchChampionDepartures, fetchLiquidityEvents, championQueueItems, liquidityQueueItems, CHAMPION_ROWS, LIQUIDITY_ROWS, type JobChangeResult, type JobChangeRow } from './jobChangeSignals';
