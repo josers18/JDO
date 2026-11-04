@@ -1,6 +1,6 @@
 # AGENTS.md — Financial_Trades_Generation
 
-Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Has generated ~10.6M trades (as of 2026-11-04) for 36,239 active accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
+Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Holds ~6.4M trades (as of 2026-11-04, after migration 007) for 36,239 active accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
 
 For user-facing install / quick-start / row counts, see [README.md](README.md). This file is the agent-orientation primer.
 
@@ -22,7 +22,7 @@ Financial_Trades_Generation/
 │   ├── account_sync.md
 │   └── historical_backfill.md
 ├── schemas/                               ← table DDL
-│   ├── financial_trades.sql               ← FINANCIAL_TRADES (10.6M+ rows, 25 cols)
+│   ├── financial_trades.sql               ← FINANCIAL_TRADES (6.4M+ rows, 25 cols)
 │   ├── trade_generation_config.sql        ← per-account settings (frequency, risk, max value)
 │   ├── instrument_universe.sql            ← 2,004 tickers across 8 sectors
 │   └── task_execution_log.sql             ← audit trail
@@ -75,7 +75,7 @@ The historical-backfill procedure (`GENERATE_HISTORICAL_TRADES`) is a separate, 
 
 - `SYNC_NEW_ACCOUNTS()` is idempotent and insert-only. It reads the share, drops IDs already in `TRADE_GENERATION_CONFIG`, and batch-INSERTs the rest (500 per batch), keyed on the Salesforce `ACCOUNT_ID`. Re-running on the same datashare snapshot is a no-op.
 - **The source read dedupes `ssot__Id__c` with a total ordering** (since 2026-11-04): Account DSO first, then newest `ssot__LastModifiedDate__c`, then `HASH(s.*)`. The share carries duplicate copies per ID (e.g. Omega `001am00000qvjs6AAA`: an Account copy and a PartyRelationshipGroup copy). Without the `QUALIFY`, a duplicated new ID would be inserted twice with an arbitrary name/type. The body is a single-quoted string, so quotes inside it are doubled (`''Account''`). Deploy with `--database DATA_JEDAIS --schema FINS__PUBLIC`, because the `CREATE` uses an unqualified name.
-- `GENERATE_DAILY_TRADES()` is idempotent **per (account, day) through `LAST_GENERATED_DATE`**, not through any check against `FINANCIAL_TRADES` (there is no `NOT EXISTS` gate). `_is_due` returns False when `LAST_GENERATED_DATE >= today`, and each 500-account `UPDATE` of that column is preceded by a flush of the pending trade batch, so a rerun after a timeout resumes at the first unfinished account. Both rules were added on 2026-11-04. Before then the Monday / 1st-of-month rules ignored `LAST_GENERATED_DATE`, and Monday runs that hit the 1,800 s procedure timeout were rerun by `SP_RETRY_WRAPPER` and the task's retries, each pass re-trading every WEEKLY account. That left about 4.2M extra rows (whole extra trade sets, up to 6 per account) on 12 Mondays from 2026-06-15 to 2026-11-02. Those rows are still in the table.
+- `GENERATE_DAILY_TRADES()` is idempotent **per (account, day) through `LAST_GENERATED_DATE`**, not through any check against `FINANCIAL_TRADES` (there is no `NOT EXISTS` gate). `_is_due` returns False when `LAST_GENERATED_DATE >= today`, and each 500-account `UPDATE` of that column is preceded by a flush of the pending trade batch, so a rerun after a timeout resumes at the first unfinished account. Both rules were added on 2026-11-04. Before then the Monday / 1st-of-month rules ignored `LAST_GENERATED_DATE`, and Monday runs that hit the 1,800 s procedure timeout were rerun by `SP_RETRY_WRAPPER` and the task's retries, each pass re-trading every WEEKLY account. That left about 4.2M extra rows (whole extra trade sets, up to 6 per account) on 12 Mondays from 2026-06-15 to 2026-11-02. [Migration 007](migrations/007_dedupe_monday_retry_trades.sql) deleted them on 2026-11-04 (4,195,785 rows). It splits each (account, day) into runs where `CREATED_AT` jumps by more than 600 s, and keeps the earliest run with the most rows.
 - `GENERATE_HISTORICAL_TRADES(start, end)` is idempotent **per (account, day) through `FINANCIAL_TRADES`** (since 2026-11-04). Before the loop it loads every pair already in the table between `start` and `end` and skips them, and it flushes only between accounts, so each COPY holds whole account-days. Re-running a chunk after a timeout fills in only the missing pairs, and re-running a finished chunk writes 0. It doesn't touch `LAST_GENERATED_DATE`. It is **CPU-heavy at scale**, so backfill in chunks (week-by-week or month-by-month).
 
 ## Logging

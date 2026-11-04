@@ -96,15 +96,15 @@ As of 2026-11-04:
 
 | Source (`ssot__DataSourceId__c`) | Config rows | Active | Trades |
 |---|---|---|---|
-| `Salesforce_Home` | 36,239 | 36,239 | 8.92M |
-| `Salesforce_InsuranceAFDC` | 167 | 0 (migration 005) | 471K |
-| `Salesforce_FinsDC4` | 146 | 0 (migration 005) | 462K |
-| `Salesforce_FinsDC1` | 127 | 0 (migration 005) | 390K |
-| `Salesforce_DCCDO1` | 89 | 0 (migration 005) | 341K |
+| `Salesforce_Home` | 36,239 | 36,239 | 4.77M |
+| `Salesforce_InsuranceAFDC` | 167 | 0 (migration 005) | 460K |
+| `Salesforce_FinsDC4` | 146 | 0 (migration 005) | 449K |
+| `Salesforce_FinsDC1` | 127 | 0 (migration 005) | 380K |
+| `Salesforce_DCCDO1` | 89 | 0 (migration 005) | 334K |
 | Manual `TRD-xxx` placeholders | 5 | 0 (deactivated by migration 001) | trades have NULL `ACCOUNT_ID` |
-| **Total** | **36,773** | **36,239** | **10.62M** |
+| **Total** | **36,773** | **36,239** | **6.42M** |
 
-The 529 accounts from the four non-Home orgs don't join to the Home org the cockpits read, so migration 005 deactivated them. Their trades were kept. Adding a `Salesforce_Home` filter to `SYNC_NEW_ACCOUNTS()`, so new non-Home accounts aren't imported as active, is still open.
+Trade counts are after migration 007, which deleted the duplicate Monday trade sets (4,195,785 rows). The 35,116 NULL-`ACCOUNT_ID` trades from the `TRD-` placeholders are in the total only. The 529 accounts from the four non-Home orgs don't join to the Home org the cockpits read, so migration 005 deactivated them. Their trades were kept. Adding a `Salesforce_Home` filter to `SYNC_NEW_ACCOUNTS()`, so new non-Home accounts aren't imported as active, is still open.
 
 ## Execution Logging
 

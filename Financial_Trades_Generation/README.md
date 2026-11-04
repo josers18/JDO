@@ -8,7 +8,7 @@
 [![Data Cloud](https://img.shields.io/badge/Data_Cloud-Account_Sync-7F56D9?style=for-the-badge)](https://developer.salesforce.com/docs/data/data-cloud-query-guide/guide/query-guide-get-started.html)
 
 [![Scheduled Tasks](https://img.shields.io/badge/Tasks-CRON_Scheduled-5865F2?style=for-the-badge)](https://docs.snowflake.com/en/user-guide/tasks-intro)
-[![Trades](https://img.shields.io/badge/Trades-10.6M+-04844B?style=for-the-badge)](schemas/financial_trades.sql)
+[![Trades](https://img.shields.io/badge/Trades-6.4M+-04844B?style=for-the-badge)](schemas/financial_trades.sql)
 [![Accounts](https://img.shields.io/badge/Accounts-36,239-032D60?style=for-the-badge)](schemas/trade_generation_config.sql)
 [![Instruments](https://img.shields.io/badge/Instruments-2%2C004-111111?style=for-the-badge)](schemas/instrument_universe.sql)
 
@@ -55,7 +55,7 @@ graph LR
     end
 
     subgraph "Output"
-        D["FINANCIAL_TRADES<br/>(10.6M+ rows)"]
+        D["FINANCIAL_TRADES<br/>(6.4M+ rows)"]
         E["TASK_EXECUTION_LOG"]
     end
 
@@ -151,8 +151,10 @@ One-off data and schema fixes live in [`migrations/`](migrations/). Each one clo
 | [`003`](migrations/003_backfill_config_name_type_from_source.sql) | 2026-11-04 | Backfilled `ACCOUNT_NAME` and `ACCOUNT_TYPE` from the deduped source on 31,053 rows: 25,425 names (mostly a middle initial added in Salesforce), and 5,628 `Partner` rows moved from Retail to Institutional with the Partner trading settings | `TRADE_GENERATION_CONFIG_BAK_20261104` |
 | [`004`](migrations/004_backfill_config_profile_from_type_map.sql) | 2026-11-04 | Backfilled the trading settings on 25,379 `Person` rows still on the WEEKLY/5/$150K default: now MONTHLY/3/Conservative/$50K | `TRADE_GENERATION_CONFIG_BAK_20261104_M004` |
 | [`005`](migrations/005_deactivate_non_home_org_accounts.sql) | 2026-11-04 | Deactivated the 529 accounts from the four non-`Salesforce_Home` orgs (InsuranceAFDC 167, FinsDC4 146, FinsDC1 127, DCCDO1 89). Their 1,663,666 trades stay in `FINANCIAL_TRADES` | `TRADE_GENERATION_CONFIG_BAK_20261104_M005` |
+| [`006`](migrations/006_task_timeout_layering.sql) | not yet | Makes `DAILY_TRADE_GENERATOR` and `DAILY_ACCOUNT_SYNC` call their procedure directly (no `SP_RETRY_WRAPPER`), with a 3,000 s statement timeout on the generator, so the retry layers fit inside the task timeout | none (task DDL; the old definitions are in the file header) |
+| [`007`](migrations/007_dedupe_monday_retry_trades.sql) | 2026-11-04 | Deleted 4,195,785 duplicate trades that retried Monday runs wrote on 12 Mondays, 2026-06-15 to 2026-11-02. Per (account, day) it keeps the earliest complete run. `FINANCIAL_TRADES` went from 10,619,762 to 6,423,977 rows | `FINANCIAL_TRADES_BAK_20261104_M007` |
 
-Migrations 003-005 change trade volume from the next daily run: Partner accounts trade more, Person accounts much less, and the non-Home accounts stop trading. Existing trades aren't rewritten. Run new migrations as `ACCOUNTADMIN` outside the 03:00-03:10 ET task window.
+Migrations 003-005 change trade volume from the next daily run: Partner accounts trade more, Person accounts much less, and the non-Home accounts stop trading. Existing trades aren't rewritten. After 007, or any other change to `FINANCIAL_TRADES`, run a Full Refresh on the `BT_Financial_Trades` stream so Data Cloud drops the deleted rows. Run new migrations as `ACCOUNTADMIN` outside the 03:00-03:10 ET task window.
 
 ## Quick Start
 

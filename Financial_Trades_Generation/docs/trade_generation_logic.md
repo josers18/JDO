@@ -33,7 +33,7 @@ def _is_due(frequency, last_gen_date, today):
     return last_gen_date < today
 ```
 
-The `last_gen_date >= today` check (added 2026-11-04) makes a same-day rerun skip accounts already done. Before it, the Monday and 1st-of-month rules ignored `LAST_GENERATED_DATE`, so every rerun re-traded all WEEKLY / MONTHLY accounts. A Monday run that hit the 1,800 s timeout and was retried therefore wrote 4–6 full trade sets per account; see [AGENTS.md § Idempotency](../AGENTS.md#idempotency).
+The `last_gen_date >= today` check (added 2026-11-04) makes a same-day rerun skip accounts already done. Before it, the Monday and 1st-of-month rules ignored `LAST_GENERATED_DATE`, so every rerun re-traded all WEEKLY / MONTHLY accounts. A Monday run that hit the 1,800 s timeout and was retried therefore wrote 2–6 full trade sets per account. [Migration 007](../migrations/007_dedupe_monday_retry_trades.sql) removed the extra sets (4,195,785 rows) on 2026-11-04; see [AGENTS.md § Idempotency](../AGENTS.md#idempotency).
 
 A `None` value for `last_gen_date` means the account has never generated trades and is always due.
 
