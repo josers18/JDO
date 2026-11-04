@@ -40,6 +40,8 @@ export interface QueueSignalItem {
   dueDate?: string;
   /** Blended-score drivers (R7 Who-to-Call), strongest first. */
   drivers?: { label: string; points: number; tone: 'risk' | 'opportunity' }[];
+  /** Reserve one queue slot for the strongest flagged item (new intent / funding / job-change signals). */
+  reserveSlot?: boolean;
 }
 
 export interface QueueOppInput {
@@ -231,7 +233,18 @@ export function buildPriorityQueue(input: {
   // Composite priority: score first (blends severity + urgency), then severity as
   // a tiebreak. Renumbered ids keep React keys stable after the sort.
   const SEV_RANK: Record<QueueSeverity, number> = { high: 0, medium: 1, low: 2 };
-  deduped.sort((a, b) => (b.score - a.score) || (SEV_RANK[a.severity] - SEV_RANK[b.severity]));
+  const byPriority = (a: QueueSignalItem, b: QueueSignalItem) =>
+    (b.score - a.score) || (SEV_RANK[a.severity] - SEV_RANK[b.severity]);
+  deduped.sort(byPriority);
 
-  return deduped.slice(0, limit).map((it, i) => ({ ...it, id: it.id || `q${i}` }));
+  // Reserve one slot for the strongest flagged item if the cut would drop them all.
+  const top = deduped.slice(0, limit);
+  if (!top.some(it => it.reserveSlot)) {
+    const best = deduped.find(it => it.reserveSlot); // deduped is already sorted
+    if (best && top.length === limit) top[limit - 1] = best;
+    else if (best) top.push(best);
+  }
+  top.sort(byPriority);
+
+  return top.map((it, i) => ({ ...it, id: it.id || `q${i}` }));
 }
