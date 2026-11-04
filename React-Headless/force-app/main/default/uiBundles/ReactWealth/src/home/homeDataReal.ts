@@ -42,7 +42,7 @@
  * opportunity driver in the blended "who to call" score. Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems, dropCovered, inheritDue } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
@@ -252,7 +252,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, held, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades, concentration] = await Promise.all([
+  const [core, held, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades, concentration, liquidity] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
     userP.then(u => fetchWealthWhoToCall(u?.userId)),
@@ -296,6 +296,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // W8 single-stock concentration — additive.
     userP.then(u => fetchHoldingsConcentration(u?.userId))
       .catch((): HoldingsConcentrationResult => ({ rows: [], exposures: [], clients: 0, concentrated: 0, aum: 0, singleStockShare: 0, scope: 'org' })),
+    // Plan 16 — UserGems liquidity events (person accounts that left an employer) — additive.
+    userP.then(u => fetchLiquidityEvents(u?.userId))
+      .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
   const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
     .then(r => r.rows[0])
@@ -308,7 +311,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve held-away + inflow account IDs → names
-  const ids = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId), ...upgrades.rows.map(r => r.accountId), ...concentration.rows.map(r => r.accountId)].filter(Boolean))];
+  const ids = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...plans.atRiskRows.map(r => r.accountId), ...plans.reviewRows.map(r => r.accountId), ...leakage.rows.map(r => r.accountId), ...trades.sellers.map(r => r.accountId), ...owners.rows.map(r => r.accountId), ...upgrades.rows.map(r => r.accountId), ...concentration.rows.map(r => r.accountId), ...liquidity.rows.flatMap(r => [r.accountId, r.employerId, r.newEmployerId ?? ''])].filter(Boolean))];
   const nameById: Record<string, string> = {};
   // accountNamesQuery caps at first: 50, so look the ids up in chunks of 50.
   const idChunks = Array.from({ length: Math.ceil(ids.length / 50) }, (_, i) => ids.slice(i * 50, i * 50 + 50));
@@ -359,7 +362,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // Plan-risk / Gong / concentration clients already in the blended Who-to-Call don't repeat as their own item;
   // the plan feed ranks by the same score and fetches spares, so cap it after the dedupe.
   const planRiskQueue = dropCovered(planRiskSignals, callList).slice(0, PLAN_RISK_ROWS);
-  const transactionSignals: CallItem[] = [...amlSignals, ...planRiskQueue, ...dropCovered(gongSignals, callList), ...txSignals, ...campaignSignals, ...reviewSignals, ...sellerSignals, ...upgradeSignals, ...dropCovered(concentrationSignals, callList)];
+  const liquidityQueue = dropCovered(liquidityQueueItems(liquidity, nameById, { segment: 'Wealth' }), callList).slice(0, LIQUIDITY_ROWS);
+  const transactionSignals: CallItem[] = [...amlSignals, ...planRiskQueue, ...dropCovered(gongSignals, callList), ...txSignals, ...campaignSignals, ...reviewSignals, ...sellerSignals, ...upgradeSignals, ...dropCovered(concentrationSignals, callList), ...liquidityQueue];
 
   // Two Task windows (overdue DESC + today/future ASC) so a recent task isn't
   // buried under the thousands-deep overdue backlog a single ASC window returns.
@@ -642,7 +646,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'held-away assets within reach',
-    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${who.clients.toLocaleString('en-US')} clients scored for who to call (held away, plans, Gong, concentration), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}`,
+    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${who.clients.toLocaleString('en-US')} clients scored for who to call (held away, plans, Gong, concentration), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}${liquidity.total ? ` ${liquidity.total.toLocaleString('en-US')} ${liquidity.scope === 'book' ? 'clients in your book' : 'clients'} left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 89,
     dataSourceCount: freshness?.sources.length ?? 26,
@@ -688,6 +692,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       ...campaignSignals.slice(0, 2).map((t, i) => ({
         id: `am${i}`, title: `Campaign interest — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last touch',
+      })),
+      ...liquidityQueue.slice(0, 2).map((c, i) => ({
+        id: `aul${i}`, title: `Liquidity event — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 180d',
       })),
       ...amlSignals.slice(0, 2).map((w, i) => ({
         id: `aw${i}`, title: `Screening escalated — ${w.clientName}`, detail: `${w.reason} · ${w.action}`,
