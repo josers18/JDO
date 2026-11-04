@@ -154,7 +154,7 @@ One-off data and schema fixes live in [`migrations/`](migrations/). Each one clo
 | [`006`](migrations/006_task_timeout_layering.sql) | not yet | Makes `DAILY_TRADE_GENERATOR` and `DAILY_ACCOUNT_SYNC` call their procedure directly (no `SP_RETRY_WRAPPER`), with a 3,000 s statement timeout on the generator, so the retry layers fit inside the task timeout | none (task DDL; the old definitions are in the file header) |
 | [`007`](migrations/007_dedupe_monday_retry_trades.sql) | 2026-11-04 | Deleted 4,195,785 duplicate trades that retried Monday runs wrote on 12 Mondays, 2026-06-15 to 2026-11-02. Per (account, day) it keeps the earliest complete run. `FINANCIAL_TRADES` went from 10,619,762 to 6,423,977 rows | `FINANCIAL_TRADES_BAK_20261104_M007` |
 
-Migrations 003-005 change trade volume from the next daily run: Partner accounts trade more, Person accounts much less, and the non-Home accounts stop trading. Existing trades aren't rewritten. After 007, or any other change to `FINANCIAL_TRADES`, run a Full Refresh on the `BT_Financial_Trades` stream so Data Cloud drops the deleted rows. Run new migrations as `ACCOUNTADMIN` outside the 03:00-03:10 ET task window.
+Migrations 003-005 change trade volume from the next daily run: Partner accounts trade more, Person accounts much less, and the non-Home accounts stop trading. Existing trades aren't rewritten. The `BT_Financial_Trades` stream is zero copy (`DIRECT_ACCESS`), so Data Cloud reads `FINANCIAL_TRADES` live and changes such as 007's delete show up without a refresh. Run new migrations as `ACCOUNTADMIN` outside the 03:00-03:10 ET task window.
 
 ## Quick Start
 

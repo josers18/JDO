@@ -23,7 +23,7 @@
 -- other days (06-30, 08-03 and 09-28 have a single pair split across a flush
 -- boundary or 9,034 s apart; left alone), NULL-ACCOUNT_ID rows from the old
 -- TRD- placeholders, TRADE_GENERATION_CONFIG. The DC stream BT_Financial_Trades
--- needs a manual Full Refresh afterwards (DC Setup UI) to drop the deleted rows.
+-- is zero copy (DIRECT_ACCESS), so the delete shows up there with no refresh.
 -- Run as ACCOUNTADMIN on LARGE_LOAD outside the 03:00-03:10 ET task window, in
 -- one session (snow sql -f): the delete set is a TEMPORARY table.
 -- Rollback: FINANCIAL_TRADES_BAK_20261104_M007 (state before this migration).
