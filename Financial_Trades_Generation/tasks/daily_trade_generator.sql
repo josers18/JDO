@@ -13,8 +13,8 @@
 --            cleanly. Until migration 006 the body went through
 --            SP_RETRY_WRAPPER(..., 2) with a 1800 s timeout, whose attempts
 --            could not fit in the task run (see migrations/006).
--- Live DDL:  this file is the state AFTER migrations/006_task_timeout_layering.sql.
---            Before 006 is applied the live task still uses the wrapper.
+-- Live DDL:  matches the live task since migrations/006_task_timeout_layering.sql
+--            (applied 2026-11-04).
 --            Check GET_DDL('TASK', ...) before redeploying.
 -- =============================================================================
 

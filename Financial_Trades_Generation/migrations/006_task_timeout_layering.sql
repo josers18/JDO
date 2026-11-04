@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 006 (NOT YET APPLIED): drop SP_RETRY_WRAPPER from the two daily
+-- Migration 006 (applied 2026-11-04): drop SP_RETRY_WRAPPER from the two daily
 -- tasks and fit the generator's timeout inside the task run.
 --
 -- Why: both tasks called their procedure through SP_RETRY_WRAPPER(..., 2) AND
