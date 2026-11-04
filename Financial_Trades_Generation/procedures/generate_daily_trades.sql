@@ -5,11 +5,12 @@
 --            based on their configured frequency (DAILY/WEEKLY/MONTHLY).
 --            Reads from INSTRUMENT_UNIVERSE and TRADE_GENERATION_CONFIG,
 --            applies risk-based price jitter, exchange/currency weighting,
---            and batch-inserts into FINANCIAL_TRADES (5,000 rows per batch).
+--            and loads FINANCIAL_TRADES with session.write_pandas (5,000 rows
+--            per batch).
 --            Updates LAST_GENERATED_DATE on each processed account.
 --            Only active configs with a Salesforce Account Id (ACCOUNT_ID LIKE '001%')
 --            get trades; non-Account keys such as the old TRD-xxx are skipped.
--- Called by: DAILY_TRADE_GENERATOR task (1:00 AM ET)
+-- Called by: DAILY_TRADE_GENERATOR task (3:10 AM ET, via SP_RETRY_WRAPPER)
 -- Language:  Python 3.11 (Snowpark)
 -- Execution: EXECUTE AS OWNER
 -- =============================================================================
@@ -18,7 +19,7 @@ CREATE OR REPLACE PROCEDURE "GENERATE_DAILY_TRADES"()
 RETURNS VARCHAR
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
-PACKAGES = ('snowflake-snowpark-python')
+PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'generate_trades'
 EXECUTE AS OWNER
 AS '
@@ -26,6 +27,8 @@ import random
 import uuid
 import time
 from datetime import date, datetime, timedelta, timezone
+
+import pandas as pd
 
 EXCHANGES = ["NYSE", "NASDAQ", "LSE", "HKEX", "JPX"]
 SOURCE_SYSTEMS = [
@@ -99,8 +102,13 @@ def _to_iso_z(dt):
 def _is_due(frequency, last_gen_date, today):
     if last_gen_date is None:
         return True
+    # Already generated today: a rerun (task retry, SP_RETRY_WRAPPER) must not
+    # regenerate. Without this, the Monday / 1st-of-month rules below made every
+    # rerun re-trade all WEEKLY / MONTHLY accounts.
+    if last_gen_date >= today:
+        return False
     if frequency == "DAILY":
-        return last_gen_date < today
+        return True
     if frequency == "WEEKLY":
         days_since = (today - last_gen_date).days
         return days_since >= 7 or today.weekday() == 0
@@ -198,22 +206,26 @@ def generate_trade(rng, account_id, trade_day, instrument, risk, max_val, avail_
     }
 
 
+DATE_COLS = ("TRADE_DATE", "SETTLEMENT_DATE", "SNAPSHOT_DATE")
+
+
 def _flush_batch(session, batch):
-    """Insert a batch of trades into FINANCIAL_TRADES."""
+    """Load a batch of trades into FINANCIAL_TRADES with write_pandas.
+
+    One PUT + COPY per batch. The multi-row bind INSERT it replaces spent
+    ~18 s compiling each 5,000-row statement. COPY from parquet does not
+    cast the ISO-Z strings the way the INSERT binds did, so they are parsed
+    here: DATE columns keep the UTC calendar day, CREATED_AT is naive UTC.
+    """
     if not batch:
         return
-    cols = list(batch[0].keys())
-    col_list = ", ".join(cols)
-    values_clauses = []
-    all_params = []
-    placeholders = ", ".join(["?"] * len(cols))
-    for t in batch:
-        values_clauses.append(f"({placeholders})")
-        for c in cols:
-            all_params.append(t[c])
-    values_sql = ", ".join(values_clauses)
-    insert_sql = f"INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES ({col_list}) VALUES {values_sql}"
-    session.sql(insert_sql, params=all_params).collect()
+    df = pd.DataFrame(batch)
+    for c in DATE_COLS:
+        df[c] = pd.to_datetime(df[c], utc=True).dt.date
+    df["CREATED_AT"] = pd.to_datetime(df["CREATED_AT"], utc=True).dt.tz_localize(None)
+    session.write_pandas(df, "FINANCIAL_TRADES", database="DATA_JEDAIS",
+                         schema="FINS__PUBLIC", auto_create_table=False,
+                         overwrite=False, use_logical_type=True)
 
 
 def log_execution(session, task_name, status, rows_inserted=0,
@@ -304,8 +316,13 @@ def generate_trades(session):
 
             accounts_to_update.append(acct_id)
 
-            # Update LAST_GENERATED_DATE in batches of 500 accounts
+            # Update LAST_GENERATED_DATE in batches of 500 accounts. Flush first,
+            # so an account is never marked done while its trades are unwritten.
             if len(accounts_to_update) >= 500:
+                if batch:
+                    _flush_batch(session, batch)
+                    total_rows += len(batch)
+                    batch = []
                 ids_str = "'',''".join(accounts_to_update)
                 session.sql(
                     f"UPDATE DATA_JEDAIS.FINS__PUBLIC.TRADE_GENERATION_CONFIG "

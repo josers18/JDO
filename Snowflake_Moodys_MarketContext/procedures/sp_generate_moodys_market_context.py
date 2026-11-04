@@ -290,12 +290,23 @@ _MOVE_SMALL_BOOK_MAX        = 500
 _MOVE_EPISODE_PROB_SMALL    = 0.50
 
 # account -> owner's business-book size, read live from the inbound
-# Account share (same dedup as V_ACCOUNT_ANCHORS).
+# Account share. The share carries duplicate ssot__Id__c rows (Account DSO +
+# PartyRelationshipGroup DSO), so the QUALIFY must pick the same copy on every
+# query: populated OwnerId first, then the Account DSO, newest modified, and a
+# row hash as the total-order tie-break (mirrors V_ACCOUNT_ANCHORS v1.4).
 OWNER_BOOK_SQL = """
 WITH acc AS (
-    SELECT "ssot__Id__c" AS ACCOUNT_ID, "ssot__OwnerId__c" AS OWNER_ID
-    FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm"
-    QUALIFY ROW_NUMBER() OVER (PARTITION BY "ssot__Id__c" ORDER BY "ssot__Id__c") = 1
+    SELECT ACCOUNT_ID, OWNER_ID FROM (
+        SELECT s."ssot__Id__c" AS ACCOUNT_ID, s."ssot__OwnerId__c" AS OWNER_ID,
+               s."ssot__DataSourceObjectId__c" AS DSO,
+               s."ssot__LastModifiedDate__c" AS LMD, HASH(s.*) AS ROW_HASH
+        FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" s
+    )
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY ACCOUNT_ID
+        ORDER BY IFF(OWNER_ID IS NULL, 1, 0), IFF(DSO = 'Account', 0, 1),
+                 LMD DESC NULLS LAST, ROW_HASH
+    ) = 1
 ), biz AS (
     SELECT DISTINCT v.ACCOUNT_ID, acc.OWNER_ID
     FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS v

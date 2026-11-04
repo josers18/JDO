@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+output/dc-*.json
+tests/integration/sp_create_fixture_procedure.sql

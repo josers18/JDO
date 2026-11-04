@@ -170,12 +170,19 @@ _RETAIL_OWNER_MIN_INCOME = 100_000
 _RETAIL_OWNER_STANDING_P = 0.03
 _WEEKLY_RETAIL_OWNER_P = 0.002
 # Account -> owning User. V_ACCOUNT_ANCHORS doesn't carry OwnerId; read it from
-# the same datashare Account DMO the view joins.
+# the same datashare Account DMO the view joins. The share carries duplicate
+# ssot__Id__c rows (Account DSO + PartyRelationshipGroup DSO), so prefer the
+# Account DSO, then the newest modified, then a row hash as the total-order
+# tie-break (mirrors V_ACCOUNT_ANCHORS v1.4).
 ACCOUNT_OWNER_SQL = (
-    'SELECT "ssot__Id__c" AS ACCOUNT_ID, "ssot__OwnerId__c" AS OWNER_ID '
-    'FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" '
-    "WHERE \"ssot__Id__c\" LIKE '001%' AND \"ssot__OwnerId__c\" IS NOT NULL "
-    'QUALIFY ROW_NUMBER() OVER (PARTITION BY "ssot__Id__c" ORDER BY "ssot__OwnerId__c") = 1'
+    "SELECT ACCOUNT_ID, OWNER_ID FROM ("
+    'SELECT s."ssot__Id__c" AS ACCOUNT_ID, s."ssot__OwnerId__c" AS OWNER_ID, '
+    's."ssot__DataSourceObjectId__c" AS DSO, s."ssot__LastModifiedDate__c" AS LMD, '
+    "HASH(s.*) AS ROW_HASH "
+    'FROM FINSDC3_DATASHARE."schema_Jedi_Snowflake"."ssot__Account__dlm" s '
+    "WHERE s.\"ssot__Id__c\" LIKE '001%' AND s.\"ssot__OwnerId__c\" IS NOT NULL) "
+    "QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID "
+    "ORDER BY IFF(DSO = 'Account', 0, 1), LMD DESC NULLS LAST, ROW_HASH) = 1"
 )
 
 # 10-column output contract (kept in sync with the table DDL by the L1 schema test).

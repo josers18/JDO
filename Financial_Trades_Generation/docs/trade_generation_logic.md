@@ -11,25 +11,29 @@ Each account has a `FREQUENCY` setting that determines how often trades are gene
 | Frequency | Rule | Typical Result |
 |---|---|---|
 | **DAILY** | Generate if `last_gen < today` | Every business day |
-| **WEEKLY** | Generate if 7+ days since last gen, OR it's Monday | ~52 periods/year |
-| **MONTHLY** | Generate if 28+ days since last gen, OR it's the 1st | ~12 periods/year |
+| **WEEKLY** | Generate if `last_gen < today` AND (7+ days since last gen OR it's Monday) | ~52 periods/year |
+| **MONTHLY** | Generate if `last_gen < today` AND (28+ days since last gen OR it's the 1st) | ~12 periods/year |
 
-The `_is_due()` function implements this logic:
+The `_is_due()` function in `GENERATE_DAILY_TRADES` implements this logic:
 
 ```python
-def _is_due(frequency, last_gen_date, current_date):
+def _is_due(frequency, last_gen_date, today):
     if last_gen_date is None:
         return True
+    if last_gen_date >= today:
+        return False
     if frequency == "DAILY":
-        return last_gen_date < current_date
+        return True
     if frequency == "WEEKLY":
-        days_since = (current_date - last_gen_date).days
-        return days_since >= 7 or current_date.weekday() == 0
+        days_since = (today - last_gen_date).days
+        return days_since >= 7 or today.weekday() == 0
     if frequency == "MONTHLY":
-        days_since = (current_date - last_gen_date).days
-        return days_since >= 28 or current_date.day == 1
-    return last_gen_date < current_date
+        days_since = (today - last_gen_date).days
+        return days_since >= 28 or today.day == 1
+    return last_gen_date < today
 ```
+
+The `last_gen_date >= today` check (added 2026-11-04) makes a same-day rerun skip accounts already done. Before it, the Monday and 1st-of-month rules ignored `LAST_GENERATED_DATE`, so every rerun re-traded all WEEKLY / MONTHLY accounts. A Monday run that hit the 1,800 s timeout and was retried therefore wrote 2–6 full trade sets per account. [Migration 007](../migrations/007_dedupe_monday_retry_trades.sql) removed the extra sets (4,195,785 rows) on 2026-11-04; see [AGENTS.md § Idempotency](../AGENTS.md#idempotency).
 
 A `None` value for `last_gen_date` means the account has never generated trades and is always due.
 
@@ -146,23 +150,26 @@ def _filter_instruments(instruments, preferred_sectors):
     return filtered if filtered else instruments
 ```
 
-## Batch Insert Pattern
+## Batch Load Pattern
 
-Trades are accumulated in Python and inserted in batches of 500:
+`GENERATE_DAILY_TRADES` accumulates trades as dicts and loads them in batches of 5,000 with `session.write_pandas` (one PUT + COPY per batch):
 
 ```python
-batch_size = 500
-for i in range(0, len(all_trades), batch_size):
-    batch = all_trades[i:i+batch_size]
-    values_clauses = ", ".join(["(?, ?, ?, ..., ?)"] * len(batch))
-    params = [val for trade in batch for val in trade]
-    session.sql(f"INSERT INTO FINANCIAL_TRADES (...) VALUES {values_clauses}", params=params).collect()
+def _flush_batch(session, batch):
+    df = pd.DataFrame(batch)
+    for c in DATE_COLS:  # TRADE_DATE, SETTLEMENT_DATE, SNAPSHOT_DATE
+        df[c] = pd.to_datetime(df[c], utc=True).dt.date
+    df["CREATED_AT"] = pd.to_datetime(df["CREATED_AT"], utc=True).dt.tz_localize(None)
+    session.write_pandas(df, "FINANCIAL_TRADES", database="DATA_JEDAIS",
+                         schema="FINS__PUBLIC", auto_create_table=False,
+                         overwrite=False, use_logical_type=True)
 ```
 
-This pattern was chosen over DataFrame inserts because:
-- Predictable memory usage (500-row batches)
-- No Snowpark DataFrame overhead for simple inserts
-- Compatible with `EXECUTE AS OWNER` restriction (no temp tables)
+`generate_trade` emits the dates as ISO-Z strings. A bind INSERT cast those itself, but COPY from parquet doesn't, so `_flush_batch` parses them. The three date columns keep the UTC calendar day, and `CREATED_AT` (`TIMESTAMP_NTZ`) is stored as naive UTC. The batch is also flushed before each 500-account `LAST_GENERATED_DATE` update (see [Frequency Gating](#frequency-gating)).
+
+Until 2026-11-04 the batch went out as one parameterized multi-row `INSERT INTO ... VALUES (?, ...)`. Snowflake spent ~18 s compiling each 5,000-row statement (0.7 s executing it), so a large Monday run hit the 1,800 s procedure timeout. A `write_pandas` flush of 5,000 rows takes ~2 s.
+
+`GENERATE_HISTORICAL_TRADES` uses the same load in its `flush_batch`, since 2026-11-04 (it used 500-row parameterized INSERTs before). Its rows are lists, its dates come from `isoformat()` with a `+00:00` offset, and its `CREATED_AT` is built naive, so that column is parsed without a timezone. On a 400-account, two-month scratch run it finished in 6.6 s, against 44 s for the INSERT version, with identical per-(account, day) row counts.
 
 ## Daily Volume Estimates
 

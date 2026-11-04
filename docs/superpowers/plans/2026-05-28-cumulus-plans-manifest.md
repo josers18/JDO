@@ -19,13 +19,13 @@
 | Plan 7 — World-Check AML | **LIVE** (36,813 rows, DC mapping pending UI; first daily cadence + first all-accounts audience) | `2026-05-28-cumulus-plan-7-worldcheck-aml.md` |
 | Plan 8 — MGP Financial Plans | **LIVE** (883,512 rows; rebroadcast: all-accounts × 24-month history; DC mapping pending UI) | `2026-05-28-cumulus-plan-8-mgp-financial-plans.md` |
 | Plan 9 — Synth Relationship Graph | **LIVE** (38,099 rows; first edge-scoped 1:N; cross-plan SOFT-deps shipped HOUSEHOLD/CORPORATE/BOARD edges as 0-emit; SELF/ADVISOR_BOOK/REFERRAL/BUSINESS_OWNER fired; DC mapping pending UI) | `2026-05-28-cumulus-plan-9-synth-relationship-graph.md` |
-| Plan 10 — BoardEx Exec Intel | **LIVE** (883,512 rows; rebroadcast: all-accounts × 24-month history; PERSON anchors get personal-household governance defaults; DC mapping pending UI) | `2026-05-28-cumulus-plan-10-boardex-exec-intel.md` |
-| Plan 11 — ZoomInfo Firmographics | **LIVE** (11,389 rows; defensive-string handling holding 0 invariants violated; DC mapping pending UI) | `2026-05-28-cumulus-plan-11-zoominfo-firmographics.md` |
+| Plan 10 — BoardEx Exec Intel | **LIVE** (1,104,633 rows, unique on PK after the 2026-11-02 dedupe; all-accounts × 30-month history; `EXEC_TURNOVER_FLAG` trailing-12-month sticky since the 2026-11-02 re-run (BOARD_SIZE>1: 4,682 rises / 60,110 stays / 4,673 falls, 0 stickiness violations); deterministic RECORD_IDs; MERGE-key guard; PERSON anchors get personal-household governance defaults; DC mapping pending UI) | `2026-05-28-cumulus-plan-10-boardex-exec-intel.md` |
+| Plan 11 — ZoomInfo Firmographics | **LIVE** (79,968 rows / 7 months, unique on PK after the 2026-11-03 dedupe; `FOUNDED_YEAR` account-stable since Plan 16 Task 0 (history rewritten); defensive-string handling holding 0 invariants violated; DC mapping pending UI) | `2026-05-28-cumulus-plan-11-zoominfo-firmographics.md` |
 | Plan 12 — Gong Call Sentiment | **LIVE** (883,512 rows; rebroadcast: all-accounts × 24-week history; per-CLIENT_CATEGORY call-rate tiering with cascade-NULL dominant for Retail/Household; DC mapping pending UI) | `2026-05-28-cumulus-plan-12-gong-call-sentiment.md` |
 | Plan 13 — Moody's Market Context | **LIVE v2** (1,025,010 rows; re-scoped from instrument to per-BUSINESS account; 90-day daily history; ANNUAL_REVENUE-driven market cap, INDUSTRY-driven credit rating; DC mapping pending UI) | `2026-05-28-cumulus-plan-13-moodys-market-context.md` |
-| Plan 14 — Demandbase Intent Signals | **Pending** (drafted 2026-11-02; weekly, 6,435-anchor BUSINESS non-Household audience, variable topic fan-out, Gong soft-dep) | `2026-11-02-cumulus-plan-14-demandbase-intent-signals.md` |
-| Plan 15 — UserGems Job Changes | **Pending** (drafted 2026-11-02; first event-scoped dataset, PK `EVENT_ID`; BoardEx hard-dep; ~8.5K events over 24 months) | `2026-11-02-cumulus-plan-15-usergems-job-changes.md` |
-| Plan 16 — Harmonic Company Signals | **Pending** (drafted 2026-11-02; 703-anchor three-way audience; Coresignal columns folded in; Task 0 fixes Plan 11 FOUNDED_YEAR churn first) | `2026-11-02-cumulus-plan-16-harmonic-company-signals.md` |
+| Plan 14 — Demandbase Intent Signals | **LIVE** (274,143 rows / 26 weeks / 6,435 accounts; weekly BUSINESS non-Household audience, variable topic fan-out 1–4 rows, Gong soft-dep; DC mapping pending UI) | `2026-11-02-cumulus-plan-14-demandbase-intent-signals.md` |
+| Plan 15 — UserGems Job Changes | **LIVE** (9,017 events / 105 weeks; first event-scoped dataset, PK `EVENT_ID`; bidirectional sticky-BoardEx C-suite gate, 0 violations; DC mapping pending UI) | `2026-11-02-cumulus-plan-15-usergems-job-changes.md` |
+| Plan 16 — Harmonic Company Signals | **LIVE** (4,587 rows / 7 months / 672 accounts; three-way anchor × ZoomInfo × Moody's audience; lifetime funding timeline, 0 monotonicity violations; Coresignal columns folded in; rowspec parameter revisions await owner sign-off; DC mapping pending UI) | `2026-11-02-cumulus-plan-16-harmonic-company-signals.md` |
 
 **Why a template + manifest instead of 13 plan files:** the per-dataset variation is mechanical (audience predicate, table columns, salt), so a 700-line plan that's 95% identical for each of 13 datasets would be 9000 lines of copy-paste with drift risk. The template + per-dataset rowspec attachment captures the variation in ~50 lines per dataset instead.
 
@@ -65,7 +65,7 @@ Plan 15      │  ┊
         (Harmonic) (Demandbase)
 ```
 
-Plans 14–16 (drafted 2026-11-02 from the vendor-gap assessment):
+Plans 14–16 (drafted and LIVE 2026-11-02, from the vendor-gap assessment):
 - **Plan 14** has only a soft dependency on Plan 12 (Gong `Competitor` flag).
 - **Plan 15** hard-depends on Plan 10 (BoardEx gates C-suite departures).
 - **Plan 16** hard-depends on Plan 11 (plus its Task 0 FOUNDED_YEAR fix) and Plan 13 v2.
@@ -238,6 +238,6 @@ This manifest is the planning deliverable for the Cumulus brainstorm. After it's
 - Plan 1 (Claritas) is **shipping** — SP deployed, TASK scheduled, table populated. T7 (DC federation stream) and T8 (L3 smoke) remaining.
 - Plans 2–13 are instantiated on demand from the template + a per-dataset rowspec.
 
-- Plans 14–16 are **drafted (2026-11-02)** with plan files and rowspec attachments, pending implementation.
+- Plans 14–16 are **LIVE (2026-11-02)** in Snowflake (DC mapping pending UI), alongside the Plan 10 sticky-flag fix and the Plan 11 FOUNDED_YEAR fix.
 
 After Plan 1 closes, Plans 2–13 follow the recommended execution order in §"Execution order recommendation" above.

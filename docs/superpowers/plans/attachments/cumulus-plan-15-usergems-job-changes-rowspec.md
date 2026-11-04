@@ -2,9 +2,10 @@
 
 > Per-dataset attachment for the dataset template. Authored 2026-11-02 from the vendor-gap assessment (Hunter B2B data list → "Job changes / champion tracking" category) plus live probes of:
 > - `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`: 6,435-anchor employer audience, 3,920 Wealth Management PERSON anchors, `ACCOUNT_NAME` available for destination naming.
-> - `BOARDEX_EXEC_INTEL.EXEC_TURNOVER_FLAG`: monthly TRUE rate ≈ 17.7% of the employer audience. The flag is iid per month, not sticky; see plan §2.
+> - `BOARDEX_EXEC_INTEL.EXEC_TURNOVER_FLAG` on the employer audience (re-probed 2026-11-02 evening, after the Plan 10 30-month sticky re-run landed): **sticky** live, 189,214 rows / 6,435 accounts, TRUE rate 18.76%, 2,494 rises / 31,878 stays / 2,452 falls (69–110 rises a month, mean 86). That is an exact match for the offline replay of the sticky logic.
+>   The earlier probe that day (before the re-run) found the old iid flag: 26,450 rises / 6,511 stays / 26,433 falls. This attachment's gate and volumes use the live sticky flag; a replay of the row factory against the live inputs gives 9,006 backfill rows and 2,119 C-suite departures with 0 gate violations. See plan §2 "BoardEx gate".
 >
-> **First event-scoped dataset.** Every earlier plan emits ≥1 row per anchor per period. Plan 15 emits rows only when something happened. The row factory returns `[]` for ~96% of (anchor, month) pairs, and that is the correct output.
+> **First event-scoped dataset.** Every earlier plan emits ≥1 row per anchor per period. Plan 15 emits rows only when something happened. The row factory returns `[]` for ~91% of (anchor, month) pairs on the L1 fixture (9.2% emit), and that is the correct output.
 
 ## Mimics
 
@@ -14,9 +15,9 @@
 
 - **Employers (`ACCOUNT_ID`, `NEW_ACCOUNT_ID`):** `ACCOUNT_TYPE_FLAG = 'BUSINESS' AND COALESCE(CLIENT_CATEGORY, '') <> 'Household'` → **6,435 anchors** (probed 2026-11-02). Same predicate and rationale as Plan 14.
 - **Wealth pool (`PERSON_ACCOUNT_ID`):** `CLIENT_CATEGORY = 'Wealth Management'` → **3,920 PERSON anchors**. Sorted by `ACCOUNT_ID` ascending for a stable pick.
-- **BoardEx gate:** `{(ACCOUNT_ID, PROFILE_MONTH): EXEC_TURNOVER_FLAG}` for the 4 candidate months of each run week.
+- **BoardEx gate:** `{(ACCOUNT_ID, PROFILE_MONTH): EXEC_TURNOVER_FLAG}` for the 4 candidate months of each run week **plus the month before the earliest** (5 months). `rise(M)` = flag(M) TRUE and flag(M-1) FALSE. A missing M or M-1 row is not a rise. A rise emits exactly one C-suite `Departed` in M, and a non-rise month emits zero.
 
-## Table: `FINS.PUBLIC.USERGEMS_JOB_CHANGES`
+## Table: `DATA_JEDAIS.FINS__PUBLIC.USERGEMS_JOB_CHANGES`
 
 | Column | Type | Null? | Source / synthesis |
 |---|---|---|---|
@@ -27,7 +28,7 @@
 | `PROFILE_WEEK` | DATE | NOT NULL | Monday of the week containing `DETECTED_DATE` |
 | `EVENT_TYPE` | VARCHAR(10) | NOT NULL | `Departed` / `Joined` / `Promoted` |
 | `EVENT_DATE` | DATE | NOT NULL | Day the move happened: uniform within `event_month` |
-| `DETECTED_DATE` | DATE | NOT NULL | `EVENT_DATE + randint(3, 45)` days. UserGems detection lag (LinkedIn profile update) |
+| `DETECTED_DATE` | DATE | NOT NULL | `EVENT_DATE + randint(3, 45)` days. UserGems detection lag (LinkedIn profile update). Paired mirrors add `randint(0, 7)` more (max 52) |
 | `CONTACT_NAME` | VARCHAR(80) | NOT NULL | Synthetic `First Last` from Plan 10's name banks, seeded by EVENT_ID (salt `usergems_person`) |
 | `CONTACT_PERSONA` | VARCHAR(20) | NOT NULL | One of 9 personas (below) |
 | `SENIORITY` | VARCHAR(10) | NOT NULL | `C-Suite` / `VP` / `Director` / `Manager`, fixed by persona (and bumped one level for Promoted) |
@@ -87,21 +88,23 @@ def _roster_for(employee_count):
 
 ```python
 def _event_id(source_account_id, event_month, slot, kind):
-    # kind ∈ {"hazard", "csuite", "pair"}; event_month is a date (1st of month)
-    return record_id_for(source_account_id, event_month.isoformat(), str(slot), kind)
+    # kind ∈ {"hazard", "csuite", "pair"}; event_month is a date (1st of month).
+    # record_id_for is not exported from cumulus_common/__init__.py, so the SP
+    # module carries a byte-identical local _record_id_for (L1 parity test).
+    return _record_id_for(source_account_id, event_month.isoformat(), str(slot), kind)
 ```
 
 A paired mirror uses the **source** account and slot with `kind="pair"`. So the mirror's ID is computable from the Departed event alone, and either side can be regenerated independently.
 
 ## Event generation — `_events_for` (load-bearing)
 
-This is a pure function of `(anchor, event_month, boardex_flag, ctx)`, where `ctx` holds the sorted employer pool by INDUSTRY and the sorted Wealth pool. It returns **all** events with `EVENT_DATE` in `event_month`, including paired mirrors. The SP filters by detection week afterward.
+This is a pure function of `(anchor, event_month, boardex_rise, ctx)`, where `ctx` holds the sorted employer pool by INDUSTRY and the sorted Wealth pool. It returns **all** events with `EVENT_DATE` in `event_month`, including paired mirrors. The SP filters by detection week afterward.
 
 ```python
 _HAZARD = 0.014          # per tracked non-C-suite slot per month
-_CSUITE_P = 0.08         # per account-month, only when BoardEx flag is TRUE
+# No C-suite probability: a BoardEx rise always emits exactly one C-suite departure.
 
-def _events_for(anchor, event_month, boardex_flag, ctx):
+def _events_for(anchor, event_month, boardex_rise, ctx):
     rng = Random(seed_for(anchor["ACCOUNT_ID"], "usergems", datetime.combine(event_month, time())))
     roster = _roster_for(anchor.get("EMPLOYEE_COUNT"))
     out = []
@@ -114,8 +117,8 @@ def _events_for(anchor, event_month, boardex_flag, ctx):
         if persona in _CSUITE and etype == "Departed":
             etype = "Promoted" if persona != "CEO-Owner" else "Joined"   # C-suite exits go through the gate only
         out += _build(anchor, event_month, slot, "hazard", persona, etype, ctx)
-    # 2. BoardEx-gated C-suite departure — at most one per account-month.
-    if boardex_flag and rng.random() < _CSUITE_P:
+    # 2. BoardEx rise -> exactly one C-suite departure (no probability draw).
+    if boardex_rise:
         persona = rng.choice([p for p in roster if p in _CSUITE])        # every roster has CEO-Owner
         slot = roster.index(persona)
         out += _build(anchor, event_month, slot, "csuite", persona, "Departed", ctx)
@@ -124,7 +127,7 @@ def _events_for(anchor, event_month, boardex_flag, ctx):
 
 `_build` returns a list of 1 row, or 2 rows when the event is a Departed resolving to an Existing Client: the source row plus the mirror on the destination. Draw order inside `_build` uses `Random(seed_for(event_id, "usergems_person", ...))`, so per-event attributes don't shift when an unrelated slot's hazard roll changes.
 
-**Note on `rng.random()` draw order in step 1:** the hazard loop must consume **exactly one** `rng.random()` per slot when no event fires, and exactly two when one does (hazard + kind). Never draw conditionally in a way that depends on anything other than the slot's own rolls. Otherwise the C-suite roll in step 2 would depend on step-1 outcomes in a non-obvious way. That is still deterministic, but it makes L1 test 4c fragile.
+**Note on `rng.random()` draw order in step 1:** the hazard loop must consume **exactly one** `rng.random()` per slot when no event fires, and exactly two when one does (hazard + kind). Never draw conditionally in a way that depends on anything other than the slot's own rolls. Step 2 runs only after the loop and makes one `rng.choice` (no probability draw), so a rise never shifts any hazard event. L1 `test_gate_does_not_shift_hazard_events` guards this.
 
 ## New-employer resolution (Departed only)
 
@@ -234,16 +237,26 @@ def _person_account(event_id, etype, seniority, prng, ctx):
 ```python
 def _rows_for_week(anchors, week_start, run_ts, boardex, ctx):
     week_end = week_start + timedelta(days=6)
-    months = {(week_end.replace(day=1) - relativedelta(months=k)) for k in (0, 1, 2, 3)}
+    months = _candidate_months(week_start)          # month(week_end) and the 3 prior, ascending
     rows = []
     for a in anchors:
-        for m in sorted(months):
-            flag = boardex.get((a["ACCOUNT_ID"], m), False)       # missing BoardEx row = FALSE
-            for ev in _events_for(a, m, flag, ctx):
+        for m in months:
+            rise = _boardex_rise(boardex, a["ACCOUNT_ID"], m)
+            for ev in _events_for(a, m, rise, ctx):
                 if week_start <= ev["DETECTED_DATE"] <= min(week_end, run_ts.date()):
                     rows.append(ev)
     return rows
+
+def _boardex_rise(boardex, account_id, month):
+    # rise(M) = flag(M) TRUE and flag(M-1) FALSE; a missing M or M-1 row is NOT a rise.
+    cur = boardex.get((account_id, month))
+    prev = boardex.get((account_id, _shift_months(month, -1)))
+    return cur is not None and bool(cur) and prev is not None and not bool(prev)
 ```
+
+The SP loads `boardex` for `_boardex_months_for_week(week_start)`: the 4 candidate months plus the month before the earliest.
+
+**Default weekly run (SP, Task 4).** The TASK fires Monday 09:00 UTC, so it must process the previous complete week plus the current partial week. If it processed only the current week, Tuesday-to-Sunday detections would never be written. The MERGE is idempotent, so the overlap is free.
 
 The longest lag is 45 days, plus a 7-day mirror offset, which gives 52 days. The window is `month(week_end)` and the 3 prior months.
 - An event detected in week W happened at most 52 days before `week_end`.
@@ -255,15 +268,15 @@ L1 property #5 proves completeness rather than trusting this arithmetic.
 ## Bias logic summary
 
 - `EMPLOYEE_COUNT` → roster size → event volume. Bigger firms have more tracked contacts, so more events.
-- BoardEx `EXEC_TURNOVER_FLAG` gates C-suite departures (one-directional).
+- BoardEx `EXEC_TURNOVER_FLAG` rises drive C-suite departures one-to-one (bidirectional): exactly one per rise month, none otherwise.
 - INDUSTRY steers destination choice for Existing Client moves.
 - Finance personas → champion rate 4× non-finance.
 - Seniority + champion + primary drive both scores.
 
 ## Boring case (must still behave)
 
-Take an anchor with `INDUSTRY=None`, `EMPLOYEE_COUNT=None` (roster = 2) and BoardEx flag FALSE.
-- Over 24 months it emits **~0–2** events, all from the hazard path.
+Take an anchor with `INDUSTRY=None`, `EMPLOYEE_COUNT=None` (roster = 2) and no BoardEx rise.
+- Over 24 months it emits **≤ 4** events, all from the hazard path (the L1 fixture gives 1).
 - It never emits a C-suite Departed and never raises.
 - An Existing Client resolution falls back to the full employer pool.
 
@@ -271,9 +284,9 @@ An empty Wealth pool returns None (guarded).
 
 ## L1 property targets
 
-1. **Determinism:** same `(anchor, event_month, flag, ctx)` gives an identical list. `_rows_for_week` gives identical rows for an event regardless of which week computes it; see plan §4 Task 3.
-2. **Sparsity:** across the 10-anchor fixture × 24 months with BoardEx all-FALSE, the share of (anchor, month) pairs with ≥1 event is ≤10%.
-3. **Gate:** see plan 4c.
+1. **Determinism:** same `(anchor, event_month, boardex_rise, ctx)` gives an identical list. `_rows_for_week` gives identical rows for an event regardless of which week computes it; see plan §4 Task 3.
+2. **Sparsity:** across the 10-anchor fixture × 24 months with no BoardEx rises, the share of (anchor, month) pairs with ≥1 event is ≤10% (measured 9.2%).
+3. **Gate (bidirectional):** a rise in M gives exactly one C-suite departure in M. A non-rise month (stay, fall, all-FALSE, or missing M-1) gives zero. A rise never shifts hazard events. See plan 4c.
 4. **Invariants 4a–4e:** as listed in the plan §4 Task 3.
-5. **Lag-window completeness:** for every event generated for months M-3 … M+1, the event is returned by exactly one `_rows_for_week` call across the weeks of that span.
+5. **Lag-window completeness:** for every event generated for months M-3 … M+1, the event is returned by exactly one `_rows_for_week` call across the weeks of that span. A missing BoardEx M-1 row means no C-suite departure.
 6. **Boring case:** as above.

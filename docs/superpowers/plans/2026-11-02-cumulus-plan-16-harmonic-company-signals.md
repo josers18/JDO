@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development.
 
-**Goal:** Stand up the sixteenth per-dataset Cumulus pipeline, Harmonic-style **private-company funding and traction signals**. Coresignal-style **department headcount mix and job-posting velocity** are folded in as columns. Coverage is young, private commercial clients. Monthly cadence. The SP emits **one row per audience anchor per month** into `FINS.PUBLIC.HARMONIC_COMPANY_SIGNALS`, roughly 700 rows/month and ~4.9K rows with the 7-month backfill. The table is federated as `CumulusHarmonicCompanySignals__dlm`.
+**Goal:** Stand up the sixteenth per-dataset Cumulus pipeline, Harmonic-style **private-company funding and traction signals**. Coresignal-style **department headcount mix and job-posting velocity** are folded in as columns. Coverage is young, private commercial clients. Monthly cadence. The SP emits **one row per audience anchor per month** into `FINS.PUBLIC.HARMONIC_COMPANY_SIGNALS`, roughly 670 rows/month and ~4.6K rows with the 7-month backfill (re-probed after Task 0; see §2). The table is federated as `CumulusHarmonicCompanySignals__dlm`.
 
 **Why this dataset:** the 2026-11-02 vendor-gap assessment found that the existing company data is either static firmographics (ZoomInfo: band, NAICS, founded year) or public-market context (Moody's: rating, market cap, liquidity tier). Nothing describes the **private-company growth story**: who just raised, how much runway they have, and whether they're hiring or freezing. That story drives the highest-value commercial-banking moments:
 - **Fresh round:** treasury / sweep / deposit capture.
@@ -38,7 +38,7 @@
 | `<<TASK_NAME>>` | `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` |
 | `<<TASK_NAME_LOWER>>` | `task_monthly_harmonic_company_signals` |
 | `<<SP_NAME>>` | `SP_GENERATE_HARMONIC_COMPANY_SIGNALS` |
-| `<<CRON>>` | `'USING CRON 0 9 1 * * UTC'` (1st of month 09:00 UTC; 2 h after ZoomInfo's 07:00, so the same-month band exists) |
+| `<<CRON>>` | `'USING CRON 0 5 1 * * America/New_York'` (1st of month 05:00 ET). The LIVE ZoomInfo task runs `USING CRON 40 3 1 * * America/New_York` (03:40 ET, logged 08:40 UTC on 2026-11-01), not the `0 7 1 * * UTC` its repo SQL said. Same time zone keeps an 80-minute gap all year, so the same-month band exists. Revised 2026-11-02 from the draft `0 9 1 * * UTC`, which left only 20 min (EST) / 80 min (EDT). |
 | `<<AUDIENCE_PREDICATE>>` | See §2: anchor `BUSINESS` + non-Household, ZoomInfo `FOUNDED_YEAR >= 2010`, Moody's latest `LIQUIDITY_TIER = 'Illiquid'` |
 | `<<COVERAGE_RULE>>` | distinct accts = audience (one row per audience anchor per month) |
 | `<<ROW_PK>>` | `(ACCOUNT_ID, PROFILE_MONTH)` |
@@ -62,33 +62,44 @@ WHERE a.ACCOUNT_TYPE_FLAG = 'BUSINESS'
   AND z.FOUNDED_YEAR >= 2010
 ```
 
-**Live cardinality (probed 2026-11-02 against `DATA_JEDAIS.FINS__PUBLIC`, latest ZoomInfo month):** **703 anchors**.
+**Live cardinality (re-probed 2026-11-02 after Task 0, against `DATA_JEDAIS.FINS__PUBLIC`, every ZoomInfo month, §2 SQL verbatim):** **672 anchors** in the latest month (2026-11). FOUNDED_YEAR is now account-stable (0 accounts with >1 distinct value across all 7 months), so the month-to-month growth below is new BUSINESS anchors arriving, not churn: every account in an earlier month's audience is also in the 2026-11 audience (0 missing).
 
-| Founded cut | Anchors (latest month) |
+| ZoomInfo PROFILE_MONTH | Audience anchors (rows = distinct accounts) |
 |---|---|
-| ≥ 2005 | 1,237 |
-| ≥ 2008 | 909 |
-| **≥ 2010 (chosen)** | **703** |
-| ≥ 2012 | 537 |
-| ≥ 2015 | 322 |
+| 2026-05 | 650 |
+| 2026-06 | 650 |
+| 2026-07 | 650 |
+| 2026-08 | 650 |
+| 2026-09 | 651 |
+| 2026-10 | 664 |
+| **2026-11 (latest)** | **672** |
 
-| ZoomInfo EMPLOYEE_BAND (≥2010 cut) | Anchors |
+| Founded cut | Anchors (2026-11, stable FOUNDED_YEAR) |
 |---|---|
-| 1-10 | 563 |
-| 11-50 | 47 |
-| 51-200 | 30 |
-| 201-1000 | 58 |
-| 1001-5000 | 4 |
-| 5001-25000 | 1 |
+| ≥ 2005 | 1,242 |
+| ≥ 2008 | 898 |
+| **≥ 2010 (chosen)** | **672** |
+| ≥ 2012 | 498 |
+| ≥ 2015 | 280 |
+
+| ZoomInfo EMPLOYEE_BAND (≥2010 cut, 2026-11) | Anchors |
+|---|---|
+| 1-10 | 511 |
+| 11-50 | 46 |
+| 51-200 | 49 |
+| 201-1000 | 59 |
+| 1001-5000 | 5 |
+| 5001-25000 | 2 |
 
 **Why Moody's `Illiquid` and not "no Moody's row"?** Plan 13 v2 covers *every* BUSINESS account, so absence can't signal "private". `LIQUIDITY_TIER='Illiquid'` is stable per account and is the closest synthetic proxy for "not publicly traded". Moody's history is only 90 days deep, so the predicate reads the **latest** row per account rather than month-matching. That's safe because the tier doesn't move.
 
-**FOUNDED_YEAR churn (found at draft time, 2026-11-02) — the reason for Task 0.**
+**FOUNDED_YEAR churn (found at draft time, 2026-11-02) — the reason for Task 0. FIXED by Task 0 (2026-11-02).**
 - **Cause:** Plan 11 seeds `_founded_year` (`Snowflake_ZoomInfo_Firmographics/procedures/sp_generate_zoominfo_firmographics.py:293`) from the per-month rng (`seed_for(account_id, DATASET_SALT, month_start)`, line ~516).
 - **Effect:** a company's founding year is re-drawn every month. The same predicate run per ZoomInfo month gives 682 / 668 / 642 / 657 / 653 / 657 / 703, with different accounts each month.
-- **Conclusion:** the 703 figure is one random monthly draw. After Task 0 stabilizes the value, re-probe; expect roughly 640–720. L3 accepts 550–850.
+- **Conclusion (pre-fix):** the draft-time 703 was one random monthly draw.
+- **Resolution:** Task 0 landed; the stable counts are in the tables above (650–672 across the 7 months, 672 latest). That sits inside the L3 550–850 band, so the band is unchanged.
 
-**Size ladder:** ~700 anchors × 1 row/month ≈ **700 rows/month**. With the 7-month backfill (aligned to ZoomInfo's history) the total is **~4.9K rows**.
+**Size ladder:** ~650–672 anchors × 1 row/month ≈ **~670 rows/month**. With the 7-month backfill (aligned to ZoomInfo's history) the total is **4,587 rows** (sum of the per-month counts above).
 
 ## §3 Rowspec attachment
 
@@ -121,7 +132,7 @@ The attachment contains:
    - **Hard deps.** Probe `INFORMATION_SCHEMA.TABLES` for both `ZOOMINFO_FIRMOGRAPHICS` and `MOODYS_MARKET_CONTEXT`, and raise if either is missing. Also raise if ZoomInfo has **no row for `:month`**, which means the ZoomInfo task hasn't run yet. Don't silently emit an empty month.
    - **Funding timeline is account-lifetime.** Salt `harmonic_funding` with `datetime(2000, 1, 1)` and key `ACCOUNT_ID`. Never seed it from `PROFILE_MONTH`: that would break monotonicity.
    - **Trajectory recomputation.** `_headcount_for(anchor, band, month)` and `_postings_for(anchor, band, month)` are pure functions. Growth and trend call them for M-6 / M-3. No `SELECT` from `HARMONIC_COMPANY_SIGNALS` inside the SP.
-   - **Headcount stays inside the ZoomInfo band** of the *same* month. Prior-month recomputation uses that month's band, and the SP reads the ZoomInfo rows for M, M-3 and M-6. If an older month is missing (pre-history), fall back to M's band.
+   - **Headcount stays inside the ZoomInfo band** of the *same* month. Prior-month recomputation uses that month's band, and the SP reads ZoomInfo history from `M_first - 9` through `M_last` (M-3's growth needs the M-9 headcount). If an older month is missing (pre-history), fall back to M's band.
    - DC mapping descriptions ≤521 chars.
 
 2. **Task 2 (table DDL).**
@@ -170,7 +181,7 @@ The attachment contains:
 
 6. **Task 6 (deploy).**
    - Clone Plan 11's `deploy_sp.py` (monthly) and add the two salts.
-   - Cron `0 9 1 * * UTC`, `MAIN_WH_XS`, `SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`.
+   - Cron `0 5 1 * * America/New_York` (revised from the draft `0 9 1 * * UTC`, see §1), `MAIN_WH_XS`, `SP_RETRY_WRAPPER('FINS.PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`.
    - After deploy: `CALL FINS.PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS(6)` once. That gives 7 months, matching ZoomInfo's history.
 
 7. **Task 7 (DC stream + DMO).** Mapping table:
@@ -214,15 +225,15 @@ The attachment contains:
 
 ## §5 Self-review checklist
 
-- [ ] Task 0 landed first: FOUNDED_YEAR stable across all ZoomInfo months (0 accounts with >1 distinct value); audience re-probed and recorded.
-- [ ] Audience SQL reads Moody's latest row per account (QUALIFY), not month-matched.
-- [ ] SP raises when ZoomInfo or Moody's is missing, or ZoomInfo lacks the run month.
-- [ ] Funding timeline seeded account-only (`harmonic_funding`, `datetime(2000,1,1)`); monotonicity holds by construction.
-- [ ] HEADCOUNT within the same-month band; growth/trend recomputed, no self-read.
-- [ ] Dept percentages sum ≤ 100.
-- [ ] 6 NULLable (incl. NULLable DATE) / 1 BOOLEAN handled in the MERGE casts.
-- [ ] `BACKFILL_MONTHS` arg; TASK calls the no-arg form.
-- [ ] No `<<` placeholders left.
+- [x] Task 0 landed first: FOUNDED_YEAR stable across all ZoomInfo months (0 accounts with >1 distinct value); audience re-probed and recorded.
+- [x] Audience SQL reads Moody's latest row per account (QUALIFY), not month-matched.
+- [x] SP raises when ZoomInfo or Moody's is missing, or ZoomInfo lacks the run month.
+- [x] Funding timeline seeded account-only (`harmonic_funding`, `datetime(2000,1,1)`); monotonicity holds by construction.
+- [x] HEADCOUNT within the same-month band; growth/trend recomputed, no self-read.
+- [x] Dept percentages sum ≤ 100.
+- [x] 6 NULLable (incl. NULLable DATE) / 1 BOOLEAN handled in the MERGE casts.
+- [x] `BACKFILL_MONTHS` arg; TASK calls the no-arg form.
+- [x] No `<<` placeholders left (the only `<<…>>` tokens are the §1 placeholder-definition table; none remain in the repo).
 
 ## §6 Out of scope
 
@@ -234,6 +245,29 @@ The attachment contains:
 
 ## §7 Status
 
-Pending implementation. Drafted 2026-11-02 from the vendor-gap assessment. Plans 0–13 are LIVE.
+**LIVE in Snowflake 2026-11-02; DC mapping pending UI.** Drafted 2026-11-02 from the vendor-gap assessment. Tasks 0–6 and 8 are done; Task 7's mapping table is recorded in `Snowflake_Harmonic_CompanySignals/AGENTS.md` with status "DC mapping pending UI" (same as Plans 1–13). Plan-owner sign-off on the revised timeline / destiny / runway / postings parameters (rowspec revision note) is still pending.
+
+**Task 6 (deploy).** `SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)` deployed to `DATA_JEDAIS.FINS__PUBLIC` (the live namespace this plan's `FINS.PUBLIC` means). `TASK_MONTHLY_HARMONIC_COMPANY_SIGNALS` created and resumed: state `started`, `USING CRON 0 9 1 * * UTC` (re-created 2026-11-02 on `USING CRON 0 5 1 * * America/New_York` after the final review found the live ZoomInfo schedule drift), `MAIN_WH_XS`, `SP_RETRY_WRAPPER('DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_HARMONIC_COMPANY_SIGNALS()', 2)`. The one-time `CALL …(6)` returned `SUCCEEDED rows=4587 accounts=672 months=7 (2026-05-01..2026-11-01)` (log `DURATION_MS` 52367).
+
+**Task 8 (L3 smoke, 2026-11-02): every check passes.** All figures are from live query output.
+
+| Check | Target | Live |
+|---|---|---|
+| Rows per month = re-probed §2 audience | equal, 7 months | 650 / 650 / 650 / 650 / 651 / 664 / 672 (2026-05 … 2026-11), all equal; 4,587 rows, 672 accounts, 7 months |
+| Latest audience | 550–850 | 672 |
+| Monotonicity (TOTAL_RAISED, ROUNDS; plus stage index, funded→Bootstrapped) | 0 | 0 / 0 / 0 / 0 |
+| `LAST_FUNDING_DATE > LAST_DAY(PROFILE_MONTH)` | 0 | 0 |
+| HEADCOUNT outside same-month ZoomInfo band | 0 | 0 of 4,587 |
+| Mix | Boot 55–70, Angel 15–25, VC 8–18, PE 3–10 % | 61.91 / 22.17 / 11.79 / 4.12 % |
+| RECENTLY_FUNDED per month | 2–6 % | 3.38 / 2.62 / 3.54 / 3.38 / 3.23 / 2.86 / 2.38 % |
+| Bootstrapped→funded transitions | ≥ 1 | 10 (10 accounts) |
+| Runway < 9 among Angel-Seed + VC | 15–30 % | 22.40 % (349 / 1,558) |
+| Frozen, negative vs positive growth | ≥ 2× | 53.58 % vs 22.60 % = 2.37× |
+| Demo: CB + fresh round ≥ $5M | non-empty | 6 / 6 / 8 / 8 / 7 / 6 / 3 per month |
+| Demo: VC, runway < 6, Slowing/Frozen | non-empty | 3 / 5 / 2 / 4 / 6 / 8 / 7 per month |
+
+Also 0 on every 4a / 4d check, 0 duplicate PKs, 0 RECORD_ID mismatches against the SQL formula, and an unchanged `HASH_AGG(*)` after re-running `CALL …()`. No mix band missed, so no estimate had to be revised. The closest call is 2026-11's RECENTLY_FUNDED share (2.38 % vs the 2 % floor). One ZoomInfo account changed band in the window, but it is outside this audience, so the monotonicity SQL needed no band-change exclusion. Full detail: `Snowflake_Harmonic_CompanySignals/AGENTS.md` → "L3 smoke".
+
+**Runway caveat (for plan-owner review, verified live 2026-11-02).** The runway band passes mostly on floor-clamped zeros: `EST_RUNWAY_MONTHS = 0` on 259 of the 349 under-9 rows (74 %), out of 1,558 Angel-Seed + Venture-Backed rows. So the under-9 list is a pile-up at 0 (including companies still operating after Series C), not a spread of short runways. Options: floor runway at 1–3 months, or model a bridge round / shutdown once runway is used up. Left as-is pending plan-owner sign-off on the revised parameters.
 
 Plan 16 is the first dataset with a **three-way audience** (anchor × ZoomInfo × Moody's), the first to **ship a prerequisite fix to an upstream plan** (Task 0), and the first to model a **lifetime event timeline viewed as-of each period**.

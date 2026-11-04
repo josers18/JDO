@@ -499,3 +499,230 @@ def test_yoy_governance_drift_over_24_months(business_anchors):
         "every tracked attribute was constant; suspect a stuck or "
         "month-insensitive seed in _rows_for"
     )
+
+
+# =====================================================================
+# EXEC_TURNOVER_FLAG trailing-12-month stickiness (C-suite timeline model)
+#
+# Rowspec: "True if any C-suite change in the trailing 12 months. ~20%
+# True overall, biased lower for long-CEO-tenure firms." The flag and
+# CEO_TENURE_YEARS are window reads over one account-lifetime C-suite
+# change timeline, so they must be sticky / monotone month over month.
+# =====================================================================
+
+import random as _random  # noqa: E402
+
+from sp_generate_boardex_exec_intel import (  # noqa: E402
+    _csuite_timeline,
+    _employee_band_floor,
+)
+
+
+def _months(start: date, n: int):
+    out, cur = [], start.replace(day=1)
+    for _ in range(n):
+        out.append(cur)
+        cur = cur.replace(year=cur.year + 1, month=1) if cur.month == 12 else cur.replace(month=cur.month + 1)
+    return out
+
+
+_MONTHS_36 = _months(date(2023, 12, 1), 36)
+
+# Live BUSINESS EMPLOYEE_COUNT band mix (probed 2026-11-02 on V_ACCOUNT_ANCHORS:
+# 9,776 <100 / 952 100-999 / 119 1k-9,999 / 18 >=10k of 10,865).
+_LIVE_BAND_MIX = ((50, 0.900), (500, 0.088), (3_000, 0.011), (30_000, 0.001))
+
+
+def _synthetic_business_anchors(n: int, prefix: str, employee_count: int | None = None):
+    r = _random.Random(f"{prefix}-{n}")
+    anchors = []
+    for i in range(n):
+        emp = employee_count
+        if emp is None:
+            x, acc = r.random(), 0.0
+            for band_emp, w in _LIVE_BAND_MIX:
+                acc += w
+                emp = band_emp
+                if x < acc:
+                    break
+        anchors.append({
+            "ACCOUNT_ID": f"{prefix}_{i:05d}",
+            "ACCOUNT_TYPE_FLAG": "BUSINESS",
+            "EMPLOYEE_COUNT": emp,
+            "INTERLOCK_DEGREE": 1,
+        })
+    return anchors
+
+
+def _history(anchor, months=_MONTHS_36):
+    return [_rows_for(anchor, pm)[0] for pm in months]
+
+
+@pytest.fixture(scope="module")
+def synthetic_histories():
+    """1,200 live-band-mix BUSINESS anchors x 36 months."""
+    return [_history(a) for a in _synthetic_business_anchors(1_200, "SYN_BIZ")]
+
+
+def test_turnover_determinism_same_inputs():
+    """Same (anchor, month) -> identical flag + tenure, including after the
+    timeline cache is cleared (no hidden state)."""
+    anchors = _synthetic_business_anchors(50, "DET")
+    first = [_history(a) for a in anchors]
+    _csuite_timeline.cache_clear()
+    second = [_history(a) for a in anchors]
+    assert first == second
+
+
+def test_turnover_timeline_stable_across_36_run_ts():
+    """The C-suite timeline is account-lifetime: whichever of 36 profile
+    months (run_ts) triggers it, the event list is identical, and the flag
+    for a fixed month does not depend on what other months were generated."""
+    for anchor in _synthetic_business_anchors(20, "STABLE"):
+        band = _employee_band_floor(anchor["EMPLOYEE_COUNT"])
+        reference = None
+        for pm in _MONTHS_36:
+            _csuite_timeline.cache_clear()
+            _rows_for(anchor, pm)
+            tl = _csuite_timeline(anchor["ACCOUNT_ID"], band)
+            if reference is None:
+                reference = tl
+            assert tl == reference, f"{anchor['ACCOUNT_ID']}: timeline changed with run_ts {pm}"
+        fixed = _rows_for(anchor, _MONTHS_36[20])[0]
+        for pm in reversed(_MONTHS_36):
+            _rows_for(anchor, pm)
+        assert _rows_for(anchor, _MONTHS_36[20])[0] == fixed
+
+
+def test_turnover_flag_is_trailing_12_month_sticky(synthetic_histories):
+    """A FALSE->TRUE rise at month M implies TRUE for M..M+11 (checked only
+    where 11 following months exist)."""
+    checked = 0
+    for hist in synthetic_histories:
+        flags = [r["EXEC_TURNOVER_FLAG"] for r in hist]
+        for i in range(1, len(flags)):
+            if flags[i] and not flags[i - 1] and i + 11 < len(flags):
+                checked += 1
+                assert all(flags[i:i + 12]), (
+                    f"{hist[0]['ACCOUNT_ID']}: rise at {hist[i]['PROFILE_MONTH']} "
+                    f"not sticky for 12 months: {flags[i:i + 12]}"
+                )
+    assert checked > 100, f"too few rises to test stickiness ({checked})"
+
+
+def test_turnover_stays_far_outnumber_rises(synthetic_histories):
+    """Sticky flag: TRUE->TRUE transitions ~10x FALSE->TRUE rises (an iid
+    monthly Bernoulli would give ~1x)."""
+    rises = stays = 0
+    for hist in synthetic_histories:
+        flags = [r["EXEC_TURNOVER_FLAG"] for r in hist]
+        for a, b in zip(flags, flags[1:]):
+            rises += (not a) and b
+            stays += a and b
+    assert stays >= 8 * rises, f"stays={stays} rises={rises}"
+
+
+def test_turnover_true_rate_15_to_25_pct(synthetic_histories):
+    """>=1,000 BUSINESS anchors x 36 months: overall TRUE rate in [15%, 25%]."""
+    flags = [r["EXEC_TURNOVER_FLAG"] for h in synthetic_histories for r in h]
+    assert len(flags) >= 1_000 * 36
+    rate = sum(flags) / len(flags)
+    assert 0.15 <= rate <= 0.25, f"TRUE rate {rate:.3f} outside [0.15, 0.25]"
+
+
+def test_turnover_lower_for_long_tenure_firms(synthetic_histories):
+    """Biased lower for long-CEO-tenure firms: large employers (longer CEO
+    tenure bands) turn over less than small ones, and rows whose CEO has
+    >=7 years of tenure are flagged less than the population."""
+    def rate(anchors):
+        rows = [r for a in anchors for r in _history(a)]
+        return sum(r["EXEC_TURNOVER_FLAG"] for r in rows) / len(rows)
+
+    large = rate(_synthetic_business_anchors(400, "LARGE", employee_count=30_000))
+    small = rate(_synthetic_business_anchors(400, "SMALL", employee_count=50))
+    assert large < small, f"large-firm rate {large:.3f} !< small-firm rate {small:.3f}"
+
+    rows = [r for h in synthetic_histories for r in h]
+    long_ten = [r["EXEC_TURNOVER_FLAG"] for r in rows if r["CEO_TENURE_YEARS"] >= 7.0]
+    overall = sum(r["EXEC_TURNOVER_FLAG"] for r in rows) / len(rows)
+    assert sum(long_ten) / len(long_ten) < overall
+
+
+def test_ceo_tenure_monotone_between_ceo_changes(synthetic_histories):
+    """CEO_TENURE_YEARS grows ~1/12 per month and only drops on a CEO change;
+    a reset lands below 1 year with EXEC_TURNOVER_FLAG TRUE."""
+    resets = 0
+    for hist in synthetic_histories:
+        for prev, cur in zip(hist, hist[1:]):
+            d = cur["CEO_TENURE_YEARS"] - prev["CEO_TENURE_YEARS"]
+            if d < 0:
+                resets += 1
+                assert cur["CEO_TENURE_YEARS"] < 1.0, (cur["ACCOUNT_ID"], prev, cur)
+                assert cur["EXEC_TURNOVER_FLAG"] is True, (cur["ACCOUNT_ID"], cur)
+            else:
+                assert d <= 0.21, f"{cur['ACCOUNT_ID']}: tenure jumped {d:.2f}y in one month"
+    assert resets > 0, "no CEO change observed across the synthetic population"
+
+
+def test_ceo_tenure_column_shape(synthetic_histories):
+    """Schema unchanged: CEO_TENURE_YEARS is a 1-dp float in [0.0, 25.0]
+    (NUMBER(4,1)); EXEC_TURNOVER_FLAG is a Python bool; key set unchanged."""
+    for hist in synthetic_histories[:200]:
+        for r in hist:
+            t = r["CEO_TENURE_YEARS"]
+            assert isinstance(t, float) and 0.0 <= t <= 25.0 and round(t, 1) == t
+            assert isinstance(r["EXEC_TURNOVER_FLAG"], bool)
+            assert set(r.keys()) == EXPECTED_KEYS
+
+
+def test_person_anchor_flag_still_false():
+    """PERSON anchors keep the personal-household default flag False."""
+    person = {"ACCOUNT_ID": "PERSON_X", "ACCOUNT_TYPE_FLAG": "PERSON", "EMPLOYEE_COUNT": None}
+    for r in _history(person):
+        assert r["EXEC_TURNOVER_FLAG"] is False
+        assert r["CEO_TENURE_YEARS"] == 5.0
+
+
+# -------------------------------------------------------------------
+# MERGE result accounting — update-only re-runs must not be logged as
+# inserts (review finding 2026-11-02).
+# -------------------------------------------------------------------
+
+from sp_generate_boardex_exec_intel import _merge_counts  # noqa: E402
+
+
+class _FakeRow:
+    def __init__(self, d):
+        self._d = d
+
+    def asDict(self):
+        return dict(self._d)
+
+    def __iter__(self):
+        return iter(self._d.values())
+
+
+def test_merge_counts_full_merge_reads_by_name():
+    row = _FakeRow({"number of rows inserted": 7, "number of rows updated": 36000})
+    assert _merge_counts([row], update_only=False) == (7, 36000)
+
+
+def test_merge_counts_update_only_is_not_an_insert():
+    row = _FakeRow({"number of rows updated": 36813})
+    assert _merge_counts([row], update_only=True) == (0, 36813)
+
+
+def test_merge_counts_positional_fallback_and_empty():
+    assert _merge_counts([(5, 9)], update_only=False) == (5, 9)
+    assert _merge_counts([(9,)], update_only=True) == (0, 9)
+    assert _merge_counts([], update_only=False) == (0, 0)
+
+
+def test_assert_unique_keys_raises_on_duplicate_pk():
+    from sp_generate_boardex_exec_intel import _assert_unique_keys
+
+    row = {"ORG_ID": "JDO", "ACCOUNT_ID": "001A", "PROFILE_MONTH": date(2026, 10, 1)}
+    _assert_unique_keys([row, dict(row, ACCOUNT_ID="001B")])  # distinct: ok
+    _assert_unique_keys([])
+    with pytest.raises(RuntimeError, match="duplicate MERGE source key"):
+        _assert_unique_keys([row, dict(row)])

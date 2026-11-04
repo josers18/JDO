@@ -1,6 +1,6 @@
 # AGENTS.md — Financial_Trades_Generation
 
-Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Generates ~1.5M trades for 645 accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
+Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Holds ~6.4M trades (as of 2026-11-04, after migration 007) for 36,239 active accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
 
 For user-facing install / quick-start / row counts, see [README.md](README.md). This file is the agent-orientation primer.
 
@@ -22,7 +22,7 @@ Financial_Trades_Generation/
 │   ├── account_sync.md
 │   └── historical_backfill.md
 ├── schemas/                               ← table DDL
-│   ├── financial_trades.sql               ← FINANCIAL_TRADES (1.5M+ rows, 25 cols)
+│   ├── financial_trades.sql               ← FINANCIAL_TRADES (6.4M+ rows, 25 cols)
 │   ├── trade_generation_config.sql        ← per-account settings (frequency, risk, max value)
 │   ├── instrument_universe.sql            ← 2,004 tickers across 8 sectors
 │   └── task_execution_log.sql             ← audit trail
@@ -31,8 +31,8 @@ Financial_Trades_Generation/
 │   ├── sync_new_accounts.sql              ← SYNC_NEW_ACCOUNTS() — DC datashare ingest
 │   └── generate_historical_trades.sql     ← GENERATE_HISTORICAL_TRADES(start, end)
 ├── tasks/                                 ← scheduled CRON tasks
-│   ├── daily_account_sync.sql             ← Midnight ET daily
-│   └── daily_trade_generator.sql          ← 1:00 AM ET daily
+│   ├── daily_account_sync.sql             ← 3:00 AM ET daily
+│   └── daily_trade_generator.sql          ← 3:10 AM ET daily
 └── README.md
 ```
 
@@ -57,11 +57,11 @@ To re-deploy a procedure or task after editing the `.sql`, execute the file's CR
 
 See [README.md § Architecture](README.md#architecture) for the data-flow Mermaid diagram. In short:
 
-1. `DAILY_ACCOUNT_SYNC` (midnight ET) → `SYNC_NEW_ACCOUNTS()` reads `ssot__Account__dlm` from the inbound datashare, maps account type → trade-generation config row (frequency / risk / volume), and inserts new accounts into `TRADE_GENERATION_CONFIG`.
-2. `DAILY_TRADE_GENERATOR` (1:00 AM ET) → `GENERATE_DAILY_TRADES()` iterates active accounts, gates by frequency (DAILY / WEEKLY / MONTHLY), and writes rows to `FINANCIAL_TRADES`.
-3. The 1-hour gap between the two tasks is **deliberate** — it ensures newly synced accounts are visible to the trade generator before it runs.
+1. `DAILY_ACCOUNT_SYNC` (3:00 AM ET, `TASK_WH`) → `SYNC_NEW_ACCOUNTS()` reads `ssot__Account__dlm` from the inbound datashare, maps account type → trade-generation config row (frequency / risk / volume), and inserts new accounts into `TRADE_GENERATION_CONFIG`.
+2. `DAILY_TRADE_GENERATOR` (3:10 AM ET, `LARGE_LOAD`) → `GENERATE_DAILY_TRADES()` iterates active accounts, gates by frequency (DAILY / WEEKLY / MONTHLY), and writes rows to `FINANCIAL_TRADES`.
+3. The 10-minute gap between the two tasks is **deliberate**: newly synced accounts must be in the config table before the generator reads it. Both tasks call their procedure directly, with `TASK_AUTO_RETRY_ATTEMPTS = 2` as the only retry layer, and the generator's 3,000 s statement timeout sits below its 3,600 s task timeout. That's [migration 006](migrations/006_task_timeout_layering.sql) (applied 2026-11-04). Before it, both tasks also went through `SP_RETRY_WRAPPER(…, 2)`, and the layers didn't nest: the generator's three 1,800 s wrapper attempts couldn't fit in one 3,600 s task run. The sync took 34 s and the generator 42 s on the 2026-11-04 run, and the sync's 300 s statement timeout keeps a slow run inside the gap.
 
-The historical-backfill procedure (`GENERATE_HISTORICAL_TRADES`) is a separate, manually-invoked path used to seed the system from June 2024 forward. It uses a **larger warehouse** (`LARGE_LOAD`, X-Large) because the backfill volume blows past `TASK_WH`'s X-Small budget.
+The historical-backfill procedure (`GENERATE_HISTORICAL_TRADES`) is a separate, manually-invoked path used to seed the system from June 2024 forward. It uses a **larger warehouse** (`LARGE_LOAD`, X-Large) because the backfill volume blows past `TASK_WH`'s X-Small budget. The daily generator now runs on `LARGE_LOAD` too; only the account sync stays on `TASK_WH`.
 
 # Conventions
 
@@ -73,9 +73,10 @@ The historical-backfill procedure (`GENERATE_HISTORICAL_TRADES`) is a separate, 
 
 ## Idempotency
 
-- `SYNC_NEW_ACCOUNTS()` is idempotent — uses `MERGE INTO TRADE_GENERATION_CONFIG` with the Salesforce `ACCOUNT_ID` as the natural key. Re-running on the same datashare snapshot is a no-op.
-- `GENERATE_DAILY_TRADES()` is idempotent **per (account, date)** — uses a `WHERE NOT EXISTS` gate against `FINANCIAL_TRADES` for the current trade date. Re-running mid-day after a partial failure resumes cleanly.
-- `GENERATE_HISTORICAL_TRADES(start, end)` is idempotent the same way — but is **CPU-heavy at scale**. Backfill in chunks (week-by-week or month-by-month) to keep individual procedure runs under the warehouse's auto-suspend timeout.
+- `SYNC_NEW_ACCOUNTS()` is idempotent and insert-only. It reads the share, drops IDs already in `TRADE_GENERATION_CONFIG`, and batch-INSERTs the rest (500 per batch), keyed on the Salesforce `ACCOUNT_ID`. Re-running on the same datashare snapshot is a no-op.
+- **The source read dedupes `ssot__Id__c` with a total ordering** (since 2026-11-04): Account DSO first, then newest `ssot__LastModifiedDate__c`, then `HASH(s.*)`. The share carries duplicate copies per ID (e.g. Omega `001am00000qvjs6AAA`: an Account copy and a PartyRelationshipGroup copy). Without the `QUALIFY`, a duplicated new ID would be inserted twice with an arbitrary name/type. The body is a single-quoted string, so quotes inside it are doubled (`''Account''`). Deploy with `--database DATA_JEDAIS --schema FINS__PUBLIC`, because the `CREATE` uses an unqualified name.
+- `GENERATE_DAILY_TRADES()` is idempotent **per (account, day) through `LAST_GENERATED_DATE`**, not through any check against `FINANCIAL_TRADES` (there is no `NOT EXISTS` gate). `_is_due` returns False when `LAST_GENERATED_DATE >= today`, and each 500-account `UPDATE` of that column is preceded by a flush of the pending trade batch, so a rerun after a timeout resumes at the first unfinished account. Both rules were added on 2026-11-04. Before then the Monday / 1st-of-month rules ignored `LAST_GENERATED_DATE`, and Monday runs that hit the 1,800 s procedure timeout were rerun by `SP_RETRY_WRAPPER` and the task's retries, each pass re-trading every WEEKLY account. That left about 4.2M extra rows (whole extra trade sets, up to 6 per account) on 12 Mondays from 2026-06-15 to 2026-11-02. [Migration 007](migrations/007_dedupe_monday_retry_trades.sql) deleted them on 2026-11-04 (4,195,785 rows). It splits each (account, day) into runs where `CREATED_AT` jumps by more than 600 s, and keeps the earliest run with the most rows.
+- `GENERATE_HISTORICAL_TRADES(start, end)` is idempotent **per (account, day) through `FINANCIAL_TRADES`** (since 2026-11-04). Before the loop it loads every pair already in the table between `start` and `end` and skips them, and it flushes only between accounts, so each COPY holds whole account-days. Re-running a chunk after a timeout fills in only the missing pairs, and re-running a finished chunk writes 0. It doesn't touch `LAST_GENERATED_DATE`. It is **CPU-heavy at scale**, so backfill in chunks (week-by-week or month-by-month).
 
 ## Logging
 
@@ -88,16 +89,20 @@ The mapping from Salesforce account type → trade frequency / risk / volume is 
 
 # Common mistakes
 
-- **Forgetting the 1-hour gap between tasks.** The `DAILY_TRADE_GENERATOR` runs at 1:00 AM ET specifically because `DAILY_ACCOUNT_SYNC` runs at midnight ET. Don't compress the schedule — newly-synced accounts won't be in `TRADE_GENERATION_CONFIG` when the generator queries it.
-- **Running historical backfill on `TASK_WH`.** It's an X-Small warehouse sized for daily generation. Backfills should run on `LARGE_LOAD` (X-Large). Failing to switch causes long-running queries that cost more than they should and may hit auto-suspend.
+- **Breaking the ordering between tasks.** `DAILY_TRADE_GENERATOR` runs at 3:10 AM ET specifically because `DAILY_ACCOUNT_SYNC` runs at 3:00 AM ET. Don't move the generator ahead of the sync or shrink the gap below the sync's 300 s timeout: newly-synced accounts won't be in `TRADE_GENERATION_CONFIG` when the generator queries it. The `tasks/*.sql` files match the live tasks after migration 006 (direct CALL, no wrapper). Still diff against `GET_DDL('TASK', …)` before any `CREATE OR REPLACE TASK`. Don't edit `SP_RETRY_WRAPPER` itself: about 35 tasks across `FINS__PUBLIC`, `LIFE_SCIENCES__PUBLIC` and `MEDTECH__PUBLIC` share it.
+- **Running historical backfill on `TASK_WH`.** It's an X-Small warehouse sized for the account sync. Backfills should run on `LARGE_LOAD` (X-Large). Failing to switch causes long-running queries that cost more than they should and may hit auto-suspend.
 - **Adding a new procedure without `TASK_EXECUTION_LOG` writes.** Silent failures in a scheduled task look like "the task ran, nothing happened" — actually-failed runs are indistinguishable from "no work to do" without the log.
 - **Editing `procedures/*.sql` without re-deploying.** The repo file is the source of truth, but Snowflake holds the deployed object. Always `CREATE OR REPLACE` against `DATA_JEDAIS.FINS__PUBLIC` after editing — there's no automatic sync.
 - **Hard-coding date ranges in the daily generator.** It reads `CURRENT_DATE()` for the trade date. If you want to generate trades for a specific date, use `GENERATE_HISTORICAL_TRADES` (which takes explicit start/end), not a temporary edit to the daily generator.
 - **Dropping the inbound datashare reference (`FINSDC3_DATASHARE.schema_Jedi_Snowflake.ssot__Account__dlm`).** That's the canonical link to the Salesforce demo org's account list. If the datashare is recreated, the schema-name segment may change — verify with `SHOW SHARES INBOUND` before assuming it's stable.
-- **Changing `TRADE_DATE` / `SETTLEMENT_DATE` / `SNAPSHOT_DATE` away from `DATE`.** The Data Cloud stream `BT_Financial_Trades` registered all three with format `MM/dd/yyyy HH:mm:ss.SSS zzz`, which can't be changed on the existing stream. As `TIMESTAMP_TZ` the connector unloads them as `'2025-01-01 00:00:00.000'` strings that this format misreads (they land as year 0006–0020). That's why they were converted to `DATE` on 2026-08-21. Migration `001` tried `TIMESTAMP_TZ` again on 2026-10-24, and migration `002` reverted it. The cost of `DATE`: the stream's nightly INCREMENTAL run (watermark `TRADE_DATE`) fails, so new days only land with a manual Full Refresh (DC Setup UI). The real fix is a rebuilt stream with the right format. After any column change to this table, run one Full Refresh.
+- **Changing `TRADE_DATE` / `SETTLEMENT_DATE` / `SNAPSHOT_DATE` away from `DATE`.** The Data Cloud stream `BT_Financial_Trades` registered all three with format `MM/dd/yyyy HH:mm:ss.SSS zzz`, which can't be changed on the existing stream. As `TIMESTAMP_TZ` the connector unloads them as `'2025-01-01 00:00:00.000'` strings that this format misreads (they land as year 0006–0020). That's why they were converted to `DATE` on 2026-08-21. Migration `001` tried `TIMESTAMP_TZ` again on 2026-10-24, and migration `002` reverted it. Back then the stream ingested with an INCREMENTAL watermark on `TRADE_DATE`, so `DATE` meant a manual Full Refresh for each new day. Since 2026-10-26 the stream is zero copy (`DIRECT_ACCESS`, no acceleration): Data Cloud queries `FINANCIAL_TRADES` live through `BT_Financial_Trades__dlm`, so new rows, deletes and updates show up with **no refresh**. A column type or name change is different: the DLO's field definitions are fixed, so check the stream after any DDL change to this table.
 - **Putting non-Account keys in `TRADE_GENERATION_CONFIG.ACCOUNT_ID`.** Only Salesforce Account Ids (`001…`) join to anything in the cockpits. The old manual `TRD-001…TRD-005` placeholders are deactivated and their trades have a NULL `ACCOUNT_ID`. Both generators also read only `ACCOUNT_ID LIKE '001%'`, so a placeholder added by hand gets no trades.
 - **Deploying `procedures/*.sql` without checking the live object first.** In 2026-10 the repo copies had fallen behind (the daily generator lacked 5,000-row batching and `CREATED_AT`) and had every `"` doubled, which doesn't compile as Python. Diff against `GET_DDL('PROCEDURE', …)` before a `CREATE OR REPLACE`, and pass `--database DATA_JEDAIS --schema FINS__PUBLIC` to `snow sql -f` (the procedure names are unqualified).
-- **Treating `TRADE_GENERATION_CONFIG` as configuration that humans edit.** It's machine-managed by `SYNC_NEW_ACCOUNTS()`. Manual edits get overwritten on the next daily sync. To override per-account behavior, add a column with `IS_OVERRIDE` semantics rather than mutating the auto-managed columns.
+- **Assuming the sync will repair or overwrite `TRADE_GENERATION_CONFIG` rows.** Only two procedures write to it. Checked 2026-11-04 against the repo, live procedure bodies and 90 days of `ACCOUNT_USAGE.QUERY_HISTORY`:
+  - `SYNC_NEW_ACCOUNTS()` **INSERTs** IDs it hasn't seen before and never touches existing rows.
+  - `GENERATE_DAILY_TRADES()` **UPDATEs** only `LAST_GENERATED_DATE` and `LAST_UPDATED`, in batches of 500 IDs.
+
+  `GENERATE_HISTORICAL_TRADES` and `SP_BACKFILL_TRADES` only read it. Manual edits to `ACCOUNT_NAME`, `ACCOUNT_TYPE`, `FREQUENCY`, `TRADES_PER_PERIOD`, `PREFERRED_SECTORS`, `PREFERRED_EXCHANGES`, `RISK_PROFILE`, `MAX_TRADE_VALUE`, `ACTIVE` or `NOTES` therefore **persist**. Migration `001` relied on this when it deactivated the `TRD-` rows. The flip side: a renamed account in Salesforce, or a changed account type, is **never** re-synced, and a mapping change in `SYNC_NEW_ACCOUNTS()` reaches new accounts only. Backfill existing rows with a one-off UPDATE, cloning the table first, as migration `001` does. Migration `003` (2026-11-04) did this for names and types: 31,053 rows, most of them names that gained a middle initial in Salesforce, plus 5,628 `Partner` rows moved from Retail to Institutional. Migration `004` then fixed the 25,379 rows whose type already matched but whose frequency and caps didn't. All were `Person` rows on the WEEKLY/5 default, and they now trade MONTHLY/3 with a $50K cap. After both migrations every source-matched row agrees with the type map.
 
 # Sibling project
 

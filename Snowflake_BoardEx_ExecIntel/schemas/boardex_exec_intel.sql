@@ -4,12 +4,11 @@
 -- intelligence dataset per Commercial Banking Cumulus customer.
 -- =============================================================================
 -- Cadence:    MONTHLY via TASK_MONTHLY_BOARDEX_EXEC_INTEL
---             (Cron: 0 7 1 * * UTC — first of month at 07:00 UTC)
--- Audience:   Commercial Banking only (CLIENT_CATEGORY = 'Commercial Banking')
---             — distinct accounts from V_ACCOUNT_ANCHORS, ~960 distinct
---             anchors. 1:1 — each anchor emits exactly one row per month
---             → ~960 rows/month. Smallest Cumulus audience of all 13 plans
---             by 4.1× (dethrones Plan 8 MGP Financial Plans, 3,920).
+--             (Cron: 0 3 1 * * America/New_York — first of month, 03:00 ET; live schedule)
+-- Audience:   All accounts (rebroadcast): every distinct anchor in
+--             V_ACCOUNT_ANCHORS, ~36,821 anchors (PERSON + BUSINESS). 1:1 —
+--             each anchor emits exactly one row per month → ~36.8K rows/month.
+--             The v1 design was Commercial Banking only (~960 anchors/month).
 --             Re-runs same calendar month MERGE-replace in place.
 -- Generator:  SP_GENERATE_BOARDEX_EXEC_INTEL (Snowpark Python via SP_RETRY_WRAPPER)
 -- Egress:     DC Snowflake federation -> DLO/DMO CumulusBoardExExecIntel__dlm
@@ -27,14 +26,15 @@ CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL (
     WOMEN_BOARD_PCT               NUMBER(5,2)       NOT NULL  COMMENT 'Percent of women on the board. Range [0.00, 100.00]. Skews 20-45 (real BoardEx 2026 mean ~32%).',
     MINORITY_BOARD_PCT            NUMBER(5,2)       NOT NULL  COMMENT 'Percent of racial / ethnic minorities on the board. Range [0.00, 100.00]. Skews 10-35 (real BoardEx 2026 mean ~22%).',
     BOARD_AVG_TENURE_YEARS        NUMBER(4,1)       NOT NULL  COMMENT 'Average years on the board across all directors. Range [1.0, 20.0]. Established commercial banks average 6-10.',
-    CEO_TENURE_YEARS              NUMBER(4,1)       NOT NULL  COMMENT 'Current CEO tenure in years. Range [0.0, 25.0]. Larger employers skew longer-tenured (succession planning).',
-    EXEC_TURNOVER_FLAG            BOOLEAN           NOT NULL  COMMENT 'True if any C-suite change in the trailing 12 months. ~20% True overall, biased lower for long-CEO-tenure firms (~10%) and higher for new CEOs <2yrs (~35%).',
+    CEO_TENURE_YEARS              NUMBER(4,1)       NOT NULL  COMMENT 'Current CEO tenure in years: time since the last CEO change on the account C-suite timeline. Grows ~1/12 per month, resets on a CEO change. Range [0.0, 25.0]. Larger employers skew longer-tenured (succession planning).',
+    EXEC_TURNOVER_FLAG            BOOLEAN           NOT NULL  COMMENT 'True if any C-suite change (CEO or other C-suite role) in the trailing 12 months, read from a per-account lifetime C-suite timeline. Sticky: a change in month M keeps it True for M..M+11. ~20% True overall, biased lower for long-CEO-tenure firms.',
     GOVERNANCE_RATING             VARCHAR(15)       NOT NULL  COMMENT 'Excellent / Strong / Adequate / Weak / Concerning. Composite of independence + avg tenure + exec turnover. Skews Strong / Adequate for the cohort.',
     INTERLOCK_COUNT               NUMBER(2,0)       NOT NULL  COMMENT 'Count of board members who sit on other Commercial Banking client boards. Range [0,5]. Driven by anchor INTERLOCK_DEGREE.',
     KEY_DIRECTOR_NAME             VARCHAR(80)       NOT NULL  COMMENT 'Exemplar synthesized director full name (form "<First> <Last>"). Single-row exemplar for narrative — clearly fake; not real-person PII.',
     RECENT_GOVERNANCE_EVENT_DATE  DATE              NULL      COMMENT 'Last reported governance change (chair swap, audit-committee restructure, etc.). NULL ~70% of rows (independent 30%/70% Bernoulli — no enum gating). When populated, ≤ run_ts.date(); within last 365 days.',
     LAST_DATA_REFRESH_DATE        DATE              NOT NULL  COMMENT 'Vendor''s last data refresh. Always ≤ run_ts.date(). Drawn 1-30 days before the run.',
     GENERATED_AT                  TIMESTAMP_NTZ(9)  NOT NULL  COMMENT 'Month-bucketed (= PROFILE_MONTH 00:00:00) for byte-identical mid-month re-runs (audit time -> TASK_EXECUTION_LOG).',
+    RECORD_ID                     VARCHAR(36)       NOT NULL  COMMENT 'Deterministic UUID from the PK: cumulus_common.record_id_for(ORG_ID, ACCOUNT_ID, PROFILE_MONTH). The SP writes it on INSERT and UPDATE.',
     CONSTRAINT pk_boardex_exec_intel PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 )
 COMMENT = 'BoardEx / Equilar / ISS-style synthetic board director and executive intelligence dataset per Cumulus Commercial Banking customer. Monthly generation. 1:1 — one row per distinct Commercial Banking anchor per month (~960 rows/month). Smallest Cumulus audience of all 13 plans by 4.1× (dethrones Plan 8 MGP Financial Plans, 3,920) and the first dataset where the SAMPLE_ANCHORS L1 fixture has zero relevant cohort members (forces an inline 5-anchor synthetic-fixture override in the L1 conftest). v1.x multi-org-additive: ORG_ID NOT NULL DEFAULT JDO is the leading PK component so the same (ACCOUNT_ID, PROFILE_MONTH) can co-exist across tenants. Composite PK (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) — DC DMO collapses to single-column PK profileMonth__c with ssot__AccountId__c as a KQ qualifier. 1 NULLable date field via independent 30%/70% Bernoulli. 1 BOOLEAN column. Re-runs same month MERGE-replace. See Snowflake_BoardEx_ExecIntel/README.md and Plan 10.';

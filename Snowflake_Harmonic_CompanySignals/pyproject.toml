@@ -1,0 +1,25 @@
+[project]
+name = "cumulus-harmonic-company-signals"
+version = "0.1.0"
+description = "Harmonic / Coresignal-style synthetic private-company funding, headcount and job-posting signals (young private commercial clients) for Cumulus."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "snowflake-snowpark-python>=1.20",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# ../Snowflake_Cumulus_Common makes `cumulus_common` importable without a
+# pip install (the SP body gets the helpers inlined at deploy time).
+pythonpath = ["procedures", ".", "../Snowflake_Cumulus_Common"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []

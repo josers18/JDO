@@ -1,0 +1,246 @@
+EMPLOYEE_BAND,FOUNDED_YEAR,INDUSTRY,CLIENT_CATEGORY,FIRST_MONTH,ANCHORS
+1-10,2010,,,2026-05,8
+1-10,2010,,,2026-10,6
+1-10,2010,,,2026-11,1
+1-10,2010,Construction,Small Business,2026-05,3
+1-10,2010,Healthcare,Small Business,2026-05,7
+1-10,2010,Insurance,Bronze,2026-05,1
+1-10,2010,Professional Services,Small Business,2026-05,7
+1-10,2010,Real Estate,Small Business,2026-05,3
+1-10,2010,Restaurant,Small Business,2026-05,10
+1-10,2010,Retail Trade,Small Business,2026-05,8
+1-10,2010,Wholesale,Small Business,2026-05,6
+1-10,2011,,,2026-05,12
+1-10,2011,,,2026-10,1
+1-10,2011,Construction,Small Business,2026-05,3
+1-10,2011,Healthcare,,2026-11,1
+1-10,2011,Healthcare,Small Business,2026-05,1
+1-10,2011,Professional Services,Small Business,2026-05,13
+1-10,2011,Real Estate,Small Business,2026-05,5
+1-10,2011,Restaurant,Small Business,2026-05,20
+1-10,2011,Retail Trade,Small Business,2026-05,3
+1-10,2011,Wholesale,Small Business,2026-05,10
+1-10,2012,,,2026-05,12
+1-10,2012,,,2026-10,1
+1-10,2012,,,2026-11,1
+1-10,2012,Construction,Small Business,2026-05,8
+1-10,2012,Healthcare,Small Business,2026-05,1
+1-10,2012,Professional Services,Small Business,2026-05,10
+1-10,2012,Real Estate,Small Business,2026-05,5
+1-10,2012,Restaurant,Small Business,2026-05,16
+1-10,2012,Retail Trade,Small Business,2026-05,9
+1-10,2012,Wholesale,Small Business,2026-05,2
+1-10,2013,,,2026-05,6
+1-10,2013,Construction,Small Business,2026-05,5
+1-10,2013,Healthcare,Small Business,2026-05,3
+1-10,2013,Other,,2026-05,1
+1-10,2013,Professional Services,Small Business,2026-05,12
+1-10,2013,Real Estate,Small Business,2026-05,2
+1-10,2013,Restaurant,Small Business,2026-05,8
+1-10,2013,Retail Trade,Small Business,2026-05,4
+1-10,2013,Technology,,2026-05,1
+1-10,2013,Wholesale,Small Business,2026-05,3
+1-10,2014,,,2026-05,8
+1-10,2014,,,2026-09,1
+1-10,2014,,,2026-10,1
+1-10,2014,Construction,Small Business,2026-05,4
+1-10,2014,Healthcare,Small Business,2026-05,3
+1-10,2014,Professional Services,Small Business,2026-05,5
+1-10,2014,Real Estate,Small Business,2026-05,1
+1-10,2014,Restaurant,Small Business,2026-05,12
+1-10,2014,Retail Trade,Small Business,2026-05,5
+1-10,2014,Wholesale,Small Business,2026-05,13
+1-10,2015,,,2026-05,5
+1-10,2015,,,2026-10,1
+1-10,2015,,,2026-11,1
+1-10,2015,Construction,Small Business,2026-05,3
+1-10,2015,Healthcare,Small Business,2026-05,2
+1-10,2015,Professional Services,Small Business,2026-05,5
+1-10,2015,Real Estate,Small Business,2026-05,2
+1-10,2015,Restaurant,Small Business,2026-05,10
+1-10,2015,Retail Trade,Small Business,2026-05,5
+1-10,2015,Technology,,2026-11,1
+1-10,2015,Wholesale,Small Business,2026-05,6
+1-10,2016,,,2026-05,9
+1-10,2016,,,2026-10,1
+1-10,2016,Construction,Small Business,2026-05,6
+1-10,2016,Financial Services,,2026-05,1
+1-10,2016,Healthcare,Small Business,2026-05,4
+1-10,2016,Professional Services,Small Business,2026-05,5
+1-10,2016,Real Estate,Small Business,2026-05,3
+1-10,2016,Restaurant,Small Business,2026-05,7
+1-10,2016,Retail Trade,Small Business,2026-05,2
+1-10,2016,Wholesale,Small Business,2026-05,6
+1-10,2017,,,2026-05,3
+1-10,2017,Construction,Small Business,2026-05,5
+1-10,2017,Healthcare,Small Business,2026-05,1
+1-10,2017,Professional Services,Small Business,2026-05,8
+1-10,2017,Real Estate,Small Business,2026-05,2
+1-10,2017,Restaurant,Small Business,2026-05,7
+1-10,2017,Retail Trade,Small Business,2026-05,6
+1-10,2017,Wholesale,Small Business,2026-05,5
+1-10,2018,,,2026-05,7
+1-10,2018,,,2026-10,1
+1-10,2018,Construction,Small Business,2026-05,3
+1-10,2018,Healthcare,Small Business,2026-05,2
+1-10,2018,Professional Services,Small Business,2026-05,7
+1-10,2018,Real Estate,Small Business,2026-05,3
+1-10,2018,Restaurant,Small Business,2026-05,6
+1-10,2018,Retail Trade,Small Business,2026-05,3
+1-10,2018,Wholesale,Small Business,2026-05,3
+1-10,2019,,,2026-05,4
+1-10,2019,,,2026-11,1
+1-10,2019,Healthcare,Small Business,2026-05,1
+1-10,2019,Professional Services,Small Business,2026-05,3
+1-10,2019,Real Estate,Small Business,2026-05,1
+1-10,2019,Restaurant,Small Business,2026-05,2
+1-10,2019,Retail Trade,Small Business,2026-05,3
+1-10,2020,,,2026-05,4
+1-10,2020,,,2026-10,1
+1-10,2020,Healthcare,Small Business,2026-05,4
+1-10,2020,Professional Services,Small Business,2026-05,2
+1-10,2020,Restaurant,Small Business,2026-05,5
+1-10,2020,Retail Trade,Small Business,2026-05,1
+1-10,2020,Technology,,2026-11,1
+1-10,2021,,,2026-05,2
+1-10,2021,Construction,Small Business,2026-05,2
+1-10,2021,Healthcare,Small Business,2026-05,3
+1-10,2021,Professional Services,Small Business,2026-05,1
+1-10,2021,Retail Trade,Small Business,2026-05,4
+1-10,2021,Technology,,2026-11,1
+1-10,2021,Wholesale,Small Business,2026-05,1
+1-10,2022,,,2026-05,2
+1-10,2022,Construction,Small Business,2026-05,2
+1-10,2022,Healthcare,Small Business,2026-05,1
+1-10,2022,Professional Services,Small Business,2026-05,1
+1-10,2022,Real Estate,Small Business,2026-05,1
+1-10,2022,Restaurant,Small Business,2026-05,1
+1-10,2022,Retail Trade,Small Business,2026-05,1
+1-10,2022,Wholesale,Small Business,2026-05,3
+1-10,2023,,,2026-05,1
+1-10,2023,Restaurant,Small Business,2026-05,1
+1-10,2023,Retail Trade,Small Business,2026-05,1
+1001-5000,2013,Financial Services,,2026-05,1
+1001-5000,2014,Retail,,2026-05,1
+1001-5000,2014,Technology,Bronze,2026-05,1
+1001-5000,2017,Hospitality,Commercial Banking,2026-05,1
+1001-5000,2018,Technology,,2026-05,1
+11-50,2010,Construction,Small Business,2026-05,2
+11-50,2010,Financial Services,Small Business,2026-05,1
+11-50,2010,Professional Services,Small Business,2026-05,4
+11-50,2010,Restaurant,Small Business,2026-05,1
+11-50,2010,Retail Trade,Small Business,2026-05,1
+11-50,2010,Wholesale,Small Business,2026-05,2
+11-50,2011,Professional Services,Small Business,2026-05,1
+11-50,2011,Restaurant,Small Business,2026-05,1
+11-50,2011,Wholesale,Small Business,2026-05,1
+11-50,2012,Real Estate,Small Business,2026-05,1
+11-50,2012,Restaurant,Small Business,2026-05,1
+11-50,2012,Retail Trade,Small Business,2026-05,1
+11-50,2013,Construction,Small Business,2026-05,1
+11-50,2013,Professional Services,Small Business,2026-05,1
+11-50,2013,Restaurant,Small Business,2026-05,2
+11-50,2013,Retail Trade,Small Business,2026-05,1
+11-50,2014,Healthcare,Small Business,2026-05,1
+11-50,2014,Professional Services,Small Business,2026-05,2
+11-50,2014,Real Estate,Small Business,2026-05,1
+11-50,2014,Restaurant,Small Business,2026-05,3
+11-50,2015,Professional Services,Small Business,2026-05,1
+11-50,2015,Technology,Silver,2026-05,1
+11-50,2015,Wholesale,Small Business,2026-05,2
+11-50,2016,Construction,Small Business,2026-05,1
+11-50,2016,Restaurant,Small Business,2026-05,2
+11-50,2016,Retail Trade,Small Business,2026-05,1
+11-50,2017,Construction,Small Business,2026-05,1
+11-50,2017,Wholesale,Small Business,2026-05,1
+11-50,2018,Real Estate,Small Business,2026-05,1
+11-50,2018,Restaurant,Small Business,2026-05,1
+11-50,2018,Retail,Platinum,2026-05,1
+11-50,2018,Retail Trade,Small Business,2026-05,1
+11-50,2019,Healthcare,Small Business,2026-05,1
+11-50,2019,Restaurant,Small Business,2026-05,1
+11-50,2023,Restaurant,Small Business,2026-05,1
+201-1000,2010,Financial Services,Gold,2026-05,1
+201-1000,2010,Logistics,Commercial Banking,2026-05,1
+201-1000,2010,Professional Services Mid-Market,Commercial Banking,2026-05,1
+201-1000,2010,Wholesale Distribution,Commercial Banking,2026-05,2
+201-1000,2011,Healthcare Systems,Commercial Banking,2026-05,2
+201-1000,2011,Hospitality,Commercial Banking,2026-05,1
+201-1000,2011,Logistics,Commercial Banking,2026-05,2
+201-1000,2011,Manufacturing,Commercial Banking,2026-05,1
+201-1000,2011,Real Estate Holdings,Commercial Banking,2026-05,1
+201-1000,2011,Technology,Bronze,2026-05,1
+201-1000,2011,Wholesale Distribution,Commercial Banking,2026-05,1
+201-1000,2012,Healthcare Systems,Commercial Banking,2026-05,1
+201-1000,2012,Hospitality,Commercial Banking,2026-05,1
+201-1000,2012,Logistics,Commercial Banking,2026-05,2
+201-1000,2012,Professional Services Mid-Market,Commercial Banking,2026-05,1
+201-1000,2012,Technology,Gold,2026-05,1
+201-1000,2012,Wholesale Distribution,Commercial Banking,2026-05,1
+201-1000,2013,Healthcare Systems,Commercial Banking,2026-05,2
+201-1000,2013,Hospitality,Commercial Banking,2026-05,2
+201-1000,2013,Logistics,Commercial Banking,2026-05,1
+201-1000,2013,Manufacturing,,2026-05,1
+201-1000,2013,Manufacturing,Commercial Banking,2026-05,1
+201-1000,2013,Professional Services Mid-Market,Commercial Banking,2026-05,1
+201-1000,2013,Real Estate Holdings,Commercial Banking,2026-05,2
+201-1000,2013,Wholesale Distribution,Commercial Banking,2026-05,1
+201-1000,2014,Logistics,Commercial Banking,2026-05,1
+201-1000,2014,Manufacturing,Commercial Banking,2026-05,1
+201-1000,2014,Retail,,2026-05,1
+201-1000,2015,Hospitality,Commercial Banking,2026-05,1
+201-1000,2015,Logistics,Commercial Banking,2026-05,1
+201-1000,2015,Wholesale Distribution,Commercial Banking,2026-05,2
+201-1000,2016,Communications,Gold,2026-05,1
+201-1000,2016,Healthcare & Life Sciences,,2026-05,1
+201-1000,2016,Healthcare Systems,Commercial Banking,2026-05,1
+201-1000,2016,Logistics,Commercial Banking,2026-05,1
+201-1000,2016,Professional Services Mid-Market,Commercial Banking,2026-05,1
+201-1000,2016,Real Estate Holdings,Commercial Banking,2026-05,2
+201-1000,2016,Wholesale Distribution,Commercial Banking,2026-05,1
+201-1000,2017,Logistics,Commercial Banking,2026-05,1
+201-1000,2017,Manufacturing,Commercial Banking,2026-05,1
+201-1000,2017,Professional Services Mid-Market,Commercial Banking,2026-05,2
+201-1000,2017,Wholesale Distribution,Commercial Banking,2026-05,1
+201-1000,2018,Healthcare Systems,Commercial Banking,2026-05,1
+201-1000,2018,Professional Services Mid-Market,Commercial Banking,2026-05,1
+201-1000,2018,Technology,,2026-05,1
+201-1000,2019,Logistics,Commercial Banking,2026-05,1
+201-1000,2020,Technology,,2026-05,2
+201-1000,2020,Wholesale Distribution,Commercial Banking,2026-05,1
+5001-25000,2010,Technology,,2026-05,1
+5001-25000,2020,Technology,,2026-05,1
+51-200,2010,Healthcare & Life Sciences,,2026-05,1
+51-200,2010,Logistics,Commercial Banking,2026-05,1
+51-200,2010,Professional Services Mid-Market,Commercial Banking,2026-05,1
+51-200,2010,Technology,,2026-05,1
+51-200,2010,Technology,Silver,2026-05,1
+51-200,2010,Wholesale Distribution,Commercial Banking,2026-05,2
+51-200,2011,Construction,Silver,2026-05,1
+51-200,2011,Healthcare Systems,Commercial Banking,2026-05,1
+51-200,2011,Logistics,Commercial Banking,2026-05,2
+51-200,2011,Professional Services Mid-Market,Commercial Banking,2026-05,3
+51-200,2011,Wholesale Distribution,Commercial Banking,2026-05,2
+51-200,2012,Hospitality,Commercial Banking,2026-05,1
+51-200,2012,Logistics,Commercial Banking,2026-05,3
+51-200,2012,Professional Services Mid-Market,Commercial Banking,2026-05,2
+51-200,2012,Retail,Silver,2026-05,1
+51-200,2012,Wholesale Distribution,Commercial Banking,2026-05,2
+51-200,2013,Hospitality,Commercial Banking,2026-05,1
+51-200,2013,Real Estate Holdings,Commercial Banking,2026-05,1
+51-200,2013,Technology,Gold,2026-05,1
+51-200,2014,Healthcare Systems,Commercial Banking,2026-05,3
+51-200,2014,Real Estate Holdings,Commercial Banking,2026-05,1
+51-200,2015,Professional Services Mid-Market,Commercial Banking,2026-05,2
+51-200,2016,Healthcare Systems,Commercial Banking,2026-05,1
+51-200,2016,Logistics,Commercial Banking,2026-05,3
+51-200,2016,Wholesale Distribution,Commercial Banking,2026-05,1
+51-200,2017,Manufacturing,Commercial Banking,2026-05,2
+51-200,2018,Wholesale Distribution,Commercial Banking,2026-05,1
+51-200,2019,Hospitality,Commercial Banking,2026-05,1
+51-200,2019,Logistics,Commercial Banking,2026-05,1
+51-200,2019,Wholesale Distribution,Commercial Banking,2026-05,1
+51-200,2020,Logistics,Commercial Banking,2026-05,1
+51-200,2020,Professional Services Mid-Market,Commercial Banking,2026-05,1
+51-200,2021,Manufacturing,Commercial Banking,2026-05,1
+51-200,2021,Professional Services Mid-Market,Commercial Banking,2026-05,1

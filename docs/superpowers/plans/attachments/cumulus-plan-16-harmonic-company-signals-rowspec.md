@@ -1,10 +1,14 @@
 # Plan 16 — Harmonic Company Signals rowspec
 
 > Per-dataset attachment for the dataset template. Authored 2026-11-02 from the vendor-gap assessment (Hunter B2B data list → "Private-company funding / traction" and "Workforce / job postings" categories, merged), plus live probes of:
-> - the three-way audience: **703 anchors** on the latest ZoomInfo month;
-> - the ZoomInfo EMPLOYEE_BAND mix: 563 in 1-10 / 47 in 11-50 / 30 in 51-200 / 58 in 201-1000 / 5 in 1001+.
+> - the three-way audience: **672 anchors** on the latest ZoomInfo month (2026-11; 650–672 across the 7 ZoomInfo months), re-probed after plan Task 0 made FOUNDED_YEAR account-stable (the draft-time 703 was one random monthly draw);
+> - the ZoomInfo EMPLOYEE_BAND mix (2026-11): 511 in 1-10 / 46 in 11-50 / 49 in 51-200 / 59 in 201-1000 / 5 in 1001-5000 / 2 in 5001-25000.
+>
+> Plan §2 is the source of truth for these counts.
 >
 > **First dataset that views a lifetime timeline as-of each period.** Every funding column derives from a per-account round list generated once, so cross-month invariants hold by construction.
+>
+> **Revised 2026-11-02 (post-T3 review).** The draft timeline (first round 4–30 months after founding) failed nearly every Task 8 target on the live audience (founded 2010–2023, 76 % in 1-10: 511 / 672 on the stable 2026-11 audience): 81 % Bootstrapped, ~0 % recently funded, runway < 9 on 98 % of funded rows, Frozen ratio 0.81, 0 transitions. The destiny tables, timeline, runway and postings below are the revised versions, tuned so the row factory meets every Task 8 target over the live audience shape (asserted at L1 by `tests/test_harmonic_company_signals_distribution.py`). **Plan-owner sign-off on the revised parameters is pending.**
 
 ## Mimics
 
@@ -17,9 +21,11 @@ Three-way join; SQL is in plan §2. The audience is:
 - ZoomInfo `FOUNDED_YEAR >= 2010` for the run month (stable after plan Task 0);
 - latest Moody's `LIQUIDITY_TIER = 'Illiquid'`.
 
-**703 anchors** on the latest month at draft time. Re-probe after Task 0.
+**672 anchors** on the latest month (2026-11), 650–672 across the 7 ZoomInfo months, re-probed after Task 0. Plan §2 has the per-month counts and the band mix.
 
-## Table: `FINS.PUBLIC.HARMONIC_COMPANY_SIGNALS`
+## Table: `DATA_JEDAIS.FINS__PUBLIC.HARMONIC_COMPANY_SIGNALS`
+
+Live namespace is `DATA_JEDAIS.FINS__PUBLIC`, where the 13 live siblings, `ZOOMINFO_FIRMOGRAPHICS` and `MOODYS_MARKET_CONTEXT` also live. The plan body's `FINS.PUBLIC.*` names mean this schema.
 
 | Column | Type | Null? | Source / synthesis |
 |---|---|---|---|
@@ -87,25 +93,51 @@ _MAX_STAGE_BY_BAND = {"1-10": "Seed", "11-50": "Series A", "51-200": "Series B",
 _VENTURE_TILT = {"Technology": 3.0, "Healthcare": 1.6, "Financial Services": 1.8, "Professional Services": 1.1,
                  "Manufacturing": 0.8, "Logistics": 0.8, "Restaurant": 0.3, "Construction": 0.3,
                  "Retail Trade": 0.5, "Real Estate": 0.4, "Wholesale": 0.5}
+_PE_TILT = {"Logistics": 1.5, "Wholesale": 1.5, "Manufacturing": 1.5, "Healthcare": 1.3,
+            "Professional Services": 1.2, "Restaurant": 0.4, "Construction": 0.4,
+            "Retail Trade": 0.8, "Real Estate": 0.8}            # PE roll-up appetite
+_DESTINY_P = {   # p = base * tilt (venture: tilt ** venture_exp), capped
+    "micro":    {"venture": 0.14, "venture_exp": 1.0, "venture_cap": 0.35, "angel": 0.30, "angel_cap": 0.45, "pe": 0.0},
+    "nonmicro": {"venture": 0.80, "venture_exp": 1.5, "venture_cap": 0.85, "angel": 0.08, "angel_cap": 0.20, "pe": 0.25},
+}
+_PE_BANDS = ("51-200", "201-1000", "1001-5000", "5001-25000")
 
 def _destiny(anchor, band, frng):
     """'bootstrapped' | 'angel' | 'venture' | 'pe'. Account-lifetime: frng is seeded once per account."""
-    tilt = _VENTURE_TILT.get(anchor.get("INDUSTRY") or "", 1.0)
+    industry = _canon_industry(anchor.get("INDUSTRY"))
+    tilt = _VENTURE_TILT.get(industry, 1.0)
     roll = frng.random()
-    p_venture = min(0.55, 0.10 * tilt) if band != "1-10" else min(0.25, 0.06 * tilt)
-    p_angel   = min(0.35, 0.14 * tilt)
-    p_pe      = 0.12 if band in ("51-200", "201-1000", "1001-5000", "5001-25000") else 0.0
-    if roll < p_venture: return "venture"
-    if roll < p_venture + p_angel: return "angel"
-    if roll < p_venture + p_angel + p_pe: return "pe"
+    p = _DESTINY_P["micro" if band == "1-10" else "nonmicro"]
+    p_venture = min(p["venture_cap"], p["venture"] * tilt ** p["venture_exp"])
+    p_angel   = min(p["angel_cap"], p["angel"] * tilt)
+    p_pe      = (p["pe"] * _PE_TILT.get(industry, 1.0)) if band in _PE_BANDS else 0.0
+    if roll < p_pe: return "pe"                                  # PE first: never crowded out by venture
+    if roll < p_pe + p_venture: return "venture"
+    if roll < p_pe + p_venture + p_angel: return "angel"
     return "bootstrapped"
 ```
 
-The 1-10 band caps at `Seed`, so a 1-10 "venture" destiny climbs only Pre-Seed→Seed and resolves to `Angel-Seed` status. That's intended: 80% of the audience is tiny, and the L3 mix targets account for it.
+The 1-10 band caps at `Seed`, so a 1-10 "venture" destiny climbs only Pre-Seed→Seed and resolves to `Angel-Seed` status. That's intended: 76 % of the audience is tiny, so the Venture-Backed and PE-Backed shares come from the ~161 non-micro anchors (672 − 511 on 2026-11), which is why the non-micro table is much more aggressive. Probabilities are cumulative; where they sum past 1 (Technology in PE bands) angel, then venture, get the remainder.
+
+### Industry normalisation — `_canon_industry`
+
+Live INDUSTRY values include variants. Normalise by prefix (first match wins) before every tilt / dept-mix lookup:
+
+| Prefix | Key |
+|---|---|
+| `Technology`, `Healthcare` (incl. Healthcare Systems, Healthcare & Life Sciences), `Financial Services`, `Professional Services` (incl. Mid-Market), `Manufacturing`, `Logistics`, `Restaurant`, `Construction`, `Real Estate` (incl. Holdings), `Wholesale` (incl. Distribution) | same name |
+| `Hospitality` | `Restaurant` |
+| `Retail` (incl. Retail Trade) | `Retail Trade` |
+
+The empty string and unlisted industries (Insurance, Communications, Other) keep tilt 1.0 and the default dept mix.
 
 ## Timeline — `_timeline(anchor, founded_year, band)`
 
 ```python
+_PIVOT_START, _PIVOT_END = date(2022, 1, 1), date(2027, 12, 31)   # funding era
+_PE_ERA_SHIFT_DAYS = 730                                          # PE invests in established companies
+_TIMELINE_END = date(2030, 12, 31)
+
 def _timeline(anchor, founded_year, band):
     """Return the full list of rounds [(date, stage, usd, lead)] for the account's lifetime (through 2030-12)."""
     frng = Random(seed_for(anchor["ACCOUNT_ID"], "harmonic_funding", datetime(2000, 1, 1)))
@@ -119,16 +151,26 @@ def _timeline(anchor, founded_year, band):
         top = min(cap, _LADDER.index("Seed") if destiny == "angel" else cap)
         start = 0 if frng.random() < 0.6 else 1                      # skip Pre-Seed 40% of the time
         stages = _LADDER[start:top + 1]
-    d = date(founded_year, 1, 1) + timedelta(days=frng.randint(120, 900))   # first round 4–30 months after founding
+    pivot_idx = frng.randint(len(stages) // 2, len(stages) - 1)    # older ladders are further along
+    shift = timedelta(days=_PE_ERA_SHIFT_DAYS if destiny == "pe" else 0)
+    pivot = _PIVOT_START - shift + timedelta(days=frng.randint(0, (_PIVOT_END - _PIVOT_START).days))
+    gaps = [frng.randint(300, 760) for _ in stages]                 # 10-25 months between rounds
+    dates = [None] * len(stages); dates[pivot_idx] = pivot
+    for i in range(pivot_idx - 1, -1, -1): dates[i] = dates[i + 1] - timedelta(days=gaps[i])
+    for i in range(pivot_idx + 1, len(stages)): dates[i] = dates[i - 1] + timedelta(days=gaps[i])
+    earliest = date(founded_year, 1, 1) + timedelta(days=120)
     rounds = []
-    for st in stages:
+    for d, st in zip(dates, stages):
         lo, hi = _ROUND_USD[st]
         usd = round(frng.uniform(lo, hi) / 50_000) * 50_000
         pool = "pe" if st.startswith("PE") else ("angel" if st in ("Pre-Seed", "Seed") and frng.random() < 0.6 else "venture")
-        rounds.append((d, st, usd, frng.choice(_INVESTORS[pool])))
-        d = d + timedelta(days=frng.randint(300, 760))                  # 10–25 months between rounds
+        lead = frng.choice(_INVESTORS[pool])
+        if earliest <= d <= _TIMELINE_END:                            # draws consumed either way
+            rounds.append((d, st, usd, lead))
     return rounds
 ```
+
+**Why era-anchored.** The live audience is founded 2010–2023, so founding-relative rounds all landed years before the 2026 live window. Anchoring a pivot round in 2022–2027 keeps funding activity flowing through the backfill and live months (fresh rounds, Bootstrapped→funded transitions, a spread of runway ages) whatever the founding year. Rounds before `founded + 120 days` are dropped.
 
 **Determinism contract:**
 - Inputs are `ACCOUNT_ID`, `founded_year` (stable after Task 0) and `band` (stable per ZoomInfo; Plan 11 derives it deterministically from EMPLOYEE_COUNT).
@@ -138,21 +180,21 @@ def _timeline(anchor, founded_year, band):
 ## As-of view
 
 ```python
-def _funding_as_of(rounds, month_end):
+def _funding_as_of(rounds, month_end, account_id):
     seen = [r for r in rounds if r[0] <= month_end]
     if not seen:
         return dict(FUNDING_STATUS="Bootstrapped", LAST_FUNDING_STAGE=None, LAST_FUNDING_DATE=None,
                     LAST_ROUND_USD=None, TOTAL_RAISED_USD=0, FUNDING_ROUNDS_COUNT=0, LEAD_INVESTOR=None,
                     EST_VALUATION_USD=None)
     d, st, usd, lead = seen[-1]
-    vrng = Random(seed_for(f"{d.isoformat()}_{st}", "harmonic_funding", datetime(2000, 1, 1)))  # per-round, stable
+    vrng = Random(seed_for(f"{account_id}_{d.isoformat()}_{st}", "harmonic_funding", datetime(2000, 1, 1)))  # per-round, stable
     lo, hi = _POST_MONEY_MULT[st]
     return dict(FUNDING_STATUS=_STATUS_OF[st], LAST_FUNDING_STAGE=st, LAST_FUNDING_DATE=d,
                 LAST_ROUND_USD=usd, TOTAL_RAISED_USD=sum(r[2] for r in seen), FUNDING_ROUNDS_COUNT=len(seen),
                 LEAD_INVESTOR=lead, EST_VALUATION_USD=round(usd * vrng.uniform(lo, hi) / 100_000) * 100_000)
 ```
 
-The per-round seed key must also include `ACCOUNT_ID`. The implementer should use `f"{account_id}_{d}_{st}"`; the sketch above omits it only for brevity. Otherwise two accounts with a same-day same-stage round would share a multiple.
+The per-round seed key includes `ACCOUNT_ID` (`f"{account_id}_{d}_{st}"`). Otherwise two accounts with a same-day same-stage round would share a multiple.
 
 ## Headcount — `_headcount_for(anchor, band, month)`
 
@@ -182,9 +224,12 @@ _DEPT_BASE = {   # (eng, sales, ops) means; remainder = G and A
     "Technology": (45, 25, 10), "Healthcare": (10, 15, 55), "Professional Services": (15, 30, 35),
     "Restaurant": (0, 10, 80), "Construction": (5, 10, 75), "Manufacturing": (12, 12, 62),
     "Logistics": (8, 12, 68), "Retail Trade": (3, 45, 40), "Financial Services": (25, 30, 25),
+    "Wholesale": (5, 30, 55), "Real Estate": (3, 40, 30),
 }
 _DEPT_DEFAULT = (10, 25, 50)
 ```
+
+Keys are looked up on `_canon_industry(INDUSTRY)`.
 
 - Each mean is drawn from `gauss(mean, 4)` on the account-stable `harmonic_funding` rng, then gets `gauss(0, 1)` monthly jitter on the `harmonic` rng.
 - Clamp each to ≥0. If the sum exceeds 98, scale all three down proportionally so G and A ≥ 2%.
@@ -194,12 +239,16 @@ _DEPT_DEFAULT = (10, 25, 50)
 ## Job postings and trend
 
 ```python
-def _postings_for(anchor, band, month, rounds, hc):
-    rate = 0.03 + (0.05 if any(0 <= (month - r[0]).days <= 180 for r in rounds) else 0.0)   # fresh money hires
+def _postings_for(anchor, band, month, rounds, hc, runway, growth):
+    rate = 0.04 + (0.05 if any(0 <= (month - r[0]).days <= 180 for r in rounds) else 0.0)   # fresh money hires
+    if growth > 0:   rate *= 2.5                                    # growing company hires
+    elif growth < 0: rate *= 0.25                                   # shrinking company freezes
     frng = Random(seed_for(anchor["ACCOUNT_ID"] + "_post", "harmonic_funding", datetime(2000, 1, 1)))
     if frng.random() < 0.15:  rate *= 0.2                          # account-stable "lean hirer"
+    if runway is not None and runway < 6: rate *= 0.3              # burning company freezes hiring
     mrng = Random(seed_for(anchor["ACCOUNT_ID"] + "_post", "harmonic", datetime(month.year, month.month, 1)))
-    return max(0, int(round(hc * rate * mrng.uniform(0.4, 1.6))))
+    x = hc * rate * mrng.uniform(0.4, 1.6)
+    return max(0, int(x) + (1 if mrng.random() < x - int(x) else 0))   # stochastic rounding
 
 def _postings_trend(now, prev3):
     if now == 0: return "Frozen"
@@ -208,21 +257,28 @@ def _postings_trend(now, prev3):
     return "Steady"
 ```
 
-There's a funding-to-runway coupling: for Venture/Angel accounts with `EST_RUNWAY_MONTHS < 6`, multiply `rate` by 0.3. A burning company freezes hiring. That makes the L3 "Frozen correlates with negative growth / short runway" check pass for a real reason. Runway is computed before postings, from the funding view and headcount, so there is no cycle.
+- `growth` is that month's `HEADCOUNT_GROWTH_6M_PCT` (M vs M-6; for the M-3 postings, M-3 vs M-9), recomputed from `_headcount_for`.
+- Stochastic rounding matters for the 1-10 band. With plain `round()`, a 5-person company's expected ~0.2 postings always rounded to 0, so Frozen was near-universal regardless of growth (ratio 0.81 on the live audience). The growth coupling plus stochastic rounding makes the L3 "Frozen ≥ 2× more common at negative growth" check pass for a real reason.
+- Runway is computed before postings, from the funding view and headcount, so there is no cycle.
 
 ## Runway
 
 ```python
-def _runway(funding, hc, month_end, rrng):
+_PLANNED_RUNWAY = (30.0, 66.0)   # months a round is sized for
+
+def _runway(funding, hc, hc_at_round, month_end, rrng):
     if funding["FUNDING_STATUS"] not in ("Angel-Seed", "Venture-Backed"):
         return None
-    burn = hc * rrng.uniform(9_000, 16_000)                         # $/month fully loaded
+    planned = rrng.uniform(*_PLANNED_RUNWAY)
+    burn = funding["LAST_ROUND_USD"] / planned * hc / max(hc_at_round, 1)   # net $/month, grows with hiring
     months_since = (month_end - funding["LAST_FUNDING_DATE"]).days / 30.4
     runway = funding["LAST_ROUND_USD"] / max(burn, 1) - months_since
     return int(max(0, min(60, round(runway))))
 ```
 
-`rrng` is account-stable (`harmonic_funding`, key `ACCOUNT_ID + "_burn"`), so runway declines smoothly month over month between rounds and jumps after one. That's a coherent demo narrative.
+- `hc_at_round` is `_headcount_for` at the first of the round's month, on the current band.
+- `rrng` is account-stable (`harmonic_funding`, key `ACCOUNT_ID + "_burn"`), so runway declines smoothly month over month between rounds and jumps after one. That's a coherent demo narrative.
+- The draft burn `hc × U(9K, 16K)` is a fully-loaded gross cost, not a net burn. It gave a 600-person company $7.5M/month, so runway was below 9 on ~98 % of funded rows. Sizing the round for a planned horizon keeps runway < 9 at ~15–30 %.
 
 ## Traction score
 
@@ -241,14 +297,15 @@ def _traction(growth_pct, postings_trend, recently_funded, total_raised):
 2. `band = zi[M].EMPLOYEE_BAND`; `founded = zi[M].FOUNDED_YEAR`.
 3. `rounds = _timeline(anchor, founded, band)`; `funding = _funding_as_of(rounds, month_end)`.
 4. `hc = _headcount_for(..., M)`; `hc6 = _headcount_for(..., M-6)` → growth.
-5. Runway, which depends on funding and hc.
-6. Postings at M and M-3 (each with that month's hc), then trend.
+5. Runway, which depends on funding, hc and the headcount at the last round's month.
+6. Postings at M and M-3 (each with that month's hc, runway and 6-month growth; M-3's growth uses M-9), then trend. In code, `_month_state(anchor, zi, month, fallback_band, rounds)` does steps 3–6 for one month.
 7. Dept mix, traction, `RECENTLY_FUNDED_FLAG`, `LAST_DATA_REFRESH_DATE`, `GENERATED_AT`.
 
 ## Bias logic summary
 
 - EMPLOYEE_BAND caps the stage ladder and bounds headcount.
-- INDUSTRY tilts venture destiny (Technology 3×, Restaurant/Construction 0.3×) and sets the dept mix.
+- INDUSTRY (prefix-normalised) tilts venture destiny (Technology 3×, Restaurant/Construction 0.3×) and PE appetite (`_PE_TILT`), and sets the dept mix.
+- Headcount growth drives postings (×2.5 growing, ×0.25 shrinking).
 - Funding recency boosts headcount growth and postings.
 - Short runway suppresses postings.
 
@@ -257,15 +314,17 @@ def _traction(growth_pct, postings_trend, recently_funded, total_raised):
 Take an anchor with `INDUSTRY=None` in band `1-10`, founded 2010, with a bootstrapped destiny.
 - Funding: `Bootstrapped` with all six NULLables NULL, TOTAL_RAISED=0, ROUNDS=0 and RECENTLY_FUNDED_FLAG=False.
 - HEADCOUNT is in [1, 10] and the dept mix is near (10, 25, 50).
-- POSTINGS is 0–1, so the trend is mostly `Frozen` or `Steady`, and TRACTION_SCORE is ~30–50.
+- POSTINGS is 0–1, so the trend is mostly `Frozen` or `Steady`.
+- TRACTION_SCORE is ~25–35 in most months: 40 base, −15 for Frozen, about 0 growth at a band edge. A month with a single opening (Accelerating / Steady) lifts it to ~45–55. The L1 fixture's boring anchor: 22 of 36 months Frozen at 25, the rest 32–55.
 
 It never raises.
 
 ## L1 property targets
 
 1. **Determinism:** same `(anchor, zi, run_ts)` gives an identical dict. Any `run_ts` in the same month gives an identical dict.
-2. **Timeline stability:** `_timeline` is identical across 36 different `run_ts` values for the same anchor and band.
+2. **Timeline stability:** the funding fields of 36 consecutive monthly rows rebuild one lifetime round list. Each newly visible round adds exactly 1 to ROUNDS and its size to TOTAL_RAISED, no round reappears, and the result equals the slice of `_timeline` visible in the window.
 3. **Monotonicity:** see plan 4c.
 4. **Invariants 4a–4e:** as listed in the plan §4 Task 3.
 5. **Band bound:** across 36 months × all fixture anchors, HEADCOUNT stays within `_BAND_BOUNDS[band]`.
 6. **Boring case:** as above.
+7. **Live-shape distribution (Task 8 offline):** over the plan §2 audience shape (band × founded × industry × category, 672 anchors, 7 months), the mix, RECENTLY_FUNDED per month, the transition, runway < 9 and Frozen-ratio targets of plan Task 8 hold. The 10-anchor L1 fixture is code coverage only, not representative.

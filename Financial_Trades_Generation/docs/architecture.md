@@ -65,8 +65,8 @@ graph TB
     end
 
     subgraph "Snowflake Scheduled Tasks"
-        T1["DAILY_ACCOUNT_SYNC<br/>Midnight ET<br/>TASK_WH (X-Small)"]
-        T2["DAILY_TRADE_GENERATOR<br/>1:00 AM ET<br/>TASK_WH (X-Small)"]
+        T1["DAILY_ACCOUNT_SYNC<br/>3:00 AM ET<br/>TASK_WH (X-Small)"]
+        T2["DAILY_TRADE_GENERATOR<br/>3:10 AM ET<br/>LARGE_LOAD (X-Large)"]
     end
 
     subgraph "Stored Procedures"
@@ -96,13 +96,13 @@ graph TB
     CFG -->|"active + due accounts"| P2
     IU -->|"instruments + base prices"| P2
     T2 --> P2
-    P2 -->|"batch INSERT 500/batch"| FT
+    P2 -->|"write_pandas 5,000/batch"| FT
     P2 -->|"log result"| LOG
     P2 -->|"update LAST_GENERATED_DATE"| CFG
 
     CFG --> P3
     IU --> P3
-    P3 -->|"batch INSERT 500/batch"| FT
+    P3 -->|"write_pandas 5,000/batch"| FT
     P3 -->|"progress every 50 days"| LOG
 ```
 
@@ -120,7 +120,7 @@ sequenceDiagram
     participant FT as FINANCIAL_TRADES
     participant LOG as TASK_EXECUTION_LOG
 
-    Note over CRON: Midnight ET
+    Note over CRON: 3:00 AM ET
     CRON->>SYNC: trigger
     SYNC->>SP1: CALL
     SP1->>CFG: SELECT existing ACCOUNT_IDs
@@ -130,7 +130,7 @@ sequenceDiagram
     SP1->>CFG: INSERT new accounts (batch 500)
     SP1->>LOG: INSERT execution result
 
-    Note over CRON: 1:00 AM ET (1 hour gap)
+    Note over CRON: 3:10 AM ET (10 minute gap)
     CRON->>GEN: trigger
     GEN->>SP2: CALL
     SP2->>IU: SELECT all instruments
@@ -149,8 +149,8 @@ sequenceDiagram
 
 | Warehouse | Size | Purpose | Used By |
 |---|---|---|---|
-| `TASK_WH` | X-Small | Daily automated operations | `DAILY_ACCOUNT_SYNC`, `DAILY_TRADE_GENERATOR` |
-| `LARGE_LOAD` | X-Large | Bulk historical backfill | `GENERATE_HISTORICAL_TRADES()` (manual) |
+| `TASK_WH` | X-Small | Daily account sync | `DAILY_ACCOUNT_SYNC` |
+| `LARGE_LOAD` | X-Large | Daily trade generation and bulk historical backfill | `DAILY_TRADE_GENERATOR`, `GENERATE_HISTORICAL_TRADES()` (manual) |
 
 The daily tasks run on X-Small since they process a single day's trades (~3,100 per run). Historical backfill requires X-Large to handle hundreds of days and millions of rows without timeouts.
 
@@ -158,12 +158,12 @@ The daily tasks run on X-Small since they process a single day's trades (~3,100 
 
 1. **Python Snowpark over SQL**: Trade generation requires complex randomization (weighted choices, jitter, UUID generation) that is more naturally expressed in Python than SQL.
 
-2. **EXECUTE AS OWNER**: Procedures run with owner privileges to access shared database objects. This introduces a limitation: temporary tables cannot be created inside these procedures.
+2. **EXECUTE AS OWNER**: Procedures run with owner privileges to access shared database objects. This introduces a limitation: temporary tables cannot be created inside these procedures. (`write_pandas` still works in both generators: its temporary stage is allowed.)
 
-3. **Batch INSERT pattern**: Trades are accumulated in Python lists and inserted in batches of 500 using parameterized `INSERT INTO ... VALUES` statements. This avoids DataFrame overhead and provides predictable performance.
+3. **Batch loading**: Trades are accumulated in Python lists and flushed in batches. Both generators load each 5,000-row batch with `session.write_pandas` (one PUT + COPY, ~2 s), since 2026-11-04. Before that they used a parameterized multi-row `INSERT INTO ... VALUES` (5,000 rows in the daily generator, 500 in the historical one), and compiling those statements took most of the run: ~18 s per 5,000-row batch.
 
 4. **Frequency gating in Python**: The `_is_due()` function runs client-side (in the procedure) rather than as a SQL filter, because the logic depends on per-account state that evolves as the procedure iterates through days.
 
-5. **1-hour task gap**: Account sync at midnight, trade generation at 1 AM. This ensures newly imported accounts are committed and visible before the generator reads them.
+5. **10-minute task gap**: Account sync at 3:00 AM ET, trade generation at 3:10 AM ET. This ensures newly imported accounts are committed and visible before the generator reads them. The sync has a 300 s statement timeout, so it finishes or fails inside the gap. Since [migration 006](../migrations/006_task_timeout_layering.sql) (applied 2026-11-04) both tasks call their procedure directly, with `TASK_AUTO_RETRY_ATTEMPTS = 2` as the only retry layer and the generator's statement timeout (3,000 s) below the task timeout (3,600 s). Before 006 they went through `SP_RETRY_WRAPPER(…, 2)`; three 1,800 s attempts couldn't fit in one 3,600 s task run, and on 2026-11-02 one task run plus its two retries made 6 attempts.
 
-6. **Resume capability**: The historical backfill procedure reads existing trades from `FINANCIAL_TRADES` to initialize the `last_gen` dict, allowing it to resume correctly across chunked executions without duplicating WEEKLY/MONTHLY triggers.
+6. **Resume capability**: The historical backfill procedure seeds its `last_gen` dict from each account's last trade before `START_DATE`, so WEEKLY/MONTHLY triggers carry across chunks. It also skips (account, day) pairs already in `FINANCIAL_TRADES` inside the chunk, and flushes only between accounts, so a chunk can be re-run after a timeout without duplicates (since 2026-11-04).
