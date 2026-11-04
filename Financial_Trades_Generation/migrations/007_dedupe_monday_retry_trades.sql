@@ -26,7 +26,8 @@
 -- is zero copy (DIRECT_ACCESS), so the delete shows up there with no refresh.
 -- Run as ACCOUNTADMIN on LARGE_LOAD outside the 03:00-03:10 ET task window, in
 -- one session (snow sql -f): the delete set is a TEMPORARY table.
--- Rollback: FINANCIAL_TRADES_BAK_20261104_M007 (state before this migration).
+-- Rollback: FINANCIAL_TRADES_BAK_20261104_M007 (state before this migration;
+-- dropped 2026-11-04 after the result was accepted, so no longer available).
 -- =============================================================================
 
 USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
