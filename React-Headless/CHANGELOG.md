@@ -17,6 +17,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-04 — Retail liquidity events
+
+ReactRetail now surfaces UserGems liquidity events, the same feed Wealth got in PR #156. Built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors).
+
+#### Added
+
+- **Retail liquidity events** (`ReactRetail/src/home/homeDataReal.ts`). These are person accounts that left an employer with a liquidity event in the last 180 days.
+  - They become up to 3 Priority Queue rows ("Liquidity conversation — rollover / equity proceeds"), after the Who-to-Call dedupe.
+  - They also get 2 opportunity alerts and an AI-brief count.
+  - The feed is book-scoped on `person_account_id__c`, with the org-wide fallback.
+- **Retail now uses the reserved queue slot.** It does so only through these items.
+
 ### 2026-11-04 — intent, funding and job-change signals in the Priority Queue
 
 The three Plans 14–16 BT_ Data Cloud streams now reach the banker home (PR [#156](https://github.com/josers18/JDO/pull/156)). ReactCommercial and ReactWealth were built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors). Retail was rebuilt for the shared queue change.

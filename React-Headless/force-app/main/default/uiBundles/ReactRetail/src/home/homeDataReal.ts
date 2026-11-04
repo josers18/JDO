@@ -40,7 +40,7 @@
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered, inheritDue } from '@shared';
+import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
@@ -215,7 +215,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
-  const [core, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition, web] = await Promise.all([
+  const [core, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition, web, liquidity] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     // R7 blended Who-to-Call (CSAT + Gong + stress + offers) — the page's centerpiece.
     userP.then(u => fetchWhoToCall(u?.userId)),
@@ -259,6 +259,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     // R6 recognized clients browsing product pages — additive.
     userP.then(u => fetchWebEngagement(u?.userId))
       .catch((): WebEngagementResult => ({ rows: [], clients: 0, views: 0, windowEnd: '', scope: 'org' })),
+    // R8 UserGems liquidity events (person accounts that left an employer) — additive.
+    userP.then(u => fetchLiquidityEvents(u?.userId))
+      .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -267,7 +270,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const opp = q?.Opportunity;
 
   // resolve Who-to-Call + signal account IDs → names in one follow-up query
-  const csatIds = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...stress.queueRows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId)].filter(Boolean))];
+  const csatIds = [...new Set([...who.rows.map(r => r.accountId), ...inflows.rows.map(r => r.accountId), ...gong.rows.map(r => r.accountId), ...aml.rows.map(r => r.accountId), ...offers.rows.map(r => r.accountId), ...intros.rows.map(r => r.referrerId), ...touches.rows.map(r => r.accountId), ...equity.rows.map(r => r.accountId), ...propRisk.rows.map(r => r.accountId), ...stress.rows.map(r => r.accountId), ...stress.queueRows.map(r => r.accountId), ...lifeStages.mortgageLeads.map(r => r.accountId), ...attrition.rows.map(r => r.accountId), ...web.rows.map(r => r.accountId), ...liquidity.rows.flatMap(r => [r.accountId, r.employerId, r.newEmployerId ?? ''])].filter(Boolean))];
   const nameById: Record<string, string> = {};
   const fmtUsd = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
   // accountNamesQuery caps at first: 50, so look the ids up in chunks of 50.
@@ -316,7 +319,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // Gong / stress clients already in the blended Who-to-Call don't repeat as their own item;
   // the stress feed ranks by the same score and fetches spares, so cap it after the dedupe.
   const stressQueue = dropCovered(stressSignals, callList).slice(0, STRESS_ROWS);
-  const transactionSignals: CallItem[] = [...amlSignals, ...webSignals, ...dropCovered(gongSignals, callList), ...stressQueue, ...attritionSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals];
+  const liquidityQueue = dropCovered(liquidityQueueItems(liquidity, nameById, { segment: 'Retail' }), callList).slice(0, LIQUIDITY_ROWS);
+  const transactionSignals: CallItem[] = [...amlSignals, ...webSignals, ...dropCovered(gongSignals, callList), ...stressQueue, ...attritionSignals, ...txSignals, ...campaignSignals, ...equitySignals, ...mortgageSignals, ...liquidityQueue];
   // S1 Health KPI — book count of negative + declining clients, with the real
   // 8-week series behind the sparkline and a week-over-week delta.
   const toneSeries = gong.weekly.map(w => w.count);
@@ -614,7 +618,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'your book at a glance',
-    aiBrief: `${who.clients.toLocaleString('en-US')} clients scored for who to call (CSAT, Gong, stress, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an idle-cash moment.` : ''}`,
+    aiBrief: `${who.clients.toLocaleString('en-US')} clients scored for who to call (CSAT, Gong, stress, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an idle-cash moment.` : ''}${liquidity.total ? ` ${liquidity.total.toLocaleString('en-US')} ${liquidity.scope === 'book' ? 'clients in your book' : 'clients'} left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct ?? 87,
     dataSourceCount: freshness?.sources.length ?? 24,
@@ -695,6 +699,11 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       ...txSignals.slice(0, 3).map((t, i) => ({
         id: `ax${i}`, title: `Inflow — ${t.clientName}`, detail: `${t.reason} · ${t.action}`,
         tone: 'opportunity' as const, severity: t.severity === 'high' ? 'High' as const : t.severity === 'medium' ? 'Medium' as const : 'Low' as const, when: 'this week',
+      })),
+      // R8 — the strongest liquidity events (UserGems departures).
+      ...liquidityQueue.slice(0, 2).map((c, i) => ({
+        id: `aul${i}`, title: `Liquidity event — ${c.clientName}`, detail: `${c.reason} · ${c.action}`,
+        tone: 'opportunity' as const, severity: c.severity === 'high' ? 'High' as const : 'Medium' as const, when: 'last 180d',
       })),
     ],
     // S4 warm intros alternate with CRM leads; the KPI above still counts Leads only.

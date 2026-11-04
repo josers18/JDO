@@ -8,7 +8,7 @@ Shared plumbing (Aurora Glass theme, data clients, component primitives, home-ac
 
 ## What's inside
 
-- **Home** (`/`) — pipeline / open opportunities / open cases, a schedule table (Tasks + Events bucketed Overdue / Today / Upcoming), goals, leads, and a CSAT-ranked "who to call" list. AI briefs turn into one-click actions (draft with Einstein via `AiGenerateRest`; create tasks / meetings / emails / cases via `CrmWriteRest`), refetching in place with no spinner.
+- **Home** (`/`) — pipeline / open opportunities / open cases, a schedule table (Tasks + Events bucketed Overdue / Today / Upcoming), goals, leads, and a CSAT-ranked "who to call" list. AI briefs turn into one-click actions (draft with Einstein via `AiGenerateRest`; create tasks / meetings / emails / cases via `CrmWriteRest`), refetching in place with no spinner. The Priority Queue, alerts rail and AI brief also carry UserGems **liquidity events** (a client left an employer with a rollover / equity-proceeds opportunity), with one queue row held for the strongest of them.
 - **Configuration** (`/config`) — org-level admin page to pick which Agentforce model runs each generative action, from a self-updating catalog (`CommandCenterConfigRest` → `/config/*`); plus a brand theming section (custom logo/palette per org, two pinned default Light/Dark themes). See the project README for both mechanisms.
 - Native-style Salesforce chrome (app-launcher waffle, global search, user menu, notifications) and real Agentforce chat embedded via the Conversation Client.
 
