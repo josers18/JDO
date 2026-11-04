@@ -11,25 +11,29 @@ Each account has a `FREQUENCY` setting that determines how often trades are gene
 | Frequency | Rule | Typical Result |
 |---|---|---|
 | **DAILY** | Generate if `last_gen < today` | Every business day |
-| **WEEKLY** | Generate if 7+ days since last gen, OR it's Monday | ~52 periods/year |
-| **MONTHLY** | Generate if 28+ days since last gen, OR it's the 1st | ~12 periods/year |
+| **WEEKLY** | Generate if `last_gen < today` AND (7+ days since last gen OR it's Monday) | ~52 periods/year |
+| **MONTHLY** | Generate if `last_gen < today` AND (28+ days since last gen OR it's the 1st) | ~12 periods/year |
 
-The `_is_due()` function implements this logic:
+The `_is_due()` function in `GENERATE_DAILY_TRADES` implements this logic:
 
 ```python
-def _is_due(frequency, last_gen_date, current_date):
+def _is_due(frequency, last_gen_date, today):
     if last_gen_date is None:
         return True
+    if last_gen_date >= today:
+        return False
     if frequency == "DAILY":
-        return last_gen_date < current_date
+        return True
     if frequency == "WEEKLY":
-        days_since = (current_date - last_gen_date).days
-        return days_since >= 7 or current_date.weekday() == 0
+        days_since = (today - last_gen_date).days
+        return days_since >= 7 or today.weekday() == 0
     if frequency == "MONTHLY":
-        days_since = (current_date - last_gen_date).days
-        return days_since >= 28 or current_date.day == 1
-    return last_gen_date < current_date
+        days_since = (today - last_gen_date).days
+        return days_since >= 28 or today.day == 1
+    return last_gen_date < today
 ```
+
+The `last_gen_date >= today` check (added 2026-11-04) makes a same-day rerun skip accounts already done. Before it, the Monday and 1st-of-month rules ignored `LAST_GENERATED_DATE`, so every rerun re-traded all WEEKLY / MONTHLY accounts. A Monday run that hit the 1,800 s timeout and was retried therefore wrote 4–6 full trade sets per account; see [AGENTS.md § Idempotency](../AGENTS.md#idempotency).
 
 A `None` value for `last_gen_date` means the account has never generated trades and is always due.
 
