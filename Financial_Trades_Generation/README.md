@@ -9,7 +9,7 @@
 
 [![Scheduled Tasks](https://img.shields.io/badge/Tasks-CRON_Scheduled-5865F2?style=for-the-badge)](https://docs.snowflake.com/en/user-guide/tasks-intro)
 [![Trades](https://img.shields.io/badge/Trades-10.6M+-04844B?style=for-the-badge)](schemas/financial_trades.sql)
-[![Accounts](https://img.shields.io/badge/Accounts-36,768-032D60?style=for-the-badge)](schemas/trade_generation_config.sql)
+[![Accounts](https://img.shields.io/badge/Accounts-36,239-032D60?style=for-the-badge)](schemas/trade_generation_config.sql)
 [![Instruments](https://img.shields.io/badge/Instruments-2%2C004-111111?style=for-the-badge)](schemas/instrument_universe.sql)
 
 [![GitHub](https://img.shields.io/badge/Monorepo-JDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
@@ -18,14 +18,14 @@
 
 </div>
 
-A Snowflake-native automated trade generation pipeline that produces realistic synthetic financial trade data for 36,768 active accounts across 2,004 instruments, with configurable frequency, risk profiles, and volume controls.
+A Snowflake-native automated trade generation pipeline that produces realistic synthetic financial trade data for 36,239 active accounts across 2,004 instruments, with configurable frequency, risk profiles, and volume controls.
 
 ## Data at a Glance
 
 | Metric | Value |
 |---|---|
 | Total trades | 10,619,762 (as of 2026-11-04) |
-| Active accounts | 36,768 |
+| Active accounts | 36,239 (Salesforce_Home only, since migration 005) |
 | Instrument universe | 2,004 tickers |
 | Date range | June 2024 -- present |
 | Avg trade value | ~$95,000 |
@@ -40,7 +40,7 @@ graph LR
     end
 
     subgraph "Configuration"
-        C["TRADE_GENERATION_CONFIG<br/>(36,773 rows, 36,768 active)"]
+        C["TRADE_GENERATION_CONFIG<br/>(36,773 rows, 36,239 active)"]
     end
 
     subgraph "Scheduled Tasks"
@@ -150,8 +150,9 @@ One-off data and schema fixes live in [`migrations/`](migrations/). Each one clo
 | [`002`](migrations/002_revert_trade_dates_to_date.sql) | 2026-10-24 | Trade date columns back to `DATE` for the Data Cloud stream's date format | `FINANCIAL_TRADES_BAK_20261024_TZ` |
 | [`003`](migrations/003_backfill_config_name_type_from_source.sql) | 2026-11-04 | Backfilled `ACCOUNT_NAME` and `ACCOUNT_TYPE` from the deduped source on 31,053 rows: 25,425 names (mostly a middle initial added in Salesforce), and 5,628 `Partner` rows moved from Retail to Institutional with the Partner trading settings | `TRADE_GENERATION_CONFIG_BAK_20261104` |
 | [`004`](migrations/004_backfill_config_profile_from_type_map.sql) | 2026-11-04 | Backfilled the trading settings on 25,379 `Person` rows still on the WEEKLY/5/$150K default: now MONTHLY/3/Conservative/$50K | `TRADE_GENERATION_CONFIG_BAK_20261104_M004` |
+| [`005`](migrations/005_deactivate_non_home_org_accounts.sql) | 2026-11-04 | Deactivated the 529 accounts from the four non-`Salesforce_Home` orgs (InsuranceAFDC 167, FinsDC4 146, FinsDC1 127, DCCDO1 89). Their 1,663,666 trades stay in `FINANCIAL_TRADES` | `TRADE_GENERATION_CONFIG_BAK_20261104_M005` |
 
-Migrations 003 and 004 change trade volume from the next daily run: Partner accounts trade more, Person accounts much less. Existing trades aren't rewritten. Run new migrations as `ACCOUNTADMIN` outside the 03:00-03:10 ET task window.
+Migrations 003-005 change trade volume from the next daily run: Partner accounts trade more, Person accounts much less, and the non-Home accounts stop trading. Existing trades aren't rewritten. Run new migrations as `ACCOUNTADMIN` outside the 03:00-03:10 ET task window.
 
 ## Quick Start
 

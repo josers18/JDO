@@ -66,7 +66,7 @@ The source table is a shared/secure object from Salesforce Data Cloud. This impo
 
 - **Duplicate prevention**: Existing account IDs are loaded into a Python `set` before querying the source. New accounts are identified by set difference, not by SQL anti-join (which would fail on the secure object).
 - **Source dedupe**: the share carries more than one copy of some IDs (for example an `Account` copy and a `PartyRelationshipGroup` copy). The read keeps one row per `ssot__Id__c` with a total ordering: `Account` data-source object first, then newest `ssot__LastModifiedDate__c`, then `HASH(s.*)` as the tie-break. Without it a duplicated new ID would be inserted twice with an arbitrary name and type.
-- **No org filter**: the share holds accounts from five Salesforce orgs (`ssot__DataSourceId__c`), and the sync doesn't filter by org, so all of them are imported. No ID appears in more than one org. See the distribution below.
+- **No org filter**: the share holds accounts from five Salesforce orgs (`ssot__DataSourceId__c`), and the sync doesn't filter by org, so all of them are imported. No ID appears in more than one org. Migration 005 deactivated the non-`Salesforce_Home` ones, but a new account from those orgs is still inserted as active. See the distribution below.
 - **Batch size**: 500 rows per INSERT to stay within Snowflake parameter limits.
 - **Notes field**: All imported accounts are tagged with `"Auto-imported from ssot__Account__dlm"`.
 - **ACTIVE flag**: All new accounts default to `TRUE`.
@@ -80,14 +80,15 @@ The source table is a shared/secure object from Salesforce Data Cloud. This impo
 - an edit to the type mapping above applies to new accounts only;
 - manual edits to a config row persist.
 
-To bring existing rows back in line, write a one-off migration in [`migrations/`](../migrations/) that clones the table first, then runs `UPDATE ... FROM` the deduped source joined to the type map. The dedupe and the type map must match `procedures/sync_new_accounts.sql`. Two such backfills ran on 2026-11-04:
+To bring existing rows back in line, write a one-off migration in [`migrations/`](../migrations/) that clones the table first, then runs `UPDATE ... FROM` the deduped source joined to the type map. The dedupe and the type map must match `procedures/sync_new_accounts.sql`. Three such migrations ran on 2026-11-04:
 
 | Migration | Rows | Change | Rollback clone |
 |---|---|---|---|
 | [`003`](../migrations/003_backfill_config_name_type_from_source.sql) | 31,053 | `ACCOUNT_NAME` from source on 25,425 rows (mostly a middle initial added in Salesforce, e.g. "Harry Gray" → "Harry P Gray"). On 5,628 `Partner` rows stored as Retail: `ACCOUNT_TYPE` → Institutional plus the Partner settings (WEEKLY / 10 / Aggressive / $400K) | `TRADE_GENERATION_CONFIG_BAK_20261104` |
 | [`004`](../migrations/004_backfill_config_profile_from_type_map.sql) | 25,379 | `Person` rows on the default WEEKLY / 5 / Moderate / $150K → MONTHLY / 3 / Conservative / $50K | `TRADE_GENERATION_CONFIG_BAK_20261104_M004` |
+| [`005`](../migrations/005_deactivate_non_home_org_accounts.sql) | 529 | `ACTIVE` → FALSE on every account with no `Salesforce_Home` row in the share. Their 1,663,666 trades stay in `FINANCIAL_TRADES` with `ACCOUNT_ID` intact | `TRADE_GENERATION_CONFIG_BAK_20261104_M005` |
 
-After both, 0 of the 36,768 source-matched rows differ from the source on name or type, or from the type map on frequency, trades per period, risk profile or max trade value. Touched rows carry a `| ... (migration 003)` / `(migration 004)` suffix on `NOTES`. Trades already generated weren't rewritten. All updated rows are `Salesforce_Home` accounts.
+After 003 and 004, 0 of the 36,768 source-matched rows differ from the source on name or type, or from the type map on frequency, trades per period, risk profile or max trade value. Touched rows carry a `| ... (migration 003)` / `(migration 004)` suffix on `NOTES`. Trades already generated weren't rewritten. All rows updated by 003 and 004 are `Salesforce_Home` accounts. Rows deactivated by 005 carry `| deactivated 2026-11-04: non-Salesforce_Home org <org> (migration 005)` on `NOTES`.
 
 ## Current Account Distribution
 
@@ -96,14 +97,14 @@ As of 2026-11-04:
 | Source (`ssot__DataSourceId__c`) | Config rows | Active | Trades |
 |---|---|---|---|
 | `Salesforce_Home` | 36,239 | 36,239 | 8.92M |
-| `Salesforce_InsuranceAFDC` | 167 | 167 | 471K |
-| `Salesforce_FinsDC4` | 146 | 146 | 462K |
-| `Salesforce_FinsDC1` | 127 | 127 | 390K |
-| `Salesforce_DCCDO1` | 89 | 89 | 341K |
+| `Salesforce_InsuranceAFDC` | 167 | 0 (migration 005) | 471K |
+| `Salesforce_FinsDC4` | 146 | 0 (migration 005) | 462K |
+| `Salesforce_FinsDC1` | 127 | 0 (migration 005) | 390K |
+| `Salesforce_DCCDO1` | 89 | 0 (migration 005) | 341K |
 | Manual `TRD-xxx` placeholders | 5 | 0 (deactivated by migration 001) | trades have NULL `ACCOUNT_ID` |
-| **Total** | **36,773** | **36,768** | |
+| **Total** | **36,773** | **36,239** | **10.62M** |
 
-The 529 accounts from the four non-Home orgs don't join to the Home org the cockpits read. Whether to filter them out of the sync and deactivate them is still open.
+The 529 accounts from the four non-Home orgs don't join to the Home org the cockpits read, so migration 005 deactivated them. Their trades were kept. Adding a `Salesforce_Home` filter to `SYNC_NEW_ACCOUNTS()`, so new non-Home accounts aren't imported as active, is still open.
 
 ## Execution Logging
 

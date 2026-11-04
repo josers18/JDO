@@ -1,6 +1,6 @@
 # AGENTS.md — Financial_Trades_Generation
 
-Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Has generated ~10.6M trades (as of 2026-11-04) for 36,768 active accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
+Context for AI coding agents working on the **Snowflake-native synthetic financial-trades pipeline**. Has generated ~10.6M trades (as of 2026-11-04) for 36,239 active accounts across 2,004 instruments, with daily account sync from Salesforce Data Cloud and CRON-scheduled trade generation.
 
 For user-facing install / quick-start / row counts, see [README.md](README.md). This file is the agent-orientation primer.
 
