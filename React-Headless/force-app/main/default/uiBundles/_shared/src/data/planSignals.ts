@@ -15,6 +15,7 @@
  * 50%) carrying $9.0B of goals; 362 reviews due in 30d; 1,344 stale.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { summaryTrend, type KpiTrend } from './kpiTrend';
 import type { QueueSignalItem } from './priorityQueue';
 import { wealthWhoToCallScoreCtes } from './wealthWhoToCall';
 
@@ -86,6 +87,8 @@ export interface PlanHealthResult {
   atRiskGoalUsd: number;
   due30: number;
   stale: number;
+  /** at-risk plan count per MoneyGuidePro month (real history) */
+  history: KpiTrend;
   scope: BookScope;
 }
 
@@ -103,15 +106,17 @@ const toRow = (r: Record<string, unknown>): PlanRow => ({
 export async function fetchPlanHealth(ownerId: string | null | undefined): Promise<PlanHealthResult> {
   const atRisk = await queryDataCloudForBook<Record<string, unknown>>(atRiskRowsSql, ownerId, PLAN_RISK_ROWS + PLAN_RISK_SPARE);
   // Reviews + totals reuse the filter the at-risk rows resolved to (book, or org fallback).
-  const [reviews, total] = await Promise.all([
+  const [reviews, total, history] = await Promise.all([
     queryDataCloud<Record<string, unknown>>(reviewRowsSql(atRisk.accountFilter), 6)
       .then(r => r.rows)
       .catch((): Record<string, unknown>[] => []),
     queryDataCloud<Record<string, unknown>>(summarySql(atRisk.accountFilter), 1)
       .then(r => r.rows[0] ?? {})
       .catch((): Record<string, unknown> => ({})),
+    summaryTrend(summarySql(atRisk.accountFilter), r => Number(r.at_risk) || 0),
   ]);
   return {
+    history,
     scope: atRisk.scope,
     atRiskRows: atRisk.rows.map(toRow),
     reviewRows: reviews.map(toRow),

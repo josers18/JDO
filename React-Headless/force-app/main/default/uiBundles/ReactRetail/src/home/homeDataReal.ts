@@ -40,24 +40,8 @@
  * (jdo-oe0sdd, 2026-10-20) by running each query through the uiapi endpoint
  * and DcBridgeRest. Not guessed.
  */
-import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult } from '@shared';
+import { executeGraphQL, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchHomeEquity, homeEquityQueueItems, type HomeEquityResult, fetchPropertyRisk, propertyHazards, type PropertyRiskResult, fetchFinancialStress, STRESS_ROWS, financialStressQueueItems, type FinancialStressResult, fetchLifeStageMix, mortgageLeadQueueItems, selectMortgageLeads, type LifeStageMixResult, fetchDepositAttrition, depositAttritionQueueItems, type DepositAttritionResult, fetchWebEngagement, webEngagementQueueItems, browsingReason, browsingAction, isBrowsingNow, type WebEngagementResult, fetchWhoToCall, whoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult, fetchNetFlow, type NetFlowResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
-
-/** Deterministic pseudo-trend for a pipeline-movement sparkline (no Math.random —
- *  it breaks SSR/replay). Wobbles around `end` using the id's char codes. */
-function seedTrend(seed: string, end: number, n = 8): number[] {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  const out: number[] = [];
-  for (let i = 0; i < n; i++) {
-    h = (h * 1103515245 + 12345) >>> 0;
-    const wobble = ((h % 1000) / 1000 - 0.5) * 0.25; // ±12.5%
-    const ramp = 0.8 + (0.2 * i) / (n - 1); // trend upward into `end`
-    out.push(Math.max(0, Math.round(end * ramp * (1 + wobble))));
-  }
-  out[n - 1] = end;
-  return out;
-}
 
 /* ── Life-event signals ───────────────────────────────────────────
    Now LIVE against the org's native PersonLifeEvent object (see the
@@ -215,6 +199,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
+  // Weekly net flow from Snowflake FINANCIAL_TRANSACTIONS (via Data Cloud) — additive.
+  const netFlowP = userP.then(u => fetchNetFlow(u?.userId, 'Personal')).catch((): NetFlowResult | null => null);
   const [core, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, equity, propRisk, stress, lifeStages, attrition, web, liquidity] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     // R7 blended Who-to-Call (CSAT + Gong + stress + offers) — the page's centerpiece.
@@ -243,7 +229,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): DataFreshness | undefined => undefined),
     // R1 home equity (CoreLogic) — additive.
     userP.then(u => fetchHomeEquity(u?.userId))
-      .catch((): HomeEquityResult => ({ rows: [], owners: 0, equity: 0, refi: 0, quarter: '', scope: 'org' })),
+      .catch((): HomeEquityResult => ({ history: {}, rows: [], owners: 0, equity: 0, refi: 0, quarter: '', scope: 'org' })),
     // R2 property-risk exposure (CoreLogic) — additive.
     userP.then(u => fetchPropertyRisk(u?.userId))
       .catch((): PropertyRiskResult => ({ rows: [], homes: 0, flood: 0, wildfire: 0, both: 0, homeValue: 0, mortgage: 0, scope: 'org' })),
@@ -263,6 +249,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     userP.then(u => fetchLiquidityEvents(u?.userId))
       .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
+  const netFlow = await netFlowP;
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
   const bankerName = currentUser?.firstName || currentUser?.name || '';
@@ -605,8 +592,6 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       id: `pm${i}`,
       label,
       amount,
-      deltaPct: 0.06, // no historical snapshot wired yet — flat positive placeholder
-      trend: seedTrend(label, amount),
     }));
 
   // S7 — open service drag: CRM open cases + the book's open ServiceNow cases.
@@ -646,15 +631,16 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       rows: stress.rows.map(r => ({ ...r, clientName: nameById[r.accountId] ?? 'Client' })),
     },
     kpis: [
-      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.041, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
-      { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
-      { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
-      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', trend: seedTrend('cases', openCases), note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
-      { key: 'atRisk', label: 'At-Risk Clients', value: highRisk, format: 'number', trend: seedTrend('atrisk', Math.max(1, highRisk)), deltaPct: -0.02, note: stress.persistent ? `Require attention · ${stress.persistent.toLocaleString('en-US')} under persistent financial stress${stress.scope === 'org' ? ' · org-wide' : ''}` : 'Require attention' },
-      { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
-      { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
-      { key: 'homeEquity', label: 'Home Equity', value: equity.equity, format: 'currencyCompact', trend: seedTrend('homeEquity', Math.max(1, Math.round(equity.equity / 1e7))), note: equity.owners ? `${equity.owners.toLocaleString('en-US')} owners HELOC-ready · ${equity.refi.toLocaleString('en-US')} refi${equity.scope === 'org' ? ' · org-wide' : ''}` : 'No HELOC-ready owners in book' },
-      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
+      { key: 'netFlow', label: 'Net Flow', value: netFlow?.last?.net ?? 0, format: 'currencyCompact', trend: netFlow?.trend, note: netFlow?.last ? `Credits − debits, week of ${netFlow.last.week} · ${netFlow.last.accounts.toLocaleString('en-US')} accounts · Snowflake${netFlow.scope === 'org' ? ' · org-wide' : ''}` : 'No transactions in book' },
+      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
+      { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', note: 'In progress' },
+      { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', note: 'Open leads' },
+      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
+      { key: 'atRisk', label: 'At-Risk Clients', value: highRisk, format: 'number', note: stress.persistent ? `Require attention · ${stress.persistent.toLocaleString('en-US')} under persistent financial stress${stress.scope === 'org' ? ' · org-wide' : ''}` : 'Require attention' },
+      { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : undefined, deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
+      { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
+      { key: 'homeEquity', label: 'Home Equity', value: equity.equity, format: 'currencyCompact', ...equity.history, note: equity.owners ? `${equity.owners.toLocaleString('en-US')} owners HELOC-ready · ${equity.refi.toLocaleString('en-US')} refi${equity.scope === 'org' ? ' · org-wide' : ''}` : 'No HELOC-ready owners in book' },
+      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', note: 'On track' },
     ],
     callList,
     pipeline,

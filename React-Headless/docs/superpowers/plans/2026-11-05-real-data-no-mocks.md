@@ -27,6 +27,8 @@ All three bundles set `core`, `dataCloud` and `agentforce` to `real` in `src/dat
 - **CRM tiles** (pipeline, opps, leads, cases, goals) and **pipeline movement by stage**: there is no history in the org. **Generate it:** a new `Cockpit_KPI_Snapshot__c` (Owner/User, Persona, Metric Key, Value, Snapshot Date), a nightly `Schedulable` Apex that writes one row per banker per metric, and a one-time backfill of 8 weeks reconstructed from `CreatedDate` / `CloseDate` / `ClosedDate` / `OpportunityFieldHistory` for stage. The client reads the series through GraphQL.
 - **Until a series has ≥2 real points**, render the tile with **no sparkline and no delta**, never a seeded one. Delete `seedTrend` from all 3 bundles.
 
+> **Done 2026-11-05 (step 2).** `seedTrend` and every typed-in `deltaPct` are gone. `_shared/src/data/kpiTrend.ts` adds `perPeriodSql`, which lifts a tile's `profile_x__c = (SELECT MAX…)` pin into `GROUP BY` period with the newest 8 kept. The last point therefore always equals the tile's value. History is wired for Home Equity (3 quarters), Plans at Risk, Upgrade Prospects, Held-Away, Credit Watch, Outlook, Leadership, Upmarket and Consolidate-Branch. Each cockpit also gains a **Net Flow** tile, now in its vitals row: weekly credits − debits from Snowflake `FINANCIAL_TRANSACTIONS` (`Financial_Transactions_BT_Snow__dll`) across the book. Retail counts Personal accounts, Commercial counts Business accounts and Wealth counts both. It has no delta because the sign flips. `ACCOUNT_DAILY_BALANCE` is a running sum from $0 on 2026-07-24, so it measures net flow, not a held balance. CRM tiles, Pipeline Movement and Modeled Uplift show no sparkline or delta until step 4. ESG Movers has no period series.
+
 ### 2. Cross-sell white-space grid is entirely fixture data (Retail only)
 
 - `_shared/src/components/home/CrossSellWhitespace.tsx:230`: `data = MOCK_DATA` default. Retail `HomePage.tsx:1775` renders it with **no `data` prop**, so users see invented clients (Sarah Chen, Marcus Webb, Priya Nair, David Okafor), scores, reasons and estimated values.
@@ -121,7 +123,7 @@ In `personas/customer/customerDataReal.ts` (Retail :94–154, Wealth/Commercial 
 ## Order of work
 
 1. **#3 identity + #5 numeric fallbacks + #8 + #9 opened date:** small, `_shared`-heavy, one PR.
-2. **#1 Data Cloud sparklines** (no new data needed) and drop `seedTrend`; **CRM tiles** render without sparklines until step 4.
+2. ✅ **#1 Data Cloud sparklines** (no new data needed) and drop `seedTrend`; **CRM tiles** render without sparklines until step 4.
 3. **#2 cross-sell, real** (after the in-org coverage check).
 4. **#1 CRM KPI snapshot object + scheduler + backfill**, then turn on the CRM sparklines.
 5. **#4 C360 health, #6 notes, #7 AI slots, #5 generated brief.**

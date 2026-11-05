@@ -42,24 +42,8 @@
  * opportunity driver in the blended "who to call" score. Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult, fetchNetFlow, summaryTrend, type NetFlowResult } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
-
-/** Deterministic pseudo-trend for a sparkline (no Math.random — it breaks
- *  SSR/replay). Wobbles around `end` using the seed's char codes. */
-function seedTrend(seed: string, end: number, n = 8): number[] {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  const out: number[] = [];
-  for (let i = 0; i < n; i++) {
-    h = (h * 1103515245 + 12345) >>> 0;
-    const wobble = ((h % 1000) / 1000 - 0.5) * 0.25; // ±12.5%
-    const ramp = 0.8 + (0.2 * i) / (n - 1); // trend upward into `end`
-    out.push(Math.max(0, Math.round(end * ramp * (1 + wobble))));
-  }
-  out[n - 1] = end;
-  return out;
-}
 
 /* ── Life-event signals ───────────────────────────────────────────
    Now LIVE against the org's native PersonLifeEvent object (see the
@@ -252,6 +236,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   // "View as" swaps in another banker: their Id drives every DC book filter
   // and the CRM roots below get an owner filter (none for your own book).
   const userP = fetchEffectiveUser();
+  // Weekly net flow from Snowflake FINANCIAL_TRANSACTIONS (via Data Cloud) — additive.
+  const netFlowP = userP.then(u => fetchNetFlow(u?.userId)).catch((): NetFlowResult | null => null);
   const [core, held, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades, concentration, liquidity] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
@@ -280,7 +266,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): DataFreshness | undefined => undefined),
     // W2 / W3 MoneyGuidePro plan health — additive.
     userP.then(u => fetchPlanHealth(u?.userId))
-      .catch((): PlanHealthResult => ({ atRiskRows: [], reviewRows: [], plans: 0, atRisk: 0, critical: 0, atRiskGoalUsd: 0, due30: 0, stale: 0, scope: 'org' })),
+      .catch((): PlanHealthResult => ({ history: {}, atRiskRows: [], reviewRows: [], plans: 0, atRisk: 0, critical: 0, atRiskGoalUsd: 0, due30: 0, stale: 0, scope: 'org' })),
     // W4 crypto + robo held-away — additive.
     userP.then(u => fetchDigitalLeakage(u?.userId))
       .catch((): DigitalLeakageResult => ({ rows: [], crypto: { clients: 0, balance: 0, inflow: 0 }, robo: { clients: 0, balance: 0, inflow: 0 }, scope: 'org' })),
@@ -292,7 +278,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): BusinessOwnersResult => ({ rows: [], owners: 0, businesses: 0, upmarket: 0, scope: 'org' })),
     // W7 Claritas wealth-propensity upgrades — additive.
     userP.then(u => fetchWealthUpgrades(u?.userId))
-      .catch((): WealthUpgradeResult => ({ rows: [], candidates: 0, fiveM: 0, highPropensity: 0, scope: 'org' })),
+      .catch((): WealthUpgradeResult => ({ history: {}, rows: [], candidates: 0, fiveM: 0, highPropensity: 0, scope: 'org' })),
     // W8 single-stock concentration — additive.
     userP.then(u => fetchHoldingsConcentration(u?.userId))
       .catch((): HoldingsConcentrationResult => ({ rows: [], exposures: [], clients: 0, concentrated: 0, aum: 0, singleStockShare: 0, scope: 'org' })),
@@ -300,9 +286,14 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     userP.then(u => fetchLiquidityEvents(u?.userId))
       .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
-  const heldTotal = await queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
-    .then(r => r.rows[0])
-    .catch(() => undefined);
+  const netFlow = await netFlowP;
+  const [heldTotal, heldHistory] = await Promise.all([
+    queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
+      .then(r => r.rows[0])
+      .catch(() => undefined),
+    // Held-away balance per Plaid month — the tile's real history.
+    summaryTrend(heldAwayTotalSql(held.accountFilter), r => Number(r.balance) || 0),
+  ]);
   const scopeNote = held.scope === 'org' ? ' · org-wide' : '';
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
@@ -633,8 +624,6 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       id: `pm${i}`,
       label,
       amount,
-      deltaPct: 0.06,
-      trend: seedTrend(label, amount),
     }));
 
   // S7 — open service drag: CRM open cases + the book's open ServiceNow cases.
@@ -663,19 +652,20 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     tradingPulse: { ...trades, sellers: trades.sellers.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     digitalLeakage: { ...leakage, rows: leakage.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     kpis: [
-      { key: 'heldAway', label: 'Held-Away Opportunity', value: totalHeldAway, format: 'currencyCompact', trend: seedTrend('heldAway', Math.max(1, Math.round(totalHeldAway / 1e7))), note: heldAwayClients ? `${heldAwayClients.toLocaleString('en-US')} clients · brokerage + robo${scopeNote}` : 'No held-away assets in book' },
-      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', trend: seedTrend('pipeline', Math.round(pipelineValue / 1e6)), deltaPct: 0.061, note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
-      { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', trend: seedTrend('opps', opp?.totalCount ?? 0), deltaPct: 0.03, note: 'In progress' },
-      { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', trend: seedTrend('leads', Math.max(1, leads.length)), deltaPct: 0.08, note: 'Open leads' },
-      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', trend: seedTrend('cases', openCases), note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
-      { key: 'atRisk', label: '$5M+ Targets', value: highValue, format: 'number', trend: seedTrend('targets', Math.max(1, highValue)), deltaPct: 0.11, note: 'Consolidation' },
-      { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : seedTrend('calltone', Math.max(1, toneNow)), deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
-      { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', trend: seedTrend('uplift', Math.max(1, Math.round(uplift.total / 1e4))), note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
-      { key: 'plansAtRisk', label: 'Plans at Risk', value: plans.atRisk, format: 'number', trend: seedTrend('plansAtRisk', Math.max(1, plans.atRisk)), note: plans.plans ? `< 70% success · ${plans.critical.toLocaleString('en-US')} below 50% · ${plans.due30.toLocaleString('en-US')} reviews due 30d · ${plans.stale.toLocaleString('en-US')} stale${plans.scope === 'org' ? ' · org-wide' : ''}` : 'No MoneyGuidePro plans in book' },
-      { key: 'bizOwners', label: 'Business Owners', value: owners.owners, format: 'number', trend: seedTrend('bizOwners', Math.max(1, owners.owners)), note: owners.owners ? `${owners.businesses.toLocaleString('en-US')} businesses · ${owners.upmarket.toLocaleString('en-US')} at $50M+ · relationship graph${owners.scope === 'org' ? ' · org-wide' : ''}` : 'No business owners in book' },
-      { key: 'upgrades', label: 'Upgrade Prospects', value: upgrades.candidates, format: 'number', trend: seedTrend('upgrades', Math.max(1, upgrades.candidates)), note: upgrades.candidates ? `$1M+ est. net worth, not in Wealth · ${upgrades.fiveM.toLocaleString('en-US')} at $5M+ · Claritas${upgrades.scope === 'org' ? ' · org-wide' : ''}` : 'No upgrade prospects in book' },
-      { key: 'concentrated', label: 'Concentrated Positions', value: concentration.concentrated, format: 'number', trend: seedTrend('concentrated', Math.max(1, concentration.concentrated)), note: concentration.clients ? `of ${concentration.clients.toLocaleString('en-US')} clients with holdings · one stock ≥ 20% · ${Math.round(concentration.singleStockShare * 100)}% of ${concentration.aum.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in single stocks${concentration.scope === 'org' ? ' · org-wide' : ''}` : 'No CRM holdings in book' },
-      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', trend: seedTrend('goals', Math.max(1, bankerGoals.length)), deltaPct: 0.02, note: 'On track' },
+      { key: 'netFlow', label: 'Net Flow', value: netFlow?.last?.net ?? 0, format: 'currencyCompact', trend: netFlow?.trend, note: netFlow?.last ? `Credits − debits, week of ${netFlow.last.week} · ${netFlow.last.accounts.toLocaleString('en-US')} accounts · Snowflake${netFlow.scope === 'org' ? ' · org-wide' : ''}` : 'No transactions in book' },
+      { key: 'heldAway', label: 'Held-Away Opportunity', value: totalHeldAway, format: 'currencyCompact', ...heldHistory, note: heldAwayClients ? `${heldAwayClients.toLocaleString('en-US')} clients · brokerage + robo${scopeNote}` : 'No held-away assets in book' },
+      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
+      { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', note: 'In progress' },
+      { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', note: 'Open leads' },
+      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
+      { key: 'atRisk', label: '$5M+ Targets', value: highValue, format: 'number', note: 'Consolidation' },
+      { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : undefined, deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
+      { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
+      { key: 'plansAtRisk', label: 'Plans at Risk', value: plans.atRisk, format: 'number', ...plans.history, note: plans.plans ? `< 70% success · ${plans.critical.toLocaleString('en-US')} below 50% · ${plans.due30.toLocaleString('en-US')} reviews due 30d · ${plans.stale.toLocaleString('en-US')} stale${plans.scope === 'org' ? ' · org-wide' : ''}` : 'No MoneyGuidePro plans in book' },
+      { key: 'bizOwners', label: 'Business Owners', value: owners.owners, format: 'number', note: owners.owners ? `${owners.businesses.toLocaleString('en-US')} businesses · ${owners.upmarket.toLocaleString('en-US')} at $50M+ · relationship graph${owners.scope === 'org' ? ' · org-wide' : ''}` : 'No business owners in book' },
+      { key: 'upgrades', label: 'Upgrade Prospects', value: upgrades.candidates, format: 'number', ...upgrades.history, note: upgrades.candidates ? `$1M+ est. net worth, not in Wealth · ${upgrades.fiveM.toLocaleString('en-US')} at $5M+ · Claritas${upgrades.scope === 'org' ? ' · org-wide' : ''}` : 'No upgrade prospects in book' },
+      { key: 'concentrated', label: 'Concentrated Positions', value: concentration.concentrated, format: 'number', note: concentration.clients ? `of ${concentration.clients.toLocaleString('en-US')} clients with holdings · one stock ≥ 20% · ${Math.round(concentration.singleStockShare * 100)}% of ${concentration.aum.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in single stocks${concentration.scope === 'org' ? ' · org-wide' : ''}` : 'No CRM holdings in book' },
+      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', note: 'On track' },
     ],
     callList,
     pipeline,

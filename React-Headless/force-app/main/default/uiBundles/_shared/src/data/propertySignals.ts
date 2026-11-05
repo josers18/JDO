@@ -11,6 +11,7 @@
  * $2.20B equity / 218 refi candidates; business books have ~3 (Retail only).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { summaryTrend, type KpiTrend } from './kpiTrend';
 import type { QueueSignalItem } from './priorityQueue';
 
 const LATEST = `profile_quarter__c = (SELECT MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm)
@@ -58,6 +59,8 @@ export interface HomeEquityResult {
   equity: number;
   refi: number;
   quarter: string;
+  /** the tile metric per snapshot period (real history; empty when < 2 periods) */
+  history: KpiTrend;
   scope: BookScope;
 }
 
@@ -67,10 +70,14 @@ const num = (v: unknown) => (v == null || v === '' ? null : Number(v));
 export async function fetchHomeEquity(ownerId: string | null | undefined): Promise<HomeEquityResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(equityRowsSql, ownerId, 8);
   // Totals use the same filter the rows resolved to (book, or the org fallback).
-  const total = await queryDataCloud<Record<string, unknown>>(equitySummarySql(res.accountFilter), 1)
-    .then(r => r.rows[0] ?? {})
-    .catch((): Record<string, unknown> => ({}));
+  const [total, history] = await Promise.all([
+    queryDataCloud<Record<string, unknown>>(equitySummarySql(res.accountFilter), 1)
+      .then(r => r.rows[0] ?? {})
+      .catch((): Record<string, unknown> => ({})),
+    summaryTrend(equitySummarySql(res.accountFilter), r => Number(r.equity) || 0),
+  ]);
   return {
+    history,
     scope: res.scope,
     // DC returns decimals as strings.
     owners: Number(total.owners) || 0,

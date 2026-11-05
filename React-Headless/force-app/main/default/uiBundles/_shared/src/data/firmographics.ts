@@ -10,6 +10,7 @@
  * Tableau, Microsoft 365, Google Workspace, Slack, Zoom, Okta (no ERP flags).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { summaryTrend, type KpiTrend } from './kpiTrend';
 
 const LATEST = 'profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Zoominfo_Firmographics__dlm)';
 const UPMARKET = "revenue_band__c IN ('$50M-$200M', '$200M-$1B', '$1B+')";
@@ -28,6 +29,14 @@ const upmarketSql = (accountFilter: string) => `
     AND account_id__c ${accountFilter}
   ORDER BY ${BAND_RANK} DESC, CASE WHEN tech_stack_flags__c IS NULL THEN 0 ELSE 1 END DESC
   LIMIT 5
+`;
+
+// Upmarket count alone — the per-month history behind the Upmarket tile.
+const upmarketCountSql = (accountFilter: string) => `
+  SELECT COUNT(*) AS upmarket
+  FROM BT_Zoominfo_Firmographics__dlm
+  WHERE ${LATEST} AND ${UPMARKET}
+    AND account_id__c ${accountFilter}
 `;
 
 const mixSql = (accountFilter: string) => `
@@ -67,6 +76,8 @@ export interface FirmographicMixResult {
   /** …of which $50M+ revenue. */
   upmarket: number;
   rows: UpmarketRow[];
+  /** upmarket count per ZoomInfo month (real history) */
+  history: KpiTrend;
   scope: BookScope;
 }
 
@@ -95,9 +106,12 @@ const ordered = (counts: Map<string, number>, order: readonly string[]): BandCou
 export async function fetchFirmographicMix(ownerId: string | null | undefined): Promise<FirmographicMixResult> {
   // The mix query decides the scope: an empty book (no ZoomInfo profiles) falls back org-wide.
   const mix = await queryDataCloudForBook<Record<string, unknown>>(mixSql, ownerId, 30);
-  const rows = await queryDataCloud<Record<string, unknown>>(upmarketSql(mix.accountFilter), 5)
-    .then(r => r.rows)
-    .catch((): Record<string, unknown>[] => []);
+  const [rows, history] = await Promise.all([
+    queryDataCloud<Record<string, unknown>>(upmarketSql(mix.accountFilter), 5)
+      .then(r => r.rows)
+      .catch((): Record<string, unknown>[] => []),
+    summaryTrend(upmarketCountSql(mix.accountFilter), r => Number(r.upmarket) || 0),
+  ]);
   const revenue = new Map<string, number>();
   const employees = new Map<string, number>();
   for (const r of mix.rows) {
@@ -106,6 +120,7 @@ export async function fetchFirmographicMix(ownerId: string | null | undefined): 
   }
   const total = [...revenue.values()].reduce((a, b) => a + b, 0);
   return {
+    history,
     scope: mix.scope,
     revenue: ordered(revenue, REVENUE_BANDS),
     employees: ordered(employees, EMPLOYEE_BANDS),
