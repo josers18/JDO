@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import {
   ToastProvider,
   useToast,
+  CrossSellWhitespaceLive,
   Button,
   Sparkline,
   ScoreRing,
@@ -1897,6 +1898,11 @@ function HomeContent() {
           {/* ---- Full-width supporting band ---- */}
           <div className="mt-4">{supportingBand}</div>
 
+          {/* ---- Cross-sell white-space (live) ---- */}
+          <section id="whitespace" className="mt-8 scroll-mt-[82px]">
+            <CrossSellWhitespaceLive persona="wealth" />
+          </section>
+
           {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
               Life events + Alerts / Leads) were removed — they duplicated the
               right panel and the supporting band. Their content is one click away
@@ -1909,6 +1915,9 @@ function HomeContent() {
           {/* ---------- KPI PULSE ---------- */}
           <section id="kpis" className="mt-8 scroll-mt-[82px]">
             {kpiGrid}
+          </section>
+          <section id="whitespace" className="mt-8 scroll-mt-[82px]">
+            <CrossSellWhitespaceLive persona="wealth" />
           </section>
           {leakageCard && (
             <section id="leakage" className="mt-4 scroll-mt-[82px]">

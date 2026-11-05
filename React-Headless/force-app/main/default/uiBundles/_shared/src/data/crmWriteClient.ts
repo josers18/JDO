@@ -17,7 +17,7 @@
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 
-export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent' | 'lead';
+export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent' | 'lead' | 'opportunity';
 
 export interface CrmWriteInput {
   action: CrmAction;
@@ -75,6 +75,12 @@ export interface CrmWriteInput {
   email?: string;
   /** Lead.AnnualRevenue — the lead's estimated value. */
   annualRevenue?: number;
+  /** Opportunity.Amount (action === 'opportunity'; accountId + name required). */
+  amount?: number;
+  /** Opportunity.CloseDate 'YYYY-MM-DD' (default today + 60 server-side). */
+  closeDate?: string;
+  /** Opportunity.StageName (default 'Prospecting'). */
+  stageName?: string;
   /** Task ActivityDate, 'YYYY-MM-DD'. */
   dueDate?: string;
   /** Event start, ISO-8601. Defaults server-side to now + 1h. */

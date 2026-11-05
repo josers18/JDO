@@ -1,30 +1,29 @@
 /**
- * S3 — next-best-offer pipeline from the Databricks offer-eligibility model
- * (`Offer_Eligibility_Model__dlm`, one row per client × action code, single
- * scoring run 2026-08-12, `Recommended_Action_Rank__c` 1–10 or null = ineligible).
- *
- * Key: `MDM_ID__c` is the MDM party key (`MDMP#####`), which lands on
- * `ssot__Account__dlm.External_ID_c__c` for 25,424 local accounts — so the join
- * runs through Account and the book filter applies to `ssot__Id__c`. (Only 7
- * rows use the `GEN-<AccountId>` form; they're skipped.)
+ * S3 — next-best-offer pipeline from the Snowflake offer-eligibility model
+ * (`OFFER_ELIGIBILITY` → zero-copy `BT_Offer_Eligibility__dlm`), keyed directly
+ * to the Salesforce Account Id. One row per client × action code for the codes
+ * the client does NOT already hold (the generator reads FSC holdings and
+ * excludes owned products); `recommended_action_rank__c` 1–N or null = not
+ * rule-eligible. Monthly run covering every book: retail and wealth person
+ * accounts plus business accounts (verified 2026-11-05: 36,617 of 36,768
+ * accounts with at least one eligible offer).
  *
  * Each app sees its own product family; within it we take each client's
  * best-ranked eligible offer, then the strongest client per product, so the
  * recommendations rail shows distinct offers rather than three copies of the
- * same mortgage. Verified live 2026-10-22.
+ * same mortgage.
  *
- * Business accounts aren't in that model, so the commercial family also reads
- * `BT_Offer_Eligibility__dlm` (Snowflake `OFFER_ELIGIBILITY`, keyed to the
- * Account Id) — see `eligibleOffersSql`. Added 2026-10-24.
+ * Replaces the Databricks `Offer_Eligibility_Model__dlm` (single 2026-08-12
+ * run, holdings-blind, MDM-keyed, retail-heavy), which is no longer read.
  */
 import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
 
 export type OfferFamily = 'retail' | 'wealth' | 'commercial';
 
 const FAMILY_FILTER: Record<OfferFamily, string> = {
-  retail: "o.Action_Code__c IN ('MTG-30', 'AUTO-ACQ', 'CRC-ACQ', 'CHK-ACQ', 'FTH-ACQ', 'HYS-ACQ')",
-  wealth: "(o.Action_Code__c LIKE 'WM-%' OR o.Action_Code__c LIKE 'IRA-%')",
-  commercial: "o.Action_Code__c LIKE 'BIZ-%'",
+  retail: "b.product_family__c = 'Retail'",
+  wealth: "b.product_family__c = 'Wealth'",
+  commercial: "b.action_code__c LIKE 'BIZ-%'",
 };
 
 const OFFER_LABEL: Record<string, string> = {
@@ -34,9 +33,17 @@ const OFFER_LABEL: Record<string, string> = {
   'CHK-ACQ': 'checking account',
   'FTH-ACQ': 'first-time homebuyer program',
   'HYS-ACQ': 'high-yield savings',
+  'HEL-ACQ': 'home equity line of credit',
+  'PL-ACQ': 'personal loan',
+  'INV-ACQ': 'investing account',
+  'PCHK-ACQ': 'Premier checking',
+  'WM-CASH': 'high-yield cash account',
   'IRA-RTH': 'Roth IRA',
+  'IRA-ROL': '401(k) rollover IRA',
   'WM-MAS': 'managed account',
+  'MTG-JMB': 'jumbo mortgage',
   'BIZ-CHK': 'business checking',
+  'BIZ-CARD': 'commercial card',
   'BIZ-TM-ACH': 'ACH origination',
   'BIZ-TM-RDC': 'remote deposit capture',
   'BIZ-TM-PP': 'positive pay',
@@ -51,44 +58,17 @@ const OFFER_LABEL: Record<string, string> = {
 /** Human product name for an action code ("MTG-30" → "30-year fixed mortgage"). */
 export const offerLabel = (code: string) => OFFER_LABEL[code] ?? code;
 
-const BT_FAMILY_FILTER: Record<OfferFamily, string | null> = {
-  retail: null,
-  wealth: null,
-  commercial: "b.action_code__c LIKE 'BIZ-%'",
-};
-
-/**
- * Eligible offers for the book, one row per client × code. Unions the
- * Databricks model (person accounts, joined through the MDM key) with the
- * Snowflake `BT_Offer_Eligibility__dlm` (business accounts, keyed directly to
- * the Account Id; treasury `BIZ-TM-*` and lending `BIZ-*` codes).
- */
-const eligibleOffersSql = (family: OfferFamily, accountFilter: string) => {
-  const model = `
-      SELECT a.ssot__Id__c AS account_id, o.Action_Code__c AS code, o.Recommended_Action_Rank__c AS action_rank,
-             o.Conversion_Probability__c AS conv, o.NoAction_Conversion__c AS noaction,
-             o.Expected_Value_Uplift__c AS ev, o.Recommended_Channels__c AS channels,
-             o.EM_Probability__c AS em_p, o.CC_Probability__c AS cc_p
-      FROM Offer_Eligibility_Model__dlm o
-      JOIN ssot__Account__dlm a ON a.External_ID_c__c = o.MDM_ID__c
-      WHERE ${FAMILY_FILTER[family]}
-        AND o.Recommended_Action_Rank__c IS NOT NULL
-        AND o.Expected_Value_Uplift__c > 0
-        AND a.ssot__Id__c ${accountFilter}`;
-  const bt = BT_FAMILY_FILTER[family];
-  if (!bt) return model;
-  return `${model}
-      UNION ALL
-      SELECT b.account_id__c, b.action_code__c, b.recommended_action_rank__c,
-             b.conversion_probability__c, b.noaction_conversion__c,
-             b.expected_value_uplift__c, b.recommended_channels__c,
-             b.em_probability__c, b.cc_probability__c
+/** Eligible offers for the book, one row per client × code. */
+const eligibleOffersSql = (family: OfferFamily, accountFilter: string) => `
+      SELECT b.account_id__c AS account_id, b.action_code__c AS code, b.recommended_action_rank__c AS action_rank,
+             b.conversion_probability__c AS conv, b.noaction_conversion__c AS noaction,
+             b.expected_value_uplift__c AS ev, b.recommended_channels__c AS channels,
+             b.em_probability__c AS em_p, b.cc_probability__c AS cc_p
       FROM BT_Offer_Eligibility__dlm b
-      WHERE ${bt}
+      WHERE ${FAMILY_FILTER[family]}
         AND b.recommended_action_rank__c IS NOT NULL
         AND b.expected_value_uplift__c > 0
         AND b.account_id__c ${accountFilter}`;
-};
 
 const bestOfferSql = (family: OfferFamily) => (accountFilter: string) => `
   SELECT account_id, code, action_rank, conv, noaction, ev, channels, em_p, cc_p FROM (

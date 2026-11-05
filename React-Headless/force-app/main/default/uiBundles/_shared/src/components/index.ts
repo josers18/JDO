@@ -111,11 +111,13 @@ export {
 } from './home/WorkspaceSelection';
 export {
   CrossSellWhitespace,
+  type WhitespaceAct,
   type WhitespaceData,
   type WhitespaceClient,
   type WhitespaceProduct,
   type WhitespaceCell,
 } from './home/CrossSellWhitespace';
+export { CrossSellWhitespaceLive } from './home/CrossSellWhitespaceLive';
 
 // ── Command-center configuration page ──────────────────────────
 export { ConfigPage } from './config/ConfigPage';

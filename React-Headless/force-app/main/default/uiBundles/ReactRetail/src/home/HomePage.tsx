@@ -35,7 +35,7 @@ import {
   DetailModal,
   type DetailModalData,
   DataExplorerModal,
-  CrossSellWhitespace,
+  CrossSellWhitespaceLive,
   Pill,
   WorkspacePanel,
   useWorkspaceSelection,
@@ -1766,16 +1766,10 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   );
 
   // ── Cross-sell / Upsell white-space (Growth mode) ──
-  // A selectable clients × products heat map + detail table. Renders off MOCK
-  // data today, shaped so a Data Cloud dataset (product-holding DMOs blended
-  // with life-event / goal signals) can back it later with no markup change.
-  // Acting on a row reuses the page's Prep modal so the banker lands in a real
-  // flow. Anchored at #whitespace so the rail's "On this page" link resolves.
-  const whitespaceSection = (
-    <CrossSellWhitespace
-      onAct={o => open('prep', o.clientName, o.clientId)}
-    />
-  );
+  // Live clients × products heat map: owned cells from FSC holdings, scores and
+  // value from the Snowflake offer model, reasons from Plaid held-away. Acting
+  // on a row creates a real Opportunity. Anchored at #whitespace for the rail.
+  const whitespaceSection = <CrossSellWhitespaceLive persona="retail" />;
 
   // ── Full-width supporting band (cockpit only) ──
   // The five secondary modules from the mockup, in a single responsive row:

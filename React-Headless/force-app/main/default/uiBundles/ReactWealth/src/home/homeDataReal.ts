@@ -9,7 +9,7 @@
  *     negative + declining → queue + alerts, same book scoping
  *   · S2 World-Check AML / PEP screening (BT_WorldCheck_AML__dlm), latest
  *     run, ratings that escalated since the previous run → queue + alerts
- *   · S3 next-best offers (Offer_Eligibility_Model__dlm), this app's product
+ *   · S3 next-best offers (BT_Offer_Eligibility__dlm, Snowflake, holdings-aware), this app's product
  *     family, one card per product → top of Recommendations
  *   · S4 warm intros (BT_Synth_Relationship_Graph__dlm), referrals from my
  *     clients into accounts outside my book → Leads & Referrals

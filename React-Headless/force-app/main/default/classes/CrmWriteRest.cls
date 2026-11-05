@@ -55,6 +55,10 @@ global with sharing class CrmWriteRest {
         public String leadSource;       // Lead.LeadSource picklist
         public String email;            // Lead.Email
         public Decimal annualRevenue;   // Lead.AnnualRevenue (est. value)
+        // Opportunity (cross-sell grid) create fields — accountId, name, leadSource, description reused
+        public Decimal amount;          // Opportunity.Amount (modeled est. value)
+        public String closeDate;        // Opportunity.CloseDate 'YYYY-MM-DD' (default today + 60)
+        public String stageName;        // Opportunity.StageName (default 'Prospecting')
     }
 
     /**
@@ -124,12 +128,14 @@ global with sharing class CrmWriteRest {
                 handleLifeEvent(res, reqBody);
             } else if (action == 'lead') {
                 handleLead(res, reqBody);
+            } else if (action == 'opportunity') {
+                handleOpportunity(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
             } else if (action == 'delete') {
                 handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, update, or delete.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, update, or delete.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -349,6 +355,39 @@ global with sharing class CrmWriteRest {
         if (req.annualRevenue != null)       { ld.AnnualRevenue = req.annualRevenue; }
         insert ld;
         writeSuccess(res, ld.Id);
+    }
+
+    /**
+     * Opportunity on an Account — the cross-sell grid's "make it happen" write.
+     * Amount is the model's estimated value; LeadSource tags where it came from
+     * so the grid can count its own pipeline and wins.
+     */
+    private static void handleOpportunity(RestResponse res, WriteRequest req) {
+        if (String.isBlank(req.name)) {
+            writeError(res, 400, 'A name is required for an opportunity.');
+            return;
+        }
+        Id acctId;
+        try {
+            acctId = String.isBlank(req.accountId) ? null : Id.valueOf(req.accountId);
+        } catch (Exception e) {
+            acctId = null;
+        }
+        if (acctId == null || acctId.getSObjectType() != Account.SObjectType) {
+            writeError(res, 400, 'An account is required for an opportunity.');
+            return;
+        }
+        Opportunity opp = new Opportunity();
+        opp.AccountId = acctId;
+        opp.Name = req.name.left(120);
+        opp.StageName = String.isBlank(req.stageName) ? 'Prospecting' : req.stageName;
+        opp.CloseDate = String.isBlank(req.closeDate) ? Date.today().addDays(60) : Date.valueOf(req.closeDate);
+        if (req.amount != null)              { opp.Amount = req.amount; }
+        if (!String.isBlank(req.leadSource)) { opp.LeadSource = req.leadSource; }
+        if (!String.isBlank(req.description)) { opp.Description = req.description; }
+        if (!String.isBlank(req.ownerId))    { opp.OwnerId = req.ownerId; }
+        insert opp;
+        writeSuccess(res, opp.Id);
     }
 
     /**
