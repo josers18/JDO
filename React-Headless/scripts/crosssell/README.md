@@ -32,6 +32,12 @@ They fill the real holdings gaps the white-space grid exposed. The design is in 
    - Name: `<grid column label> — <client name>`.
    - `StageName = 'Closed Won'`, `CloseDate` = the open date, `LeadSource = 'Cross-sell grid'`, `OwnerId` = the client's banker, `Amount` = the limit, loan or balance.
    - This created 168 Opportunities.
+7. **Backfill transaction history.** The daily generator only writes *today*, so the new accounts start with no history while every other account has history back to 2026-07-24.
+   - Export the new FTA rows (`WHERE LOADED_AT >= '2026-11-05'`, in `build_master.py` column order).
+   - Run `scripts/snowflake_transactions/gen_core.generate(rows, date(2026,7,24), date(2026,11,5), now)`, with `now` = the day's task run time (03:05) so today's rows match the task's hour cap.
+   - Clone `FINANCIAL_TRANSACTIONS` and `ACCOUNT_DAILY_BALANCE` (`*_BAK_20261105`). `COPY INTO FINANCIAL_TRANSACTIONS`, then rebuild `ACCOUNT_DAILY_BALANCE` with the SP's `rebuild_daily_balance` SQL.
+   - This loaded 231,294 transactions on 5,532 accounts. The other 2 opened Nov 3–4 and had no activity yet. `ACCOUNT_DAILY_BALANCE` went from 1,277,729 to 1,467,273 rows. From the next 03:05 run the task covers them like every other account.
+   - CRM `FinServ__Balance__c` is static on every FA in the org; no job writes Snowflake balances back to it.
 
 ## Conventions learned
 

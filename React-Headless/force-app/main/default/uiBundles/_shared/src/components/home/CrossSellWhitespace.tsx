@@ -118,8 +118,14 @@ export function CrossSellWhitespace({
       setBusy(null);
     }
   };
-  const pipelineValue = (stats?.openValue ?? 0);
-  const pipelineCount = (stats?.open ?? 0);
+  // The refetched stats can come back cached, so fold in this session's
+  // creations that the loaded data doesn't count yet (cell not inPipeline).
+  const pending = clients.flatMap(c =>
+    products.filter(p => acted.has(`${c.id}|${p.key}`) && !c.cells[p.key]?.inPipeline)
+      .map(p => c.cells[p.key]?.estValue ?? 0),
+  );
+  const pipelineValue = (stats?.openValue ?? 0) + pending.reduce((s, x) => s + x, 0);
+  const pipelineCount = (stats?.open ?? 0) + pending.length;
 
   const detailRows = useMemo<OpportunityRow[]>(() => {
     switch (sel.kind) {

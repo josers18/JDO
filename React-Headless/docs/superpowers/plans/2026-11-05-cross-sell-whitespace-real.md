@@ -76,6 +76,7 @@ The top 12 clients in the signed-in banker's book (view-as aware), ranked by tot
 | C ✅ | Extend `OFFER_ELIGIBILITY` SP to all books + holdings-aware (no new table); backfill deferred | Holdings-aware scores for every book, with trend | none (parallel with A) |
 | D ✅ | Cumulus consumer + corporate cards + plastics, FTA mirror, rescore | Full-width columns, no artificially empty product lines | none (parallel) |
 | E ✅ | Outcome backfill + "won in 30d" | Credible results story for demos | B |
+| F ✅ | Transaction backfill for the 5,534 new accounts (231,294 rows, 2026-07-24 → 11-05) + `ACCOUNT_DAILY_BALANCE` rebuild; live browser check of all 3 cockpits (won-in-30d 31 / 6 / 7 for Sarah / Kim / Allen; a cell click created a real Opportunity); header now counts this session's creations before the refetch catches up | Cards carry balances and spend like every other account | D |
 
 Each step builds the affected bundles and deploys `dist/` (+ Apex). The live browser check is the verification.
 
