@@ -167,7 +167,8 @@ for aid in sorted(ladder_holders):
         continue
     limit = max(10000, min(500000, round(checking_bal.get(aid, 100000) * 0.1 / 5000) * 5000))
     bal = limit * (0.05 + 0.35 * u(aid, 'cutil'))
-    add_fa(aid, 'Cumulus Corporate Card', 'CreditCard', 'Credit Cards', bal, rate=0.1999, limit=limit)
+    # Org convention (23 existing corporate cards): CreditCard record type, Treasury Management type.
+    add_fa(aid, 'Cumulus Corporate Card', 'CreditCard', 'Treasury Management', bal, rate=0.1999, limit=limit)
 
 with open(os.path.join(OUT, 'fa_insert.csv'), 'w', newline='') as f:
     w = csv.DictWriter(f, fieldnames=list(fa_rows[0]))
