@@ -15,9 +15,10 @@
  *
  * Rows: the 12 clients in the banker's book with the most eligible white-space
  * value — except that ranking favors clients who own the least (an owned
- * product has no model row), so Retail and Commercial reserve the last
+ * product has no model row), so every persona reserves the last
  * `HOLDER_ROWS` rows for the book's top clients who already hold the persona's
- * card product. Those rows show the ✓ alongside their remaining white space.
+ * anchor product (Retail: credit card; Commercial: corporate card; Wealth:
+ * managed account or Roth). Those rows show the ✓ alongside their remaining white space.
  * A product the model doesn't score and the client doesn't hold renders as a
  * plain empty cell.
  */
@@ -35,10 +36,15 @@ export const WHITESPACE_ROWS = 12;
 /** Rows reserved for clients who already hold the persona's reserved product. */
 export const HOLDER_ROWS = 3;
 
-/** Per persona: the product whose holders get reserved rows (CRM FA filter). */
-const HOLDER_FILTER: Partial<Record<WhitespacePersona, string>> = {
-  retail: 'FinServ__FinancialAccountType__c: { eq: "Credit Cards" }',
-  commercial: 'Name: { like: "%Corporate Card%" }',
+/**
+ * Per persona: the products whose holders get reserved rows (one CRM FA filter
+ * each). With several products the reserved rows alternate between them, so a
+ * product with few holders still gets a row (Kim's book: 168 Roth vs 5 Managed).
+ */
+const HOLDER_FILTER: Partial<Record<WhitespacePersona, string[]>> = {
+  retail: ['FinServ__FinancialAccountType__c: { eq: "Credit Cards" }'],
+  commercial: ['Name: { like: "%Corporate Card%" }'],
+  wealth: ['Name: { like: "%Managed%" }', 'Name: { like: "%Roth%" }'],
 };
 
 interface Column {
@@ -189,18 +195,19 @@ const holdersQuery = (filter: string, ownerId: string | null | undefined) => `qu
   } }
 }`;
 
-/** Offer rows for the top `HOLDER_ROWS` holders of the persona's reserved product. */
+/** Offer rows for the top holders of each reserved product — one row group per filter. */
 async function fetchHolderOffers(persona: WhitespacePersona, codes: string[], ownerId: string | null | undefined) {
-  const filter = HOLDER_FILTER[persona];
-  if (!filter) return [];
-  const data = await executeGraphQL<{ uiapi?: { query?: { FinServ__FinancialAccount__c?: Conn } } }>(
-    holdersQuery(filter, ownerId),
-  );
-  const ids = [...new Set((data.uiapi?.query?.FinServ__FinancialAccount__c?.edges ?? [])
-    .map(e => cleanId(v(e.node, 'FinServ__PrimaryOwner__c'))).filter(Boolean))];
-  if (!ids.length) return [];
-  const res = await queryDataCloud<Record<string, unknown>>(offersSql(codes, HOLDER_ROWS + WHITESPACE_ROWS)(`IN (${quote(ids)})`), 200);
-  return res.rows;
+  const filters = HOLDER_FILTER[persona] ?? [];
+  return Promise.all(filters.map(async filter => {
+    const data = await executeGraphQL<{ uiapi?: { query?: { FinServ__FinancialAccount__c?: Conn } } }>(
+      holdersQuery(filter, ownerId),
+    );
+    const ids = [...new Set((data.uiapi?.query?.FinServ__FinancialAccount__c?.edges ?? [])
+      .map(e => cleanId(v(e.node, 'FinServ__PrimaryOwner__c'))).filter(Boolean))];
+    if (!ids.length) return [] as Record<string, unknown>[];
+    const res = await queryDataCloud<Record<string, unknown>>(offersSql(codes, HOLDER_ROWS + WHITESPACE_ROWS)(`IN (${quote(ids)})`), 200);
+    return res.rows;
+  }));
 }
 
 const statsQuery = (since: string) => `query WhitespaceStats {
@@ -258,10 +265,10 @@ export async function fetchWhitespace(
   const codes = cols.flatMap(c => c.codes);
   const products = cols.map(c => ({ key: c.key, label: c.label }));
 
-  const [offers, statsRes, holderRows] = await Promise.all([
+  const [offers, statsRes, holderGroups] = await Promise.all([
     queryDataCloudForBook<Record<string, unknown>>(offersSql(codes), ownerId, 400),
     fetchStats(ownerId).catch(() => null),
-    fetchHolderOffers(persona, codes, ownerId).catch(() => [] as Record<string, unknown>[]),
+    fetchHolderOffers(persona, codes, ownerId).catch(() => [] as Record<string, unknown>[][]),
   ]);
 
   const orderedIds = (rows: Record<string, unknown>[]) => {
@@ -274,9 +281,19 @@ export async function fetchWhitespace(
   };
   // Holders the value ranking didn't already pick fill the reserved rows (book scope only).
   const top = orderedIds(offers.rows);
-  const holders = offers.scope === 'book'
-    ? orderedIds(holderRows).filter(id => !top.includes(id)).slice(0, HOLDER_ROWS)
-    : [];
+  // With several reserved products, take holders round-robin across them.
+  const holders: string[] = [];
+  if (offers.scope === 'book') {
+    const queues = holderGroups.map(g => orderedIds(g).filter(id => !top.includes(id)));
+    while (holders.length < HOLDER_ROWS && queues.some(q => q.length)) {
+      for (const q of queues) {
+        while (q.length && holders.includes(q[0])) q.shift();
+        const id = q.shift();
+        if (id && holders.length < HOLDER_ROWS) holders.push(id);
+      }
+    }
+  }
+  const holderRows = holderGroups.flat();
   const ids = [...top.slice(0, WHITESPACE_ROWS - holders.length), ...holders];
   if (!ids.length) return { products, clients: [], stats: statsRes?.stats, scope: offers.scope };
 
