@@ -14,8 +14,12 @@
  *                and product (`LeadSource = 'Cross-sell grid'`).
  *
  * Rows: the 12 clients in the banker's book with the most eligible white-space
- * value. A product the model doesn't score and the client doesn't hold renders
- * as a plain empty cell.
+ * value — except that ranking favors clients who own the least (an owned
+ * product has no model row), so Retail and Commercial reserve the last
+ * `HOLDER_ROWS` rows for the book's top clients who already hold the persona's
+ * card product. Those rows show the ✓ alongside their remaining white space.
+ * A product the model doesn't score and the client doesn't hold renders as a
+ * plain empty cell.
  */
 import { executeGraphQL } from './graphqlClient';
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
@@ -28,6 +32,14 @@ export type WhitespacePersona = 'retail' | 'wealth' | 'commercial';
 /** LeadSource stamped on every grid-created Opportunity (counts pipeline + wins). */
 export const WHITESPACE_LEAD_SOURCE = 'Cross-sell grid';
 export const WHITESPACE_ROWS = 12;
+/** Rows reserved for clients who already hold the persona's reserved product. */
+export const HOLDER_ROWS = 3;
+
+/** Per persona: the product whose holders get reserved rows (CRM FA filter). */
+const HOLDER_FILTER: Partial<Record<WhitespacePersona, string>> = {
+  retail: 'FinServ__FinancialAccountType__c: { eq: "Credit Cards" }',
+  commercial: 'Name: { like: "%Corporate Card%" }',
+};
 
 interface Column {
   key: string;
@@ -119,7 +131,7 @@ const quote = (xs: string[]) => xs.map(x => `'${x.replace(/[^A-Za-z0-9-]/g, '')}
 const cleanId = (id: string) => id.replace(/[^A-Za-z0-9]/g, '');
 
 // t = the book's top clients by eligible white-space value; then every scored row for them.
-const offersSql = (codes: string[]) => (accountFilter: string) => `
+const offersSql = (codes: string[], rows = WHITESPACE_ROWS) => (accountFilter: string) => `
   SELECT t.acct AS acct, t.tot AS tot, b.action_code__c AS code, b.recommended_action_rank__c AS action_rank,
          b.conversion_probability__c AS conv, b.expected_value_uplift__c AS ev,
          b.recommended_channels__c AS channels, b.em_probability__c AS em_p, b.cc_probability__c AS cc_p
@@ -131,7 +143,7 @@ const offersSql = (codes: string[]) => (accountFilter: string) => `
       AND account_id__c ${accountFilter}
     GROUP BY account_id__c
     ORDER BY tot DESC
-    LIMIT ${WHITESPACE_ROWS}
+    LIMIT ${rows}
   ) t
   JOIN BT_Offer_Eligibility__dlm b ON b.account_id__c = t.acct
   WHERE b.action_code__c IN (${quote(codes)})
@@ -162,6 +174,34 @@ const crmQuery = (ids: string[]) => `query WhitespaceCrm {
     }
   } }
 }`;
+
+// Open holders of the reserved product in the banker's book. The FA's own
+// OwnerId is the integration user, so the book is the primary owner's OwnerId.
+const holdersQuery = (filter: string, ownerId: string | null | undefined) => `query WhitespaceHolders {
+  uiapi { query {
+    FinServ__FinancialAccount__c(first: 200, where: { and: [
+      { ${filter} },
+      { FinServ__Status__c: { ne: "Closed" } }${ownerId && /^005[A-Za-z0-9]{12,15}$/.test(ownerId) ? `,
+      { FinServ__PrimaryOwner__r: { OwnerId: { eq: "${ownerId}" } } }` : ''}
+    ] }, orderBy: { FinServ__Balance__c: { order: DESC } }) {
+      edges { node { Id FinServ__PrimaryOwner__c @optional { value } } }
+    }
+  } }
+}`;
+
+/** Offer rows for the top `HOLDER_ROWS` holders of the persona's reserved product. */
+async function fetchHolderOffers(persona: WhitespacePersona, codes: string[], ownerId: string | null | undefined) {
+  const filter = HOLDER_FILTER[persona];
+  if (!filter) return [];
+  const data = await executeGraphQL<{ uiapi?: { query?: { FinServ__FinancialAccount__c?: Conn } } }>(
+    holdersQuery(filter, ownerId),
+  );
+  const ids = [...new Set((data.uiapi?.query?.FinServ__FinancialAccount__c?.edges ?? [])
+    .map(e => cleanId(v(e.node, 'FinServ__PrimaryOwner__c'))).filter(Boolean))];
+  if (!ids.length) return [];
+  const res = await queryDataCloud<Record<string, unknown>>(offersSql(codes, HOLDER_ROWS + WHITESPACE_ROWS)(`IN (${quote(ids)})`), 200);
+  return res.rows;
+}
 
 const statsQuery = (since: string) => `query WhitespaceStats {
   uiapi { query {
@@ -218,16 +258,26 @@ export async function fetchWhitespace(
   const codes = cols.flatMap(c => c.codes);
   const products = cols.map(c => ({ key: c.key, label: c.label }));
 
-  const [offers, statsRes] = await Promise.all([
+  const [offers, statsRes, holderRows] = await Promise.all([
     queryDataCloudForBook<Record<string, unknown>>(offersSql(codes), ownerId, 400),
     fetchStats(ownerId).catch(() => null),
+    fetchHolderOffers(persona, codes, ownerId).catch(() => [] as Record<string, unknown>[]),
   ]);
 
-  const ids: string[] = [];
-  for (const r of offers.rows) {
-    const id = cleanId(String(r.acct ?? ''));
-    if (id && !ids.includes(id)) ids.push(id);
-  }
+  const orderedIds = (rows: Record<string, unknown>[]) => {
+    const out: string[] = [];
+    for (const r of rows) {
+      const id = cleanId(String(r.acct ?? ''));
+      if (id && !out.includes(id)) out.push(id);
+    }
+    return out;
+  };
+  // Holders the value ranking didn't already pick fill the reserved rows (book scope only).
+  const top = orderedIds(offers.rows);
+  const holders = offers.scope === 'book'
+    ? orderedIds(holderRows).filter(id => !top.includes(id)).slice(0, HOLDER_ROWS)
+    : [];
+  const ids = [...top.slice(0, WHITESPACE_ROWS - holders.length), ...holders];
   if (!ids.length) return { products, clients: [], stats: statsRes?.stats, scope: offers.scope };
 
   const [crm, plaid, stages] = await Promise.all([
@@ -258,7 +308,7 @@ export async function fetchWhitespace(
   }
 
   const offerBy = new Map<string, Record<string, unknown>>();
-  for (const r of offers.rows) offerBy.set(`${cleanId(String(r.acct))}|${r.code}`, r);
+  for (const r of [...offers.rows, ...holderRows]) offerBy.set(`${cleanId(String(r.acct))}|${r.code}`, r);
 
   const clients: WhitespaceClient[] = ids.map(id => {
     const a = acctNodes.find(n => n.Id === id);
