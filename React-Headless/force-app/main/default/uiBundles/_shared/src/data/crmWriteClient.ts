@@ -124,6 +124,8 @@ export interface CurrentUser {
   name: string;
   firstName: string;
   lastName: string;
+  /** Salesforce org name (UserInfo.getOrganizationName()); '' if not returned. */
+  orgName: string;
 }
 
 /**
@@ -145,6 +147,7 @@ export async function fetchCurrentUser(): Promise<CurrentUser | null> {
       name: json.name ?? '',
       firstName: json.firstName ?? '',
       lastName: json.lastName ?? '',
+      orgName: json.orgName ?? '',
     };
   } catch {
     return null;

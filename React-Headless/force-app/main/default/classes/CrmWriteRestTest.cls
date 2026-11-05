@@ -29,6 +29,7 @@ private class CrmWriteRestTest {
         System.assertEquals(UserInfo.getUserId(), out.get('userId'), 'running user id');
         System.assertEquals(UserInfo.getName(), out.get('name'), 'running user name');
         System.assertEquals(UserInfo.getFirstName(), out.get('firstName'), 'running user first name');
+        System.assertEquals(UserInfo.getOrganizationName(), out.get('orgName'), 'running user org name');
     }
 
     @IsTest

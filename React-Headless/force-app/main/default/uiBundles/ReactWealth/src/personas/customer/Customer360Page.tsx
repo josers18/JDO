@@ -57,7 +57,7 @@ export default function Customer360Page() {
             {c.name}’s relationship is <span className="text-accent">{c.aiBriefHeadline.toLowerCase()}</span>.
           </h1>
           <p style={{ margin: '0.3rem 0 0', color: 'var(--wp-text-muted)', fontSize: '0.92rem' }}>
-            AI confidence {c.confidencePct}% · next best action: {c.nextBestActions[0]?.title.toLowerCase()}.
+            {[c.confidencePct != null ? `AI confidence ${c.confidencePct}%` : null, c.nextBestActions[0] ? `next best action: ${c.nextBestActions[0].title.toLowerCase()}` : null].filter(Boolean).join(' · ')}
           </p>
         </div>
         <HighlightStrip highlights={c.highlights} />

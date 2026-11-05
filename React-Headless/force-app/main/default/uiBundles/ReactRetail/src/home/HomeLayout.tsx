@@ -6,6 +6,7 @@ import {
   HomeViewToggle,
   ViewAsPicker,
   useViewAs,
+  useCurrentUser,
   WorkspaceSelectionProvider,
   tagSchedule,
   type CommandRailSection,
@@ -163,7 +164,8 @@ function derivePins(data: HomeDashboard): CommandRailPinned[] {
   }));
 }
 
-const RAIL_USER = { name: 'Jose Sifontes', sub: 'Retail · Cumulus FS' };
+/** Persona label for the rail user chip; the name + org come from the signed-in user. */
+const RAIL_PERSONA = 'Retail';
 
 /**
  * HOME app layout — the banker's landing experience that REPLACES the standard
@@ -190,7 +192,9 @@ function HomeLayoutInner() {
   const { data, loading } = useHomeData();
   // "View as" preview — the rail names the banker whose book is on screen.
   const viewAs = useViewAs();
-  const railUser = viewAs ? { name: viewAs.name, sub: `Viewing as · ${RAIL_USER.sub}` } : RAIL_USER;
+  const me = useCurrentUser();
+  const meSub = me?.orgName ? `${RAIL_PERSONA} · ${me.orgName}` : RAIL_PERSONA;
+  const railUser = viewAs ? { name: viewAs.name, sub: `Viewing as · ${meSub}` } : { name: me?.name ?? '', sub: meSub };
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const groups = deriveGroups(data);

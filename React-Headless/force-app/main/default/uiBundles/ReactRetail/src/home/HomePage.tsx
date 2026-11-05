@@ -1718,7 +1718,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
              taller Right Now card opens up beside it. ---- */}
         <div className="flex min-w-0 flex-col">
           <h1 className="font-display text-[26px] font-semibold leading-[1.1] tracking-tight">
-            {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+            {greeting}{data.bankerName ? `, ${data.bankerName}` : ''} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
           </h1>
           <div className="mt-3.5 flex flex-wrap items-center gap-x-3 gap-y-2">
             <Icon name="sparkle" size={15} className="text-ai" />
@@ -1964,11 +1964,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
               <Icon name="sparkle" size={13} className="text-ai" /> Today · AI daily brief
             </div>
             <h1 className="mb-2.5 mt-2 font-display text-[30px] font-semibold leading-[1.1] tracking-tight">
-              {greeting}, {data.bankerName} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
+              {greeting}{data.bankerName ? `, ${data.bankerName}` : ''} — <span className="text-gradient-ai">{data.aiBriefHeadline}</span>.
             </h1>
             <p className="mb-4 max-w-[64ch] text-[14.5px] leading-relaxed text-fg">{data.aiBrief}</p>
             <div className="flex flex-wrap items-center gap-4">
-              <DataFreshnessMeter freshness={data.dataFreshness} fallbackPct={data.confidencePct} />
+              <DataFreshnessMeter freshness={data.dataFreshness} />
               <button
                 type="button"
                 onClick={() => speakOrToast(`${data.aiBriefHeadline}. ${data.aiBrief}`)}

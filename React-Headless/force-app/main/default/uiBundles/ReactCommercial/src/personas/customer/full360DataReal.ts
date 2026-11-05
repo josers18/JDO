@@ -44,6 +44,12 @@ function decode(s: unknown): string {
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\r\n/g, '\n').trim();
 }
 /** "2026-07-07 00:00:00.000 UTC" or ISO → "Jul 7, 2026". */
+/** Last four of the real account number, or an em dash when none is on record. */
+function maskAcct(n: string): string {
+  const digits = n.replace(/\s/g, '');
+  return digits ? `••••${digits.slice(-4)}` : '—';
+}
+
 function shortDate(v: unknown): string {
   const raw = String(v ?? '').replace(' UTC', 'Z').replace(' ', 'T');
   const d = new Date(raw);
@@ -70,6 +76,7 @@ function coreQuery(acct: string): string {
         edges { node {
           Id Name @optional { value } FinServ__Balance__c @optional { value }
           FinServ__FinancialAccountType__c @optional { value } FinServ__Status__c @optional { value }
+          FinServ__OpenDate__c @optional { value } FinServ__FinancialAccountNumber__c @optional { value }
         } }
       }
       Opportunity(first: 20, where: { AccountId: { eq: "${acct}" }, IsClosed: { eq: false } }, orderBy: { Amount: { order: DESC } }) {
@@ -144,10 +151,10 @@ export async function fetchFull360Real(accountId: string | null): Promise<Full36
     id: `fa${i}`,
     name: gs(e.node, 'Name') || 'Account',
     type: gs(e.node, 'FinServ__FinancialAccountType__c') || '—',
-    number: `••••${String(gs(e.node, 'Id')).slice(-4) || '0000'}`,
+    number: maskAcct(gs(e.node, 'FinServ__FinancialAccountNumber__c')),
     balance: gn(e.node, 'FinServ__Balance__c'),
-    status: gs(e.node, 'FinServ__Status__c') || 'Active',
-    opened: '—',
+    status: gs(e.node, 'FinServ__Status__c') || '—',
+    opened: shortDate(gv(e.node, 'FinServ__OpenDate__c')),
   }));
 
   /* ---- Transactions ---- */

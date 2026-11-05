@@ -127,6 +127,7 @@ export async function fetchBankers(): Promise<ViewAsUser[]> {
       name: u.Name?.value ?? '',
       firstName: u.FirstName?.value ?? '',
       lastName: u.LastName?.value ?? '',
+      orgName: '', // same org as the signed-in user; the rail reads it from useCurrentUser
       accounts: Number(r.n) || 0,
     }];
   });

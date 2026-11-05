@@ -6,12 +6,14 @@ const short = (iso: string) =>
 /**
  * S8 hero meter — share of the page's sources that are current for their
  * cadence, with the stale ones named inline and every source's as-of date in
- * the tooltip. Falls back to the static confidence while freshness is unknown.
+ * the tooltip. Renders nothing while freshness is unknown or failed — no
+ * placeholder score.
  */
-export function DataFreshnessMeter({ freshness, fallbackPct }: { freshness?: DataFreshness; fallbackPct: number }) {
-  const pct = freshness?.pct ?? fallbackPct;
-  const stale = freshness?.sources.filter(s => !s.current) ?? [];
-  const title = freshness?.sources
+export function DataFreshnessMeter({ freshness }: { freshness?: DataFreshness }) {
+  if (!freshness) return null;
+  const pct = freshness.pct;
+  const stale = freshness.sources.filter(s => !s.current);
+  const title = freshness.sources
     .map(s => `${s.current ? '✓' : '⚠'} ${s.label}: ${s.asOf ? `as of ${short(s.asOf)}` : 'live'} (${s.cadence})`)
     .join('\n');
   return (
@@ -20,7 +22,7 @@ export function DataFreshnessMeter({ freshness, fallbackPct }: { freshness?: Dat
         <span className="block h-full rounded-full bg-gradient-ai" style={{ width: `${pct}%` }} />
       </div>
       <small className="font-mono text-[11px] text-muted">
-        {freshness ? `Data freshness ${pct}% · ${freshness.sources.length} sources` : `AI confidence ${pct}%`}
+        {`Data freshness ${pct}% · ${freshness.sources.length} sources`}
       </small>
       {stale.length > 0 && (
         <small className="font-mono text-[11px] text-warn">
