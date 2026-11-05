@@ -53,19 +53,19 @@ The top 12 clients in the signed-in banker's book (view-as aware), ranked by tot
 **No new Snowflake table was needed.** The gap was the model's coverage, not the shape of the data. It was closed by extending the existing generator:
 
 1. **`OFFER_ELIGIBILITY` v2** (`Snowflake_Offer_Eligibility/procedures/sp_generate_offer_eligibility.sql`) — the existing SP was rewritten to score **every** book: retail, wealth and business, all keyed to the Salesforce Account Id. It is **holdings-aware**: a product the client already holds gets no row. It uses real inputs: CRM holdings, Plaid held-away balances, Claritas life stage and income, CoreLogic equity, and FICO.
-   - The run produced 547,715 rows (a backup clone is `OFFER_ELIGIBILITY_BAK_20261105`).
+   - The run produced 440,070 rows, after the generated holdings were loaded and excluded (a backup clone is `OFFER_ELIGIBILITY_BAK_20261105`).
    - It already flows zero-copy into `BT_Offer_Eligibility__dlm`, so no stream or DMO work and no full refresh were needed.
    - The new codes are HEL-ACQ, PL-ACQ, INV-ACQ, PCHK-ACQ, WM-CASH, IRA-ROL, MTG-JMB and BIZ-CARD.
    - The Databricks `Offer_Eligibility_Model__dlm` is no longer read anywhere in `_shared`.
    - *Deferred:* the 6-month score backfill and the "score moved" trend.
-2. **CRM holdings gaps** (`scripts/crosssell/generate_holdings.py`, deterministic) — 9,199 FSC FinancialAccounts:
-   - Cumulus consumer cards (Secured / Cash Rewards / Travel Points), for clients whose profile carries a card but who hold none at another institution.
-   - Cumulus Corporate Cards, for about 22% of business clients with no held-away commercial card.
-   - Jose Sifontes's commercial ladder, built in the shape of Allen Carter's book.
-3. **Outcome history** — 268 of the generated accounts opened in the last 60 days (`opp_seed.json`). They become Closed Won Opportunities with `LeadSource = 'Cross-sell grid'`.
+2. **CRM holdings gaps** (`scripts/crosssell/`; the runbook is in its README). Loaded 2026-11-05:
+   - 5,226 Cumulus consumer cards (Cash Rewards / Travel Points / Secured), for clients whose profile carries a card and who hold none elsewhere.
+   - 297 Cumulus Corporate Cards in Allen Carter's book.
+   - 5,526 `FinServ__Card__c` plastics, one per new card account.
+   - All of these are mirrored into Snowflake `FINANCIAL_TRANSACTION_ACCOUNTS`, so the daily generator now produces card spend. The SP was rerun, and owned cards dropped out of the white space.
+   - **Correction:** Jose Sifontes's "commercial book" is 5,071 households; he's the integration owner. Its ladder was therefore not a real gap. Only his 16 real businesses got holdings.
+3. **Outcome history:** 168 Closed Won Opportunities with `LeadSource = 'Cross-sell grid'`, built from the new accounts opened in the last 60 days. "Won in 30d" per banker: Sarah 31, Justin 30, Vince 8, Allen 7, Kim 6, Adam 6.
 4. **Insurance/annuity: dropped.** The column was removed rather than faked.
-
-Steps 2–3 still need the bulk insert to run in the org. The next step after that is to mirror the new FAs into Snowflake `FINANCIAL_TRANSACTION_ACCOUNTS` and rerun the SP, so the new holdings drop out of the white space.
 
 ## Build order
 
@@ -74,8 +74,8 @@ Steps 2–3 still need the bulk insert to run in the org. The next step after th
 | A ✅ | `COLUMNS` mapping + `fetchWhitespace(persona, ownerId)` in `_shared`: FSC holdings (GraphQL, name-pattern match) + Plaid held-away + existing signals. Score/value from the **current** offer model where present; otherwise the cell shows the reason with no score. Wire Retail, Wealth and Commercial; delete `MOCK_*`; `data` becomes required. | Real owned cells + real reasons in all 3 cockpits now | none |
 | B ✅ | `CrmWriteRest` `POST /crm/opportunity` + grid actions → real Opportunity / Task / Meeting; header stats | Insight → action loop | A |
 | C ✅ | Extend `OFFER_ELIGIBILITY` SP to all books + holdings-aware (no new table); backfill deferred | Holdings-aware scores for every book, with trend | none (parallel with A) |
-| D ⏳ | Cumulus consumer + corporate cards, Jose's commercial ladder (generated; org insert pending) | Full-width columns, no artificially empty product lines | none (parallel) |
-| E ⏳ | Outcome backfill + "won in 30d" | Credible results story for demos | B |
+| D ✅ | Cumulus consumer + corporate cards + plastics, FTA mirror, rescore | Full-width columns, no artificially empty product lines | none (parallel) |
+| E ✅ | Outcome backfill + "won in 30d" | Credible results story for demos | B |
 
 Each step builds the affected bundles and deploys `dist/` (+ Apex). The live browser check is the verification.
 

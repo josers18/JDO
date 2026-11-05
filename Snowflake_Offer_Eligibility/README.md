@@ -24,7 +24,7 @@ The React cockpits read only this table (`_shared/src/data/offerModel.ts`,
 | DC stream | `BT_Offer_Eligibility` (`1dsam000000Q1gPAAS`, `BT_Managed_Snowflake`, DIRECT_ACCESS, TOTAL_REPLACE) |
 | DLO / DMO | `BT_Offer_Eligibility__dll` → `BT_Offer_Eligibility__dlm` (`0gjam000001EhULAA0`), PK `record_id` |
 
-First run 2026-10-01: 204,192 business rows. v2 run 2026-11-05: 547,715 rows across all books (pre-v2 backup clone: `OFFER_ELIGIBILITY_BAK_20261105`). Eligibility rules and scoring are in the procedure header.
+First run 2026-10-01: 204,192 business rows. v2 run 2026-11-05: 440,070 rows across all books (after the generated card holdings were loaded) (pre-v2 backup clone: `OFFER_ELIGIBILITY_BAK_20261105`). Eligibility rules and scoring are in the procedure header.
 
 ## Deploy
 

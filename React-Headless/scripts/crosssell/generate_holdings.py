@@ -9,16 +9,19 @@ Real gaps found 2026-11-05 (see docs/superpowers/plans/2026-11-05-cross-sell-whi
   2. Cumulus corporate cards: none in the commercial books. Issued to ~22% of
      business clients that already bank with Cumulus and have no held-away
      commercial card.
-  3. Jose Sifontes's commercial book: 5,087 business accounts, 69 FAs. Seeded
-     with the same shape as Allen Carter's book — ~33% of clients carry a
-     ladder copied from a deterministic Allen client, balances jittered ±25%.
+  3. Jose Sifontes's business clients: seeded with the same shape as Allen
+     Carter's book — ~33% carry a ladder copied from a deterministic Allen
+     client, balances jittered ±25%. NOTE: 5,071 of Jose's 5,094 accounts are
+     IndustriesHousehold (he is the integration owner, not a commercial
+     banker). Households are skipped; the FA PrimaryOwner lookup filter
+     rejects them anyway. books2.csv must carry RecordType.DeveloperName.
 
 About 3% of generated accounts open inside the last 60 days; those openings
 back the grid's "won in 30d" outcome history (see generate_outcomes in the
 same run).
 
 Deterministic: every choice hashes (account id, salt), so a re-run produces
-identical rows. Inputs are CSV exports written by the runbook in README.md.
+identical rows. Inputs are CSV exports listed in README.md (same directory).
 
 Outputs (in OUT_DIR):
   fa_insert.csv        FinServ__FinancialAccount__c rows for `sf data import bulk`
@@ -91,7 +94,7 @@ def add_fa(acct_id, name, rt, fa_type, bal, rate=None, limit=None, loan=None, en
         'FinServ__OpenDate__c': opened.isoformat(),
         'FinServ__Balance__c': f'{bal:.2f}',
         'FinServ__TotalCreditLimit__c': '' if limit is None else f'{limit:.0f}',
-        'FinServ__InterestRate__c': '' if rate is None else f'{rate:.4f}',
+        'FinServ__InterestRate__c': '' if rate is None else f'{rate:.2f}',
         'FinServ__LoanAmount__c': '' if loan is None else f'{loan:.0f}',
         'FinServ__LoanEndDate__c': end or '',
         'FinServ__FinancialAccountNumber__c': f'****{four}',
@@ -117,7 +120,7 @@ for c in read('card_cands.csv'):
     else:
         name = 'Cumulus Travel Points Card' if inc >= 150000 else 'Cumulus Cash Rewards Card'
         limit = max(1000, min(50000, round(inc * (0.12 + 0.16 * u(aid, 'lim')) / 500) * 500))
-    apr = max(0.1799, min(0.2899, 0.2899 - (fico - 600) * 0.0005))
+    apr = max(17.99, min(28.99, 28.99 - (fico - 600) * 0.05))  # percent, like the org's existing cards
     bal = limit * (0.03 + 0.37 * u(aid, 'util'))
     add_fa(aid, name, 'CreditCard', 'Credit Cards', bal, rate=apr, limit=limit)
 
@@ -134,6 +137,8 @@ ladder_holders = {r['FinServ__PrimaryOwner__c'] for r in allen_fa}
 for aid, a in sorted(accounts.items()):
     if owner_name[aid] != 'Jose Sifontes' or a['IsPersonAccount'] == 'true':
         continue
+    if a.get('RecordType.DeveloperName', 'IndustriesHousehold') == 'IndustriesHousehold':
+        continue  # households are not businesses
     if u(aid, 'ladder') >= 0.33:
         continue
     tmpl = templates[int(u(aid, 'tmpl') * len(templates))]
@@ -168,7 +173,7 @@ for aid in sorted(ladder_holders):
     limit = max(10000, min(500000, round(checking_bal.get(aid, 100000) * 0.1 / 5000) * 5000))
     bal = limit * (0.05 + 0.35 * u(aid, 'cutil'))
     # Org convention (23 existing corporate cards): CreditCard record type, Treasury Management type.
-    add_fa(aid, 'Cumulus Corporate Card', 'CreditCard', 'Treasury Management', bal, rate=0.1999, limit=limit)
+    add_fa(aid, 'Cumulus Corporate Card', 'CreditCard', 'Treasury Management', bal, rate=19.99, limit=limit)
 
 with open(os.path.join(OUT, 'fa_insert.csv'), 'w', newline='') as f:
     w = csv.DictWriter(f, fieldnames=list(fa_rows[0]))
