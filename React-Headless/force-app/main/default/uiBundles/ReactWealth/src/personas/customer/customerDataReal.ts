@@ -74,7 +74,7 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
   const [core, claritas, csat, heldAway] = await Promise.all([
     executeGraphQL<Core360Shape>(core360Query(acct)),
     queryDataCloud<ClaritasRow>(`SELECT prizm_segment_name__c AS segment, life_stage__c AS life_stage, estimated_net_worth_band__c AS net_worth, wealth_propensity_score__c AS wealth_prop FROM BT_Claritas_Demographics__dlm WHERE account_id__c = '${acct}' ORDER BY profile_month__c DESC LIMIT 1`, 1).catch(() => ({ rows: [] as ClaritasRow[] })),
-    queryDataCloud<CsatRow>(`SELECT csat_score__c AS csat, nps_score__c AS nps FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' ORDER BY csat_score__c ASC LIMIT 1`, 1).catch(() => ({ rows: [] as CsatRow[] })),
+    queryDataCloud<CsatRow>(`SELECT csat_score__c AS csat, nps_score__c AS nps FROM CSAT_Snowflake__dlm WHERE accountid__c = '${acct}' AND csat_score__c IS NOT NULL ORDER BY score_date__c DESC LIMIT 1`, 1).catch(() => ({ rows: [] as CsatRow[] })),
     queryDataCloud<HeldAwayRow>(`SELECT SUM(balance_usd__c) AS total, COUNT(institution_name__c) AS institutions FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '${acct}' AND is_active__c = true AND Balance_Category__c = 'asset' AND profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '${acct}')`, 1).catch(() => ({ rows: [] as HeldAwayRow[] })),
   ]);
   const held = heldAway.rows[0];

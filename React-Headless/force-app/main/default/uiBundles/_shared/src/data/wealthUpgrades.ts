@@ -11,6 +11,7 @@
  * categorised Retail end to end.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { summaryTrend, type KpiTrend } from './kpiTrend';
 import type { QueueSignalItem } from './priorityQueue';
 
 const SLICE = `c.profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm)
@@ -58,6 +59,8 @@ export interface WealthUpgradeResult {
   candidates: number;
   fiveM: number;
   highPropensity: number;
+  /** the tile metric per snapshot period (real history; empty when < 2 periods) */
+  history: KpiTrend;
   scope: BookScope;
 }
 
@@ -66,10 +69,14 @@ const decode = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').repl
 /** W7 — the book's clients who look like Wealth clients but aren't segmented as one. */
 export async function fetchWealthUpgrades(ownerId: string | null | undefined): Promise<WealthUpgradeResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 5);
-  const total = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
-    .then(r => r.rows[0] ?? {})
-    .catch((): Record<string, unknown> => ({}));
+  const [total, history] = await Promise.all([
+    queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
+      .then(r => r.rows[0] ?? {})
+      .catch((): Record<string, unknown> => ({})),
+    summaryTrend(summarySql(res.accountFilter), r => Number(r.candidates) || 0),
+  ]);
   return {
+    history,
     scope: res.scope,
     candidates: Number(total.candidates) || 0,
     fiveM: Number(total.five_m) || 0,

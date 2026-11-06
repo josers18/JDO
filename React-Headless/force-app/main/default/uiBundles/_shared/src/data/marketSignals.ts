@@ -16,6 +16,7 @@
  * 1,015 turnover flags, 40 on Weak governance, ~330 governance events in 90d.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { summaryTrend, type KpiTrend } from './kpiTrend';
 import { decodeEntities } from './decodeEntities';
 
 const OUTLOOK_SLICE = `profile_date__c = (SELECT MAX(profile_date__c) FROM BT_Moodys_Market_Context__dlm)
@@ -56,16 +57,22 @@ export interface OutlookResult {
   rows: OutlookRow[];
   negative: number;
   watch: number;
+  /** Negative + Watch count per Moody's snapshot (real history) */
+  history: KpiTrend;
   scope: BookScope;
 }
 
 /** C2 — the book's Negative / Watch outlooks (top four + counts). */
 export async function fetchOutlookWatch(ownerId: string | null | undefined): Promise<OutlookResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(outlookRowsSql, ownerId, 4);
-  const total = await queryDataCloud<Record<string, unknown>>(outlookSummarySql(res.accountFilter), 1)
-    .then(r => r.rows[0] ?? {})
-    .catch((): Record<string, unknown> => ({}));
+  const [total, history] = await Promise.all([
+    queryDataCloud<Record<string, unknown>>(outlookSummarySql(res.accountFilter), 1)
+      .then(r => r.rows[0] ?? {})
+      .catch((): Record<string, unknown> => ({})),
+    summaryTrend(outlookSummarySql(res.accountFilter), r => (Number(r.negative) || 0) + (Number(r.watch) || 0)),
+  ]);
   return {
+    history,
     scope: res.scope,
     negative: Number(total.negative) || 0,
     watch: Number(total.watch) || 0,
@@ -126,6 +133,8 @@ export interface LeadershipResult {
   recent: number;
   /** …of which sit on Weak governance. */
   weak: number;
+  /** turnover count per BoardEx month (real history) */
+  history: KpiTrend;
   scope: BookScope;
 }
 
@@ -135,10 +144,14 @@ const decode = decodeEntities;
 /** C3 — exec-turnover accounts: three opportunity + three risk rows, plus counts. */
 export async function fetchLeadershipChanges(ownerId: string | null | undefined): Promise<LeadershipResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(leadershipRowsSql, ownerId, 6);
-  const total = await queryDataCloud<Record<string, unknown>>(leadershipSummarySql(res.accountFilter), 1)
-    .then(r => r.rows[0] ?? {})
-    .catch((): Record<string, unknown> => ({}));
+  const [total, history] = await Promise.all([
+    queryDataCloud<Record<string, unknown>>(leadershipSummarySql(res.accountFilter), 1)
+      .then(r => r.rows[0] ?? {})
+      .catch((): Record<string, unknown> => ({})),
+    summaryTrend(leadershipSummarySql(res.accountFilter), r => Number(r.turnover) || 0),
+  ]);
   return {
+    history,
     scope: res.scope,
     turnover: Number(total.turnover) || 0,
     recent: Number(total.recent) || 0,

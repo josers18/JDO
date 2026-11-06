@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import {
   ToastProvider,
   useToast,
+  CrossSellWhitespaceLive,
   Button,
   Sparkline,
   ScoreRing,
@@ -520,8 +521,9 @@ function HomeContent() {
   };
 
   const showPipelineMovementDetail = (m: PipelineMovement) => {
-    const up = m.deltaPct >= 0;
-    const pct = Math.abs(Math.round(m.deltaPct * 100));
+    // No weekly history until CRM opportunity snapshots exist — show the value only.
+    const up = (m.deltaPct ?? 0) >= 0;
+    const pct = m.deltaPct == null ? null : Math.abs(Math.round(m.deltaPct * 100));
     setDetailView({
       title: m.label,
       subtitle: 'Pipeline movement · week over week',
@@ -529,10 +531,12 @@ function HomeContent() {
       tone: 'accent',
       facts: [
         { label: 'Value', value: formatValue(m.amount, 'currencyCompact') },
-        { label: 'Change', value: <span className={up ? 'text-ok' : 'text-risk'}>{up ? '↑' : '↓'} {pct}%</span> },
-        { label: 'Trend', value: <Sparkline points={m.trend} width={80} height={24} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} /> },
+        ...(pct == null ? [] : [{ label: 'Change', value: <span className={up ? 'text-ok' : 'text-risk'}>{up ? '↑' : '↓'} {pct}%</span> }]),
+        ...(m.trend ? [{ label: 'Trend', value: <Sparkline points={m.trend} width={80} height={24} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} /> }] : []),
       ],
-      note: `${m.label} pipeline ${up ? 'grew' : 'declined'} ${pct}% week over week, now at ${formatValue(m.amount, 'currencyCompact')}.`,
+      note: pct == null
+        ? `${m.label} pipeline is at ${formatValue(m.amount, 'currencyCompact')} across open opportunities. Week-over-week change needs opportunity history, which isn't captured yet.`
+        : `${m.label} pipeline ${up ? 'grew' : 'declined'} ${pct}% week over week, now at ${formatValue(m.amount, 'currencyCompact')}.`,
       sectionTitle: 'Product line',
       fields: [
         { label: 'Product line', value: m.label },
@@ -998,6 +1002,7 @@ function HomeContent() {
           label={k.label}
           value={formatValue(k.value, k.format)}
           note={k.note}
+          trend={k.trend}
           risk={RISK_KPIS.has(k.key)}
           onClick={() => kpiClick(k.key)}
         />
@@ -1014,7 +1019,8 @@ function HomeContent() {
   // Leads & referrals vital. `openOpps` still lives in data.kpis for the classic
   // 5-KPI grid and pipelineNarrative().
   // W1 — held-away assets lead the vitals: the wealth book's biggest growth lever.
-  const VITAL_KEYS = ['heldAway', 'pipeline', 'leads', 'atRisk'];
+  // Net Flow (weekly Snowflake transactions) holds a vital slot: CRM metrics have no history yet.
+  const VITAL_KEYS = ['heldAway', 'pipeline', 'netFlow', 'atRisk'];
   const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridVitals = (
     <div className="@container/vitals">
@@ -1626,7 +1632,7 @@ function HomeContent() {
       {/* Pipeline Movement */}
       <BandCard title="Pipeline Movement" onViewAll={() => setExplorer('pipelineMovement')}>
         {data.pipelineMovement.slice(0, 4).map(m => {
-          const up = m.deltaPct >= 0;
+          const up = (m.deltaPct ?? 0) >= 0;
           return (
             <button
               key={m.id}
@@ -1636,10 +1642,12 @@ function HomeContent() {
             >
               <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-fg">{m.label}</span>
               <span className="flex-none text-right font-semibold text-[12.5px] text-fg">{formatValue(m.amount, 'currencyCompact')}</span>
-              <span className={`flex-none font-mono text-[11px] ${up ? 'text-ok' : 'text-risk'}`}>
-                {up ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%
-              </span>
-              <Sparkline points={m.trend} width={44} height={20} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="flex-none opacity-90" />
+              {m.deltaPct != null && (
+                <span className={`flex-none font-mono text-[11px] ${up ? 'text-ok' : 'text-risk'}`}>
+                  {up ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%
+                </span>
+              )}
+              {m.trend && <Sparkline points={m.trend} width={44} height={20} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="flex-none opacity-90" />}
             </button>
           );
         })}
@@ -1897,6 +1905,11 @@ function HomeContent() {
           {/* ---- Full-width supporting band ---- */}
           <div className="mt-4">{supportingBand}</div>
 
+          {/* ---- Cross-sell white-space (live) ---- */}
+          <section id="whitespace" className="mt-8 scroll-mt-[82px]">
+            <CrossSellWhitespaceLive persona="wealth" />
+          </section>
+
           {/* The cockpit's bottom detail boxes (Tasks & schedule / Pipeline /
               Life events + Alerts / Leads) were removed — they duplicated the
               right panel and the supporting band. Their content is one click away
@@ -1909,6 +1922,9 @@ function HomeContent() {
           {/* ---------- KPI PULSE ---------- */}
           <section id="kpis" className="mt-8 scroll-mt-[82px]">
             {kpiGrid}
+          </section>
+          <section id="whitespace" className="mt-8 scroll-mt-[82px]">
+            <CrossSellWhitespaceLive persona="wealth" />
           </section>
           {leakageCard && (
             <section id="leakage" className="mt-4 scroll-mt-[82px]">
@@ -2044,18 +2060,18 @@ function HomeContent() {
         onRowClick={m => showPipelineMovementDetail(m)}
         filters={[
           { key: 'all', label: 'All' },
-          { key: 'up', label: 'Gaining', test: m => m.deltaPct >= 0 },
-          { key: 'down', label: 'Declining', test: m => m.deltaPct < 0 },
+          { key: 'up', label: 'Gaining', test: m => m.deltaPct != null && m.deltaPct >= 0 },
+          { key: 'down', label: 'Declining', test: m => m.deltaPct != null && m.deltaPct < 0 },
         ]}
         columns={[
           { key: 'label', label: 'Product line', render: m => <span className="font-medium text-fg">{m.label}</span> },
           { key: 'amount', label: 'Value', align: 'right', render: m => <span className="font-semibold">{formatValue(m.amount, 'currencyCompact')}</span> },
-          { key: 'delta', label: 'Change', align: 'right', render: m => (
+          { key: 'delta', label: 'Change', align: 'right', render: m => m.deltaPct == null ? <span className="text-faint">—</span> : (
             <span className={`font-mono ${m.deltaPct >= 0 ? 'text-ok' : 'text-risk'}`}>{m.deltaPct >= 0 ? '↑' : '↓'} {Math.abs(Math.round(m.deltaPct * 100))}%</span>
           ) },
-          { key: 'trend', label: 'Trend', align: 'right', hideBelow: 'sm', render: m => (
-            <Sparkline points={m.trend} width={70} height={22} stroke={m.deltaPct >= 0 ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="ml-auto" />
-          ) },
+          { key: 'trend', label: 'Trend', align: 'right', hideBelow: 'sm', render: m => m.trend ? (
+            <Sparkline points={m.trend} width={70} height={22} stroke={(m.deltaPct ?? 0) >= 0 ? 'var(--wp-pos)' : 'var(--wp-neg)'} className="ml-auto" />
+          ) : <span className="text-faint">—</span> },
         ]}
         footNote="Source · CRM pipeline"
       />
@@ -2547,17 +2563,23 @@ function ColumnCard({
   );
 }
 
-function KpiCard({ label, value, note, risk, onClick }: { label: string; value: string; note?: string; risk?: boolean; onClick: () => void }) {
+function KpiCard({ label, value, note, risk, trend, onClick }: { label: string; value: string; note?: string; risk?: boolean; trend?: number[]; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="relative overflow-hidden rounded-[16px] border border-line bg-surface p-4 text-left shadow-card transition hover:-translate-y-0.5 hover:border-accent-border"
+      className="relative flex flex-col overflow-hidden rounded-[16px] border border-line bg-surface p-4 text-left shadow-card transition hover:-translate-y-0.5 hover:border-accent-border"
     >
       <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-[3px] ${risk ? 'bg-risk' : 'bg-accent'}`} />
       <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-faint">{label}</span>
       <div className={`font-display text-[29px] font-semibold leading-none tracking-tight ${risk ? 'text-risk' : ''}`}>{value}</div>
       {note && <div className="mt-1.5 font-mono text-[11px] text-muted">{note}</div>}
+      {/* real history only (Data Cloud snapshots); CRM tiles have none yet */}
+      {trend && (
+        <div className="mt-auto flex-none pt-2.5">
+          <Sparkline points={trend} width={96} height={22} stroke={risk ? 'var(--wp-neg)' : 'var(--wp-accent)'} className="opacity-90" />
+        </div>
+      )}
     </button>
   );
 }

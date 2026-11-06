@@ -336,6 +336,13 @@ Fixes:
 4. DC side (not Snowflake): map that column → `ssot__FinancialAccountID__c` (+ `KQ_FinancialAccountID__c`)
    in the `Financial_Transactions_BT_Snow` → DMO mapping. Today nothing feeds it.
 
+**Adding accounts later (2026-11-05, cross-sell holdings).** Inserting rows into
+`FINANCIAL_TRANSACTION_ACCOUNTS` makes the daily task cover them from its next run, but it only
+writes *today*. Backfill their history from 2026-07-24 with `gen_core.generate` over just the new
+rows, `COPY INTO FINANCIAL_TRANSACTIONS`, then rerun the `ACCOUNT_DAILY_BALANCE` rebuild. Done for
+the 5,534 cross-sell cards and business accounts: 231,294 rows. Runbook step 7 in
+`scripts/crosssell/README.md`.
+
 ## 8. Minor
 
 - ✅ **Relationship graph `BT_Synth_Relationship_Graph`** (generator v2, 2026-10-24). Before: REFERRAL `confidence_pct` never

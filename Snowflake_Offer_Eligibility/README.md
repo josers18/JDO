@@ -1,13 +1,20 @@
 # Snowflake_Offer_Eligibility
 
-Next-best-offer scores for Cumulus **business** accounts — 5 treasury
-(`BIZ-TM-ACH/RDC/PP/SWP`) and lending (`BIZ-LOC/TL/EQF/CRE/SBA`) action codes per
-account — in `DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY`, keyed to the Salesforce
-Account Id.
+Holdings-aware next-best-offer scores for **every** Cumulus book. They live in
+`DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY` and are keyed to the Salesforce Account Id.
 
-The Databricks offer model (`Offer_Eligibility_Model__dlm`) only scores person
-accounts by MDM key, so business accounts had no offers. The React cockpits
-(`_shared/src/data/offerModel.ts`, `commercialWhoToCall.ts`) UNION both sources.
+- **Business:** treasury (`BIZ-TM-ACH/RDC/PP/SWP`), lending (`BIZ-LOC/TL/EQF/CRE/SBA`), plus `BIZ-CHK` and `BIZ-CARD`.
+- **Retail** (`product_family='Retail'`): `CHK/HYS/CRC/AUTO-ACQ`, `MTG-30`, `HEL/PL/INV-ACQ`.
+- **Wealth** (`product_family='Wealth'`): `PCHK-ACQ`, `WM-CASH`, `WM-MAS`, `IRA-RTH`, `IRA-ROL`, `MTG-JMB`, `HEL-ACQ`.
+
+v2 (2026-11-05) extends the scoring from business-only to every book.
+
+- A product the client already holds (an FSC FinancialAccount not marked Closed) gets **no row**.
+- Scoring reads Plaid held-away balances, Claritas life stage and income, CoreLogic equity, and FICO.
+
+The React cockpits read only this table (`_shared/src/data/offerModel.ts`,
+`whoToCall.ts`, `commercialWhoToCall.ts`, `whitespace.ts`). The Databricks
+`Offer_Eligibility_Model__dlm` is no longer read.
 
 | Piece | Name |
 |---|---|
@@ -17,8 +24,7 @@ accounts by MDM key, so business accounts had no offers. The React cockpits
 | DC stream | `BT_Offer_Eligibility` (`1dsam000000Q1gPAAS`, `BT_Managed_Snowflake`, DIRECT_ACCESS, TOTAL_REPLACE) |
 | DLO / DMO | `BT_Offer_Eligibility__dll` → `BT_Offer_Eligibility__dlm` (`0gjam000001EhULAA0`), PK `record_id` |
 
-First run 2026-10-01: 204,192 rows, 11,344 accounts, 11,026 with at least one
-eligible offer. Eligibility rules and scoring are in the procedure header.
+First run 2026-10-01: 204,192 business rows. v2 run 2026-11-05: 440,070 rows across all books (after the generated card holdings were loaded) (pre-v2 backup clone: `OFFER_ELIGIBILITY_BAK_20261105`). Eligibility rules and scoring are in the procedure header.
 
 ## Deploy
 

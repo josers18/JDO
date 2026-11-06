@@ -23,7 +23,7 @@ const SOURCES = {
   serviceNow: { label: 'ServiceNow cases', cadence: 'daily', sql: "MAX(ssot__CreatedDate__c) FROM ssot__Case__dlm WHERE ssot__DataSourceId__c = 'Service_Now'" },
   gong: { label: 'Gong call sentiment', cadence: 'weekly', sql: 'MAX(profile_week__c) FROM BT_Gong_Call_Sentiment__dlm' },
   graph: { label: 'Relationship graph', cadence: 'batch', sql: 'MAX(edge_discovered_date__c) FROM BT_Synth_Relationship_Graph__dlm' },
-  offers: { label: 'Offer model', cadence: 'batch', sql: 'MAX(Start_Date__c) FROM Offer_Eligibility_Model__dlm' },
+  offers: { label: 'Offer model', cadence: 'monthly', sql: 'MAX(start_date__c) FROM BT_Offer_Eligibility__dlm' },
   bizOffers: { label: 'Business offer scores', cadence: 'monthly', sql: 'MAX(start_date__c) FROM BT_Offer_Eligibility__dlm' },
   csat: { label: 'CSAT scores', cadence: 'monthly', sql: 'MAX(score_date__c) FROM CSAT_Snowflake__dlm' },
   plaid: { label: 'Plaid held-away', cadence: 'monthly', sql: 'MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm' },

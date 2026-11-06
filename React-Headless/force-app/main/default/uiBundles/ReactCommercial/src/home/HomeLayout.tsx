@@ -31,6 +31,7 @@ const RAIL_SECTIONS: CommandRailSection[] = [
   { id: 'schedule', label: 'Tasks & schedule', icon: 'meeting' },
   { id: 'queue', label: 'Priority queue', icon: 'tasks', tone: 'risk' },
   { id: 'actions', label: 'Recommended actions', icon: 'wand', tone: 'ai' },
+  { id: 'whitespace', label: 'Cross-sell white-space', icon: 'wand', tone: 'ai' },
   { id: 'events', label: 'Life events', icon: 'lifeEvent', tone: 'warn' },
   { id: 'alerts', label: 'Risk alerts', icon: 'alerts', tone: 'risk' },
   { id: 'pipeline', label: 'Pipeline', icon: 'pipeline' },

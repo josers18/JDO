@@ -720,4 +720,51 @@ private class CrmWriteRestTest {
         System.assertEquals(false, parseBody().get('success'), 'success false');
         System.assertEquals(1, [SELECT COUNT() FROM Task WHERE Id = :t.Id], 'task not deleted');
     }
+
+    // ---- Opportunity (cross-sell grid) ------------------------------------
+
+    @IsTest
+    static void createsOpportunity() {
+        Account a = new Account(Name = 'Grid Test Co');
+        insert a;
+        setupRequest('{"action":"opportunity","accountId":"' + a.Id + '","name":"Grid Test Co — Business Line of Credit"'
+            + ',"amount":12500,"closeDate":"2026-12-31","leadSource":"Cross-sell grid","description":"Held away at Chase"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'create opportunity should 200');
+        Map<String, Object> out = parseBody();
+        Opportunity o = [
+            SELECT AccountId, Name, StageName, Amount, CloseDate, LeadSource, Description
+            FROM Opportunity WHERE Id = :(Id) out.get('id')
+        ];
+        System.assertEquals(a.Id, o.AccountId, 'linked to account');
+        System.assertEquals('Prospecting', o.StageName, 'default stage');
+        System.assertEquals(12500, o.Amount, 'amount set');
+        System.assertEquals(Date.newInstance(2026, 12, 31), o.CloseDate, 'close date set');
+        System.assertEquals('Cross-sell grid', o.LeadSource, 'lead source set');
+    }
+
+    @IsTest
+    static void opportunityDefaultsCloseDate() {
+        Account a = new Account(Name = 'Grid Default Co');
+        insert a;
+        setupRequest('{"action":"opportunity","accountId":"' + a.Id + '","name":"Default close"}');
+        CrmWriteRest.write();
+        Opportunity o = [SELECT CloseDate FROM Opportunity WHERE Id = :(Id) parseBody().get('id')];
+        System.assertEquals(Date.today().addDays(60), o.CloseDate, 'defaults to today + 60');
+    }
+
+    @IsTest
+    static void opportunityRequiresAccountAndName() {
+        setupRequest('{"action":"opportunity","name":"No account"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing account → 400');
+        setupRequest('{"action":"opportunity","accountId":"' + UserInfo.getUserId() + '","name":"Wrong type"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'non-account id → 400');
+        setupRequest('{"action":"opportunity","accountId":"001000000000000AAA"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing name → 400');
+    }
 }

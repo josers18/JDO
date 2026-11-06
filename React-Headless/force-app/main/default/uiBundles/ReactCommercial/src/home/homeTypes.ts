@@ -169,8 +169,9 @@ export interface PipelineMovement {
   label: string;
   amount: number;
   /** Signed week-over-week change, e.g. +0.12 or -0.04. */
-  deltaPct: number;
-  trend: number[];
+  /** real history only — omitted until CRM snapshots exist */
+  deltaPct?: number;
+  trend?: number[];
 }
 
 /** An open service Case row for the cockpit supporting band + explorer. */

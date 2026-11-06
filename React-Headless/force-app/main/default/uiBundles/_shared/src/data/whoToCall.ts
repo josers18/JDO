@@ -28,7 +28,7 @@ const W = WHO_TO_CALL_WEIGHTS;
 const CSAT_LOW = 70;
 /** Months High (of six) at which stress counts. */
 const STRESS_MONTHS = 3;
-const RETAIL_OFFERS = "'MTG-30', 'AUTO-ACQ', 'CRC-ACQ', 'CHK-ACQ', 'FTH-ACQ', 'HYS-ACQ'";
+const RETAIL_OFFERS = "'MTG-30', 'AUTO-ACQ', 'CRC-ACQ', 'CHK-ACQ', 'HYS-ACQ', 'HEL-ACQ', 'PL-ACQ', 'INV-ACQ'";
 
 // c = low latest CSAT; g = souring calls; s = persistent stress; o = best offer;
 // ids = every client with any driver; b = the blended score.
@@ -62,13 +62,12 @@ const ctes = (accountFilter: string) => `
   ),
   o AS (
     SELECT acct, code, conv FROM (
-      SELECT a.ssot__Id__c AS acct, o.Action_Code__c AS code, o.Conversion_Probability__c AS conv,
-             ROW_NUMBER() OVER (PARTITION BY a.ssot__Id__c ORDER BY o.Recommended_Action_Rank__c) AS rn
-      FROM Offer_Eligibility_Model__dlm o
-      JOIN ssot__Account__dlm a ON a.External_ID_c__c = o.MDM_ID__c
-      WHERE o.Action_Code__c IN (${RETAIL_OFFERS})
-        AND o.Recommended_Action_Rank__c IS NOT NULL AND o.Expected_Value_Uplift__c > 0
-        AND a.ssot__Id__c ${accountFilter}
+      SELECT o.account_id__c AS acct, o.action_code__c AS code, o.conversion_probability__c AS conv,
+             ROW_NUMBER() OVER (PARTITION BY o.account_id__c ORDER BY o.recommended_action_rank__c) AS rn
+      FROM BT_Offer_Eligibility__dlm o
+      WHERE o.action_code__c IN (${RETAIL_OFFERS})
+        AND o.recommended_action_rank__c IS NOT NULL AND o.expected_value_uplift__c > 0
+        AND o.account_id__c ${accountFilter}
     ) t WHERE rn = 1
   ),
   ids AS (

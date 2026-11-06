@@ -3,54 +3,32 @@ import clsx from 'clsx';
 import { Icon } from '../iconMap';
 import { Button } from '../Button';
 import { formatValue } from '../format';
+import type { WhitespaceData } from '../../data/whitespace';
 
 /**
  * ── Cross-sell / Upsell white-space analysis ──────────────────────────────
  *
- * A selectable clients × product-categories heat map. Each cell is either an
- * OWNED product (muted, a check) or WHITE SPACE — a product the client does NOT
- * hold, scored 0-100 by opportunity strength and tinted by that score. Clicking
- * a cell, a client row-header, or a product column-header filters the detail
- * table below to that slice (the classic "select the white space, read the
- * details" pattern the user described).
+ * A selectable clients × products heat map. Each cell is either an OWNED
+ * product (muted, a check — a live FSC FinancialAccount) or WHITE SPACE — a
+ * product the client doesn't hold, scored 0-100 by the offer model's
+ * conversion probability and tinted by that score. Clicking a cell, a client
+ * row header, or a product column header filters the detail table below.
  *
- * DATA SEAM: the component renders off a `WhitespaceData` matrix and defaults
- * to built-in MOCK. A future Data Cloud dataset (a blend of DC product-holding
- * DMOs + life-events / goals signals) needs only to produce the same shape and
- * be handed in via `data` — no markup change. See `dataSource.ts` resolve().
+ * Data comes from `fetchWhitespace` (`data/whitespace.ts`); there is no
+ * built-in fixture. Acting on a row is the page's call (it creates a real
+ * Opportunity); acted rows flip to "In pipeline" right away.
  */
+export type { WhitespaceProduct, WhitespaceCell, WhitespaceClient, WhitespaceData } from '../../data/whitespace';
 
-export interface WhitespaceProduct {
-  /** stable key used to index each client's cells */
-  key: string;
-  /** short column label (kept compact for the narrow App-Domain content region) */
-  label: string;
-}
-
-export interface WhitespaceCell {
-  /** the client already holds this product → not an opportunity */
-  owned: boolean;
-  /** opportunity strength 0-100 when not owned (drives the heat tint + sort) */
-  score?: number;
-  /** the signal driving the opportunity (life event, DC signal, goal…) */
-  reason?: string;
-  /** estimated first-year value of winning this product */
-  estValue?: number;
-  /** the recommended next action */
-  action?: string;
-}
-
-export interface WhitespaceClient {
-  id: string;
-  name: string;
-  segment: string;
-  /** keyed by WhitespaceProduct.key */
-  cells: Record<string, WhitespaceCell>;
-}
-
-export interface WhitespaceData {
-  products: WhitespaceProduct[];
-  clients: WhitespaceClient[];
+export interface WhitespaceAct {
+  clientId: string;
+  clientName: string;
+  productKey: string;
+  productLabel: string;
+  action: string;
+  reason: string;
+  estValue: number;
+  code?: string;
 }
 
 /** A flattened detail row (one white-space opportunity). */
@@ -64,6 +42,8 @@ interface OpportunityRow {
   reason: string;
   estValue: number;
   action: string;
+  inPipeline: boolean;
+  code?: string;
 }
 
 type Selection =
@@ -71,153 +51,6 @@ type Selection =
   | { kind: 'client'; clientId: string }
   | { kind: 'product'; productKey: string }
   | { kind: 'cell'; clientId: string; productKey: string };
-
-// ── Built-in mock matrix (retail banking product ladder) ────────────────────
-const MOCK_PRODUCTS: WhitespaceProduct[] = [
-  { key: 'checking', label: 'Checking' },
-  { key: 'savings', label: 'Savings' },
-  { key: 'card', label: 'Credit Card' },
-  { key: 'auto', label: 'Auto Loan' },
-  { key: 'mortgage', label: 'Mortgage' },
-  { key: 'heloc', label: 'HELOC' },
-  { key: 'invest', label: 'Investing' },
-  { key: 'insure', label: 'Insurance' },
-];
-
-/** Compact helper to author mock cells: `o()` = owned, `w(score,reason,val,action)` = white space. */
-const o = (): WhitespaceCell => ({ owned: true });
-const w = (score: number, reason: string, estValue: number, action: string): WhitespaceCell => ({
-  owned: false,
-  score,
-  reason,
-  estValue,
-  action,
-});
-
-const MOCK_CLIENTS: WhitespaceClient[] = [
-  {
-    id: 'ws-1',
-    name: 'Sarah Chen',
-    segment: 'Mass Affluent',
-    cells: {
-      checking: o(),
-      savings: o(),
-      card: o(),
-      auto: w(84, 'Auto loan at competitor matures in 45 days', 1800, 'Send refi pre-approval'),
-      mortgage: w(91, 'Zillow save + rising deposit balance = home shopping', 6200, 'Offer rate-lock consult'),
-      heloc: w(38, 'Home equity building', 900, 'Monitor'),
-      invest: w(72, 'Idle $180k in savings > 6 mo', 3400, 'Book advisory intro'),
-      insure: w(29, 'No linked policy on file', 600, 'Cross-ref bundle'),
-    },
-  },
-  {
-    id: 'ws-2',
-    name: 'Marcus Webb',
-    segment: 'Mass Market',
-    cells: {
-      checking: o(),
-      savings: w(66, 'Direct deposit up 22%, no savings sweep', 700, 'Enable auto-save'),
-      card: w(81, 'High debit spend, no rewards card', 1500, 'Pre-approve rewards card'),
-      auto: o(),
-      mortgage: w(24, 'Renter — early signal only', 400, 'Nurture'),
-      heloc: w(12, 'No property', 0, '—'),
-      invest: w(48, 'First emergency fund milestone hit', 1100, 'Intro to robo-invest'),
-      insure: w(55, 'New auto loan, no GAP coverage', 900, 'Offer GAP + bundle'),
-    },
-  },
-  {
-    id: 'ws-3',
-    name: 'Priya Nair',
-    segment: 'Affluent',
-    cells: {
-      checking: o(),
-      savings: o(),
-      card: o(),
-      auto: o(),
-      mortgage: o(),
-      heloc: w(77, 'Home value +18%, kitchen reno permits pulled', 2600, 'Offer HELOC line'),
-      invest: w(88, '$420k held-away at competitor (aggregation)', 7800, 'Advisor consult — held-away'),
-      insure: w(63, 'Umbrella gap vs. net worth', 1400, 'Wealth-protection review'),
-    },
-  },
-  {
-    id: 'ws-4',
-    name: 'David Okafor',
-    segment: 'Mass Affluent',
-    cells: {
-      checking: o(),
-      savings: o(),
-      card: w(58, 'Travel spend on debit, no travel card', 1200, 'Offer travel rewards'),
-      auto: w(69, 'Lease-end in 60 days (life event)', 1600, 'Auto pre-approval'),
-      mortgage: w(44, 'Pre-qual click, no application', 3100, 'Follow up on pre-qual'),
-      heloc: w(21, 'Early equity', 500, 'Monitor'),
-      invest: w(74, 'Bonus deposit + retirement goal set', 3600, 'Book retirement plan'),
-      insure: w(33, 'No life policy, new child event', 1500, 'Life-insurance outreach'),
-    },
-  },
-  {
-    id: 'ws-5',
-    name: 'Elena Rossi',
-    segment: 'Affluent',
-    cells: {
-      checking: o(),
-      savings: o(),
-      card: o(),
-      auto: w(31, 'Owns vehicle outright', 400, 'Nurture'),
-      mortgage: o(),
-      heloc: w(82, 'Investment-property inquiry', 2900, 'Offer HELOC for down payment'),
-      invest: o(),
-      insure: w(70, 'Second property, no landlord policy', 1800, 'Landlord-coverage review'),
-    },
-  },
-  {
-    id: 'ws-6',
-    name: 'James Patterson',
-    segment: 'Mass Market',
-    cells: {
-      checking: o(),
-      savings: w(52, 'No savings relationship', 600, 'Open high-yield savings'),
-      card: o(),
-      auto: w(47, 'Older vehicle, service spend rising', 1100, 'Auto refi check'),
-      mortgage: w(18, 'Renter', 300, 'Nurture'),
-      heloc: w(9, 'No property', 0, '—'),
-      invest: w(61, 'Consistent surplus, no invest account', 1500, 'Intro to investing'),
-      insure: o(),
-    },
-  },
-  {
-    id: 'ws-7',
-    name: 'Aisha Rahman',
-    segment: 'Affluent',
-    cells: {
-      checking: o(),
-      savings: o(),
-      card: o(),
-      auto: o(),
-      mortgage: w(79, 'Rate-drop + lease neighborhood searches', 5400, 'Rate-lock consult'),
-      heloc: w(41, 'Building equity', 800, 'Monitor'),
-      invest: o(),
-      insure: w(57, 'Growing assets, thin coverage', 1300, 'Protection review'),
-    },
-  },
-  {
-    id: 'ws-8',
-    name: 'Tom Bradley',
-    segment: 'Mass Affluent',
-    cells: {
-      checking: o(),
-      savings: o(),
-      card: w(64, 'Business spend on personal debit', 1400, 'Offer business rewards card'),
-      auto: w(36, 'Recently financed elsewhere', 700, 'Refi check in 6 mo'),
-      mortgage: w(53, 'Second-home browsing', 3800, 'Second-home pre-qual'),
-      heloc: w(73, 'Primary equity +$140k, remodel intent', 2400, 'Offer HELOC line'),
-      invest: w(86, 'Sold business — liquidity event', 9200, 'Priority advisor consult'),
-      insure: w(49, 'Coverage lags net worth', 1100, 'Wealth-protection review'),
-    },
-  },
-];
-
-const MOCK_DATA: WhitespaceData = { products: MOCK_PRODUCTS, clients: MOCK_CLIENTS };
 
 /** Heat-tint bucket for an opportunity score (Tailwind v4 alpha via color-mix). */
 function heatClass(score: number): string {
@@ -228,16 +61,23 @@ function heatClass(score: number): string {
 }
 
 export function CrossSellWhitespace({
-  data = MOCK_DATA,
-  /** raised when the banker acts on an opportunity row (e.g. open Prep/Schedule) */
+  data,
+  loading = false,
+  /** the banker acts on an opportunity row; resolve true once it's in the pipeline */
   onAct,
 }: {
-  data?: WhitespaceData;
-  onAct?: (row: { clientId: string; clientName: string; productLabel: string; action: string }) => void;
+  data: WhitespaceData | null;
+  loading?: boolean;
+  onAct?: (row: WhitespaceAct) => Promise<boolean> | boolean | void;
 }) {
   const [sel, setSel] = useState<Selection>({ kind: 'all' });
+  // Cells acted on this session — shown as in pipeline before the next reload.
+  const [acted, setActed] = useState<Set<string>>(() => new Set());
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const { products, clients } = data;
+  const products = data?.products ?? [];
+  const clients = data?.clients ?? [];
+  const stats = data?.stats;
 
   // Flatten every white-space (non-owned) cell into a sortable opportunity list.
   const allOpps = useMemo<OpportunityRow[]>(() => {
@@ -245,7 +85,7 @@ export function CrossSellWhitespace({
     for (const c of clients) {
       for (const p of products) {
         const cell = c.cells[p.key];
-        if (!cell || cell.owned) continue;
+        if (!cell || cell.owned || cell.score == null) continue;
         rows.push({
           clientId: c.id,
           clientName: c.name,
@@ -256,11 +96,36 @@ export function CrossSellWhitespace({
           reason: cell.reason ?? '',
           estValue: cell.estValue ?? 0,
           action: cell.action ?? '—',
+          inPipeline: Boolean(cell.inPipeline) || acted.has(`${c.id}|${p.key}`),
+          code: cell.code,
         });
       }
     }
     return rows.sort((a, b) => b.score - a.score);
-  }, [clients, products]);
+  }, [clients, products, acted]);
+
+  const act = async (r: OpportunityRow) => {
+    if (!onAct || r.inPipeline || busy) return;
+    const key = `${r.clientId}|${r.productKey}`;
+    setBusy(key);
+    try {
+      const ok = await onAct({
+        clientId: r.clientId, clientName: r.clientName, productKey: r.productKey, productLabel: r.productLabel,
+        action: r.action, reason: r.reason, estValue: r.estValue, code: r.code,
+      });
+      if (ok !== false) setActed(s => new Set(s).add(key));
+    } finally {
+      setBusy(null);
+    }
+  };
+  // The refetched stats can come back cached, so fold in this session's
+  // creations that the loaded data doesn't count yet (cell not inPipeline).
+  const pending = clients.flatMap(c =>
+    products.filter(p => acted.has(`${c.id}|${p.key}`) && !c.cells[p.key]?.inPipeline)
+      .map(p => c.cells[p.key]?.estValue ?? 0),
+  );
+  const pipelineValue = (stats?.openValue ?? 0) + pending.reduce((s, x) => s + x, 0);
+  const pipelineCount = (stats?.open ?? 0) + pending.length;
 
   const detailRows = useMemo<OpportunityRow[]>(() => {
     switch (sel.kind) {
@@ -315,6 +180,13 @@ export function CrossSellWhitespace({
             <h2 className="mt-1 font-display text-[22px] font-semibold leading-tight tracking-tight">
               Where the next product lives
             </h2>
+            {stats && (
+              <p className="mt-1 text-[12px] tabular-nums text-muted">
+                {pipelineCount} {pipelineCount === 1 ? 'opportunity' : 'opportunities'} from this grid
+                {' · '}{formatValue(pipelineValue, 'currencyCompact')} est. value
+                {' · '}{stats.won30} won in 30d{data?.scope === 'org' ? ' · org-wide' : ''}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint">
             <span className="flex items-center gap-1.5">
@@ -352,6 +224,10 @@ export function CrossSellWhitespace({
 
             {/* Rows */}
             <div className="flex flex-col gap-1">
+              {loading && clients.length === 0 &&
+                Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="h-11 animate-pulse rounded-[8px] bg-surface-muted/50" />
+                ))}
               {clients.map(c => (
                 <div key={c.id} className="grid items-center gap-1" style={{ gridTemplateColumns: gridTemplate }}>
                   <button
@@ -380,7 +256,9 @@ export function CrossSellWhitespace({
                         </div>
                       );
                     }
-                    const score = cell.score ?? 0;
+                    if (cell.score == null) return <span key={p.key} className="h-11 rounded-[8px] bg-surface-muted/40" />;
+                    const score = cell.score;
+                    const piped = Boolean(cell.inPipeline) || acted.has(`${c.id}|${p.key}`);
                     return (
                       <button
                         key={p.key}
@@ -388,14 +266,16 @@ export function CrossSellWhitespace({
                         onClick={() =>
                           setSel(isCellActive(c.id, p.key) ? { kind: 'all' } : { kind: 'cell', clientId: c.id, productKey: p.key })
                         }
-                        title={`${c.name} · ${p.label} — score ${score}\n${cell.reason ?? ''}`}
+                        title={`${c.name} · ${p.label} — score ${score}${piped ? ' · opportunity open' : ''}\n${cell.reason ?? ''}`}
                         className={clsx(
                           'grid h-11 place-items-center rounded-[8px] text-[12px] font-bold tabular-nums transition hover:brightness-105',
                           heatClass(score),
+                          'relative',
                           isCellActive(c.id, p.key) && 'ring-2 ring-fg ring-offset-1 ring-offset-surface',
                         )}
                       >
                         {score}
+                        {piped && <span aria-label="opportunity open" className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-fg/70" />}
                       </button>
                     );
                   })}
@@ -468,17 +348,19 @@ export function CrossSellWhitespace({
                     {r.estValue > 0 ? formatValue(r.estValue, 'currency') : '—'}
                   </td>
                   <td className="px-6 py-3 text-right">
-                    {r.action === '—' ? (
-                      <span className="text-faint">—</span>
+                    {r.inPipeline ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-muted px-3 py-1.5 text-[11.5px] font-medium text-muted">
+                        <span className="h-1.5 w-1.5 rounded-full bg-fg/70" /> In pipeline
+                      </span>
                     ) : (
                       <button
                         type="button"
-                        onClick={() =>
-                          onAct?.({ clientId: r.clientId, clientName: r.clientName, productLabel: r.productLabel, action: r.action })
-                        }
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1.5 text-[11.5px] font-medium text-muted transition hover:border-accent-border hover:text-fg"
+                        disabled={!onAct || busy != null}
+                        onClick={() => act(r)}
+                        title="Create the opportunity in Salesforce"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1.5 text-[11.5px] font-medium text-muted transition hover:border-accent-border hover:text-fg disabled:opacity-60"
                       >
-                        {r.action}
+                        {busy === `${r.clientId}|${r.productKey}` ? 'Creating…' : r.action}
                         <Icon name="arrow" size={12} />
                       </button>
                     )}
@@ -488,7 +370,11 @@ export function CrossSellWhitespace({
               {detailRows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-10 text-center text-muted">
-                    No white-space opportunities in this slice.
+                    {loading
+                      ? 'Scoring your book…'
+                      : clients.length === 0
+                        ? 'No scored white space in this book yet.'
+                        : 'No white-space opportunities in this slice.'}
                   </td>
                 </tr>
               )}

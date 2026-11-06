@@ -24,6 +24,7 @@ export {
   FEE_SPIKES,
   type TxSignalResult,
 } from './transactionSignals';
+export { fetchWhitespace, createWhitespaceOpportunity, whitespaceOpportunityName, WHITESPACE_LEAD_SOURCE, WHITESPACE_ROWS, type WhitespacePersona, type WhitespaceStats } from './whitespace';
 export { fetchNextBestOffers, offerRecommendations, offerLabel, fetchModeledUplift, type NextBestOffer, type NextBestOfferResult, type OfferFamily, type ModeledUplift } from './offerModel';
 export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type CampaignTouchResult, type CampaignPersona } from './campaignTouches';
 export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';
@@ -36,6 +37,7 @@ export { fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueIte
 export { fetchHomeEquity, homeEquityQueueItems, fetchPropertyRisk, propertyHazards, type HomeEquityResult, type HomeEquityLead, type PropertyRiskResult, type PropertyRiskHome } from './propertySignals';
 export { fetchServiceNowDrag, type ServiceNowDrag } from './serviceDrag';
 export { fetchDataFreshness, type DataFreshness, type SourceFreshness, type FreshnessSource, type Cadence } from './dataFreshness';
+export { fetchNetFlow, summaryTrend, toKpiTrend, perPeriodSql, TREND_POINTS, type KpiTrend, type NetFlowResult, type NetFlowWeek } from './kpiTrend';
 export { queryDataCloud, queryDataCloudForBook, bookAccountFilter, type DataCloudColumn, type DataCloudResult, type BookScope, type BookScopedResult } from './dataCloudClient';
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';

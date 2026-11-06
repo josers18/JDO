@@ -11,6 +11,7 @@
  * ZIPs (227 in Consolidate ZIPs); Jose Sifontes 998 across 343 (114).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { summaryTrend, type KpiTrend } from './kpiTrend';
 
 const JOIN = `FROM ssot__Account__dlm a
     JOIN BT_ESRI_GEO_Footprint__dlm e ON e.branch_zip__c = a.BillingPostalCode__c
@@ -66,16 +67,22 @@ export interface MarketFootprintResult {
   avgWealthIndex: number;
   avgFootTraffic: number;
   avgDistanceMi: number;
+  /** the tile metric per snapshot period (real history; empty when < 2 periods) */
+  history: KpiTrend;
   scope: BookScope;
 }
 
 /** C7 — where the book sits on the branch network: Consolidate vs Optimize ZIPs. */
 export async function fetchMarketFootprint(ownerId: string | null | undefined): Promise<MarketFootprintResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 6);
-  const total = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
-    .then(r => r.rows[0] ?? {})
-    .catch((): Record<string, unknown> => ({}));
+  const [total, history] = await Promise.all([
+    queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
+      .then(r => r.rows[0] ?? {})
+      .catch((): Record<string, unknown> => ({})),
+    summaryTrend(summarySql(res.accountFilter), r => Number(r.consolidate) || 0),
+  ]);
   return {
+    history,
     scope: res.scope,
     clients: Number(total.clients) || 0,
     zips: Number(total.zips) || 0,
