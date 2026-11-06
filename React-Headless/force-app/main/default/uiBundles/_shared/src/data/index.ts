@@ -24,7 +24,7 @@ export {
   FEE_SPIKES,
   type TxSignalResult,
 } from './transactionSignals';
-export { fetchWhitespace, createWhitespaceOpportunity, whitespaceOpportunityName, WHITESPACE_LEAD_SOURCE, WHITESPACE_ROWS, SCORE_MOVE_MIN, SCORE_HISTORY_MONTHS, MOVERS_LIMIT, type WhitespacePersona, type WhitespaceStats, type WhitespaceMover } from './whitespace';
+export { fetchWhitespace, createWhitespaceOpportunity, whitespaceOpportunityName, WHITESPACE_LEAD_SOURCE, WHITESPACE_ROWS, SCORE_MOVE_MIN, VALUE_MOVE_MIN, SCORE_HISTORY_MONTHS, MOVERS_LIMIT, type WhitespacePersona, type WhitespaceStats, type WhitespaceMover } from './whitespace';
 export { fetchNextBestOffers, offerRecommendations, offerLabel, fetchModeledUplift, type NextBestOffer, type NextBestOfferResult, type OfferFamily, type ModeledUplift } from './offerModel';
 export { fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouch, type CampaignTouchResult, type CampaignPersona } from './campaignTouches';
 export { fetchWarmIntros, warmIntroLeads, interleave, type WarmIntro, type WarmIntroResult, type WarmIntroLead } from './relationshipGraph';

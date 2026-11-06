@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { Icon } from '../iconMap';
 import { Button } from '../Button';
 import { formatValue } from '../format';
-import { SCORE_MOVE_MIN, type WhitespaceCell, type WhitespaceData } from '../../data/whitespace';
+import { SCORE_MOVE_MIN, VALUE_MOVE_MIN, type WhitespaceCell, type WhitespaceData } from '../../data/whitespace';
 
 /**
  * ── Cross-sell / Upsell white-space analysis ──────────────────────────────
@@ -14,7 +14,9 @@ import { SCORE_MOVE_MIN, type WhitespaceCell, type WhitespaceData } from '../../
  * conversion probability and tinted by that score. Clicking a cell, a client
  * row header, or a product column header filters the detail table below.
  * A ▲/▼ in a cell means its score moved at least SCORE_MOVE_MIN points over
- * the last six monthly scoring runs (the detail table's "6-mo" column).
+ * the last six monthly scoring runs (the detail table's "6-mo" column). The
+ * Rising / Falling views also count a change in expected value of
+ * VALUE_MOVE_MIN or more, so a big offer that slipped under 2 points shows.
  * The grid ranks clients by today's value, so its moves lean upward; the
  * detail table's Rising / Falling chips add the book's biggest movers from
  * outside the grid, ranked by the change in expected value; the 6-mo header
@@ -63,8 +65,8 @@ type Trend = 'all' | 'up' | 'down';
 type SortBy = 'score' | 'rise' | 'fall' | 'gain' | 'loss';
 const TRENDS: { key: Trend; label: string; title: string }[] = [
   { key: 'all', label: 'All', title: 'Every white-space opportunity in the grid' },
-  { key: 'up', label: '▲ Rising', title: `Scores up ${SCORE_MOVE_MIN}+ points over 6 months, including clients outside the grid` },
-  { key: 'down', label: '▼ Falling', title: `Scores down ${SCORE_MOVE_MIN}+ points over 6 months, including clients outside the grid` },
+  { key: 'up', label: '▲ Rising', title: `Up ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months, including clients outside the grid` },
+  { key: 'down', label: '▼ Falling', title: `Down ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months, including clients outside the grid` },
 ];
 
 type Selection =
@@ -88,6 +90,10 @@ function moveText(cell: Pick<WhitespaceCell, 'moved' | 'history'>): string {
 }
 
 const isMove = (moved?: number) => moved != null && Math.abs(moved) >= SCORE_MOVE_MIN;
+const isValueMove = (evMoved?: number) => evMoved != null && Math.abs(evMoved) >= VALUE_MOVE_MIN;
+/** +1 rising, −1 falling, 0 neither: a big value change wins, else a 2-point move. */
+const trendDir = (r: { moved?: number; evMoved?: number }) =>
+  isValueMove(r.evMoved) ? Math.sign(r.evMoved!) : isMove(r.moved) ? Math.sign(r.moved!) : 0;
 
 /** Heat-tint bucket for an opportunity score (Tailwind v4 alpha via color-mix). */
 function heatClass(score: number): string {
@@ -198,12 +204,12 @@ export function CrossSellWhitespace({
   }, [allOpps, moverOpps, sel]);
 
   const trendCount = (t: Exclude<Trend, 'all'>) =>
-    [...sliceRows, ...sliceMovers].filter(r => isMove(r.moved) && (t === 'up' ? r.moved! > 0 : r.moved! < 0)).length;
+    [...sliceRows, ...sliceMovers].filter(r => trendDir(r) === (t === 'up' ? 1 : -1)).length;
 
   const detailRows = useMemo<OpportunityRow[]>(() => {
     const rows = trend === 'all'
       ? [...sliceRows]
-      : [...sliceRows, ...sliceMovers].filter(r => isMove(r.moved) && (trend === 'up' ? r.moved! > 0 : r.moved! < 0));
+      : [...sliceRows, ...sliceMovers].filter(r => trendDir(r) === (trend === 'up' ? 1 : -1));
     if (sortBy === 'score') return rows;
     // Rows without history sort last either way.
     const key = (r: OpportunityRow) => {
@@ -508,7 +514,7 @@ export function CrossSellWhitespace({
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums">
                     <div className="font-semibold text-fg">{r.estValue > 0 ? formatValue(r.estValue, 'currency') : '—'}</div>
-                    {isMove(r.moved) && r.evMoved != null && r.evMoved !== 0 && r.history?.length ? (
+                    {trendDir(r) !== 0 && r.evMoved != null && r.evMoved !== 0 && r.history?.length ? (
                       <div className={clsx('text-[10.5px] font-medium', r.evMoved > 0 ? 'text-ok' : 'text-warn')}>
                         {r.evMoved > 0 ? '+' : '−'}{formatValue(Math.abs(r.evMoved), 'currencyCompact')} since {monthLabel(r.history[0].month)}
                       </div>
@@ -542,9 +548,9 @@ export function CrossSellWhitespace({
                       : clients.length === 0
                         ? 'No scored white space in this book yet.'
                         : trend === 'down'
-                          ? `No score in this slice fell ${SCORE_MOVE_MIN}+ points over 6 months.`
+                          ? `No offer in this slice fell ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months.`
                           : trend === 'up'
-                            ? `No score in this slice rose ${SCORE_MOVE_MIN}+ points over 6 months.`
+                            ? `No offer in this slice rose ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months.`
                             : 'No white-space opportunities in this slice.'}
                   </td>
                 </tr>

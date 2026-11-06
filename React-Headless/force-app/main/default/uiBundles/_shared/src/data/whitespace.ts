@@ -17,9 +17,12 @@
  *                `OFFER_ELIGIBILITY_HISTORY`, one row per account × code × run
  *                month). Data 360 computes the change (latest − first month in
  *                the window); the grid flags |move| ≥ `SCORE_MOVE_MIN` points.
+ *                A change in expected value of `VALUE_MOVE_MIN` or more also
+ *                counts as a move, so a big offer that slid under 2 points shows.
  *   · Movers   — the grid ranks by today's value, so it leans toward rising
  *                scores. `movers` holds the book's biggest risers and fallers
- *                (eligible offers, |move| ≥ `SCORE_MOVE_MIN`) among clients
+ *                (eligible offers, |move| ≥ `SCORE_MOVE_MIN` points or
+ *                |value change| ≥ `VALUE_MOVE_MIN`) among clients
  *                outside the grid, for the detail table's Rising / Falling views,
  *                ranked by the change in expected value, not raw points.
  *
@@ -49,6 +52,8 @@ export const HOLDER_ROWS = 3;
 export const SCORE_HISTORY_MONTHS = 6;
 /** Smallest 6-month change (conversion points) the grid calls a move. */
 export const SCORE_MOVE_MIN = 2;
+/** Smallest 6-month change in expected value (USD) that counts as a move on its own. */
+export const VALUE_MOVE_MIN = 250;
 /** Book-wide movers fetched per direction, for the detail table's Rising / Falling views. */
 export const MOVERS_LIMIT = 25;
 
@@ -227,7 +232,7 @@ const scoreHistorySql = (ids: string[], codes: string[]) => `
     AND action_code__c IN (${quote(codes)})
   ORDER BY acct, code, mo`;
 
-// The book's score moves (|points| >= SCORE_MOVE_MIN) at the latest run, one
+// The book's score moves (|points| >= SCORE_MOVE_MIN, or |value| >= VALUE_MOVE_MIN) at the latest run, one
 // direction per call, for offers still eligible today, ranked by the change in
 // expected value: a 2-point drop on a big offer outranks a 5-point drop on a tiny one. The window functions see the whole window; the
 // outer query keeps the latest month. `extra` narrows the accounts further.
@@ -253,7 +258,9 @@ const moversSql = (codes: string[], accountFilter: string, dir: 'up' | 'down', e
   ) h
   WHERE h.mo = (SELECT MAX(start_date__c) FROM BT_Offer_Eligibility_History__dlm)
     AND h.action_rank IS NOT NULL AND h.ev > 0
-    AND h.moved ${dir === 'up' ? `>= ${SCORE_MOVE_MIN}` : `<= -${SCORE_MOVE_MIN}`}
+    AND ${dir === 'up'
+      ? `(h.moved >= ${SCORE_MOVE_MIN} OR h.ev_moved >= ${VALUE_MOVE_MIN})`
+      : `(h.moved <= -${SCORE_MOVE_MIN} OR h.ev_moved <= -${VALUE_MOVE_MIN})`}
   ORDER BY h.ev_moved ${dir === 'up' ? 'DESC' : 'ASC'}
   LIMIT ${MOVERS_LIMIT * 2}`;
 
