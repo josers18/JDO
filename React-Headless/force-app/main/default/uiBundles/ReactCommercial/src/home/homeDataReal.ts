@@ -46,7 +46,7 @@
  * driver in the blended "who to call" score. Field names + DMO columns
  * verified live against jdo-oe0sdd (2026-10-20).
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered, inheritDue, fetchIntentSignals, intentQueueItems, INTENT_SURGE_ROWS, COMPETITOR_ROWS, type IntentSignalResult, fetchFundingSignals, fundingQueueItems, FUNDING_ROWS, type FundingSignalResult, fetchChampionDepartures, championQueueItems, CHAMPION_ROWS, type JobChangeResult, fetchNetFlow, summaryTrend, type NetFlowResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchFeeSpikes, FEE_SPIKES, feeSpikeQueueItems, fetchBusinessInflows, inflowQueueItems, type LargeInflow, type TxSignalResult, type FeeSpike, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchOutlookWatch, type OutlookResult, fetchLeadershipChanges, type LeadershipResult, fetchEsgMovers, type EsgMoversResult, fetchFirmographicMix, type FirmographicMixResult, fetchOwnerWealthHandoffs, ownerHandoffLeads, type OwnerHandoffResult, fetchMarketFootprint, type MarketFootprintResult, fetchCommercialWhoToCall, commercialWhoToCallItems, dropCovered, inheritDue, fetchIntentSignals, intentQueueItems, INTENT_SURGE_ROWS, COMPETITOR_ROWS, type IntentSignalResult, fetchFundingSignals, fundingQueueItems, FUNDING_ROWS, type FundingSignalResult, fetchChampionDepartures, championQueueItems, CHAMPION_ROWS, type JobChangeResult, fetchNetFlow, summaryTrend, type NetFlowResult, fetchCrmKpis, type CrmKpis, type CrmKpiValue } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, DelinquencyWatch, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /* ── Life-event signals ───────────────────────────────────────────
@@ -259,6 +259,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const userP = fetchEffectiveUser();
   // Weekly net flow from Snowflake FINANCIAL_TRANSACTIONS (via Data Cloud) — additive.
   const netFlowP = userP.then(u => fetchNetFlow(u?.userId, 'Business')).catch((): NetFlowResult | null => null);
+  // True CRM totals (aggregates, not the first N rows) + their weekly history, computed in Data 360 (crmKpis.ts).
+  const crmP = userP.then(u => fetchCrmKpis(u?.userId)).catch((): CrmKpis | null => null);
   const [core, credit, who, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint, intent, funding, champions] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<CreditRow>(creditRiskSql, u?.userId, 8)),
@@ -313,6 +315,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
   const netFlow = await netFlowP;
+  const crm = await crmP;
+  const crmHist = (m?: CrmKpiValue) => (m ? { trend: m.trend, deltaPct: m.deltaPct } : {});
   const [delinq, watch, watchHistory] = await Promise.all([
     queryDataCloud<DelinqRow>(delinquencySql(credit.accountFilter), 10)
       .catch(() => ({ rows: [] as DelinqRow[] })),
@@ -347,7 +351,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     } catch { /* names best-effort */ }
   }));
 
-  const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
+  // Aggregate SUM over every open opp; the list query below only carries the top 200.
+  const pipelineValue = crm?.pipeline.value ?? (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
+  const openOppCount = crm?.openOpps.value ?? opp?.totalCount ?? 0;
 
   // S1 — clients whose recorded-call sentiment is negative and sliding.
   // S2 — screening ratings that escalated on the latest World-Check run.
@@ -661,24 +667,21 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   }));
 
   // ── Pipeline movement — group open opportunities by stage, summing amount.
-  //    A real, live-derived roll-up (deltaPct is a flat placeholder — no
-  //    historical snapshot is wired yet).
+  //    Stage sums are aggregates over every open opp; the trend and delta are
+  //    the stage's weekly Data 360 history (stage:<StageName>).
   const byStage = new Map<string, number>();
   for (const e of opp?.edges ?? []) {
     const stage = s(e.node, 'StageName') || 'Other';
     byStage.set(stage, (byStage.get(stage) ?? 0) + num(e.node, 'Amount'));
   }
-  const pipelineMovement: PipelineMovement[] = [...byStage.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const pipelineMovement: PipelineMovement[] = (crm?.stages.length
+    ? crm.stages.map(st => ({ label: st.label, amount: st.value, trend: st.trend, deltaPct: st.deltaPct }))
+    : [...byStage.entries()].sort((a, b) => b[1] - a[1]).map(([label, amount]) => ({ label, amount })))
     .slice(0, 4)
-    .map(([label, amount], i) => ({
-      id: `pm${i}`,
-      label,
-      amount,
-    }));
+    .map((st, i) => ({ id: `pm${i}`, ...st }));
 
   // S7 — open service drag: CRM open cases + the book's open ServiceNow cases.
-  const crmOpen = q?.Case?.totalCount ?? 0;
+  const crmOpen = crm?.openCases.value ?? q?.Case?.totalCount ?? 0;
   const openCases = crmOpen + serviceNow.open;
   const agedCases = (q?.CaseAged?.totalCount ?? 0) + serviceNow.aged;
 
@@ -686,7 +689,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'borrowers on the credit watchlist',
-    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${Math.min(FEE_SPIKES, feeSpikes.rows.length)} clients show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}${intent.surging + intent.competitor + funding.funded + champions.total ? ` Market signals${[intent, funding, champions].some(x => x.scope === 'org') ? ' (some org-wide)' : ''}: ${intent.surging.toLocaleString('en-US')} accounts surging on intent, ${intent.competitor.toLocaleString('en-US')} researching a competitor, ${funding.funded.toLocaleString('en-US')} just raised a round, and ${champions.total.toLocaleString('en-US')} lost a champion or primary contact in the last 30 days.` : ''}`,
+    aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${openOppCount.toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${Math.min(FEE_SPIKES, feeSpikes.rows.length)} clients show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}${intent.surging + intent.competitor + funding.funded + champions.total ? ` Market signals${[intent, funding, champions].some(x => x.scope === 'org') ? ' (some org-wide)' : ''}: ${intent.surging.toLocaleString('en-US')} accounts surging on intent, ${intent.competitor.toLocaleString('en-US')} researching a competitor, ${funding.funded.toLocaleString('en-US')} just raised a round, and ${champions.total.toLocaleString('en-US')} lost a champion or primary contact in the last 30 days.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct,
     dataSourceCount: freshness?.sources.length,
@@ -695,10 +698,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     firmographics: { ...firmo, rows: firmo.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },
     kpis: [
       { key: 'netFlow', label: 'Net Flow', value: netFlow?.last?.net ?? 0, format: 'currencyCompact', trend: netFlow?.trend, note: netFlow?.last ? `Credits − debits, week of ${netFlow.last.week} · ${netFlow.last.accounts.toLocaleString('en-US')} accounts · Snowflake${netFlow.scope === 'org' ? ' · org-wide' : ''}` : 'No transactions in book' },
-      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
-      { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', note: 'In progress' },
-      { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', note: 'Open leads' },
-      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
+      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', ...crmHist(crm?.pipeline), note: `${openOppCount.toLocaleString('en-US')} open opportunities` },
+      { key: 'openOpps', label: 'Opportunities', value: openOppCount, format: 'number', ...crmHist(crm?.openOpps), note: 'In progress' },
+      { key: 'leads', label: 'Leads & Referrals', value: crm?.leads.value ?? leads.length, format: 'number', ...crmHist(crm?.leads), note: 'Open leads' },
+      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', ...crmHist(crm?.openCases), note: `${crmOpen.toLocaleString('en-US')} CRM${crm?.openCases.trend ? ' (trend)' : ''} · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
       { key: 'atRisk', label: 'Credit Watch', value: highRisk, format: 'number', ...watchHistory, note: `${creditWatch.severe.toLocaleString('en-US')} Severe failure risk · ${creditWatch.late.toLocaleString('en-US')} PAYDEX < 60 · ${creditWatch.high.toLocaleString('en-US')} High tier${scopeNote}` },
       { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : undefined, deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
@@ -707,7 +710,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'esg', label: 'ESG Movers', value: esg.up + esg.down, format: 'number', note: `${esg.up.toLocaleString('en-US')} up · ${esg.down.toLocaleString('en-US')} down · ${esg.controversies.toLocaleString('en-US')} with controversies · MSCI${esg.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'upmarket', label: 'Upmarket Clients', value: firmo.upmarket, format: 'number', ...firmo.history, note: firmo.total ? `$50M+ revenue of ${firmo.total.toLocaleString('en-US')} profiled · ZoomInfo${firmo.scope === 'org' ? ' · org-wide' : ''}` : 'No ZoomInfo profiles in book' },
       { key: 'branchRisk', label: 'Consolidate-Branch Clients', value: footprint.consolidate, format: 'number', ...footprint.history, note: footprint.clients ? `of ${footprint.clients.toLocaleString('en-US')} clients in ${footprint.zips.toLocaleString('en-US')} ESRI ZIPs · avg wealth index ${Math.round(footprint.avgWealthIndex)}${footprint.scope === 'org' ? ' · org-wide' : ''}` : 'No clients in ESRI-profiled ZIPs' },
-      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', note: 'On track' },
+      { key: 'goals', label: 'Active Goals', value: crm?.goals.value ?? bankerGoals.length, format: 'number', ...crmHist(crm?.goals), note: 'On track' },
     ],
     callList,
     pipeline,

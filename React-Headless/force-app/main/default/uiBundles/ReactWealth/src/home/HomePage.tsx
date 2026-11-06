@@ -521,7 +521,8 @@ function HomeContent() {
   };
 
   const showPipelineMovementDetail = (m: PipelineMovement) => {
-    // No weekly history until CRM opportunity snapshots exist — show the value only.
+    // Trend/delta come from the stage's weekly Data 360 history;
+    // a stage without history shows the value only.
     const up = (m.deltaPct ?? 0) >= 0;
     const pct = m.deltaPct == null ? null : Math.abs(Math.round(m.deltaPct * 100));
     setDetailView({
@@ -535,13 +536,13 @@ function HomeContent() {
         ...(m.trend ? [{ label: 'Trend', value: <Sparkline points={m.trend} width={80} height={24} stroke={up ? 'var(--wp-pos)' : 'var(--wp-neg)'} /> }] : []),
       ],
       note: pct == null
-        ? `${m.label} pipeline is at ${formatValue(m.amount, 'currencyCompact')} across open opportunities. Week-over-week change needs opportunity history, which isn't captured yet.`
+        ? `${m.label} pipeline is at ${formatValue(m.amount, 'currencyCompact')} across open opportunities. There's no weekly Data 360 history for this stage yet.`
         : `${m.label} pipeline ${up ? 'grew' : 'declined'} ${pct}% week over week, now at ${formatValue(m.amount, 'currencyCompact')}.`,
       sectionTitle: 'Product line',
       fields: [
         { label: 'Product line', value: m.label },
         { label: 'Current value', value: formatValue(m.amount, 'currencyCompact') },
-        { label: 'WoW change', value: `${up ? '+' : '−'}${pct}%` },
+        { label: 'WoW change', value: pct == null ? '—' : `${up ? '+' : '−'}${pct}%` },
       ],
     });
   };
@@ -1019,7 +1020,7 @@ function HomeContent() {
   // Leads & referrals vital. `openOpps` still lives in data.kpis for the classic
   // 5-KPI grid and pipelineNarrative().
   // W1 — held-away assets lead the vitals: the wealth book's biggest growth lever.
-  // Net Flow (weekly Snowflake transactions) holds a vital slot: CRM metrics have no history yet.
+  // Net Flow (weekly Snowflake transactions) holds a vital slot.
   const VITAL_KEYS = ['heldAway', 'pipeline', 'netFlow', 'atRisk'];
   const vitalKpis = VITAL_KEYS.map(key => data.kpis.find(k => k.key === key)).filter(Boolean) as typeof data.kpis;
   const kpiGridVitals = (
@@ -2574,7 +2575,7 @@ function KpiCard({ label, value, note, risk, trend, onClick }: { label: string; 
       <span className="mb-2 block font-mono text-[11px] uppercase tracking-[0.14em] text-faint">{label}</span>
       <div className={`font-display text-[29px] font-semibold leading-none tracking-tight ${risk ? 'text-risk' : ''}`}>{value}</div>
       {note && <div className="mt-1.5 font-mono text-[11px] text-muted">{note}</div>}
-      {/* real history only (Data Cloud snapshots); CRM tiles have none yet */}
+      {/* real history only, all computed in Data 360: DC snapshots and CRM DMOs */}
       {trend && (
         <div className="mt-auto flex-none pt-2.5">
           <Sparkline points={trend} width={96} height={22} stroke={risk ? 'var(--wp-neg)' : 'var(--wp-accent)'} className="opacity-90" />

@@ -169,7 +169,7 @@ export interface PipelineMovement {
   label: string;
   amount: number;
   /** Signed week-over-week change, e.g. +0.12 or -0.04. */
-  /** real history only — omitted until CRM snapshots exist */
+  /** weekly Data 360 history; omitted when the stage has none */
   deltaPct?: number;
   trend?: number[];
 }

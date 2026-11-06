@@ -24,7 +24,7 @@ All three bundles set `core`, `dataCloud` and `agentforce` to `real` in `src/dat
 
 **Make it real:**
 - **Data Cloud tiles** (held-away, uplift, home equity, plans at risk, business owners, upgrades, concentrated, credit watch, outlook, leadership, ESG, upmarket, branch risk, at-risk): the `BT_*` DMOs are monthly or weekly snapshots, so query the last 8 `profile_*` periods grouped by period. That gives a true series, and delta = last vs. prior. Follow the `gong.weekly` pattern already in the code.
-- **CRM tiles** (pipeline, opps, leads, cases, goals) and **pipeline movement by stage**: there is no history in the org. **Generate it:** a new `Cockpit_KPI_Snapshot__c` (Owner/User, Persona, Metric Key, Value, Snapshot Date), a nightly `Schedulable` Apex that writes one row per banker per metric, and a one-time backfill of 8 weeks reconstructed from `CreatedDate` / `CloseDate` / `ClosedDate` / `OpportunityFieldHistory` for stage. The client reads the series through GraphQL.
+- **CRM tiles** (pipeline, opps, leads, cases, goals) and **pipeline movement by stage**: the CRM records are ingested into Data 360 (`ssot__Opportunity__dlm`, `ssot__Case__dlm`, `ssot__Lead__dlm`). **Compute the history there**: reconstruct "open as of" each week end from `CreatedDate` / `CloseDate` / `ClosedDateTime` / `ConvertedDate` with one Data 360 SQL query. No custom snapshot object and no Apex job: whenever possible, calculations live in Data 360.
 - **Until a series has ≥2 real points**, render the tile with **no sparkline and no delta**, never a seeded one. Delete `seedTrend` from all 3 bundles.
 
 > **Done 2026-11-05 (step 2).** `seedTrend` and every typed-in `deltaPct` are gone. `_shared/src/data/kpiTrend.ts` adds `perPeriodSql`, which lifts a tile's `profile_x__c = (SELECT MAX…)` pin into `GROUP BY` period with the newest 8 kept. The last point therefore always equals the tile's value. History is wired for Home Equity (3 quarters), Plans at Risk, Upgrade Prospects, Held-Away, Credit Watch, Outlook, Leadership, Upmarket and Consolidate-Branch. Each cockpit also gains a **Net Flow** tile, now in its vitals row: weekly credits − debits from Snowflake `FINANCIAL_TRANSACTIONS` (`Financial_Transactions_BT_Snow__dll`) across the book. Retail counts Personal accounts, Commercial counts Business accounts and Wealth counts both. It has no delta because the sign flips. `ACCOUNT_DAILY_BALANCE` is a running sum from $0 on 2026-07-24, so it measures net flow, not a held balance. CRM tiles, Pipeline Movement and Modeled Uplift show no sparkline or delta until step 4. ESG Movers has no period series.
@@ -116,7 +116,7 @@ In `personas/customer/customerDataReal.ts` (Retail :94–154, Wealth/Commercial 
 
 | Need | Approach |
 |---|---|
-| CRM KPI history (#1) | `Cockpit_KPI_Snapshot__c` + nightly Schedulable Apex + 8-week backfill from record dates and history |
+| CRM KPI history (#1) | Data 360 SQL over the CRM DMOs: open-as-of-week reconstruction (no custom object) |
 | Product holdings breadth (#2) | Check FinancialAccount type coverage per book; if thin, extend the Snowflake generators → DC, or seed FSC FinancialAccounts |
 | CSAT history depth (#4) | Confirm ≥2 surveys per account in the CSAT DMO; extend the generator if not |
 
@@ -125,7 +125,9 @@ In `personas/customer/customerDataReal.ts` (Retail :94–154, Wealth/Commercial 
 1. **#3 identity + #5 numeric fallbacks + #8 + #9 opened date:** small, `_shared`-heavy, one PR.
 2. ✅ **#1 Data Cloud sparklines** (no new data needed) and drop `seedTrend`; **CRM tiles** render without sparklines until step 4.
 3. **#2 cross-sell, real** (after the in-org coverage check).
-4. **#1 CRM KPI snapshot object + scheduler + backfill**, then turn on the CRM sparklines.
+4. ✅ **#1 CRM KPI snapshot object + scheduler + backfill**, then turn on the CRM sparklines.
+
+> **Done 2026-11-06 (step 4), redesigned: Data 360 only.** There's no custom object and no Apex job. The CRM tile and Pipeline Movement history is computed by one Data 360 SQL query over `ssot__Opportunity__dlm` / `ssot__Case__dlm` (+ `ssot__Account__dlm`) / `ssot__Lead__dlm` (`crmKpis.ts` `historySql`). The live values are true uiapi aggregates; the top-200 / first-6 truncation is fixed. Goals stay live only: the DMO has no owner. The first version (`Cockpit_KPI_Snapshot__c` + `CockpitKpiSnapshot`) was destructively deleted from the org. The backdated-activity generator (`scripts/kpi_history/`) was applied 2026-11-06: 448 new opps, 410 closes, 576 cases and 56 leads. Full-refreshing the four CRM streams brought it into Data 360, and the series now move week to week. The home-org CRM streams have no refresh schedule, and the public API can't set one (see `scripts/kpi_history/README.md`).
 5. **#4 C360 health, #6 notes, #7 AI slots, #5 generated brief.**
 6. **P1 dead-code deletion** across all 3 bundles.
 

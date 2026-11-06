@@ -38,6 +38,7 @@ export { fetchHomeEquity, homeEquityQueueItems, fetchPropertyRisk, propertyHazar
 export { fetchServiceNowDrag, type ServiceNowDrag } from './serviceDrag';
 export { fetchDataFreshness, type DataFreshness, type SourceFreshness, type FreshnessSource, type Cadence } from './dataFreshness';
 export { fetchNetFlow, summaryTrend, toKpiTrend, perPeriodSql, TREND_POINTS, type KpiTrend, type NetFlowResult, type NetFlowWeek } from './kpiTrend';
+export { fetchCrmKpis, weeklySeries, historySql, type CrmKpis, type CrmKpiValue, type CrmStageValue } from './crmKpis';
 export { queryDataCloud, queryDataCloudForBook, bookAccountFilter, type DataCloudColumn, type DataCloudResult, type BookScope, type BookScopedResult } from './dataCloudClient';
 export { runPromptFlow, stripHtml, type PromptFlow } from './promptClient';
 export { crmWrite, fetchCurrentUser, type CrmAction, type CrmWriteInput, type CrmWriteResult, type CurrentUser } from './crmWriteClient';
