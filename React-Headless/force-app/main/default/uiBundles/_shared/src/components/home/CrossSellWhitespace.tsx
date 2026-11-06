@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { Icon } from '../iconMap';
 import { Button } from '../Button';
 import { formatValue } from '../format';
-import type { WhitespaceData } from '../../data/whitespace';
+import { SCORE_MOVE_MIN, VALUE_MOVE_MIN, type WhitespaceCell, type WhitespaceData } from '../../data/whitespace';
 
 /**
  * ── Cross-sell / Upsell white-space analysis ──────────────────────────────
@@ -13,6 +13,14 @@ import type { WhitespaceData } from '../../data/whitespace';
  * product the client doesn't hold, scored 0-100 by the offer model's
  * conversion probability and tinted by that score. Clicking a cell, a client
  * row header, or a product column header filters the detail table below.
+ * A ▲/▼ in a cell means its score moved at least SCORE_MOVE_MIN points over
+ * the last six monthly scoring runs (the detail table's "6-mo" column). The
+ * Rising / Falling views also count a change in expected value of
+ * VALUE_MOVE_MIN or more, so a big offer that slipped under 2 points shows.
+ * The grid ranks clients by today's value, so its moves lean upward; the
+ * detail table's Rising / Falling chips add the book's biggest movers from
+ * outside the grid, ranked by the change in expected value; the 6-mo header
+ * sorts by the change in points.
  *
  * Data comes from `fetchWhitespace` (`data/whitespace.ts`); there is no
  * built-in fixture. Acting on a row is the page's call (it creates a real
@@ -44,13 +52,48 @@ interface OpportunityRow {
   action: string;
   inPipeline: boolean;
   code?: string;
+  moved?: number;
+  evMoved?: number;
+  history?: WhitespaceCell['history'];
+  /** From the wider book's movers, not a grid client. */
+  outside?: boolean;
 }
+
+/** Detail-table filter by 6-month score change. */
+type Trend = 'all' | 'up' | 'down';
+/** rise / fall = conversion points; gain / loss = expected value. */
+type SortBy = 'score' | 'rise' | 'fall' | 'gain' | 'loss';
+const TRENDS: { key: Trend; label: string; title: string }[] = [
+  { key: 'all', label: 'All', title: 'Every white-space opportunity in the grid' },
+  { key: 'up', label: '▲ Rising', title: `Up ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months, including clients outside the grid` },
+  { key: 'down', label: '▼ Falling', title: `Down ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months, including clients outside the grid` },
+];
 
 type Selection =
   | { kind: 'all' }
   | { kind: 'client'; clientId: string }
   | { kind: 'product'; productKey: string }
   | { kind: 'cell'; clientId: string; productKey: string };
+
+const monthLabel = (iso: string) =>
+  new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+
+/** "Score up 4.2 pts since May (30 → 34)" — tooltip line for a cell with history. */
+function moveText(cell: Pick<WhitespaceCell, 'moved' | 'history'>): string {
+  const h = cell.history;
+  if (!h || h.length < 2 || cell.moved == null) return '';
+  const first = h[0];
+  const last = h[h.length - 1];
+  const dir = cell.moved > 0 ? 'up' : cell.moved < 0 ? 'down' : 'flat';
+  const pts = dir === 'flat' ? '' : ` ${Math.abs(cell.moved).toFixed(1)} pts`;
+  return `Score ${dir}${pts} since ${monthLabel(first.month)} (${Math.round(first.score)} → ${Math.round(last.score)})`;
+}
+
+const isMove = (moved?: number) => moved != null && Math.abs(moved) >= SCORE_MOVE_MIN;
+const isValueMove = (evMoved?: number) => evMoved != null && Math.abs(evMoved) >= VALUE_MOVE_MIN;
+/** +1 rising, −1 falling, 0 neither: a big value change wins, else a 2-point move. */
+const trendDir = (r: { moved?: number; evMoved?: number }) =>
+  isValueMove(r.evMoved) ? Math.sign(r.evMoved!) : isMove(r.moved) ? Math.sign(r.moved!) : 0;
 
 /** Heat-tint bucket for an opportunity score (Tailwind v4 alpha via color-mix). */
 function heatClass(score: number): string {
@@ -71,6 +114,8 @@ export function CrossSellWhitespace({
   onAct?: (row: WhitespaceAct) => Promise<boolean> | boolean | void;
 }) {
   const [sel, setSel] = useState<Selection>({ kind: 'all' });
+  const [trend, setTrend] = useState<Trend>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('score');
   // Cells acted on this session — shown as in pipeline before the next reload.
   const [acted, setActed] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -98,11 +143,24 @@ export function CrossSellWhitespace({
           action: cell.action ?? '—',
           inPipeline: Boolean(cell.inPipeline) || acted.has(`${c.id}|${p.key}`),
           code: cell.code,
+          moved: cell.moved,
+          evMoved: cell.evMoved,
+          history: cell.history,
         });
       }
     }
     return rows.sort((a, b) => b.score - a.score);
   }, [clients, products, acted]);
+
+  // The book's biggest movers outside the grid (detail table only).
+  const moverOpps = useMemo<OpportunityRow[]>(
+    () => (data?.movers ?? []).map(m => ({
+      ...m,
+      inPipeline: m.inPipeline || acted.has(`${m.clientId}|${m.productKey}`),
+      outside: true,
+    })),
+    [data?.movers, acted],
+  );
 
   const act = async (r: OpportunityRow) => {
     if (!onAct || r.inPipeline || busy) return;
@@ -127,19 +185,46 @@ export function CrossSellWhitespace({
   const pipelineValue = (stats?.openValue ?? 0) + pending.reduce((s, x) => s + x, 0);
   const pipelineCount = (stats?.open ?? 0) + pending.length;
 
+  // Grid rows in the selection, plus the outside movers that fit it (a client or
+  // cell selection is a grid client, so no outside mover matches it).
+  const { sliceRows, sliceMovers } = useMemo(() => {
+    const inSel = (r: OpportunityRow) => {
+      switch (sel.kind) {
+        case 'client':
+          return r.clientId === sel.clientId;
+        case 'product':
+          return r.productKey === sel.productKey;
+        case 'cell':
+          return r.clientId === sel.clientId && r.productKey === sel.productKey;
+        default:
+          return true;
+      }
+    };
+    return { sliceRows: allOpps.filter(inSel), sliceMovers: moverOpps.filter(inSel) };
+  }, [allOpps, moverOpps, sel]);
+
+  const trendCount = (t: Exclude<Trend, 'all'>) =>
+    [...sliceRows, ...sliceMovers].filter(r => trendDir(r) === (t === 'up' ? 1 : -1)).length;
+
   const detailRows = useMemo<OpportunityRow[]>(() => {
-    switch (sel.kind) {
-      case 'client':
-        return allOpps.filter(r => r.clientId === sel.clientId);
-      case 'product':
-        return allOpps.filter(r => r.productKey === sel.productKey);
-      case 'cell':
-        return allOpps.filter(r => r.clientId === sel.clientId && r.productKey === sel.productKey);
-      case 'all':
-      default:
-        return allOpps;
-    }
-  }, [allOpps, sel]);
+    const rows = trend === 'all'
+      ? [...sliceRows]
+      : [...sliceRows, ...sliceMovers].filter(r => trendDir(r) === (trend === 'up' ? 1 : -1));
+    if (sortBy === 'score') return rows;
+    // Rows without history sort last either way.
+    const key = (r: OpportunityRow) => {
+      const x = sortBy === 'gain' || sortBy === 'loss' ? r.evMoved : r.moved;
+      return x == null ? -Infinity : sortBy === 'rise' || sortBy === 'gain' ? x : -x;
+    };
+    return rows.sort((a, b) => key(b) - key(a) || b.score - a.score);
+  }, [sliceRows, sliceMovers, trend, sortBy]);
+
+  const pickTrend = (t: Trend) => {
+    setTrend(t);
+    setSortBy(t === 'up' ? 'gain' : t === 'down' ? 'loss' : 'score');
+  };
+  // 6-mo header: biggest rises → biggest falls → score order (from a value sort, starts at rises).
+  const cycleSort = () => setSortBy(s => (s === 'rise' ? 'fall' : s === 'fall' ? 'score' : 'rise'));
 
   // Header caption describing the current selection.
   const caption = useMemo(() => {
@@ -154,9 +239,10 @@ export function CrossSellWhitespace({
         return `${clientName(sel.clientId)} · ${productLabel(sel.productKey)}`;
       case 'all':
       default:
-        return 'All white-space opportunities';
+        return trend === 'all' ? 'All white-space opportunities' : data?.scope === 'org' ? 'All clients' : 'Your book';
     }
-  }, [sel, clients, products]);
+  }, [sel, clients, products, trend, data?.scope]);
+  const trendCaption = trend === 'up' ? ' · rising scores' : trend === 'down' ? ' · falling scores' : '';
 
   const totalValue = detailRows.reduce((s, r) => s + r.estValue, 0);
 
@@ -197,6 +283,9 @@ export function CrossSellWhitespace({
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-[3px] bg-accent" /> high
+            </span>
+            <span className="flex items-center gap-1" title={`Score moved ${SCORE_MOVE_MIN}+ points over the last 6 monthly runs`}>
+              <span aria-hidden="true" className="text-[9px] normal-case">▲▼</span> moved 6 mo
             </span>
           </div>
         </header>
@@ -259,6 +348,8 @@ export function CrossSellWhitespace({
                     if (cell.score == null) return <span key={p.key} className="h-11 rounded-[8px] bg-surface-muted/40" />;
                     const score = cell.score;
                     const piped = Boolean(cell.inPipeline) || acted.has(`${c.id}|${p.key}`);
+                    const moved = isMove(cell.moved) ? cell.moved! : null;
+                    const mv = moveText(cell);
                     return (
                       <button
                         key={p.key}
@@ -266,7 +357,7 @@ export function CrossSellWhitespace({
                         onClick={() =>
                           setSel(isCellActive(c.id, p.key) ? { kind: 'all' } : { kind: 'cell', clientId: c.id, productKey: p.key })
                         }
-                        title={`${c.name} · ${p.label} — score ${score}${piped ? ' · opportunity open' : ''}\n${cell.reason ?? ''}`}
+                        title={`${c.name} · ${p.label} — score ${score}${piped ? ' · opportunity open' : ''}\n${cell.reason ?? ''}${mv ? `\n${mv}` : ''}`}
                         className={clsx(
                           'grid h-11 place-items-center rounded-[8px] text-[12px] font-bold tabular-nums transition hover:brightness-105',
                           heatClass(score),
@@ -276,6 +367,14 @@ export function CrossSellWhitespace({
                       >
                         {score}
                         {piped && <span aria-label="opportunity open" className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-fg/70" />}
+                        {moved != null && (
+                          <span
+                            aria-label={moved > 0 ? 'score rising' : 'score falling'}
+                            className="absolute bottom-0.5 left-1 text-[8.5px] leading-none opacity-80"
+                          >
+                            {moved > 0 ? '▲' : '▼'}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -291,7 +390,33 @@ export function CrossSellWhitespace({
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
           <div className="min-w-0">
             <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-faint">Opportunity detail</div>
-            <h3 className="mt-0.5 truncate text-[15px] font-semibold text-fg">{caption}</h3>
+            <h3 className="mt-0.5 truncate text-[15px] font-semibold text-fg">{caption}{trendCaption}</h3>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by 6-month score change">
+              {TRENDS.map(t => {
+                const active = trend === t.key;
+                const n = t.key === 'all' ? null : trendCount(t.key);
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => pickTrend(t.key)}
+                    aria-pressed={active}
+                    title={t.title}
+                    className={clsx(
+                      'rounded-full px-3 py-1 text-[12px] font-semibold transition',
+                      active ? 'bg-accent text-white' : 'text-muted hover:bg-surface-muted hover:text-fg',
+                    )}
+                  >
+                    {t.label}
+                    {n != null && (
+                      <span className={clsx('ml-1 font-mono text-[11px] tabular-nums', active ? 'text-white/80' : 'text-faint')}>
+                        {n}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
@@ -311,14 +436,39 @@ export function CrossSellWhitespace({
         </header>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] border-collapse text-[13px]">
+          <table className="w-full min-w-[740px] border-collapse text-[13px]">
             <thead>
               <tr className="border-b border-line text-left font-mono text-[10px] uppercase tracking-[0.1em] text-faint">
                 <th className="px-6 py-2.5 font-medium">Client</th>
                 <th className="px-3 py-2.5 font-medium">Product</th>
                 <th className="px-3 py-2.5 font-medium">Signal</th>
                 <th className="px-3 py-2.5 text-right font-medium">Score</th>
-                <th className="px-3 py-2.5 text-right font-medium">Est. value</th>
+                <th
+                  className="px-3 py-2.5 text-right font-medium"
+                  aria-sort={sortBy === 'rise' ? 'descending' : sortBy === 'fall' ? 'ascending' : 'none'}
+                >
+                  <button
+                    type="button"
+                    onClick={cycleSort}
+                    title="Change in score over the last 6 monthly scoring runs. Click to sort by biggest rise, then biggest fall."
+                    className={clsx(
+                      'inline-flex items-center gap-1 uppercase tracking-[0.1em] transition hover:text-fg',
+                      (sortBy === 'rise' || sortBy === 'fall') && 'text-fg',
+                    )}
+                  >
+                    6-mo
+                    <span aria-hidden="true" className="text-[9px]">
+                      {sortBy === 'rise' ? '▲' : sortBy === 'fall' ? '▼' : '↕'}
+                    </span>
+                  </button>
+                </th>
+                <th
+                  className={clsx('px-3 py-2.5 text-right font-medium', (sortBy === 'gain' || sortBy === 'loss') && 'text-fg')}
+                  aria-sort={sortBy === 'gain' ? 'descending' : sortBy === 'loss' ? 'ascending' : 'none'}
+                  title="Modeled value of the offer; under it, the change over the last 6 monthly runs"
+                >
+                  Est. value{sortBy === 'gain' ? ' ▲' : sortBy === 'loss' ? ' ▼' : ''}
+                </th>
                 <th className="px-6 py-2.5 text-right font-medium">Next step</th>
               </tr>
             </thead>
@@ -330,7 +480,14 @@ export function CrossSellWhitespace({
                 >
                   <td className="px-6 py-3">
                     <div className="font-semibold text-fg">{r.clientName}</div>
-                    <div className="text-[10.5px] text-faint">{r.segment}</div>
+                    <div className="text-[10.5px] text-faint">
+                      {r.segment}
+                      {r.outside && (
+                        <span title="From your wider book: this client isn't in the top-value grid above">
+                          {r.segment ? ' · ' : ''}outside the grid
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-3 text-fg">{r.productLabel}</td>
                   <td className="px-3 py-3 max-w-[280px] text-muted">{r.reason}</td>
@@ -344,8 +501,24 @@ export function CrossSellWhitespace({
                       {r.score}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-fg">
-                    {r.estValue > 0 ? formatValue(r.estValue, 'currency') : '—'}
+                  <td className="px-3 py-3 text-right tabular-nums" title={moveText(r)}>
+                    {r.moved == null ? (
+                      <span className="text-faint">—</span>
+                    ) : isMove(r.moved) ? (
+                      <span className={clsx('text-[12px] font-semibold', r.moved > 0 ? 'text-ok' : 'text-warn')}>
+                        {r.moved > 0 ? '▲' : '▼'} {Math.abs(r.moved).toFixed(1)}
+                      </span>
+                    ) : (
+                      <span className="text-[11.5px] text-faint">{r.moved > 0 ? '+' : r.moved < 0 ? '−' : '±'}{Math.abs(r.moved).toFixed(1)}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    <div className="font-semibold text-fg">{r.estValue > 0 ? formatValue(r.estValue, 'currency') : '—'}</div>
+                    {trendDir(r) !== 0 && r.evMoved != null && r.evMoved !== 0 && r.history?.length ? (
+                      <div className={clsx('text-[10.5px] font-medium', r.evMoved > 0 ? 'text-ok' : 'text-warn')}>
+                        {r.evMoved > 0 ? '+' : '−'}{formatValue(Math.abs(r.evMoved), 'currencyCompact')} since {monthLabel(r.history[0].month)}
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-6 py-3 text-right">
                     {r.inPipeline ? (
@@ -369,12 +542,16 @@ export function CrossSellWhitespace({
               ))}
               {detailRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-muted">
+                  <td colSpan={7} className="px-6 py-10 text-center text-muted">
                     {loading
                       ? 'Scoring your book…'
                       : clients.length === 0
                         ? 'No scored white space in this book yet.'
-                        : 'No white-space opportunities in this slice.'}
+                        : trend === 'down'
+                          ? `No offer in this slice fell ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months.`
+                          : trend === 'up'
+                            ? `No offer in this slice rose ${SCORE_MOVE_MIN}+ points or $${VALUE_MOVE_MIN}+ in value over 6 months.`
+                            : 'No white-space opportunities in this slice.'}
                   </td>
                 </tr>
               )}
