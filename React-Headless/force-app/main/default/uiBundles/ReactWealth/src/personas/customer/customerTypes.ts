@@ -75,8 +75,8 @@ export interface Customer360 {
   aiBriefHeadline: string;
   nextBestActions: NextBestAction[];
   highlights: Highlight[];
-  confidencePct: number;
-  dataSourceCount: number;
+  confidencePct?: number;
+  dataSourceCount?: number;
 }
 
 /** Holdings/portfolio row for the Money/Portfolio tab table. */

@@ -60,7 +60,7 @@ export interface WorkspaceBrief {
   greeting: string;
   headline: string;
   narrative: string;
-  confidencePct: number;
+  confidencePct?: number;
   pulse: WorkspaceFact[];
   agenda: WorkspaceAgendaItem[];
   focus: WorkspaceListItem[];

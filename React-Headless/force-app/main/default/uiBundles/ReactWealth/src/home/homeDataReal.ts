@@ -306,7 +306,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const scopeNote = held.scope === 'org' ? ' · org-wide' : '';
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
-  const bankerName = currentUser?.firstName || currentUser?.name || 'Alex';
+  const bankerName = currentUser?.firstName || currentUser?.name || '';
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
@@ -648,8 +648,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     aiBriefHeadline: 'held-away assets within reach',
     aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${who.clients.toLocaleString('en-US')} clients scored for who to call (held away, plans, Gong, concentration), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}${liquidity.total ? ` ${liquidity.total.toLocaleString('en-US')} ${liquidity.scope === 'book' ? 'clients in your book' : 'clients'} left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
-    confidencePct: freshness?.pct ?? 89,
-    dataSourceCount: freshness?.sources.length ?? 26,
+    confidencePct: freshness?.pct,
+    dataSourceCount: freshness?.sources.length,
     dataFreshness: freshness,
     // W3 — feeds the "What meetings need prep?" chip.
     planReviews: plans.reviewRows.map(r => ({

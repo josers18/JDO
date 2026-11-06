@@ -69,7 +69,8 @@ export function AIBrief({ customer }: { customer: Customer360 }) {
         </div>
       </div>
 
-      {/* confidence + provenance */}
+      {/* confidence + provenance — only when a real score exists */}
+      {customer.confidencePct != null && (
       <div style={{ borderTop: '1px solid var(--wp-border)', paddingTop: '0.85rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--wp-text-muted)', marginBottom: '0.4rem' }}>
           <span>AI Confidence · {customer.dataSourceCount} sources</span>
@@ -79,6 +80,7 @@ export function AIBrief({ customer }: { customer: Customer360 }) {
           <div style={{ height: '100%', width: `${customer.confidencePct}%`, background: 'var(--wp-accent)', boxShadow: '0 0 10px var(--wp-accent)' }} />
         </div>
       </div>
+      )}
     </div>
   );
 }

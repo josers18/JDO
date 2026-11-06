@@ -6,10 +6,15 @@ import { Field, TextInput, TextArea, GenLine } from './fields';
 import { useCrmAction } from './useCrmAction';
 import { runPromptFlow, stripHtml, type PromptFlow } from '../../data/promptClient';
 import { fetchAccountEmail } from '../../data/accountLookup';
+import { useCurrentUser } from '../../hooks/useCurrentUser';
+import type { CurrentUser } from '../../data/crmWriteClient';
 
-const bankerSignOff = 'Best,\nJose Sifontes\nCumulus Financial Services';
+/** Sign-off from the signed-in user (name + org); just "Best," until it resolves. */
+function signOffFor(user: CurrentUser | null): string {
+  return ['Best,', user?.name, user?.orgName].filter(Boolean).join('\n');
+}
 
-function composeDraft(clientName: string): string {
+function composeDraft(clientName: string, bankerSignOff: string): string {
   const first = clientName.split(/\s+/)[0] || 'there';
   return `Hi ${first},\n\nI wanted to reach out personally. I noticed a few items open on your account and want to make sure we get them fully resolved for you.\n\nDo you have 15 minutes this week for a quick call? I can walk through everything and take care of it in one go.\n\n${bankerSignOff}`;
 }
@@ -35,6 +40,7 @@ export function EmailModal({
   promptFlow?: PromptFlow;
 }) {
   const { submit, loading, error } = useCrmAction(onClose);
+  const bankerSignOff = signOffFor(useCurrentUser());
   const [to, setTo] = useState(toAddress);
   const [subject, setSubject] = useState('Checking in — a couple of quick next steps');
   const [body, setBody] = useState('');
@@ -58,7 +64,7 @@ export function EmailModal({
 
   const generate = async () => {
     // Composed-first: show a useful draft immediately.
-    setBody(composeDraft(clientName));
+    setBody(composeDraft(clientName, bankerSignOff));
     if (!promptFlow || !clientId) return;
     setGenerating(true);
     try {

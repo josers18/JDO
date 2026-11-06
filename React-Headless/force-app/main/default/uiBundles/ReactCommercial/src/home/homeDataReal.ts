@@ -340,7 +340,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const scopeNote = credit.scope === 'org' ? ' · org-wide' : '';
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
-  const bankerName = currentUser?.firstName || currentUser?.name || 'Alex';
+  const bankerName = currentUser?.firstName || currentUser?.name || '';
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
@@ -701,8 +701,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     aiBriefHeadline: 'borrowers on the credit watchlist',
     aiBrief: `${highRisk.toLocaleString('en-US')} of ${creditWatch.scored.toLocaleString('en-US')} D&B-scored ${credit.scope === 'book' ? 'borrowers in your book' : 'borrowers'} are on credit watch (Severe failure risk or PAYDEX under 60) and ${creditWatch.high.toLocaleString('en-US')} more sit in the High failure-risk tier — covenant-review candidates. ${who.clients.toLocaleString('en-US')} clients scored for who to call (credit, Gong, outlook, fees, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${feeSpikes.rows.length ? ` ${Math.min(FEE_SPIKES, feeSpikes.rows.length)} clients show fee spikes (3+ NSF / overdraft / late fees in 30 days): a cash-flow check-in.` : ''}${receipts.rows.length ? ` ${receipts.rows.length} clients received $10K+ customer payments this week (${receiptTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an excess-cash moment.` : ''}${intent.surging + intent.competitor + funding.funded + champions.total ? ` Market signals${[intent, funding, champions].some(x => x.scope === 'org') ? ' (some org-wide)' : ''}: ${intent.surging.toLocaleString('en-US')} accounts surging on intent, ${intent.competitor.toLocaleString('en-US')} researching a competitor, ${funding.funded.toLocaleString('en-US')} just raised a round, and ${champions.total.toLocaleString('en-US')} lost a champion or primary contact in the last 30 days.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
-    confidencePct: freshness?.pct ?? 86,
-    dataSourceCount: freshness?.sources.length ?? 25,
+    confidencePct: freshness?.pct,
+    dataSourceCount: freshness?.sources.length,
     dataFreshness: freshness,
     marketFootprint: footprint,
     firmographics: { ...firmo, rows: firmo.rows.map(r => ({ ...r, clientName: nameById[r.accountId] || 'Client' })) },

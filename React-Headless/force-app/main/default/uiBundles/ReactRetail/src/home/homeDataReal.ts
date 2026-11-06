@@ -265,7 +265,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   ]);
   // Greet the logged-in banker by first name; fall back to full name, then a
   // demo default if the identity call is unavailable (e.g. mock/offline).
-  const bankerName = currentUser?.firstName || currentUser?.name || 'Alex';
+  const bankerName = currentUser?.firstName || currentUser?.name || '';
   const q = core.uiapi?.query;
   const opp = q?.Opportunity;
 
@@ -620,8 +620,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     aiBriefHeadline: 'your book at a glance',
     aiBrief: `${who.clients.toLocaleString('en-US')} clients scored for who to call (CSAT, Gong, stress, offers), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}): an idle-cash moment.` : ''}${liquidity.total ? ` ${liquidity.total.toLocaleString('en-US')} ${liquidity.scope === 'book' ? 'clients in your book' : 'clients'} left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
-    confidencePct: freshness?.pct ?? 87,
-    dataSourceCount: freshness?.sources.length ?? 24,
+    confidencePct: freshness?.pct,
+    dataSourceCount: freshness?.sources.length,
     dataFreshness: freshness,
     propertyRisk: {
       ...propRisk,

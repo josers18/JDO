@@ -6,6 +6,7 @@ import {
   HomeViewToggle,
   ViewAsPicker,
   useViewAs,
+  useCurrentUser,
   WorkspaceSelectionProvider,
   tagSchedule,
   type CommandRailSection,
@@ -39,7 +40,8 @@ const RAIL_SECTIONS: CommandRailSection[] = [
 /** Fallback arc shown while the dashboard loads (no meetings resolved yet). */
 const FALLBACK_ARC: CommandRailArcStep[] = [{ label: 'No meetings today', time: '', state: 'todo' }];
 
-const RAIL_USER = { name: 'Jose Sifontes', sub: 'Wealth · Cumulus FS' };
+/** Persona label for the rail user chip; the name + org come from the signed-in user. */
+const RAIL_PERSONA = 'Wealth';
 const PINNED_STORAGE_KEY = 'cumulus.pinned.wealth';
 
 type HomeDashboardData = ReturnType<typeof useHomeData>['data'];
@@ -156,7 +158,9 @@ function HomeLayoutInner() {
   const { data, loading } = useHomeData();
   // "View as" preview — the rail names the banker whose book is on screen.
   const viewAs = useViewAs();
-  const railUser = viewAs ? { name: viewAs.name, sub: `Viewing as · ${RAIL_USER.sub}` } : RAIL_USER;
+  const me = useCurrentUser();
+  const meSub = me?.orgName ? `${RAIL_PERSONA} · ${me.orgName}` : RAIL_PERSONA;
+  const railUser = viewAs ? { name: viewAs.name, sub: `Viewing as · ${meSub}` } : { name: me?.name ?? '', sub: meSub };
 
   if (loading || !data) {
     return (

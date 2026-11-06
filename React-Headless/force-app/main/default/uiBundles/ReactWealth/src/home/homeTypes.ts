@@ -249,8 +249,9 @@ export interface HomeDashboard {
   /** Upcoming customer financial goals for the cockpit supporting band + explorer. */
   customerGoals: CustomerGoal[];
   rightNow?: RightNowItem;
-  confidencePct: number;
-  dataSourceCount: number;
+  /** Data-freshness share; absent when freshness could not be computed. */
+  confidencePct?: number;
+  dataSourceCount?: number;
   /** S8 — per-source as-of dates behind the hero meter (real data only). */
   dataFreshness?: DataFreshness;
   /** W3 — MoneyGuidePro plan reviews due in the next 30 days (soonest first). */

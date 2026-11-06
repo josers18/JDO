@@ -167,8 +167,6 @@ export async function fetchCustomer360Real(accountId: string | null): Promise<Cu
       ...(attritionTone === 'risk' ? [{ id: 'nba3', title: 'Service-recovery outreach', detail: `CSAT ${Math.round(csatScore ?? 0)} — below threshold`, impact: 'High' as const }] : []),
     ],
     highlights,
-    confidencePct: 87,
-    dataSourceCount: 24,
   };
 }
 

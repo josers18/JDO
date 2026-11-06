@@ -62,7 +62,8 @@ global with sharing class CrmWriteRest {
      *
      *   GET /services/apexrest/crm/whoami
      *     200: { "success": true, "userId": "005...", "name": "Jane Banker",
-     *            "firstName": "Jane", "lastName": "Banker" }
+     *            "firstName": "Jane", "lastName": "Banker",
+     *            "orgName": "Cumulus Financial Services" }
      *
      * Used by the banker home to greet the logged-in user by name instead of a
      * hardcoded placeholder. UserInfo reflects the caller (REST Apex runs as the
@@ -82,7 +83,8 @@ global with sharing class CrmWriteRest {
             'userId' => UserInfo.getUserId(),
             'name' => UserInfo.getName(),
             'firstName' => UserInfo.getFirstName(),
-            'lastName' => UserInfo.getLastName()
+            'lastName' => UserInfo.getLastName(),
+            'orgName' => UserInfo.getOrganizationName()
         }));
     }
 
