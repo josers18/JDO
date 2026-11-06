@@ -40,6 +40,17 @@ Planned volumes as of 2026-11-06:
 | Kim | 59 | 35 | 17 | 56 | 9 |
 | Allen | 151 | 84 | 33 | 142 | 17 |
 
-**Status (2026-11-06): planned, not applied.** The auto-mode permission classifier blocked the bulk write. Until the script runs, the Data 360 history reflects the org as it is: flat CRM series.
+**Status: applied 2026-11-06.** Bulk jobs (all 0 failures, ids also in `out/manifest.json`):
+
+| File | Job | Rows |
+|---|---|---|
+| `opportunity_insert` | `750am00000mn43iAAA` | 448 |
+| `opportunity_close` | `750am00000mn7G4AAI` | 410 |
+| `case_insert` | `750am00000mnFNGAA2` | 576 |
+| `lead_insert` | `750am00000mnBZnAAM` | 56 |
+
+**Getting it into Data 360.** About 20 home-org CRM streams (Opportunity, Case, Lead_Home, Contact_Home, Task_Home, Event_Home, the FSC financial streams, …) have no refresh schedule: `refreshConfig.frequency` has no `frequencyType`, and their Refresh History shows a single Total Replace on 2026-05-26 and nothing since. Healthy CRM streams carry `frequencyType: "BATCH"`. The public `PATCH /ssot/data-streams/{name}` ignores `refreshConfig.frequency` on `SalesforceDotCom` streams: it returns 200, but the response omits `refreshConfig` and nothing changes. `BATCH` isn't in the public input enum. The Edit dialog in the UI only offers "Full Refresh Interval".
+
+After a CRM load, run a Full Refresh on Opportunity, Case, Lead_Home and Account_Home (`dc-stream-full-refresh-via-ui` skill). Done 2026-11-06: Opportunity went from 30,087 to 30,718 rows, Case to 11,665, and Account_Home re-read 36,239. Lead_Home's Full Refresh was still queued at the time of writing. Their Full Refresh Interval is now 10 Days. An API `actions/run` (incremental) also works on these streams.
 
 Rollback: delete the records tagged `KPI history backfill 2026-11-06`, reopen the opps in `out/opportunity_close.csv` (their original stage is in the history). The Data 360 history follows on the next CRM sync.
