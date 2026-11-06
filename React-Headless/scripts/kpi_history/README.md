@@ -49,8 +49,14 @@ Planned volumes as of 2026-11-06:
 | `case_insert` | `750am00000mnFNGAA2` | 576 |
 | `lead_insert` | `750am00000mnBZnAAM` | 56 |
 
-**Getting it into Data 360.** About 20 home-org CRM streams (Opportunity, Case, Lead_Home, Contact_Home, Task_Home, Event_Home, the FSC financial streams, …) have no refresh schedule: `refreshConfig.frequency` has no `frequencyType`, and their Refresh History shows a single Total Replace on 2026-05-26 and nothing since. Healthy CRM streams carry `frequencyType: "BATCH"`. The public `PATCH /ssot/data-streams/{name}` ignores `refreshConfig.frequency` on `SalesforceDotCom` streams: it returns 200, but the response omits `refreshConfig` and nothing changes. `BATCH` isn't in the public input enum. The Edit dialog in the UI only offers "Full Refresh Interval".
+**Getting it into Data 360.** About 20 home-org CRM streams had no refresh schedule: `DataStream.RefreshFrequency = NONE` where healthy CRM streams have `BATCH`. Their Refresh History showed a single Total Replace on 2026-05-26 and nothing since. Affected: Opportunity, Case, Lead_Home, Account_Home, Contact_Home, OpportunityContactRole_Home, Task_Home, Event_Home, EmailMessage(Relation)_Home, AccountAccountRelationship, Alert, Card, Securities, and the Financial_* / FinServ_* streams.
 
-After a CRM load, run a Full Refresh on Opportunity, Case, Lead_Home and Account_Home (`dc-stream-full-refresh-via-ui` skill). Done 2026-11-06: Opportunity went from 30,087 to 30,718 rows, Case to 11,665, and Account_Home re-read 36,239. Lead_Home's Full Refresh was still queued at the time of writing. Their Full Refresh Interval is now 10 Days. An API `actions/run` (incremental) also works on these streams.
+- **Set the schedule through the sObject API, not Connect.** `sf data update record -s DataStream -i <1ds…> -v "RefreshFrequency=BATCH"` works, and the Connect API then reports `frequencyType: "BATCH"`. `PATCH /ssot/data-streams/{name}` ignores `refreshConfig.frequency` on `SalesforceDotCom` streams: it returns 200, but nothing changes.
+- **One-off sync after a CRM load:** a Full Refresh (`dc-stream-full-refresh-via-ui` skill), or an API `actions/run`.
+
+Done 2026-11-06:
+- Full Refresh: Opportunity 30,087 → 30,718 rows, Case 11,665, Account_Home 36,239, Lead_Home 641 → 719.
+- The series move in all three cockpits. Retail: pipeline ▼0.1%, leads ▲10.3%.
+- `RefreshFrequency=BATCH` is set on Securities; the other streams are still pending.
 
 Rollback: delete the records tagged `KPI history backfill 2026-11-06`, reopen the opps in `out/opportunity_close.csv` (their original stage is in the history). The Data 360 history follows on the next CRM sync.
