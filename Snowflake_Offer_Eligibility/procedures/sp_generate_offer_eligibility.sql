@@ -371,7 +371,8 @@ BEGIN
 
     INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
         (TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
-    SELECT 'TASK_MONTHLY_OFFER_ELIGIBILITY', 'SUCCESS', :rows_written, :audience, NULL,
+    SELECT 'TASK_MONTHLY_OFFER_ELIGIBILITY', 'SUCCEEDED',  -- SP_DAILY_JOB_REPORT counts only SUCCEEDED as a pass
+           :rows_written, :audience, NULL,
            DATEDIFF('millisecond', :started, CURRENT_TIMESTAMP());
 
     RETURN 'OFFER_ELIGIBILITY ' || run_month || ': ' || rows_written || ' rows, ' || audience
