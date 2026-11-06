@@ -20,7 +20,8 @@
  *   · Movers   — the grid ranks by today's value, so it leans toward rising
  *                scores. `movers` holds the book's biggest risers and fallers
  *                (eligible offers, |move| ≥ `SCORE_MOVE_MIN`) among clients
- *                outside the grid, for the detail table's Rising / Falling views.
+ *                outside the grid, for the detail table's Rising / Falling views,
+ *                ranked by the change in expected value, not raw points.
  *
  * Rows: the 12 clients in the banker's book with the most eligible white-space
  * value — except that ranking favors clients who own the least (an owned
@@ -126,6 +127,8 @@ export interface WhitespaceCell {
   history?: { month: string; score: number }[];
   /** Conversion-point change from the first month in `history` to the latest (Data 360). */
   moved?: number;
+  /** Expected-value change over the same window, USD (Data 360). */
+  evMoved?: number;
 }
 
 export interface WhitespaceClient {
@@ -157,6 +160,7 @@ export interface WhitespaceMover {
   action: string;
   inPipeline: boolean;
   moved: number;
+  evMoved: number;
   /** First and latest run in the window. */
   history: { month: string; score: number }[];
 }
@@ -214,19 +218,22 @@ const scoreHistorySql = (ids: string[], codes: string[]) => `
   SELECT account_id__c AS acct, action_code__c AS code, CAST(start_date__c AS VARCHAR) AS mo,
          conversion_probability__c AS conv,
          conversion_probability__c - FIRST_VALUE(conversion_probability__c)
-           OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS moved
+           OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS moved,
+         expected_value_uplift__c - FIRST_VALUE(expected_value_uplift__c)
+           OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS ev_moved
   FROM BT_Offer_Eligibility_History__dlm
   WHERE start_date__c >= (SELECT MAX(start_date__c) FROM BT_Offer_Eligibility_History__dlm) - INTERVAL '${SCORE_HISTORY_MONTHS}' MONTH
     AND account_id__c IN (${quote(ids)})
     AND action_code__c IN (${quote(codes)})
   ORDER BY acct, code, mo`;
 
-// The book's biggest score moves at the latest run, one direction per call, for
-// offers still eligible today. The window functions see the whole window; the
+// The book's score moves (|points| >= SCORE_MOVE_MIN) at the latest run, one
+// direction per call, for offers still eligible today, ranked by the change in
+// expected value: a 2-point drop on a big offer outranks a 5-point drop on a tiny one. The window functions see the whole window; the
 // outer query keeps the latest month. `extra` narrows the accounts further.
 const moversSql = (codes: string[], accountFilter: string, dir: 'up' | 'down', extra = '') => `
   SELECT h.acct AS acct, h.code AS code, h.conv AS conv, h.ev AS ev, h.action_rank AS action_rank,
-         h.channels AS channels, h.em_p AS em_p, h.cc_p AS cc_p, h.moved AS moved,
+         h.channels AS channels, h.em_p AS em_p, h.cc_p AS cc_p, h.moved AS moved, h.ev_moved AS ev_moved,
          h.first_mo AS first_mo, CAST(h.mo AS VARCHAR) AS mo
   FROM (
     SELECT account_id__c AS acct, action_code__c AS code, start_date__c AS mo,
@@ -235,6 +242,8 @@ const moversSql = (codes: string[], accountFilter: string, dir: 'up' | 'down', e
            em_probability__c AS em_p, cc_probability__c AS cc_p,
            conversion_probability__c - FIRST_VALUE(conversion_probability__c)
              OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS moved,
+           expected_value_uplift__c - FIRST_VALUE(expected_value_uplift__c)
+             OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS ev_moved,
            CAST(FIRST_VALUE(start_date__c)
              OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS VARCHAR) AS first_mo
     FROM BT_Offer_Eligibility_History__dlm
@@ -245,7 +254,7 @@ const moversSql = (codes: string[], accountFilter: string, dir: 'up' | 'down', e
   WHERE h.mo = (SELECT MAX(start_date__c) FROM BT_Offer_Eligibility_History__dlm)
     AND h.action_rank IS NOT NULL AND h.ev > 0
     AND h.moved ${dir === 'up' ? `>= ${SCORE_MOVE_MIN}` : `<= -${SCORE_MOVE_MIN}`}
-  ORDER BY h.moved ${dir === 'up' ? 'DESC' : 'ASC'}
+  ORDER BY h.ev_moved ${dir === 'up' ? 'DESC' : 'ASC'}
   LIMIT ${MOVERS_LIMIT * 2}`;
 
 const idList = (ids: string[]) => ids.map(i => `"${i}"`).join(', ');
@@ -409,12 +418,13 @@ export async function fetchWhitespace(
   ]);
 
   // acct|code → monthly points (rows arrive ordered by month); the last row's `moved` is the window's change.
-  const historyBy = new Map<string, { points: { month: string; score: number }[]; moved: number }>();
+  const historyBy = new Map<string, { points: { month: string; score: number }[]; moved: number; evMoved: number }>();
   for (const r of scoreRows) {
     const k = `${cleanId(String(r.acct ?? ''))}|${r.code}`;
-    const h = historyBy.get(k) ?? { points: [], moved: 0 };
+    const h = historyBy.get(k) ?? { points: [], moved: 0, evMoved: 0 };
     h.points.push({ month: String(r.mo ?? '').slice(0, 10), score: Number(r.conv) || 0 });
     h.moved = Number(r.moved) || 0;
+    h.evMoved = Number(r.ev_moved) || 0;
     historyBy.set(k, h);
   }
 
@@ -487,7 +497,7 @@ export async function fetchWhitespace(
         action: cc > em ? c.act[1] : c.act[0],
         inPipeline: statsRes?.openKeys.has(`${id}|${c.label}`) ?? false,
         ...(hist && hist.points.length >= 2
-          ? { history: hist.points, moved: Math.round(hist.moved * 10) / 10 }
+          ? { history: hist.points, moved: Math.round(hist.moved * 10) / 10, evMoved: Math.round(hist.evMoved) }
           : {}),
       };
     }
@@ -527,6 +537,7 @@ export async function fetchWhitespace(
       action: cc > em ? c.act[1] : c.act[0],
       inPipeline: statsRes?.openKeys.has(`${id}|${c.label}`) ?? false,
       moved: Math.round(rawMove * 10) / 10,
+      evMoved: Math.round(Number(m.ev_moved) || 0),
       history: [
         { month: String(m.first_mo ?? '').slice(0, 10), score: Math.round((conv - rawMove) * 100) / 100 },
         { month: String(m.mo ?? '').slice(0, 10), score: conv },
