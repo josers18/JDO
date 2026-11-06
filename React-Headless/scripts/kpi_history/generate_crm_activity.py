@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Write ~9 weeks of real, backdated CRM activity for the three cockpit bankers so
-CockpitKpiSnapshot.backfill(8) has genuine movement to reconstruct.
+Write ~9 weeks of real, backdated CRM activity for the three cockpit bankers so the
+Data 360 week-by-week reconstruction (crmKpis.ts historySql) has genuine movement.
 
 The org's CRM book was bulk-loaded on 2026-05-21..26 and has not moved since,
-so an honest reconstruction of the last 8 weeks is flat. This script adds the
+so an honest Data 360 reconstruction of the last 8 weeks is flat. This script adds the
 week-by-week activity a live book would have had, on the bankers' own accounts:
 
   · new opportunities, cloned from the banker's open opps (same account, name,

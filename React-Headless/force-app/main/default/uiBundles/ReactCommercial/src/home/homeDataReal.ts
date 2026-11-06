@@ -259,7 +259,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const userP = fetchEffectiveUser();
   // Weekly net flow from Snowflake FINANCIAL_TRANSACTIONS (via Data Cloud) — additive.
   const netFlowP = userP.then(u => fetchNetFlow(u?.userId, 'Business')).catch((): NetFlowResult | null => null);
-  // True CRM totals (aggregates, not the first N rows) + their weekly snapshot history.
+  // True CRM totals (aggregates, not the first N rows) + their weekly history, computed in Data 360 (crmKpis.ts).
   const crmP = userP.then(u => fetchCrmKpis(u?.userId)).catch((): CrmKpis | null => null);
   const [core, credit, who, currentUser, feeSpikes, gong, aml, offers, intros, receipts, uplift, touches, serviceNow, freshness, outlook, leadership, esg, firmo, handoffs, footprint, intent, funding, champions] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
@@ -668,7 +668,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   // ── Pipeline movement — group open opportunities by stage, summing amount.
   //    Stage sums are aggregates over every open opp; the trend and delta are
-  //    the stage's weekly Cockpit_KPI_Snapshot__c history (stage:<StageName>).
+  //    the stage's weekly Data 360 history (stage:<StageName>).
   const byStage = new Map<string, number>();
   for (const e of opp?.edges ?? []) {
     const stage = s(e.node, 'StageName') || 'Other';
