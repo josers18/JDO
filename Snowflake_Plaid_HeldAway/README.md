@@ -4,7 +4,7 @@ Synthetic Plaid-style held-away financial accounts per Retail/Wealth (personal) 
 [Snowflake_CoreLogic_Property](../Snowflake_CoreLogic_Property) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
-**Plan 6 is account-scoped with monthly cadence — the first 1:N dataset in the Cumulus rollout.** Each anchor produces 1–5 held-away account rows. Rows are keyed by composite PK `(ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)` (~55,000 rows/month). Each customer keeps the same held-away accounts every month; balances drift and are always positive, with `BALANCE_CATEGORY` = asset/liability. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK is the single-column `heldAwayAccountId__c` with `accountId__c` and `profileMonth__c` as KQ qualifiers.
+**Plan 6 is account-scoped with monthly cadence — the first 1:N dataset in the Cumulus rollout.** Each anchor produces 1–5 held-away account rows. Rows are keyed by composite PK `(ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH)` (~66,500 rows/month). Each customer keeps the same held-away accounts every month; balances drift and are always positive, with `BALANCE_CATEGORY` = asset/liability. The DMO is joinable to `ssot__Account__dlm` via FK `ACCOUNT_ID`; DC PK is the single-column `heldAwayAccountId__c` with `accountId__c` and `profileMonth__c` as KQ qualifiers.
 
 ## Plan
 - Plan 6, instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -31,6 +31,13 @@ Live cardinality (2026-10-24): **30,997 anchors** — 25,381 personal (Retail 21
 
 **Business held-away** (added 2026-10-24): account types `Business Checking`, `Business Savings`, `Money Market`, `Sweep Account` (Commercial only) as assets and `Line of Credit`, `Commercial Loan`, `Commercial Card` as liabilities, at banks (Chase, Bank of America, Wells Fargo, Citi, PNC, US Bank, Truist, Capital One) or `Fintech` (Mercury, Brex; checking and cards only). Balances scale with `ANNUAL_REVENUE` (capped at $10M); `INVESTMENT_RISK_TIER` is null. Small Business gets 1–4 accounts, Commercial 1–5. The personal path's draws are unchanged, so personal rows are identical to v2.
 
+## Market drift and moves to another firm (v3, 2026-11-06)
+Investment balances (Brokerage, Managed Portfolio, IRA, 401k, HSA, Crypto Wallet) follow one shared market index instead of drifting independently. `_MARKET_RETURNS` holds the monthly returns: a summer rally, an Aug–Sep pullback, then an Oct–Nov rally that leaves the index ~6% above May. Each account scales the index by its own beta (Crypto 2–3×, Brokerage 0.8–1.3×, HSA 0.3–0.6×), plus ±1.5% noise. Months outside the table get a hashed return.
+
+About 4% of personal Brokerage / Managed Portfolio / IRA accounts move to another firm in one month between Jun 2026 and May 2027. That month the balance goes to 0 with `MONTHLY_NET_FLOW_USD = −balance`; later months stay at 0 and inactive.
+
+Both feed the offer model in [Snowflake_Offer_Eligibility](../Snowflake_Offer_Eligibility): the held-away bonus and value basis follow these balances, so a move-out shows up as a falling Investing / Managed Account offer in the cockpits' Rising/Falling lists. **After regenerating Plaid months, re-score the same months with `SP_GENERATE_OFFER_ELIGIBILITY`, oldest first, so the latest month replaces the current table.**
+
 ## Tests
 ```bash
 cd Snowflake_Plaid_HeldAway
@@ -42,9 +49,12 @@ pytest tests/ -v
 ## Deploy
 ```bash
 snow sql -f schemas/plaid_held_away.sql
-python scripts/deploy_sp.py --no-deploy      # rebuilds procedures/sp_create_procedure.sql
-snow sql -f procedures/sp_create_procedure.sql
+python scripts/deploy_sp.py                  # rebuilds sp_create_procedure.sql and runs it as ACCOUNTADMIN
 snow sql -f tasks/task_monthly_plaid_held_away.sql
 ```
+
+The SP is `EXECUTE AS OWNER` and `write_pandas` needs CREATE TABLE, so it must be created (owned) by ACCOUNTADMIN; `deploy_sp.py` passes `--role ACCOUNTADMIN` by default. If you run the SQL by hand, use `snow sql --role ACCOUNTADMIN -f procedures/sp_create_procedure.sql`.
+
+Regenerate a month: `snow sql --role ACCOUNTADMIN -q "CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY('2026-11-01'::DATE)"`.
 
 DC ingest is configured via the existing federation connector (see Plan 6 Task 7 + the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`).
