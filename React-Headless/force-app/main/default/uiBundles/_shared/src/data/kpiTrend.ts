@@ -14,7 +14,7 @@
  *     held balance, so the tile shows weekly flow.
  *
  * A series needs ≥ 2 real points; otherwise the tile shows no sparkline and no
- * delta (never a seeded one). CRM tiles have no history in the org yet.
+ * delta (never a seeded one). CRM tiles get theirs from Cockpit_KPI_Snapshot__c (crmKpis.ts).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 

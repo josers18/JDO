@@ -42,7 +42,7 @@
  * opportunity driver in the blended "who to call" score. Field names + DMO columns verified live against jdo-oe0sdd
  * (2026-10-20) via uiapi + DcBridgeRest probes.
  */
-import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult, fetchNetFlow, summaryTrend, type NetFlowResult } from '@shared';
+import { executeGraphQL, queryDataCloud, queryDataCloudForBook, fetchEffectiveUser, getViewAs, ownerScopedQuery, fetchLargeInflows, inflowQueueItems, type TxSignalResult, type LargeInflow, fetchCallSentiment, callSentimentQueueItems, type CallSentimentResult, fetchAmlChanges, amlChangeQueueItems, type AmlChange, fetchNextBestOffers, offerRecommendations, type NextBestOfferResult, fetchWarmIntros, warmIntroLeads, interleave, type WarmIntroResult, fetchModeledUplift, type ModeledUplift, fetchCampaignTouches, campaignTouchQueueItems, type CampaignTouchResult, fetchServiceNowDrag, type ServiceNowDrag, fetchDataFreshness, type DataFreshness, fetchPlanHealth, PLAN_RISK_ROWS, planRiskQueueItems, planReviewQueueItems, type PlanHealthResult, fetchDigitalLeakage, type DigitalLeakageResult, fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, fetchBusinessOwners, type BusinessOwnersResult, fetchWealthUpgrades, wealthUpgradeQueueItems, type WealthUpgradeResult, fetchHoldingsConcentration, concentrationQueueItems, type HoldingsConcentrationResult, fetchWealthWhoToCall, wealthWhoToCallItems, dropCovered, inheritDue, fetchLiquidityEvents, liquidityQueueItems, LIQUIDITY_ROWS, type JobChangeResult, fetchNetFlow, summaryTrend, type NetFlowResult, fetchCrmKpis, type CrmKpis, type CrmKpiValue } from '@shared';
 import type { HomeDashboard, CallItem, CaseItem, CustomerGoal, ScheduleItem, BankerGoal, LeadReferral, PipelineItem, Recommendation, RightNowItem, LifeEventSignal, ActivityItem, PipelineMovement } from './homeTypes';
 
 /* ── Life-event signals ───────────────────────────────────────────
@@ -238,6 +238,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   const userP = fetchEffectiveUser();
   // Weekly net flow from Snowflake FINANCIAL_TRANSACTIONS (via Data Cloud) — additive.
   const netFlowP = userP.then(u => fetchNetFlow(u?.userId)).catch((): NetFlowResult | null => null);
+  // True CRM totals (aggregates, not the first N rows) + their weekly snapshot history.
+  const crmP = userP.then(u => fetchCrmKpis(u?.userId)).catch((): CrmKpis | null => null);
   const [core, held, who, currentUser, inflows, gong, aml, offers, intros, uplift, touches, serviceNow, freshness, plans, leakage, trades, owners, upgrades, concentration, liquidity] = await Promise.all([
     executeGraphQL<CoreShape>(ownerScopedQuery(HOME_CORE_QUERY, getViewAs()?.userId)),
     userP.then(u => queryDataCloudForBook<HeldAwayRow>(heldAwaySql, u?.userId, 8)),
@@ -287,6 +289,8 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       .catch((): JobChangeResult => ({ rows: [], total: 0, scope: 'org' })),
   ]);
   const netFlow = await netFlowP;
+  const crm = await crmP;
+  const crmHist = (m?: CrmKpiValue) => (m ? { trend: m.trend, deltaPct: m.deltaPct } : {});
   const [heldTotal, heldHistory] = await Promise.all([
     queryDataCloud<HeldAwayTotalRow>(heldAwayTotalSql(held.accountFilter), 1)
       .then(r => r.rows[0])
@@ -344,7 +348,9 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
 
   const totalHeldAway = Number(heldTotal?.balance ?? held.rows.reduce((sum, r) => sum + Number(r.balance || 0), 0));
   const heldAwayClients = Number(heldTotal?.clients ?? held.rows.length);
-  const pipelineValue = (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
+  // Aggregate SUM over every open opp; the list query below only carries the top 200.
+  const pipelineValue = crm?.pipeline.value ?? (opp?.edges ?? []).reduce((sum, e) => sum + num(e.node, 'Amount'), 0);
+  const openOppCount = crm?.openOpps.value ?? opp?.totalCount ?? 0;
 
   // W9 — the blended Who-to-Call: held-away balance + outflow, plans at risk,
   // souring Gong calls and single-stock concentration, one score per client.
@@ -610,24 +616,21 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
   }));
 
   // ── Pipeline movement — group open opportunities by stage, summing amount.
-  //    A real, live-derived roll-up (deltaPct is a flat placeholder — no
-  //    historical snapshot is wired yet).
+  //    Stage sums are aggregates over every open opp; the trend and delta are
+  //    the stage's weekly Cockpit_KPI_Snapshot__c history (stage:<StageName>).
   const byStage = new Map<string, number>();
   for (const e of opp?.edges ?? []) {
     const stage = s(e.node, 'StageName') || 'Other';
     byStage.set(stage, (byStage.get(stage) ?? 0) + num(e.node, 'Amount'));
   }
-  const pipelineMovement: PipelineMovement[] = [...byStage.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const pipelineMovement: PipelineMovement[] = (crm?.stages.length
+    ? crm.stages.map(st => ({ label: st.label, amount: st.value, trend: st.trend, deltaPct: st.deltaPct }))
+    : [...byStage.entries()].sort((a, b) => b[1] - a[1]).map(([label, amount]) => ({ label, amount })))
     .slice(0, 4)
-    .map(([label, amount], i) => ({
-      id: `pm${i}`,
-      label,
-      amount,
-    }));
+    .map((st, i) => ({ id: `pm${i}`, ...st }));
 
   // S7 — open service drag: CRM open cases + the book's open ServiceNow cases.
-  const crmOpen = q?.Case?.totalCount ?? 0;
+  const crmOpen = crm?.openCases.value ?? q?.Case?.totalCount ?? 0;
   const openCases = crmOpen + serviceNow.open;
   const agedCases = (q?.CaseAged?.totalCount ?? 0) + serviceNow.aged;
 
@@ -635,7 +638,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     bankerName,
     dateLabel: 'Today',
     aiBriefHeadline: 'held-away assets within reach',
-    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${who.clients.toLocaleString('en-US')} clients scored for who to call (held away, plans, Gong, concentration), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}${liquidity.total ? ` ${liquidity.total.toLocaleString('en-US')} ${liquidity.scope === 'book' ? 'clients in your book' : 'clients'} left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.` : ''}`,
+    aiBrief: `${heldAwayClients.toLocaleString('en-US')} ${held.scope === 'book' ? 'clients in your book' : 'clients'} hold external investment assets totalling ${totalHeldAway.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}; ${highValue} are $5M+ consolidation opportunities. ${who.clients.toLocaleString('en-US')} clients scored for who to call (held away, plans, Gong, concentration), ${who.multiSignal.toLocaleString('en-US')} with two or more risk signals; ${highRisk} of the top ${callList.length} high-risk. ${openOppCount.toLocaleString('en-US')} open opportunities worth ${pipelineValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in pipeline. ${schedule.length} activities scheduled.${inflows.rows.length ? ` ${inflows.rows.length} clients received a bonus or tax refund this week (${inflowTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })}) that could be invested.` : ''}${liquidity.total ? ` ${liquidity.total.toLocaleString('en-US')} ${liquidity.scope === 'book' ? 'clients in your book' : 'clients'} left an employer with a liquidity event in the last 180 days: a rollover / equity-proceeds conversation.` : ''}`,
     // S8 — freshness replaces the static confidence (kept as the fallback).
     confidencePct: freshness?.pct,
     dataSourceCount: freshness?.sources.length,
@@ -654,10 +657,10 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
     kpis: [
       { key: 'netFlow', label: 'Net Flow', value: netFlow?.last?.net ?? 0, format: 'currencyCompact', trend: netFlow?.trend, note: netFlow?.last ? `Credits − debits, week of ${netFlow.last.week} · ${netFlow.last.accounts.toLocaleString('en-US')} accounts · Snowflake${netFlow.scope === 'org' ? ' · org-wide' : ''}` : 'No transactions in book' },
       { key: 'heldAway', label: 'Held-Away Opportunity', value: totalHeldAway, format: 'currencyCompact', ...heldHistory, note: heldAwayClients ? `${heldAwayClients.toLocaleString('en-US')} clients · brokerage + robo${scopeNote}` : 'No held-away assets in book' },
-      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', note: `${(opp?.totalCount ?? 0).toLocaleString('en-US')} open opportunities` },
-      { key: 'openOpps', label: 'Opportunities', value: opp?.totalCount ?? 0, format: 'number', note: 'In progress' },
-      { key: 'leads', label: 'Leads & Referrals', value: leads.length, format: 'number', note: 'Open leads' },
-      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', note: `${crmOpen.toLocaleString('en-US')} CRM · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
+      { key: 'pipeline', label: 'Pipeline', value: pipelineValue, format: 'currencyCompact', ...crmHist(crm?.pipeline), note: `${openOppCount.toLocaleString('en-US')} open opportunities` },
+      { key: 'openOpps', label: 'Opportunities', value: openOppCount, format: 'number', ...crmHist(crm?.openOpps), note: 'In progress' },
+      { key: 'leads', label: 'Leads & Referrals', value: crm?.leads.value ?? leads.length, format: 'number', ...crmHist(crm?.leads), note: 'Open leads' },
+      { key: 'openCases', label: 'Open Cases', value: openCases, format: 'number', ...crmHist(crm?.openCases), note: `${crmOpen.toLocaleString('en-US')} CRM${crm?.openCases.trend ? ' (trend)' : ''} · ${serviceNow.open.toLocaleString('en-US')} ServiceNow${agedCases ? ` · ${agedCases.toLocaleString('en-US')} open 30d+` : ''}` },
       { key: 'atRisk', label: '$5M+ Targets', value: highValue, format: 'number', note: 'Consolidation' },
       { key: 'callTone', label: 'Call Tone Sliding', value: toneNow, format: 'number', trend: toneSeries.length > 1 ? toneSeries : undefined, deltaPct: tonePrev ? (toneNow - tonePrev) / tonePrev : undefined, note: `Negative & declining on Gong${gong.scope === 'org' ? ' · org-wide' : ''}` },
       { key: 'uplift', label: 'Modeled Uplift', value: uplift.total, format: 'currencyCompact', note: uplift.clients ? `${uplift.clients.toLocaleString('en-US')} clients with an eligible offer${uplift.byOffer[0] ? ` · top: ${uplift.byOffer[0].offer}` : ''}${uplift.scope === 'org' ? ' · org-wide' : ''}` : 'No eligible offers in book' },
@@ -665,7 +668,7 @@ export async function fetchHomeDashboardReal(): Promise<HomeDashboard> {
       { key: 'bizOwners', label: 'Business Owners', value: owners.owners, format: 'number', note: owners.owners ? `${owners.businesses.toLocaleString('en-US')} businesses · ${owners.upmarket.toLocaleString('en-US')} at $50M+ · relationship graph${owners.scope === 'org' ? ' · org-wide' : ''}` : 'No business owners in book' },
       { key: 'upgrades', label: 'Upgrade Prospects', value: upgrades.candidates, format: 'number', ...upgrades.history, note: upgrades.candidates ? `$1M+ est. net worth, not in Wealth · ${upgrades.fiveM.toLocaleString('en-US')} at $5M+ · Claritas${upgrades.scope === 'org' ? ' · org-wide' : ''}` : 'No upgrade prospects in book' },
       { key: 'concentrated', label: 'Concentrated Positions', value: concentration.concentrated, format: 'number', note: concentration.clients ? `of ${concentration.clients.toLocaleString('en-US')} clients with holdings · one stock ≥ 20% · ${Math.round(concentration.singleStockShare * 100)}% of ${concentration.aum.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 })} in single stocks${concentration.scope === 'org' ? ' · org-wide' : ''}` : 'No CRM holdings in book' },
-      { key: 'goals', label: 'Active Goals', value: bankerGoals.length, format: 'number', note: 'On track' },
+      { key: 'goals', label: 'Active Goals', value: crm?.goals.value ?? bankerGoals.length, format: 'number', ...crmHist(crm?.goals), note: 'On track' },
     ],
     callList,
     pipeline,

@@ -125,7 +125,9 @@ In `personas/customer/customerDataReal.ts` (Retail :94–154, Wealth/Commercial 
 1. **#3 identity + #5 numeric fallbacks + #8 + #9 opened date:** small, `_shared`-heavy, one PR.
 2. ✅ **#1 Data Cloud sparklines** (no new data needed) and drop `seedTrend`; **CRM tiles** render without sparklines until step 4.
 3. **#2 cross-sell, real** (after the in-org coverage check).
-4. **#1 CRM KPI snapshot object + scheduler + backfill**, then turn on the CRM sparklines.
+4. ✅ **#1 CRM KPI snapshot object + scheduler + backfill**, then turn on the CRM sparklines.
+
+> **Done 2026-11-06 (step 4).** `Cockpit_KPI_Snapshot__c` + `CockpitKpiSnapshot` (nightly 01:30, `backfill(8)` run: 1,602 rows / 23 bankers) + `crmKpis.ts`. The CRM tiles (Pipeline, Opportunities, Leads, Open Cases, Active Goals) and the Pipeline Movement stages have real sparklines and week-over-week deltas in all 3 cockpits, and their values are now true aggregates (the top-200 / first-6 truncation is fixed). The backdated-activity generator (`scripts/kpi_history/generate_crm_activity.py`) is planned but **not applied**; the bulk write is waiting on approval. Until it runs, the series reflect the org as loaded (mostly flat).
 5. **#4 C360 health, #6 notes, #7 AI slots, #5 generated brief.**
 6. **P1 dead-code deletion** across all 3 bundles.
 

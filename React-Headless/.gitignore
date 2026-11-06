@@ -53,3 +53,6 @@ $RECYCLE.BIN/
 .playwright-mcp/
 .remember/
 **/tsconfig.tsbuildinfo
+
+# generator outputs (org exports + bulk job results)
+scripts/kpi_history/out/
