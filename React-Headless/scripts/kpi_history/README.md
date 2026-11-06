@@ -57,6 +57,6 @@ Planned volumes as of 2026-11-06:
 Done 2026-11-06:
 - Full Refresh: Opportunity 30,087 → 30,718 rows, Case 11,665, Account_Home 36,239, Lead_Home 641 → 719.
 - The series move in all three cockpits. Retail: pipeline ▼0.1%, leads ▲10.3%.
-- `RefreshFrequency=BATCH` is set on Securities; the other streams are still pending.
+- `RefreshFrequency=BATCH` is set on all 20 (2026-11-06, one composite `PATCH /composite/sobjects`). Every one of them refreshed in the regular batch cycle by 19:00, which runs about every 10 minutes whether or not the data changed. In the sObject, some streams are named differently from Connect: Account_Home is `Account`, Lead_Home is `Lead`, Contact_Home is `Contact`, and the FinServ streams are "Financial Account Data Stream" / "Assets and Liabilities". Every `SalesforceDotCom_Home` source the cockpits read is now on BATCH; AccountContactRelation_Home is on STREAMING.
 
 Rollback: delete the records tagged `KPI history backfill 2026-11-06`, reopen the opps in `out/opportunity_close.csv` (their original stage is in the history). The Data 360 history follows on the next CRM sync.
