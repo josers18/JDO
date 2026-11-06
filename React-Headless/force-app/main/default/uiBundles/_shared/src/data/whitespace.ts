@@ -17,6 +17,10 @@
  *                `OFFER_ELIGIBILITY_HISTORY`, one row per account × code × run
  *                month). Data 360 computes the change (latest − first month in
  *                the window); the grid flags |move| ≥ `SCORE_MOVE_MIN` points.
+ *   · Movers   — the grid ranks by today's value, so it leans toward rising
+ *                scores. `movers` holds the book's biggest risers and fallers
+ *                (eligible offers, |move| ≥ `SCORE_MOVE_MIN`) among clients
+ *                outside the grid, for the detail table's Rising / Falling views.
  *
  * Rows: the 12 clients in the banker's book with the most eligible white-space
  * value — except that ranking favors clients who own the least (an owned
@@ -44,6 +48,8 @@ export const HOLDER_ROWS = 3;
 export const SCORE_HISTORY_MONTHS = 6;
 /** Smallest 6-month change (conversion points) the grid calls a move. */
 export const SCORE_MOVE_MIN = 2;
+/** Book-wide movers fetched per direction, for the detail table's Rising / Falling views. */
+export const MOVERS_LIMIT = 25;
 
 /**
  * Per persona: the products whose holders get reserved rows (one CRM FA filter
@@ -137,9 +143,29 @@ export interface WhitespaceStats {
   won30: number;
 }
 
+/** A cell from the wider book whose score moved, shown only in the detail table. */
+export interface WhitespaceMover {
+  clientId: string;
+  clientName: string;
+  segment: string;
+  productKey: string;
+  productLabel: string;
+  code: string;
+  score: number;
+  estValue: number;
+  reason: string;
+  action: string;
+  inPipeline: boolean;
+  moved: number;
+  /** First and latest run in the window. */
+  history: { month: string; score: number }[];
+}
+
 export interface WhitespaceData {
   products: WhitespaceProduct[];
   clients: WhitespaceClient[];
+  /** Biggest risers and fallers in the book among clients not in `clients`. */
+  movers?: WhitespaceMover[];
   stats?: WhitespaceStats;
   scope?: BookScope;
 }
@@ -194,6 +220,33 @@ const scoreHistorySql = (ids: string[], codes: string[]) => `
     AND account_id__c IN (${quote(ids)})
     AND action_code__c IN (${quote(codes)})
   ORDER BY acct, code, mo`;
+
+// The book's biggest score moves at the latest run, one direction per call, for
+// offers still eligible today. The window functions see the whole window; the
+// outer query keeps the latest month. `extra` narrows the accounts further.
+const moversSql = (codes: string[], accountFilter: string, dir: 'up' | 'down', extra = '') => `
+  SELECT h.acct AS acct, h.code AS code, h.conv AS conv, h.ev AS ev, h.action_rank AS action_rank,
+         h.channels AS channels, h.em_p AS em_p, h.cc_p AS cc_p, h.moved AS moved,
+         h.first_mo AS first_mo, CAST(h.mo AS VARCHAR) AS mo
+  FROM (
+    SELECT account_id__c AS acct, action_code__c AS code, start_date__c AS mo,
+           conversion_probability__c AS conv, expected_value_uplift__c AS ev,
+           recommended_action_rank__c AS action_rank, recommended_channels__c AS channels,
+           em_probability__c AS em_p, cc_probability__c AS cc_p,
+           conversion_probability__c - FIRST_VALUE(conversion_probability__c)
+             OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS moved,
+           CAST(FIRST_VALUE(start_date__c)
+             OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS VARCHAR) AS first_mo
+    FROM BT_Offer_Eligibility_History__dlm
+    WHERE start_date__c >= (SELECT MAX(start_date__c) FROM BT_Offer_Eligibility_History__dlm) - INTERVAL '${SCORE_HISTORY_MONTHS}' MONTH
+      AND action_code__c IN (${quote(codes)})
+      AND account_id__c ${accountFilter}${extra}
+  ) h
+  WHERE h.mo = (SELECT MAX(start_date__c) FROM BT_Offer_Eligibility_History__dlm)
+    AND h.action_rank IS NOT NULL AND h.ev > 0
+    AND h.moved ${dir === 'up' ? `>= ${SCORE_MOVE_MIN}` : `<= -${SCORE_MOVE_MIN}`}
+  ORDER BY h.moved ${dir === 'up' ? 'DESC' : 'ASC'}
+  LIMIT ${MOVERS_LIMIT * 2}`;
 
 const idList = (ids: string[]) => ids.map(i => `"${i}"`).join(', ');
 
@@ -324,7 +377,27 @@ export async function fetchWhitespace(
   const ids = [...top.slice(0, WHITESPACE_ROWS - holders.length), ...holders];
   if (!ids.length) return { products, clients: [], stats: statsRes?.stats, scope: offers.scope };
 
-  const [crm, plaid, stages, scoreRows] = await Promise.all([
+  // Movers outside the grid; over-fetch per direction so grid clients can be dropped.
+  // A book's households also carry business offers; the value-ranked grid never
+  // reaches them, but a points ranking would, so the commercial movers skip them.
+  const moverExtra = persona === 'commercial'
+    ? `\n      AND account_id__c NOT IN (SELECT ssot__Id__c FROM ssot__Account__dlm WHERE ssot__AccountTypeId__c = 'Household')`
+    : '';
+  const moversP = Promise.all((['down', 'up'] as const).map(dir =>
+    queryDataCloud<Record<string, unknown>>(moversSql(codes, offers.accountFilter, dir, moverExtra), MOVERS_LIMIT * 2)
+      .then(r => r.rows.filter(m => !ids.includes(cleanId(String(m.acct ?? '')))).slice(0, MOVERS_LIMIT))
+      .catch(() => [] as Record<string, unknown>[]),
+  )).then(async ([down, up]) => {
+    const rows = [...down, ...up];
+    const moverIds = [...new Set(rows.map(m => cleanId(String(m.acct ?? ''))).filter(Boolean))];
+    const moverCrm = moverIds.length
+      ? await executeGraphQL<{ uiapi?: { query?: { Account?: Conn; FinServ__FinancialAccount__c?: Conn } } }>(crmQuery(moverIds))
+          .catch(() => null)
+      : null;
+    return { rows, crm: moverCrm };
+  });
+
+  const [crm, plaid, stages, scoreRows, moverRes] = await Promise.all([
     executeGraphQL<{ uiapi?: { query?: { Account?: Conn; FinServ__FinancialAccount__c?: Conn } } }>(crmQuery(ids)),
     queryDataCloud<Record<string, unknown>>(plaidSql(ids), 1000).then(r => r.rows).catch(() => []),
     persona === 'commercial'
@@ -332,6 +405,7 @@ export async function fetchWhitespace(
       : queryDataCloud<Record<string, unknown>>(lifeStageSql(ids), 100).then(r => r.rows).catch(() => []),
     // 12–15 clients × ≤ 11 codes × 7 months stays under the bridge's 2,000-row cap.
     queryDataCloud<Record<string, unknown>>(scoreHistorySql(ids, codes), 2000).then(r => r.rows).catch(() => []),
+    moversP,
   ]);
 
   // acct|code → monthly points (rows arrive ordered by month); the last row's `moved` is the window's change.
@@ -344,8 +418,12 @@ export async function fetchWhitespace(
     historyBy.set(k, h);
   }
 
-  const acctNodes = (crm.uiapi?.query?.Account?.edges ?? []).map(e => e.node);
-  const faNodes = (crm.uiapi?.query?.FinServ__FinancialAccount__c?.edges ?? []).map(e => e.node);
+  const moverCrm = moverRes.crm?.uiapi?.query;
+  const acctNodes = [...(crm.uiapi?.query?.Account?.edges ?? []), ...(moverCrm?.Account?.edges ?? [])].map(e => e.node);
+  const faNodes = [
+    ...(crm.uiapi?.query?.FinServ__FinancialAccount__c?.edges ?? []),
+    ...(moverCrm?.FinServ__FinancialAccount__c?.edges ?? []),
+  ].map(e => e.node);
   const stageBy = new Map(stages.map(s => [String(s.acct), String(s.stage ?? '')]));
 
   const holdings = new Map<string, string[]>();
@@ -416,7 +494,47 @@ export async function fetchWhitespace(
     return { id, name, segment, cells };
   });
 
-  return { products, clients, stats: statsRes?.stats, scope: offers.scope };
+  const colByCode = new Map(cols.flatMap(c => c.codes.map(code => [code, c] as const)));
+  const movers: WhitespaceMover[] = [];
+  for (const m of moverRes.rows) {
+    const id = cleanId(String(m.acct ?? ''));
+    const code = String(m.code ?? '');
+    const c = colByCode.get(code);
+    if (!id || !c) continue;
+    // The model is holdings-aware, but CRM can be ahead of the last run.
+    if ((holdings.get(id) ?? []).some(h => c.owned.test(h))) continue;
+    const a = acctNodes.find(n => n.Id === id);
+    const conv = Number(m.conv) || 0;
+    const rawMove = Number(m.moved) || 0;
+    const chans = String(m.channels ?? '').split(',').map(x => x.trim());
+    const em = chans.includes('EM') ? Number(m.em_p) || 0 : 0;
+    const cc = chans.includes('CC') ? Number(m.cc_p) || 0 : 0;
+    const rank = Math.round(Number(m.action_rank));
+    movers.push({
+      clientId: id,
+      clientName: (a && v(a, 'Name')) || id,
+      segment: a
+        ? persona === 'commercial'
+          ? [v(a, 'Industry'), v(a, 'FinServ__ClientCategory__c')].filter(Boolean).join(' · ')
+          : v(a, 'FinServ__ClientCategory__c')
+        : '',
+      productKey: c.key,
+      productLabel: c.label,
+      code,
+      score: Math.round(conv),
+      estValue: Math.round(Number(m.ev) || 0),
+      reason: `Model next-best action #${rank}${c.codes.length > 1 ? ` · ${offerLabel(code)}` : ''}`,
+      action: cc > em ? c.act[1] : c.act[0],
+      inPipeline: statsRes?.openKeys.has(`${id}|${c.label}`) ?? false,
+      moved: Math.round(rawMove * 10) / 10,
+      history: [
+        { month: String(m.first_mo ?? '').slice(0, 10), score: Math.round((conv - rawMove) * 100) / 100 },
+        { month: String(m.mo ?? '').slice(0, 10), score: conv },
+      ],
+    });
+  }
+
+  return { products, clients, movers, stats: statsRes?.stats, scope: offers.scope };
 }
 
 /**
