@@ -1,9 +1,17 @@
 -- =============================================================================
 -- DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_OFFER_ELIGIBILITY  (SQL SP)
 -- =============================================================================
--- Scores every BUSINESS and PERSON account against the bank's product shelf and
--- replaces OFFER_ELIGIBILITY with the run (INSERT OVERWRITE — one scoring run
--- kept, like the Databricks model it replaced).
+-- Scores every BUSINESS and PERSON account against the bank's product shelf for
+-- one run month (RUN_DATE's month, default this month):
+--   * replaces that month in OFFER_ELIGIBILITY_HISTORY (DELETE + INSERT), and
+--   * when that month is the newest in the history, replaces OFFER_ELIGIBILITY
+--     with it (INSERT OVERWRITE — one scoring run, the current one).
+-- So CALL ...('2026-05-01') backfills a past month without touching the
+-- current table.
+--
+-- As-of inputs: every vendor feed is read at its newest month on or before the
+-- run month, and holdings count only accounts opened before the run month ends,
+-- so a backfilled month scores what was known then.
 --
 -- Holdings-aware: a product the client already holds at Cumulus (per the
 -- FINANCIAL_TRANSACTION_ACCOUNTS mirror of FSC FinancialAccounts, matched on
@@ -19,8 +27,11 @@
 --             institutions, by account type) + latest CORELOGIC_PROPERTY
 --             (ownership, equity, HELOC score) + latest CLARITAS_DEMOGRAPHICS
 --             (wealth / investment / mortgage propensity).
--- Random:  HASH(account, code, run month, salt) → [0,1); re-runs in the same
---          month are byte-identical.
+-- Random:  HASH(account, code, salt) → [0,1), stable across months, plus a ±3%
+--          monthly jitter HASH(account, code, run month). Month-to-month score
+--          movement therefore comes from the inputs (held-away balances,
+--          propensities, credit, equity, new holdings), not from re-rolling.
+--          Re-runs of a month are byte-identical.
 --
 -- Families: Treasury, Lending, Deposits, Cards (business, BIZ-*);
 --           Retail and Wealth (person). The retail and wealth cockpits read the
@@ -45,12 +56,17 @@ AS
 $$
 DECLARE
     run_month DATE DEFAULT DATE_TRUNC('month', COALESCE(:RUN_DATE, CURRENT_DATE()));
+    next_month DATE DEFAULT DATEADD('month', 1, DATE_TRUNC('month', COALESCE(:RUN_DATE, CURRENT_DATE())));
+    newest DATE;
+    is_current BOOLEAN;
     started TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP();
     audience INTEGER;
     rows_written INTEGER;
     accts_offered INTEGER;
 BEGIN
-    INSERT OVERWRITE INTO DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY (
+    DELETE FROM DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY_HISTORY WHERE START_DATE = :run_month;
+
+    INSERT INTO DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY_HISTORY (
         ORG_ID, RECORD_ID, ACCOUNT_ID, ACTION_CODE, PRODUCT_FAMILY, RECOMMENDED_ACTION_RANK,
         CONVERSION_PROBABILITY, NOACTION_CONVERSION, EXPECTED_VALUE_UPLIFT,
         RECOMMENDED_CHANNELS, EM_PROBABILITY, CC_PROBABILITY, START_DATE, GENERATED_AT
@@ -81,9 +97,10 @@ BEGIN
                BOOLOR_AGG(ACCOUNT_NAME ILIKE '%Equipment%') AS h_eqf
         FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRANSACTION_ACCOUNTS
         WHERE ACTIVE = TRUE AND SFACCOUNTID LIKE '001%'
+          AND (OPEN_DATE IS NULL OR OPEN_DATE < :next_month)
         GROUP BY 1
     ),
-    -- --------------------------------------------- held-away (latest month)
+    -- --------------------------------------- held-away (as of the run month)
     p AS (
         SELECT ACCOUNT_ID,
                SUM(IFF(ACCOUNT_TYPE = 'Checking', BALANCE_USD, 0)) AS ha_chk,
@@ -99,7 +116,7 @@ BEGIN
                SUM(IFF(ACCOUNT_TYPE = 'Commercial Loan', BALANCE_USD, 0)) AS ha_bloan,
                SUM(IFF(ACCOUNT_TYPE = 'Sweep Account', BALANCE_USD, 0)) AS ha_sweep
         FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY
-        WHERE PROFILE_MONTH = (SELECT MAX(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY)
+        WHERE PROFILE_MONTH = (SELECT MAX(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY WHERE PROFILE_MONTH <= :run_month)
         GROUP BY 1
     ),
     -- ================================================================ BUSINESS
@@ -111,7 +128,7 @@ BEGIN
         FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS v
         LEFT JOIN DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT d
                ON d.ORG_ID = v.ORG_ID AND d.ACCOUNT_ID = v.ACCOUNT_ID
-              AND d.PROFILE_MONTH = (SELECT MAX(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT)
+              AND d.PROFILE_MONTH = (SELECT MAX(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.DNB_BUSINESS_CREDIT WHERE PROFILE_MONTH <= :run_month)
         WHERE v.ACCOUNT_TYPE_FLAG = 'BUSINESS'
           AND v.ACCOUNT_ID LIKE '001%' AND LENGTH(v.ACCOUNT_ID) = 18
         QUALIFY ROW_NUMBER() OVER (PARTITION BY v.ORG_ID, v.ACCOUNT_ID ORDER BY v.SNAPSHOT_DATE DESC NULLS LAST) = 1
@@ -134,9 +151,10 @@ BEGIN
         SELECT a.*, bc.*,
                COALESCE(p.ha_bchk, 0) AS ha_bchk, COALESCE(p.ha_bcard, 0) AS ha_bcard,
                COALESCE(p.ha_bloan, 0) AS ha_bloan, COALESCE(p.ha_sweep, 0) AS ha_sweep,
-               (ABS(HASH(a.ACCOUNT_ID, bc.code, :run_month, 'conv')) % 10000) / 10000.0 AS u_conv,
-               (ABS(HASH(a.ACCOUNT_ID, bc.code, :run_month, 'base')) % 10000) / 10000.0 AS u_base,
-               (ABS(HASH(a.ACCOUNT_ID, bc.code, :run_month, 'keep')) % 10000) / 10000.0 AS u_keep,
+               (ABS(HASH(a.ACCOUNT_ID, bc.code, 'conv')) % 10000) / 10000.0 AS u_conv,
+               (ABS(HASH(a.ACCOUNT_ID, bc.code, 'base')) % 10000) / 10000.0 AS u_base,
+               (ABS(HASH(a.ACCOUNT_ID, bc.code, 'keep')) % 10000) / 10000.0 AS u_keep,
+               (ABS(HASH(a.ACCOUNT_ID, bc.code, :run_month, 'jit')) % 10000) / 10000.0 AS u_jit,
                CASE bc.code
                    WHEN 'BIZ-CHK'    THEN COALESCE(h.h_bchk, FALSE)
                    WHEN 'BIZ-CARD'   THEN COALESCE(h.h_bcard, FALSE)
@@ -181,7 +199,7 @@ BEGIN
                COALESCE(rule_ok, FALSE) AND u_keep >= 0.12 AS eligible
         FROM (
             SELECT bx.*,
-                   ROUND(LEAST(60, base_conv * (0.7 + 0.6 * u_conv) + held_bonus
+                   ROUND(LEAST(60, base_conv * (0.7 + 0.6 * u_conv) * (0.97 + 0.06 * u_jit) + held_bonus
                          + IFF(family IN ('Treasury', 'Deposits'), size * 6, (4 - COALESCE(comp, 4)) * 2.5)), 2) AS conv,
                    ROUND(2 + 4 * u_base, 2) AS noaction,
                    LEAST(value_cap, GREATEST(value_floor, value_rate *
@@ -213,10 +231,10 @@ BEGIN
         LEFT JOIN DATA_JEDAIS.FINS__PUBLIC.PERSONAL_PRODUCT_RECOMMENDATION_SUBSET r ON r.ACCOUNTID = v.ACCOUNT_ID
         LEFT JOIN DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY cl
                ON cl.ACCOUNT_ID = v.ACCOUNT_ID
-              AND cl.PROFILE_QUARTER = (SELECT MAX(PROFILE_QUARTER) FROM DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY)
+              AND cl.PROFILE_QUARTER = (SELECT MAX(PROFILE_QUARTER) FROM DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY WHERE PROFILE_QUARTER <= :run_month)
         LEFT JOIN DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS cd
                ON cd.ACCOUNT_ID = v.ACCOUNT_ID
-              AND cd.PROFILE_MONTH = (SELECT MAX(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS)
+              AND cd.PROFILE_MONTH = (SELECT MAX(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS WHERE PROFILE_MONTH <= :run_month)
         WHERE v.ACCOUNT_TYPE_FLAG = 'PERSON'
           AND v.ACCOUNT_ID LIKE '001%' AND LENGTH(v.ACCOUNT_ID) = 18
         QUALIFY ROW_NUMBER() OVER (PARTITION BY v.ORG_ID, v.ACCOUNT_ID ORDER BY v.SNAPSHOT_DATE DESC NULLS LAST) = 1
@@ -243,9 +261,10 @@ BEGIN
                COALESCE(p.ha_chk, 0) AS ha_chk, COALESCE(p.ha_sav, 0) AS ha_sav, COALESCE(p.ha_card, 0) AS ha_card,
                COALESCE(p.ha_auto, 0) AS ha_auto, COALESCE(p.ha_mtg, 0) AS ha_mtg, COALESCE(p.ha_brk, 0) AS ha_brk,
                COALESCE(p.ha_ira, 0) AS ha_ira, COALESCE(p.ha_401k, 0) AS ha_401k,
-               (ABS(HASH(q.ACCOUNT_ID, pc.code, :run_month, 'conv')) % 10000) / 10000.0 AS u_conv,
-               (ABS(HASH(q.ACCOUNT_ID, pc.code, :run_month, 'base')) % 10000) / 10000.0 AS u_base,
-               (ABS(HASH(q.ACCOUNT_ID, pc.code, :run_month, 'keep')) % 10000) / 10000.0 AS u_keep,
+               (ABS(HASH(q.ACCOUNT_ID, pc.code, 'conv')) % 10000) / 10000.0 AS u_conv,
+               (ABS(HASH(q.ACCOUNT_ID, pc.code, 'base')) % 10000) / 10000.0 AS u_base,
+               (ABS(HASH(q.ACCOUNT_ID, pc.code, 'keep')) % 10000) / 10000.0 AS u_keep,
+               (ABS(HASH(q.ACCOUNT_ID, pc.code, :run_month, 'jit')) % 10000) / 10000.0 AS u_jit,
                CASE pc.code
                    WHEN 'CHK-ACQ'  THEN COALESCE(h.h_chk OR h.h_pchk, FALSE)
                    WHEN 'HYS-ACQ'  THEN COALESCE(h.h_sav, FALSE)
@@ -343,7 +362,7 @@ BEGIN
                COALESCE(rule_ok, FALSE) AND u_keep >= 0.12 AS eligible
         FROM (
             SELECT pr.*,
-                   ROUND(LEAST(70, GREATEST(1, base_conv * (0.7 + 0.6 * u_conv) + bonus)), 2) AS conv,
+                   ROUND(LEAST(70, GREATEST(1, base_conv * (0.7 + 0.6 * u_conv) * (0.97 + 0.06 * u_jit) + bonus)), 2) AS conv,
                    ROUND(2 + 4 * u_base, 2) AS noaction,
                    LEAST(value_cap, GREATEST(value_floor, value_rate * COALESCE(basis, 0))) AS product_value
             FROM pr
@@ -354,7 +373,7 @@ BEGIN
         UNION ALL
         SELECT * FROM pe
     )
-    SELECT ORG_ID, ACCOUNT_ID || '|' || code, ACCOUNT_ID, code, family,
+    SELECT ORG_ID, ACCOUNT_ID || '|' || code || '|' || TO_CHAR(:run_month, 'YYYY-MM'), ACCOUNT_ID, code, family,
            IFF(eligible, ROW_NUMBER() OVER (PARTITION BY ORG_ID, ACCOUNT_ID, eligible ORDER BY ev DESC, code), NULL),
            conv, noaction, ev,
            IFF(size >= 0.5, 'CC,EM', 'EM,CC'),
@@ -363,11 +382,26 @@ BEGIN
            :run_month, :run_month::TIMESTAMP_NTZ
     FROM e;
 
-    -- SQLROWCOUNT after INSERT OVERWRITE also counts the replaced rows; count the table.
-    SELECT COUNT(*) INTO :rows_written FROM DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY;
-    SELECT COUNT(DISTINCT ACCOUNT_ID) INTO :audience FROM DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY;
-    SELECT COUNT(DISTINCT ACCOUNT_ID) INTO :accts_offered FROM DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY
-     WHERE RECOMMENDED_ACTION_RANK IS NOT NULL;
+    -- Newest month wins the current table; a backfill of an older month leaves it alone.
+    SELECT MAX(START_DATE) INTO :newest FROM DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY_HISTORY;
+    is_current := (run_month >= newest);
+    IF (is_current) THEN
+        INSERT OVERWRITE INTO DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY (
+            ORG_ID, RECORD_ID, ACCOUNT_ID, ACTION_CODE, PRODUCT_FAMILY, RECOMMENDED_ACTION_RANK,
+            CONVERSION_PROBABILITY, NOACTION_CONVERSION, EXPECTED_VALUE_UPLIFT,
+            RECOMMENDED_CHANNELS, EM_PROBABILITY, CC_PROBABILITY, START_DATE, GENERATED_AT
+        )
+        SELECT ORG_ID, ACCOUNT_ID || '|' || ACTION_CODE, ACCOUNT_ID, ACTION_CODE, PRODUCT_FAMILY, RECOMMENDED_ACTION_RANK,
+               CONVERSION_PROBABILITY, NOACTION_CONVERSION, EXPECTED_VALUE_UPLIFT,
+               RECOMMENDED_CHANNELS, EM_PROBABILITY, CC_PROBABILITY, START_DATE, GENERATED_AT
+        FROM DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY_HISTORY
+        WHERE START_DATE = :run_month;
+    END IF;
+
+    SELECT COUNT(*), COUNT(DISTINCT ACCOUNT_ID), COUNT(DISTINCT IFF(RECOMMENDED_ACTION_RANK IS NOT NULL, ACCOUNT_ID, NULL))
+      INTO :rows_written, :audience, :accts_offered
+      FROM DATA_JEDAIS.FINS__PUBLIC.OFFER_ELIGIBILITY_HISTORY
+     WHERE START_DATE = :run_month;
 
     INSERT INTO DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
         (TASK_NAME, STATUS, ROWS_INSERTED, ACCOUNTS_PROCESSED, ERROR_MESSAGE, DURATION_MS)
@@ -376,6 +410,7 @@ BEGIN
            DATEDIFF('millisecond', :started, CURRENT_TIMESTAMP());
 
     RETURN 'OFFER_ELIGIBILITY ' || run_month || ': ' || rows_written || ' rows, ' || audience
-        || ' accounts, ' || accts_offered || ' with at least one eligible offer';
+        || ' accounts, ' || accts_offered || ' with at least one eligible offer'
+        || IFF(is_current, ' (current table replaced)', ' (history only)');
 END;
 $$;

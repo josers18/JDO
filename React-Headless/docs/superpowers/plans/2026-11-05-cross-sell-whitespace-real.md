@@ -57,7 +57,7 @@ The top 12 clients in the signed-in banker's book (view-as aware), ranked by tot
    - It already flows zero-copy into `BT_Offer_Eligibility__dlm`, so no stream or DMO work and no full refresh were needed.
    - The new codes are HEL-ACQ, PL-ACQ, INV-ACQ, PCHK-ACQ, WM-CASH, IRA-ROL, MTG-JMB and BIZ-CARD.
    - The Databricks `Offer_Eligibility_Model__dlm` is no longer read anywhere in `_shared`.
-   - *Deferred:* the 6-month score backfill and the "score moved" trend.
+   - **Score history (shipped 2026-11-06):** the SP now writes each run into `OFFER_ELIGIBILITY_HISTORY` (one row per account × code × run month) and replaces `OFFER_ELIGIBILITY` only when the run is the newest month. Months 2026-05 → 2026-11 were backfilled from each month's own inputs (Plaid / Claritas / D&B by `PROFILE_MONTH`, CoreLogic by `PROFILE_QUARTER`, holdings by `OPEN_DATE`). The per-account random terms no longer re-roll every month (only a ±3% monthly jitter does), so a move reflects changed inputs. About 440K rows a month; over six months 49,830 cells moved ≥ 2 points (24,748 up, 25,082 down), and 291 offers dropped out because the client opened the product. It flows zero-copy into `BT_Offer_Eligibility_History__dlm`. `whitespace.ts` reads each shown cell's series, Data 360 computes the change (`FIRST_VALUE` window), and the grid marks |move| ≥ 2 pts with ▲/▼ plus a "6-mo" detail column. Pre-change backup: `OFFER_ELIGIBILITY_BAK_20261106`.
 2. **CRM holdings gaps** (`scripts/crosssell/`; the runbook is in its README). Loaded 2026-11-05:
    - 5,226 Cumulus consumer cards (Cash Rewards / Travel Points / Secured), for clients whose profile carries a card and who hold none elsewhere.
    - 297 Cumulus Corporate Cards in Allen Carter's book.
@@ -73,7 +73,7 @@ The top 12 clients in the signed-in banker's book (view-as aware), ranked by tot
 |---|---|---|---|
 | A ✅ | `COLUMNS` mapping + `fetchWhitespace(persona, ownerId)` in `_shared`: FSC holdings (GraphQL, name-pattern match) + Plaid held-away + existing signals. Score/value from the **current** offer model where present; otherwise the cell shows the reason with no score. Wire Retail, Wealth and Commercial; delete `MOCK_*`; `data` becomes required. | Real owned cells + real reasons in all 3 cockpits now | none |
 | B ✅ | `CrmWriteRest` `POST /crm/opportunity` + grid actions → real Opportunity / Task / Meeting; header stats | Insight → action loop | A |
-| C ✅ | Extend `OFFER_ELIGIBILITY` SP to all books + holdings-aware (no new table); backfill deferred | Holdings-aware scores for every book, with trend | none (parallel with A) |
+| C ✅ | Extend `OFFER_ELIGIBILITY` SP to all books + holdings-aware; 6-month `OFFER_ELIGIBILITY_HISTORY` backfill + "score moved" trend (2026-11-06) | Holdings-aware scores for every book, with trend | none (parallel with A) |
 | D ✅ | Cumulus consumer + corporate cards + plastics, FTA mirror, rescore | Full-width columns, no artificially empty product lines | none (parallel) |
 | E ✅ | Outcome backfill + "won in 30d" | Credible results story for demos | B |
 | F ✅ | Transaction backfill for the 5,534 new accounts (231,294 rows, 2026-07-24 → 11-05) + `ACCOUNT_DAILY_BALANCE` rebuild; live browser check of all 3 cockpits (won-in-30d 31 / 6 / 7 for Sarah / Kim / Allen; a cell click created a real Opportunity); header now counts this session's creations before the refetch catches up | Cards carry balances and spend like every other account | D |

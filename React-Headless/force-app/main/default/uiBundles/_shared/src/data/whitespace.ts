@@ -12,6 +12,11 @@
  *                (`BT_Plaid_Held_Away__dlm`), else the model's next-best rank.
  *   · Pipeline — an open Opportunity the grid already created for that client
  *                and product (`LeadSource = 'Cross-sell grid'`).
+ *   · Moved    — how the cell's score changed over the last six monthly runs,
+ *                from `BT_Offer_Eligibility_History__dlm` (Snowflake
+ *                `OFFER_ELIGIBILITY_HISTORY`, one row per account × code × run
+ *                month). Data 360 computes the change (latest − first month in
+ *                the window); the grid flags |move| ≥ `SCORE_MOVE_MIN` points.
  *
  * Rows: the 12 clients in the banker's book with the most eligible white-space
  * value — except that ranking favors clients who own the least (an owned
@@ -35,6 +40,10 @@ export const WHITESPACE_LEAD_SOURCE = 'Cross-sell grid';
 export const WHITESPACE_ROWS = 12;
 /** Rows reserved for clients who already hold the persona's reserved product. */
 export const HOLDER_ROWS = 3;
+/** Score history window, in monthly runs before the latest. */
+export const SCORE_HISTORY_MONTHS = 6;
+/** Smallest 6-month change (conversion points) the grid calls a move. */
+export const SCORE_MOVE_MIN = 2;
 
 /**
  * Per persona: the products whose holders get reserved rows (one CRM FA filter
@@ -107,6 +116,10 @@ export interface WhitespaceCell {
   code?: string;
   /** An open grid-created Opportunity already covers this cell. */
   inPipeline?: boolean;
+  /** Conversion % per monthly run, oldest → newest, for this cell's code. */
+  history?: { month: string; score: number }[];
+  /** Conversion-point change from the first month in `history` to the latest (Data 360). */
+  moved?: number;
 }
 
 export interface WhitespaceClient {
@@ -167,6 +180,20 @@ const lifeStageSql = (ids: string[]) => `
   FROM BT_Claritas_Demographics__dlm
   WHERE profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm)
     AND account_id__c IN (${quote(ids)})`;
+
+// Each cell's monthly scores over the window, with the change since the window's
+// first run computed in Data 360. The latest run month is the history's newest.
+// (A scalar subquery, not a CTE cross join: ConnectApi.queryAnsiSqlV2 rejects the latter.)
+const scoreHistorySql = (ids: string[], codes: string[]) => `
+  SELECT account_id__c AS acct, action_code__c AS code, CAST(start_date__c AS VARCHAR) AS mo,
+         conversion_probability__c AS conv,
+         conversion_probability__c - FIRST_VALUE(conversion_probability__c)
+           OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS moved
+  FROM BT_Offer_Eligibility_History__dlm
+  WHERE start_date__c >= (SELECT MAX(start_date__c) FROM BT_Offer_Eligibility_History__dlm) - INTERVAL '${SCORE_HISTORY_MONTHS}' MONTH
+    AND account_id__c IN (${quote(ids)})
+    AND action_code__c IN (${quote(codes)})
+  ORDER BY acct, code, mo`;
 
 const idList = (ids: string[]) => ids.map(i => `"${i}"`).join(', ');
 
@@ -297,13 +324,25 @@ export async function fetchWhitespace(
   const ids = [...top.slice(0, WHITESPACE_ROWS - holders.length), ...holders];
   if (!ids.length) return { products, clients: [], stats: statsRes?.stats, scope: offers.scope };
 
-  const [crm, plaid, stages] = await Promise.all([
+  const [crm, plaid, stages, scoreRows] = await Promise.all([
     executeGraphQL<{ uiapi?: { query?: { Account?: Conn; FinServ__FinancialAccount__c?: Conn } } }>(crmQuery(ids)),
     queryDataCloud<Record<string, unknown>>(plaidSql(ids), 1000).then(r => r.rows).catch(() => []),
     persona === 'commercial'
       ? Promise.resolve([] as Record<string, unknown>[])
       : queryDataCloud<Record<string, unknown>>(lifeStageSql(ids), 100).then(r => r.rows).catch(() => []),
+    // 12–15 clients × ≤ 11 codes × 7 months stays under the bridge's 2,000-row cap.
+    queryDataCloud<Record<string, unknown>>(scoreHistorySql(ids, codes), 2000).then(r => r.rows).catch(() => []),
   ]);
+
+  // acct|code → monthly points (rows arrive ordered by month); the last row's `moved` is the window's change.
+  const historyBy = new Map<string, { points: { month: string; score: number }[]; moved: number }>();
+  for (const r of scoreRows) {
+    const k = `${cleanId(String(r.acct ?? ''))}|${r.code}`;
+    const h = historyBy.get(k) ?? { points: [], moved: 0 };
+    h.points.push({ month: String(r.mo ?? '').slice(0, 10), score: Number(r.conv) || 0 });
+    h.moved = Number(r.moved) || 0;
+    historyBy.set(k, h);
+  }
 
   const acctNodes = (crm.uiapi?.query?.Account?.edges ?? []).map(e => e.node);
   const faNodes = (crm.uiapi?.query?.FinServ__FinancialAccount__c?.edges ?? []).map(e => e.node);
@@ -358,6 +397,7 @@ export async function fetchWhitespace(
         ? `Holds this at ${away.inst} · ${money(away.bal)} balance`
         : `Model next-best action #${rank}${c.codes.length > 1 ? ` · ${offerLabel(code)}` : ''}`;
       const chans = String(best.channels ?? '').split(',').map(s => s.trim());
+      const hist = historyBy.get(`${id}|${code}`);
       const em = chans.includes('EM') ? Number(best.em_p) || 0 : 0;
       const cc = chans.includes('CC') ? Number(best.cc_p) || 0 : 0;
       cells[c.key] = {
@@ -368,6 +408,9 @@ export async function fetchWhitespace(
         reason,
         action: cc > em ? c.act[1] : c.act[0],
         inPipeline: statsRes?.openKeys.has(`${id}|${c.label}`) ?? false,
+        ...(hist && hist.points.length >= 2
+          ? { history: hist.points, moved: Math.round(hist.moved * 10) / 10 }
+          : {}),
       };
     }
     return { id, name, segment, cells };
