@@ -40,6 +40,32 @@ IDENTITY_SALT = "plaid_identity"
 # never land after the earliest generated month (2026-05).
 _LINK_REFERENCE = date(2026, 5, 1)
 
+# --- Market drift (v3, 2026-11-06) ------------------------------------------
+# Investment balances follow one shared market index, compounded month over
+# month from _LINK_REFERENCE (index 1.0), scaled per account by a beta. The
+# known months tell a story: a summer rally, an Aug-Sep pullback, a recovery.
+# Months outside the table get a deterministic return hashed from the month.
+_MARKET_RETURNS: dict[tuple[int, int], float] = {
+    (2026, 6): 0.024, (2026, 7): 0.011, (2026, 8): -0.038,
+    (2026, 9): -0.026, (2026, 10): 0.019, (2026, 11): 0.012,
+}
+# Per-account beta range by account type (identity-stable draw).
+_MARKET_BETA: dict[str, tuple[float, float]] = {
+    "Brokerage": (0.8, 1.3), "Managed Portfolio": (0.6, 1.0),
+    "IRA": (0.5, 0.9), "401k": (0.5, 0.9), "HSA": (0.3, 0.6),
+    "Crypto Wallet": (2.0, 3.0),
+}
+# --- Moves to another firm --------------------------------------------------
+# A small share of personal Brokerage / Managed Portfolio / IRA accounts are
+# moved out in full in one month: that month shows the outflow, later months
+# a closed account (balance 0, inactive). Transfer months spread evenly over
+# the 12 months from _TRANSFER_START, so ~1.7% of these accounts move inside the
+# Jun-Oct 2026 history window and new moves keep arriving after it.
+_TRANSFER_TYPES = ("Brokerage", "Managed Portfolio", "IRA")
+_TRANSFER_SHARE = 0.04
+_TRANSFER_START = (2026, 6)
+_TRANSFER_SPAN_MONTHS = 12
+
 # Audience predicate — repeated in 2 places (AUDIENCE_SQL + COVERAGE_SQL).
 # Both strings must match exactly to keep the coverage assertion meaningful.
 _PERSON_CATEGORIES = ("Retail", "Wealth Management")
@@ -288,10 +314,22 @@ def _rows_for(anchor: dict, run_ts: datetime) -> list[dict]:
         rate         = _interest_rate(account_type, id_rng)
         # Monthly attributes. Pass month_start (not raw run_ts) to date
         # arithmetic so mid-month re-runs produce byte-identical rows.
-        balance      = _drift_balance(base_balance, account_type, slot_rng)
+        slot_key     = f"{account_id}_slot{slot}"
+        balance      = _drift_balance(base_balance, account_type, slot_rng,
+                                      month_start.date(), slot_key)
         is_active    = _is_active(slot_rng)
         last_txn     = _last_txn_date(is_active, month_start, slot_rng)
         monthly_flow = _monthly_net_flow(is_active, account_type, balance, slot_rng, revenue)
+        if not is_business:
+            moved = _transfer_state(slot_key, account_type, month_start.date())
+            if moved == "this_month":
+                # The whole balance leaves for another firm this month.
+                monthly_flow = -balance
+                is_active = True
+                last_txn = last_txn or month_start.date()
+                balance = 0.0
+            elif moved == "closed":
+                balance, is_active, last_txn, monthly_flow = 0.0, False, None, None
 
         rows.append({
             # v1.x multi-org-additive: ORG_ID leads EVERY emitted record (1:N
@@ -483,16 +521,61 @@ def _business_balance(account_type: str, revenue: float,
     return round(min(10_000_000, revenue * rng.uniform(*share)), 2)
 
 
-def _drift_balance(base: float, account_type: str, rng: random.Random) -> float:
-    """This month's balance: the slot's base with a small monthly move.
-    Assets move -3%..+4%; liabilities -2%..+1% (paydown bias); cards swing more."""
+def _drift_balance(base: float, account_type: str, rng: random.Random,
+                   month: date | None = None, slot_key: str = "") -> float:
+    """This month's balance: the slot's base with a monthly move.
+    Investment accounts follow the market index (compounded since
+    _LINK_REFERENCE, scaled by the account's beta) with ±1.5% noise; other
+    assets move -3%..+4%; liabilities -2%..+1% (paydown bias); cards swing more.
+    Exactly one draw from `rng` either way, so the slot's later draws hold."""
     if account_type in ("Credit Card", "Commercial Card", "Line of Credit"):
         factor = rng.uniform(0.6, 1.4)
     elif account_type in _LIABILITY_TYPES:
         factor = rng.uniform(0.98, 1.01)
+    elif account_type in _MARKET_BETA and month is not None:
+        lo, hi = _MARKET_BETA[account_type]
+        beta = random.Random(hashlib.sha256(f"{slot_key}|plaid_beta".encode()).digest()).uniform(lo, hi)
+        factor = _market_index(month) ** beta * rng.uniform(0.985, 1.015)
     else:
         factor = rng.uniform(0.97, 1.04)
     return round(min(10_000_000, base * factor), 2)
+
+
+def _market_return(year: int, month: int) -> float:
+    """One month's market return: the table, else hashed from the month."""
+    if (year, month) in _MARKET_RETURNS:
+        return _MARKET_RETURNS[(year, month)]
+    u = int(hashlib.sha256(f"{year:04d}-{month:02d}|plaid_market".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+    return -0.03 + 0.065 * u
+
+
+def _market_index(month: date) -> float:
+    """Market level for `month`, 1.0 at _LINK_REFERENCE, compounded monthly."""
+    ref = _LINK_REFERENCE.year * 12 + _LINK_REFERENCE.month - 1
+    cur = month.year * 12 + month.month - 1
+    level = 1.0
+    for m in range(ref + 1, cur + 1):
+        level *= 1 + _market_return(m // 12, m % 12 + 1)
+    for m in range(cur + 1, ref + 1):
+        level /= 1 + _market_return(m // 12, m % 12 + 1)
+    return level
+
+
+def _transfer_state(slot_key: str, account_type: str, month: date) -> str | None:
+    """'this_month' if the account moves to another firm in `month`, 'closed'
+    after that, None otherwise. Identity-stable: the slot's move month never
+    changes between runs."""
+    if account_type not in _TRANSFER_TYPES:
+        return None
+    rng = random.Random(hashlib.sha256(f"{slot_key}|plaid_transfer".encode()).digest())
+    if rng.random() >= _TRANSFER_SHARE:
+        return None
+    k = rng.randrange(_TRANSFER_SPAN_MONTHS)
+    start = _TRANSFER_START[0] * 12 + _TRANSFER_START[1] - 1
+    cur = month.year * 12 + month.month - 1
+    if cur == start + k:
+        return "this_month"
+    return "closed" if cur > start + k else None
 
 
 def _last_linked_date(rng: random.Random) -> date:
