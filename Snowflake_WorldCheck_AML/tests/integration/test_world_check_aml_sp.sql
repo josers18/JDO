@@ -41,7 +41,7 @@ USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 -- ---------------------------------------------------------------------------
 DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE;
 DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE(DATE);
 DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE;
 
 -- ---------------------------------------------------------------------------
@@ -112,7 +112,7 @@ EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()'));
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML(DATE)'));
     -- Step 1: stash the suffix-bearing identifiers behind sentinels.
     sp_ddl := REPLACE(sp_ddl, 'WORLD_CHECK_AML_STAGING',     '__WCA_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_WORLD_CHECK_AML', '__WCA_SP__');
@@ -173,23 +173,23 @@ SELECT
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 9. Jurisdiction-code assertion #4: all 14 RISK_JURISDICTION_CODE values
--- are valid ISO-3166-1 alpha-2 codes from the SP's 13-jurisdiction pool
--- (_JURISDICTIONS in procedures/sp_generate_world_check_aml.py).
+-- 9. Jurisdiction-code assertion #4: all RISK_JURISDICTION_CODE values are
+-- ISO-3166-1 alpha-2 codes from the SP's weighted 30-jurisdiction pool
+-- (_JURISDICTION_POOL in procedures/sp_generate_world_check_aml.py).
 -- (length=2 + in known set.)
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE LENGTH(RISK_JURISDICTION_CODE) <> 2
           OR RISK_JURISDICTION_CODE NOT IN (
-              -- Low (5)
-              'US','GB','DE','FR','JP',
-              -- Medium (4)
-              'SG','HK','AE','KE',
-              -- High (2)
-              'NG','PK',
-              -- Prohibited (2)
-              'IR','KP'
+              -- Low (10)
+              'US','CA','GB','DE','FR','JP','AU','CH','NL','IE',
+              -- Medium (10)
+              'MX','IN','AE','SG','HK','BR','CN','PH','TR','ZA',
+              -- High (6)
+              'NG','VN','VE','HT','LB','KE',
+              -- Prohibited (4)
+              'IR','KP','CU','SY'
           )) = 0
     AS jurisdiction_code_in_known_set;
 -- Expected: TRUE
@@ -215,14 +215,24 @@ SELECT
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 12. Change-since-last-run assertion #7: all values in the live 2-state
--- vocabulary {Changed, Unchanged} (_change_since_last_run).
+-- 12. Change-since-last-run assertion #7: all values in the 3-state
+-- vocabulary {New, Changed, Unchanged} (_change_since_last_run).
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE CHANGE_SINCE_LAST_RUN NOT IN
-           ('Changed','Unchanged')) = 0
+           ('New','Changed','Unchanged')) = 0
     AS change_since_last_run_vocabulary_ok;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 12b. First run on an EMPTY fixture table has no prior PROFILE_DATE, so every
+-- row is 'New'.
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
+       WHERE CHANGE_SINCE_LAST_RUN <> 'New') = 0
+    AS first_run_all_new;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
@@ -295,7 +305,7 @@ SELECT
 -- ---------------------------------------------------------------------------
 -- 17. Cleanup
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE();
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML_FIXTURE(DATE);
 DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE_STAGING;
 DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE;
 DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE;

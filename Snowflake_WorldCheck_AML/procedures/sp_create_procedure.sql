@@ -28,7 +28,7 @@
 --           — README uses canonical name.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()
+CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML(RUN_DATE DATE DEFAULT NULL)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -138,13 +138,30 @@ EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
 # Deterministic helpers  (pure functions -- side-effect free)
 # ===================================================================
 
-# Risk-jurisdiction lookup -- 13 buckets from real-world AML risk tiers.
-_JURISDICTIONS: list[tuple[str, str]] = [
-    ("US", "Low"),   ("GB", "Low"),   ("DE", "Low"),   ("FR", "Low"),
-    ("JP", "Low"),   ("SG", "Medium"),("HK", "Medium"),("AE", "Medium"),
-    ("KE", "Medium"),("NG", "High"),  ("PK", "High"),  ("IR", "Prohibited"),
-    ("KP", "Prohibited"),
+# Risk-jurisdiction pool -- (code, tier, weight in percent). SYNTHETIC tiers,
+# loosely modelled on FATF / OFAC style lists; NOT license-grade vendor data.
+# Weighted so a US retail/wealth book looks realistic: ~90% Low (80% US),
+# ~8% Medium, ~1.8% High, ~0.2% Prohibited (-> Severe). Weights sum to 100.
+_JURISDICTION_POOL: list[tuple[str, str, float]] = [
+    # Low (90.0)
+    ("US", "Low", 80.0), ("CA", "Low", 2.5), ("GB", "Low", 2.5),
+    ("DE", "Low", 1.0),  ("FR", "Low", 1.0), ("JP", "Low", 0.8),
+    ("AU", "Low", 0.8),  ("CH", "Low", 0.6), ("NL", "Low", 0.5),
+    ("IE", "Low", 0.3),
+    # Medium (8.0)
+    ("MX", "Medium", 1.5), ("IN", "Medium", 1.2), ("AE", "Medium", 1.0),
+    ("SG", "Medium", 0.9), ("HK", "Medium", 0.8), ("BR", "Medium", 0.8),
+    ("CN", "Medium", 0.7), ("PH", "Medium", 0.4), ("TR", "Medium", 0.4),
+    ("ZA", "Medium", 0.3),
+    # High (1.8)
+    ("NG", "High", 0.5), ("VN", "High", 0.4), ("VE", "High", 0.3),
+    ("HT", "High", 0.2), ("LB", "High", 0.2), ("KE", "High", 0.2),
+    # Prohibited (0.2) -- comprehensive-sanctions style; rolls up to Severe
+    ("IR", "Prohibited", 0.08), ("KP", "Prohibited", 0.04),
+    ("CU", "Prohibited", 0.04), ("SY", "Prohibited", 0.04),
 ]
+_JURISDICTIONS: list[tuple[str, str]] = [(c, t) for c, t, _ in _JURISDICTION_POOL]
+_JURISDICTION_WEIGHTS: list[float] = [w for _, _, w in _JURISDICTION_POOL]
 
 # Year-stable base probabilities -- calibrated against the rowspec marginal targets.
 # Daily-flip events perturb these so that ~0.3% of accounts change on any given day.
@@ -165,11 +182,13 @@ def _daily_seed(account_id: str, day_start: datetime) -> bytes:
 # -- risk jurisdiction (year-stable per account) --------------------
 
 def _risk_jurisdiction_stable(account_id: str, run_ts: datetime) -> tuple[str, str]:
-    """Return (code, tier) that is stable for the entire year."""
+    """Return (code, tier), weighted draw from the pool.
+
+    Stable within a calendar month (seed_for buckets by year-month) and
+    deterministic per (account_id, month)."""
     seed = seed_for(account_id, DATASET_SALT_JURISDICTION, run_ts)
     rng = random.Random(seed)
-    code, tier = rng.choice(_JURISDICTIONS)
-    return code, tier
+    return rng.choices(_JURISDICTIONS, weights=_JURISDICTION_WEIGHTS, k=1)[0]
 
 
 # -- flag helpers (year-stable base XOR daily flip) -----------------
@@ -227,11 +246,21 @@ def _overall_risk_rating(sanctions: int, pep: int, media: int,
     return "Low"
 
 
-# -- change since last run (re-derives yesterday to compare) --------
+# -- change since last run (New, or re-derives yesterday to compare) --
 
 def _change_since_last_run(account_id: str, run_ts: datetime,
-                           today_rating: str) -> str:
-    """Compare today vs yesterday overall rating. 3 values: New, Changed, Unchanged."""
+                           today_rating: str,
+                           was_present: bool | None = None) -> str:
+    """CHANGE_SINCE_LAST_RUN: one of "New", "Changed", "Unchanged".
+
+    - "New": the account had no row on the most recent prior PROFILE_DATE
+      (was_present is False).
+    - "Changed" / "Unchanged": today's overall rating vs the rating
+      re-derived for yesterday. was_present None (unknown) or True takes
+      this path.
+    """
+    if was_present is False:
+        return "New"
     yesterday = run_ts - timedelta(days=1)
     day0 = _day_start(yesterday)
     seed_y = _daily_seed(account_id, day0)
@@ -270,10 +299,15 @@ def _anchor_in_audience(anchor: dict) -> bool:
 # -------------------------------------------------------------------
 # _row_for -- deterministic row builder (one anchor -> one output dict)
 # -------------------------------------------------------------------
-def _row_for(anchor: dict, run_ts: datetime) -> dict:
+def _row_for(anchor: dict, run_ts: datetime,
+             prior_keys: Any = None) -> dict:
     """Build one output row from an anchor dict and run timestamp.
 
-    Deterministic: same (anchor, run_ts day) always produces the same row.
+    Deterministic: same (anchor, run_ts day, prior_keys) always produces the
+    same row. prior_keys is the set of (ORG_ID, ACCOUNT_ID) present on the most
+    recent PROFILE_DATE before run_ts: an account missing from it is "New".
+    None (default) means unknown, so only Changed/Unchanged is emitted; an
+    empty set means no prior date exists, so every row is "New".
     """
     if not _anchor_in_audience(anchor):
         raise ValueError(
@@ -312,13 +346,15 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     )
 
     # 4. Compare to yesterday.
-    change = _change_since_last_run(account_id, run_ts, overall)
+    org_id = anchor.get("ORG_ID") or "JDO"
+    was_present = None if prior_keys is None else (org_id, account_id) in prior_keys
+    change = _change_since_last_run(account_id, run_ts, overall, was_present)
 
     # 5. Case reference (year-stable; populated only when High/Severe).
     case_ref = _case_reference(account_id, run_ts, overall)
 
     return {
-        "ORG_ID":                   anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
+        "ORG_ID":                   org_id,  # v1.x multi-org: stamped from the anchor
         "ACCOUNT_ID":               account_id,
         "PROFILE_DATE":             day_start.date(),
         "OVERALL_RISK_RATING":      overall,
@@ -339,16 +375,63 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 # Entry point
 # -------------------------------------------------------------------
 
-def main(session: Any) -> str:
-    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log."""
+def _keys_on_date(session: Any, day: date) -> set:
+    """(ORG_ID, ACCOUNT_ID) pairs with a row on PROFILE_DATE = day."""
+    rows = session.sql(
+        f"SELECT COALESCE(ORG_ID, 'JDO'), ACCOUNT_ID FROM {TABLE} "
+        f"WHERE PROFILE_DATE = '{day.isoformat()}'::DATE"
+    ).collect()
+    return {(r[0], r[1]) for r in rows}
+
+
+def _prior_keys(session: Any, run_day: date) -> set:
+    """(ORG_ID, ACCOUNT_ID) pairs present on the most recent PROFILE_DATE
+    strictly before run_day. Empty set when no earlier date exists.
+
+    The inner MAX is bounded by PROFILE_DATE < run_day and the outer scan is an
+    equality on PROFILE_DATE, so both prune micro-partitions on the 5.8M-row
+    table (one day is ~37K rows)."""
+    rows = session.sql(
+        f"SELECT COALESCE(ORG_ID, 'JDO'), ACCOUNT_ID FROM {TABLE} "
+        f"WHERE PROFILE_DATE = (SELECT MAX(PROFILE_DATE) FROM {TABLE} "
+        f"WHERE PROFILE_DATE < '{run_day.isoformat()}'::DATE)"
+    ).collect()
+    return {(r[0], r[1]) for r in rows}
+
+
+def main(session: Any, run_date: date | None = None) -> str:
+    """The 5-step canonical pattern: read -> build -> MERGE -> assert -> log.
+
+    run_date (optional): generate that screening day instead of today (UTC),
+    e.g. CALL SP_GENERATE_WORLD_CHECK_AML('2026-11-01'::DATE). If rows already
+    exist for that PROFILE_DATE the audience is restricted to the accounts
+    already present on it, which preserves the history shape.
+    """
     log_id = str(uuid.uuid4())
     started = datetime.utcnow()
+    if run_date is not None:
+        run_day = run_date.date() if isinstance(run_date, datetime) else run_date
+        run_ts = datetime(run_day.year, run_day.month, run_day.day)
+    else:
+        run_ts = started
+        run_day = started.date()
     rows_inserted, accounts_processed, status, err = 0, 0, "SUCCEEDED", None
 
     try:
         # 1. Read audience from the shared view (zero-copy fresh anchors).
         audience = session.sql(AUDIENCE_SQL).collect()
+        if run_date is not None:
+            existing = _keys_on_date(session, run_day)
+            if existing:
+                audience = [
+                    r for r in audience
+                    if ((_anchor_to_dict(r).get("ORG_ID") or "JDO"),
+                        _anchor_to_dict(r).get("ACCOUNT_ID")) in existing
+                ]
         accounts_processed = len(audience)  # 1:1 -- also matches row count.
+
+        # Accounts screened on the most recent earlier day (for "New").
+        prior_keys = _prior_keys(session, run_day)
 
         # 2. Build deterministic rows; tolerate up to 1% per-row failures.
         records, errors = [], []
@@ -360,7 +443,7 @@ def main(session: Any) -> str:
                 if aid in seen_account_ids:
                     continue
                 seen_account_ids.add(aid)
-                records.append(_row_for(anchor, started))
+                records.append(_row_for(anchor, run_ts, prior_keys))
             except Exception as exc:
                 errors.append((row.ACCOUNT_ID, str(exc)[:200]))
         max_tolerated = max(10, len(audience) // 100)
@@ -380,7 +463,7 @@ def main(session: Any) -> str:
 
         # 4. Coverage assertion
         actual_sql = f"""SELECT COUNT(DISTINCT ACCOUNT_ID) FROM {TABLE}
-                         WHERE PROFILE_DATE = CURRENT_DATE()"""
+                         WHERE PROFILE_DATE = '{run_day.isoformat()}'::DATE"""
         actual = session.sql(actual_sql).collect()[0][0]
         if actual < accounts_processed:
             missing = accounts_processed - actual

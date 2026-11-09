@@ -14,7 +14,7 @@ Synthetic LSEG World-Check / Dow Jones Risk & Compliance / ComplyAdvantage-style
 
 ## Snowflake objects
 - Table: `DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML`
-- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML(RUN_DATE DATE DEFAULT NULL)` (NULL = today UTC; pass a date to backfill that screening day, e.g. `CALL SP_GENERATE_WORLD_CHECK_AML('2026-11-01'::DATE)`; the task still calls it with no argument)
 - Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_WORLD_CHECK_AML` (DAILY, `0 6 * * * UTC`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
 - Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusWorldCheckAml__dll` → DMO `CumulusWorldCheckAml__dlm`
 
@@ -29,6 +29,11 @@ Live cardinality (probed 2026-05-28): **36,813 distinct accounts** (37,445 raw r
 
 **Storage** — re-runs MERGE-replace in place (composite PK `(ACCOUNT_ID, PROFILE_DATE)`, but PROFILE_DATE is bucketed to today's date, so re-runs same day overwrite the existing row). No daily history retention — live storage stays at ~36,813 rows.
 
+## Realism model (2026-11-09)
+- **Weighted jurisdictions** — a 30-code pool drawn with `rng.choices` (month-stable seed): Low ~90% (US 80%), Medium ~8%, High ~1.8%, Prohibited ~0.2% (IR, KP, CU, SY). Synthetic tiers, loosely modelled on FATF/OFAC lists. Prohibited rolls up to Severe, so Severe is now a fraction of a percent instead of ~15%.
+- **`CHANGE_SINCE_LAST_RUN`** — `New` (no row for the account on the most recent earlier `PROFILE_DATE`; all rows when no earlier date exists), else `Changed` / `Unchanged`. Rating values Severe/High/Medium/Low and `Changed` are unchanged for downstream consumers.
+- **Backfill** — `RUN_DATE` regenerates one day; if the day already has rows only those accounts are regenerated.
+
 ## Tests
 ```bash
 cd Snowflake_WorldCheck_AML
@@ -38,7 +43,9 @@ pytest tests/ -v
 ```
 
 ## Deploy
+First deploy of the `RUN_DATE` signature: drop the old zero-arg procedure so `()` is not ambiguous.
 ```bash
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -q "DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()"
 snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f schemas/world_check_aml.sql
 python3 scripts/deploy_sp.py   # regenerate procedures/sp_create_procedure.sql and create the SP as ACCOUNTADMIN
 snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_daily_world_check_aml.sql
