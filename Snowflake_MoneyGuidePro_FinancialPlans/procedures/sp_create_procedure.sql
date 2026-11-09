@@ -46,6 +46,7 @@ $$
 from __future__ import annotations
 
 
+import hashlib
 import random
 import uuid
 from datetime import date, datetime, timedelta
@@ -160,7 +161,7 @@ def _anchor_in_audience(anchor: dict) -> bool:
 # branching deep inside the synthesis helpers, we synthesize a "business owner"
 # persona at the anchor edge:
 #
-#   _effective_age — year-stable owner age in [40, 65] from a hash of
+#   _effective_age — year-stable owner age in [40, 65] from a sha256 of
 #       ACCOUNT_ID when BIRTHDATE is missing. The age is held constant across
 #       a calendar year (it advances by 1 each calendar year so 24-month
 #       backfills see two age values per BUSINESS anchor at most).
@@ -201,9 +202,12 @@ def _effective_age(anchor: dict, month_start: date) -> int:
             (month_start.month, month_start.day) < (parsed.month, parsed.day)
         )
 
-    # BUSINESS-anchor fallback. Year-stable owner-age in [40, 65].
+    # BUSINESS-anchor fallback. Stable owner-age base in [40, 65].
+    # sha256, not hash(): Python salts str hashes per process
+    # (PYTHONHASHSEED), so hash() gave every run a different owner age.
     aid = anchor.get("ACCOUNT_ID") or ""
-    base = 40 + (abs(hash(f"{aid}|owner-age")) % 26)  # [40, 65]
+    digest = hashlib.sha256(f"{aid}|owner-age".encode("utf-8")).digest()
+    base = 40 + int.from_bytes(digest[:8], "big") % 26  # [40, 65]
     # Advance by month_start.year - 2020 so the age glides 1yr/yr — keeps the
     # anchor "aging" across the 24-month backfill in a way analogous to
     # PERSON anchors with real BIRTHDATEs.
