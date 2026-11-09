@@ -21,9 +21,10 @@
 --   - 4 NULLable columns (LAST_TRANSACTION_DATE, MONTHLY_NET_FLOW_USD,
 --     INVESTMENT_RISK_TIER, INTEREST_RATE_PCT) conditional on IS_ACTIVE /
 --     ACCOUNT_TYPE.
---   - Audience predicate `CLIENT_CATEGORY IN ('Retail', 'Wealth Management')`.
---     Fixture has 16 anchors (10 Retail + 4 Wealth Management + 2 Small
---     Business filtered out) — audience-eligible count is 14.
+--   - Audience predicate `CLIENT_CATEGORY IN ('Retail', 'Wealth Management',
+--     'Small Business', 'Commercial Banking')`. Fixture has 18 anchors
+--     (10 Retail + 4 Wealth Management + 2 Small Business + 2 Household
+--     filtered out) — audience-eligible count is 16.
 --
 -- Pre-requisites:
 --   1. SP_GENERATE_PLAID_HELD_AWAY deployed (run scripts/deploy_sp.py first).
@@ -41,11 +42,12 @@ DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FI
 DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_PLAID_FIXTURE;
 
 -- ---------------------------------------------------------------------------
--- 2. Materialise the L2 fixture audience view: 16 anchors total.
---    - 10 Retail        (audience-eligible)
---    -  4 Wealth Mgmt   (audience-eligible)
---    -  2 Small Business (filtered out by _AUDIENCE_PREDICATE)
---    = 14 audience-eligible anchors.
+-- 2. Materialise the L2 fixture audience view: 18 anchors total.
+--    - 10 Retail          (audience-eligible)
+--    -  4 Wealth Mgmt     (audience-eligible)
+--    -  2 Small Business  (audience-eligible since 2026-10-24: business branch)
+--    -  2 Household       (filtered out by _AUDIENCE_PREDICATE)
+--    = 16 audience-eligible anchors.
 --
 --    Coverage of the rowspec dimensions:
 --    - Age bands: Gen Z (<30), Millennial (30-44), Gen X (45-59), Boomer (60+)
@@ -83,9 +85,12 @@ UNION ALL SELECT 'PLAID-FIX-W-01', 'Logan Pierce',   '2026-05-28'::DATE, 'Wealth
 UNION ALL SELECT 'PLAID-FIX-W-02', 'Harper Cole',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1980-10-04'::TIMESTAMP_LTZ, 285000, 770, NULL, NULL, NULL, '10021', 'NY', 'US', 'PHA-FIX-W-002'
 UNION ALL SELECT 'PLAID-FIX-W-03', 'Skyler Lane',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1953-06-09'::TIMESTAMP_LTZ, 500000, 800, NULL, NULL, NULL, '02115', 'MA', 'US', 'PHA-FIX-W-003'
 UNION ALL SELECT 'PLAID-FIX-W-04', 'Reese Calloway', '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1985-03-21'::TIMESTAMP_LTZ, 410000, 790, NULL, NULL, NULL, '77002', 'TX', 'US', 'PHA-FIX-W-004'
--- Edge: Small Business anchors — must be filtered out (audience is Retail/Wealth-only)
+-- Small Business anchors: in the audience since 2026-10-24, take the business branch
 UNION ALL SELECT 'PLAID-FIX-B-01', 'Pinewood Coffee Co.', '2026-05-28'::DATE, 'Small Business', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Food & Beverage', 1200000, 18, '98101', 'WA', 'US', 'PHA-FIX-B-001'
-UNION ALL SELECT 'PLAID-FIX-B-02', 'Mariposa Cleaners LLC', '2026-05-28'::DATE, 'Small Business', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services', 480000, 6, '94110', 'CA', 'US', 'PHA-FIX-B-002';
+UNION ALL SELECT 'PLAID-FIX-B-02', 'Mariposa Cleaners LLC', '2026-05-28'::DATE, 'Small Business', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services', 480000, 6, '94110', 'CA', 'US', 'PHA-FIX-B-002'
+-- Edge: Household anchors — must be filtered out (not in _PERSON_CATEGORIES or _BUSINESS_CATEGORIES)
+UNION ALL SELECT 'PLAID-FIX-H-01', 'Morgan Hayes', '2026-05-28'::DATE, 'Household', 'PERSON', '1972-09-30'::TIMESTAMP_LTZ, 110000, 740, NULL, NULL, NULL, '60601', 'IL', 'US', 'PHA-FIX-H-001'
+UNION ALL SELECT 'PLAID-FIX-H-02', 'Alex Brennan', '2026-05-28'::DATE, 'Household', 'PERSON', '1960-01-22'::TIMESTAMP_LTZ, 150000, 760, NULL, NULL, NULL, '90001', 'CA', 'US', 'PHA-FIX-H-002';
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
@@ -134,18 +139,18 @@ $$;
 CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_PLAID_HELD_AWAY_FIXTURE();
 
 -- ---------------------------------------------------------------------------
--- 6. Coverage assertion #1: distinct ACCOUNT_ID == audience size (14).
+-- 6. Coverage assertion #1: distinct ACCOUNT_ID == audience size (16).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) = 14
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) = 16
     AS distinct_accounts_assertion_passes;
--- Expected: TRUE  (14 audience-eligible anchors all emit at least one row)
+-- Expected: TRUE  (16 audience-eligible anchors all emit at least one row)
 
 -- ---------------------------------------------------------------------------
--- 7. Row-count band assertion #2: COUNT(*) in [14, 70] (audience to 5*audience).
+-- 7. Row-count band assertion #2: COUNT(*) in [16, 80] (audience to 5*audience).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) BETWEEN 14 AND 70
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) BETWEEN 16 AND 80
     AS row_count_band_assertion_passes;
 -- Expected: TRUE
 
@@ -162,7 +167,7 @@ SELECT EXISTS (
 
 -- ---------------------------------------------------------------------------
 -- 9. Inactive-row presence #4: at least one row has IS_ACTIVE = false (~8% rate).
--- The 8% is a loose target — 14-70 rows means 1-6 expected inactive. To make
+-- The 8% is a loose target — 16-80 rows means 1-6 expected inactive. To make
 -- this assertion non-flaky, only require at-least-one. With 70 rows max and
 -- 8% rate, the chance of zero inactive is (0.92^70) ~ 0.3%; with min 14 rows
 -- it's (0.92^14) ~ 31% — non-trivial. The fixture audience reliably yields
@@ -174,20 +179,34 @@ SELECT EXISTS (
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 10. Audience-filter assertion #5: Small Business anchors must NOT leak.
+-- 10. Audience-filter assertion #5: Household anchors must NOT leak.
 -- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
     SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
-    WHERE ACCOUNT_ID IN ('PLAID-FIX-B-01', 'PLAID-FIX-B-02')
+    WHERE ACCOUNT_ID IN ('PLAID-FIX-H-01', 'PLAID-FIX-H-02')
 ) AS audience_filter_passes;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 11. Distinct held-away ID assertion #6: at least 14 distinct values
+-- 10b. Business branch: both Small Business anchors emit rows, and only
+-- business account types (never a personal type like 'Checking').
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
+       WHERE ACCOUNT_ID IN ('PLAID-FIX-B-01', 'PLAID-FIX-B-02')) = 2
+    AND (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE
+       WHERE ACCOUNT_ID IN ('PLAID-FIX-B-01', 'PLAID-FIX-B-02')
+         AND ACCOUNT_TYPE IN ('Checking','Savings','Brokerage','IRA','401k','HSA',
+                              'Managed Portfolio','Mortgage','Auto Loan','Credit Card','Crypto Wallet')) = 0
+    AS business_anchors_use_business_branch;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 11. Distinct held-away ID assertion #6: at least 16 distinct values
 -- (one per anchor minimum, since slot 0 of each anchor is unique).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT HELD_AWAY_ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) >= 14
+    (SELECT COUNT(DISTINCT HELD_AWAY_ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.PLAID_HELD_AWAY_FIXTURE) >= 16
     AS distinct_held_away_ids_assertion_passes;
 -- Expected: TRUE
 

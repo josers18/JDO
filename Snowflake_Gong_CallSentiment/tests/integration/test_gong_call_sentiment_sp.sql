@@ -25,7 +25,8 @@
 --     (CALL_COUNT_LAST_7D = 0). Six fields collapse together to no-call
 --     defaults: TOTAL_TALK_TIME_MINUTES = 0; CUSTOMER_TALK_RATIO_PCT = 0.00;
 --     OVERALL_SENTIMENT = 'Neutral'; KEY_TOPICS_FLAGS IS NULL; LAST_CALL_DATE
---     IS NULL; ACTION_ITEMS_COUNT = 0. The boring case (zero activity) is
+--     carried forward from the last earlier call (never NULL since
+--     2026-10-24); ACTION_ITEMS_COUNT = 0. The boring case (zero activity) is
 --     itself a meaningful row, not a row that's filtered out. THE load-
 --     bearing assertions for this test are the cascade-NULL invariants.
 --   - **Two-salt + year-stable trajectory model**. Primary salt 'gong'
@@ -291,15 +292,16 @@ SELECT
     AS cascade_null_sentiment_invariant;
 -- Expected: TRUE
 
--- 14. Cascade-NULL #6d: zero rows where CALL_COUNT_LAST_7D = 0
--- AND LAST_CALL_DATE IS NOT NULL. The cascade gate sets LAST_CALL_DATE
--- to NULL on no-call weeks (we never listened). NULL semantics are
--- meaningful here -- distinct from a date 0 days ago.
+-- 14. Carry-forward #6d (2026-10-24): the row factory emits LAST_CALL_DATE
+-- NULL on no-call weeks, then _carry_forward_last_call fills it with the
+-- account's most recent earlier call (or a synthetic date 8-365 days before
+-- 2025-12-15 when there is none). So every no-call row has a date, and it
+-- is before its PROFILE_WEEK.
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.GONG_CALL_SENTIMENT_FIXTURE
        WHERE CALL_COUNT_LAST_7D = 0
-         AND LAST_CALL_DATE IS NOT NULL) = 0
-    AS cascade_null_last_call_date_invariant;
+         AND (LAST_CALL_DATE IS NULL OR LAST_CALL_DATE >= PROFILE_WEEK)) = 0
+    AS no_call_last_call_date_carried_forward;
 -- Expected: TRUE
 
 -- 15. Cascade-NULL #6e: zero rows where CALL_COUNT_LAST_7D = 0

@@ -174,30 +174,32 @@ SELECT
 
 -- ---------------------------------------------------------------------------
 -- 9. Jurisdiction-code assertion #4: all 14 RISK_JURISDICTION_CODE values
--- are valid ISO-3166-1 alpha-2 codes from the rowspec's 30-jurisdiction pool.
+-- are valid ISO-3166-1 alpha-2 codes from the SP's 13-jurisdiction pool
+-- (_JURISDICTIONS in procedures/sp_generate_world_check_aml.py).
 -- (length=2 + in known set.)
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE LENGTH(RISK_JURISDICTION_CODE) <> 2
           OR RISK_JURISDICTION_CODE NOT IN (
-              -- Prohibited (4)
-              'IR','KP','SY','CU',
-              -- Enhanced (9)
-              'RU','VE','BY','MM','AF','ZW','SD','PK','NG',
-              -- Standard (17)
-              'US','GB','CA','DE','FR','JP','AU','CH','SG','AE',
-              'MX','BR','IN','CN','KR','IT','ES'
+              -- Low (5)
+              'US','GB','DE','FR','JP',
+              -- Medium (4)
+              'SG','HK','AE','KE',
+              -- High (2)
+              'NG','PK',
+              -- Prohibited (2)
+              'IR','KP'
           )) = 0
     AS jurisdiction_code_in_known_set;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 10. Jurisdiction-tier assertion #5: all values in the 3-tier vocabulary.
+-- 10. Jurisdiction-tier assertion #5: all values in the 4-tier vocabulary.
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
-       WHERE RISK_JURISDICTION_TIER NOT IN ('Standard','Enhanced','Prohibited')) = 0
+       WHERE RISK_JURISDICTION_TIER NOT IN ('Low','Medium','High','Prohibited')) = 0
     AS jurisdiction_tier_vocabulary_ok;
 -- Expected: TRUE
 
@@ -213,13 +215,13 @@ SELECT
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 12. Change-since-last-run assertion #7: all values in the 5-state
--- vocabulary {New, Unchanged, Risk Increased, Risk Decreased, Cleared}.
+-- 12. Change-since-last-run assertion #7: all values in the live 2-state
+-- vocabulary {Changed, Unchanged} (_change_since_last_run).
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML_FIXTURE
        WHERE CHANGE_SINCE_LAST_RUN NOT IN
-           ('New','Unchanged','Risk Increased','Risk Decreased','Cleared')) = 0
+           ('Changed','Unchanged')) = 0
     AS change_since_last_run_vocabulary_ok;
 -- Expected: TRUE
 
