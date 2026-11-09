@@ -104,7 +104,7 @@ As of 2026-11-04:
 | Manual `TRD-xxx` placeholders | 5 | 0 (deactivated by migration 001) | trades have NULL `ACCOUNT_ID` |
 | **Total** | **36,773** | **36,239** | **6.42M** |
 
-Trade counts are after migration 007, which deleted the duplicate Monday trade sets (4,195,785 rows). The 35,116 NULL-`ACCOUNT_ID` trades from the `TRD-` placeholders are in the total only. The 529 accounts from the four non-Home orgs don't join to the Home org the cockpits read, so migration 005 deactivated them. Their trades were kept. Adding a `Salesforce_Home` filter to `SYNC_NEW_ACCOUNTS()`, so new non-Home accounts aren't imported as active, is still open.
+Trade counts are after migration 007, which deleted the duplicate Monday trade sets (4,195,785 rows). The 35,116 NULL-`ACCOUNT_ID` trades from the `TRD-` placeholders are in the total only. No cockpit query, segment or calculated insight reads them (checked 2026-11-09). See "Known data gaps" in the [README](../README.md). The 529 accounts from the four non-Home orgs don't join to the Home org the cockpits read, so migration 005 deactivated them. Their trades were kept. Adding a `Salesforce_Home` filter to `SYNC_NEW_ACCOUNTS()`, so new non-Home accounts aren't imported as active, is still open.
 
 ## Execution Logging
 

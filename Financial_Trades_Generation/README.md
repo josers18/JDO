@@ -157,6 +157,19 @@ One-off data and schema fixes live in [`migrations/`](migrations/). Each one clo
 
 Migrations 003-005 change trade volume from the next daily run: Partner accounts trade more, Person accounts much less, and the non-Home accounts stop trading. Existing trades aren't rewritten. The `BT_Financial_Trades` stream is zero copy (`DIRECT_ACCESS`), so Data Cloud reads `FINANCIAL_TRADES` live and changes such as 007's delete show up without a refresh. Run new migrations as `ACCOUNTADMIN` outside the 03:00-03:10 ET task window.
 
+### Known data gaps (checked 2026-11-09)
+
+- **35,116 NULL-`ACCOUNT_ID` trades** (trade dates 2024-06-03 to 2026-10-23). These are the trades of the five `TRD-` placeholder configs created by hand on 2026-04-16: TRD-001 DAILY/15, TRD-002 WEEKLY/8, TRD-003 MONTHLY/3, TRD-004 DAILY/25, TRD-005 DAILY/10. Migration 001 NULLed their `ACCOUNT_ID` on 2026-10-23, and nothing has written a NULL row since. A normal day has 50 (+8 on Mondays, +3 on monthly run days). Because 007 was scoped to `'001%'`, they still carry retry duplicates on 10 Mondays: 66 on 06-15, 07-06, 07-13, 08-17 and 09-14; 74 on 09-07, 09-21 and 10-05; 90 on 10-19; 98 on 10-12. On 09-28 only 4 are left. The map from row to TRD id is gone because `FINANCIAL_TRADES_BAK_20261024` was dropped. **No reader uses them:**
+  - every cockpit query on `BT_Financial_Trades__dlm` filters `account_id__c`;
+  - the `Accounts_with_recent_trade_activity` segment targets Account, which a NULL key can't join;
+  - none of the 106 calculated insights reference trades;
+  - no Snowflake view depends on `FINANCIAL_TRADES`.
+
+  They only show up in unfiltered totals: Data Cloud sees 6,642,761 rows, 35,116 of them NULL. **Recommendation:** delete them, keeping a backup of just those rows. This is not done yet.
+- **No trades at all on 2026-06-29 (Mon) and 2026-07-01 (Wed).** `TASK_HISTORY` has no `DAILY_TRADE_GENERATOR` run for either day: the task moved from 22:00 to 00:10 PT around then. The 06-29 weekly sets landed on 06-30, because the run on that day was the first one where they were due. The 315 DAILY accounts have no trades for those two days (about 3,105 per day). Apart from these two days, every date since 2024-06-03 has trades; the history skips weekends by design until 2026-04-16.
+- **2026-10-12 is short by 501 WEEKLY accounts** (35,313 accounts against 36,707 on the Mondays around it). All three runs hit the 3,600 s timeout. 893 of the 1,394 missing accounts caught up on 10-13. The other 501, all created 2026-05-26 with `TRADES_PER_PERIOD` 5, have no trades for that week, the same stranded tail as 09-28. They are a different set from 008's 501. All of them traded again on 10-19.
+- **Marked generated, but no trades:** only `001am00002AYPmwAAH` (`LAST_GENERATED_DATE` 2026-11-02, now MONTHLY). Every other active `'001%'` config has trades on its `LAST_GENERATED_DATE`. The 2026-11-09 run is complete: all 10,745 active WEEKLY accounts traded, plus 77 DAILY, which is 82,598 rows as expected.
+
 ## Quick Start
 
 ```sql

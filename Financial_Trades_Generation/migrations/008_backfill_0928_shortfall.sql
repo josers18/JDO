@@ -25,6 +25,9 @@
 -- Not touched: the 3,893 WEEKLY accounts that caught up on 09-29 (that was the
 -- normal next-day catch-up), the 44 MONTHLY accounts (not due), NULL-ACCOUNT_ID
 -- rows, TRADE_GENERATION_CONFIG (LAST_GENERATED_DATE stays as it is).
+-- The NULL-ACCOUNT_ID (old TRD- placeholder) rows on 09-28 are 4, one per TRD
+-- account due that day, left by the same rn = 1 delete (normal Monday = 58).
+-- They were left as they are; see "Known data gaps" in the README.
 -- Expected total: 133,242 rows for 32,814 accounts, taking 09-28 from 32,317
 -- to 165,559.
 --
