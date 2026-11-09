@@ -15,7 +15,7 @@
 --             672 anchors for 2026-11 (650-672 over the 7 ZoomInfo months).
 -- Shape:      1:1 -- one row per audience anchor per month. MERGE on PK.
 -- Generator:  SP_GENERATE_HARMONIC_COMPANY_SIGNALS(BACKFILL_MONTHS INTEGER DEFAULT 0)
--- Egress:     DC Snowflake federation -> DLO/DMO CumulusHarmonicCompanySignals__dlm
+-- Egress:     DC Snowflake federation -> DLO/DMO BT_Harmonic_Company_Signals__dlm
 -- Plan:       docs/superpowers/plans/2026-11-02-cumulus-plan-16-harmonic-company-signals.md
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-16-harmonic-company-signals-rowspec.md
 -- No ampersand anywhere in this file (snow sql template-render trap).

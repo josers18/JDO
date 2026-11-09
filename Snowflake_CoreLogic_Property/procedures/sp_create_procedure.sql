@@ -16,6 +16,11 @@
 --           quarters within the same calendar year)
 -- Table:    DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY
 -- Vendor:   CoreLogic-style (property profile shape) — README uses canonical name
+-- Synced 2026-11-09 to the deployed body (GET_DDL): this file is what
+-- deploy_sp.py runs, and it now matches live, EXECUTE AS OWNER included.
+-- The deployed MERGE matches on the natural key only and writes no ORG_ID
+-- (rows take the column DEFAULT 'JDO'). The ORG_ID-aware version is the
+-- Python source in this folder; see Snowflake_Cumulus_Common/docs/ROLLOUT.md A6.
 -- =============================================================================
 
 CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY()
@@ -24,7 +29,7 @@ LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
 PACKAGES = ('snowflake-snowpark-python', 'pandas')
 HANDLER = 'main'
-EXECUTE AS CALLER
+EXECUTE AS OWNER
 AS
 $$
 from __future__ import annotations
@@ -566,7 +571,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
