@@ -19,8 +19,8 @@ Each subfolder that contains **`sfdx-project.json`** is a **standalone** deploya
 [![GitHub](https://img.shields.io/badge/GitHub-josers18%2FJDO-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO)
 
 [![Snowflake](https://img.shields.io/badge/Snowflake-Federate_/_Zero_Copy-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
-[![Cumulus Datasets](https://img.shields.io/badge/Cumulus_Datasets-13_LIVE-00A1E0?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
-[![Cumulus Rows](https://img.shields.io/badge/Cumulus_Rows-3.97M-181717?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
+[![Cumulus Datasets](https://img.shields.io/badge/Cumulus_Datasets-16_LIVE-00A1E0?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
+[![Cumulus Rows](https://img.shields.io/badge/Cumulus_Rows-14.1M-181717?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 [![Multi-Org](https://img.shields.io/badge/Multi--Org-Phase_A_LIVE-2EA44F?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 [![Agentforce Renderer](https://img.shields.io/badge/Agentforce_Renderer-Markdown-7F56D9?style=for-the-badge)](DC_AgentForce_Markdown_Renderer/docs/INTEGRATION_GUIDE.md)
 [![Theme System](https://img.shields.io/badge/Theme_System-Cookbook-7F56D9?style=for-the-badge)](docs/THEME_CATALOG.md)
