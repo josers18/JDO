@@ -1,7 +1,8 @@
 /**
  * W5 — trading activity pulse from `BT_Financial_Trades__dlm`: buys vs sells per
- * trade date over the eight weeks up to the latest CRM-account trade, plus the
- * book's biggest net sellers in that latest week (cash raised → reinvest call).
+ * calendar week (Monday start) over the nine weeks up to the latest CRM-account
+ * trade, plus the book's biggest net sellers in that same latest week (cash
+ * raised → reinvest call).
  * Confirmed USD trades only — the stream mixes currencies with no FX rate.
  *
  * Since 2026-10-26 BT_Financial_Trades is zero-copy direct access (no
@@ -16,16 +17,22 @@ import type { QueueSignalItem } from './priorityQueue';
 const LATEST = "(SELECT MAX(trade_date__c) FROM BT_Financial_Trades__dlm WHERE account_id__c LIKE '001am%')";
 const SLICE = "trade_status__c = 'Confirmed' AND currency__c = 'USD'";
 
+// Monday of the latest trade's week. The pulse buckets by calendar week: daily
+// accounts trade most days, so one row per day over 56 days (~57 rows) overran
+// the 20-row cap and the oldest-first result stopped weeks short of the latest.
+const LATEST_WEEK = `DATE_TRUNC('week', ${LATEST})`;
+
 const weeklySql = (accountFilter: string) => `
-  SELECT CAST(CAST(trade_date__c AS DATE) AS VARCHAR) AS d,
+  SELECT CAST(CAST(DATE_TRUNC('week', trade_date__c) AS DATE) AS VARCHAR) AS d,
+         CAST(MAX(CAST(trade_date__c AS DATE)) AS VARCHAR) AS last_d,
          SUM(CASE WHEN trade_side__c = 'Buy' THEN total_trade__c ELSE 0 END) AS buys,
          SUM(CASE WHEN trade_side__c = 'Sell' THEN total_trade__c ELSE 0 END) AS sells,
          COUNT(*) AS n
   FROM BT_Financial_Trades__dlm
-  WHERE trade_date__c >= ${LATEST} - INTERVAL '56' DAY
+  WHERE trade_date__c >= ${LATEST_WEEK} - INTERVAL '56' DAY
     AND ${SLICE}
     AND account_id__c ${accountFilter}
-  GROUP BY CAST(trade_date__c AS DATE)
+  GROUP BY DATE_TRUNC('week', trade_date__c)
   ORDER BY 1
 `;
 
@@ -34,7 +41,7 @@ const sellersSql = (accountFilter: string) => `
          SUM(CASE WHEN trade_side__c = 'Sell' THEN total_trade__c ELSE -total_trade__c END) AS net_sold,
          COUNT(*) AS trades, MAX(instrument_name__c) AS instrument
   FROM BT_Financial_Trades__dlm
-  WHERE trade_date__c >= ${LATEST} - INTERVAL '6' DAY
+  WHERE trade_date__c >= ${LATEST_WEEK}
     AND ${SLICE}
     AND account_id__c ${accountFilter}
   GROUP BY account_id__c
@@ -44,7 +51,10 @@ const sellersSql = (accountFilter: string) => `
 `;
 
 export interface TradeWeek {
+  /** Monday the week starts (YYYY-MM-DD). */
   date: string;
+  /** Latest trade date inside the week (YYYY-MM-DD). */
+  lastDate: string;
   buys: number;
   sells: number;
   trades: number;
@@ -65,13 +75,13 @@ export interface TradingPulseResult {
   asOf: string;
   buys: number;
   sells: number;
-  /** Latest week, buys − sells. */
+  /** Latest calendar week (Monday to the latest trade), buys − sells. */
   net: number;
   sellers: NetSellerRow[];
   scope: BookScope;
 }
 
-/** W5 — eight weeks of buys vs sells plus the latest week's net sellers. */
+/** W5 — nine calendar weeks of buys vs sells plus the latest week's net sellers. */
 export async function fetchTradingPulse(ownerId: string | null | undefined): Promise<TradingPulseResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(weeklySql, ownerId, 20);
   const sellers = await queryDataCloud<Record<string, unknown>>(sellersSql(res.accountFilter), 4)
@@ -79,6 +89,7 @@ export async function fetchTradingPulse(ownerId: string | null | undefined): Pro
     .catch((): Record<string, unknown>[] => []);
   const weeks = res.rows.map(r => ({
     date: String(r.d ?? '').slice(0, 10),
+    lastDate: String(r.last_d ?? r.d ?? '').slice(0, 10),
     buys: Number(r.buys) || 0,
     sells: Number(r.sells) || 0,
     trades: Number(r.n) || 0,
@@ -87,7 +98,7 @@ export async function fetchTradingPulse(ownerId: string | null | undefined): Pro
   return {
     scope: res.scope,
     weeks,
-    asOf: last?.date ?? '',
+    asOf: last?.lastDate ?? '',
     buys: last?.buys ?? 0,
     sells: last?.sells ?? 0,
     net: (last?.buys ?? 0) - (last?.sells ?? 0),

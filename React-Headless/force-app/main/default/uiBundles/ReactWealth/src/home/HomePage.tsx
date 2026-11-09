@@ -1332,7 +1332,7 @@ function HomeContent() {
     </div>
   );
 
-  // W5 — trading pulse: eight weeks of confirmed USD buys vs sells, as of the
+  // W5 — trading pulse: nine calendar weeks of confirmed USD buys vs sells, as of the
   // latest trade (the stream is stale), plus the latest week's net sellers.
   const tp = data.tradingPulse;
   const tradeAsOf = tp?.asOf ? new Date(`${tp.asOf}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
