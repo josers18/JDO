@@ -39,10 +39,13 @@ Jump to: [November 2026](#november-2026) · [October 2026](#october-2026) · [Ju
 ### Changed
 
 - **Plaid November rally** (PR [#163](https://github.com/josers18/JDO/pull/163)) — Oct/Nov market returns raised to +2.8% / +6.5%, Plaid and offer scores re-run for both months; `deploy_sp.py` now deploys as ACCOUNTADMIN by default.
+- **World-Check AML realism** (PR [#176](https://github.com/josers18/JDO/pull/176)) — jurisdictions drawn from a 30-code weighted pool (11-09: Low 90.0%, Medium 7.9%, High 1.9%, Prohibited 0.2%); `CHANGE_SINCE_LAST_RUN` gains `New` for accounts absent from the prior run; `SP_GENERATE_WORLD_CHECK_AML(RUN_DATE DATE DEFAULT NULL)` backfills a past date. All 159 dates (2026-05-28..11-09) regenerated, row counts unchanged at 5,860,286; Severe fell from ~5,857/day to 75. Backup `WORLD_CHECK_AML_BAK_20261109` dropped after the checks.
+- **Cumulus L2 suites** (PRs [#173](https://github.com/josers18/JDO/pull/173), [#174](https://github.com/josers18/JDO/pull/174), [#177](https://github.com/josers18/JDO/pull/177)) — Claritas, CoreLogic, DnB, Esri and MSCI ported off `FINS.TEST` to the `DATA_JEDAIS.FINS__PUBLIC` fixture pattern; Gong, Plaid, Synth and World-Check suites match current SP behaviour; UserGems scratch deploy documented with the JWT connection as ACCOUNTADMIN. All 16 suites pass (2026-11-09).
 - **Financial_Trades_Generation hardening** (PR [#153](https://github.com/josers18/JDO/pull/153)) — migrations 003–007: config name/type/profile backfills, non-Home accounts deactivated, task timeout layering, and 4,195,785 Monday retry duplicates deleted.
 
 ### Fixed
 
+- **MGP business owner age** (PR [#175](https://github.com/josers18/JDO/pull/175)) — `_effective_age` uses a sha256 of `ACCOUNT_ID` instead of Python's per-process salted `hash()`, so business owner ages are stable across runs. History regenerated; 3,946 rows for 140 late-joining accounts kept and noted in [`Snowflake_MoneyGuidePro_FinancialPlans/AGENTS.md`](Snowflake_MoneyGuidePro_FinancialPlans/AGENTS.md).
 - **Offer eligibility job logging** (PR [#161](https://github.com/josers18/JDO/pull/161)) — the SP logs `SUCCEEDED`, so the daily job report counts the run.
 - **Wealth trading pulse** (PR [#166](https://github.com/josers18/JDO/pull/166)) — buckets by calendar week; it had stopped at 2026-10-04 under a 20-row cap.
 
