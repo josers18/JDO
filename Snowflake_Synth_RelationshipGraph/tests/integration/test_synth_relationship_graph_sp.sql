@@ -26,7 +26,7 @@
 --     CLARITAS_DEMOGRAPHICS, DNB_BUSINESS_CREDIT, BOARDEX_EXEC_INTEL via
 --     try/except. In this L2 run the probes may succeed (if those tables
 --     exist from prior plans) but the lookup builders return entries keyed by
---     the LIVE anchor IDs, NOT the fixture's SYNTH-FIX- IDs -- so HOUSEHOLD,
+--     the LIVE anchor IDs, NOT the fixture's 001SYNTHFIX- IDs -- so HOUSEHOLD,
 --     CORPORATE_PARENT, BOARD_MEMBER all short-circuit to [] for fixture
 --     anchors. Plus V_ACCOUNT_ANCHORS has no CLARITAS_HOUSEHOLD_COMPOSITION
 --     column, so _household_edges short-circuits even harder.
@@ -67,14 +67,16 @@ DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTUR
 --        These satisfy ACCOUNT_TYPE_FLAG='BUSINESS' for CORPORATE_PARENT
 --        and provide destinations for BUSINESS_OWNER edges.
 --      4 additional PERSON anchors (1 Wealth, 3 Retail) for variety.
---    ACCOUNT_ID prefix `SYNTH-FIX-` (unique across Cumulus).
+--    ACCOUNT_ID prefix `001SYNTHFIX-`: the SP's audience is
+--    `ACCOUNT_ID LIKE '001%'`, and the hyphen keeps it from ever matching a
+--    real Salesforce Account ID.
 --    Column shape mirrors V_ACCOUNT_ANCHORS exactly (15 columns) so the
 --    cloned SP's audience SELECT compiles unchanged.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_SYNTH_FIXTURE AS
 -- 6 base PERSON anchors -- mix of Retail / Wealth / Household.
 SELECT
-    'SYNTH-FIX-P-01'::VARCHAR     AS ACCOUNT_ID,
+    '001SYNTHFIX-P-01'::VARCHAR     AS ACCOUNT_ID,
     'Quinn Marlowe'::VARCHAR      AS ACCOUNT_NAME,
     '2026-05-28'::DATE            AS SNAPSHOT_DATE,
     'Wealth Management'::VARCHAR  AS CLIENT_CATEGORY,
@@ -89,21 +91,21 @@ SELECT
     'CA'::VARCHAR                 AS STATE_CODE,
     'US'::VARCHAR                 AS COUNTRY_CODE,
     'SYNTH-FIX-EXT-001'::VARCHAR  AS EXTERNAL_ID
-UNION ALL SELECT 'SYNTH-FIX-P-02', 'Jordan Vega',     '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1976-06-12'::TIMESTAMP_LTZ,   420000, 790, NULL, NULL, NULL, '77002', 'TX', 'US', 'SYNTH-FIX-EXT-002'  -- BUSINESS_OWNER eligible
-UNION ALL SELECT 'SYNTH-FIX-P-03', 'Morgan Hayes',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1961-09-30'::TIMESTAMP_LTZ,   720000, 800, NULL, NULL, NULL, '60601', 'IL', 'US', 'SYNTH-FIX-EXT-003'  -- BUSINESS_OWNER eligible
-UNION ALL SELECT 'SYNTH-FIX-P-04', 'Avery Stone',     '2026-05-28'::DATE, 'Retail',            'PERSON',  '1955-02-18'::TIMESTAMP_LTZ,   210000, 810, NULL, NULL, NULL, '33139', 'FL', 'US', 'SYNTH-FIX-EXT-004'  -- BUSINESS_OWNER eligible (Retail still eligible -- only ACCOUNT_TYPE_FLAG=PERSON gates)
-UNION ALL SELECT 'SYNTH-FIX-P-05', 'Riley Park',      '2026-05-28'::DATE, 'Retail',            'PERSON',  '1996-08-22'::TIMESTAMP_LTZ,    62000, 700, NULL, NULL, NULL, '10025', 'NY', 'US', 'SYNTH-FIX-EXT-005'  -- below 200K, BUSINESS_OWNER ineligible
-UNION ALL SELECT 'SYNTH-FIX-P-06', 'Casey Reed',      '2026-05-28'::DATE, 'Household',         'PERSON',  '1971-11-05'::TIMESTAMP_LTZ,    95000, 720, NULL, NULL, NULL, '02115', 'MA', 'US', 'SYNTH-FIX-EXT-006'  -- below 200K
+UNION ALL SELECT '001SYNTHFIX-P-02', 'Jordan Vega',     '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1976-06-12'::TIMESTAMP_LTZ,   420000, 790, NULL, NULL, NULL, '77002', 'TX', 'US', 'SYNTH-FIX-EXT-002'  -- BUSINESS_OWNER eligible
+UNION ALL SELECT '001SYNTHFIX-P-03', 'Morgan Hayes',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1961-09-30'::TIMESTAMP_LTZ,   720000, 800, NULL, NULL, NULL, '60601', 'IL', 'US', 'SYNTH-FIX-EXT-003'  -- BUSINESS_OWNER eligible
+UNION ALL SELECT '001SYNTHFIX-P-04', 'Avery Stone',     '2026-05-28'::DATE, 'Retail',            'PERSON',  '1955-02-18'::TIMESTAMP_LTZ,   210000, 810, NULL, NULL, NULL, '33139', 'FL', 'US', 'SYNTH-FIX-EXT-004'  -- BUSINESS_OWNER eligible (Retail still eligible -- only ACCOUNT_TYPE_FLAG=PERSON gates)
+UNION ALL SELECT '001SYNTHFIX-P-05', 'Riley Park',      '2026-05-28'::DATE, 'Retail',            'PERSON',  '1996-08-22'::TIMESTAMP_LTZ,    62000, 700, NULL, NULL, NULL, '10025', 'NY', 'US', 'SYNTH-FIX-EXT-005'  -- below 200K, BUSINESS_OWNER ineligible
+UNION ALL SELECT '001SYNTHFIX-P-06', 'Casey Reed',      '2026-05-28'::DATE, 'Household',         'PERSON',  '1971-11-05'::TIMESTAMP_LTZ,    95000, 720, NULL, NULL, NULL, '02115', 'MA', 'US', 'SYNTH-FIX-EXT-006'  -- below 200K
 -- 4 BUSINESS anchors -- targets for BUSINESS_OWNER, eligible for CORPORATE_PARENT.
-UNION ALL SELECT 'SYNTH-FIX-B-01', 'Pinewood Coffee Co.',    '2026-05-28'::DATE, 'Small Business',     'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Food Services',         1200000,  18, '98101', 'WA', 'US', 'SYNTH-FIX-EXT-007'
-UNION ALL SELECT 'SYNTH-FIX-B-02', 'Mariposa Cleaners LLC',  '2026-05-28'::DATE, 'Small Business',     'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services',      480000,   6, '94110', 'CA', 'US', 'SYNTH-FIX-EXT-008'
-UNION ALL SELECT 'SYNTH-FIX-B-03', 'Atlas Logistics Inc.',   '2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Logistics',            18500000, 220, '60601', 'IL', 'US', 'SYNTH-FIX-EXT-009'
-UNION ALL SELECT 'SYNTH-FIX-B-04', 'Northwind Holdings LLC', '2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Investment Management',42000000,  95, '10005', 'NY', 'US', 'SYNTH-FIX-EXT-010'
+UNION ALL SELECT '001SYNTHFIX-B-01', 'Pinewood Coffee Co.',    '2026-05-28'::DATE, 'Small Business',     'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Food Services',         1200000,  18, '98101', 'WA', 'US', 'SYNTH-FIX-EXT-007'
+UNION ALL SELECT '001SYNTHFIX-B-02', 'Mariposa Cleaners LLC',  '2026-05-28'::DATE, 'Small Business',     'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services',      480000,   6, '94110', 'CA', 'US', 'SYNTH-FIX-EXT-008'
+UNION ALL SELECT '001SYNTHFIX-B-03', 'Atlas Logistics Inc.',   '2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Logistics',            18500000, 220, '60601', 'IL', 'US', 'SYNTH-FIX-EXT-009'
+UNION ALL SELECT '001SYNTHFIX-B-04', 'Northwind Holdings LLC', '2026-05-28'::DATE, 'Commercial Banking', 'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Investment Management',42000000,  95, '10005', 'NY', 'US', 'SYNTH-FIX-EXT-010'
 -- 4 additional PERSON anchors for variety (Retail / Wealth / Household).
-UNION ALL SELECT 'SYNTH-FIX-P-07', 'Pat Donovan',     '2026-05-28'::DATE, 'Retail',            'PERSON',  '1958-12-03'::TIMESTAMP_LTZ,    72000, 720, NULL, NULL, NULL, '10001', 'NY', 'US', 'SYNTH-FIX-EXT-011'
-UNION ALL SELECT 'SYNTH-FIX-P-08', 'Drew Mitchell',   '2026-05-28'::DATE, 'Retail',            'PERSON',  '1990-07-19'::TIMESTAMP_LTZ,    85000, 690, NULL, NULL, NULL, '02101', 'MA', 'US', 'SYNTH-FIX-EXT-012'
-UNION ALL SELECT 'SYNTH-FIX-P-09', 'Sam Walters',     '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1984-02-18'::TIMESTAMP_LTZ,    330000, 760, NULL, NULL, NULL, '33139', 'FL', 'US', 'SYNTH-FIX-EXT-013'  -- BUSINESS_OWNER eligible
-UNION ALL SELECT 'SYNTH-FIX-P-10', 'Alex Brennan',    '2026-05-28'::DATE, 'Household',         'PERSON',  '1954-01-22'::TIMESTAMP_LTZ,   150000, 760, NULL, NULL, NULL, '90001', 'CA', 'US', 'SYNTH-FIX-EXT-014';
+UNION ALL SELECT '001SYNTHFIX-P-07', 'Pat Donovan',     '2026-05-28'::DATE, 'Retail',            'PERSON',  '1958-12-03'::TIMESTAMP_LTZ,    72000, 720, NULL, NULL, NULL, '10001', 'NY', 'US', 'SYNTH-FIX-EXT-011'
+UNION ALL SELECT '001SYNTHFIX-P-08', 'Drew Mitchell',   '2026-05-28'::DATE, 'Retail',            'PERSON',  '1990-07-19'::TIMESTAMP_LTZ,    85000, 690, NULL, NULL, NULL, '02101', 'MA', 'US', 'SYNTH-FIX-EXT-012'
+UNION ALL SELECT '001SYNTHFIX-P-09', 'Sam Walters',     '2026-05-28'::DATE, 'Wealth Management', 'PERSON',  '1984-02-18'::TIMESTAMP_LTZ,    330000, 760, NULL, NULL, NULL, '33139', 'FL', 'US', 'SYNTH-FIX-EXT-013'  -- BUSINESS_OWNER eligible
+UNION ALL SELECT '001SYNTHFIX-P-10', 'Alex Brennan',    '2026-05-28'::DATE, 'Household',         'PERSON',  '1954-01-22'::TIMESTAMP_LTZ,   150000, 760, NULL, NULL, NULL, '90001', 'CA', 'US', 'SYNTH-FIX-EXT-014';
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
@@ -188,7 +190,7 @@ SELECT
 -- ---------------------------------------------------------------------------
 -- 9. EDGE_TYPE vocabulary assertion #4: every row's EDGE_TYPE is in the
 -- 7-value canonical set. With cross-plan lookups effectively empty for
--- the fixture (live cross-plan tables don't index SYNTH-FIX- IDs), the
+-- the fixture (live cross-plan tables don't index 001SYNTHFIX- IDs), the
 -- typical L2 outcome is mostly SELF + possibly a few ADVISOR_BOOK /
 -- REFERRAL / BUSINESS_OWNER edges. None of HOUSEHOLD / CORPORATE_PARENT /
 -- BOARD_MEMBER are expected to fire because the fixture's anchor IDs
