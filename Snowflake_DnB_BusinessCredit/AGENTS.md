@@ -2,7 +2,7 @@
 
 Synthetic D&B-style business credit dataset for the Cumulus FSC demo. One of 13. **BUSINESS-scoped (same audience as Plan 2 MSCI).**
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A, 2026-05-29 `c9119d32`; checked against live 2026-11-09).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id); UNIQUE `(ACCOUNT_ID, PROFILE_MONTH)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, added near the end of the column list (not first). The row factory stamps `"ORG_ID": anchor["ORG_ID"]` on each row (the dedupe keeps one anchor per `(ORG_ID, ACCOUNT_ID)`), and the MERGE source SELECT, `ON` and `INSERT` carry it. The deployed MERGE `ON` is `ORG_ID, ACCOUNT_ID, PROFILE_MONTH`, and that is what keeps rows unique; UPDATE SET skips `ORG_ID`. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 > **v1.6 (2026-10-24): realism pass.**
 > - **Late payers.** About 2–10% of accounts per industry (×1.5 in the lower tiers) are year-stable chronic late payers (salt `"dnb_payer"`). They have PAYDEX 1–49 and failure risk −25. Everyone else is clamped to PAYDEX 50–100.
@@ -20,7 +20,7 @@ Synthetic D&B-style business credit dataset for the Cumulus FSC demo. One of 13.
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"dnb"`.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` in step 4 — canonical "coverage gap: N missing rows" message.
-- The MERGE replaces on PK `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. Re-runs are idempotent within a calendar month.
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` (its `ON`; the table PK is `RECORD_ID`). Re-runs are idempotent within a calendar month.
 - Audience SQL uses `SELECT DISTINCT *` to defend against the 1.7% MASTER_ACCOUNTS dupe pattern (spec §3 v1.2).
 - The 11 D&B financial-strength tiers (5A, 4A, 3A, 2A, 1A, BA, BB, CB, CC, DC, DD) × 4 composite-risk values produce 44 valid `<tier><composite>` ratings (e.g. `5A1`, `BA3`). Recognisable as D&B's canonical Rating system, NOT a license-grade D&B dataset. See rowspec.
 - The SP logs a non-fatal warning to `TASK_EXECUTION_LOG.ERROR_MESSAGE` when `accounts_processed > 10000` (BUSINESS over-count per spec §3 v1.2 finding #3 — real CRM count is closer to 5K).
@@ -37,7 +37,7 @@ Synthetic D&B-style business credit dataset for the Cumulus FSC demo. One of 13.
 - The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_MONTH`'s sourceFields entry, NOT `yyyy-MM-dd`.
 - `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
-- 17 contract columns (plus the table-only `RECORD_ID TEXT DEFAULT UUID_STRING()` from `Snowflake_Cumulus_Common/scripts/backfill_record_ids.sql`). `ULTIMATE_PARENT_DUNS` is NULL exactly when `CORPORATE_FAMILY_SIZE = 1` (standalone). `MATCH_CONFIDENCE_CODE` is NULL only on months before v1.6.
+- 17 contract columns, 18 in the live table (15 NOT NULL incl. `RECORD_ID`; NULLable `ULTIMATE_PARENT_DUNS`, `ORG_ID`, `MATCH_CONFIDENCE_CODE`), counting the table-only `RECORD_ID TEXT DEFAULT UUID_STRING()` from `Snowflake_Cumulus_Common/scripts/backfill_record_ids.sql`). `ULTIMATE_PARENT_DUNS` is NULL exactly when `CORPORATE_FAMILY_SIZE = 1` (standalone). `MATCH_CONFIDENCE_CODE` is NULL only on months before v1.6.
 - **Score directions are mixed.** `FAILURE_RISK_SCORE` and `DELINQUENCY_PREDICTOR_SCORE`: higher = safer. `COMPOSITE_RISK_SCORE` (1–4) and the `SUPPLIER_RISK_LEVEL` order: higher = riskier. Sort accordingly.
 - **The live SP runs `EXECUTE AS OWNER`** (ACCOUNTADMIN; the monthly task calls it through `SP_RETRY_WRAPPER`). `deploy_sp.py` emits OWNER to match. Deploy with `python scripts/deploy_sp.py --no-deploy`, then `snow sql -c SFDC_DC_TECH_ARCH --role ACCOUNTADMIN -f procedures/sp_create_procedure.sql`. Diff against `GET_DDL` first.
 - `MATCH_CONFIDENCE_CODE` is mapped in DC as `match_confidence_code__c` (DLO and DMO, added 2026-10-24). Because the stream is zero-copy, new columns need only a source field and a mapping, with no reload.

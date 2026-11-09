@@ -2,7 +2,7 @@
 
 Synthetic MSCI-style ESG dataset for the Cumulus FSC demo. One of 13. **First BUSINESS-scoped dataset.**
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A, 2026-05-29 `c9119d32`; checked against live 2026-11-09).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id); UNIQUE `(ACCOUNT_ID, PROFILE_MONTH)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, added near the end of the column list (not first). The row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` (or `or "JDO"`) on each row, and the MERGE source SELECT, `ON` and `INSERT` carry it. The deployed MERGE `ON` is `ORG_ID, ACCOUNT_ID, PROFILE_MONTH`, and that is what keeps rows unique; UPDATE SET skips `ORG_ID`. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.MSCI_ESG_SCORES`, `SP_GENERATE_MSCI_ESG_SCORES`, `TASK_MONTHLY_MSCI_ESG_SCORES`, and the DC Data Stream / DLO / DMO that federates this table.
@@ -12,7 +12,7 @@ Synthetic MSCI-style ESG dataset for the Cumulus FSC demo. One of 13. **First BU
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"msci"`.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` in step 4 — canonical "coverage gap: N missing rows" message.
-- The MERGE replaces on PK `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. Re-runs are idempotent within a calendar month (given an unchanged prior month).
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` (its `ON`; the table PK is `RECORD_ID`). Re-runs are idempotent within a calendar month (given an unchanged prior month).
 - Ratings are STICKY (2026-10-24): `_row_for(anchor, run_ts, prior)` evolves each row from the account's prior-month row (`_evolve_row`): ~90% hold, ~10% one notch, ~1% two, overall score moves 1.0-1.5 pts/notch the same way, and `LAST_RATING_CHANGE_DIRECTION` equals the actual move. No prior → fresh draw flagged `Unchanged`. Rebuild history oldest-first with `CALL SP_GENERATE_MSCI_ESG_SCORES('YYYY-MM-01')` per month (README "Rebuild history").
 - Audience SQL uses `SELECT DISTINCT *` to defend against the 1.7% MASTER_ACCOUNTS dupe pattern (spec §3 v1.2).
 - The 7 MSCI rating codes (AAA, AA, A, BBB, BB, B, CCC) are a recognisable cover, NOT a license-grade MSCI dataset. See rowspec.
@@ -32,4 +32,4 @@ Synthetic MSCI-style ESG dataset for the Cumulus FSC demo. One of 13. **First BU
 - The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_MONTH`'s sourceFields entry, NOT `yyyy-MM-dd`.
 - `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
-- 14 columns total; only `TOP_CONTROVERSY_CATEGORY` is NULLable (NULL when controversy_count = 0).
+- 16 columns total (14 data columns + `ORG_ID` + `RECORD_ID`): 14 NOT NULL (incl. `RECORD_ID`) + 2 NULLable: `TOP_CONTROVERSY_CATEGORY` (NULL when controversy_count = 0) and `ORG_ID`.

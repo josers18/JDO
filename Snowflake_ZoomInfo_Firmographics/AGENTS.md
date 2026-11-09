@@ -2,7 +2,7 @@
 
 Synthetic ZoomInfo / DiscoverOrg / Crunchbase-style B2B company-level firmographics dataset for the Cumulus FSC demo. One of 13. **BUSINESS-scoped (same audience as Plans 2 MSCI and 3 D&B), monthly cadence — the most "boring" Plan structurally in the rollout.** Same audience predicate, cadence, and 1:1 row shape as Plans 2 and 3; the only structural deviations are defensive HQ-string projection and two distributionally-gated NULLable columns, both inherited from prior Plans.
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A, 2026-05-29 `c9119d32`; checked against live 2026-11-09).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id); UNIQUE `(ACCOUNT_ID, PROFILE_MONTH)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, added near the end of the column list (not first). The row factory stamps `"ORG_ID": org_id` (from the anchor) on each row, and the MERGE source SELECT, `ON` and `INSERT` carry it. The deployed MERGE `ON` is `ORG_ID, ACCOUNT_ID, PROFILE_MONTH`, and that is what keeps rows unique; UPDATE SET skips `ORG_ID`. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 > **Plan 16 Task 0 (2026-11-02) — FOUNDED_YEAR is account-stable.** `_founded_year` now draws from its own rng, `random.Random(seed_for(account_id + "_founded", "zoominfo", datetime(2000, 1, 1)))`, instead of the per-month stream. Before this it re-drew every month, which churned Plan 16 Harmonic's audience (`FOUNDED_YEAR >= 2010`). Live history (2026-05..2026-11) was rewritten once from the 2026-11 values; verified 0 accounts with >1 distinct FOUNDED_YEAR. The same deploy also makes the SP write a deterministic `RECORD_ID` and fixes the `write_pandas` target database. Consumers of FOUNDED_YEAR: Plan 16 (`Snowflake_Harmonic_CompanySignals`) — hard dependency.
 
@@ -10,7 +10,7 @@ Synthetic ZoomInfo / DiscoverOrg / Crunchbase-style B2B company-level firmograph
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.ZOOMINFO_FIRMOGRAPHICS`, `SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS`, `TASK_MONTHLY_ZOOMINFO_FIRMOGRAPHICS`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
-- **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_MONTH)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct BUSINESS account per month.**
+- **Account-scoped** — rows are keyed by `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` (MERGE `ON`; table PK is `RECORD_ID`), with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct BUSINESS account per month.**
 
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"zoominfo"` (**month-bucketed**, single-salt — no year-stable streams; same shape as Plans 2/3/6/8, simpler than Plan 7's 3-salt arrangement).
@@ -22,7 +22,7 @@ Synthetic ZoomInfo / DiscoverOrg / Crunchbase-style B2B company-level firmograph
   - **2026-11 keys changed on 2026-11-02.** The scheduled 2026-11-01 run wrote random `UUID_STRING()` RECORD_IDs for all 11,525 rows; the Task 0 manual CALL (MERGE updates RECORD_ID on WHEN MATCHED) replaced them with deterministic ones. Anything in Data Cloud that cached the 2026-11-01 IDs now points at stale keys.
   - **Resolved 2026-11-03: one duplicate (ACCOUNT_ID, PROFILE_MONTH).** 2026-10 had 11,484 rows for 11,483 accounts: `001am00000qvjs6AAA` has two 2026-10 rows (EMPLOYEE_BAND `1-10` and `5001-25000`). The live PK is RECORD_ID and Snowflake doesn't enforce it. Pre-dates Plan 16. Harmonic is unaffected (account outside its audience; its SP dedupes ZoomInfo per account and month). Deduped as a one-off; see the follow-up entry below.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` for the standard 1:1 audience-vs-actual coverage check (every distinct BUSINESS anchor must produce exactly one row per month).
-- The MERGE replaces on composite PK `(ACCOUNT_ID, PROFILE_MONTH)`. Re-runs same calendar month are idempotent (byte-identical). Re-runs in a later month INSERT new rows for that month.
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` (its `ON`; the table PK is `RECORD_ID`). Re-runs same calendar month are idempotent (byte-identical). Re-runs in a later month INSERT new rows for that month.
 - Audience SQL is `SELECT DISTINCT * FROM V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'`. 12,021 distinct accounts (probed 2026-05-28). INDUSTRY, ANNUAL_REVENUE, EMPLOYEE_COUNT all populated for this cohort.
 - `accounts_processed` in `TASK_EXECUTION_LOG` equals `len(audience)` — the **distinct customer count** AND the row count (1:1 emit per anchor per month).
 - Coverage rule: **rows = audience** (1:1 monthly per BUSINESS account).
@@ -54,7 +54,7 @@ Synthetic ZoomInfo / DiscoverOrg / Crunchbase-style B2B company-level firmograph
 - The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_MONTH` and `LAST_DATA_REFRESH_DATE`'s `sourceFields` entries, NOT `yyyy-MM-dd`.
 - DC mapping descriptions must be ≤521 chars (Plan 6 finding). Trim DMO descriptions if drafting against the rowspec verbatim.
-- 14 data columns: 12 NOT NULL + 2 NULLable (`WEBSITE_DOMAIN`, `TECH_STACK_FLAGS`), plus `ORG_ID` and `RECORD_ID`.
+- 17 columns total: 15 data columns (13 NOT NULL + 2 NULLable: `WEBSITE_DOMAIN`, `TECH_STACK_FLAGS`), plus `ORG_ID` (NULLable) and `RECORD_ID` (NOT NULL).
 - `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
 - The MERGE handles 2 NULLable VARCHAR columns (`WEBSITE_DOMAIN`, `TECH_STACK_FLAGS`) — `None` passes through `write_pandas` → MERGE without special-casing.
 - Salt is `"zoominfo"` (monthly cadence, single-salt, in the SP module constant only). No year-stable subfield (vendor case ID, DUNS, etc. — none of those exist in this schema).

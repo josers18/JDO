@@ -2,20 +2,20 @@
 
 Synthetic BoardEx / Equilar / ISS-style board director and executive intelligence dataset for the Cumulus FSC demo. One of 13. **Account-scoped with monthly cadence and an all-accounts audience (~36,813 anchors, PERSON + BUSINESS).** The v1 design was Commercial Banking only (~960 anchors); the rebroadcast dropped the `CLIENT_CATEGORY` predicate and added a PERSON-anchor "personal household" fallback row (see Gotchas).
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A, 2026-05-29 `c9119d32`; checked against live 2026-11-09).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id); UNIQUE `(ACCOUNT_ID, PROFILE_MONTH)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, added near the end of the column list (not first). The row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` (or `or "JDO"`) on each row, and the MERGE source SELECT, `ON` and `INSERT` carry it. The deployed MERGE `ON` is `ACCOUNT_ID, PROFILE_MONTH, ORG_ID`, and that is what keeps rows unique; UPDATE SET skips `ORG_ID`. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.BOARDEX_EXEC_INTEL`, `SP_GENERATE_BOARDEX_EXEC_INTEL`, `TASK_MONTHLY_BOARDEX_EXEC_INTEL`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
-- **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_MONTH)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct account per month.**
+- **Account-scoped** — rows are keyed by `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` (MERGE `ON`; table PK is `RECORD_ID`), with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct account per month.**
 
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"boardex"` (**month-bucketed**, single-salt — no year-stable streams; matches Plan 8's simpler shape).
 - **One seed stream per anchor per run** — `seed_for(account_id, "boardex", month_start)` where `month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)`. Drives BOARD_SIZE, BOARD_INDEPENDENCE_PCT, WOMEN_BOARD_PCT, MINORITY_BOARD_PCT, BOARD_AVG_TENURE_YEARS, GOVERNANCE_RATING, INTERLOCK_COUNT, KEY_DIRECTOR_NAME, RECENT_GOVERNANCE_EVENT_DATE, LAST_DATA_REFRESH_DATE. Mid-month re-runs are byte-identical because `month_start` truncates day + time.
 - **Second, account-lifetime seed stream for the C-suite timeline** — `seed_for(account_id + "_csuite", "boardex", datetime(2000, 1, 1))`. Drives CEO_TENURE_YEARS and EXEC_TURNOVER_FLAG (see Gotchas → "C-suite timeline"). It never depends on the profile month or run_ts, so every month reads the same timeline.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` for the standard 1:1 audience-vs-actual coverage check — distinct accts = audience (every distinct anchor must produce exactly one row per month).
-- The MERGE replaces on composite PK `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. Re-runs same calendar month are idempotent (byte-identical). Re-runs in a later month INSERT new rows for that month.
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` (its `ON`; the table PK is `RECORD_ID`). Re-runs same calendar month are idempotent (byte-identical). Re-runs in a later month INSERT new rows for that month.
 - Audience SQL is `SELECT DISTINCT * FROM V_ACCOUNT_ANCHORS` — no predicate; `_anchor_in_audience` is True iff `ACCOUNT_ID` is non-empty. ~36,813 distinct accounts. The v1 predicate `WHERE CLIENT_CATEGORY = 'Commercial Banking'` (960 accounts, probed 2026-05-28) is gone. BUSINESS anchors drive the `EMPLOYEE_COUNT` / `INTERLOCK_DEGREE` bias bands; PERSON anchors (NULL `EMPLOYEE_COUNT`) take the personal-household fallback.
 - `accounts_processed` in `TASK_EXECUTION_LOG` equals `len(audience)` — the **distinct customer count** AND the row count (1:1 emit per anchor per month).
 
@@ -67,7 +67,7 @@ Synthetic BoardEx / Equilar / ISS-style board director and executive intelligenc
 - 1 BOOLEAN column (`EXEC_TURNOVER_FLAG`) — declare as `Boolean` in DC DLO + DMO (Plan 5 / Plan 8 finding — defaulting to Text fails the Boolean parse). Snowflake stores BOOLEAN natively; the MERGE source SELECT casts via `EXEC_TURNOVER_FLAG::BOOLEAN` to be explicit (write_pandas could mis-type on an empty target).
 - 1 NULLable date column (`RECENT_GOVERNANCE_EVENT_DATE`) — independent 30% Bernoulli, no enum gating.
 - The `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
-- 14 columns total: 13 NOT NULL + 1 NULLable (RECENT_GOVERNANCE_EVENT_DATE). 1 BOOLEAN NOT NULL.
+- 17 columns total: 15 NOT NULL (incl. `RECORD_ID`) + 2 NULLable (RECENT_GOVERNANCE_EVENT_DATE, ORG_ID). 1 BOOLEAN NOT NULL.
 - The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_MONTH`, `RECENT_GOVERNANCE_EVENT_DATE`, `LAST_DATA_REFRESH_DATE`'s `sourceFields` entries, NOT `yyyy-MM-dd`.
 - DC mapping descriptions must be ≤521 chars (Plan 6 finding). Trim the DMO description if drafting against the rowspec verbatim.
