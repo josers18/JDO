@@ -16,7 +16,7 @@
 --             Fan-out varies week to week, so the SP rewrites each week
 --             wholesale (DELETE the week + INSERT, one transaction).
 -- Generator:  SP_GENERATE_DEMANDBASE_INTENT_SIGNALS(BACKFILL_WEEKS INTEGER DEFAULT 0)
--- Egress:     DC Snowflake federation -> DLO/DMO CumulusDemandbaseIntentSignals__dlm
+-- Egress:     DC Snowflake federation -> DLO/DMO BT_Demandbase_Intent_Signals__dlm
 -- Plan:       docs/superpowers/plans/2026-11-02-cumulus-plan-14-demandbase-intent-signals.md
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-14-demandbase-intent-signals-rowspec.md
 -- No ampersand anywhere in this file (snow sql template-render trap).

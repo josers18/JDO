@@ -11,6 +11,11 @@
 --           client category and a real 001... Id, profiled as the principal's household
 -- Cadence:  MONTHLY (TASK_MONTHLY_CLARITAS_DEMOGRAPHICS)
 -- Salt:     "claritas"
+-- Synced 2026-11-09 to the deployed body (GET_DDL): this file is what
+-- deploy_sp.py runs, and it now matches live, EXECUTE AS OWNER included.
+-- The deployed MERGE matches on the natural key only and writes no ORG_ID
+-- (rows take the column DEFAULT 'JDO'). The ORG_ID-aware version is the
+-- Python source in this folder; see Snowflake_Cumulus_Common/docs/ROLLOUT.md A6.
 -- =============================================================================
 
 CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS()

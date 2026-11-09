@@ -20,7 +20,7 @@
 --             Departed event in M; no other month gets one.
 -- Write path: MERGE ON (ORG_ID, EVENT_ID); events never delete.
 -- Generator:  SP_GENERATE_USERGEMS_JOB_CHANGES(BACKFILL_WEEKS INTEGER DEFAULT 0)
--- Egress:     DC Snowflake federation -> DLO/DMO CumulusUserGemsJobChanges__dlm
+-- Egress:     DC Snowflake federation -> DLO/DMO BT_UserGems_Job_Changes__dlm
 -- Plan:       docs/superpowers/plans/2026-11-02-cumulus-plan-15-usergems-job-changes.md
 -- Rowspec:    docs/superpowers/plans/attachments/cumulus-plan-15-usergems-job-changes-rowspec.md
 -- No ampersand anywhere in this file (snow sql template-render trap).

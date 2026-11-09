@@ -211,25 +211,27 @@ ALTER TABLE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS ALTER COLUMN ORG_ID DRO
 -- after:  PRIMARY KEY (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)
 ```
 
-Apply the same pattern to all 13 dataset DDLs:
+Phase A applied this to all 13 tables, but not in this exact form; the live result is:
 
-| Plan | Table | Repo DDL key (`schemas/`) | Live PK (2026-11-09) | Live UNIQUE (2026-11-09) |
-|---|---|---|---|---|
-| 1 | `CLARITAS_DEMOGRAPHICS` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
-| 2 | `MSCI_ESG_SCORES` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
-| 3 | `DNB_BUSINESS_CREDIT` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
-| 4 | `ESRI_GEO_FOOTPRINT` | (ORG_ID, BRANCH_ZIP, PROFILE_MONTH) | RECORD_ID | (BRANCH_ZIP, PROFILE_MONTH) |
-| 5 | `CORELOGIC_PROPERTY` | (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER) | RECORD_ID | (ACCOUNT_ID, PROFILE_QUARTER) |
-| 6 | `PLAID_HELD_AWAY` | (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) |
-| 7 | `WORLD_CHECK_AML` | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) |
-| 8 | `MGP_FINANCIAL_PLANS` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
-| 9 | `SYNTH_RELATIONSHIP_GRAPH` | (ORG_ID, SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) | RECORD_ID | (SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) |
-| 10 | `BOARDEX_EXEC_INTEL` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
-| 11 | `ZOOMINFO_FIRMOGRAPHICS` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
-| 12 | `GONG_CALL_SENTIMENT` | (ORG_ID, ACCOUNT_ID, PROFILE_WEEK) | RECORD_ID | (ACCOUNT_ID, PROFILE_WEEK) |
-| 13 | `MOODYS_MARKET_CONTEXT` | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) |
+| Plan | Table | Live PK | Live UNIQUE (natural key) | Phase A design key | Deployed SP MERGE `ON` has `ORG_ID` |
+|---|---|---|---|---|---|
+| 1 | `CLARITAS_DEMOGRAPHICS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | No |
+| 2 | `MSCI_ESG_SCORES` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
+| 3 | `DNB_BUSINESS_CREDIT` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
+| 4 | `ESRI_GEO_FOOTPRINT` | RECORD_ID | (BRANCH_ZIP, PROFILE_MONTH) | (ORG_ID, BRANCH_ZIP, PROFILE_MONTH) | Yes |
+| 5 | `CORELOGIC_PROPERTY` | RECORD_ID | (ACCOUNT_ID, PROFILE_QUARTER) | (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER) | No |
+| 6 | `PLAID_HELD_AWAY` | RECORD_ID | (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) | Yes |
+| 7 | `WORLD_CHECK_AML` | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | No |
+| 8 | `MGP_FINANCIAL_PLANS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | No |
+| 9 | `SYNTH_RELATIONSHIP_GRAPH` | RECORD_ID | (SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) | (ORG_ID, SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) | Yes |
+| 10 | `BOARDEX_EXEC_INTEL` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
+| 11 | `ZOOMINFO_FIRMOGRAPHICS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
+| 12 | `GONG_CALL_SENTIMENT` | RECORD_ID | (ACCOUNT_ID, PROFILE_WEEK) | (ORG_ID, ACCOUNT_ID, PROFILE_WEEK) | Yes |
+| 13 | `MOODYS_MARKET_CONTEXT` | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | Yes |
 
-**The live constraints differ from the repo DDL.** In the live schema the declared PK of all 13 tables is `RECORD_ID` (the `UUID_STRING()` default the generators never write; the DMOs key on `record_id__c`), and the natural key survives as a UNIQUE key **without** `ORG_ID`. Snowflake doesn't enforce either constraint, so nothing breaks today. What actually prevents duplicates is each SP's MERGE `ON` clause. All 13 `procedures/sp_generate_*.py` sources match on `ORG_ID` plus the natural key, but the committed `procedures/sp_create_procedure.sql` for Plans 1, 5, 7 and 8 (Claritas, CoreLogic, World-Check, MGP) still has the pre-Phase A `ON` without `ORG_ID`. Before Phase B puts a second org's rows in these tables, confirm the deployed procedure bodies match the Python sources, and decide whether to re-declare the UNIQUE keys with `ORG_ID`. Read the live constraints with `SHOW PRIMARY KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC` and `SHOW UNIQUE KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC`.
+**What's live (checked 2026-11-09).** In the live schema the declared PK of all 13 tables is `RECORD_ID` (the DMOs key on `record_id__c`), and the natural key is a UNIQUE key **without** `ORG_ID`. `ORG_ID` is the second-to-last column, nullable, `DEFAULT 'JDO'`. The `schemas/` DDL files now match this (synced from `GET_DDL` in the same PR as this paragraph); the Phase A design key is kept in each file's header as history. Snowflake enforces neither constraint, so what keeps rows unique is each SP's MERGE `ON` clause.
+
+Nine deployed SPs already match on `ORG_ID`. The four that don't, Plans 1, 5, 7 and 8 (Claritas, CoreLogic, World-Check, MGP), write no `ORG_ID` at all, so their rows get `'JDO'` from the column default. Their committed `procedures/sp_create_procedure.sql` files are exact copies of the deployed bodies; the `ORG_ID`-aware versions exist only in the `procedures/sp_generate_*.py` sources. **Before Phase B** puts a second org's rows in these tables, port the `.py` changes into those four `.sql` files and redeploy them (as ACCOUNTADMIN), and decide whether to re-declare the UNIQUE keys with `ORG_ID`. Read the live constraints with `SHOW PRIMARY KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC` and `SHOW UNIQUE KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC`.
 
 Plans 14–16 postdate Phase A and were created with `ORG_ID` as the first column and PK lead, so this step doesn't apply to them. Their live PKs: `DEMANDBASE_INTENT_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC)`, `USERGEMS_JOB_CHANGES (ORG_ID, EVENT_ID)`, `HARMONIC_COMPANY_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`.
 
