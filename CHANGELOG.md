@@ -48,7 +48,7 @@ Jump to: [November 2026](#november-2026) · [October 2026](#october-2026) · [Ju
 
 ### Removed
 
-- **`TRD-` placeholder trades** (migration 009) — 35,116 NULL-account trades deleted, backed up in `FINANCIAL_TRADES_TRD_BAK_20261109`.
+- **`TRD-` placeholder trades** (migration 009) — 35,116 NULL-account trades deleted, backed up in `FINANCIAL_TRADES_TRD_BAK_20261109` (dropped the same day after the checks passed).
 
 ## [October 2026] — 2026-10-01 → 2026-10-31
 

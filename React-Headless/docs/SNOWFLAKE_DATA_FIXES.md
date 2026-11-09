@@ -141,7 +141,7 @@ DLO `MAX(trade_date__c)` was 2026-09-01, and some account keys were `TRD-001…`
 Done (project `Financial_Trades_Generation`, `DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES`):
 - **TRD keys nulled** (migration `001`): 35,116 rows now have a NULL `ACCOUNT_ID`. The 5 `TRD-` configs are
   deactivated. `GENERATE_DAILY_TRADES` and `GENERATE_HISTORICAL_TRADES` read only `ACCOUNT_ID LIKE '001%'`.
-  Migration `009` deleted those NULL rows on 2026-11-09 (backup `FINANCIAL_TRADES_TRD_BAK_20261109`).
+  Migration `009` deleted those NULL rows on 2026-11-09 (its backup table `FINANCIAL_TRADES_TRD_BAK_20261109` was dropped the same day).
 - **Dates stay `DATE`** (migration `002`). The stream registered the three date fields with format
   `MM/dd/yyyy HH:mm:ss.SSS zzz`. As `TIMESTAMP_TZ` the connector unloads them as strings that this format
   misreads, so 2025-01-01 landed as 0006-07-18. `DATE` columns unload natively and read correctly.

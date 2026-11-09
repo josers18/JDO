@@ -22,7 +22,7 @@ All four ran as ACCOUNTADMIN outside the 03:00–03:10 ET task window, and every
 
 #### Removed
 
-- **Migration 009** deleted the 35,116 NULL-`ACCOUNT_ID` trades of the five old `TRD-` placeholders, including their retry duplicates on 10 Mondays. `FINANCIAL_TRADES` went from 6,642,761 to 6,607,645 rows. No cockpit query, segment or calculated insight read them. The deleted rows are backed up in `FINANCIAL_TRADES_TRD_BAK_20261109`.
+- **Migration 009** deleted the 35,116 NULL-`ACCOUNT_ID` trades of the five old `TRD-` placeholders, including their retry duplicates on 10 Mondays. `FINANCIAL_TRADES` went from 6,642,761 to 6,607,645 rows. No cockpit query, segment or calculated insight read them. The deleted rows were backed up in `FINANCIAL_TRADES_TRD_BAK_20261109`, which was dropped later that day once the checks passed, so 009 can no longer be rolled back.
 
 #### Added
 

@@ -35,7 +35,8 @@
 --   snow sql --role ACCOUNTADMIN -f migrations/009_delete_trd_placeholder_trades.sql
 -- Safety: the block refuses to delete unless both the table and the backup
 -- hold exactly 35,116 NULL rows, and fails if the delete removed anything else.
--- Result (2026-11-09): backup FINANCIAL_TRADES_TRD_BAK_20261109 = 35,116 rows;
+-- Result (2026-11-09): backup FINANCIAL_TRADES_TRD_BAK_20261109 = 35,116 rows
+-- (the backup was dropped later on 2026-11-09, so the rollback below no longer applies);
 -- deleted 35,116; FINANCIAL_TRADES 6,642,761 -> 6,607,645; 0 NULL rows left.
 -- Data Cloud (BT_Financial_Trades__dlm) showed 0 NULL rows with no refresh.
 -- Rollback:
