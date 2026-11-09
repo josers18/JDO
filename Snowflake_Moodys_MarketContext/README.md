@@ -1,12 +1,14 @@
 # Moody's Market Context — Cumulus Synthetic Dataset (Credit Ratings + Market Signals)
 
-Synthetic Moody's Investors Service / Moody's Analytics-style credit-rating + market-context dataset per publicly traded instrument for Cumulus's instrument footprint. Mirrors
+Synthetic Moody's Investors Service / Moody's Analytics-style credit-rating + market-context dataset, one row per Cumulus **business account** per day. Mirrors
 [Snowflake_WorldCheck_AML](../Snowflake_WorldCheck_AML) (daily cadence) and the Cumulus umbrella spec at
 [../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md](../docs/superpowers/specs/2026-05-27-cumulus-snowflake-pipelines-design.md).
 
-**Plan 13 is the FINAL Cumulus plan in the rollout (13 of 13).** It is **instrument-scoped (not account-scoped)** with **daily cadence** — the second non-account-scoped plan after Plan 4 (Esri / branch-scoped) and the second daily-cadence plan after Plan 7 (WorldCheck AML). With four structural deviations from the Plan 8 baseline (instrument-scoped audience, daily cadence, two-salt model, hybrid year-stable + daily field model), it is the most-divergent instantiation of the dataset template.
+**Plan 13 is the FINAL Cumulus plan in the rollout (13 of 13).** It is **business-account-scoped** with **daily cadence**, the second daily-cadence plan after Plan 7 (WorldCheck AML). Its structural deviations from the Plan 8 baseline are the daily cadence, the two-salt model and the hybrid year-stable + daily field model.
 
-Each instrument in `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` produces one market-context row per day. Rows are keyed by composite PK `(TICKER, PROFILE_DATE)` (~2,004 rows/day at 1:1 instrument:row). Re-runs same calendar day MERGE-replace in place — no daily history retained, so live storage stays at ~2,004 rows year-round. The DMO is **not** joinable to `ssot__Account__dlm` (instrument-scoped, like Plan 4 was branch-scoped); `TICKER` is the canonical join key for downstream queries, and account ↔ instrument joins go through the existing trades-pipeline `(account, ticker, position)` graph. DC PK collapses to single-column `profileDate__c` with `ticker__c` as a KQ qualifier (single-column-PK rule from Plan 4).
+Each business account in `V_ACCOUNT_ANCHORS` (`ACCOUNT_TYPE_FLAG = 'BUSINESS'`, 11,529 on 2026-11-09) gets one row per `PROFILE_DATE`. The table PK is `RECORD_ID` (a UUID row id); the MERGE keeps rows unique on `(ORG_ID, ACCOUNT_ID, PROFILE_DATE)`, so a same-day re-run replaces that day in place while each new day adds rows. History accumulates: 2,809,350 rows over 246 days (2026-03-01 to 2026-11-09). `ACCOUNT_ID` joins `ssot__Account__dlm.ssot__Id__c`, and the DMO carries that relationship.
+
+> **History.** Plan 13 shipped first as an instrument-scoped table (one row per `INSTRUMENT_UNIVERSE` ticker, 2,004 rows/day, keyed `(TICKER, PROFILE_DATE)`, not joinable to Account). The v2 schema re-scoped it to business accounts; nothing instrument-based is live. The L2 test SQL under `tests/integration/` still targets the instrument design and needs rewriting.
 
 ## Plan
 - Plan 13 (the final plan), instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -16,31 +18,33 @@ Each instrument in `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` produces one m
 
 ## Snowflake objects
 - Table: `DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT`
-- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()`
+- Stored procedure: `DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT(NUM_DAYS INT DEFAULT 1)` (`CALL …(N)` backfills the last N days for every current business account)
 - Task: `DATA_JEDAIS.FINS__PUBLIC.TASK_DAILY_MOODYS_MARKET_CONTEXT` (DAILY, `15 3 * * * America/New_York`, warehouse `MAIN_WH_XS`, wrapper `SP_RETRY_WRAPPER` retries=2)
-- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DLO `CumulusMoodysMarketContext__dll` → DMO `CumulusMoodysMarketContext__dlm`
+- Egress: DC "Snowflake (Federate / Zero Copy)" connector → DMO `BT_Moodys_Market_Context__dlm` (PK `record_id__c`; `account_id__c` → `ssot__Account__dlm`, N:1)
 
 ## Audience
-**Instrument-scoped, all-rows** — every instrument in `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` is profiled daily. The audience SQL is the simplest in the Cumulus rollout:
+**Business accounts** — every BUSINESS anchor is profiled daily:
 
 ```sql
-SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE
+SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
+WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'
 ```
 
-Live cardinality (probed 2026-05-28): **2,004 distinct instruments**. Each instrument emits exactly one market-context row per day → **~2,004 rows/day**.
+Live cardinality (2026-11-09): **11,529 business accounts**, so ~11.5K rows/day at 1:1. The row factory reads `INDUSTRY` (rating bias), `ANNUAL_REVENUE` (valuation base) and `EMPLOYEE_COUNT` (passthrough). Coverage asserts `COUNT(DISTINCT ACCOUNT_ID)` in the table matches the audience.
 
-**Spec drift caught at draft time.** The umbrella spec §3.3 documents the audience as `WHERE IS_ACTIVE = TRUE` keyed by `INSTRUMENT_ID`. The actual `INSTRUMENT_UNIVERSE` schema (live-discovered) is `(TICKER VARCHAR(10) PK, INSTRUMENT_NAME VARCHAR(200), SECTOR VARCHAR(50), BASE_PRICE FLOAT)` — there is no `INSTRUMENT_ID` and no `IS_ACTIVE`. Plan 13 keys on `TICKER` and reads the full table unconditionally. No spec amendment needed since this is the only consumer.
-
-**Storage** — re-runs MERGE-replace in place (composite PK `(TICKER, PROFILE_DATE)`, but `PROFILE_DATE` is bucketed to today's date, so re-runs same day overwrite the existing row). No daily history retention — live storage stays at ~2,004 rows.
+**Derived fields.**
+- `CREDIT_RATING` is a year-stable draw from a per-industry distribution, picked by case-insensitive substring match on `INDUSTRY` (Baa-cluster default).
+- `MARKET_CAP_USD` = annual revenue × a year-stable 3–7× multiple × (1 + 30-day change), clamped to $5M–$500B.
+- The 52-week high/low band and `LIQUIDITY_TIER` (Tier 1 ≥ $50B, Tier 2 ≥ $5B, Tier 3 ≥ $500M, else Illiquid) come from the year-stable base without daily drift.
 
 ## Salt strategy — two salts (back to Plan 5 shape)
-- `moodys` (daily-bucketed via `_daily_seed(ticker, run_ts)` wrapper inlined per Plan 7) — drives daily-bucketed fields: `DAILY_VOLATILITY_PCT`, `THIRTY_DAY_PRICE_CHANGE_PCT`, `MARKET_CAP_USD` daily noise component.
-- `moodys_year` (year-bucketed via `datetime(run_ts.year, 1, 1)`) — drives year-stable editorial / structural fields: `CREDIT_RATING`, `RATING_OUTLOOK`, `OUTLOOK_LAST_CHANGED_DATE`, `FIFTY_TWO_WEEK_HIGH_PRICE`, `FIFTY_TWO_WEEK_LOW_PRICE`, `RATING_AGENCY_FLAG_COUNT`, `LIQUIDITY_TIER`, and the year-stable shares-outstanding base for `MARKET_CAP_USD`.
+- `moodys` (daily-bucketed via `_daily_seed(account_id, run_ts)` wrapper inlined per Plan 7) — drives daily-bucketed fields: `DAILY_VOLATILITY_PCT`, `THIRTY_DAY_PRICE_CHANGE_PCT`, `MARKET_CAP_USD` daily noise component.
+- `moodys_year` (year-bucketed via `datetime(run_ts.year, 1, 1)`) — drives year-stable editorial / structural fields: `CREDIT_RATING`, `RATING_OUTLOOK`, `OUTLOOK_LAST_CHANGED_DATE`, `FIFTY_TWO_WEEK_HIGH_USD`, `FIFTY_TWO_WEEK_LOW_USD`, `RATING_AGENCY_FLAG_COUNT`, and the year-stable revenue multiple behind `MARKET_CAP_USD` and `LIQUIDITY_TIER`.
 
 After Plan 8's single-salt simplification, Plan 13 returns to the two-salt pattern from Plan 5. The hybrid year-stable + daily-bucketed field model mirrors Plan 7 (year-stable RISK_JURISDICTION + daily component flags).
 
 ## Snowflake identifier rename — digit-leading column names
-Snowflake identifiers cannot begin with a digit, so the rowspec's market-data fields are renamed at the column-name level: `52_WEEK_HIGH_PRICE` → `FIFTY_TWO_WEEK_HIGH_PRICE`, `52_WEEK_LOW_PRICE` → `FIFTY_TWO_WEEK_LOW_PRICE`, `30_DAY_PRICE_CHANGE_PCT` → `THIRTY_DAY_PRICE_CHANGE_PCT`. The DC field-mapping in T7 maps these to `fiftyTwoWeekHighPrice__c`, `fiftyTwoWeekLowPrice__c`, `thirtyDayPriceChangePct__c` accordingly.
+Snowflake identifiers cannot begin with a digit, so the rowspec's `52_WEEK_HIGH_PRICE`, `52_WEEK_LOW_PRICE` and `30_DAY_PRICE_CHANGE_PCT` live as `FIFTY_TWO_WEEK_HIGH_USD`, `FIFTY_TWO_WEEK_LOW_USD` and `THIRTY_DAY_PRICE_CHANGE_PCT`. The `_USD` suffix came with the account re-scope, because the band is an implied market-cap valuation, not a share price. The DMO fields are `fifty_two_week_high_usd__c`, `fifty_two_week_low_usd__c` and `thirty_day_price_change_pct__c`.
 
 ## Outlook moves (2026-10-24)
 The year-stable baseline outlook never moved inside a calendar year and its `OUTLOOK_LAST_CHANGED_DATE` always fell in
@@ -80,9 +84,12 @@ pytest tests/ -v
 
 ## Deploy
 ```bash
-snow sql -f schemas/moodys_market_context.sql
-snow sql -f procedures/sp_create_procedure.sql
-snow sql -f tasks/task_daily_moodys_market_context.sql
+python3 scripts/deploy_sp.py --no-deploy   # regenerate procedures/sp_create_procedure.sql
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f schemas/moodys_market_context.sql
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f procedures/sp_create_procedure.sql
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_daily_moodys_market_context.sql
 ```
+
+Deploy as ACCOUNTADMIN, because the SP is `EXECUTE AS OWNER` and its `write_pandas` staging table needs CREATE TABLE. `schemas/moodys_market_context.sql` is the current multi-org DDL; `_v2.sql` is the pre-ORG_ID re-scope version.
 
 DC ingest is configured via the existing federation connector (see Plan 13 Task 7 + the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`).
