@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Nov_04_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Nov_09_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [November 2026]
+
+### 2026-11-09 — Trading pulse buckets by calendar week (PR #166)
+
+The ReactWealth trading activity pulse showed "as of Oct 4 · 20 trade weeks" while the latest trade was 2026-11-09. Built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors; only ReactWealth's `dist/` changed).
+
+#### Fixed
+
+- **Trading pulse** (`_shared/src/data/tradingPulse.ts`).
+  - It grouped by trade date over 56 days, oldest first, under a 20-row cap. Daily accounts trade most days, so the result stopped at 10-04.
+  - It now groups by `DATE_TRUNC('week')` from the Monday of the latest trade's week minus 56 days: 9 rows.
+  - "As of" comes from the new `TradeWeek.lastDate` (the latest trade date). Net sellers cover the same calendar week.
+  - Verified live: as of Nov 9, 9 weeks. The 10-12 week (10,756 trades, buys $327.51M, sells $335.79M) matches Data Cloud, including the migration 010 backfill.
+
+#### Data
+
+- `Financial_Trades_Generation` migrations 009–011 (2026-11-09) deleted the 35,116 `TRD-` NULL-account trades and backfilled 2026-10-12, 06-29 and 07-01. See [`SNOWFLAKE_DATA_FIXES.md` §4](docs/SNOWFLAKE_DATA_FIXES.md).
 
 ### 2026-11-04 — Retail liquidity events
 

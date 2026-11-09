@@ -124,6 +124,15 @@ Not a Snowflake task. It's done directly in the Heroku `data-cloud` app's Postgr
 - **Volume:** from 2026-10-26 trade generation covers every account in `TRADE_GENERATION_CONFIG` (36,773 rows,
   previously 1–2 test accounts). The day jumped from ~3K to 667,051 rows. W5 shows that day at ~$8.6B each way
   versus ~$15–18M on earlier days. Live queries scan more as the table grows, so a retention window may be needed.
+- **W5 bucketed by calendar week (2026-11-09, PR #166).** With daily accounts trading most days, the 56-day window
+  has ~57 trade dates. The per-day query (oldest first, 20-row cap) stopped at 2026-10-04 while the latest trade was
+  11-09. W5 now groups by `DATE_TRUNC('week', trade_date__c)` (9 rows), takes "as of" from the latest trade date and
+  scopes net sellers to the same week. Verified live in ReactWealth: the 10-12 week equals the Data Cloud query.
+- **Backfills (migrations 009–011, 2026-11-09).** 009 deleted the 35,116 NULL-`ACCOUNT_ID` `TRD-` trades; 010 added
+  2,505 trades on 2026-10-12 (501 weekly accounts); 011 added 3,055 trades each on 2026-06-29 and 07-01 (315 daily
+  accounts). Zero copy, so Data Cloud saw them at once (6,616,260 rows, 0 NULL accounts). 10-12 is inside W5's window;
+  06-29 and 07-01 are not. Customer 360 lists each account's 10 latest trades, so none of the backfilled dates show
+  there. Details: `Financial_Trades_Generation/README.md` (Migrations, Known data gaps).
 
 
 Was: stream `BT_Financial_Trades` (INCREMENTAL on `TRADE_DATE`) last ran on 2026-10-01 and failed.
@@ -132,6 +141,7 @@ DLO `MAX(trade_date__c)` was 2026-09-01, and some account keys were `TRD-001…`
 Done (project `Financial_Trades_Generation`, `DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES`):
 - **TRD keys nulled** (migration `001`): 35,116 rows now have a NULL `ACCOUNT_ID`. The 5 `TRD-` configs are
   deactivated. `GENERATE_DAILY_TRADES` and `GENERATE_HISTORICAL_TRADES` read only `ACCOUNT_ID LIKE '001%'`.
+  Migration `009` deleted those NULL rows on 2026-11-09 (backup `FINANCIAL_TRADES_TRD_BAK_20261109`).
 - **Dates stay `DATE`** (migration `002`). The stream registered the three date fields with format
   `MM/dd/yyyy HH:mm:ss.SSS zzz`. As `TIMESTAMP_TZ` the connector unloads them as strings that this format
   misreads, so 2025-01-01 landed as 0006-07-18. `DATE` columns unload natively and read correctly.
@@ -163,7 +173,7 @@ Nightly incremental (DC side):
 - Rollback: `FINANCIAL_TRADES_BAK_20261024` (pre-001), `FINANCIAL_TRADES_BAK_20261024_TZ` (pre-002),
   `TRADE_GENERATION_CONFIG_BAK_20261024`.
 
-App side: any trade widget (W5) anchors its window on `MAX(trade_date__c)`, not `CURRENT_DATE`. Read trades from `BT_Financial_Trades__dlm` (see the top of this section).
+App side: any trade widget (W5) anchors its window on `MAX(trade_date__c)`, not `CURRENT_DATE`, and W5 buckets by calendar week so the row cap can't truncate it. Read trades from `BT_Financial_Trades__dlm` (see the top of this section).
 
 ## 5. D&B business credit (`BT_DNB_Business_Credit`): ✅ generator v1.6 2026-10-24
 
