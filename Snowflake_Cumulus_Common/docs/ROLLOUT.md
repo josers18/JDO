@@ -27,16 +27,35 @@ Each dataset SP reads from `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`, never f
 
 ---
 
-## Reference state (jdo-uqj0jr — the model org)
+## Reference state (jdo-oe0sdd — the model org)
 
-Use these IDs from the model org as your "expected shape" reference when verifying a new org:
+Use these IDs from the model org as your "expected shape" reference when verifying a new org. Read live from the Connect API and Snowflake on 2026-11-09.
 
-- 13 streams + DLOs + DMOs all `ACTIVE` and `hasExternalDataLakeObjectMappings: true`.
-- Connector: `Jedi_Snowflake` (`9cgam0000003EknAAE`), account `eob55465.us-east-1.snowflakecomputing.com`, warehouse `MAIN_WH_XS`, user `jsifontes`.
-- Inbound share: `FINSDC3_DATASHARE` (schema `schema_Jedi_Snowflake`).
+- Org: `jdo-oe0sdd` (Cumulus Financial Services, org id `00Dam00000Uo32qEAB`, `storm-16a17dc388fbe6.demo.my.salesforce.com`).
+- Connection: `BT_Managed_Snowflake` (`9cgam000000AhrhAAC`), account `SKJADZG-SFDC_DC_TECH_ARCH.snowflakecomputing.com`, region `us-east-1`; the only **Active** Snowflake connection. `Jedi_Snowflake` (`9cgam0000003EknAAE`) is in **Error**, and its old `Cumulus*` streams were deleted when the org moved to `BT_`.
+- 16 `BT_` streams, all `ACTIVE`, `DIRECT_ACCESS` (zero copy, so they never need a Full Refresh), `TOTAL_REPLACE`, reading `DATA_JEDAIS.FINS__PUBLIC.<table>`. The stream API names the connection only for the four streams created by REST (MGP and Plans 14–16); the other 12 were created in the UI and report just `connectorType: SNOWFLAKE`.
 - Source tables: `DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS` (36,953 rows, 2026-11-09), 16 dataset tables (14,112,893 rows total; see [row counts](#row-counts-2026-11-09)).
 
-Full registry with stream RecordIds + DMO Ids: see memory `[[reference_jdo_dc_artifacts]]`.
+| Plan | Data stream | Stream Id | DLO Id | DMO | DMO Id |
+|---|---|---|---|---|---|
+| 1 | `BT_Claritas_Demographics` | `1dsam000000PrE7AAK` | `0gOam000000aeBvEAI` | `BT_Claritas_Demographics__dlm` | `0gjam000001EM4vAAG` |
+| 2 | `BT_MSCI_ESG_Scores` | `1dsam000000PrFeAAK` | `0gOam000000aeDSEAY` | `BT_MSCI_ESG_Scores__dlm` | `0gjam000001ELvFAAW` |
+| 3 | `BT_DNB_Business_Credit` | `1dsam000000PrEAAA0` | `0gOam000000aeByEAI` | `BT_DNB_Business_Credit__dlm` | `0gjam000001ELyTAAW` |
+| 4 | `BT_ESRI_GEO_Footprint` | `1dsam000000PrE8AAK` | `0gOam000000aeBwEAI` | `BT_ESRI_GEO_Footprint__dlm` | `0gjam000001EM3JAAW` |
+| 5 | `BT_Corelogic_Property` | `1dsam000000PrE9AAK` | `0gOam000000aeBxEAI` | `BT_Corelogic_Property__dlm` | `0gjam000001EM05AAG` |
+| 6 | `BT_Plaid_Held_Away` | `1dsam000000PrFlAAK` | `0gOam000000aeDZEAY` | `BT_Plaid_Held_Away__dlm` | `0gjam000001ELonAAG` |
+| 7 | `BT_WorldCheck_AML` | `1dsam000000PrHGAA0` | `0gOam000000aeF4EAI` | `BT_WorldCheck_AML__dlm` | `0gjam000001ELjxAAG` |
+| 8 | `BT_MGP_Financial_Plans` | `1dsam000000Q0M9AAK` | `0gOam000000atQzEAI` | `BT_MoneyGuidePro_Financial_Plans__dlm` | `0gjam000001EftxAAC` |
+| 9 | `BT_Synth_Relationship_Graph` | `1dsam000000PrFmAAK` | `0gOam000000aeDaEAI` | `BT_Synth_Relationship_Graph__dlm` | `0gjam000001ELnBAAW` |
+| 10 | `BT_Boardex` | `1dsam000000PrE5AAK` | `0gOam000000aeBtEAI` | `BT_Boardex__dlm` | `0gjam000001EM6XAAW` |
+| 11 | `BT_Zoominfo_Firmographics` | `1dsam000000PrHFAA0` | `0gOam000000aeF3EAI` | `BT_Zoominfo_Firmographics__dlm` | `0gjam000001ELlZAAW` |
+| 12 | `BT_Gong_Call_Sentiment` | `1dsam000000PrFdAAK` | `0gOam000000aeDREAY` | `BT_Gong_Call_Sentiment__dlm` | `0gjam000001ELwrAAG` |
+| 13 | `BT_Moodys_Market_Context` | `1dsam000000PrFkAAK` | `0gOam000000aeDYEAY` | `BT_Moodys_Market_Context__dlm` | `0gjam000001ELqPAAW` |
+| 14 | `BT_Demandbase_Intent_Signals` | `1dsam000000Q2arAAC` | `0gOam000000awThEAI` | `BT_Demandbase_Intent_Signals__dlm` | `0gjam000001Ejr7AAC` |
+| 15 | `BT_UserGems_Job_Changes` | `1dsam000000Q2cTAAS` | `0gOam000000awVJEAY` | `BT_UserGems_Job_Changes__dlm` | `0gjam000001EjsjAAC` |
+| 16 | `BT_Harmonic_Company_Signals` | `1dsam000000Q2asAAC` | `0gOam000000awTjEAI` | `BT_Harmonic_Company_Signals__dlm` | `0gjam000001EjpVAAS` |
+
+Plan 8 is the one stream whose DMO name differs from the stream name. Re-read the IDs with `GET /ssot/data-streams/<name>` and `GET /ssot/data-model-objects/<dmo>`.
 
 ## Row counts (2026-11-09)
 
@@ -194,21 +213,23 @@ ALTER TABLE DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS ALTER COLUMN ORG_ID DRO
 
 Apply the same pattern to all 13 dataset DDLs:
 
-| Plan | Table | PK before | PK after |
-|---|---|---|---|
-| 1 | CLARITAS_DEMOGRAPHICS | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
-| 2 | MSCI_ESG | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
-| 3 | DNB_BUSINESS_CREDIT | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
-| 4 | ESRI_GEO_FOOTPRINT | (POSTAL_CODE, PROFILE_MONTH) | (ORG_ID, POSTAL_CODE, PROFILE_MONTH) |
-| 5 | CORELOGIC_PROPERTY | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
-| 6 | PLAID_HELDAWAY | (ACCOUNT_ID, ACCOUNT_NUMBER) | (ORG_ID, ACCOUNT_ID, ACCOUNT_NUMBER) |
-| 7 | WORLDCHECK_AML | (ACCOUNT_ID, CASE_ID) | (ORG_ID, ACCOUNT_ID, CASE_ID) |
-| 8 | MGP_FINANCIAL_PLANS | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
-| 9 | SYNTH_RELATIONSHIP_GRAPH | (SRC_ACCOUNT_ID, DST_ACCOUNT_ID) | (ORG_ID, SRC_ACCOUNT_ID, DST_ACCOUNT_ID) |
-| 10 | BOARDEX_EXEC_INTEL | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
-| 11 | ZOOMINFO_FIRMOGRAPHICS | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
-| 12 | GONG_CALL_SENTIMENT | (ACCOUNT_ID, CALL_WEEK) | (ORG_ID, ACCOUNT_ID, CALL_WEEK) |
-| 13 | MOODYS_MARKET_CONTEXT | (ACCOUNT_ID, PROFILE_DATE) | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) |
+| Plan | Table | Repo DDL key (`schemas/`) | Live PK (2026-11-09) | Live UNIQUE (2026-11-09) |
+|---|---|---|---|---|
+| 1 | `CLARITAS_DEMOGRAPHICS` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
+| 2 | `MSCI_ESG_SCORES` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
+| 3 | `DNB_BUSINESS_CREDIT` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
+| 4 | `ESRI_GEO_FOOTPRINT` | (ORG_ID, BRANCH_ZIP, PROFILE_MONTH) | RECORD_ID | (BRANCH_ZIP, PROFILE_MONTH) |
+| 5 | `CORELOGIC_PROPERTY` | (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER) | RECORD_ID | (ACCOUNT_ID, PROFILE_QUARTER) |
+| 6 | `PLAID_HELD_AWAY` | (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) |
+| 7 | `WORLD_CHECK_AML` | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) |
+| 8 | `MGP_FINANCIAL_PLANS` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
+| 9 | `SYNTH_RELATIONSHIP_GRAPH` | (ORG_ID, SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) | RECORD_ID | (SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) |
+| 10 | `BOARDEX_EXEC_INTEL` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
+| 11 | `ZOOMINFO_FIRMOGRAPHICS` | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) |
+| 12 | `GONG_CALL_SENTIMENT` | (ORG_ID, ACCOUNT_ID, PROFILE_WEEK) | RECORD_ID | (ACCOUNT_ID, PROFILE_WEEK) |
+| 13 | `MOODYS_MARKET_CONTEXT` | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) |
+
+**The live constraints differ from the repo DDL.** In the live schema the declared PK of all 13 tables is `RECORD_ID` (the `UUID_STRING()` default the generators never write; the DMOs key on `record_id__c`), and the natural key survives as a UNIQUE key **without** `ORG_ID`. Snowflake doesn't enforce either constraint, so nothing breaks today. What actually prevents duplicates is each SP's MERGE `ON` clause. All 13 `procedures/sp_generate_*.py` sources match on `ORG_ID` plus the natural key, but the committed `procedures/sp_create_procedure.sql` for Plans 1, 5, 7 and 8 (Claritas, CoreLogic, World-Check, MGP) still has the pre-Phase A `ON` without `ORG_ID`. Before Phase B puts a second org's rows in these tables, confirm the deployed procedure bodies match the Python sources, and decide whether to re-declare the UNIQUE keys with `ORG_ID`. Read the live constraints with `SHOW PRIMARY KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC` and `SHOW UNIQUE KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC`.
 
 Plans 14–16 postdate Phase A and were created with `ORG_ID` as the first column and PK lead, so this step doesn't apply to them. Their live PKs: `DEMANDBASE_INTENT_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC)`, `USERGEMS_JOB_CHANGES (ORG_ID, EVENT_ID)`, `HARMONIC_COMPANY_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`.
 
