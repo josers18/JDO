@@ -2,13 +2,13 @@
 
 Synthetic LSEG World-Check / Dow Jones Risk & Compliance / ComplyAdvantage-style AML / sanctions / PEP screening dataset for the Cumulus FSC demo. One of 13. **Account-scoped with daily cadence — first daily-cadence dataset AND first all-accounts-audience dataset in the rollout.**
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_DATE)` to `(ORG_ID, ACCOUNT_ID, PROFILE_DATE)` — note 1:1 emit shape (one row per anchor per screening day), not 1:N. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A 2026-05-29 `c9119d32`; deployed SQL ported 2026-11-09, PR #168).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id the DMO keys on); UNIQUE `(ACCOUNT_ID, PROFILE_DATE)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, second-to-last column. Both `procedures/sp_generate_*.py` and the deployed `procedures/sp_create_procedure.sql` stamp `"ORG_ID": anchor.get("ORG_ID") or "JDO"` on each row, and the MERGE source SELECT, `ON` and `INSERT` carry `ORG_ID`, so `(ORG_ID, ACCOUNT_ID, PROFILE_DATE)` is the effective key. UPDATE SET skips `ORG_ID` (key component). World-Check's explicit audience column list includes `ORG_ID`, and its latest-snapshot `QUALIFY` partitions by `(ORG_ID, ACCOUNT_ID)`. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML`, `SP_GENERATE_WORLD_CHECK_AML`, `TASK_DAILY_WORLD_CHECK_AML`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
-- **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_DATE)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct account per screening day.**
+- **Account-scoped** — rows are keyed by `(ORG_ID, ACCOUNT_ID, PROFILE_DATE)` (MERGE `ON`; table PK is `RECORD_ID`), with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct account per screening day.**
 
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"worldcheck"` (**day-bucketed**, not month — daily cadence).
@@ -18,7 +18,7 @@ Synthetic LSEG World-Check / Dow Jones Risk & Compliance / ComplyAdvantage-style
   - **Year-stable case seed** — `seed_for(account_id + "_case", "worldcheck_case", datetime(run_ts.year, 1, 1))`. Drives CASE_REFERENCE. Once a case is opened, the vendor case ID stays the same year-round.
 - Plan 5 had **one** year-stable salt (`treasury_year`); Plan 7 has **two** (`worldcheck_jurisdiction` + `worldcheck_case`).
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` for the standard 1:1 audience-vs-actual coverage check (every distinct anchor must produce exactly one row per screening day).
-- The MERGE replaces on composite PK `(ACCOUNT_ID, PROFILE_DATE)`. Re-runs same calendar day are idempotent (byte-identical). Re-runs on a later day INSERT new rows for that day's screening.
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_DATE)`. Re-runs same calendar day are idempotent (byte-identical). Re-runs on a later day INSERT new rows for that day's screening.
 - Audience SQL is `SELECT DISTINCT * FROM V_ACCOUNT_ANCHORS` (**no WHERE clause** — first all-accounts plan). 36,813 distinct accounts (37,445 raw with 1.7% MASTER_ACCOUNTS dups; the `DISTINCT` collapses them).
 - 30-jurisdiction pool with explicit Standard / Enhanced / Prohibited tiers — see rowspec `_PROHIBITED_JURISDICTIONS`, `_ENHANCED_JURISDICTIONS`, `_STANDARD_JURISDICTIONS`. NOT license-grade vendor data.
 - `accounts_processed` in `TASK_EXECUTION_LOG` equals `len(audience)` — the **distinct customer count** AND the row count (1:1 emit per anchor per day).
@@ -39,10 +39,10 @@ Synthetic LSEG World-Check / Dow Jones Risk & Compliance / ComplyAdvantage-style
 - Salt is `"worldcheck"` (daily cadence) for the main row; `"worldcheck_jurisdiction"` and `"worldcheck_case"` for year-stable fields.
 - Cadence is **daily** (`'USING CRON 0 6 * * * UTC'` — 06:00 UTC daily, after LSEG's overnight feed publishes at ~02:00 GMT).
 - The `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` and `TO_TIMESTAMP_NTZ(LAST_SCREENED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
-- 13 columns total: 11 NOT NULL (ACCOUNT_ID, PROFILE_DATE, OVERALL_RISK_RATING, SANCTIONS_HIT, PEP_HIT, ADVERSE_MEDIA_HIT, RISK_JURISDICTION_CODE, RISK_JURISDICTION_TIER, LAST_SCREENED_AT, CHANGE_SINCE_LAST_RUN, GENERATED_AT) + 2 NULLable (ADVERSE_MEDIA_CATEGORIES, CASE_REFERENCE).
+- 15 columns total: 12 NOT NULL (RECORD_ID, ACCOUNT_ID, PROFILE_DATE, OVERALL_RISK_RATING, SANCTIONS_HIT, PEP_HIT, ADVERSE_MEDIA_HIT, RISK_JURISDICTION_CODE, RISK_JURISDICTION_TIER, LAST_SCREENED_AT, CHANGE_SINCE_LAST_RUN, GENERATED_AT) + 3 NULLable (ADVERSE_MEDIA_CATEGORIES, CASE_REFERENCE, ORG_ID).
 - L1 conftest provides a synthetic anchor fixture — `SAMPLE_ANCHORS` from Cumulus_Common with `in_audience_anchors = all_anchors` (everyone is in audience; no filter step in the L1 helper).
 - The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_DATE`'s `sourceFields` entry, NOT `yyyy-MM-dd`.
 - DC mapping descriptions must be ≤521 chars (Plan 6 finding). Trim the DMO description if drafting against the rowspec verbatim.
 - `accounts_processed = len(audience)` matches row count (1:1 emit per anchor per day) — unlike Plan 6 where `accounts_processed ≠ row_count` (1:N).
-- **Volume.** ~36,813 rows/day. Re-runs same day MERGE-replace in place; no daily history retained beyond `LAST_SCREENED_AT` + `CHANGE_SINCE_LAST_RUN`. Live storage stays at ~36,813 rows year-round.
+- **Volume.** One row per anchor per day (36,953 anchors on 2026-11-09). Same-day re-runs MERGE-replace in place, and each new day adds a full set, so history accumulates: 5,860,286 rows across 159 screening days (2026-05-28 → 2026-11-09).

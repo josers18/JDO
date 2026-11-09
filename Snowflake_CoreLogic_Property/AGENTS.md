@@ -2,19 +2,19 @@
 
 Synthetic CoreLogic-style property records dataset for the Cumulus FSC demo. One of 13. **Account-scoped with quarterly cadence — first quarterly-cadence dataset.**
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_QUARTER)` to `(ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A 2026-05-29 `c9119d32`; deployed SQL ported 2026-11-09, PR #168).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id the DMO keys on); UNIQUE `(ACCOUNT_ID, PROFILE_QUARTER)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, second-to-last column. Both `procedures/sp_generate_*.py` and the deployed `procedures/sp_create_procedure.sql` stamp `"ORG_ID": anchor.get("ORG_ID") or "JDO"` on each row, and the MERGE source SELECT, `ON` and `INSERT` carry `ORG_ID`, so `(ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)` is the effective key. UPDATE SET skips `ORG_ID` (key component). Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY`, `SP_GENERATE_CORELOGIC_PROPERTY`, `TASK_QUARTERLY_CORELOGIC_PROPERTY`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
-- **Account-scoped** — rows are keyed by `ACCOUNT_ID`, with FK to `ssot__Account__dlm`. One row per PERSON account per quarter.
+- **Account-scoped** — rows are keyed by `(ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)` (MERGE `ON`; table PK is `RECORD_ID`), with FK `ACCOUNT_ID` to `ssot__Account__dlm`. One row per PERSON account per quarter.
 
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"corelogic"` (quarter-bucketed).
 - **Year-stable seed for `LAST_TRANSFER_YEAR` and `MORTGAGE_RATE_PCT`:** use a separate year-stable salt `"corelogic_year"` so they're stable across quarters within a year (real deeds don't change; fixed mortgages don't reprice quarter-to-quarter). Seed key: `account_id + "_year"`, bucket: `datetime(run_ts.year, 1, 1)`.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` in step 4 — canonical "coverage gap: N missing rows" message.
-- The MERGE replaces on PK `(ACCOUNT_ID, PROFILE_QUARTER)`. Re-runs are idempotent within a calendar quarter.
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)`. Re-runs are idempotent within a calendar quarter.
 - Audience SQL is a `WHERE ACCOUNT_TYPE_FLAG = 'PERSON' AND POSTAL_CODE IS NOT NULL AND POSTAL_CODE <> ''` predicate on `V_ACCOUNT_ANCHORS` — this is the v1.5 defensive ZIP filter (defensive guard, not active filter in current data). The SP iterates over ~25,424 PERSON anchors per quarter.
 - CoreLogic property records (deeds, valuations, mortgage status, HELOC opportunity) drive the bias logic. Recognisable as CoreLogic-style property shape, NOT license-grade CoreLogic data. See rowspec.
 - `accounts_processed` in `TASK_EXECUTION_LOG` is the **distinct account count**, equal to the row count (1:1 emit rate per PERSON per quarter).
@@ -33,7 +33,7 @@ Synthetic CoreLogic-style property records dataset for the Cumulus FSC demo. One
 - **Audience predicate uses v1.5 defensive ZIP filter:** `POSTAL_CODE IS NOT NULL AND POSTAL_CODE <> ''`. Currently not dropping any rows, but is the canonical pattern going forward (defensive guard against silent empty-string ZIPs).
 - The MERGE handles 9 NULLable columns correctly — write_pandas + MERGE source SELECT pattern is unchanged from Plans 1-4.
 - The `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
-- 15 columns total: 7 NOT NULL (ACCOUNT_ID, PROFILE_QUARTER, IS_OWNER, LIEN_COUNT, FLOOD_ZONE_CODE, WILDFIRE_RISK_SCORE, GENERATED_AT) + 8 NULLable (PRIMARY_PROPERTY_TYPE, ESTIMATED_PROPERTY_VALUE, OUTSTANDING_MORTGAGE_BALANCE, LOAN_TO_VALUE_PCT, EQUITY_USD, MORTGAGE_RATE_PCT, LAST_TRANSFER_YEAR, HELOC_OPPORTUNITY_SCORE).
+- 17 columns total: 8 NOT NULL (RECORD_ID, ACCOUNT_ID, PROFILE_QUARTER, IS_OWNER, LIEN_COUNT, FLOOD_ZONE_CODE, WILDFIRE_RISK_SCORE, GENERATED_AT) + 9 NULLable (PRIMARY_PROPERTY_TYPE, ESTIMATED_PROPERTY_VALUE, OUTSTANDING_MORTGAGE_BALANCE, LOAN_TO_VALUE_PCT, EQUITY_USD, MORTGAGE_RATE_PCT, LAST_TRANSFER_YEAR, HELOC_OPPORTUNITY_SCORE, ORG_ID).
 - L1 conftest provides a synthetic anchor fixture — `SAMPLE_ANCHORS` from Cumulus_Common IS used here (14-anchor set: 12 PERSON + 2 BUSINESS spanning age bands, income tiers, states).
 - The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_QUARTER`'s `sourceFields` entry, NOT `yyyy-MM-dd`.
