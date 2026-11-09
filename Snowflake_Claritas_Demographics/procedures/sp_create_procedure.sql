@@ -13,9 +13,9 @@
 -- Salt:     "claritas"
 -- Synced 2026-11-09 to the deployed body (GET_DDL): this file is what
 -- deploy_sp.py runs, and it now matches live, EXECUTE AS OWNER included.
--- The deployed MERGE matches on the natural key only and writes no ORG_ID
--- (rows take the column DEFAULT 'JDO'). The ORG_ID-aware version is the
--- Python source in this folder; see Snowflake_Cumulus_Common/docs/ROLLOUT.md A6.
+-- 2026-11-09 (later): ORG_ID ported from the Python source in this folder.
+-- Each row is stamped from the anchor (default 'JDO'); the MERGE source, ON and
+-- INSERT carry ORG_ID. UPDATE SET skips it (key component).
 -- =============================================================================
 
 CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS()
@@ -398,6 +398,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
         stress = _strained_stress(account_id, run_ts)
 
     return {
+        "ORG_ID":                     anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
         "ACCOUNT_ID":                 account_id,
         "PROFILE_MONTH":              run_ts.replace(day=1).date(),
         "PRIZM_SEGMENT_CODE":         code,
@@ -437,6 +438,7 @@ def _merge(session: Any, records: list) -> int:
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_MONTH,
                 PRIZM_SEGMENT_CODE,
@@ -453,7 +455,8 @@ def _merge(session: Any, records: list) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_MONTH = src.PROFILE_MONTH
         WHEN MATCHED THEN UPDATE SET
             PRIZM_SEGMENT_CODE          = src.PRIZM_SEGMENT_CODE,
@@ -469,13 +472,13 @@ def _merge(session: Any, records: list) -> int:
             FINANCIAL_STRESS_INDICATOR  = src.FINANCIAL_STRESS_INDICATOR,
             GENERATED_AT                = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, PRIZM_SEGMENT_NAME,
+            ORG_ID, ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, PRIZM_SEGMENT_NAME,
             PRIZM_LIFESTYLE_GROUP, LIFE_STAGE, HOUSEHOLD_COMPOSITION,
             ESTIMATED_NET_WORTH_BAND, WEALTH_PROPENSITY_SCORE,
             INVESTMENT_PROPENSITY_SCORE, MORTGAGE_PROPENSITY_SCORE,
             URBANICITY, FINANCIAL_STRESS_INDICATOR, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_MONTH, src.PRIZM_SEGMENT_CODE, src.PRIZM_SEGMENT_NAME,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_MONTH, src.PRIZM_SEGMENT_CODE, src.PRIZM_SEGMENT_NAME,
             src.PRIZM_LIFESTYLE_GROUP, src.LIFE_STAGE, src.HOUSEHOLD_COMPOSITION,
             src.ESTIMATED_NET_WORTH_BAND, src.WEALTH_PROPENSITY_SCORE,
             src.INVESTMENT_PROPENSITY_SCORE, src.MORTGAGE_PROPENSITY_SCORE,

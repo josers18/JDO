@@ -215,14 +215,14 @@ Phase A applied this to all 13 tables, but not in this exact form; the live resu
 
 | Plan | Table | Live PK | Live UNIQUE (natural key) | Phase A design key | Deployed SP MERGE `ON` has `ORG_ID` |
 |---|---|---|---|---|---|
-| 1 | `CLARITAS_DEMOGRAPHICS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | No |
+| 1 | `CLARITAS_DEMOGRAPHICS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
 | 2 | `MSCI_ESG_SCORES` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
 | 3 | `DNB_BUSINESS_CREDIT` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
 | 4 | `ESRI_GEO_FOOTPRINT` | RECORD_ID | (BRANCH_ZIP, PROFILE_MONTH) | (ORG_ID, BRANCH_ZIP, PROFILE_MONTH) | Yes |
-| 5 | `CORELOGIC_PROPERTY` | RECORD_ID | (ACCOUNT_ID, PROFILE_QUARTER) | (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER) | No |
+| 5 | `CORELOGIC_PROPERTY` | RECORD_ID | (ACCOUNT_ID, PROFILE_QUARTER) | (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER) | Yes |
 | 6 | `PLAID_HELD_AWAY` | RECORD_ID | (ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, HELD_AWAY_ACCOUNT_ID, PROFILE_MONTH) | Yes |
-| 7 | `WORLD_CHECK_AML` | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | No |
-| 8 | `MGP_FINANCIAL_PLANS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | No |
+| 7 | `WORLD_CHECK_AML` | RECORD_ID | (ACCOUNT_ID, PROFILE_DATE) | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) | Yes |
+| 8 | `MGP_FINANCIAL_PLANS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
 | 9 | `SYNTH_RELATIONSHIP_GRAPH` | RECORD_ID | (SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) | (ORG_ID, SRC_ACCOUNT_ID, DST_ACCOUNT_ID, EDGE_TYPE) | Yes |
 | 10 | `BOARDEX_EXEC_INTEL` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
 | 11 | `ZOOMINFO_FIRMOGRAPHICS` | RECORD_ID | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) | Yes |
@@ -231,7 +231,9 @@ Phase A applied this to all 13 tables, but not in this exact form; the live resu
 
 **What's live (checked 2026-11-09).** In the live schema the declared PK of all 13 tables is `RECORD_ID` (the DMOs key on `record_id__c`), and the natural key is a UNIQUE key **without** `ORG_ID`. `ORG_ID` is the second-to-last column, nullable, `DEFAULT 'JDO'`. The `schemas/` DDL files now match this (synced from `GET_DDL` in the same PR as this paragraph); the Phase A design key is kept in each file's header as history. Snowflake enforces neither constraint, so what keeps rows unique is each SP's MERGE `ON` clause.
 
-Nine deployed SPs already match on `ORG_ID`. The four that don't, Plans 1, 5, 7 and 8 (Claritas, CoreLogic, World-Check, MGP), write no `ORG_ID` at all, so their rows get `'JDO'` from the column default. Their committed `procedures/sp_create_procedure.sql` files are exact copies of the deployed bodies; the `ORG_ID`-aware versions exist only in the `procedures/sp_generate_*.py` sources. **Before Phase B** puts a second org's rows in these tables, port the `.py` changes into those four `.sql` files and redeploy them (as ACCOUNTADMIN), and decide whether to re-declare the UNIQUE keys with `ORG_ID`. Read the live constraints with `SHOW PRIMARY KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC` and `SHOW UNIQUE KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC`.
+All 13 deployed SPs match on `ORG_ID`. Plans 1, 5, 7 and 8 (Claritas, CoreLogic, World-Check, MGP) were the last four: their `procedures/sp_create_procedure.sql` files got the `ORG_ID` handling from the `procedures/sp_generate_*.py` sources on 2026-11-09 and were redeployed as ACCOUNTADMIN. Each row is stamped from the anchor (`anchor.get("ORG_ID") or "JDO"`), and the MERGE source, `ON` and `INSERT` carry `ORG_ID`. World-Check's explicit audience column list gained `ORG_ID`, and its latest-snapshot `QUALIFY` now partitions by `(ORG_ID, ACCOUNT_ID)`. A smoke `CALL` of each left every table's row count equal to its distinct `(ORG_ID, natural key)` count, and the current period is 100% `'JDO'`.
+
+The UNIQUE keys still leave out `ORG_ID`, and that's fine. They're declared `RELY = false` and Snowflake enforces neither them nor the PK. `RECORD_ID` is the row id, `ACCOUNT_ID` repeats (1:N across periods, and across slots or edges for Plans 6 and 9), and the MERGE `ON` is what keeps rows unique. Re-declaring the UNIQUE keys with `ORG_ID` is cosmetic, so it doesn't block Phase B. Read the live constraints with `SHOW PRIMARY KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC` and `SHOW UNIQUE KEYS IN SCHEMA DATA_JEDAIS.FINS__PUBLIC`.
 
 Plans 14–16 postdate Phase A and were created with `ORG_ID` as the first column and PK lead, so this step doesn't apply to them. Their live PKs: `DEMANDBASE_INTENT_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC)`, `USERGEMS_JOB_CHANGES (ORG_ID, EVENT_ID)`, `HARMONIC_COMPANY_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`.
 
