@@ -1,408 +1,376 @@
 -- =============================================================================
 -- L2 integration test for SP_GENERATE_MOODYS_MARKET_CONTEXT
 -- =============================================================================
--- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-13-moodys-market-context.md
--- Task:    Plan 13 T5 (FINAL Cumulus plan, 13 of 13)
--- Run:     snow sql -f tests/integration/test_moodys_market_context_sp.sql
+-- Run:     snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN \
+--            -f tests/integration/test_moodys_market_context_sp.sql
+--          (ACCOUNTADMIN: the cloned SP is EXECUTE AS OWNER and write_pandas
+--          creates its staging table, which needs CREATE TABLE.)
 -- Pass:    Every assertion column returns TRUE. Any FALSE = test failure.
 --
 -- Strategy:
---   Same fixture-cloning pattern as Plans 6 + 7: clone the deployed SP into
---   DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE via GET_DDL +
---   REPLACE, redirecting the audience source, dataset table, and staging
---   table FQNs to fixture-scoped names. Sentinel-based ordering avoids
---   substring collision when MOODYS_MARKET_CONTEXT expands to
---   MOODYS_MARKET_CONTEXT_FIXTURE (otherwise SP_GENERATE_MOODYS_MARKET_CONTEXT
---   would gain a second _FIXTURE suffix during the dataset-table swap).
+--   Clone the deployed SP into SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE via
+--   GET_DDL + REPLACE, redirecting the dataset table, staging table, task-log
+--   name and V_ACCOUNT_ANCHORS to fixture-scoped names, then CALL it against
+--   a 12-anchor fixture view (9 BUSINESS + 3 PERSON).
+--   Sentinels avoid substring collisions: MOODYS_MARKET_CONTEXT is a stem of
+--   the SP, task and staging names, so those are parked first and expanded
+--   after the table swap.
 --
--- Plan 13 differences from Plans 1-12:
---   - INSTRUMENT-SCOPED, not account-scoped. Reads
---     DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE directly (4 columns: TICKER PK,
---     INSTRUMENT_NAME, SECTOR, BASE_PRICE) -- there is no V_ACCOUNT_ANCHORS
---     dependency. Second non-account-scoped Cumulus plan after Plan 4 (Esri
---     branch-scoped). Fixture is INSTRUMENT_UNIVERSE_MOODYS_FIXTURE, not a
---     V_ACCOUNT_ANCHORS clone.
---   - DAILY cadence. PROFILE_DATE (not PROFILE_MONTH or PROFILE_QUARTER).
---     Mid-day re-runs MERGE-replace in place. Second daily-cadence plan
---     after Plan 7 (WorldCheck AML); both inline the _daily_seed wrapper.
---   - INSTRUMENT_UNIVERSE schema-drift caught at draft time. The umbrella
---     spec described the audience as `WHERE IS_ACTIVE = TRUE` keyed by
---     INSTRUMENT_ID; live INSTRUMENT_UNIVERSE has TICKER PK and no
---     IS_ACTIVE column. Fixture mirrors the live shape: TICKER PK, no
---     IS_ACTIVE, no WHERE clause in the audience SQL.
---   - Snowflake digit-leading column rename: rowspec's market-data fields
---     `52_WEEK_HIGH_PRICE`, `52_WEEK_LOW_PRICE`, `30_DAY_PRICE_CHANGE_PCT`
---     are renamed to FIFTY_TWO_WEEK_HIGH_PRICE / FIFTY_TWO_WEEK_LOW_PRICE /
---     THIRTY_DAY_PRICE_CHANGE_PCT at the DDL level (Snowflake identifiers
---     cannot begin with a digit). The assertions use the renamed columns.
---   - 0 BOOLEAN, 1 NULLable (OUTLOOK_LAST_CHANGED_DATE) -- simplest
---     NULL/Boolean footprint of any Cumulus dataset. The NOT-NULL
---     assertion covers 13 of 14 columns.
---   - Two salts (`moodys` daily + `moodys_year` year-stable) drive a
---     hybrid year-stable + daily field model. The year-stable invariants
---     assertion is Plan 13's load-bearing structural test: same calendar
---     day re-runs are byte-identical (idempotency); a second CALL on the
---     same day must reproduce CREDIT_RATING / RATING_OUTLOOK /
---     OUTLOOK_LAST_CHANGED_DATE / FIFTY_TWO_WEEK_HIGH/LOW /
---     RATING_AGENCY_FLAG_COUNT / LIQUIDITY_TIER bit-for-bit.
+--   The V_ACCOUNT_ANCHORS swap also redirects OWNER_BOOK_SQL. The fixture ids
+--   are not in the FINSDC3_DATASHARE Account share, so the join finds nothing
+--   and every fixture account gets the base outlook-move rate. The ids don't
+--   start with 001am either, so outlook moves never apply and the outlook is
+--   the year-stable baseline.
+--
+-- What it covers:
+--   - Audience: only BUSINESS anchors emit rows (PERSON ids absent).
+--   - Day 1 (CALL with no argument): one row per business anchor, dated
+--     today (UTC), 14 NOT NULL columns populated, ORG_ID stamped.
+--   - Vocabularies and ranges: rating, outlook, tier, volatility [0, 25],
+--     30-day change [-25, 25], market cap [$5M, $500B], flags [0, 5],
+--     52-week high >= low, refresh/generated at = PROFILE_DATE midnight.
+--   - Passthrough: ANNUAL_REVENUE_USD / EMPLOYEE_COUNT equal the anchor
+--     (NULL revenue stays NULL; NULL employee count stays NULL).
+--   - Valuation: the $60B anchor is Tier 1 or Tier 2; the $50K anchor is
+--     clamped to the $5M floor and Illiquid.
+--   - Same-day idempotency: a second CALL leaves the row count and
+--     HASH_AGG(*) unchanged.
+--   - Backfill: CALL(3) yields 3 PROFILE_DATEs x 9 accounts = 27 rows,
+--     year-stable fields constant per (account, year), daily fields varying.
 --
 -- Pre-requisites:
---   1. SP_GENERATE_MOODYS_MARKET_CONTEXT deployed (run scripts/deploy_sp.py
---      first).
+--   SP_GENERATE_MOODYS_MARKET_CONTEXT deployed (python3 scripts/deploy_sp.py).
+-- Side effects:
+--   Fixture runs log to TASK_EXECUTION_LOG as
+--   TASK_DAILY_MOODYS_MARKET_CONTEXT_FIXTURE; step 15 deletes those rows.
 -- =============================================================================
 
 USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
--- 1. Drop any leftover objects from a prior failed run so the test is
---    idempotent end-to-end.
+-- 1. Drop leftovers from a prior failed run.
 -- ---------------------------------------------------------------------------
-DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE;
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE(NUMBER);
 DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE_STAGING;
-DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
-DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MOODYS_FIXTURE;
 
 -- ---------------------------------------------------------------------------
--- 2. Materialise the L2 fixture audience view: 8 instruments.
---    Plan 13 reads INSTRUMENT_UNIVERSE directly (no V_ACCOUNT_ANCHORS), so
---    the fixture is a 4-column view (TICKER, INSTRUMENT_NAME, SECTOR,
---    BASE_PRICE) matching the live INSTRUMENT_UNIVERSE schema (probed
---    2026-05-28: TICKER VARCHAR(10) PK, INSTRUMENT_NAME VARCHAR(200),
---    SECTOR VARCHAR(50), BASE_PRICE FLOAT).
---
---    Coverage of rowspec dimensions:
---      - 5 of 7 SECTOR values: Industrial (x2), Financials (x2), Technology,
---        Energy, Healthcare. The two Industrial / two Financials pairs
---        exercise within-sector rating distribution variance; Tiny Tickr's
---        NULL SECTOR exercises the _DEFAULT_RATING_BIAS fallback path.
---      - BASE_PRICE spans micro-cap-priced (Tiny Tickr 2.10) through
---        large-mega-cap-priced (Cyberdyne 1287.50, MegaCap MF 4500.00) so
---        the year-stable shares-outstanding draw covers both Illiquid and
---        Tier 1 LIQUIDITY_TIER outcomes.
---      - 8 distinct TICKER values -> COUNT(DISTINCT TICKER) = 8 and
---        COUNT(*) = 8 (1:1 daily emit; no audience filter).
+-- 2. Fixture audience view, in the live V_ACCOUNT_ANCHORS column order.
+--    BUSINESS anchors B-01..B-09:
+--      B-01 Banking (bias key)        $2.4B revenue
+--      B-02 Healthcare                $180M
+--      B-03 Construction              $12M, NULL EMPLOYEE_COUNT
+--      B-04 Real Estate               NULL ANNUAL_REVENUE ($5M valuation path)
+--      B-05 Manufacturing             $60B (Tier 1/2)
+--      B-06 Retail Trade              $50K (clamped to $5M floor, Illiquid)
+--      B-07 NULL INDUSTRY             $8M  (default bias)
+--      B-08 Professional Services     $3.1M (no bias key -> default)
+--      B-09 Logistics                 $45M
+--    PERSON anchors P-01..P-03 must be filtered out by the audience SQL.
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE AS
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MOODYS_FIXTURE AS
 SELECT
-    'MFIX01'::VARCHAR(10)            AS TICKER,
-    'Acme Industrials Corp'::VARCHAR AS INSTRUMENT_NAME,
-    'Industrial'::VARCHAR            AS SECTOR,
-    47.50::FLOAT                     AS BASE_PRICE
-UNION ALL SELECT 'MFIX02', 'Globex Bank Holdings', 'Financials',  87.20
-UNION ALL SELECT 'MFIX03', 'Initech Tech',         'Technology',  245.10
-UNION ALL SELECT 'MFIX04', 'Hooli Energy',         'Energy',      32.05
-UNION ALL SELECT 'MFIX05', 'PiedPiper Health',     'Healthcare',  178.40
-UNION ALL SELECT 'MFIX06', 'Cyberdyne Defense',    'Industrial',  1287.50
-UNION ALL SELECT 'MFIX07', 'Tiny Tickr Ltd',       NULL,          2.10
-UNION ALL SELECT 'MFIX08', 'MegaCap MF',           'Financials',  4500.00;
+    'JDO'::VARCHAR                   AS ORG_ID,
+    'MDY-FIX-B-01'::VARCHAR          AS ACCOUNT_ID,
+    'Fixture First Federal'::VARCHAR AS ACCOUNT_NAME,
+    '2026-11-01'::DATE               AS SNAPSHOT_DATE,
+    'Commercial Banking'::VARCHAR    AS CLIENT_CATEGORY,
+    'BUSINESS'::VARCHAR              AS ACCOUNT_TYPE_FLAG,
+    NULL::TIMESTAMP_LTZ              AS BIRTHDATE,
+    NULL::NUMBER                     AS ANNUAL_INCOME,
+    NULL::NUMBER                     AS CREDIT_SCORE,
+    'Banking'::VARCHAR               AS INDUSTRY,
+    2400000000::NUMBER               AS ANNUAL_REVENUE,
+    5200::NUMBER                     AS EMPLOYEE_COUNT,
+    '10001'::VARCHAR                 AS POSTAL_CODE,
+    'NY'::VARCHAR                    AS STATE_CODE,
+    'US'::VARCHAR                    AS COUNTRY_CODE,
+    'EXT-MDY-B-01'::VARCHAR          AS EXTERNAL_ID
+UNION ALL SELECT 'JDO','MDY-FIX-B-02','Fixture Health Partners','2026-11-01','Commercial Banking','BUSINESS',NULL,NULL,NULL,'Healthcare',180000000,950,'60601','IL','US','EXT-MDY-B-02'
+UNION ALL SELECT 'JDO','MDY-FIX-B-03','Fixture Build Co','2026-11-01','Small Business','BUSINESS',NULL,NULL,NULL,'Construction',12000000,NULL,'85001','AZ','US','EXT-MDY-B-03'
+UNION ALL SELECT 'JDO','MDY-FIX-B-04','Fixture Realty Group','2026-11-01','Small Business','BUSINESS',NULL,NULL,NULL,'Real Estate',NULL,40,'33101','FL','US','EXT-MDY-B-04'
+UNION ALL SELECT 'JDO','MDY-FIX-B-05','Fixture Global Industries','2026-11-01','Commercial Banking','BUSINESS',NULL,NULL,NULL,'Manufacturing',60000000000,120000,'48201','MI','US','EXT-MDY-B-05'
+UNION ALL SELECT 'JDO','MDY-FIX-B-06','Fixture Corner Shop','2026-11-01','Small Business','BUSINESS',NULL,NULL,NULL,'Retail Trade',50000,2,'97201','OR','US','EXT-MDY-B-06'
+UNION ALL SELECT 'JDO','MDY-FIX-B-07','Fixture Unclassified LLC','2026-11-01','Small Business','BUSINESS',NULL,NULL,NULL,NULL,8000000,60,'78701','TX','US','EXT-MDY-B-07'
+UNION ALL SELECT 'JDO','MDY-FIX-B-08','Fixture Advisory LLP','2026-11-01','Small Business','BUSINESS',NULL,NULL,NULL,'Professional Services',3100000,18,'02108','MA','US','EXT-MDY-B-08'
+UNION ALL SELECT 'JDO','MDY-FIX-B-09','Fixture Freight Lines','2026-11-01','Commercial Banking','BUSINESS',NULL,NULL,NULL,'Logistics',45000000,310,'30301','GA','US','EXT-MDY-B-09'
+UNION ALL SELECT 'JDO','MDY-FIX-P-01','Fixture Person One','2026-11-01','Retail','PERSON','1980-04-12'::TIMESTAMP_LTZ,85000,720,NULL,NULL,NULL,'94105','CA','US','EXT-MDY-P-01'
+UNION ALL SELECT 'JDO','MDY-FIX-P-02','Fixture Person Two','2026-11-01','Wealth Management','PERSON','1965-09-30'::TIMESTAMP_LTZ,410000,790,NULL,NULL,NULL,'10022','NY','US','EXT-MDY-P-02'
+UNION ALL SELECT 'JDO','MDY-FIX-P-03','Fixture Person Three','2026-11-01','Retail','PERSON','1992-01-05'::TIMESTAMP_LTZ,52000,655,'Personal',NULL,NULL,'60614','IL','US','EXT-MDY-P-03';
 
 -- ---------------------------------------------------------------------------
--- 3. Materialise the fixture-scoped target table: same DDL as
---    DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT but renamed.
+-- 3. Fixture target table: same DDL as MOODYS_MARKET_CONTEXT.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
 LIKE DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT;
 
 -- ---------------------------------------------------------------------------
--- 4. Clone SP_GENERATE_MOODYS_MARKET_CONTEXT into ..._FIXTURE with FQN swaps:
---      MOODYS_MARKET_CONTEXT (table)        -> MOODYS_MARKET_CONTEXT_FIXTURE
---      MOODYS_MARKET_CONTEXT_STAGING        -> MOODYS_MARKET_CONTEXT_FIXTURE_STAGING
---      SP_GENERATE_MOODYS_MARKET_CONTEXT    -> SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE
---      TASK_DAILY_MOODYS_MARKET_CONTEXT     -> TASK_DAILY_MOODYS_MARKET_CONTEXT_FIXTURE
---      INSTRUMENT_UNIVERSE                  -> INSTRUMENT_UNIVERSE_MOODYS_FIXTURE
---    Sentinel-based ordering avoids substring-collision in repeated REPLACE
---    passes (e.g. replacing MOODYS_MARKET_CONTEXT first would catch the stem
---    of SP_GENERATE_MOODYS_MARKET_CONTEXT and TASK_DAILY_MOODYS_MARKET_CONTEXT
---    and double-suffix them).
---
---    Plan 13 deviation from Plan 7: there is no V_ACCOUNT_ANCHORS swap -- the
---    SP reads INSTRUMENT_UNIVERSE directly. The last REPLACE redirects the
---    audience source onto the fixture view above.
+-- 4. Clone the SP. The live signature is (NUM_DAYS NUMBER), so GET_DDL needs
+--    the argument type.
 -- ---------------------------------------------------------------------------
 EXECUTE IMMEDIATE $$
 DECLARE
     sp_ddl STRING;
 BEGIN
-    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT()'));
-    -- Step 1: stash the suffix-bearing identifiers behind sentinels.
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT(NUMBER)'));
+    -- Park the identifiers that contain MOODYS_MARKET_CONTEXT as a stem.
     sp_ddl := REPLACE(sp_ddl, 'MOODYS_MARKET_CONTEXT_STAGING',     '__MDY_STG__');
     sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_MOODYS_MARKET_CONTEXT', '__MDY_SP__');
     sp_ddl := REPLACE(sp_ddl, 'TASK_DAILY_MOODYS_MARKET_CONTEXT',  '__MDY_TASK__');
-    -- Step 2: now MOODYS_MARKET_CONTEXT (the dataset table) is unambiguous.
+    -- The dataset table name is now unambiguous.
     sp_ddl := REPLACE(sp_ddl, 'MOODYS_MARKET_CONTEXT',             'MOODYS_MARKET_CONTEXT_FIXTURE');
-    -- Step 3: expand sentinels back to fixture-suffixed names.
+    -- Expand the sentinels to fixture names.
     sp_ddl := REPLACE(sp_ddl, '__MDY_STG__',                       'MOODYS_MARKET_CONTEXT_FIXTURE_STAGING');
     sp_ddl := REPLACE(sp_ddl, '__MDY_SP__',                        'SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE');
     sp_ddl := REPLACE(sp_ddl, '__MDY_TASK__',                      'TASK_DAILY_MOODYS_MARKET_CONTEXT_FIXTURE');
-    -- Step 4: redirect audience source (INSTRUMENT_UNIVERSE -> fixture view).
-    sp_ddl := REPLACE(sp_ddl, 'INSTRUMENT_UNIVERSE',               'INSTRUMENT_UNIVERSE_MOODYS_FIXTURE');
+    -- Redirect the audience (and OWNER_BOOK_SQL) to the fixture view.
+    sp_ddl := REPLACE(sp_ddl, 'V_ACCOUNT_ANCHORS',                 'V_ACCOUNT_ANCHORS_MOODYS_FIXTURE');
     EXECUTE IMMEDIATE :sp_ddl;
     RETURN 'fixture SP staged';
 END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 5. First run (CALL #1).
+-- 5. CALL #1 (default NUM_DAYS = 1, as the task runs it).
 -- ---------------------------------------------------------------------------
 CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
 
 -- ---------------------------------------------------------------------------
--- 6. Coverage assertion #1: distinct TICKER == fixture instrument count (8).
---    Plan 13 keys on TICKER not ACCOUNT_ID; every instrument in the fixture
---    must emit a row.
+-- 6. Audience and coverage.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT TICKER) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 8
-    AS distinct_tickers_assertion_passes;
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 9
+    AS distinct_business_accounts_9;
+-- Expected: TRUE
+
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 9
+    AS row_count_one_per_account;
+-- Expected: TRUE
+
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+       WHERE ACCOUNT_ID LIKE 'MDY-FIX-P-%') = 0
+    AS person_anchors_excluded;
+-- Expected: TRUE
+
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+       WHERE PROFILE_DATE <> CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE) = 0
+    AS profile_date_is_today_utc;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 7. Row-count assertion #2: COUNT(*) == fixture instrument count (8).
---    1:1 daily emit + no audience filter -> row count = audience size.
--- ---------------------------------------------------------------------------
-SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 8
-    AS row_count_assertion_passes;
--- Expected: TRUE
-
--- ---------------------------------------------------------------------------
--- 8. NOT-NULL assertion #3: every required column populated for every row.
---    13 NOT NULL columns (OUTLOOK_LAST_CHANGED_DATE is the lone NULLable).
+-- 7. Required columns populated; ORG_ID stamped from the anchor.
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE TICKER                       IS NULL
-          OR PROFILE_DATE                 IS NULL
-          OR CREDIT_RATING                IS NULL
-          OR RATING_OUTLOOK               IS NULL
-          OR MARKET_CAP_USD               IS NULL
-          OR DAILY_VOLATILITY_PCT         IS NULL
-          OR THIRTY_DAY_PRICE_CHANGE_PCT  IS NULL
-          OR FIFTY_TWO_WEEK_HIGH_PRICE    IS NULL
-          OR FIFTY_TWO_WEEK_LOW_PRICE     IS NULL
-          OR RATING_AGENCY_FLAG_COUNT     IS NULL
-          OR LIQUIDITY_TIER               IS NULL
-          OR LAST_DATA_REFRESH_AT         IS NULL
-          OR GENERATED_AT                 IS NULL) = 0
-    AS not_null_columns_populated;
+       WHERE ACCOUNT_ID                  IS NULL
+          OR PROFILE_DATE                IS NULL
+          OR CREDIT_RATING               IS NULL
+          OR RATING_OUTLOOK              IS NULL
+          OR MARKET_CAP_USD              IS NULL
+          OR DAILY_VOLATILITY_PCT        IS NULL
+          OR THIRTY_DAY_PRICE_CHANGE_PCT IS NULL
+          OR FIFTY_TWO_WEEK_HIGH_USD     IS NULL
+          OR FIFTY_TWO_WEEK_LOW_USD      IS NULL
+          OR RATING_AGENCY_FLAG_COUNT    IS NULL
+          OR LIQUIDITY_TIER              IS NULL
+          OR LAST_DATA_REFRESH_AT        IS NULL
+          OR GENERATED_AT                IS NULL
+          OR RECORD_ID                   IS NULL) = 0
+    AS required_columns_populated;
+-- Expected: TRUE
+
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+       WHERE ORG_ID IS DISTINCT FROM 'JDO') = 0
+    AS org_id_stamped_jdo;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 9. Vocabulary assertion #4: CREDIT_RATING in the canonical 23-value set
---    (22 Moody's grades Aaa..C plus NR).
+-- 8. Vocabularies.
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE CREDIT_RATING NOT IN (
-           'Aaa','Aa1','Aa2','Aa3','A1','A2','A3',
-           'Baa1','Baa2','Baa3','Ba1','Ba2','Ba3',
-           'B1','B2','B3','Caa1','Caa2','Caa3',
-           'Ca','C','NR'
-       )) = 0
-    AS credit_rating_vocabulary_ok;
+           'Aaa','Aa1','Aa2','Aa3','A1','A2','A3','Baa1','Baa2','Baa3',
+           'Ba1','Ba2','Ba3','B1','B2','B3','Caa1','Caa2','Caa3','Ca','C','NR')) = 0
+    AS credit_rating_in_vocabulary;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 10. Vocabulary assertion #5: RATING_OUTLOOK in the 5-value set.
---     ~78% Stable expected; at 8 instruments we don't assert presence of
---     every value, just vocabulary-bounded membership.
--- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE RATING_OUTLOOK NOT IN
-           ('Stable','Positive','Negative','Developing','Watch')) = 0
-    AS rating_outlook_vocabulary_ok;
+       WHERE RATING_OUTLOOK NOT IN ('Stable','Positive','Negative','Developing','Watch')) = 0
+    AS rating_outlook_in_vocabulary;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 11. Vocabulary assertion #6: LIQUIDITY_TIER in the 4-value set.
--- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
        WHERE LIQUIDITY_TIER NOT IN ('Tier 1','Tier 2','Tier 3','Illiquid')) = 0
-    AS liquidity_tier_vocabulary_ok;
+    AS liquidity_tier_in_vocabulary;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 12. Range assertion #7: DAILY_VOLATILITY_PCT in [0, 25].
+-- 9. Numeric ranges, the 52-week band, and the day-midnight timestamps.
 -- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE DAILY_VOLATILITY_PCT < 0
-          OR DAILY_VOLATILITY_PCT > 25) = 0
-    AS daily_volatility_in_range;
+       WHERE DAILY_VOLATILITY_PCT        NOT BETWEEN 0   AND 25
+          OR THIRTY_DAY_PRICE_CHANGE_PCT NOT BETWEEN -25 AND 25
+          OR MARKET_CAP_USD              NOT BETWEEN 5000000 AND 500000000000
+          OR RATING_AGENCY_FLAG_COUNT    NOT BETWEEN 0   AND 5) = 0
+    AS numeric_ranges_hold;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 13. Range assertion #8: MARKET_CAP_USD strictly positive.
--- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE MARKET_CAP_USD <= 0) = 0
-    AS market_cap_usd_positive;
+       WHERE FIFTY_TWO_WEEK_HIGH_USD < FIFTY_TWO_WEEK_LOW_USD
+          OR FIFTY_TWO_WEEK_LOW_USD <= 0) = 0
+    AS fifty_two_week_high_ge_low;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 14. Range assertion #9: THIRTY_DAY_PRICE_CHANGE_PCT in [-50, 50] -- a
---     loose bound; the SP clamps to [-25, 25] but the L2 fixture asserts
---     the wider rowspec safety bound to catch any future bias drift.
--- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE THIRTY_DAY_PRICE_CHANGE_PCT < -50
-          OR THIRTY_DAY_PRICE_CHANGE_PCT > 50) = 0
-    AS thirty_day_change_in_range;
+       WHERE LAST_DATA_REFRESH_AT <> PROFILE_DATE::TIMESTAMP_NTZ
+          OR GENERATED_AT         <> PROFILE_DATE::TIMESTAMP_NTZ) = 0
+    AS timestamps_are_profile_date_midnight;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 15. Range assertion #10: RATING_AGENCY_FLAG_COUNT in [0, 5]. The
---     synthesizer draws from {0,1,2,3} with [0.85, 0.10, 0.04, 0.01]
---     weights; the wider [0,5] L2 bound guards against future taxonomy
---     expansion without forcing a test rewrite for benign drift.
+-- 10. Anchor passthrough and valuation edges.
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE RATING_AGENCY_FLAG_COUNT < 0
-          OR RATING_AGENCY_FLAG_COUNT > 5) = 0
-    AS rating_agency_flag_count_in_range;
+    (SELECT COUNT(*)
+       FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE m
+       JOIN DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MOODYS_FIXTURE a
+         ON a.ACCOUNT_ID = m.ACCOUNT_ID
+      WHERE m.ANNUAL_REVENUE_USD IS DISTINCT FROM a.ANNUAL_REVENUE
+         OR m.EMPLOYEE_COUNT     IS DISTINCT FROM a.EMPLOYEE_COUNT) = 0
+    AS revenue_and_employees_pass_through;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 16. Cross-field assertion #11: FIFTY_TWO_WEEK_HIGH_PRICE >=
---     FIFTY_TWO_WEEK_LOW_PRICE for every row (rowspec invariant; the
---     synthesizer enforces this with a defensive min() clamp on the low
---     leg, but the L2 assertion guards against future regressions in
---     either leg's RNG range).
--- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE FIFTY_TWO_WEEK_HIGH_PRICE < FIFTY_TWO_WEEK_LOW_PRICE) = 0
-    AS high_geq_low_invariant;
+    (SELECT ANNUAL_REVENUE_USD IS NULL AND EMPLOYEE_COUNT = 40
+       FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+      WHERE ACCOUNT_ID = 'MDY-FIX-B-04')
+    AS null_revenue_stays_null;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 17. Cross-field assertion #12: LAST_DATA_REFRESH_AT::DATE == PROFILE_DATE
---     for every row. Day-bucketed timestamp -- mid-day re-runs are
---     byte-identical because both fields snap to day_start.
--- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE LAST_DATA_REFRESH_AT::DATE <> PROFILE_DATE) = 0
-    AS refresh_date_matches_profile_date;
+    (SELECT EMPLOYEE_COUNT IS NULL
+       FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+      WHERE ACCOUNT_ID = 'MDY-FIX-B-03')
+    AS null_employee_count_stays_null;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 18. PROFILE_DATE assertion #13: every row's PROFILE_DATE equals the
---     calendar UTC date of the run (CURRENT_DATE in the executor's
---     session). Daily cadence -> all rows share one PROFILE_DATE.
--- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-       WHERE PROFILE_DATE <> CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE) = 0
-    AS profile_date_is_run_date;
+    (SELECT LIQUIDITY_TIER IN ('Tier 1','Tier 2')
+       FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+      WHERE ACCOUNT_ID = 'MDY-FIX-B-05')
+    AS sixty_billion_revenue_is_tier_1_or_2;
+-- Expected: TRUE
+
+SELECT
+    (SELECT MARKET_CAP_USD = 5000000 AND LIQUIDITY_TIER = 'Illiquid'
+       FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+      WHERE ACCOUNT_ID = 'MDY-FIX-B-06')
+    AS fifty_k_revenue_clamped_to_floor;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 19. Year-stable invariants assertion #14 -- LOAD-BEARING STRUCTURAL TEST.
---
---     Plan 13's hybrid year-stable + daily field model means a same-day
---     re-run must reproduce the year-stable fields bit-for-bit (because
---     they're seeded by `datetime(run_ts.year, 1, 1)` and don't fold
---     run_ts.day into the seed). The daily-bucketed fields ALSO reproduce
---     because the calendar day is the same, but the year-stable
---     invariants are the structurally distinct piece this test is built
---     for: a calendar-day boundary crossing in production must NOT shift
---     CREDIT_RATING / RATING_OUTLOOK / OUTLOOK_LAST_CHANGED_DATE /
---     FIFTY_TWO_WEEK_HIGH/LOW / RATING_AGENCY_FLAG_COUNT / LIQUIDITY_TIER.
---
---     We capture HASH_AGG over the year-stable fields only (8 fields),
---     then re-run the SP and capture again. Because year-stable seeds are
---     anchored on `datetime(run_ts.year, 1, 1)`, the captures must be
---     equal even if the second CALL straddled a calendar-day boundary.
---     (At fixture scale this is a same-day re-run and equality is also
---     guaranteed by full idempotency, but the assertion isolates the
---     year-stable subset so a future regression that breaks year-stable
---     determinism without breaking daily idempotency would still fail
---     this test.)
+-- 11. Same-day idempotency: CALL #2 MERGE-updates in place, byte-identical.
 -- ---------------------------------------------------------------------------
-SET year_stable_hash_before = (
-    SELECT HASH_AGG(
-        TICKER,
-        CREDIT_RATING,
-        RATING_OUTLOOK,
-        OUTLOOK_LAST_CHANGED_DATE,
-        FIFTY_TWO_WEEK_HIGH_PRICE,
-        FIFTY_TWO_WEEK_LOW_PRICE,
-        RATING_AGENCY_FLAG_COUNT,
-        LIQUIDITY_TIER
-    )
-    FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-);
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE);
+SET hash_before      = (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE);
 
--- ---------------------------------------------------------------------------
--- 20. Idempotency assertion baseline -- capture full HASH_AGG and row count
---     before CALL #2. A second run leaves both unchanged (MERGE-not-INSERT,
---     deterministic seed).
--- ---------------------------------------------------------------------------
-SET row_count_before = (
-    SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-);
-SET hash_before = (
-    SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-);
-
--- ---------------------------------------------------------------------------
--- 21. Second run (CALL #2) -- same-calendar-day re-run for both
---     idempotency and year-stable invariants.
--- ---------------------------------------------------------------------------
 CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
 
--- ---------------------------------------------------------------------------
--- 22. Year-stable invariants assertion (continued from #19): the year-stable
---     subset HASH_AGG must be byte-identical across CALL #1 and CALL #2.
--- ---------------------------------------------------------------------------
-SET year_stable_hash_after = (
-    SELECT HASH_AGG(
-        TICKER,
-        CREDIT_RATING,
-        RATING_OUTLOOK,
-        OUTLOOK_LAST_CHANGED_DATE,
-        FIFTY_TWO_WEEK_HIGH_PRICE,
-        FIFTY_TWO_WEEK_LOW_PRICE,
-        RATING_AGENCY_FLAG_COUNT,
-        LIQUIDITY_TIER
-    )
-    FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
-);
-
-SELECT
-    $year_stable_hash_after = $year_stable_hash_before
-    AS year_stable_invariants_hold;
--- Expected: TRUE
-
--- ---------------------------------------------------------------------------
--- 23. Idempotency row-count assertion #15: row count unchanged after CALL #2.
--- ---------------------------------------------------------------------------
 SELECT
     (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = $row_count_before
     AS idempotency_row_count_unchanged;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 24. Idempotency hash assertion #16: full HASH_AGG unchanged after CALL #2.
---     Same calendar day -> byte-identical output across the entire row.
--- ---------------------------------------------------------------------------
 SELECT
     (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = $hash_before
     AS idempotency_hash_unchanged;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 25. Cleanup -- drop fixture procedure, staging, table, view; remove
---     fixture task-execution-log entries.
+-- 12. Backfill: CALL(3) keeps today and inserts the two days before it.
 -- ---------------------------------------------------------------------------
-DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE(3);
+
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE) = 27
+    AS backfill_row_count_27;
+-- Expected: TRUE
+
+SELECT
+    (SELECT COUNT(DISTINCT PROFILE_DATE) = 3
+        AND MIN(PROFILE_DATE) = DATEADD(day, -2, CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE)
+        AND MAX(PROFILE_DATE) = CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE
+       FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE)
+    AS backfill_dates_today_minus_0_to_2;
+-- Expected: TRUE
+
+SELECT
+    (SELECT COUNT(*) FROM (
+        SELECT ACCOUNT_ID, PROFILE_DATE
+          FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+         GROUP BY 1, 2 HAVING COUNT(*) > 1)) = 0
+    AS one_row_per_account_per_day;
+-- Expected: TRUE
+
+-- Today's rows were MERGE-updated with identical values: still the day-1 hash.
+SELECT
+    (SELECT HASH_AGG(*) FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+      WHERE PROFILE_DATE = CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE) = $hash_before
+    AS backfill_leaves_today_unchanged;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 13. Year-stable fields are constant per (account, calendar year). Grouping
+--     by YEAR(PROFILE_DATE) keeps this valid when the window crosses Jan 1.
+--     Fixture ids are not 001am, so the outlook baseline never moves either.
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM (
+        SELECT ACCOUNT_ID, YEAR(PROFILE_DATE)
+          FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+         GROUP BY 1, 2
+        HAVING COUNT(DISTINCT CREDIT_RATING)                   > 1
+            OR COUNT(DISTINCT RATING_OUTLOOK)                  > 1
+            OR COUNT(DISTINCT HASH(OUTLOOK_LAST_CHANGED_DATE)) > 1
+            OR COUNT(DISTINCT FIFTY_TWO_WEEK_HIGH_USD)         > 1
+            OR COUNT(DISTINCT FIFTY_TWO_WEEK_LOW_USD)          > 1
+            OR COUNT(DISTINCT RATING_AGENCY_FLAG_COUNT)        > 1
+            OR COUNT(DISTINCT LIQUIDITY_TIER)                  > 1)) = 0
+    AS year_stable_fields_constant;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 14. Daily fields move: at least 8 of 9 accounts see more than one
+--     volatility and 30-day change value across the 3 days. The draws are
+--     continuous, so the same value on all 3 days would mean the daily seed
+--     is not bucketed by day.
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM (
+        SELECT ACCOUNT_ID
+          FROM DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE
+         GROUP BY 1
+        HAVING COUNT(DISTINCT DAILY_VOLATILITY_PCT) > 1
+           AND COUNT(DISTINCT THIRTY_DAY_PRICE_CHANGE_PCT) > 1)) >= 8
+    AS daily_fields_vary_across_days;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 15. Cleanup.
+-- ---------------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_MOODYS_MARKET_CONTEXT_FIXTURE(NUMBER);
 DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE_STAGING;
 DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.MOODYS_MARKET_CONTEXT_FIXTURE;
-DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE_MOODYS_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_MOODYS_FIXTURE;
 DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_DAILY_MOODYS_MARKET_CONTEXT_FIXTURE';
