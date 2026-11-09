@@ -27,7 +27,7 @@ Synthetic D&B-style business credit dataset for the Cumulus FSC demo. One of 13.
 
 ## Tests
 - L1 (pytest): determinism, audience scoping (BUSINESS), boring case, anchor influence (revenue → tier + industry → PAYDEX), schema contract.
-- L2 (`tests/integration/`): deploys SP into a fixture-backed schema, asserts coverage + idempotency.
+- L2 (`tests/integration/test_dnb_business_credit_sp.sql`): clones the live SP via GET_DDL + REPLACE into `SP_GENERATE_DNB_BUSINESS_CREDIT_FIXTURE` (fixture dataset/staging/task-log names plus a 14-anchor `V_ACCOUNT_ANCHORS_DNB_FIXTURE`, with a pre-CALL gate that no live write target survives) and runs 14 assertions: BUSINESS-only coverage, ORG_ID, column population, DUNS uniqueness, rating/parent-DUNS/confidence invariants, industry-vs-PAYDEX bias, idempotency, determinism and backfill. Run with `snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f ...`; passed live 2026-11-09.
 - L3 (manual smoke, post-deploy): one CALL against jdo-uqj0jr; row count ~12K (or close); sample plausibility; industry vs PAYDEX spot-check across Construction / Finance / Healthcare; DUNS year-stability spot-check.
 
 ## Gotchas

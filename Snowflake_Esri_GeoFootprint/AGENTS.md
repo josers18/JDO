@@ -20,7 +20,7 @@ Synthetic Esri-style geographic enrichment dataset for the Cumulus FSC demo. One
 
 ## Tests
 - L1 (pytest): determinism, input-shape validation (ZIP non-empty + digits-only), boring case, anchor influence (state → median income, urbanicity → foot traffic), schema contract.
-- L2 (`tests/integration/`): deploys SP into a fixture-backed schema with `V_ACCOUNT_ANCHORS_FIXTURE` (~10 distinct ZIPs in 4 states, urbanicity-mixed); asserts coverage + idempotency.
+- L2 (`tests/integration/test_esri_geo_footprint_sp.sql`): clones the deployed SP via GET_DDL + REPLACE onto `*_FIXTURE` names in `DATA_JEDAIS.FINS__PUBLIC` (dataset, staging, task name, anchor view; a guard aborts if any live name survives), CALLs it against a 32-anchor fixture view (11 audience rows incl. a second org on a shared ZIP, empty/NULL ZIPs, a 'USA' country code), and asserts 20 checks: coverage, org isolation, vocabularies/tier bands, decision tree, idempotency, determinism, log rows. Passed live 2026-11-09 (20/20).
 - L3 (manual smoke, post-deploy): one CALL against jdo-uqj0jr; row count ~13,328; sample plausibility (Tapestry codes vary, urbanicity distributes Urban/Suburban/Small Town/Rural, commercial density correlates with urbanicity); spot-check 3 ZIPs spanning urbanicity tiers.
 
 ## Gotchas

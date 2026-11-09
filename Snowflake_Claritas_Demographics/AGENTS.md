@@ -17,7 +17,7 @@ Synthetic Claritas-style dataset for the Cumulus FSC demo. One of 13.
 
 ## Tests
 - L1 (pytest, `tests/test_claritas_demographics_row_factory.py`): pure-function tests covering determinism, audience scoping, boring-case coverage, anchor influence (low vs high income → different PRIZM distribution), schema contract.
-- L2 (`tests/integration/`): deploys SP into `FINS.TEST` with a fixture-backed `V_ACCOUNT_ANCHORS` view, runs the SP, asserts coverage + idempotency + log row.
+- L2 (`tests/integration/`): clones the deployed SP via GET_DDL + REPLACE into `SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE` (fixture table, staging, task name and `V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE`, with a pre-CALL safety assertion that no live write target survives), runs it against a 15-anchor fixture (12 PERSON + qualifying/non-qualifying BUSINESS), and asserts audience, ORG_ID stamping, vocabularies, idempotency/determinism, and the log row; passed live 2026-11-09 (17/17).
 - L3 (manual smoke, post-deploy): one run against `jdo-uqj0jr`, then row count ≈ 25K + sample plausibility.
 
 ## Gotchas
