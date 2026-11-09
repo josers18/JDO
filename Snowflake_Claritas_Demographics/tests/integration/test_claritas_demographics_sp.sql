@@ -2,157 +2,216 @@
 -- L2 integration test for SP_GENERATE_CLARITAS_DEMOGRAPHICS
 -- =============================================================================
 -- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-1-claritas-demographics.md
--- Task:    Plan 1 T5
--- Run:     snow sql -c GSB13421 -f tests/integration/test_claritas_demographics_sp.sql
+-- Run:     snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN \
+--            -f tests/integration/test_claritas_demographics_sp.sql
+--          (ACCOUNTADMIN: the cloned SP is EXECUTE AS OWNER and write_pandas
+--          creates its staging table, which needs CREATE TABLE.)
 -- Pass:    Every assertion column returns TRUE. Any FALSE = test failure.
 --
--- Pre-requisites (all one-time ops, NOT performed by this script):
---   1. CREATE SCHEMA FINS.TEST;                                                 -- ops
---   2. CREATE TABLE FINS.TEST.CLARITAS_DEMOGRAPHICS  (run schemas/claritas_demographics.sql
---      after rewriting the FQN from DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS to FINS.TEST.*).
---   3. CREATE TABLE FINS.TEST.TASK_EXECUTION_LOG (carbon copy of DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG).
---   4. SP_GENERATE_CLARITAS_DEMOGRAPHICS deployed into FINS.TEST.
---      NOTE: the SP body in procedures/sp_generate_claritas_demographics.py hardcodes
---      `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`, `DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS`, and
---      `DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG`. To run the SP in FINS.TEST against a fixture
---      audience, either:
---        (a) Parameterise those FQNs via env var or session.get_current_schema(); OR
---        (b) Build a separate `_test` build of the SP that points at FINS.TEST.* by
---            rewriting the constants at deploy-time.
---      Until one of those is done, this L2 file is the canonical acceptance contract
---      but cannot be executed against the live SP.
+-- Strategy:
+--   Clone the deployed SP into SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE via
+--   GET_DDL + REPLACE, redirecting the dataset table, staging table, task-log
+--   name and V_ACCOUNT_ANCHORS to fixture-scoped names, then CALL it against
+--   a 15-anchor fixture view (12 PERSON + 3 BUSINESS).
+--   Sentinels avoid substring collisions: CLARITAS_DEMOGRAPHICS is a stem of
+--   the SP, task and staging names, so those are parked first and expanded
+--   after the table swap. The cloned SP writes only to
+--   CLARITAS_DEMOGRAPHICS_FIXTURE, CLARITAS_DEMOGRAPHICS_FIXTURE_STAGING and
+--   TASK_EXECUTION_LOG (rows named TASK_MONTHLY_CLARITAS_DEMOGRAPHICS_FIXTURE);
+--   it reads only V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE. Step 5 asserts no live
+--   write target survives in the staged DDL's text before the first CALL.
+--
+-- What it covers (audience since 2026-10-24: PERSON, plus BUSINESS anchors with
+-- a CLIENT_CATEGORY and an ACCOUNT_ID starting 001):
+--   - Audience: 12 PERSON + 1 qualifying 001 BUSINESS enter (13 accounts);
+--     a non-001 BUSINESS and a 001 BUSINESS with NULL CLIENT_CATEGORY stay out.
+--   - One row per account, PROFILE_MONTH = first of the current UTC month,
+--     15 columns NOT NULL, ORG_ID stamped from the anchor (TST vs JDO).
+--   - Vocabularies and ranges: life stage, household, net worth band,
+--     urbanicity, stress, PRIZM code, scores in [0, 100].
+--   - Signals: Gen Z birthdate -> Gen Z; 78-year-old Wealth client -> Retirees
+--     with a retiree PRIZM group; Wealth Management never below $250K-$1M;
+--     business principals are aged 34-72 (never Gen Z).
+--   - Same-month idempotency: a second CALL leaves the row count and
+--     HASH_AGG unchanged (GENERATED_AT is month-bucketed).
+--   - Log row: SUCCEEDED with ACCOUNTS_PROCESSED = 13.
+--
+-- Pre-requisites:
+--   SP_GENERATE_CLARITAS_DEMOGRAPHICS deployed (python3 scripts/deploy_sp.py).
+-- Side effects:
+--   Fixture runs log to TASK_EXECUTION_LOG as
+--   TASK_MONTHLY_CLARITAS_DEMOGRAPHICS_FIXTURE; the cleanup step deletes those
+--   rows and drops every *_FIXTURE object. No live table is written.
 -- =============================================================================
 
-USE SCHEMA FINS.TEST;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
--- 1. Materialize the L2 fixture audience (12 PERSON + 2 BUSINESS = 14 anchors).
+-- 1. Drop leftovers from a prior failed run.
 -- ---------------------------------------------------------------------------
--- Coverage of the rowspec dimensions:
---   - 4 generations (Gen Z / Young / Mid / Retiree) via BIRTHDATE spread
---   - 3 income bands (<$50K / $50K-$250K / $250K+) via ANNUAL_INCOME spread
---   - Wealth Management + Retail CLIENT_CATEGORY mix
---   - With-ZIP and without-ZIP cases (urbanicity heuristic + fallback)
---   - 2 BUSINESS anchors so the audience-filter assertion has something to filter
---
--- Snowflake VALUES() can't construct mixed-type rows directly with NULL columns,
--- so this materializes via SELECT UNION ALL with explicit casts in the first row.
-CREATE OR REPLACE TABLE FINS.TEST.TEST_V_ACCOUNT_ANCHORS_FIXTURE AS
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
+ WHERE TASK_NAME = 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS_FIXTURE';
+
+-- ---------------------------------------------------------------------------
+-- 2. Fixture audience view, in the live V_ACCOUNT_ANCHORS column order.
+--    P-01..P-12 PERSON (legacy TEST-PERSON-01..12 intent): 4 generations via
+--    BIRTHDATE, 3 income bands, Retail/Wealth mix, one without a ZIP (P-06),
+--    one stamped ORG_ID 'TST' (P-11, Gen Z).
+--    BUSINESS: B-01 qualifies (001 id + category); B-02 has a non-001 id and
+--    B-03 has a 001 id but NULL CLIENT_CATEGORY, so both are filtered out.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE AS
 SELECT
-    'TEST-PERSON-01'::VARCHAR AS ACCOUNT_ID,
-    'Avery Stone'::VARCHAR AS ACCOUNT_NAME,
-    '2026-05-28'::DATE AS SNAPSHOT_DATE,
-    'Retail'::VARCHAR AS CLIENT_CATEGORY,
-    'PERSON'::VARCHAR AS ACCOUNT_TYPE_FLAG,
-    '2002-03-14'::TIMESTAMP_LTZ AS BIRTHDATE,
-    42000::NUMBER AS ANNUAL_INCOME,
-    680::NUMBER AS CREDIT_SCORE,
-    NULL::VARCHAR AS INDUSTRY,
-    NULL::NUMBER AS ANNUAL_REVENUE,
-    NULL::NUMBER AS EMPLOYEE_COUNT,
-    '94110'::VARCHAR AS POSTAL_CODE,
-    'CA'::VARCHAR AS STATE_CODE,
-    'US'::VARCHAR AS COUNTRY_CODE,
-    'HYDRATE-001'::VARCHAR AS EXTERNAL_ID
-UNION ALL SELECT 'TEST-PERSON-02', 'Riley Tomas',     '2026-05-28'::DATE, 'Retail',            'PERSON', '1990-06-30'::TIMESTAMP_LTZ,  95000, 720, NULL, NULL, NULL, '60614', 'IL', 'US', 'HYDRATE-002'
-UNION ALL SELECT 'TEST-PERSON-03', 'Casey Whitehall', '2026-05-28'::DATE, 'Retail',            'PERSON', '1988-11-12'::TIMESTAMP_LTZ, 110000, 745, NULL, NULL, NULL, '02134', 'MA', 'US', 'HYDRATE-003'
-UNION ALL SELECT 'TEST-PERSON-04', 'Quinn Marlowe',   '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1972-04-08'::TIMESTAMP_LTZ, 285000, 770, NULL, NULL, NULL, '94027', 'CA', 'US', 'HYDRATE-004'
-UNION ALL SELECT 'TEST-PERSON-05', 'Harper Vance',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1965-09-21'::TIMESTAMP_LTZ, 525000, 800, NULL, NULL, NULL, '10075', 'NY', 'US', 'HYDRATE-005'
-UNION ALL SELECT 'TEST-PERSON-06', 'Sage Linder',     '2026-05-28'::DATE, 'Retail',            'PERSON', '2003-01-09'::TIMESTAMP_LTZ,  28000, 640, NULL, NULL, NULL, NULL,    NULL, 'US', 'HYDRATE-006'
-UNION ALL SELECT 'TEST-PERSON-07', 'Morgan Davila',   '2026-05-28'::DATE, 'Retail',            'PERSON', '1998-07-15'::TIMESTAMP_LTZ,  38000, 660, NULL, NULL, NULL, '78704', 'TX', 'US', 'HYDRATE-007'
-UNION ALL SELECT 'TEST-PERSON-08', 'Taylor Brooks',   '2026-05-28'::DATE, 'Retail',            'PERSON', '1985-02-22'::TIMESTAMP_LTZ,  75000, 700, NULL, NULL, NULL, '30309', 'GA', 'US', 'HYDRATE-008'
-UNION ALL SELECT 'TEST-PERSON-09', 'Jordan Reeve',    '2026-05-28'::DATE, 'Retail',            'PERSON', '2001-08-22'::TIMESTAMP_LTZ,  38000, 660, NULL, NULL, NULL, '10025', 'NY', 'US', 'HYDRATE-009'
-UNION ALL SELECT 'TEST-PERSON-10', 'Eden Sterling',   '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1958-12-03'::TIMESTAMP_LTZ, 425000, 785, NULL, NULL, NULL, '80211', 'CO', 'US', 'HYDRATE-010'
-UNION ALL SELECT 'TEST-PERSON-11', 'Phoenix Ortega',  '2026-05-28'::DATE, 'Retail',            'PERSON', '2005-05-19'::TIMESTAMP_LTZ,  22000, 620, NULL, NULL, NULL, '11206', 'NY', 'US', 'HYDRATE-011'
-UNION ALL SELECT 'TEST-PERSON-12', 'River Aldana',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON', '1948-10-30'::TIMESTAMP_LTZ, 1800000, 815, NULL, NULL, NULL, '90210', 'CA', 'US', 'HYDRATE-012'
--- 2 BUSINESS anchors so the audience-filter is exercised
-UNION ALL SELECT 'TEST-BIZ-01', 'Mariposa Cleaners LLC',         '2026-05-28'::DATE, 'Small Business',      'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services', 480000,    6, '94110', 'CA', 'US', 'HYDRATE-B-001'
-UNION ALL SELECT 'TEST-BIZ-02', 'Northwood Manufacturing Inc.',  '2026-05-28'::DATE, 'Commercial Banking',  'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Manufacturing',     28000000, 240, '48226', 'MI', 'US', 'HYDRATE-B-002';
-
--- Override V_ACCOUNT_ANCHORS in this schema to point at the fixture.
--- (The SP must be deployed against THIS view — see header note about FQN hardcoding.)
-CREATE OR REPLACE VIEW FINS.TEST.V_ACCOUNT_ANCHORS AS
-    SELECT * FROM FINS.TEST.TEST_V_ACCOUNT_ANCHORS_FIXTURE;
+    'JDO'::VARCHAR                   AS ORG_ID,
+    'CLR-FIX-P-01'::VARCHAR          AS ACCOUNT_ID,
+    'Avery Stone'::VARCHAR           AS ACCOUNT_NAME,
+    '2026-11-01'::DATE               AS SNAPSHOT_DATE,
+    'Retail'::VARCHAR                AS CLIENT_CATEGORY,
+    'PERSON'::VARCHAR                AS ACCOUNT_TYPE_FLAG,
+    '2002-03-14'::TIMESTAMP_LTZ      AS BIRTHDATE,
+    42000::NUMBER                    AS ANNUAL_INCOME,
+    680::NUMBER                      AS CREDIT_SCORE,
+    NULL::VARCHAR                    AS INDUSTRY,
+    NULL::NUMBER                     AS ANNUAL_REVENUE,
+    NULL::NUMBER                     AS EMPLOYEE_COUNT,
+    '94110'::VARCHAR                 AS POSTAL_CODE,
+    'CA'::VARCHAR                    AS STATE_CODE,
+    'US'::VARCHAR                    AS COUNTRY_CODE,
+    'EXT-CLR-P-01'::VARCHAR          AS EXTERNAL_ID
+UNION ALL SELECT 'JDO','CLR-FIX-P-02','Riley Tomas',     '2026-11-01','Retail',            'PERSON','1990-06-30'::TIMESTAMP_LTZ,  95000,720,NULL,NULL,NULL,'60614','IL','US','EXT-CLR-P-02'
+UNION ALL SELECT 'JDO','CLR-FIX-P-03','Casey Whitehall', '2026-11-01','Retail',            'PERSON','1988-11-12'::TIMESTAMP_LTZ, 110000,745,NULL,NULL,NULL,'02134','MA','US','EXT-CLR-P-03'
+UNION ALL SELECT 'JDO','CLR-FIX-P-04','Quinn Marlowe',   '2026-11-01','Wealth Management', 'PERSON','1972-04-08'::TIMESTAMP_LTZ, 285000,770,NULL,NULL,NULL,'94027','CA','US','EXT-CLR-P-04'
+UNION ALL SELECT 'JDO','CLR-FIX-P-05','Harper Vance',    '2026-11-01','Wealth Management', 'PERSON','1965-09-21'::TIMESTAMP_LTZ, 525000,800,NULL,NULL,NULL,'10075','NY','US','EXT-CLR-P-05'
+UNION ALL SELECT 'JDO','CLR-FIX-P-06','Sage Linder',     '2026-11-01','Retail',            'PERSON','2003-01-09'::TIMESTAMP_LTZ,  28000,640,NULL,NULL,NULL,NULL,   NULL,'US','EXT-CLR-P-06'
+UNION ALL SELECT 'JDO','CLR-FIX-P-07','Morgan Davila',   '2026-11-01','Retail',            'PERSON','1998-07-15'::TIMESTAMP_LTZ,  38000,660,NULL,NULL,NULL,'78704','TX','US','EXT-CLR-P-07'
+UNION ALL SELECT 'JDO','CLR-FIX-P-08','Taylor Brooks',   '2026-11-01','Retail',            'PERSON','1985-02-22'::TIMESTAMP_LTZ,  75000,700,NULL,NULL,NULL,'30309','GA','US','EXT-CLR-P-08'
+UNION ALL SELECT 'JDO','CLR-FIX-P-09','Jordan Reeve',    '2026-11-01','Retail',            'PERSON','2001-08-22'::TIMESTAMP_LTZ,  38000,660,NULL,NULL,NULL,'10025','NY','US','EXT-CLR-P-09'
+UNION ALL SELECT 'JDO','CLR-FIX-P-10','Eden Sterling',   '2026-11-01','Wealth Management', 'PERSON','1958-12-03'::TIMESTAMP_LTZ, 425000,785,NULL,NULL,NULL,'80211','CO','US','EXT-CLR-P-10'
+UNION ALL SELECT 'TST','CLR-FIX-P-11','Phoenix Ortega',  '2026-11-01','Retail',            'PERSON','2005-05-19'::TIMESTAMP_LTZ,  22000,620,NULL,NULL,NULL,'11206','NY','US','EXT-CLR-P-11'
+UNION ALL SELECT 'JDO','CLR-FIX-P-12','River Aldana',    '2026-11-01','Wealth Management', 'PERSON','1948-10-30'::TIMESTAMP_LTZ,1800000,815,NULL,NULL,NULL,'90210','CA','US','EXT-CLR-P-12'
+UNION ALL SELECT 'JDO','001CLRFIX00000B1','Mariposa Cleaners LLC',        '2026-11-01','Small Business',    'BUSINESS',NULL,NULL,NULL,'Personal Services',480000,6,'94110','CA','US','EXT-CLR-B-01'
+UNION ALL SELECT 'JDO','CLR-FIX-B-02',     'Northwood Manufacturing Inc.','2026-11-01','Commercial Banking','BUSINESS',NULL,NULL,NULL,'Manufacturing',28000000,240,'48226','MI','US','EXT-CLR-B-02'
+UNION ALL SELECT 'JDO','001CLRFIX00000B3','Shell Holdings (no category)', '2026-11-01',NULL,               'BUSINESS',NULL,NULL,NULL,'Holding',NULL,NULL,'10001','NY','US','EXT-CLR-B-03';
 
 -- ---------------------------------------------------------------------------
--- 2. Empty the dataset and log tables for a clean test run.
+-- 3. Fixture target table: same DDL as CLARITAS_DEMOGRAPHICS.
 -- ---------------------------------------------------------------------------
-DELETE FROM FINS.TEST.CLARITAS_DEMOGRAPHICS;
-DELETE FROM FINS.TEST.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS';
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS;
 
 -- ---------------------------------------------------------------------------
--- 3. First run.
+-- 4. Clone the SP. The live SP takes no arguments.
 -- ---------------------------------------------------------------------------
-CALL FINS.TEST.SP_GENERATE_CLARITAS_DEMOGRAPHICS();
+EXECUTE IMMEDIATE $$
+DECLARE
+    sp_ddl STRING;
+BEGIN
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS()'));
+    -- Park the identifiers that contain CLARITAS_DEMOGRAPHICS as a stem.
+    sp_ddl := REPLACE(sp_ddl, 'CLARITAS_DEMOGRAPHICS_STAGING',     '__CLR_STG__');
+    sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_CLARITAS_DEMOGRAPHICS', '__CLR_SP__');
+    sp_ddl := REPLACE(sp_ddl, 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS','__CLR_TASK__');
+    -- The dataset table name is now unambiguous.
+    sp_ddl := REPLACE(sp_ddl, 'CLARITAS_DEMOGRAPHICS',             'CLARITAS_DEMOGRAPHICS_FIXTURE');
+    -- Expand the sentinels to fixture names.
+    sp_ddl := REPLACE(sp_ddl, '__CLR_STG__',                       'CLARITAS_DEMOGRAPHICS_FIXTURE_STAGING');
+    sp_ddl := REPLACE(sp_ddl, '__CLR_SP__',                        'SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE');
+    sp_ddl := REPLACE(sp_ddl, '__CLR_TASK__',                      'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS_FIXTURE');
+    -- Redirect the audience and coverage SQL to the fixture view.
+    sp_ddl := REPLACE(sp_ddl, 'V_ACCOUNT_ANCHORS',                 'V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE');
+    -- Safety gate: abort before creating the SP if any live identifier survives.
+    IF (CONTAINS(REPLACE(REPLACE(REPLACE(sp_ddl,
+            'CLARITAS_DEMOGRAPHICS_FIXTURE_STAGING', ''),
+            'CLARITAS_DEMOGRAPHICS_FIXTURE', ''),
+            'V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE', ''), 'CLARITAS_DEMOGRAPHICS')
+        OR CONTAINS(REPLACE(sp_ddl, 'V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE', ''), 'V_ACCOUNT_ANCHORS')
+        OR CONTAINS(REPLACE(sp_ddl, 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS_FIXTURE', ''), 'TASK_MONTHLY_CLARITAS')) THEN
+        RETURN 'ABORT: a live identifier survived the REPLACEs';
+    END IF;
+    EXECUTE IMMEDIATE :sp_ddl;
+    RETURN 'fixture SP staged';
+END;
+$$;
 
 -- ---------------------------------------------------------------------------
--- 4. Coverage assertion: distinct accounts in dataset == audience cardinality (12 PERSON).
+-- 5. Safety assertion: the fixture SP exists and its text names no live
+--    dataset/staging/anchor identifier (only *_FIXTURE forms).
 -- ---------------------------------------------------------------------------
 SELECT
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.TEST.V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'PERSON') =
-    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM FINS.TEST.CLARITAS_DEMOGRAPHICS)
-    AS coverage_assertion_passes;
--- Expected: TRUE  (12 = 12)
-
--- ---------------------------------------------------------------------------
--- 5. Audience-filter assertion: BUSINESS anchors must NOT leak into the table.
--- ---------------------------------------------------------------------------
-SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.TEST.CLARITAS_DEMOGRAPHICS
-    WHERE ACCOUNT_ID LIKE 'TEST-BIZ-%'
-) AS audience_filter_passes;
--- Expected: TRUE
-
--- ---------------------------------------------------------------------------
--- 6. Idempotency assertion: a second run leaves the row count unchanged.
--- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.TEST.CLARITAS_DEMOGRAPHICS);
-CALL FINS.TEST.SP_GENERATE_CLARITAS_DEMOGRAPHICS();
-SELECT
-    (SELECT COUNT(*) FROM FINS.TEST.CLARITAS_DEMOGRAPHICS) = $row_count_before
-    AS idempotency_assertion_passes;
--- Expected: TRUE
-
--- ---------------------------------------------------------------------------
--- 7. Determinism assertion: a re-run produces byte-equal rows.
--- The MERGE replaces, so row content must match the previous content exactly.
--- ---------------------------------------------------------------------------
-SET hash_before = (
-    SELECT HASH_AGG(ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, LIFE_STAGE,
-                    HOUSEHOLD_COMPOSITION, ESTIMATED_NET_WORTH_BAND,
-                    WEALTH_PROPENSITY_SCORE, INVESTMENT_PROPENSITY_SCORE,
-                    MORTGAGE_PROPENSITY_SCORE, URBANICITY,
-                    FINANCIAL_STRESS_INDICATOR, GENERATED_AT)
-    FROM FINS.TEST.CLARITAS_DEMOGRAPHICS
+    COUNT(*) = 1
+    AND MIN(IFF(
+        NOT CONTAINS(REPLACE(REPLACE(REPLACE(DDL,
+            'CLARITAS_DEMOGRAPHICS_FIXTURE_STAGING', ''),
+            'CLARITAS_DEMOGRAPHICS_FIXTURE', ''),
+            'V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE', ''), 'CLARITAS_DEMOGRAPHICS')
+        AND NOT CONTAINS(REPLACE(DDL, 'V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE', ''), 'V_ACCOUNT_ANCHORS')
+        AND CONTAINS(DDL, 'DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE'),
+        1, 0)) = 1
+    AS fixture_sp_has_no_live_write_target
+FROM (
+    SELECT GET_DDL('PROCEDURE',
+        'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE()') AS DDL
 );
-CALL FINS.TEST.SP_GENERATE_CLARITAS_DEMOGRAPHICS();
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 6. CALL #1.
+-- ---------------------------------------------------------------------------
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE();
+
+-- ---------------------------------------------------------------------------
+-- 7. Audience and coverage.
+-- ---------------------------------------------------------------------------
 SELECT
-    (SELECT HASH_AGG(ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, LIFE_STAGE,
-                     HOUSEHOLD_COMPOSITION, ESTIMATED_NET_WORTH_BAND,
-                     WEALTH_PROPENSITY_SCORE, INVESTMENT_PROPENSITY_SCORE,
-                     MORTGAGE_PROPENSITY_SCORE, URBANICITY,
-                     FINANCIAL_STRESS_INDICATOR, GENERATED_AT)
-     FROM FINS.TEST.CLARITAS_DEMOGRAPHICS) = $hash_before
-    AS determinism_assertion_passes;
+    (SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE) = 13
+    AS distinct_accounts_13;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 8. Log-row assertion: at least one SUCCEEDED row exists for this task name.
--- ---------------------------------------------------------------------------
-SELECT EXISTS (
-    SELECT 1 FROM FINS.TEST.TASK_EXECUTION_LOG
-    WHERE TASK_NAME = 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS'
-      AND STATUS = 'SUCCEEDED'
-) AS log_row_present;
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE) = 13
+    AS row_count_one_per_account;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 9. Output-shape assertion: every row has all 14 NOT NULL columns populated.
--- (The table NOT NULL constraint enforces this, but assert here for clarity.)
--- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+      WHERE ACCOUNT_ID LIKE 'CLR-FIX-P-%') = 12
+    AND (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+      WHERE ACCOUNT_ID = '001CLRFIX00000B1') = 1
+    AS all_persons_and_qualifying_business_present;
+-- Expected: TRUE
+
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.TEST.CLARITAS_DEMOGRAPHICS
-    WHERE ACCOUNT_ID IS NULL
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+    WHERE ACCOUNT_ID IN ('CLR-FIX-B-02', '001CLRFIX00000B3')
+) AS non_qualifying_business_filtered;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 8. PROFILE_MONTH, ORG_ID stamping, NOT NULL shape.
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(DISTINCT PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE) = 1
+    AND (SELECT MIN(PROFILE_MONTH) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE)
+        = DATE_TRUNC('MONTH', CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE)
+    AS profile_month_is_current_utc_month;
+-- Expected: TRUE
+
+SELECT
+    (SELECT ORG_ID FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+      WHERE ACCOUNT_ID = 'CLR-FIX-P-11') = 'TST'
+    AND (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+          WHERE ORG_ID = 'JDO') = 12
+    AS org_id_stamped_from_anchor;
+-- Expected: TRUE
+
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+    WHERE ORG_ID IS NULL
+       OR ACCOUNT_ID IS NULL
        OR PROFILE_MONTH IS NULL
        OR PRIZM_SEGMENT_CODE IS NULL
        OR PRIZM_SEGMENT_NAME IS NULL
@@ -170,10 +229,107 @@ SELECT NOT EXISTS (
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 10. Cleanup
+-- 9. Vocabularies and ranges.
 -- ---------------------------------------------------------------------------
-DELETE FROM FINS.TEST.CLARITAS_DEMOGRAPHICS;
-DELETE FROM FINS.TEST.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS';
-DROP VIEW IF EXISTS FINS.TEST.V_ACCOUNT_ANCHORS;
-DROP TABLE IF EXISTS FINS.TEST.TEST_V_ACCOUNT_ANCHORS_FIXTURE;
-DROP TABLE IF EXISTS FINS.TEST.CLARITAS_DEMOGRAPHICS_STAGING;
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+    WHERE LIFE_STAGE NOT IN ('Gen Z','Young Singles','Young Couples','Young Families',
+                             'Established Families','Empty Nesters','Retirees')
+       OR HOUSEHOLD_COMPOSITION NOT IN ('Single','Roommates','Couple','Family with Children','Multi-Generational')
+       OR ESTIMATED_NET_WORTH_BAND NOT IN ('<$50K','$50K-$250K','$250K-$1M','$1M-$5M','$5M+')
+       OR URBANICITY NOT IN ('Urban','Suburban','Town','Rural')
+       OR FINANCIAL_STRESS_INDICATOR NOT IN ('Low','Moderate','High')
+       OR PRIZM_SEGMENT_CODE NOT IN ('UC','MB','MS','YA','PP','BB','CR','CD','MT','SS','HR','FS')
+) AS vocabularies_valid;
+-- Expected: TRUE
+
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+    WHERE WEALTH_PROPENSITY_SCORE     NOT BETWEEN 0 AND 100
+       OR INVESTMENT_PROPENSITY_SCORE NOT BETWEEN 0 AND 100
+       OR MORTGAGE_PROPENSITY_SCORE   NOT BETWEEN 0 AND 100
+) AS scores_in_0_100;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 10. Signals.
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT LIFE_STAGE FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+      WHERE ACCOUNT_ID = 'CLR-FIX-P-11') = 'Gen Z'
+    AND (SELECT LIFE_STAGE FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+      WHERE ACCOUNT_ID = 'CLR-FIX-P-12') = 'Retirees'
+    AS birthdate_drives_life_stage;
+-- Expected: TRUE
+
+SELECT
+    (SELECT PRIZM_LIFESTYLE_GROUP FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+      WHERE ACCOUNT_ID = 'CLR-FIX-P-12')
+        IN ('Affluent Empty Nests','Empty Nesters','Retirees','Town/Rural Families')
+    AS retiree_gets_retiree_prizm_group;
+-- Expected: TRUE
+
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+    WHERE ACCOUNT_ID IN ('CLR-FIX-P-04','CLR-FIX-P-05','CLR-FIX-P-10','CLR-FIX-P-12')
+      AND ESTIMATED_NET_WORTH_BAND IN ('<$50K','$50K-$250K')
+) AS wealth_management_net_worth_floor;
+-- Expected: TRUE
+
+SELECT
+    (SELECT LIFE_STAGE FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+      WHERE ACCOUNT_ID = '001CLRFIX00000B1') <> 'Gen Z'
+    AS business_principal_aged_34_plus;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 11. Idempotency: a second same-month CALL leaves the row count unchanged.
+-- ---------------------------------------------------------------------------
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE);
+SET hash_before = (
+    SELECT HASH_AGG(ORG_ID, ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, LIFE_STAGE,
+                    HOUSEHOLD_COMPOSITION, ESTIMATED_NET_WORTH_BAND,
+                    WEALTH_PROPENSITY_SCORE, INVESTMENT_PROPENSITY_SCORE,
+                    MORTGAGE_PROPENSITY_SCORE, URBANICITY,
+                    FINANCIAL_STRESS_INDICATOR, GENERATED_AT)
+    FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE
+);
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE();
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE) = $row_count_before
+    AS idempotency_assertion_passes;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 12. Determinism: the re-run content is byte-equal (GENERATED_AT is bucketed
+--     to the month start, so the MERGE rewrites identical values).
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT HASH_AGG(ORG_ID, ACCOUNT_ID, PROFILE_MONTH, PRIZM_SEGMENT_CODE, LIFE_STAGE,
+                     HOUSEHOLD_COMPOSITION, ESTIMATED_NET_WORTH_BAND,
+                     WEALTH_PROPENSITY_SCORE, INVESTMENT_PROPENSITY_SCORE,
+                     MORTGAGE_PROPENSITY_SCORE, URBANICITY,
+                     FINANCIAL_STRESS_INDICATOR, GENERATED_AT)
+     FROM DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE) = $hash_before
+    AS determinism_assertion_passes;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 13. Log rows: both CALLs logged SUCCEEDED with 13 accounts processed.
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
+      WHERE TASK_NAME = 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS_FIXTURE'
+        AND STATUS = 'SUCCEEDED' AND ACCOUNTS_PROCESSED = 13) = 2
+    AS log_rows_succeeded_13_accounts;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 14. Cleanup.
+-- ---------------------------------------------------------------------------
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
+ WHERE TASK_NAME = 'TASK_MONTHLY_CLARITAS_DEMOGRAPHICS_FIXTURE';
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CLARITAS_DEMOGRAPHICS_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_CLARITAS_FIXTURE;

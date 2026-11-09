@@ -20,7 +20,7 @@ Synthetic MSCI-style ESG dataset for the Cumulus FSC demo. One of 13. **First BU
 
 ## Tests
 - L1 (pytest): determinism, audience scoping (BUSINESS), boring case, anchor influence (revenue → rating + industry → environmental score), schema contract, sticky chain (≤2 notches, flag == move, score follows rating, 8-15% monthly change rate).
-- L2 (`tests/integration/`): deploys SP into a fixture-backed schema, asserts coverage + idempotency.
+- L2 (`tests/integration/test_msci_esg_sp.sql`): clones the deployed SP via GET_DDL + REPLACE into `*_FIXTURE` names (dataset, staging, task name, `V_ACCOUNT_ANCHORS_MSCI_FIXTURE`; a guard aborts if any live write target survives) and CALLs it against a 13-BUSINESS + 2-PERSON fixture view. 30 assertions cover audience, vocabularies/ranges, idempotency, the sticky m-3..m0 chain (≤2 notches, flag == move, score follows rating), past-month population; passed live 2026-11-09.
 - L3 (manual smoke, post-deploy): one CALL against jdo-uqj0jr; row count ~12K (or close); sample plausibility; industry vs environmental-score spot-check across Energy / Tech / Finance.
 
 ## Gotchas

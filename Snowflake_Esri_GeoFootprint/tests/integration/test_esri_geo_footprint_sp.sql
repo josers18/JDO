@@ -1,283 +1,412 @@
 -- =============================================================================
 -- L2 integration test for SP_GENERATE_ESRI_GEO_FOOTPRINT
 -- =============================================================================
--- Plan:    docs/superpowers/plans/2026-05-28-cumulus-plan-4-esri-geo-footprint.md
--- Task:    Plan 4 T5
--- Run:     snow sql -f tests/integration/test_esri_geo_footprint_sp.sql
+-- Run:     snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN \
+--            -f tests/integration/test_esri_geo_footprint_sp.sql
+--          (ACCOUNTADMIN: the cloned SP is EXECUTE AS OWNER and write_pandas
+--          creates its staging table, which needs CREATE TABLE.)
 -- Pass:    Every assertion column returns TRUE. Any FALSE = test failure.
 --
--- Pre-requisites (all one-time ops, NOT performed by this script):
---   1. CREATE SCHEMA FINS.TEST;                                                 -- ops
---   2. CREATE TABLE FINS.TEST.ESRI_GEO_FOOTPRINT (run schemas/esri_geo_footprint.sql
---      after rewriting the FQN from DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT to FINS.TEST.*).
---   3. CREATE TABLE FINS.TEST.TASK_EXECUTION_LOG (carbon copy of DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG).
---   4. SP_GENERATE_ESRI_GEO_FOOTPRINT deployed into FINS.TEST.
---      NOTE: the SP body in procedures/sp_generate_esri_geo_footprint.py hardcodes
---      `DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS`, `DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT`, and
---      `DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG`. To run the SP in FINS.TEST against a fixture
---      audience, either:
---        (a) Parameterise those FQNs via env var or session.get_current_schema(); OR
---        (b) Build a separate `_test` build of the SP that points at FINS.TEST.* by
---            rewriting the constants at deploy-time.
---      Until one of those is done, this L2 file is the canonical acceptance contract
---      but cannot be executed against the live SP.
+-- Strategy:
+--   Clone the deployed SP into SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE via
+--   GET_DDL + REPLACE, redirecting the dataset table, staging table, task-log
+--   name and V_ACCOUNT_ANCHORS to fixture-scoped names, then CALL it against
+--   a 32-anchor fixture view. ESRI_GEO_FOOTPRINT is a stem of the SP, task
+--   and staging names, so those are parked behind sentinels first and
+--   expanded after the table swap.
 --
--- Plan 4 differences from Plans 1-3:
---   - Audience is BRANCH-scoped (one row per distinct ZIP), not account-scoped.
---   - Fixture has ~10 distinct ZIPs across 4 states, urbanicity-mixed.
---   - Coverage assertion uses ZIP cardinality, not account cardinality.
---   - Per-row factory invocation is once per distinct ZIP (NOT once per anchor).
---   - All 15 columns are NOT NULL — no COALESCE needed in the determinism HASH_AGG.
+--   Write targets in the live SP: the dataset table (TABLE constant and the
+--   MERGE target), the write_pandas staging table, and the
+--   TASK_EXECUTION_LOG insert (kept, but under the fixture TASK_NAME). A
+--   guard step (4b) inspects the REPLACEd DDL and aborts before the first
+--   CALL if any live write target survives.
+--
+--   The audience is BRANCH-scoped: one row per (ORG_ID, POSTAL_CODE), with no
+--   account-id predicate, so any ids enter it. Empty-string and NULL
+--   ZIPs are filtered out (AUDIENCE_SQL).
+--
+-- What it covers:
+--   - Audience: 11 (ORG_ID, ZIP) rows from 32 anchors: 10 JDO ZIPs over 4
+--     urbanicity-leaning state groups, 1 TST-org row sharing ZIP 10025 (org
+--     isolation), 1 empty-ZIP and 1 NULL-ZIP anchor (dropped).
+--   - Coverage (ORG_ID|ZIP cardinality), uniqueness, ORG_ID stamped, COUNTRY_CODE
+--     normalised to US (a 'USA' anchor), 16 NOT NULL columns.
+--   - PROFILE_MONTH / GENERATED_AT = first of the current UTC month.
+--   - Vocabularies (Tapestry codes, urbanicity, recommendation) and numeric
+--     ranges; per-tier foot-traffic / density / branch-distance bands; state
+--     forcing (MT/WY never Urban Core, NY/CA/MA/IL never Rural); the
+--     recommendation decision tree recomputed from the row's own metrics.
+--   - Idempotency and determinism across re-runs (MERGE, byte-equal rows).
+--   - Log rows: 2 SUCCEEDED, ROWS_INSERTED 11 then 0 (MERGE inserted count),
+--     ACCOUNTS_PROCESSED = 30.
+--
+-- Pre-requisites:
+--   SP_GENERATE_ESRI_GEO_FOOTPRINT deployed (procedures/sp_create_procedure.sql).
+-- Side effects:
+--   Fixture runs log to TASK_EXECUTION_LOG as
+--   TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE; the cleanup step deletes those rows.
+--   Objects created and dropped: *_ESRI_*_FIXTURE view/table/staging/SP.
 -- =============================================================================
 
-USE SCHEMA FINS.TEST;
+USE SCHEMA DATA_JEDAIS.FINS__PUBLIC;
 
 -- ---------------------------------------------------------------------------
--- 1. Materialize the L2 fixture audience (29 anchors across 10 distinct ZIPs).
+-- 1. Drop leftovers from a prior failed run.
 -- ---------------------------------------------------------------------------
--- Coverage of the rowspec dimensions:
---   - 4 urbanicity tiers via STATE_CODE + ZIP-first-digit overrides:
---       Urban Core (forced): NY/CA/MA/IL — ZIPs 10025, 94110, 02134, 60614
---       Suburban           : NJ/GA       — ZIPs 07030, 30309
---       Small Town         : TX/AZ       — ZIPs 78704, 85003
---       Rural   (forced)   : MT/WY       — ZIPs 59001, 83001
---   - Multiple anchors per ZIP so the audience GROUP BY actually aggregates:
---       10025 = 5, 94110 = 8, 02134 = 3, 60614 = 4
---       07030 = 2, 30309 = 2
---       78704 = 2, 85003 = 1
---       59001 = 1, 83001 = 1
---     Total = 29 anchors, 10 distinct ZIPs.
---
--- Snowflake VALUES() can't construct mixed-type rows directly with NULL columns,
--- so this materializes via SELECT UNION ALL with explicit casts in the first row.
--- Anchor rows are heterogeneous (BUSINESS + PERSON) — Plan 4's audience SQL doesn't
--- filter by ACCOUNT_TYPE_FLAG; ZIP aggregation is universal.
-CREATE OR REPLACE TABLE FINS.TEST.TEST_V_ACCOUNT_ANCHORS_FIXTURE AS
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ESRI_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE';
+
+-- ---------------------------------------------------------------------------
+-- 2. Fixture audience view, in the live V_ACCOUNT_ANCHORS column order.
+--    JDO ZIPs (anchors): 10025/NY=5, 94110/CA=8, 02134/MA=3, 60614/IL=4,
+--    07030/NJ=2 (one with COUNTRY_CODE 'USA'), 30309/GA=2, 78704/TX=2,
+--    85003/AZ=1, 59001/MT=1, 83001/WY=1  (29 anchors, 10 ZIPs).
+--    Plus: TST-org anchor in 10025 (same ZIP, other org -> its own row),
+--    an empty-string ZIP and a NULL ZIP (both excluded). Total 32 anchors,
+--    11 audience rows, 30 counted customers.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ESRI_FIXTURE AS
 SELECT
-    'TEST-NY-01'::VARCHAR AS ACCOUNT_ID,
-    'NY Customer 1'::VARCHAR AS ACCOUNT_NAME,
-    '2026-05-28'::DATE AS SNAPSHOT_DATE,
-    'Retail'::VARCHAR AS CLIENT_CATEGORY,
-    'PERSON'::VARCHAR AS ACCOUNT_TYPE_FLAG,
-    NULL::TIMESTAMP_LTZ AS BIRTHDATE,
-    NULL::NUMBER AS ANNUAL_INCOME,
-    NULL::NUMBER AS CREDIT_SCORE,
-    NULL::VARCHAR AS INDUSTRY,
-    NULL::NUMBER AS ANNUAL_REVENUE,
-    NULL::NUMBER AS EMPLOYEE_COUNT,
-    '10025'::VARCHAR AS POSTAL_CODE,
-    'NY'::VARCHAR AS STATE_CODE,
-    'US'::VARCHAR AS COUNTRY_CODE,
-    'HYDRATE-NY-01'::VARCHAR AS EXTERNAL_ID
--- Urban Core: 10025 (NY) — 5 anchors
-UNION ALL SELECT 'TEST-NY-02', 'NY Customer 2', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '10025', 'NY', 'US', 'HYDRATE-NY-02'
-UNION ALL SELECT 'TEST-NY-03', 'NY Customer 3', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '10025', 'NY', 'US', 'HYDRATE-NY-03'
-UNION ALL SELECT 'TEST-NY-04', 'NY Customer 4', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '10025', 'NY', 'US', 'HYDRATE-NY-04'
-UNION ALL SELECT 'TEST-NY-05', 'NY Customer 5', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '10025', 'NY', 'US', 'HYDRATE-NY-05'
--- Urban Core: 94110 (CA) — 8 anchors
-UNION ALL SELECT 'TEST-CA-01', 'CA Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-01'
-UNION ALL SELECT 'TEST-CA-02', 'CA Customer 2', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-02'
-UNION ALL SELECT 'TEST-CA-03', 'CA Customer 3', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-03'
-UNION ALL SELECT 'TEST-CA-04', 'CA Customer 4', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-04'
-UNION ALL SELECT 'TEST-CA-05', 'CA Customer 5', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-05'
-UNION ALL SELECT 'TEST-CA-06', 'CA Customer 6', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-06'
-UNION ALL SELECT 'TEST-CA-07', 'CA Customer 7', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-07'
-UNION ALL SELECT 'TEST-CA-08', 'CA Customer 8', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '94110', 'CA', 'US', 'HYDRATE-CA-08'
--- Urban Core: 02134 (MA) — 3 anchors
-UNION ALL SELECT 'TEST-MA-01', 'MA Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '02134', 'MA', 'US', 'HYDRATE-MA-01'
-UNION ALL SELECT 'TEST-MA-02', 'MA Customer 2', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '02134', 'MA', 'US', 'HYDRATE-MA-02'
-UNION ALL SELECT 'TEST-MA-03', 'MA Customer 3', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '02134', 'MA', 'US', 'HYDRATE-MA-03'
--- Urban Core: 60614 (IL) — 4 anchors
-UNION ALL SELECT 'TEST-IL-01', 'IL Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '60614', 'IL', 'US', 'HYDRATE-IL-01'
-UNION ALL SELECT 'TEST-IL-02', 'IL Customer 2', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '60614', 'IL', 'US', 'HYDRATE-IL-02'
-UNION ALL SELECT 'TEST-IL-03', 'IL Customer 3', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '60614', 'IL', 'US', 'HYDRATE-IL-03'
-UNION ALL SELECT 'TEST-IL-04', 'IL Customer 4', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '60614', 'IL', 'US', 'HYDRATE-IL-04'
--- Suburban: 07030 (NJ) — 2 anchors
-UNION ALL SELECT 'TEST-NJ-01', 'NJ Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '07030', 'NJ', 'US', 'HYDRATE-NJ-01'
-UNION ALL SELECT 'TEST-NJ-02', 'NJ Customer 2', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '07030', 'NJ', 'US', 'HYDRATE-NJ-02'
--- Suburban: 30309 (GA) — 2 anchors
-UNION ALL SELECT 'TEST-GA-01', 'GA Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '30309', 'GA', 'US', 'HYDRATE-GA-01'
-UNION ALL SELECT 'TEST-GA-02', 'GA Customer 2', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '30309', 'GA', 'US', 'HYDRATE-GA-02'
--- Small Town: 78704 (TX) — 2 anchors
-UNION ALL SELECT 'TEST-TX-01', 'TX Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '78704', 'TX', 'US', 'HYDRATE-TX-01'
-UNION ALL SELECT 'TEST-TX-02', 'TX Customer 2', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '78704', 'TX', 'US', 'HYDRATE-TX-02'
--- Small Town: 85003 (AZ) — 1 anchor
-UNION ALL SELECT 'TEST-AZ-01', 'AZ Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '85003', 'AZ', 'US', 'HYDRATE-AZ-01'
--- Rural: 59001 (MT) — 1 anchor
-UNION ALL SELECT 'TEST-MT-01', 'MT Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '59001', 'MT', 'US', 'HYDRATE-MT-01'
--- Rural: 83001 (WY) — 1 anchor
-UNION ALL SELECT 'TEST-WY-01', 'WY Customer 1', '2026-05-28'::DATE, 'Retail', 'PERSON', NULL::TIMESTAMP_LTZ, NULL, NULL, NULL, NULL, NULL, '83001', 'WY', 'US', 'HYDRATE-WY-01';
-
--- Override V_ACCOUNT_ANCHORS in this schema to point at the fixture.
--- (The SP must be deployed against THIS view — see header note about FQN hardcoding.)
-CREATE OR REPLACE VIEW FINS.TEST.V_ACCOUNT_ANCHORS AS
-    SELECT * FROM FINS.TEST.TEST_V_ACCOUNT_ANCHORS_FIXTURE;
+    'JDO'::VARCHAR AS ORG_ID, 'ESRI-FIX-NY-01'::VARCHAR AS ACCOUNT_ID, 'NY Customer 1'::VARCHAR AS ACCOUNT_NAME,
+    '2026-11-01'::DATE AS SNAPSHOT_DATE, 'Retail'::VARCHAR AS CLIENT_CATEGORY, 'PERSON'::VARCHAR AS ACCOUNT_TYPE_FLAG,
+    NULL::TIMESTAMP_LTZ AS BIRTHDATE, NULL::NUMBER AS ANNUAL_INCOME, NULL::NUMBER AS CREDIT_SCORE,
+    NULL::VARCHAR AS INDUSTRY, NULL::NUMBER AS ANNUAL_REVENUE, NULL::NUMBER AS EMPLOYEE_COUNT,
+    '10025'::VARCHAR AS POSTAL_CODE, 'NY'::VARCHAR AS STATE_CODE, 'US'::VARCHAR AS COUNTRY_CODE,
+    'EXT-ESRI-FIX-NY-01'::VARCHAR AS EXTERNAL_ID
+UNION ALL SELECT 'JDO','ESRI-FIX-NY-02','NY Customer 2','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'10025','NY','US','EXT-ESRI-FIX-NY-02'
+UNION ALL SELECT 'JDO','ESRI-FIX-NY-03','NY Customer 3','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'10025','NY','US','EXT-ESRI-FIX-NY-03'
+UNION ALL SELECT 'JDO','ESRI-FIX-NY-04','NY Customer 4','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'10025','NY','US','EXT-ESRI-FIX-NY-04'
+UNION ALL SELECT 'JDO','ESRI-FIX-NY-05','NY Customer 5','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'10025','NY','US','EXT-ESRI-FIX-NY-05'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-01','CA Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-02','CA Customer 2','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-02'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-03','CA Customer 3','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-03'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-04','CA Customer 4','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-04'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-05','CA Customer 5','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-05'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-06','CA Customer 6','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-06'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-07','CA Customer 7','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-07'
+UNION ALL SELECT 'JDO','ESRI-FIX-CA-08','CA Customer 8','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'94110','CA','US','EXT-ESRI-FIX-CA-08'
+UNION ALL SELECT 'JDO','ESRI-FIX-MA-01','MA Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'02134','MA','US','EXT-ESRI-FIX-MA-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-MA-02','MA Customer 2','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'02134','MA','US','EXT-ESRI-FIX-MA-02'
+UNION ALL SELECT 'JDO','ESRI-FIX-MA-03','MA Customer 3','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'02134','MA','US','EXT-ESRI-FIX-MA-03'
+UNION ALL SELECT 'JDO','ESRI-FIX-IL-01','IL Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'60614','IL','US','EXT-ESRI-FIX-IL-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-IL-02','IL Customer 2','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'60614','IL','US','EXT-ESRI-FIX-IL-02'
+UNION ALL SELECT 'JDO','ESRI-FIX-IL-03','IL Customer 3','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'60614','IL','US','EXT-ESRI-FIX-IL-03'
+UNION ALL SELECT 'JDO','ESRI-FIX-IL-04','IL Customer 4','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'60614','IL','US','EXT-ESRI-FIX-IL-04'
+UNION ALL SELECT 'JDO','ESRI-FIX-NJ-01','NJ Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'07030','NJ','US','EXT-ESRI-FIX-NJ-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-NJ-02','NJ Customer 2','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'07030','NJ','USA','EXT-ESRI-FIX-NJ-02'
+UNION ALL SELECT 'JDO','ESRI-FIX-GA-01','GA Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'30309','GA','US','EXT-ESRI-FIX-GA-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-GA-02','GA Customer 2','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'30309','GA','US','EXT-ESRI-FIX-GA-02'
+UNION ALL SELECT 'JDO','ESRI-FIX-TX-01','TX Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'78704','TX','US','EXT-ESRI-FIX-TX-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-TX-02','TX Customer 2','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'78704','TX','US','EXT-ESRI-FIX-TX-02'
+UNION ALL SELECT 'JDO','ESRI-FIX-AZ-01','AZ Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'85003','AZ','US','EXT-ESRI-FIX-AZ-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-MT-01','MT Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'59001','MT','US','EXT-ESRI-FIX-MT-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-WY-01','WY Customer 1','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'83001','WY','US','EXT-ESRI-FIX-WY-01'
+UNION ALL SELECT 'TST','ESRI-FIX-TST-01','Other-org NY Customer','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'10025','NY','US','EXT-ESRI-FIX-TST-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-EMPTY-01','Empty ZIP Customer','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,'','NY','US','EXT-ESRI-FIX-EMPTY-01'
+UNION ALL SELECT 'JDO','ESRI-FIX-NULL-01','Null ZIP Customer','2026-11-01'::DATE,'Retail','PERSON',NULL::TIMESTAMP_LTZ,NULL::NUMBER,NULL::NUMBER,NULL::VARCHAR,NULL::NUMBER,NULL::NUMBER,NULL,'NY','US','EXT-ESRI-FIX-NULL-01';
 
 -- ---------------------------------------------------------------------------
--- 2. Empty the dataset and log tables for a clean test run.
+-- 3. Fixture target table: same DDL as ESRI_GEO_FOOTPRINT.
 -- ---------------------------------------------------------------------------
-DELETE FROM FINS.TEST.ESRI_GEO_FOOTPRINT;
-DELETE FROM FINS.TEST.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT';
+CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+LIKE DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT;
 
 -- ---------------------------------------------------------------------------
--- 3. First run.
+-- 4. Clone the SP (live signature takes no arguments) and abort if any live
+--    write target survives the REPLACEs.
 -- ---------------------------------------------------------------------------
-CALL FINS.TEST.SP_GENERATE_ESRI_GEO_FOOTPRINT();
+EXECUTE IMMEDIATE $$
+DECLARE
+    sp_ddl STRING;
+BEGIN
+    sp_ddl := (SELECT GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT()'));
+    -- Park the identifiers that contain ESRI_GEO_FOOTPRINT as a stem.
+    sp_ddl := REPLACE(sp_ddl, 'ESRI_GEO_FOOTPRINT_STAGING',     '__ESRI_STG__');
+    sp_ddl := REPLACE(sp_ddl, 'SP_GENERATE_ESRI_GEO_FOOTPRINT', '__ESRI_SP__');
+    sp_ddl := REPLACE(sp_ddl, 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT','__ESRI_TASK__');
+    -- The dataset table name is now unambiguous.
+    sp_ddl := REPLACE(sp_ddl, 'ESRI_GEO_FOOTPRINT',             'ESRI_GEO_FOOTPRINT_FIXTURE');
+    -- Expand the sentinels to fixture names.
+    sp_ddl := REPLACE(sp_ddl, '__ESRI_STG__',                   'ESRI_GEO_FOOTPRINT_FIXTURE_STAGING');
+    sp_ddl := REPLACE(sp_ddl, '__ESRI_SP__',                    'SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE');
+    sp_ddl := REPLACE(sp_ddl, '__ESRI_TASK__',                  'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE');
+    -- Redirect the audience and coverage SQL to the fixture view.
+    sp_ddl := REPLACE(sp_ddl, 'V_ACCOUNT_ANCHORS',              'V_ACCOUNT_ANCHORS_ESRI_FIXTURE');
+    -- SAFETY GUARD: strip every fixture-scoped name; any ESRI_GEO_FOOTPRINT
+    -- (live table / staging / SP / task) or live anchor view left over aborts
+    -- before the SP is even created, so the first CALL cannot run.
+    IF (REGEXP_COUNT(
+            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(sp_ddl,
+                'ESRI_GEO_FOOTPRINT_FIXTURE_STAGING', ''),
+                'SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE', ''),
+                'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE', ''),
+                'ESRI_GEO_FOOTPRINT_FIXTURE', ''),
+                'V_ACCOUNT_ANCHORS_ESRI_FIXTURE', ''),
+            'ESRI_GEO_FOOTPRINT|V_ACCOUNT_ANCHORS') > 0) THEN
+        RETURN 'ABORT: live write target survived REPLACE';
+    END IF;
+    EXECUTE IMMEDIATE :sp_ddl;
+    RETURN 'fixture SP staged';
+END;
+$$;
 
--- ---------------------------------------------------------------------------
--- 4. Coverage assertion #1: distinct ZIPs in dataset == distinct ZIPs in audience.
--- Plan 4 uses ZIP cardinality, NOT account cardinality (Plans 1-3 used the latter).
--- ---------------------------------------------------------------------------
+-- Guard proof: re-read the staged fixture SP and confirm no live name remains
+-- and the MERGE / staging / log targets are the fixture ones.
 SELECT
-    (SELECT COUNT(DISTINCT POSTAL_CODE) FROM FINS.TEST.V_ACCOUNT_ANCHORS WHERE POSTAL_CODE IS NOT NULL) =
-    (SELECT COUNT(DISTINCT BRANCH_ZIP) FROM FINS.TEST.ESRI_GEO_FOOTPRINT)
-    AS coverage_assertion_passes;
--- Expected: TRUE  (10 = 10)
-
--- ---------------------------------------------------------------------------
--- 5. Row-count assertion #2: exactly 10 rows (one per distinct ZIP).
--- ---------------------------------------------------------------------------
-SELECT
-    (SELECT COUNT(*) FROM FINS.TEST.ESRI_GEO_FOOTPRINT) = 10
-    AS row_count_assertion_passes;
+    REGEXP_COUNT(
+        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+            GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE()'),
+            'ESRI_GEO_FOOTPRINT_FIXTURE_STAGING', ''),
+            'SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE', ''),
+            'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE', ''),
+            'ESRI_GEO_FOOTPRINT_FIXTURE', ''),
+            'V_ACCOUNT_ANCHORS_ESRI_FIXTURE', ''),
+        'ESRI_GEO_FOOTPRINT|V_ACCOUNT_ANCHORS') = 0
+    AND CONTAINS(GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE()'),
+                 'MERGE INTO DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE tgt')
+    AND CONTAINS(GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE()'),
+                 'TASK_NAME    = "TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE"')
+    AND CONTAINS(GET_DDL('PROCEDURE', 'DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE()'),
+                 'staging = "ESRI_GEO_FOOTPRINT_FIXTURE_STAGING"')
+    AS cloned_sp_writes_fixture_only;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 6. Idempotency assertion #3: a second run leaves the row count unchanged.
+-- 5. CALL #1 (no arguments, as the monthly task runs it).
 -- ---------------------------------------------------------------------------
-SET row_count_before = (SELECT COUNT(*) FROM FINS.TEST.ESRI_GEO_FOOTPRINT);
-CALL FINS.TEST.SP_GENERATE_ESRI_GEO_FOOTPRINT();
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE();
+
+-- ---------------------------------------------------------------------------
+-- 6. Row count and coverage. Audience = distinct (ORG_ID, ZIP) with a
+--    non-empty ZIP: 10 JDO ZIPs + 1 TST row = 11. Empty/NULL ZIPs dropped.
+-- ---------------------------------------------------------------------------
+SELECT (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE) = 11 AS row_count_one_per_org_zip;
+-- Expected: TRUE
+
 SELECT
-    (SELECT COUNT(*) FROM FINS.TEST.ESRI_GEO_FOOTPRINT) = $row_count_before
-    AS idempotency_assertion_passes;
+    (SELECT COUNT(DISTINCT (ORG_ID || '|' || POSTAL_CODE)) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ESRI_FIXTURE
+      WHERE POSTAL_CODE IS NOT NULL AND POSTAL_CODE <> '') =
+    (SELECT COUNT(DISTINCT (ORG_ID || '|' || BRANCH_ZIP)) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE)
+    AS coverage_matches_audience;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 7. Determinism assertion #4: a re-run produces byte-equal rows.
--- The MERGE replaces, so row content must match the previous content exactly.
--- Plan 4 has NO NULLable columns (all 15 are NOT NULL), so no COALESCE needed.
--- ---------------------------------------------------------------------------
-SET hash_before = (
-    SELECT HASH_AGG(BRANCH_ZIP, STATE_CODE, COUNTRY_CODE, PROFILE_MONTH,
-                    TAPESTRY_SEGMENT_CODE, TAPESTRY_SEGMENT_NAME, URBANICITY_TIER,
-                    MEDIAN_HOUSEHOLD_INCOME, WEALTH_INDEX,
-                    FOOT_TRAFFIC_INDEX, COMMERCIAL_DENSITY_PER_SQ_MI,
-                    DISTANCE_TO_NEAREST_BRANCH_MI, MARKET_PENETRATION_PCT,
-                    BRANCH_RECOMMENDATION, GENERATED_AT)::VARCHAR
-    FROM FINS.TEST.ESRI_GEO_FOOTPRINT
-);
-CALL FINS.TEST.SP_GENERATE_ESRI_GEO_FOOTPRINT();
 SELECT
-    (SELECT HASH_AGG(BRANCH_ZIP, STATE_CODE, COUNTRY_CODE, PROFILE_MONTH,
-                     TAPESTRY_SEGMENT_CODE, TAPESTRY_SEGMENT_NAME, URBANICITY_TIER,
-                     MEDIAN_HOUSEHOLD_INCOME, WEALTH_INDEX,
-                     FOOT_TRAFFIC_INDEX, COMMERCIAL_DENSITY_PER_SQ_MI,
-                     DISTANCE_TO_NEAREST_BRANCH_MI, MARKET_PENETRATION_PCT,
-                     BRANCH_RECOMMENDATION, GENERATED_AT)::VARCHAR
-     FROM FINS.TEST.ESRI_GEO_FOOTPRINT) = $hash_before
-    AS determinism_assertion_passes;
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE WHERE BRANCH_ZIP IS NULL OR BRANCH_ZIP = '') = 0
+    AND (SELECT COUNT(DISTINCT BRANCH_ZIP) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE) = 10
+    AS empty_and_null_zips_excluded;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 8. Log-row assertion #5: at least one SUCCEEDED row exists for this task name.
+-- 7. Uniqueness on the natural key (ORG_ID, BRANCH_ZIP, PROFILE_MONTH).
 -- ---------------------------------------------------------------------------
-SELECT EXISTS (
-    SELECT 1 FROM FINS.TEST.TASK_EXECUTION_LOG
-    WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT'
-      AND STATUS = 'SUCCEEDED'
-) AS log_row_present;
+SELECT
+    (SELECT COUNT(*) FROM (
+        SELECT ORG_ID, BRANCH_ZIP, PROFILE_MONTH FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+         GROUP BY 1, 2, 3 HAVING COUNT(*) > 1)) = 0
+    AS org_zip_month_unique;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 9. Output-shape assertion #6: every required column populated.
--- All 15 columns are NOT NULL (the table constraint enforces this, but assert
--- here for documentation and to catch silent inserts that bypass the table).
+-- 8. Multi-org: ZIP 10025 appears once for JDO and once for TST (ORG_ID is
+--    part of the GROUP BY), and every row is stamped with a fixture org.
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE WHERE BRANCH_ZIP = '10025' AND ORG_ID = 'JDO') = 1
+    AND (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE WHERE BRANCH_ZIP = '10025' AND ORG_ID = 'TST') = 1
+    AND (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE WHERE ORG_ID = 'TST') = 1
+    AS org_isolation_same_zip_two_orgs;
+-- Expected: TRUE
+
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE WHERE ORG_ID IS NULL OR ORG_ID NOT IN ('JDO', 'TST')) = 0
+    AS org_id_stamped;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 9. COUNTRY_CODE is normalised to 'US' even for the 'USA' fixture anchor
+--    (AUDIENCE_SQL emits the literal 'US').
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE WHERE COUNTRY_CODE <> 'US') = 0
+    AND EXISTS (SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE WHERE BRANCH_ZIP = '07030')
+    AS country_code_normalised;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 10. All 16 columns populated.
 -- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.TEST.ESRI_GEO_FOOTPRINT
-    WHERE BRANCH_ZIP IS NULL
-       OR STATE_CODE IS NULL
-       OR COUNTRY_CODE IS NULL
-       OR PROFILE_MONTH IS NULL
-       OR TAPESTRY_SEGMENT_CODE IS NULL
-       OR TAPESTRY_SEGMENT_NAME IS NULL
-       OR URBANICITY_TIER IS NULL
-       OR MEDIAN_HOUSEHOLD_INCOME IS NULL
-       OR WEALTH_INDEX IS NULL
-       OR FOOT_TRAFFIC_INDEX IS NULL
-       OR COMMERCIAL_DENSITY_PER_SQ_MI IS NULL
-       OR DISTANCE_TO_NEAREST_BRANCH_MI IS NULL
-       OR MARKET_PENETRATION_PCT IS NULL
-       OR BRANCH_RECOMMENDATION IS NULL
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE ORG_ID IS NULL OR BRANCH_ZIP IS NULL OR STATE_CODE IS NULL
+       OR COUNTRY_CODE IS NULL OR PROFILE_MONTH IS NULL
+       OR TAPESTRY_SEGMENT_CODE IS NULL OR TAPESTRY_SEGMENT_NAME IS NULL
+       OR URBANICITY_TIER IS NULL OR MEDIAN_HOUSEHOLD_INCOME IS NULL
+       OR WEALTH_INDEX IS NULL OR FOOT_TRAFFIC_INDEX IS NULL
+       OR COMMERCIAL_DENSITY_PER_SQ_MI IS NULL OR DISTANCE_TO_NEAREST_BRANCH_MI IS NULL
+       OR MARKET_PENETRATION_PCT IS NULL OR BRANCH_RECOMMENDATION IS NULL
        OR GENERATED_AT IS NULL
 ) AS all_columns_populated;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 10. ZIP uniqueness assertion #7: every ZIP appears exactly once.
--- Plan 4's PK is (BRANCH_ZIP, PROFILE_MONTH); within a single PROFILE_MONTH,
--- BRANCH_ZIP must be unique on its own.
+-- 11. PROFILE_MONTH is the first of the current UTC month and GENERATED_AT is
+--     that month's midnight (month-bucketed so same-month re-runs are
+--     byte-identical).
 -- ---------------------------------------------------------------------------
-SELECT
-    (SELECT COUNT(DISTINCT BRANCH_ZIP) FROM FINS.TEST.ESRI_GEO_FOOTPRINT) =
-    (SELECT COUNT(*) FROM FINS.TEST.ESRI_GEO_FOOTPRINT)
-    AS zip_uniqueness_passes;
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE PROFILE_MONTH <> DATE_TRUNC('MONTH', CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::DATE)
+       OR GENERATED_AT <> PROFILE_MONTH::TIMESTAMP_NTZ
+) AS profile_month_is_current_utc_month;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 11. Tapestry-code canonical assertion #8: every TAPESTRY_SEGMENT_CODE is in
--- the 12-code Esri Tapestry-style pool.
+-- 12. Idempotency: a second run leaves the row count unchanged.
+-- ---------------------------------------------------------------------------
+SET row_count_before = (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE);
+-- Hash is computed here, before CALL #2, for the determinism check below.
+SET hash_before = (
+    SELECT HASH_AGG(ORG_ID, BRANCH_ZIP, STATE_CODE, COUNTRY_CODE, PROFILE_MONTH,
+                    TAPESTRY_SEGMENT_CODE, TAPESTRY_SEGMENT_NAME, URBANICITY_TIER,
+                    MEDIAN_HOUSEHOLD_INCOME, WEALTH_INDEX,
+                    FOOT_TRAFFIC_INDEX, COMMERCIAL_DENSITY_PER_SQ_MI,
+                    DISTANCE_TO_NEAREST_BRANCH_MI, MARKET_PENETRATION_PCT,
+                    BRANCH_RECOMMENDATION, GENERATED_AT)::VARCHAR
+    FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+);
+CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE();
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE) = $row_count_before
+    AS idempotency_row_count_unchanged;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 13. Determinism: the re-run MERGE-replaced every row with byte-equal values
+--     (all 16 columns are NOT NULL, so no COALESCE is needed in the hash).
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT HASH_AGG(ORG_ID, BRANCH_ZIP, STATE_CODE, COUNTRY_CODE, PROFILE_MONTH,
+                    TAPESTRY_SEGMENT_CODE, TAPESTRY_SEGMENT_NAME, URBANICITY_TIER,
+                    MEDIAN_HOUSEHOLD_INCOME, WEALTH_INDEX,
+                    FOOT_TRAFFIC_INDEX, COMMERCIAL_DENSITY_PER_SQ_MI,
+                    DISTANCE_TO_NEAREST_BRANCH_MI, MARKET_PENETRATION_PCT,
+                    BRANCH_RECOMMENDATION, GENERATED_AT)::VARCHAR
+     FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE) = $hash_before
+    AS determinism_rows_byte_equal;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 14. Log rows: two SUCCEEDED runs under the fixture task name. ROWS_INSERTED
+--     is the MERGE's inserted count (first element of its result row): 11 on
+--     the first run, 0 on the idempotent re-run. ACCOUNTS_PROCESSED = 30 on
+--     both (distinct accounts per audience row summed: 29 JDO + 1 TST;
+--     empty/NULL ZIP anchors excluded).
+-- ---------------------------------------------------------------------------
+SELECT
+    (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
+      WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE') = 2
+    AND (SELECT COUNT(*) FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
+          WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE'
+            AND STATUS = 'SUCCEEDED' AND ACCOUNTS_PROCESSED = 30) = 2
+    AND (SELECT SUM(ROWS_INSERTED) FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
+          WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE') = 11
+    AND (SELECT MAX(ROWS_INSERTED) FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG
+          WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE') = 11
+    AS log_rows_succeeded;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 15. Vocabularies.
 -- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.TEST.ESRI_GEO_FOOTPRINT
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
     WHERE TAPESTRY_SEGMENT_CODE NOT IN
         ('TC','EE','ND','BS','SF','MD','SH','RD','RC','HM','MS','RH')
 ) AS tapestry_code_canonical;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 12. Urbanicity canonical assertion #9: every URBANICITY_TIER is one of the
--- 4 declared values.
--- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.TEST.ESRI_GEO_FOOTPRINT
-    WHERE URBANICITY_TIER NOT IN
-        ('Urban Core','Suburban','Small Town','Rural')
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE URBANICITY_TIER NOT IN ('Urban Core','Suburban','Small Town','Rural')
 ) AS urbanicity_canonical;
 -- Expected: TRUE
 
--- ---------------------------------------------------------------------------
--- 13. Branch-recommendation canonical assertion #10: every BRANCH_RECOMMENDATION
--- is one of the 4 declared decision-tree outputs.
--- ---------------------------------------------------------------------------
 SELECT NOT EXISTS (
-    SELECT 1 FROM FINS.TEST.ESRI_GEO_FOOTPRINT
-    WHERE BRANCH_RECOMMENDATION NOT IN
-        ('Expand','Maintain','Optimize','Consolidate')
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE BRANCH_RECOMMENDATION NOT IN ('Expand','Maintain','Optimize','Consolidate')
 ) AS branch_recommendation_canonical;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 14. Urbanicity-vs-foot-traffic correlation assertion #11: Urban Core ZIPs
--- have a higher mean FOOT_TRAFFIC_INDEX than Rural ZIPs.
---   Bases per rowspec: Urban Core = 180, Suburban = 90, Small Town = 50, Rural = 20
--- Forced by state overrides:
---   Urban Core (no Rural)  : 10025/NY, 94110/CA, 02134/MA, 60614/IL
---   Rural      (no Urban)  : 59001/MT, 83001/WY
+-- 16. Numeric ranges: income [20K, 350K], wealth index [50, 200] and equal to
+--     the clamped income/75K*100, foot traffic [0, 300], penetration [0, 100].
 -- ---------------------------------------------------------------------------
-SELECT
-    (SELECT AVG(FOOT_TRAFFIC_INDEX) FROM FINS.TEST.ESRI_GEO_FOOTPRINT
-     WHERE BRANCH_ZIP IN ('10025','94110','02134','60614')) >
-    (SELECT AVG(FOOT_TRAFFIC_INDEX) FROM FINS.TEST.ESRI_GEO_FOOTPRINT
-     WHERE BRANCH_ZIP IN ('59001','83001'))
-    AS urbanicity_foot_traffic_correlates;
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE MEDIAN_HOUSEHOLD_INCOME NOT BETWEEN 20000 AND 350000
+       OR WEALTH_INDEX NOT BETWEEN 50 AND 200
+       OR ABS(WEALTH_INDEX - LEAST(200, GREATEST(50, MEDIAN_HOUSEHOLD_INCOME / 75000 * 100))) > 0.01
+       OR FOOT_TRAFFIC_INDEX NOT BETWEEN 0 AND 300
+       OR MARKET_PENETRATION_PCT NOT BETWEEN 0 AND 100
+) AS numeric_ranges_and_wealth_derivation;
 -- Expected: TRUE
 
 -- ---------------------------------------------------------------------------
--- 15. Cleanup
+-- 17. Per-tier bands (foot traffic = base + U(-30,50); density, branch
+--     distance per _commercial_density / _branch_distance).
 -- ---------------------------------------------------------------------------
-DELETE FROM FINS.TEST.ESRI_GEO_FOOTPRINT;
-DELETE FROM FINS.TEST.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT';
-DROP VIEW IF EXISTS FINS.TEST.V_ACCOUNT_ANCHORS;
-DROP TABLE IF EXISTS FINS.TEST.TEST_V_ACCOUNT_ANCHORS_FIXTURE;
-DROP TABLE IF EXISTS FINS.TEST.ESRI_GEO_FOOTPRINT_STAGING;
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE NOT (CASE URBANICITY_TIER
+        WHEN 'Urban Core' THEN FOOT_TRAFFIC_INDEX BETWEEN 150 AND 230
+                           AND COMMERCIAL_DENSITY_PER_SQ_MI BETWEEN 500 AND 2000
+                           AND DISTANCE_TO_NEAREST_BRANCH_MI BETWEEN 0.3 AND 2.5
+        WHEN 'Suburban'   THEN FOOT_TRAFFIC_INDEX BETWEEN 60 AND 140
+                           AND COMMERCIAL_DENSITY_PER_SQ_MI BETWEEN 80 AND 500
+                           AND DISTANCE_TO_NEAREST_BRANCH_MI BETWEEN 1 AND 6
+        WHEN 'Small Town' THEN FOOT_TRAFFIC_INDEX BETWEEN 20 AND 100
+                           AND COMMERCIAL_DENSITY_PER_SQ_MI BETWEEN 15 AND 100
+                           AND DISTANCE_TO_NEAREST_BRANCH_MI BETWEEN 2 AND 15
+        WHEN 'Rural'      THEN FOOT_TRAFFIC_INDEX BETWEEN 0 AND 70
+                           AND COMMERCIAL_DENSITY_PER_SQ_MI BETWEEN 0 AND 30
+                           AND DISTANCE_TO_NEAREST_BRANCH_MI BETWEEN 8 AND 50
+        ELSE FALSE END)
+) AS tier_bands_respected;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 18. State forcing (_urbanicity_tier): MT/WY are never Urban Core;
+--     NY/CA/MA/IL are never Rural.
+-- ---------------------------------------------------------------------------
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE (STATE_CODE IN ('MT','WY','AK','ND','SD') AND URBANICITY_TIER = 'Urban Core')
+       OR (STATE_CODE IN ('NY','CA','MA','IL','DC') AND URBANICITY_TIER = 'Rural')
+) AS state_forcing_respected;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 19. Decision tree (_branch_recommendation) recomputed from each row's own
+--     metrics must equal the stored BRANCH_RECOMMENDATION.
+-- ---------------------------------------------------------------------------
+SELECT NOT EXISTS (
+    SELECT 1 FROM DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE
+    WHERE BRANCH_RECOMMENDATION <> CASE
+        WHEN DISTANCE_TO_NEAREST_BRANCH_MI > 15 AND MARKET_PENETRATION_PCT > 5 THEN 'Expand'
+        WHEN MARKET_PENETRATION_PCT > 8 AND FOOT_TRAFFIC_INDEX > 100 THEN 'Maintain'
+        WHEN MARKET_PENETRATION_PCT < 1 AND FOOT_TRAFFIC_INDEX < 50 THEN 'Consolidate'
+        ELSE 'Optimize' END
+) AS recommendation_matches_decision_tree;
+-- Expected: TRUE
+
+-- ---------------------------------------------------------------------------
+-- 20. Cleanup.
+-- ---------------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_ESRI_GEO_FOOTPRINT_FIXTURE();
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE_STAGING;
+DROP TABLE     IF EXISTS DATA_JEDAIS.FINS__PUBLIC.ESRI_GEO_FOOTPRINT_FIXTURE;
+DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_ESRI_FIXTURE;
+DELETE FROM DATA_JEDAIS.FINS__PUBLIC.TASK_EXECUTION_LOG WHERE TASK_NAME = 'TASK_MONTHLY_ESRI_GEO_FOOTPRINT_FIXTURE';
