@@ -59,7 +59,7 @@ def main() -> int:
 
     cmd = ["snow", "sql", "--role", args.role, "-f", str(SP_SQL)]
     if args.connection:
-        cmd[1:1] = ["-c", args.connection]
+        cmd[2:2] = ["-c", args.connection]
     print(f"Deploying SP via: {' '.join(cmd)}")
     rc = subprocess.call(cmd)
     if rc != 0:

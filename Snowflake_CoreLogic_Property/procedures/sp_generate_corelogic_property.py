@@ -46,7 +46,6 @@ AUDIENCE_SQL = f"SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHO
 COVERAGE_SQL = f"SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS WHERE {_AUDIENCE_PREDICATE}"
 
 # 16-column output contract (kept in sync with table DDL by the L1 schema test)
-# v1.x multi-org-additive: ORG_ID leads the contract list; stamped from anchor.
 EXPECTED_OUTPUT_COLUMNS: frozenset[str] = frozenset({
     "ORG_ID", "ACCOUNT_ID", "PROFILE_QUARTER", "IS_OWNER",
     "PRIMARY_PROPERTY_TYPE", "ESTIMATED_PROPERTY_VALUE",
@@ -101,7 +100,7 @@ def main(session: Any) -> str:
                 f"first: {errors[0]}"
             )
 
-        # 3. Idempotent MERGE on PK (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER).
+        # 3. Idempotent MERGE on PK (ACCOUNT_ID, PROFILE_QUARTER).
         rows_inserted = _merge(session, records)
 
         # 4. Coverage assertion — canonical message format from spec §6.2.
@@ -416,9 +415,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
     if not is_owner:
         return {
-            # v1.x multi-org-additive: ORG_ID leads each emitted row (default 'JDO' backstop
-            # if anchor lacks the column — matches V_ACCOUNT_ANCHORS post-Plan-5 contract).
-            "ORG_ID":                       anchor.get("ORG_ID") or "JDO",
+            "ORG_ID":                       anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
             "ACCOUNT_ID":                   account_id,
             "PROFILE_QUARTER":              quarter_start.date(),
             "IS_OWNER":                     False,
@@ -448,9 +445,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     heloc         = _heloc_opportunity(equity, lien_count, ltv, rng)
 
     return {
-        # v1.x multi-org-additive: ORG_ID leads each emitted row (default 'JDO' backstop
-        # if anchor lacks the column — matches V_ACCOUNT_ANCHORS post-Plan-5 contract).
-        "ORG_ID":                       anchor.get("ORG_ID") or "JDO",
+        "ORG_ID":                       anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
         "ACCOUNT_ID":                   account_id,
         "PROFILE_QUARTER":              quarter_start.date(),
         "IS_OWNER":                     True,
@@ -470,7 +465,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
 
 # -------------------------------------------------------------------
-# _merge — idempotent MERGE on PK (ORG_ID, ACCOUNT_ID, PROFILE_QUARTER)
+# _merge — idempotent MERGE on PK (ACCOUNT_ID, PROFILE_QUARTER)
 # -------------------------------------------------------------------
 
 def _merge(session: Any, records: list[dict]) -> int:
@@ -497,11 +492,9 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
-    # v1.x multi-org-additive: ORG_ID is part of the join eligibility; we
-    # never UPDATE it in WHEN MATCHED (a row can't change orgs).
     merge_sql = f"""
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY tgt
         USING (

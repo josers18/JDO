@@ -313,7 +313,7 @@ def main() -> int:
 
     cmd = ["snow", "sql", "-f", str(SP_SQL)]
     if args.connection:
-        cmd[1:1] = ["-c", args.connection]
+        cmd[2:2] = ["-c", args.connection]
     if args.role:
         cmd += ["--role", args.role]
     print(f"Deploying SP via: {' '.join(cmd)}")
