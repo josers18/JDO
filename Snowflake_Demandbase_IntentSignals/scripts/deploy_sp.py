@@ -25,7 +25,7 @@ What this script does:
      `procedures/sp_create_procedure.sql` (no IMPORTS / no stage -- the org
      has no internal stage, and inter-SP imports are unsupported).
   4. Run it with an UNFLAGGED `snow sql -f <file>` (never -c: passing -c to
-     an OAuth connection opens a browser popup). `--role` is forwarded; the
+     an OAuth connection opens a browser popup). `--role` (default ACCOUNTADMIN) is forwarded; the
      sibling objects are owned by ACCOUNTADMIN.
 
 Connection (2026-11-02): `default_connection_name` (GSB13421_jwt, account
@@ -183,8 +183,8 @@ def build_snow_cmd(role: str | None = None) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--role", default=None,
-                        help="Role passed to snow sql (siblings are owned by ACCOUNTADMIN).")
+    parser.add_argument("--role", default="ACCOUNTADMIN",
+                        help="Role passed to snow sql (default: ACCOUNTADMIN, which owns the FINS__PUBLIC objects; SYSADMIN lacks CREATE TABLE).")
     parser.add_argument("--no-deploy", action="store_true",
                         help="Generate sp_create_procedure.sql but skip snow sql -f.")
     parser.add_argument("--drop-old-signature", action="store_true",

@@ -17,7 +17,7 @@ What this script does:
      `procedures/sp_create_procedure.sql`.
   5. Runs `snow sql -f procedures/sp_create_procedure.sql` UNFLAGGED, using
      the default JWT connection. It never passes `-c`, which triggers an
-     OAuth popup. `--role` is passed through when given; the objects are
+     OAuth popup. `--role` (default ACCOUNTADMIN) is passed through; the objects are
      owned by ACCOUNTADMIN.
 
 Plan 16 deviations from the Plan 11 template:
@@ -196,8 +196,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Deploy SP_GENERATE_HARMONIC_COMPANY_SIGNALS")
     parser.add_argument("--no-deploy", action="store_true",
                         help="Generate sp_create_procedure.sql but skip running snow sql -f.")
-    parser.add_argument("--role", default=None,
-                        help="Optional role passed to snow sql (objects are owned by ACCOUNTADMIN).")
+    parser.add_argument("--role", default="ACCOUNTADMIN",
+                        help="Role passed to snow sql (default: ACCOUNTADMIN, which owns the FINS__PUBLIC objects; SYSADMIN lacks CREATE TABLE).")
     args = parser.parse_args()
 
     for path in (SP_PY, SEED_PY, COVERAGE_PY, RECORD_ID_PY):

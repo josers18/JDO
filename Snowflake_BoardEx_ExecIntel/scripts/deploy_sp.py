@@ -287,8 +287,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--role",
-        default=None,
-        help="Role passed to snow sql (the SP and table are owned by ACCOUNTADMIN)",
+        default="ACCOUNTADMIN",
+        help="Role passed to snow sql (default: ACCOUNTADMIN, which owns the FINS__PUBLIC objects; SYSADMIN lacks CREATE TABLE)",
     )
     parser.add_argument(
         "--no-deploy",
@@ -325,7 +325,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
-        + (f" --role {args.role}" if args.role else "")
+        + f" --role {args.role}"
         + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_BOARDEX_EXEC_INTEL' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")

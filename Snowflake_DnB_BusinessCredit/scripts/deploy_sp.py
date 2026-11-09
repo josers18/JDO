@@ -214,6 +214,11 @@ def main() -> int:
         help="Snowflake CLI connection name (default: unflagged — use the active JWT connection)",
     )
     parser.add_argument(
+        "--role",
+        default="ACCOUNTADMIN",
+        help="Role that creates (and so owns) the SP (default: ACCOUNTADMIN; SYSADMIN lacks CREATE TABLE for the write_pandas staging table).",
+    )
+    parser.add_argument(
         "--no-deploy",
         action="store_true",
         help="Generate sp_create_procedure.sql but skip running snow sql -f.",
@@ -234,7 +239,7 @@ def main() -> int:
         print("--no-deploy set; skipping snow sql.")
         return 0
 
-    cmd = ["snow", "sql", "-f", str(SP_SQL)]
+    cmd = ["snow", "sql", "--role", args.role, "-f", str(SP_SQL)]
     if args.connection:
         cmd[1:1] = ["-c", args.connection]
     print(f"Deploying SP via: {' '.join(cmd)}")
@@ -246,6 +251,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
+        + f" --role {args.role}"
         + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_DNB_BUSINESS_CREDIT' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")

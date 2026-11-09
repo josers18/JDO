@@ -44,7 +44,7 @@ Signature: `(BACKFILL_WEEKS INTEGER DEFAULT 0)`. If it ever changes, add a
 (Snowflake overloads on signature; CREATE OR REPLACE would leave the old one).
 
 Usage:
-    python3 scripts/deploy_sp.py [--role ACCOUNTADMIN] [--connection NAME] [--no-deploy]
+    python3 scripts/deploy_sp.py [--role ROLE] [--connection NAME] [--no-deploy]
     python3 scripts/deploy_sp.py --fixture-schema DEMO_DB.CUMULUS_L2_USERGEMS [--week-band 0,25]
 """
 from __future__ import annotations
@@ -246,7 +246,8 @@ def main() -> int:
     parser.add_argument("--connection", "-c", default=None,
                         help="snow connection override (default: unflagged active connection)")
     parser.add_argument("--role", default=None,
-                        help="role passed to snow sql (siblings are owned by ACCOUNTADMIN)")
+                        help="role passed to snow sql (default: ACCOUNTADMIN, which owns the siblings; "
+                             "with --fixture-schema, the connection's default role, as the L2 runs as SYSADMIN)")
     parser.add_argument("--no-deploy", action="store_true",
                         help="write the SQL file but skip snow sql -f")
     parser.add_argument("--fixture-schema", default=None,
@@ -269,7 +270,8 @@ def main() -> int:
     print(f"wrote {out} ({len(sql)} bytes)")
     if args.no_deploy:
         return 0
-    rc = _run(out, args.connection, args.role)
+    role = args.role or (None if args.fixture_schema else "ACCOUNTADMIN")
+    rc = _run(out, args.connection, role)
     if rc != 0:
         print(f"ERROR: snow sql exited with code {rc}", file=sys.stderr)
     return rc
