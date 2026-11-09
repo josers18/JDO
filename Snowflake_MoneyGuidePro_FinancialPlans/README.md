@@ -42,12 +42,10 @@ pytest tests/ -v
 ## Deploy
 ```bash
 snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f schemas/mgp_financial_plans.sql
-snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f procedures/sp_create_procedure.sql   # committed SQL = live; don't regenerate (see below)
+python3 scripts/deploy_sp.py   # regenerate procedures/sp_create_procedure.sql and create the SP as ACCOUNTADMIN
 snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_monthly_mgp_financial_plans.sql
 ```
 
 Deploy as ACCOUNTADMIN: the live SP, table and task are owned by ACCOUNTADMIN, and SYSADMIN lacks CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC`. `scripts/deploy_sp.py` passes `--role ACCOUNTADMIN` by default (`--role` overrides it).
-
-**Don't regenerate this SP yet.** `procedures/sp_create_procedure.sql` matches live (`EXECUTE AS OWNER`, staging in `DATA_JEDAIS.FINS__PUBLIC`, ORG_ID-aware MERGE from PR #168), but `procedures/sp_generate_*.py` is older (last changed 2026-07-07). Running `scripts/deploy_sp.py` (even with `--no-deploy`) overwrites the committed SQL with that older body (`EXECUTE AS CALLER` and the pre-#168 MERGE). Deploy the committed file until the module is brought back in sync.
 
 DC ingest is configured via the existing federation connector (see Plan 8 Task 7 + the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`).

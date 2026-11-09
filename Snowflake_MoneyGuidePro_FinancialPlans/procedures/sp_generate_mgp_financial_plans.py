@@ -40,9 +40,9 @@ import uuid
 from datetime import date, datetime, timedelta
 from typing import Any
 
+
+
 from cumulus_common import seed_for, assert_coverage
-
-
 # -------------------------------------------------------------------
 # Constants — these MUST stay in sync with the rowspec attachment
 # -------------------------------------------------------------------
@@ -392,7 +392,7 @@ def _rows_for(anchor: dict, profile_month: date | datetime) -> list[dict]:
     notes_flag = _advisor_notes_flag(plan_status, rng)
 
     return [{
-        "ORG_ID":                        anchor.get("ORG_ID", "JDO"),
+        "ORG_ID":                        anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
         "ACCOUNT_ID":                    account_id,
         "PROFILE_MONTH":                 month_start,
         "PLAN_STATUS":                   plan_status,
@@ -543,7 +543,7 @@ def _merge(session: Any, records: list[dict]) -> int:
     session.write_pandas(
         df, staging,
         auto_create_table=True, overwrite=True,
-        database="FINS", schema="PUBLIC",
+        database="DATA_JEDAIS", schema="FINS__PUBLIC",
     )
 
     merge_sql = f"""
