@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 008 (written 2026-11-09, NOT YET APPLIED): backfill the trades
+-- Migration 008 (applied 2026-11-09, 10:35 ET): backfill the trades
 -- missing from Monday 2026-09-28.
 --
 -- What happened on 09-28: all three DAILY_TRADE_GENERATOR attempts hit the
@@ -51,6 +51,10 @@
 -- rows show up there with no refresh.
 -- Run as ACCOUNTADMIN outside the 03:00-03:10 ET task window, in one session
 -- (snow sql --role ACCOUNTADMIN -f ...): the plan and stage are TEMPORARY.
+-- Result (2026-11-09): inserted 133,242 trades for 32,814 accounts; check 1
+-- WRONG_COUNT = 0 in all three groups; 09-28 = 165,559 rows (133,242 marked),
+-- 09-21 / 09-29 / 10-05 unchanged. Backfilled rows match 09-21 on mean trade
+-- value, fees, buy share, confirmed share and ticker coverage.
 -- Rollback:
 --   DELETE FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES
 --   WHERE TRADE_DATE = '2026-09-28' AND CREATED_AT = '2026-09-28 12:00:00';
