@@ -7,10 +7,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 <div align="center">
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
-[![Updated](https://img.shields.io/badge/Updated-Oct_30_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Nov_09_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Theme System](https://img.shields.io/badge/Theme_System-Cookbook-7F56D9?style=for-the-badge)](docs/THEME_CATALOG.md)
 [![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
-[![Commits](https://img.shields.io/badge/Commits-650%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
+[![Commits](https://img.shields.io/badge/Commits-680%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
 [![Cumulus Datasets](https://img.shields.io/badge/Cumulus_Datasets-13_LIVE-00A1E0?style=for-the-badge&logo=snowflake&logoColor=white)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 [![Cumulus Rows](https://img.shields.io/badge/Cumulus_Rows-3.97M-181717?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 [![Multi-Org Phase A](https://img.shields.io/badge/Multi--Org-Phase_A_LIVE-2EA44F?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
@@ -21,13 +21,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## What's new this month
 
-> **May 2026** — Closed the month with a new **DC_AgentForce_Markdown_Renderer** + **Cumulus_Assistant** project pair: the renderer LWC parses markdown from Agentforce GenAI Function output and emits sanitized HTML, wired in via Lightning Type `c__markdownResponse` + renderer override (no Flow plumbing or Apex sanitizer); the assistant project ships the 3.3K-line Cumulus Bank `.agent` definition and the DC_Product_Offers GenAiFunction. 38 Jest tests covering URL allowlist + parser. Earlier in the day: shipped the **Cumulus Snowflake data pipelines** family — 13 datasets (Claritas Demographics, MSCI ESG, DnB Business Credit, Esri GeoFootprint, CoreLogic Property, Plaid Held-Away, World-Check AML, MoneyGuidePro Financial Plans, Synth Relationship Graph, BoardEx Exec Intel, ZoomInfo Firmographics, Gong Call Sentiment, Moody's Market Context) totaling **~3.97M rows live in `FINS.PUBLIC`** and federated zero-copy into Data Cloud as 13 DLO/DMO pairs (`hasMappings=true` across all 13). Then closed the rollout with **Phase A multi-org migration** — every dataset table + `MASTER_ACCOUNTS` + `V_ACCOUNT_ANCHORS` now carry `ORG_ID VARCHAR(18) DEFAULT 'JDO'` as the first column, with PKs promoted, SP MERGE clauses re-keyed, and L1 tests green across all 13 plans. **Per-org rollout runbook** at [`Snowflake_Cumulus_Common/docs/ROLLOUT.md`](Snowflake_Cumulus_Common/docs/ROLLOUT.md). Earlier in the month: Shipped the **FSC Audit Utilities** project (13 phases of automated demo-org cleanup and seed data), added the **JDO_Login_Portal** design spec for self-service org provisioning + telemetry, the **sf-tableau-next** skill for Tableau Next REST APIs, a new **Financial_KPI_Widget** DX project, and the **Web_Engagements_RT_Timeline** project — initially retrieved as a Data Cloud Data Graph timeline, then revamped through three sequential plans (Hardening / Configurability / Multi-source) into a **multi-source real-time timeline** that interleaves Data Graph events with Cases / Tasks / Calendar Events / Agentforce VoiceCalls, and **further extended on May 19–20** with a **cold-store DMO backfill** (so the timeline stays populated after the Data Graph hot cache expires) plus a UI polish pass (per-source colored chip filters, wrapping titles, sub-row metadata, inter-card dividers). Plus a **per-class probability chart** for the Multiclass Prediction LWC. Customer Profile widget now leads with **Deposits** as the prominent KPI tile. **Customer_Hydration** landed Phase 1 (Plans 1–6, ~21K hydrated customers across 4 personas) and then **Phase 2** (DC streams refresh + 20 live-published segments in `jdo-uqj0jr`, foundational-streams runbook). **Customer_Documents** adds a content-heavy ReportLab PDF generator for customer onboarding, relationship review, service/retention briefs, KYC packages, and Articles of Incorporation for business Accounts.
+> **November 2026** — The React-Headless cockpits dropped their last invented numbers: the signed-in user drives identity, confidence scores and prep-sheet defaults are gone (#158), the cross-sell white-space grid is fully real and creates Opportunities (#159), CRM KPI sparklines are computed in Data 360 (#160), and offer scores carry a 6-month history with a "score moved" trend (#162, re-scored after the Plaid November rally in #163). Wealth's trading pulse now buckets by calendar week, so it reaches the latest trade (#166). The Cumulus family grew to 16 datasets with Plans 14–16 (Demandbase intent, UserGems job changes, Harmonic company signals) feeding new priority-queue signals (#153–#157). **Financial_Trades_Generation** hardened the trade history with migrations 003–011: config backfills, removal of 4.2M retry duplicates and the old `TRD-` rows, and backfills for 2026-06-29, 07-01, 09-28 and 10-12.
 
-Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](#may-2026) · [April 2026](#april-2026) · [March 2026](#march-2026)
+Jump to: [November 2026](#november-2026) · [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](#may-2026) · [April 2026](#april-2026) · [March 2026](#march-2026)
 
 ---
 
-## [October 2026] — 2026-10-01 → present
+## [November 2026] — 2026-11-01 → present
+
+### Added
+
+- **Cumulus Plans 14–16 LIVE** (PR [#153](https://github.com/josers18/JDO/pull/153)) — Demandbase intent, UserGems job changes and Harmonic company signals as `BT_` streams and DMOs, plus BoardEx/ZoomInfo fixes and deterministic share reads (`V_ACCOUNT_ANCHORS` v1.4, PR [#154](https://github.com/josers18/JDO/pull/154)); inventory persona rules for the new streams (PR [#155](https://github.com/josers18/JDO/pull/155)).
+- **React-Headless queue signals** (PRs [#156](https://github.com/josers18/JDO/pull/156), [#157](https://github.com/josers18/JDO/pull/157)) — intent, funding, job-change and liquidity signals in the Priority Queues of all three cockpits.
+- **React-Headless real data** (PRs [#158](https://github.com/josers18/JDO/pull/158)–[#160](https://github.com/josers18/JDO/pull/160), [#162](https://github.com/josers18/JDO/pull/162)) — signed-in user and no invented confidence; real cross-sell white-space grid that creates Opportunities; 8-week CRM KPI history computed in Data 360; 6-month offer score history (`OFFER_ELIGIBILITY_HISTORY`, zero copy) with a "score moved" trend. See [`React-Headless/CHANGELOG.md`](React-Headless/CHANGELOG.md).
+- **Financial_Trades_Generation backfills** (PRs [#164](https://github.com/josers18/JDO/pull/164), [#165](https://github.com/josers18/JDO/pull/165)) — migrations 008, 010 and 011 restored 2026-09-28, 10-12, 06-29 and 07-01. See [`Financial_Trades_Generation/CHANGELOG.md`](Financial_Trades_Generation/CHANGELOG.md).
+
+### Changed
+
+- **Plaid November rally** (PR [#163](https://github.com/josers18/JDO/pull/163)) — Oct/Nov market returns raised to +2.8% / +6.5%, Plaid and offer scores re-run for both months; `deploy_sp.py` now deploys as ACCOUNTADMIN by default.
+- **Financial_Trades_Generation hardening** (PR [#153](https://github.com/josers18/JDO/pull/153)) — migrations 003–007: config name/type/profile backfills, non-Home accounts deactivated, task timeout layering, and 4,195,785 Monday retry duplicates deleted.
+
+### Fixed
+
+- **Offer eligibility job logging** (PR [#161](https://github.com/josers18/JDO/pull/161)) — the SP logs `SUCCEEDED`, so the daily job report counts the run.
+- **Wealth trading pulse** (PR [#166](https://github.com/josers18/JDO/pull/166)) — buckets by calendar week; it had stopped at 2026-10-04 under a 20-row cap.
+
+### Removed
+
+- **`TRD-` placeholder trades** (migration 009) — 35,116 NULL-account trades deleted, backed up in `FINANCIAL_TRADES_TRD_BAK_20261109`.
+
+## [October 2026] — 2026-10-01 → 2026-10-31
 
 ### Added
 
@@ -95,7 +118,7 @@ Jump to: [October 2026](#october-2026) · [June 2026](#june-2026) · [May 2026](
 
 ---
 
-## [June 2026] — 2026-06-01 → present
+## [June 2026] — 2026-06-01 → 2026-06-30
 
 ### 2026-06-01 — Theme system cookbook · `docs/THEME_CATALOG.md`
 - **Promoted `docs/THEME_CATALOG.md` from a 28-line PDF index to the canonical theming cookbook** for every `--wp-*` themed LWC in the family (Customer Profile, Business Profile, Prediction Model, Multiclass Prediction, Goals Cockpit, and any future record-page LWC). One reference for new components instead of cargo-culting from a sibling.

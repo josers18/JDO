@@ -33,6 +33,77 @@ The ReactWealth trading activity pulse showed "as of Oct 4 · 20 trade weeks" wh
 
 - `Financial_Trades_Generation` migrations 009–011 (2026-11-09) deleted the 35,116 `TRD-` NULL-account trades and backfilled 2026-10-12, 06-29 and 07-01. See [`SNOWFLAKE_DATA_FIXES.md` §4](docs/SNOWFLAKE_DATA_FIXES.md).
 
+### 2026-11-09 — Plaid November rally lifts the "score moved" trend (PR #163)
+
+Snowflake-side change with a visible cockpit effect; no bundle rebuild. `Snowflake_Plaid_HeldAway` raised the Oct/Nov market returns to +2.8% / +6.5% (index ~6% above May), and Plaid plus `SP_GENERATE_OFFER_ELIGIBILITY` were re-run for October and November. The history DMO is zero copy, so the white-space grid picked it up at once.
+
+#### Changed
+
+- **Score-history movers** in the white-space grid, verified live:
+  - Sarah Smith (Retail): 25 falling, 32 rising, now including 2 Investing (was 0).
+  - Kim Johnson (Wealth): 27 falling, 42 rising, now including 9 Managed Account and 4 Rollover (was 1 and 1).
+- **Docs:** `AGENTS.md` and the cross-sell plan describe the movers rule (score ≥ 2 pts or EV ≥ $250) and the re-score-after-Plaid-regen runbook.
+
+### 2026-11-06 — 6-month offer score history and "score moved" trend (PR #162)
+
+Ships step C of the cross-sell plan in all three cockpits. Built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors).
+
+#### Added
+
+- **Score history** (`_shared/src/data/whitespace.ts`). Each shown cell reads its monthly series from `BT_Offer_Eligibility_History__dlm`, a new zero-copy DMO over Snowflake `OFFER_ELIGIBILITY_HISTORY` (2026-05 → 2026-11, about 440K rows a month). Data 360 computes the change with a `FIRST_VALUE` window.
+- **Grid trend:** cells whose score moved ≥ 2 pts get ▲/▼. The detail table gets a **6-mo** column with the series in its tooltip.
+- Verified live: Retail 7/7 and Wealth 7/7 rows show history with no ≥ 2-pt moves; Commercial 74/74 rows, 39 cells flagged.
+
+#### Fixed
+
+- The history query uses a scalar subquery: `ConnectApi.queryAnsiSqlV2` rejects a CROSS JOIN to a CTE that the Query API accepts.
+
+### 2026-11-06 — CRM KPI history computed in Data 360 (PR #160)
+
+Plan step 4: real sparklines and Pipeline Movement deltas in all three cockpits. Built and deployed to `jdo-oe0sdd` (0 errors).
+
+#### Added
+
+- **8-week KPI history** (`_shared/src/data/crmKpis.ts` `historySql()`). One Data 360 query over `ssot__Opportunity__dlm`, `ssot__Case__dlm` and `ssot__Lead__dlm` rebuilds "open as of" the end of each week. An opportunity counts as closed at `LEAST(CloseDate, LastModifiedDate)`, because the org has no stage-change history. The whole series comes from Data 360, so ingestion lag can't show up as a fake week-over-week jump.
+- **Pipeline Movement** shows stage values and their week-over-week change.
+
+#### Fixed
+
+- **Tile values are true uiapi aggregates.** The Pipeline tile had summed only the top 200 rows (Sarah showed $20M against a real $259M), and Leads and Goals were capped at the first N rows.
+
+#### Removed
+
+- `Cockpit_KPI_Snapshot__c`, the `CockpitKpiSnapshot` Apex and its permission set. The nightly job was aborted and the metadata deleted from `jdo-oe0sdd`.
+- The tracked `ReactCommercial/node_modules` symlink, which pointed at itself and broke `npm run build`.
+
+#### Notes
+
+- Goals stay live-only: `ssot__FinancialGoal__dlm` has no owner field. `scripts/kpi_history/` holds a backdated CRM activity generator and its runbook. All 20 CRM streams are on `RefreshFrequency=BATCH` (verified 2026-11-06).
+
+### 2026-11-05 — Real cross-sell white-space grid (PR #159)
+
+The cross-sell / upsell grid is fully real in all three cockpits. Built and deployed (0 errors); `CrmWriteRestTest` 48/48.
+
+#### Added
+
+- **Owned cells** are live FSC FinancialAccounts. **White-space cells** carry the model's `conversion_probability`, `expected_value_uplift`, a reason (Plaid held-away balance or next-best rank) and the better channel.
+- **Clicking a white-space cell** creates a real Opportunity through the new `CrmWriteRest` action `opportunity` (`LeadSource = 'Cross-sell grid'`). The header shows opportunities, estimated value and wins in 30 days.
+- The data comes from `BT_Offer_Eligibility__dlm`: `OFFER_ELIGIBILITY` now scores every book and skips products the client already holds (547,715 rows). The Databricks offer model is no longer read. The Wealth Insurance column was dropped rather than faked.
+
+### 2026-11-05 — Real signed-in user, no invented confidence (PR #158)
+
+Step 1 of the real-data-no-mocks plan, across all three cockpits. Built and deployed (0 errors); `CrmWriteRestTest` 45/45.
+
+#### Changed
+
+- **Identity:** the rail footer and email sign-off come from the signed-in user (`/crm/whoami` adds `orgName`; shared `useCurrentUser` hook). The hardcoded rail user and sign-off are gone, and the greeting omits the name rather than falling back to "Alex".
+- **Customer 360 accounts** map `FinServ__OpenDate__c` and the real last four of `FinServ__FinancialAccountNumber__c` (previously the record Id). Status no longer defaults to "Active".
+
+#### Removed
+
+- **Invented confidence scores** (`87/24`, `89/26`, `86/25`) on Home and Customer 360. `DataFreshnessMeter` and the C360 confidence block hide when there's no data.
+- **Prep-sheet defaults.** The recap names its real source (Agentforce or live data) and shows an unavailable state with Retry when neither returns one. A missing talk track is omitted.
+
 ### 2026-11-04 — Retail liquidity events
 
 ReactRetail now surfaces UserGems liquidity events, the same feed Wealth got in PR #156. Built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors).
