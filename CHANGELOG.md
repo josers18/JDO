@@ -11,8 +11,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 [![Theme System](https://img.shields.io/badge/Theme_System-Cookbook-7F56D9?style=for-the-badge)](docs/THEME_CATALOG.md)
 [![Packages](https://img.shields.io/badge/DX_Packages-9-0176D3?style=for-the-badge)](README.md#projects)
 [![Commits](https://img.shields.io/badge/Commits-680%2B-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/josers18/JDO/commits/main)
-[![Cumulus Datasets](https://img.shields.io/badge/Cumulus_Datasets-13_LIVE-00A1E0?style=for-the-badge&logo=snowflake&logoColor=white)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
-[![Cumulus Rows](https://img.shields.io/badge/Cumulus_Rows-3.97M-181717?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
+[![Cumulus Datasets](https://img.shields.io/badge/Cumulus_Datasets-16_LIVE-00A1E0?style=for-the-badge&logo=snowflake&logoColor=white)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
+[![Cumulus Rows](https://img.shields.io/badge/Cumulus_Rows-14.1M-181717?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 [![Multi-Org Phase A](https://img.shields.io/badge/Multi--Org-Phase_A_LIVE-2EA44F?style=for-the-badge)](Snowflake_Cumulus_Common/docs/ROLLOUT.md)
 
 </div>
