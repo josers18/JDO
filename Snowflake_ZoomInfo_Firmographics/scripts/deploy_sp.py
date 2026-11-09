@@ -72,8 +72,8 @@ Plan 11 deviations from the v1.5 template:
     this script inlines `record_id_for` from cumulus_common/record_id.py.
 
   - **Live role.** The table, SP and TASK are owned by ACCOUNTADMIN, so
-    run the generated file under that role (e.g. `snow sql -f <file>
-    --role ACCOUNTADMIN`); SYSADMIN cannot replace the procedure.
+    this script runs `snow sql --role ACCOUNTADMIN -f <file>` by default
+    (`--role` overrides it); SYSADMIN cannot replace the procedure.
 
   - **No ampersand-to-n sanitize.** "ZoomInfo" is path-clean -- the
     Jinja-templating gotcha that bit Plan 3 (the DnB pun originally written
@@ -316,6 +316,11 @@ def main() -> int:
         help="Snowflake CLI connection name (default: unflagged -- use the active JWT connection)",
     )
     parser.add_argument(
+        "--role",
+        default="ACCOUNTADMIN",
+        help="Role that creates (and so owns) the SP (default: ACCOUNTADMIN; SYSADMIN lacks CREATE TABLE for the write_pandas staging table).",
+    )
+    parser.add_argument(
         "--no-deploy",
         action="store_true",
         help="Generate sp_create_procedure.sql but skip running snow sql -f.",
@@ -336,7 +341,7 @@ def main() -> int:
         print("--no-deploy set; skipping snow sql.")
         return 0
 
-    cmd = ["snow", "sql", "-f", str(SP_SQL)]
+    cmd = ["snow", "sql", "--role", args.role, "-f", str(SP_SQL)]
     if args.connection:
         cmd[1:1] = ["-c", args.connection]
     print(f"Deploying SP via: {' '.join(cmd)}")
@@ -348,6 +353,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
+        + f" --role {args.role}"
         + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_ZOOMINFO_FIRMOGRAPHICS' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")

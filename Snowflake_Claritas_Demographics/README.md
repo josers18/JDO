@@ -56,9 +56,11 @@ pytest tests/ -v
 
 ## Deploy
 ```bash
-snow sql -f schemas/claritas_demographics.sql
-snow sql -f procedures/sp_create_procedure.sql   # inlined copy of procedures/sp_generate_claritas_demographics.py
-snow sql -f tasks/task_monthly_claritas_demographics.sql
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f schemas/claritas_demographics.sql
+python3 scripts/deploy_sp.py   # regenerate procedures/sp_create_procedure.sql and create the SP as ACCOUNTADMIN
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_monthly_claritas_demographics.sql
 ```
+
+Deploy as ACCOUNTADMIN: the live SP, table and task are owned by ACCOUNTADMIN, and SYSADMIN lacks CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC`. `scripts/deploy_sp.py` passes `--role ACCOUNTADMIN` by default (`--role` overrides it).
 
 DC ingest is configured in DC Setup → Data Streams (see Plan 1 Task 7).

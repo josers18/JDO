@@ -58,8 +58,7 @@ Without a working `.venv`, system Python works: `PYTHONPATH=../Snowflake_Cumulus
 
 ## Deploy
 ```bash
-python scripts/deploy_sp.py --no-deploy     # regenerate procedures/sp_create_procedure.sql from the .py
-snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f procedures/sp_create_procedure.sql
+python3 scripts/deploy_sp.py   # regenerate procedures/sp_create_procedure.sql and create the SP as ACCOUNTADMIN (the default --role)
 snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_monthly_msci_esg_scores.sql   # only if the schedule changes
 ```
 `schemas/msci_esg_scores.sql` is `CREATE OR REPLACE TABLE` — never re-run it against the live table.

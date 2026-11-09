@@ -43,9 +43,11 @@ The L1 conftest uses the full `SAMPLE_ANCHORS` slice as the audience, plus an in
 
 ## Deploy
 ```bash
-snow sql -f schemas/boardex_exec_intel.sql
-snow sql -f procedures/sp_create_procedure.sql
-snow sql -f tasks/task_monthly_boardex_exec_intel.sql
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f schemas/boardex_exec_intel.sql
+python3 scripts/deploy_sp.py   # regenerate procedures/sp_create_procedure.sql and create the SP as ACCOUNTADMIN
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_monthly_boardex_exec_intel.sql
 ```
+
+Deploy as ACCOUNTADMIN: the live SP, table and task are owned by ACCOUNTADMIN, and SYSADMIN lacks CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC`. `scripts/deploy_sp.py` passes `--role ACCOUNTADMIN` by default (`--role` overrides it).
 
 DC ingest is configured via the existing federation connector (see Plan 10 Task 7 + the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`).

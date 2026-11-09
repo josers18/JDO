@@ -172,8 +172,8 @@ def main() -> int:
         help="Snowflake CLI connection name (default: unflagged, active connection)",
     )
     parser.add_argument(
-        "--role", default=None,
-        help="Snowflake role override (the FINS__PUBLIC objects are owned by ACCOUNTADMIN)",
+        "--role", default="ACCOUNTADMIN",
+        help="Role passed to snow sql (default: ACCOUNTADMIN, which owns the FINS__PUBLIC objects; SYSADMIN lacks CREATE TABLE)",
     )
     parser.add_argument(
         "--no-deploy", action="store_true",

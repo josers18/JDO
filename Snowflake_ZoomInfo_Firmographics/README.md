@@ -37,9 +37,11 @@ pytest tests/ -v
 
 ## Deploy
 ```bash
-snow sql -f schemas/zoominfo_firmographics.sql
-snow sql -f procedures/sp_create_procedure.sql
-snow sql -f tasks/task_monthly_zoominfo_firmographics.sql
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f schemas/zoominfo_firmographics.sql
+python3 scripts/deploy_sp.py   # regenerate procedures/sp_create_procedure.sql and create the SP as ACCOUNTADMIN
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_monthly_zoominfo_firmographics.sql
 ```
+
+Deploy as ACCOUNTADMIN: the live SP, table and task are owned by ACCOUNTADMIN, and SYSADMIN lacks CREATE TABLE on `DATA_JEDAIS.FINS__PUBLIC`. `scripts/deploy_sp.py` passes `--role ACCOUNTADMIN` by default (`--role` overrides it).
 
 DC ingest is configured via the existing federation connector (see Plan 11 Task 7 + the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`).

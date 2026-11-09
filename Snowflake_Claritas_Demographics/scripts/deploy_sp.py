@@ -46,13 +46,18 @@ def main() -> int:
         default=None,
         help="Snowflake CLI connection name (default: unflagged — use the active JWT connection)",
     )
+    parser.add_argument(
+        "--role",
+        default="ACCOUNTADMIN",
+        help="Role that creates (and so owns) the SP (default: ACCOUNTADMIN; SYSADMIN lacks CREATE TABLE for the write_pandas staging table).",
+    )
     args = parser.parse_args()
 
     if not SP_SQL.exists():
         print(f"ERROR: {SP_SQL} does not exist", file=sys.stderr)
         return 1
 
-    cmd = ["snow", "sql", "-f", str(SP_SQL)]
+    cmd = ["snow", "sql", "--role", args.role, "-f", str(SP_SQL)]
     if args.connection:
         cmd[1:1] = ["-c", args.connection]
     print(f"Deploying SP via: {' '.join(cmd)}")
@@ -64,6 +69,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
+        + f" --role {args.role}"
         + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_CLARITAS_DEMOGRAPHICS' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")
