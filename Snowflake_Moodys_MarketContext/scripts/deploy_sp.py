@@ -15,74 +15,47 @@ What this script does:
      SP body (the helpers are inlined; no IMPORTS / no stage).
   4. Emit a single inline-source `CREATE OR REPLACE PROCEDURE ...` SQL file
      at `procedures/sp_create_procedure.sql`.
-  5. Run `snow sql -f procedures/sp_create_procedure.sql` (default JWT
-     connection — no `-c` flag needed).
+  5. Run `snow sql --role ACCOUNTADMIN -f procedures/sp_create_procedure.sql`
+     (default JWT connection, no `-c` flag needed). The SP is
+     `EXECUTE AS OWNER` and `write_pandas` creates a staging table, so the
+     owner needs CREATE TABLE on FINS__PUBLIC. ACCOUNTADMIN has it; recreating
+     the SP as the default SYSADMIN role makes every CALL fail with
+     "Insufficient privileges ... CREATE TABLE".
 
-Plan 13 differences from the v1.5 template (Plan 8 baseline) — FOUR
-structural deviations, the most-divergent instantiation in the rollout.
-This is the FINAL Cumulus plan in the rollout (13 of 13):
+Plan 13 differences from the v1.5 template (Plan 8 baseline). This is the
+FINAL Cumulus plan in the rollout (13 of 13):
 
-  - **FINAL Cumulus plan in the rollout.** Plans 1-8 shipping live; Plans
-    9-12 drafted in parallel; Plan 13 closes out the dataset rollout. The
-    structural-deviation count peaks here.
+  - **Business-account-scoped (v2 re-scope).** Audience is
+    `V_ACCOUNT_ANCHORS WHERE ACCOUNT_TYPE_FLAG = 'BUSINESS'`; one row per
+    business account per PROFILE_DATE, MERGE keyed (ORG_ID, ACCOUNT_ID,
+    PROFILE_DATE). The original instrument-scoped design (INSTRUMENT_UNIVERSE,
+    TICKER key) is historical.
 
-  - **Instrument-scoped, NOT account-scoped.** Reads
-    `DATA_JEDAIS.FINS__PUBLIC.INSTRUMENT_UNIVERSE` directly — no V_ACCOUNT_ANCHORS
-    read; no `_anchor_in_audience` predicate. Row factory takes an
-    instrument record `(TICKER, INSTRUMENT_NAME, SECTOR, BASE_PRICE)`
-    rather than an account anchor. Composite PK is `(TICKER, PROFILE_DATE)`
-    with no ACCOUNT_ID column. This is the second non-account-scoped
-    Cumulus plan after Plan 4 (Esri / branch-scoped).
+  - **Second daily cadence** (after Plan 7). Live cron
+    `15 3 * * * America/New_York` (TASK_DAILY_MOODYS_MARKET_CONTEXT).
+    `NUM_DAYS` (default 1) backfills the last N days.
 
-  - **Second daily cadence** (after Plan 7). Cron `0 1 * * * UTC`
-    (01:00 UTC daily — pre-Asia-open; Tokyo opens at 00:00 UTC, so
-    01:00 UTC gives a 30-minute buffer after the synthetic data
-    publication AND keeps Plan 7 / Plan 13 clear of each other on the
-    shared MAIN_WH_XS warehouse — Plan 7 runs at 06:00 UTC).
-
-  - **Two-salt hybrid model** (`moodys` daily + `moodys_year` year-stable).
-    Same shape as Plan 5 (`corelogic` + `corelogic_year`), now applied at
-    daily cadence. The two salts are plain string constants in the SP
-    module so they get inlined automatically — no helpers in
-    cumulus_common need updating.
+  - **Two-salt hybrid model** (`moodys` daily + `moodys_year` year-stable),
+    plus `moodys_moves` for the in-year outlook episodes. The salts are plain
+    string constants in the SP module so they get inlined automatically.
 
   - **`_daily_seed` wrapper inlined per Plan 7 pattern.** Cumulus_Common's
-    `seed_for` buckets on Y-M only (Plan 0 design choice); the wrapper
-    folds the calendar day into the ticker parameter so we get a unique
-    seed per (ticker, calendar day). The wrapper lives IN the SP module
-    (not in cumulus_common) so it gets inlined automatically as part of
-    the SP body. Plan 7 and Plan 13 are the only two daily-cadence plans;
-    no need to promote the wrapper to cumulus_common for two consumers.
+    `seed_for` buckets on Y-M only; the wrapper folds the calendar day into
+    the account_id parameter so each (account, day) gets its own seed. It
+    lives IN the SP module so it gets inlined with the body.
 
-  - **INSTRUMENT_UNIVERSE schema drift caught at draft time.** The umbrella
-    spec said the audience was `WHERE IS_ACTIVE = TRUE` keyed by
-    INSTRUMENT_ID; live INSTRUMENT_UNIVERSE has TICKER PK and no
-    IS_ACTIVE column. Plan 13 keys on TICKER and reads the full table
-    unconditionally. Same shape of fix as Plan 8's `run_ts.date()` vs
-    `month_start.date()` rowspec drift — caught at draft time, no spec
-    amendment needed since Plan 13 is the only consumer.
+  - **Snowflake digit-leading column rename.** The rowspec's
+    `52_WEEK_HIGH_PRICE` / `52_WEEK_LOW_PRICE` / `30_DAY_PRICE_CHANGE_PCT`
+    live as `FIFTY_TWO_WEEK_HIGH_USD` / `FIFTY_TWO_WEEK_LOW_USD` /
+    `THIRTY_DAY_PRICE_CHANGE_PCT`.
 
-  - **Snowflake digit-leading column rename.** Snowflake identifiers cannot
-    begin with a digit, so the rowspec fields `52_WEEK_HIGH_PRICE`,
-    `52_WEEK_LOW_PRICE`, and `30_DAY_PRICE_CHANGE_PCT` are renamed at the
-    DDL level to `FIFTY_TWO_WEEK_HIGH_PRICE`, `FIFTY_TWO_WEEK_LOW_PRICE`,
-    and `THIRTY_DAY_PRICE_CHANGE_PCT`. The output dict keys, MERGE source
-    SELECT, and DC field mapping all use the renamed identifiers
-    consistently.
+  - **0 BOOLEAN, 4 NULLable** (OUTLOOK_LAST_CHANGED_DATE, ANNUAL_REVENUE_USD,
+    EMPLOYEE_COUNT, ORG_ID). None -> SQL NULL passes through write_pandas;
+    the date columns get the all-NULL mistype guard in `_merge`.
 
-  - **0 BOOLEAN, 1 NULLable** (OUTLOOK_LAST_CHANGED_DATE). Simplest
-    NULL/Boolean footprint of any Cumulus dataset — the DC Boolean-
-    declaration ceremony from Plans 5/7/8 is NOT needed here. The single
-    NULLable column passes None -> SQL NULL transparently through
-    write_pandas; no special MERGE source SELECT cast.
-
-  - **No sanitize step.** "Moody's" carries an apostrophe in the
-    human-facing description text but the directory and table names
-    (Moodys / MOODYS) drop it. Module docstrings use double-quoted Python
-    strings so the apostrophe is fine inside the body. There is no
-    ampersand to sanitize either — the Plan 3 `DnB` rename cleaning
-    step is intentionally OMITTED here (no ampersand appears in any
-    Plan 13 vendor name, identifier, comment, or string literal).
+  - **No sanitize step.** "Moody's" carries an apostrophe only in
+    human-facing text (doubled inside the $$ body); there is no ampersand,
+    so the Plan 3 `DnB` cleaning step is intentionally OMITTED.
 
 Why inline source instead of `snow snowpark deploy`?
   - The SP imports from `cumulus_common`, a sibling sister package.
@@ -106,8 +79,8 @@ Caveats inherited from Plans 2-7:
 Usage:
     python scripts/deploy_sp.py [--connection NAME] [--no-deploy]
 
-    `--connection` is optional. The default JWT connection is now active so
-    `snow sql -f ...` works flag-less.
+    `--connection` is optional (the default JWT connection is active).
+    `--role` defaults to ACCOUNTADMIN; see step 5 for why.
 """
 from __future__ import annotations
 
@@ -309,6 +282,11 @@ def main() -> int:
         help="Snowflake CLI connection name (default: unflagged — use the active JWT connection)",
     )
     parser.add_argument(
+        "--role",
+        default="ACCOUNTADMIN",
+        help="Role that creates (and so owns) the SP (default: ACCOUNTADMIN).",
+    )
+    parser.add_argument(
         "--no-deploy",
         action="store_true",
         help="Generate sp_create_procedure.sql but skip running snow sql -f.",
@@ -329,7 +307,7 @@ def main() -> int:
         print("--no-deploy set; skipping snow sql.")
         return 0
 
-    cmd = ["snow", "sql", "-f", str(SP_SQL)]
+    cmd = ["snow", "sql", "--role", args.role, "-f", str(SP_SQL)]
     if args.connection:
         cmd[1:1] = ["-c", args.connection]
     print(f"Deploying SP via: {' '.join(cmd)}")
@@ -341,6 +319,7 @@ def main() -> int:
     verify_cmd = (
         "snow sql"
         + (f" -c {args.connection}" if args.connection else "")
+        + f" --role {args.role}"
         + " -q \"SHOW PROCEDURES LIKE 'SP_GENERATE_MOODYS_MARKET_CONTEXT' IN SCHEMA DATA_JEDAIS.FINS__PUBLIC\""
     )
     print("Deploy complete. Verify with:")

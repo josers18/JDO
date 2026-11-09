@@ -8,7 +8,7 @@ Synthetic Moody's Investors Service / Moody's Analytics-style credit-rating + ma
 
 Each business account in `V_ACCOUNT_ANCHORS` (`ACCOUNT_TYPE_FLAG = 'BUSINESS'`, 11,529 on 2026-11-09) gets one row per `PROFILE_DATE`. The table PK is `RECORD_ID` (a UUID row id); the MERGE keeps rows unique on `(ORG_ID, ACCOUNT_ID, PROFILE_DATE)`, so a same-day re-run replaces that day in place while each new day adds rows. History accumulates: 2,809,350 rows over 246 days (2026-03-01 to 2026-11-09). `ACCOUNT_ID` joins `ssot__Account__dlm.ssot__Id__c`, and the DMO carries that relationship.
 
-> **History.** Plan 13 shipped first as an instrument-scoped table (one row per `INSTRUMENT_UNIVERSE` ticker, 2,004 rows/day, keyed `(TICKER, PROFILE_DATE)`, not joinable to Account). The v2 schema re-scoped it to business accounts; nothing instrument-based is live. The L2 test SQL under `tests/integration/` still targets the instrument design and needs rewriting.
+> **History.** Plan 13 shipped first as an instrument-scoped table (one row per `INSTRUMENT_UNIVERSE` ticker, 2,004 rows/day, keyed `(TICKER, PROFILE_DATE)`, not joinable to Account). The v2 schema re-scoped it to business accounts; nothing instrument-based is live.
 
 ## Plan
 - Plan 13 (the final plan), instantiated from `../docs/superpowers/plans/2026-05-28-cumulus-plan-N-dataset-template.md` (v1.5)
@@ -82,14 +82,18 @@ pip install -e ../Snowflake_Cumulus_Common
 pytest tests/ -v
 ```
 
+L2 integration test (live Snowflake, cleans up after itself; every result column must be TRUE):
+```bash
+snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tests/integration/test_moodys_market_context_sp.sql
+```
+
 ## Deploy
 ```bash
-python3 scripts/deploy_sp.py --no-deploy   # regenerate procedures/sp_create_procedure.sql
 snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f schemas/moodys_market_context.sql
-snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f procedures/sp_create_procedure.sql
+python3 scripts/deploy_sp.py   # regenerate procedures/sp_create_procedure.sql and create the SP as ACCOUNTADMIN
 snow sql -c SFDC_DC_TECH_ARCH_jwt --role ACCOUNTADMIN -f tasks/task_daily_moodys_market_context.sql
 ```
 
-Deploy as ACCOUNTADMIN, because the SP is `EXECUTE AS OWNER` and its `write_pandas` staging table needs CREATE TABLE. `schemas/moodys_market_context.sql` is the current multi-org DDL; `_v2.sql` is the pre-ORG_ID re-scope version.
+Deploy as ACCOUNTADMIN, because the SP is `EXECUTE AS OWNER` and its `write_pandas` staging table needs CREATE TABLE. `scripts/deploy_sp.py` passes `--role ACCOUNTADMIN` by default (`--role` overrides it; `--no-deploy` only regenerates the SQL). `schemas/moodys_market_context.sql` is the current multi-org DDL; `_v2.sql` is the pre-ORG_ID re-scope version.
 
 DC ingest is configured via the existing federation connector (see Plan 13 Task 7 + the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md`).
