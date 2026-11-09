@@ -27,7 +27,7 @@ SELECT DISTINCT * FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS
 
 Cardinality: **~36,813 distinct accounts**. The v1 design was Wealth Management only (`CLIENT_CATEGORY = 'Wealth Management'`, 3,920 accounts probed 2026-05-28), which left ~89% of customers with no plan data; the rebroadcast dropped that predicate.
 
-**BUSINESS-anchor fallback.** PERSON anchors keep `BIRTHDATE` + `ANNUAL_INCOME` populated. BUSINESS anchors have both NULL, so `_effective_age` and `_effective_annual_income` synthesize a "business owner" persona — a year-stable owner age in [40, 65] from the `ACCOUNT_ID` hash, and an owner draw of ~5% of `ANNUAL_REVENUE` clamped to [$150K, $2M]. The age/income-banded helpers downstream are unchanged.
+**BUSINESS-anchor fallback.** PERSON anchors keep `BIRTHDATE` + `ANNUAL_INCOME` populated. BUSINESS anchors have both NULL, so `_effective_age` and `_effective_annual_income` synthesize a "business owner" persona — a year-stable owner age in [40, 65] from a sha256 of `ACCOUNT_ID` (not Python's `hash()`, which is salted per process; fixed 2026-11-09, which re-drew every business owner age), and an owner draw of ~5% of `ANNUAL_REVENUE` clamped to [$150K, $2M]. The age/income-banded helpers downstream are unchanged.
 
 Each anchor emits exactly one financial-plan row per month → **~36,813 rows/month**.
 
