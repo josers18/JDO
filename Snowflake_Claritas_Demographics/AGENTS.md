@@ -2,7 +2,7 @@
 
 Synthetic Claritas-style dataset for the Cumulus FSC demo. One of 13.
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A 2026-05-29 `c9119d32`; deployed SQL ported 2026-11-09, PR #168).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id the DMO keys on); UNIQUE `(ACCOUNT_ID, PROFILE_MONTH)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, second-to-last column. Both `procedures/sp_generate_*.py` and the deployed `procedures/sp_create_procedure.sql` stamp `"ORG_ID": anchor.get("ORG_ID") or "JDO"` on each row, and the MERGE source SELECT, `ON` and `INSERT` carry `ORG_ID`, so `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` is the effective key. UPDATE SET skips `ORG_ID` (key component). Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.CLARITAS_DEMOGRAPHICS`, `SP_GENERATE_CLARITAS_DEMOGRAPHICS`, `TASK_MONTHLY_CLARITAS_DEMOGRAPHICS`, and the DC Data Stream / DLO / DMO that federates this table.
@@ -12,7 +12,7 @@ Synthetic Claritas-style dataset for the Cumulus FSC demo. One of 13.
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"claritas"`.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` in step 4 — the canonical "coverage gap: N missing rows" message lives there.
-- The MERGE replaces on PK `(ACCOUNT_ID, PROFILE_MONTH)`. Re-runs are idempotent within a calendar month.
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. Re-runs are idempotent within a calendar month.
 - Audience SQL uses `SELECT DISTINCT *` to defend against the 1.7% MASTER_ACCOUNTS dupe pattern documented in the umbrella spec §3 v1.2.
 
 ## Tests

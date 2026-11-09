@@ -2,19 +2,19 @@
 
 Synthetic MoneyGuidePro / eMoney / NaviPlan-style financial-plan dataset for the Cumulus FSC demo. One of 13. **Account-scoped with monthly cadence and an all-accounts audience (~36,813 anchors, PERSON + BUSINESS) — the first dataset whose NULL semantics are gated by a non-Boolean enum.** The v1 design was Wealth Management only (~3,920 anchors); the rebroadcast dropped the `CLIENT_CATEGORY` predicate and added a BUSINESS-anchor "business owner" fallback (see Gotchas).
 
-> **v1.x multi-org-additive (Phase A, 2026-05-29 commit `c9119d32`).** Table now leads with `ORG_ID VARCHAR(18) NOT NULL DEFAULT 'JDO'` as the first column; PK promoted from `(ACCOUNT_ID, PROFILE_MONTH)` to `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. SP row factory stamps `"ORG_ID": anchor.get("ORG_ID", "JDO")` as the first key; MERGE source SELECT, ON, INSERT lists all lead with ORG_ID; UPDATE SET deliberately skips ORG_ID (PK-component, immutable). The `num_cycles` parameter on `main()` is unchanged. Backward-compatible — JDO loaders continue working unchanged via DEFAULT. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md`.
+> **v1.x multi-org (Phase A 2026-05-29 `c9119d32`; deployed SQL ported 2026-11-09, PR #168).** Live table: PK `RECORD_ID` (`UUID_STRING()` default, the row id the DMO keys on); UNIQUE `(ACCOUNT_ID, PROFILE_MONTH)` (`RELY = false`, not enforced, no `ORG_ID`, which is cosmetic); `ORG_ID VARCHAR(18)` nullable, `DEFAULT 'JDO'`, second-to-last column. Both `procedures/sp_generate_*.py` and the deployed `procedures/sp_create_procedure.sql` stamp `"ORG_ID": anchor.get("ORG_ID") or "JDO"` on each row, and the MERGE source SELECT, `ON` and `INSERT` carry `ORG_ID`, so `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` is the effective key. UPDATE SET skips `ORG_ID` (key component). The `num_cycles` parameter on `main()` is unchanged. Multi-org rollout runbook: `Snowflake_Cumulus_Common/docs/ROLLOUT.md` (A6).
 
 ## Boundaries
 - Owns: `DATA_JEDAIS.FINS__PUBLIC.MGP_FINANCIAL_PLANS`, `SP_GENERATE_MGP_FINANCIAL_PLANS`, `TASK_MONTHLY_MGP_FINANCIAL_PLANS`, and the DC Data Stream / DLO / DMO that federates this table.
 - Does NOT own: `V_ACCOUNT_ANCHORS`, `MASTER_ACCOUNTS`, the seed/coverage helpers — see `Snowflake_Cumulus_Common`.
 - Does NOT own any outbound Snowflake share. DC reads through via the existing "Snowflake (Federate / Zero Copy)" connector.
-- **Account-scoped** — rows are keyed by composite PK `(ACCOUNT_ID, PROFILE_MONTH)`, with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct account per month.**
+- **Account-scoped** — rows are keyed by `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)` (MERGE `ON`; table PK is `RECORD_ID`), with FK `ACCOUNT_ID` to `ssot__Account__dlm`. **1:1 — one row per distinct account per month.**
 
 ## Conventions
 - The SP uses `cumulus_common.seed_for(...)` for determinism with salt `"mgp"` (**month-bucketed**, single-salt — no year-stable streams; back to Plan 6's simpler shape after Plan 7's three salts).
 - **One seed stream per anchor per run** — `seed_for(account_id, "mgp", month_start)` where `month_start = run_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)`. Drives PLAN_STATUS, PLAN_LAST_UPDATED_DATE, RETIREMENT_TARGET_AGE, MONTHLY_INCOME_TARGET_USD, TOTAL_GOAL_AMOUNT_USD, GOAL_COUNT, MONTE_CARLO_SUCCESS_PCT, RECOMMENDED_ASSET_ALLOCATION, LAST_REVIEW_DATE, NEXT_REVIEW_DATE, ADVISOR_NOTES_FLAG. Mid-month re-runs are byte-identical because `month_start` truncates day + time.
 - The SP uses `cumulus_common.assert_coverage(session, expected_sql, actual_sql)` for the standard 1:1 audience-vs-actual coverage check (every distinct anchor must produce exactly one row per month).
-- The MERGE replaces on composite PK `(ACCOUNT_ID, PROFILE_MONTH)`. Re-runs same calendar month are idempotent (byte-identical). Re-runs in a later month INSERT new rows for that month.
+- The MERGE replaces on `(ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`. Re-runs same calendar month are idempotent (byte-identical). Re-runs in a later month INSERT new rows for that month.
 - Audience SQL is `SELECT DISTINCT * FROM V_ACCOUNT_ANCHORS` — no predicate; `_anchor_in_audience` is True iff `ACCOUNT_ID` is non-empty. ~36,813 distinct accounts. The v1 predicate `WHERE CLIENT_CATEGORY = 'Wealth Management'` (3,920 accounts, probed 2026-05-28) is gone; it left ~89% of customers with no plan data. BUSINESS anchors have NULL `BIRTHDATE` / `ANNUAL_INCOME` and go through `_effective_age` / `_effective_annual_income`.
 - `accounts_processed` in `TASK_EXECUTION_LOG` equals `len(audience)` — the **distinct customer count** AND the row count (1:1 emit per anchor per month).
 
@@ -37,7 +37,7 @@ Synthetic MoneyGuidePro / eMoney / NaviPlan-style financial-plan dataset for the
 - 1 BOOLEAN column (`ADVISOR_NOTES_FLAG`) — declare as `Boolean` in DC DLO + DMO (Plan 5 finding — defaulting to Text fails the Boolean parse). Snowflake stores BOOLEAN natively; the MERGE source SELECT casts via `ADVISOR_NOTES_FLAG::BOOLEAN` to be explicit (write_pandas could mis-type on an empty target).
 - 2 NULLable date columns (`LAST_REVIEW_DATE`, `NEXT_REVIEW_DATE`) — both gated by `PLAN_STATUS`. The DDL marks both as NULL; the MERGE source SELECT must preserve `None` → `NULL`.
 - The `write_pandas(auto_create_table=True)` mis-types `datetime64[ns]` as `NUMBER(38,0)`. The MERGE source SELECT casts back via `TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000)` — see template Task 4 §_merge.
-- 14 columns total: 12 NOT NULL + 2 NULLable (LAST_REVIEW_DATE, NEXT_REVIEW_DATE).
+- 16 columns total: 13 NOT NULL (incl. `RECORD_ID`) + 3 NULLable (LAST_REVIEW_DATE, NEXT_REVIEW_DATE, ORG_ID).
 - L1 conftest provides a synthetic anchor fixture — `SAMPLE_ANCHORS` from Cumulus_Common, unfiltered (`in_audience_anchors` = every anchor with a non-empty `ACCOUNT_ID`).
 - The DLO → DMO field mapping must be completed in DC Setup UI for fully-custom DMOs (the API endpoint returns 500). See the recipe at `../Snowflake_Claritas_Demographics/docs/dc-setup-recipe.md` from Plan 1 T7.
 - Snowflake DATE columns auto-discover as `MM/dd/yyyy` in the DC data-stream POST body. Use that format for `PROFILE_MONTH`, `PLAN_LAST_UPDATED_DATE`, `LAST_REVIEW_DATE`, `NEXT_REVIEW_DATE`'s `sourceFields` entries, NOT `yyyy-MM-dd`.

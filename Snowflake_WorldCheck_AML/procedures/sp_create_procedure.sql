@@ -25,9 +25,9 @@
 --           — README uses canonical name.
 -- Synced 2026-11-09 to the deployed body (GET_DDL): this file is what
 -- deploy_sp.py runs, and it now matches live, EXECUTE AS OWNER included.
--- The deployed MERGE matches on the natural key only and writes no ORG_ID
--- (rows take the column DEFAULT 'JDO'). The ORG_ID-aware version is the
--- Python source in this folder; see Snowflake_Cumulus_Common/docs/ROLLOUT.md A6.
+-- 2026-11-09 (later): ORG_ID ported from the Python source in this folder.
+-- Each row is stamped from the anchor (default 'JDO'); the MERGE source, ON and
+-- INSERT carry ORG_ID. UPDATE SET skips it (key component).
 -- =============================================================================
 
 CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML()
@@ -121,7 +121,7 @@ DATASET_SALT_CASE           = "worldcheck_case"
 
 # Plan 7 has no audience predicate -- every distinct account is screened daily.
 _AUDIENCE_PREDICATE = ""  # all-accounts; kept as empty string for symmetry
-AUDIENCE_SQL = "SELECT DISTINCT ACCOUNT_ID, ACCOUNT_NAME, CLIENT_CATEGORY, ACCOUNT_TYPE_FLAG, BIRTHDATE, ANNUAL_INCOME, CREDIT_SCORE, INDUSTRY, ANNUAL_REVENUE, EMPLOYEE_COUNT, POSTAL_CODE, STATE_CODE, COUNTRY_CODE, EXTERNAL_ID FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID ORDER BY SNAPSHOT_DATE DESC) = 1"
+AUDIENCE_SQL = "SELECT DISTINCT ORG_ID, ACCOUNT_ID, ACCOUNT_NAME, CLIENT_CATEGORY, ACCOUNT_TYPE_FLAG, BIRTHDATE, ANNUAL_INCOME, CREDIT_SCORE, INDUSTRY, ANNUAL_REVENUE, EMPLOYEE_COUNT, POSTAL_CODE, STATE_CODE, COUNTRY_CODE, EXTERNAL_ID FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS QUALIFY ROW_NUMBER() OVER (PARTITION BY ORG_ID, ACCOUNT_ID ORDER BY SNAPSHOT_DATE DESC) = 1"
 COVERAGE_SQL = "SELECT COUNT(DISTINCT ACCOUNT_ID) FROM DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS"
 
 # 13-column output contract (kept in sync with the table DDL by the L1 schema test).
@@ -319,6 +319,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     case_ref = _case_reference(account_id, run_ts, overall)
 
     return {
+        "ORG_ID":                   anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
         "ACCOUNT_ID":               account_id,
         "PROFILE_DATE":             day_start.date(),
         "OVERALL_RISK_RATING":      overall,
@@ -449,6 +450,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.WORLD_CHECK_AML tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_DATE,
                 OVERALL_RISK_RATING,
@@ -465,7 +467,8 @@ def _merge(session: Any, records: list[dict]) -> int:
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
             QUALIFY ROW_NUMBER() OVER (PARTITION BY ACCOUNT_ID, PROFILE_DATE ORDER BY GENERATED_AT DESC) = 1
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_DATE = src.PROFILE_DATE
         WHEN MATCHED THEN UPDATE SET
             OVERALL_RISK_RATING      = src.OVERALL_RISK_RATING,
@@ -480,14 +483,14 @@ def _merge(session: Any, records: list[dict]) -> int:
             CASE_REFERENCE           = src.CASE_REFERENCE,
             GENERATED_AT             = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_DATE, OVERALL_RISK_RATING,
+            ORG_ID, ACCOUNT_ID, PROFILE_DATE, OVERALL_RISK_RATING,
             SANCTIONS_HIT, PEP_HIT, ADVERSE_MEDIA_HIT,
             ADVERSE_MEDIA_CATEGORIES,
             RISK_JURISDICTION_CODE, RISK_JURISDICTION_TIER,
             LAST_SCREENED_AT, CHANGE_SINCE_LAST_RUN,
             CASE_REFERENCE, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_DATE, src.OVERALL_RISK_RATING,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_DATE, src.OVERALL_RISK_RATING,
             src.SANCTIONS_HIT, src.PEP_HIT, src.ADVERSE_MEDIA_HIT,
             src.ADVERSE_MEDIA_CATEGORIES,
             src.RISK_JURISDICTION_CODE, src.RISK_JURISDICTION_TIER,

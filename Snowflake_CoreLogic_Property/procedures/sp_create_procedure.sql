@@ -18,9 +18,9 @@
 -- Vendor:   CoreLogic-style (property profile shape) — README uses canonical name
 -- Synced 2026-11-09 to the deployed body (GET_DDL): this file is what
 -- deploy_sp.py runs, and it now matches live, EXECUTE AS OWNER included.
--- The deployed MERGE matches on the natural key only and writes no ORG_ID
--- (rows take the column DEFAULT 'JDO'). The ORG_ID-aware version is the
--- Python source in this folder; see Snowflake_Cumulus_Common/docs/ROLLOUT.md A6.
+-- 2026-11-09 (later): ORG_ID ported from the Python source in this folder.
+-- Each row is stamped from the anchor (default 'JDO'); the MERGE source, ON and
+-- INSERT carry ORG_ID. UPDATE SET skips it (key component).
 -- =============================================================================
 
 CREATE OR REPLACE PROCEDURE DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_CORELOGIC_PROPERTY()
@@ -496,6 +496,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
 
     if not is_owner:
         return {
+            "ORG_ID":                       anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
             "ACCOUNT_ID":                   account_id,
             "PROFILE_QUARTER":              quarter_start.date(),
             "IS_OWNER":                     False,
@@ -525,6 +526,7 @@ def _row_for(anchor: dict, run_ts: datetime) -> dict:
     heloc         = _heloc_opportunity(equity, lien_count, ltv, rng)
 
     return {
+        "ORG_ID":                       anchor.get("ORG_ID") or "JDO",  # v1.x multi-org: stamped from the anchor
         "ACCOUNT_ID":                   account_id,
         "PROFILE_QUARTER":              quarter_start.date(),
         "IS_OWNER":                     True,
@@ -578,6 +580,7 @@ def _merge(session: Any, records: list[dict]) -> int:
         MERGE INTO DATA_JEDAIS.FINS__PUBLIC.CORELOGIC_PROPERTY tgt
         USING (
             SELECT
+                ORG_ID,
                 ACCOUNT_ID,
                 PROFILE_QUARTER,
                 IS_OWNER,
@@ -595,7 +598,8 @@ def _merge(session: Any, records: list[dict]) -> int:
                 TO_TIMESTAMP_NTZ(GENERATED_AT::NUMBER / 1000000000) AS GENERATED_AT
             FROM DATA_JEDAIS.FINS__PUBLIC.{staging}
         ) src
-        ON tgt.ACCOUNT_ID = src.ACCOUNT_ID
+        ON tgt.ORG_ID = src.ORG_ID
+           AND tgt.ACCOUNT_ID = src.ACCOUNT_ID
            AND tgt.PROFILE_QUARTER = src.PROFILE_QUARTER
         WHEN MATCHED THEN UPDATE SET
             IS_OWNER                     = src.IS_OWNER,
@@ -612,14 +616,14 @@ def _merge(session: Any, records: list[dict]) -> int:
             HELOC_OPPORTUNITY_SCORE      = src.HELOC_OPPORTUNITY_SCORE,
             GENERATED_AT                 = src.GENERATED_AT
         WHEN NOT MATCHED THEN INSERT (
-            ACCOUNT_ID, PROFILE_QUARTER, IS_OWNER,
+            ORG_ID, ACCOUNT_ID, PROFILE_QUARTER, IS_OWNER,
             PRIMARY_PROPERTY_TYPE, ESTIMATED_PROPERTY_VALUE,
             OUTSTANDING_MORTGAGE_BALANCE, LOAN_TO_VALUE_PCT, EQUITY_USD,
             MORTGAGE_RATE_PCT, LIEN_COUNT, FLOOD_ZONE_CODE,
             WILDFIRE_RISK_SCORE, LAST_TRANSFER_YEAR,
             HELOC_OPPORTUNITY_SCORE, GENERATED_AT
         ) VALUES (
-            src.ACCOUNT_ID, src.PROFILE_QUARTER, src.IS_OWNER,
+            src.ORG_ID, src.ACCOUNT_ID, src.PROFILE_QUARTER, src.IS_OWNER,
             src.PRIMARY_PROPERTY_TYPE, src.ESTIMATED_PROPERTY_VALUE,
             src.OUTSTANDING_MORTGAGE_BALANCE, src.LOAN_TO_VALUE_PCT, src.EQUITY_USD,
             src.MORTGAGE_RATE_PCT, src.LIEN_COUNT, src.FLOOD_ZONE_CODE,
