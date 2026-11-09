@@ -45,6 +45,23 @@ Backfilled 2026-05 → 2026-11 (≈ 440K rows a month; pre-change backup
 (`_shared/src/data/whitespace.ts`) reads each cell's series from
 `BT_Offer_Eligibility_History__dlm`; Data 360 computes the six-month change.
 
+**Movers (Rising / Falling).** A cell counts as a mover when its conversion
+score moved ≥ 2 points (`SCORE_MOVE_MIN`) **or** its expected value moved
+≥ $250 (`VALUE_MOVE_MIN`) since the window's first month. The value rule
+catches large-basis offers (Investing, Managed Account, 401(k) Rollover) whose
+EV swings with held-away balances while the score barely moves. Movers sort by
+EV gained or lost, not raw points.
+
+**Re-score after Plaid regen.** Investing / Managed Account / IRA Rollover take
+their held-away bonus and value basis from `PLAID_HELD_AWAY`. Plaid v3
+(2026-11-06) adds market drift and ~4% moves to another firm, so whenever
+Plaid months are regenerated, re-run this SP for the same months, oldest
+first. History is zero-copy, so no DC refresh is needed. Live after the v3
+regen with the Oct–Nov rally (2026-11-06): Retail (Sarah Smith) Falling
+25 = 16 Investing + 9 HELOC, Rising 32 = 30 HELOC + 2 Investing; Wealth (Kim
+Johnson) Falling 27 = 14 Managed Account + 10 HELOC + 2 Roth/IRA + 1 Rollover,
+Rising 42 = 29 HELOC + 9 Managed Account + 4 Rollover.
+
 ```bash
 for m in 2026-05-01 2026-06-01 2026-07-01 2026-08-01 2026-09-01 2026-10-01 2026-11-01; do
   snow sql ${=R} -q "CALL DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_OFFER_ELIGIBILITY('$m'::DATE)"

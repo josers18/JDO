@@ -43,11 +43,12 @@ _LINK_REFERENCE = date(2026, 5, 1)
 # --- Market drift (v3, 2026-11-06) ------------------------------------------
 # Investment balances follow one shared market index, compounded month over
 # month from _LINK_REFERENCE (index 1.0), scaled per account by a beta. The
-# known months tell a story: a summer rally, an Aug-Sep pullback, a recovery.
+# known months tell a story: a summer rally, an Aug-Sep pullback, then an
+# Oct-Nov rally that leaves the market ~6% above May.
 # Months outside the table get a deterministic return hashed from the month.
 _MARKET_RETURNS: dict[tuple[int, int], float] = {
     (2026, 6): 0.024, (2026, 7): 0.011, (2026, 8): -0.038,
-    (2026, 9): -0.026, (2026, 10): 0.019, (2026, 11): 0.012,
+    (2026, 9): -0.026, (2026, 10): 0.028, (2026, 11): 0.065,
 }
 # Per-account beta range by account type (identity-stable draw).
 _MARKET_BETA: dict[str, tuple[float, float]] = {
