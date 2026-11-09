@@ -103,6 +103,16 @@ Caveats inherited from Plans 2-6:
     package already does this — copy that pattern when cloning to new
     datasets.
 
+2026-11-09 signature change: the SP now takes `RUN_DATE DATE DEFAULT NULL`
+(NULL = today UTC; a date backfills that screening day). `CREATE OR REPLACE`
+with a new signature creates a SECOND overload, and `CALL ...()` then becomes
+ambiguous. On the FIRST deploy of this version run, once:
+
+    DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML();
+
+The task and SP_RETRY_WRAPPER keep calling `SP_GENERATE_WORLD_CHECK_AML()`,
+which resolves to the defaulted overload.
+
 Usage:
     python scripts/deploy_sp.py [--connection NAME] [--no-deploy]
 
@@ -163,7 +173,7 @@ SQL_HEADER = f"""\
 --           — README uses canonical name.
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}()
+CREATE OR REPLACE PROCEDURE {PROCEDURE_FQN}(RUN_DATE DATE DEFAULT NULL)
 RETURNS STRING
 LANGUAGE PYTHON
 RUNTIME_VERSION = '3.11'
@@ -313,8 +323,16 @@ def main() -> int:
 
     if args.no_deploy:
         print("--no-deploy set; skipping snow sql.")
+        print(
+            "Reminder: before the first deploy of the RUN_DATE signature, run\n"
+            "  DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML();"
+        )
         return 0
 
+    print(
+        "NOTE: first deploy of the RUN_DATE signature must be preceded by:\n"
+        "  DROP PROCEDURE IF EXISTS DATA_JEDAIS.FINS__PUBLIC.SP_GENERATE_WORLD_CHECK_AML();"
+    )
     cmd = ["snow", "sql", "--role", args.role, "-f", str(SP_SQL)]
     if args.connection:
         cmd[2:2] = ["-c", args.connection]
