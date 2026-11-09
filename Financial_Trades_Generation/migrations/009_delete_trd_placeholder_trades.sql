@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 009 (NOT YET APPLIED): delete the 35,116 trades with a NULL
+-- Migration 009 (applied 2026-11-09, ~11:15 ET): delete the 35,116 trades with a NULL
 -- ACCOUNT_ID, i.e. the trades of the five old TRD- placeholder accounts.
 --
 -- Where they come from (traced 2026-11-09): TRADE_GENERATION_CONFIG rows
@@ -35,6 +35,9 @@
 --   snow sql --role ACCOUNTADMIN -f migrations/009_delete_trd_placeholder_trades.sql
 -- Safety: the block refuses to delete unless both the table and the backup
 -- hold exactly 35,116 NULL rows, and fails if the delete removed anything else.
+-- Result (2026-11-09): backup FINANCIAL_TRADES_TRD_BAK_20261109 = 35,116 rows;
+-- deleted 35,116; FINANCIAL_TRADES 6,642,761 -> 6,607,645; 0 NULL rows left.
+-- Data Cloud (BT_Financial_Trades__dlm) showed 0 NULL rows with no refresh.
 -- Rollback:
 --   INSERT INTO DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES
 --   SELECT * FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES_TRD_BAK_20261109;

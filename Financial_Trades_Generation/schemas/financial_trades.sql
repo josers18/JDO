@@ -11,7 +11,7 @@
 CREATE OR REPLACE TABLE DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES (
     TRADE_ID               VARCHAR(36)     NOT NULL,    -- UUID, unique trade identifier
     ORDER_ID               VARCHAR(36)     NOT NULL,    -- UUID, groups related trades
-    ACCOUNT_ID             VARCHAR(50),                 -- FK to TRADE_GENERATION_CONFIG; NULL = old TRD- placeholder (migration 001)
+    ACCOUNT_ID             VARCHAR(50),                 -- FK to TRADE_GENERATION_CONFIG; no NULLs since migration 009 (old TRD- rows deleted)
     TRADE_DATE             DATE NOT NULL,               -- Trade execution date (DATE: see migration 002)
     TRADE_TIME             VARCHAR(8),                  -- HH:MM:SS format trade time
     SETTLEMENT_DATE        DATE,                        -- T+2 business days from trade date

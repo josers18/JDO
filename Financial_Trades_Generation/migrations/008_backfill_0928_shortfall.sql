@@ -27,7 +27,7 @@
 -- rows, TRADE_GENERATION_CONFIG (LAST_GENERATED_DATE stays as it is).
 -- The NULL-ACCOUNT_ID (old TRD- placeholder) rows on 09-28 are 4, one per TRD
 -- account due that day, left by the same rn = 1 delete (normal Monday = 58).
--- They were left as they are; see "Known data gaps" in the README.
+-- They were left here; migration 009 deleted them on 2026-11-09.
 -- Expected total: 133,242 rows for 32,814 accounts, taking 09-28 from 32,317
 -- to 165,559.
 --

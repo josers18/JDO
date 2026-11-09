@@ -27,7 +27,8 @@
 -- own retry duplicates on 10 of these Mondays: 06-15, 07-06, 07-13, 08-17 and
 -- 09-14 have 66 rows, 09-07, 09-21 and 10-05 have 74, 10-19 has 90 and 10-12
 -- has 98, against the normal 58 (15+25+10 DAILY + 8 WEEKLY). No cockpit reader
--- sees them (all filter account_id); see "Known data gaps" in the README.
+-- sees them (all filter account_id). Migration 009 deleted all TRD rows on
+-- 2026-11-09.
 -- The DC stream BT_Financial_Trades
 -- is zero copy (DIRECT_ACCESS), so the delete shows up there with no refresh.
 -- Run as ACCOUNTADMIN on LARGE_LOAD outside the 03:00-03:10 ET task window, in

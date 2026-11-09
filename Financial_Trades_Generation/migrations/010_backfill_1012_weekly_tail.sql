@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 010 (NOT YET APPLIED): backfill the week of Monday 2026-10-12 for
+-- Migration 010 (applied 2026-11-09, ~11:15 ET): backfill the week of Monday 2026-10-12 for
 -- the 501 WEEKLY accounts that got no trades that week.
 --
 -- What happened on 10-12: all three DAILY_TRADE_GENERATOR attempts (00:10,
@@ -40,6 +40,12 @@
 -- rows show up there with no refresh.
 -- Run as ACCOUNTADMIN outside the 03:00-03:10 ET task window, in one session
 -- (snow sql --role ACCOUNTADMIN -f ...): the plan and stage are TEMPORARY.
+-- Result (2026-11-09): inserted 2,505 trades for 501 accounts; check 1
+-- WRONG_COUNT = 0. 10-12 = 180,552 rows / 35,814 accounts (2,505 marked): the
+-- expected 180,650 less the 98 TRD rows migration 009 had just deleted from
+-- 10-12. 10-05 (185,020) and 10-19 (185,106) unchanged; 10-13 = 7,520 (its
+-- 50 TRD rows gone). Backfilled rows match the same cohort's real trades on
+-- mean trade value ($61.7K vs $61.6K), fees, buy and confirmed share.
 -- Rollback:
 --   DELETE FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES
 --   WHERE TRADE_DATE = '2026-10-12' AND CREATED_AT = '2026-10-12 12:00:00';

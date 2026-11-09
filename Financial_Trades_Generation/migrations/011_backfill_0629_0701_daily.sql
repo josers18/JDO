@@ -1,5 +1,5 @@
 -- =============================================================================
--- Migration 011 (NOT YET APPLIED): backfill the DAILY accounts for
+-- Migration 011 (applied 2026-11-09, ~11:15 ET): backfill the DAILY accounts for
 -- 2026-06-29 (Mon) and 2026-07-01 (Wed), the two days with no trades at all.
 --
 -- What happened: TASK_HISTORY has no DAILY_TRADE_GENERATOR run for either day.
@@ -39,6 +39,11 @@
 -- rows show up there with no refresh.
 -- Run as ACCOUNTADMIN outside the 03:00-03:10 ET task window, in one session
 -- (snow sql --role ACCOUNTADMIN -f ...): the plan and stage are TEMPORARY.
+-- Result (2026-11-09): inserted 6,110 trades for 630 account-days; check 1
+-- WRONG_COUNT = 0 on both days. 06-29 and 07-01 = 3,055 rows / 315 accounts
+-- each, all marked; 06-28, 06-30 (185,146) and 07-02 unchanged. Backfilled
+-- rows match the DAILY accounts' real 06-28/06-30/07-02 trades on mean trade
+-- value ($98.6K vs $99.0K), fees, buy and confirmed share.
 -- Rollback:
 --   DELETE FROM DATA_JEDAIS.FINS__PUBLIC.FINANCIAL_TRADES
 --   WHERE (TRADE_DATE = '2026-06-29' AND CREATED_AT = '2026-06-29 12:00:00')
