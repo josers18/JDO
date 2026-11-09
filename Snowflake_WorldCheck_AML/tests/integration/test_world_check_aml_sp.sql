@@ -53,10 +53,12 @@ DROP VIEW      IF EXISTS DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTUR
 --    Management, Small Business, Commercial Banking, Household.
 --    The row factory ignores all anchor fields except ACCOUNT_ID, so demo
 --    diversity is cosmetic — but kept for column-contract symmetry with
---    V_ACCOUNT_ANCHORS.
+--    V_ACCOUNT_ANCHORS. ORG_ID ('JDO') is required: the SP's audience SQL
+--    selects it and partitions its latest-SNAPSHOT_DATE QUALIFY by it.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW DATA_JEDAIS.FINS__PUBLIC.V_ACCOUNT_ANCHORS_WCAML_FIXTURE AS
 SELECT
+    'JDO'::VARCHAR            AS ORG_ID,
     'WCAML-FIX-P-01'::VARCHAR AS ACCOUNT_ID,
     'Avery Stone'::VARCHAR     AS ACCOUNT_NAME,
     '2026-05-28'::DATE         AS SNAPSHOT_DATE,
@@ -72,20 +74,20 @@ SELECT
     'CA'::VARCHAR              AS STATE_CODE,
     'US'::VARCHAR              AS COUNTRY_CODE,
     'WCAML-FIX-P-001'::VARCHAR AS EXTERNAL_ID
-UNION ALL SELECT 'WCAML-FIX-P-02', 'Riley Park',     '2026-05-28'::DATE, 'Retail',            'PERSON',   '1995-08-22'::TIMESTAMP_LTZ,  62000, 700, NULL, NULL, NULL, '10025', 'NY', 'US', 'WCAML-FIX-P-002'
-UNION ALL SELECT 'WCAML-FIX-P-03', 'Casey Reed',     '2026-05-28'::DATE, 'Retail',            'PERSON',   '1990-11-05'::TIMESTAMP_LTZ,  95000, 720, NULL, NULL, NULL, '02115', 'MA', 'US', 'WCAML-FIX-P-003'
-UNION ALL SELECT 'WCAML-FIX-P-04', 'Quinn Marlowe',  '2026-05-28'::DATE, 'Wealth Management', 'PERSON',   '1988-04-08'::TIMESTAMP_LTZ, 280000, 770, NULL, NULL, NULL, '94027', 'CA', 'US', 'WCAML-FIX-P-004'
-UNION ALL SELECT 'WCAML-FIX-P-05', 'Jordan Vega',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON',   '1975-06-12'::TIMESTAMP_LTZ, 410000, 790, NULL, NULL, NULL, '77002', 'TX', 'US', 'WCAML-FIX-P-005'
-UNION ALL SELECT 'WCAML-FIX-P-06', 'Morgan Hayes',   '2026-05-28'::DATE, 'Household',         'PERSON',   '1972-09-30'::TIMESTAMP_LTZ, 110000, 740, NULL, NULL, NULL, '60601', 'IL', 'US', 'WCAML-FIX-P-006'
-UNION ALL SELECT 'WCAML-FIX-P-07', 'Sam Walters',    '2026-05-28'::DATE, 'Retail',            'PERSON',   '1958-02-18'::TIMESTAMP_LTZ,  88000, 730, NULL, NULL, NULL, '33139', 'FL', 'US', 'WCAML-FIX-P-007'
-UNION ALL SELECT 'WCAML-FIX-P-08', 'Pat Donovan',    '2026-05-28'::DATE, 'Retail',            'PERSON',   '1955-12-03'::TIMESTAMP_LTZ,  72000, 720, NULL, NULL, NULL, '10001', 'NY', 'US', 'WCAML-FIX-P-008'
-UNION ALL SELECT 'WCAML-FIX-P-09', 'Drew Mitchell',  '2026-05-28'::DATE, 'Retail',            'PERSON',   '1992-07-19'::TIMESTAMP_LTZ,  45000, 690, NULL, NULL, NULL, '02101', 'MA', 'US', 'WCAML-FIX-P-009'
-UNION ALL SELECT 'WCAML-FIX-P-10', 'Alex Brennan',   '2026-05-28'::DATE, 'Household',         'PERSON',   '1960-01-22'::TIMESTAMP_LTZ, 150000, 760, NULL, NULL, NULL, '90001', 'CA', 'US', 'WCAML-FIX-P-010'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-02', 'Riley Park',     '2026-05-28'::DATE, 'Retail',            'PERSON',   '1995-08-22'::TIMESTAMP_LTZ,  62000, 700, NULL, NULL, NULL, '10025', 'NY', 'US', 'WCAML-FIX-P-002'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-03', 'Casey Reed',     '2026-05-28'::DATE, 'Retail',            'PERSON',   '1990-11-05'::TIMESTAMP_LTZ,  95000, 720, NULL, NULL, NULL, '02115', 'MA', 'US', 'WCAML-FIX-P-003'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-04', 'Quinn Marlowe',  '2026-05-28'::DATE, 'Wealth Management', 'PERSON',   '1988-04-08'::TIMESTAMP_LTZ, 280000, 770, NULL, NULL, NULL, '94027', 'CA', 'US', 'WCAML-FIX-P-004'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-05', 'Jordan Vega',    '2026-05-28'::DATE, 'Wealth Management', 'PERSON',   '1975-06-12'::TIMESTAMP_LTZ, 410000, 790, NULL, NULL, NULL, '77002', 'TX', 'US', 'WCAML-FIX-P-005'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-06', 'Morgan Hayes',   '2026-05-28'::DATE, 'Household',         'PERSON',   '1972-09-30'::TIMESTAMP_LTZ, 110000, 740, NULL, NULL, NULL, '60601', 'IL', 'US', 'WCAML-FIX-P-006'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-07', 'Sam Walters',    '2026-05-28'::DATE, 'Retail',            'PERSON',   '1958-02-18'::TIMESTAMP_LTZ,  88000, 730, NULL, NULL, NULL, '33139', 'FL', 'US', 'WCAML-FIX-P-007'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-08', 'Pat Donovan',    '2026-05-28'::DATE, 'Retail',            'PERSON',   '1955-12-03'::TIMESTAMP_LTZ,  72000, 720, NULL, NULL, NULL, '10001', 'NY', 'US', 'WCAML-FIX-P-008'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-09', 'Drew Mitchell',  '2026-05-28'::DATE, 'Retail',            'PERSON',   '1992-07-19'::TIMESTAMP_LTZ,  45000, 690, NULL, NULL, NULL, '02101', 'MA', 'US', 'WCAML-FIX-P-009'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-P-10', 'Alex Brennan',   '2026-05-28'::DATE, 'Household',         'PERSON',   '1960-01-22'::TIMESTAMP_LTZ, 150000, 760, NULL, NULL, NULL, '90001', 'CA', 'US', 'WCAML-FIX-P-010'
 -- BUSINESS anchors — all in audience (no CLIENT_CATEGORY filter).
-UNION ALL SELECT 'WCAML-FIX-B-01', 'Pinewood Coffee Co.',     '2026-05-28'::DATE, 'Small Business',      'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Food & Beverage',        1200000, 18, '98101', 'WA', 'US', 'WCAML-FIX-B-001'
-UNION ALL SELECT 'WCAML-FIX-B-02', 'Mariposa Cleaners LLC',   '2026-05-28'::DATE, 'Small Business',      'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services',       480000,  6, '94110', 'CA', 'US', 'WCAML-FIX-B-002'
-UNION ALL SELECT 'WCAML-FIX-B-03', 'Atlas Logistics Inc.',    '2026-05-28'::DATE, 'Commercial Banking',  'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Logistics',             18500000, 220, '60601', 'IL', 'US', 'WCAML-FIX-B-003'
-UNION ALL SELECT 'WCAML-FIX-B-04', 'Northwind Holdings LLC',  '2026-05-28'::DATE, 'Commercial Banking',  'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Investment Management', 42000000, 95,  '10005', 'NY', 'US', 'WCAML-FIX-B-004';
+UNION ALL SELECT 'JDO', 'WCAML-FIX-B-01', 'Pinewood Coffee Co.',     '2026-05-28'::DATE, 'Small Business',      'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Food & Beverage',        1200000, 18, '98101', 'WA', 'US', 'WCAML-FIX-B-001'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-B-02', 'Mariposa Cleaners LLC',   '2026-05-28'::DATE, 'Small Business',      'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Personal Services',       480000,  6, '94110', 'CA', 'US', 'WCAML-FIX-B-002'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-B-03', 'Atlas Logistics Inc.',    '2026-05-28'::DATE, 'Commercial Banking',  'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Logistics',             18500000, 220, '60601', 'IL', 'US', 'WCAML-FIX-B-003'
+UNION ALL SELECT 'JDO', 'WCAML-FIX-B-04', 'Northwind Holdings LLC',  '2026-05-28'::DATE, 'Commercial Banking',  'BUSINESS', NULL::TIMESTAMP_LTZ, NULL, NULL, 'Investment Management', 42000000, 95,  '10005', 'NY', 'US', 'WCAML-FIX-B-004';
 
 -- ---------------------------------------------------------------------------
 -- 3. Materialise the fixture-scoped target table: same DDL as
