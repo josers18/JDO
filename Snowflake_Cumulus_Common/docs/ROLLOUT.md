@@ -1,10 +1,12 @@
 # ROLLOUT.md — Cumulus Multi-Org Deployment Runbook
 
-How to roll all 13 Cumulus Snowflake datasets out to an additional Salesforce Data Cloud org.
+How to roll all 16 Cumulus Snowflake datasets out to an additional Salesforce Data Cloud org.
+
+> **Status (2026-11-09):** **16 datasets LIVE.** Plans 14–16 (Demandbase intent, UserGems job changes, Harmonic company signals) shipped 2026-11-02 → 11-04 with `ORG_ID` as their first column and PK lead, so they needed no Phase A migration. The 16 dataset tables hold **14,112,893 rows** ([row counts](#row-counts-2026-11-09)); `MASTER_ACCOUNTS` has 36,953 rows, all `ORG_ID = 'JDO'`. Phase B still waits for the first non-JDO org.
 
 > **Status (2026-05-29):** Phase A **LIVE on `main`** (commit `c9119d32`). `MASTER_ACCOUNTS` + 13 dataset tables + `V_ACCOUNT_ANCHORS` v1.2 all carry `ORG_ID VARCHAR(18) DEFAULT 'JDO'`. 3,977,690 rows tagged uniformly (zero NULLs). Phase B (per-org rollout) runs when the first non-JDO org is provisioned.
 
-> **TL;DR.** Phase A (one-time) extends `MASTER_ACCOUNTS` with an `ORG_ID` column and parameterizes `V_ACCOUNT_ANCHORS` so a single Snowflake schema serves N orgs. Phase B (per-org) provisions the inbound share, registers a DC connector, and replays the 13-stream/DLO/DMO/mapping sequence. **All 13 SPs and TASKs stay untouched after Phase A** — they read `ORG_ID` from the audience row and stamp it into output records.
+> **TL;DR.** Phase A (one-time) extends `MASTER_ACCOUNTS` with an `ORG_ID` column and parameterizes `V_ACCOUNT_ANCHORS` so a single Snowflake schema serves N orgs. Phase B (per-org) provisions the inbound share, registers a DC connector, and replays the 16-stream/DLO/DMO/mapping sequence. **All 16 SPs and TASKs stay untouched after Phase A** — they read `ORG_ID` from the audience row and stamp it into output records.
 
 ---
 
@@ -32,9 +34,46 @@ Use these IDs from the model org as your "expected shape" reference when verifyi
 - 13 streams + DLOs + DMOs all `ACTIVE` and `hasExternalDataLakeObjectMappings: true`.
 - Connector: `Jedi_Snowflake` (`9cgam0000003EknAAE`), account `eob55465.us-east-1.snowflakecomputing.com`, warehouse `MAIN_WH_XS`, user `jsifontes`.
 - Inbound share: `FINSDC3_DATASHARE` (schema `schema_Jedi_Snowflake`).
-- Source tables: `DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS` (~36,813 rows), 13 dataset tables (~3.92M rows total).
+- Source tables: `DATA_JEDAIS.FINS__PUBLIC.MASTER_ACCOUNTS` (36,953 rows, 2026-11-09), 16 dataset tables (14,112,893 rows total; see [row counts](#row-counts-2026-11-09)).
 
 Full registry with stream RecordIds + DMO Ids: see memory `[[reference_jdo_dc_artifacts]]`.
+
+## Row counts (2026-11-09)
+
+Live counts from `DATA_JEDAIS.INFORMATION_SCHEMA.TABLES.ROW_COUNT` on 2026-11-09. Monthly and weekly plans keep every generated period, so totals grow with each run (Phase A tagged 3,977,690 rows on 2026-05-29).
+
+| Plan | Dataset | Table | Rows |
+|---|---|---|---:|
+| 1 | Claritas Demographics | `CLARITAS_DEMOGRAPHICS` | 253,672 |
+| 2 | MSCI ESG | `MSCI_ESG_SCORES` | 80,000 |
+| 3 | DnB Business Credit | `DNB_BUSINESS_CREDIT` | 79,999 |
+| 4 | Esri GeoFootprint | `ESRI_GEO_FOOTPRINT` | 93,289 |
+| 5 | CoreLogic Property | `CORELOGIC_PROPERTY` | 76,272 |
+| 6 | Plaid Held-Away | `PLAID_HELD_AWAY` | 465,801 |
+| 7 | World-Check AML | `WORLD_CHECK_AML` | 5,860,286 |
+| 8 | MoneyGuidePro Financial Plans | `MGP_FINANCIAL_PLANS` | 1,104,639 |
+| 9 | Synth Relationship Graph | `SYNTH_RELATIONSHIP_GRAPH` | 38,470 |
+| 10 | BoardEx Exec Intel | `BOARDEX_EXEC_INTEL` | 1,104,633 |
+| 11 | ZoomInfo Firmographics | `ZOOMINFO_FIRMOGRAPHICS` | 79,969 |
+| 12 | Gong Call Sentiment | `GONG_CALL_SENTIMENT` | 1,768,108 |
+| 13 | Moody's Market Context | `MOODYS_MARKET_CONTEXT` | 2,809,350 |
+| 14 | Demandbase Intent Signals | `DEMANDBASE_INTENT_SIGNALS` | 284,715 |
+| 15 | UserGems Job Changes | `USERGEMS_JOB_CHANGES` | 9,103 |
+| 16 | Harmonic Company Signals | `HARMONIC_COMPANY_SIGNALS` | 4,587 |
+| | **Total** | | **14,112,893** |
+
+To refresh:
+
+```sql
+SELECT TABLE_NAME, ROW_COUNT
+FROM DATA_JEDAIS.INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = 'FINS__PUBLIC'
+  AND TABLE_NAME IN ('CLARITAS_DEMOGRAPHICS','MSCI_ESG_SCORES','DNB_BUSINESS_CREDIT','ESRI_GEO_FOOTPRINT',
+                     'CORELOGIC_PROPERTY','PLAID_HELD_AWAY','WORLD_CHECK_AML','MGP_FINANCIAL_PLANS',
+                     'SYNTH_RELATIONSHIP_GRAPH','BOARDEX_EXEC_INTEL','ZOOMINFO_FIRMOGRAPHICS','GONG_CALL_SENTIMENT',
+                     'MOODYS_MARKET_CONTEXT','DEMANDBASE_INTENT_SIGNALS','USERGEMS_JOB_CHANGES','HARMONIC_COMPANY_SIGNALS')
+ORDER BY TABLE_NAME;
+```
 
 ---
 
@@ -170,6 +209,8 @@ Apply the same pattern to all 13 dataset DDLs:
 | 11 | ZOOMINFO_FIRMOGRAPHICS | (ACCOUNT_ID, PROFILE_MONTH) | (ORG_ID, ACCOUNT_ID, PROFILE_MONTH) |
 | 12 | GONG_CALL_SENTIMENT | (ACCOUNT_ID, CALL_WEEK) | (ORG_ID, ACCOUNT_ID, CALL_WEEK) |
 | 13 | MOODYS_MARKET_CONTEXT | (ACCOUNT_ID, PROFILE_DATE) | (ORG_ID, ACCOUNT_ID, PROFILE_DATE) |
+
+Plans 14–16 postdate Phase A and were created with `ORG_ID` as the first column and PK lead, so this step doesn't apply to them. Their live PKs: `DEMANDBASE_INTENT_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_WEEK, INTENT_TOPIC)`, `USERGEMS_JOB_CHANGES (ORG_ID, EVENT_ID)`, `HARMONIC_COMPANY_SIGNALS (ORG_ID, ACCOUNT_ID, PROFILE_MONTH)`.
 
 Then update each plan's SP MERGE so the source SELECT carries `ORG_ID` (sourced from the audience row, which V_ACCOUNT_ANCHORS already supplies post-A3).
 
@@ -316,6 +357,8 @@ done
 ```
 
 The 13 payloads are committed in each plan's `output/plan-*-dc-create-stream-payload.json`. They are reusable across orgs once the connector name is swapped.
+
+Plans 14–16 have no `output/` payload files. Their `BT_` streams, DMOs and Account relationships were created by REST on 2026-11-04 (connection `BT_Managed_Snowflake`, DIRECT_ACCESS zero copy). Each plan's `AGENTS.md` section "DC mapping (Task 7)" records the stream settings, the IDs and the full field map. Rebuild those three from that section after the loop.
 
 ### B7b. Create the 13 DMOs (API)
 
