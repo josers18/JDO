@@ -389,11 +389,11 @@ Same pattern with `output/plan-*-dc-create-dmo-payload.json` against `/ssot/data
 
 REST `POST /ssot/data-model-object-mappings` returns `UNKNOWN_EXCEPTION` for fully-custom DMOs. Use the Lightning UI flow encoded in the `dc-field-mapping-via-data-stream` skill:
 
-1. Open the new org → Data Cloud → Data Streams → click `CumulusClaritasDemographics`
+1. Open the new org → Data Cloud → Data Streams → click `BT_Claritas_Demographics`
 2. Start → Select Objects → Custom Data Model tab → Add Object → pick the matching `__dlm` → Done → Continue → Save
 3. Einstein auto-maps fields by column-name match.
 
-13 DMOs × ~90s = ~20 min.
+16 DMOs × ~90s = ~25 min.
 
 ### B7d. Set FK relationships (UI)
 
@@ -402,11 +402,12 @@ For each DMO with `ssot__AccountId__c`: edit field → Foreign Key Relationship 
 ## B8. Verify the new org's DC layer
 
 ```bash
-for DMO in CumulusClaritasDemographics CumulusMSCIESG CumulusDnBBusinessCredit \
-           CumulusEsriGeoFootprint CumulusCoreLogicProperty CumulusPlaidHeldAway \
-           CumulusWorldCheckAML CumulusMgpFinancialPlans CumulusSynthRelationshipGraph \
-           CumulusBoardExExecIntel CumulusZoomInfoFirmographics CumulusGongCallSentiment \
-           CumulusMoodysMarketContext; do
+for DMO in BT_Claritas_Demographics BT_MSCI_ESG_Scores BT_DNB_Business_Credit \
+           BT_ESRI_GEO_Footprint BT_Corelogic_Property BT_Plaid_Held_Away \
+           BT_WorldCheck_AML BT_MoneyGuidePro_Financial_Plans BT_Synth_Relationship_Graph \
+           BT_Boardex BT_Zoominfo_Firmographics BT_Gong_Call_Sentiment \
+           BT_Moodys_Market_Context BT_Demandbase_Intent_Signals \
+           BT_UserGems_Job_Changes BT_Harmonic_Company_Signals; do
   echo "=== ${DMO} ==="
   curl -s -X POST -H "Authorization: Bearer $SF_TOKEN" -H "Content-Type: application/json" \
     "$INSTANCE_URL/services/data/v62.0/ssot/queryv2" \
