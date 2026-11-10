@@ -11,8 +11,8 @@
  *   · W3 reviews due — `next_review_date__c` in the next 30 days, soonest first;
  *     "stale" = status Stale or not updated in 12 months.
  *
- * Verified live 2026-10-22: Sarah Smith 9,212 plans, 5,274 below 70% (154 below
- * 50%) carrying $9.0B of goals; 362 reviews due in 30d; 1,344 stale.
+ * Verified live 2026-11-09: Sarah Smith 9,232 plans, 5,221 below 70% (134 below
+ * 50%) carrying $8.9B of goals; 156 reviews due in 30d; 1,043 stale.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';

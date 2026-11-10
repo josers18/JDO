@@ -8,7 +8,7 @@
  * so they're excluded by ticker.
  *
  * Stood in for the MSCI-downgrade W8 (no holding→issuer join exists).
- * Verified live 2026-10-22: Kim Johnson 5 of 10 clients at ≥ 20% ($8.7M), Adam Watson 4 of 5,
+ * Verified live 2026-11-09: Kim Johnson 5 of 10 clients at ≥ 20% ($8.7M), Adam Watson 4 of 5,
  * Jose Sifontes 1 of 13; org-wide 21 of 60 ($87M). Sarah Smith / Justin Chen hold none → org-wide.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';

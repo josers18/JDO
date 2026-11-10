@@ -7,8 +7,8 @@
  * `ssot__FinancialAccountTransaction__dlm` over the last 30 days (the fee data's
  * full span). Framed as hardship support — a check-in, not a collections call.
  *
- * Verified live 2026-10-22: Sarah Smith 1,751 High now → 84 persistent, 41 with
- * overdraft fees, 3 both; Justin Chen 1,763 → 76 / 36 / 2.
+ * Verified live 2026-11-09: Sarah Smith 1,639 High now → 129 persistent, 87 with
+ * overdraft fees, 10 both; Justin Chen 1,804 → 133 / 118 / 7.
  */
 import { bookAccountFilter, queryDataCloud, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';

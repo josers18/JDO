@@ -7,7 +7,7 @@
  *
  * Ranked by round size, biggest first. Book-scoped through `account_id__c` and
  * falls back to org-wide like every other DC card.
- * Verified live 2026-11-04 (month 2026-11-01): 16 funded accounts in the whole
+ * Verified live 2026-11-09 (month 2026-11-01): 16 funded accounts in the whole
  * table, 14 of them local (`001am…`); the local top round is a $83.5M Series C.
  * Some `last_funding_date__c` values sit in the future (up to 2026-11-19) — those
  * count as today so the due date never lands past today + 14.

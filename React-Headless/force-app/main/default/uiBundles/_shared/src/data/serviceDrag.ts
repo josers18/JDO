@@ -6,8 +6,8 @@
  * `ssot__IsClosed__c` is null, so open = status. The original 4,009 cases are
  * keyed by synthetic `account_id_<n>` ids that match no Account; 3,260 `SN-HOME-*`
  * cases on home `001am…` accounts were added 2026-10-24
- * (`JDO/ServiceNow_Cases/generate_service_now_cases.py`). Verified live that day:
- * 24–137 open per book, about half aged 30d+. Unlike the other DC signals this
+ * (`JDO/ServiceNow_Cases/generate_service_now_cases.py`). Verified live 2026-11-09:
+ * 24–137 open per book, about three quarters aged 30d+. Unlike the other DC signals this
  * one never falls back to org-wide: adding thousands of unscoped cases to a
  * banker's KPI would overstate their book.
  */

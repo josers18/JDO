@@ -12,8 +12,8 @@
  * appears under both kinds. Each kind is ranked separately (stage, then score,
  * then researchers) so each fills its own queue cap. Book-scoped through
  * `account_id__c` and falls back to org-wide like every other DC card.
- * Verified live 2026-11-04 (week 2026-11-02, local accounts): 810 surging,
- * 1,017 researching a competitor; the top 6 of each kind are all Purchase stage.
+ * Verified live 2026-11-09 (week 2026-11-09, local accounts): 853 surging,
+ * 1,018 researching a competitor; the top 6 of each kind are all Purchase stage.
  * NB: ConnectApi rejects the simple `CASE x WHEN` form and boolean ORDER BY
  * keys, so both are spelled out as searched CASEs.
  */

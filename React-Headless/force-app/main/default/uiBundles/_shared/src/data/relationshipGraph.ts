@@ -6,11 +6,12 @@
  *
  * A warm intro is a REFERRAL edge from a client in my book to an account I don't
  * own yet. Edges whose dst isn't a local Account (hashed ids) are dropped. The
- * graph is a batch snapshot (latest REFERRAL edge 2026-09-18), so "recent" is the
+ * graph is a batch snapshot (latest REFERRAL edge 2026-11-08), so "recent" is the
  * 60 days before the newest edge rather than before today, and REFERRAL
  * confidence tops out at ~65% — rank by it, don't threshold at 70. Verified
- * live 2026-10-22: 6+ intros in every banker book, many cross-LOB (a business
- * client referring a household and vice versa).
+ * live 2026-11-09: 6+ intros in seven of eight banker books (39–266; Matthew
+ * Wells' 4-client book has none), many cross-LOB (a business client referring
+ * a household and vice versa).
  */
 import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
 

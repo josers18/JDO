@@ -5,9 +5,9 @@
  * allowance. The meter is the share of current sources; CRM (GraphQL) is live
  * and always current.
  *
- * Latest dates verified live 2026-10-22: transactions + World-Check today; Gong
- * and the relationship graph 10-19; Plaid + D&B 10-01 (monthly); marketing 09-24;
- * CSAT 09-01; offer model 08-12 (single scoring run); ServiceNow 2025-02-13.
+ * Latest dates verified live 2026-11-09: transactions + World-Check today; Gong
+ * and the relationship graph 11-09; Plaid + D&B 11-01 (monthly); marketing 11-10
+ * (UTC stamp); CSAT 10-01; offer model 11-01 (monthly run); ServiceNow 2026-10-24.
  */
 import { queryDataCloud } from './dataCloudClient';
 

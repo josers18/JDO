@@ -5,15 +5,15 @@
  * mortgage or investment. Each stage's "lean" is its strongest propensity —
  * how a banker plans the month ("Young Families: high mortgage, low wealth").
  *
- * Verified live 2026-10-22: Sarah Smith ~10.5K profiled — Established Families
- * 2,794, Young Families 2,536 (mortgage 80, every one 70+), Empty Nesters 2,441
+ * Verified live 2026-11-09: Sarah Smith ~10.5K profiled — Established Families
+ * 2,767, Young Families 2,549 (mortgage 80, every one 70+), Empty Nesters 2,478
  * (investment 45); Adam Watson's book is Empty Nesters at investment 92 / wealth 77.
  *
  * Mortgage leads: Young Families scoring 70+ on mortgage propensity, placed on
  * CoreLogic (`BT_Corelogic_Property__dlm`, latest quarter) — renters first (a
  * first-home purchase), then free-and-clear owners (move-up), then mortgaged
- * owners (move-up / rate review); propensity breaks ties. Sarah Smith 2,536 →
- * 903 renters / 475 free-and-clear / 1,158 mortgaged. Each tenure is fetched as
+ * owners (move-up / rate review); propensity breaks ties. Sarah Smith 2,549 →
+ * 886 renters / 467 free-and-clear / 1,196 mortgaged. Each tenure is fetched as
  * its own bucket so the three can be one of each — a renter, a free-and-clear
  * owner, a mortgaged owner — over-fetched so exclusions still leave three.
  */
