@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Ten more R6 households for Sarah Smith and Justin Chen (PR #188)
+
+No bundle change; the `webEngagement.ts` header changed in comments only. `web_browsing.py --register` linked five clients' devices in each book by email, and `--only` sent their first week. Verified live on 2026-11-10 at 18:55Z. Sarah's card reads "11 households viewed product pages 132 times" and Justin's reads "10 households viewed product pages 117 times". Right Now leads with Amy Morris in both books.
+
 ### 2026-11-10 — Six more R6 households for Jose Sifontes (PR #187)
 
 No bundle change; the `webEngagement.ts` header changed in comments only. `Marketing_Engagement/web_browsing.py --register` linked six of Jose's clients' devices by email through the Account identity-resolution ruleset, and they now browse weekly. Verified live as Jose on 2026-11-10 17:46Z: the card reads "7 households viewed product pages 46 times", with Julie E Morris, Priya S Venkatesh, Anika A Patel, Marcus G Rodriguez and Julia D Nakamura all NOW in the top five. Right Now still leads with Julie E Morris (Estate Planning).
