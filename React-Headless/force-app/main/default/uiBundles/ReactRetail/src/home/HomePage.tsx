@@ -1452,7 +1452,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
         </div>
       ) : (
         <p className="mt-2 text-[13px] leading-snug text-muted">
-          {web.clients.toLocaleString('en-US')} client{web.clients === 1 ? '' : 's'} viewed product pages {web.views.toLocaleString('en-US')} times. Repeat views of one product
+          {web.clients.toLocaleString('en-US')} household{web.clients === 1 ? '' : 's'} viewed product pages {web.views.toLocaleString('en-US')} times. Repeat views of one product
           are a buying signal — follow up while it's fresh.
         </p>
       )}
@@ -1469,6 +1469,14 @@ function HomeContent({ mode }: { mode: HomeMode }) {
             >
               {r.clientName}
             </button>
+            {r.householdAccounts > 1 && (
+              <span
+                className="flex-none font-mono text-[10.5px] text-faint"
+                title="One device resolves to several of this book's accounts in the same household"
+              >
+                household · {r.householdAccounts} accounts
+              </span>
+            )}
             <button
               type="button"
               onClick={() => needsBrowsingFollowUp(r)

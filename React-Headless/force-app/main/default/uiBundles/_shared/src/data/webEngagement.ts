@@ -7,63 +7,74 @@
  *
  * Recognition: an event's device id is a `SourceRecordId__c` on
  * `UnifiedLinkssotAccountAcc__dlm`; the same `UnifiedRecordId__c`'s CRM-sourced
- * link (`001…`) is the Account. Events are de-duplicated by id because one
- * device can link to several accounts (a household resolves to one unified
- * record — each member's account shows the same browsing).
+ * links (`001…`) are the Accounts. A household's devices resolve to one unified
+ * record, so rows group by that record: one row per household, opening its lowest
+ * account id in the book, with the member-account count beside the name.
+ *
+ * Counting: one product page load = one view. The RTOM sitemap fires "Viewed
+ * Product Detail" twice per load (~20ms apart) plus two "Product Interest
+ * Captured", so only the first action is kept and repeats of a device + URL within
+ * 2s collapse. SURGE_VIEWS (3 loads) replaces the old 5, which was tuned against
+ * the doubled events.
  *
  * Recognized traffic is sparse, so the window is the 7 days up to the BOOK's
  * latest product view (like S6) and the card says when that was; the queue and
  * Right Now only take recent visits. Past WEB_STALE_DAYS the card shows "No
  * recent identified visits" instead. Since 08-19 most site devices are anonymous;
- * one demo profile (001am00000qvjsAAAQ, Jose's book, plus two owner-less 001al
- * FinsDC1/FinsDC4 copies of Julie Morris) was the only recognized visitor until
- * identified browsing was generated for six of Sarah's and Justin's clients on
- * 2026-11-10 03:49Z. Verified live 2026-11-09 (PT): Sarah Smith 11 clients, 144
- * views; Justin Chen 7 clients, 84 views; every row "Now" (Money Market, 12-mo CD,
- * 30-year fixed, secured card, Travel Points). Household devices link to several
- * accounts, so one device's views show on each member.
+ * identified browsing for six of Sarah's and Justin's client households is sent
+ * weekly by the Marketing_Engagement worker (`web_browsing.py`). Verified live
+ * through the Apex bridge 2026-11-09 (PT): Sarah Smith 6 households, 20 page
+ * loads; Justin Chen 5 households, 16 page loads.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
 
-/** Product views in the window at which a client earns a follow-up. */
-export const SURGE_VIEWS = 5;
+/** Product page loads in the window at which a household earns a follow-up. */
+export const SURGE_VIEWS = 3;
 /** Only visits this recent reach the queue (the card shows the book's latest week regardless). */
 const QUEUE_DAYS = 14;
 
-// ev = product-page views from both sites; ac = device → CRM account; rec = one
-// row per event × account; win = the book's latest product view.
+// raw = product-detail views from both sites (RTOM: only "Viewed Product Detail" —
+// the sitemap fires it twice per load, plus two "Product Interest Captured");
+// ev = one row per page load (repeats of a device + URL within 2s collapse);
+// ac = device → household (unified record) → the book's CRM accounts in it;
+// rec = one row per load × account; win = the book's latest product view.
 const ctes = (accountFilter: string) => `
-  WITH ev AS (
+  WITH raw AS (
     SELECT ssot__Id__c AS eid, ssot__IndividualId__c AS dev, ssot__EngagementDateTm__c AS ts, ssot__LinkURL__c AS url
     FROM ssot__WebsiteEngagement__dlm
-    WHERE ssot__DataSourceObjectId__c = 'CumulusRTOM_Behavioral_Events_5DD30D2C' AND ssot__LinkURL__c LIKE '%/products/%/%'
+    WHERE ssot__DataSourceObjectId__c = 'CumulusRTOM_Behavioral_Events_5DD30D2C'
+      AND ssot__EngagementChannelActionId__c = 'Viewed Product Detail' AND ssot__LinkURL__c LIKE '%/products/%/%'
     UNION ALL
     SELECT eventId__c AS eid, deviceId__c AS dev, dateTime__c AS ts, webInteractions_sourceUrl__c AS url
     FROM CumulusWeb_Engagements__dlm
     WHERE webInteractions_sourceUrl__c LIKE '%/products/%/%'
   ),
+  seq AS (SELECT eid, dev, ts, url, LAG(ts) OVER (PARTITION BY dev, url ORDER BY ts) AS prev FROM raw),
+  ev AS (SELECT eid, dev, ts, url FROM seq WHERE prev IS NULL OR ts > prev + INTERVAL '2' SECOND),
   ac AS (
-    SELECT DISTINCT l.SourceRecordId__c AS dev, a2.SourceRecordId__c AS acct
+    SELECT DISTINCT l.SourceRecordId__c AS dev, l.UnifiedRecordId__c AS hh, a2.SourceRecordId__c AS acct
     FROM UnifiedLinkssotAccountAcc__dlm l
     JOIN UnifiedLinkssotAccountAcc__dlm a2 ON a2.UnifiedRecordId__c = l.UnifiedRecordId__c
     WHERE a2.SourceRecordId__c LIKE '001%' AND a2.SourceRecordId__c ${accountFilter}
   ),
-  rec AS (SELECT DISTINCT ev.eid AS eid, ac.acct AS acct, ev.ts AS ts, ev.url AS url FROM ev JOIN ac ON ac.dev = ev.dev),
+  rec AS (SELECT DISTINCT ev.eid AS eid, ac.hh AS hh, ac.acct AS acct, ev.ts AS ts, ev.url AS url FROM ev JOIN ac ON ac.dev = ev.dev),
   win AS (SELECT MAX(ts) AS hi FROM rec)`;
 
+// One row per household × product; the household shows as its lowest account id.
 // CROSS JOIN fails on the DC engine; the comma join works.
 const rowsSql = (accountFilter: string) => `${ctes(accountFilter)}
-  SELECT rec.acct AS account_id, rec.url AS url, COUNT(*) AS views, MAX(rec.ts) AS last_ts, MAX(win.hi) AS hi
+  SELECT rec.hh AS hh, MIN(rec.acct) AS account_id, COUNT(DISTINCT rec.acct) AS accounts, rec.url AS url,
+         COUNT(DISTINCT rec.eid) AS views, MAX(rec.ts) AS last_ts, MAX(win.hi) AS hi
   FROM rec, win
   WHERE rec.ts >= win.hi - INTERVAL '7' DAY
-  GROUP BY rec.acct, rec.url
+  GROUP BY rec.hh, rec.url
   ORDER BY views DESC
   LIMIT 25
 `;
 
 const summarySql = (accountFilter: string) => `${ctes(accountFilter)}
-  SELECT COUNT(DISTINCT rec.acct) AS clients, COUNT(*) AS views
+  SELECT COUNT(DISTINCT rec.hh) AS clients, COUNT(DISTINCT rec.eid) AS views
   FROM rec, win
   WHERE rec.ts >= win.hi - INTERVAL '7' DAY
 `;
@@ -77,7 +88,10 @@ export interface ProductInterest {
 }
 
 export interface BrowsingClientRow {
+  /** The household's lowest CRM account id in the book — what the row opens. */
   accountId: string;
+  /** The book's accounts in this household (one device resolves to all of them). */
+  householdAccounts: number;
   /** Most-viewed product first. */
   products: ProductInterest[];
   views: number;
@@ -87,8 +101,9 @@ export interface BrowsingClientRow {
 }
 
 export interface WebEngagementResult {
-  /** Clients by product views in the window, most first. */
+  /** Households by product page loads in the window, most first. */
   rows: BrowsingClientRow[];
+  /** Households (unified profiles), not accounts. */
   clients: number;
   views: number;
   /** ISO timestamp the 7-day window ends at — the book's latest product view. */
@@ -107,7 +122,7 @@ const productOf = (url: string) => {
   return { line, product: product || 'a product page' };
 };
 
-/** R6 — the book's recognized clients browsing product pages, latest week of activity. */
+/** R6 — the book's recognized households browsing product pages, latest week of activity. */
 export async function fetchWebEngagement(ownerId: string | null | undefined): Promise<WebEngagementResult> {
   const res = await queryDataCloudForBook<Record<string, unknown>>(rowsSql, ownerId, 25);
   const total = await queryDataCloud<Record<string, unknown>>(summarySql(res.accountFilter), 1)
@@ -115,14 +130,15 @@ export async function fetchWebEngagement(ownerId: string | null | undefined): Pr
     .catch((): Record<string, unknown> => ({}));
   const byClient = new Map<string, BrowsingClientRow>();
   for (const r of res.rows) {
+    const hh = String(r.hh ?? r.account_id ?? '');
     const accountId = String(r.account_id ?? '');
     const views = Number(r.views) || 0;
     const lastSeen = iso(r.last_ts);
-    const c = byClient.get(accountId) ?? { accountId, products: [], views: 0, lastSeen };
+    const c = byClient.get(hh) ?? { accountId, householdAccounts: Number(r.accounts) || 1, products: [], views: 0, lastSeen };
     c.products.push({ ...productOf(String(r.url ?? '')), views });
     c.views += views;
     if (lastSeen > c.lastSeen) c.lastSeen = lastSeen;
-    byClient.set(accountId, c);
+    byClient.set(hh, c);
   }
   return {
     scope: res.scope,
@@ -150,7 +166,7 @@ export const browsingAction = (r: BrowsingClientRow) =>
 export const isBrowsingNow = (r: BrowsingClientRow, now = new Date()) =>
   now.getTime() - new Date(r.lastSeen).getTime() <= 2 * 86_400_000;
 
-/** 5+ product views, the latest within two weeks — earns a follow-up. */
+/** SURGE_VIEWS+ product page loads, the latest within two weeks — earns a follow-up. */
 export const needsBrowsingFollowUp = (r: BrowsingClientRow, now = new Date()) =>
   r.views >= SURGE_VIEWS && now.getTime() - new Date(r.lastSeen).getTime() <= QUEUE_DAYS * 86_400_000;
 
