@@ -15,7 +15,13 @@
  * latest product view (like S6) and the card says when that was; the queue and
  * Right Now only take recent visits. Verified live 2026-11-09: Jose Sifontes 1
  * client — Cash Rewards ×30, last browsed 2026-10-28; Sarah Smith / Justin Chen
- * last browsed 2026-08-18 (Cash Rewards, Travel Points, CDs, 30-year fixed).
+ * last browsed 2026-08-18 — Sarah: Cash Rewards ×32, Travel Points ×20, 6-mo CD
+ * ×18, 30-year fixed ×16 (5 clients); Justin: Cash Rewards ×35, Travel Points /
+ * 12-mo CD ×16 each, secured card ×10. Those books are stale because the sites
+ * kept logging product views (RTOM to 2026-11-05, bank site to 10-29) but since
+ * 08-19 the only recognized visitor is one demo profile: 18 devices resolved to
+ * one unified record holding 001am00000qvjsAAAQ (Jose's book) plus two
+ * owner-less 001al accounts. The other 21 RTOM + 3 bank-site devices are anonymous.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
