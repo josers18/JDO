@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Vitest tests for R6 timing checks; ReactRetail suite back to green (PR #195)
+
+`ReactRetail/src/home/webEngagement.test.ts` now tests the time limits too. `isBrowsingNow` is true through 2 days after the last view. `needsBrowsingFollowUp` needs `SURGE_VIEWS` (3) loads within 14 days. `isWebEngagementStale` stays fresh through 30 whole days, turns stale at 31, and is stale when the book has no recognized views (31 tests in the file). A full `vitest run` found 3 tests in ReactRetail that predated deliberate changes. `brandThemeClient.test.ts` lacked `displaySize` (added in `fd02f4de1`), and `brandThemes.test.ts` expected 5 `--wp-*` keys where `brandThemeToVars` now also writes `--wp-aurora` and the five `--wp-ai*` tokens. Both were updated to the current behavior, and the suite passes 78/78. Tests only; `dist/` unchanged, no deploy.
+
 ### 2026-11-10 — Vitest tests for the R6 follow-up text; negative product count fixed (PR #194)
 
 `ReactRetail/src/home/webEngagement.test.ts` now covers `browsingReason` and `browsingAction` too: the most-viewed product with its views, one vs. several other products, the single-product form, and the fallbacks when no product is known (24 tests). The no-product test found that `browsingReason` printed "· -1 other product", because `others` was `products.length - 1`; it is now floored at 0. Every row is built from product views, so this was latent. Two stale doc comments in `webEngagement.ts` now give the site's product names. ReactRetail rebuilt and deployed (Succeeded, 0 errors). Verified live as Kim Johnson: "Viewed Personal Loan 4× on the website · 1 other product · last seen Nov 10".

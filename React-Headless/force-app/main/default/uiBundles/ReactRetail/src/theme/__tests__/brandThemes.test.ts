@@ -12,10 +12,13 @@ const themeA: BrandTheme = {
 };
 
 describe('brandThemeToVars', () => {
-  it('produces the 5 expected --wp-* keys', () => {
+  it('produces the accent, aurora and AI --wp-* keys', () => {
     const vars = brandThemeToVars(themeA);
     expect(Object.keys(vars).sort()).toEqual(
-      ['--wp-accent', '--wp-accent-2', '--wp-accent-soft', '--wp-glow', '--wp-gradient'].sort()
+      [
+        '--wp-accent', '--wp-accent-2', '--wp-accent-soft', '--wp-glow', '--wp-gradient',
+        '--wp-aurora', '--wp-ai', '--wp-ai-2', '--wp-ai-grad', '--wp-ai-bg', '--wp-ai-border',
+      ].sort()
     );
   });
 

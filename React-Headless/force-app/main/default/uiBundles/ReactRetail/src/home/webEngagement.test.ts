@@ -1,4 +1,15 @@
-import { browsingAction, browsingReason, productOf, type BrowsingClientRow } from '@shared/data/webEngagement';
+import {
+  browsingAction,
+  browsingReason,
+  isBrowsingNow,
+  isWebEngagementStale,
+  needsBrowsingFollowUp,
+  productOf,
+  SURGE_VIEWS,
+  WEB_STALE_DAYS,
+  type BrowsingClientRow,
+  type WebEngagementResult,
+} from '@shared/data/webEngagement';
 
 // R6 shows each product by the name the site uses, not its title-cased URL slug.
 const SITE = 'https://cumulus-rtom-demo-b30dfbe65e2e.herokuapp.com';
@@ -76,5 +87,58 @@ describe('browsingAction', () => {
 
   it('falls back when no product is known', () => {
     expect(browsingAction(row({ products: [] }))).toBe('Follow up on product interest');
+  });
+});
+
+// Gabe's last view was 2026-11-10T17:00:00Z; `now` is that instant plus the offset.
+const DAY = 86_400_000;
+const after = (ms: number) => new Date(Date.parse('2026-11-10T17:00:00Z') + ms);
+
+describe('isBrowsingNow', () => {
+  it('holds for two days after the last view, inclusive', () => {
+    expect(isBrowsingNow(row(), after(0))).toBe(true);
+    expect(isBrowsingNow(row(), after(2 * DAY))).toBe(true);
+  });
+
+  it('ends just past two days', () => {
+    expect(isBrowsingNow(row(), after(2 * DAY + 1000))).toBe(false);
+  });
+});
+
+describe('needsBrowsingFollowUp', () => {
+  it('needs SURGE_VIEWS page loads', () => {
+    expect(SURGE_VIEWS).toBe(3);
+    expect(needsBrowsingFollowUp(row({ views: 3 }), after(DAY))).toBe(true);
+    expect(needsBrowsingFollowUp(row({ views: 2 }), after(DAY))).toBe(false);
+  });
+
+  it('holds for 14 days after the last view, inclusive', () => {
+    expect(needsBrowsingFollowUp(row(), after(14 * DAY))).toBe(true);
+    expect(needsBrowsingFollowUp(row(), after(14 * DAY + 1000))).toBe(false);
+  });
+});
+
+describe('isWebEngagementStale', () => {
+  // Kim Johnson's book on 2026-11-10: 6 households, 28 page loads, window ending at Gabe's view.
+  const result = (windowEnd: string): WebEngagementResult => ({
+    rows: [row()],
+    clients: 6,
+    views: 28,
+    windowEnd,
+    scope: 'book',
+  });
+
+  it('is fresh through 30 whole days', () => {
+    expect(WEB_STALE_DAYS).toBe(30);
+    expect(isWebEngagementStale(result('2026-11-10T17:00:00Z'), after(30 * DAY))).toBe(false);
+    expect(isWebEngagementStale(result('2026-11-10T17:00:00Z'), after(31 * DAY - 1000))).toBe(false);
+  });
+
+  it('turns stale at 31 whole days', () => {
+    expect(isWebEngagementStale(result('2026-11-10T17:00:00Z'), after(31 * DAY))).toBe(true);
+  });
+
+  it('is stale when the book has no recognized views', () => {
+    expect(isWebEngagementStale(result(''), after(0))).toBe(true);
   });
 });
