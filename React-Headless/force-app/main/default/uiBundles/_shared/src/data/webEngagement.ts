@@ -13,15 +13,15 @@
  *
  * Recognized traffic is sparse, so the window is the 7 days up to the BOOK's
  * latest product view (like S6) and the card says when that was; the queue and
- * Right Now only take recent visits. Verified live 2026-11-09: Jose Sifontes 1
- * client — Cash Rewards ×30, last browsed 2026-10-28; Sarah Smith / Justin Chen
- * last browsed 2026-08-18 — Sarah: Cash Rewards ×32, Travel Points ×20, 6-mo CD
- * ×18, 30-year fixed ×16 (5 clients); Justin: Cash Rewards ×35, Travel Points /
- * 12-mo CD ×16 each, secured card ×10. Those books are stale because the sites
- * kept logging product views (RTOM to 2026-11-05, bank site to 10-29) but since
- * 08-19 the only recognized visitor is one demo profile: 18 devices resolved to
- * one unified record holding 001am00000qvjsAAAQ (Jose's book) plus two
- * owner-less 001al accounts. The other 21 RTOM + 3 bank-site devices are anonymous.
+ * Right Now only take recent visits. Past WEB_STALE_DAYS the card shows "No
+ * recent identified visits" instead. Since 08-19 most site devices are anonymous;
+ * one demo profile (001am00000qvjsAAAQ, Jose's book, plus two owner-less 001al
+ * FinsDC1/FinsDC4 copies of Julie Morris) was the only recognized visitor until
+ * identified browsing was generated for six of Sarah's and Justin's clients on
+ * 2026-11-10 03:49Z. Verified live 2026-11-09 (PT): Sarah Smith 11 clients, 144
+ * views; Justin Chen 7 clients, 84 views; every row "Now" (Money Market, 12-mo CD,
+ * 30-year fixed, secured card, Travel Points). Household devices link to several
+ * accounts, so one device's views show on each member.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
