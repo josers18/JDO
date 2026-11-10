@@ -1,10 +1,10 @@
 """Weekly identified browsing on the Cumulus RTOM demo site (React-Headless R6 card).
 
 Since 2026-08-19 almost every RTOM site device is anonymous, so the Retail cockpit's
-R6 "digital-engagement surges" card had nothing current for Sarah Smith's or Justin
-Chen's books. This sends real Data Cloud Web SDK beacons (the same two calls the
-site's sitemap makes) for six household devices that identity resolution already
-links to their clients. Each week, each household loads its featured product page
+R6 "digital-engagement surges" card had nothing current for Sarah Smith's, Justin
+Chen's or Jose Sifontes's books. This sends real Data Cloud Web SDK beacons (the same
+two calls the site's sitemap makes) for seven household devices that identity
+resolution already links to their clients. Each week, each household loads its featured product page
 3-4 times (enough for R6's SURGE_VIEWS = 3 follow-up) and a second product 1-2 times.
 Which product leads rotates by ISO week; load counts are a hash of (device, week).
 
@@ -43,11 +43,14 @@ PRODUCTS = {
     "personal-loan": ("retail", "01tam00000Bo1NZAAZ", "Cumulus Personal Loan", "0ZGam000000oHsGGAU", "Personal Loans"),
     "secured": ("retail", "01tam00000Bo1dhAAB", "Cumulus Secured Card", "0ZGam000000oHs8GAE", "Credit Cards"),
     "everyday-checking": ("retail", "01tam00000Bo193AAB", "Cumulus Everyday Checking", "0ZGam000000oHsCGAU", "Checking Accounts"),
+    "estate-planning": ("wealth", "01tam00000Bo1k9AAB", "Cumulus Estate Planning", "0ZGam000000oHsLGAU", "Trusts & Estate"),
 }
 SECTION = {"retail": "Personal Banking", "commercial": "Commercial Banking", "wealth": "Wealth Advisory"}
 
 # Device ids (identity-resolution SourceRecordIds) → client household and the products it browses.
-# All six resolve into Sarah Smith's book; all but Craig Scott also into Justin Chen's.
+# The first six resolve into Sarah Smith's book; all but Craig Scott also into Justin Chen's.
+# Julie E Morris (001am00000qvjsAAAQ) is the only household in Jose Sifontes's book with
+# linked devices (checked 2026-11-10); b681f050d2e9e091 last browsed estate planning on 10-28.
 HOUSEHOLDS = [
     ("03ebdbb54d499cac", "Amy Morris", ["30-year-fixed-mortgage", "money-market"]),
     ("13128e3edaa2672d", "George Hernandez", ["travel-points", "cash-rewards"]),
@@ -55,6 +58,7 @@ HOUSEHOLDS = [
     ("72454c60051cfab9", "Craig Scott", ["roth-ira"]),
     ("502fa9ef5d3b048d", "Christina Guerra", ["personal-loan"]),
     ("afffa10a90eb9fe6", "Tina Ochoa", ["secured", "everyday-checking"]),
+    ("b681f050d2e9e091", "Julie E Morris", ["estate-planning", "secured"]),
 ]
 
 # R6 collapses repeats of a device + URL within 2s; keep loads well apart.

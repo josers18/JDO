@@ -12,7 +12,7 @@ Heroku worker that keeps two demo signals fresh for JDO.
 - Does NOT own:
   - the Heroku app `data-cloud` and its database `postgresql-trapezoidal-29488` (it only runs inside them);
   - the `Marketing_Engagements__dlm` stream/DMO;
-  - the RTOM site, its sitemap, or the identity-resolution links that make the six browsing devices "recognized";
+  - the RTOM site, its sitemap, or the identity-resolution links that make the seven browsing devices "recognized";
   - the R6 query that reads them (`React-Headless/.../_shared/src/data/webEngagement.ts`).
 - Does not touch the old `marketing_campaigns` table or the `Marketing Campaigns` stream. They still feed Tableau Next.
 
