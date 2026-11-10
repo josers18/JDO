@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Six more R6 households for Jose Sifontes (PR #187)
+
+No bundle change; the `webEngagement.ts` header changed in comments only. `Marketing_Engagement/web_browsing.py --register` linked six of Jose's clients' devices by email through the Account identity-resolution ruleset, and they now browse weekly. Verified live as Jose on 2026-11-10 17:46Z: the card reads "7 households viewed product pages 46 times", with Julie E Morris, Priya S Venkatesh, Anika A Patel, Marcus G Rodriguez and Julia D Nakamura all NOW in the top five. Right Now still leads with Julie E Morris (Estate Planning).
+
 ### 2026-11-10 — R6 for Jose Sifontes's book (PR #186)
 
 No bundle change; the `webEngagement.ts` header changed in comments only. `Marketing_Engagement/web_browsing.py` now sends weekly identified browsing for Julie E Morris (`001am00000qvjsAAAQ`), the only household in Jose's book with identity-linked devices. Verified live as Jose on 2026-11-10: the card reads "1 household viewed product pages 6 times", showing Julie E Morris NOW (Estate Planning ×4, Secured ×2), and Right Now reads "Reach out to Julie E Morris — browsing Estate Planning on the website now."

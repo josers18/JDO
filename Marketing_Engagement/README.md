@@ -56,10 +56,23 @@ git push https://git.heroku.com/data-cloud.git "${c}:refs/heads/main"
 
 ## Weekly identified browsing
 
-Since 2026-08-19 almost every device on the Cumulus RTOM demo site is anonymous, so the Retail cockpit's R6 browsing card had nothing current for Sarah Smith's, Justin Chen's or Jose Sifontes's books. `web_browsing.py` sends the same two Data Cloud Web SDK calls the site's sitemap makes (`/web/v2/authentication`, then one `Viewed Product Detail` beacon per page load) for seven household devices that identity resolution already links to their clients: Amy Morris, George Hernandez, Micheal Cuevas, Craig Scott (Sarah's book only), Christina Guerra and Tina Ochoa in Sarah's and Justin's books, and Julie E Morris (estate planning, secured card) in Jose's. Julie is the only household in Jose's 5,094-account book with linked devices (checked 2026-11-10); the other four multi-linked accounts are CRM-to-CRM merges with no device.
+Since 2026-08-19 almost every device on the Cumulus RTOM demo site is anonymous, so the Retail cockpit's R6 browsing card had nothing current for Sarah Smith's, Justin Chen's or Jose Sifontes's books. `web_browsing.py` sends the same two Data Cloud Web SDK calls the site's sitemap makes (`/web/v2/authentication`, then one `Viewed Product Detail` beacon per page load) for thirteen household devices that identity resolution links to their clients:
+- Sarah's and Justin's books: Amy Morris, George Hernandez, Micheal Cuevas, Craig Scott (Sarah's book only), Christina Guerra and Tina Ochoa.
+- Jose's book: Julie E Morris (estate planning, secured card), plus six clients whose devices `--register` linked on 2026-11-10: David H Chen, Marcus Rodriguez, Anika Patel, Julia Nakamura, Ethan Brooks and Priya Venkatesh.
+
+Before that, Julie was the only household in Jose's 5,094-account book with linked devices; the other four multi-linked accounts are CRM-to-CRM merges with no device.
+
+### Linking a new device (`--register`)
+
+R6 only counts a device that the Account identity-resolution ruleset (`1iram0000002imiAAA`) has linked to a CRM account. The ruleset's **Exact Email Normalized** rule matches `ssot__ContactPointEmail__dlm.ssot__EmailAddress__c`, so a device is linked the way the site links a real visitor who signs up:
+
+1. Add `(device, account, email, first, last)` to `REGISTRATIONS`. The device is `sha256("cumulus-web|<account>")[:16]`, and the email must be the client's own CRM email and shared with no other client.
+2. Run `python web_browsing.py --register <device ...>` (no ids = all). Per device it sends a Web SDK auth, then one beacon with an `identity` event (`isAnonymous "0"`, first/last name; becomes an `ssot__Account__dlm` row with Id = device) and a `contactPointEmail` event (`ssot__ContactPointEmail__dlm`, PartyId = device). It is not logged to `marketing_feed_run`.
+3. Wait for both rows to land (2–15 minutes), then run the ruleset now: `POST /services/data/v67.0/ssot/identity-resolutions/1iram0000002imiAAA/actions/run-now` with `{"callingApp": "...", "callingAppInfo": "..."}`. The link shows in `UnifiedLinkssotAccountAcc__dlm` about 10 minutes later.
+4. Once it is linked, add the device to `HOUSEHOLDS`.
 
 - **Plan:** each ISO week, each household loads its featured product 3–4 times (enough for R6's `SURGE_VIEWS = 3` follow-up) and a second product 1–2 times. The featured product rotates by week. Loads are 4s apart, because R6 collapses repeats within 2s.
-- **Schedule:** a `web_browsing` step at the end of the hourly feed. It runs once 7 days have passed since its last `ok` row, at or after 15:00 UTC. The first live send was 2026-11-10 04:53Z (28 page loads, six households). A manual send at 15:42Z the same day added Julie E Morris (34 page loads, seven households) and reset the clock, so the next is due at the 2026-11-17 16:10Z feed run.
+- **Schedule:** a `web_browsing` step at the end of the hourly feed. It runs once 7 days have passed since its last `ok` row, at or after 15:00 UTC. The first live send was 2026-11-10 04:53Z (28 page loads, six households). A manual send at 15:42Z the same day added Julie E Morris (34 page loads, seven households) and reset the clock. A manual send at 17:30Z added six more of Jose's households (66 page loads, thirteen households) and reset it again, so the next is due at the 2026-11-17 17:10Z feed run.
 - **Manual:** `python web_browsing.py --dry-run` prints this week's plan; without `--dry-run` it sends and logs a `web_browsing` row. That row resets the weekly clock.
 - **Tests** stub `web_browsing.send` in the `pg` fixture, so feed tests never send beacons.
 
