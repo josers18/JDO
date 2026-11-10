@@ -42,6 +42,16 @@ Inserted rows can't be removed, so the writers also guard against rows that woul
 git push https://git.heroku.com/data-cloud.git "$(git subtree split --prefix Marketing_Engagement HEAD):refs/heads/main"
 ```
 
+Heroku's `main` history no longer descends from the subtree split (the trees match; the commits don't), so that push is rejected as non-fast-forward. Don't force it. Commit the split's tree on top of Heroku's head instead (v17, 2026-11-10):
+
+```bash
+git fetch https://git.heroku.com/data-cloud.git main:refs/remotes/heroku-dc/main
+split=$(git subtree split --prefix Marketing_Engagement HEAD)
+git diff --stat heroku-dc/main "$split"          # only your changes should show
+c=$(git commit-tree "${split}^{tree}" -p heroku-dc/main -m "<message> (monorepo <sha>)")
+git push https://git.heroku.com/data-cloud.git "${c}:refs/heads/main"
+```
+
 ## Weekly identified browsing
 
 Since 2026-08-19 almost every device on the Cumulus RTOM demo site is anonymous, so the Retail cockpit's R6 browsing card had nothing current for Sarah Smith's or Justin Chen's books. `web_browsing.py` sends the same two Data Cloud Web SDK calls the site's sitemap makes (`/web/v2/authentication`, then one `Viewed Product Detail` beacon per page load) for six household devices that identity resolution already links to their clients: Amy Morris, George Hernandez, Micheal Cuevas, Craig Scott (Sarah's book only), Christina Guerra and Tina Ochoa.
