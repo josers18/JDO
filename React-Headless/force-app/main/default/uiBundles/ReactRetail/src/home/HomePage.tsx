@@ -748,9 +748,11 @@ function HomeContent({ mode }: { mode: HomeMode }) {
     setGoalItem({ create: true, name: '' });
   };
 
-  const today = data.callList.filter(c => c.tier === 'today');
-  const week = data.callList.filter(c => c.tier === 'week');
-  const watch = data.callList.filter(c => (c.tier ?? 'watch') === 'watch');
+  // The classic "Who to act on today" list reads the same blended queue as the cockpit
+  // card (Who-to-Call + AML, Gong, stress, offers, opps, overdue tasks), not callList alone.
+  const today = queueItems.filter(c => c.tier === 'today');
+  const week = queueItems.filter(c => c.tier === 'week');
+  const watch = queueItems.filter(c => (c.tier ?? 'watch') === 'watch');
 
   // Life-event explorer filter chips: "All" + one per EventType present in the
   // data (canonical order from LIFE_EVENT_TYPE_OPTIONS; unknown types appended).
@@ -769,9 +771,9 @@ function HomeContent({ mode }: { mode: HomeMode }) {
       test: (e: LifeEventSignal) => (e.eventType || e.event) === t,
     })),
   ];
-  // 1-based rank across the whole ranked queue (callList is score-ordered), so
+  // 1-based rank across the whole ranked queue (queueItems is priority-ordered), so
   // each grouped row can show its global position and the #1 item gets emphasis.
-  const rankOf = (c: CallItem) => data.callList.indexOf(c) + 1;
+  const rankOf = (c: CallItem) => queueItems.indexOf(c) + 1;
 
   // ── Relationship-health helpers (shared by the supporting band, the At-Risk
   //    explorer, AND the right-panel "Top risks & opportunities" ring). Defined
@@ -841,12 +843,12 @@ function HomeContent({ mode }: { mode: HomeMode }) {
   };
 
   const queueContext = () =>
-    data.callList
+    queueItems
       .map(c => `${c.clientName} · ${c.tier ?? 'watch'} · ${Math.round((c.score ?? 0) * 100)}% · ${c.reason}`)
       .join('\n');
 
   const queueFallback = () => {
-    const top = data.callList.slice(0, 4);
+    const top = queueItems.slice(0, 4);
     const lines = top.map(
       (c, i) => `${i + 1}. ${c.clientName} — ${c.reason} (priority ${Math.round((c.score ?? 0) * 100)}%).`,
     );

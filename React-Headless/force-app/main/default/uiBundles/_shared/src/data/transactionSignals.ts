@@ -344,12 +344,13 @@ export function callSentimentQueueItems(
 }
 
 /* ── S2: World-Check AML / PEP screening changes (BT_WorldCheck_AML__dlm) ─────
-   Daily snapshot, one row per account per `profile_date__c`. Only surface
+   Daily snapshot, one row per account per `profile_date__c`. Surface
    `change_since_last_run__c = 'Changed'` rows whose rating went UP versus the
    previous run (about half of the changes are de-escalations, which is good news
-   and belongs on the record page). A client with no prior row counts as new.
-   Verified live 2026-10-22: 483 changed org-wide, ~245 escalations; 8+ High per
-   banker book. NB: ConnectApi rejects the simple `CASE x WHEN` form, so the
+   and belongs on the record page), plus first screenings (`'New'`: the account had
+   no row on the prior run) that land High or Severe. A New Medium/Low screening is
+   not an escalation. New High/Severe is rare (1 since June: 2026-11-05).
+   Verified live 2026-11-09: 346 escalations org-wide (138 High, 208 Medium), 0 New. NB: ConnectApi rejects the simple `CASE x WHEN` form, so the
    escalation test is spelled out instead of comparing rank expressions. */
 const amlChangeSql = (accountFilter: string) => `
   SELECT c.account_id__c AS account_id, c.overall_risk_rating__c AS risk_rating,
@@ -361,10 +362,11 @@ const amlChangeSql = (accountFilter: string) => `
     AND p.profile_date__c = (SELECT MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm
                              WHERE profile_date__c < (SELECT MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm))
   WHERE c.profile_date__c = (SELECT MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm)
-    AND c.change_since_last_run__c = 'Changed'
-    AND (   (c.overall_risk_rating__c = 'Severe' AND COALESCE(p.overall_risk_rating__c, '') <> 'Severe')
-         OR (c.overall_risk_rating__c = 'High' AND COALESCE(p.overall_risk_rating__c, '') NOT IN ('High', 'Severe'))
-         OR (c.overall_risk_rating__c = 'Medium' AND COALESCE(p.overall_risk_rating__c, 'Low') = 'Low'))
+    AND (   (c.change_since_last_run__c = 'New' AND c.overall_risk_rating__c IN ('High', 'Severe'))
+         OR (c.change_since_last_run__c = 'Changed'
+             AND (   (c.overall_risk_rating__c = 'Severe' AND COALESCE(p.overall_risk_rating__c, '') <> 'Severe')
+                  OR (c.overall_risk_rating__c = 'High' AND COALESCE(p.overall_risk_rating__c, '') NOT IN ('High', 'Severe'))
+                  OR (c.overall_risk_rating__c = 'Medium' AND COALESCE(p.overall_risk_rating__c, 'Low') = 'Low'))))
     AND c.account_id__c ${accountFilter}
   ORDER BY CASE WHEN c.overall_risk_rating__c = 'Severe' THEN 4 WHEN c.overall_risk_rating__c = 'High' THEN 3 ELSE 2 END DESC
   LIMIT 8
