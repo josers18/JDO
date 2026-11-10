@@ -11,7 +11,9 @@
  *     30 days = cash-flow stress worth a treasury / line-of-credit conversation.
  *
  * Both are book-scoped through `SFAccountID__c` (the Account key) and fall back to
- * org-wide like every other DC card. Queries + columns verified live 2026-10-22.
+ * org-wide like every other DC card. Queries + columns verified live 2026-10-22;
+ * re-counted 2026-11-09 org-wide: 81 clients with a bonus / tax refund in 7 days,
+ * 1,329 with a $10K+ ACH receipt, 623 accounts with a fee spike.
  *
  * Also hosts S1 (Gong call sentiment) and S2 (World-Check AML screening changes),
  * shared by all three apps, because they plug into the queue and alerts the same
@@ -71,7 +73,7 @@ const businessInflowSql = (accountFilter: string) => `
 // otherwise never show a spike. `hh` maps each member person account
 // (AccountContactRelation → PersonContactId) to one of the book's households, and
 // member spikes are reported against that household. Org-wide scope skips it.
-// Verified live 2026-10-24, Jose Sifontes' book: 0 → 525 households.
+// Verified live 2026-10-24, Jose Sifontes' book: 0 → 525 households (506 on 2026-11-09).
 const feeSpikeSql = (accountFilter: string, households: boolean) => `${commercialWhoToCallScoreCtes(accountFilter)},
   hh AS (
   SELECT m.ssot__Id__c AS member, MIN(ac.ssot__AccountId__c) AS household
@@ -243,7 +245,7 @@ export function feeSpikeQueueItems(
    Weekly snapshot, one row per account per `profile_week__c` — pin to the latest
    week. Negative / Very Negative AND Declining = the relationship is souring on
    recorded calls, a "who to call" signal independent of CSAT. Verified live
-   2026-10-22 (week 2026-10-19: 282 org-wide; 14–80 per banker book). */
+   2026-11-09 (week 2026-11-09: 262 org-wide; 10–88 per banker book). */
 const callSentimentSql = (accountFilter: string) => `
   SELECT g.account_id__c AS account_id, g.overall_sentiment__c AS sentiment,
          g.deal_risk_score__c AS deal_risk, g.next_scheduled_call_date__c AS next_call,
@@ -350,7 +352,8 @@ export function callSentimentQueueItems(
    and belongs on the record page), plus first screenings (`'New'`: the account had
    no row on the prior run) that land High or Severe. A New Medium/Low screening is
    not an escalation. New High/Severe is rare (1 since June: 2026-11-05).
-   Verified live 2026-11-09: 346 escalations org-wide (138 High, 208 Medium), 0 New. NB: ConnectApi rejects the simple `CASE x WHEN` form, so the
+   Verified live 2026-11-09: 346 escalations org-wide (138 High, 208 Medium), 0 New;
+   1–100 per banker book. NB: ConnectApi rejects the simple `CASE x WHEN` form, so the
    escalation test is spelled out instead of comparing rank expressions. */
 const amlChangeSql = (accountFilter: string) => `
   SELECT c.account_id__c AS account_id, c.overall_risk_rating__c AS risk_rating,
