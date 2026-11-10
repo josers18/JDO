@@ -3,7 +3,7 @@
 Since 2026-08-19 almost every RTOM site device is anonymous, so the Retail cockpit's
 R6 "digital-engagement surges" card had nothing current for Sarah Smith's, Justin
 Chen's or Jose Sifontes's books. This sends real Data Cloud Web SDK beacons (the same
-two calls the site's sitemap makes) for 33 household devices that identity
+two calls the site's sitemap makes) for 51 household devices that identity
 resolution links to their clients. Each week, each household loads its featured product page
 3-4 times (enough for R6's SURGE_VIEWS = 3 follow-up) and a second product 1-2 times.
 Which product leads rotates by ISO week; load counts are a hash of (device, week).
@@ -78,7 +78,8 @@ SECTION = {"retail": "Personal Banking", "commercial": "Commercial Banking", "we
 # Julie E Morris (001am00000qvjsAAAQ) was the only household in Jose Sifontes's book with
 # linked devices (checked 2026-11-10); b681f050d2e9e091 last browsed estate planning on 10-28.
 # The six after her are Jose's clients whose devices were linked by `--register`
-# (REGISTRATIONS), then two batches of five each from Sarah's and Justin's books (2026-11-10).
+# (REGISTRATIONS), then three batches of five each from Sarah's and Justin's books, four from
+# Kim Johnson's book, and all four of Allen Carter's person accounts (2026-11-10).
 HOUSEHOLDS = [
     ("03ebdbb54d499cac", "Amy Morris", ["30-year-fixed-mortgage", "money-market"]),
     ("13128e3edaa2672d", "George Hernandez", ["travel-points", "cash-rewards"]),
@@ -113,6 +114,24 @@ HOUSEHOLDS = [
     ("98018b3c6962933f", "John Bruce", ["auto-loan", "personal-loan"]),
     ("9395f591daea13de", "Nancy Diaz", ["statement-savings", "money-market"]),
     ("49c6fcf3f14b2fc2", "Julia Bautista", ["traditional-ira", "estate-planning"]),
+    ("3f29b484c0e1f411", "Mike Garcia", ["premier-checking", "heloc"]),
+    ("3fdbea94ce4e3bf2", "Karen Wells", ["managed-advisory", "estate-planning"]),
+    ("308c89a333beb886", "Alex Cooper", ["30-year-fixed-mortgage", "high-yield-savings"]),
+    ("05af5266dd6b1630", "Christian Wolff", ["brokerage-accounts", "traditional-ira"]),
+    ("d5ab60a319667be2", "Michelle Anderson", ["money-market", "36mo-cd"]),
+    ("a965f07abd81fbe4", "Melissa Curtis", ["auto-loan", "cash-rewards"]),
+    ("e580a315c9639dc9", "Brian Harris", ["5-1-arm-mortgage", "heloan"]),
+    ("480a8be77ef64abc", "Cassandra Salas", ["roth-ira", "529-education-savings"]),
+    ("29c49583c08be277", "Shelby Lynch", ["secured", "everyday-checking"]),
+    ("67392b685f7e5ec8", "Raymond Ramirez", ["30-year-fixed-mortgage", "heloc"]),
+    ("6dad533f5aa0cf50", "Travis Lopez", ["travel-points", "premier-checking"]),
+    ("eb2cce9b6b841b66", "Christopher Marquez", ["12mo-cd", "high-yield-savings"]),
+    ("452379dff6a30969", "Dustin Fox", ["personal-loan", "personal-line-of-credit"]),
+    ("95c88e96d6a601f9", "Sarah Gallegos", ["60mo-cd", "money-market"]),
+    ("95641ff1dccbda71", "Alyssa Lee", ["brokerage-accounts", "401k-403b-rollover"]),
+    ("39dcccaa6d351343", "Jacob Jacobs", ["heloan", "30-year-fixed-mortgage"]),
+    ("e5acad6928d6d3ae", "William Smith", ["cash-rewards", "secured"]),
+    ("f11a5f0ba3de591b", "Jason Carr", ["estate-planning", "revocable-irrevocable-trusts"]),
 ]
 
 # One-time sign-ins for person accounts in Jose Sifontes's, Sarah Smith's and Justin Chen's
@@ -146,6 +165,24 @@ REGISTRATIONS = [
     ("98018b3c6962933f", "001am00002A303RAAR", "yvonnecastaneda@example.org", "John", "Bruce"),
     ("9395f591daea13de", "001am00002A303SAAR", "maria47@example.com", "Nancy", "Diaz"),
     ("49c6fcf3f14b2fc2", "001am00002A303TAAR", "umatthews@example.org", "Julia", "Bautista"),
+    ("3f29b484c0e1f411", "001am00000qvjt6AAA", "mgarcia@example.com", "Mike", "Garcia"),
+    ("3fdbea94ce4e3bf2", "001am00000qvjtOAAQ", "kwells@example.com", "Karen", "Wells"),
+    ("308c89a333beb886", "001am00000qvjtbAAA", "alexcooper@example.com", "Alex", "Cooper"),
+    ("05af5266dd6b1630", "001am00000qvjtiAAA", "cwolff@example.com", "Christian", "Wolff"),
+    ("d5ab60a319667be2", "001am00002A303UAAR", "kristy39@example.com", "Michelle", "Anderson"),
+    ("a965f07abd81fbe4", "001am00002A303VAAR", "russellbeasley@example.com", "Melissa", "Curtis"),
+    ("e580a315c9639dc9", "001am00002A303XAAR", "katrinaduran@example.com", "Brian", "Harris"),
+    ("480a8be77ef64abc", "001am00002A303bAAB", "davidsonmorgan@example.net", "Cassandra", "Salas"),
+    ("29c49583c08be277", "001am00002A303cAAB", "srodriguez@example.org", "Shelby", "Lynch"),
+    ("67392b685f7e5ec8", "001am00002AYQo2AAH", "rodriguezlori@example.com", "Raymond", "Ramirez"),
+    ("6dad533f5aa0cf50", "001am00002AYQo4AAH", "rodgersseth@example.org", "Travis", "Lopez"),
+    ("eb2cce9b6b841b66", "001am00002AYQo6AAH", "elyons@example.net", "Christopher", "Marquez"),
+    ("452379dff6a30969", "001am00002AYQoAAAX", "rherrera@example.org", "Dustin", "Fox"),
+    ("95c88e96d6a601f9", "001am00002A303WAAR", "anthony44@example.com", "Sarah", "Gallegos"),
+    ("95641ff1dccbda71", "001am00002A303YAAR", "michael23@example.org", "Alyssa", "Lee"),
+    ("39dcccaa6d351343", "001am00002A303ZAAR", "susanhayes@example.com", "Jacob", "Jacobs"),
+    ("e5acad6928d6d3ae", "001am00002A303aAAB", "henry35@example.com", "William", "Smith"),
+    ("f11a5f0ba3de591b", "001am00002A303fAAB", "igonzalez@example.org", "Jason", "Carr"),
 ]
 
 # R6 collapses repeats of a device + URL within 2s; keep loads well apart.
