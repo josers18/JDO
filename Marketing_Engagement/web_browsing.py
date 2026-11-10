@@ -3,7 +3,7 @@
 Since 2026-08-19 almost every RTOM site device is anonymous, so the Retail cockpit's
 R6 "digital-engagement surges" card had nothing current for Sarah Smith's, Justin
 Chen's or Jose Sifontes's books. This sends real Data Cloud Web SDK beacons (the same
-two calls the site's sitemap makes) for 51 household devices that identity
+two calls the site's sitemap makes) for 53 household devices that identity
 resolution links to their clients. Each week, each household loads its featured product page
 3-4 times (enough for R6's SURGE_VIEWS = 3 follow-up) and a second product 1-2 times.
 Which product leads rotates by ISO week; load counts are a hash of (device, week).
@@ -79,7 +79,7 @@ SECTION = {"retail": "Personal Banking", "commercial": "Commercial Banking", "we
 # linked devices (checked 2026-11-10); b681f050d2e9e091 last browsed estate planning on 10-28.
 # The six after her are Jose's clients whose devices were linked by `--register`
 # (REGISTRATIONS), then three batches of five each from Sarah's and Justin's books, four from
-# Kim Johnson's book, and all four of Allen Carter's person accounts (2026-11-10).
+# Kim Johnson's book (then two more), and all four of Allen Carter's person accounts (2026-11-10).
 HOUSEHOLDS = [
     ("03ebdbb54d499cac", "Amy Morris", ["30-year-fixed-mortgage", "money-market"]),
     ("13128e3edaa2672d", "George Hernandez", ["travel-points", "cash-rewards"]),
@@ -132,6 +132,8 @@ HOUSEHOLDS = [
     ("39dcccaa6d351343", "Jacob Jacobs", ["heloan", "30-year-fixed-mortgage"]),
     ("e5acad6928d6d3ae", "William Smith", ["cash-rewards", "secured"]),
     ("f11a5f0ba3de591b", "Jason Carr", ["estate-planning", "revocable-irrevocable-trusts"]),
+    ("ed4ccbf3017fc3b7", "Duncan Macintosh", ["managed-advisory", "401k-403b-rollover"]),
+    ("43e5316ac050bd48", "Gabe Hoskins", ["heloan", "auto-loan"]),
 ]
 
 # One-time sign-ins for person accounts in Jose Sifontes's, Sarah Smith's and Justin Chen's
@@ -183,6 +185,8 @@ REGISTRATIONS = [
     ("39dcccaa6d351343", "001am00002A303ZAAR", "susanhayes@example.com", "Jacob", "Jacobs"),
     ("e5acad6928d6d3ae", "001am00002A303aAAB", "henry35@example.com", "William", "Smith"),
     ("f11a5f0ba3de591b", "001am00002A303fAAB", "igonzalez@example.org", "Jason", "Carr"),
+    ("ed4ccbf3017fc3b7", "001am00000qvjt2AAA", "dmacintosh@example.com", "Duncan", "Macintosh"),
+    ("43e5316ac050bd48", "001am00000qvjt4AAA", "ghoskins@example.com", "Gabe", "Hoskins"),
 ]
 
 # R6 collapses repeats of a device + URL within 2s; keep loads well apart.

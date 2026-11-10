@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Two more R6 households for Kim Johnson (PR #191)
+
+No bundle change; the `webEngagement.ts` header changed in comments only. Duncan Macintosh and Gabe Hoskins were registered, linked and sent their first week. Verified live at 20:47Z: Kim's card reads "6 households viewed product pages 28 times", with Gabe Hoskins second and Duncan Macintosh fourth. Jose has no eligible client left. Known label issue: the `heloan` slug renders as "Heloan".
+
 ### 2026-11-10 — R6 households for Kim Johnson and Allen Carter, and a third batch for Sarah and Justin (PR #190)
 
 No bundle change; the `webEngagement.ts` header changed in comments only. 18 more clients were registered and linked, and their first week went out with `--only`. Verified live at 20:20Z, when Kim's and Allen's cards showed browsing for the first time:
