@@ -48,6 +48,27 @@ def test_send_authenticates_each_device_then_one_beacon_per_load():
     assert ev["sourceUrl"].endswith(f"/products/retail/{plan[0][2][0]}") and ev["dateTime"] == "2026-11-16T15:00:00.123Z"
 
 
+def test_register_sends_identity_then_email_per_device():
+    http = FakeHttp()
+    regs = wb.REGISTRATIONS[:2]
+    assert wb.register(regs, http=http, clock=lambda: datetime(2026, 11, 10, 16)) == 2
+    assert [c[0].rsplit("/", 1)[-1] for c in http.calls] == ["authentication", wb.APP_SOURCE_ID] * 2
+    idn, email = json.loads(base64.b64decode(http.calls[1][1]["event"]))["events"]
+    device, _acct, addr, first, last = regs[0]
+    assert idn["eventType"] == "identity" and idn["isAnonymous"] == "0" and (idn["firstName"], idn["lastName"]) == (first, last)
+    assert email["eventType"] == "contactPointEmail" and email["email"] == addr
+    assert idn["deviceId"] == email["deviceId"] == device and idn["category"] == "Profile"
+
+
+def test_registration_devices_are_unique_and_derived():
+    import hashlib
+    for device, account, *_ in wb.REGISTRATIONS:
+        assert device == hashlib.sha256(f"cumulus-web|{account}".encode()).hexdigest()[:16]
+    regs, homes = [r[0] for r in wb.REGISTRATIONS], [h[0] for h in wb.HOUSEHOLDS]
+    assert len(set(regs)) == len(regs) and len(set(homes)) == len(homes)
+    assert set(regs) <= set(homes)  # every registered device browses once linked
+
+
 def test_feed_runs_browsing_weekly_after_1500_utc(pg):
     fake = FakeSf()
     feed.run(pg, lambda: fake, datetime(2026, 11, 16, 14))
