@@ -17,9 +17,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — R6 product names read the way the site writes them (PR #192)
+
+`productOf` in `_shared/src/data/webEngagement.ts` built names by title-casing slug words, so `heloan` read "Heloan", `12mo-cd` read "12mo CD" and `401k-403b-rollover` read "401k 403b Rollover". It now keeps HELOAN in capitals, writes `Nmo` as "N-Month", lowercases "of", and uses fixed names for slugs that need punctuation or a dropped word: "401(k)/403(b) Rollover", "5/1 ARM Mortgage", "Revocable & Irrevocable Trusts", "High-Yield Savings", "Asset-Based Lending", "Point-of-Sale Systems", and "Secured Card", "Cash Rewards Card" and "Travel Points Card". Only ReactRetail renders R6, so only it was rebuilt and deployed. Verified live as Kim Johnson: "HELOAN ×3", "12-Month CD ×4", "401(k)/403(b) Rollover ×1", "Travel Points Card ×3", "Personal Line of Credit ×2".
+
 ### 2026-11-10 — Two more R6 households for Kim Johnson (PR #191)
 
-No bundle change; the `webEngagement.ts` header changed in comments only. Duncan Macintosh and Gabe Hoskins were registered, linked and sent their first week. Verified live at 20:47Z: Kim's card reads "6 households viewed product pages 28 times", with Gabe Hoskins second and Duncan Macintosh fourth. Jose has no eligible client left. Known label issue: the `heloan` slug renders as "Heloan".
+No bundle change; the `webEngagement.ts` header changed in comments only. Duncan Macintosh and Gabe Hoskins were registered, linked and sent their first week. Verified live at 20:47Z: Kim's card reads "6 households viewed product pages 28 times", with Gabe Hoskins second and Duncan Macintosh fourth. Jose has no eligible client left. The "Heloan" label was fixed in PR #192.
 
 ### 2026-11-10 — R6 households for Kim Johnson and Allen Carter, and a third batch for Sarah and Justin (PR #190)
 
