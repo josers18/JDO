@@ -24,7 +24,8 @@ Inserted rows can't be removed, so the writers also guard against rows that woul
 | `crm.py` | CRM reads (Accounts, Contacts, CampaignMembers) |
 | `db.py` | Postgres access (`DATABASE_URL`, or `.env` `Heroku_PG_*` / `ME_ENV_FILE`) |
 | `sf.py` | Salesforce REST: JWT on Heroku, the sf CLI session locally |
-| `feed.py` | Hourly worker: rollover → CRM create → generate → reconcile |
+| `feed.py` | Hourly worker: rollover → CRM create → generate → reconcile → web_browsing (weekly) |
+| `web_browsing.py` | Weekly identified browsing on the Cumulus RTOM demo site for the React-Headless R6 card |
 | `backfill.py` | Insert any missing rows for all Linked campaigns |
 | `migrate.py` | Apply `sql/*.sql` and seed `marketing_campaign` from `catalog.py` |
 
@@ -40,6 +41,15 @@ Inserted rows can't be removed, so the writers also guard against rows that woul
 ```bash
 git push https://git.heroku.com/data-cloud.git "$(git subtree split --prefix Marketing_Engagement HEAD):refs/heads/main"
 ```
+
+## Weekly identified browsing
+
+Since 2026-08-19 almost every device on the Cumulus RTOM demo site is anonymous, so the Retail cockpit's R6 browsing card had nothing current for Sarah Smith's or Justin Chen's books. `web_browsing.py` sends the same two Data Cloud Web SDK calls the site's sitemap makes (`/web/v2/authentication`, then one `Viewed Product Detail` beacon per page load) for six household devices that identity resolution already links to their clients: Amy Morris, George Hernandez, Micheal Cuevas, Craig Scott (Sarah's book only), Christina Guerra and Tina Ochoa.
+
+- **Plan:** each ISO week, each household loads its featured product 3–4 times (enough for R6's `SURGE_VIEWS = 3` follow-up) and a second product 1–2 times. The featured product rotates by week. Loads are 4s apart, because R6 collapses repeats within 2s.
+- **Schedule:** a `web_browsing` step at the end of the hourly feed. It runs once 7 days have passed since its last `ok` row, at or after 15:00 UTC. The first live send was 2026-11-10 04:53Z (28 page loads), so the next is due at the 2026-11-17 15:10Z feed run.
+- **Manual:** `python web_browsing.py --dry-run` prints this week's plan; without `--dry-run` it sends and logs a `web_browsing` row. That row resets the weekly clock.
+- **Tests** stub `web_browsing.send` in the `pg` fixture, so feed tests never send beacons.
 
 ## Operating it
 

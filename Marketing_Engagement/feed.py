@@ -2,6 +2,7 @@
 
 Steps, each logged to "Fins".marketing_feed_run:
   auth → rollover → crm_create → generate → reconcile (once a day after 06:00 UTC)
+  → web_browsing (weekly identified RTOM site browsing, after 15:00 UTC; see web_browsing.py)
 Insert-only on marketing_engagement; safe to re-run any time.
 
     python feed.py
@@ -16,9 +17,13 @@ from datetime import date, datetime, timedelta, timezone
 import crm
 import db
 import engine
+import web_browsing
 from catalog import MEMBER_SOURCE, NEW_CAMPAIGN_DESCRIPTION, SEGMENT_SOURCE
 
 RECONCILE_HOUR_UTC = 6
+# Weekly browsing runs from 15:00 UTC (morning PT), 7 days after its last ok run.
+BROWSING_HOUR_UTC = 15
+BROWSING_EVERY = timedelta(days=7)
 # Generated campaigns start here (moved up from Nov to fill the Oct 2026 gap); earlier months came from the original backfill.
 FIRST_MONTH = date(2026, 10, 1)
 # Keep generating this long past a campaign's cap, so an outage spanning the cap loses nothing.
@@ -179,6 +184,11 @@ def run(conn, sf_factory, now, dry_run=False):
         rows = due_rows(conn, ctx["sf"], now, extra)
         return len({r[2] for r in rows}), db.insert_events(conn, rows, dry_run), None
 
+    def browsing():
+        plan = web_browsing.week_plan(now)
+        loads = sum(len(l) for _d, _c, l in plan) if dry_run else web_browsing.send(plan)
+        return len(plan), loads, web_browsing.describe(plan)[:2000]
+
     def reconcile():
         linked, notes = step_reconcile(conn, ctx["sf"], now, dry_run)
         return len(linked), 0, "; ".join(notes)[:2000] or None
@@ -191,6 +201,9 @@ def run(conn, sf_factory, now, dry_run=False):
     last = db.last_success(conn, "reconcile")
     if now.hour >= RECONCILE_HOUR_UTC and (last is None or last.date() < now.date()):
         step("reconcile", reconcile)
+    last = db.last_success(conn, "web_browsing")
+    if now.hour >= BROWSING_HOUR_UTC and (last is None or now - last >= BROWSING_EVERY):
+        step("web_browsing", browsing)
     return ok
 
 

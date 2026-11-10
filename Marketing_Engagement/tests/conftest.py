@@ -18,6 +18,9 @@ def pg(monkeypatch):
     except Exception as e:  # no creds available
         pytest.skip(f"Postgres unavailable: {e}")
     monkeypatch.setattr(db, "SCHEMA", TEST_SCHEMA)
+    # Feed runs at/after 15:00 UTC reach the weekly browsing step; never send real beacons from tests.
+    import web_browsing
+    monkeypatch.setattr(web_browsing, "send", lambda plan, **kw: sum(len(loads) for _d, _c, loads in plan))
     conn.execute(f'DROP SCHEMA IF EXISTS "{TEST_SCHEMA}" CASCADE')
     migrate.apply_sql(conn)
     yield conn
