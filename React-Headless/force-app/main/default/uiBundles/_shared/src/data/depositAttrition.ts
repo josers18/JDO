@@ -7,9 +7,9 @@
  * client is moving into the other bank this month: deposit attrition, the Retail
  * flavor of held-away (deposit capture, not AUM).
  *
- * Verified live 2026-10-22 (October snapshot): Sarah Smith 4,885 clients / $165M
- * held away, 3,204 sending money out ($8.9M/mo), 216 at $5K+/mo; Justin Chen
- * 5,065 / $172M, 3,276 ($9.2M/mo); Vince West 817 / $75M, 551 ($1.7M/mo).
+ * Verified live 2026-11-09 (October snapshot): Sarah Smith 4,758 clients / $161M
+ * held away, 3,095 sending money out ($8.5M/mo), 206 at $5K+/mo; Justin Chen
+ * 4,871 / $163M, 3,165 ($8.8M/mo); Vince West 803 / $74M, 527 ($1.6M/mo).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';

@@ -12,8 +12,8 @@
  *     event in the last 90 days is a treasury-management opportunity (new team,
  *     new banking review); turnover on Weak governance is a credit risk.
  *
- * Verified live 2026-10-22, Jose Sifontes' book: 425 Negative + 161 Watch;
- * 1,015 turnover flags, 40 on Weak governance, ~330 governance events in 90d.
+ * Verified live 2026-11-09, Jose Sifontes' book: 513 Negative + 220 Watch;
+ * 1,021 turnover flags, 30 on Weak governance, 69 governance events in 90d.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';

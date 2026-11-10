@@ -4,8 +4,8 @@
  * the book, with the upmarket ($50M+) clients called out. `tech_stack_flags__c`
  * (comma list) turns into an integration-ready treasury pitch per client.
  *
- * Verified live 2026-10-22: Allen Carter's book 215 × $50M–$200M, 22 × $200M–$1B,
- * 6 × $1B+ of ~5.6K; Jose Sifontes' book is ~all <$1M (no upmarket clients).
+ * Verified live 2026-11-09: Allen Carter's book 215 × $50M–$200M, 22 × $200M–$1B,
+ * 6 × $1B+ of ~5.6K; Jose Sifontes' book is ~all <$1M (2 × $50M–$200M of ~5.1K).
  * Tech flags present: Salesforce, HubSpot, Marketo, Workday, Snowflake, AWS,
  * Tableau, Microsoft 365, Google Workspace, Slack, Zoom, Okta (no ERP flags).
  */

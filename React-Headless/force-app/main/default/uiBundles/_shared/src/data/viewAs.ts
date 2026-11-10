@@ -68,7 +68,7 @@ export async function fetchEffectiveUser(): Promise<CurrentUser | null> {
  * life events and customer goals are data-loaded (owned by the loader), and a
  * case belongs to the banker of the account it's on. Everything else (tasks,
  * events, opportunities, leads, banker goals) filters on its own `OwnerId`.
- * Verified live 2026-10-22 (Sarah Smith: 10,672 life events, 1,650 open cases).
+ * Verified live 2026-11-09 (Sarah Smith: 10,672 life events, 1,701 open cases).
  */
 const OWNER_PATH: Record<string, (eq: string) => string> = {
   PersonLifeEvent: eq => `PrimaryPerson: { Account: { OwnerId: ${eq} } }`,

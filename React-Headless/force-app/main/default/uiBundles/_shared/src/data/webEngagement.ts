@@ -13,9 +13,9 @@
  *
  * Recognized traffic is sparse, so the window is the 7 days up to the BOOK's
  * latest product view (like S6) and the card says when that was; the queue and
- * Right Now only take recent visits. Verified live 2026-10-22: Jose Sifontes 1
- * client — Cash Rewards ×12 today; Sarah Smith / Justin Chen last browsed
- * 2026-08-18 (Cash Rewards, Travel Points, CDs, 30-year fixed).
+ * Right Now only take recent visits. Verified live 2026-11-09: Jose Sifontes 1
+ * client — Cash Rewards ×30, last browsed 2026-10-28; Sarah Smith / Justin Chen
+ * last browsed 2026-08-18 (Cash Rewards, Travel Points, CDs, 30-year fixed).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';

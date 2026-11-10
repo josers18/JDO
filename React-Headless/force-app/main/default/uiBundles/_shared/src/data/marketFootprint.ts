@@ -7,8 +7,8 @@
  * clients in a profiled ZIP count. Consolidate ZIPs are a retention heads-up
  * (the branch may close); affluent Optimize ZIPs are where to grow.
  *
- * Verified live 2026-10-22: Allen Carter 1,788 clients matched across 1,051
- * ZIPs (227 in Consolidate ZIPs); Jose Sifontes 998 across 343 (114).
+ * Verified live 2026-11-09: Allen Carter 1,788 clients matched across 1,051
+ * ZIPs (259 in Consolidate ZIPs); Jose Sifontes 998 across 343 (163).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';

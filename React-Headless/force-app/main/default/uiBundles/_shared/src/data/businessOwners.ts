@@ -11,10 +11,10 @@
  *     ranked by the owner's Claritas net-worth band and wealth propensity → a
  *     Leads row referring the owner to Wealth.
  *
- * Verified live 2026-10-22: owners sit in Vince West / Kim Johnson / Adam
- * Watson's books (207–234 owners, ~1K businesses each). Since 2026-10-24 Sarah
- * Smith and Justin Chen's books carry ~100 owners each too. Businesses sit with
- * Jose Sifontes (~1.3K) and Allen Carter (~1.5K).
+ * Verified live 2026-11-09: owners sit in Vince West / Kim Johnson / Adam
+ * Watson's books (107–126 owners, 110–131 businesses each). Sarah Smith and
+ * Justin Chen's books carry 131 and 125 owners too. Businesses sit with
+ * Jose Sifontes (277) and Allen Carter (311).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 

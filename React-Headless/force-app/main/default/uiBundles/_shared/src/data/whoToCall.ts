@@ -12,10 +12,10 @@
  * (months_high is an integer count — divide by 6.0, or anything short of 6/6 truncates
  * to 0.) Stress at 25% lets persistent-stress clients share the top 8 with Gong save
  * calls; at 30% they crowd them out. Risk drivers dominate, so stacked signals rise to the top. Every row names its
- * drivers, and the action follows the strongest one. Verified live 2026-10-22: Sarah
- * Smith 10,012 clients score (6,916 low CSAT, 48 Gong, 393 stress, 8,916 offers;
- * 280 with 2+ risk drivers); after the 2026-10-23 rebalance her top 8 is 5 stress + 4
- * Gong clients, led by stress 4/6 + CSAT 54 + Negative calls + a 50% offer.
+ * drivers, and the action follows the strongest one. Verified live 2026-11-09: Sarah
+ * Smith 10,416 clients score (6,947 low CSAT, 28 Gong, 477 stress, 10,153 offers;
+ * 322 with 2+ risk drivers); after the 2026-10-23 rebalance her top 8 is 6 stress + 2
+ * Gong clients, led by stress 3/6 + CSAT 24 + a 28% offer (no Gong calls).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { offerLabel } from './offerModel';

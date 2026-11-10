@@ -6,10 +6,12 @@
  * The feed has no conversion event, so "engaged, not converted" is read as: the
  * client clicked through a campaign and hasn't unsubscribed. Each client's most
  * clicked campaign wins; the strongest client per campaign comes first so the
- * queue isn't eight copies of one offer. The history is batch-loaded (latest
- * book click mid-Sept 2026) and the live hourly feed is thin, so the window is
- * the 30 days before the book's latest click, like S4. Verified live 2026-10-22:
- * 8 per book (Sarah Smith — Rewards Credit Card; Jose Sifontes — Merchant Services).
+ * queue isn't eight copies of one offer. The history was batch-loaded through
+ * mid-Sept 2026; the hourly feed now keeps banker books current (latest clicks
+ * 2026-11-09/10 UTC, 181–1,521 clicks per book in 30 days). The window is the 30
+ * days before the book's latest click, like S4, so a quiet book still shows its
+ * last active month. Verified live 2026-11-09:
+ * 8 per book (Sarah Smith — Rewards Credit Card; Jose Sifontes — Payroll Services).
  */
 import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';

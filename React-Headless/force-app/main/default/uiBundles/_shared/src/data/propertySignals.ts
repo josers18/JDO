@@ -7,8 +7,8 @@
  *
  * Two angles: a mortgaged owner paying ≥ 6.5% is a refi review, everyone else
  * (mostly free-and-clear) is a HELOC conversation. The queue takes the top four
- * of each, interleaved. Verified live 2026-10-22: Sarah Smith 3,689 owners /
- * $2.20B equity / 218 refi candidates; business books have ~3 (Retail only).
+ * of each, interleaved. Verified live 2026-11-09: Sarah Smith 3,697 owners /
+ * $2.20B equity / 220 refi candidates; business books have ~3 (Retail only).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';
@@ -130,8 +130,8 @@ export function homeEquityQueueItems(
    (A / AE / V / VE: 4,535 org-wide) or scores 70+ on wildfire (3,390). Homes
    with both come first, then the largest home value. This is an insurance
    cross-sell and proactive-outreach list ("check in after the storm"), not a
-   credit flag. Verified live 2026-10-22: Sarah Smith 2,019 homes (1,210 flood,
-   887 wildfire, 78 both), $1.49B value carrying $537M of mortgage. */
+   credit flag. Verified live 2026-11-09: Sarah Smith 2,023 homes (1,214 flood,
+   887 wildfire, 78 both), $1.50B value carrying $537M of mortgage. */
 const RISK_FLOOD = "flood_zone_code__c IN ('A', 'AE', 'V', 'VE')";
 const RISK_FIRE = 'wildfire_risk_score__c >= 70';
 const RISK_SLICE = `profile_quarter__c = (SELECT MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm)

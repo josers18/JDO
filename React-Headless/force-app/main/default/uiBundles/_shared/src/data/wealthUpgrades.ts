@@ -6,9 +6,9 @@
  * Prospecting from inside the existing book. $5M+ ranks first, then wealth
  * propensity, then investment propensity.
  *
- * Verified live 2026-10-22: Sarah Smith 312 candidates, Justin Chen 326 — all
- * $1M–$5M (wealth propensity tops out below 80 in those books); both books are
- * categorised Retail end to end.
+ * Verified live 2026-11-09: Sarah Smith 326 candidates, Justin Chen 307 — all
+ * $1M–$5M bar one $5M+ (wealth propensity tops out below 80 in those books);
+ * both books are categorised Retail end to end bar one Bronze (Justin Chen).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';

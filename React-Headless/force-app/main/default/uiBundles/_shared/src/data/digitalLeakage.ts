@@ -5,8 +5,8 @@
  * starter for a digital-asset offering or a managed account. Top three clients
  * per kind by balance, plus book totals and the monthly money still flowing in.
  *
- * Verified live 2026-10-22, Sarah Smith's book: crypto 1,897 clients / $58.7M
- * (+$462K/mo), robo 1,856 clients / $780M (+$2.09M/mo).
+ * Verified live 2026-11-09, Sarah Smith's book: crypto 1,704 clients / $65.6M
+ * (+$414K/mo), robo 1,640 clients / $701M (+$1.86M/mo).
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 

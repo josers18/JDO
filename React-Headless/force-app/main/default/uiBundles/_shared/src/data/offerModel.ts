@@ -5,7 +5,7 @@
  * the client does NOT already hold (the generator reads FSC holdings and
  * excludes owned products); `recommended_action_rank__c` 1–N or null = not
  * rule-eligible. Monthly run covering every book: retail and wealth person
- * accounts plus business accounts (verified 2026-11-05: 36,617 of 36,768
+ * accounts plus business accounts (verified 2026-11-09: 36,637 of 36,768
  * accounts with at least one eligible offer).
  *
  * Each app sees its own product family; within it we take each client's
