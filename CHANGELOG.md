@@ -45,6 +45,7 @@ Jump to: [November 2026](#november-2026) · [October 2026](#october-2026) · [Ju
 
 ### Fixed
 
+- **Cockpit "Who to act on today" queue** (PR [#179](https://github.com/josers18/JDO/pull/179)) — in ReactRetail, ReactWealth and ReactCommercial the classic queue read the Who-to-Call list alone, so AML, Gong, stress, offer, opportunity and overdue-task signals never reached it; it now reads the same `buildPriorityQueue` list as the cockpit card. World-Check first screenings (`New`) that land High or Severe now count as AML escalations. Verified live: AML lines in the queue in all three apps.
 - **MGP business owner age** (PR [#175](https://github.com/josers18/JDO/pull/175)) — `_effective_age` uses a sha256 of `ACCOUNT_ID` instead of Python's per-process salted `hash()`, so business owner ages are stable across runs. History regenerated; 3,946 rows for 140 late-joining accounts kept and noted in [`Snowflake_MoneyGuidePro_FinancialPlans/AGENTS.md`](Snowflake_MoneyGuidePro_FinancialPlans/AGENTS.md).
 - **Offer eligibility job logging** (PR [#161](https://github.com/josers18/JDO/pull/161)) — the SP logs `SUCCEEDED`, so the daily job report counts the run.
 - **Wealth trading pulse** (PR [#166](https://github.com/josers18/JDO/pull/166)) — buckets by calendar week; it had stopped at 2026-10-04 under a 20-row cap.
