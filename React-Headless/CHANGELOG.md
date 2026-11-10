@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Second batch of R6 households for Sarah Smith and Justin Chen (PR #189)
+
+No bundle change; the `webEngagement.ts` header changed in comments only. Five more clients in each book were registered and linked, and their first week went out with `--only`. Verified live at 19:45Z: Sarah's card reads "16 households viewed product pages 157 times" and Justin's reads "15 households viewed product pages 142 times". The top five are still the older households, because today's earlier sends are in the window. The 2026-11-17 18:10Z weekly send moves the window past them, so the households registered today lead next week.
+
 ### 2026-11-10 — Ten more R6 households for Sarah Smith and Justin Chen (PR #188)
 
 No bundle change; the `webEngagement.ts` header changed in comments only. `web_browsing.py --register` linked five clients' devices in each book by email, and `--only` sent their first week. Verified live on 2026-11-10 at 18:55Z. Sarah's card reads "11 households viewed product pages 132 times" and Justin's reads "10 households viewed product pages 117 times". Right Now leads with Amy Morris in both books.
