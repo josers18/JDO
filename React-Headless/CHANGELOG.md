@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Vitest tests for R6 queue items; other bundles have no suites (PR #196)
+
+`ReactRetail/src/home/webEngagement.test.ts` now tests `webEngagementQueueItems` with Kim Johnson's 2026-11-10 book (39 tests in the file, 86 in the suite). It checks that the top three `SURGE_VIEWS`+ households queue in card order, that households under 3 loads or last seen over 14 days ago are skipped, that items are due two days out (`2026-11-13`) and carry the given segment, and that the reason and action come from the most-viewed product. It also covers the account-id name fallback, the score and severity boost for a visit within 2 days (capped at 0.85), and the "· org-wide" source. ReactWealth, ReactCommercial and ReactHeadless have Vitest configured but have never had a test file, so nothing in them could drift. Known issue, not fixed here: `browsingFollowUpDue` and the same pattern in 8 other `_shared/src/data/*` due dates format local midnight with `toISOString()`, so east of UTC the date comes out a day early. US time zones are unaffected. Tests only; `dist/` unchanged, no deploy.
+
 ### 2026-11-10 — Vitest tests for R6 timing checks; ReactRetail suite back to green (PR #195)
 
 `ReactRetail/src/home/webEngagement.test.ts` now tests the time limits too. `isBrowsingNow` is true through 2 days after the last view. `needsBrowsingFollowUp` needs `SURGE_VIEWS` (3) loads within 14 days. `isWebEngagementStale` stays fresh through 30 whole days, turns stale at 31, and is stale when the book has no recognized views (31 tests in the file). A full `vitest run` found 3 tests in ReactRetail that predated deliberate changes. `brandThemeClient.test.ts` lacked `displaySize` (added in `fd02f4de1`), and `brandThemes.test.ts` expected 5 `--wp-*` keys where `brandThemeToVars` now also writes `--wp-aurora` and the five `--wp-ai*` tokens. Both were updated to the current behavior, and the suite passes 78/78. Tests only; `dist/` unchanged, no deploy.
