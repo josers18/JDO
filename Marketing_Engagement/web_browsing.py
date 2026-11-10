@@ -3,7 +3,7 @@
 Since 2026-08-19 almost every RTOM site device is anonymous, so the Retail cockpit's
 R6 "digital-engagement surges" card had nothing current for Sarah Smith's, Justin
 Chen's or Jose Sifontes's books. This sends real Data Cloud Web SDK beacons (the same
-two calls the site's sitemap makes) for thirteen household devices that identity
+two calls the site's sitemap makes) for 23 household devices that identity
 resolution links to their clients. Each week, each household loads its featured product page
 3-4 times (enough for R6's SURGE_VIEWS = 3 follow-up) and a second product 1-2 times.
 Which product leads rotates by ISO week; load counts are a hash of (device, week).
@@ -14,6 +14,7 @@ logged to "Fins".marketing_feed_run as step `web_browsing`. Standalone:
     python web_browsing.py --dry-run     # print this week's plan
     python web_browsing.py               # send it now (logged like the feed step)
     python web_browsing.py --register 8359a3f40ee67656   # one-time identity for a device
+    python web_browsing.py --only f8dd1498e4a79e77       # this week's plan for new households; not logged
 
 A device only counts in R6 once identity resolution links it to a book account. For
 clients with no linked device yet, `register()` sends the two profile events the
@@ -64,6 +65,11 @@ PRODUCTS = {
     "traditional-ira": ("wealth", "01tam00000BnvusAAB", "Cumulus Traditional IRA", "0ZGam000000oHsIGAU", "IRAs"),
     "personal-line-of-credit": ("retail", "01tam00000Bo1QnAAJ", "Cumulus Personal Line of Credit", "0ZGam000000oHsGGAU", "Personal Loans"),
     "36mo-cd": ("retail", "01tam00000Bo1KLAAZ", "Cumulus 36Mo CD", "0ZGam000000oHsDGAU", "Certificates of Deposit"),
+    "statement-savings": ("retail", "01tam00000Bo1CHAAZ", "Cumulus Statement Savings", "0ZGam000000oHsBGAU", "Savings Accounts"),
+    "heloan": ("retail", "01tam00000Bo1U1AAJ", "Cumulus HELOAN", "0ZGam000000oHsFGAU", "Home Equity"),
+    "6mo-cd": ("retail", "01tam00000Bo1H7AAJ", "Cumulus 6Mo CD", "0ZGam000000oHsDGAU", "Certificates of Deposit"),
+    "60mo-cd": ("retail", "01tam00000Bo1LxAAJ", "Cumulus 60Mo CD", "0ZGam000000oHsDGAU", "Certificates of Deposit"),
+    "revocable-irrevocable-trusts": ("wealth", "01tam00000Bo1llAAB", "Cumulus Revocable Trust", "0ZGam000000oHsLGAU", "Trusts & Estate"),
 }
 SECTION = {"retail": "Personal Banking", "commercial": "Commercial Banking", "wealth": "Wealth Advisory"}
 
@@ -71,7 +77,8 @@ SECTION = {"retail": "Personal Banking", "commercial": "Commercial Banking", "we
 # The first six resolve into Sarah Smith's book; all but Craig Scott also into Justin Chen's.
 # Julie E Morris (001am00000qvjsAAAQ) was the only household in Jose Sifontes's book with
 # linked devices (checked 2026-11-10); b681f050d2e9e091 last browsed estate planning on 10-28.
-# The last six are Jose's clients whose devices were linked by `--register` (REGISTRATIONS).
+# The six after her are Jose's clients whose devices were linked by `--register`
+# (REGISTRATIONS), then five of Sarah's and five of Justin's, also registered.
 HOUSEHOLDS = [
     ("03ebdbb54d499cac", "Amy Morris", ["30-year-fixed-mortgage", "money-market"]),
     ("13128e3edaa2672d", "George Hernandez", ["travel-points", "cash-rewards"]),
@@ -86,10 +93,20 @@ HOUSEHOLDS = [
     ("838ecc9cf23b6032", "Julia Nakamura", ["brokerage-accounts", "managed-advisory"]),
     ("bb0c5fa9e683a2bc", "Ethan Brooks", ["401k-403b-rollover", "traditional-ira"]),
     ("c88daee7210e5e92", "Priya Venkatesh", ["personal-line-of-credit", "36mo-cd"]),
+    ("f8dd1498e4a79e77", "Katie Anderson", ["high-yield-savings", "statement-savings"]),
+    ("88ad8fc57e8d0df9", "Brian Valdez", ["heloan", "heloc"]),
+    ("434fdee17e23dab7", "Brendan Woods", ["auto-loan", "personal-loan"]),
+    ("9a378f8f19c43470", "Jade Carr", ["6mo-cd", "60mo-cd"]),
+    ("fd9b1298406162eb", "Evelyn Estrada", ["traditional-ira", "roth-ira"]),
+    ("075047d641a08023", "Laura Moyer", ["premier-checking", "cash-rewards"]),
+    ("e2c27c05cdef2ca6", "Mary Ramirez", ["5-1-arm-mortgage", "30-year-fixed-mortgage"]),
+    ("7f66769b9afe7832", "Lori Oconnell", ["brokerage-accounts", "529-education-savings"]),
+    ("8fdd54f194b79f7d", "Kenneth Ward", ["personal-line-of-credit", "travel-points"]),
+    ("febc049dab78dcfd", "Kevin Oliver", ["revocable-irrevocable-trusts", "estate-planning"]),
 ]
 
-# One-time sign-ins for Jose Sifontes's person accounts (CRM email shared only with the
-# client's own person contact). Device = sha256("cumulus-web|<account id>")[:16].
+# One-time sign-ins for person accounts in Jose Sifontes's, Sarah Smith's and Justin Chen's
+# books (CRM email shared only with the client's own person contact; no device has it). Device = sha256("cumulus-web|<account id>")[:16].
 REGISTRATIONS = [
     ("8359a3f40ee67656", "001am000026ZtgIAAS", "mdmp25419@cumulus.example.com", "David", "Chen"),
     ("df091f18586f9a6d", "001am000026ZtgJAAS", "mdmp25420@cumulus.example.com", "Marcus", "Rodriguez"),
@@ -97,6 +114,18 @@ REGISTRATIONS = [
     ("838ecc9cf23b6032", "001am000026ZtgLAAS", "mdmp25422@cumulus.example.com", "Julia", "Nakamura"),
     ("bb0c5fa9e683a2bc", "001am000026ZtgMAAS", "mdmp25423@cumulus.example.com", "Ethan", "Brooks"),
     ("c88daee7210e5e92", "001am000026ZtgNAAS", "mdmp25424@cumulus.example.com", "Priya", "Venkatesh"),
+    # Sarah Smith's book (2026-11-10)
+    ("f8dd1498e4a79e77", "001am00002A303AAAR", "karroyo@example.com", "Katie", "Anderson"),
+    ("88ad8fc57e8d0df9", "001am00002A303BAAR", "brownjessica@example.org", "Brian", "Valdez"),
+    ("434fdee17e23dab7", "001am00002A303CAAR", "brianromero@example.org", "Brendan", "Woods"),
+    ("9a378f8f19c43470", "001am00002A303DAAR", "contrerasangela@example.net", "Jade", "Carr"),
+    ("fd9b1298406162eb", "001am00002A303EAAR", "kimberly69@example.net", "Evelyn", "Estrada"),
+    # Justin Chen's book (2026-11-10)
+    ("075047d641a08023", "001am00002A303GAAR", "donnacampbell@example.net", "Laura", "Moyer"),
+    ("e2c27c05cdef2ca6", "001am00002A303HAAR", "rsims@example.com", "Mary", "Ramirez"),
+    ("7f66769b9afe7832", "001am00002A303JAAR", "lanesarah@example.net", "Lori", "Oconnell"),
+    ("8fdd54f194b79f7d", "001am00002A303LAAR", "alexis82@example.com", "Kenneth", "Ward"),
+    ("febc049dab78dcfd", "001am00002A303MAAR", "mezajared@example.org", "Kevin", "Oliver"),
 ]
 
 # R6 collapses repeats of a device + URL within 2s; keep loads well apart.
@@ -196,6 +225,8 @@ if __name__ == "__main__":
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--register", nargs="*", metavar="DEVICE",
                    help="send one-time sign-in identity for these REGISTRATIONS devices (none = all)")
+    p.add_argument("--only", nargs="+", metavar="DEVICE",
+                   help="send this week's plan for these HOUSEHOLDS devices only; not logged, so the weekly clock keeps")
     a = p.parse_args()
     if a.register is not None:
         regs = [r for r in REGISTRATIONS if not a.register or r[0] in a.register]
@@ -205,8 +236,15 @@ if __name__ == "__main__":
         sys.exit(0)
     now = datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
     plan = week_plan(now)
+    if a.only:
+        plan = [x for x in plan if x[0] in a.only]
+        if len(plan) != len(set(a.only)):
+            sys.exit(f"unknown device in {a.only}")
     print(describe(plan))
     if a.dry_run:
+        sys.exit(0)
+    if a.only:
+        print(f"sent {send(plan)} page loads for {len(plan)} households (not logged)")
         sys.exit(0)
     import db
 
