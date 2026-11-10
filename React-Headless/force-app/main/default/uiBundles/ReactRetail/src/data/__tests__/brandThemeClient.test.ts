@@ -55,7 +55,7 @@ describe('saveTheme', () => {
     expect(url).toBe('/services/apexrest/config/themes');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toEqual({ op: 'upsert', theme: t });
-    expect(result).toEqual({ themes: [t], activeThemeId: 'id1' });
+    expect(result).toEqual({ themes: [t], activeThemeId: 'id1', displaySize: null });
   });
 });
 
@@ -69,7 +69,7 @@ describe('deleteTheme', () => {
     expect(url).toBe('/services/apexrest/config/themes');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body as string)).toEqual({ op: 'delete', id: 'id1' });
-    expect(result).toEqual({ themes: [], activeThemeId: null });
+    expect(result).toEqual({ themes: [], activeThemeId: null, displaySize: null });
   });
 });
 
