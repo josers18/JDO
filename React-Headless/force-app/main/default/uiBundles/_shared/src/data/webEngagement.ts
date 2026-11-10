@@ -154,6 +154,17 @@ export const isBrowsingNow = (r: BrowsingClientRow, now = new Date()) =>
 export const needsBrowsingFollowUp = (r: BrowsingClientRow, now = new Date()) =>
   r.views >= SURGE_VIEWS && now.getTime() - new Date(r.lastSeen).getTime() <= QUEUE_DAYS * 86_400_000;
 
+/** Past this many days since the book's latest product view, the card reads "no recent identified visits". */
+export const WEB_STALE_DAYS = 30;
+
+/** Whole days from the window end (the book's latest recognized product view) to now. */
+export const webEngagementAgeDays = (res: WebEngagementResult, now = new Date()) =>
+  res.windowEnd ? Math.floor((now.getTime() - new Date(res.windowEnd).getTime()) / 86_400_000) : Infinity;
+
+/** The latest recognized product view is over WEB_STALE_DAYS old. */
+export const isWebEngagementStale = (res: WebEngagementResult, now = new Date()) =>
+  webEngagementAgeDays(res, now) > WEB_STALE_DAYS;
+
 /** Product follow-ups are due in 2 days — the queue item and the card's Task prefill. */
 export const browsingFollowUpDue = (now = new Date()) =>
   new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2).toISOString().slice(0, 10);
