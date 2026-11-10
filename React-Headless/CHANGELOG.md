@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Vitest test for R6 product names; ReactWealth and ReactCommercial redeployed (PR #193)
+
+`productOf` in `_shared/src/data/webEngagement.ts` is now exported. `ReactRetail/src/home/webEngagement.test.ts` covers 16 site slugs (HELOAN, the N-Month CDs, 401(k)/403(b) Rollover, 5/1 ARM Mortgage, the "… Card" names), a query string or fragment after the slug, and the "a product page" fallback; 18 tests pass. ReactWealth and ReactCommercial were rebuilt: their `dist/` came out byte-identical, since neither imports `webEngagement`. Both were redeployed (Succeeded, 0 errors) and checked live.
+
 ### 2026-11-10 — R6 product names read the way the site writes them (PR #192)
 
 `productOf` in `_shared/src/data/webEngagement.ts` built names by title-casing slug words, so `heloan` read "Heloan", `12mo-cd` read "12mo CD" and `401k-403b-rollover` read "401k 403b Rollover". It now keeps HELOAN in capitals, writes `Nmo` as "N-Month", lowercases "of", and uses fixed names for slugs that need punctuation or a dropped word: "401(k)/403(b) Rollover", "5/1 ARM Mortgage", "Revocable & Irrevocable Trusts", "High-Yield Savings", "Asset-Based Lending", "Point-of-Sale Systems", and "Secured Card", "Cash Rewards Card" and "Travel Points Card". Only ReactRetail renders R6, so only it was rebuilt and deployed. Verified live as Kim Johnson: "HELOAN ×3", "12-Month CD ×4", "401(k)/403(b) Rollover ×1", "Travel Points Card ×3", "Personal Line of Credit ×2".

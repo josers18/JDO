@@ -136,7 +136,7 @@ const NAMES: Record<string, string> = {
 const WORDS: Record<string, string> = { cd: 'CD', ira: 'IRA', heloc: 'HELOC', heloan: 'HELOAN', of: 'of' };
 const word = (w: string) =>
   WORDS[w] ?? w.replace(/^(\d+)mo$/, '$1-Month').replace(/^./, c => c.toUpperCase());
-const productOf = (url: string) => {
+export const productOf = (url: string) => {
   const [line = '', slug = ''] = url.split('/products/')[1]?.split(/[/?#]/) ?? [];
   const product = NAMES[slug] ?? slug.split('-').filter(Boolean).map(word).join(' ');
   return { line, product: product || 'a product page' };
