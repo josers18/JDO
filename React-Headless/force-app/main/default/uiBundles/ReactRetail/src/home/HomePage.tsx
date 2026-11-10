@@ -79,6 +79,8 @@ import {
   browsingAction,
   isBrowsingNow,
   needsBrowsingFollowUp,
+  isWebEngagementStale,
+  webEngagementAgeDays,
   browsingFollowUpDue,
   DEPOSIT_RETENTION,
   retentionCallDue,
@@ -1421,6 +1423,9 @@ function HomeContent({ mode }: { mode: HomeMode }) {
 
   // R6 — recognized clients on product pages, the book's latest week of activity (Growth tab).
   const web = data.webEngagement;
+  const [showStaleWeb, setShowStaleWeb] = useState(false);
+  const webStale = !!web && isWebEngagementStale(web);
+  const webDay = (ts: string) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const webEngagementCard = web && web.rows.length > 0 && (
     <div className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
@@ -1430,10 +1435,28 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           Website · recognized visitors · 7 days to {new Date(web.windowEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}{web.scope === 'org' ? ' · org-wide' : ''}
         </span>
       </div>
-      <p className="mt-2 text-[13px] leading-snug text-muted">
-        {web.clients.toLocaleString('en-US')} client{web.clients === 1 ? '' : 's'} viewed product pages {web.views.toLocaleString('en-US')} times. Repeat views of one product
-        are a buying signal — follow up while it's fresh.
-      </p>
+      {webStale ? (
+        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="text-[13px] leading-snug text-muted">
+            <b className="font-semibold text-fg">No recent identified visits.</b> The last product view tied to a client was{' '}
+            {webDay(web.windowEnd)}, {webEngagementAgeDays(web).toLocaleString('en-US')} days ago. Anonymous visitors can't be matched to the book.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowStaleWeb(v => !v)}
+            aria-expanded={showStaleWeb}
+            className="flex-none font-mono text-[11px] text-accent transition hover:underline"
+          >
+            {showStaleWeb ? 'Hide' : 'Show'} the week to {webDay(web.windowEnd)}
+          </button>
+        </div>
+      ) : (
+        <p className="mt-2 text-[13px] leading-snug text-muted">
+          {web.clients.toLocaleString('en-US')} client{web.clients === 1 ? '' : 's'} viewed product pages {web.views.toLocaleString('en-US')} times. Repeat views of one product
+          are a buying signal — follow up while it's fresh.
+        </p>
+      )}
+      {(!webStale || showStaleWeb) && (
       <ul className="mt-3 divide-y divide-line border-t border-line">
         {web.rows.map(r => (
           <li key={r.accountId} className="flex items-center gap-3">
@@ -1470,6 +1493,7 @@ function HomeContent({ mode }: { mode: HomeMode }) {
           </li>
         ))}
       </ul>
+      )}
     </div>
   );
 
