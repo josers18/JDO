@@ -5,8 +5,10 @@ import {
   isWebEngagementStale,
   needsBrowsingFollowUp,
   productOf,
+  browsingFollowUpDue,
   SURGE_VIEWS,
   WEB_STALE_DAYS,
+  webEngagementQueueItems,
   type BrowsingClientRow,
   type WebEngagementResult,
 } from '@shared/data/webEngagement';
@@ -140,5 +142,81 @@ describe('isWebEngagementStale', () => {
 
   it('is stale when the book has no recognized views', () => {
     expect(isWebEngagementStale(result(''), after(0))).toBe(true);
+  });
+});
+
+describe('webEngagementQueueItems', () => {
+  // Kim Johnson's book as R6 showed it on 2026-11-10, most page loads first.
+  const kim = (over: Partial<WebEngagementResult> = {}): WebEngagementResult => ({
+    rows: [
+      row({ accountId: 'dustin', clientName: 'Dustin P Fox', views: 6, products: [{ product: 'Personal Loan', line: 'retail', views: 4 }, { product: 'Personal Line of Credit', line: 'retail', views: 2 }] }),
+      row({ accountId: 'gabe' }),
+      row({ accountId: 'christopher', clientName: 'Christopher T Marquez', views: 5, products: [{ product: '12-Month CD', line: 'retail', views: 4 }, { product: 'High-Yield Savings', line: 'retail', views: 1 }] }),
+      row({ accountId: 'duncan', clientName: 'Duncan L Macintosh', views: 4, products: [{ product: 'Managed Advisory', line: 'wealth', views: 3 }, { product: '401(k)/403(b) Rollover', line: 'wealth', views: 1 }] }),
+      row({ accountId: 'raymond', clientName: 'Raymond Ramirez', views: 2, products: [{ product: 'Premier Checking', line: 'retail', views: 2 }] }),
+    ],
+    clients: 6,
+    views: 28,
+    windowEnd: '2026-11-10T17:00:00Z',
+    scope: 'book',
+    ...over,
+  });
+  const names = { dustin: 'Dustin P Fox', gabe: 'Gabe X Hoskins', christopher: 'Christopher T Marquez' };
+  const opts = (now: Date) => ({ segment: 'Mass Affluent', now });
+
+  it('queues the top three households with SURGE_VIEWS+ loads, in card order', () => {
+    const items = webEngagementQueueItems(kim(), names, opts(after(DAY)));
+    expect(items.map(i => i.clientId)).toEqual(['dustin', 'gabe', 'christopher']);
+    expect(items.map(i => i.id)).toEqual(['we0', 'we1', 'we2']);
+  });
+
+  it('skips households under SURGE_VIEWS or last seen over 14 days ago', () => {
+    const stale = row({ accountId: 'old', views: 9, lastSeen: '2026-10-20T17:00:00Z' });
+    const rows = [stale, kim().rows[4], kim().rows[3]];
+    const items = webEngagementQueueItems(kim({ rows }), {}, opts(after(DAY)));
+    expect(items.map(i => i.clientId)).toEqual(['duncan']);
+  });
+
+  it('queues nothing once every visit is over 14 days old', () => {
+    expect(webEngagementQueueItems(kim(), names, opts(after(15 * DAY)))).toEqual([]);
+  });
+
+  it('is due two days out and carries the given segment', () => {
+    const now = after(DAY);
+    expect(browsingFollowUpDue(now)).toBe('2026-11-13');
+    for (const item of webEngagementQueueItems(kim(), names, opts(now))) {
+      expect(item.dueDate).toBe('2026-11-13');
+      expect(item.segment).toBe('Mass Affluent');
+      expect(item.relationshipValue).toBe(0);
+    }
+  });
+
+  it('builds the reason and action from the household’s most-viewed product', () => {
+    const [dustin] = webEngagementQueueItems(kim(), names, opts(after(DAY)));
+    expect(dustin).toMatchObject({
+      clientName: 'Dustin P Fox',
+      reason: 'Viewed Personal Loan 4× on the website · 1 other product · last seen Nov 10',
+      action: 'Follow up on Personal Loan interest',
+      source: 'Web engagement',
+    });
+  });
+
+  it('falls back to the account id when the name is unknown', () => {
+    const items = webEngagementQueueItems(kim(), {}, opts(after(DAY)));
+    expect(items[0].clientName).toBe('dustin');
+  });
+
+  it('ranks a visit within two days higher, capped at 0.85', () => {
+    const [now] = webEngagementQueueItems(kim(), names, opts(after(DAY)));
+    const [later] = webEngagementQueueItems(kim(), names, opts(after(5 * DAY)));
+    expect(now).toMatchObject({ severity: 'medium', score: 0.45 + 6 / 50 + 0.15 });
+    expect(later).toMatchObject({ severity: 'low', score: 0.45 + 6 / 50 });
+    const heavy = kim({ rows: [row({ views: 40 })] });
+    expect(webEngagementQueueItems(heavy, names, opts(after(DAY)))[0].score).toBe(0.85);
+  });
+
+  it('marks org-wide results in the source', () => {
+    const [item] = webEngagementQueueItems(kim({ scope: 'org' }), names, opts(after(DAY)));
+    expect(item.source).toBe('Web engagement · org-wide');
   });
 });
