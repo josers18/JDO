@@ -121,11 +121,24 @@ export interface WebEngagementResult {
 // "2026-10-22 13:52:24.419 UTC" → ISO.
 const iso = (v: unknown) => String(v ?? '').replace(' UTC', 'Z').replace(' ', 'T');
 
-const WORDS: Record<string, string> = { cd: 'CD', ira: 'IRA', heloc: 'HELOC', '529': '529' };
+// Slugs whose words alone can't give the product's name (punctuation, a dropped "Card").
+const NAMES: Record<string, string> = {
+  '401k-403b-rollover': '401(k)/403(b) Rollover',
+  '5-1-arm-mortgage': '5/1 ARM Mortgage',
+  'revocable-irrevocable-trusts': 'Revocable & Irrevocable Trusts',
+  'high-yield-savings': 'High-Yield Savings',
+  'asset-based-lending': 'Asset-Based Lending',
+  'point-of-sale-systems': 'Point-of-Sale Systems',
+  secured: 'Secured Card',
+  'cash-rewards': 'Cash Rewards Card',
+  'travel-points': 'Travel Points Card',
+};
+const WORDS: Record<string, string> = { cd: 'CD', ira: 'IRA', heloc: 'HELOC', heloan: 'HELOAN', of: 'of' };
+const word = (w: string) =>
+  WORDS[w] ?? w.replace(/^(\d+)mo$/, '$1-Month').replace(/^./, c => c.toUpperCase());
 const productOf = (url: string) => {
   const [line = '', slug = ''] = url.split('/products/')[1]?.split(/[/?#]/) ?? [];
-  const product = slug.split('-').filter(Boolean)
-    .map(w => WORDS[w] ?? w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const product = NAMES[slug] ?? slug.split('-').filter(Boolean).map(word).join(' ');
   return { line, product: product || 'a product page' };
 };
 
