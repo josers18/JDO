@@ -21,8 +21,9 @@
  * latest product view (like S6) and the card says when that was; the queue and
  * Right Now only take recent visits. Past WEB_STALE_DAYS the card shows "No
  * recent identified visits" instead. Since 08-19 most site devices are anonymous;
- * identified browsing for six of Sarah's and Justin's client households is sent
- * weekly by the Marketing_Engagement worker (`web_browsing.py`). Verified live
+ * identified browsing for six of Sarah's and Justin's client households and Jose's
+ * Julie E Morris household is sent weekly by the Marketing_Engagement worker
+ * (`web_browsing.py`). Verified live
  * through the Apex bridge 2026-11-09 (PT): Sarah Smith 6 households, 20 page
  * loads; Justin Chen 5 households, 16 page loads.
  */
