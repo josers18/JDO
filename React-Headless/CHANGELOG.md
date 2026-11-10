@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Nov_09_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Nov_10_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [November 2026]
+
+### 2026-11-10 — R6 counts page loads once, one row per household (PR #185)
+
+The Retail "Browsing product pages" card counted each RTOM page load about four times and listed household members as separate clients. Built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors; only ReactRetail's `dist/` changed).
+
+#### Changed
+
+- **Page-load dedupe** (`_shared/src/data/webEngagement.ts`).
+  - The RTOM sitemap fires `Viewed Product Detail` twice per load (~20ms apart) plus two `Product Interest Captured`.
+  - The query keeps only `Viewed Product Detail` and collapses device + URL repeats within 2s (`LAG` over `(dev, url)`).
+  - `SURGE_VIEWS` is 3 page loads (was 5, which assumed the doubled events).
+- **Household rows.** Rows group by identity-resolution `UnifiedRecordId__c` and open the household's lowest account id in the book. `BrowsingClientRow.householdAccounts` drives a "household · N accounts" hint (`ReactRetail/src/home/HomePage.tsx`), and the card says "households".
+- Verified through `/apexrest/dc/query` and in the browser on 2026-11-10: Sarah Smith 6 households, 48 page loads; Justin Chen 5 households, 41; every row NOW.
+
+#### Added
+
+- **Weekly identified browsing** comes from `Marketing_Engagement/web_browsing.py`, a weekly `web_browsing` step in the hourly feed on Heroku `data-cloud` (v17). It sends real Web SDK beacons for six household devices in Sarah's and Justin's books.
 
 ### 2026-11-09 — Trading pulse buckets by calendar week (PR #166)
 
