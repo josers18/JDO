@@ -21,15 +21,17 @@
  * latest product view (like S6) and the card says when that was; the queue and
  * Right Now only take recent visits. Past WEB_STALE_DAYS the card shows "No
  * recent identified visits" instead. Since 08-19 most site devices are anonymous;
- * identified browsing for 33 client households (Sarah's and Justin's six shared
- * households plus ten registered in each book; Jose's Julie E Morris plus six
+ * identified browsing for 51 client households (Sarah's and Justin's six shared
+ * households plus fifteen registered in each book; four each in Kim Johnson's and
+ * Allen Carter's books; Jose's Julie E Morris plus six
  * registered; `web_browsing.py --register` links a device by email) is sent weekly by the Marketing_Engagement worker
  * (`web_browsing.py`). Verified live
  * through the Apex bridge 2026-11-09 (PT): Sarah Smith 6 households, 20 page
  * loads; Justin Chen 5 households, 16 page loads. 2026-11-10 17:46Z: Jose
  * Sifontes 7 households, 46 page loads. 18:55Z: Sarah 11 households, 132 page
  * loads; Justin 10 households, 117. 19:45Z (second batch): Sarah 16, 157;
- * Justin 15, 142.
+ * Justin 15, 142. 20:20Z (third batch): Sarah 21, 182; Justin 20, 166; Kim
+ * Johnson 4, 19; Allen Carter 4, 22.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';

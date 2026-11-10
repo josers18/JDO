@@ -17,6 +17,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — R6 households for Kim Johnson and Allen Carter, and a third batch for Sarah and Justin (PR #190)
+
+No bundle change; the `webEngagement.ts` header changed in comments only. 18 more clients were registered and linked, and their first week went out with `--only`. Verified live at 20:20Z, when Kim's and Allen's cards showed browsing for the first time:
+
+- Kim: "4 households viewed product pages 19 times". Dustin Fox leads with Personal Loan ×4.
+- Allen: "4 households viewed product pages 22 times". Christian Wolff leads with Brokerage Accounts ×4.
+- Sarah: 21 households, 182 page loads.
+- Justin: 20 households, 166 page loads.
+
 ### 2026-11-10 — Second batch of R6 households for Sarah Smith and Justin Chen (PR #189)
 
 No bundle change; the `webEngagement.ts` header changed in comments only. Five more clients in each book were registered and linked, and their first week went out with `--only`. Verified live at 19:45Z: Sarah's card reads "16 households viewed product pages 157 times" and Justin's reads "15 households viewed product pages 142 times". The top five are still the older households, because today's earlier sends are in the window. The 2026-11-17 18:10Z weekly send moves the window past them, so the households registered today lead next week.
