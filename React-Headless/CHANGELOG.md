@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — R6 for Jose Sifontes's book (PR #186)
+
+No bundle change; the `webEngagement.ts` header changed in comments only. `Marketing_Engagement/web_browsing.py` now sends weekly identified browsing for Julie E Morris (`001am00000qvjsAAAQ`), the only household in Jose's book with identity-linked devices. Verified live as Jose on 2026-11-10: the card reads "1 household viewed product pages 6 times", showing Julie E Morris NOW (Estate Planning ×4, Secured ×2), and Right Now reads "Reach out to Julie E Morris — browsing Estate Planning on the website now."
+
 ### 2026-11-10 — R6 counts page loads once, one row per household (PR #185)
 
 The Retail "Browsing product pages" card counted each RTOM page load about four times and listed household members as separate clients. Built and deployed to `jdo-oe0sdd` (Succeeded, 0 errors; only ReactRetail's `dist/` changed).

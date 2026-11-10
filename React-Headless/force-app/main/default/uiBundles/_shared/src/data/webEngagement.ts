@@ -25,7 +25,8 @@
  * Julie E Morris household is sent weekly by the Marketing_Engagement worker
  * (`web_browsing.py`). Verified live
  * through the Apex bridge 2026-11-09 (PT): Sarah Smith 6 households, 20 page
- * loads; Justin Chen 5 households, 16 page loads.
+ * loads; Justin Chen 5 households, 16 page loads. 2026-11-10: Jose Sifontes 1
+ * household (Julie E Morris), 6 page loads.
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
