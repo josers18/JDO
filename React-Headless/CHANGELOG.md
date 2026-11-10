@@ -17,6 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Vitest tests for the R6 follow-up text; negative product count fixed (PR #194)
+
+`ReactRetail/src/home/webEngagement.test.ts` now covers `browsingReason` and `browsingAction` too: the most-viewed product with its views, one vs. several other products, the single-product form, and the fallbacks when no product is known (24 tests). The no-product test found that `browsingReason` printed "· -1 other product", because `others` was `products.length - 1`; it is now floored at 0. Every row is built from product views, so this was latent. Two stale doc comments in `webEngagement.ts` now give the site's product names. ReactRetail rebuilt and deployed (Succeeded, 0 errors). Verified live as Kim Johnson: "Viewed Personal Loan 4× on the website · 1 other product · last seen Nov 10".
+
 ### 2026-11-10 — Vitest test for R6 product names; ReactWealth and ReactCommercial redeployed (PR #193)
 
 `productOf` in `_shared/src/data/webEngagement.ts` is now exported. `ReactRetail/src/home/webEngagement.test.ts` covers 16 site slugs (HELOAN, the N-Month CDs, 401(k)/403(b) Rollover, 5/1 ARM Mortgage, the "… Card" names), a query string or fragment after the slug, and the "a product page" fallback; 18 tests pass. ReactWealth and ReactCommercial were rebuilt: their `dist/` came out byte-identical, since neither imports `webEngagement`. Both were redeployed (Succeeded, 0 errors) and checked live.

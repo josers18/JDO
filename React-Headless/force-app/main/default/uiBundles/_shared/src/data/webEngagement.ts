@@ -87,7 +87,7 @@ const summarySql = (accountFilter: string) => `${ctes(accountFilter)}
 `;
 
 export interface ProductInterest {
-  /** "Cash Rewards", from the URL slug. */
+  /** "Cash Rewards Card", the site's name for the URL slug (see productOf). */
   product: string;
   /** retail / wealth / commercial — the URL's product line. */
   line: string;
@@ -171,10 +171,10 @@ export async function fetchWebEngagement(ownerId: string | null | undefined): Pr
 
 const day = (isoTs: string) => new Date(isoTs).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-/** "Viewed Cash Rewards 12× · 3 other products · last seen Oct 22". */
+/** "Viewed HELOAN 3× on the website · 1 other product · last seen Nov 10". */
 export const browsingReason = (r: BrowsingClientRow) => {
   const top = r.products[0];
-  const others = r.products.length - 1;
+  const others = Math.max(0, r.products.length - 1);
   return `Viewed ${top?.product ?? 'product pages'} ${top?.views ?? r.views}× on the website${others ? ` · ${others} other product${others > 1 ? 's' : ''}` : ''} · last seen ${day(r.lastSeen)}`;
 };
 
