@@ -2,6 +2,7 @@
 
 Steps, each logged to "Fins".marketing_feed_run:
   auth → rollover → crm_create → generate → reconcile (once a day after 06:00 UTC)
+  → service_now (new ServiceNow cases + status changes, every run; see service_now.py)
   → web_browsing (weekly identified RTOM site browsing, after 15:00 UTC; see web_browsing.py)
 Insert-only on marketing_engagement; safe to re-run any time.
 
@@ -17,6 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 import crm
 import db
 import engine
+import service_now
 import web_browsing
 from catalog import MEMBER_SOURCE, NEW_CAMPAIGN_DESCRIPTION, SEGMENT_SOURCE
 
@@ -189,6 +191,10 @@ def run(conn, sf_factory, now, dry_run=False):
         loads = sum(len(l) for _d, _c, l in plan) if dry_run else web_browsing.send(plan)
         return len(plan), loads, web_browsing.describe(plan)[:2000]
 
+    def cases():
+        inserted, advanced = service_now.step(conn, ctx["sf"].query, now, dry_run)
+        return 0, inserted, f"{advanced} advanced"
+
     def reconcile():
         linked, notes = step_reconcile(conn, ctx["sf"], now, dry_run)
         return len(linked), 0, "; ".join(notes)[:2000] or None
@@ -198,6 +204,7 @@ def run(conn, sf_factory, now, dry_run=False):
     step("rollover", rollover)
     step("crm_create", crm_create)
     step("generate", generate)
+    step("service_now", cases)
     last = db.last_success(conn, "reconcile")
     if now.hour >= RECONCILE_HOUR_UTC and (last is None or last.date() < now.date()):
         step("reconcile", reconcile)
