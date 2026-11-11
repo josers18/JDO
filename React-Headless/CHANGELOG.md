@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 [![Salesforce DX](https://img.shields.io/badge/Salesforce-DX-00A1E0?style=for-the-badge&logo=salesforce&logoColor=white)](https://developer.salesforce.com/developer-centers/salesforce-dx)
 [![API v67.0](https://img.shields.io/badge/API-v67.0-1589F0?style=for-the-badge)](sfdx-project.json)
-[![Updated](https://img.shields.io/badge/Updated-Nov_10_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
+[![Updated](https://img.shields.io/badge/Updated-Nov_11_2026-2EA44F?style=for-the-badge)](https://github.com/josers18/JDO/commits/main)
 [![Monorepo CHANGELOG](https://img.shields.io/badge/Monorepo-CHANGELOG-181717?style=for-the-badge&logo=github&logoColor=white)](../CHANGELOG.md)
 
 </div>
@@ -16,6 +16,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 ---
 
 ## [November 2026]
+
+### 2026-11-11 — Vitest sweep after the ReactHeadless deletion; docs sync
+
+- **All three suites pass with no drift:** ReactRetail 12 files / 96 tests, ReactWealth 5 / 23, ReactCommercial 3 / 16. Nothing needed fixing.
+- Docs: the older `jdo-1lrnov` / `jdo-0pz8au` aliases still resolve to `jdo-oe0sdd`'s org, so README, AGENTS.md and `docs/DEPLOYMENT_GUIDE.md` no longer say otherwise. `docs/DEPENDENCY_MANAGEMENT.md` says the overrides apply to three bundles, not four. AGENTS.md lists the per-app test counts.
 
 ### 2026-11-10 — ReactHeadless bundle deleted (PR #201)
 

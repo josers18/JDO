@@ -34,7 +34,7 @@ change `dist/`, commit the rebuilt `dist/` too — it is the deploy artifact (se
 ### React UI bundles — `ReactRetail` / `ReactWealth` / `ReactCommercial`
 
 Identical dependency trees (all scaffolded from `reactbasic`), so the same
-`overrides` apply to all four:
+`overrides` apply to all three:
 
 ```json
 "overrides": {

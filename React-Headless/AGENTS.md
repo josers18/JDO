@@ -20,7 +20,7 @@ Plus a `_shared` source library. Each cockpit is a full-page app: navigation, KP
 - React Router (`createBrowserRouter`).
 - Vitest for unit tests; Playwright for e2e.
 - Apex REST bridges React → the platform (all `@RestResource`): `DcBridgeRest` (`/dc/query`, Data Cloud SQL), `DcPromptRest` (`/dc/prompt`, prompt flows), `AiGenerateRest` (`/ai/generate`, Einstein text generation), `CrmWriteRest` (`/crm/*`, record writes, including `opportunity` for the cross-sell grid), `CommandCenterConfigRest` (`/config/*`, per-center AI config + model catalog). Plus `ModelCatalogProbe` — a `Queueable` that discovers live foundation models by probing them (no listing API exists) and caches survivors.
-- SFDX project, `sourceApiVersion` 67.0. Target org `jdo-oe0sdd` (org id `00Dam00000Uo32qEAB`, == `storm-16a17dc388fbe6` — the former `jdo-1lrnov` / `jdo-0pz8au` aliases pointed at this same org but no longer resolve).
+- SFDX project, `sourceApiVersion` 67.0. Target org `jdo-oe0sdd` (org id `00Dam00000Uo32qEAB`, == `storm-16a17dc388fbe6` — the older `jdo-1lrnov` / `jdo-0pz8au` aliases still resolve to this same org (verified 2026-11-11); use `jdo-oe0sdd`).
 
 # Project structure
 
@@ -121,7 +121,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 ## Tests
 
-- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. Apex tests: `DcBridgeRestTest`, `DcPromptRestTest`, `AiGenerateRestTest`, `CrmWriteRestTest`, `CommandCenterConfigRestTest`.
+- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. As of 2026-11-11: ReactRetail 12 files / 96 tests, ReactWealth 5 / 23, ReactCommercial 3 / 16, all passing. Fixtures are real Data Cloud rows, not invented data. Apex tests: `DcBridgeRestTest`, `DcPromptRestTest`, `AiGenerateRestTest`, `CrmWriteRestTest`, `CommandCenterConfigRestTest`.
 
 # Common mistakes
 

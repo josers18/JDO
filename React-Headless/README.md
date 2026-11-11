@@ -9,7 +9,7 @@ It now hosts a three-persona banking cockpit suite — **React Retail**, **React
 ## Status
 
 - **Created:** 2026-06-25
-- **Target org:** `jdo-oe0sdd` (Cumulus Financial Services, Enterprise Edition — org id `00Dam00000Uo32qEAB` / `storm-16a17dc388fbe6`; the `jdo-0pz8au` alias points at this same org and also resolves; the former `jdo-1lrnov` alias no longer resolves)
+- **Target org:** `jdo-oe0sdd` (Cumulus Financial Services, Enterprise Edition — org id `00Dam00000Uo32qEAB` / `storm-16a17dc388fbe6`; the older `jdo-0pz8au` and `jdo-1lrnov` aliases point at this same org and still resolve, verified 2026-11-11; use `jdo-oe0sdd`)
 - **API version:** 67.0 (see "Critical: API version" below)
 - **Bundles:**
   - `uiBundles/ReactRetail/` — Retail banker home + customer 360 (live GraphQL + Data Cloud data)

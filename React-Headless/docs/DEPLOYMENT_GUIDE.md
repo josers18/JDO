@@ -1,6 +1,6 @@
 # Deployment Guide — React-Headless UI Bundles
 
-How to deploy a React UI bundle in this project so it renders as a Lightning app in the org. Written against `storm-16a17dc388fbe6` (Enterprise Edition, API v67.0) on 2026-07-06; the commands below use the current org alias `jdo-oe0sdd` (org id `00Dam00000Uo32qEAB` — the former `jdo-1lrnov` alias for this same org no longer resolves). Substitute your bundle name for `ReactRetail` throughout.
+How to deploy a React UI bundle in this project so it renders as a Lightning app in the org. Written against `storm-16a17dc388fbe6` (Enterprise Edition, API v67.0) on 2026-07-06; the commands below use the current org alias `jdo-oe0sdd` (org id `00Dam00000Uo32qEAB` — the older `jdo-1lrnov` and `jdo-0pz8au` aliases still resolve to this same org). Substitute your bundle name for `ReactRetail` throughout.
 
 ## TL;DR
 
