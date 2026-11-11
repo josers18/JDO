@@ -17,6 +17,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Queue-card tests for ReactWealth and ReactCommercial (PR #198)
+
+Test-only; nothing to deploy. Each test file uses real Data Cloud rows pulled on 2026-11-10.
+
+- **ReactWealth:** `tradingPulse.test.ts` covers net sellers (Crawford PLC Holdings, Maddox-Palmer Contractors). `planSignals.test.ts` covers at-risk plans and reviews (Nigel Morris, Larsen Group, Soto Holdings). `wealthUpgrades.test.ts` covers Claritas $5M+ upgrades (Brewer LLC Supply, Ellis Contractors). The suite is now 18 tests.
+- **ReactCommercial:** `intentSignals.test.ts` covers Demandbase competitor research and surges (Montgomery Holdings researching Live Oak Bank; Wagner Group Holdings). `jobChangeSignals.test.ts` covers UserGems champion departures (Sandoval-Jordan Industries, Moore Outlet, Melendez LLC Medical). The suite is now 16 tests.
+- **Why `/app/c__ReactHeadless` shows "Live Preview".** ReactHeadless has no `<target>CustomApplication</target>` and no CustomApplication, so the App Domain URL redirects to Lightning home. "Live Preview is on" is a Salesforce developer banner on that page; it isn't ReactHeadless content. This is expected: ReactHeadless is the local review harness (`npm run dev`).
+
 ### 2026-11-10 — Due dates use the banker's calendar day; first ReactWealth and ReactCommercial tests (PR #197)
 
 The fix is `localIsoDate(now, days)` in the new `_shared/src/data/localDate.ts`. Queue due dates came from local midnight formatted with `toISOString()`, which converts to UTC first:
