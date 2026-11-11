@@ -3,13 +3,13 @@
 Heroku worker that keeps two demo signals fresh for JDO.
 
 - **Email engagement.** It writes events (Sent, Delivered, Bounced, Opened, Clicked, Unsubscribed) to Heroku Postgres `"Fins".marketing_engagement`. Data Cloud reads that table zero-copy as `Marketing_Engagements__dlm`, which feeds the React-Headless S6 campaign-touch signals. Monthly campaigns are created in CRM and linked by Id.
-- **ServiceNow cases.** Every run, it adds the day's cases on the demo bankers' books to `"Fins".service_now` and moves open cases toward closed. Data Cloud reads that table as the "Service Now" stream into `ssot__Case__dlm` (DataSourceId `Service_Now`), which feeds React-Headless S7 service drag and the S8 freshness meter.
+- **ServiceNow cases.** Every run, it adds the day's cases on the demo bankers' books to `"Fins".service_now_cases` and moves open cases toward closed. Data Cloud reads that table zero-copy (stream `service_now_cases_Heroku_Postgres`) into `ssot__Case__dlm` (DataSourceId `Service_Now`), which feeds React-Headless S7 service drag and the S8 freshness meter.
 - **Identified web browsing.** Weekly, it sends Data Cloud Web SDK product-page beacons to the Cumulus RTOM demo site for the React-Headless R6 card.
 
 [README.md](README.md) is the operator guide. The specs are `docs/superpowers/specs/2026-10-14-marketing-engagement-design.md` (table and funnel) and `…/2026-10-15-marketing-engagement-monthly-feed-design.md` (feed).
 
 ## Boundaries
-- Owns: `"Fins".service_now` rows prefixed `SN-D-`, the status of open `SN-HOME-*` rows, and the table's `updated_at` column (`sql/003_service_now.sql`); `"Fins".marketing_engagement`, `marketing_campaign`, `marketing_campaign_template`, `marketing_feed_run` (`sql/*.sql`, applied by `migrate.py`); the generated CRM `Campaign` records; the weekly RTOM beacons sent by `web_browsing.py`.
+- Owns: `"Fins".service_now_cases` (`sql/004_service_now_cases.sql`, a copy of the older `"Fins".service_now`): the rows prefixed `SN-D-`, the status of open `SN-HOME-*` rows, and `updated_at`; `"Fins".marketing_engagement`, `marketing_campaign`, `marketing_campaign_template`, `marketing_feed_run` (`sql/*.sql`, applied by `migrate.py`); the generated CRM `Campaign` records; the weekly RTOM beacons sent by `web_browsing.py`.
 - Does NOT own:
   - the Heroku app `data-cloud` and its database `postgresql-trapezoidal-29488` (it only runs inside them);
   - the `Marketing_Engagements__dlm` stream/DMO;
@@ -40,12 +40,13 @@ Heroku worker that keeps two demo signals fresh for JDO.
   - Product ids and categories come from the site's `/static/js/sitemap.js`.
 
 ## Tests
-- `ME_ENV_FILE=../.env python3 -m pytest tests -q`. It uses the scratch schema `fins_feed_test`, which the `pg` fixture creates and drops; there are 66 tests as of 2026-11-11.
+- `ME_ENV_FILE=../.env python3 -m pytest tests -q`. It uses the scratch schema `fins_feed_test`, which the `pg` fixture creates and drops; there are 67 tests as of 2026-11-11.
 - The `pg` fixture stubs `web_browsing.send`. Any feed run at 15:00 UTC or later reaches the browsing step, and tests must never send real beacons.
 - `tests/test_web_browsing.py` covers plan determinism and the surge minimum, weekly rotation, one auth per device plus one beacon per load (with a fake HTTP client), `register`'s identity + email events per device, the registration device derivation, and the 15:00 UTC / 7-day gate.
 
 ## Gotchas
-- **`service_now` is not insert-only.** It updates `status`, `closeddate` and `updated_at` on open cases, never backwards, and never touches the original `Service_Now_*` rows. An incremental read on `createddate` would pick up new cases only and freeze statuses at insert, so the `Service_Now` stream runs **Full Refresh** (`TOTAL_REPLACE`, daily at 06:00 UTC; switched 2026-11-11). It reloads the whole table, about 7.4k rows. The incremental column can't be changed on an existing stream: the API PATCH rejects it, and Edit Data Stream locks "Record Modified Date-time". The stream also carries an `updated_at` source/DLO field and mapping (added 2026-11-11, mapped to `updated_at`) for a future incremental or zero-copy stream. Moving to `updated_at` incremental, or to zero copy, means recreating the stream.
+- **`service_now` is not insert-only.** It updates `status`, `closeddate` and `updated_at` on open cases, never backwards, and never touches the original `Service_Now_*` rows. The zero-copy stream reads the table live, so status changes reach `ssot__Case__dlm` without a refresh.
+- **One table per stream.** A Postgres table can back only one Data Cloud stream. That's why the zero-copy stream reads a new table: the old ingest stream `Service_Now` (incremental on `createddate`, which can't be changed on an existing stream) held `"Fins".service_now`. `004` copies the old table while it exists, and on a re-run it only takes rows with a newer `updated_at`. `003` still creates the old table, so the scratch schema matches until the old table is dropped. Keep `ssot__DataSourceId__c = 'Service_Now'` on the new stream's mapping, because React-Headless filters cases on it.
 - **Heroku deploy is not a plain subtree push.** Heroku's `main` history diverged from `git subtree split` (the trees match, the commits don't), so the push is rejected non-fast-forward. Don't force it. Commit the split's tree on top of Heroku's head with `git commit-tree`, then push. The recipe is in README "Heroku". In zsh, brace the variable (`"${c}:refs/heads/main"`): `$c:r` is a history modifier.
 - **Add cadences as gated steps in `feed.py`, not new Scheduler jobs.** The `heroku` CLI can't manage Scheduler jobs (only its particleboard API can: `Accept: application/vnd.api+json`, attrs `every`/`at`). One hourly job plus `last_success` gates keeps a single lock and log.
 - **`--now` / `--as-of` refuse future times** unless `--dry-run` is set. Inserted rows can't be removed.
