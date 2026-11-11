@@ -12,6 +12,7 @@
  */
 import { bookAccountFilter, queryDataCloud, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 import { whoToCallScoreCtes } from './whoToCall';
 
 /** Months flagged High (of the last six) at which stress counts as persistent. */
@@ -162,7 +163,7 @@ export const HARDSHIP_CHECK_IN = 'Hardship check-in — relief options, fee waiv
 
 /** Hardship check-ins are due in 5 days — the queue item and the card's Task prefill. */
 export const hardshipCheckInDue = (now = new Date()) =>
-  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().slice(0, 10);
+  localIsoDate(now, 5);
 
 /** Why the client needs a check-in — the queue reason and the card's Task comments. */
 export const hardshipCheckInReason = (r: StressedClientRow) =>

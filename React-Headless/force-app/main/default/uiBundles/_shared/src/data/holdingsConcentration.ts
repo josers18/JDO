@@ -13,6 +13,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 
 /** Single-position weight at or above which a client counts as concentrated. */
 export const CONCENTRATION_THRESHOLD = 0.2;
@@ -159,7 +160,7 @@ export function concentrationQueueItems(
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
-  const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10);
+  const due = localIsoDate(now, 7);
   const src = `CRM holdings${res.scope === 'org' ? ' · org-wide' : ''}`;
   return res.rows.slice(0, 3).map((r, i) => ({
     id: `hc${i}`,

@@ -17,6 +17,7 @@
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 import { wealthWhoToCallScoreCtes } from './wealthWhoToCall';
 
 const LATEST = `profile_month__c = (SELECT MAX(profile_month__c) FROM BT_MoneyGuidePro_Financial_Plans__dlm)
@@ -141,7 +142,7 @@ export function planRiskQueueItems(
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
-  const day = (n: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + n).toISOString().slice(0, 10);
+  const day = (n: number) => localIsoDate(now, n);
   const src = `MoneyGuidePro plan${res.scope === 'org' ? ' · org-wide' : ''}`;
   return res.atRiskRows.map((r, i) => {
     const critical = r.successPct < 50;

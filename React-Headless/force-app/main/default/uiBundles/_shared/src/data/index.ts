@@ -85,6 +85,7 @@ export {
   logoutUrl,
   currentPersonaDevName,
 } from './orgEnv';
+export { localIsoDate } from './localDate';
 export { fetchTradingPulse, netSellerQueueItems, type TradingPulseResult, type TradeWeek, type NetSellerRow } from './tradingPulse';
 export { fetchFirmographicMix, techPitch, REVENUE_BANDS, EMPLOYEE_BANDS, type FirmographicMixResult, type UpmarketRow, type BandCount } from './firmographics';
 export { fetchBusinessOwners, fetchOwnerWealthHandoffs, ownerHandoffLeads, OWNER_ANGLE_LABEL, type BusinessOwnersResult, type BusinessOwnerRow, type OwnerAngle, type OwnerHandoffResult, type OwnerHandoffRow } from './businessOwners';

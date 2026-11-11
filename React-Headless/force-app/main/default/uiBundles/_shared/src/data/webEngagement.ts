@@ -35,6 +35,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 
 /** Product page loads in the window at which a household earns a follow-up. */
 export const SURGE_VIEWS = 3;
@@ -203,7 +204,7 @@ export const isWebEngagementStale = (res: WebEngagementResult, now = new Date())
 
 /** Product follow-ups are due in 2 days — the queue item and the card's Task prefill. */
 export const browsingFollowUpDue = (now = new Date()) =>
-  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2).toISOString().slice(0, 10);
+  localIsoDate(now, 2);
 
 /** R6 recent product-page surges → queue: a product follow-up. */
 export function webEngagementQueueItems(
