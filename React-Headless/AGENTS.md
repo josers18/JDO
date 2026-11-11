@@ -121,7 +121,7 @@ Always capture `--json` and read `status` / `numberComponentErrors`. See `docs/D
 
 ## Tests
 
-- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. As of 2026-11-11: ReactRetail 12 files / 96 tests, ReactWealth 10 / 46, ReactCommercial 8 / 39, all passing. Fixtures are real Data Cloud rows, not invented data. Apex tests: `DcBridgeRestTest`, `DcPromptRestTest`, `AiGenerateRestTest`, `CrmWriteRestTest`, `CommandCenterConfigRestTest`.
+- Vitest under each bundle's `src/`; run `npm run test -- run` for a single CI pass. As of 2026-11-11: ReactRetail 12 files / 96 tests, ReactWealth 10 / 51, ReactCommercial 8 / 39, all passing. Fixtures are real Data Cloud rows, not invented data. Apex tests: `DcBridgeRestTest`, `DcPromptRestTest`, `AiGenerateRestTest`, `CrmWriteRestTest`, `CommandCenterConfigRestTest`.
 
 # Common mistakes
 

@@ -17,6 +17,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-11 — Bonus / refund and last-clicked dates use the banker's day
+
+- **Fixed:** two dates showed the UTC day. Data Cloud returns transaction and engagement timestamps in UTC (`2026-11-07 06:27:05.000 UTC`), and the fetchers kept the first ten characters. So a bonus that posted on the evening of Nov 6 in Los Angeles read "on 2026-11-07", and a campaign clicked at 5:58pm PT on Oct 23 read "last 2026-10-24".
+  - New `localDay(v)` in `_shared/src/data/localDate.ts` (exported from `@shared`) converts a DC timestamp to the banker's local day. Date-only values pass through unchanged, and anything it can't parse falls back to the first ten characters.
+  - `transactionSignals.ts` `isoDate` now uses it, so the S5 bonus / tax-refund date is fixed. The Commercial ACH receipt date and the C9 last-fee date come from the same `ssot__TransactionDate__c` timestamp, so they're fixed too. The Gong, World-Check and weekly-trend fields are date-only and don't change.
+  - `campaignTouches.ts` uses it for the S6 `lastTouch` date, in all three apps.
+- **Tests:** ReactWealth `transactionSignals.test.ts` and `campaignTouches.test.ts` now pin `TZ` and check the date in Los Angeles (moves back a day) and Tokyo (stays put). They also cover `localDay`'s pass-through and fallback. The new date tests fail without the fix. ReactWealth is now 51 tests.
+- All three bundles rebuilt and deployed (Succeeded, 0 errors). In the live ReactWealth app (browser on New York time), Hernandez's Retirement Readiness click now reads "last 2026-10-23".
+
 ### 2026-11-11 — Tests for the rest of ReactWealth's queue cards
 
 - **ReactWealth now tests every queue feed.** New files in `ReactWealth/src/home`:

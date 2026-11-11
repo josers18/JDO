@@ -20,7 +20,7 @@
  * way (see the bottom of this file).
  */
 import { commercialWhoToCallScoreCtes } from './commercialWhoToCall';
-import { localIsoDate } from './localDate';
+import { localDay, localIsoDate } from './localDate';
 import { bookAccountFilter, queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
 
@@ -130,7 +130,8 @@ export interface FeeSpike {
 }
 export interface TxSignalResult<T> { rows: T[]; scope: BookScope; }
 
-const isoDate = (v: unknown) => String(v ?? '').slice(0, 10);
+// The banker's local day: DC timestamps arrive in UTC; date-only fields pass through.
+const isoDate = localDay;
 
 /** S5 — each client's largest bonus / tax-refund credit in the last 7 days. */
 export async function fetchLargeInflows(ownerId: string | null | undefined): Promise<TxSignalResult<LargeInflow>> {
