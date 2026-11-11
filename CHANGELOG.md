@@ -31,7 +31,7 @@ Jump to: [November 2026](#november-2026) · [October 2026](#october-2026) · [Ju
 
 ### Added
 
-- **Daily ServiceNow cases** (PR #TBD): the Data Cloud "Service Now" stream had nothing new since 2026-10-24, because the `SN-HOME-*` backfill was a one-time run with its end date hardcoded, so React-Headless's freshness meter flagged ServiceNow cases as stale. The hourly Marketing_Engagement feed now has a `service_now` step (`service_now.py`).
+- **Daily ServiceNow cases** (PR [#206](https://github.com/josers18/JDO/pull/206)): the Data Cloud "Service Now" stream had nothing new since 2026-10-24, because the `SN-HOME-*` backfill was a one-time run with its end date hardcoded, so React-Headless's freshness meter flagged ServiceNow cases as stale. The hourly Marketing_Engagement feed now has a `service_now` step (`service_now.py`).
   - It adds each day's cases on the seven demo bankers' books (about 9 a day, the backfill's recent rate). Cases are seeded by day and banker, so a catch-up writes the same rows. The first run fills 2026-10-24 → today.
   - It moves open cases toward closed on a plan seeded by Case ID, forward only. Backfill cases still open on 2026-10-24 start that plan then, so they close over the following weeks.
   - `updated_at` (new column, `sql/003_service_now.sql`) is stamped on every insert and status change. The stream still reads incrementally on `createddate`, so for now it picks up new cases only. Status changes reach Data Cloud once its incremental column is `updated_at`.
