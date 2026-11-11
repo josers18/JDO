@@ -17,7 +17,7 @@ It now hosts a three-persona banking cockpit suite — **React Retail**, **React
   - `uiBundles/ReactCommercial/` — Commercial relationship command (Company Intel 360 tab + book-level Delinquency Watch)
   - `uiBundles/ReactHeadless/` — review harness (all personas as routes)
   - `uiBundles/_shared/` — non-deployed source library, inlined into each bundle via the `@shared` alias
-- **In-org:** all three persona apps are deployed as `CustomApplication`s and render at the Salesforce App Domain (see [Deployed apps](#deployed-apps)).
+- **In-org:** all three persona apps, plus the `ReactHeadless` review harness, are deployed as `CustomApplication`s and render at the Salesforce App Domain (see [Deployed apps](#deployed-apps)).
 
 ## Prerequisites
 
@@ -81,6 +81,7 @@ All three render in-org at the Salesforce App Domain (org `jdo-oe0sdd` / `storm-
 | React Retail | `https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactRetail` |
 | React Wealth | `https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactWealth` |
 | React Commercial | `https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactCommercial` |
+| React Headless (review harness, built-in sample data) | `https://storm-16a17dc388fbe6--c.demo.my.salesforce.app/app/c__ReactHeadless` |
 
 All three apps default to live data (GraphQL for CRM, the `DcBridgeRest` Apex bridge for Data Cloud, and prompt-flow-backed Einstein/Agentforce summaries), with a per-domain mock fallback via `dataSource.ts`. Commercial adds a Company Intel 360 tab (ZoomInfo firmographics, BoardEx governance, MSCI ESG, SEC filings) and a book-level Delinquency Watch home panel.
 
