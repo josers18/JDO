@@ -10,7 +10,7 @@ This file orients AI coding agents working in `React-Headless`. It is the tracke
 - **ReactWealth** — wealth-management advisory desk.
 - **ReactCommercial** — commercial-banking relationship command center; customer 360 includes a **Company Intel** tab (ZoomInfo firmographics, BoardEx governance, MSCI ESG, SEC filings) and the home dashboard carries a book-level **Delinquency Watch** panel.
 
-Plus a `ReactHeadless` review harness (banker home + customer 360 on built-in sample data; runs locally via `npm run dev` and in-org at `/app/c__ReactHeadless`) and a `_shared` source library. Each cockpit is a full-page app: navigation, KPI strips, tables, charts, AI/ML tiles, and a customer-360 drill-in, styled with the **Aurora Glass** design system (light mode, frosted glass, one blue→violet accent, per-persona accent colors).
+Plus a `ReactHeadless` review harness (all three personas as routes for local preview) and a `_shared` source library. Each cockpit is a full-page app: navigation, KPI strips, tables, charts, AI/ML tiles, and a customer-360 drill-in, styled with the **Aurora Glass** design system (light mode, frosted glass, one blue→violet accent, per-persona accent colors).
 
 # Tech stack
 

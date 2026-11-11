@@ -17,17 +17,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
-### 2026-11-10 — ReactHeadless opens in the org; liquidity-event tests (PR #199)
+### 2026-11-10 — Liquidity-event tests; ReactHeadless stays local-only (PRs #199, #200)
 
-- **ReactHeadless is now a Lightning app like the other three.** It got the same five pieces:
-  - `<target>CustomApplication</target>` on the bundle meta;
-  - `applications/ReactHeadless.app-meta.xml` (`c__ReactHeadless`);
-  - the `ReactHeadlessLauncher` VF launch card;
-  - the `ReactHeadlessApp` tab;
-  - the `ReactHeadless_Access` permission set (assigned to `admin@finsdc3.demo`).
-
-  `/app/c__ReactHeadless` now renders the harness; it no longer redirects to Lightning home. That replaces the "expected" note in PR #198's entry below. The harness still shows its built-in sample data ("Alex", July 6).
 - **ReactWealth:** `liquidityEvents.test.ts` covers `liquidityQueueItems` on real UserGems liquidity events (Charlotte Y Moyer leaving Howard-Lee Practice for Ironbridge Ridge Foods Inc; Brett A Watson leaving Watson LLC Outlet). The suite is now 23 tests.
+- **ReactHeadless is not an org app.** The org has exactly three cockpit apps (Retail, Wealth, Commercial), each with its record pages. #199 briefly made ReactHeadless a fourth Lightning app; #200 reverts that. The app, tab, launcher page and `ReactHeadless_Access` permission set are deleted from `jdo-oe0sdd`, and the bundle meta is back to having no `CustomApplication` target. `/app/c__ReactHeadless` redirecting to Lightning home is therefore expected: ReactHeadless is the local preview harness (`npm run dev`, built-in sample data).
 
 ### 2026-11-10 — Queue-card tests for ReactWealth and ReactCommercial (PR #198)
 
