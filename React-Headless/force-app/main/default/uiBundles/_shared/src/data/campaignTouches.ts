@@ -14,7 +14,7 @@
  * 8 per book (Sarah Smith — Rewards Credit Card; Jose Sifontes — Payroll Services).
  */
 import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
-import { localIsoDate } from './localDate';
+import { localDay, localIsoDate } from './localDate';
 import type { QueueSignalItem } from './priorityQueue';
 
 export type CampaignPersona = 'Personal' | 'Business';
@@ -70,7 +70,7 @@ export async function fetchCampaignTouches(
       product: String(r.product ?? ''),
       clicks: Number(r.clicks) || 0,
       opens: Number(r.opens) || 0,
-      lastTouch: String(r.last_at ?? '').slice(0, 10),
+      lastTouch: localDay(r.last_at),
     })),
   };
 }
