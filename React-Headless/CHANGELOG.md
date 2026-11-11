@@ -17,6 +17,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — Due dates use the banker's calendar day; first ReactWealth and ReactCommercial tests (PR #197)
+
+The fix is `localIsoDate(now, days)` in the new `_shared/src/data/localDate.ts`. Queue due dates came from local midnight formatted with `toISOString()`, which converts to UTC first:
+
+- In the 9 fixed-SLA helpers (web engagement, deposit attrition, financial stress, home equity, mortgage leads, trading pulse, wealth upgrades, holdings concentration, plan signals), the date was a day early east of UTC. Example: Tokyo, Nov 11 + 2 → `2026-11-12`.
+- `dueFrom` in `transactionSignals.ts`, used by the transaction, intent, funding and job-change signals, formatted the current instant, so in US time zones after 4–5pm a "due today" item read tomorrow. Example: 5:30pm PT on Nov 10 → `2026-11-11`.
+
+All ten now use `localIsoDate`, and `fundingSignals.ts`'s private `localIso` is gone.
+
+Tests:
+
+- `ReactRetail/src/data/__tests__/localDate.test.ts` runs the helper and `dueFrom` in Los Angeles, New York, UTC and Tokyo, plus a month end and the DST change. The ReactRetail suite is at 96 tests.
+- First tests for the other apps: `ReactWealth/src/home/holdingsConcentration.test.ts` uses the W8 card's real Julie E Morris MSFT 31% row (5 tests). `ReactCommercial/src/home/fundingSignals.test.ts` uses the real Harmonic rows for Missoula & Sons Inc. and Tech Labs (7 tests).
+
+Their `vitest.config.ts` lacked the `@shared` aliases, so it now matches ReactRetail's. All four bundles were rebuilt and deployed (Succeeded, 0 errors) and load live. ReactHeadless's `dist/` was slightly behind its source; the rebuild drops three unused Tailwind color tokens.
+
 ### 2026-11-10 — Vitest tests for R6 queue items; other bundles have no suites (PR #196)
 
 `ReactRetail/src/home/webEngagement.test.ts` now tests `webEngagementQueueItems` with Kim Johnson's 2026-11-10 book (39 tests in the file, 86 in the suite). It checks that the top three `SURGE_VIEWS`+ households queue in card order, that households under 3 loads or last seen over 14 days ago are skipped, that items are due two days out (`2026-11-13`) and carry the given segment, and that the reason and action come from the most-viewed product. It also covers the account-id name fallback, the score and severity boost for a visit within 2 days (capped at 0.85), and the "· org-wide" source. ReactWealth, ReactCommercial and ReactHeadless have Vitest configured but have never had a test file, so nothing in them could drift. Known issue, not fixed here: `browsingFollowUpDue` and the same pattern in 8 other `_shared/src/data/*` due dates format local midnight with `toISOString()`, so east of UTC the date comes out a day early. US time zones are unaffected. Tests only; `dist/` unchanged, no deploy.

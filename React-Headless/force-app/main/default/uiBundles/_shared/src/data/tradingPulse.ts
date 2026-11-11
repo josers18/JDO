@@ -13,6 +13,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 
 const LATEST = "(SELECT MAX(trade_date__c) FROM BT_Financial_Trades__dlm WHERE account_id__c LIKE '001am%')";
 const SLICE = "trade_status__c = 'Confirmed' AND currency__c = 'USD'";
@@ -123,7 +124,7 @@ export function netSellerQueueItems(
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
-  const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3).toISOString().slice(0, 10);
+  const due = localIsoDate(now, 3);
   const src = `Trades · as of ${shortDate(res.asOf)}${res.scope === 'org' ? ' · org-wide' : ''}`;
   return res.sellers.map((r, i) => ({
     id: `ts${i}`,

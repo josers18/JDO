@@ -20,6 +20,7 @@
  * way (see the bottom of this file).
  */
 import { commercialWhoToCallScoreCtes } from './commercialWhoToCall';
+import { localIsoDate } from './localDate';
 import { bookAccountFilter, queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem, QueueSeverity } from './priorityQueue';
 
@@ -185,9 +186,11 @@ const money = (n: number) =>
 
 /** Due date = signal date + SLA days, never earlier than today. */
 export function dueFrom(iso: string, slaDays: number, now: Date): string {
-  const base = iso ? new Date(iso + 'T00:00:00').getTime() : now.getTime();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  return new Date(Math.max(base + slaDays * DAY, today)).toISOString().slice(0, 10);
+  const base = iso ? new Date(iso + 'T00:00:00') : now;
+  const today = localIsoDate(now);
+  if (Number.isNaN(base.getTime())) return today;
+  const due = localIsoDate(base, slaDays);
+  return due > today ? due : today;
 }
 
 const sourceLabel = (scope: BookScope) => `Transactions${scope === 'org' ? ' · org-wide' : ''}`;

@@ -19,6 +19,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 
 /** Propensity at or above which a client counts as ready for the product. */
 export const PROPENSITY_READY = 70;
@@ -193,7 +194,7 @@ export const mortgageLeadReason = (r: MortgageLead) => {
 
 /** Mortgage leads are due in 7 days — the queue item and the card's Task prefill. */
 export const mortgageLeadDue = (now = new Date()) =>
-  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString().slice(0, 10);
+  localIsoDate(now, 7);
 
 /** Renters (a first-home purchase) → medium; owners → low — the queue severity behind the Task priority. */
 export const mortgageLeadSeverity = (r: MortgageLead): 'medium' | 'low' =>

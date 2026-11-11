@@ -13,6 +13,7 @@
  */
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 
 /** Monthly outflow at or above which a client earns a retention call. */
 export const RETENTION_FLOW_USD = 5000;
@@ -117,7 +118,7 @@ export const needsRetentionCall = (r: DepositAttritionRow) => r.monthlyFlow >= R
 
 /** Retention calls are due in 5 days — the queue item and the card's Task prefill. */
 export const retentionCallDue = (now = new Date()) =>
-  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().slice(0, 10);
+  localIsoDate(now, 5);
 
 /** Why the client needs a call — the queue reason and the card's Task comments. */
 export const retentionCallReason = (r: DepositAttritionRow) =>

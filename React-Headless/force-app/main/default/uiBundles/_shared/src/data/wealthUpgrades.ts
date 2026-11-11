@@ -13,6 +13,7 @@
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 
 const SLICE = `c.profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Claritas_Demographics__dlm)
     AND (c.wealth_propensity_score__c >= 80 OR c.estimated_net_worth_band__c IN ('$1M-$5M', '$5M+'))
@@ -101,7 +102,7 @@ export function wealthUpgradeQueueItems(
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
-  const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().slice(0, 10);
+  const due = localIsoDate(now, 5);
   const src = `Claritas propensity${res.scope === 'org' ? ' · org-wide' : ''}`;
   return res.rows.slice(0, 3).map((r, i) => ({
     id: `wu${i}`,

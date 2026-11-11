@@ -13,6 +13,7 @@
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import { summaryTrend, type KpiTrend } from './kpiTrend';
 import type { QueueSignalItem } from './priorityQueue';
+import { localIsoDate } from './localDate';
 
 const LATEST = `profile_quarter__c = (SELECT MAX(profile_quarter__c) FROM BT_Corelogic_Property__dlm)
     AND heloc_opportunity_score__c >= 70 AND is_owner__c = true`;
@@ -107,7 +108,7 @@ export function homeEquityQueueItems(
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
-  const due = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().slice(0, 10);
+  const due = localIsoDate(now, 5);
   return res.rows.map((r, i) => ({
     id: `he${i}`,
     clientId: r.accountId,

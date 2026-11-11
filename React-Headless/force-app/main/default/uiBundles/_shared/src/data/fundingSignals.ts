@@ -15,6 +15,7 @@
 import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataCloudClient';
 import type { QueueSignalItem } from './priorityQueue';
 import { dueFrom } from './transactionSignals';
+import { localIsoDate } from './localDate';
 import { decodeEntities } from './decodeEntities';
 
 /** Funding rows the queue shows (after the Who-to-Call dedupe). */
@@ -93,9 +94,6 @@ export async function fetchFundingSignals(ownerId: string | null | undefined): P
 const money = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-/** Local YYYY-MM-DD for `now`. */
-const localIso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /** Harmonic rows → priority-queue items, due two weeks after the round closed.
  *  Flagged `reserveSlot` so the strongest new signal always holds a queue slot. */
@@ -105,7 +103,7 @@ export function fundingQueueItems(
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
   const now = opts.now ?? new Date();
-  const todayIso = localIso(now);
+  const todayIso = localIsoDate(now);
   return res.rows.map((r, i) => {
     const seriesAPlus = SERIES_A_PLUS.includes(r.stage);
     return {
