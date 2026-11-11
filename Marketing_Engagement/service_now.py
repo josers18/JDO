@@ -1,7 +1,7 @@
 """Daily ServiceNow cases on the demo bankers' books, plus their status changes.
 
-`"Fins".service_now` feeds the Data Cloud "Service Now" stream (ssot__Case__dlm,
-DataSourceId 'Service_Now'), which React-Headless reads for S7 open service drag
+`"Fins".service_now_cases` feeds the zero-copy Data Cloud stream on that table
+(ssot__Case__dlm, DataSourceId 'Service_Now'), which React-Headless reads for S7 open service drag
 and the S8 freshness meter. The one-time backfill
 (`ServiceNow_Cases/generate_service_now_cases.py`, 3,260 `SN-HOME-*` rows) ends at
 2026-10-24 18:00; this step carries on from there.
@@ -14,9 +14,8 @@ Each feed run:
     seeded by Case ID. Statuses never move back. Backfill cases still open at
     2026-10-24 follow the same plan counted from then, so they close over the
     following weeks rather than all at once.
-  * stamps `updated_at` on every row it inserts or changes. The stream can only
-    see a status change if it reads incrementally on `updated_at`; on
-    `createddate` it sees new cases only.
+  * stamps `updated_at` on every row it inserts or changes. The stream reads the
+    table live (zero copy), so status changes show up in Data Cloud at once.
 """
 
 import random
@@ -139,14 +138,16 @@ def status_at(case_id, start, now):
     return ("in_progress" if age >= to_progress else "open"), None
 
 
+TABLE = "service_now_cases"
+
+
 def _status(c, now):
-    status, closed = status_at(c["case_id"], c["createddate"], now)
-    return status, closed.strftime("%Y-%m-%d %H:%M") if closed else None
+    return status_at(c["case_id"], c["createddate"], now)
 
 
 def step(conn, query, now, dry_run=False):
     """Insert due cases and advance open ones. Returns (inserted, advanced)."""
-    tbl = db.t("service_now")
+    tbl = db.t(TABLE)
     new = due_cases(now, load_books(query))
     stored = {r[0] for r in conn.execute(f'SELECT "Case ID" FROM {tbl} WHERE "Case ID" LIKE %s', (PREFIX + "%",))}
     new = [c for c in new if c["case_id"] not in stored]
@@ -159,7 +160,7 @@ def step(conn, query, now, dry_run=False):
         start = created if case_id.startswith(PREFIX) else max(created, FEED_START)
         want, closed = status_at(case_id, start, now)
         if RANK[want] > RANK[status]:
-            advance.append((want, closed.strftime("%Y-%m-%d %H:%M") if closed else None, case_id))
+            advance.append((want, closed, case_id))
 
     if dry_run:
         return len(new), len(advance)

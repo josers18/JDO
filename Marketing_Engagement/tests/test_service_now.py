@@ -2,6 +2,7 @@ from collections import Counter
 from datetime import date, datetime, timedelta
 
 import db
+import migrate
 import service_now as sn
 
 # Real home-org accounts: Marcus G Rodriguez (Jose Sifontes, person) and two accounts
@@ -75,7 +76,7 @@ def test_status_only_moves_forward_over_time():
 
 def _rows(pg, like="%"):
     return {r[0]: r[1:] for r in pg.execute(
-        f'SELECT "Case ID", status, closeddate, updated_at, createddate FROM {db.t("service_now")} '
+        f'SELECT "Case ID", status, closeddate, updated_at, createddate FROM {db.t(sn.TABLE)} '
         'WHERE "Case ID" LIKE %s', (like,)).fetchall()}
 
 
@@ -97,14 +98,14 @@ def test_step_inserts_once_then_advances_and_stamps_updated_at(pg):
         assert sn.RANK[after[cid][0]] > sn.RANK[rows[cid][0]]
         assert after[cid][2] == later
         if after[cid][0] == "closed":
-            assert after[cid][1] and after[cid][1] <= later.strftime("%Y-%m-%d %H:%M")
+            assert after[cid][1] and after[cid][1] <= later
 
 
 def test_catch_up_equals_continuous(pg):
     for day in range(1, 11):
         sn.step(pg, query, datetime(2026, 11, day, 5))
     continuous = _rows(pg)
-    pg.execute(f'DELETE FROM {db.t("service_now")}')  # test schema only
+    pg.execute(f'DELETE FROM {db.t(sn.TABLE)}')  # test schema only
     sn.step(pg, query, datetime(2026, 11, 10, 5))
     caught_up = _rows(pg)
     assert set(continuous) == set(caught_up)
@@ -112,7 +113,7 @@ def test_catch_up_equals_continuous(pg):
 
 
 def test_backfill_cases_still_open_start_their_plan_at_feed_start(pg):
-    tbl = db.t("service_now")
+    tbl = db.t(sn.TABLE)
     # Real backfill rows: SN-HOME-309 opened 2026-10-24 15:38, plus an old one left open.
     pg.execute(f'INSERT INTO {tbl} ("Case ID", createddate, status, ext_account_id) VALUES '
                "('SN-HOME-309', '2026-10-24 15:38', 'open', '001am00002AYPQnAAP'), "
@@ -145,3 +146,22 @@ def test_counts_by_status_stay_level_over_a_year():
     q2, q4 = open_on(datetime(2027, 5, 1)), open_on(datetime(2027, 11, 1))
     open_q2, open_q4 = q2["open"] + q2["in_progress"], q4["open"] + q4["in_progress"]
     assert open_q4 < open_q2 * 1.35
+
+
+def test_migration_copies_the_old_table_and_keeps_newer_rows(pg):
+    old, new = db.t("service_now"), db.t(sn.TABLE)
+    pg.execute(f'INSERT INTO {old} ("Case ID", createddate, status, closeddate, updated_at) VALUES '
+               "('SN-HOME-1', '2025-06-01 10:00', 'closed', '2025-06-20 09:15', '2025-06-20 09:15'), "
+               "('SN-HOME-2', '2025-06-01 10:00', 'open', '', '2025-06-01 10:00'), "
+               "('Service_Now_1', '2024-01-01', 'open', NULL, NULL)")
+    migrate.apply_sql(pg)
+    rows = _rows(pg)
+    assert rows["SN-HOME-1"][:2] == ("closed", datetime(2025, 6, 20, 9, 15))
+    assert rows["SN-HOME-2"][:2] == ("open", None)
+    assert "Service_Now_1" in rows
+
+    # The feed moved SN-HOME-2 on in the new table; a re-run of the migration must not undo it.
+    pg.execute(f"UPDATE {new} SET status = 'closed', closeddate = '2026-11-11 12:00', "
+               "updated_at = '2026-11-11 12:00' WHERE \"Case ID\" = 'SN-HOME-2'")
+    migrate.apply_sql(pg)
+    assert _rows(pg)["SN-HOME-2"][:2] == ("closed", datetime(2026, 11, 11, 12, 0))
