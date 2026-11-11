@@ -31,7 +31,7 @@ change `dist/`, commit the rebuilt `dist/` too — it is the deploy artifact (se
 
 ## The two clusters (cleared in PR #19, 2026-07-07)
 
-### React UI bundles — `ReactRetail` / `ReactWealth` / `ReactCommercial` / `ReactHeadless`
+### React UI bundles — `ReactRetail` / `ReactWealth` / `ReactCommercial`
 
 Identical dependency trees (all scaffolded from `reactbasic`), so the same
 `overrides` apply to all four:

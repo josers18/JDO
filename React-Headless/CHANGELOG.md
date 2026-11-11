@@ -17,6 +17,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-10 — ReactHeadless bundle deleted (PR #201)
+
+- **The ReactHeadless review harness is gone.** The project is now the three cockpits (Retail, Wealth, Commercial), each with its record pages, plus `_shared`.
+  - The `ReactHeadless` UIBundle is deleted from `jdo-oe0sdd` with a destructive deploy; Tooling `UIBundle` shows ReactRetail, ReactWealth and ReactCommercial (plus the sibling `reactRecipes`).
+  - `uiBundles/ReactHeadless/` is removed from the repo.
+  - README, AGENTS.md and `docs/DEPENDENCY_MANAGEMENT.md` list only the three cockpits.
+- Unchanged: the `"package": "ReactHeadless"` label in `sfdx-project.json` names the SFDX project (`React-Headless/`), not a bundle. Dated plans and specs under `docs/superpowers/` and earlier changelog entries still mention ReactHeadless as history.
+
 ### 2026-11-10 — Liquidity-event tests; ReactHeadless stays local-only (PRs #199, #200)
 
 - **ReactWealth:** `liquidityEvents.test.ts` covers `liquidityQueueItems` on real UserGems liquidity events (Charlotte Y Moyer leaving Howard-Lee Practice for Ironbridge Ridge Foods Inc; Brett A Watson leaving Watson LLC Outlet). The suite is now 23 tests.

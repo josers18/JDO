@@ -4,7 +4,7 @@ A JDO subproject for building **React-on-Salesforce** apps using the Salesforce 
 
 Scaffolded from the `reactbasic` UI bundle template (React 19 + Vite 7 + TypeScript + Tailwind v4/shadcn). Unlike the `Multiframework_Recipes` port (a verbatim reference copy), this is a clean greenfield workspace to build JDO-native headless React experiences on the Agentforce 360 Platform.
 
-It now hosts a three-persona banking cockpit suite — **React Retail**, **React Wealth**, and **React Commercial** — plus a `ReactHeadless` review harness, all sharing a single `_shared` source library (Aurora Glass design system, data clients, component primitives).
+It now hosts a three-persona banking cockpit suite — **React Retail**, **React Wealth**, and **React Commercial** — all sharing a single `_shared` source library (Aurora Glass design system, data clients, component primitives).
 
 ## Status
 
@@ -15,7 +15,6 @@ It now hosts a three-persona banking cockpit suite — **React Retail**, **React
   - `uiBundles/ReactRetail/` — Retail banker home + customer 360 (live GraphQL + Data Cloud data)
   - `uiBundles/ReactWealth/` — Wealth advisory desk
   - `uiBundles/ReactCommercial/` — Commercial relationship command (Company Intel 360 tab + book-level Delinquency Watch)
-  - `uiBundles/ReactHeadless/` — review harness (all personas as routes)
   - `uiBundles/_shared/` — non-deployed source library, inlined into each bundle via the `@shared` alias
 - **In-org:** all three persona apps are deployed as `CustomApplication`s and render at the Salesforce App Domain (see [Deployed apps](#deployed-apps)).
 
@@ -41,7 +40,7 @@ Confirmed against `jdo-0pz8au` on 2026-06-25 — these override stale public doc
 
 ## Build
 
-Each bundle builds independently (substitute `ReactRetail` / `ReactWealth` / `ReactCommercial` / `ReactHeadless`):
+Each bundle builds independently (substitute `ReactRetail` / `ReactWealth` / `ReactCommercial`):
 
 ```bash
 cd force-app/main/default/uiBundles/ReactRetail
@@ -98,14 +97,13 @@ The banker home ships **two layouts** behind a top-bar toggle: the original **Cu
 
 ```
 React-Headless/
-├── sfdx-project.json                    # sourceApiVersion 67.0, package "ReactHeadless"
+├── sfdx-project.json                    # sourceApiVersion 67.0, package dir named "ReactHeadless" (the project, not a bundle)
 ├── force-app/main/default/
 │   ├── uiBundles/
 │   │   ├── _shared/                     # non-deployed source library (@shared alias)
 │   │   ├── ReactRetail/                 # Retail cockpit (live data)
 │   │   ├── ReactWealth/                 # Wealth cockpit
-│   │   ├── ReactCommercial/             # Commercial cockpit
-│   │   └── ReactHeadless/               # review harness
+│   │   └── ReactCommercial/             # Commercial cockpit
 │   ├── applications/                    # CustomApplication per persona (uiBundle binding)
 │   ├── objects/                         # CommandCenterConfig__c — org-level AI config + model cache + per-user brand-theme / display-size maps
 │   ├── pages/                           # <App>Launcher VF pages — App Launcher bridge to the App Domain

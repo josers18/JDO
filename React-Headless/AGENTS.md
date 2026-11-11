@@ -10,7 +10,7 @@ This file orients AI coding agents working in `React-Headless`. It is the tracke
 - **ReactWealth** — wealth-management advisory desk.
 - **ReactCommercial** — commercial-banking relationship command center; customer 360 includes a **Company Intel** tab (ZoomInfo firmographics, BoardEx governance, MSCI ESG, SEC filings) and the home dashboard carries a book-level **Delinquency Watch** panel.
 
-Plus a `ReactHeadless` review harness (all three personas as routes for local preview) and a `_shared` source library. Each cockpit is a full-page app: navigation, KPI strips, tables, charts, AI/ML tiles, and a customer-360 drill-in, styled with the **Aurora Glass** design system (light mode, frosted glass, one blue→violet accent, per-persona accent colors).
+Plus a `_shared` source library. Each cockpit is a full-page app: navigation, KPI strips, tables, charts, AI/ML tiles, and a customer-360 drill-in, styled with the **Aurora Glass** design system (light mode, frosted glass, one blue→violet accent, per-persona accent colors).
 
 # Tech stack
 
@@ -35,8 +35,7 @@ force-app/main/default/
 │   │                                                   #   + data/priorityQueue (queue blender)
 │   ├── ReactRetail/      # src/{home,client,data}/ — live-data cockpit
 │   ├── ReactWealth/      # live-data cockpit (real default, mock fallback)
-│   ├── ReactCommercial/  # live-data cockpit + Company Intel tab + Delinquency Watch
-│   └── ReactHeadless/    # review harness (personas as routes)
+│   └── ReactCommercial/  # live-data cockpit + Company Intel tab + Delinquency Watch
 ├── applications/         # <App>.app-meta.xml — CustomApplication, binds <uiBundle>c__<Name>
 ├── objects/              # CommandCenterConfig__c — the config singleton (per-center JSON + model cache + per-user brand-theme / display-size maps)
 ├── pages/                # <App>Launcher.page — VF "launch card", App Launcher bridge to the App Domain
