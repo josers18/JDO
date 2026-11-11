@@ -17,6 +17,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-11 — Tests for the rest of ReactWealth's queue cards
+
+- **ReactWealth now tests every queue feed.** New files in `ReactWealth/src/home`:
+  - `wealthWhoToCall.test.ts` — the W9 blended Who-to-Call list. It covers `fetchWealthWhoToCall` (with the platform SDK stubbed to return the real rows): book scoping, the summary counts, decimal parsing, drivers strongest first, no outflow driver when money flows in, and the eighth slot going to the book's most concentrated client (Julie E Morris, MSFT 31%). It also covers `wealthWhoToCallItems` (save call, plan review, diversification review, held-away watch and outflow tiers) and the `homeDataReal` wiring: covered Gong clients drop out of the Gong feed, and `inheritDue` moves a row's due date up only when it beats the row's SLA.
+  - `transactionSignals.test.ts` — S5 bonus / tax-refund credits through `fetchLargeInflows` (Tax refund vs Bonus, book → org fallback) and the "Invest new cash — portfolio top-up" items.
+  - `callSentiment.test.ts`, `amlChanges.test.ts`, `campaignTouches.test.ts` — S1 Gong, S2 World-Check and S6 Personal campaign touches with the Wealth segment.
+- Fixtures are real Data Cloud rows pulled on 2026-11-11, mostly from Jose Sifontes' book (Graham, Garcia, Gill, Robles and Reese households, Marcus G Rodriguez, David H Chen, Anika A Patel). The suite is now 46 tests in 10 files.
+- Tests only. No bugs found, so `dist/` is unchanged and nothing was deployed.
+
 ### 2026-11-11 — Tests for the rest of ReactCommercial's queue cards; three more UTC due dates fixed
 
 - **ReactCommercial now tests every queue feed.** New files cover S5 ACH receipts and C9 fee spikes (`transactionSignals.test.ts`), S1 Gong call sentiment including the call-prep flag (`callSentiment.test.ts`), S2 World-Check AML escalations (`amlChanges.test.ts`), S6 campaign touches (`campaignTouches.test.ts`), and the C10 blended Who-to-Call list (`commercialWhoToCall.test.ts`). Fixtures are real Data Cloud rows pulled on 2026-11-11, mostly from Allen Carter's book (Oneill-Henry Industries, Cox-Davis Holdings, Cameron-Olson Construction, Terry Builders, Sloan Contractors, Burgess Supply). The suite is now 39 tests in 8 files.
