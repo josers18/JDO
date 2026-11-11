@@ -8,8 +8,12 @@
  * Latest dates verified live 2026-11-09: transactions + World-Check today; Gong
  * and the relationship graph 11-09; Plaid + D&B 11-01 (monthly); marketing 11-10
  * (UTC stamp); CSAT 10-01; offer model 11-01 (monthly run); ServiceNow 2026-10-24.
+ *
+ * Timestamp sources (transactions, marketing, ServiceNow) come back in UTC and
+ * read on the banker's local day; date sources keep their date.
  */
 import { queryDataCloud } from './dataCloudClient';
+import { localDay } from './localDate';
 
 export type Cadence = 'live' | 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'batch';
 
@@ -61,10 +65,10 @@ const DAY = 86_400_000;
 /** S8 — latest date per source in one round trip, plus CRM as a live source. */
 export async function fetchDataFreshness(keys: FreshnessSource[], now: Date = new Date()): Promise<DataFreshness> {
   const sql = keys
-    .map(k => `SELECT '${k}' AS src, CAST(${SOURCES[k].sql.replace(/^(MAX\([^)]*\))/, '$1 AS VARCHAR)')}`)
+    .map(k => `SELECT '${k}' AS src, CAST(${SOURCES[k].sql.replace(/^(MAX\([^)]*\))/, '$1 AS VARCHAR) AS as_of')}`)
     .join('\n  UNION ALL ');
   const res = await queryDataCloud<{ src: string; as_of: unknown }>(sql, keys.length);
-  const asOf = new Map(res.rows.map(r => [String(r.src), String(r.as_of ?? '').slice(0, 10)]));
+  const asOf = new Map(res.rows.map(r => [String(r.src), localDay(r.as_of)]));
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const sources: SourceFreshness[] = [
     { label: 'Salesforce CRM', cadence: 'live', asOf: '', ageDays: 0, current: true },

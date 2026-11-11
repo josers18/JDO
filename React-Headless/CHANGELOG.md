@@ -17,6 +17,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-11 — Data freshness meter counts every source again; its timestamps use the banker's day
+
+- **Fixed:** the S8 data-freshness meter showed only CRM ("100% · 1 sources") in all three apps. The SQL cast each source's latest date to VARCHAR without naming the column, so the bridge returned it as `_col1` and every Data Cloud source was dropped. It's now `AS as_of`. Live it reads 92% · 12 sources on ReactWealth and ReactRetail and 94% · 16 on ReactCommercial, with ServiceNow (Oct 24) flagged stale. The alias had been missing since #133.
+- **Fixed:** the three timestamp sources (transactions, marketing, ServiceNow) now use `localDay`, so they read on the banker's day. Transactions' latest `06:59:59+00` on Nov 11 is Nov 10 in Los Angeles.
+- `localDay` now parses the other shapes a timestamp CAST to VARCHAR comes back in: `+00` offsets, microseconds (`14:57:48.693364+00`) and a spaced `Z` (`00:00:00.000 Z`). `Date` rejects all three as-is. A value at exactly midnight UTC is a date stored as a timestamp (trades' `trade_date__c`), so it keeps its calendar date.
+- The other `slice(0, 10)` sites in `_shared/src/data` were checked against live rows: trading pulse, job-change, funding, intent, market, plan, property, relationship-graph, whitespace and KPI-trend fields are all date-only and don't change.
+- **Tests:** new ReactWealth `dataFreshness.test.ts` uses the real rows for Wealth's 11 sources. Its mocked bridge names the column `_col1` unless the SQL aliases it, like the real bridge. It pins `TZ` to Los Angeles and Tokyo and covers the new `localDay` shapes. All 5 tests fail without the fix. ReactWealth is now 56 tests in 11 files.
+- All three bundles rebuilt and deployed (Succeeded, 0 errors).
+
 ### 2026-11-11 — Bonus / refund and last-clicked dates use the banker's day
 
 - **Fixed:** two dates showed the UTC day. Data Cloud returns transaction and engagement timestamps in UTC (`2026-11-07 06:27:05.000 UTC`), and the fetchers kept the first ten characters. So a bonus that posted on the evening of Nov 6 in Los Angeles read "on 2026-11-07", and a campaign clicked at 5:58pm PT on Oct 23 read "last 2026-10-24".
