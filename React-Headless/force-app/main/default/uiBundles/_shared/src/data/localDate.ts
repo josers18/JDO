@@ -17,10 +17,24 @@ export const localIsoDate = (now: Date = new Date(), days = 0): string => {
  * DC returns timestamps in UTC ("2026-11-07 06:27:05.000 UTC"), so slicing the
  * first ten characters gives the UTC day: a bonus that posted on the evening of
  * Nov 6 in Los Angeles read as Nov 7. Date-only values pass through unchanged.
+ *
+ * A timestamp CAST to VARCHAR comes back in other shapes too, none of which
+ * `Date` parses as-is: "2026-11-11 06:59:59+00", "2026-11-11 14:57:48.693364+00"
+ * and "2026-11-11 00:00:00.000 Z". A value at exactly midnight UTC is a DATE
+ * column stored as a timestamp (trade_date__c), so it keeps its calendar date
+ * instead of moving to the evening before west of UTC.
  */
 export const localDay = (v: unknown): string => {
   const s = String(v ?? '').trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  const d = new Date(s.replace(/ UTC$/, 'Z').replace(' ', 'T'));
-  return Number.isNaN(d.getTime()) ? s.slice(0, 10) : localIsoDate(d);
+  const iso = s
+    .replace(' ', 'T')
+    .replace(/ ?(UTC|Z)$/, 'Z')
+    .replace(/([+-]\d{2})$/, '$1:00')
+    .replace(/(\.\d{3})\d+/, '$1');
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return s.slice(0, 10);
+  return d.getUTCHours() + d.getUTCMinutes() + d.getUTCSeconds() + d.getUTCMilliseconds() === 0
+    ? d.toISOString().slice(0, 10)
+    : localIsoDate(d);
 };
