@@ -18,6 +18,7 @@
  * All inputs are the ALREADY-PARSED shapes each persona builds, so the blender is
  * pure and identical across bundles.
  */
+import { localIsoDate } from './localDate';
 
 export type QueueSeverity = 'high' | 'medium' | 'low';
 export type QueueDueTier = 'today' | 'week' | 'watch';
@@ -65,10 +66,9 @@ export interface QueueTaskInput {
 
 const DAY = 86_400_000;
 
-/** Add whole days to an ISO date, returning ISO (YYYY-MM-DD). */
+/** Whole calendar days after `base`, as the banker's local YYYY-MM-DD (not UTC's). */
 function addDays(base: Date, days: number): string {
-  const d = new Date(base.getTime() + days * DAY);
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(base, days);
 }
 
 const SEV_SLA_DAYS: Record<QueueSeverity, number> = { high: 0, medium: 2, low: 5 };

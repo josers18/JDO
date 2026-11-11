@@ -40,6 +40,7 @@ import { queryDataCloud, queryDataCloudForBook, type BookScope } from './dataClo
 import { ownerScopedQuery } from './viewAs';
 import { offerLabel } from './offerModel';
 import { crmWrite } from './crmWriteClient';
+import { localIsoDate } from './localDate';
 
 export type WhitespacePersona = 'retail' | 'wealth' | 'commercial';
 
@@ -333,9 +334,7 @@ export const whitespaceOpportunityName = (productLabel: string, clientName: stri
   `${productLabel}${NAME_SEP}${clientName}`;
 
 function isoDaysAgo(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(new Date(), -days);
 }
 
 async function fetchStats(ownerId: string | null | undefined) {

@@ -17,6 +17,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [November 2026]
 
+### 2026-11-11 — Tests for the rest of ReactCommercial's queue cards; three more UTC due dates fixed
+
+- **ReactCommercial now tests every queue feed.** New files cover S5 ACH receipts and C9 fee spikes (`transactionSignals.test.ts`), S1 Gong call sentiment including the call-prep flag (`callSentiment.test.ts`), S2 World-Check AML escalations (`amlChanges.test.ts`), S6 campaign touches (`campaignTouches.test.ts`), and the C10 blended Who-to-Call list (`commercialWhoToCall.test.ts`). Fixtures are real Data Cloud rows pulled on 2026-11-11, mostly from Allen Carter's book (Oneill-Henry Industries, Cox-Davis Holdings, Cameron-Olson Construction, Terry Builders, Sloan Contractors, Burgess Supply). The suite is now 39 tests in 8 files.
+- **Fixed: dates #197 missed.** All three now use `localIsoDate`:
+  - `campaignTouchQueueItems` read "today" from `toISOString()`, so after 4–5pm in US time zones a due-today campaign follow-up was dated tomorrow.
+  - `priorityQueue.ts` `addDays` sets the default SLA date for items that arrive without one, such as Who-to-Call. East of UTC it came out a day early.
+  - `whitespace.ts` `isoDaysAgo` starts the 30-day stats window.
+  - Each of the first two has a time-zone test that fails without the fix.
+- All three bundles rebuilt and deployed (Succeeded, 0 errors). ReactCommercial loads live with no page errors.
+
 ### 2026-11-11 — Vitest sweep after the ReactHeadless deletion; docs sync
 
 - **All three suites pass with no drift:** ReactRetail 12 files / 96 tests, ReactWealth 5 / 23, ReactCommercial 3 / 16. Nothing needed fixing.

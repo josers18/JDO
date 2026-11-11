@@ -14,6 +14,7 @@
  * 8 per book (Sarah Smith — Rewards Credit Card; Jose Sifontes — Payroll Services).
  */
 import { queryDataCloudForBook, type BookScope } from './dataCloudClient';
+import { localIsoDate } from './localDate';
 import type { QueueSignalItem } from './priorityQueue';
 
 export type CampaignPersona = 'Personal' | 'Business';
@@ -80,7 +81,8 @@ export function campaignTouchQueueItems(
   nameById: Record<string, string>,
   opts: { segment: string; now?: Date },
 ): QueueSignalItem[] {
-  const today = (opts.now ?? new Date()).toISOString().slice(0, 10);
+  // The banker's calendar day, not UTC's: in US evenings toISOString() already reads tomorrow.
+  const today = localIsoDate(opts.now ?? new Date());
   return res.rows.map((t, i) => ({
     id: `mc${i}`,
     clientId: t.accountId,
