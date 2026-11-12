@@ -1,8 +1,11 @@
 """Synthetic ServiceNow cases on real jdo-oe0sdd accounts.
 
-Inserts cases into Heroku Postgres `"Fins".service_now`, the table behind the
-Data Cloud "Service Now" stream (INCREMENTAL on createddate → ssot__Case__dlm,
-DataSourceId 'Service_Now'). The original 4,009 rows are keyed by synthetic
+Inserts cases into Heroku Postgres `"Fins".service_now_cases`, the table the
+zero-copy Data Cloud stream `service_now_cases` reads live into ssot__Case__dlm
+(DataSourceObjectId 'service_now_cases'). Until 2026-11-11 this wrote
+`"Fins".service_now` behind the old ingest stream, since dropped. The
+Marketing_Engagement feed now adds cases daily and advances their status, so
+this one-time backfill is rarely needed. The original 4,009 rows are keyed by synthetic
 `account_id_<n>` ids that match no Account, so the home page's S7 "open service
 drag" reads ~0 on every book. These rows are keyed by home-org `001am…` ids
 owned by the seven demo bankers.
@@ -13,8 +16,9 @@ Input: a CSV of Id,OwnerId,Owner.Name,IsPersonAccount, e.g.
                WHERE Owner.Name IN ('Justin Chen', ...)"
 
 Rows carry Case IDs `SN-HOME-<n>` (the rollback marker). The run refuses if any
-already exist; --replace deletes them first (rows already ingested stay in DC
-until a Full Refresh).
+already exist; --replace deletes them first. That also discards the status
+changes the feed has made to them, and the zero-copy stream shows the
+regenerated rows at once.
 
     python3 generate_service_now_cases.py accts.csv [--dry-run] [--replace]
 """
@@ -109,7 +113,7 @@ def build(accounts, rng):
                     'banker': banker,
                     'type': typ, 'subject': subject, 'comments': comment,
                     'createddate': created,
-                    'closeddate': min(closed, END).strftime('%Y-%m-%d %H:%M') if closed else None,
+                    'closeddate': min(closed, END) if closed else None,
                     'status': status,
                     'priority': priority,
                     'escalated': escalated,
@@ -144,15 +148,15 @@ def main():
         return
 
     conn = db.connect()
-    existing = conn.execute('SELECT COUNT(*) FROM "Fins".service_now WHERE "Case ID" LIKE %s', (PREFIX + '%',)).fetchone()[0]
+    existing = conn.execute('SELECT COUNT(*) FROM "Fins".service_now_cases WHERE "Case ID" LIKE %s', (PREFIX + '%',)).fetchone()[0]
     if existing and not args.replace:
         sys.exit(f'{existing} {PREFIX}* rows already exist; pass --replace to regenerate')
     with conn.transaction():
         if existing:
-            conn.execute('DELETE FROM "Fins".service_now WHERE "Case ID" LIKE %s', (PREFIX + '%',))
+            conn.execute('DELETE FROM "Fins".service_now_cases WHERE "Case ID" LIKE %s', (PREFIX + '%',))
         with conn.cursor() as cur:
             cur.executemany(
-                'INSERT INTO "Fins".service_now (closeddate, comments, createddate, status, subject, type, '
+                'INSERT INTO "Fins".service_now_cases (closeddate, comments, createddate, status, subject, type, '
                 'ext_account_id, "Case ID", "Escalated", "Escalation Date", priority) '
                 'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                 [(r['closeddate'], r['comments'], r['createddate'], r['status'], r['subject'], r['type'],

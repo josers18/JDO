@@ -24,7 +24,7 @@ const SOURCES = {
   transactions: { label: 'Transactions', cadence: 'daily', sql: 'MAX(ssot__TransactionDate__c) FROM ssot__FinancialAccountTransaction__dlm' },
   worldCheck: { label: 'World-Check AML', cadence: 'daily', sql: 'MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm' },
   marketing: { label: 'Marketing engagement', cadence: 'daily', sql: 'MAX(engagement_at__c) FROM Marketing_Engagements__dlm' },
-  serviceNow: { label: 'ServiceNow cases', cadence: 'daily', sql: "MAX(ssot__CreatedDate__c) FROM ssot__Case__dlm WHERE ssot__DataSourceObjectId__c = 'service_now_cases'" },
+  serviceNow: { label: 'ServiceNow cases', cadence: 'daily', sql: "MAX(ssot__LastModifiedDate__c) FROM ssot__Case__dlm WHERE ssot__DataSourceObjectId__c = 'service_now_cases'" },
   gong: { label: 'Gong call sentiment', cadence: 'weekly', sql: 'MAX(profile_week__c) FROM BT_Gong_Call_Sentiment__dlm' },
   graph: { label: 'Relationship graph', cadence: 'batch', sql: 'MAX(edge_discovered_date__c) FROM BT_Synth_Relationship_Graph__dlm' },
   offers: { label: 'Offer model', cadence: 'monthly', sql: 'MAX(start_date__c) FROM BT_Offer_Eligibility__dlm' },
