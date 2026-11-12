@@ -3,6 +3,7 @@
 Steps, each logged to "Fins".marketing_feed_run:
   auth → rollover → crm_create → generate → reconcile (once a day after 06:00 UTC)
   → service_now (new ServiceNow cases + status changes, every run; see service_now.py)
+  → sn_dmo_check (ssot__Case__dlm sees every service_now_cases row through the zero-copy stream, every run)
   → web_browsing (weekly identified RTOM site browsing, after 15:00 UTC; see web_browsing.py)
 Insert-only on marketing_engagement; safe to re-run any time.
 
@@ -195,6 +196,10 @@ def run(conn, sf_factory, now, dry_run=False):
         inserted, advanced = service_now.step(conn, ctx["sf"].query, now, dry_run)
         return 0, inserted, f"{advanced} advanced"
 
+    def sn_dmo_check():
+        rows, detail = service_now.dmo_check(conn, ctx["sf"].dc_sql)
+        return 0, rows, detail
+
     def reconcile():
         linked, notes = step_reconcile(conn, ctx["sf"], now, dry_run)
         return len(linked), 0, "; ".join(notes)[:2000] or None
@@ -205,6 +210,7 @@ def run(conn, sf_factory, now, dry_run=False):
     step("crm_create", crm_create)
     step("generate", generate)
     step("service_now", cases)
+    step("sn_dmo_check", sn_dmo_check)
     last = db.last_success(conn, "reconcile")
     if now.hour >= RECONCILE_HOUR_UTC and (last is None or last.date() < now.date()):
         step("reconcile", reconcile)

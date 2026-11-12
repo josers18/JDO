@@ -21,6 +21,10 @@ def pg(monkeypatch):
     # Feed runs at/after 15:00 UTC reach the weekly browsing step; never send real beacons from tests.
     import web_browsing
     monkeypatch.setattr(web_browsing, "send", lambda plan, **kw: sum(len(loads) for _d, _c, loads in plan))
+    # The feed's sn_dmo_check asks Data Cloud for its count; tests mirror the scratch table instead.
+    import service_now
+    monkeypatch.setattr(service_now, "dmo_count", lambda dc_sql: conn.execute(
+        f"SELECT count(*) FROM {db.t(service_now.TABLE)}").fetchone()[0])
     conn.execute(f'DROP SCHEMA IF EXISTS "{TEST_SCHEMA}" CASCADE')
     migrate.apply_sql(conn)
     yield conn

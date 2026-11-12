@@ -3,11 +3,12 @@
  * current the sources behind the page are. Each source gets its latest date and an
  * expected cadence, and counts as current while its age is within that cadence's
  * allowance. The meter is the share of current sources; CRM (GraphQL) is live
- * and always current.
+ * and always current. Other live sources (ServiceNow, read zero-copy from Heroku
+ * Postgres) still carry a date and go stale after a day without a change.
  *
  * Latest dates verified live 2026-11-09: transactions + World-Check today; Gong
  * and the relationship graph 11-09; Plaid + D&B 11-01 (monthly); marketing 11-10
- * (UTC stamp); CSAT 10-01; offer model 11-01 (monthly run); ServiceNow 2026-10-24.
+ * (UTC stamp); CSAT 10-01; offer model 11-01 (monthly run). ServiceNow (zero-copy, live) 11-11.
  *
  * Timestamp sources (transactions, marketing, ServiceNow) come back in UTC and
  * read on the banker's local day; date sources keep their date.
@@ -18,13 +19,13 @@ import { localDay } from './localDate';
 export type Cadence = 'live' | 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'batch';
 
 /** Days a source may lag before it reads as stale. */
-const ALLOWANCE: Record<Cadence, number> = { live: Infinity, daily: 3, weekly: 10, monthly: 45, quarterly: 100, batch: 120 };
+const ALLOWANCE: Record<Cadence, number> = { live: 1, daily: 3, weekly: 10, monthly: 45, quarterly: 100, batch: 120 };
 
 const SOURCES = {
   transactions: { label: 'Transactions', cadence: 'daily', sql: 'MAX(ssot__TransactionDate__c) FROM ssot__FinancialAccountTransaction__dlm' },
   worldCheck: { label: 'World-Check AML', cadence: 'daily', sql: 'MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm' },
   marketing: { label: 'Marketing engagement', cadence: 'daily', sql: 'MAX(engagement_at__c) FROM Marketing_Engagements__dlm' },
-  serviceNow: { label: 'ServiceNow cases', cadence: 'daily', sql: "MAX(ssot__LastModifiedDate__c) FROM ssot__Case__dlm WHERE ssot__DataSourceObjectId__c = 'service_now_cases'" },
+  serviceNow: { label: 'ServiceNow cases', cadence: 'live', sql: "MAX(ssot__LastModifiedDate__c) FROM ssot__Case__dlm WHERE ssot__DataSourceObjectId__c = 'service_now_cases'" },
   gong: { label: 'Gong call sentiment', cadence: 'weekly', sql: 'MAX(profile_week__c) FROM BT_Gong_Call_Sentiment__dlm' },
   graph: { label: 'Relationship graph', cadence: 'batch', sql: 'MAX(edge_discovered_date__c) FROM BT_Synth_Relationship_Graph__dlm' },
   offers: { label: 'Offer model', cadence: 'monthly', sql: 'MAX(start_date__c) FROM BT_Offer_Eligibility__dlm' },
