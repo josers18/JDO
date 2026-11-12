@@ -31,6 +31,9 @@ Jump to: [November 2026](#november-2026) · [October 2026](#october-2026) · [Ju
 
 ### Added
 
+- **ServiceNow stream check and live freshness** (PR [#210](https://github.com/josers18/JDO/pull/210)): a new feed step, `sn_dmo_check`, runs after `service_now` every hour. It asks Data Cloud (`POST /ssot/query-sql`) how many `ssot__Case__dlm` rows have DataSourceObjectId `service_now_cases`, and logs `error` if that count differs from `"Fins".service_now_cases`. Its first live run matched 7,425 = 7,425.
+  - The S8 freshness meter now lists ServiceNow as a `live` source. Live sources other than CRM still carry a date and go stale after 1 day without a change (they were never stale before).
+  - 4 new tests; the suite is 71.
 - **ServiceNow cases read zero-copy** (PRs [#207](https://github.com/josers18/JDO/pull/207), [#208](https://github.com/josers18/JDO/pull/208)): a Postgres table can back only one Data Cloud stream, so the feed now writes a new table, `"Fins".service_now_cases` (`sql/004_service_now_cases.sql` copies the old `"Fins".service_now`). On 2026-11-11 the zero-copy stream `service_now_cases` (Heroku Postgres connection, acceleration off) was created on it and mapped to `ssot__Case__dlm`, now including `closeddate` → `ssot__ClosedDateTime__c` and `updated_at` → `ssot__LastModifiedDate__c`. The old `Service_Now` ingest stream was unmapped and deleted. Status changes now reach the DMO as soon as the hourly feed writes them, with no refresh.
   - A zero-copy stream's DataSourceId is its connection's (`HerokuPostgres_Heroku_Postgres`), and you can't add a formula field after a stream is created. So React-Headless S7 service drag and the S8 freshness meter filter on `ssot__DataSourceObjectId__c = 'service_now_cases'` instead (#208, all three bundles redeployed).
   - Verified: 7,425 DMO rows match Postgres status for status (closed 4,272 / in progress 1,626 / open 1,527); the live Retail Cases KPI shows the book's ServiceNow count.

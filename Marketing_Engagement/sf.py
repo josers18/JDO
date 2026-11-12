@@ -56,6 +56,10 @@ class SfClient:
     def update(self, sobject, rec_id, fields):
         self._ok(self.http.patch(f"{self.base}/sobjects/{sobject}/{rec_id}", json=fields, timeout=60))
 
+    def dc_sql(self, sql):
+        """Data Cloud SQL (POST /ssot/query-sql). Returns the rows as lists."""
+        return self._ok(self.http.post(f"{self.base}/ssot/query-sql", json={"sql": sql}, timeout=120)).json()["data"]
+
 
 def jwt_assertion(client_id, username, audience, key, now=None):
     now = int(now if now is not None else time.time())

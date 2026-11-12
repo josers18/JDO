@@ -32,6 +32,9 @@ class FakeSf:
             return [dict(c, Id=i) for i, c in self.campaigns.items() if f"'{i}'" in soql]
         raise AssertionError(soql)
 
+    def dc_sql(self, sql):
+        raise AssertionError("Data Cloud is stubbed by the pg fixture")
+
     def create(self, sobject, fields):
         if self.fail_create:
             raise RuntimeError("CRM down")
@@ -223,3 +226,20 @@ def test_future_now_refused_without_dry_run():
     out = subprocess.run([sys.executable, "feed.py", "--now", "2099-01-01T00:00"], capture_output=True, text=True,
                          cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))), env=env)
     assert out.returncode != 0 and "future" in out.stderr
+
+
+def test_sn_dmo_check_logs_a_mismatch_and_the_run_goes_on(pg, monkeypatch):
+    import service_now
+    fake = FakeSf()
+    assert feed.run(pg, lambda: fake, datetime(2026, 11, 1, 7)) is True
+    ok = pg.execute(f"SELECT status, rows_inserted FROM {db.t('marketing_feed_run')} WHERE step = 'sn_dmo_check'").fetchall()
+    assert ok == [("ok", pg.execute(f"SELECT count(*) FROM {db.t(service_now.TABLE)}").fetchone()[0])]
+
+    monkeypatch.setattr(service_now, "dmo_count", lambda dc_sql: -1)
+    now = datetime(2026, 11, 1, 8)
+    assert feed.run(pg, lambda: fake, now) is False
+    status, detail = pg.execute(f"SELECT status, detail FROM {db.t('marketing_feed_run')} "
+                                "WHERE step = 'sn_dmo_check' AND run_at = %s", (now,)).fetchone()
+    assert status == "error" and "ssot__Case__dlm has -1" in detail
+    assert pg.execute(f"SELECT status FROM {db.t('marketing_feed_run')} "
+                      "WHERE step = 'service_now' AND run_at = %s", (now,)).fetchone() == ("ok",)

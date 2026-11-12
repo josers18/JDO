@@ -1,9 +1,13 @@
 from collections import Counter
 from datetime import date, datetime, timedelta
 
+import pytest
+
 import db
 import migrate
 import service_now as sn
+
+REAL_DMO_COUNT = sn.dmo_count  # the pg fixture stubs it
 
 # Real home-org accounts: Marcus G Rodriguez (Jose Sifontes, person) and two accounts
 # carrying backfill cases on 2026-10-24 (SN-HOME-309 person, SN-HOME-2581 business).
@@ -154,3 +158,18 @@ def test_migration_drops_the_old_table_and_keeps_the_new_one(pg):
     migrate.apply_sql(pg)
     assert pg.execute("SELECT to_regclass(%s)", (db.t("service_now"),)).fetchone()[0] is None
     assert "SN-HOME-1" in _rows(pg)
+
+
+def test_dmo_count_filters_on_the_stream_table():
+    seen = []
+    assert REAL_DMO_COUNT(lambda sql: seen.append(sql) or [[7425]]) == 7425
+    assert seen == ["SELECT COUNT(*) FROM ssot__Case__dlm WHERE ssot__DataSourceObjectId__c = 'service_now_cases'"]
+
+
+def test_dmo_check_passes_on_a_match_and_raises_on_a_gap(pg, monkeypatch):
+    monkeypatch.setattr(sn, "dmo_count", REAL_DMO_COUNT)
+    sn.step(pg, query, datetime(2026, 11, 11, 18))
+    rows = pg.execute(f"SELECT count(*) FROM {db.t(sn.TABLE)}").fetchone()[0]
+    assert sn.dmo_check(pg, lambda sql: [[rows]]) == (rows, f"DMO matches {rows}")
+    with pytest.raises(RuntimeError, match=f"has {rows + 3} service_now_cases rows; the table has {rows}"):
+        sn.dmo_check(pg, lambda sql: [[rows + 3]])

@@ -62,3 +62,12 @@ def test_jwt_assertion_claims():
     claims = jwt.decode(token, key.public_key(), algorithms=["RS256"], audience="https://login.salesforce.com",
                         options={"verify_exp": False})
     assert claims == {"iss": "CID", "sub": "admin@finsdc3.demo", "aud": "https://login.salesforce.com", "exp": 1_000_180}
+
+
+def test_dc_sql_posts_to_query_sql_and_returns_rows():
+    sess = Session([Resp(200, {"data": [[42]], "metadata": []})])
+    c = sf.SfClient("https://x.my.salesforce.com", "TOKEN", session=sess)
+    assert c.dc_sql("SELECT 1") == [[42]]
+    method, url, kw = sess.calls[0]
+    assert (method, url, kw["json"]) == ("POST", "https://x.my.salesforce.com/services/data/v64.0/ssot/query-sql",
+                                         {"sql": "SELECT 1"})

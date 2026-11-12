@@ -178,3 +178,22 @@ def step(conn, query, now, dry_run=False):
                 'WHERE "Case ID" = %s',
                 [(s, cd, now, cid) for s, cd, cid in advance])
     return len(new), len(advance)
+
+
+# The zero-copy stream `service_now_cases` maps this table into ssot__Case__dlm. Its lineage DataSource is the
+# shared Heroku connection, so the table name (DataSourceObjectId) is what tells these rows apart.
+DMO_COUNT_SQL = ("SELECT COUNT(*) FROM ssot__Case__dlm "
+                 f"WHERE ssot__DataSourceObjectId__c = '{TABLE}'")
+
+
+def dmo_count(dc_sql):
+    return int(dc_sql(DMO_COUNT_SQL)[0][0])
+
+
+def dmo_check(conn, dc_sql):
+    """Compare the table's row count with what Data Cloud sees through the stream. Returns (rows, detail); raises on a mismatch."""
+    rows = conn.execute(f"SELECT count(*) FROM {db.t(TABLE)}").fetchone()[0]
+    seen = dmo_count(dc_sql)
+    if seen != rows:
+        raise RuntimeError(f"ssot__Case__dlm has {seen} {TABLE} rows; the table has {rows}")
+    return rows, f"DMO matches {rows}"
