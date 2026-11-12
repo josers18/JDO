@@ -25,8 +25,8 @@ Inserted rows can't be removed, so the writers also guard against rows that woul
 | `engine.py` | Audience rules and the event funnel (pure) |
 | `crm.py` | CRM reads (Accounts, Contacts, CampaignMembers) |
 | `db.py` | Postgres access (`DATABASE_URL`, or `.env` `Heroku_PG_*` / `ME_ENV_FILE`) |
-| `sf.py` | Salesforce REST: JWT on Heroku, the sf CLI session locally |
-| `feed.py` | Hourly worker: rollover → CRM create → generate → reconcile → web_browsing (weekly) |
+| `sf.py` | Salesforce REST and Data Cloud SQL (`dc_sql`): JWT on Heroku, the sf CLI session locally |
+| `feed.py` | Hourly worker: rollover → CRM create → generate → service_now → sn_dmo_check → reconcile (daily) → web_browsing (weekly) |
 | `web_browsing.py` | Weekly identified browsing on the Cumulus RTOM demo site for the React-Headless R6 card |
 | `backfill.py` | Insert any missing rows for all Linked campaigns |
 | `migrate.py` | Apply `sql/*.sql` and seed `marketing_campaign` from `catalog.py` |
@@ -34,7 +34,7 @@ Inserted rows can't be removed, so the writers also guard against rows that woul
 ## Heroku
 
 - **App:** `data-cloud`, which also owns the database `postgresql-trapezoidal-29488` (`DATABASE_URL`). Salesforce internal users can't create personal apps, and a team app would expose the JWT key to team admins.
-- **Schedule:** Heroku Scheduler (`scheduler-sinuous-98351`) runs `python feed.py` every hour at :10. Its last step, `web_browsing`, runs weekly (see below). Generated campaigns start in October 2026 (`feed.FIRST_MONTH`; moved up from November on 2026-10-24 to fill the October gap).
+- **Schedule:** Heroku Scheduler (`scheduler-sinuous-98351`) runs `python feed.py` every hour at :10. Every run ends its ServiceNow work with `sn_dmo_check`. That step compares the `ssot__Case__dlm` rows from the `service_now_cases` stream with `"Fins".service_now_cases`, per status (open / in progress / closed), and logs `error` with the statuses that differ. The step has run on Heroku since v26 (2026-11-12). The last step, `web_browsing`, runs weekly (see below). Generated campaigns start in October 2026 (`feed.FIRST_MONTH`; moved up from November on 2026-10-24 to fill the October gap).
 - **Missed runs:** the next run catches up. Campaigns keep generating for 7 days past their cap (`feed.GRACE`), so an outage shorter than that loses nothing. A Postgres advisory lock makes an overlapping run (a Scheduler double-fire or a manual run) skip, so it can't create duplicate CRM Campaigns.
 - **Config vars:** `DATABASE_URL`, `SF_LOGIN_URL`, `SF_CLIENT_ID`, `SF_USERNAME`, `SF_PRIVATE_KEY`. The JWT key pair is in `~/.jdo-marketing-feed/`, and the Connected App is `JDO Marketing Feed` in JDO.
 - **Deploy:**
@@ -44,7 +44,7 @@ Inserted rows can't be removed, so the writers also guard against rows that woul
 git push https://git.heroku.com/data-cloud.git "$(git subtree split --prefix Marketing_Engagement HEAD):refs/heads/main"
 ```
 
-Heroku's `main` history no longer descends from the subtree split (the trees match; the commits don't), so that push is rejected as non-fast-forward. Don't force it. Commit the split's tree on top of Heroku's head instead (v17, 2026-11-10):
+Heroku's `main` history no longer descends from the subtree split (the trees match; the commits don't), so that push is rejected as non-fast-forward. Don't force it. Commit the split's tree on top of Heroku's head instead (v17, 2026-11-10; v26, 2026-11-12). The result is a plain fast-forward from Heroku's head, so no force is needed:
 
 ```bash
 git fetch https://git.heroku.com/data-cloud.git main:refs/remotes/heroku-dc/main
