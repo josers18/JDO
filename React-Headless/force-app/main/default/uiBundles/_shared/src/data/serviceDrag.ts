@@ -1,6 +1,11 @@
 /**
- * S7 — open service drag: ServiceNow cases (`ssot__Case__dlm`, data source
- * `Service_Now`) added to the CRM open-case count on the Cases KPI.
+ * S7 — open service drag: ServiceNow cases (`ssot__Case__dlm`, source object
+ * `service_now_cases`) added to the CRM open-case count on the Cases KPI.
+ *
+ * Since 2026-11-11 the cases come from the zero-copy stream `service_now_cases`,
+ * which reads Heroku `"Fins".service_now_cases` live. Its DataSourceId is the
+ * connection's (`HerokuPostgres_Heroku_Postgres`, shared with any other table on
+ * that connection), so filter on the source object, which names the table.
  *
  * ServiceNow statuses are lowercase `open` / `in_progress` / `closed` and
  * `ssot__IsClosed__c` is null, so open = status. The original 4,009 cases are
@@ -17,7 +22,7 @@ const serviceNowSql = (accountFilter: string) => `
   SELECT COUNT(*) AS open_n,
          SUM(CASE WHEN ssot__CreatedDate__c < current_date - INTERVAL '30' DAY THEN 1 ELSE 0 END) AS aged_n
   FROM ssot__Case__dlm
-  WHERE ssot__DataSourceId__c = 'Service_Now'
+  WHERE ssot__DataSourceObjectId__c = 'service_now_cases'
     AND ssot__CaseStatusId__c IN ('open', 'in_progress')
     AND ssot__AccountId__c ${accountFilter}
 `;
