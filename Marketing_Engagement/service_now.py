@@ -182,18 +182,32 @@ def step(conn, query, now, dry_run=False):
 
 # The zero-copy stream `service_now_cases` maps this table into ssot__Case__dlm. Its lineage DataSource is the
 # shared Heroku connection, so the table name (DataSourceObjectId) is what tells these rows apart.
-DMO_COUNT_SQL = ("SELECT COUNT(*) FROM ssot__Case__dlm "
-                 f"WHERE ssot__DataSourceObjectId__c = '{TABLE}'")
+DMO_COUNTS_SQL = ("SELECT ssot__CaseStatusId__c, COUNT(*) FROM ssot__Case__dlm "
+                  f"WHERE ssot__DataSourceObjectId__c = '{TABLE}' GROUP BY ssot__CaseStatusId__c")
 
 
-def dmo_count(dc_sql):
-    return int(dc_sql(DMO_COUNT_SQL)[0][0])
+def dmo_counts(dc_sql):
+    """Rows per status that Data Cloud sees through the stream."""
+    return {str(s): int(n) for s, n in dc_sql(DMO_COUNTS_SQL)}
+
+
+def table_counts(conn):
+    return {s: n for s, n in conn.execute(f"SELECT status, count(*) FROM {db.t(TABLE)} GROUP BY status")}
+
+
+def _fmt(counts):
+    return ", ".join(f"{s} {counts[s]}" for s in sorted(counts))
 
 
 def dmo_check(conn, dc_sql):
-    """Compare the table's row count with what Data Cloud sees through the stream. Returns (rows, detail); raises on a mismatch."""
-    rows = conn.execute(f"SELECT count(*) FROM {db.t(TABLE)}").fetchone()[0]
-    seen = dmo_count(dc_sql)
-    if seen != rows:
-        raise RuntimeError(f"ssot__Case__dlm has {seen} {TABLE} rows; the table has {rows}")
-    return rows, f"DMO matches {rows}"
+    """Compare the table's rows per status with what Data Cloud sees through the stream.
+
+    Returns (rows, detail); raises on any difference, so a status change that never reached the DMO fails too."""
+    want, seen = table_counts(conn), dmo_counts(dc_sql)
+    rows = sum(want.values())
+    if seen != want:
+        gaps = ", ".join(f"{s} {seen.get(s, 0)} vs {want.get(s, 0)}" for s in sorted(want.keys() | seen.keys())
+                         if seen.get(s, 0) != want.get(s, 0))
+        raise RuntimeError(f"ssot__Case__dlm differs from {TABLE} (DMO vs table): {gaps}; "
+                           f"totals {sum(seen.values())} vs {rows}")
+    return rows, f"DMO matches {rows} ({_fmt(want)})"

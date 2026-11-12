@@ -12,6 +12,11 @@
  *
  * Timestamp sources (transactions, marketing, ServiceNow) come back in UTC and
  * read on the banker's local day; date sources keep their date.
+ *
+ * ServiceNow also has to be in sync: its stream is zero-copy, so the DLO is the
+ * Heroku table read live, and the DMO's per-status counts must match it (the
+ * same comparison as the feed's sn_dmo_check). A gap marks the source stale
+ * with the statuses that differ, whatever its date.
  */
 import { queryDataCloud } from './dataCloudClient';
 import { localDay } from './localDate';
@@ -53,6 +58,8 @@ export interface SourceFreshness {
   asOf: string;
   ageDays: number;
   current: boolean;
+  /** Why the source isn't current despite its date, e.g. a DMO out of sync. */
+  issue?: string;
 }
 
 export interface DataFreshness {
@@ -63,12 +70,33 @@ export interface DataFreshness {
 
 const DAY = 86_400_000;
 
+const SN_SYNC_SQL = `SELECT 'dlo' AS side, status__c AS st, COUNT(*) AS n FROM service_now_cases__dll GROUP BY status__c
+  UNION ALL SELECT 'dmo' AS side, ssot__CaseStatusId__c AS st, COUNT(*) AS n FROM ssot__Case__dlm
+  WHERE ssot__DataSourceObjectId__c = 'service_now_cases' GROUP BY ssot__CaseStatusId__c`;
+
+/** ServiceNow DMO vs. its zero-copy table, per status. Undefined when they match. */
+async function serviceNowSyncIssue(): Promise<string | undefined> {
+  const res = await queryDataCloud<{ side: string; st: unknown; n: unknown }>(SN_SYNC_SQL, 50);
+  const dlo = new Map<string, number>();
+  const dmo = new Map<string, number>();
+  for (const r of res.rows) (String(r.side) === 'dlo' ? dlo : dmo).set(String(r.st), Number(r.n));
+  const gaps = [...new Set([...dlo.keys(), ...dmo.keys()])]
+    .sort()
+    .filter(st => (dlo.get(st) ?? 0) !== (dmo.get(st) ?? 0))
+    .map(st => `${st.replace('_', ' ')} ${dmo.get(st) ?? 0} vs ${dlo.get(st) ?? 0}`);
+  return gaps.length ? `DMO out of sync with the table (DMO vs table): ${gaps.join(', ')}` : undefined;
+}
+
 /** S8 — latest date per source in one round trip, plus CRM as a live source. */
 export async function fetchDataFreshness(keys: FreshnessSource[], now: Date = new Date()): Promise<DataFreshness> {
   const sql = keys
     .map(k => `SELECT '${k}' AS src, CAST(${SOURCES[k].sql.replace(/^(MAX\([^)]*\))/, '$1 AS VARCHAR) AS as_of')}`)
     .join('\n  UNION ALL ');
-  const res = await queryDataCloud<{ src: string; as_of: unknown }>(sql, keys.length);
+  const [res, snIssue] = await Promise.all([
+    queryDataCloud<{ src: string; as_of: unknown }>(sql, keys.length),
+    // A failed sync query leaves the date-based verdict alone rather than flagging the source.
+    keys.includes('serviceNow') ? serviceNowSyncIssue().catch(() => undefined) : undefined,
+  ]);
   const asOf = new Map(res.rows.map(r => [String(r.src), localDay(r.as_of)]));
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const sources: SourceFreshness[] = [
@@ -78,7 +106,8 @@ export async function fetchDataFreshness(keys: FreshnessSource[], now: Date = ne
       if (!d) return [];
       const ageDays = Math.max(0, Math.round((today - Date.parse(`${d}T00:00:00Z`)) / DAY));
       const { label, cadence } = SOURCES[k];
-      return [{ label, cadence, asOf: d, ageDays, current: ageDays <= ALLOWANCE[cadence] }];
+      const issue = k === 'serviceNow' ? snIssue : undefined;
+      return [{ label, cadence, asOf: d, ageDays, current: ageDays <= ALLOWANCE[cadence] && !issue, ...(issue ? { issue } : {}) }];
     }),
   ];
   return { sources, pct: Math.round((100 * sources.filter(s => s.current).length) / sources.length) };

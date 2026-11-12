@@ -7,7 +7,7 @@ import db
 import migrate
 import service_now as sn
 
-REAL_DMO_COUNT = sn.dmo_count  # the pg fixture stubs it
+REAL_DMO_COUNTS = sn.dmo_counts  # the pg fixture stubs it
 
 # Real home-org accounts: Marcus G Rodriguez (Jose Sifontes, person) and two accounts
 # carrying backfill cases on 2026-10-24 (SN-HOME-309 person, SN-HOME-2581 business).
@@ -160,16 +160,29 @@ def test_migration_drops_the_old_table_and_keeps_the_new_one(pg):
     assert "SN-HOME-1" in _rows(pg)
 
 
-def test_dmo_count_filters_on_the_stream_table():
+def test_dmo_counts_group_by_status_for_the_stream_table():
     seen = []
-    assert REAL_DMO_COUNT(lambda sql: seen.append(sql) or [[7425]]) == 7425
-    assert seen == ["SELECT COUNT(*) FROM ssot__Case__dlm WHERE ssot__DataSourceObjectId__c = 'service_now_cases'"]
+    counts = REAL_DMO_COUNTS(lambda sql: seen.append(sql) or [["closed", 4272], ["open", "1527"]])
+    assert counts == {"closed": 4272, "open": 1527}
+    assert seen == ["SELECT ssot__CaseStatusId__c, COUNT(*) FROM ssot__Case__dlm "
+                    "WHERE ssot__DataSourceObjectId__c = 'service_now_cases' GROUP BY ssot__CaseStatusId__c"]
 
 
 def test_dmo_check_passes_on_a_match_and_raises_on_a_gap(pg, monkeypatch):
-    monkeypatch.setattr(sn, "dmo_count", REAL_DMO_COUNT)
+    monkeypatch.setattr(sn, "dmo_counts", REAL_DMO_COUNTS)
     sn.step(pg, query, datetime(2026, 11, 11, 18))
-    rows = pg.execute(f"SELECT count(*) FROM {db.t(sn.TABLE)}").fetchone()[0]
-    assert sn.dmo_check(pg, lambda sql: [[rows]]) == (rows, f"DMO matches {rows}")
-    with pytest.raises(RuntimeError, match=f"has {rows + 3} service_now_cases rows; the table has {rows}"):
-        sn.dmo_check(pg, lambda sql: [[rows + 3]])
+    want = sn.table_counts(pg)
+    rows = sum(want.values())
+    assert rows > 0
+    as_dc = lambda counts: (lambda sql: [[s, n] for s, n in counts.items()])
+    rows_out, detail = sn.dmo_check(pg, as_dc(want))
+    assert rows_out == rows and detail.startswith(f"DMO matches {rows} (")
+    # Same total, but one case's status change never reached the DMO.
+    moved = dict(want)
+    s1, s2 = sorted(want)[:2] if len(want) > 1 else (sorted(want)[0], "closed")
+    moved[s1] -= 1
+    moved[s2] = moved.get(s2, 0) + 1
+    with pytest.raises(RuntimeError, match=f"{s1} {want[s1] - 1} vs {want[s1]}.*totals {rows} vs {rows}"):
+        sn.dmo_check(pg, as_dc(moved))
+    with pytest.raises(RuntimeError, match=f"totals {rows + 3} vs {rows}"):
+        sn.dmo_check(pg, as_dc(dict(want, open=want.get("open", 0) + 3)))
