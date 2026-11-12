@@ -6,7 +6,8 @@ const short = (iso: string) =>
 /**
  * S8 hero meter — share of the page's sources that are current for their
  * cadence, with the stale ones named inline and every source's as-of date in
- * the tooltip. Renders nothing while freshness is unknown or failed — no
+ * the tooltip. A source with an `issue` (ServiceNow's DMO out of sync) reads
+ * "out of sync" inline and gives the counts in the tooltip. Renders nothing while freshness is unknown or failed — no
  * placeholder score.
  */
 export function DataFreshnessMeter({ freshness }: { freshness?: DataFreshness }) {
@@ -14,7 +15,7 @@ export function DataFreshnessMeter({ freshness }: { freshness?: DataFreshness })
   const pct = freshness.pct;
   const stale = freshness.sources.filter(s => !s.current);
   const title = freshness.sources
-    .map(s => `${s.current ? '✓' : '⚠'} ${s.label}: ${s.asOf ? `as of ${short(s.asOf)}` : 'live'} (${s.cadence})`)
+    .map(s => `${s.current ? '✓' : '⚠'} ${s.label}: ${s.asOf ? `as of ${short(s.asOf)}` : 'live'} (${s.cadence})${s.issue ? ` — ${s.issue}` : ''}`)
     .join('\n');
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1" title={title}>
@@ -26,7 +27,7 @@ export function DataFreshnessMeter({ freshness }: { freshness?: DataFreshness })
       </small>
       {stale.length > 0 && (
         <small className="font-mono text-[11px] text-warn">
-          stale: {stale.slice(0, 3).map(s => `${s.label} (${short(s.asOf)})`).join(', ')}{stale.length > 3 ? ` +${stale.length - 3}` : ''}
+          stale: {stale.slice(0, 3).map(s => `${s.label} (${s.issue ? 'out of sync' : short(s.asOf)})`).join(', ')}{stale.length > 3 ? ` +${stale.length - 3}` : ''}
         </small>
       )}
     </div>

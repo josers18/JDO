@@ -31,6 +31,9 @@ Jump to: [November 2026](#november-2026) · [October 2026](#october-2026) · [Ju
 
 ### Added
 
+- **ServiceNow sync check per status, shown on the meter** (PR [#211](https://github.com/josers18/JDO/pull/211)): `sn_dmo_check` now compares counts per status (open / in progress / closed), not just the total, so a status change that never reached `ssot__Case__dlm` fails too. Live, all three statuses matched (closed 4,272 / in progress 1,626 / open 1,527).
+  - The React-Headless S8 meter runs the same comparison on each load: the zero-copy DLO `service_now_cases__dll` (the Heroku table, read live) against the DMO, in one Data Cloud query. No new stream was needed. On a gap, the ServiceNow row turns ⚠ "out of sync", and the tooltip lists the statuses that differ (DMO vs table). If the sync query fails, the row keeps its date-based verdict.
+  - Verified live: real data shows ✓. A faked 3-case gap in open cases (the response was rewritten in the browser only) showed "92% · stale: ServiceNow cases (out of sync)".
 - **ServiceNow stream check and live freshness** (PR [#210](https://github.com/josers18/JDO/pull/210)): a new feed step, `sn_dmo_check`, runs after `service_now` every hour. It asks Data Cloud (`POST /ssot/query-sql`) how many `ssot__Case__dlm` rows have DataSourceObjectId `service_now_cases`, and logs `error` if that count differs from `"Fins".service_now_cases`. Its first live run matched 7,425 = 7,425.
   - The S8 freshness meter now lists ServiceNow as a `live` source. Live sources other than CRM still carry a date and go stale after 1 day without a change (they were never stale before).
   - 4 new tests; the suite is 71.

@@ -29,7 +29,7 @@ Heroku worker that keeps two demo signals fresh for JDO.
 ## Conventions
 - **`marketing_engagement` is insert-only.** `engagement_id` is deterministic, and every writer uses `INSERT … ON CONFLICT DO NOTHING`. Never truncate, delete or update it. `engine.new_rows` guards against rows that would be wrong forever: finished campaigns don't grow, Bounced and Delivered never mix, and nothing is future-dated.
 - **Feed steps**, each logged to `marketing_feed_run` (`step` is `varchar(20)`; status `ok`/`error`):
-  - `auth → rollover → crm_create → generate → service_now → sn_dmo_check`. `sn_dmo_check` asks Data Cloud (`sf.dc_sql`, `POST /ssot/query-sql`) for the `ssot__Case__dlm` rows with DataSourceObjectId `service_now_cases`. It logs `error` if that count differs from the table's;
+  - `auth → rollover → crm_create → generate → service_now → sn_dmo_check`. `sn_dmo_check` asks Data Cloud (`sf.dc_sql`, `POST /ssot/query-sql`) for the `ssot__Case__dlm` rows with DataSourceObjectId `service_now_cases`, counted per `ssot__CaseStatusId__c`. It logs `error` with the statuses that differ if those counts don't match the table's, so a status change that never reached the DMO fails even when the total matches. The React-Headless S8 meter makes the same per-status comparison itself (DLO `service_now_cases__dll` vs the DMO), because the cockpit can't read `marketing_feed_run`;
   - `reconcile`, once a day from 06:00 UTC;
   - `web_browsing`, from 15:00 UTC once 7 days have passed since its last `ok` row.
   - A failed step logs `error` and the run continues. Only a failed `auth` stops it.
@@ -41,7 +41,7 @@ Heroku worker that keeps two demo signals fresh for JDO.
 
 ## Tests
 - `ME_ENV_FILE=../.env python3 -m pytest tests -q`. It uses the scratch schema `fins_feed_test`, which the `pg` fixture creates and drops; there are 71 tests as of 2026-11-11.
-- The `pg` fixture stubs `service_now.dmo_count` to mirror the scratch table, so tests never query Data Cloud. It also stubs `web_browsing.send`. Any feed run at 15:00 UTC or later reaches the browsing step, and tests must never send real beacons.
+- The `pg` fixture stubs `service_now.dmo_counts` to mirror the scratch table, so tests never query Data Cloud. It also stubs `web_browsing.send`. Any feed run at 15:00 UTC or later reaches the browsing step, and tests must never send real beacons.
 - `tests/test_web_browsing.py` covers plan determinism and the surge minimum, weekly rotation, one auth per device plus one beacon per load (with a fake HTTP client), `register`'s identity + email events per device, the registration device derivation, and the 15:00 UTC / 7-day gate.
 
 ## Gotchas

@@ -235,11 +235,11 @@ def test_sn_dmo_check_logs_a_mismatch_and_the_run_goes_on(pg, monkeypatch):
     ok = pg.execute(f"SELECT status, rows_inserted FROM {db.t('marketing_feed_run')} WHERE step = 'sn_dmo_check'").fetchall()
     assert ok == [("ok", pg.execute(f"SELECT count(*) FROM {db.t(service_now.TABLE)}").fetchone()[0])]
 
-    monkeypatch.setattr(service_now, "dmo_count", lambda dc_sql: -1)
+    monkeypatch.setattr(service_now, "dmo_counts", lambda dc_sql: {"open": -1})
     now = datetime(2026, 11, 1, 8)
     assert feed.run(pg, lambda: fake, now) is False
     status, detail = pg.execute(f"SELECT status, detail FROM {db.t('marketing_feed_run')} "
                                 "WHERE step = 'sn_dmo_check' AND run_at = %s", (now,)).fetchone()
-    assert status == "error" and "ssot__Case__dlm has -1" in detail
+    assert status == "error" and "open -1 vs" in detail
     assert pg.execute(f"SELECT status FROM {db.t('marketing_feed_run')} "
                       "WHERE step = 'service_now' AND run_at = %s", (now,)).fetchone() == ("ok",)
