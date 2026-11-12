@@ -148,20 +148,9 @@ def test_counts_by_status_stay_level_over_a_year():
     assert open_q4 < open_q2 * 1.35
 
 
-def test_migration_copies_the_old_table_and_keeps_newer_rows(pg):
-    old, new = db.t("service_now"), db.t(sn.TABLE)
-    pg.execute(f'INSERT INTO {old} ("Case ID", createddate, status, closeddate, updated_at) VALUES '
-               "('SN-HOME-1', '2025-06-01 10:00', 'closed', '2025-06-20 09:15', '2025-06-20 09:15'), "
-               "('SN-HOME-2', '2025-06-01 10:00', 'open', '', '2025-06-01 10:00'), "
-               "('Service_Now_1', '2024-01-01', 'open', NULL, NULL)")
+def test_migration_drops_the_old_table_and_keeps_the_new_one(pg):
+    pg.execute(f'CREATE TABLE {db.t("service_now")} ("Case ID" varchar)')
+    pg.execute(f"INSERT INTO {db.t(sn.TABLE)} (\"Case ID\", status) VALUES ('SN-HOME-1', 'open')")
     migrate.apply_sql(pg)
-    rows = _rows(pg)
-    assert rows["SN-HOME-1"][:2] == ("closed", datetime(2025, 6, 20, 9, 15))
-    assert rows["SN-HOME-2"][:2] == ("open", None)
-    assert "Service_Now_1" in rows
-
-    # The feed moved SN-HOME-2 on in the new table; a re-run of the migration must not undo it.
-    pg.execute(f"UPDATE {new} SET status = 'closed', closeddate = '2026-11-11 12:00', "
-               "updated_at = '2026-11-11 12:00' WHERE \"Case ID\" = 'SN-HOME-2'")
-    migrate.apply_sql(pg)
-    assert _rows(pg)["SN-HOME-2"][:2] == ("closed", datetime(2026, 11, 11, 12, 0))
+    assert pg.execute("SELECT to_regclass(%s)", (db.t("service_now"),)).fetchone()[0] is None
+    assert "SN-HOME-1" in _rows(pg)
