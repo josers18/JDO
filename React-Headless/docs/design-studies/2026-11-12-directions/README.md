@@ -6,6 +6,8 @@
 
 **Latest: Retail Intelligence and relationship watch.** [Open Intelligence](http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=retail&page=intelligence&v=retail-watch-13) now has a source-filtered signal inbox beside recognized visitors. [Relationship health](http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=retail&page=health&v=retail-watch-13) adds property cohorts, engagement trends and separate CRM/ServiceNow service lanes. Today and customer views link to the same evidence. [Capture and verification log](RETAIL_WATCH_MILESTONE.md).
 
+**Current roadmap and handoff:** [Atlas roadmap](ATLAS_ROADMAP.md) links the completed Retail migration/action contracts and pending production acceptance plan, plus the new independent Wealth and Commercial gap analyses and implementation plans. These are planning deliverables; production acceptance remains pending.
+
 ## Atlas is the current design target
 
 **Latest Retail workflow hierarchy:** [Growth → Leads & referrals](http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=retail&page=growth&v=retail-workflows-6) is now a primary workspace; the needs explorer/heat map and life-stage mix have their own lenses. Recognized visitors now live in Intelligence. Life & goals restores the grid calendar alongside a compact counter and illustrated customer/goal stories. Relationships adds a search-first customer finder without numeric paging. See [RETAIL_WORKFLOWS.md](RETAIL_WORKFLOWS.md).

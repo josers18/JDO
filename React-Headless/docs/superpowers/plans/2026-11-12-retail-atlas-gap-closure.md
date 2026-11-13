@@ -96,11 +96,11 @@
 
 **Files:** current study coverage/preservation docs and a separate production implementation plan.
 
-- [ ] Specify route/Back/cohort/prospect/Workbench context persistence and exact signed-in/View As semantics.
-- [ ] Map every designed action to existing React clients, supported CRM fields/operations and success/error/refetch behavior.
-- [ ] Plan existing Agentforce, AI action/model catalog, full theming/display scale, shell utilities and per-source loading/retry integration.
-- [ ] Document private-draft persistence/ownership contract and inherited implementation limitations.
-- [ ] Re-audit the capability matrix; define production acceptance journeys. Production implementation/deployment is a subsequent scope, not implied completion of the mock.
+- [x] Specify route/Back/cohort/prospect/Workbench context persistence and exact signed-in/View As semantics.
+- [x] Map every designed action to existing React clients, supported CRM fields/operations and success/error/refetch behavior.
+- [x] Plan existing Agentforce, AI action/model catalog, full theming/display scale, shell utilities and per-source loading/retry integration.
+- [x] Document private-draft persistence/ownership contract and inherited implementation limitations.
+- [x] Re-audit the capability matrix; define production acceptance journeys. Production implementation/deployment is a subsequent scope, not implied completion of the mock.
 
 ## Progress log
 
@@ -139,3 +139,10 @@
 - Review fixes: capture AML change type and preserve native Changed-to-Medium/null-prior semantics; omit unavailable property coordinates while retaining list evidence; reset the CRM service navigation destination. Signal metadata is cleared on Account reassignment at first save and later edit.
 - Milestone 5 verification: 52 selector tests and all five browser suites passed; new views checked at 1512/1024/768/390px, including keyboard, source-empty/unavailable/historical states and other-persona isolation. No page errors or network writes.
 - Next: Milestone 6, migration contract and production acceptance planning. Production implementation/deployment and full live source coverage remain subsequent scope.
+
+- Milestone 6 complete (Nov 13, documentation only): target identity/routes/Back/private-state/source contracts, full supported action matrix, AI/config/theme/shell preservation, capability re-audit, RA01–RA21 pending acceptance register and separate `2026-11-13-retail-atlas-production-migration.md` plan. All future production implementation tasks remain unchecked.
+- Ruling: retain Current/Cockpit while introducing opt-in Retail Atlas; preserve the explicit cross-sell viewed-owner exception separately from ordinary session-actor creates. Use an editable model-seeded proposed Opportunity amount to reconcile native helper behavior with the mock's manual review.
+- Ruling: current whoami supplies orgName/user identity but not stable orgId, so target identity needs a compatible explicit orgId extension. CRM GraphQL sharing is not proof of external Data Cloud row authorization. Insert receipts require expected-object IDs; update/delete receipts must match the exact requested record. Isolated test-org deployment/version validation precedes changed-handler acceptance and is distinct from final release.
+- Parallel deliverables: Wealth W01–W15 and Commercial C01–C16 source/mock audits with 28/44 local inventory surfaces and independent mock gap-closure plans. No org queries, runtime-source changes, real writes or deployments were performed by this planning task. See `ATLAS_ROADMAP.md` for links and remaining scope.
+
+- Milestone 6 validation: cross-reviewed action/identity/source/provider/release contracts; validated 13 documentation files, 109 local links, new table structures, W01–W15/C01–C16/RA01–RA21 coverage and unchecked future implementation tasks. Parallel local inventories total 72 surfaces with no page errors, page horizontal overflow or network writes; internal mobile scrollers remain explicitly tracked. No runtime tests/build/deployment claims are added by documentation validation.

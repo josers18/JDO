@@ -2,6 +2,9 @@
 
 Reviewed November 12, 2026, after the Today hero and Prospecting/Growth reorganization.
 
+**Historical audit:** the matrix below records the November 12 starting gaps. For the current post-milestone status, use the [capability re-audit and migration contract](RETAIL_MIGRATION_CONTRACT.md#capability-re-audit), [action mapping](RETAIL_ACTION_CONTRACT.md) and [pending production acceptance register](RETAIL_PRODUCTION_ACCEPTANCE.md). Milestones 1–5 close captured design workflows; Milestone 6 closes planning, not production integration. See the [Atlas roadmap](ATLAS_ROADMAP.md) for Wealth and Commercial plans.
+
+
 **The main Retail destinations now exist. The biggest remaining gaps are customer-context continuity, the current app's prioritization and signal coverage, and the depth of the actual Retail records inside the new screens.** The next pass should complete those workflows within the existing tabs.
 
 ## Basis and limits

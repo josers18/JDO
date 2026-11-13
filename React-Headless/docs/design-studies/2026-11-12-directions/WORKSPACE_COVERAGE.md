@@ -142,3 +142,9 @@ R07/R11/R12 now have a coherent Mark S Smith Retail capture, financial/transacti
 ## Milestone 5 update — November 13
 
 R08 now has a source-backed signal inbox for AML/Gong changes, qualifying credits, marketing engagement and liquidity events, with Today/360/action continuity. Recognized visitors remains available. R09 adds book property overlap cohorts, engagement watch and separate CRM/ServiceNow service lanes alongside stress/deposit views. These are captured design workflows; source sampling, record dates, connector-check limits and local-only proposals remain explicit. See [signal/watch capture and verification](RETAIL_WATCH_MILESTONE.md).
+
+## Milestone 6 and parallel persona audits — November 13
+
+Retail migration planning is complete: [identity/routes/source/private-state contract](RETAIL_MIGRATION_CONTRACT.md), [action mapping](RETAIL_ACTION_CONTRACT.md), [pending production acceptance](RETAIL_PRODUCTION_ACCEPTANCE.md) and [production implementation plan](../../superpowers/plans/2026-11-13-retail-atlas-production-migration.md). R13–R18 have explicit target contracts; their live integrations are not implemented by this documentation milestone.
+
+Separate [Wealth](WEALTH_GAP_ANALYSIS.md) and [Commercial](COMMERCIAL_GAP_ANALYSIS.md) audits compare current persona source with Atlas and link their mock gap-closure plans. See [Atlas roadmap](ATLAS_ROADMAP.md) for completed versus pending work.
