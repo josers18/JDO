@@ -1,0 +1,8 @@
+/* Read-only Probability enrichment, captured 2026-11-13.
+   All six rows verified OwnerId 005am000003PbFAAA0; done=true. */
+SELECT Id, AccountId, Name, Probability, StageName, Amount, CloseDate, OwnerId
+FROM Opportunity
+WHERE Id IN (
+ '006am00000QMkUtAAL', '006am00000QMkUjAAL', '006am00000QMkUGAA1',
+ '006am00000M0Z9jAAF', '006am00000LrmseAAB', '006am00000Lrb1AAAR'
+)

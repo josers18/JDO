@@ -56,11 +56,11 @@
 
 **Interfaces:** normalized priority items preserve source record/account, reason, due date, source scope and action. Production `buildPriorityQueue` and current Right Now selection are the behavioral reference, not a fabricated new score.
 
-- [ ] Capture bounded source-backed Retail Who-to-Call/transaction/liquidity examples and weekly net-flow/history aggregates where available; preserve unavailable states otherwise.
-- [ ] Test deduplication, source coverage, due buckets, reserved eligible liquidity item and recent-browser versus top-call first-move behavior against current production contracts.
-- [ ] Connect hero, Why/Quick View/Prep, explicit session snooze and compact Today/This week/Watch queue. Preserve pipeline position directly below the hero.
-- [ ] Add weekly flow/attention context and actual-source pipeline movement/history drill-ins. Never copy fixed Wins $0 or schedule-count-as-seven-day-activity.
-- [ ] Verify exact-account action continuity, source failure/empty examples, keyboard/mobile behavior; commit and push.
+- [x] Capture bounded source-backed Retail Who-to-Call/transaction/liquidity examples and weekly net-flow/history aggregates where available; preserve unavailable states otherwise.
+- [x] Test deduplication, source coverage, due buckets, reserved eligible liquidity item and recent-browser versus top-call first-move behavior against current production contracts.
+- [x] Connect hero, Why/Quick View/Prep, explicit session snooze and compact Today/This week/Watch queue. Preserve pipeline position directly below the hero.
+- [x] Add weekly flow/attention context and actual-source pipeline movement/history drill-ins. Never copy fixed Wins $0 or schedule-count-as-seven-day-activity.
+- [x] Verify exact-account action continuity, source failure/empty examples, keyboard/mobile behavior; commit and push.
 
 ## Milestone 3 — business development (R03–R05, R10)
 
@@ -111,3 +111,8 @@
 - Milestone 1 complete: six pure-selector tests and the committed browser journey passed. Kyle's six native Retail product scores/history now render in relationship Opportunities. Source precedence, owner/account allowlist, unknown records, non-mutation and balance-unavailable holdings are tested. Product/account keys survive local follow-up into Workbench; changing the draft's Account clears stale product linkage. Returning through navigation preserves the Growth cohort. Browser checks cover two Retail customers at 1512/768/390px plus Wealth/Commercial isolation, without page errors or network writes.
 - Ruling: this initial execution batch covers the baseline and Milestone 1; subsequent milestones remain scheduled work. The user's instruction was to create the plan and start, so no production migration or speculative new source data is included in this first checkpoint.
 - Next: Milestone 2, daily prioritization and pulse. R06 is addressed for the relationship Opportunities path; broader profile/overview/source-signal enrichment, real Retail interactions and live integrations remain open under R07 and later milestones.
+
+- Milestone 2 complete (Nov 13): source-backed first-move selection, ranked queue/due views, Why/Quick View, exact-record preparation, explicit session snooze/restore, signed weekly net-flow/attention/Lead pulse and pipeline snapshot history. Current app SQL and a fresh read-only six-Opportunity Probability query are captured; the org and Kim's scope were verified. Nine core tests plus six prior selector tests passed; new Today browser journeys and the previous customer-context browser suite passed. Details and source limits are in `docs/design-studies/2026-11-12-directions/RETAIL_PRIORITY_MILESTONE.md`.
+- Ruling: preserve the current captured Who-to-Call scores, but label stress as source observations because its CTE returned values above six; do not reproduce a false six-month statement. Fixing that production query is separate from mock design. Reconstruct stage amounts only for currently open opportunities; do not call them stage transitions.
+- Ruling: exact AccountId/action dedupe, retention of known derived-item IDs, future-browsing rejection and local snooze/refill improve identity/recency semantics without changing production modules. Other independent signal feeds remain Milestone 5 work; Milestone 2 does not claim complete live ranking coverage.
+- Next: Milestone 3, business development. Existing Lead source/value fields, relationship-graph introductions and cross-sell outcome/mover depth remain open.

@@ -17,3 +17,12 @@ node docs/design-studies/2026-11-12-directions/tests/retail-context.browser.cjs
 Use `PLAYWRIGHT_MODULE` for the installed module path if it is outside the normal Node module lookup, `CHROMIUM_PATH` for an existing Chromium executable, and `STUDY_URL` to override the preview URL. Screenshots are local verification artifacts under `output/playwright/retail-context/`; they are not required source fixtures.
 
 The browser path covers main Growth/cohort → Kyle's exact product/history → linked follow-up → Workbench, returning to the cohort, clearing stale source keys when a draft changes Account, Opportunity proposal defaults, another captured Retail customer and known holdings, three viewport sizes, other-persona isolation and no non-GET requests. These mock tests do not establish live production integration parity.
+
+## Today priorities and pulse
+
+```sh
+node --test docs/design-studies/2026-11-12-directions/tests/retail-priorities.test.cjs
+node docs/design-studies/2026-11-12-directions/tests/retail-priorities.browser.cjs
+```
+
+The production-comparison test uses TypeScript from the existing ReactRetail dependencies to evaluate the actual shared blender. The other checks use committed captures and Node built-ins. Browser options are the same as above. Source-failure and recent-browser scenarios use isolated request overrides solely inside the test; committed data remains unchanged. See [capture and behavior notes](../RETAIL_PRIORITY_MILESTONE.md).

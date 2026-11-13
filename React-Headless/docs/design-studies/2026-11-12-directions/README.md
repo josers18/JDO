@@ -81,3 +81,5 @@ Atlas Today now opens with a book-at-a-glance hero: personalized brief, Portfoli
 [Retail gap analysis, round 2](RETAIL_GAP_ANALYSIS_ROUND_2.md) compares the latest Atlas Retail mock against current production source, with a 19-surface local browser inventory and prioritized next work.
 
 Gap closure is tracked on `design/retail-atlas-gap-closure` in the [implementation plan](../../superpowers/plans/2026-11-12-retail-atlas-gap-closure.md). Milestone 1 connects Retail Growth evidence to the same customer's Opportunities view, known holdings and source-linked local follow-ups in Workbench. [Repeatable checks](tests/README.md) are committed with the implementation.
+
+Milestone 2 adds source-backed Today priorities, session snooze/restore, weekly money-movement and attention drill-ins, and pipeline snapshot history. Open `workspace.html?direction=atlas&persona=retail&page=today&v=retail-priorities-10`. [Implementation and verification log](RETAIL_PRIORITY_MILESTONE.md).

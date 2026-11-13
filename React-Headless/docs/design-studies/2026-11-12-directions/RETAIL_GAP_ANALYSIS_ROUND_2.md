@@ -104,3 +104,5 @@ Paths below point to the inspected current source and current mock, rather than 
 ## Implementation progress after this audit
 
 The [gap-closure plan](../../superpowers/plans/2026-11-12-retail-atlas-gap-closure.md) records phased work on a separate branch. Milestone 1 addresses R06's relationship Opportunities disconnect using exact-account, page-independent captured offer selection and source-linked drafts. It also exposes known holdings separately from unavailable balances. This does not close R07's missing Retail transactions/conversations/notes or the remaining prioritization, introductions, outcomes and integration work.
+
+Milestone 2 now covers the R01/R02 daily-work design with real captured Who-to-Call/inflow/liquidity examples, ranked work, first-move policy, rationale and session snooze, plus weekly flow/attention/Lead and pipeline-history drill-ins. Source scope and deliberate identity adaptations are recorded in [the milestone log](RETAIL_PRIORITY_MILESTONE.md). Full independent feed coverage and live integration remain open; this is not a claim of complete production parity.
