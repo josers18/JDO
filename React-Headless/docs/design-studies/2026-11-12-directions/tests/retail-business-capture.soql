@@ -1,0 +1,17 @@
+/* holders | captured 2026-11-13 */
+SELECT Id, Name, FinServ__PrimaryOwner__c, FinServ__Balance__c, FinServ__Status__c FROM FinServ__FinancialAccount__c WHERE FinServ__FinancialAccountType__c = 'Credit Cards' AND FinServ__Status__c != 'Closed' AND FinServ__PrimaryOwner__r.OwnerId = '005am000003PbFAAA0' ORDER BY FinServ__Balance__c DESC LIMIT 200
+
+/* openStats | captured 2026-11-13 */
+SELECT COUNT(Id) n, SUM(Amount) amount FROM Opportunity WHERE OwnerId = '005am000003PbFAAA0' AND LeadSource = 'Cross-sell grid' AND IsClosed = false
+
+/* wonStats | captured 2026-11-13 */
+SELECT COUNT(Id) n FROM Opportunity WHERE OwnerId = '005am000003PbFAAA0' AND LeadSource = 'Cross-sell grid' AND IsWon = true AND CloseDate >= 2026-10-14
+
+/* openOpportunities | captured 2026-11-13 */
+SELECT Id, Name, AccountId, Amount, StageName, CloseDate FROM Opportunity WHERE OwnerId = '005am000003PbFAAA0' AND LeadSource = 'Cross-sell grid' AND IsClosed = false LIMIT 200
+
+/* holdings | captured 2026-11-13 */
+SELECT Id,Name,FinServ__PrimaryOwner__c,FinServ__Balance__c,FinServ__Status__c FROM FinServ__FinancialAccount__c WHERE FinServ__PrimaryOwner__c IN ('001am00002A9c3jAAB','001am00002A9j7dAAB','001am00002AAAVmAAP','001am00002A9j2YAAR','001am00002A9jArAAJ','001am00002AAAUkAAP','001am00002A9iq8AAB','001am00002A9ikfAAB','001am00002A9c39AAB','001am00002A9j8zAAB','001am00002AAAKlAAP','001am00002AAAV6AAP','001am00002A9c2pAAB','001am00002A9ioaAAB','001am00002A9FPXAA3','001am00002AAAKcAAP','001am00002AAAUDAA5','001am00002A9j5zAAB','001am00002A9jCvAAJ','001am00002AAANDAA5','001am00002AYQxtAAH','001am00002A9j8MAAR','001am00002A9jAbAAJ','001am00002A9incAAB','001am00002AAAMlAAP','001am00002AYR3dAAH','001am00002A9j8nAAB','001am00002AAANdAAP','001am00002AYR8LAAX','001am00002AAAUFAA5','001am00002A9ioYAAR','001am00002A9iqYAAR','001am00002A9jCzAAJ','001am00002AAAIrAAP','001am00002AYR4EAAX','001am00002A8XkUAAV','001am00002A9j2mAAB','001am00002A9j6fAAB','001am00002A9j8ZAAR','001am00002AAAR7AAP','001am00002A9j7xAAB','001am00002AAAXjAAP','001am00002A9c2gAAB','001am00002AYQp3AAH','001am00002A9inZAAR','001am00002AYQr6AAH','001am00002AYQwXAAX','001am00002AYR57AAH','001am00002A8YJnAAN','001am00002A9jBAAAZ','001am00002A9jBlAAJ','001am00002AAAXiAAP','001am00002AYR0cAAH','001am00002A9ilHAAR','001am00002A9jE1AAJ','001am00002A9jExAAJ','001am00002AAAVEAA5','001am00002AYQukAAH','001am00002AYQy5AAH','001am00002A9ipjAAB','001am00002AAAKhAAP','001am00002AAAJZAA5') AND FinServ__PrimaryOwner__r.OwnerId='005am000003PbFAAA0' LIMIT 1000
+
+/* wonOpportunities | captured 2026-11-13 */
+SELECT Id,Name,AccountId,Amount,CloseDate,StageName FROM Opportunity WHERE OwnerId='005am000003PbFAAA0' AND LeadSource='Cross-sell grid' AND IsWon=true AND CloseDate>=2026-10-14 LIMIT 100

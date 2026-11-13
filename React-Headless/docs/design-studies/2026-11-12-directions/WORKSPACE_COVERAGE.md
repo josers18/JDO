@@ -130,3 +130,7 @@ Drafts preserve `offerAccountId`/`offerCode`; reassigning the draft's Account cl
 ## Gap-closure milestone 2: Retail Today priorities and pulse
 
 Retail Today now uses captured Who-to-Call/recent-browser first-move rules, a ranked work inspector with due views and source rationale, exact-account actions and explicit session Snooze/Restore. Its pulse opens actual eight-week net-flow evidence, multi-risk counts and Lead context. Pipeline exposes reconstructed total/stage history; it remains directly under the hero. [Capture limits, identity adaptations, inherited stress-window issue and verification](RETAIL_PRIORITY_MILESTONE.md) are documented. This is captured-data/local-draft design, with remaining signal feeds and production integrations still open.
+
+## Milestone 3 update — November 13
+
+R03/R04 now have separate graph introductions and complete Lead source/AnnualRevenue local create/edit/review. R05 adds twelve-customer coverage including three reserved card holders, bounded whole-book movers, held-away/ownership/history evidence and independent CRM outcome counts. R10 adds source-targeted equity/refinance/mortgage/investing needs. These are design workflow coverage; live writes and complete source refresh remain integration-only. See [business-development capture and validation](RETAIL_BUSINESS_MILESTONE.md) for exact scope, source limitations and preserved identities.

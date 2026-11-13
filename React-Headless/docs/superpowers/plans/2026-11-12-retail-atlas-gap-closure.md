@@ -66,12 +66,12 @@
 
 **Files:** `retail-cohesion.js`, `workspace.js`, new `retail-prospecting-data.js` if needed, focused tests.
 
-- [ ] Add current Lead source/AnnualRevenue create/edit fields and preservation tests.
-- [ ] Capture real relationship-graph introductions; keep referrer/target/confidence/date/scope distinct from CRM Leads. Do not invent a referring employee for Employee Referral rows.
-- [ ] Build Introductions mode and prefilled create-Lead proposal; test duplicate-name and Lead/Account identity boundaries.
-- [ ] Carry complete cross-sell holder/mover/reason/outcome contracts into Growth design using actual-source examples; whole-book outcomes must not be calculated from visible samples.
-- [ ] Connect home equity/refinance/mortgage/invest-ready cohorts using the current source targeting rules and renter gates.
-- [ ] Browser-test source → lead/opportunity → action → return, including no-result/missing-contact states; commit and push.
+- [x] Add current Lead source/AnnualRevenue create/edit fields and preservation tests.
+- [x] Capture real relationship-graph introductions; keep referrer/target/confidence/date/scope distinct from CRM Leads. Do not invent a referring employee for Employee Referral rows.
+- [x] Build Introductions mode and prefilled create-Lead proposal; test duplicate-name and Lead/Account identity boundaries.
+- [x] Carry complete cross-sell holder/mover/reason/outcome contracts into Growth design using actual-source examples; whole-book outcomes must not be calculated from visible samples.
+- [x] Connect home equity/refinance/mortgage/invest-ready cohorts using the current source targeting rules and renter gates.
+- [x] Browser-test source → lead/opportunity → action → return, including no-result/missing-contact states; commit and push.
 
 ## Milestone 4 — Retail customer and execution depth (R07, R11, R12)
 
@@ -116,3 +116,11 @@
 - Ruling: preserve the current captured Who-to-Call scores, but label stress as source observations because its CTE returned values above six; do not reproduce a false six-month statement. Fixing that production query is separate from mock design. Reconstruct stage amounts only for currently open opportunities; do not call them stage transitions.
 - Ruling: exact AccountId/action dedupe, retention of known derived-item IDs, future-browsing rejection and local snooze/refill improve identity/recency semantics without changing production modules. Other independent signal feeds remain Milestone 5 work; Milestone 2 does not claim complete live ranking coverage.
 - Next: Milestone 3, business development. Existing Lead source/value fields, relationship-graph introductions and cross-sell outcome/mover depth remain open.
+
+- Milestone 3 complete (Nov 13): separate six-suggestion introduction desk, full Lead source/AnnualRevenue create/edit/review, twelve-customer coverage with three reserved holders, book-wide bounded mover queries, held-away/history/outcome evidence, and equity/refinance/mortgage/investing needs. Source queries and fixture bounds are committed. See `RETAIL_BUSINESS_MILESTONE.md` for capture and verification details.
+- Ruling: graph confidence is relationship-edge confidence from synthetic demo data, not a human-confirmed referral or consent. Keep external targets separate from owned Accounts and new Lead identities. AnnualRevenue is annual company revenue, not expected banking value.
+- Ruling: missing CoreLogic remains unknown rather than renter; prefer a confirmed renter for the first-home example. Reserve three actual holder rows within twelve total, using the current app's bounded first-200 candidate window. Outcomes remain whole-book source aggregates independent of local drafts.
+- Review fixes: clear stale introduction/offer metadata on first-save Account reassignment as well as later Workbench edits; distinguish missing aggregates from true source zero. Focused failing tests reproduced both findings before fixes.
+- Next: Milestone 4, Retail customer and execution depth. Production writes, deployments and full live source coverage remain outside this design milestone.
+
+- Milestone 3 verification: 31 selector tests passed; business-development browser journeys passed at 1512/1024/768/390px; the prior customer-context and Today browser suites also passed. Changed scripts parse, local HTML assets resolve, and capture files contain no authentication material. Independent read-only review identified the two fixed provenance/unavailable-state defects noted above.

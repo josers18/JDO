@@ -26,3 +26,7 @@ node docs/design-studies/2026-11-12-directions/tests/retail-priorities.browser.c
 ```
 
 The production-comparison test uses TypeScript from the existing ReactRetail dependencies to evaluate the actual shared blender. The other checks use committed captures and Node built-ins. Browser options are the same as above. Source-failure and recent-browser scenarios use isolated request overrides solely inside the test; committed data remains unchanged. See [capture and behavior notes](../RETAIL_PRIORITY_MILESTONE.md).
+
+## Business development
+
+Run `node --test docs/design-studies/2026-11-12-directions/tests/retail-business.test.cjs`. Run `retail-business.browser.cjs` with the same Playwright/Chromium environment as the other suites. The local preview must listen on port 5187. Checks cover Lead fields and provenance, directed introductions, source-to-opportunity drafts, holder coverage, movers, renter gates, missing aggregates, four widths and persona isolation. Source SQL/SOQL files are read-only capture evidence, not startup scripts. See [milestone bounds](../RETAIL_BUSINESS_MILESTONE.md).

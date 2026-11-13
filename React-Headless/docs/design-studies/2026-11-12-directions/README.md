@@ -1,5 +1,7 @@
 # Cumulus: larger, more expressive design directions
 
+**Latest: Retail business development.** Prospecting now separates CRM Leads/referrals from suggested introductions. Growth adds native holder coverage, book movers, home/investing needs and actual cross-sell outcomes. [Open Retail Prospecting](http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=retail&page=prospecting&v=retail-business-11) · [Open Growth](http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=retail&page=growth&v=retail-business-11) · [Capture, workflows and verification](RETAIL_BUSINESS_MILESTONE.md). All actions remain local proposals.
+
 ## Atlas is the current design target
 
 **Latest Retail workflow hierarchy:** [Growth → Leads & referrals](http://127.0.0.1:5187/docs/design-studies/2026-11-12-directions/workspace.html?direction=atlas&persona=retail&page=growth&v=retail-workflows-6) is now a primary workspace; the needs explorer/heat map and life-stage mix have their own lenses. Recognized visitors now live in Intelligence. Life & goals restores the grid calendar alongside a compact counter and illustrated customer/goal stories. Relationships adds a search-first customer finder without numeric paging. See [RETAIL_WORKFLOWS.md](RETAIL_WORKFLOWS.md).
