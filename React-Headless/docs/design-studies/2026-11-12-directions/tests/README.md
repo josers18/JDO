@@ -34,3 +34,7 @@ Run `node --test docs/design-studies/2026-11-12-directions/tests/retail-business
 ## Customer and execution depth
 
 Run `node --test docs/design-studies/2026-11-12-directions/tests/retail-customer.test.cjs`; run `retail-customer.browser.cjs` with the same Playwright environment and preview server as the other suites. Source evidence is in `retail-customer-capture.soql` and `.sql`. Tests exercise goal/plan fields, historical Event operations, task completion, Contact/Account links, notes, source failure/empty states, planner separation and responsive/persona boundaries. See [customer milestone](../RETAIL_CUSTOMER_MILESTONE.md).
+
+## Intelligence and relationship watch
+
+Run `node --test docs/design-studies/2026-11-12-directions/tests/retail-watch.test.cjs`; run `retail-watch.browser.cjs` with the same Playwright/Chromium environment and port-5187 preview server. The suite covers source state/dates, native AML changes, property overlap/null coordinates, external-case references, exact-account drafts and reassignment, Today/360 continuity, keyboard plot actions, four widths and persona isolation. Read-only source evidence is in `retail-watch-capture.sql` / `.soql`. See [scope and verification](../RETAIL_WATCH_MILESTONE.md).

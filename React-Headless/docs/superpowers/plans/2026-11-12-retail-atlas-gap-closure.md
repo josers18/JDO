@@ -87,10 +87,10 @@
 
 **Files:** new Retail signal capture/normalization module, `persona-workspaces.js`, `retail-refinement.js`, focused tests.
 
-- [ ] Add source-backed liquidity, large inflows, marketing touches and AML/Gong changes to an Intelligence inbox.
-- [ ] Add book property-exposure, engagement and ServiceNow watch modes within Health, preserving CRM/external service separation.
-- [ ] Connect each source/customer/date/reason/action to Today and 360; cover true empty/unavailable/stale states.
-- [ ] Review responsive density and record-level journeys; commit and push.
+- [x] Add source-backed liquidity, large inflows, marketing touches and AML/Gong changes to an Intelligence inbox.
+- [x] Add book property-exposure, engagement and ServiceNow watch modes within Health, preserving CRM/external service separation.
+- [x] Connect each source/customer/date/reason/action to Today and 360; cover true empty/unavailable/stale states.
+- [x] Review responsive density and record-level journeys; commit and push.
 
 ## Milestone 6 — migration contract and production readiness (R13–R18)
 
@@ -132,3 +132,10 @@
 - Next: Milestone 5, Intelligence and Relationship health signal/risk coverage. No production deployment or real CRM writes are implied by these mock milestones.
 
 - Milestone 4 verification: 42 selector tests passed; all four browser suites passed. Customer views were checked at 1512/1024/768/390px, including source-state failure checks and persona isolation. Changed scripts parse, local asset links resolve, and new capture files contain no authentication material. Independent read-only review findings were fixed with regression checks.
+
+- Milestone 5 complete (Nov 13): five-family source inbox, preserved recognized browsing, Today/customer evidence continuity, exact-Account follow-up provenance, property-overlap cohorts with real sample plot, Gong/CSAT engagement watch, and separate CRM/ServiceNow service lanes. Read-only queries and scope limits are committed in `RETAIL_WATCH_MILESTONE.md` and capture fixtures.
+- Ruling: use native book-filtered source contracts, never org fallback. Ingested ownership and current CRM ownership have different timing; label matched source populations and keep system totals separate. Marketing_Engagements is distinct from the prior customer-history Marketing_Campaigns source.
+- Ruling: a screening escalation is source review evidence, not a finding/clearance; a liquidity flag is not received proceeds; clicks are neither conversion nor permission. Property hazards are provider indicators, not predicted losses. External case references never become CRM IDs, and creation age does not assert an SLA breach.
+- Review fixes: capture AML change type and preserve native Changed-to-Medium/null-prior semantics; omit unavailable property coordinates while retaining list evidence; reset the CRM service navigation destination. Signal metadata is cleared on Account reassignment at first save and later edit.
+- Milestone 5 verification: 52 selector tests and all five browser suites passed; new views checked at 1512/1024/768/390px, including keyboard, source-empty/unavailable/historical states and other-persona isolation. No page errors or network writes.
+- Next: Milestone 6, migration contract and production acceptance planning. Production implementation/deployment and full live source coverage remain subsequent scope.

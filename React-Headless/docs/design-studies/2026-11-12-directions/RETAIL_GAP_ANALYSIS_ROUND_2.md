@@ -114,3 +114,7 @@ R03/R04 now have separate graph introductions and complete Lead source/AnnualRev
 ## Milestone 4 update — November 13
 
 R07/R11/R12 now have a coherent Mark S Smith Retail capture, financial/transaction and engagement views, goal field/plan preservation, private notebook, and source Task/Event operation proposals. Recorded activity and its assignee are separate from current banker ownership and new-meeting planning. Campaign and saved-note queries returned no rows; those source boundaries remain explicit. See [customer/execution capture and verification](RETAIL_CUSTOMER_MILESTONE.md). Live writes and complete book data remain integration work.
+
+## Milestone 5 update — November 13
+
+R08 now has a source-backed signal inbox for AML/Gong changes, qualifying credits, marketing engagement and liquidity events, with Today/360/action continuity. Recognized visitors remains available. R09 adds book property overlap cohorts, engagement watch and separate CRM/ServiceNow service lanes alongside stress/deposit views. These are captured design workflows; source sampling, record dates, connector-check limits and local-only proposals remain explicit. See [signal/watch capture and verification](RETAIL_WATCH_MILESTONE.md).
