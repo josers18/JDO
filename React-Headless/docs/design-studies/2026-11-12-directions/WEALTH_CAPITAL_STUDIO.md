@@ -2,7 +2,7 @@
 
 This is the standalone Atlas demo, not a Salesforce deployment. Native query captures and independent aggregates remain authoritative. All proposals stay in browser session storage. Retail scenes and production bridges are unchanged.
 
-The approved flowing capital map and household observatory were restored in the subsequent additive correction; see `WEALTH_RETAINED_DESIGN.md`. Growth now opens Capital flow, with all analytical modes below retained.
+The approved flowing capital map and household observatory were restored in the subsequent additive correction; see `WEALTH_RETAINED_DESIGN.md`. Capital & Acquisition now opens the hybrid Capital paths, with all analytical modes below retained.
 
 ## Capability-to-view acceptance map
 
@@ -11,7 +11,7 @@ The approved flowing capital map and household observatory were restored in the 
 | Held-away opportunities | Today pulse; Capital & acquisition → Held-away opportunities | Institution/balance landscape, exact household evidence and outreach; independent investable total preserved. |
 | Outside digital platforms | Held-away opportunities | Separate crypto/robo observation cards; no conflation with investable totals or bank flows. |
 | Native product white space | Capital & acquisition → White-space heat map | Six captured households × seven native products; owned, scored and absent states; product lens, household search, actual monthly history, exact Account/product proposal. Mobile reflows; no sideways customer scrolling. |
-| Existing capital map | Growth → Product opportunities | Retained household capital diagram, eligibility evidence, product selection, rising/falling source lenses and source-computed history. |
+| Existing capital map | Capital & Acquisition → Capital paths | Retained household capital diagram, eligibility evidence, product selection, rising/falling source lenses and source-computed history. |
 | Leads and referrals | Acquisition → Leads & introductions | CRM acquisition desk and native statuses; warm directed graph introductions are separate from Leads; exact source/target preserved. |
 | Business-owner clients | Acquisition → Business owners | Source returns zero owner-client rows. Honest zero state beside separate business-to-Wealth handoffs, including broader independent 287/169 prospect aggregates. These are not 287 existing Wealth owner-clients. |
 | Wealth upgrade prospects | Acquisition → Wealth upgrade prospects | Wealth-band cards, source life stage and two propensity tracks; independent 467/23/43 population counts distinct from five sampled rows. |
