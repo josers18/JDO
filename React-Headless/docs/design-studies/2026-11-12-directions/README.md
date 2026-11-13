@@ -79,3 +79,5 @@ The expanded mock now separates **Prospecting** (leads/referrals) from **Growth*
 Atlas Today now opens with a book-at-a-glance hero: personalized brief, Portfolio Pulse and persona-specific first outreach. Use `workspace.html?direction=atlas&persona=retail&page=today&v=atlas-day-hero-8` (or `persona=wealth` / `commercial`). The hero uses dated captured values and local preparation/call drafts.
 
 [Retail gap analysis, round 2](RETAIL_GAP_ANALYSIS_ROUND_2.md) compares the latest Atlas Retail mock against current production source, with a 19-surface local browser inventory and prioritized next work.
+
+Gap closure is tracked on `design/retail-atlas-gap-closure` in the [implementation plan](../../superpowers/plans/2026-11-12-retail-atlas-gap-closure.md). Milestone 1 connects Retail Growth evidence to the same customer's Opportunities view, known holdings and source-linked local follow-ups in Workbench. [Repeatable checks](tests/README.md) are committed with the implementation.

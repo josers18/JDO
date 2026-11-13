@@ -100,3 +100,7 @@ Paths below point to the inspected current source and current mock, rather than 
 - [Current shell](../../../force-app/main/default/uiBundles/ReactRetail/src/shell/AppShell.tsx), [home layout](../../../force-app/main/default/uiBundles/ReactRetail/src/home/HomeLayout.tsx), [routes](../../../force-app/main/default/uiBundles/ReactRetail/src/routes.tsx).
 - [Atlas Today hero](atlas-day-hero.js), [Retail cohesion](retail-cohesion.js), [Retail workflows](retail-workflows.js), [Retail health/refinement](retail-refinement.js), [persona workspaces](persona-workspaces.js), [expanded relationship views](atlas-expansion.js) and [core relationship/forms/routing](workspace.js).
 - [Cohort scope and previous checks](RETAIL_COHESION.md), [full expansion scope](ATLAS_EXPANSION.md), [current coverage](WORKSPACE_COVERAGE.md), [original cross-persona gap audit](GAP_ANALYSIS.md), [preservation contract](../2026-11-11-cockpits/FUNCTIONALITY_MAP.md).
+
+## Implementation progress after this audit
+
+The [gap-closure plan](../../superpowers/plans/2026-11-12-retail-atlas-gap-closure.md) records phased work on a separate branch. Milestone 1 addresses R06's relationship Opportunities disconnect using exact-account, page-independent captured offer selection and source-linked drafts. It also exposes known holdings separately from unavailable balances. This does not close R07's missing Retail transactions/conversations/notes or the remaining prioritization, introductions, outcomes and integration work.

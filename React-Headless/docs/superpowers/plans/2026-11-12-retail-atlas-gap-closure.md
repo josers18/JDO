@@ -33,22 +33,22 @@
 
 **Files:** `docs/design-studies/2026-11-11-cockpits/`, `docs/design-studies/2026-11-12-directions/`, this plan.
 
-- [ ] Inspect staged files for secrets/generated artifacts; include the earlier study because the current mock imports its fixtures.
-- [ ] Commit the existing design and gap-analysis baseline, retaining all source-data scope notes.
-- [ ] Push and track `design/retail-atlas-gap-closure`.
+- [x] Inspect staged files for secrets/generated artifacts; include the earlier study because the current mock imports its fixtures.
+- [x] Commit the existing design and gap-analysis baseline, retaining all source-data scope notes.
+- [x] Push and track `design/retail-atlas-gap-closure`.
 
 ## Milestone 1 — exact-customer Growth → 360 → follow-up continuity (R06; part of R07)
 
 **Files:** create study `retail-context.js`, `tests/retail-context.test.cjs`; modify `workspace.js`, `workspace.html`; add focused browser regression script under `tests/`.
 
-**Interfaces:** `retailContext.offersForAccount(accountId, ownerId)` returns deterministic, deduplicated captured Account/product rows with provenance; `holdingsForAccount(accountId, ownerId)` returns known source holdings without inferring balances. Pure selectors do not inherit page/cohort filter state.
+**Interfaces:** `createRetailContext({ownerId, accountIds, offerSources, holdingSources})` establishes the allowed capture owner/account set. `retailContext.offersForAccount(accountId, ownerId)` returns deterministic, deduplicated captured Account/product rows with provenance; `holdingsForAccount(accountId, ownerId)` returns known source holdings without inferring balances. Pure selectors do not inherit page/cohort filter state.
 
-- [ ] Write failing selector tests for Kyle's captured offers, duplicate precedence, unknown accounts, wrong-owner exclusion and known holdings without balances.
-- [ ] Implement selectors over existing captured datasets. Keep original eligibility/history rows authoritative on duplicate Account/product keys.
-- [ ] Render the exact customer's scored offers and available history in relationship Opportunities, including model evidence and Account-linked opportunity/task draft actions.
-- [ ] Show known product holdings separately from complete financial accounts when no balances were captured; remove contradictory "nothing captured" messaging.
-- [ ] Verify main Growth → Kyle → same product/evidence → exact-account draft → Workbench, plus another captured Retail customer and Wealth/Commercial isolation at desktop/mobile sizes.
-- [ ] Commit, push and update progress log; do not claim missing real customer histories were captured.
+- [x] Write failing selector tests for Kyle's captured offers, duplicate precedence, unknown accounts, wrong-owner exclusion and known holdings without balances.
+- [x] Implement selectors over existing captured datasets. Keep original eligibility/history rows authoritative on duplicate Account/product keys.
+- [x] Render the exact customer's scored offers and available history in relationship Opportunities, including model evidence and Account-linked opportunity/task draft actions.
+- [x] Show known product holdings separately from complete financial accounts when no balances were captured; remove contradictory "nothing captured" messaging.
+- [x] Verify main Growth → Kyle → same product/evidence → exact-account draft → Workbench, plus another captured Retail customer and Wealth/Commercial isolation at desktop/mobile sizes.
+- [x] Commit, push and update progress log; do not claim missing real customer histories were captured.
 
 ## Milestone 2 — daily prioritization and pulse (R01, R02; part of R11)
 
@@ -106,3 +106,8 @@
 
 - Plan created after the second Retail audit. Current baseline has 10 Retail destinations and nine relationship tabs; the key initial defect is Kyle's missing relationship-level offer evidence despite existing Growth scores.
 - Implementation starts with Milestone 1. Other milestones remain open until their data, workflow and verification steps are complete.
+
+- Milestone 0 complete: baseline commit `8a58bb51b` pushed with tracking branch `origin/design/retail-atlas-gap-closure`. The commit includes both design-study directories because the current mock imports the earlier fixtures; unrelated files and generated output are excluded.
+- Milestone 1 complete: six pure-selector tests and the committed browser journey passed. Kyle's six native Retail product scores/history now render in relationship Opportunities. Source precedence, owner/account allowlist, unknown records, non-mutation and balance-unavailable holdings are tested. Product/account keys survive local follow-up into Workbench; changing the draft's Account clears stale product linkage. Returning through navigation preserves the Growth cohort. Browser checks cover two Retail customers at 1512/768/390px plus Wealth/Commercial isolation, without page errors or network writes.
+- Ruling: this initial execution batch covers the baseline and Milestone 1; subsequent milestones remain scheduled work. The user's instruction was to create the plan and start, so no production migration or speculative new source data is included in this first checkpoint.
+- Next: Milestone 2, daily prioritization and pulse. R06 is addressed for the relationship Opportunities path; broader profile/overview/source-signal enrichment, real Retail interactions and live integrations remain open under R07 and later milestones.
