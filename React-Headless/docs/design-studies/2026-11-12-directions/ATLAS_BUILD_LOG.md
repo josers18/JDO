@@ -10,15 +10,22 @@ Retail implementation is on hold. Two persona workers own their respective Wealt
 
 - Added optional Atlas-only Wealth/Commercial facade dispatch for pages, relationship panels, exact-account evidence, source-record lookup, forms and draft preparation/editing.
 - Shared generic forms can be delegated through `openBaseForm` without recursive persona dispatch. Local save and edit both invoke the active persona’s provenance sanitizer.
-- Source Event update/delete proposals are excluded from the new personas’ local meeting planner.
+- Source Event update/delete proposals are excluded from the new personas’ local meeting planner. A focused browser regression observed the `sourceRecordId` variant fail first and pass after correction; genuine new-meeting proposals remain visible.
 - Existing Retail behavior passes all 52 selector tests and five browser suites: context, priorities, business, customer and watch. Preview server responds HTTP 200 on port 5187.
 - New persona factories are optional until their modules are registered. This checkpoint alone adds no Wealth/Commercial UI.
+- Focused shared-hook browser checks pass: independent page/relationship dispatch, exact-account merging, authoritative empty history, source-record lookup, delegated forms, hidden provenance and both save/edit preparation. Retail and earlier styles stay isolated.
 
 ## Decisions
 
 - Ruling: use two independent persona implementers as explicitly requested, with shared integration and a final fresh review coordinated centrally. Each implementer works through its own plan. This overrides the inline-only executor default; the cost is additional coordination, covered by scoped file ownership and integration tests.
 - Ruling: retain the authorized existing design branch rather than create another parallel branch. This preserves the milestone history requested by the user; production migration stays separate.
 
+## Source checkpoints
+
+- `1f0f7572a`: Wealth strict source capture and pure identity foundation; source query/scope documentation follows with the feature build.
+- `c7582f7b4`: Commercial verified book/provider/offer/history capture plus SQL/SOQL evidence. Independent aggregates remain separate from bounded detail samples.
+- Combined selector gate at this checkpoint: 68 passing tests (Retail 52, Wealth 8, Commercial 8). Shared integration browser gate passes including delegated editing and source Event separation. Persona UI acceptance is still in progress.
+
 ## Pending
 
-Wealth/Commercial source checkpoints, feature builds, browser journeys, final review, migration-readiness contracts and commit/push verification. Production acceptance remains pending.
+Wealth/Commercial feature refinement, browser journeys, final review, migration-readiness contracts and final commit/push verification. Production acceptance remains pending.
