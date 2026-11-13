@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#234be8">
+  <title>Cumulus — new directions</title>
+  <link rel="stylesheet" href="directions.css">
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to workspace</a>
+  <header class="study-bar">
+    <div class="study-brand">Cumulus <span>Design explorations</span></div>
+    <nav aria-label="Design direction">
+      <button data-direction="panorama">Panorama</button>
+      <button data-direction="atlas">Relationship atlas</button>
+      <button data-direction="focus">Advisory focus</button>
+    </nav>
+    <a class="study-info" href="workspace.html?direction=atlas&amp;persona=wealth&amp;page=relationships&amp;v=atlas-expanded-2">Open latest Atlas</a>
+    <button class="study-info" id="study-info">About this study</button>
+  </header>
+  <main id="workspace" tabindex="-1"></main>
+  <dialog id="detail" aria-labelledby="detail-title">
+    <div class="dialog-top"><span>Cumulus / relationship workspace</span><button id="close-dialog" aria-label="Close dialog">×</button></div>
+    <div id="detail-body"></div>
+  </dialog>
+  <script src="../2026-11-11-cockpits/study-data.js"></script>
+  <script src="../2026-11-11-cockpits/crm-snapshot.js"></script>
+  <script src="directions.js"></script>
+</body>
+</html>
