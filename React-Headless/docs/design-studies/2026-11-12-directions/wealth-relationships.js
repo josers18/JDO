@@ -5,7 +5,7 @@ globalThis.enhanceWealthRelationships=function(api,base){
  const active=()=>state.style==='atlas'&&state.persona==='wealth';
  const rows=k=>C.rows(D.sources[k],owner),accounts=()=>base.accounts(),name=id=>accounts().find(a=>a.Id===id)?.Name||'Linked record …'+String(id).slice(-6);
  const get=(k,d='')=>{const p=new URL(location.href).searchParams;return p.has(k)?p.get(k):d;};
- const saved=()=>api.read(key,{selected:'',compare:[],recent:[]}),store=v=>api.write(key,v);
+ const saved=()=>{const v=api.read(key,null);return {selected:typeof v?.selected==='string'?v.selected:'',compare:Array.isArray(v?.compare)?v.compare.filter(x=>typeof x==='string'):[],recent:Array.isArray(v?.recent)?v.recent.filter(x=>typeof x==='string'):[]};},store=v=>api.write(key,v);
  const cash=v=>v==null?'Not captured':api.money(Number(v)),pct=v=>v==null?'Not captured':Number(v).toFixed(1)+'%',date=v=>v?api.date(String(v).slice(0,10)):'Not supplied';
  const native=(text,a,id,extra='',cls='secondary')=>`<button class="${cls}" data-wa="${a}" data-wa-id="${E(id)}" ${extra}>${E(text)}</button>`;
  const btn=(text,a,id='',extra='')=>`<button data-wrel="${a}" data-wrel-id="${E(id)}" ${extra}>${text}</button>`;

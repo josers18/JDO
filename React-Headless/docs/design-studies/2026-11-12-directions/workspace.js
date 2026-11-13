@@ -380,6 +380,7 @@
  wealthAtlas=window.enhanceWealthMoneyStudio?.(personaApi,wealthAtlas)??wealthAtlas;
  wealthAtlas=window.enhanceWealthCustomerStudio?.(personaApi,wealthAtlas)??wealthAtlas;
  wealthAtlas=window.enhanceWealthReviewPacket?.(personaApi,wealthAtlas)??wealthAtlas;
+ wealthAtlas=window.enhanceWealthLifeStudio?.(personaApi,wealthAtlas)??wealthAtlas;
  wealthAtlas=window.enhanceWealthContext?.(personaApi,wealthAtlas)??wealthAtlas;
  commercialAtlas=window.createCommercialAtlas?.(personaApi);
  commercialAtlas=window.enhanceCommercialStudio?.(personaApi,commercialAtlas)??commercialAtlas;

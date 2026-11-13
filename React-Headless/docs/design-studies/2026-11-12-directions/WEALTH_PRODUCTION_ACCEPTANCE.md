@@ -2,7 +2,7 @@
 
 November 13, 2026. **Every production gate below is pending.** These are required future evidence, not a claim that the standalone mock ran authenticated UI Bundle operations.
 
-Current design evidence is narrower:18 pure source/identity/native-replay tests and one extended captured/local-proposal browser suite. The coordinating agent owns shared-shell/cross-persona browser checks and final fresh review; see the milestone notes and root review log. Record exact commit/build, org/actor/effective owner, source periods/caps, input/target IDs, expected/actual outcome and test logs for each production gate. Credentials and unnecessary customer text do not belong in evidence.
+Current captured-data evidence has expanded; see [the latest gap rerun](WEALTH_GAP_RERUN.md) for fresh source, browser and responsive checks. Those results do not pass an authenticated production gate. Record exact commit/build, org/actor/effective owner, source periods/caps, input/target IDs, expected/actual outcome and test logs for each production gate. Credentials and unnecessary customer text do not belong in evidence.
 
 | Gate | Required journey / evidence | Status |
 |---|---|---|
