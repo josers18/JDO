@@ -30,3 +30,7 @@ The production-comparison test uses TypeScript from the existing ReactRetail dep
 ## Business development
 
 Run `node --test docs/design-studies/2026-11-12-directions/tests/retail-business.test.cjs`. Run `retail-business.browser.cjs` with the same Playwright/Chromium environment as the other suites. The local preview must listen on port 5187. Checks cover Lead fields and provenance, directed introductions, source-to-opportunity drafts, holder coverage, movers, renter gates, missing aggregates, four widths and persona isolation. Source SQL/SOQL files are read-only capture evidence, not startup scripts. See [milestone bounds](../RETAIL_BUSINESS_MILESTONE.md).
+
+## Customer and execution depth
+
+Run `node --test docs/design-studies/2026-11-12-directions/tests/retail-customer.test.cjs`; run `retail-customer.browser.cjs` with the same Playwright environment and preview server as the other suites. Source evidence is in `retail-customer-capture.soql` and `.sql`. Tests exercise goal/plan fields, historical Event operations, task completion, Contact/Account links, notes, source failure/empty states, planner separation and responsive/persona boundaries. See [customer milestone](../RETAIL_CUSTOMER_MILESTONE.md).

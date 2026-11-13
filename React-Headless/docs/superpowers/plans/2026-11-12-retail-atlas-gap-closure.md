@@ -77,11 +77,11 @@
 
 **Files:** bounded Retail capture module; `atlas-expansion.js`, `workspace.js`, `retail-workflows.js`, `workbench-collections.js`, focused tests.
 
-- [ ] Obtain one coherent Retail customer's accounts/transactions, interactions, notes, goals/plans, campaigns and actual Task/Event records where sources return them.
-- [ ] Populate Retail-specific financial, engagement, notebook and campaign views; replace Wealth-oriented empty-state guidance inside Retail.
-- [ ] Preserve goal type/priority/description/plan identity and existing supported Task/Event fields/operations.
-- [ ] Demonstrate actual-source agenda separately from proposed meeting drafts; support exact WhoId/WhatId and source assignee semantics.
-- [ ] Test record continuity, missing-capture boundaries, private preparation and draft review; commit and push.
+- [x] Obtain one coherent Retail customer's accounts/transactions, interactions, notes, goals/plans, campaigns and actual Task/Event records where sources return them.
+- [x] Populate Retail-specific financial, engagement, notebook and campaign views; replace Wealth-oriented empty-state guidance inside Retail.
+- [x] Preserve goal type/priority/description/plan identity and existing supported Task/Event fields/operations.
+- [x] Demonstrate actual-source agenda separately from proposed meeting drafts; support exact WhoId/WhatId and source assignee semantics.
+- [x] Test record continuity, missing-capture boundaries, private preparation and draft review; commit and push.
 
 ## Milestone 5 — signal and risk coverage (R08, R09)
 
@@ -124,3 +124,11 @@
 - Next: Milestone 4, Retail customer and execution depth. Production writes, deployments and full live source coverage remain outside this design milestone.
 
 - Milestone 3 verification: 31 selector tests passed; business-development browser journeys passed at 1512/1024/768/390px; the prior customer-context and Today browser suites also passed. Changed scripts parse, local HTML assets resolve, and capture files contain no authentication material. Independent read-only review identified the two fixed provenance/unavailable-state defects noted above.
+
+- Milestone 4 complete (Nov 13): Mark S Smith provides five financial accounts, twelve transaction rows, three goals/one plan, eight interaction summaries, eight CSAT points, fourteen Tasks, twenty-one historical Events and four cases. Notebook/private preparation and campaign views preserve successful-empty/unavailable distinctions. Full goal fields and supported recorded Task/Event operations survive Workbench review. See `RETAIL_CUSTOMER_MILESTONE.md`.
+- Ruling: select Mark for coherent Retail depth after Kyle returned sparse CRM details. Keep Kyle’s existing product/history path intact. Notes/campaign sources returned no rows for Mark and no matches in supplementary current-owner joins; retain honest empty states rather than copy Wealth content.
+- Ruling: preserve source-assigned Jose activities separately from Kim’s current Account ownership. Recorded Events are historical, not upcoming calendar appointments. UTC editing is explicit; Event duration/WhoId remain fixed under the current update handler. Production create-handler field gaps are documented, not silently promised as supported.
+- Review fixes: retain Life events and logging beside richer goals; label missing/partial balances; consult note source status; exclude source Event operation proposals from the new-meeting planner. Financial property conflict (CRM mortgage/CoreLogic renter) stays visible and property equity is withheld.
+- Next: Milestone 5, Intelligence and Relationship health signal/risk coverage. No production deployment or real CRM writes are implied by these mock milestones.
+
+- Milestone 4 verification: 42 selector tests passed; all four browser suites passed. Customer views were checked at 1512/1024/768/390px, including source-state failure checks and persona isolation. Changed scripts parse, local asset links resolve, and new capture files contain no authentication material. Independent read-only review findings were fixed with regression checks.

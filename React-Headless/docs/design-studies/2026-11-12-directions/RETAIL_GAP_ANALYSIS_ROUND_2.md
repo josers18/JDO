@@ -110,3 +110,7 @@ Milestone 2 now covers the R01/R02 daily-work design with real captured Who-to-C
 ## Milestone 3 update — November 13
 
 R03/R04 now have separate graph introductions and complete Lead source/AnnualRevenue local create/edit/review. R05 adds twelve-customer coverage including three reserved card holders, bounded whole-book movers, held-away/ownership/history evidence and independent CRM outcome counts. R10 adds source-targeted equity/refinance/mortgage/investing needs. These are design workflow coverage; live writes and complete source refresh remain integration-only. See [business-development capture and validation](RETAIL_BUSINESS_MILESTONE.md) for exact scope, source limitations and preserved identities.
+
+## Milestone 4 update — November 13
+
+R07/R11/R12 now have a coherent Mark S Smith Retail capture, financial/transaction and engagement views, goal field/plan preservation, private notebook, and source Task/Event operation proposals. Recorded activity and its assignee are separate from current banker ownership and new-meeting planning. Campaign and saved-note queries returned no rows; those source boundaries remain explicit. See [customer/execution capture and verification](RETAIL_CUSTOMER_MILESTONE.md). Live writes and complete book data remain integration work.
