@@ -7321,6 +7321,8237 @@ globalThis.wealthCaptureData={
       ],
       "limit": null,
       "returnedRows": 2
+    },
+    "anika_transactions": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_transactions",
+      "query": "SELECT ssot__TransactionDate__c dt, ssot__FinancialTransactionCategory__c cat, ssot__FinancialAccountTransactionType__c typ, ssot__TransactionAmount__c amt FROM ssot__FinancialAccountTransaction__dlm WHERE SFAccountID__c = '001am000026ZtgKAAS' ORDER BY ssot__TransactionDate__c DESC LIMIT 12",
+      "limit": 12,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_b079f0f2-622d-451f-9170-e89ae1a99984",
+      "returnedRows": 12,
+      "rows": [
+        {
+          "dt": "2026-11-12T06:56:50+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 30.04
+        },
+        {
+          "dt": "2026-11-11T06:07:20+00:00",
+          "cat": "Shopping",
+          "typ": "Debit",
+          "amt": 89.75
+        },
+        {
+          "dt": "2026-11-09T06:47:45+00:00",
+          "cat": "Bills & Utilities",
+          "typ": "Debit",
+          "amt": 114.85
+        },
+        {
+          "dt": "2026-11-05T06:34:54+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 58.83
+        },
+        {
+          "dt": "2026-11-04T06:02:45+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 37.54
+        },
+        {
+          "dt": "2026-11-03T06:07:43+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 31.79
+        },
+        {
+          "dt": "2026-11-02T06:41:46+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 161.31
+        },
+        {
+          "dt": "2026-11-01T06:47:46+00:00",
+          "cat": "Entertainment",
+          "typ": "Debit",
+          "amt": 15.49
+        },
+        {
+          "dt": "2026-11-01T06:27:23+00:00",
+          "cat": "Paycheck",
+          "typ": "Credit",
+          "amt": 5954.8
+        },
+        {
+          "dt": "2026-10-28T06:29:21+00:00",
+          "cat": "Interest Income",
+          "typ": "Credit",
+          "amt": 1950
+        },
+        {
+          "dt": "2026-10-28T06:13:29+00:00",
+          "cat": "Interest Income",
+          "typ": "Credit",
+          "amt": 3541.67
+        },
+        {
+          "dt": "2026-10-27T06:32:28+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 5.93
+        }
+      ]
+    },
+    "anika_trades": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_trades",
+      "query": "SELECT trade_date__c dt, trade_side__c side, instrument_name__c inst, instrument_identifier__c sym, quantity__c qty, price__c px, total_trade__c tot FROM BT_Financial_Trades__dlm WHERE account_id__c = '001am000026ZtgKAAS' ORDER BY trade_date__c DESC LIMIT 10",
+      "limit": 10,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_1683dd2a-d34c-4a82-91d0-568ea3e9856d",
+      "returnedRows": 10,
+      "rows": [
+        {
+          "dt": "2026-11-09T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Snowflake Inc.",
+          "sym": "SNOW",
+          "qty": 701,
+          "px": 194.64,
+          "tot": 136442.64
+        },
+        {
+          "dt": "2026-11-09T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Safehold Inc. New",
+          "sym": "SAFE",
+          "qty": 2000,
+          "px": 11.85,
+          "tot": 23700
+        },
+        {
+          "dt": "2026-11-09T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Calix, Inc",
+          "sym": "CALX",
+          "qty": 2000,
+          "px": 18.34,
+          "tot": 36680
+        },
+        {
+          "dt": "2026-11-09T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Fidelity National Information Services, Inc.",
+          "sym": "FIS",
+          "qty": 2000,
+          "px": 40.16,
+          "tot": 80320
+        },
+        {
+          "dt": "2026-11-09T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Dollar General Corporation",
+          "sym": "DG",
+          "qty": 81,
+          "px": 266.84,
+          "tot": 21614.04
+        },
+        {
+          "dt": "2026-11-02T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Artisan Partners Asset Management Inc. Class A",
+          "sym": "APAM",
+          "qty": 428,
+          "px": 202.83,
+          "tot": 86811.24
+        },
+        {
+          "dt": "2026-11-02T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Telephone and Data Systems, Inc.",
+          "sym": "TDS",
+          "qty": 2000,
+          "px": 21.28,
+          "tot": 42560
+        },
+        {
+          "dt": "2026-11-02T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Seabridge Gold, Inc. Ordinary Shares (Canada)",
+          "sym": "SA",
+          "qty": 1643,
+          "px": 20.85,
+          "tot": 34256.55
+        },
+        {
+          "dt": "2026-11-02T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Mativ Holdings, Inc.",
+          "sym": "MATV",
+          "qty": 199,
+          "px": 104.48,
+          "tot": 20791.52
+        },
+        {
+          "dt": "2026-11-02T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Union Pacific Corporation",
+          "sym": "UNP",
+          "qty": 333,
+          "px": 213.06,
+          "tot": 70948.98
+        }
+      ]
+    },
+    "anika_interactions": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_interactions",
+      "query": "SELECT CreatedDate__c dt, Name__c nm, InteractionPurpose__c purp, MeetingNotes__c notes, NextSteps__c nxt FROM InteractionSummary_Home__dlm WHERE AccountId__c = '001am000026ZtgKAAS' ORDER BY CreatedDate__c DESC LIMIT 8",
+      "limit": 8,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_8ce6ec33-0338-457c-b986-05331477e8e3",
+      "returnedRows": 8,
+      "rows": [
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Quarterly Check-In",
+          "notes": "Walked through quarterly statement. Client had minor questions about new fee structure; clarified.",
+          "nxt": "Send follow-up email with proposal materials within 48 hours."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Service Request",
+          "notes": "Processed wire transfer authorization. Confirmed fees and exchange rates.",
+          "nxt": "Confirm next meeting date with client and add to calendar."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Financial Planning",
+          "notes": "Estate planning consultation. Will coordinate with attorney and accountant on trust structure.",
+          "nxt": "Update CRM with new contact preferences and communication schedule."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Meet and Greet",
+          "notes": "Met with prospective business banking client. Discussed commercial lending capabilities.",
+          "nxt": "Send updated financial plan and meeting notes to client."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Complaint Resolution",
+          "notes": "Addressed concerns about online banking outage. Provided account credit and apology.",
+          "nxt": "Coordinate with operations to process account changes."
+        },
+        {
+          "dt": "2026-05-12T01:34:49+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Quarterly Check-In",
+          "notes": "Walked through quarterly statement. Client had minor questions about new fee structure; clarified.",
+          "nxt": "Send follow-up email with proposal materials within 48 hours."
+        },
+        {
+          "dt": "2026-05-12T01:34:49+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Service Request",
+          "notes": "Processed wire transfer authorization. Confirmed fees and exchange rates.",
+          "nxt": "Confirm next meeting date with client and add to calendar."
+        },
+        {
+          "dt": "2026-05-12T01:34:49+00:00",
+          "nm": "Summary: Branch Visit - Patel",
+          "purp": "Financial Planning",
+          "notes": "Estate planning consultation. Will coordinate with attorney and accountant on trust structure.",
+          "nxt": "Update CRM with new contact preferences and communication schedule."
+        }
+      ]
+    },
+    "anika_notes": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_notes",
+      "query": "SELECT Date_c__c dt, Title_c__c ttl, Notes_c__c notes FROM Meeting_Note_c_Home__dlm WHERE Account_c__c = '001am000026ZtgKAAS' ORDER BY Date_c__c DESC LIMIT 6",
+      "limit": 6,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_35681a58-c3d8-4953-915b-8765a4f79a36",
+      "returnedRows": 0,
+      "rows": []
+    },
+    "anika_campaigns": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_campaigns",
+      "query": "SELECT Campaign_Name__c nm, Category__c cat, Product_Name__c prod, Email_Action__c act, Send_Date__c dt FROM Marketing_Campaigns__dlm WHERE AccountID__c = '001am000026ZtgKAAS' ORDER BY Send_Date__c DESC LIMIT 8",
+      "limit": 8,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_287394ee-8e68-4c51-857a-519bf70fdf2d",
+      "returnedRows": 0,
+      "rows": []
+    },
+    "anika_screening": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_screening",
+      "query": "SELECT overall_risk_rating__c rating, sanctions_hit__c sanc, pep_hit__c pep, adverse_media_hit__c media, last_screened_at__c dt FROM BT_WorldCheck_AML__dlm WHERE account_id__c = '001am000026ZtgKAAS' ORDER BY profile_date__c DESC LIMIT 1",
+      "limit": 1,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_cb2352e1-a0fd-4d62-ab30-fdcb1304888e",
+      "returnedRows": 1,
+      "rows": [
+        {
+          "rating": "Low",
+          "sanc": false,
+          "pep": false,
+          "media": false,
+          "dt": "2026-11-13T00:00:00+00:00"
+        }
+      ]
+    },
+    "anika_property": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_property",
+      "query": "SELECT estimated_property_value__c val, equity_usd__c eq, outstanding_mortgage_balance__c mtg, heloc_opportunity_score__c heloc, primary_property_type__c ptype, flood_zone_code__c flood, wildfire_risk_score__c fire, is_owner__c owner, profile_quarter__c q FROM BT_Corelogic_Property__dlm WHERE account_id__c = '001am000026ZtgKAAS' ORDER BY profile_quarter__c DESC LIMIT 1",
+      "limit": 1,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_e9c7b220-a743-4c83-9f8e-eeb3d8df52ea",
+      "returnedRows": 1,
+      "rows": [
+        {
+          "val": null,
+          "eq": null,
+          "mtg": null,
+          "heloc": null,
+          "ptype": null,
+          "flood": "X",
+          "fire": 65,
+          "owner": false,
+          "q": "2026-10-01"
+        }
+      ]
+    },
+    "anika_plan": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "anika_plan",
+      "query": "SELECT plan_status__c st, retirement_target_age__c age, monthly_income_target_usd__c inc, total_goal_amount_usd__c goal, goal_count__c gc, recommended_asset_allocation__c alloc, next_review_date__c review, profile_month__c m FROM BT_MoneyGuidePro_Financial_Plans__dlm WHERE account_id__c = '001am000026ZtgKAAS' ORDER BY profile_month__c DESC LIMIT 1",
+      "limit": 1,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_fe2a688d-7e58-4faa-b9c7-7414fc3f407c",
+      "returnedRows": 1,
+      "rows": [
+        {
+          "st": "Draft",
+          "age": 62,
+          "inc": 5055,
+          "goal": 1671798,
+          "gc": 3,
+          "alloc": "Aggressive",
+          "review": "2027-03-15",
+          "m": "2026-11-01"
+        }
+      ]
+    },
+    "julie_plan": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_plan",
+      "query": "SELECT plan_status__c st, retirement_target_age__c age, monthly_income_target_usd__c inc, total_goal_amount_usd__c goal, goal_count__c gc, recommended_asset_allocation__c alloc, next_review_date__c review, profile_month__c m FROM BT_MoneyGuidePro_Financial_Plans__dlm WHERE account_id__c = '001am00000qvjsAAAQ' ORDER BY profile_month__c DESC LIMIT 1",
+      "limit": 1,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_ef637ba0-86c6-4578-9ff5-221f84ef7a97",
+      "returnedRows": 1,
+      "rows": [
+        {
+          "st": "Active",
+          "age": 62,
+          "inc": 11231,
+          "goal": 4822758,
+          "gc": 3,
+          "alloc": "Moderate Aggressive",
+          "review": "2027-03-26",
+          "m": "2026-11-01"
+        }
+      ]
+    },
+    "sourcePeriods": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "sourcePeriods",
+      "query": "SELECT 'heldAway' AS source, CAST(MAX(profile_month__c) AS VARCHAR) AS period FROM BT_Plaid_Held_Away__dlm UNION ALL SELECT 'plans', CAST(MAX(profile_month__c) AS VARCHAR) FROM BT_MoneyGuidePro_Financial_Plans__dlm UNION ALL SELECT 'offers', CAST(MAX(start_date__c) AS VARCHAR) FROM BT_Offer_Eligibility_History__dlm",
+      "limit": 100,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_192c51d8-5a65-4229-b1df-e85aece0a8f2",
+      "returnedRows": 3,
+      "rows": [
+        {
+          "source": "heldAway",
+          "period": "2026-11-01"
+        },
+        {
+          "source": "plans",
+          "period": "2026-11-01"
+        },
+        {
+          "source": "offers",
+          "period": "2026-11-01"
+        }
+      ]
+    },
+    "crm_pipelineStages": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "pipelineStages",
+      "query": "SELECT StageName,COUNT(Id) n,SUM(Amount) amount FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false GROUP BY StageName",
+      "rows": [
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Needs Analysis",
+          "n": 5,
+          "amount": 330235
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "KYC / AML",
+          "n": 1,
+          "amount": 2100000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Discovery",
+          "n": 30,
+          "amount": 15862818
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Onboarding",
+          "n": 1,
+          "amount": 150000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Application",
+          "n": 1,
+          "amount": 20000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Interested",
+          "n": 10,
+          "amount": 943234
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Proposal/Price Quote",
+          "n": 1,
+          "amount": 120000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Proposed/Quote",
+          "n": 1,
+          "amount": 2000000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Negotiation/Review",
+          "n": 2,
+          "amount": 805000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Approval",
+          "n": 1,
+          "amount": 500000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Negotiation",
+          "n": 31,
+          "amount": 106023579.42
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Proposal/Quote",
+          "n": 34,
+          "amount": 15267332
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Underwriting",
+          "n": 1,
+          "amount": 3518000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Assessment Needed",
+          "n": 4,
+          "amount": 212000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "DDE",
+          "n": 1,
+          "amount": 35000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Qualification",
+          "n": 82,
+          "amount": 18749919071
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Loan Origination",
+          "n": 1,
+          "amount": 1000000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Verification",
+          "n": 1,
+          "amount": 100000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Initial Due Diligence",
+          "n": 1,
+          "amount": 250000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Closing/Funding",
+          "n": 1,
+          "amount": 3000000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Inerested",
+          "n": 1,
+          "amount": 697000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Value Proposition",
+          "n": 1,
+          "amount": 45000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Prospecting",
+          "n": 16,
+          "amount": 22140943
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Underwriting Review",
+          "n": 2,
+          "amount": 800000
+        },
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "StageName": "Preparation",
+          "n": 1,
+          "amount": 6000000
+        }
+      ],
+      "returnedRows": 25
+    },
+    "crm_gridOpen": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "gridOpen",
+      "query": "SELECT COUNT(Id) n,SUM(Amount) amount FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND LeadSource='Cross-sell grid' AND IsClosed=false",
+      "rows": [
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "n": 0,
+          "amount": null
+        }
+      ],
+      "returnedRows": 1
+    },
+    "crm_gridWon": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "gridWon",
+      "query": "SELECT COUNT(Id) n FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND LeadSource='Cross-sell grid' AND IsWon=true AND CloseDate=LAST_N_DAYS:30",
+      "rows": [
+        {
+          "attributes": {
+            "type": "AggregateResult"
+          },
+          "n": 0
+        }
+      ],
+      "returnedRows": 1
+    },
+    "crm_deepCases": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "deepCases",
+      "query": "SELECT Id,CaseNumber,Subject,Status,Priority,AccountId,OwnerId,CreatedDate FROM Case WHERE AccountId IN ('001am00000qvjsAAAQ','001am000026ZtgKAAS') ORDER BY CreatedDate DESC LIMIT 25",
+      "rows": [
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000y204dAAA"
+          },
+          "Id": "500am00000y204dAAA",
+          "CaseNumber": "00012646",
+          "Subject": "Lost Debit Card",
+          "Status": "New",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PbCLAA0",
+          "CreatedDate": "2026-10-21T14:17:30.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000xeEyNAAU"
+          },
+          "Id": "500am00000xeEyNAAU",
+          "CaseNumber": "00012643",
+          "Subject": "Lost Credit Card While Traveling Abroad - Rush Replacement Needed",
+          "Status": "New",
+          "Priority": "High",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PbCLAA0",
+          "CreatedDate": "2026-10-08T20:58:08.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000xcpSXAAY"
+          },
+          "Id": "500am00000xcpSXAAY",
+          "CaseNumber": "00012642",
+          "Subject": "Lost Credit Card - Replacement Requested (RUSH)",
+          "Status": "New",
+          "Priority": "High",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PbCLAA0",
+          "CreatedDate": "2026-10-08T02:14:44.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000x25xhAAA"
+          },
+          "Id": "500am00000x25xhAAA",
+          "CaseNumber": "00012624",
+          "Subject": "Lost Credit Card - Julie E Morris",
+          "Status": "New",
+          "Priority": "High",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PbCLAA0",
+          "CreatedDate": "2026-09-17T16:48:51.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000rHvjKAAS"
+          },
+          "Id": "500am00000rHvjKAAS",
+          "CaseNumber": "00002281",
+          "Subject": "Inbound call with AI Agent — Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-28T23:01:12.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r4qT0AAI"
+          },
+          "Id": "500am00000r4qT0AAI",
+          "CaseNumber": "00002270",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-24T14:26:38.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r3ROYAA2"
+          },
+          "Id": "500am00000r3ROYAA2",
+          "CaseNumber": "00002269",
+          "Subject": "Lost Platinum Visa card",
+          "Status": "New",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "00Gam000003SZioEAG",
+          "CreatedDate": "2026-04-23T22:29:58.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r3RLJAA2"
+          },
+          "Id": "500am00000r3RLJAA2",
+          "CaseNumber": "00002268",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T22:28:13.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2xohAAA"
+          },
+          "Id": "500am00000r2xohAAA",
+          "CaseNumber": "00002267",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T19:47:26.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r32BeAAI"
+          },
+          "Id": "500am00000r32BeAAI",
+          "CaseNumber": "00002266",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T19:25:06.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2jKJAAY"
+          },
+          "Id": "500am00000r2jKJAAY",
+          "CaseNumber": "00002265",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T19:24:31.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2xv8AAA"
+          },
+          "Id": "500am00000r2xv8AAA",
+          "CaseNumber": "00002264",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T19:23:26.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2sXGAAY"
+          },
+          "Id": "500am00000r2sXGAAY",
+          "CaseNumber": "00002263",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T19:17:28.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r30JVAAY"
+          },
+          "Id": "500am00000r30JVAAY",
+          "CaseNumber": "00002262",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T19:09:50.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2reQAAQ"
+          },
+          "Id": "500am00000r2reQAAQ",
+          "CaseNumber": "00002261",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T18:59:57.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2xv7AAA"
+          },
+          "Id": "500am00000r2xv7AAA",
+          "CaseNumber": "00002260",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T18:57:05.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2xOsAAI"
+          },
+          "Id": "500am00000r2xOsAAI",
+          "CaseNumber": "00002259",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am00000Es4bGAAR",
+          "CreatedDate": "2026-04-23T18:55:27.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r2gStAAI"
+          },
+          "Id": "500am00000r2gStAAI",
+          "CaseNumber": "00002258",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T17:58:24.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r0bFZAAY"
+          },
+          "Id": "500am00000r0bFZAAY",
+          "CaseNumber": "00002256",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T03:27:13.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r0XrtAAE"
+          },
+          "Id": "500am00000r0XrtAAE",
+          "CaseNumber": "00002255",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T02:53:17.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000r0MEvAAM"
+          },
+          "Id": "500am00000r0MEvAAM",
+          "CaseNumber": "00002254",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-23T00:32:22.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000qykN3AAI"
+          },
+          "Id": "500am00000qykN3AAI",
+          "CaseNumber": "00002252",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-22T18:17:10.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000qz3RHAAY"
+          },
+          "Id": "500am00000qz3RHAAY",
+          "CaseNumber": "00002251",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-22T18:15:34.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000qzDwrAAE"
+          },
+          "Id": "500am00000qzDwrAAE",
+          "CaseNumber": "00002250",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-22T18:13:08.000+0000"
+        },
+        {
+          "attributes": {
+            "type": "Case",
+            "url": "/services/data/v67.0/sobjects/Case/500am00000qyZxsAAE"
+          },
+          "Id": "500am00000qyZxsAAE",
+          "CaseNumber": "00002249",
+          "Subject": "Inbound Support call with Julie Morris",
+          "Status": "Working",
+          "Priority": "Medium",
+          "AccountId": "001am00000qvjsAAAQ",
+          "OwnerId": "005am000003PYswAAG",
+          "CreatedDate": "2026-04-22T16:41:37.000+0000"
+        }
+      ],
+      "returnedRows": 25
+    },
+    "whitespace_holder0": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "whitespace_holder0",
+      "query": "\n  SELECT t.acct AS acct, t.tot AS tot, b.action_code__c AS code, b.recommended_action_rank__c AS action_rank,\n         b.conversion_probability__c AS conv, b.expected_value_uplift__c AS ev,\n         b.recommended_channels__c AS channels, b.em_probability__c AS em_p, b.cc_probability__c AS cc_p\n  FROM (\n    SELECT account_id__c AS acct, SUM(expected_value_uplift__c) AS tot\n    FROM BT_Offer_Eligibility__dlm\n    WHERE action_code__c IN ('PCHK-ACQ', 'WM-CASH', 'WM-MAS', 'IRA-RTH', 'IRA-ROL', 'MTG-JMB', 'HEL-ACQ')\n      AND recommended_action_rank__c IS NOT NULL AND expected_value_uplift__c > 0\n      AND account_id__c IN ('001am000026ZgO7AAK','001am000026ZtmjAAC','001am000026ZldvAAC','001am000026ZtgJAAS','001am000026ZtgLAAS','001am000026ZtgNAAS','001am000026ZtwPAAS','001am000026ZtgKAAS','001am000026ZtgMAAS')\n    GROUP BY account_id__c\n    ORDER BY tot DESC\n    LIMIT 15\n  ) t\n  JOIN BT_Offer_Eligibility__dlm b ON b.account_id__c = t.acct\n  WHERE b.action_code__c IN ('PCHK-ACQ', 'WM-CASH', 'WM-MAS', 'IRA-RTH', 'IRA-ROL', 'MTG-JMB', 'HEL-ACQ')\n  ORDER BY t.tot DESC",
+      "limit": 15,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_919b2e8d-b7c5-4997-a8e6-1894add27def",
+      "returnedRows": 15,
+      "rows": [
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "WM-CASH",
+          "action_rank": null,
+          "conv": 16.54,
+          "ev": 81.06,
+          "channels": "EM,CC",
+          "em_p": 14.18,
+          "cc_p": 8.97
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "MTG-JMB",
+          "action_rank": null,
+          "conv": 9.39,
+          "ev": 233.5,
+          "channels": "EM,CC",
+          "em_p": 8.05,
+          "cc_p": 5.09
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "HEL-ACQ",
+          "action_rank": null,
+          "conv": 11.11,
+          "ev": 69.69,
+          "channels": "EM,CC",
+          "em_p": 9.53,
+          "cc_p": 6.03
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "IRA-ROL",
+          "action_rank": 1,
+          "conv": 36.15,
+          "ev": 768.59,
+          "channels": "EM,CC",
+          "em_p": 31,
+          "cc_p": 19.61
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "tot": 665.41,
+          "code": "HEL-ACQ",
+          "action_rank": null,
+          "conv": 12.39,
+          "ev": 62.16,
+          "channels": "EM,CC",
+          "em_p": 10.07,
+          "cc_p": 7.27
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "tot": 665.41,
+          "code": "IRA-RTH",
+          "action_rank": 1,
+          "conv": 23.36,
+          "ev": 665.41,
+          "channels": "EM,CC",
+          "em_p": 18.99,
+          "cc_p": 13.71
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "tot": 665.41,
+          "code": "IRA-ROL",
+          "action_rank": null,
+          "conv": 30.24,
+          "ev": 208.16,
+          "channels": "EM,CC",
+          "em_p": 24.58,
+          "cc_p": 17.75
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "tot": 665.41,
+          "code": "MTG-JMB",
+          "action_rank": null,
+          "conv": 7.84,
+          "ev": 172,
+          "channels": "EM,CC",
+          "em_p": 6.37,
+          "cc_p": 4.6
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "tot": 16.23,
+          "code": "MTG-JMB",
+          "action_rank": null,
+          "conv": 8.49,
+          "ev": 150.5,
+          "channels": "EM,CC",
+          "em_p": 6.93,
+          "cc_p": 4.95
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "tot": 16.23,
+          "code": "HEL-ACQ",
+          "action_rank": null,
+          "conv": 10.79,
+          "ev": 41.6,
+          "channels": "EM,CC",
+          "em_p": 8.81,
+          "cc_p": 6.3
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "tot": 16.23,
+          "code": "IRA-RTH",
+          "action_rank": 1,
+          "conv": 14.54,
+          "ev": 16.23,
+          "channels": "EM,CC",
+          "em_p": 11.87,
+          "cc_p": 8.48
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "tot": 16.23,
+          "code": "IRA-ROL",
+          "action_rank": null,
+          "conv": 33.93,
+          "ev": 248.88,
+          "channels": "EM,CC",
+          "em_p": 27.71,
+          "cc_p": 19.8
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "tot": 13.68,
+          "code": "MTG-JMB",
+          "action_rank": null,
+          "conv": 18.41,
+          "ev": 669,
+          "channels": "EM,CC",
+          "em_p": 15.07,
+          "cc_p": 10.71
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "tot": 13.68,
+          "code": "IRA-RTH",
+          "action_rank": 1,
+          "conv": 13.59,
+          "ev": 13.68,
+          "channels": "EM,CC",
+          "em_p": 11.12,
+          "cc_p": 7.9
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "tot": 13.68,
+          "code": "HEL-ACQ",
+          "action_rank": null,
+          "conv": 14.05,
+          "ev": 102.94,
+          "channels": "EM,CC",
+          "em_p": 11.5,
+          "cc_p": 8.17
+        }
+      ]
+    },
+    "whitespace_holder1": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "whitespace_holder1",
+      "query": "\n  SELECT t.acct AS acct, t.tot AS tot, b.action_code__c AS code, b.recommended_action_rank__c AS action_rank,\n         b.conversion_probability__c AS conv, b.expected_value_uplift__c AS ev,\n         b.recommended_channels__c AS channels, b.em_probability__c AS em_p, b.cc_probability__c AS cc_p\n  FROM (\n    SELECT account_id__c AS acct, SUM(expected_value_uplift__c) AS tot\n    FROM BT_Offer_Eligibility__dlm\n    WHERE action_code__c IN ('PCHK-ACQ', 'WM-CASH', 'WM-MAS', 'IRA-RTH', 'IRA-ROL', 'MTG-JMB', 'HEL-ACQ')\n      AND recommended_action_rank__c IS NOT NULL AND expected_value_uplift__c > 0\n      AND account_id__c IN ('001am00000qvjsAAAQ','001am000026ZgO7AAK','001am000026ZtgLAAS','001am000026ZtgNAAS')\n    GROUP BY account_id__c\n    ORDER BY tot DESC\n    LIMIT 15\n  ) t\n  JOIN BT_Offer_Eligibility__dlm b ON b.account_id__c = t.acct\n  WHERE b.action_code__c IN ('PCHK-ACQ', 'WM-CASH', 'WM-MAS', 'IRA-RTH', 'IRA-ROL', 'MTG-JMB', 'HEL-ACQ')\n  ORDER BY t.tot DESC",
+      "limit": 15,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_689cb668-57cc-428f-ba95-7b89aea0eb9b",
+      "returnedRows": 10,
+      "rows": [
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "tot": 1313.63,
+          "code": "HEL-ACQ",
+          "action_rank": 1,
+          "conv": 18.67,
+          "ev": 1256.8,
+          "channels": "EM,CC",
+          "em_p": 12.72,
+          "cc_p": 13.42
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "tot": 1313.63,
+          "code": "MTG-JMB",
+          "action_rank": null,
+          "conv": 8.29,
+          "ev": 120,
+          "channels": "EM,CC",
+          "em_p": 5.65,
+          "cc_p": 5.96
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "tot": 1313.63,
+          "code": "IRA-ROL",
+          "action_rank": null,
+          "conv": 41.17,
+          "ev": 309.76,
+          "channels": "EM,CC",
+          "em_p": 28.06,
+          "cc_p": 29.58
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "tot": 1313.63,
+          "code": "WM-CASH",
+          "action_rank": null,
+          "conv": 20.3,
+          "ev": 104.76,
+          "channels": "EM,CC",
+          "em_p": 13.83,
+          "cc_p": 14.59
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "tot": 1313.63,
+          "code": "PCHK-ACQ",
+          "action_rank": 5,
+          "conv": 14.71,
+          "ev": 56.83,
+          "channels": "EM,CC",
+          "em_p": 10.02,
+          "cc_p": 10.57
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "tot": 1313.63,
+          "code": "WM-MAS",
+          "action_rank": null,
+          "conv": 21.05,
+          "ev": 510.49,
+          "channels": "EM,CC",
+          "em_p": 14.34,
+          "cc_p": 15.13
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "MTG-JMB",
+          "action_rank": null,
+          "conv": 9.39,
+          "ev": 233.5,
+          "channels": "EM,CC",
+          "em_p": 8.05,
+          "cc_p": 5.09
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "IRA-ROL",
+          "action_rank": 1,
+          "conv": 36.15,
+          "ev": 768.59,
+          "channels": "EM,CC",
+          "em_p": 31,
+          "cc_p": 19.61
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "WM-CASH",
+          "action_rank": null,
+          "conv": 16.54,
+          "ev": 81.06,
+          "channels": "EM,CC",
+          "em_p": 14.18,
+          "cc_p": 8.97
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "tot": 768.59,
+          "code": "HEL-ACQ",
+          "action_rank": null,
+          "conv": 11.11,
+          "ev": 69.69,
+          "channels": "EM,CC",
+          "em_p": 9.53,
+          "cc_p": 6.03
+        }
+      ]
+    },
+    "whitespace_history": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "whitespace_history",
+      "query": "\n  SELECT account_id__c AS acct, action_code__c AS code, CAST(start_date__c AS VARCHAR) AS mo,\n         conversion_probability__c AS conv,\n         conversion_probability__c - FIRST_VALUE(conversion_probability__c)\n           OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS moved,\n         expected_value_uplift__c - FIRST_VALUE(expected_value_uplift__c)\n           OVER (PARTITION BY account_id__c, action_code__c ORDER BY start_date__c) AS ev_moved\n  FROM BT_Offer_Eligibility_History__dlm\n  WHERE start_date__c >= (SELECT MAX(start_date__c) FROM BT_Offer_Eligibility_History__dlm) - INTERVAL '6' MONTH\n    AND account_id__c IN ('001am000026ZtgIAAS', '001am00000qvjsAAAQ', '001am000026ZtgNAAS', '001am000026ZtgJAAS', '001am000026ZtgKAAS', '001am000026ZtgMAAS', '001am000026ZgO7AAK', '001am000026ZtmjAAC', '001am000026ZldvAAC', '001am000026ZtgLAAS', '001am000026ZtwPAAS')\n    AND action_code__c IN ('PCHK-ACQ', 'WM-CASH', 'WM-MAS', 'IRA-RTH', 'IRA-ROL', 'MTG-JMB', 'HEL-ACQ')\n  ORDER BY acct, code, mo",
+      "limit": 2000,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_cd749ea8-3a40-4142-b319-dbe41b6ad53c",
+      "returnedRows": 224,
+      "rows": [
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "HEL-ACQ",
+          "mo": "2026-05-01",
+          "conv": 18.84,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "HEL-ACQ",
+          "mo": "2026-06-01",
+          "conv": 18.81,
+          "moved": -0.03,
+          "ev_moved": -1.41
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "HEL-ACQ",
+          "mo": "2026-07-01",
+          "conv": 18.2,
+          "moved": -0.64,
+          "ev_moved": 1097.57
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "HEL-ACQ",
+          "mo": "2026-08-01",
+          "conv": 18.8,
+          "moved": -0.04,
+          "ev_moved": 1174.77
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "HEL-ACQ",
+          "mo": "2026-09-01",
+          "conv": 18.24,
+          "moved": -0.6,
+          "ev_moved": 1102.71
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "HEL-ACQ",
+          "mo": "2026-10-01",
+          "conv": 18.1,
+          "moved": -0.74,
+          "ev_moved": 530.93
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "HEL-ACQ",
+          "mo": "2026-11-01",
+          "conv": 18.67,
+          "moved": -0.17,
+          "ev_moved": 581.21
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "IRA-ROL",
+          "mo": "2026-05-01",
+          "conv": 40.74,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "IRA-ROL",
+          "mo": "2026-06-01",
+          "conv": 41.42,
+          "moved": 0.68,
+          "ev_moved": 5.44
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "IRA-ROL",
+          "mo": "2026-07-01",
+          "conv": 40.51,
+          "moved": -0.23,
+          "ev_moved": -1.84
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "IRA-ROL",
+          "mo": "2026-08-01",
+          "conv": 40.56,
+          "moved": -0.18,
+          "ev_moved": -1.44
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "IRA-ROL",
+          "mo": "2026-09-01",
+          "conv": 40.68,
+          "moved": -0.06,
+          "ev_moved": -0.48
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "IRA-ROL",
+          "mo": "2026-10-01",
+          "conv": 40.78,
+          "moved": 0.04,
+          "ev_moved": 0.32
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "IRA-ROL",
+          "mo": "2026-11-01",
+          "conv": 41.17,
+          "moved": 0.43,
+          "ev_moved": 3.44
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "MTG-JMB",
+          "mo": "2026-05-01",
+          "conv": 8.71,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "MTG-JMB",
+          "mo": "2026-06-01",
+          "conv": 7.75,
+          "moved": -0.96,
+          "ev_moved": -48
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "MTG-JMB",
+          "mo": "2026-07-01",
+          "conv": 8.88,
+          "moved": 0.17,
+          "ev_moved": 8.5
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "MTG-JMB",
+          "mo": "2026-08-01",
+          "conv": 8.17,
+          "moved": -0.54,
+          "ev_moved": -27
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "MTG-JMB",
+          "mo": "2026-09-01",
+          "conv": 8.08,
+          "moved": -0.63,
+          "ev_moved": -31.5
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "MTG-JMB",
+          "mo": "2026-10-01",
+          "conv": 8.92,
+          "moved": 0.21,
+          "ev_moved": 10.5
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "MTG-JMB",
+          "mo": "2026-11-01",
+          "conv": 8.29,
+          "moved": -0.42,
+          "ev_moved": -21
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "PCHK-ACQ",
+          "mo": "2026-05-01",
+          "conv": 14.13,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "PCHK-ACQ",
+          "mo": "2026-06-01",
+          "conv": 14.77,
+          "moved": 0.64,
+          "ev_moved": 3.56
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "PCHK-ACQ",
+          "mo": "2026-07-01",
+          "conv": 14.41,
+          "moved": 0.28,
+          "ev_moved": 1.56
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "PCHK-ACQ",
+          "mo": "2026-08-01",
+          "conv": 14.35,
+          "moved": 0.22,
+          "ev_moved": 1.22
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "PCHK-ACQ",
+          "mo": "2026-09-01",
+          "conv": 14.62,
+          "moved": 0.49,
+          "ev_moved": 2.72
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "PCHK-ACQ",
+          "mo": "2026-10-01",
+          "conv": 13.76,
+          "moved": -0.37,
+          "ev_moved": -2.05
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "PCHK-ACQ",
+          "mo": "2026-11-01",
+          "conv": 14.71,
+          "moved": 0.58,
+          "ev_moved": 3.22
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-CASH",
+          "mo": "2026-05-01",
+          "conv": 20.46,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-CASH",
+          "mo": "2026-06-01",
+          "conv": 20.72,
+          "moved": 0.26,
+          "ev_moved": 1.73
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-CASH",
+          "mo": "2026-07-01",
+          "conv": 20.08,
+          "moved": -0.38,
+          "ev_moved": -2.53
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-CASH",
+          "mo": "2026-08-01",
+          "conv": 20.26,
+          "moved": -0.2,
+          "ev_moved": -1.33
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-CASH",
+          "mo": "2026-09-01",
+          "conv": 20.44,
+          "moved": -0.02,
+          "ev_moved": -0.14
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-CASH",
+          "mo": "2026-10-01",
+          "conv": 20.37,
+          "moved": -0.09,
+          "ev_moved": -0.6
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-CASH",
+          "mo": "2026-11-01",
+          "conv": 20.3,
+          "moved": -0.16,
+          "ev_moved": -1.07
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-MAS",
+          "mo": "2026-05-01",
+          "conv": 21.19,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-MAS",
+          "mo": "2026-06-01",
+          "conv": 21.42,
+          "moved": 0.23,
+          "ev_moved": 7.66
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-MAS",
+          "mo": "2026-07-01",
+          "conv": 20.61,
+          "moved": -0.58,
+          "ev_moved": -19.31
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-MAS",
+          "mo": "2026-08-01",
+          "conv": 20.33,
+          "moved": -0.86,
+          "ev_moved": -28.64
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-MAS",
+          "mo": "2026-09-01",
+          "conv": 20.78,
+          "moved": -0.41,
+          "ev_moved": -13.65
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-MAS",
+          "mo": "2026-10-01",
+          "conv": 20.48,
+          "moved": -0.71,
+          "ev_moved": -23.64
+        },
+        {
+          "acct": "001am00000qvjsAAAQ",
+          "code": "WM-MAS",
+          "mo": "2026-11-01",
+          "conv": 21.05,
+          "moved": -0.14,
+          "ev_moved": -4.66
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-05-01",
+          "conv": 12.97,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-06-01",
+          "conv": 12.55,
+          "moved": -0.42,
+          "ev_moved": -6.66
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-07-01",
+          "conv": 9.12,
+          "moved": -3.85,
+          "ev_moved": -90.89
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-08-01",
+          "conv": 9.35,
+          "moved": -3.62,
+          "ev_moved": -89.05
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-09-01",
+          "conv": 9.1,
+          "moved": -3.87,
+          "ev_moved": -91.05
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-10-01",
+          "conv": 13.34,
+          "moved": 0.37,
+          "ev_moved": 11.58
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-11-01",
+          "conv": 12.97,
+          "moved": 0,
+          "ev_moved": 5.46
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-05-01",
+          "conv": 33.13,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-06-01",
+          "conv": 33.55,
+          "moved": 0.42,
+          "ev_moved": 3.36
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-07-01",
+          "conv": 33.23,
+          "moved": 0.1,
+          "ev_moved": 0.8
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-08-01",
+          "conv": 32.92,
+          "moved": -0.21,
+          "ev_moved": -1.68
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-09-01",
+          "conv": 33.61,
+          "moved": 0.48,
+          "ev_moved": 3.84
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-10-01",
+          "conv": 33.2,
+          "moved": 0.07,
+          "ev_moved": 0.56
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-11-01",
+          "conv": 33.47,
+          "moved": 0.34,
+          "ev_moved": 2.72
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-05-01",
+          "conv": 10.37,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-06-01",
+          "conv": 10.68,
+          "moved": 0.31,
+          "ev_moved": 0.46
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-07-01",
+          "conv": 10.71,
+          "moved": 0.34,
+          "ev_moved": 0.51
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-08-01",
+          "conv": 11.07,
+          "moved": 0.7,
+          "ev_moved": 1.05
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-09-01",
+          "conv": 10.21,
+          "moved": -0.16,
+          "ev_moved": -0.24
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-10-01",
+          "conv": 10.99,
+          "moved": 0.62,
+          "ev_moved": 0.93
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-11-01",
+          "conv": 10.28,
+          "moved": -0.09,
+          "ev_moved": -0.14
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-05-01",
+          "conv": 9.11,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-06-01",
+          "conv": 8.73,
+          "moved": -0.38,
+          "ev_moved": -19
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-07-01",
+          "conv": 9.56,
+          "moved": 0.45,
+          "ev_moved": 22.5
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-08-01",
+          "conv": 9.37,
+          "moved": 0.26,
+          "ev_moved": 13
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-09-01",
+          "conv": 9.72,
+          "moved": 0.61,
+          "ev_moved": 30.5
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-10-01",
+          "conv": 8.04,
+          "moved": -1.07,
+          "ev_moved": -53.5
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-11-01",
+          "conv": 9.57,
+          "moved": 0.46,
+          "ev_moved": 23
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "PCHK-ACQ",
+          "mo": "2026-05-01",
+          "conv": 12.89,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "PCHK-ACQ",
+          "mo": "2026-06-01",
+          "conv": 13.26,
+          "moved": 0.37,
+          "ev_moved": 1.48
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "PCHK-ACQ",
+          "mo": "2026-07-01",
+          "conv": 12.69,
+          "moved": -0.2,
+          "ev_moved": -0.8
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "PCHK-ACQ",
+          "mo": "2026-08-01",
+          "conv": 12.29,
+          "moved": -0.6,
+          "ev_moved": -2.4
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "PCHK-ACQ",
+          "mo": "2026-09-01",
+          "conv": 12.75,
+          "moved": -0.14,
+          "ev_moved": -0.56
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "PCHK-ACQ",
+          "mo": "2026-10-01",
+          "conv": 12.15,
+          "moved": -0.74,
+          "ev_moved": -2.96
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "PCHK-ACQ",
+          "mo": "2026-11-01",
+          "conv": 13.24,
+          "moved": 0.35,
+          "ev_moved": 1.4
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-CASH",
+          "mo": "2026-05-01",
+          "conv": 17.29,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-CASH",
+          "mo": "2026-06-01",
+          "conv": 17.7,
+          "moved": 0.41,
+          "ev_moved": 2.46
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-CASH",
+          "mo": "2026-07-01",
+          "conv": 17.72,
+          "moved": 0.43,
+          "ev_moved": 2.58
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-CASH",
+          "mo": "2026-08-01",
+          "conv": 17.4,
+          "moved": 0.11,
+          "ev_moved": 0.66
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-CASH",
+          "mo": "2026-09-01",
+          "conv": 17.28,
+          "moved": -0.01,
+          "ev_moved": -0.06
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-CASH",
+          "mo": "2026-10-01",
+          "conv": 16.54,
+          "moved": -0.75,
+          "ev_moved": -4.5
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-CASH",
+          "mo": "2026-11-01",
+          "conv": 17.44,
+          "moved": 0.15,
+          "ev_moved": 0.9
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-MAS",
+          "mo": "2026-05-01",
+          "conv": 22.92,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-MAS",
+          "mo": "2026-06-01",
+          "conv": 23.35,
+          "moved": 0.43,
+          "ev_moved": 75.19
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-MAS",
+          "mo": "2026-07-01",
+          "conv": 23.07,
+          "moved": 0.15,
+          "ev_moved": 66.48
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-MAS",
+          "mo": "2026-08-01",
+          "conv": 23.32,
+          "moved": 0.4,
+          "ev_moved": 9.21
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-MAS",
+          "mo": "2026-09-01",
+          "conv": 23.2,
+          "moved": 0.28,
+          "ev_moved": -39.92
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-MAS",
+          "mo": "2026-10-01",
+          "conv": 23.15,
+          "moved": 0.23,
+          "ev_moved": -10.69
+        },
+        {
+          "acct": "001am000026ZtgIAAS",
+          "code": "WM-MAS",
+          "mo": "2026-11-01",
+          "conv": 23.36,
+          "moved": 0.44,
+          "ev_moved": 108.01
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-05-01",
+          "conv": 16.85,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-06-01",
+          "conv": 16.99,
+          "moved": 0.14,
+          "ev_moved": 2.71
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-07-01",
+          "conv": 12.53,
+          "moved": -4.32,
+          "ev_moved": -173.16
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-08-01",
+          "conv": 12.27,
+          "moved": -4.58,
+          "ev_moved": -175.24
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-09-01",
+          "conv": 12.34,
+          "moved": -4.51,
+          "ev_moved": -174.68
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-10-01",
+          "conv": 12.35,
+          "moved": -4.5,
+          "ev_moved": -174.6
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-11-01",
+          "conv": 12.39,
+          "moved": -4.46,
+          "ev_moved": -174.28
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-05-01",
+          "conv": 30.24,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-06-01",
+          "conv": 30.76,
+          "moved": 0.52,
+          "ev_moved": 4.16
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-07-01",
+          "conv": 30.55,
+          "moved": 0.31,
+          "ev_moved": 2.48
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-08-01",
+          "conv": 30.3,
+          "moved": 0.06,
+          "ev_moved": 0.48
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-09-01",
+          "conv": 30.16,
+          "moved": -0.08,
+          "ev_moved": -0.64
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-10-01",
+          "conv": 30.35,
+          "moved": 0.11,
+          "ev_moved": 0.88
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-11-01",
+          "conv": 30.24,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-05-01",
+          "conv": 24.13,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-06-01",
+          "conv": 23.19,
+          "moved": -0.94,
+          "ev_moved": -11.19
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-07-01",
+          "conv": 23.54,
+          "moved": -0.59,
+          "ev_moved": -4.29
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-08-01",
+          "conv": 23.28,
+          "moved": -0.85,
+          "ev_moved": -18.45
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-09-01",
+          "conv": 22.75,
+          "moved": -1.38,
+          "ev_moved": -58.39
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-10-01",
+          "conv": 24.09,
+          "moved": -0.04,
+          "ev_moved": -8.95
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-11-01",
+          "conv": 23.36,
+          "moved": -0.77,
+          "ev_moved": 16.34
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-05-01",
+          "conv": 7.83,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-06-01",
+          "conv": 9.1,
+          "moved": 1.27,
+          "ev_moved": 63.5
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-07-01",
+          "conv": 9.49,
+          "moved": 1.66,
+          "ev_moved": 83
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-08-01",
+          "conv": 9.1,
+          "moved": 1.27,
+          "ev_moved": 63.5
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-09-01",
+          "conv": 8.98,
+          "moved": 1.15,
+          "ev_moved": 57.5
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-10-01",
+          "conv": 7.43,
+          "moved": -0.4,
+          "ev_moved": -20
+        },
+        {
+          "acct": "001am000026ZtgJAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-11-01",
+          "conv": 7.84,
+          "moved": 0.01,
+          "ev_moved": 0.5
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-05-01",
+          "conv": 15.77,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-06-01",
+          "conv": 15.56,
+          "moved": -0.21,
+          "ev_moved": -8.38
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-07-01",
+          "conv": 12.24,
+          "moved": -3.53,
+          "ev_moved": -346.62
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-08-01",
+          "conv": 12.37,
+          "moved": -3.4,
+          "ev_moved": -345.46
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-09-01",
+          "conv": 12.21,
+          "moved": -3.56,
+          "ev_moved": -346.89
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-10-01",
+          "conv": 11,
+          "moved": -4.77,
+          "ev_moved": -363
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-11-01",
+          "conv": 10.79,
+          "moved": -4.98,
+          "ev_moved": -364.68
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-05-01",
+          "conv": 33.98,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-06-01",
+          "conv": 34.45,
+          "moved": 0.47,
+          "ev_moved": 3.76
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-07-01",
+          "conv": 33.9,
+          "moved": -0.08,
+          "ev_moved": -0.64
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-08-01",
+          "conv": 34.07,
+          "moved": 0.09,
+          "ev_moved": 0.72
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-09-01",
+          "conv": 33.68,
+          "moved": -0.3,
+          "ev_moved": -2.4
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-10-01",
+          "conv": 34.03,
+          "moved": 0.05,
+          "ev_moved": 0.4
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-11-01",
+          "conv": 33.93,
+          "moved": -0.05,
+          "ev_moved": -0.4
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-05-01",
+          "conv": 14.84,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-06-01",
+          "conv": 14.76,
+          "moved": -0.08,
+          "ev_moved": -0.12
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-07-01",
+          "conv": 14.75,
+          "moved": -0.09,
+          "ev_moved": -0.13
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-08-01",
+          "conv": 14.26,
+          "moved": -0.58,
+          "ev_moved": -0.87
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-09-01",
+          "conv": 14.11,
+          "moved": -0.73,
+          "ev_moved": -1.09
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-10-01",
+          "conv": 13.96,
+          "moved": -0.88,
+          "ev_moved": -1.32
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-11-01",
+          "conv": 14.54,
+          "moved": -0.3,
+          "ev_moved": -0.45
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-05-01",
+          "conv": 8.31,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-06-01",
+          "conv": 8.13,
+          "moved": -0.18,
+          "ev_moved": -9
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-07-01",
+          "conv": 8.48,
+          "moved": 0.17,
+          "ev_moved": 8.5
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-08-01",
+          "conv": 8.36,
+          "moved": 0.05,
+          "ev_moved": 2.5
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-09-01",
+          "conv": 8.09,
+          "moved": -0.22,
+          "ev_moved": -11
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-10-01",
+          "conv": 7.9,
+          "moved": -0.41,
+          "ev_moved": -20.5
+        },
+        {
+          "acct": "001am000026ZtgKAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-11-01",
+          "conv": 8.49,
+          "moved": 0.18,
+          "ev_moved": 9
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-05-01",
+          "conv": 15.25,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-06-01",
+          "conv": 15.55,
+          "moved": 0.3,
+          "ev_moved": 2.4
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-07-01",
+          "conv": 15.29,
+          "moved": 0.04,
+          "ev_moved": 0.32
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-08-01",
+          "conv": 15.27,
+          "moved": 0.02,
+          "ev_moved": 0.16
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-09-01",
+          "conv": 15.05,
+          "moved": -0.2,
+          "ev_moved": -1.6
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-10-01",
+          "conv": 19.76,
+          "moved": 4.51,
+          "ev_moved": 205.61
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-11-01",
+          "conv": 19.58,
+          "moved": 4.33,
+          "ev_moved": 202.01
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-05-01",
+          "conv": 28.35,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-06-01",
+          "conv": 28.42,
+          "moved": 0.07,
+          "ev_moved": 0.56
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-07-01",
+          "conv": 29.05,
+          "moved": 0.7,
+          "ev_moved": 5.6
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-08-01",
+          "conv": 28.76,
+          "moved": 0.41,
+          "ev_moved": 3.28
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-09-01",
+          "conv": 28.75,
+          "moved": 0.4,
+          "ev_moved": 3.2
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-10-01",
+          "conv": 28.53,
+          "moved": 0.18,
+          "ev_moved": 1.44
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-11-01",
+          "conv": 28.55,
+          "moved": 0.2,
+          "ev_moved": 1.6
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-05-01",
+          "conv": 18.79,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-06-01",
+          "conv": 19.17,
+          "moved": 0.38,
+          "ev_moved": 19
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-07-01",
+          "conv": 18.79,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-08-01",
+          "conv": 17.62,
+          "moved": -1.17,
+          "ev_moved": -58.5
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-09-01",
+          "conv": 18.78,
+          "moved": -0.01,
+          "ev_moved": -0.5
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-10-01",
+          "conv": 19.03,
+          "moved": 0.24,
+          "ev_moved": 12
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-11-01",
+          "conv": 18.75,
+          "moved": -0.04,
+          "ev_moved": -2
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "WM-CASH",
+          "mo": "2026-05-01",
+          "conv": 18.64,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "WM-CASH",
+          "mo": "2026-06-01",
+          "conv": 18.97,
+          "moved": 0.33,
+          "ev_moved": 1.98
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "WM-CASH",
+          "mo": "2026-07-01",
+          "conv": 18.53,
+          "moved": -0.11,
+          "ev_moved": -0.66
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "WM-CASH",
+          "mo": "2026-08-01",
+          "conv": 18.89,
+          "moved": 0.25,
+          "ev_moved": 1.5
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "WM-CASH",
+          "mo": "2026-09-01",
+          "conv": 18.51,
+          "moved": -0.13,
+          "ev_moved": -0.78
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "WM-CASH",
+          "mo": "2026-10-01",
+          "conv": 18.7,
+          "moved": 0.06,
+          "ev_moved": 0.36
+        },
+        {
+          "acct": "001am000026ZtgLAAS",
+          "code": "WM-CASH",
+          "mo": "2026-11-01",
+          "conv": 18.11,
+          "moved": -0.53,
+          "ev_moved": -3.18
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-05-01",
+          "conv": 13.15,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-06-01",
+          "conv": 13.09,
+          "moved": -0.06,
+          "ev_moved": -0.48
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-07-01",
+          "conv": 12.22,
+          "moved": -0.93,
+          "ev_moved": -7.44
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-08-01",
+          "conv": 12.15,
+          "moved": -1,
+          "ev_moved": -8
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-09-01",
+          "conv": 11.98,
+          "moved": -1.17,
+          "ev_moved": -9.36
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-10-01",
+          "conv": 14.12,
+          "moved": 0.97,
+          "ev_moved": 41.85
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-11-01",
+          "conv": 14.05,
+          "moved": 0.9,
+          "ev_moved": 41.02
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-05-01",
+          "conv": 13.4,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-06-01",
+          "conv": 13.81,
+          "moved": 0.41,
+          "ev_moved": 0.61
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-07-01",
+          "conv": 12.81,
+          "moved": -0.59,
+          "ev_moved": -0.89
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-08-01",
+          "conv": 12.96,
+          "moved": -0.44,
+          "ev_moved": -0.66
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-09-01",
+          "conv": 12.41,
+          "moved": -0.99,
+          "ev_moved": -1.49
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-10-01",
+          "conv": 14.07,
+          "moved": 0.67,
+          "ev_moved": 1
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "IRA-RTH",
+          "mo": "2026-11-01",
+          "conv": 13.59,
+          "moved": 0.19,
+          "ev_moved": 0.28
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-05-01",
+          "conv": 19.8,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-06-01",
+          "conv": 20.1,
+          "moved": 0.3,
+          "ev_moved": 15
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-07-01",
+          "conv": 21.1,
+          "moved": 1.3,
+          "ev_moved": 65
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-08-01",
+          "conv": 21,
+          "moved": 1.2,
+          "ev_moved": 60
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-09-01",
+          "conv": 21.56,
+          "moved": 1.76,
+          "ev_moved": 88
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-10-01",
+          "conv": 18.71,
+          "moved": -1.09,
+          "ev_moved": -54.5
+        },
+        {
+          "acct": "001am000026ZtgMAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-11-01",
+          "conv": 18.41,
+          "moved": -1.39,
+          "ev_moved": -69.5
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-05-01",
+          "conv": 8.73,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-06-01",
+          "conv": 8.51,
+          "moved": -0.22,
+          "ev_moved": -1.76
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-07-01",
+          "conv": 8.23,
+          "moved": -0.5,
+          "ev_moved": -4
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-08-01",
+          "conv": 8.56,
+          "moved": -0.17,
+          "ev_moved": -1.36
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-09-01",
+          "conv": 8.48,
+          "moved": -0.25,
+          "ev_moved": -2
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-10-01",
+          "conv": 11.3,
+          "moved": 2.57,
+          "ev_moved": 26.63
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "HEL-ACQ",
+          "mo": "2026-11-01",
+          "conv": 11.11,
+          "moved": 2.38,
+          "ev_moved": 24.97
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-05-01",
+          "conv": 34.87,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-06-01",
+          "conv": 35.23,
+          "moved": 0.36,
+          "ev_moved": 23.93
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-07-01",
+          "conv": 36.03,
+          "moved": 1.16,
+          "ev_moved": 42.31
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-08-01",
+          "conv": 35.59,
+          "moved": 0.72,
+          "ev_moved": 13.4
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-09-01",
+          "conv": 35.76,
+          "moved": 0.89,
+          "ev_moved": -1.3
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-10-01",
+          "conv": 35.46,
+          "moved": 0.59,
+          "ev_moved": 8.53
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "IRA-ROL",
+          "mo": "2026-11-01",
+          "conv": 36.15,
+          "moved": 1.28,
+          "ev_moved": 52.73
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-05-01",
+          "conv": 8.98,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-06-01",
+          "conv": 8.85,
+          "moved": -0.13,
+          "ev_moved": -6.5
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-07-01",
+          "conv": 8.98,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-08-01",
+          "conv": 8.62,
+          "moved": -0.36,
+          "ev_moved": -18
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-09-01",
+          "conv": 9.13,
+          "moved": 0.15,
+          "ev_moved": 7.5
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-10-01",
+          "conv": 8.79,
+          "moved": -0.19,
+          "ev_moved": -9.5
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "MTG-JMB",
+          "mo": "2026-11-01",
+          "conv": 9.39,
+          "moved": 0.41,
+          "ev_moved": 20.5
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "WM-CASH",
+          "mo": "2026-05-01",
+          "conv": 15.99,
+          "moved": 0,
+          "ev_moved": 0
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "WM-CASH",
+          "mo": "2026-06-01",
+          "conv": 15.83,
+          "moved": -0.16,
+          "ev_moved": -0.96
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "WM-CASH",
+          "mo": "2026-07-01",
+          "conv": 16.85,
+          "moved": 0.86,
+          "ev_moved": 5.16
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "WM-CASH",
+          "mo": "2026-08-01",
+          "conv": 16.43,
+          "moved": 0.44,
+          "ev_moved": 2.64
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "WM-CASH",
+          "mo": "2026-09-01",
+          "conv": 16.09,
+          "moved": 0.1,
+          "ev_moved": 0.6
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "WM-CASH",
+          "mo": "2026-10-01",
+          "conv": 17.14,
+          "moved": 1.15,
+          "ev_moved": 6.9
+        },
+        {
+          "acct": "001am000026ZtgNAAS",
+          "code": "WM-CASH",
+          "mo": "2026-11-01",
+          "conv": 16.54,
+          "moved": 0.55,
+          "ev_moved": 3.3
+        }
+      ]
+    },
+    "crm_financialPlans": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "financialPlans",
+      "query": "SELECT Id,Name,AccountId,Account.Name FROM FinancialPlan WHERE Account.OwnerId='005am000003PbCLAA0' AND AccountId IN ('001am00000qvjsAAAQ','001am000026ZtgKAAS') LIMIT 20",
+      "returnedRows": 2,
+      "rows": [
+        {
+          "attributes": {
+            "type": "FinancialPlan",
+            "url": "/services/data/v67.0/sobjects/FinancialPlan/13Qam000000KniwEAC"
+          },
+          "Id": "13Qam000000KniwEAC",
+          "Name": "Philanthropic Impact",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          }
+        },
+        {
+          "attributes": {
+            "type": "FinancialPlan",
+            "url": "/services/data/v67.0/sobjects/FinancialPlan/13Qam000000KnixEAC"
+          },
+          "Id": "13Qam000000KnixEAC",
+          "Name": "Retire with Financial Freedom",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          }
+        }
+      ],
+      "limit": 20
+    },
+    "crm_gridOpportunities": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "gridOpportunities",
+      "query": "SELECT Id,Name,AccountId,OwnerId,LeadSource,StageName,Amount,CloseDate,IsClosed,IsWon FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND LeadSource='Cross-sell grid' AND IsClosed=false LIMIT 201",
+      "returnedRows": 0,
+      "rows": [],
+      "limit": 201
+    },
+    "crm_queueOpportunities": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "queueOpportunities",
+      "query": "SELECT Id,Name,AccountId,Account.Name,Amount,StageName,Probability,CloseDate,IsClosed,OwnerId FROM Opportunity WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false ORDER BY Amount DESC LIMIT 200",
+      "returnedRows": 200,
+      "rows": [
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy6AAF"
+          },
+          "Id": "006am00000LcOy6AAF",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjtXAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+            },
+            "Name": "United Partners"
+          },
+          "Amount": 5257150000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyXAAV"
+          },
+          "Id": "006am00000LcOyXAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjttAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjttAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 4470741000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyZAAV"
+          },
+          "Id": "006am00000LcOyZAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvju6AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvju6AAA"
+            },
+            "Name": "Jim Morris Estate"
+          },
+          "Amount": 3416803000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyMAAV"
+          },
+          "Id": "006am00000LcOyMAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjtuAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtuAAA"
+            },
+            "Name": "IDO House Account"
+          },
+          "Amount": 2008102000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyYAAV"
+          },
+          "Id": "006am00000LcOyYAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvju2AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvju2AAA"
+            },
+            "Name": "Frank Household"
+          },
+          "Amount": 1697721000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyHAAV"
+          },
+          "Id": "006am00000LcOyHAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsXAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsXAAQ"
+            },
+            "Name": "General Utilities"
+          },
+          "Amount": 1112076000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy8AAF"
+          },
+          "Id": "006am00000LcOy8AAF",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjswAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjswAAA"
+            },
+            "Name": "Wellspring, Inc."
+          },
+          "Amount": 141234000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZbFAAX"
+          },
+          "Id": "006am00000KJZbFAAX",
+          "Name": "IDO House Account - Cumulus Syndicated Loan",
+          "AccountId": "001am00000qvjtuAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtuAAA"
+            },
+            "Name": "IDO House Account"
+          },
+          "Amount": 94824697,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyFAAV"
+          },
+          "Id": "006am00000LcOyFAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsTAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsTAAQ"
+            },
+            "Name": "Opportunity Resources Inc"
+          },
+          "Amount": 89774000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyRAAV"
+          },
+          "Id": "006am00000LcOyRAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjspAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjspAAA"
+            },
+            "Name": "Haven Enterprises"
+          },
+          "Amount": 85370000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy5AAF"
+          },
+          "Id": "006am00000LcOy5AAF",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjtqAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtqAAA"
+            },
+            "Name": "Biospan, LLC."
+          },
+          "Amount": 84666000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyPAAV"
+          },
+          "Id": "006am00000LcOyPAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjslAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjslAAA"
+            },
+            "Name": "Permadyne GmbH, LTD"
+          },
+          "Amount": 73950000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy7AAF"
+          },
+          "Id": "006am00000LcOy7AAF",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsaAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsaAAA"
+            },
+            "Name": "Anaco Limited"
+          },
+          "Amount": 56906000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyaAAF"
+          },
+          "Id": "006am00000LcOyaAAF",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjuBAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuBAAQ"
+            },
+            "Name": "Amptech Corporation"
+          },
+          "Amount": 43770000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyJAAV"
+          },
+          "Id": "006am00000LcOyJAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsZAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsZAAQ"
+            },
+            "Name": "Universal Services"
+          },
+          "Amount": 36244000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyNAAV"
+          },
+          "Id": "006am00000LcOyNAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsfAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsfAAA"
+            },
+            "Name": "Homeland Company"
+          },
+          "Amount": 29742000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyCAAV"
+          },
+          "Id": "006am00000LcOyCAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsOAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsOAAQ"
+            },
+            "Name": "Datanet, Inc."
+          },
+          "Amount": 20446000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyOAAV"
+          },
+          "Id": "006am00000LcOyOAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjshAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjshAAA"
+            },
+            "Name": "Open Source Inc."
+          },
+          "Amount": 19765000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJIP8AAP"
+          },
+          "Id": "006am00000KJIP8AAP",
+          "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Business Analyzed Checking - New Business - $16.6M",
+          "AccountId": "001am00000qvjttAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjttAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 16574839,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy9AAF"
+          },
+          "Id": "006am00000LcOy9AAF",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjs5AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs5AAA"
+            },
+            "Name": "Acme Partners"
+          },
+          "Amount": 14975000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOySAAV"
+          },
+          "Id": "006am00000LcOySAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjsqAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsqAAA"
+            },
+            "Name": "Goodman Imports"
+          },
+          "Amount": 13734000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyDAAV"
+          },
+          "Id": "006am00000LcOyDAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjsPAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsPAAQ"
+            },
+            "Name": "Aims Social, Inc."
+          },
+          "Amount": 10591000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyEAAV"
+          },
+          "Id": "006am00000LcOyEAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjsQAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsQAAQ"
+            },
+            "Name": "Universal Containers"
+          },
+          "Amount": 10520000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJKfTAAX"
+          },
+          "Id": "006am00000KJKfTAAX",
+          "Name": "United Technologies Corporation - Cumulus Business Analyzed Checking - New Business - $10.3M",
+          "AccountId": "001am00000qvjtyAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtyAAA"
+            },
+            "Name": "United Technologies Corporation"
+          },
+          "Amount": 10320119,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOybAAF"
+          },
+          "Id": "006am00000LcOybAAF",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjuIAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuIAAQ"
+            },
+            "Name": "Blake Household"
+          },
+          "Amount": 9729000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyWAAV"
+          },
+          "Id": "006am00000LcOyWAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjtsAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtsAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 8234000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ijAAC"
+          },
+          "Id": "006am000005W2ijAAC",
+          "Name": "Harry Gray - Cumulus Business Fundamentals Checking - New Business - $8.0M",
+          "AccountId": "001am00000qvjsHAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsHAAQ"
+            },
+            "Name": "Harry P Gray"
+          },
+          "Amount": 8000000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZOLAA5"
+          },
+          "Id": "006am00000KJZOLAA5",
+          "Name": "CirrusCloud - Cumulus Commercial Real Estate",
+          "AccountId": "001am00000qvjtaAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtaAAA"
+            },
+            "Name": "CirrusCloud"
+          },
+          "Amount": 7880018,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2icAAC"
+          },
+          "Id": "006am000005W2icAAC",
+          "Name": "Will Johnson - Cumulus Business Fundamentals Checking - New Business - $6.0M",
+          "AccountId": "001am00000qvjsIAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsIAAQ"
+            },
+            "Name": "Will H Johnson"
+          },
+          "Amount": 6000000,
+          "StageName": "Preparation",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZY1AAP"
+          },
+          "Id": "006am00000KJZY1AAP",
+          "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Business Term Loan",
+          "AccountId": "001am00000qvjtrAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtrAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 4343200,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZMjAAP"
+          },
+          "Id": "006am00000KJZMjAAP",
+          "Name": "Lazard Middle Market LLC - Cumulus Business Term Loan",
+          "AccountId": "001am00000qvjtYAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtYAAQ"
+            },
+            "Name": "Lazard Middle Market LLC"
+          },
+          "Amount": 4090500,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOr9AAH"
+          },
+          "Id": "006am00000KJOr9AAH",
+          "Name": "CCAnonymous - Cumulus Business Term Loan",
+          "AccountId": "001am00000qvjtVAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtVAAQ"
+            },
+            "Name": "CCAnonymous"
+          },
+          "Amount": 3843300,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2j8AAC"
+          },
+          "Id": "006am000005W2j8AAC",
+          "Name": "Wellspring, Inc. - Cumulus Equipment Loan - Add-On Business - $3.5M",
+          "AccountId": "001am00000qvjswAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjswAAA"
+            },
+            "Name": "Wellspring, Inc."
+          },
+          "Amount": 3518000,
+          "StageName": "Underwriting",
+          "Probability": 50,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOycAAF"
+          },
+          "Id": "006am00000LcOycAAF",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjuJAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuJAAQ"
+            },
+            "Name": "The Blake Family Trust"
+          },
+          "Amount": 3399000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJO4lAAH"
+          },
+          "Id": "006am00000KJO4lAAH",
+          "Name": "United Technologies Corporation - Cumulus Wire Transfers - New Business - $3.1M",
+          "AccountId": "001am00000qvjtyAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtyAAA"
+            },
+            "Name": "United Technologies Corporation"
+          },
+          "Amount": 3051783,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jYAAS"
+          },
+          "Id": "006am000005W2jYAAS",
+          "Name": "AJC Corporation - Cumulus Commercial Real Estate",
+          "AccountId": "001am00000qvjsuAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsuAAA"
+            },
+            "Name": "AJC Corporation"
+          },
+          "Amount": 3000000,
+          "StageName": "Closing/Funding",
+          "Probability": 80,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXuPAAX"
+          },
+          "Id": "006am00000KJXuPAAX",
+          "Name": "Kari Rende - Cumulus Statement Savings - New Business - $2.9M",
+          "AccountId": "001am00000qvjtCAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtCAAQ"
+            },
+            "Name": "Kari H Rende"
+          },
+          "Amount": 2907400,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZWPAA5"
+          },
+          "Id": "006am00000KJZWPAA5",
+          "Name": "Sample Account for Entitlements - Cumulus Equipment Loan",
+          "AccountId": "001am00000qvjtpAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtpAAA"
+            },
+            "Name": "Sample Account for Entitlements"
+          },
+          "Amount": 2871323,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyBAAV"
+          },
+          "Id": "006am00000LcOyBAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjsNAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsNAAQ"
+            },
+            "Name": "Red Studio Designs"
+          },
+          "Amount": 2780000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJWVKAA5"
+          },
+          "Id": "006am00000KJWVKAA5",
+          "Name": "United Technologies Corporation - Cumulus Equipment Loan",
+          "AccountId": "001am00000qvjtyAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtyAAA"
+            },
+            "Name": "United Technologies Corporation"
+          },
+          "Amount": 2509805,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jEAAS"
+          },
+          "Id": "006am000005W2jEAAS",
+          "Name": "Southern Solutions - Cumulus Positive Pay - New Business - $2.1M",
+          "AccountId": "001am00000qvjsUAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsUAAQ"
+            },
+            "Name": "Southern Solutions"
+          },
+          "Amount": 2100000,
+          "StageName": "KYC / AML",
+          "Probability": 50,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iiAAC"
+          },
+          "Id": "006am000005W2iiAAC",
+          "Name": "AJC Corporation - Cumulus Positive Pay",
+          "AccountId": "001am00000qvjsuAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsuAAA"
+            },
+            "Name": "AJC Corporation"
+          },
+          "Amount": 2000000,
+          "StageName": "Proposed/Quote",
+          "Probability": 50,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRtrAAH"
+          },
+          "Id": "006am00000KJRtrAAH",
+          "Name": "Andy Peterson - Cumulus Managed Advisory",
+          "AccountId": "001am00000qvjtSAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtSAAQ"
+            },
+            "Name": "Andy N Peterson"
+          },
+          "Amount": 1866900,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyVAAV"
+          },
+          "Id": "006am00000LcOyVAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjtjAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtjAAA"
+            },
+            "Name": "Morris Household"
+          },
+          "Amount": 1734000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyKAAV"
+          },
+          "Id": "006am00000LcOyKAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsbAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+            },
+            "Name": "Associated Supply Co."
+          },
+          "Amount": 1717000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZxpAAH"
+          },
+          "Id": "006am00000KJZxpAAH",
+          "Name": "Simon Says Legal - Cumulus Business Fundamentals Checking - New Business - $1.6M",
+          "AccountId": "001am00000qvjuGAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuGAAQ"
+            },
+            "Name": "Simon Says Legal"
+          },
+          "Amount": 1644300,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJLQjAAP"
+          },
+          "Id": "006am00000KJLQjAAP",
+          "Name": "CirrusCloud - Cumulus Equipment Loan",
+          "AccountId": "001am00000qvjtaAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtaAAA"
+            },
+            "Name": "CirrusCloud"
+          },
+          "Amount": 1363457,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJQbDAAX"
+          },
+          "Id": "006am00000KJQbDAAX",
+          "Name": "Frederick Simon - Cumulus Business Term Loan - New Business - $1.2M",
+          "AccountId": "001am00000qvjthAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjthAAA"
+            },
+            "Name": "Frederick P Simon"
+          },
+          "Amount": 1238000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOHfAAP"
+          },
+          "Id": "006am00000KJOHfAAP",
+          "Name": "Steve Sutherland - Cumulus Managed Advisory",
+          "AccountId": "001am00000qvjtHAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtHAAQ"
+            },
+            "Name": "Steve B Sutherland"
+          },
+          "Amount": 1233600,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYiPAAX"
+          },
+          "Id": "006am00000KJYiPAAX",
+          "Name": "Mina Passini - Cumulus Everyday Checking - New Business - $1.2M",
+          "AccountId": "001am00000qvjtPAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtPAAQ"
+            },
+            "Name": "Mina K Passini"
+          },
+          "Amount": 1217700,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZGHAA5"
+          },
+          "Id": "006am00000KJZGHAA5",
+          "Name": "Momentum Design - Cumulus Commercial Real Estate",
+          "AccountId": "001am00000qvjsvAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsvAAA"
+            },
+            "Name": "Momentum Design"
+          },
+          "Amount": 1098686,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jFAAS"
+          },
+          "Id": "006am000005W2jFAAS",
+          "Name": "Universal Services - Cumulus Remote Deposit Capture - New Business - $1.0M",
+          "AccountId": "001am00000qvjsZAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsZAAQ"
+            },
+            "Name": "Universal Services"
+          },
+          "Amount": 1000000,
+          "StageName": "Loan Origination",
+          "Probability": 70,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000GJt1BAAT"
+          },
+          "Id": "006am00000GJt1BAAT",
+          "Name": "Julie Morris - Cumulus Statement Savings - New Business - $850K",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 850000,
+          "StageName": "Interested",
+          "Probability": 15,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRU2AAP"
+          },
+          "Id": "006am00000KJRU2AAP",
+          "Name": "Anne Frost - Cumulus 30 Year Fixed Mortgage",
+          "AccountId": "001am00000qvjtTAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtTAAQ"
+            },
+            "Name": "Anne I Frost"
+          },
+          "Amount": 774700,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXOBAA5"
+          },
+          "Id": "006am00000KJXOBAA5",
+          "Name": "Levin Insurance Agency - Cumulus Business Fundamentals Checking - New Business - $757K",
+          "AccountId": "001am00000qvjuDAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuDAAQ"
+            },
+            "Name": "Levin Insurance Agency"
+          },
+          "Amount": 757000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ifAAC"
+          },
+          "Id": "006am000005W2ifAAC",
+          "Name": "Julie Morris - Cumulus High-Yield Savings - New Business - $697K",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 697000,
+          "StageName": "Inerested",
+          "Probability": 15,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYaLAAX"
+          },
+          "Id": "006am00000KJYaLAAX",
+          "Name": "Mike Welch - Cumulus Everyday Checking - New Business - $646K",
+          "AccountId": "001am00000qvjtNAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtNAAQ"
+            },
+            "Name": "Mike W Welch"
+          },
+          "Amount": 646700,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJa2fAAD"
+          },
+          "Id": "006am00000KJa2fAAD",
+          "Name": "The Blake Family Trust - Cumulus Business Term Loan",
+          "AccountId": "001am00000qvjuJAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuJAAQ"
+            },
+            "Name": "The Blake Family Trust"
+          },
+          "Amount": 590900,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJVcUAAX"
+          },
+          "Id": "006am00000KJVcUAAX",
+          "Name": "Bennett Household - Cumulus Equipment Loan",
+          "AccountId": "001am00000qvjtkAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtkAAA"
+            },
+            "Name": "Bennett Household"
+          },
+          "Amount": 524113,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY5hAAH"
+          },
+          "Id": "006am00000KJY5hAAH",
+          "Name": "Jon Allegri - Cumulus 30 Year Fixed Mortgage",
+          "AccountId": "001am00000qvjtDAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtDAAQ"
+            },
+            "Name": "Jon Q Allegri"
+          },
+          "Amount": 500300,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyAAAV"
+          },
+          "Id": "006am00000LcOyAAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsLAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsLAAQ"
+            },
+            "Name": "Morris Roasters, LLC"
+          },
+          "Amount": 500000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jGAAS"
+          },
+          "Id": "006am000005W2jGAAS",
+          "Name": "Advanced Communications - Cumulus Corporate Card - New Business - $500K",
+          "AccountId": "001am00000qvjszAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+            },
+            "Name": "Advanced Communications"
+          },
+          "Amount": 500000,
+          "StageName": "Approval",
+          "Probability": 85,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2joAAC"
+          },
+          "Id": "006am000005W2joAAC",
+          "Name": "Richard Bennett - Cumulus Everyday Checking - New Business - $500K",
+          "AccountId": "001am00000qvjsBAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsBAAQ"
+            },
+            "Name": "Richard F Bennett"
+          },
+          "Amount": 500000,
+          "StageName": "Underwriting Review",
+          "Probability": 30,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZszAAH"
+          },
+          "Id": "006am00000KJZszAAH",
+          "Name": "San Francisco School Board - Cumulus Business Fundamentals Checking - New Business - $496K",
+          "AccountId": "001am00000qvjuEAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuEAAQ"
+            },
+            "Name": "San Francisco School Board"
+          },
+          "Amount": 496000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJWv8AAH"
+          },
+          "Id": "006am00000KJWv8AAH",
+          "Name": "Windy City Non-Profit Board - Cumulus Business Fundamentals Checking - New Business - $472K",
+          "AccountId": "001am00000qvjuFAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuFAAQ"
+            },
+            "Name": "Windy City Non-Profit Board"
+          },
+          "Amount": 472600,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyLAAV"
+          },
+          "Id": "006am00000LcOyLAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjseAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjseAAA"
+            },
+            "Name": "Big Sky & Sons"
+          },
+          "Amount": 429000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Kz8UzAAJ"
+          },
+          "Id": "006am00000Kz8UzAAJ",
+          "Name": "Julie Morris - Cumulus 401k Rollover - New Business - $425K",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 425000,
+          "StageName": "Negotiation/Review",
+          "Probability": 90,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4WAAAZ"
+          },
+          "Id": "006am00000Mm4WAAAZ",
+          "Name": "Green Energy Smart Grid",
+          "AccountId": "001am00002Ce0l4AAB",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l4AAB"
+            },
+            "Name": "Green Energy Co"
+          },
+          "Amount": 380000,
+          "StageName": "Negotiation/Review",
+          "Probability": 90,
+          "CloseDate": "2026-10-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZo9AAH"
+          },
+          "Id": "006am00000KJZo9AAH",
+          "Name": "Morris Family Trust - Cumulus Everyday Checking - New Business - $379K",
+          "AccountId": "001am00000qvju4AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvju4AAA"
+            },
+            "Name": "Morris Family Trust"
+          },
+          "Amount": 379400,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyQAAV"
+          },
+          "Id": "006am00000LcOyQAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsmAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsmAAA"
+            },
+            "Name": "Employnet"
+          },
+          "Amount": 377000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJIP9AAP"
+          },
+          "Id": "006am00000KJIP9AAP",
+          "Name": "Adena Commercial, LLC - Cumulus SBA Loan",
+          "AccountId": "001am00000qvju5AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvju5AAA"
+            },
+            "Name": "Adena Commercial, LLC"
+          },
+          "Amount": 351600,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyIAAV"
+          },
+          "Id": "006am00000LcOyIAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjsYAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsYAAQ"
+            },
+            "Name": "Morpon Brothers"
+          },
+          "Amount": 351000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ibAAC"
+          },
+          "Id": "006am000005W2ibAAC",
+          "Name": "Rachel Morris - Cumulus Statement Savings - Add-On Business - $300K",
+          "AccountId": "001am00000qvjsCAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsCAAQ"
+            },
+            "Name": "Rachel E Morris"
+          },
+          "Amount": 300000,
+          "StageName": "Underwriting Review",
+          "Probability": 30,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJa13AAD"
+          },
+          "Id": "006am00000KJa13AAD",
+          "Name": "Blake Household - Cumulus Corporate Card",
+          "AccountId": "001am00000qvjuIAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuIAAQ"
+            },
+            "Name": "Blake Household"
+          },
+          "Amount": 289200,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOrBAAX"
+          },
+          "Id": "006am00000KJOrBAAX",
+          "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Equipment Loan",
+          "AccountId": "001am00000qvjtrAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtrAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 280800,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyTAAV"
+          },
+          "Id": "006am00000LcOyTAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjstAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjstAAA"
+            },
+            "Name": "Harmon Consulting"
+          },
+          "Amount": 275000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyUAAV"
+          },
+          "Id": "006am00000LcOyUAAV",
+          "Name": "Innovation Pipeline",
+          "AccountId": "001am00000qvjszAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+            },
+            "Name": "Advanced Communications"
+          },
+          "Amount": 264000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZcrAAH"
+          },
+          "Id": "006am00000KJZcrAAH",
+          "Name": "United Semiconductor - Cumulus Payment Processing",
+          "AccountId": "001am00000qvjtzAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtzAAA"
+            },
+            "Name": "United Semiconductor"
+          },
+          "Amount": 257800,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZD3AAP"
+          },
+          "Id": "006am00000KJZD3AAP",
+          "Name": "Summit Resellers - Cumulus Corporate Card",
+          "AccountId": "001am00000qvjscAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjscAAA"
+            },
+            "Name": "Summit Resellers"
+          },
+          "Amount": 254500,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W6AAJ"
+          },
+          "Id": "006am00000Mm4W6AAJ",
+          "Name": "Global Industries ERP Integration",
+          "AccountId": "001am00002Ce0l0AAB",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l0AAB"
+            },
+            "Name": "Global Industries"
+          },
+          "Amount": 250000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-09-15",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iRAAS"
+          },
+          "Id": "006am000005W2iRAAS",
+          "Name": "Acme Partners - Cumulus Sweep Account - New Business - $250K",
+          "AccountId": "001am00000qvjs5AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs5AAA"
+            },
+            "Name": "Acme Partners"
+          },
+          "Amount": 250000,
+          "StageName": "Initial Due Diligence",
+          "Probability": 35,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOrAAAX"
+          },
+          "Id": "006am00000KJOrAAAX",
+          "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus SBA Loan",
+          "AccountId": "001am00000qvjtnAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtnAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 235400,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXSzAAP"
+          },
+          "Id": "006am00000KJXSzAAP",
+          "Name": "Heath Axworth - Cumulus 12Mo CD Renewal",
+          "AccountId": "001am00000qvjt1AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt1AAA"
+            },
+            "Name": "Heath C Axworth"
+          },
+          "Amount": 224400,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYAXAA5"
+          },
+          "Id": "006am00000KJYAXAA5",
+          "Name": "Niki Sullivan - Cumulus HELOC",
+          "AccountId": "001am00000qvjtEAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtEAAQ"
+            },
+            "Name": "Niki V Sullivan"
+          },
+          "Amount": 216200,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZ6bAAH"
+          },
+          "Id": "006am00000KJZ6bAAH",
+          "Name": "Christian Wolff - Cumulus 12Mo CD Renewal",
+          "AccountId": "001am00000qvjtiAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtiAAA"
+            },
+            "Name": "Christian A Wolff"
+          },
+          "Amount": 215000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXkjAAH"
+          },
+          "Id": "006am00000KJXkjAAH",
+          "Name": "Mark Smith - Cumulus HELOC",
+          "AccountId": "001am00000qvjt7AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt7AAA"
+            },
+            "Name": "Mark S Smith"
+          },
+          "Amount": 206000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJN2EAAX"
+          },
+          "Id": "006am00000KJN2EAAX",
+          "Name": "Heath Axworth - Cumulus HELOC",
+          "AccountId": "001am00000qvjt1AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt1AAA"
+            },
+            "Name": "Heath C Axworth"
+          },
+          "Amount": 203600,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXb3AAH"
+          },
+          "Id": "006am00000KJXb3AAH",
+          "Name": "Gabe Hoskins - Cumulus 12Mo CD Renewal",
+          "AccountId": "001am00000qvjt4AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt4AAA"
+            },
+            "Name": "Gabe X Hoskins"
+          },
+          "Amount": 200600,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZeTAAX"
+          },
+          "Id": "006am00000KJZeTAAX",
+          "Name": "United Semiconductor - Cumulus SBA Loan",
+          "AccountId": "001am00000qvjtzAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtzAAA"
+            },
+            "Name": "United Semiconductor"
+          },
+          "Amount": 194900,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXj7AAH"
+          },
+          "Id": "006am00000KJXj7AAH",
+          "Name": "Mark Smith - Cumulus 12Mo CD Renewal",
+          "AccountId": "001am00000qvjt7AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt7AAA"
+            },
+            "Name": "Mark S Smith"
+          },
+          "Amount": 194200,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyGAAV"
+          },
+          "Id": "006am00000LcOyGAAV",
+          "Name": "Revenue Diversification",
+          "AccountId": "001am00000qvjsUAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsUAAQ"
+            },
+            "Name": "Southern Solutions"
+          },
+          "Amount": 158000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ieAAC"
+          },
+          "Id": "006am000005W2ieAAC",
+          "Name": "Alex Cooper - Cumulus Everyday Checking - New Client - $150K",
+          "AccountId": "001am00000qvjtbAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtbAAA"
+            },
+            "Name": "Alex E Cooper"
+          },
+          "Amount": 150000,
+          "StageName": "Onboarding",
+          "Probability": 95,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W7AAJ"
+          },
+          "Id": "006am00000Mm4W7AAJ",
+          "Name": "Bright Horizon EMR System",
+          "AccountId": "001am00002Ce0l1AAB",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l1AAB"
+            },
+            "Name": "Bright Horizon Health"
+          },
+          "Amount": 150000,
+          "StageName": "Needs Analysis",
+          "Probability": 35,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000GCsGMAA1"
+          },
+          "Id": "006am00000GCsGMAA1",
+          "Name": "Julie Morris - Cumulus Personal Loan - New Business - $150K",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 150000,
+          "StageName": "Needs Analysis",
+          "Probability": 35,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYVVAA5"
+          },
+          "Id": "006am00000KJYVVAA5",
+          "Name": "Tammy Baxter - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtLAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtLAAQ"
+            },
+            "Name": "Tammy Z Baxter"
+          },
+          "Amount": 136100,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY7JAAX"
+          },
+          "Id": "006am00000KJY7JAAX",
+          "Name": "Niki Sullivan - Cumulus 12Mo CD Renewal",
+          "AccountId": "001am00000qvjtEAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtEAAQ"
+            },
+            "Name": "Niki V Sullivan"
+          },
+          "Amount": 134300,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jBAAS"
+          },
+          "Id": "006am000005W2jBAAS",
+          "Name": "Associated Supply Co. - Cumulus Merchant Integration - Add-On Business - $121K",
+          "AccountId": "001am00000qvjsbAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+            },
+            "Name": "Associated Supply Co."
+          },
+          "Amount": 121000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W9AAJ"
+          },
+          "Id": "006am00000Mm4W9AAJ",
+          "Name": "Summit Financial Analytics",
+          "AccountId": "001am00002Ce0l3AAB",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l3AAB"
+            },
+            "Name": "Summit Financial"
+          },
+          "Amount": 120000,
+          "StageName": "Proposal/Price Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iSAAS"
+          },
+          "Id": "006am000005W2iSAAS",
+          "Name": "Permadyne GmbH, LTD - Cumulus Corporate Card - Add-On Business - $116K",
+          "AccountId": "001am00000qvjslAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjslAAA"
+            },
+            "Name": "Permadyne GmbH, LTD"
+          },
+          "Amount": 116000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-19",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY8vAAH"
+          },
+          "Id": "006am00000KJY8vAAH",
+          "Name": "Niki Sullivan - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtEAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtEAAQ"
+            },
+            "Name": "Niki V Sullivan"
+          },
+          "Amount": 115500,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jMAAS"
+          },
+          "Id": "006am000005W2jMAAS",
+          "Name": "Permadyne GmbH, LTD - Cumulus Business Term Loan - Add-On Business - $114K",
+          "AccountId": "001am00000qvjslAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjslAAA"
+            },
+            "Name": "Permadyne GmbH, LTD"
+          },
+          "Amount": 114000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-10-24",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRU3AAP"
+          },
+          "Id": "006am00000KJRU3AAP",
+          "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Corporate Card",
+          "AccountId": "001am00000qvjtsAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtsAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 112900,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jLAAS"
+          },
+          "Id": "006am000005W2jLAAS",
+          "Name": "UlyssesNet - Cumulus Lockbox Services - Add-On Business - $112K",
+          "AccountId": "001am00000qvjskAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjskAAA"
+            },
+            "Name": "UlyssesNet"
+          },
+          "Amount": 112000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-10-17",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iYAAS"
+          },
+          "Id": "006am000005W2iYAAS",
+          "Name": "Assurity Corporation - Cumulus Business Analyzed Checking - New Business - $110K",
+          "AccountId": "001am00000qvjtvAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtvAAA"
+            },
+            "Name": "Assurity Corporation"
+          },
+          "Amount": 110000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-10-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jCAAS"
+          },
+          "Id": "006am000005W2jCAAS",
+          "Name": "Goodman Imports - Cumulus Corporate Card - New Business - $110K",
+          "AccountId": "001am00000qvjsqAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsqAAA"
+            },
+            "Name": "Goodman Imports"
+          },
+          "Amount": 110000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jXAAS"
+          },
+          "Id": "006am000005W2jXAAS",
+          "Name": "Vand Enterprises, Inc. - Cumulus Corporate Card - Services - $109K",
+          "AccountId": "001am00000qvjsyAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsyAAA"
+            },
+            "Name": "Vand Enterprises, Inc."
+          },
+          "Amount": 109999.42,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-10",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jKAAS"
+          },
+          "Id": "006am000005W2jKAAS",
+          "Name": "Missoula & Sons Inc. - Cumulus Payment Processing - New Business - $109K",
+          "AccountId": "001am00000qvjsVAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsVAAQ"
+            },
+            "Name": "Missoula & Sons Inc."
+          },
+          "Amount": 109000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-10-17",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iqAAC"
+          },
+          "Id": "006am000005W2iqAAC",
+          "Name": "UlyssesNet - Cumulus ACH Services - Services - $100K",
+          "AccountId": "001am00000qvjskAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjskAAA"
+            },
+            "Name": "UlyssesNet"
+          },
+          "Amount": 100000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-11-16",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iZAAS"
+          },
+          "Id": "006am000005W2iZAAS",
+          "Name": "Charlie Ellis - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjsDAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsDAAQ"
+            },
+            "Name": "Charlie T Ellis"
+          },
+          "Amount": 100000,
+          "StageName": "Verification",
+          "Probability": 50,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iLAAS"
+          },
+          "Id": "006am000005W2iLAAS",
+          "Name": "Aims Social, Inc. - Cumulus Corporate Card - New Business - $99K",
+          "AccountId": "001am00000qvjsPAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsPAAQ"
+            },
+            "Name": "Aims Social, Inc."
+          },
+          "Amount": 99000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ihAAC"
+          },
+          "Id": "006am000005W2ihAAC",
+          "Name": "Goldfinch Bicycles - Cumulus ACH Services",
+          "AccountId": "001am00000qvjsEAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsEAAQ"
+            },
+            "Name": "Goldfinch Bicycles"
+          },
+          "Amount": 98300,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ilAAC"
+          },
+          "Id": "006am000005W2ilAAC",
+          "Name": "Julie Morris - Cumulus Auto Loan - New Business - $98K",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 98000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jIAAS"
+          },
+          "Id": "006am000005W2jIAAS",
+          "Name": "Roseburg Products - Cumulus Corporate Card - Add-On Business - $90K",
+          "AccountId": "001am00000qvjsrAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsrAAA"
+            },
+            "Name": "Roseburg Products"
+          },
+          "Amount": 90000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-10",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYIbAAP"
+          },
+          "Id": "006am00000KJYIbAAP",
+          "Name": "Benjamin Young - Cumulus 529 Plan",
+          "AccountId": "001am00000qvjtIAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtIAAQ"
+            },
+            "Name": "Benjamin A Young"
+          },
+          "Amount": 89400,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRKMAA5"
+          },
+          "Id": "006am00000KJRKMAA5",
+          "Name": "Nicole Grace - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtJAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtJAAQ"
+            },
+            "Name": "Nicole C Grace"
+          },
+          "Amount": 89400,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYKDAA5"
+          },
+          "Id": "006am00000KJYKDAA5",
+          "Name": "Nicole Grace - Cumulus HELOC",
+          "AccountId": "001am00000qvjtJAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtJAAQ"
+            },
+            "Name": "Nicole C Grace"
+          },
+          "Amount": 86900,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jNAAS"
+          },
+          "Id": "006am000005W2jNAAS",
+          "Name": "Haven Enterprises - Cumulus Payment Processing - Add-On Business - $84K",
+          "AccountId": "001am00000qvjspAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjspAAA"
+            },
+            "Name": "Haven Enterprises"
+          },
+          "Amount": 84000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-10-12",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iUAAS"
+          },
+          "Id": "006am000005W2iUAAS",
+          "Name": "Advanced Communications - Cumulus Commercial Real Estate - Services - $80K",
+          "AccountId": "001am00000qvjszAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+            },
+            "Name": "Advanced Communications"
+          },
+          "Amount": 80000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-10",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYX7AAP"
+          },
+          "Id": "006am00000KJYX7AAP",
+          "Name": "Tammy Baxter - Cumulus HELOC",
+          "AccountId": "001am00000qvjtLAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtLAAQ"
+            },
+            "Name": "Tammy Z Baxter"
+          },
+          "Amount": 78200,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYyXAAX"
+          },
+          "Id": "006am00000KJYyXAAX",
+          "Name": "Olivia Blake - Cumulus 12Mo CD Renewal",
+          "AccountId": "001am00000qvjtfAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtfAAA"
+            },
+            "Name": "Olivia I Blake"
+          },
+          "Amount": 77300,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jqAAC"
+          },
+          "Id": "006am000005W2jqAAC",
+          "Name": "Morpon Brothers - Cumulus Business Term Loan - New Business - $75K",
+          "AccountId": "001am00000qvjsYAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsYAAQ"
+            },
+            "Name": "Morpon Brothers"
+          },
+          "Amount": 75000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-09-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W5AAJ"
+          },
+          "Id": "006am00000Mm4W5AAJ",
+          "Name": "Acme Platform Upgrade",
+          "AccountId": "001am00002Ce0kzAAB",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0kzAAB"
+            },
+            "Name": "Acme Corp"
+          },
+          "Amount": 75000,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-06-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXhWAAX"
+          },
+          "Id": "006am00000KJXhWAAX",
+          "Name": "Jim Morris Estate - Cumulus Payment Processing",
+          "AccountId": "001am00000qvju6AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvju6AAA"
+            },
+            "Name": "Jim Morris Estate"
+          },
+          "Amount": 75000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iIAAS"
+          },
+          "Id": "006am000005W2iIAAS",
+          "Name": "Open Source Inc. - Cumulus Positive Pay - Services - $72K",
+          "AccountId": "001am00000qvjshAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjshAAA"
+            },
+            "Name": "Open Source Inc."
+          },
+          "Amount": 72000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-09-27",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYDlAAP"
+          },
+          "Id": "006am00000KJYDlAAP",
+          "Name": "Bob Warkentine - Cumulus HELOC",
+          "AccountId": "001am00000qvjtGAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtGAAQ"
+            },
+            "Name": "Bob S Warkentine"
+          },
+          "Amount": 70800,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iTAAS"
+          },
+          "Id": "006am000005W2iTAAS",
+          "Name": "Employnet - Cumulus Business Term Loan - New Business - $66K",
+          "AccountId": "001am00000qvjsmAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsmAAA"
+            },
+            "Name": "Employnet"
+          },
+          "Amount": 66000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ioAAC"
+          },
+          "Id": "006am000005W2ioAAC",
+          "Name": "Universal Services - Cumulus Cash Rewards Card - Add-On Business - $65K",
+          "AccountId": "001am00000qvjsZAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsZAAQ"
+            },
+            "Name": "Universal Services"
+          },
+          "Amount": 65000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-11-13",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJV6PAAX"
+          },
+          "Id": "006am00000KJV6PAAX",
+          "Name": "Troy Bullock - Cumulus HELOC",
+          "AccountId": "001am00000qvjtAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtAAAQ"
+            },
+            "Name": "Troy U Bullock"
+          },
+          "Amount": 64700,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2izAAC"
+          },
+          "Id": "006am000005W2izAAC",
+          "Name": "Associated Supply Co. - Cumulus ACH Origination - New Business - $64K",
+          "AccountId": "001am00000qvjsbAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+            },
+            "Name": "Associated Supply Co."
+          },
+          "Amount": 64000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-26",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jrAAC"
+          },
+          "Id": "006am000005W2jrAAC",
+          "Name": "Employnet - Cumulus Business Line of Credit - Services - $64K",
+          "AccountId": "001am00000qvjsmAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsmAAA"
+            },
+            "Name": "Employnet"
+          },
+          "Amount": 64000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-09-10",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jDAAS"
+          },
+          "Id": "006am000005W2jDAAS",
+          "Name": "Green Fields Media - Cumulus Zero Balance Account - Add-On Business - $63K",
+          "AccountId": "001am00000qvjs8AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs8AAA"
+            },
+            "Name": "Green Fields Media"
+          },
+          "Amount": 63000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-10",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXftAAH"
+          },
+          "Id": "006am00000KJXftAAH",
+          "Name": "Robert Simpson - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjt5AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt5AAA"
+            },
+            "Name": "Robert F Simpson"
+          },
+          "Amount": 62100,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jpAAC"
+          },
+          "Id": "006am000005W2jpAAC",
+          "Name": "Tech Labs - Cumulus Zero Balance Account - Add-On Business - $59K",
+          "AccountId": "001am00000qvjsMAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsMAAQ"
+            },
+            "Name": "Tech Labs"
+          },
+          "Amount": 59000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-09-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jHAAS"
+          },
+          "Id": "006am000005W2jHAAS",
+          "Name": "General Utilities - Cumulus Positive Pay - Add-On Business - $58K",
+          "AccountId": "001am00000qvjsXAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsXAAQ"
+            },
+            "Name": "General Utilities"
+          },
+          "Amount": 58000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOHeAAP"
+          },
+          "Id": "006am00000KJOHeAAP",
+          "Name": "Robert Janzen - Cumulus 12Mo CD Renewal",
+          "AccountId": "001am00000qvjt0AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt0AAA"
+            },
+            "Name": "Robert Z Janzen"
+          },
+          "Amount": 55900,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJKZ1AAP"
+          },
+          "Id": "006am00000KJKZ1AAP",
+          "Name": "Peter Houston - Cumulus Auto Loan",
+          "AccountId": "001am00000qvjt9AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt9AAA"
+            },
+            "Name": "Peter K Houston"
+          },
+          "Amount": 55200,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYs5AAH"
+          },
+          "Id": "006am00000KJYs5AAH",
+          "Name": "Jennifer Blake - Cumulus Auto Loan",
+          "AccountId": "001am00000qvjtcAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtcAAA"
+            },
+            "Name": "Jennifer C Blake"
+          },
+          "Amount": 54700,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2irAAC"
+          },
+          "Id": "006am000005W2irAAC",
+          "Name": "Tyconet - Cumulus ACH Origination - Add-On Business - $54K",
+          "AccountId": "001am00000qvjsoAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsoAAA"
+            },
+            "Name": "Tyconet"
+          },
+          "Amount": 54000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-11-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jkAAC"
+          },
+          "Id": "006am000005W2jkAAC",
+          "Name": "United Partners - Cumulus ACH Services - Add-On Business - $53K",
+          "AccountId": "001am00000qvjtXAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+            },
+            "Name": "United Partners"
+          },
+          "Amount": 53000,
+          "StageName": "Assessment Needed",
+          "Probability": 25,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iVAAS"
+          },
+          "Id": "006am000005W2iVAAS",
+          "Name": "United Partners - Cumulus Wire Transfers - Add-On Business - $53K",
+          "AccountId": "001am00000qvjtXAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+            },
+            "Name": "United Partners"
+          },
+          "Amount": 53000,
+          "StageName": "Assessment Needed",
+          "Probability": 25,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jjAAC"
+          },
+          "Id": "006am000005W2jjAAC",
+          "Name": "United Partners - Cumulus Lockbox Services - Add-On Business - $53K",
+          "AccountId": "001am00000qvjtXAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+            },
+            "Name": "United Partners"
+          },
+          "Amount": 53000,
+          "StageName": "Assessment Needed",
+          "Probability": 25,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jlAAC"
+          },
+          "Id": "006am000005W2jlAAC",
+          "Name": "United Partners - Cumulus Positive Pay - Add-On Business - $53K",
+          "AccountId": "001am00000qvjtXAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+            },
+            "Name": "United Partners"
+          },
+          "Amount": 53000,
+          "StageName": "Assessment Needed",
+          "Probability": 25,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jiAAC"
+          },
+          "Id": "006am000005W2jiAAC",
+          "Name": "UlyssesNet - Cumulus Positive Pay - New Business - $52K",
+          "AccountId": "001am00000qvjskAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjskAAA"
+            },
+            "Name": "UlyssesNet"
+          },
+          "Amount": 52000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-10-28",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2inAAC"
+          },
+          "Id": "006am000005W2inAAC",
+          "Name": "Southern Solutions - Cumulus Purchasing Card - Add-On Business - $50K",
+          "AccountId": "001am00000qvjsUAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsUAAQ"
+            },
+            "Name": "Southern Solutions"
+          },
+          "Amount": 50000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-11-16",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZZdAAP"
+          },
+          "Id": "006am00000KJZZdAAP",
+          "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus ACH Services",
+          "AccountId": "001am00000qvjttAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjttAAA"
+            },
+            "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+          },
+          "Amount": 50000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYvJAAX"
+          },
+          "Id": "006am00000KJYvJAAX",
+          "Name": "Stephen Blake - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjteAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjteAAA"
+            },
+            "Name": "Stephen L Blake"
+          },
+          "Amount": 48500,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRkAAAX"
+          },
+          "Id": "006am00000KJRkAAAX",
+          "Name": "Russell Hartman - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjtMAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtMAAQ"
+            },
+            "Name": "Russell B Hartman"
+          },
+          "Amount": 48000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-06",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUdCAAX"
+          },
+          "Id": "006am00000KJUdCAAX",
+          "Name": "Chip Colli - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjtFAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtFAAQ"
+            },
+            "Name": "Chip G Colli"
+          },
+          "Amount": 47700,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJPDsAAP"
+          },
+          "Id": "006am00000KJPDsAAP",
+          "Name": "Nigel Morris - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjsGAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsGAAQ"
+            },
+            "Name": "Nigel E Morris"
+          },
+          "Amount": 47200,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJPX4AAP"
+          },
+          "Id": "006am00000KJPX4AAP",
+          "Name": "Lance Gonzales - Cumulus Auto Loan",
+          "AccountId": "001am00000qvjt3AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt3AAA"
+            },
+            "Name": "Lance U Gonzales"
+          },
+          "Amount": 46000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W8AAJ"
+          },
+          "Id": "006am00000Mm4W8AAJ",
+          "Name": "Cloud Dynamics SaaS Bundle",
+          "AccountId": "001am00002Ce0l2AAB",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l2AAB"
+            },
+            "Name": "Cloud Dynamics"
+          },
+          "Amount": 45000,
+          "StageName": "Value Proposition",
+          "Probability": 50,
+          "CloseDate": "2026-05-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iwAAC"
+          },
+          "Id": "006am000005W2iwAAC",
+          "Name": "XPower - Cumulus Positive Pay - Services - $44K",
+          "AccountId": "001am00000qvjsgAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsgAAA"
+            },
+            "Name": "XPower"
+          },
+          "Amount": 44000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-11-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jnAAC"
+          },
+          "Id": "006am000005W2jnAAC",
+          "Name": "Omega Systems - Cumulus Remote Deposit Capture - New Business - $44K",
+          "AccountId": "001am00000qvjuAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuAAAQ"
+            },
+            "Name": "Omega Systems"
+          },
+          "Amount": 44000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2027-02-19",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJU28AAH"
+          },
+          "Id": "006am00000KJU28AAH",
+          "Name": "Nicole Grace - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjtJAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtJAAQ"
+            },
+            "Name": "Nicole C Grace"
+          },
+          "Amount": 43700,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jsAAC"
+          },
+          "Id": "006am000005W2jsAAC",
+          "Name": "Tyconet - Cumulus ACH Collections - New Business - $41K",
+          "AccountId": "001am00000qvjsoAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsoAAA"
+            },
+            "Name": "Tyconet"
+          },
+          "Amount": 41000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-09-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000OSp8DAAT"
+          },
+          "Id": "006am00000OSp8DAAT",
+          "Name": "Julie E Morris - PL-LOAN-AUT-2026.04 - Opportunity - August 6, 2026",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 40000,
+          "StageName": "Interested",
+          "Probability": 15,
+          "CloseDate": "2026-11-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000OVPZ2AAP"
+          },
+          "Id": "006am00000OVPZ2AAP",
+          "Name": "Julie E Morris - PL-LOAN-AUT-2026.04 - Opportunity - August 7, 2026",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 40000,
+          "StageName": "Interested",
+          "Probability": 15,
+          "CloseDate": "2026-11-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY2UAAX"
+          },
+          "Id": "006am00000KJY2UAAX",
+          "Name": "Karen Wells - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtOAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtOAAQ"
+            },
+            "Name": "Karen L Wells"
+          },
+          "Amount": 39000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZRZAA5"
+          },
+          "Id": "006am00000KJZRZAA5",
+          "Name": "Cooper Household - Cumulus ACH Services",
+          "AccountId": "001am00000qvjtlAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtlAAA"
+            },
+            "Name": "Cooper Household"
+          },
+          "Amount": 36500,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXeHAAX"
+          },
+          "Id": "006am00000KJXeHAAX",
+          "Name": "Robert Simpson - Cumulus Auto Loan",
+          "AccountId": "001am00000qvjt5AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt5AAA"
+            },
+            "Name": "Robert F Simpson"
+          },
+          "Amount": 36500,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2imAAC"
+          },
+          "Id": "006am000005W2imAAC",
+          "Name": "Julie Morris - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjsAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+            },
+            "Name": "Julie E Morris"
+          },
+          "Amount": 35000,
+          "StageName": "DDE",
+          "Probability": 30,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jZAAS"
+          },
+          "Id": "006am000005W2jZAAS",
+          "Name": "Displaytech - Cumulus Payment Processing - Add-On Business - $35K",
+          "AccountId": "001am00000qvjs9AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs9AAA"
+            },
+            "Name": "Displaytech"
+          },
+          "Amount": 35000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-12-11",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jhAAC"
+          },
+          "Id": "006am000005W2jhAAC",
+          "Name": "Associated Supply Co. - Cumulus Equipment Leasing - Services - $33K",
+          "AccountId": "001am00000qvjsbAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+            },
+            "Name": "Associated Supply Co."
+          },
+          "Amount": 33000,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-10-10",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYorAAH"
+          },
+          "Id": "006am00000KJYorAAH",
+          "Name": "Jennifer Blake - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjtcAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtcAAA"
+            },
+            "Name": "Jennifer C Blake"
+          },
+          "Amount": 32600,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYQfAAP"
+          },
+          "Id": "006am00000KJYQfAAP",
+          "Name": "Unknown Customer - Cumulus Auto Loan",
+          "AccountId": "001am00000qvjtKAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtKAAQ"
+            },
+            "Name": "Alex U Garcia"
+          },
+          "Amount": 32300,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-05",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXmLAAX"
+          },
+          "Id": "006am00000KJXmLAAX",
+          "Name": "Mark Smith - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjt7AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt7AAA"
+            },
+            "Name": "Mark S Smith"
+          },
+          "Amount": 31700,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZBRAA5"
+          },
+          "Id": "006am00000KJZBRAA5",
+          "Name": "Salesforce - Cumulus Payment Processing",
+          "AccountId": "001am00000qvjsKAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsKAAQ"
+            },
+            "Name": "Salesforce"
+          },
+          "Amount": 30500,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZ3NAAX"
+          },
+          "Id": "006am00000KJZ3NAAX",
+          "Name": "Connor Blake - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtgAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtgAAA"
+            },
+            "Name": "Connor W Blake"
+          },
+          "Amount": 29300,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYGzAAP"
+          },
+          "Id": "006am00000KJYGzAAP",
+          "Name": "Bob Warkentine - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtGAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtGAAQ"
+            },
+            "Name": "Bob S Warkentine"
+          },
+          "Amount": 28900,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXhVAAX"
+          },
+          "Id": "006am00000KJXhVAAX",
+          "Name": "Mike Garcia - Cumulus Auto Loan",
+          "AccountId": "001am00000qvjt6AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt6AAA"
+            },
+            "Name": "Mike B Garcia"
+          },
+          "Amount": 28700,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXHhAAP"
+          },
+          "Id": "006am00000KJXHhAAP",
+          "Name": "Jack Morris - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjsFAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsFAAQ"
+            },
+            "Name": "Jack Q Morris"
+          },
+          "Amount": 28000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iKAAS"
+          },
+          "Id": "006am000005W2iKAAS",
+          "Name": "Advanced Communications - Cumulus Merchant Integration - Add-On Business - $27K",
+          "AccountId": "001am00000qvjszAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+            },
+            "Name": "Advanced Communications"
+          },
+          "Amount": 27000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-02-24",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ipAAC"
+          },
+          "Id": "006am000005W2ipAAC",
+          "Name": "Allied Technologies - Cumulus Purchasing Card - Add-On Business - $26K",
+          "AccountId": "001am00000qvjsdAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsdAAA"
+            },
+            "Name": "Allied Technologies"
+          },
+          "Amount": 26000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-11-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ivAAC"
+          },
+          "Id": "006am000005W2ivAAC",
+          "Name": "Omega Technologies - Cumulus Business Term Loan - Add-On Business - $25K",
+          "AccountId": "001am00000qvjtoAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtoAAA"
+            },
+            "Name": "Omega Technologies"
+          },
+          "Amount": 25000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-11-16",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXOAAA5"
+          },
+          "Id": "006am00000KJXOAAA5",
+          "Name": "Jim Morris Estate - Cumulus ACH Origination",
+          "AccountId": "001am00000qvju6AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvju6AAA"
+            },
+            "Name": "Jim Morris Estate"
+          },
+          "Amount": 25000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ikAAC"
+          },
+          "Id": "006am000005W2ikAAC",
+          "Name": "Ace Accounting - Cumulus Business Fundamentals Checking - New Business - $25K",
+          "AccountId": "001am00000qvjtxAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtxAAA"
+            },
+            "Name": "Ace Accounting"
+          },
+          "Amount": 25000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXPlAAP"
+          },
+          "Id": "006am00000KJXPlAAP",
+          "Name": "Heath Axworth - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjt1AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt1AAA"
+            },
+            "Name": "Heath C Axworth"
+          },
+          "Amount": 24800,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYP3AAP"
+          },
+          "Id": "006am00000KJYP3AAP",
+          "Name": "Unknown Customer - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtKAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtKAAQ"
+            },
+            "Name": "Alex U Garcia"
+          },
+          "Amount": 24300,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXrBAAX"
+          },
+          "Id": "006am00000KJXrBAAX",
+          "Name": "Troy Bullock - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjtAAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtAAAQ"
+            },
+            "Name": "Troy U Bullock"
+          },
+          "Amount": 23000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZ09AAH"
+          },
+          "Id": "006am00000KJZ09AAH",
+          "Name": "Olivia Blake - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjtfAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtfAAA"
+            },
+            "Name": "Olivia I Blake"
+          },
+          "Amount": 22000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXKvAAP"
+          },
+          "Id": "006am00000KJXKvAAP",
+          "Name": "Nigel Morris - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjsGAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsGAAQ"
+            },
+            "Name": "Nigel E Morris"
+          },
+          "Amount": 21800,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUAAAA5"
+          },
+          "Id": "006am00000KJUAAAA5",
+          "Name": "Morris Household - Cumulus ACH Services",
+          "AccountId": "001am00000qvjtjAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtjAAA"
+            },
+            "Name": "Morris Household"
+          },
+          "Amount": 20600,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jcAAC"
+          },
+          "Id": "006am000005W2jcAAC",
+          "Name": "Big Sky & Sons - Cumulus Equipment Loan - Add-On Business - $20K",
+          "AccountId": "001am00000qvjseAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjseAAA"
+            },
+            "Name": "Big Sky & Sons"
+          },
+          "Amount": 20000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-10-15",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iaAAC"
+          },
+          "Id": "006am000005W2iaAAC",
+          "Name": "Rachel Morris - Cumulus Auto Loan",
+          "AccountId": "001am00000qvjsCAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsCAAQ"
+            },
+            "Name": "Rachel E Morris"
+          },
+          "Amount": 20000,
+          "StageName": "Application",
+          "Probability": 10,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jaAAC"
+          },
+          "Id": "006am000005W2jaAAC",
+          "Name": "Open Source Inc. - Cumulus Equipment Loan - New Business - $20K",
+          "AccountId": "001am00000qvjshAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjshAAA"
+            },
+            "Name": "Open Source Inc."
+          },
+          "Amount": 20000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2027-01-18",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJLEwAAP"
+          },
+          "Id": "006am00000KJLEwAAP",
+          "Name": "Jack Morris - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjsFAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsFAAQ"
+            },
+            "Name": "Jack Q Morris"
+          },
+          "Amount": 19400,
+          "StageName": "Negotiation",
+          "Probability": 90,
+          "CloseDate": "2026-08-01",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYqTAAX"
+          },
+          "Id": "006am00000KJYqTAAX",
+          "Name": "Jennifer Blake - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjtcAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtcAAA"
+            },
+            "Name": "Jennifer C Blake"
+          },
+          "Amount": 18900,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-04",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYqUAAX"
+          },
+          "Id": "006am00000KJYqUAAX",
+          "Name": "San Francisco School Board - Cumulus Business Analyzed Checking",
+          "AccountId": "001am00000qvjuEAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuEAAQ"
+            },
+            "Name": "San Francisco School Board"
+          },
+          "Amount": 18900,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUV8AAP"
+          },
+          "Id": "006am00000KJUV8AAP",
+          "Name": "Stacy McNeil - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjtQAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtQAAQ"
+            },
+            "Name": "Stacy L McNeil"
+          },
+          "Amount": 18800,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXzFAAX"
+          },
+          "Id": "006am00000KJXzFAAX",
+          "Name": "Kari Rende - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjtCAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtCAAQ"
+            },
+            "Name": "Kari H Rende"
+          },
+          "Amount": 18800,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-03",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXnxAAH"
+          },
+          "Id": "006am00000KJXnxAAH",
+          "Name": "Robert Weiss - Cumulus Personal Loan",
+          "AccountId": "001am00000qvjt8AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt8AAA"
+            },
+            "Name": "Robert J Weiss"
+          },
+          "Amount": 18500,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-07-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXJJAA5"
+          },
+          "Id": "006am00000KJXJJAA5",
+          "Name": "Jack Morris - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjsFAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsFAAQ"
+            },
+            "Name": "Jack Q Morris"
+          },
+          "Amount": 17600,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ixAAC"
+          },
+          "Id": "006am000005W2ixAAC",
+          "Name": "Big Sky & Sons - Cumulus SBA Loan - New Business - $17K",
+          "AccountId": "001am00000qvjseAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjseAAA"
+            },
+            "Name": "Big Sky & Sons"
+          },
+          "Amount": 17000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-08-29",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2itAAC"
+          },
+          "Id": "006am000005W2itAAC",
+          "Name": "Datanet, Inc. - Cumulus Corporate Card - Add-On Business - $17K",
+          "AccountId": "001am00000qvjsOAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsOAAQ"
+            },
+            "Name": "Datanet, Inc."
+          },
+          "Amount": 17000,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-11-17",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUmsAAH"
+          },
+          "Id": "006am00000KJUmsAAH",
+          "Name": "Robert Janzen - Cumulus Cash Rewards Card",
+          "AccountId": "001am00000qvjt0AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt0AAA"
+            },
+            "Name": "Robert Z Janzen"
+          },
+          "Amount": 16900,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-08-07",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJVSoAAP"
+          },
+          "Id": "006am00000KJVSoAAP",
+          "Name": "Peter Houston - Cumulus 529 Plan",
+          "AccountId": "001am00000qvjt9AAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt9AAA"
+            },
+            "Name": "Peter K Houston"
+          },
+          "Amount": 16800,
+          "StageName": "Discovery",
+          "Probability": 15,
+          "CloseDate": "2026-07-30",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXsnAAH"
+          },
+          "Id": "006am00000KJXsnAAH",
+          "Name": "Mike Malmin - Cumulus Everyday Checking",
+          "AccountId": "001am00000qvjtBAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtBAAQ"
+            },
+            "Name": "Mike Y Malmin"
+          },
+          "Amount": 16100,
+          "StageName": "Prospecting",
+          "Probability": 10,
+          "CloseDate": "2026-07-31",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iuAAC"
+          },
+          "Id": "006am000005W2iuAAC",
+          "Name": "Amptech Corporation - Cumulus Business Line of Credit - Add-On Business - $16K",
+          "AccountId": "001am00000qvjuBAAQ",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuBAAQ"
+            },
+            "Name": "Amptech Corporation"
+          },
+          "Amount": 16000,
+          "StageName": "Qualification",
+          "Probability": 20,
+          "CloseDate": "2026-11-16",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iOAAS"
+          },
+          "Id": "006am000005W2iOAAS",
+          "Name": "Harmon Consulting - Cumulus Business Term Loan - Services - $16K",
+          "AccountId": "001am00000qvjstAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjstAAA"
+            },
+            "Name": "Harmon Consulting"
+          },
+          "Amount": 16000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2027-06-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Opportunity",
+            "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iXAAS"
+          },
+          "Id": "006am000005W2iXAAS",
+          "Name": "Goodman Imports - Cumulus Remote Deposit Capture - Add-On Business - $16K",
+          "AccountId": "001am00000qvjsqAAA",
+          "Account": {
+            "attributes": {
+              "type": "Account",
+              "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsqAAA"
+            },
+            "Name": "Goodman Imports"
+          },
+          "Amount": 16000,
+          "StageName": "Proposal/Quote",
+          "Probability": 75,
+          "CloseDate": "2027-07-02",
+          "IsClosed": false,
+          "OwnerId": "005am000003PbCLAA0"
+        }
+      ],
+      "limit": 200
+    },
+    "crm_queueTasksOverdue": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "queueTasksOverdue",
+      "query": "SELECT Id,Subject,Status,Priority,ActivityDate,WhatId,WhoId,OwnerId FROM Task WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false AND ActivityDate<TODAY ORDER BY ActivityDate DESC LIMIT 15",
+      "returnedRows": 15,
+      "rows": [
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000VD9zhEAD"
+          },
+          "Id": "00Tam00000VD9zhEAD",
+          "Subject": "Speak with Julie Morris about her daughter's 529 account",
+          "Status": "Not Started",
+          "Priority": "Normal",
+          "ActivityDate": "2026-10-19",
+          "WhatId": "001am00000qvjsAAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000UdfoPEAR"
+          },
+          "Id": "00Tam00000UdfoPEAR",
+          "Subject": "Follow up with Julie Morris - Business Loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-10-05",
+          "WhatId": "001am00000qvjsAAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000UPCuLEAX"
+          },
+          "Id": "00Tam00000UPCuLEAX",
+          "Subject": "Follow up with Julie Morris - Business Loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-30",
+          "WhatId": "001am00000qvjsLAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000UNl3OEAT"
+          },
+          "Id": "00Tam00000UNl3OEAT",
+          "Subject": "Follow up with Julie Morris regarding business loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-29",
+          "WhatId": "001am00000qvjsAAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFsfEAF"
+          },
+          "Id": "00Tam00000TzFsfEAF",
+          "Subject": "Insurance Outreach - Alexis S Smith",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-24",
+          "WhatId": null,
+          "WhoId": "003am00000e7Zk8AAE",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFr3EAF"
+          },
+          "Id": "00Tam00000TzFr3EAF",
+          "Subject": "Insurance Outreach - Alexis E Smith",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-24",
+          "WhatId": null,
+          "WhoId": "003am00000e7EhJAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFpREAV"
+          },
+          "Id": "00Tam00000TzFpREAV",
+          "Subject": "Insurance Outreach - Bailey S White",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-24",
+          "WhatId": null,
+          "WhoId": "003am00000e7ZjUAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000Tz3DHEAZ"
+          },
+          "Id": "00Tam00000Tz3DHEAZ",
+          "Subject": "Insurance Outreach - Bailey U White",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-24",
+          "WhatId": null,
+          "WhoId": "003am00000e7EgfAAE",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFmDEAV"
+          },
+          "Id": "00Tam00000TzFmDEAV",
+          "Subject": "Insurance Outreach - Nigel E Morris",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-24",
+          "WhatId": null,
+          "WhoId": "003am000008yOmMAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TyPXVEA3"
+          },
+          "Id": "00Tam00000TyPXVEA3",
+          "Subject": "Follow up with Julie Morris - Business Loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-23",
+          "WhatId": "001am00000qvjsLAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TyLwvEAF"
+          },
+          "Id": "00Tam00000TyLwvEAF",
+          "Subject": "Follow up with Julie Morris - Business Loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-23",
+          "WhatId": "001am00000qvjsAAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000Txj8TEAR"
+          },
+          "Id": "00Tam00000Txj8TEAR",
+          "Subject": "Follow up with Julie Morris - Business Loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-22",
+          "WhatId": "001am00000qvjsAAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TxhBWEAZ"
+          },
+          "Id": "00Tam00000TxhBWEAZ",
+          "Subject": "Follow up with Julie Morris - Business Loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-22",
+          "WhatId": "001am00000qvjsAAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TxaMxEAJ"
+          },
+          "Id": "00Tam00000TxaMxEAJ",
+          "Subject": "Follow up with Julie Morris regarding business loans",
+          "Status": "Not Started",
+          "Priority": "High",
+          "ActivityDate": "2026-09-22",
+          "WhatId": "001am00000qvjsLAAQ",
+          "WhoId": "003am000008yOmCAAU",
+          "OwnerId": "005am000003PbCLAA0"
+        },
+        {
+          "attributes": {
+            "type": "Task",
+            "url": "/services/data/v67.0/sobjects/Task/00Tam00000TjbqjEAB"
+          },
+          "Id": "00Tam00000TjbqjEAB",
+          "Subject": "Discuss Commercial Real Estate Lending Opportunity",
+          "Status": "Not Started",
+          "Priority": "Normal",
+          "ActivityDate": "2026-09-17",
+          "WhatId": "001am00000qvjs6AAA",
+          "WhoId": null,
+          "OwnerId": "005am000003PbCLAA0"
+        }
+      ],
+      "limit": 15
+    },
+    "crm_queueTasksUpcoming": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "queueTasksUpcoming",
+      "query": "SELECT Id,Subject,Status,Priority,ActivityDate,WhatId,WhoId,OwnerId FROM Task WHERE OwnerId='005am000003PbCLAA0' AND IsClosed=false AND ActivityDate>=TODAY ORDER BY ActivityDate ASC LIMIT 25",
+      "returnedRows": 0,
+      "rows": [],
+      "limit": 25
+    },
+    "julie_transactions": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_transactions",
+      "query": "SELECT ssot__TransactionDate__c dt, ssot__FinancialTransactionCategory__c cat, ssot__FinancialAccountTransactionType__c typ, ssot__TransactionAmount__c amt FROM ssot__FinancialAccountTransaction__dlm WHERE SFAccountID__c = '001am00000qvjsAAAQ' ORDER BY ssot__TransactionDate__c DESC LIMIT 12",
+      "limit": 12,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_9419ea61-288d-491b-98f6-094900a670f8",
+      "returnedRows": 12,
+      "rows": [
+        {
+          "dt": "2026-11-13T06:45:04+00:00",
+          "cat": "Shopping",
+          "typ": "Debit",
+          "amt": 9.85
+        },
+        {
+          "dt": "2026-11-13T06:36:56+00:00",
+          "cat": "Shopping",
+          "typ": "Debit",
+          "amt": 53.53
+        },
+        {
+          "dt": "2026-11-12T06:55:24+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 55.81
+        },
+        {
+          "dt": "2026-11-12T06:45:38+00:00",
+          "cat": "Shopping",
+          "typ": "Debit",
+          "amt": 52.45
+        },
+        {
+          "dt": "2026-11-12T06:19:22+00:00",
+          "cat": "Shopping",
+          "typ": "Debit",
+          "amt": 70.16
+        },
+        {
+          "dt": "2026-11-11T06:52:25+00:00",
+          "cat": "Travel",
+          "typ": "Debit",
+          "amt": 167.52
+        },
+        {
+          "dt": "2026-11-11T06:18:45+00:00",
+          "cat": "Shopping",
+          "typ": "Debit",
+          "amt": 117.24
+        },
+        {
+          "dt": "2026-11-11T06:02:30+00:00",
+          "cat": "Entertainment",
+          "typ": "Debit",
+          "amt": 79.73
+        },
+        {
+          "dt": "2026-11-10T06:20:27+00:00",
+          "cat": "Food & Dining",
+          "typ": "Debit",
+          "amt": 16.15
+        },
+        {
+          "dt": "2026-11-10T06:20:10+00:00",
+          "cat": "Auto & Transport",
+          "typ": "Debit",
+          "amt": 25.92
+        },
+        {
+          "dt": "2026-11-10T06:16:22+00:00",
+          "cat": "Shopping",
+          "typ": "Debit",
+          "amt": 43.28
+        },
+        {
+          "dt": "2026-11-09T06:56:37+00:00",
+          "cat": "Entertainment",
+          "typ": "Debit",
+          "amt": 15.49
+        }
+      ]
+    },
+    "julie_trades": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_trades",
+      "query": "SELECT trade_date__c dt, trade_side__c side, instrument_name__c inst, instrument_identifier__c sym, quantity__c qty, price__c px, total_trade__c tot FROM BT_Financial_Trades__dlm WHERE account_id__c = '001am00000qvjsAAAQ' ORDER BY trade_date__c DESC LIMIT 10",
+      "limit": 10,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_bf125d1a-d882-48d7-8587-d773669aaa1b",
+      "returnedRows": 10,
+      "rows": [
+        {
+          "dt": "2026-11-13T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "NuScale Power Corporation Class A",
+          "sym": "SMR",
+          "qty": 666,
+          "px": 274.95,
+          "tot": 183116.7
+        },
+        {
+          "dt": "2026-11-13T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Nordic American Tankers Limited",
+          "sym": "NAT",
+          "qty": 2000,
+          "px": 30.1,
+          "tot": 60200
+        },
+        {
+          "dt": "2026-11-13T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "CION Investment Corporation",
+          "sym": "CION",
+          "qty": 2000,
+          "px": 33.56,
+          "tot": 67120
+        },
+        {
+          "dt": "2026-11-13T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Edwards Lifesciences Corporation",
+          "sym": "EW",
+          "qty": 1336,
+          "px": 38.25,
+          "tot": 51102
+        },
+        {
+          "dt": "2026-11-13T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Team, Inc.",
+          "sym": "TISI",
+          "qty": 1570,
+          "px": 74.89,
+          "tot": 117577.3
+        },
+        {
+          "dt": "2026-11-13T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Orion Properties Inc.",
+          "sym": "ONL",
+          "qty": 2000,
+          "px": 32.71,
+          "tot": 65420
+        },
+        {
+          "dt": "2026-11-12T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Amazon.com Inc.",
+          "sym": "AMZN",
+          "qty": 975,
+          "px": 184.88,
+          "tot": 180258
+        },
+        {
+          "dt": "2026-11-12T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Sunbelt Rentals Holdings, Inc.",
+          "sym": "SUNB",
+          "qty": 138,
+          "px": 122.44,
+          "tot": 16896.72
+        },
+        {
+          "dt": "2026-11-12T00:00:00+00:00",
+          "side": "Sell",
+          "inst": "Entravision Communications Corporation",
+          "sym": "EVC",
+          "qty": 2000,
+          "px": 42.85,
+          "tot": 85700
+        },
+        {
+          "dt": "2026-11-12T00:00:00+00:00",
+          "side": "Buy",
+          "inst": "Genie Energy Ltd. Class B Common Stock Stock",
+          "sym": "GNE",
+          "qty": 2000,
+          "px": 20.7,
+          "tot": 41400
+        }
+      ]
+    },
+    "julie_interactions": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_interactions",
+      "query": "SELECT CreatedDate__c dt, Name__c nm, InteractionPurpose__c purp, MeetingNotes__c notes, NextSteps__c nxt FROM InteractionSummary_Home__dlm WHERE AccountId__c = '001am00000qvjsAAAQ' ORDER BY CreatedDate__c DESC LIMIT 8",
+      "limit": 8,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_1879a196-3bdd-4aba-997e-f6751760bac2",
+      "returnedRows": 8,
+      "rows": [
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Loan Application",
+          "notes": "Reviewed auto loan rates. Client comparing offers. Will follow up next week.",
+          "nxt": "Send thank-you note and follow up in 2 weeks."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Deal Execution",
+          "notes": "Completed CD ladder restructuring. New ladder maturities span 6-month to 5-year horizons.",
+          "nxt": "Schedule next quarterly review for early next quarter."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Deal Execution",
+          "notes": "Completed CD ladder restructuring. New ladder maturities span 6-month to 5-year horizons.",
+          "nxt": "Schedule next quarterly review for early next quarter."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Insurance Discussion",
+          "notes": "Discussed umbrella liability policy. Sending coverage analysis next week.",
+          "nxt": "Prepare quarterly review deck and email to client."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Product Inquiry",
+          "notes": "Discussed commercial banking products for business expansion. Sending term sheets for review.",
+          "nxt": "Prepare annual review summary and mail to client."
+        },
+        {
+          "dt": "2026-05-12T02:40:57+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Annual Review",
+          "notes": "Reviewed all accounts and beneficiary designations. Updated emergency contact information.",
+          "nxt": "Loop in legal team for trust structure review."
+        },
+        {
+          "dt": "2026-05-12T01:34:49+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Product Inquiry",
+          "notes": "Discussed commercial banking products for business expansion. Sending term sheets for review.",
+          "nxt": "Prepare annual review summary and mail to client."
+        },
+        {
+          "dt": "2026-05-12T01:34:49+00:00",
+          "nm": "Summary: Video Conference - Morris",
+          "purp": "Annual Review",
+          "notes": "Reviewed all accounts and beneficiary designations. Updated emergency contact information.",
+          "nxt": "Loop in legal team for trust structure review."
+        }
+      ]
+    },
+    "julie_notes": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_notes",
+      "query": "SELECT Date_c__c dt, Title_c__c ttl, Notes_c__c notes FROM Meeting_Note_c_Home__dlm WHERE Account_c__c = '001am00000qvjsAAAQ' ORDER BY Date_c__c DESC LIMIT 6",
+      "limit": 6,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_ea0530d8-a7be-4895-964b-f9c40d3ff472",
+      "returnedRows": 6,
+      "rows": [
+        {
+          "dt": "2025-09-24",
+          "ttl": "Discussing the Business",
+          "notes": "Julie came in with a determined look on her face.\r\n\"I've been thinking about what we talked about last month.\"\r\n\"The numbers look great, but the start-up costs are huge.\"\r\n\"My savings are for my kids and retirement, I can't touch that.\"\r\n\"I need to fund this expansion, but I want to keep full ownership.\"\r\n\"I think I need a business loan. Can you walk me through the steps to get one? Do you think I'm a good candidate for one?\"\r\nThis is the first time she's explicitly asked about a loan. The natural progression from feeling \"stuck\" to seeing the numbers and realizing the need for external capital is complete. The need for a loan became a concrete, direct request."
+        },
+        {
+          "dt": "2025-09-16",
+          "ttl": "Business Visioning Session",
+          "notes": "Followed up on the \"plateau\" conversation.\r\nShe's been thinking a lot about a new location.\r\nA larger space, with a dedicated roasting facility.\r\n\"I could double my wholesale business if I had the space.\"\r\nSeems excited but also a bit overwhelmed by the scale of it.\r\nTold her we can model it out to see if it makes sense."
+        },
+        {
+          "dt": "2025-09-10",
+          "ttl": "Morris Roastery Financial Review",
+          "notes": "Sitting down to do a deep dive into the business.\r\nP&L is solid. Revenue is consistent, no big dips.\r\nShe mentioned feeling a bit \"bored\" with the business growth.\r\nSaid the roaster is running at full capacity, and the cafe is busy but not growing much more.\r\nFeels like she's \"hit a plateau.\"\r\nSuggested we think about what a \"next chapter\" could look like for the business."
+        },
+        {
+          "dt": "2025-09-08",
+          "ttl": "Financial Plan Review",
+          "notes": "Reviewing the personal financial plan with Julie.\r\nThe numbers are healthy. She and David are doing great.\r\nNo new variables to consider.\r\nDiscussed their vacation plans this year. Europe.\r\nBriefly mentioned the business—\"still humming along.\"\r\nConfirmed we'll do a full business review in our next meeting."
+        },
+        {
+          "dt": "2025-09-05",
+          "ttl": "Follow-up re: Investments",
+          "notes": "Julie called. Quick question about her personal investment portfolio.\r\nWanted to know about a specific stock she saw in the news.\r\nExplained our current strategy. Stay the course. Diversified.\r\nShe understands. No changes.\r\nGood to go."
+        },
+        {
+          "dt": "2025-09-03",
+          "ttl": "Quarterly Check-In",
+          "notes": "Julie M. - Morris Roastery. Long-time client.\r\nAnnual check-in. Personal and business.\r\nEverything looks fine, no major changes since last year.\r\nPersonal accounts on track. Retirement, kids' savings.\r\nBusiness is steady. Revenues are stable. She's happy.\r\nNo urgent needs. Just a general touch base.\r\nSet a time to connect again in a few months."
+        }
+      ]
+    },
+    "julie_campaigns": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_campaigns",
+      "query": "SELECT Campaign_Name__c nm, Category__c cat, Product_Name__c prod, Email_Action__c act, Send_Date__c dt FROM Marketing_Campaigns__dlm WHERE AccountID__c = '001am00000qvjsAAAQ' ORDER BY Send_Date__c DESC LIMIT 8",
+      "limit": 8,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_37f1392d-cac1-4cc3-8a9a-043aedb827d0",
+      "returnedRows": 8,
+      "rows": [
+        {
+          "nm": "Swipe Right for Exclusive Credit Offers",
+          "cat": "Loans",
+          "prod": "Credit Card",
+          "act": "Open",
+          "dt": "2025-02-02T21:07:02+00:00"
+        },
+        {
+          "nm": "Boost Your Returns with Our Money Market Insights",
+          "cat": "Deposits",
+          "prod": "Money Market",
+          "act": "Click",
+          "dt": "2024-12-13T22:51:04+00:00"
+        },
+        {
+          "nm": "Flexible Credit Options Tailored for You",
+          "cat": "Loans",
+          "prod": "HELOC",
+          "act": "Click",
+          "dt": "2024-11-17T03:01:26+00:00"
+        },
+        {
+          "nm": "Flexible Credit Options Tailored for You",
+          "cat": "Loans",
+          "prod": "HELOC",
+          "act": "Open",
+          "dt": "2024-11-09T14:16:51+00:00"
+        },
+        {
+          "nm": "Lock in Great Rates with Our CDs",
+          "cat": "Deposits",
+          "prod": "CDs",
+          "act": "Un-Opened",
+          "dt": "2024-11-08T12:04:03+00:00"
+        },
+        {
+          "nm": "Trade Smarter with Our Brokerage Solutions",
+          "cat": "Investments",
+          "prod": "Brokerage Account",
+          "act": "Open",
+          "dt": "2024-10-13T02:43:23+00:00"
+        },
+        {
+          "nm": "Flexible Credit Options Tailored for You",
+          "cat": "Loans",
+          "prod": "Line of Credit",
+          "act": "Open",
+          "dt": "2024-10-02T22:28:51+00:00"
+        },
+        {
+          "nm": "Boost Your Returns with Our Money Market Insights",
+          "cat": "Deposits",
+          "prod": "Money Market",
+          "act": "Open",
+          "dt": "2024-09-21T20:44:16+00:00"
+        }
+      ]
+    },
+    "julie_screening": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_screening",
+      "query": "SELECT overall_risk_rating__c rating, sanctions_hit__c sanc, pep_hit__c pep, adverse_media_hit__c media, last_screened_at__c dt FROM BT_WorldCheck_AML__dlm WHERE account_id__c = '001am00000qvjsAAAQ' ORDER BY profile_date__c DESC LIMIT 1",
+      "limit": 1,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_25c94b58-afd3-4983-97cd-f60299636e3f",
+      "returnedRows": 1,
+      "rows": [
+        {
+          "rating": "Low",
+          "sanc": false,
+          "pep": false,
+          "media": false,
+          "dt": "2026-11-13T00:00:00+00:00"
+        }
+      ]
+    },
+    "julie_property": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "julie_property",
+      "query": "SELECT estimated_property_value__c val, equity_usd__c eq, outstanding_mortgage_balance__c mtg, heloc_opportunity_score__c heloc, primary_property_type__c ptype, flood_zone_code__c flood, wildfire_risk_score__c fire, is_owner__c owner, profile_quarter__c q FROM BT_Corelogic_Property__dlm WHERE account_id__c = '001am00000qvjsAAAQ' ORDER BY profile_quarter__c DESC LIMIT 1",
+      "limit": 1,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_fa7ada38-76f0-45ef-ac1f-1795566ff655",
+      "returnedRows": 1,
+      "rows": [
+        {
+          "val": 2219955,
+          "eq": 1469937,
+          "mtg": 750018,
+          "heloc": 95,
+          "ptype": "Townhouse",
+          "flood": "C",
+          "fire": 75,
+          "owner": true,
+          "q": "2026-10-01"
+        }
+      ]
+    },
+    "deep_plans": {
+      "status": "available",
+      "scope": "book",
+      "ownerId": "005am000003PbCLAA0",
+      "label": "deep_plans",
+      "query": "SELECT account_id__c AS account_id, plan_status__c AS status, monte_carlo_success_pct__c AS success, total_goal_amount_usd__c AS goal_usd, goal_count__c AS goals, next_review_date__c AS next_review, plan_last_updated_date__c AS updated, retirement_target_age__c AS retirement_age, monthly_income_target_usd__c AS monthly_income, recommended_asset_allocation__c AS allocation, CAST(profile_month__c AS VARCHAR) AS period FROM BT_MoneyGuidePro_Financial_Plans__dlm WHERE account_id__c IN ('001am00000qvjsAAAQ','001am000026ZtgKAAS') AND profile_month__c=(SELECT MAX(profile_month__c) FROM BT_MoneyGuidePro_Financial_Plans__dlm)",
+      "limit": 100,
+      "queryId": "MTAuNzguOS4xMTA6NzQ4NA_662f0b71-fa3d-4a2d-aa35-76e08409cba5",
+      "returnedRows": 2,
+      "rows": [
+        {
+          "account_id": "001am000026ZtgKAAS",
+          "status": "Draft",
+          "success": 74.14,
+          "goal_usd": 1671798,
+          "goals": 3,
+          "next_review": "2027-03-15",
+          "updated": "2026-09-03",
+          "retirement_age": 62,
+          "monthly_income": 5055,
+          "allocation": "Aggressive",
+          "period": "2026-11-01"
+        },
+        {
+          "account_id": "001am00000qvjsAAAQ",
+          "status": "Active",
+          "success": 61.02,
+          "goal_usd": 4822758,
+          "goals": 3,
+          "next_review": "2027-03-26",
+          "updated": "2026-03-04",
+          "retirement_age": 62,
+          "monthly_income": 11231,
+          "allocation": "Moderate Aggressive",
+          "period": "2026-11-01"
+        }
+      ]
     }
   },
   "accounts": [
@@ -15263,5 +23494,7049 @@ globalThis.wealthCaptureData={
         "HEL-ACQ"
       ]
     }
-  ]
+  ],
+  "pipelineStages": [
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Needs Analysis",
+      "n": 5,
+      "amount": 330235
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "KYC / AML",
+      "n": 1,
+      "amount": 2100000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Discovery",
+      "n": 30,
+      "amount": 15862818
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Onboarding",
+      "n": 1,
+      "amount": 150000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Application",
+      "n": 1,
+      "amount": 20000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Interested",
+      "n": 10,
+      "amount": 943234
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Proposal/Price Quote",
+      "n": 1,
+      "amount": 120000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Proposed/Quote",
+      "n": 1,
+      "amount": 2000000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Negotiation/Review",
+      "n": 2,
+      "amount": 805000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Approval",
+      "n": 1,
+      "amount": 500000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Negotiation",
+      "n": 31,
+      "amount": 106023579.42
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Proposal/Quote",
+      "n": 34,
+      "amount": 15267332
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Underwriting",
+      "n": 1,
+      "amount": 3518000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Assessment Needed",
+      "n": 4,
+      "amount": 212000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "DDE",
+      "n": 1,
+      "amount": 35000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Qualification",
+      "n": 82,
+      "amount": 18749919071
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Loan Origination",
+      "n": 1,
+      "amount": 1000000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Verification",
+      "n": 1,
+      "amount": 100000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Initial Due Diligence",
+      "n": 1,
+      "amount": 250000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Closing/Funding",
+      "n": 1,
+      "amount": 3000000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Inerested",
+      "n": 1,
+      "amount": 697000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Value Proposition",
+      "n": 1,
+      "amount": 45000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Prospecting",
+      "n": 16,
+      "amount": 22140943
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Underwriting Review",
+      "n": 2,
+      "amount": 800000
+    },
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "StageName": "Preparation",
+      "n": 1,
+      "amount": 6000000
+    }
+  ],
+  "gridOpen": [
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "n": 0,
+      "amount": null
+    }
+  ],
+  "gridWon": [
+    {
+      "attributes": {
+        "type": "AggregateResult"
+      },
+      "n": 0
+    }
+  ],
+  "deepCases": [
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000y204dAAA"
+      },
+      "Id": "500am00000y204dAAA",
+      "CaseNumber": "00012646",
+      "Subject": "Lost Debit Card",
+      "Status": "New",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PbCLAA0",
+      "CreatedDate": "2026-10-21T14:17:30.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000xeEyNAAU"
+      },
+      "Id": "500am00000xeEyNAAU",
+      "CaseNumber": "00012643",
+      "Subject": "Lost Credit Card While Traveling Abroad - Rush Replacement Needed",
+      "Status": "New",
+      "Priority": "High",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PbCLAA0",
+      "CreatedDate": "2026-10-08T20:58:08.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000xcpSXAAY"
+      },
+      "Id": "500am00000xcpSXAAY",
+      "CaseNumber": "00012642",
+      "Subject": "Lost Credit Card - Replacement Requested (RUSH)",
+      "Status": "New",
+      "Priority": "High",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PbCLAA0",
+      "CreatedDate": "2026-10-08T02:14:44.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000x25xhAAA"
+      },
+      "Id": "500am00000x25xhAAA",
+      "CaseNumber": "00012624",
+      "Subject": "Lost Credit Card - Julie E Morris",
+      "Status": "New",
+      "Priority": "High",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PbCLAA0",
+      "CreatedDate": "2026-09-17T16:48:51.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000rHvjKAAS"
+      },
+      "Id": "500am00000rHvjKAAS",
+      "CaseNumber": "00002281",
+      "Subject": "Inbound call with AI Agent — Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-28T23:01:12.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r4qT0AAI"
+      },
+      "Id": "500am00000r4qT0AAI",
+      "CaseNumber": "00002270",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-24T14:26:38.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r3ROYAA2"
+      },
+      "Id": "500am00000r3ROYAA2",
+      "CaseNumber": "00002269",
+      "Subject": "Lost Platinum Visa card",
+      "Status": "New",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "00Gam000003SZioEAG",
+      "CreatedDate": "2026-04-23T22:29:58.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r3RLJAA2"
+      },
+      "Id": "500am00000r3RLJAA2",
+      "CaseNumber": "00002268",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T22:28:13.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2xohAAA"
+      },
+      "Id": "500am00000r2xohAAA",
+      "CaseNumber": "00002267",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T19:47:26.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r32BeAAI"
+      },
+      "Id": "500am00000r32BeAAI",
+      "CaseNumber": "00002266",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T19:25:06.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2jKJAAY"
+      },
+      "Id": "500am00000r2jKJAAY",
+      "CaseNumber": "00002265",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T19:24:31.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2xv8AAA"
+      },
+      "Id": "500am00000r2xv8AAA",
+      "CaseNumber": "00002264",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T19:23:26.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2sXGAAY"
+      },
+      "Id": "500am00000r2sXGAAY",
+      "CaseNumber": "00002263",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T19:17:28.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r30JVAAY"
+      },
+      "Id": "500am00000r30JVAAY",
+      "CaseNumber": "00002262",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T19:09:50.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2reQAAQ"
+      },
+      "Id": "500am00000r2reQAAQ",
+      "CaseNumber": "00002261",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T18:59:57.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2xv7AAA"
+      },
+      "Id": "500am00000r2xv7AAA",
+      "CaseNumber": "00002260",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T18:57:05.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2xOsAAI"
+      },
+      "Id": "500am00000r2xOsAAI",
+      "CaseNumber": "00002259",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am00000Es4bGAAR",
+      "CreatedDate": "2026-04-23T18:55:27.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r2gStAAI"
+      },
+      "Id": "500am00000r2gStAAI",
+      "CaseNumber": "00002258",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T17:58:24.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r0bFZAAY"
+      },
+      "Id": "500am00000r0bFZAAY",
+      "CaseNumber": "00002256",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T03:27:13.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r0XrtAAE"
+      },
+      "Id": "500am00000r0XrtAAE",
+      "CaseNumber": "00002255",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T02:53:17.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000r0MEvAAM"
+      },
+      "Id": "500am00000r0MEvAAM",
+      "CaseNumber": "00002254",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-23T00:32:22.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000qykN3AAI"
+      },
+      "Id": "500am00000qykN3AAI",
+      "CaseNumber": "00002252",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-22T18:17:10.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000qz3RHAAY"
+      },
+      "Id": "500am00000qz3RHAAY",
+      "CaseNumber": "00002251",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-22T18:15:34.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000qzDwrAAE"
+      },
+      "Id": "500am00000qzDwrAAE",
+      "CaseNumber": "00002250",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-22T18:13:08.000+0000"
+    },
+    {
+      "attributes": {
+        "type": "Case",
+        "url": "/services/data/v67.0/sobjects/Case/500am00000qyZxsAAE"
+      },
+      "Id": "500am00000qyZxsAAE",
+      "CaseNumber": "00002249",
+      "Subject": "Inbound Support call with Julie Morris",
+      "Status": "Working",
+      "Priority": "Medium",
+      "AccountId": "001am00000qvjsAAAQ",
+      "OwnerId": "005am000003PYswAAG",
+      "CreatedDate": "2026-04-22T16:41:37.000+0000"
+    }
+  ],
+  "coverageIds": [
+    "001am000026ZtgIAAS",
+    "001am00000qvjsAAAQ",
+    "001am000026ZtgNAAS",
+    "001am000026ZtgJAAS",
+    "001am000026ZtgKAAS",
+    "001am000026ZtgMAAS"
+  ],
+  "reservedHolderIds": [],
+  "offerHistory": [
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "HEL-ACQ",
+      "period": "2026-05-01",
+      "probability": 18.84,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "HEL-ACQ",
+      "period": "2026-06-01",
+      "probability": 18.81,
+      "scoremove": -0.03,
+      "valuemove": -1.41
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "HEL-ACQ",
+      "period": "2026-07-01",
+      "probability": 18.2,
+      "scoremove": -0.64,
+      "valuemove": 1097.57
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "HEL-ACQ",
+      "period": "2026-08-01",
+      "probability": 18.8,
+      "scoremove": -0.04,
+      "valuemove": 1174.77
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "HEL-ACQ",
+      "period": "2026-09-01",
+      "probability": 18.24,
+      "scoremove": -0.6,
+      "valuemove": 1102.71
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "HEL-ACQ",
+      "period": "2026-10-01",
+      "probability": 18.1,
+      "scoremove": -0.74,
+      "valuemove": 530.93
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "HEL-ACQ",
+      "period": "2026-11-01",
+      "probability": 18.67,
+      "scoremove": -0.17,
+      "valuemove": 581.21
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "IRA-ROL",
+      "period": "2026-05-01",
+      "probability": 40.74,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "IRA-ROL",
+      "period": "2026-06-01",
+      "probability": 41.42,
+      "scoremove": 0.68,
+      "valuemove": 5.44
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "IRA-ROL",
+      "period": "2026-07-01",
+      "probability": 40.51,
+      "scoremove": -0.23,
+      "valuemove": -1.84
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "IRA-ROL",
+      "period": "2026-08-01",
+      "probability": 40.56,
+      "scoremove": -0.18,
+      "valuemove": -1.44
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "IRA-ROL",
+      "period": "2026-09-01",
+      "probability": 40.68,
+      "scoremove": -0.06,
+      "valuemove": -0.48
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "IRA-ROL",
+      "period": "2026-10-01",
+      "probability": 40.78,
+      "scoremove": 0.04,
+      "valuemove": 0.32
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "IRA-ROL",
+      "period": "2026-11-01",
+      "probability": 41.17,
+      "scoremove": 0.43,
+      "valuemove": 3.44
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "MTG-JMB",
+      "period": "2026-05-01",
+      "probability": 8.71,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "MTG-JMB",
+      "period": "2026-06-01",
+      "probability": 7.75,
+      "scoremove": -0.96,
+      "valuemove": -48
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "MTG-JMB",
+      "period": "2026-07-01",
+      "probability": 8.88,
+      "scoremove": 0.17,
+      "valuemove": 8.5
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "MTG-JMB",
+      "period": "2026-08-01",
+      "probability": 8.17,
+      "scoremove": -0.54,
+      "valuemove": -27
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "MTG-JMB",
+      "period": "2026-09-01",
+      "probability": 8.08,
+      "scoremove": -0.63,
+      "valuemove": -31.5
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "MTG-JMB",
+      "period": "2026-10-01",
+      "probability": 8.92,
+      "scoremove": 0.21,
+      "valuemove": 10.5
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "MTG-JMB",
+      "period": "2026-11-01",
+      "probability": 8.29,
+      "scoremove": -0.42,
+      "valuemove": -21
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "PCHK-ACQ",
+      "period": "2026-05-01",
+      "probability": 14.13,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "PCHK-ACQ",
+      "period": "2026-06-01",
+      "probability": 14.77,
+      "scoremove": 0.64,
+      "valuemove": 3.56
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "PCHK-ACQ",
+      "period": "2026-07-01",
+      "probability": 14.41,
+      "scoremove": 0.28,
+      "valuemove": 1.56
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "PCHK-ACQ",
+      "period": "2026-08-01",
+      "probability": 14.35,
+      "scoremove": 0.22,
+      "valuemove": 1.22
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "PCHK-ACQ",
+      "period": "2026-09-01",
+      "probability": 14.62,
+      "scoremove": 0.49,
+      "valuemove": 2.72
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "PCHK-ACQ",
+      "period": "2026-10-01",
+      "probability": 13.76,
+      "scoremove": -0.37,
+      "valuemove": -2.05
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "PCHK-ACQ",
+      "period": "2026-11-01",
+      "probability": 14.71,
+      "scoremove": 0.58,
+      "valuemove": 3.22
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-CASH",
+      "period": "2026-05-01",
+      "probability": 20.46,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-CASH",
+      "period": "2026-06-01",
+      "probability": 20.72,
+      "scoremove": 0.26,
+      "valuemove": 1.73
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-CASH",
+      "period": "2026-07-01",
+      "probability": 20.08,
+      "scoremove": -0.38,
+      "valuemove": -2.53
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-CASH",
+      "period": "2026-08-01",
+      "probability": 20.26,
+      "scoremove": -0.2,
+      "valuemove": -1.33
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-CASH",
+      "period": "2026-09-01",
+      "probability": 20.44,
+      "scoremove": -0.02,
+      "valuemove": -0.14
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-CASH",
+      "period": "2026-10-01",
+      "probability": 20.37,
+      "scoremove": -0.09,
+      "valuemove": -0.6
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-CASH",
+      "period": "2026-11-01",
+      "probability": 20.3,
+      "scoremove": -0.16,
+      "valuemove": -1.07
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-MAS",
+      "period": "2026-05-01",
+      "probability": 21.19,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-MAS",
+      "period": "2026-06-01",
+      "probability": 21.42,
+      "scoremove": 0.23,
+      "valuemove": 7.66
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-MAS",
+      "period": "2026-07-01",
+      "probability": 20.61,
+      "scoremove": -0.58,
+      "valuemove": -19.31
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-MAS",
+      "period": "2026-08-01",
+      "probability": 20.33,
+      "scoremove": -0.86,
+      "valuemove": -28.64
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-MAS",
+      "period": "2026-09-01",
+      "probability": 20.78,
+      "scoremove": -0.41,
+      "valuemove": -13.65
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-MAS",
+      "period": "2026-10-01",
+      "probability": 20.48,
+      "scoremove": -0.71,
+      "valuemove": -23.64
+    },
+    {
+      "account": "001am00000qvjsAAAQ",
+      "code": "WM-MAS",
+      "period": "2026-11-01",
+      "probability": 21.05,
+      "scoremove": -0.14,
+      "valuemove": -4.66
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-05-01",
+      "probability": 12.97,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-06-01",
+      "probability": 12.55,
+      "scoremove": -0.42,
+      "valuemove": -6.66
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-07-01",
+      "probability": 9.12,
+      "scoremove": -3.85,
+      "valuemove": -90.89
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-08-01",
+      "probability": 9.35,
+      "scoremove": -3.62,
+      "valuemove": -89.05
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-09-01",
+      "probability": 9.1,
+      "scoremove": -3.87,
+      "valuemove": -91.05
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-10-01",
+      "probability": 13.34,
+      "scoremove": 0.37,
+      "valuemove": 11.58
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-11-01",
+      "probability": 12.97,
+      "scoremove": 0,
+      "valuemove": 5.46
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-ROL",
+      "period": "2026-05-01",
+      "probability": 33.13,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-ROL",
+      "period": "2026-06-01",
+      "probability": 33.55,
+      "scoremove": 0.42,
+      "valuemove": 3.36
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-ROL",
+      "period": "2026-07-01",
+      "probability": 33.23,
+      "scoremove": 0.1,
+      "valuemove": 0.8
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-ROL",
+      "period": "2026-08-01",
+      "probability": 32.92,
+      "scoremove": -0.21,
+      "valuemove": -1.68
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-ROL",
+      "period": "2026-09-01",
+      "probability": 33.61,
+      "scoremove": 0.48,
+      "valuemove": 3.84
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-ROL",
+      "period": "2026-10-01",
+      "probability": 33.2,
+      "scoremove": 0.07,
+      "valuemove": 0.56
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-ROL",
+      "period": "2026-11-01",
+      "probability": 33.47,
+      "scoremove": 0.34,
+      "valuemove": 2.72
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-RTH",
+      "period": "2026-05-01",
+      "probability": 10.37,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-RTH",
+      "period": "2026-06-01",
+      "probability": 10.68,
+      "scoremove": 0.31,
+      "valuemove": 0.46
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-RTH",
+      "period": "2026-07-01",
+      "probability": 10.71,
+      "scoremove": 0.34,
+      "valuemove": 0.51
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-RTH",
+      "period": "2026-08-01",
+      "probability": 11.07,
+      "scoremove": 0.7,
+      "valuemove": 1.05
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-RTH",
+      "period": "2026-09-01",
+      "probability": 10.21,
+      "scoremove": -0.16,
+      "valuemove": -0.24
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-RTH",
+      "period": "2026-10-01",
+      "probability": 10.99,
+      "scoremove": 0.62,
+      "valuemove": 0.93
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "IRA-RTH",
+      "period": "2026-11-01",
+      "probability": 10.28,
+      "scoremove": -0.09,
+      "valuemove": -0.14
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "MTG-JMB",
+      "period": "2026-05-01",
+      "probability": 9.11,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "MTG-JMB",
+      "period": "2026-06-01",
+      "probability": 8.73,
+      "scoremove": -0.38,
+      "valuemove": -19
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "MTG-JMB",
+      "period": "2026-07-01",
+      "probability": 9.56,
+      "scoremove": 0.45,
+      "valuemove": 22.5
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "MTG-JMB",
+      "period": "2026-08-01",
+      "probability": 9.37,
+      "scoremove": 0.26,
+      "valuemove": 13
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "MTG-JMB",
+      "period": "2026-09-01",
+      "probability": 9.72,
+      "scoremove": 0.61,
+      "valuemove": 30.5
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "MTG-JMB",
+      "period": "2026-10-01",
+      "probability": 8.04,
+      "scoremove": -1.07,
+      "valuemove": -53.5
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "MTG-JMB",
+      "period": "2026-11-01",
+      "probability": 9.57,
+      "scoremove": 0.46,
+      "valuemove": 23
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "PCHK-ACQ",
+      "period": "2026-05-01",
+      "probability": 12.89,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "PCHK-ACQ",
+      "period": "2026-06-01",
+      "probability": 13.26,
+      "scoremove": 0.37,
+      "valuemove": 1.48
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "PCHK-ACQ",
+      "period": "2026-07-01",
+      "probability": 12.69,
+      "scoremove": -0.2,
+      "valuemove": -0.8
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "PCHK-ACQ",
+      "period": "2026-08-01",
+      "probability": 12.29,
+      "scoremove": -0.6,
+      "valuemove": -2.4
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "PCHK-ACQ",
+      "period": "2026-09-01",
+      "probability": 12.75,
+      "scoremove": -0.14,
+      "valuemove": -0.56
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "PCHK-ACQ",
+      "period": "2026-10-01",
+      "probability": 12.15,
+      "scoremove": -0.74,
+      "valuemove": -2.96
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "PCHK-ACQ",
+      "period": "2026-11-01",
+      "probability": 13.24,
+      "scoremove": 0.35,
+      "valuemove": 1.4
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-CASH",
+      "period": "2026-05-01",
+      "probability": 17.29,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-CASH",
+      "period": "2026-06-01",
+      "probability": 17.7,
+      "scoremove": 0.41,
+      "valuemove": 2.46
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-CASH",
+      "period": "2026-07-01",
+      "probability": 17.72,
+      "scoremove": 0.43,
+      "valuemove": 2.58
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-CASH",
+      "period": "2026-08-01",
+      "probability": 17.4,
+      "scoremove": 0.11,
+      "valuemove": 0.66
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-CASH",
+      "period": "2026-09-01",
+      "probability": 17.28,
+      "scoremove": -0.01,
+      "valuemove": -0.06
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-CASH",
+      "period": "2026-10-01",
+      "probability": 16.54,
+      "scoremove": -0.75,
+      "valuemove": -4.5
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-CASH",
+      "period": "2026-11-01",
+      "probability": 17.44,
+      "scoremove": 0.15,
+      "valuemove": 0.9
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-MAS",
+      "period": "2026-05-01",
+      "probability": 22.92,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-MAS",
+      "period": "2026-06-01",
+      "probability": 23.35,
+      "scoremove": 0.43,
+      "valuemove": 75.19
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-MAS",
+      "period": "2026-07-01",
+      "probability": 23.07,
+      "scoremove": 0.15,
+      "valuemove": 66.48
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-MAS",
+      "period": "2026-08-01",
+      "probability": 23.32,
+      "scoremove": 0.4,
+      "valuemove": 9.21
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-MAS",
+      "period": "2026-09-01",
+      "probability": 23.2,
+      "scoremove": 0.28,
+      "valuemove": -39.92
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-MAS",
+      "period": "2026-10-01",
+      "probability": 23.15,
+      "scoremove": 0.23,
+      "valuemove": -10.69
+    },
+    {
+      "account": "001am000026ZtgIAAS",
+      "code": "WM-MAS",
+      "period": "2026-11-01",
+      "probability": 23.36,
+      "scoremove": 0.44,
+      "valuemove": 108.01
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-05-01",
+      "probability": 16.85,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-06-01",
+      "probability": 16.99,
+      "scoremove": 0.14,
+      "valuemove": 2.71
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-07-01",
+      "probability": 12.53,
+      "scoremove": -4.32,
+      "valuemove": -173.16
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-08-01",
+      "probability": 12.27,
+      "scoremove": -4.58,
+      "valuemove": -175.24
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-09-01",
+      "probability": 12.34,
+      "scoremove": -4.51,
+      "valuemove": -174.68
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-10-01",
+      "probability": 12.35,
+      "scoremove": -4.5,
+      "valuemove": -174.6
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-11-01",
+      "probability": 12.39,
+      "scoremove": -4.46,
+      "valuemove": -174.28
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-ROL",
+      "period": "2026-05-01",
+      "probability": 30.24,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-ROL",
+      "period": "2026-06-01",
+      "probability": 30.76,
+      "scoremove": 0.52,
+      "valuemove": 4.16
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-ROL",
+      "period": "2026-07-01",
+      "probability": 30.55,
+      "scoremove": 0.31,
+      "valuemove": 2.48
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-ROL",
+      "period": "2026-08-01",
+      "probability": 30.3,
+      "scoremove": 0.06,
+      "valuemove": 0.48
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-ROL",
+      "period": "2026-09-01",
+      "probability": 30.16,
+      "scoremove": -0.08,
+      "valuemove": -0.64
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-ROL",
+      "period": "2026-10-01",
+      "probability": 30.35,
+      "scoremove": 0.11,
+      "valuemove": 0.88
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-ROL",
+      "period": "2026-11-01",
+      "probability": 30.24,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-RTH",
+      "period": "2026-05-01",
+      "probability": 24.13,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-RTH",
+      "period": "2026-06-01",
+      "probability": 23.19,
+      "scoremove": -0.94,
+      "valuemove": -11.19
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-RTH",
+      "period": "2026-07-01",
+      "probability": 23.54,
+      "scoremove": -0.59,
+      "valuemove": -4.29
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-RTH",
+      "period": "2026-08-01",
+      "probability": 23.28,
+      "scoremove": -0.85,
+      "valuemove": -18.45
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-RTH",
+      "period": "2026-09-01",
+      "probability": 22.75,
+      "scoremove": -1.38,
+      "valuemove": -58.39
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-RTH",
+      "period": "2026-10-01",
+      "probability": 24.09,
+      "scoremove": -0.04,
+      "valuemove": -8.95
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "IRA-RTH",
+      "period": "2026-11-01",
+      "probability": 23.36,
+      "scoremove": -0.77,
+      "valuemove": 16.34
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "MTG-JMB",
+      "period": "2026-05-01",
+      "probability": 7.83,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "MTG-JMB",
+      "period": "2026-06-01",
+      "probability": 9.1,
+      "scoremove": 1.27,
+      "valuemove": 63.5
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "MTG-JMB",
+      "period": "2026-07-01",
+      "probability": 9.49,
+      "scoremove": 1.66,
+      "valuemove": 83
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "MTG-JMB",
+      "period": "2026-08-01",
+      "probability": 9.1,
+      "scoremove": 1.27,
+      "valuemove": 63.5
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "MTG-JMB",
+      "period": "2026-09-01",
+      "probability": 8.98,
+      "scoremove": 1.15,
+      "valuemove": 57.5
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "MTG-JMB",
+      "period": "2026-10-01",
+      "probability": 7.43,
+      "scoremove": -0.4,
+      "valuemove": -20
+    },
+    {
+      "account": "001am000026ZtgJAAS",
+      "code": "MTG-JMB",
+      "period": "2026-11-01",
+      "probability": 7.84,
+      "scoremove": 0.01,
+      "valuemove": 0.5
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-05-01",
+      "probability": 15.77,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-06-01",
+      "probability": 15.56,
+      "scoremove": -0.21,
+      "valuemove": -8.38
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-07-01",
+      "probability": 12.24,
+      "scoremove": -3.53,
+      "valuemove": -346.62
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-08-01",
+      "probability": 12.37,
+      "scoremove": -3.4,
+      "valuemove": -345.46
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-09-01",
+      "probability": 12.21,
+      "scoremove": -3.56,
+      "valuemove": -346.89
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-10-01",
+      "probability": 11,
+      "scoremove": -4.77,
+      "valuemove": -363
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-11-01",
+      "probability": 10.79,
+      "scoremove": -4.98,
+      "valuemove": -364.68
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-ROL",
+      "period": "2026-05-01",
+      "probability": 33.98,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-ROL",
+      "period": "2026-06-01",
+      "probability": 34.45,
+      "scoremove": 0.47,
+      "valuemove": 3.76
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-ROL",
+      "period": "2026-07-01",
+      "probability": 33.9,
+      "scoremove": -0.08,
+      "valuemove": -0.64
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-ROL",
+      "period": "2026-08-01",
+      "probability": 34.07,
+      "scoremove": 0.09,
+      "valuemove": 0.72
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-ROL",
+      "period": "2026-09-01",
+      "probability": 33.68,
+      "scoremove": -0.3,
+      "valuemove": -2.4
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-ROL",
+      "period": "2026-10-01",
+      "probability": 34.03,
+      "scoremove": 0.05,
+      "valuemove": 0.4
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-ROL",
+      "period": "2026-11-01",
+      "probability": 33.93,
+      "scoremove": -0.05,
+      "valuemove": -0.4
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-RTH",
+      "period": "2026-05-01",
+      "probability": 14.84,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-RTH",
+      "period": "2026-06-01",
+      "probability": 14.76,
+      "scoremove": -0.08,
+      "valuemove": -0.12
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-RTH",
+      "period": "2026-07-01",
+      "probability": 14.75,
+      "scoremove": -0.09,
+      "valuemove": -0.13
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-RTH",
+      "period": "2026-08-01",
+      "probability": 14.26,
+      "scoremove": -0.58,
+      "valuemove": -0.87
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-RTH",
+      "period": "2026-09-01",
+      "probability": 14.11,
+      "scoremove": -0.73,
+      "valuemove": -1.09
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-RTH",
+      "period": "2026-10-01",
+      "probability": 13.96,
+      "scoremove": -0.88,
+      "valuemove": -1.32
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "IRA-RTH",
+      "period": "2026-11-01",
+      "probability": 14.54,
+      "scoremove": -0.3,
+      "valuemove": -0.45
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "MTG-JMB",
+      "period": "2026-05-01",
+      "probability": 8.31,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "MTG-JMB",
+      "period": "2026-06-01",
+      "probability": 8.13,
+      "scoremove": -0.18,
+      "valuemove": -9
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "MTG-JMB",
+      "period": "2026-07-01",
+      "probability": 8.48,
+      "scoremove": 0.17,
+      "valuemove": 8.5
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "MTG-JMB",
+      "period": "2026-08-01",
+      "probability": 8.36,
+      "scoremove": 0.05,
+      "valuemove": 2.5
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "MTG-JMB",
+      "period": "2026-09-01",
+      "probability": 8.09,
+      "scoremove": -0.22,
+      "valuemove": -11
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "MTG-JMB",
+      "period": "2026-10-01",
+      "probability": 7.9,
+      "scoremove": -0.41,
+      "valuemove": -20.5
+    },
+    {
+      "account": "001am000026ZtgKAAS",
+      "code": "MTG-JMB",
+      "period": "2026-11-01",
+      "probability": 8.49,
+      "scoremove": 0.18,
+      "valuemove": 9
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-05-01",
+      "probability": 15.25,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-06-01",
+      "probability": 15.55,
+      "scoremove": 0.3,
+      "valuemove": 2.4
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-07-01",
+      "probability": 15.29,
+      "scoremove": 0.04,
+      "valuemove": 0.32
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-08-01",
+      "probability": 15.27,
+      "scoremove": 0.02,
+      "valuemove": 0.16
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-09-01",
+      "probability": 15.05,
+      "scoremove": -0.2,
+      "valuemove": -1.6
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-10-01",
+      "probability": 19.76,
+      "scoremove": 4.51,
+      "valuemove": 205.61
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-11-01",
+      "probability": 19.58,
+      "scoremove": 4.33,
+      "valuemove": 202.01
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "IRA-ROL",
+      "period": "2026-05-01",
+      "probability": 28.35,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "IRA-ROL",
+      "period": "2026-06-01",
+      "probability": 28.42,
+      "scoremove": 0.07,
+      "valuemove": 0.56
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "IRA-ROL",
+      "period": "2026-07-01",
+      "probability": 29.05,
+      "scoremove": 0.7,
+      "valuemove": 5.6
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "IRA-ROL",
+      "period": "2026-08-01",
+      "probability": 28.76,
+      "scoremove": 0.41,
+      "valuemove": 3.28
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "IRA-ROL",
+      "period": "2026-09-01",
+      "probability": 28.75,
+      "scoremove": 0.4,
+      "valuemove": 3.2
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "IRA-ROL",
+      "period": "2026-10-01",
+      "probability": 28.53,
+      "scoremove": 0.18,
+      "valuemove": 1.44
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "IRA-ROL",
+      "period": "2026-11-01",
+      "probability": 28.55,
+      "scoremove": 0.2,
+      "valuemove": 1.6
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "MTG-JMB",
+      "period": "2026-05-01",
+      "probability": 18.79,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "MTG-JMB",
+      "period": "2026-06-01",
+      "probability": 19.17,
+      "scoremove": 0.38,
+      "valuemove": 19
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "MTG-JMB",
+      "period": "2026-07-01",
+      "probability": 18.79,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "MTG-JMB",
+      "period": "2026-08-01",
+      "probability": 17.62,
+      "scoremove": -1.17,
+      "valuemove": -58.5
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "MTG-JMB",
+      "period": "2026-09-01",
+      "probability": 18.78,
+      "scoremove": -0.01,
+      "valuemove": -0.5
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "MTG-JMB",
+      "period": "2026-10-01",
+      "probability": 19.03,
+      "scoremove": 0.24,
+      "valuemove": 12
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "MTG-JMB",
+      "period": "2026-11-01",
+      "probability": 18.75,
+      "scoremove": -0.04,
+      "valuemove": -2
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "WM-CASH",
+      "period": "2026-05-01",
+      "probability": 18.64,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "WM-CASH",
+      "period": "2026-06-01",
+      "probability": 18.97,
+      "scoremove": 0.33,
+      "valuemove": 1.98
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "WM-CASH",
+      "period": "2026-07-01",
+      "probability": 18.53,
+      "scoremove": -0.11,
+      "valuemove": -0.66
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "WM-CASH",
+      "period": "2026-08-01",
+      "probability": 18.89,
+      "scoremove": 0.25,
+      "valuemove": 1.5
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "WM-CASH",
+      "period": "2026-09-01",
+      "probability": 18.51,
+      "scoremove": -0.13,
+      "valuemove": -0.78
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "WM-CASH",
+      "period": "2026-10-01",
+      "probability": 18.7,
+      "scoremove": 0.06,
+      "valuemove": 0.36
+    },
+    {
+      "account": "001am000026ZtgLAAS",
+      "code": "WM-CASH",
+      "period": "2026-11-01",
+      "probability": 18.11,
+      "scoremove": -0.53,
+      "valuemove": -3.18
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-05-01",
+      "probability": 13.15,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-06-01",
+      "probability": 13.09,
+      "scoremove": -0.06,
+      "valuemove": -0.48
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-07-01",
+      "probability": 12.22,
+      "scoremove": -0.93,
+      "valuemove": -7.44
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-08-01",
+      "probability": 12.15,
+      "scoremove": -1,
+      "valuemove": -8
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-09-01",
+      "probability": 11.98,
+      "scoremove": -1.17,
+      "valuemove": -9.36
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-10-01",
+      "probability": 14.12,
+      "scoremove": 0.97,
+      "valuemove": 41.85
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-11-01",
+      "probability": 14.05,
+      "scoremove": 0.9,
+      "valuemove": 41.02
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "IRA-RTH",
+      "period": "2026-05-01",
+      "probability": 13.4,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "IRA-RTH",
+      "period": "2026-06-01",
+      "probability": 13.81,
+      "scoremove": 0.41,
+      "valuemove": 0.61
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "IRA-RTH",
+      "period": "2026-07-01",
+      "probability": 12.81,
+      "scoremove": -0.59,
+      "valuemove": -0.89
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "IRA-RTH",
+      "period": "2026-08-01",
+      "probability": 12.96,
+      "scoremove": -0.44,
+      "valuemove": -0.66
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "IRA-RTH",
+      "period": "2026-09-01",
+      "probability": 12.41,
+      "scoremove": -0.99,
+      "valuemove": -1.49
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "IRA-RTH",
+      "period": "2026-10-01",
+      "probability": 14.07,
+      "scoremove": 0.67,
+      "valuemove": 1
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "IRA-RTH",
+      "period": "2026-11-01",
+      "probability": 13.59,
+      "scoremove": 0.19,
+      "valuemove": 0.28
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "MTG-JMB",
+      "period": "2026-05-01",
+      "probability": 19.8,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "MTG-JMB",
+      "period": "2026-06-01",
+      "probability": 20.1,
+      "scoremove": 0.3,
+      "valuemove": 15
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "MTG-JMB",
+      "period": "2026-07-01",
+      "probability": 21.1,
+      "scoremove": 1.3,
+      "valuemove": 65
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "MTG-JMB",
+      "period": "2026-08-01",
+      "probability": 21,
+      "scoremove": 1.2,
+      "valuemove": 60
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "MTG-JMB",
+      "period": "2026-09-01",
+      "probability": 21.56,
+      "scoremove": 1.76,
+      "valuemove": 88
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "MTG-JMB",
+      "period": "2026-10-01",
+      "probability": 18.71,
+      "scoremove": -1.09,
+      "valuemove": -54.5
+    },
+    {
+      "account": "001am000026ZtgMAAS",
+      "code": "MTG-JMB",
+      "period": "2026-11-01",
+      "probability": 18.41,
+      "scoremove": -1.39,
+      "valuemove": -69.5
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-05-01",
+      "probability": 8.73,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-06-01",
+      "probability": 8.51,
+      "scoremove": -0.22,
+      "valuemove": -1.76
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-07-01",
+      "probability": 8.23,
+      "scoremove": -0.5,
+      "valuemove": -4
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-08-01",
+      "probability": 8.56,
+      "scoremove": -0.17,
+      "valuemove": -1.36
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-09-01",
+      "probability": 8.48,
+      "scoremove": -0.25,
+      "valuemove": -2
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-10-01",
+      "probability": 11.3,
+      "scoremove": 2.57,
+      "valuemove": 26.63
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "HEL-ACQ",
+      "period": "2026-11-01",
+      "probability": 11.11,
+      "scoremove": 2.38,
+      "valuemove": 24.97
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "IRA-ROL",
+      "period": "2026-05-01",
+      "probability": 34.87,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "IRA-ROL",
+      "period": "2026-06-01",
+      "probability": 35.23,
+      "scoremove": 0.36,
+      "valuemove": 23.93
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "IRA-ROL",
+      "period": "2026-07-01",
+      "probability": 36.03,
+      "scoremove": 1.16,
+      "valuemove": 42.31
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "IRA-ROL",
+      "period": "2026-08-01",
+      "probability": 35.59,
+      "scoremove": 0.72,
+      "valuemove": 13.4
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "IRA-ROL",
+      "period": "2026-09-01",
+      "probability": 35.76,
+      "scoremove": 0.89,
+      "valuemove": -1.3
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "IRA-ROL",
+      "period": "2026-10-01",
+      "probability": 35.46,
+      "scoremove": 0.59,
+      "valuemove": 8.53
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "IRA-ROL",
+      "period": "2026-11-01",
+      "probability": 36.15,
+      "scoremove": 1.28,
+      "valuemove": 52.73
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "MTG-JMB",
+      "period": "2026-05-01",
+      "probability": 8.98,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "MTG-JMB",
+      "period": "2026-06-01",
+      "probability": 8.85,
+      "scoremove": -0.13,
+      "valuemove": -6.5
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "MTG-JMB",
+      "period": "2026-07-01",
+      "probability": 8.98,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "MTG-JMB",
+      "period": "2026-08-01",
+      "probability": 8.62,
+      "scoremove": -0.36,
+      "valuemove": -18
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "MTG-JMB",
+      "period": "2026-09-01",
+      "probability": 9.13,
+      "scoremove": 0.15,
+      "valuemove": 7.5
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "MTG-JMB",
+      "period": "2026-10-01",
+      "probability": 8.79,
+      "scoremove": -0.19,
+      "valuemove": -9.5
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "MTG-JMB",
+      "period": "2026-11-01",
+      "probability": 9.39,
+      "scoremove": 0.41,
+      "valuemove": 20.5
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "WM-CASH",
+      "period": "2026-05-01",
+      "probability": 15.99,
+      "scoremove": 0,
+      "valuemove": 0
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "WM-CASH",
+      "period": "2026-06-01",
+      "probability": 15.83,
+      "scoremove": -0.16,
+      "valuemove": -0.96
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "WM-CASH",
+      "period": "2026-07-01",
+      "probability": 16.85,
+      "scoremove": 0.86,
+      "valuemove": 5.16
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "WM-CASH",
+      "period": "2026-08-01",
+      "probability": 16.43,
+      "scoremove": 0.44,
+      "valuemove": 2.64
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "WM-CASH",
+      "period": "2026-09-01",
+      "probability": 16.09,
+      "scoremove": 0.1,
+      "valuemove": 0.6
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "WM-CASH",
+      "period": "2026-10-01",
+      "probability": 17.14,
+      "scoremove": 1.15,
+      "valuemove": 6.9
+    },
+    {
+      "account": "001am000026ZtgNAAS",
+      "code": "WM-CASH",
+      "period": "2026-11-01",
+      "probability": 16.54,
+      "scoremove": 0.55,
+      "valuemove": 3.3
+    }
+  ],
+  "financialPlans": [
+    {
+      "attributes": {
+        "type": "FinancialPlan",
+        "url": "/services/data/v67.0/sobjects/FinancialPlan/13Qam000000KniwEAC"
+      },
+      "Id": "13Qam000000KniwEAC",
+      "Name": "Philanthropic Impact",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      }
+    },
+    {
+      "attributes": {
+        "type": "FinancialPlan",
+        "url": "/services/data/v67.0/sobjects/FinancialPlan/13Qam000000KnixEAC"
+      },
+      "Id": "13Qam000000KnixEAC",
+      "Name": "Retire with Financial Freedom",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      }
+    }
+  ],
+  "gridOpportunities": [],
+  "queueOpportunities": [
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy6AAF"
+      },
+      "Id": "006am00000LcOy6AAF",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjtXAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+        },
+        "Name": "United Partners"
+      },
+      "Amount": 5257150000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyXAAV"
+      },
+      "Id": "006am00000LcOyXAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjttAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjttAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 4470741000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyZAAV"
+      },
+      "Id": "006am00000LcOyZAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvju6AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvju6AAA"
+        },
+        "Name": "Jim Morris Estate"
+      },
+      "Amount": 3416803000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyMAAV"
+      },
+      "Id": "006am00000LcOyMAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjtuAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtuAAA"
+        },
+        "Name": "IDO House Account"
+      },
+      "Amount": 2008102000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyYAAV"
+      },
+      "Id": "006am00000LcOyYAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvju2AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvju2AAA"
+        },
+        "Name": "Frank Household"
+      },
+      "Amount": 1697721000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyHAAV"
+      },
+      "Id": "006am00000LcOyHAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsXAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsXAAQ"
+        },
+        "Name": "General Utilities"
+      },
+      "Amount": 1112076000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy8AAF"
+      },
+      "Id": "006am00000LcOy8AAF",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjswAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjswAAA"
+        },
+        "Name": "Wellspring, Inc."
+      },
+      "Amount": 141234000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZbFAAX"
+      },
+      "Id": "006am00000KJZbFAAX",
+      "Name": "IDO House Account - Cumulus Syndicated Loan",
+      "AccountId": "001am00000qvjtuAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtuAAA"
+        },
+        "Name": "IDO House Account"
+      },
+      "Amount": 94824697,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyFAAV"
+      },
+      "Id": "006am00000LcOyFAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsTAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsTAAQ"
+        },
+        "Name": "Opportunity Resources Inc"
+      },
+      "Amount": 89774000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyRAAV"
+      },
+      "Id": "006am00000LcOyRAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjspAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjspAAA"
+        },
+        "Name": "Haven Enterprises"
+      },
+      "Amount": 85370000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy5AAF"
+      },
+      "Id": "006am00000LcOy5AAF",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjtqAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtqAAA"
+        },
+        "Name": "Biospan, LLC."
+      },
+      "Amount": 84666000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyPAAV"
+      },
+      "Id": "006am00000LcOyPAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjslAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjslAAA"
+        },
+        "Name": "Permadyne GmbH, LTD"
+      },
+      "Amount": 73950000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy7AAF"
+      },
+      "Id": "006am00000LcOy7AAF",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsaAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsaAAA"
+        },
+        "Name": "Anaco Limited"
+      },
+      "Amount": 56906000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyaAAF"
+      },
+      "Id": "006am00000LcOyaAAF",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjuBAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuBAAQ"
+        },
+        "Name": "Amptech Corporation"
+      },
+      "Amount": 43770000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyJAAV"
+      },
+      "Id": "006am00000LcOyJAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsZAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsZAAQ"
+        },
+        "Name": "Universal Services"
+      },
+      "Amount": 36244000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyNAAV"
+      },
+      "Id": "006am00000LcOyNAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsfAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsfAAA"
+        },
+        "Name": "Homeland Company"
+      },
+      "Amount": 29742000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyCAAV"
+      },
+      "Id": "006am00000LcOyCAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsOAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsOAAQ"
+        },
+        "Name": "Datanet, Inc."
+      },
+      "Amount": 20446000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyOAAV"
+      },
+      "Id": "006am00000LcOyOAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjshAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjshAAA"
+        },
+        "Name": "Open Source Inc."
+      },
+      "Amount": 19765000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJIP8AAP"
+      },
+      "Id": "006am00000KJIP8AAP",
+      "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Business Analyzed Checking - New Business - $16.6M",
+      "AccountId": "001am00000qvjttAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjttAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 16574839,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOy9AAF"
+      },
+      "Id": "006am00000LcOy9AAF",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjs5AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs5AAA"
+        },
+        "Name": "Acme Partners"
+      },
+      "Amount": 14975000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOySAAV"
+      },
+      "Id": "006am00000LcOySAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjsqAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsqAAA"
+        },
+        "Name": "Goodman Imports"
+      },
+      "Amount": 13734000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyDAAV"
+      },
+      "Id": "006am00000LcOyDAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjsPAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsPAAQ"
+        },
+        "Name": "Aims Social, Inc."
+      },
+      "Amount": 10591000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyEAAV"
+      },
+      "Id": "006am00000LcOyEAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjsQAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsQAAQ"
+        },
+        "Name": "Universal Containers"
+      },
+      "Amount": 10520000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJKfTAAX"
+      },
+      "Id": "006am00000KJKfTAAX",
+      "Name": "United Technologies Corporation - Cumulus Business Analyzed Checking - New Business - $10.3M",
+      "AccountId": "001am00000qvjtyAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtyAAA"
+        },
+        "Name": "United Technologies Corporation"
+      },
+      "Amount": 10320119,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOybAAF"
+      },
+      "Id": "006am00000LcOybAAF",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjuIAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuIAAQ"
+        },
+        "Name": "Blake Household"
+      },
+      "Amount": 9729000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyWAAV"
+      },
+      "Id": "006am00000LcOyWAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjtsAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtsAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 8234000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ijAAC"
+      },
+      "Id": "006am000005W2ijAAC",
+      "Name": "Harry Gray - Cumulus Business Fundamentals Checking - New Business - $8.0M",
+      "AccountId": "001am00000qvjsHAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsHAAQ"
+        },
+        "Name": "Harry P Gray"
+      },
+      "Amount": 8000000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZOLAA5"
+      },
+      "Id": "006am00000KJZOLAA5",
+      "Name": "CirrusCloud - Cumulus Commercial Real Estate",
+      "AccountId": "001am00000qvjtaAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtaAAA"
+        },
+        "Name": "CirrusCloud"
+      },
+      "Amount": 7880018,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2icAAC"
+      },
+      "Id": "006am000005W2icAAC",
+      "Name": "Will Johnson - Cumulus Business Fundamentals Checking - New Business - $6.0M",
+      "AccountId": "001am00000qvjsIAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsIAAQ"
+        },
+        "Name": "Will H Johnson"
+      },
+      "Amount": 6000000,
+      "StageName": "Preparation",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZY1AAP"
+      },
+      "Id": "006am00000KJZY1AAP",
+      "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Business Term Loan",
+      "AccountId": "001am00000qvjtrAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtrAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 4343200,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZMjAAP"
+      },
+      "Id": "006am00000KJZMjAAP",
+      "Name": "Lazard Middle Market LLC - Cumulus Business Term Loan",
+      "AccountId": "001am00000qvjtYAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtYAAQ"
+        },
+        "Name": "Lazard Middle Market LLC"
+      },
+      "Amount": 4090500,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOr9AAH"
+      },
+      "Id": "006am00000KJOr9AAH",
+      "Name": "CCAnonymous - Cumulus Business Term Loan",
+      "AccountId": "001am00000qvjtVAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtVAAQ"
+        },
+        "Name": "CCAnonymous"
+      },
+      "Amount": 3843300,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2j8AAC"
+      },
+      "Id": "006am000005W2j8AAC",
+      "Name": "Wellspring, Inc. - Cumulus Equipment Loan - Add-On Business - $3.5M",
+      "AccountId": "001am00000qvjswAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjswAAA"
+        },
+        "Name": "Wellspring, Inc."
+      },
+      "Amount": 3518000,
+      "StageName": "Underwriting",
+      "Probability": 50,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOycAAF"
+      },
+      "Id": "006am00000LcOycAAF",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjuJAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuJAAQ"
+        },
+        "Name": "The Blake Family Trust"
+      },
+      "Amount": 3399000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJO4lAAH"
+      },
+      "Id": "006am00000KJO4lAAH",
+      "Name": "United Technologies Corporation - Cumulus Wire Transfers - New Business - $3.1M",
+      "AccountId": "001am00000qvjtyAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtyAAA"
+        },
+        "Name": "United Technologies Corporation"
+      },
+      "Amount": 3051783,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jYAAS"
+      },
+      "Id": "006am000005W2jYAAS",
+      "Name": "AJC Corporation - Cumulus Commercial Real Estate",
+      "AccountId": "001am00000qvjsuAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsuAAA"
+        },
+        "Name": "AJC Corporation"
+      },
+      "Amount": 3000000,
+      "StageName": "Closing/Funding",
+      "Probability": 80,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXuPAAX"
+      },
+      "Id": "006am00000KJXuPAAX",
+      "Name": "Kari Rende - Cumulus Statement Savings - New Business - $2.9M",
+      "AccountId": "001am00000qvjtCAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtCAAQ"
+        },
+        "Name": "Kari H Rende"
+      },
+      "Amount": 2907400,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZWPAA5"
+      },
+      "Id": "006am00000KJZWPAA5",
+      "Name": "Sample Account for Entitlements - Cumulus Equipment Loan",
+      "AccountId": "001am00000qvjtpAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtpAAA"
+        },
+        "Name": "Sample Account for Entitlements"
+      },
+      "Amount": 2871323,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyBAAV"
+      },
+      "Id": "006am00000LcOyBAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjsNAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsNAAQ"
+        },
+        "Name": "Red Studio Designs"
+      },
+      "Amount": 2780000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJWVKAA5"
+      },
+      "Id": "006am00000KJWVKAA5",
+      "Name": "United Technologies Corporation - Cumulus Equipment Loan",
+      "AccountId": "001am00000qvjtyAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtyAAA"
+        },
+        "Name": "United Technologies Corporation"
+      },
+      "Amount": 2509805,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jEAAS"
+      },
+      "Id": "006am000005W2jEAAS",
+      "Name": "Southern Solutions - Cumulus Positive Pay - New Business - $2.1M",
+      "AccountId": "001am00000qvjsUAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsUAAQ"
+        },
+        "Name": "Southern Solutions"
+      },
+      "Amount": 2100000,
+      "StageName": "KYC / AML",
+      "Probability": 50,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iiAAC"
+      },
+      "Id": "006am000005W2iiAAC",
+      "Name": "AJC Corporation - Cumulus Positive Pay",
+      "AccountId": "001am00000qvjsuAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsuAAA"
+        },
+        "Name": "AJC Corporation"
+      },
+      "Amount": 2000000,
+      "StageName": "Proposed/Quote",
+      "Probability": 50,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRtrAAH"
+      },
+      "Id": "006am00000KJRtrAAH",
+      "Name": "Andy Peterson - Cumulus Managed Advisory",
+      "AccountId": "001am00000qvjtSAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtSAAQ"
+        },
+        "Name": "Andy N Peterson"
+      },
+      "Amount": 1866900,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyVAAV"
+      },
+      "Id": "006am00000LcOyVAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjtjAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtjAAA"
+        },
+        "Name": "Morris Household"
+      },
+      "Amount": 1734000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyKAAV"
+      },
+      "Id": "006am00000LcOyKAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsbAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+        },
+        "Name": "Associated Supply Co."
+      },
+      "Amount": 1717000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZxpAAH"
+      },
+      "Id": "006am00000KJZxpAAH",
+      "Name": "Simon Says Legal - Cumulus Business Fundamentals Checking - New Business - $1.6M",
+      "AccountId": "001am00000qvjuGAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuGAAQ"
+        },
+        "Name": "Simon Says Legal"
+      },
+      "Amount": 1644300,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJLQjAAP"
+      },
+      "Id": "006am00000KJLQjAAP",
+      "Name": "CirrusCloud - Cumulus Equipment Loan",
+      "AccountId": "001am00000qvjtaAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtaAAA"
+        },
+        "Name": "CirrusCloud"
+      },
+      "Amount": 1363457,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJQbDAAX"
+      },
+      "Id": "006am00000KJQbDAAX",
+      "Name": "Frederick Simon - Cumulus Business Term Loan - New Business - $1.2M",
+      "AccountId": "001am00000qvjthAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjthAAA"
+        },
+        "Name": "Frederick P Simon"
+      },
+      "Amount": 1238000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOHfAAP"
+      },
+      "Id": "006am00000KJOHfAAP",
+      "Name": "Steve Sutherland - Cumulus Managed Advisory",
+      "AccountId": "001am00000qvjtHAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtHAAQ"
+        },
+        "Name": "Steve B Sutherland"
+      },
+      "Amount": 1233600,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYiPAAX"
+      },
+      "Id": "006am00000KJYiPAAX",
+      "Name": "Mina Passini - Cumulus Everyday Checking - New Business - $1.2M",
+      "AccountId": "001am00000qvjtPAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtPAAQ"
+        },
+        "Name": "Mina K Passini"
+      },
+      "Amount": 1217700,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZGHAA5"
+      },
+      "Id": "006am00000KJZGHAA5",
+      "Name": "Momentum Design - Cumulus Commercial Real Estate",
+      "AccountId": "001am00000qvjsvAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsvAAA"
+        },
+        "Name": "Momentum Design"
+      },
+      "Amount": 1098686,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jFAAS"
+      },
+      "Id": "006am000005W2jFAAS",
+      "Name": "Universal Services - Cumulus Remote Deposit Capture - New Business - $1.0M",
+      "AccountId": "001am00000qvjsZAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsZAAQ"
+        },
+        "Name": "Universal Services"
+      },
+      "Amount": 1000000,
+      "StageName": "Loan Origination",
+      "Probability": 70,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000GJt1BAAT"
+      },
+      "Id": "006am00000GJt1BAAT",
+      "Name": "Julie Morris - Cumulus Statement Savings - New Business - $850K",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 850000,
+      "StageName": "Interested",
+      "Probability": 15,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRU2AAP"
+      },
+      "Id": "006am00000KJRU2AAP",
+      "Name": "Anne Frost - Cumulus 30 Year Fixed Mortgage",
+      "AccountId": "001am00000qvjtTAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtTAAQ"
+        },
+        "Name": "Anne I Frost"
+      },
+      "Amount": 774700,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXOBAA5"
+      },
+      "Id": "006am00000KJXOBAA5",
+      "Name": "Levin Insurance Agency - Cumulus Business Fundamentals Checking - New Business - $757K",
+      "AccountId": "001am00000qvjuDAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuDAAQ"
+        },
+        "Name": "Levin Insurance Agency"
+      },
+      "Amount": 757000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ifAAC"
+      },
+      "Id": "006am000005W2ifAAC",
+      "Name": "Julie Morris - Cumulus High-Yield Savings - New Business - $697K",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 697000,
+      "StageName": "Inerested",
+      "Probability": 15,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYaLAAX"
+      },
+      "Id": "006am00000KJYaLAAX",
+      "Name": "Mike Welch - Cumulus Everyday Checking - New Business - $646K",
+      "AccountId": "001am00000qvjtNAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtNAAQ"
+        },
+        "Name": "Mike W Welch"
+      },
+      "Amount": 646700,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJa2fAAD"
+      },
+      "Id": "006am00000KJa2fAAD",
+      "Name": "The Blake Family Trust - Cumulus Business Term Loan",
+      "AccountId": "001am00000qvjuJAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuJAAQ"
+        },
+        "Name": "The Blake Family Trust"
+      },
+      "Amount": 590900,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJVcUAAX"
+      },
+      "Id": "006am00000KJVcUAAX",
+      "Name": "Bennett Household - Cumulus Equipment Loan",
+      "AccountId": "001am00000qvjtkAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtkAAA"
+        },
+        "Name": "Bennett Household"
+      },
+      "Amount": 524113,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY5hAAH"
+      },
+      "Id": "006am00000KJY5hAAH",
+      "Name": "Jon Allegri - Cumulus 30 Year Fixed Mortgage",
+      "AccountId": "001am00000qvjtDAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtDAAQ"
+        },
+        "Name": "Jon Q Allegri"
+      },
+      "Amount": 500300,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyAAAV"
+      },
+      "Id": "006am00000LcOyAAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsLAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsLAAQ"
+        },
+        "Name": "Morris Roasters, LLC"
+      },
+      "Amount": 500000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jGAAS"
+      },
+      "Id": "006am000005W2jGAAS",
+      "Name": "Advanced Communications - Cumulus Corporate Card - New Business - $500K",
+      "AccountId": "001am00000qvjszAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+        },
+        "Name": "Advanced Communications"
+      },
+      "Amount": 500000,
+      "StageName": "Approval",
+      "Probability": 85,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2joAAC"
+      },
+      "Id": "006am000005W2joAAC",
+      "Name": "Richard Bennett - Cumulus Everyday Checking - New Business - $500K",
+      "AccountId": "001am00000qvjsBAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsBAAQ"
+        },
+        "Name": "Richard F Bennett"
+      },
+      "Amount": 500000,
+      "StageName": "Underwriting Review",
+      "Probability": 30,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZszAAH"
+      },
+      "Id": "006am00000KJZszAAH",
+      "Name": "San Francisco School Board - Cumulus Business Fundamentals Checking - New Business - $496K",
+      "AccountId": "001am00000qvjuEAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuEAAQ"
+        },
+        "Name": "San Francisco School Board"
+      },
+      "Amount": 496000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJWv8AAH"
+      },
+      "Id": "006am00000KJWv8AAH",
+      "Name": "Windy City Non-Profit Board - Cumulus Business Fundamentals Checking - New Business - $472K",
+      "AccountId": "001am00000qvjuFAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuFAAQ"
+        },
+        "Name": "Windy City Non-Profit Board"
+      },
+      "Amount": 472600,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyLAAV"
+      },
+      "Id": "006am00000LcOyLAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjseAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjseAAA"
+        },
+        "Name": "Big Sky & Sons"
+      },
+      "Amount": 429000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Kz8UzAAJ"
+      },
+      "Id": "006am00000Kz8UzAAJ",
+      "Name": "Julie Morris - Cumulus 401k Rollover - New Business - $425K",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 425000,
+      "StageName": "Negotiation/Review",
+      "Probability": 90,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4WAAAZ"
+      },
+      "Id": "006am00000Mm4WAAAZ",
+      "Name": "Green Energy Smart Grid",
+      "AccountId": "001am00002Ce0l4AAB",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l4AAB"
+        },
+        "Name": "Green Energy Co"
+      },
+      "Amount": 380000,
+      "StageName": "Negotiation/Review",
+      "Probability": 90,
+      "CloseDate": "2026-10-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZo9AAH"
+      },
+      "Id": "006am00000KJZo9AAH",
+      "Name": "Morris Family Trust - Cumulus Everyday Checking - New Business - $379K",
+      "AccountId": "001am00000qvju4AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvju4AAA"
+        },
+        "Name": "Morris Family Trust"
+      },
+      "Amount": 379400,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyQAAV"
+      },
+      "Id": "006am00000LcOyQAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsmAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsmAAA"
+        },
+        "Name": "Employnet"
+      },
+      "Amount": 377000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJIP9AAP"
+      },
+      "Id": "006am00000KJIP9AAP",
+      "Name": "Adena Commercial, LLC - Cumulus SBA Loan",
+      "AccountId": "001am00000qvju5AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvju5AAA"
+        },
+        "Name": "Adena Commercial, LLC"
+      },
+      "Amount": 351600,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyIAAV"
+      },
+      "Id": "006am00000LcOyIAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjsYAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsYAAQ"
+        },
+        "Name": "Morpon Brothers"
+      },
+      "Amount": 351000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ibAAC"
+      },
+      "Id": "006am000005W2ibAAC",
+      "Name": "Rachel Morris - Cumulus Statement Savings - Add-On Business - $300K",
+      "AccountId": "001am00000qvjsCAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsCAAQ"
+        },
+        "Name": "Rachel E Morris"
+      },
+      "Amount": 300000,
+      "StageName": "Underwriting Review",
+      "Probability": 30,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJa13AAD"
+      },
+      "Id": "006am00000KJa13AAD",
+      "Name": "Blake Household - Cumulus Corporate Card",
+      "AccountId": "001am00000qvjuIAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuIAAQ"
+        },
+        "Name": "Blake Household"
+      },
+      "Amount": 289200,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOrBAAX"
+      },
+      "Id": "006am00000KJOrBAAX",
+      "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Equipment Loan",
+      "AccountId": "001am00000qvjtrAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtrAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 280800,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyTAAV"
+      },
+      "Id": "006am00000LcOyTAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjstAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjstAAA"
+        },
+        "Name": "Harmon Consulting"
+      },
+      "Amount": 275000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyUAAV"
+      },
+      "Id": "006am00000LcOyUAAV",
+      "Name": "Innovation Pipeline",
+      "AccountId": "001am00000qvjszAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+        },
+        "Name": "Advanced Communications"
+      },
+      "Amount": 264000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZcrAAH"
+      },
+      "Id": "006am00000KJZcrAAH",
+      "Name": "United Semiconductor - Cumulus Payment Processing",
+      "AccountId": "001am00000qvjtzAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtzAAA"
+        },
+        "Name": "United Semiconductor"
+      },
+      "Amount": 257800,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZD3AAP"
+      },
+      "Id": "006am00000KJZD3AAP",
+      "Name": "Summit Resellers - Cumulus Corporate Card",
+      "AccountId": "001am00000qvjscAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjscAAA"
+        },
+        "Name": "Summit Resellers"
+      },
+      "Amount": 254500,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W6AAJ"
+      },
+      "Id": "006am00000Mm4W6AAJ",
+      "Name": "Global Industries ERP Integration",
+      "AccountId": "001am00002Ce0l0AAB",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l0AAB"
+        },
+        "Name": "Global Industries"
+      },
+      "Amount": 250000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-09-15",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iRAAS"
+      },
+      "Id": "006am000005W2iRAAS",
+      "Name": "Acme Partners - Cumulus Sweep Account - New Business - $250K",
+      "AccountId": "001am00000qvjs5AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs5AAA"
+        },
+        "Name": "Acme Partners"
+      },
+      "Amount": 250000,
+      "StageName": "Initial Due Diligence",
+      "Probability": 35,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOrAAAX"
+      },
+      "Id": "006am00000KJOrAAAX",
+      "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus SBA Loan",
+      "AccountId": "001am00000qvjtnAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtnAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 235400,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXSzAAP"
+      },
+      "Id": "006am00000KJXSzAAP",
+      "Name": "Heath Axworth - Cumulus 12Mo CD Renewal",
+      "AccountId": "001am00000qvjt1AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt1AAA"
+        },
+        "Name": "Heath C Axworth"
+      },
+      "Amount": 224400,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYAXAA5"
+      },
+      "Id": "006am00000KJYAXAA5",
+      "Name": "Niki Sullivan - Cumulus HELOC",
+      "AccountId": "001am00000qvjtEAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtEAAQ"
+        },
+        "Name": "Niki V Sullivan"
+      },
+      "Amount": 216200,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZ6bAAH"
+      },
+      "Id": "006am00000KJZ6bAAH",
+      "Name": "Christian Wolff - Cumulus 12Mo CD Renewal",
+      "AccountId": "001am00000qvjtiAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtiAAA"
+        },
+        "Name": "Christian A Wolff"
+      },
+      "Amount": 215000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXkjAAH"
+      },
+      "Id": "006am00000KJXkjAAH",
+      "Name": "Mark Smith - Cumulus HELOC",
+      "AccountId": "001am00000qvjt7AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt7AAA"
+        },
+        "Name": "Mark S Smith"
+      },
+      "Amount": 206000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJN2EAAX"
+      },
+      "Id": "006am00000KJN2EAAX",
+      "Name": "Heath Axworth - Cumulus HELOC",
+      "AccountId": "001am00000qvjt1AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt1AAA"
+        },
+        "Name": "Heath C Axworth"
+      },
+      "Amount": 203600,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXb3AAH"
+      },
+      "Id": "006am00000KJXb3AAH",
+      "Name": "Gabe Hoskins - Cumulus 12Mo CD Renewal",
+      "AccountId": "001am00000qvjt4AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt4AAA"
+        },
+        "Name": "Gabe X Hoskins"
+      },
+      "Amount": 200600,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZeTAAX"
+      },
+      "Id": "006am00000KJZeTAAX",
+      "Name": "United Semiconductor - Cumulus SBA Loan",
+      "AccountId": "001am00000qvjtzAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtzAAA"
+        },
+        "Name": "United Semiconductor"
+      },
+      "Amount": 194900,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXj7AAH"
+      },
+      "Id": "006am00000KJXj7AAH",
+      "Name": "Mark Smith - Cumulus 12Mo CD Renewal",
+      "AccountId": "001am00000qvjt7AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt7AAA"
+        },
+        "Name": "Mark S Smith"
+      },
+      "Amount": 194200,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000LcOyGAAV"
+      },
+      "Id": "006am00000LcOyGAAV",
+      "Name": "Revenue Diversification",
+      "AccountId": "001am00000qvjsUAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsUAAQ"
+        },
+        "Name": "Southern Solutions"
+      },
+      "Amount": 158000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ieAAC"
+      },
+      "Id": "006am000005W2ieAAC",
+      "Name": "Alex Cooper - Cumulus Everyday Checking - New Client - $150K",
+      "AccountId": "001am00000qvjtbAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtbAAA"
+        },
+        "Name": "Alex E Cooper"
+      },
+      "Amount": 150000,
+      "StageName": "Onboarding",
+      "Probability": 95,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W7AAJ"
+      },
+      "Id": "006am00000Mm4W7AAJ",
+      "Name": "Bright Horizon EMR System",
+      "AccountId": "001am00002Ce0l1AAB",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l1AAB"
+        },
+        "Name": "Bright Horizon Health"
+      },
+      "Amount": 150000,
+      "StageName": "Needs Analysis",
+      "Probability": 35,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000GCsGMAA1"
+      },
+      "Id": "006am00000GCsGMAA1",
+      "Name": "Julie Morris - Cumulus Personal Loan - New Business - $150K",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 150000,
+      "StageName": "Needs Analysis",
+      "Probability": 35,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYVVAA5"
+      },
+      "Id": "006am00000KJYVVAA5",
+      "Name": "Tammy Baxter - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtLAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtLAAQ"
+        },
+        "Name": "Tammy Z Baxter"
+      },
+      "Amount": 136100,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY7JAAX"
+      },
+      "Id": "006am00000KJY7JAAX",
+      "Name": "Niki Sullivan - Cumulus 12Mo CD Renewal",
+      "AccountId": "001am00000qvjtEAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtEAAQ"
+        },
+        "Name": "Niki V Sullivan"
+      },
+      "Amount": 134300,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jBAAS"
+      },
+      "Id": "006am000005W2jBAAS",
+      "Name": "Associated Supply Co. - Cumulus Merchant Integration - Add-On Business - $121K",
+      "AccountId": "001am00000qvjsbAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+        },
+        "Name": "Associated Supply Co."
+      },
+      "Amount": 121000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W9AAJ"
+      },
+      "Id": "006am00000Mm4W9AAJ",
+      "Name": "Summit Financial Analytics",
+      "AccountId": "001am00002Ce0l3AAB",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l3AAB"
+        },
+        "Name": "Summit Financial"
+      },
+      "Amount": 120000,
+      "StageName": "Proposal/Price Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iSAAS"
+      },
+      "Id": "006am000005W2iSAAS",
+      "Name": "Permadyne GmbH, LTD - Cumulus Corporate Card - Add-On Business - $116K",
+      "AccountId": "001am00000qvjslAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjslAAA"
+        },
+        "Name": "Permadyne GmbH, LTD"
+      },
+      "Amount": 116000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-19",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY8vAAH"
+      },
+      "Id": "006am00000KJY8vAAH",
+      "Name": "Niki Sullivan - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtEAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtEAAQ"
+        },
+        "Name": "Niki V Sullivan"
+      },
+      "Amount": 115500,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jMAAS"
+      },
+      "Id": "006am000005W2jMAAS",
+      "Name": "Permadyne GmbH, LTD - Cumulus Business Term Loan - Add-On Business - $114K",
+      "AccountId": "001am00000qvjslAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjslAAA"
+        },
+        "Name": "Permadyne GmbH, LTD"
+      },
+      "Amount": 114000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-10-24",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRU3AAP"
+      },
+      "Id": "006am00000KJRU3AAP",
+      "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus Corporate Card",
+      "AccountId": "001am00000qvjtsAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtsAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 112900,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jLAAS"
+      },
+      "Id": "006am000005W2jLAAS",
+      "Name": "UlyssesNet - Cumulus Lockbox Services - Add-On Business - $112K",
+      "AccountId": "001am00000qvjskAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjskAAA"
+        },
+        "Name": "UlyssesNet"
+      },
+      "Amount": 112000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-10-17",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iYAAS"
+      },
+      "Id": "006am000005W2iYAAS",
+      "Name": "Assurity Corporation - Cumulus Business Analyzed Checking - New Business - $110K",
+      "AccountId": "001am00000qvjtvAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtvAAA"
+        },
+        "Name": "Assurity Corporation"
+      },
+      "Amount": 110000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-10-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jCAAS"
+      },
+      "Id": "006am000005W2jCAAS",
+      "Name": "Goodman Imports - Cumulus Corporate Card - New Business - $110K",
+      "AccountId": "001am00000qvjsqAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsqAAA"
+        },
+        "Name": "Goodman Imports"
+      },
+      "Amount": 110000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jXAAS"
+      },
+      "Id": "006am000005W2jXAAS",
+      "Name": "Vand Enterprises, Inc. - Cumulus Corporate Card - Services - $109K",
+      "AccountId": "001am00000qvjsyAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsyAAA"
+        },
+        "Name": "Vand Enterprises, Inc."
+      },
+      "Amount": 109999.42,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-10",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jKAAS"
+      },
+      "Id": "006am000005W2jKAAS",
+      "Name": "Missoula & Sons Inc. - Cumulus Payment Processing - New Business - $109K",
+      "AccountId": "001am00000qvjsVAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsVAAQ"
+        },
+        "Name": "Missoula & Sons Inc."
+      },
+      "Amount": 109000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-10-17",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iqAAC"
+      },
+      "Id": "006am000005W2iqAAC",
+      "Name": "UlyssesNet - Cumulus ACH Services - Services - $100K",
+      "AccountId": "001am00000qvjskAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjskAAA"
+        },
+        "Name": "UlyssesNet"
+      },
+      "Amount": 100000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-11-16",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iZAAS"
+      },
+      "Id": "006am000005W2iZAAS",
+      "Name": "Charlie Ellis - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjsDAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsDAAQ"
+        },
+        "Name": "Charlie T Ellis"
+      },
+      "Amount": 100000,
+      "StageName": "Verification",
+      "Probability": 50,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iLAAS"
+      },
+      "Id": "006am000005W2iLAAS",
+      "Name": "Aims Social, Inc. - Cumulus Corporate Card - New Business - $99K",
+      "AccountId": "001am00000qvjsPAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsPAAQ"
+        },
+        "Name": "Aims Social, Inc."
+      },
+      "Amount": 99000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ihAAC"
+      },
+      "Id": "006am000005W2ihAAC",
+      "Name": "Goldfinch Bicycles - Cumulus ACH Services",
+      "AccountId": "001am00000qvjsEAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsEAAQ"
+        },
+        "Name": "Goldfinch Bicycles"
+      },
+      "Amount": 98300,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ilAAC"
+      },
+      "Id": "006am000005W2ilAAC",
+      "Name": "Julie Morris - Cumulus Auto Loan - New Business - $98K",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 98000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jIAAS"
+      },
+      "Id": "006am000005W2jIAAS",
+      "Name": "Roseburg Products - Cumulus Corporate Card - Add-On Business - $90K",
+      "AccountId": "001am00000qvjsrAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsrAAA"
+        },
+        "Name": "Roseburg Products"
+      },
+      "Amount": 90000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-10",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYIbAAP"
+      },
+      "Id": "006am00000KJYIbAAP",
+      "Name": "Benjamin Young - Cumulus 529 Plan",
+      "AccountId": "001am00000qvjtIAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtIAAQ"
+        },
+        "Name": "Benjamin A Young"
+      },
+      "Amount": 89400,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRKMAA5"
+      },
+      "Id": "006am00000KJRKMAA5",
+      "Name": "Nicole Grace - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtJAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtJAAQ"
+        },
+        "Name": "Nicole C Grace"
+      },
+      "Amount": 89400,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYKDAA5"
+      },
+      "Id": "006am00000KJYKDAA5",
+      "Name": "Nicole Grace - Cumulus HELOC",
+      "AccountId": "001am00000qvjtJAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtJAAQ"
+        },
+        "Name": "Nicole C Grace"
+      },
+      "Amount": 86900,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jNAAS"
+      },
+      "Id": "006am000005W2jNAAS",
+      "Name": "Haven Enterprises - Cumulus Payment Processing - Add-On Business - $84K",
+      "AccountId": "001am00000qvjspAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjspAAA"
+        },
+        "Name": "Haven Enterprises"
+      },
+      "Amount": 84000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-10-12",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iUAAS"
+      },
+      "Id": "006am000005W2iUAAS",
+      "Name": "Advanced Communications - Cumulus Commercial Real Estate - Services - $80K",
+      "AccountId": "001am00000qvjszAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+        },
+        "Name": "Advanced Communications"
+      },
+      "Amount": 80000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-10",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYX7AAP"
+      },
+      "Id": "006am00000KJYX7AAP",
+      "Name": "Tammy Baxter - Cumulus HELOC",
+      "AccountId": "001am00000qvjtLAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtLAAQ"
+        },
+        "Name": "Tammy Z Baxter"
+      },
+      "Amount": 78200,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYyXAAX"
+      },
+      "Id": "006am00000KJYyXAAX",
+      "Name": "Olivia Blake - Cumulus 12Mo CD Renewal",
+      "AccountId": "001am00000qvjtfAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtfAAA"
+        },
+        "Name": "Olivia I Blake"
+      },
+      "Amount": 77300,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jqAAC"
+      },
+      "Id": "006am000005W2jqAAC",
+      "Name": "Morpon Brothers - Cumulus Business Term Loan - New Business - $75K",
+      "AccountId": "001am00000qvjsYAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsYAAQ"
+        },
+        "Name": "Morpon Brothers"
+      },
+      "Amount": 75000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-09-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W5AAJ"
+      },
+      "Id": "006am00000Mm4W5AAJ",
+      "Name": "Acme Platform Upgrade",
+      "AccountId": "001am00002Ce0kzAAB",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0kzAAB"
+        },
+        "Name": "Acme Corp"
+      },
+      "Amount": 75000,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-06-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXhWAAX"
+      },
+      "Id": "006am00000KJXhWAAX",
+      "Name": "Jim Morris Estate - Cumulus Payment Processing",
+      "AccountId": "001am00000qvju6AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvju6AAA"
+        },
+        "Name": "Jim Morris Estate"
+      },
+      "Amount": 75000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iIAAS"
+      },
+      "Id": "006am000005W2iIAAS",
+      "Name": "Open Source Inc. - Cumulus Positive Pay - Services - $72K",
+      "AccountId": "001am00000qvjshAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjshAAA"
+        },
+        "Name": "Open Source Inc."
+      },
+      "Amount": 72000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-09-27",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYDlAAP"
+      },
+      "Id": "006am00000KJYDlAAP",
+      "Name": "Bob Warkentine - Cumulus HELOC",
+      "AccountId": "001am00000qvjtGAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtGAAQ"
+        },
+        "Name": "Bob S Warkentine"
+      },
+      "Amount": 70800,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iTAAS"
+      },
+      "Id": "006am000005W2iTAAS",
+      "Name": "Employnet - Cumulus Business Term Loan - New Business - $66K",
+      "AccountId": "001am00000qvjsmAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsmAAA"
+        },
+        "Name": "Employnet"
+      },
+      "Amount": 66000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ioAAC"
+      },
+      "Id": "006am000005W2ioAAC",
+      "Name": "Universal Services - Cumulus Cash Rewards Card - Add-On Business - $65K",
+      "AccountId": "001am00000qvjsZAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsZAAQ"
+        },
+        "Name": "Universal Services"
+      },
+      "Amount": 65000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-11-13",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJV6PAAX"
+      },
+      "Id": "006am00000KJV6PAAX",
+      "Name": "Troy Bullock - Cumulus HELOC",
+      "AccountId": "001am00000qvjtAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtAAAQ"
+        },
+        "Name": "Troy U Bullock"
+      },
+      "Amount": 64700,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2izAAC"
+      },
+      "Id": "006am000005W2izAAC",
+      "Name": "Associated Supply Co. - Cumulus ACH Origination - New Business - $64K",
+      "AccountId": "001am00000qvjsbAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+        },
+        "Name": "Associated Supply Co."
+      },
+      "Amount": 64000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-26",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jrAAC"
+      },
+      "Id": "006am000005W2jrAAC",
+      "Name": "Employnet - Cumulus Business Line of Credit - Services - $64K",
+      "AccountId": "001am00000qvjsmAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsmAAA"
+        },
+        "Name": "Employnet"
+      },
+      "Amount": 64000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-09-10",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jDAAS"
+      },
+      "Id": "006am000005W2jDAAS",
+      "Name": "Green Fields Media - Cumulus Zero Balance Account - Add-On Business - $63K",
+      "AccountId": "001am00000qvjs8AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs8AAA"
+        },
+        "Name": "Green Fields Media"
+      },
+      "Amount": 63000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-10",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXftAAH"
+      },
+      "Id": "006am00000KJXftAAH",
+      "Name": "Robert Simpson - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjt5AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt5AAA"
+        },
+        "Name": "Robert F Simpson"
+      },
+      "Amount": 62100,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jpAAC"
+      },
+      "Id": "006am000005W2jpAAC",
+      "Name": "Tech Labs - Cumulus Zero Balance Account - Add-On Business - $59K",
+      "AccountId": "001am00000qvjsMAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsMAAQ"
+        },
+        "Name": "Tech Labs"
+      },
+      "Amount": 59000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-09-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jHAAS"
+      },
+      "Id": "006am000005W2jHAAS",
+      "Name": "General Utilities - Cumulus Positive Pay - Add-On Business - $58K",
+      "AccountId": "001am00000qvjsXAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsXAAQ"
+        },
+        "Name": "General Utilities"
+      },
+      "Amount": 58000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJOHeAAP"
+      },
+      "Id": "006am00000KJOHeAAP",
+      "Name": "Robert Janzen - Cumulus 12Mo CD Renewal",
+      "AccountId": "001am00000qvjt0AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt0AAA"
+        },
+        "Name": "Robert Z Janzen"
+      },
+      "Amount": 55900,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJKZ1AAP"
+      },
+      "Id": "006am00000KJKZ1AAP",
+      "Name": "Peter Houston - Cumulus Auto Loan",
+      "AccountId": "001am00000qvjt9AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt9AAA"
+        },
+        "Name": "Peter K Houston"
+      },
+      "Amount": 55200,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYs5AAH"
+      },
+      "Id": "006am00000KJYs5AAH",
+      "Name": "Jennifer Blake - Cumulus Auto Loan",
+      "AccountId": "001am00000qvjtcAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtcAAA"
+        },
+        "Name": "Jennifer C Blake"
+      },
+      "Amount": 54700,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2irAAC"
+      },
+      "Id": "006am000005W2irAAC",
+      "Name": "Tyconet - Cumulus ACH Origination - Add-On Business - $54K",
+      "AccountId": "001am00000qvjsoAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsoAAA"
+        },
+        "Name": "Tyconet"
+      },
+      "Amount": 54000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-11-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jkAAC"
+      },
+      "Id": "006am000005W2jkAAC",
+      "Name": "United Partners - Cumulus ACH Services - Add-On Business - $53K",
+      "AccountId": "001am00000qvjtXAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+        },
+        "Name": "United Partners"
+      },
+      "Amount": 53000,
+      "StageName": "Assessment Needed",
+      "Probability": 25,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iVAAS"
+      },
+      "Id": "006am000005W2iVAAS",
+      "Name": "United Partners - Cumulus Wire Transfers - Add-On Business - $53K",
+      "AccountId": "001am00000qvjtXAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+        },
+        "Name": "United Partners"
+      },
+      "Amount": 53000,
+      "StageName": "Assessment Needed",
+      "Probability": 25,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jjAAC"
+      },
+      "Id": "006am000005W2jjAAC",
+      "Name": "United Partners - Cumulus Lockbox Services - Add-On Business - $53K",
+      "AccountId": "001am00000qvjtXAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+        },
+        "Name": "United Partners"
+      },
+      "Amount": 53000,
+      "StageName": "Assessment Needed",
+      "Probability": 25,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jlAAC"
+      },
+      "Id": "006am000005W2jlAAC",
+      "Name": "United Partners - Cumulus Positive Pay - Add-On Business - $53K",
+      "AccountId": "001am00000qvjtXAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtXAAQ"
+        },
+        "Name": "United Partners"
+      },
+      "Amount": 53000,
+      "StageName": "Assessment Needed",
+      "Probability": 25,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jiAAC"
+      },
+      "Id": "006am000005W2jiAAC",
+      "Name": "UlyssesNet - Cumulus Positive Pay - New Business - $52K",
+      "AccountId": "001am00000qvjskAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjskAAA"
+        },
+        "Name": "UlyssesNet"
+      },
+      "Amount": 52000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-10-28",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2inAAC"
+      },
+      "Id": "006am000005W2inAAC",
+      "Name": "Southern Solutions - Cumulus Purchasing Card - Add-On Business - $50K",
+      "AccountId": "001am00000qvjsUAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsUAAQ"
+        },
+        "Name": "Southern Solutions"
+      },
+      "Amount": 50000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-11-16",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZZdAAP"
+      },
+      "Id": "006am00000KJZZdAAP",
+      "Name": "B2B Commerce Lightning Experience Guest Buyer Account - Cumulus ACH Services",
+      "AccountId": "001am00000qvjttAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjttAAA"
+        },
+        "Name": "B2B Commerce Lightning Experience Guest Buyer Account"
+      },
+      "Amount": 50000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYvJAAX"
+      },
+      "Id": "006am00000KJYvJAAX",
+      "Name": "Stephen Blake - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjteAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjteAAA"
+        },
+        "Name": "Stephen L Blake"
+      },
+      "Amount": 48500,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJRkAAAX"
+      },
+      "Id": "006am00000KJRkAAAX",
+      "Name": "Russell Hartman - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjtMAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtMAAQ"
+        },
+        "Name": "Russell B Hartman"
+      },
+      "Amount": 48000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-06",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUdCAAX"
+      },
+      "Id": "006am00000KJUdCAAX",
+      "Name": "Chip Colli - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjtFAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtFAAQ"
+        },
+        "Name": "Chip G Colli"
+      },
+      "Amount": 47700,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJPDsAAP"
+      },
+      "Id": "006am00000KJPDsAAP",
+      "Name": "Nigel Morris - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjsGAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsGAAQ"
+        },
+        "Name": "Nigel E Morris"
+      },
+      "Amount": 47200,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJPX4AAP"
+      },
+      "Id": "006am00000KJPX4AAP",
+      "Name": "Lance Gonzales - Cumulus Auto Loan",
+      "AccountId": "001am00000qvjt3AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt3AAA"
+        },
+        "Name": "Lance U Gonzales"
+      },
+      "Amount": 46000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000Mm4W8AAJ"
+      },
+      "Id": "006am00000Mm4W8AAJ",
+      "Name": "Cloud Dynamics SaaS Bundle",
+      "AccountId": "001am00002Ce0l2AAB",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00002Ce0l2AAB"
+        },
+        "Name": "Cloud Dynamics"
+      },
+      "Amount": 45000,
+      "StageName": "Value Proposition",
+      "Probability": 50,
+      "CloseDate": "2026-05-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iwAAC"
+      },
+      "Id": "006am000005W2iwAAC",
+      "Name": "XPower - Cumulus Positive Pay - Services - $44K",
+      "AccountId": "001am00000qvjsgAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsgAAA"
+        },
+        "Name": "XPower"
+      },
+      "Amount": 44000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-11-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jnAAC"
+      },
+      "Id": "006am000005W2jnAAC",
+      "Name": "Omega Systems - Cumulus Remote Deposit Capture - New Business - $44K",
+      "AccountId": "001am00000qvjuAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuAAAQ"
+        },
+        "Name": "Omega Systems"
+      },
+      "Amount": 44000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2027-02-19",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJU28AAH"
+      },
+      "Id": "006am00000KJU28AAH",
+      "Name": "Nicole Grace - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjtJAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtJAAQ"
+        },
+        "Name": "Nicole C Grace"
+      },
+      "Amount": 43700,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jsAAC"
+      },
+      "Id": "006am000005W2jsAAC",
+      "Name": "Tyconet - Cumulus ACH Collections - New Business - $41K",
+      "AccountId": "001am00000qvjsoAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsoAAA"
+        },
+        "Name": "Tyconet"
+      },
+      "Amount": 41000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-09-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000OSp8DAAT"
+      },
+      "Id": "006am00000OSp8DAAT",
+      "Name": "Julie E Morris - PL-LOAN-AUT-2026.04 - Opportunity - August 6, 2026",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 40000,
+      "StageName": "Interested",
+      "Probability": 15,
+      "CloseDate": "2026-11-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000OVPZ2AAP"
+      },
+      "Id": "006am00000OVPZ2AAP",
+      "Name": "Julie E Morris - PL-LOAN-AUT-2026.04 - Opportunity - August 7, 2026",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 40000,
+      "StageName": "Interested",
+      "Probability": 15,
+      "CloseDate": "2026-11-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJY2UAAX"
+      },
+      "Id": "006am00000KJY2UAAX",
+      "Name": "Karen Wells - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtOAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtOAAQ"
+        },
+        "Name": "Karen L Wells"
+      },
+      "Amount": 39000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZRZAA5"
+      },
+      "Id": "006am00000KJZRZAA5",
+      "Name": "Cooper Household - Cumulus ACH Services",
+      "AccountId": "001am00000qvjtlAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtlAAA"
+        },
+        "Name": "Cooper Household"
+      },
+      "Amount": 36500,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXeHAAX"
+      },
+      "Id": "006am00000KJXeHAAX",
+      "Name": "Robert Simpson - Cumulus Auto Loan",
+      "AccountId": "001am00000qvjt5AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt5AAA"
+        },
+        "Name": "Robert F Simpson"
+      },
+      "Amount": 36500,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2imAAC"
+      },
+      "Id": "006am000005W2imAAC",
+      "Name": "Julie Morris - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjsAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsAAAQ"
+        },
+        "Name": "Julie E Morris"
+      },
+      "Amount": 35000,
+      "StageName": "DDE",
+      "Probability": 30,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jZAAS"
+      },
+      "Id": "006am000005W2jZAAS",
+      "Name": "Displaytech - Cumulus Payment Processing - Add-On Business - $35K",
+      "AccountId": "001am00000qvjs9AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjs9AAA"
+        },
+        "Name": "Displaytech"
+      },
+      "Amount": 35000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-12-11",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jhAAC"
+      },
+      "Id": "006am000005W2jhAAC",
+      "Name": "Associated Supply Co. - Cumulus Equipment Leasing - Services - $33K",
+      "AccountId": "001am00000qvjsbAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsbAAA"
+        },
+        "Name": "Associated Supply Co."
+      },
+      "Amount": 33000,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-10-10",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYorAAH"
+      },
+      "Id": "006am00000KJYorAAH",
+      "Name": "Jennifer Blake - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjtcAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtcAAA"
+        },
+        "Name": "Jennifer C Blake"
+      },
+      "Amount": 32600,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYQfAAP"
+      },
+      "Id": "006am00000KJYQfAAP",
+      "Name": "Unknown Customer - Cumulus Auto Loan",
+      "AccountId": "001am00000qvjtKAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtKAAQ"
+        },
+        "Name": "Alex U Garcia"
+      },
+      "Amount": 32300,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-05",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXmLAAX"
+      },
+      "Id": "006am00000KJXmLAAX",
+      "Name": "Mark Smith - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjt7AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt7AAA"
+        },
+        "Name": "Mark S Smith"
+      },
+      "Amount": 31700,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZBRAA5"
+      },
+      "Id": "006am00000KJZBRAA5",
+      "Name": "Salesforce - Cumulus Payment Processing",
+      "AccountId": "001am00000qvjsKAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsKAAQ"
+        },
+        "Name": "Salesforce"
+      },
+      "Amount": 30500,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZ3NAAX"
+      },
+      "Id": "006am00000KJZ3NAAX",
+      "Name": "Connor Blake - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtgAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtgAAA"
+        },
+        "Name": "Connor W Blake"
+      },
+      "Amount": 29300,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYGzAAP"
+      },
+      "Id": "006am00000KJYGzAAP",
+      "Name": "Bob Warkentine - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtGAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtGAAQ"
+        },
+        "Name": "Bob S Warkentine"
+      },
+      "Amount": 28900,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXhVAAX"
+      },
+      "Id": "006am00000KJXhVAAX",
+      "Name": "Mike Garcia - Cumulus Auto Loan",
+      "AccountId": "001am00000qvjt6AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt6AAA"
+        },
+        "Name": "Mike B Garcia"
+      },
+      "Amount": 28700,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXHhAAP"
+      },
+      "Id": "006am00000KJXHhAAP",
+      "Name": "Jack Morris - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjsFAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsFAAQ"
+        },
+        "Name": "Jack Q Morris"
+      },
+      "Amount": 28000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iKAAS"
+      },
+      "Id": "006am000005W2iKAAS",
+      "Name": "Advanced Communications - Cumulus Merchant Integration - Add-On Business - $27K",
+      "AccountId": "001am00000qvjszAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjszAAA"
+        },
+        "Name": "Advanced Communications"
+      },
+      "Amount": 27000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-02-24",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ipAAC"
+      },
+      "Id": "006am000005W2ipAAC",
+      "Name": "Allied Technologies - Cumulus Purchasing Card - Add-On Business - $26K",
+      "AccountId": "001am00000qvjsdAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsdAAA"
+        },
+        "Name": "Allied Technologies"
+      },
+      "Amount": 26000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-11-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ivAAC"
+      },
+      "Id": "006am000005W2ivAAC",
+      "Name": "Omega Technologies - Cumulus Business Term Loan - Add-On Business - $25K",
+      "AccountId": "001am00000qvjtoAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtoAAA"
+        },
+        "Name": "Omega Technologies"
+      },
+      "Amount": 25000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-11-16",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXOAAA5"
+      },
+      "Id": "006am00000KJXOAAA5",
+      "Name": "Jim Morris Estate - Cumulus ACH Origination",
+      "AccountId": "001am00000qvju6AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvju6AAA"
+        },
+        "Name": "Jim Morris Estate"
+      },
+      "Amount": 25000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ikAAC"
+      },
+      "Id": "006am000005W2ikAAC",
+      "Name": "Ace Accounting - Cumulus Business Fundamentals Checking - New Business - $25K",
+      "AccountId": "001am00000qvjtxAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtxAAA"
+        },
+        "Name": "Ace Accounting"
+      },
+      "Amount": 25000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXPlAAP"
+      },
+      "Id": "006am00000KJXPlAAP",
+      "Name": "Heath Axworth - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjt1AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt1AAA"
+        },
+        "Name": "Heath C Axworth"
+      },
+      "Amount": 24800,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYP3AAP"
+      },
+      "Id": "006am00000KJYP3AAP",
+      "Name": "Unknown Customer - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtKAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtKAAQ"
+        },
+        "Name": "Alex U Garcia"
+      },
+      "Amount": 24300,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXrBAAX"
+      },
+      "Id": "006am00000KJXrBAAX",
+      "Name": "Troy Bullock - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjtAAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtAAAQ"
+        },
+        "Name": "Troy U Bullock"
+      },
+      "Amount": 23000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJZ09AAH"
+      },
+      "Id": "006am00000KJZ09AAH",
+      "Name": "Olivia Blake - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjtfAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtfAAA"
+        },
+        "Name": "Olivia I Blake"
+      },
+      "Amount": 22000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXKvAAP"
+      },
+      "Id": "006am00000KJXKvAAP",
+      "Name": "Nigel Morris - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjsGAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsGAAQ"
+        },
+        "Name": "Nigel E Morris"
+      },
+      "Amount": 21800,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUAAAA5"
+      },
+      "Id": "006am00000KJUAAAA5",
+      "Name": "Morris Household - Cumulus ACH Services",
+      "AccountId": "001am00000qvjtjAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtjAAA"
+        },
+        "Name": "Morris Household"
+      },
+      "Amount": 20600,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jcAAC"
+      },
+      "Id": "006am000005W2jcAAC",
+      "Name": "Big Sky & Sons - Cumulus Equipment Loan - Add-On Business - $20K",
+      "AccountId": "001am00000qvjseAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjseAAA"
+        },
+        "Name": "Big Sky & Sons"
+      },
+      "Amount": 20000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-10-15",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iaAAC"
+      },
+      "Id": "006am000005W2iaAAC",
+      "Name": "Rachel Morris - Cumulus Auto Loan",
+      "AccountId": "001am00000qvjsCAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsCAAQ"
+        },
+        "Name": "Rachel E Morris"
+      },
+      "Amount": 20000,
+      "StageName": "Application",
+      "Probability": 10,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2jaAAC"
+      },
+      "Id": "006am000005W2jaAAC",
+      "Name": "Open Source Inc. - Cumulus Equipment Loan - New Business - $20K",
+      "AccountId": "001am00000qvjshAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjshAAA"
+        },
+        "Name": "Open Source Inc."
+      },
+      "Amount": 20000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2027-01-18",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJLEwAAP"
+      },
+      "Id": "006am00000KJLEwAAP",
+      "Name": "Jack Morris - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjsFAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsFAAQ"
+        },
+        "Name": "Jack Q Morris"
+      },
+      "Amount": 19400,
+      "StageName": "Negotiation",
+      "Probability": 90,
+      "CloseDate": "2026-08-01",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYqTAAX"
+      },
+      "Id": "006am00000KJYqTAAX",
+      "Name": "Jennifer Blake - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjtcAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtcAAA"
+        },
+        "Name": "Jennifer C Blake"
+      },
+      "Amount": 18900,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-04",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJYqUAAX"
+      },
+      "Id": "006am00000KJYqUAAX",
+      "Name": "San Francisco School Board - Cumulus Business Analyzed Checking",
+      "AccountId": "001am00000qvjuEAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuEAAQ"
+        },
+        "Name": "San Francisco School Board"
+      },
+      "Amount": 18900,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUV8AAP"
+      },
+      "Id": "006am00000KJUV8AAP",
+      "Name": "Stacy McNeil - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjtQAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtQAAQ"
+        },
+        "Name": "Stacy L McNeil"
+      },
+      "Amount": 18800,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXzFAAX"
+      },
+      "Id": "006am00000KJXzFAAX",
+      "Name": "Kari Rende - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjtCAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtCAAQ"
+        },
+        "Name": "Kari H Rende"
+      },
+      "Amount": 18800,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-03",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXnxAAH"
+      },
+      "Id": "006am00000KJXnxAAH",
+      "Name": "Robert Weiss - Cumulus Personal Loan",
+      "AccountId": "001am00000qvjt8AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt8AAA"
+        },
+        "Name": "Robert J Weiss"
+      },
+      "Amount": 18500,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-07-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXJJAA5"
+      },
+      "Id": "006am00000KJXJJAA5",
+      "Name": "Jack Morris - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjsFAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsFAAQ"
+        },
+        "Name": "Jack Q Morris"
+      },
+      "Amount": 17600,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2ixAAC"
+      },
+      "Id": "006am000005W2ixAAC",
+      "Name": "Big Sky & Sons - Cumulus SBA Loan - New Business - $17K",
+      "AccountId": "001am00000qvjseAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjseAAA"
+        },
+        "Name": "Big Sky & Sons"
+      },
+      "Amount": 17000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-08-29",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2itAAC"
+      },
+      "Id": "006am000005W2itAAC",
+      "Name": "Datanet, Inc. - Cumulus Corporate Card - Add-On Business - $17K",
+      "AccountId": "001am00000qvjsOAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsOAAQ"
+        },
+        "Name": "Datanet, Inc."
+      },
+      "Amount": 17000,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-11-17",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJUmsAAH"
+      },
+      "Id": "006am00000KJUmsAAH",
+      "Name": "Robert Janzen - Cumulus Cash Rewards Card",
+      "AccountId": "001am00000qvjt0AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt0AAA"
+        },
+        "Name": "Robert Z Janzen"
+      },
+      "Amount": 16900,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-08-07",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJVSoAAP"
+      },
+      "Id": "006am00000KJVSoAAP",
+      "Name": "Peter Houston - Cumulus 529 Plan",
+      "AccountId": "001am00000qvjt9AAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjt9AAA"
+        },
+        "Name": "Peter K Houston"
+      },
+      "Amount": 16800,
+      "StageName": "Discovery",
+      "Probability": 15,
+      "CloseDate": "2026-07-30",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am00000KJXsnAAH"
+      },
+      "Id": "006am00000KJXsnAAH",
+      "Name": "Mike Malmin - Cumulus Everyday Checking",
+      "AccountId": "001am00000qvjtBAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjtBAAQ"
+        },
+        "Name": "Mike Y Malmin"
+      },
+      "Amount": 16100,
+      "StageName": "Prospecting",
+      "Probability": 10,
+      "CloseDate": "2026-07-31",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iuAAC"
+      },
+      "Id": "006am000005W2iuAAC",
+      "Name": "Amptech Corporation - Cumulus Business Line of Credit - Add-On Business - $16K",
+      "AccountId": "001am00000qvjuBAAQ",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjuBAAQ"
+        },
+        "Name": "Amptech Corporation"
+      },
+      "Amount": 16000,
+      "StageName": "Qualification",
+      "Probability": 20,
+      "CloseDate": "2026-11-16",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iOAAS"
+      },
+      "Id": "006am000005W2iOAAS",
+      "Name": "Harmon Consulting - Cumulus Business Term Loan - Services - $16K",
+      "AccountId": "001am00000qvjstAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjstAAA"
+        },
+        "Name": "Harmon Consulting"
+      },
+      "Amount": 16000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2027-06-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Opportunity",
+        "url": "/services/data/v67.0/sobjects/Opportunity/006am000005W2iXAAS"
+      },
+      "Id": "006am000005W2iXAAS",
+      "Name": "Goodman Imports - Cumulus Remote Deposit Capture - Add-On Business - $16K",
+      "AccountId": "001am00000qvjsqAAA",
+      "Account": {
+        "attributes": {
+          "type": "Account",
+          "url": "/services/data/v67.0/sobjects/Account/001am00000qvjsqAAA"
+        },
+        "Name": "Goodman Imports"
+      },
+      "Amount": 16000,
+      "StageName": "Proposal/Quote",
+      "Probability": 75,
+      "CloseDate": "2027-07-02",
+      "IsClosed": false,
+      "OwnerId": "005am000003PbCLAA0"
+    }
+  ],
+  "queueTasksOverdue": [
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000VD9zhEAD"
+      },
+      "Id": "00Tam00000VD9zhEAD",
+      "Subject": "Speak with Julie Morris about her daughter's 529 account",
+      "Status": "Not Started",
+      "Priority": "Normal",
+      "ActivityDate": "2026-10-19",
+      "WhatId": "001am00000qvjsAAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000UdfoPEAR"
+      },
+      "Id": "00Tam00000UdfoPEAR",
+      "Subject": "Follow up with Julie Morris - Business Loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-10-05",
+      "WhatId": "001am00000qvjsAAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000UPCuLEAX"
+      },
+      "Id": "00Tam00000UPCuLEAX",
+      "Subject": "Follow up with Julie Morris - Business Loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-30",
+      "WhatId": "001am00000qvjsLAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000UNl3OEAT"
+      },
+      "Id": "00Tam00000UNl3OEAT",
+      "Subject": "Follow up with Julie Morris regarding business loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-29",
+      "WhatId": "001am00000qvjsAAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFsfEAF"
+      },
+      "Id": "00Tam00000TzFsfEAF",
+      "Subject": "Insurance Outreach - Alexis S Smith",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-24",
+      "WhatId": null,
+      "WhoId": "003am00000e7Zk8AAE",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFr3EAF"
+      },
+      "Id": "00Tam00000TzFr3EAF",
+      "Subject": "Insurance Outreach - Alexis E Smith",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-24",
+      "WhatId": null,
+      "WhoId": "003am00000e7EhJAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFpREAV"
+      },
+      "Id": "00Tam00000TzFpREAV",
+      "Subject": "Insurance Outreach - Bailey S White",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-24",
+      "WhatId": null,
+      "WhoId": "003am00000e7ZjUAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000Tz3DHEAZ"
+      },
+      "Id": "00Tam00000Tz3DHEAZ",
+      "Subject": "Insurance Outreach - Bailey U White",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-24",
+      "WhatId": null,
+      "WhoId": "003am00000e7EgfAAE",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TzFmDEAV"
+      },
+      "Id": "00Tam00000TzFmDEAV",
+      "Subject": "Insurance Outreach - Nigel E Morris",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-24",
+      "WhatId": null,
+      "WhoId": "003am000008yOmMAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TyPXVEA3"
+      },
+      "Id": "00Tam00000TyPXVEA3",
+      "Subject": "Follow up with Julie Morris - Business Loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-23",
+      "WhatId": "001am00000qvjsLAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TyLwvEAF"
+      },
+      "Id": "00Tam00000TyLwvEAF",
+      "Subject": "Follow up with Julie Morris - Business Loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-23",
+      "WhatId": "001am00000qvjsAAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000Txj8TEAR"
+      },
+      "Id": "00Tam00000Txj8TEAR",
+      "Subject": "Follow up with Julie Morris - Business Loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-22",
+      "WhatId": "001am00000qvjsAAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TxhBWEAZ"
+      },
+      "Id": "00Tam00000TxhBWEAZ",
+      "Subject": "Follow up with Julie Morris - Business Loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-22",
+      "WhatId": "001am00000qvjsAAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TxaMxEAJ"
+      },
+      "Id": "00Tam00000TxaMxEAJ",
+      "Subject": "Follow up with Julie Morris regarding business loans",
+      "Status": "Not Started",
+      "Priority": "High",
+      "ActivityDate": "2026-09-22",
+      "WhatId": "001am00000qvjsLAAQ",
+      "WhoId": "003am000008yOmCAAU",
+      "OwnerId": "005am000003PbCLAA0"
+    },
+    {
+      "attributes": {
+        "type": "Task",
+        "url": "/services/data/v67.0/sobjects/Task/00Tam00000TjbqjEAB"
+      },
+      "Id": "00Tam00000TjbqjEAB",
+      "Subject": "Discuss Commercial Real Estate Lending Opportunity",
+      "Status": "Not Started",
+      "Priority": "Normal",
+      "ActivityDate": "2026-09-17",
+      "WhatId": "001am00000qvjs6AAA",
+      "WhoId": null,
+      "OwnerId": "005am000003PbCLAA0"
+    }
+  ],
+  "queueTasksUpcoming": []
 };
+
+// Native all-asset customer summaries: exact verified households, read-only source queries.
+wealthCaptureData.sources["customer_allAssets_001am00000qvjsAAAQ"] = {"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am00000qvjsAAAQ","label":"Plaid active external asset categories","capturedAt":"2026-11-13","period":null,"limit":10,"query":"SELECT '001am00000qvjsAAAQ' AS account_id, SUM(balance_usd__c) AS total, COUNT(institution_name__c) AS institutions, COUNT(DISTINCT institution_name__c) AS distinct_institutions, MAX(profile_month__c) AS period FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '001am00000qvjsAAAQ' AND is_active__c = true AND Balance_Category__c = 'asset' AND profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '001am00000qvjsAAAQ')","rows":[{"account_id":"001am00000qvjsAAAQ","total":null,"institutions":0,"distinct_institutions":0,"period":null}],"returnedRows":1,"totalRows":1,"completionStatus":"ResultsProduced","queryId":"MTAuNzguOS4xMTA6NzQ4NA_9ed10984-e84d-48cb-aaf8-2fbe6f527645","note":"Native customer summary asset predicate, with source-computed DISTINCT institution count added. institutions retains the native count of non-null institution rows; it is not a distinct count."};
+wealthCaptureData.sources["customer_allAssets_001am000026ZtgKAAS"] = {"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am000026ZtgKAAS","label":"Plaid active external asset categories","capturedAt":"2026-11-13","period":"2026-11-01","limit":10,"query":"SELECT '001am000026ZtgKAAS' AS account_id, SUM(balance_usd__c) AS total, COUNT(institution_name__c) AS institutions, COUNT(DISTINCT institution_name__c) AS distinct_institutions, MAX(profile_month__c) AS period FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '001am000026ZtgKAAS' AND is_active__c = true AND Balance_Category__c = 'asset' AND profile_month__c = (SELECT MAX(profile_month__c) FROM BT_Plaid_Held_Away__dlm WHERE account_id__c = '001am000026ZtgKAAS')","rows":[{"account_id":"001am000026ZtgKAAS","total":62417.26,"institutions":2,"distinct_institutions":2,"period":"2026-11-01"}],"returnedRows":1,"totalRows":1,"completionStatus":"ResultsProduced","queryId":"MTAuNzguOS4xMTA6NzQ4NA_ff9f09f3-673f-4670-9c07-8f73a7b738ec","note":"Native customer summary asset predicate, with source-computed DISTINCT institution count added. institutions retains the native count of non-null institution rows; it is not a distinct count."};
+
+Object.assign(wealthCaptureData,{"agenda":[{"id":"pr7","clientId":"001am00002AYOMnAAP","clientName":"Reyes Household","segment":"Wealth","reason":"Plan success 42% · $2.9M across 6 goals","action":"Rework the plan — success below 50%","score":0.95,"severity":"high","source":"MoneyGuidePro plan","relationshipValue":2898746,"dueDate":"2026-11-13","tier":"today","sourceDataset":"planSignals_atRiskRowsSql"},{"id":"pr8","clientId":"001am00002A9fKSAAZ","clientName":"Barnes Household","segment":"Wealth","reason":"Plan success 43% · $4.3M across 6 goals","action":"Rework the plan — success below 50%","score":0.95,"severity":"high","source":"MoneyGuidePro plan","relationshipValue":4314023,"dueDate":"2026-11-13","tier":"today","sourceDataset":"planSignals_atRiskRowsSql"},{"id":"pr9","clientId":"001am00002AA86sAAD","clientName":"Caldwell Household","segment":"Wealth","reason":"Plan success 43% · $5.1M across 6 goals","action":"Rework the plan — success below 50%","score":0.95,"severity":"high","source":"MoneyGuidePro plan","relationshipValue":5118134,"dueDate":"2026-11-13","tier":"today","sourceDataset":"planSignals_atRiskRowsSql"},{"id":"pr10","clientId":"001am00002A9ft0AAB","clientName":"Williams Household","segment":"Wealth","reason":"Plan success 43% · $3.4M across 6 goals","action":"Rework the plan — success below 50%","score":0.95,"severity":"high","source":"MoneyGuidePro plan","relationshipValue":3359920,"dueDate":"2026-11-13","tier":"today","sourceDataset":"planSignals_atRiskRowsSql"},{"id":"pr11","clientId":"001am00002A9fLxAAJ","clientName":"Peterson Household","segment":"Wealth","reason":"Plan success 43% · $3.1M across 6 goals","action":"Rework the plan — success below 50%","score":0.95,"severity":"high","source":"MoneyGuidePro plan","relationshipValue":3078498,"dueDate":"2026-11-13","tier":"today","sourceDataset":"planSignals_atRiskRowsSql"},{"id":"pr12","clientId":"001am00002AA8bKAAT","clientName":"Benjamin Household","segment":"Wealth","reason":"Plan success 43% · $2.8M across 6 goals","action":"Rework the plan — success below 50%","score":0.95,"severity":"high","source":"MoneyGuidePro plan","relationshipValue":2779025,"dueDate":"2026-11-13","tier":"today","sourceDataset":"planSignals_atRiskRowsSql"},{"id":"wc0","clientId":"001am00002AA8IlAAL","clientName":"Hayes Household","segment":"Wealth","reason":"AML rating Low → High · sanctions · US · case WC-2026-66504","action":"Compliance review — enhanced due diligence","score":0.91,"severity":"high","source":"World-Check screening","relationshipValue":0,"dueDate":"2026-11-13","tier":"today","sourceDataset":"transactionSignals_amlChangeSql"},{"id":"wc1","clientId":"001am00002AYONHAA5","clientName":"Fox Household","segment":"Wealth","reason":"AML rating Low → High · sanctions · US · case WC-2026-86535","action":"Compliance review — enhanced due diligence","score":0.91,"severity":"high","source":"World-Check screening","relationshipValue":0,"dueDate":"2026-11-13","tier":"today","sourceDataset":"transactionSignals_amlChangeSql"}],"nativeWhoRows":[{"accountId":"001am00002AA8OFAA1","score":0.2723083333333333,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":59.34,"goalUsd":4649744,"sentiment":"Very Negative","dealRisk":73.39,"ticker":null,"concentration":null,"drivers":[{"driver":"gong","points":0.183475},{"driver":"plan","points":0.0888333333333333}]},{"accountId":"001am00002A9fC4AAJ","score":0.2697083333333333,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":60.09,"goalUsd":3502514,"sentiment":"Very Negative","dealRisk":74.85,"ticker":null,"concentration":null,"drivers":[{"driver":"gong","points":0.18712499999999999},{"driver":"plan","points":0.0825833333333333}]},{"accountId":"001am00002A9g0RAAR","score":0.2445833333333333,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":58.53,"goalUsd":3344494,"sentiment":"Very Negative","dealRisk":59.6,"ticker":null,"concentration":null,"drivers":[{"driver":"gong","points":0.149},{"driver":"plan","points":0.09558333333333333}]},{"accountId":"001am00002AYALEAA5","score":0.2330833333333333,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":42.03,"goalUsd":4062701,"sentiment":null,"dealRisk":null,"ticker":null,"concentration":null,"drivers":[{"driver":"plan","points":0.23308333333333334}]},{"accountId":"001am00002AA81dAAD","score":0.2324166666666666,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":42.11,"goalUsd":4647487,"sentiment":null,"dealRisk":null,"ticker":null,"concentration":null,"drivers":[{"driver":"plan","points":0.23241666666666666}]},{"accountId":"001am00002AYAMIAA5","score":0.2318333333333333,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":42.18,"goalUsd":2835126,"sentiment":null,"dealRisk":null,"ticker":null,"concentration":null,"drivers":[{"driver":"plan","points":0.23183333333333334}]},{"accountId":"001am00002AYOZGAA5","score":0.2305833333333333,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":42.33,"goalUsd":4133261,"sentiment":null,"dealRisk":null,"ticker":null,"concentration":null,"drivers":[{"driver":"plan","points":0.23058333333333333}]},{"accountId":"001am00000qvjsAAAQ","score":0.2095353333333333,"heldAway":null,"monthlyFlow":null,"heldAccounts":0,"institution":"","planSuccess":61.02,"goalUsd":4822758,"sentiment":null,"dealRisk":null,"ticker":"MSFT","concentration":0.314305,"drivers":[{"driver":"conc","points":0.13470214285714285},{"driver":"plan","points":0.07483333333333331}]}]});
+Object.assign(wealthCaptureData.sources,{"native_plan_history":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","label":"Plan success history","query":"\n  SELECT CAST(profile_month__c AS VARCHAR) AS period, COUNT(*) AS plans,\n         SUM(CASE WHEN monte_carlo_success_pct__c < 70 THEN 1 ELSE 0 END) AS at_risk,\n         SUM(CASE WHEN monte_carlo_success_pct__c < 50 THEN 1 ELSE 0 END) AS critical,\n         SUM(CASE WHEN monte_carlo_success_pct__c < 70 THEN total_goal_amount_usd__c ELSE 0 END) AS at_risk_goal_usd,\n         SUM(CASE WHEN next_review_date__c BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30' DAY THEN 1 ELSE 0 END) AS due30,\n         SUM(CASE WHEN (plan_status__c = 'Stale' OR plan_last_updated_date__c < CURRENT_DATE - INTERVAL '12' MONTH) THEN 1 ELSE 0 END) AS stale\n  FROM BT_MoneyGuidePro_Financial_Plans__dlm\n  WHERE 1 = 1\n    AND plan_status__c IN ('Active', 'Stale')\n    AND account_id__c IN (SELECT ssot__Id__c FROM ssot__Account__dlm WHERE ssot__OwnerId__c = '005am000003PbCLAA0')\n  GROUP BY profile_month__c\n  ORDER BY profile_month__c DESC\n  LIMIT 8","limit":100,"queryId":"MTAuNzguOS4xMTA6NzQ4NA_9e82eab9-75bc-4037-bff1-4ec60d9bdb99","returnedRows":8,"rows":[{"period":"2026-11-01","plans":4488,"at_risk":3014,"critical":141,"at_risk_goal_usd":11307085387,"due30":112,"stale":545},{"period":"2026-10-01","plans":4464,"at_risk":2998,"critical":172,"at_risk_goal_usd":11236076940,"due30":228,"stale":946},{"period":"2026-09-01","plans":4515,"at_risk":3088,"critical":155,"at_risk_goal_usd":11652362947,"due30":264,"stale":1331},{"period":"2026-08-01","plans":4438,"at_risk":3007,"critical":151,"at_risk_goal_usd":11327225370,"due30":247,"stale":1611},{"period":"2026-07-01","plans":4482,"at_risk":3020,"critical":153,"at_risk_goal_usd":11400942297,"due30":232,"stale":2040},{"period":"2026-06-01","plans":4459,"at_risk":3002,"critical":167,"at_risk_goal_usd":11249565154,"due30":215,"stale":2397},{"period":"2026-05-01","plans":4452,"at_risk":2989,"critical":147,"at_risk_goal_usd":11175974543,"due30":273,"stale":2755},{"period":"2026-04-01","plans":4484,"at_risk":3016,"critical":143,"at_risk_goal_usd":11401354484,"due30":239,"stale":3158}]},"native_upgrade_history":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","label":"Emerging wealth history","query":"\n  SELECT CAST(c.profile_month__c AS VARCHAR) AS period, COUNT(*) AS candidates,\n         SUM(CASE WHEN c.estimated_net_worth_band__c = '$5M+' THEN 1 ELSE 0 END) AS five_m,\n         SUM(CASE WHEN c.wealth_propensity_score__c >= 80 THEN 1 ELSE 0 END) AS high_propensity\n  FROM BT_Claritas_Demographics__dlm c\n  JOIN ssot__Account__dlm a ON a.ssot__Id__c = c.account_id__c\n  WHERE 1 = 1\n    AND (c.wealth_propensity_score__c >= 80 OR c.estimated_net_worth_band__c IN ('$1M-$5M', '$5M+'))\n    AND (a.FinServ_ClientCategory_c__c IS NULL OR a.FinServ_ClientCategory_c__c <> 'Wealth Management')\n    AND c.account_id__c IN (SELECT ssot__Id__c FROM ssot__Account__dlm WHERE ssot__OwnerId__c = '005am000003PbCLAA0')\n  GROUP BY c.profile_month__c\n  ORDER BY c.profile_month__c DESC\n  LIMIT 8","limit":100,"queryId":"MTAuNzguOS4xMTA6NzQ4NA_2b4505d5-cce7-447c-8940-40262b363f3d","returnedRows":7,"rows":[{"period":"2026-11-01","candidates":467,"five_m":23,"high_propensity":43},{"period":"2026-10-01","candidates":492,"five_m":19,"high_propensity":42},{"period":"2026-09-01","candidates":478,"five_m":28,"high_propensity":39},{"period":"2026-08-01","candidates":509,"five_m":29,"high_propensity":42},{"period":"2026-07-01","candidates":480,"five_m":28,"high_propensity":47},{"period":"2026-06-01","candidates":468,"five_m":39,"high_propensity":38},{"period":"2026-05-01","candidates":504,"five_m":20,"high_propensity":43}]}});
+
+wealthCaptureData.sources.plan_details={"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","label":"MoneyGuidePro plan assumptions","query":"SELECT account_id__c AS account_id, plan_status__c AS status, monte_carlo_success_pct__c AS success, total_goal_amount_usd__c AS goal_usd, goal_count__c AS goals, next_review_date__c AS next_review, plan_last_updated_date__c AS updated, retirement_target_age__c AS retirement_age, monthly_income_target_usd__c AS monthly_income, recommended_asset_allocation__c AS allocation, CAST(profile_month__c AS VARCHAR) AS period FROM BT_MoneyGuidePro_Financial_Plans__dlm WHERE account_id__c IN ('001am00002AA8OFAA1','001am00002A9fC4AAJ','001am00002A9g0RAAR','001am00002AYALEAA5','001am00002AA81dAAD','001am00002AYAMIAA5','001am00002AYOZGAA5','001am00002AYOMnAAP','001am00002A9fKSAAZ','001am00002AA86sAAD','001am00002A9ft0AAB','001am00002A9fLxAAJ','001am00002AA8bKAAT','001am00002AYOztAAH','001am00002AYALLAA5','001am00002AA8DMAA1','001am00002AYONXAA5','001am00002AA8DnAAL','001am00002A9fnRAAR','001am00002AYOGzAAP') AND profile_month__c=(SELECT MAX(profile_month__c) FROM BT_MoneyGuidePro_Financial_Plans__dlm)","limit":100,"queryId":"MTAuNzguOS4xMTA6NzQ4NA_d5ba8392-ca32-44d7-8bde-c99c92b714f2","returnedRows":20,"rows":[{"account_id":"001am00002AYOztAAH","status":"Active","success":43.35,"goal_usd":3580199,"goals":6,"next_review":"2027-06-30","updated":"2025-11-14","retirement_age":65,"monthly_income":9430,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002AYOZGAA5","status":"Active","success":42.33,"goal_usd":4133261,"goals":6,"next_review":"2027-12-18","updated":"2025-11-28","retirement_age":67,"monthly_income":10966,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002AYAMIAA5","status":"Active","success":42.18,"goal_usd":2835126,"goals":6,"next_review":"2027-07-05","updated":"2026-05-06","retirement_age":70,"monthly_income":10550,"allocation":"Conservative","period":"2026-11-01"},{"account_id":"001am00002AYALLAA5","status":"Active","success":60.8,"goal_usd":5112095,"goals":4,"next_review":"2026-12-01","updated":"2025-12-12","retirement_age":65,"monthly_income":10715,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002AA8bKAAT","status":"Active","success":43.33,"goal_usd":2779025,"goals":6,"next_review":"2027-07-24","updated":"2025-11-14","retirement_age":62,"monthly_income":9381,"allocation":"Moderate","period":"2026-11-01"},{"account_id":"001am00002A9fnRAAR","status":"Active","success":65.69,"goal_usd":3684320,"goals":6,"next_review":"2026-12-01","updated":"2026-04-21","retirement_age":65,"monthly_income":10947,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002A9fC4AAJ","status":"Active","success":60.09,"goal_usd":3502514,"goals":3,"next_review":"2027-04-03","updated":"2026-02-15","retirement_age":70,"monthly_income":10299,"allocation":"Moderate","period":"2026-11-01"},{"account_id":"001am00002A9fKSAAZ","status":"Active","success":42.55,"goal_usd":4314023,"goals":6,"next_review":"2027-11-11","updated":"2025-12-03","retirement_age":67,"monthly_income":10146,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002A9fLxAAJ","status":"Active","success":43.19,"goal_usd":3078498,"goals":6,"next_review":"2027-01-16","updated":"2026-06-29","retirement_age":67,"monthly_income":10484,"allocation":"Moderate","period":"2026-11-01"},{"account_id":"001am00002AA8OFAA1","status":"Active","success":59.34,"goal_usd":4649744,"goals":5,"next_review":"2026-12-06","updated":"2026-07-18","retirement_age":65,"monthly_income":9513,"allocation":"Moderate","period":"2026-11-01"},{"account_id":"001am00002AA8DMAA1","status":"Active","success":50.69,"goal_usd":4771548,"goals":5,"next_review":"2026-12-01","updated":"2026-01-19","retirement_age":67,"monthly_income":10265,"allocation":"Conservative","period":"2026-11-01"},{"account_id":"001am00002AYONXAA5","status":"Active","success":67.02,"goal_usd":4567461,"goals":3,"next_review":"2026-12-01","updated":"2026-04-24","retirement_age":67,"monthly_income":10362,"allocation":"Moderate Aggressive","period":"2026-11-01"},{"account_id":"001am00002AYALEAA5","status":"Active","success":42.03,"goal_usd":4062701,"goals":6,"next_review":"2027-12-21","updated":"2026-01-04","retirement_age":70,"monthly_income":9787,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002AA86sAAD","status":"Active","success":42.72,"goal_usd":5118134,"goals":6,"next_review":"2027-03-02","updated":"2026-03-16","retirement_age":67,"monthly_income":9889,"allocation":"Moderate","period":"2026-11-01"},{"account_id":"001am00002A9g0RAAR","status":"Active","success":58.53,"goal_usd":3344494,"goals":4,"next_review":"2027-06-23","updated":"2025-11-11","retirement_age":62,"monthly_income":10546,"allocation":"Moderate","period":"2026-11-01"},{"account_id":"001am00002AYOGzAAP","status":"Active","success":70.09,"goal_usd":3640426,"goals":3,"next_review":"2026-12-01","updated":"2026-09-09","retirement_age":65,"monthly_income":11154,"allocation":"Moderate Aggressive","period":"2026-11-01"},{"account_id":"001am00002AA8DnAAL","status":"Active","success":70.93,"goal_usd":3894189,"goals":2,"next_review":"2026-12-01","updated":"2026-06-19","retirement_age":65,"monthly_income":8887,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002AA81dAAD","status":"Stale","success":42.11,"goal_usd":4647487,"goals":6,"next_review":null,"updated":"2025-02-22","retirement_age":62,"monthly_income":8926,"allocation":"Moderate Conservative","period":"2026-11-01"},{"account_id":"001am00002AYOMnAAP","status":"Active","success":42.45,"goal_usd":2898746,"goals":6,"next_review":"2027-07-01","updated":"2026-02-04","retirement_age":67,"monthly_income":9832,"allocation":"Moderate","period":"2026-11-01"},{"account_id":"001am00002A9ft0AAB","status":"Active","success":43.16,"goal_usd":3359920,"goals":6,"next_review":"2026-12-02","updated":"2025-12-28","retirement_age":71,"monthly_income":9125,"allocation":"Conservative","period":"2026-11-01"}]};
+
+wealthCaptureData.netFlow={"weeks":[{"week":"2026-09-14","net":121096.51000000001,"credits":135583.38,"debits":14486.87,"transactions":73,"accounts":23},{"week":"2026-09-21","net":-677.7199999999998,"credits":2000,"debits":2677.72,"transactions":36,"accounts":9},{"week":"2026-09-28","net":49469.14000000001,"credits":77515.74,"debits":28046.6,"transactions":62,"accounts":18},{"week":"2026-10-05","net":7058.32,"credits":11091.23,"debits":4032.91,"transactions":56,"accounts":11},{"week":"2026-10-12","net":30020.760000000002,"credits":32836.5,"debits":2815.74,"transactions":54,"accounts":9},{"week":"2026-10-19","net":5894.629999999999,"credits":9277.97,"debits":3383.34,"transactions":46,"accounts":11},{"week":"2026-10-26","net":41992.85,"credits":44286.14,"debits":2293.29,"transactions":48,"accounts":15},{"week":"2026-11-02","net":5795.21,"credits":10021.65,"debits":4226.44,"transactions":57,"accounts":12}],"last":{"week":"2026-11-02","net":5795.21,"credits":10021.65,"debits":4226.44,"transactions":57,"accounts":12},"trend":[121096.51000000001,-677.7199999999998,49469.14000000001,7058.32,30020.760000000002,5894.629999999999,41992.85,5795.21],"scope":"book"};
+
+Object.assign(wealthCaptureData,{"tasks":[{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000VD9zhEAD"},"Id":"00Tam00000VD9zhEAD","Subject":"Speak with Julie Morris about her daughter's 529 account","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-10-19","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UdfoPEAR"},"Id":"00Tam00000UdfoPEAR","Subject":"Follow up with Julie Morris - Business Loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-10-05","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UPCuLEAX"},"Id":"00Tam00000UPCuLEAX","Subject":"Follow up with Julie Morris - Business Loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-30","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan options for Morris Roasters, LLC.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UNl3OEAT"},"Id":"00Tam00000UNl3OEAT","Subject":"Follow up with Julie Morris regarding business loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-29","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFr3EAF"},"Id":"00Tam00000TzFr3EAF","Subject":"Insurance Outreach - Alexis E Smith","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7EhJAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss long-term care, whole life, and final expense insurance. Income $1.54M, age 69, married, 2 dependents, homeowner, 35% tax bracket. Urgency given age — insurability window narrowing. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFpREAV"},"Id":"00Tam00000TzFpREAV","Subject":"Insurance Outreach - Bailey S White","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7ZjUAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss life insurance, disability insurance, and long-term care. Income $1.53M, age 57, married, 3 dependents, homeowner, 35% tax bracket. Civil engineer — occupational disability coverage especially relevant. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFsfEAF"},"Id":"00Tam00000TzFsfEAF","Subject":"Insurance Outreach - Alexis S Smith","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7Zk8AAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss long-term care, whole life, and final expense insurance. Income $1.54M, age 69, married, 2 dependents, homeowner, 35% tax bracket. Urgency given age — insurability window narrowing. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFmDEAV"},"Id":"00Tam00000TzFmDEAV","Subject":"Insurance Outreach - Nigel E Morris","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am000008yOmMAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss life insurance, umbrella liability, and long-term care. Income $8.6M, age 57, married, 2 dependents, homeowner, 37% tax bracket. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Tz3DHEAZ"},"Id":"00Tam00000Tz3DHEAZ","Subject":"Insurance Outreach - Bailey U White","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7EgfAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss life insurance, disability insurance, and long-term care. Income $1.53M, age 57, married, 3 dependents, homeowner, 35% tax bracket. Civil engineer — occupational disability coverage especially relevant. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TyPXVEA3"},"Id":"00Tam00000TyPXVEA3","Subject":"Follow up with Julie Morris - Business Loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-23","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan opportunities for Morris Roasters, LLC. Key items: Equipment Loan ($58K, closes Oct 17), Asset-Based Lending ($14K), and Syndicated Loan ($14K) currently in pipeline. Also discuss wallet share opportunity given low Roastery deposits vs. $10M revenue.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TyLwvEAF"},"Id":"00Tam00000TyLwvEAF","Subject":"Follow up with Julie Morris - Business Loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-23","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Txj8TEAR"},"Id":"00Tam00000Txj8TEAR","Subject":"Follow up with Julie Morris - Business Loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie E Morris regarding business loans.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TxhBWEAZ"},"Id":"00Tam00000TxhBWEAZ","Subject":"Follow up with Julie Morris - Business Loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan opportunities for Morris Roasters, LLC. Key items: Equipment Loan ($58K), Asset-Based Lending ($14K), and Syndicated Loan ($14K) currently in pipeline. Also discuss wallet share opportunity given low Roastery deposits vs. $10M revenue.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TxaMxEAJ"},"Id":"00Tam00000TxaMxEAJ","Subject":"Follow up with Julie Morris regarding business loans","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TjbqjEAB"},"Id":"00Tam00000TjbqjEAB","Subject":"Discuss Commercial Real Estate Lending Opportunity","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-17","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":"Speak with Omega, Inc. about a potential Commercial Real Estate lending opportunity.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TybaHEAR"},"Id":"00Tam00000TybaHEAR","Subject":"Call: Discuss brokerage account","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-16","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Call Julie E Morris to discuss her brokerage account.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVXEA2"},"Id":"00Tam000004jIVXEA2","Subject":"Call Rachel - Confirm close date","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-14","WhoId":"003am000008yOmFAAU","WhatId":"006am000005W2igAAC","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TiZarEAF"},"Id":"00Tam00000TiZarEAF","Subject":"Speak to Julie Morris about latest HELOC offers","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-14","WhoId":"003am00000htooSAAQ","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TiXu1EAF"},"Id":"00Tam00000TiXu1EAF","Subject":"Call Julie Morris - 529 Options","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-09","WhoId":"003am000008yOmCAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Call Julie Morris to discuss and present 529 plan options.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TRc6vEAD"},"Id":"00Tam00000TRc6vEAD","Subject":"Review lending relationship","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-02","WhoId":null,"WhatId":"001am00002AYQfoAAH","OwnerId":"005am000003PbCLAA0","Description":"Discuss next steps and confirm outstanding items.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TCGmfEAH"},"Id":"00Tam00000TCGmfEAH","Subject":"Follow up with Omega, Inc. regarding Loan options","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-31","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TDOjlEAH"},"Id":"00Tam00000TDOjlEAH","Subject":"Call Julie Morris","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-31","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie to confirm her interest in home insurance products, including homeowners coverage and earthquake rider. Reference the insurance gap analysis discussion.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIWGEA2"},"Id":"00Tam000004jIWGEA2","Subject":"BDR on Julie Morris","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-24","WhoId":null,"WhatId":"006am000005W2ifAAC","OwnerId":"005am000003PbCLAA0","Description":null,"Type":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVUEA2"},"Id":"00Tam000004jIVUEA2","Subject":"Complete KYC Approval (Manager)","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-24","WhoId":"003am000008yOmFAAU","WhatId":"001am00000qvju3AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Type":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVTEA2"},"Id":"00Tam000004jIVTEA2","Subject":"Discuss mortgage options","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-24","WhoId":"003am000008yOmFAAU","WhatId":"006am000005W2ibAAC","OwnerId":"005am000003PbCLAA0","Description":null,"Type":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Sr7hZEAR"},"Id":"00Tam00000Sr7hZEAR","Subject":"Follow up with Omega, Inc. regarding Loan options","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-17","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Sr6dREAR"},"Id":"00Tam00000Sr6dREAR","Subject":"Follow up with Omega, Inc. regarding Loan options","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-17","WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Task for Jose Sifontes to follow up with Omega, Inc. regarding Loan options.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVYEA2"},"Id":"00Tam000004jIVYEA2","Subject":"Call Julie Morris about CD Opening Process","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-17","WhoId":"003am000008yOmCAAU","WhatId":"006am000005W2ifAAC","OwnerId":"005am000003PbCLAA0","Description":null,"Type":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000SqzNSEAZ"},"Id":"00Tam00000SqzNSEAZ","Subject":"Send Loan Product Information to Omega, Inc.","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-17","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Omega, Inc. contacts to share information on relevant Cumulus loan products including Business Term Loan, Business Line of Credit, SBA Loan Programs, and Equipment Financing options.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000STbNREA1"},"Id":"00Tam00000STbNREA1","Subject":"VIP Jumbo Mortgage Advisor Follow-Up","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-10","WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"High-priority Jumbo Mortgage follow-up.\n\nCustomer: Julie E Morris\nEmail: jmorris@example.com\nReason: The customer requested contact from an advisor about a Jumbo Mortgage.\nNext action: Review the Agentforce customer briefing and contact the customer promptly.","Type":"Call"}],"events":[{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000LdwG9EAJ"},"Id":"00Uam00000LdwG9EAJ","Subject":"Call — Omega, Inc.","StartDateTime":"2026-09-16T21:30:00.000+0000","EndDateTime":"2026-09-16T22:00:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":"Resolve open items, review opportunity, set next step.","Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGT3EAM"},"Id":"00Uam000002nGT3EAM","Subject":"Onsite Presentation to Executive Team","StartDateTime":"2026-08-26T22:30:00.000+0000","EndDateTime":"2026-08-27T00:30:00.000+0000","DurationInMinutes":120,"WhoId":"003am000008yOmvAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGW3EAM"},"Id":"00Uam000002nGW3EAM","Subject":"Review Social Listening and Identify Keywords","StartDateTime":"2026-08-26T17:30:00.000+0000","EndDateTime":"2026-08-26T18:00:00.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOmAAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGVxEAM"},"Id":"00Uam000002nGVxEAM","Subject":"Internal: Review Pricing Structure","StartDateTime":"2026-08-26T16:30:00.000+0000","EndDateTime":"2026-08-26T18:00:00.000+0000","DurationInMinutes":90,"WhoId":"003am000008yOnQAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUqEAM"},"Id":"00Uam000002nGUqEAM","Subject":"Left Voicemail: Introduction","StartDateTime":"2026-08-26T16:30:00.000+0000","EndDateTime":"2026-08-26T17:30:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUdEAM"},"Id":"00Uam000002nGUdEAM","Subject":"Draft Mutual Plan","StartDateTime":"2026-08-26T14:35:51.000+0000","EndDateTime":"2026-08-26T15:05:51.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOnsAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Prep"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGT1EAM"},"Id":"00Uam000002nGT1EAM","Subject":"Review Ad Text Options for A/B Testing","StartDateTime":"2026-08-25T22:30:00.000+0000","EndDateTime":"2026-08-25T23:30:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Other"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGTKEA2"},"Id":"00Uam000002nGTKEA2","Subject":"Demo for the Sales Team","StartDateTime":"2026-08-25T22:30:00.000+0000","EndDateTime":"2026-08-26T00:30:00.000+0000","DurationInMinutes":120,"WhoId":"003am000008yOmyAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGT5EAM"},"Id":"00Uam000002nGT5EAM","Subject":"Volunteering - Business Skills Workshop","StartDateTime":"2026-08-25T22:00:00.000+0000","EndDateTime":"2026-08-25T23:00:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOmvAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGWOEA2"},"Id":"00Uam000002nGWOEA2","Subject":"Internal team strategy meeting","StartDateTime":"2026-08-25T21:30:00.000+0000","EndDateTime":"2026-08-25T22:30:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":"Conference Room 6","ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGRLEA2"},"Id":"00Uam000002nGRLEA2","Subject":"Discuss Next Steps","StartDateTime":"2026-08-25T21:00:00.000+0000","EndDateTime":"2026-08-25T21:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGTWEA2"},"Id":"00Uam000002nGTWEA2","Subject":"Demo","StartDateTime":"2026-08-25T20:30:00.000+0000","EndDateTime":"2026-08-25T21:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOn1AAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGWeEAM"},"Id":"00Uam000002nGWeEAM","Subject":"Meeting w/ VP Sales","StartDateTime":"2026-08-25T20:30:00.000+0000","EndDateTime":"2026-08-25T21:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOm5AAE","WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Location":"Onsite at Customer","ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUaEAM"},"Id":"00Uam000002nGUaEAM","Subject":"Design Social Command Center Requirements","StartDateTime":"2026-08-25T20:00:00.000+0000","EndDateTime":"2026-08-25T20:30:00.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOnrAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Prep"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGSuEAM"},"Id":"00Uam000002nGSuEAM","Subject":"Left Voicemail: Update","StartDateTime":"2026-08-25T19:30:00.000+0000","EndDateTime":"2026-08-25T21:00:00.000+0000","DurationInMinutes":90,"WhoId":"003am000008yOnpAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGSaEAM"},"Id":"00Uam000002nGSaEAM","Subject":"Cold Call with Prospect","StartDateTime":"2026-08-25T17:30:00.000+0000","EndDateTime":"2026-08-25T18:00:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUiEAM"},"Id":"00Uam000002nGUiEAM","Subject":"Reserve Venue for Customer Conference","StartDateTime":"2026-08-25T17:30:00.000+0000","EndDateTime":"2026-08-25T18:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOn7AAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGRqEAM"},"Id":"00Uam000002nGRqEAM","Subject":"Work on RFP","StartDateTime":"2026-08-25T17:00:00.000+0000","EndDateTime":"2026-08-25T19:00:00.000+0000","DurationInMinutes":120,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Other"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGS3EAM"},"Id":"00Uam000002nGS3EAM","Subject":"Discovery Meeting","StartDateTime":"2026-08-25T14:35:51.000+0000","EndDateTime":"2026-08-25T15:35:51.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Get a better understanding of this customer's challenges and start considering solutions that might need their needs.","Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGVLEA2"},"Id":"00Uam000002nGVLEA2","Subject":"Internal: Review Pricing Structure","StartDateTime":"2026-08-24T23:30:00.000+0000","EndDateTime":"2026-08-25T00:00:00.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOmjAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"}]});
+wealthCaptureData.sources.crm_tasks.rows=wealthCaptureData.tasks;wealthCaptureData.sources.crm_events.rows=wealthCaptureData.events;
+
+Object.assign(wealthCaptureData,{"deepCases":[{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000y204dAAA"},"Id":"500am00000y204dAAA","CaseNumber":"00012646","Subject":"Lost Debit Card","Status":"New","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-10-21T14:17:30.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000xeEyNAAU"},"Id":"500am00000xeEyNAAU","CaseNumber":"00012643","Subject":"Lost Credit Card While Traveling Abroad - Rush Replacement Needed","Status":"New","Priority":"High","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-10-08T20:58:08.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000xcpSXAAY"},"Id":"500am00000xcpSXAAY","CaseNumber":"00012642","Subject":"Lost Credit Card - Replacement Requested (RUSH)","Status":"New","Priority":"High","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-10-08T02:14:44.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000x25xhAAA"},"Id":"500am00000x25xhAAA","CaseNumber":"00012624","Subject":"Lost Credit Card - Julie E Morris","Status":"New","Priority":"High","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-09-17T16:48:51.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000rHvjKAAS"},"Id":"500am00000rHvjKAAS","CaseNumber":"00002281","Subject":"Inbound call with AI Agent — Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-28T23:01:12.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r4qT0AAI"},"Id":"500am00000r4qT0AAI","CaseNumber":"00002270","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-24T14:26:38.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r3ROYAA2"},"Id":"500am00000r3ROYAA2","CaseNumber":"00002269","Subject":"Lost Platinum Visa card","Status":"New","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"00Gam000003SZioEAG","CreatedDate":"2026-04-23T22:29:58.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r3RLJAA2"},"Id":"500am00000r3RLJAA2","CaseNumber":"00002268","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T22:28:13.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r2xohAAA"},"Id":"500am00000r2xohAAA","CaseNumber":"00002267","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:47:26.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r32BeAAI"},"Id":"500am00000r32BeAAI","CaseNumber":"00002266","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:25:06.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r2jKJAAY"},"Id":"500am00000r2jKJAAY","CaseNumber":"00002265","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:24:31.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r2xv8AAA"},"Id":"500am00000r2xv8AAA","CaseNumber":"00002264","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:23:26.000+0000"}],"tasks":[{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000VD9zhEAD"},"Id":"00Tam00000VD9zhEAD","Subject":"Speak with Julie Morris about her daughter's 529 account","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-10-19","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UdfoPEAR"},"Id":"00Tam00000UdfoPEAR","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-10-05","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UPCuLEAX"},"Id":"00Tam00000UPCuLEAX","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-30","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan options for Morris Roasters, LLC."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UNl3OEAT"},"Id":"00Tam00000UNl3OEAT","Subject":"Follow up with Julie Morris regarding business loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-29","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFr3EAF"},"Id":"00Tam00000TzFr3EAF","Subject":"Insurance Outreach - Alexis E Smith","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7EhJAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss long-term care, whole life, and final expense insurance. Income $1.54M, age 69, married, 2 dependents, homeowner, 35% tax bracket. Urgency given age — insurability window narrowing. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFpREAV"},"Id":"00Tam00000TzFpREAV","Subject":"Insurance Outreach - Bailey S White","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7ZjUAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss life insurance, disability insurance, and long-term care. Income $1.53M, age 57, married, 3 dependents, homeowner, 35% tax bracket. Civil engineer — occupational disability coverage especially relevant. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFsfEAF"},"Id":"00Tam00000TzFsfEAF","Subject":"Insurance Outreach - Alexis S Smith","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7Zk8AAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss long-term care, whole life, and final expense insurance. Income $1.54M, age 69, married, 2 dependents, homeowner, 35% tax bracket. Urgency given age — insurability window narrowing. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TzFmDEAV"},"Id":"00Tam00000TzFmDEAV","Subject":"Insurance Outreach - Nigel E Morris","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am000008yOmMAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss life insurance, umbrella liability, and long-term care. Income $8.6M, age 57, married, 2 dependents, homeowner, 37% tax bracket. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Tz3DHEAZ"},"Id":"00Tam00000Tz3DHEAZ","Subject":"Insurance Outreach - Bailey U White","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-24","WhoId":"003am00000e7EgfAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Tier 1 insurance campaign outreach. Discuss life insurance, disability insurance, and long-term care. Income $1.53M, age 57, married, 3 dependents, homeowner, 35% tax bracket. Civil engineer — occupational disability coverage especially relevant. No existing policies on record.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TyPXVEA3"},"Id":"00Tam00000TyPXVEA3","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-23","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan opportunities for Morris Roasters, LLC. Key items: Equipment Loan ($58K, closes Oct 17), Asset-Based Lending ($14K), and Syndicated Loan ($14K) currently in pipeline. Also discuss wallet share opportunity given low Roastery deposits vs. $10M revenue."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TyLwvEAF"},"Id":"00Tam00000TyLwvEAF","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-23","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Txj8TEAR"},"Id":"00Tam00000Txj8TEAR","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie E Morris regarding business loans."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TxhBWEAZ"},"Id":"00Tam00000TxhBWEAZ","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan opportunities for Morris Roasters, LLC. Key items: Equipment Loan ($58K), Asset-Based Lending ($14K), and Syndicated Loan ($14K) currently in pipeline. Also discuss wallet share opportunity given low Roastery deposits vs. $10M revenue."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TxaMxEAJ"},"Id":"00Tam00000TxaMxEAJ","Subject":"Follow up with Julie Morris regarding business loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TjbqjEAB"},"Id":"00Tam00000TjbqjEAB","Subject":"Discuss Commercial Real Estate Lending Opportunity","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-17","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":"Speak with Omega, Inc. about a potential Commercial Real Estate lending opportunity.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TybaHEAR"},"Id":"00Tam00000TybaHEAR","Subject":"Call: Discuss brokerage account","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-16","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Call Julie E Morris to discuss her brokerage account."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVXEA2"},"Id":"00Tam000004jIVXEA2","Subject":"Call Rachel - Confirm close date","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-14","WhoId":"003am000008yOmFAAU","WhatId":"006am000005W2igAAC","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TiZarEAF"},"Id":"00Tam00000TiZarEAF","Subject":"Speak to Julie Morris about latest HELOC offers","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-14","WhoId":"003am00000htooSAAQ","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TiXu1EAF"},"Id":"00Tam00000TiXu1EAF","Subject":"Call Julie Morris - 529 Options","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-09","WhoId":"003am000008yOmCAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Call Julie Morris to discuss and present 529 plan options."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TRc6vEAD"},"Id":"00Tam00000TRc6vEAD","Subject":"Review lending relationship","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-02","WhoId":null,"WhatId":"001am00002AYQfoAAH","OwnerId":"005am000003PbCLAA0","Description":"Discuss next steps and confirm outstanding items.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TCGmfEAH"},"Id":"00Tam00000TCGmfEAH","Subject":"Follow up with Omega, Inc. regarding Loan options","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-31","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TDOjlEAH"},"Id":"00Tam00000TDOjlEAH","Subject":"Call Julie Morris","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-31","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie to confirm her interest in home insurance products, including homeowners coverage and earthquake rider. Reference the insurance gap analysis discussion."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIWGEA2"},"Id":"00Tam000004jIWGEA2","Subject":"BDR on Julie Morris","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-24","WhoId":null,"WhatId":"006am000005W2ifAAC","OwnerId":"005am000003PbCLAA0","Description":null,"Type":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVUEA2"},"Id":"00Tam000004jIVUEA2","Subject":"Complete KYC Approval (Manager)","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-24","WhoId":"003am000008yOmFAAU","WhatId":"001am00000qvju3AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Type":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVTEA2"},"Id":"00Tam000004jIVTEA2","Subject":"Discuss mortgage options","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-24","WhoId":"003am000008yOmFAAU","WhatId":"006am000005W2ibAAC","OwnerId":"005am000003PbCLAA0","Description":null,"Type":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Sr7hZEAR"},"Id":"00Tam00000Sr7hZEAR","Subject":"Follow up with Omega, Inc. regarding Loan options","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-17","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Sr6dREAR"},"Id":"00Tam00000Sr6dREAR","Subject":"Follow up with Omega, Inc. regarding Loan options","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-17","WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Task for Jose Sifontes to follow up with Omega, Inc. regarding Loan options.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVYEA2"},"Id":"00Tam000004jIVYEA2","Subject":"Call Julie Morris about CD Opening Process","Type":null,"Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-17","WhoId":"003am000008yOmCAAU","WhatId":"006am000005W2ifAAC","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000SqzNSEAZ"},"Id":"00Tam00000SqzNSEAZ","Subject":"Send Loan Product Information to Omega, Inc.","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-17","WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Omega, Inc. contacts to share information on relevant Cumulus loan products including Business Term Loan, Business Line of Credit, SBA Loan Programs, and Equipment Financing options.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000STbNREA1"},"Id":"00Tam00000STbNREA1","Subject":"VIP Jumbo Mortgage Advisor Follow-Up","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-10","WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"High-priority Jumbo Mortgage follow-up.\n\nCustomer: Julie E Morris\nEmail: jmorris@example.com\nReason: The customer requested contact from an advisor about a Jumbo Mortgage.\nNext action: Review the Agentforce customer briefing and contact the customer promptly.","Type":"Call"},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000SSu2PEAT"},"Id":"00Tam00000SSu2PEAT","Subject":"VIP Jumbo Mortgage Advisor Follow-Up","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-10","WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"High-priority Jumbo Mortgage follow-up.\n\nCustomer: Julie E Morris\nEmail: jmorris@example.com\nReason: The customer requested contact from an advisor about a Jumbo Mortgage.\nNext action: Review the Agentforce customer briefing and contact the customer promptly."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000STZThEAP"},"Id":"00Tam00000STZThEAP","Subject":"VIP Jumbo Mortgage Advisor Follow-Up","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-10","WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"High-priority Jumbo Mortgage follow-up.\n\nCustomer: Julie E Morris\nEmail: jmorris@example.com\nReason: The customer requested contact from an advisor about a Jumbo Mortgage.\nNext action: Review the Agentforce customer briefing and contact the customer promptly."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000QkMbIEAV"},"Id":"00Tam00000QkMbIEAV","Subject":"529 Acceleration Meeting — Patel","Type":"Meeting","Status":"Open","Priority":"Normal","ActivityDate":"2026-08-07","WhoId":"003am00000c9fUJAAY","WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":"Daughter starts college September 2026. Schedule meeting to discuss 529 contribution acceleration and liquidity planning."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkWEAX"},"Id":"00Tam00000REXkWEAX","Subject":"Create Strategic Plan with Product Bankers","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-06","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjwlEAD"},"Id":"00Tam00000RDjwlEAD","Subject":"Schedule estate planning attorney intro","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-06","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYthAAG","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjvtEAD"},"Id":"00Tam00000RDjvtEAD","Subject":"Submit loan documents to underwriting","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-01","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYstAAG","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjxdEAD"},"Id":"00Tam00000RDjxdEAD","Subject":"Confirm wire transfer details","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-01","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYtnAAG","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkTEAX"},"Id":"00Tam00000REXkTEAX","Subject":"Ensure KYC / AML Compliance is Complete","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-07-31","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkUEAX"},"Id":"00Tam00000REXkUEAX","Subject":"Present to Operating Committee","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-07-30","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkVEAX"},"Id":"00Tam00000REXkVEAX","Subject":"Load the Template With Your Client Information","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-07-30","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjyVEAT"},"Id":"00Tam00000RDjyVEAT","Subject":"Schedule quarterly review call","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-07-30","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYuMAAW","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkSEAX"},"Id":"00Tam00000REXkSEAX","Subject":"Submit to Manager for Review","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-07-29","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjv1EAD"},"Id":"00Tam00000RDjv1EAD","Subject":"Review prospect referral","Type":"Call","Status":"In Progress","Priority":"High","ActivityDate":"2026-07-29","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYtmAAG","Description":null}],"events":[{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000LdwG9EAJ"},"Id":"00Uam00000LdwG9EAJ","Subject":"Call — Omega, Inc.","StartDateTime":"2026-09-16T21:30:00.000+0000","EndDateTime":"2026-09-16T22:00:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":"Resolve open items, review opportunity, set next step.","Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGT3EAM"},"Id":"00Uam000002nGT3EAM","Subject":"Onsite Presentation to Executive Team","StartDateTime":"2026-08-26T22:30:00.000+0000","EndDateTime":"2026-08-27T00:30:00.000+0000","DurationInMinutes":120,"WhoId":"003am000008yOmvAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGW3EAM"},"Id":"00Uam000002nGW3EAM","Subject":"Review Social Listening and Identify Keywords","StartDateTime":"2026-08-26T17:30:00.000+0000","EndDateTime":"2026-08-26T18:00:00.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOmAAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGVxEAM"},"Id":"00Uam000002nGVxEAM","Subject":"Internal: Review Pricing Structure","StartDateTime":"2026-08-26T16:30:00.000+0000","EndDateTime":"2026-08-26T18:00:00.000+0000","DurationInMinutes":90,"WhoId":"003am000008yOnQAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUqEAM"},"Id":"00Uam000002nGUqEAM","Subject":"Left Voicemail: Introduction","StartDateTime":"2026-08-26T16:30:00.000+0000","EndDateTime":"2026-08-26T17:30:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUdEAM"},"Id":"00Uam000002nGUdEAM","Subject":"Draft Mutual Plan","StartDateTime":"2026-08-26T14:35:51.000+0000","EndDateTime":"2026-08-26T15:05:51.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOnsAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Prep"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGT1EAM"},"Id":"00Uam000002nGT1EAM","Subject":"Review Ad Text Options for A/B Testing","StartDateTime":"2026-08-25T22:30:00.000+0000","EndDateTime":"2026-08-25T23:30:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Other"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGTKEA2"},"Id":"00Uam000002nGTKEA2","Subject":"Demo for the Sales Team","StartDateTime":"2026-08-25T22:30:00.000+0000","EndDateTime":"2026-08-26T00:30:00.000+0000","DurationInMinutes":120,"WhoId":"003am000008yOmyAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGT5EAM"},"Id":"00Uam000002nGT5EAM","Subject":"Volunteering - Business Skills Workshop","StartDateTime":"2026-08-25T22:00:00.000+0000","EndDateTime":"2026-08-25T23:00:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOmvAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGWOEA2"},"Id":"00Uam000002nGWOEA2","Subject":"Internal team strategy meeting","StartDateTime":"2026-08-25T21:30:00.000+0000","EndDateTime":"2026-08-25T22:30:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":"Conference Room 6","ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGRLEA2"},"Id":"00Uam000002nGRLEA2","Subject":"Discuss Next Steps","StartDateTime":"2026-08-25T21:00:00.000+0000","EndDateTime":"2026-08-25T21:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGTWEA2"},"Id":"00Uam000002nGTWEA2","Subject":"Demo","StartDateTime":"2026-08-25T20:30:00.000+0000","EndDateTime":"2026-08-25T21:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOn1AAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGWeEAM"},"Id":"00Uam000002nGWeEAM","Subject":"Meeting w/ VP Sales","StartDateTime":"2026-08-25T20:30:00.000+0000","EndDateTime":"2026-08-25T21:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOm5AAE","WhatId":"001am00000qvjs6AAA","OwnerId":"005am000003PbCLAA0","Description":null,"Location":"Onsite at Customer","ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUaEAM"},"Id":"00Uam000002nGUaEAM","Subject":"Design Social Command Center Requirements","StartDateTime":"2026-08-25T20:00:00.000+0000","EndDateTime":"2026-08-25T20:30:00.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOnrAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Prep"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGSuEAM"},"Id":"00Uam000002nGSuEAM","Subject":"Left Voicemail: Update","StartDateTime":"2026-08-25T19:30:00.000+0000","EndDateTime":"2026-08-25T21:00:00.000+0000","DurationInMinutes":90,"WhoId":"003am000008yOnpAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGSaEAM"},"Id":"00Uam000002nGSaEAM","Subject":"Cold Call with Prospect","StartDateTime":"2026-08-25T17:30:00.000+0000","EndDateTime":"2026-08-25T18:00:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGUiEAM"},"Id":"00Uam000002nGUiEAM","Subject":"Reserve Venue for Customer Conference","StartDateTime":"2026-08-25T17:30:00.000+0000","EndDateTime":"2026-08-25T18:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOn7AAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGRqEAM"},"Id":"00Uam000002nGRqEAM","Subject":"Work on RFP","StartDateTime":"2026-08-25T17:00:00.000+0000","EndDateTime":"2026-08-25T19:00:00.000+0000","DurationInMinutes":120,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Other"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGS3EAM"},"Id":"00Uam000002nGS3EAM","Subject":"Discovery Meeting","StartDateTime":"2026-08-25T14:35:51.000+0000","EndDateTime":"2026-08-25T15:35:51.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Get a better understanding of this customer's challenges and start considering solutions that might need their needs.","Location":null,"ShowAs":"Busy","Type":"Meeting"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam000002nGVLEA2"},"Id":"00Uam000002nGVLEA2","Subject":"Internal: Review Pricing Structure","StartDateTime":"2026-08-24T23:30:00.000+0000","EndDateTime":"2026-08-25T00:00:00.000+0000","DurationInMinutes":30,"WhoId":"003am000008yOmjAAE","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":null,"Location":null,"ShowAs":"Busy","Type":"Call"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000GDmEbEAL"},"Id":"00Uam00000GDmEbEAL","Subject":"Tax Planning Session","Type":"Meeting","StartDateTime":"2026-08-07T15:30:00.000+0000","EndDateTime":"2026-08-07T16:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Scheduled tax planning session with Julie Morris at Julie Morris.","Location":"Virtual - Teams","ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjviEAD"},"Id":"00Uam00000JEjviEAD","Subject":"Investment Strategy Session","Type":"Meeting","StartDateTime":"2026-08-07T13:00:00.000+0000","EndDateTime":"2026-08-07T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjYcEAL"},"Id":"00Uam00000JEjYcEAL","Subject":"Quarterly Wealth Review","Type":"Meeting","StartDateTime":"2026-08-06T13:00:00.000+0000","EndDateTime":"2026-08-06T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjp8EAD"},"Id":"00Uam00000JEjp8EAD","Subject":"Portfolio Review","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYuLAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjnOEAT"},"Id":"00Uam00000JEjnOEAT","Subject":"Risk Tolerance Assessment","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYuMAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjq0EAD"},"Id":"00Uam00000JEjq0EAD","Subject":"Estate Planning Discussion","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000GDmEcEAL"},"Id":"00Uam00000GDmEcEAL","Subject":"Annual Financial Review","Type":"Meeting","StartDateTime":"2026-08-02T13:00:00.000+0000","EndDateTime":"2026-08-02T14:00:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Scheduled annual financial review with Julie Morris at Julie Morris.","Location":"Client Home","ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjaMEAT"},"Id":"00Uam00000JEjaMEAT","Subject":"Annual Financial Health Check","Type":"Meeting","StartDateTime":"2026-08-02T13:00:00.000+0000","EndDateTime":"2026-08-02T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYthAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjZUEA1"},"Id":"00Uam00000JEjZUEA1","Subject":"Branch Visit: Account Opening","Type":"Meeting","StartDateTime":"2026-08-01T13:00:00.000+0000","EndDateTime":"2026-08-01T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjbEEAT"},"Id":"00Uam00000JEjbEEAT","Subject":"Loan Application Review","Type":"Meeting","StartDateTime":"2026-07-31T13:00:00.000+0000","EndDateTime":"2026-07-31T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYtnAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjoGEAT"},"Id":"00Uam00000JEjoGEAT","Subject":"IRA Rollover Discussion","Type":"Meeting","StartDateTime":"2026-07-30T13:00:00.000+0000","EndDateTime":"2026-07-30T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYsqAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjwaEAD"},"Id":"00Uam00000JEjwaEAD","Subject":"Life Insurance Needs Analysis","Type":"Meeting","StartDateTime":"2026-07-29T13:00:00.000+0000","EndDateTime":"2026-07-29T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYthAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjoBEAT"},"Id":"00Uam00000JEjoBEAT","Subject":"Asset Allocation Review","Type":"Meeting","StartDateTime":"2026-08-07T13:00:00.000+0000","EndDateTime":"2026-08-07T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYuMAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjnJEAT"},"Id":"00Uam00000JEjnJEAT","Subject":"Life Insurance Needs Analysis","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYtnAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjvdEAD"},"Id":"00Uam00000JEjvdEAD","Subject":"Retirement Planning Workshop","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjpvEAD"},"Id":"00Uam00000JEjpvEAD","Subject":"Commercial Banking Review","Type":"Meeting","StartDateTime":"2026-08-03T13:00:00.000+0000","EndDateTime":"2026-08-03T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYuLAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjaHEAT"},"Id":"00Uam00000JEjaHEAT","Subject":"Estate Planning Discussion","Type":"Meeting","StartDateTime":"2026-08-01T13:00:00.000+0000","EndDateTime":"2026-08-01T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjp3EAD"},"Id":"00Uam00000JEjp3EAD","Subject":"Wire Transfer Authorization","Type":"Meeting","StartDateTime":"2026-08-01T13:00:00.000+0000","EndDateTime":"2026-08-01T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYsqAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjb9EAD"},"Id":"00Uam00000JEjb9EAD","Subject":"Investment Strategy Session","Type":"Meeting","StartDateTime":"2026-07-31T13:00:00.000+0000","EndDateTime":"2026-07-31T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYthAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjwVEAT"},"Id":"00Uam00000JEjwVEAT","Subject":"Mortgage Pre-Approval Meeting","Type":"Meeting","StartDateTime":"2026-07-30T13:00:00.000+0000","EndDateTime":"2026-07-30T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjZPEA1"},"Id":"00Uam00000JEjZPEA1","Subject":"Portfolio Review","Type":"Meeting","StartDateTime":"2026-07-30T13:00:00.000+0000","EndDateTime":"2026-07-30T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"}]});
+Object.assign(wealthCaptureData.sources,{"crm_julie_cases":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am00000qvjsAAAQ","label":"Customer cases","query":"SELECT Id,CaseNumber,Subject,Status,Priority,AccountId,OwnerId,CreatedDate FROM Case WHERE AccountId='001am00000qvjsAAAQ' ORDER BY CreatedDate DESC LIMIT 12","limit":12,"returnedRows":12,"rows":[{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000y204dAAA"},"Id":"500am00000y204dAAA","CaseNumber":"00012646","Subject":"Lost Debit Card","Status":"New","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-10-21T14:17:30.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000xeEyNAAU"},"Id":"500am00000xeEyNAAU","CaseNumber":"00012643","Subject":"Lost Credit Card While Traveling Abroad - Rush Replacement Needed","Status":"New","Priority":"High","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-10-08T20:58:08.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000xcpSXAAY"},"Id":"500am00000xcpSXAAY","CaseNumber":"00012642","Subject":"Lost Credit Card - Replacement Requested (RUSH)","Status":"New","Priority":"High","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-10-08T02:14:44.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000x25xhAAA"},"Id":"500am00000x25xhAAA","CaseNumber":"00012624","Subject":"Lost Credit Card - Julie E Morris","Status":"New","Priority":"High","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","CreatedDate":"2026-09-17T16:48:51.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000rHvjKAAS"},"Id":"500am00000rHvjKAAS","CaseNumber":"00002281","Subject":"Inbound call with AI Agent — Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-28T23:01:12.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r4qT0AAI"},"Id":"500am00000r4qT0AAI","CaseNumber":"00002270","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-24T14:26:38.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r3ROYAA2"},"Id":"500am00000r3ROYAA2","CaseNumber":"00002269","Subject":"Lost Platinum Visa card","Status":"New","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"00Gam000003SZioEAG","CreatedDate":"2026-04-23T22:29:58.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r3RLJAA2"},"Id":"500am00000r3RLJAA2","CaseNumber":"00002268","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T22:28:13.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r2xohAAA"},"Id":"500am00000r2xohAAA","CaseNumber":"00002267","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:47:26.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r32BeAAI"},"Id":"500am00000r32BeAAI","CaseNumber":"00002266","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:25:06.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r2jKJAAY"},"Id":"500am00000r2jKJAAY","CaseNumber":"00002265","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:24:31.000+0000"},{"attributes":{"type":"Case","url":"/services/data/v67.0/sobjects/Case/500am00000r2xv8AAA"},"Id":"500am00000r2xv8AAA","CaseNumber":"00002264","Subject":"Inbound Support call with Julie Morris","Status":"Working","Priority":"Medium","AccountId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYswAAG","CreatedDate":"2026-04-23T19:23:26.000+0000"}]},"crm_julie_tasks":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am00000qvjsAAAQ","label":"Customer tasks","query":"SELECT Id,Subject,Type,Status,Priority,ActivityDate,WhoId,WhatId,OwnerId,Description FROM Task WHERE WhatId='001am00000qvjsAAAQ' OR WhoId='003am000008yOmCAAU' ORDER BY ActivityDate DESC NULLS LAST LIMIT 15","limit":15,"returnedRows":15,"rows":[{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000VD9zhEAD"},"Id":"00Tam00000VD9zhEAD","Subject":"Speak with Julie Morris about her daughter's 529 account","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-10-19","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UdfoPEAR"},"Id":"00Tam00000UdfoPEAR","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-10-05","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UPCuLEAX"},"Id":"00Tam00000UPCuLEAX","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-30","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan options for Morris Roasters, LLC."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000UNl3OEAT"},"Id":"00Tam00000UNl3OEAT","Subject":"Follow up with Julie Morris regarding business loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-29","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TyPXVEA3"},"Id":"00Tam00000TyPXVEA3","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-23","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan opportunities for Morris Roasters, LLC. Key items: Equipment Loan ($58K, closes Oct 17), Asset-Based Lending ($14K), and Syndicated Loan ($14K) currently in pipeline. Also discuss wallet share opportunity given low Roastery deposits vs. $10M revenue."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TyLwvEAF"},"Id":"00Tam00000TyLwvEAF","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-23","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TxhBWEAZ"},"Id":"00Tam00000TxhBWEAZ","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie Morris regarding business loan opportunities for Morris Roasters, LLC. Key items: Equipment Loan ($58K), Asset-Based Lending ($14K), and Syndicated Loan ($14K) currently in pipeline. Also discuss wallet share opportunity given low Roastery deposits vs. $10M revenue."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000Txj8TEAR"},"Id":"00Tam00000Txj8TEAR","Subject":"Follow up with Julie Morris - Business Loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie E Morris regarding business loans."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TxaMxEAJ"},"Id":"00Tam00000TxaMxEAJ","Subject":"Follow up with Julie Morris regarding business loans","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-09-22","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsLAAQ","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TybaHEAR"},"Id":"00Tam00000TybaHEAR","Subject":"Call: Discuss brokerage account","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-16","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Call Julie E Morris to discuss her brokerage account."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TiXu1EAF"},"Id":"00Tam00000TiXu1EAF","Subject":"Call Julie Morris - 529 Options","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-09-09","WhoId":"003am000008yOmCAAU","WhatId":null,"OwnerId":"005am000003PbCLAA0","Description":"Call Julie Morris to discuss and present 529 plan options."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000TDOjlEAH"},"Id":"00Tam00000TDOjlEAH","Subject":"Call Julie Morris","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-31","WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Follow up with Julie to confirm her interest in home insurance products, including homeowners coverage and earthquake rider. Reference the insurance gap analysis discussion."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam000004jIVYEA2"},"Id":"00Tam000004jIVYEA2","Subject":"Call Julie Morris about CD Opening Process","Type":null,"Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-17","WhoId":"003am000008yOmCAAU","WhatId":"006am000005W2ifAAC","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000SSu2PEAT"},"Id":"00Tam00000SSu2PEAT","Subject":"VIP Jumbo Mortgage Advisor Follow-Up","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-10","WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"High-priority Jumbo Mortgage follow-up.\n\nCustomer: Julie E Morris\nEmail: jmorris@example.com\nReason: The customer requested contact from an advisor about a Jumbo Mortgage.\nNext action: Review the Agentforce customer briefing and contact the customer promptly."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000STZThEAP"},"Id":"00Tam00000STZThEAP","Subject":"VIP Jumbo Mortgage Advisor Follow-Up","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-08-10","WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"High-priority Jumbo Mortgage follow-up.\n\nCustomer: Julie E Morris\nEmail: jmorris@example.com\nReason: The customer requested contact from an advisor about a Jumbo Mortgage.\nNext action: Review the Agentforce customer briefing and contact the customer promptly."}]},"crm_julie_events":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am00000qvjsAAAQ","label":"Customer events","query":"SELECT Id,Subject,Type,StartDateTime,EndDateTime,DurationInMinutes,WhoId,WhatId,OwnerId,Description,Location,ShowAs FROM Event WHERE WhatId='001am00000qvjsAAAQ' OR WhoId='003am000008yOmCAAU' ORDER BY StartDateTime DESC LIMIT 12","limit":12,"returnedRows":12,"rows":[{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000GDmEbEAL"},"Id":"00Uam00000GDmEbEAL","Subject":"Tax Planning Session","Type":"Meeting","StartDateTime":"2026-08-07T15:30:00.000+0000","EndDateTime":"2026-08-07T16:30:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Scheduled tax planning session with Julie Morris at Julie Morris.","Location":"Virtual - Teams","ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjviEAD"},"Id":"00Uam00000JEjviEAD","Subject":"Investment Strategy Session","Type":"Meeting","StartDateTime":"2026-08-07T13:00:00.000+0000","EndDateTime":"2026-08-07T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjYcEAL"},"Id":"00Uam00000JEjYcEAL","Subject":"Quarterly Wealth Review","Type":"Meeting","StartDateTime":"2026-08-06T13:00:00.000+0000","EndDateTime":"2026-08-06T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjp8EAD"},"Id":"00Uam00000JEjp8EAD","Subject":"Portfolio Review","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYuLAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjnOEAT"},"Id":"00Uam00000JEjnOEAT","Subject":"Risk Tolerance Assessment","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYuMAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjq0EAD"},"Id":"00Uam00000JEjq0EAD","Subject":"Estate Planning Discussion","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000GDmEcEAL"},"Id":"00Uam00000GDmEcEAL","Subject":"Annual Financial Review","Type":"Meeting","StartDateTime":"2026-08-02T13:00:00.000+0000","EndDateTime":"2026-08-02T14:00:00.000+0000","DurationInMinutes":60,"WhoId":"003am000008yOmCAAU","WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PbCLAA0","Description":"Scheduled annual financial review with Julie Morris at Julie Morris.","Location":"Client Home","ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjaMEAT"},"Id":"00Uam00000JEjaMEAT","Subject":"Annual Financial Health Check","Type":"Meeting","StartDateTime":"2026-08-02T13:00:00.000+0000","EndDateTime":"2026-08-02T13:45:00.000+0000","DurationInMinutes":45,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYthAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjZUEA1"},"Id":"00Uam00000JEjZUEA1","Subject":"Branch Visit: Account Opening","Type":"Meeting","StartDateTime":"2026-08-01T13:00:00.000+0000","EndDateTime":"2026-08-01T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjbEEAT"},"Id":"00Uam00000JEjbEEAT","Subject":"Loan Application Review","Type":"Meeting","StartDateTime":"2026-07-31T13:00:00.000+0000","EndDateTime":"2026-07-31T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYtnAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjoGEAT"},"Id":"00Uam00000JEjoGEAT","Subject":"IRA Rollover Discussion","Type":"Meeting","StartDateTime":"2026-07-30T13:00:00.000+0000","EndDateTime":"2026-07-30T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYsqAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjwaEAD"},"Id":"00Uam00000JEjwaEAD","Subject":"Life Insurance Needs Analysis","Type":"Meeting","StartDateTime":"2026-07-29T13:00:00.000+0000","EndDateTime":"2026-07-29T14:15:00.000+0000","DurationInMinutes":75,"WhoId":null,"WhatId":"001am00000qvjsAAAQ","OwnerId":"005am000003PYthAAG","Description":null,"Location":null,"ShowAs":"Busy"}]},"crm_anika_cases":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am000026ZtgKAAS","label":"Customer cases","query":"SELECT Id,CaseNumber,Subject,Status,Priority,AccountId,OwnerId,CreatedDate FROM Case WHERE AccountId='001am000026ZtgKAAS' ORDER BY CreatedDate DESC LIMIT 12","limit":12,"returnedRows":0,"rows":[]},"crm_anika_tasks":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am000026ZtgKAAS","label":"Customer tasks","query":"SELECT Id,Subject,Type,Status,Priority,ActivityDate,WhoId,WhatId,OwnerId,Description FROM Task WHERE WhatId='001am000026ZtgKAAS' OR WhoId='003am00000c9fUJAAY' ORDER BY ActivityDate DESC NULLS LAST LIMIT 15","limit":15,"returnedRows":11,"rows":[{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000QkMbIEAV"},"Id":"00Tam00000QkMbIEAV","Subject":"529 Acceleration Meeting — Patel","Type":"Meeting","Status":"Open","Priority":"Normal","ActivityDate":"2026-08-07","WhoId":"003am00000c9fUJAAY","WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":"Daughter starts college September 2026. Schedule meeting to discuss 529 contribution acceleration and liquidity planning."},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkWEAX"},"Id":"00Tam00000REXkWEAX","Subject":"Create Strategic Plan with Product Bankers","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-08-06","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjwlEAD"},"Id":"00Tam00000RDjwlEAD","Subject":"Schedule estate planning attorney intro","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-06","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYthAAG","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjvtEAD"},"Id":"00Tam00000RDjvtEAD","Subject":"Submit loan documents to underwriting","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-01","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYstAAG","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjxdEAD"},"Id":"00Tam00000RDjxdEAD","Subject":"Confirm wire transfer details","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-08-01","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYtnAAG","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkTEAX"},"Id":"00Tam00000REXkTEAX","Subject":"Ensure KYC / AML Compliance is Complete","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-07-31","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkUEAX"},"Id":"00Tam00000REXkUEAX","Subject":"Present to Operating Committee","Type":"Call","Status":"Not Started","Priority":"High","ActivityDate":"2026-07-30","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkVEAX"},"Id":"00Tam00000REXkVEAX","Subject":"Load the Template With Your Client Information","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-07-30","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjyVEAT"},"Id":"00Tam00000RDjyVEAT","Subject":"Schedule quarterly review call","Type":"Call","Status":"In Progress","Priority":"Normal","ActivityDate":"2026-07-30","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYuMAAW","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000REXkSEAX"},"Id":"00Tam00000REXkSEAX","Subject":"Submit to Manager for Review","Type":"Call","Status":"Not Started","Priority":"Normal","ActivityDate":"2026-07-29","WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PbCLAA0","Description":null},{"attributes":{"type":"Task","url":"/services/data/v67.0/sobjects/Task/00Tam00000RDjv1EAD"},"Id":"00Tam00000RDjv1EAD","Subject":"Review prospect referral","Type":"Call","Status":"In Progress","Priority":"High","ActivityDate":"2026-07-29","WhoId":"003am00000c9fUJAAY","WhatId":null,"OwnerId":"005am000003PYtmAAG","Description":null}]},"crm_anika_events":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","accountId":"001am000026ZtgKAAS","label":"Customer events","query":"SELECT Id,Subject,Type,StartDateTime,EndDateTime,DurationInMinutes,WhoId,WhatId,OwnerId,Description,Location,ShowAs FROM Event WHERE WhatId='001am000026ZtgKAAS' OR WhoId='003am00000c9fUJAAY' ORDER BY StartDateTime DESC LIMIT 12","limit":12,"returnedRows":9,"rows":[{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjoBEAT"},"Id":"00Uam00000JEjoBEAT","Subject":"Asset Allocation Review","Type":"Meeting","StartDateTime":"2026-08-07T13:00:00.000+0000","EndDateTime":"2026-08-07T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYuMAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjnJEAT"},"Id":"00Uam00000JEjnJEAT","Subject":"Life Insurance Needs Analysis","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYtnAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjvdEAD"},"Id":"00Uam00000JEjvdEAD","Subject":"Retirement Planning Workshop","Type":"Meeting","StartDateTime":"2026-08-05T13:00:00.000+0000","EndDateTime":"2026-08-05T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjpvEAD"},"Id":"00Uam00000JEjpvEAD","Subject":"Commercial Banking Review","Type":"Meeting","StartDateTime":"2026-08-03T13:00:00.000+0000","EndDateTime":"2026-08-03T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYuLAAW","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjaHEAT"},"Id":"00Uam00000JEjaHEAT","Subject":"Estate Planning Discussion","Type":"Meeting","StartDateTime":"2026-08-01T13:00:00.000+0000","EndDateTime":"2026-08-01T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjp3EAD"},"Id":"00Uam00000JEjp3EAD","Subject":"Wire Transfer Authorization","Type":"Meeting","StartDateTime":"2026-08-01T13:00:00.000+0000","EndDateTime":"2026-08-01T13:30:00.000+0000","DurationInMinutes":30,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYsqAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjb9EAD"},"Id":"00Uam00000JEjb9EAD","Subject":"Investment Strategy Session","Type":"Meeting","StartDateTime":"2026-07-31T13:00:00.000+0000","EndDateTime":"2026-07-31T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYthAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjwVEAT"},"Id":"00Uam00000JEjwVEAT","Subject":"Mortgage Pre-Approval Meeting","Type":"Meeting","StartDateTime":"2026-07-30T13:00:00.000+0000","EndDateTime":"2026-07-30T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYstAAG","Description":null,"Location":null,"ShowAs":"Busy"},{"attributes":{"type":"Event","url":"/services/data/v67.0/sobjects/Event/00Uam00000JEjZPEA1"},"Id":"00Uam00000JEjZPEA1","Subject":"Portfolio Review","Type":"Meeting","StartDateTime":"2026-07-30T13:00:00.000+0000","EndDateTime":"2026-07-30T14:00:00.000+0000","DurationInMinutes":60,"WhoId":null,"WhatId":"001am000026ZtgKAAS","OwnerId":"005am000003PYtmAAG","Description":null,"Location":null,"ShowAs":"Busy"}]}});
+
+Object.assign(wealthCaptureData.sources,{"aml_change_types":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","label":"WorldCheck change types","query":"SELECT account_id__c AS account_id, change_since_last_run__c AS change_type FROM BT_WorldCheck_AML__dlm WHERE profile_date__c=(SELECT MAX(profile_date__c) FROM BT_WorldCheck_AML__dlm) AND account_id__c IN ('001am00002AA8IlAAL','001am00002AYONHAA5','001am00002AA8CJAA1','001am00002AYOF0AAP','001am00002A9fhGAAR','001am00002AYAL8AAP','001am00002AA8MqAAL','001am00002A9fBdAAJ')","queryId":"MTAuNzguOS4xMTA6NzQ4NA_5147448e-0bf7-49f0-9b8b-f5c16a96b193","limit":100,"returnedRows":8,"rows":[{"account_id":"001am00002AYONHAA5","change_type":"Changed"},{"account_id":"001am00002AA8IlAAL","change_type":"Changed"},{"account_id":"001am00002AA8CJAA1","change_type":"Changed"},{"account_id":"001am00002AYAL8AAP","change_type":"Changed"},{"account_id":"001am00002A9fBdAAJ","change_type":"Changed"},{"account_id":"001am00002AYOF0AAP","change_type":"Changed"},{"account_id":"001am00002A9fhGAAR","change_type":"Changed"},{"account_id":"001am00002AA8MqAAL","change_type":"Changed"}]},"crm_tasks_types":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","label":"Exact source activity types","query":"SELECT Id,Type FROM Task WHERE Id IN ('00Tam00000VD9zhEAD','00Tam00000UdfoPEAR','00Tam00000UPCuLEAX','00Tam00000UNl3OEAT','00Tam00000TzFr3EAF','00Tam00000TzFpREAV','00Tam00000TzFsfEAF','00Tam00000TzFmDEAV','00Tam00000Tz3DHEAZ','00Tam00000TyPXVEA3','00Tam00000TyLwvEAF','00Tam00000Txj8TEAR','00Tam00000TxhBWEAZ','00Tam00000TxaMxEAJ','00Tam00000TjbqjEAB','00Tam00000TybaHEAR','00Tam000004jIVXEA2','00Tam00000TiZarEAF','00Tam00000TiXu1EAF','00Tam00000TRc6vEAD','00Tam00000TCGmfEAH','00Tam00000TDOjlEAH','00Tam000004jIWGEA2','00Tam000004jIVUEA2','00Tam000004jIVTEA2','00Tam00000Sr7hZEAR','00Tam00000Sr6dREAR','00Tam000004jIVYEA2','00Tam00000SqzNSEAZ','00Tam00000STbNREA1') LIMIT 30","limit":30,"returnedRows":30,"rows":[{"Id":"00Tam00000VD9zhEAD","Type":"Call"},{"Id":"00Tam00000UdfoPEAR","Type":"Call"},{"Id":"00Tam00000UPCuLEAX","Type":"Call"},{"Id":"00Tam00000UNl3OEAT","Type":"Call"},{"Id":"00Tam00000TzFr3EAF","Type":"Call"},{"Id":"00Tam00000TzFpREAV","Type":"Call"},{"Id":"00Tam00000TzFsfEAF","Type":"Call"},{"Id":"00Tam00000TzFmDEAV","Type":"Call"},{"Id":"00Tam00000Tz3DHEAZ","Type":"Call"},{"Id":"00Tam00000TyPXVEA3","Type":"Call"},{"Id":"00Tam00000TyLwvEAF","Type":"Call"},{"Id":"00Tam00000Txj8TEAR","Type":"Call"},{"Id":"00Tam00000TxhBWEAZ","Type":"Call"},{"Id":"00Tam00000TxaMxEAJ","Type":"Call"},{"Id":"00Tam00000TjbqjEAB","Type":"Call"},{"Id":"00Tam00000TybaHEAR","Type":"Call"},{"Id":"00Tam000004jIVXEA2","Type":"Call"},{"Id":"00Tam00000TiZarEAF","Type":"Call"},{"Id":"00Tam00000TiXu1EAF","Type":"Call"},{"Id":"00Tam00000TRc6vEAD","Type":"Call"},{"Id":"00Tam00000TCGmfEAH","Type":"Call"},{"Id":"00Tam00000TDOjlEAH","Type":"Call"},{"Id":"00Tam000004jIWGEA2","Type":null},{"Id":"00Tam000004jIVUEA2","Type":null},{"Id":"00Tam000004jIVTEA2","Type":null},{"Id":"00Tam00000Sr7hZEAR","Type":"Call"},{"Id":"00Tam00000Sr6dREAR","Type":"Call"},{"Id":"00Tam000004jIVYEA2","Type":null},{"Id":"00Tam00000SqzNSEAZ","Type":"Call"},{"Id":"00Tam00000STbNREA1","Type":"Call"}]},"crm_events_types":{"status":"available","scope":"book","ownerId":"005am000003PbCLAA0","label":"Exact source activity types","query":"SELECT Id,Type FROM Event WHERE Id IN ('00Uam00000LdwG9EAJ','00Uam000002nGT3EAM','00Uam000002nGW3EAM','00Uam000002nGVxEAM','00Uam000002nGUqEAM','00Uam000002nGUdEAM','00Uam000002nGT1EAM','00Uam000002nGTKEA2','00Uam000002nGT5EAM','00Uam000002nGWOEA2','00Uam000002nGRLEA2','00Uam000002nGTWEA2','00Uam000002nGWeEAM','00Uam000002nGUaEAM','00Uam000002nGSuEAM','00Uam000002nGSaEAM','00Uam000002nGUiEAM','00Uam000002nGRqEAM','00Uam000002nGS3EAM','00Uam000002nGVLEA2') LIMIT 20","limit":20,"returnedRows":20,"rows":[{"Id":"00Uam00000LdwG9EAJ","Type":"Meeting"},{"Id":"00Uam000002nGT3EAM","Type":"Call"},{"Id":"00Uam000002nGW3EAM","Type":"Meeting"},{"Id":"00Uam000002nGVxEAM","Type":"Meeting"},{"Id":"00Uam000002nGUqEAM","Type":"Meeting"},{"Id":"00Uam000002nGUdEAM","Type":"Prep"},{"Id":"00Uam000002nGT1EAM","Type":"Other"},{"Id":"00Uam000002nGTKEA2","Type":"Call"},{"Id":"00Uam000002nGT5EAM","Type":"Meeting"},{"Id":"00Uam000002nGWOEA2","Type":"Meeting"},{"Id":"00Uam000002nGRLEA2","Type":"Meeting"},{"Id":"00Uam000002nGTWEA2","Type":"Meeting"},{"Id":"00Uam000002nGWeEAM","Type":"Meeting"},{"Id":"00Uam000002nGUaEAM","Type":"Prep"},{"Id":"00Uam000002nGSuEAM","Type":"Meeting"},{"Id":"00Uam000002nGSaEAM","Type":"Meeting"},{"Id":"00Uam000002nGUiEAM","Type":"Call"},{"Id":"00Uam000002nGRqEAM","Type":"Other"},{"Id":"00Uam000002nGS3EAM","Type":"Meeting"},{"Id":"00Uam000002nGVLEA2","Type":"Call"}]}});
+wealthCaptureData.sources.transactionSignals_amlChangeSql.rows=[{"account_id":"001am00002AA8IlAAL","risk_rating":"High","prev_rating":"Low","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-66504","jur":"US","screened":"2026-11-13","change_type":"Changed"},{"account_id":"001am00002AYONHAA5","risk_rating":"High","prev_rating":"Low","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-86535","jur":"US","screened":"2026-11-13","change_type":"Changed"},{"account_id":"001am00002AA8CJAA1","risk_rating":"High","prev_rating":"Low","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-32533","jur":"US","screened":"2026-11-13","change_type":"Changed"},{"account_id":"001am00002AYOF0AAP","risk_rating":"High","prev_rating":"Low","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-98468","jur":"US","screened":"2026-11-13","change_type":"Changed"},{"account_id":"001am00002A9fhGAAR","risk_rating":"High","prev_rating":"Low","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-56037","jur":"US","screened":"2026-11-13","change_type":"Changed"},{"account_id":"001am00002AYAL8AAP","risk_rating":"High","prev_rating":"Low","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-91987","jur":"US","screened":"2026-11-13","change_type":"Changed"},{"account_id":"001am00002AA8MqAAL","risk_rating":"High","prev_rating":"Low","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-42579","jur":"US","screened":"2026-11-13","change_type":"Changed"},{"account_id":"001am00002A9fBdAAJ","risk_rating":"High","prev_rating":"Medium","pep":false,"sanctions":true,"adverse_media":false,"am_cats":null,"case_ref":"WC-2026-78244","jur":"VN","screened":"2026-11-13","change_type":"Changed"}];

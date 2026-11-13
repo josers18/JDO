@@ -54,11 +54,11 @@ Core interfaces to settle before UI work:
 
 **Files:** `S/WEALTH_GAP_ANALYSIS.md`, this plan, `S/wealth-capture-data.js`, `S/tests/wealth-source-capture.sql/.soql`, `S/WEALTH_CAPTURE_SCOPE.md`.
 
-- [ ] Re-read this spec, `AGENTS.md`, the Retail [migration contract](../../design-studies/2026-11-12-directions/RETAIL_MIGRATION_CONTRACT.md) and [acceptance contract](../../design-studies/2026-11-12-directions/RETAIL_PRODUCTION_ACCEPTANCE.md). Reuse identity/execution principles, not Retail layouts.
-- [ ] Verify active branch/HEAD and preserve unrelated files. Record current source functions and existing browser baseline before changing shared study dispatch.
-- [ ] At implementation time, verify the target org and effective Wealth advisor. Capture source-scoped examples and separate aggregates using native query contracts; retain sample limits and date periods. Resolve Account names in chunks of at most 50 and verify ownership.
-- [ ] Select Julie only if still appropriate to the verified Wealth capture, plus one second genuinely different customer with usable source data. Keep sparse source domains explicitly unavailable; do not fill them with Julie’s data.
-- [ ] Write failing source-envelope tests for empty book, org fallback, unavailable source, null/zero amount and duplicate names; implement only the minimal envelope/allowlist handling and run them green.
+- [x] Re-read this spec, `AGENTS.md`, the Retail [migration contract](../../design-studies/2026-11-12-directions/RETAIL_MIGRATION_CONTRACT.md) and [acceptance contract](../../design-studies/2026-11-12-directions/RETAIL_PRODUCTION_ACCEPTANCE.md). Reuse identity/execution principles, not Retail layouts.
+- [x] Verify active branch/HEAD and preserve unrelated files. Record current source functions and existing browser baseline before changing shared study dispatch.
+- [x] At implementation time, verify the target org and effective Wealth advisor. Capture source-scoped examples and separate aggregates using native query contracts; retain sample limits and date periods. Resolve Account names in chunks of at most 50 and verify ownership.
+- [x] Select Julie only if still appropriate to the verified Wealth capture, plus one second genuinely different customer with usable source data. Keep sparse source domains explicitly unavailable; do not fill them with Julie’s data.
+- [x] Write failing source-envelope tests for empty book, org fallback, unavailable source, null/zero amount and duplicate names; implement only the minimal envelope/allowlist handling and run them green.
 - [ ] Record scope/default limitations, including representative source fields and historical/deployed uncertainty. Commit/push the evidence checkpoint without claiming live integration or modifying production source.
 
 **Capture bounds:** start from the native top-row limits in current fetchers: Who-to-Call nine raw rows; held-away eight plus independent total; reviews six; plan-risk six plus eight spares; concentration five plus four exposure tickers; source inbox eight per native signal. Increase scope only for a specific tested journey; never label a limited result complete.
@@ -67,10 +67,10 @@ Core interfaces to settle before UI work:
 
 **Files:** `S/wealth-context.js`, `wealth-capture-data.js`, `workspace.js/.html`, `persona-workspaces.js`; `S/tests/wealth-context.test.cjs`, `wealth-context.browser.cjs`; `S/WEALTH_CONTEXT_MILESTONE.md`.
 
-- [ ] Write failing tests for source precedence on duplicate Account+offer keys; wrong-owner/unknown-account exclusion; two equal display names; missing balances; and product/source provenance invalidation at both first save and Workbench reassignment.
-- [ ] Implement exact-record selectors and a relationship Opportunities product picker. Keep customer evidence available independently of the active Growth household or movement filter.
-- [ ] Carry Account+offer identity from Growth evidence to opportunity/task proposals and Workbench editing. Prefer source fields over name-based conditionals; remove Wealth-only display-name financial-value routing in touched paths.
-- [ ] Preserve captured holdings separately from financial-account balances and ownership completeness. Known-owned products must not advertise acquisition proposals merely because a model row exists.
+- [x] Write failing tests for source precedence on duplicate Account+offer keys; wrong-owner/unknown-account exclusion; two equal display names; missing balances; and product/source provenance invalidation at both first save and Workbench reassignment.
+- [x] Implement exact-record selectors and a relationship Opportunities product picker. Keep customer evidence available independently of the active Growth household or movement filter.
+- [x] Carry Account+offer identity from Growth evidence to opportunity/task proposals and Workbench editing. Prefer source fields over name-based conditionals; remove Wealth-only display-name financial-value routing in touched paths.
+- [x] Preserve captured holdings separately from financial-account balances and ownership completeness. Known-owned products must not advertise acquisition proposals merely because a model row exists.
 - [ ] Browser-test household A Growth → same customer/product/history in 360 → draft → Workbench → return; repeat with customer B and with missing source evidence. Verify other personas at desktop/mobile sizes.
 - [ ] Run selector/browser checks, document what remains unavailable, commit and push this independently reviewable milestone.
 
@@ -81,10 +81,10 @@ Core interfaces to settle before UI work:
 **Files:** `S/wealth-priority-core.js`, `wealth-priorities.js/.css`, `wealth-planning-core.js`, `wealth-planning.js/.css`; bounded capture supplement; `atlas-home.js`, `atlas-day-hero.js`, `atlas-expansion.js`; focused tests and `WEALTH_PLANNING_MILESTONE.md`.
 
 - [ ] Write failing tests that compare native Wealth Who-to-Call/blender inputs, source deduplication, due-date inheritance and reserved eligible liquidity behavior. Cover a real source date, a missing date and a future/stale observation without inventing history.
-- [ ] Build a compact advisor agenda under the book hero: plan rescue, due review, relationship care and investment conversation. Use the native score/drivers and actual due context; avoid derived severity/rank “health drops.”
-- [ ] Capture independent held-away/net-flow/plan aggregates and real series where returned. Give the pulse advisor-specific meaning; preserve pipeline near the top and avoid whole-page repetition of the same KPI.
-- [ ] Write failing plan selectors for Active/Stale versus Draft, <70/<50 boundaries, due-30 window and twelve-month/stated staleness. Implement the exact native rules with source-period labels.
-- [ ] Expand Review horizon into due/at-risk/stale modes with a compact date grid and selected-household plan assumptions/goal exposure. Keep modeled success and CRM goal funding separate.
+- [x] Build a compact advisor agenda under the book hero: plan rescue, due review, relationship care and investment conversation. Use the native score/drivers and actual due context; avoid derived severity/rank “health drops.”
+- [x] Capture independent held-away/net-flow/plan aggregates and real series where returned. Give the pulse advisor-specific meaning; preserve pipeline near the top and avoid whole-page repetition of the same KPI.
+- [x] Write failing plan selectors for Active/Stale versus Draft, <70/<50 boundaries, due-30 window and twelve-month/stated staleness. Implement the exact native rules with source-period labels.
+- [x] Expand Review horizon into due/at-risk/stale modes with a compact date grid and selected-household plan assumptions/goal exposure. Keep modeled success and CRM goal funding separate.
 - [ ] Exercise Why → source → 360 → review prep; then provider review → proposed meeting → Workbench. Verify no source review becomes a booked appointment and no missing aggregate is shown as zero.
 - [ ] Run Wealth and existing Retail regression gates; log capture scope and any source-policy decisions, commit and push.
 
@@ -93,12 +93,12 @@ Core interfaces to settle before UI work:
 **Files:** `S/wealth-capital-core.js`, `wealth-capital.js/.css`, capture supplements; `persona-workspaces.js`, `atlas-expansion.js`, `workspace.js/.html`; pure/browser tests and `WEALTH_CAPITAL_MILESTONE.md`.
 
 - [ ] Write failing held-away tests for latest active positive Brokerage/Robo-Advisor opportunity versus broader external assets, Crypto Exchange/Robo-Advisor leakage, missing data and source-scope fallback. Implement source-native selection and separate aggregate/detail display.
-- [ ] Retain the capital-path composition, adding a searchable consolidation worklist and institution/product context. Show source cash flow direction without claiming money originated at this bank or is available to move.
-- [ ] Write failing concentration tests for exact source/ticker/Account, native fund exclusion, ≥20% threshold and denominator. Build ticker exposure → holders → selected customer/plan context using actual market values; no invented market performance or trade recommendation.
+- [x] Retain the capital-path composition, adding a searchable consolidation worklist and institution/product context. Show source cash flow direction without claiming money originated at this bank or is available to move.
+- [x] Write failing concentration tests for exact source/ticker/Account, native fund exclusion, ≥20% threshold and denominator. Build ticker exposure → holders → selected customer/plan context using actual market values; no invented market performance or trade recommendation.
 - [ ] Capture native Wealth coverage and movers: seven product groups, twelve total rows including three Managed Account/Roth holders selected round-robin, six-month actual history, and independent open/Won-30 counters. Test owned suppression, exact existing-opportunity matching, score-versus-EV movement and null history.
-- [ ] Implement a compact coverage/mover lens with meaningful visuals, a searchable household picker and bounded worklist selection instead of a horizontal customer strip. Group product columns on narrow screens so the seventh native product stays reachable without horizontal customer scrolling. Keep the source’s top-holder window/sample constraints visible.
-- [ ] Add Acquisition lenses inside Wealth Growth: CRM Leads, graph introductions, business-owner relationships and emerging-wealth candidates. Use the current business-owner and Wealth-upgrade predicates; do not conflate a company, outside target, existing Account and existing Lead.
-- [ ] Preserve full Lead source/status/email/name/company/AnnualRevenue fields. Proposal text must distinguish annual company revenue from AUM and modeled EV from Opportunity Amount. Explicitly document whether Wealth proposals prefill or require review of Amount, given the native grid currently submits modeled EV.
+- [x] Implement a compact coverage/mover lens with meaningful visuals, a searchable household picker and bounded worklist selection instead of a horizontal customer strip. Group product columns on narrow screens so the seventh native product stays reachable without horizontal customer scrolling. Keep the source’s top-holder window/sample constraints visible.
+- [x] Add Acquisition lenses inside Wealth Growth: CRM Leads, graph introductions, business-owner relationships and emerging-wealth candidates. Use the current business-owner and Wealth-upgrade predicates; do not conflate a company, outside target, existing Account and existing Lead.
+- [x] Preserve full Lead source/status/email/name/company/AnnualRevenue fields. Proposal text must distinguish annual company revenue from AUM and modeled EV from Opportunity Amount. Explicitly document whether Wealth proposals prefill or require review of Amount, given the native grid currently submits modeled EV.
 - [ ] Browser-test each source → exact customer/target inspector → correct proposal → Workbench/return, including no-contact, null/zero, duplicate-name and missing-source states. Run regression suites; commit and push.
 
 **Source acceptance:** Wealth upgrades use native latest Claritas criteria (wealth propensity ≥80 or $1M–$5M/$5M+ band, excluding Wealth Management category), not a new account value threshold. Graph confidence is a source relationship measure, not consent/conversion. Outside targets do not enter the owned-household directory merely because an introduction is suggested.
@@ -107,10 +107,10 @@ Core interfaces to settle before UI work:
 
 **Files:** `S/wealth-intelligence-core.js`, `wealth-intelligence.js/.css`, capture supplements; `persona-workspaces.js`, `atlas-day-hero.js`, `workspace.js/.html`; focused tests and `WEALTH_INTELLIGENCE_MILESTONE.md`.
 
-- [ ] Capture native Wealth AML changes, Gong decline, qualifying inflows, marketing events and employer departures with independent source periods and limits. Keep the full change type where needed for native screening semantics.
+- [x] Capture native Wealth AML changes, Gong decline, qualifying inflows, marketing events and employer departures with independent source periods and limits. Keep the full change type where needed for native screening semantics.
 - [ ] Write failing normalization tests for exact owner/Account/date/reference, duplicate names, New/Changed screening cases, null flags, liquidity windows, click events and source-empty/unavailable/stale/future cases. Implement source-specific records without a fabricated unified score.
-- [ ] Build an advisor source inbox around planning/relationship/investment moments. Preserve Plan health and Concentration as meaningful lenses, linking them to the richer Review horizon/exposure views rather than duplicating giant cards.
-- [ ] Capture native weekly gross Buy/Sell pulse and latest-week net sellers. Write failing tests for week boundaries, actual execution values and source identity; render the book aggregate separately from Julie’s or another customer’s selected execution ledger.
+- [x] Build an advisor source inbox around planning/relationship/investment moments. Preserve Plan health and Concentration as meaningful lenses, linking them to the richer Review horizon/exposure views rather than duplicating giant cards.
+- [x] Capture native weekly gross Buy/Sell pulse and latest-week net sellers. Write failing tests for week boundaries, actual execution values and source identity; render the book aggregate separately from Julie’s or another customer’s selected execution ledger.
 - [ ] Connect appropriate selected signals into Today and 360 with the same source key and private preparation. Keep generated AI wording distinct from recorded facts; no completed compliance case or funds-received claim.
 - [ ] Browser-test source → same customer/date → task proposal → Workbench and return, plus a net-seller → actual executions journey. Ensure no trade-execution function is implied.
 - [ ] Run responsive/keyboard and existing persona regressions, document missing feeds, commit and push.
@@ -119,11 +119,11 @@ Core interfaces to settle before UI work:
 
 **Files:** `S/wealth-execution-core.js`, `wealth-execution.js/.css`, coherent customer capture; `workspace.js`, `workbench-collections.js`, `atlas-expansion.js`; tests and `WEALTH_EXECUTION_MILESTONE.md`.
 
-- [ ] Capture one coherent Wealth customer’s actual financial accounts, transactions, trades, native plans/goals, interactions, notes, campaigns, Task/Event and case records where returned; retain a second customer for isolation tests. Source emptiness is acceptable; fabricated bookings/content are not.
+- [x] Capture one coherent Wealth customer’s actual financial accounts, transactions, trades, native plans/goals, interactions, notes, campaigns, Task/Event and case records where returned; retain a second customer for isolation tests. Source emptiness is acceptable; fabricated bookings/content are not.
 - [ ] Write failing goal tests for type/priority/status/description/date/amounts and fixed FinancialPlan identity, including blank versus zero and a new goal that requires an exact plan. Implement complete goal review/create/edit while preserving Life event logging.
 - [ ] Write failing activity tests for original record, WhoId, WhatId, source assignee, UTC round-trip, completion/update/delete support and exclusion of source Event operations from new-meeting planning.
-- [ ] Add actual recorded commitments beside the proposal calendar. Expose only supported bridge update operations; show fixed/unsupported fields honestly. Current create handlers and update handlers support different field sets; use the shared Retail migration contract to avoid promising unsupported owner/type/location/ShowAs writes.
-- [ ] Extend the review folio with dated source notes, account-keyed private preparation, selected evidence/goals and packet sections. Persist material by owner+persona+Account and preserve exact source IDs when it becomes a local action.
+- [x] Add actual recorded commitments beside the proposal calendar. Expose only supported bridge update operations; show fixed/unsupported fields honestly. Current create handlers and update handlers support different field sets; use the shared Retail migration contract to avoid promising unsupported owner/type/location/ShowAs writes.
+- [x] Extend the review folio with dated source notes, account-keyed private preparation, selected evidence/goals and packet sections. Persist material by owner+persona+Account and preserve exact source IDs when it becomes a local action.
 - [ ] Browser-test actual record → editable proposal → Workbench edit/review → original context, plus private-note reload and another customer with missing notes. Packet content must not borrow another household’s data or claim generated/sent/exported output.
 - [ ] Review density/visuals and run all relevant selector/browser gates; update logs, commit and push.
 
@@ -131,13 +131,13 @@ Core interfaces to settle before UI work:
 
 **Files:** `S/WEALTH_GAP_ANALYSIS.md`, `S/WORKSPACE_COVERAGE.md`, `S/WEALTH_MIGRATION_CONTRACT.md`, `S/WEALTH_PRODUCTION_ACCEPTANCE.md`, `docs/superpowers/plans/YYYY-MM-DD-wealth-atlas-production-migration.md`.
 
-- [ ] Re-audit every W-row against implemented source-backed journeys. Distinguish design coverage, missing capture, source defect and production integration; do not replace this with a completion percentage.
-- [ ] Specify Wealth route/lens/household/Workbench/Back restoration and signed-in/View As semantics. Preserve supported app routes and native SDK basename handling. Confirm all state/cache/preparation keys are owner-aware.
-- [ ] Map each designed action to the actual CRM/AI clients, handler-supported fields, permission checks, success/error/refetch and duplicate/retry behavior. Preserve clear proposal-versus-executed state and do not replay local material automatically.
-- [ ] Preserve live ACC switching/re-embed, explicit grounding handoff, AI model catalog and parameters, complete theme library/per-user theme/display presets, app launcher/search/user/notification tools and per-source loading/retry states in a separate production plan.
-- [ ] Record source limitations: org fallback, derived health/drop/default values, grid existing-opportunity heuristic, grid View As assignment versus other handlers, source-period/grain differences and conversion/consent boundaries.
-- [ ] Decide W15 only from actual source discovery. Beneficiary/member/estate-role capabilities remain unsupported discovery unless a verified read/write/permission contract exists; do not populate them to satisfy visual completeness.
-- [ ] Define production acceptance journeys with ordinary banker, changed View As, unauthorized/stale record, empty book, source error, duplicate submission and cross-persona isolation. Carry forward preservation requirements in the [Retail migration plan](2026-11-13-retail-atlas-production-migration.md) where common, with explicit Wealth-specific scope.
+- [x] Re-audit every W-row against implemented source-backed journeys. Distinguish design coverage, missing capture, source defect and production integration; do not replace this with a completion percentage.
+- [x] Specify Wealth route/lens/household/Workbench/Back restoration and signed-in/View As semantics. Preserve supported app routes and native SDK basename handling. Confirm all state/cache/preparation keys are owner-aware.
+- [x] Map each designed action to the actual CRM/AI clients, handler-supported fields, permission checks, success/error/refetch and duplicate/retry behavior. Preserve clear proposal-versus-executed state and do not replay local material automatically.
+- [x] Preserve live ACC switching/re-embed, explicit grounding handoff, AI model catalog and parameters, complete theme library/per-user theme/display presets, app launcher/search/user/notification tools and per-source loading/retry states in a separate production plan.
+- [x] Record source limitations: org fallback, derived health/drop/default values, grid existing-opportunity heuristic, grid View As assignment versus other handlers, source-period/grain differences and conversion/consent boundaries.
+- [x] Decide W15 only from actual source discovery. Beneficiary/member/estate-role capabilities remain unsupported discovery unless a verified read/write/permission contract exists; do not populate them to satisfy visual completeness.
+- [x] Define production acceptance journeys with ordinary banker, changed View As, unauthorized/stale record, empty book, source error, duplicate submission and cross-persona isolation. Carry forward preservation requirements in the [Retail migration plan](2026-11-13-retail-atlas-production-migration.md) where common, with explicit Wealth-specific scope.
 - [ ] Commit/push the reviewed design handoff and leave production implementation/deployment unstarted until separately authorized.
 
 ## Validation commands and checkpoint rule
@@ -157,4 +157,27 @@ Each milestone ends with its capture bounds, validation results, remaining limit
 
 - [x] Current-source and local-browser audit completed November 13: 28 surfaces, selected Growth proposal and Meetings checks; no org calls or production verification.
 - [x] Separate Wealth mock gap-closure plan created.
-- [ ] Milestone 0 implementation/capture checkpoint has not begun. All implementation checkboxes above remain open.
+- [x] Milestone0 source/identity checkpoint implemented and committed by parent as `1f0f7572a`; later source supplements retain83 envelopes.
+- [x] Wealth source-backed feature surfaces for milestones1–5 and the milestone6 migration/action/acceptance/future-plan documents are implemented.
+- [ ] Final source-floor review corrections, targeted action-routing regressions, branch checkpoint/push verification and cross-persona acceptance remain with the coordinating agent. Production implementation/deployment remain wholly unstarted.
+
+
+## Implementation handoff — November13,2026
+
+The child delivered `wealth-capture-data.js`, `wealth-core.js`, `wealth-atlas.js` and `wealth-atlas.css`, plus18 passing core/source tests and an extended passing browser journey. The [build ledger](../../design-studies/2026-11-12-directions/WEALTH_BUILD_LEDGER.md) records source bounds, rulings, red→green fixes and the transfer of all code/test ownership to root. Individual milestone notes and a W01–W15 re-audit are linked from [the audit](../../design-studies/2026-11-12-directions/WEALTH_GAP_ANALYSIS.md).
+
+Ruling: consolidated Wealth modules replace the proposed per-lens file split. Root owns shared integration and checkpoint history while Wealth and Commercial builds proceed independently. The initial Wealth source checkpoint is `1f0f7572a`; the root final feature/review checkpoint is still pending at this documentation handoff. No child staged, committed, pushed or edited production files.
+
+Checked items indicate the named implementation/document work exists with the evidence recorded in the milestone notes. Composite full-browser/final-checkpoint items remain open until root's fresh review closes them; they are not silently declared complete from a subset test. The remaining standalone source-floor review includes plan-risk source routing, future outside-mover Account keys, existing grid-opportunity guarding, sparse-customer source continuity, current-customer goal-plan scope, life-event edit reachability, Task delete and shared source Task/Event entrypoints. W03's broader all-asset customer held-away slice remains an explicit capture/runtime boundary unless root adds a verified source supplement.
+
+Some originally proposed normalization/negative-source matrices need nonempty or denied/stale/future conditions not present in the actual visible captures. The mock preserves successful-empty/unavailable/null/zero rules and does not fill those cases with fabricated banking observations. Full authenticated source/error/permission/reserve/uncertain-write matrices are specified, still pending, in [Wealth production acceptance](../../design-studies/2026-11-12-directions/WEALTH_PRODUCTION_ACCEPTANCE.md). The future production plan intentionally contains no checked implementation/deployment boxes.
+
+The implementation’s meaningful checks are `node --test docs/design-studies/2026-11-12-directions/tests/wealth-core.test.cjs docs/design-studies/2026-11-12-directions/tests/wealth-source.test.cjs` and `node docs/design-studies/2026-11-12-directions/tests/wealth-journeys.browser.cjs` with the existing Playwright module/Chromium environment. These supersede the illustrative not-created `wealth-context.*` command names earlier in the plan. Source replay requires the already installed TypeScript dependency from ReactRetail; no package install or org connection is needed during tests. Browser artifacts use only `output/playwright/wealth-*`.
+
+## Coordinator mock closeout
+
+- [x] Independent Atlas persona build, captured source boundaries and migration/action/acceptance documentation delivered.
+- [x] Final review defects reproduced and corrected with targeted source/browser regressions; shared shell and other-persona regression gates are recorded in `ATLAS_BUILD_LOG.md`.
+- [ ] Authenticated source-state/permission/write/ACC/configuration/release scenarios remain in the separate production migration plan; compound original checklist items are not automatically checked from narrower mock evidence.
+
+The final branch checkpoint and push verification are maintained centrally in the build log. Original per-task checkbox granularity remains evidence-specific; it does not imply a production release.

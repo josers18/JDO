@@ -1,5 +1,17 @@
 # Expanded workspace coverage
 
+## November 13: independent Atlas builds and native shell
+
+Atlas Wealth and Commercial now dispatch through their own `wealth-atlas.js` and `commercial-atlas.js` facades, backed by separately scoped captures and pure selectors. These supersede the earlier generic Atlas pages described below; Panorama/Focus remain historical studies. Retail page content is held.
+
+- Wealth: native advisor-priority replay, first move/pipeline/plan pulse, review horizon/date grid, exact-household directory and nine dossier surfaces, seven-product coverage/movers/held-away/acquisition, provider/trading/engagement evidence, coherent goal/Lead/activity proposals and private folio/draft workflows.
+- Commercial: company/credit/payment priorities, exact company/product/deal continuity, treasury/origination/owner-Wealth handoffs, source inbox/provider dossiers, native market/credit/payment constituents, actual recorded versus proposed activity, calendar and relationship outbox.
+- Shared Atlas shell: View As with uncaptured-book guards, four-object Name search plus full Salesforce search, 33 native app entries plus three persona workspaces, native-criteria case/deal alerts plus separate task access, actual-user avatar fallback, Configuration/live-administration/Setup/Data Cloud Setup/settings and shared four-preset display control.
+
+[Shell source and acceptance contract](ATLAS_SHELL_PARITY.md) · [Source/build checkpoints](ATLAS_BUILD_LOG.md) · [Roadmap](ATLAS_ROADMAP.md). Each source envelope records its own date, owner/scope, bounds and availability. Provider scores, observed holdings, modeled EV, CRM Opportunity Amount and signed business/personal net flow remain distinct. Delinquency-predictor ambiguity is explicitly retained as raw/disputed context.
+
+All actions remain local proposals. Production SDK, GraphQL, Data Cloud/Apex clients, ACC, configuration persistence and metadata remain unchanged; authenticated production acceptance is separate. This preview cannot establish a logged-in browser identity and does not impersonate a banker. Native links use the captured org for deliberate external navigation. Final local validation:100 selector/source tests and12 browser suites pass, including108 cross-persona layouts and14 final-review regression journeys.
+
 ## Preview
 
 `workspace.html` is a standalone interactive mock over real captured data. It supports three styles × three personas × eight primary sections, plus relationship dossiers. It does not import or change production React bundles, SDK clients, Apex, or Salesforce metadata.

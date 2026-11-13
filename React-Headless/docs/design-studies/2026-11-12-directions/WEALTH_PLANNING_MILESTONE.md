@@ -1,0 +1,15 @@
+# Wealth advisor agenda and review horizon
+
+November 13, 2026. Captured/local-proposal design only.
+
+Today opens with an advisor book brief, native first action and act-by date, independent investable-held-away/plan aggregates and actual latest-full-week net flow. Pipeline is directly beneath the opening, using25 native CRM aggregate stages rather than the selected Opportunity list. The plan attention segmentation uses actual critical / other-below70 / at-least70 counts. No client-health score, health drop, market return or invented KPI history was added.
+
+`tests/wealth-native-replay.cjs` transpiles the checked-out production source parsers against the committed strict-owner query results. It runs native Wealth Who-to-Call, plan/Gong/concentration inheritance, source feed parsers, duplicate-source removal and the priority blender, pinned to the capture day. The eight native queue actions, due dates and ranking match the stored agenda. The native nine-raw-row Who-to-Call capture correctly becomes eight with its reserved concentrated household. Liquidity returned successful empty, so no new eligible liquidity item is invented. Pure replay retains the native reserved-slot machinery for a future real eligible source.
+
+Ruling: the native blender internally deduplicates display names. Its replay adapter uses exact Account IDs as internal labels and restores real names afterward; equal-name households cannot erase one another. Account-owned capture scope also excludes unrelated outside Account targets from the advisory action set. This is a documented migration correction, not a claim that current production already has the fix.
+
+Review horizon has due/risk/critical/stale/captured modes, a compact provider-date grid, selected household/goal exposure and20 actually captured planning assumptions (allocation, target retirement age, monthly income target). Active/Stale provider plans define the worklists. Draft is excluded; success<70 is risk and<50 critical. Due30 is inclusive through the source day+30; stale is provider status or the native12-month rule. Provider dates propose meetings explicitly and never become CRM Events by rendering a calendar. Source assumptions and CRM goal funding remain separate. Anika's provider Draft and absent CRM plans/goals are represented honestly.
+
+Native source queries include independent plan summaries, eight actual monthly plan-summary observations, actual investable-held-away totals and eight native net-flow weeks (from10 returned weeks). Net flow is credits−debits, not a balance or trade turnover. Only the current capture day drives the static due labels; this is not a live scheduler.
+
+Validation: source/native-replay suite and plan-boundary core tests pass; first-move source→proposal, grid/selected context and responsive layouts are browser-checked. The parent owns cross-persona/keyboard and final branch review. Denied-user, live refresh, full stale/future-source matrices and successful CRM save/refetch remain production acceptance gates, not mock claims.
