@@ -2,6 +2,10 @@
 
 November 13, 2026. Repository-to-demo review, including the new Relationships landscape/finder. This is not a fresh authenticated org audit. The original ReactWealth app remains the production capability floor; the new Atlas is a standalone captured-data mock with browser-local proposals.
 
+## Latest status — customer/workflow closure
+
+The subsequent customer/workflow milestone implements the design gaps below: observed satisfaction history, prediction input context, richer Money/Property, expanded actual-source coverage across all 73 captured households, configurable review packets with real local download/print, and exact return-to-workspace context. See [closure evidence and remaining runtime boundary](WEALTH_GAP_CLOSURE.md). The tables below are the pre-closure baseline and should not be read as current missing-design status. Runtime integration and genuine source limitations remain explicitly open.
+
 ## What is now covered in the mock
 
 Today/advisor priorities; independent held-away and bank-flow context; searchable household landscape and comparison; Pipeline; grid-calendar life events and CRM goal proposals; hybrid Capital paths with exact-product actions, source history, coverage/movers and ownership guards; white-space heat map; investable/digital held-away separation; Leads/referrals, business handoffs and Wealth upgrades; planning/concentration/liquidity/trading/relationship Intelligence; Review Horizon; source Task/Event/Case work and local proposal review; shared search, View As, launcher, notifications and user/admin shortcuts.
