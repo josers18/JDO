@@ -767,4 +767,69 @@ private class CrmWriteRestTest {
         CrmWriteRest.write();
         System.assertEquals(400, RestContext.response.statusCode, 'missing name → 400');
     }
+
+    @IsTest
+    static void createsMeetingNote() {
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"meetingNote","accountId":"' + a.Id + '","subject":"Call summary","description":"Pricing pushback","eventDate":"2026-11-15"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'meeting note should 200');
+        Meeting_Note__c n = [SELECT Title__c, Notes__c, Date__c FROM Meeting_Note__c WHERE Account__c = :a.Id];
+        System.assertEquals('Call summary', n.Title__c, 'title');
+        System.assertEquals('Pricing pushback', n.Notes__c, 'notes');
+        System.assertEquals(Date.newInstance(2026, 11, 15), n.Date__c, 'date');
+    }
+
+    @IsTest
+    static void meetingNoteRequiresAccountAndTitle() {
+        setupRequest('{"action":"meetingNote","subject":"No account"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing account should 400');
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"meetingNote","accountId":"' + a.Id + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'missing title should 400');
+    }
+
+    @IsTest
+    static void updatesKyc() {
+        Account a = new Account(Name = 'Test Treasury Client', FinServ__KYCStatus__c = 'Expired');
+        insert a;
+        setupRequest('{"action":"kyc","accountId":"' + a.Id + '","status":"Required","description":"PEP refresh; beneficial ownership"}');
+        Test.startTest();
+        CrmWriteRest.write();
+        Test.stopTest();
+        System.assertEquals(200, RestContext.response.statusCode, 'kyc should 200');
+        Account after = [SELECT FinServ__KYCStatus__c, KYC_Summary__c FROM Account WHERE Id = :a.Id];
+        System.assertEquals('Required', after.FinServ__KYCStatus__c, 'status');
+        System.assertEquals('PEP refresh; beneficial ownership', after.KYC_Summary__c, 'summary');
+    }
+
+    @IsTest
+    static void kycRejectsNonAccountAndEmptyBody() {
+        Task t = new Task(Subject = 'Not an account');
+        insert t;
+        setupRequest('{"action":"kyc","accountId":"' + t.Id + '","status":"Required"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'non-account id should 400');
+        Account a = new Account(Name = 'Test Treasury Client');
+        insert a;
+        setupRequest('{"action":"kyc","accountId":"' + a.Id + '"}');
+        CrmWriteRest.write();
+        System.assertEquals(400, RestContext.response.statusCode, 'no fields should 400');
+    }
+
+    @IsTest
+    static void taskAcceptsType() {
+        setupRequest('{"action":"task","subject":"Email: revised pricing","type":"Email","status":"Completed"}');
+        CrmWriteRest.write();
+        System.assertEquals(200, RestContext.response.statusCode, 'task should 200');
+        Task t = [SELECT Type, Status FROM Task WHERE Subject = 'Email: revised pricing'];
+        System.assertEquals('Email', t.Type, 'type');
+        System.assertEquals('Completed', t.Status, 'status');
+    }
 }

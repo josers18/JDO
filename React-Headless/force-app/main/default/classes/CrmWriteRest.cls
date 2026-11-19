@@ -130,12 +130,16 @@ global with sharing class CrmWriteRest {
                 handleLead(res, reqBody);
             } else if (action == 'opportunity') {
                 handleOpportunity(res, reqBody);
+            } else if (action == 'meetingnote') {
+                handleMeetingNote(res, reqBody);
+            } else if (action == 'kyc') {
+                handleKyc(res, reqBody);
             } else if (action == 'update') {
                 handleUpdate(res, reqBody);
             } else if (action == 'delete') {
                 handleDelete(res, reqBody);
             } else {
-                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, update, or delete.');
+                writeError(res, 400, 'Unknown action "' + reqBody.action + '". Use task, event, case, email, goal, lifeEvent, lead, opportunity, meetingNote, kyc, update, or delete.');
             }
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'CrmWriteRest error: ' + e.getTypeName() + ': ' + e.getMessage() + '\n' + e.getStackTraceString());
@@ -153,6 +157,9 @@ global with sharing class CrmWriteRest {
         t.Description = req.description;
         t.Priority = String.isBlank(req.priority) ? 'Normal' : req.priority;
         t.Status = String.isBlank(req.status) ? 'Not Started' : req.status;
+        if (!String.isBlank(req.type)) {
+            t.Type = req.type;
+        }
         if (!String.isBlank(req.dueDate)) {
             t.ActivityDate = Date.valueOf(req.dueDate);
         }
@@ -388,6 +395,61 @@ global with sharing class CrmWriteRest {
         if (!String.isBlank(req.ownerId))    { opp.OwnerId = req.ownerId; }
         insert opp;
         writeSuccess(res, opp.Id);
+    }
+
+    private static Id accountIdOf(WriteRequest req) {
+        try {
+            Id acctId = String.isBlank(req.accountId) ? null : Id.valueOf(req.accountId);
+            return acctId != null && acctId.getSObjectType() == Account.SObjectType ? acctId : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Meeting note on an Account — the "After the call" approve step saves the
+     * call summary here. subject → Title__c, description → Notes__c,
+     * eventDate ('YYYY-MM-DD') → Date__c (default today).
+     */
+    private static void handleMeetingNote(RestResponse res, WriteRequest req) {
+        Id acctId = accountIdOf(req);
+        if (acctId == null) {
+            writeError(res, 400, 'An account is required for a meeting note.');
+            return;
+        }
+        if (String.isBlank(req.subject)) {
+            writeError(res, 400, 'A title is required for a meeting note.');
+            return;
+        }
+        Meeting_Note__c n = new Meeting_Note__c();
+        n.Account__c = acctId;
+        n.Title__c = req.subject.left(255);
+        n.Notes__c = req.description;
+        n.Date__c = String.isBlank(req.eventDate) ? Date.today() : Date.valueOf(req.eventDate);
+        insert n;
+        writeSuccess(res, n.Id);
+    }
+
+    /**
+     * KYC refresh on an Account. Deliberately narrow: only
+     * FinServ__KYCStatus__c (status) and KYC_Summary__c (description) are
+     * writable — not a general Account update.
+     */
+    private static void handleKyc(RestResponse res, WriteRequest req) {
+        Id acctId = accountIdOf(req);
+        if (acctId == null) {
+            writeError(res, 400, 'An account is required for a KYC update.');
+            return;
+        }
+        if (String.isBlank(req.status) && String.isBlank(req.description)) {
+            writeError(res, 400, 'Enter a KYC status or summary.');
+            return;
+        }
+        Account a = new Account(Id = acctId);
+        if (!String.isBlank(req.status))      { a.FinServ__KYCStatus__c = req.status; }
+        if (!String.isBlank(req.description)) { a.KYC_Summary__c = req.description; }
+        update a;
+        writeSuccess(res, acctId);
     }
 
     /**

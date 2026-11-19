@@ -17,7 +17,7 @@
  */
 import { createDataSDK } from '@salesforce/platform-sdk';
 
-export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent' | 'lead' | 'opportunity';
+export type CrmAction = 'task' | 'event' | 'case' | 'email' | 'update' | 'delete' | 'goal' | 'lifeEvent' | 'lead' | 'opportunity' | 'meetingNote' | 'kyc';
 
 export interface CrmWriteInput {
   action: CrmAction;
@@ -30,7 +30,9 @@ export interface CrmWriteInput {
   whatId?: string;
   /** Owner (Assigned To) — reassign a Task/Event on update. */
   ownerId?: string;
-  /** Account for a Case. */
+  /** Account for a Case, Opportunity, meetingNote (Meeting_Note__c: subject → Title__c,
+   *  description → Notes__c, eventDate → Date__c) or kyc (status → FinServ__KYCStatus__c,
+   *  description → KYC_Summary__c; no other Account field is writable). */
   accountId?: string;
   /** SObject to update/delete (required when action === 'update' | 'delete'). */
   sobjectType?: 'Task' | 'Event' | 'FinancialGoal' | 'PersonLifeEvent' | 'Lead';

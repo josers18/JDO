@@ -18,6 +18,7 @@ import type { Customer360, Customer360Detail } from './customerTypes';
 import { DetailsPanel } from './DetailsPanel';
 import { TearsheetBuilder } from './TearsheetBuilder';
 import { JourneyGoals } from './JourneyGoals';
+import { AfterCallPanel } from './AfterCallPanel';
 
 const cur = (n: number) => formatValue(n, 'currency');
 const curC = (n: number) => formatValue(n, 'currencyCompact');
@@ -86,7 +87,7 @@ export function Full360Tabs({
     case 'Campaigns':
       return <CampaignsTab full={full} />;
     case 'Notes':
-      return <NotesTab full={full} />;
+      return <NotesTab full={full} accountId={customer.id} />;
     case 'Tearsheet':
       return <Panel title="Tearsheet Builder"><TearsheetBuilder data={full} clientName={customer.name} /></Panel>;
     default:
@@ -455,9 +456,10 @@ function CampaignsTab({ full }: { full: Full360 }) {
 }
 
 /* ---------- Notes: meeting notes + KYC ---------- */
-function NotesTab({ full }: { full: Full360 }) {
+function NotesTab({ full, accountId }: { full: Full360; accountId: string }) {
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
+      <AfterCallPanel accountId={accountId} />
       <Panel title="Meeting Notes">
         <div style={{ display: 'grid', gap: '0.85rem' }}>
           {full.meetingNotes.map(n => (
