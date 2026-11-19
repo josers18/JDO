@@ -134,6 +134,12 @@ export interface LeadReferral {
   lastName?: string;
   /** Lead.Company — required to edit/create; the org the lead belongs to. */
   company?: string;
+  /** Lead.FinServ__RelatedAccount__c — the prospect Account whose signals the
+   *  lead borrows; a row click opens that account's Customer 360. */
+  accountId?: string;
+  /** Prospect signal chips (champion joined / intent / funding), strongest first. */
+  signals?: string[];
+  signalScore?: number;
   /** S4 warm intro (relationship graph) — not a Lead yet. A row click opens the
    *  Lead modal in create mode with these prefilled. */
   intro?: {

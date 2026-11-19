@@ -1251,7 +1251,7 @@ function HomeContent() {
         </thead>
         <tbody>
           {leadsReveal.visible.map(l => (
-            <LeadRow key={l.id} lead={l} onClick={() => (l.intro ? showLead(l) : open('email', l.name, undefined, undefined, l.email))} />
+            <LeadRow key={l.id} lead={l} onClick={() => (l.intro ? showLead(l) : l.accountId && l.signals?.length ? openFull(l.accountId) : open('email', l.name, undefined, undefined, l.email))} />
           ))}
         </tbody>
       </table>
@@ -2662,7 +2662,16 @@ const LEAD_STATUS: Record<string, string> = {
 function LeadRow({ lead, onClick }: { lead: LeadReferral; onClick: () => void }) {
   return (
     <tr onClick={onClick} className="cursor-pointer border-b border-line transition last:border-b-0 hover:bg-surface-muted">
-      <td className="truncate px-5 py-3 font-semibold text-fg" title={lead.name}>{lead.name}</td>
+      <td className="px-5 py-3">
+        <div className="truncate font-semibold text-fg" title={lead.name}>{lead.name}</div>
+        {lead.signals?.length ? (
+          <div className="mt-1 flex flex-wrap gap-1" aria-label="Prospect signals">
+            {lead.signals.map(sig => (
+              <span key={sig} className="max-w-full truncate rounded-full bg-accent-bg px-2 py-0.5 font-mono text-[10px] text-accent" title={sig}>{sig}</span>
+            ))}
+          </div>
+        ) : null}
+      </td>
       <td className="truncate px-5 py-3 text-muted" title={lead.source}>{lead.source}</td>
       <td className="px-5 py-3">
         <span className={`inline-block max-w-full truncate rounded-full px-2.5 py-1 align-middle font-mono text-[10px] uppercase tracking-[0.06em] ${LEAD_STATUS[lead.status] ?? 'bg-track text-muted'}`} title={lead.status}>
