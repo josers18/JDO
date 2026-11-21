@@ -16,6 +16,12 @@ async function workRows(owner: string, kind: WorkKind, month?: string, companyId
   const result = await readWork(owner, kind, month, companyId, scope);
   const records = nodes(result.Records);
   const accountId = (row: RecordNode) => str(row, kind === 'cases' ? 'AccountId' : 'WhatId');
+  if (companyId) {
+    const rows = records.filter(row => recordKey(accountId(row)) === recordKey(companyId)).map(row => ({
+      row, kind, accountId: companyId, company: String(row.Account?.Name?.value || 'Account'),
+    }));
+    return { rows, total: result.Records?.totalCount };
+  }
   const accounts = await verifyAccounts(owner, records.map(accountId));
   const rows: WorkRow[] = records.flatMap(row => {
     const a = accounts.get(recordKey(accountId(row)));

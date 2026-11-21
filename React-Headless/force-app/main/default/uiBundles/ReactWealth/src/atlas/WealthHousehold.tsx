@@ -3,10 +3,10 @@ import { ArrowRight, ChartNoAxesCombined, House, Layers } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { useAsyncData } from '@shared/hooks/useAsyncData';
 import { ScoreHistory } from './WealthCapital';
+import { readVisibleAccount } from '@shared/data/visibleAccount';
 import { field, stringField, type RecordNode } from './wealthAtlasData';
 import {
   fetchHouseholdEvidence,
-  verifyHousehold,
   householdProductLabel,
   type Evidence,
   type HouseholdEvidence,
@@ -132,8 +132,8 @@ function switchTab(event: KeyboardEvent<HTMLDivElement>, current: string, select
 
 export default function WealthHousehold(props: Props) {
   const access = useAsyncData(
-    () => verifyHousehold(props.ownerId, props.accountId),
-    [props.ownerId, props.accountId]
+    () => readVisibleAccount(props.accountId),
+    [props.accountId]
   );
   if (access.loading || access.error || !access.data) {
     return (
@@ -145,7 +145,7 @@ export default function WealthHousehold(props: Props) {
         </p>
         <SourceState
           source={access}
-          empty="This relationship is unavailable in the selected advisory book."
+          empty="This account could not be found or accessed in Salesforce."
         />
       </div>
     );
@@ -169,7 +169,7 @@ function HouseholdWorkspace({
       ? candidate
       : '';
 
-  const fetch = useAsyncData(() => fetchHouseholdEvidence(ownerId, account), [ownerId, account.Id]);
+  const fetch = useAsyncData(() => fetchHouseholdEvidence(stringField(account, 'OwnerId') || ownerId, account), [ownerId, account.Id]);
   const tab = sections.find(([key]) => key === view.get('tab'))?.[0] ?? 'overview';
   const select = (value: string) => view.set({ tab: value });
   const name = stringField(account, 'Name') || 'Household';

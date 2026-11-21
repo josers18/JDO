@@ -63,7 +63,8 @@ export function readWork(ownerId: string, kind: WorkKind, month?: string, accoun
     : `${assignment}, WhatId: { inq: { Account: { ${company} }, ApiName: "Id" } }`;
   const exact = accountId && validId(accountId)
     ? `${kind === 'cases' ? 'AccountId' : 'WhatId'}: { eq: ${JSON.stringify(accountId)} }` : '';
-  const filter = exact ? `and: [{ ${where} }, { ${exact} }]` : where;
+  if (accountId && !exact) throw new Error('Invalid account record.');
+  const filter = exact || where;
   const monthStart = month && new Date(month.slice(0, 7) + '-01T00:00:00Z');
   const monthEnd = monthStart && new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1));
   const dateFilter = monthStart && monthEnd ? `, ActivityDateTime: { gte: { value: "${monthStart.toISOString()}" }, lt: { value: "${monthEnd.toISOString()}" } }` : '';
@@ -141,7 +142,7 @@ export async function readCompanyFinance(ownerId: string, accountId: string) {
     crm(`FinancialAccounts: FinServ__FinancialAccount__c(first: 48, where: { FinServ__PrimaryOwner__c: { eq: "${accountId}" } }) {
       totalCount edges { node { Id ${fields('Name FinServ__Balance__c FinServ__FinancialAccountType__c FinServ__Status__c FinServ__OpenDate__c FinServ__FinancialAccountNumber__c')} } }
     }
-    Opportunity(first: 32, where: { OwnerId: { eq: "${ownerId}" }, AccountId: { eq: "${accountId}" }, IsClosed: { eq: false } }, orderBy: { Amount: { order: DESC } }) {
+    Opportunity(first: 32, where: { AccountId: { eq: "${accountId}" }, IsClosed: { eq: false } }, orderBy: { Amount: { order: DESC } }) {
       totalCount edges { node { Id ${fields('Name StageName Amount CloseDate LeadSource')} } }
     }`),
     queryDataCloudForBook<{ dt: string; category: string; kind: string; amount: number | null }>(filter => `

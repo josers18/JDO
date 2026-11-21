@@ -115,6 +115,8 @@ export function GlobalSearch({
   const rootRef = useRef<HTMLDivElement>(null);
   const reqIdRef = useRef(0);
 
+  const atlas = appearance === 'atlas';
+
   // Debounced search; a request-id guard drops out-of-order responses.
   useEffect(() => {
     const q = term.trim();
@@ -138,7 +140,7 @@ export function GlobalSearch({
         if (reqIdRef.current === myReq) setLoading(false);
       }
     }, 280);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); ++reqIdRef.current; };
   }, [term]);
 
   useEffect(() => {
@@ -171,7 +173,6 @@ export function GlobalSearch({
     window.open(lexRecordUrl(h.object, h.id), '_top');
   }
 
-  const atlas = appearance === 'atlas';
   const showDropdown = open && term.trim().length >= 2;
 
   return (
@@ -269,7 +270,7 @@ export function GlobalSearch({
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
                     <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{h.label}</span>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--wp-text-muted)' }}>{h.sublabel}</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--wp-text-muted)' }}>{h.sublabel}{atlas && h.object === 'Account' && onSelectAccount && ' · Open profile'}</span>
                   </button>
                 ))}
               </div>

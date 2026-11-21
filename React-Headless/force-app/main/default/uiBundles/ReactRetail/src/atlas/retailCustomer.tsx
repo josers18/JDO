@@ -1,3 +1,4 @@
+import { readVisibleAccount } from '@shared/data/visibleAccount';
 import { useState } from 'react';
 import { Shield } from 'lucide-react';
 import { RelationshipFacts, RelationshipPacket, RelationshipProfile, type PacketSection } from '@shared/components/atlas/AtlasRelationshipScenes';
@@ -5,7 +6,7 @@ import '../../../../../../../docs/design-studies/2026-11-12-directions/retail-co
 import { Link, useParams } from 'react-router';
 import { ScheduleDetailModal } from '@shared/components/home/ScheduleDetailModal';
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
-import { accountId, field, label, numeric, readBook, readOfferHistory, type BookNode, type Row } from './retailData';
+import { accountId, field, label, numeric, readOfferHistory, type BookNode, type Row } from './retailData';
 import { readCustomerCrm, readCustomerHoldings, readCustomerSource } from './retailCustomerData';
 import { Choices, compact, count, date, Facts, money, Paging, RecordLink, SourceNotice, text, Title, useFilters, useSource, useWorkspace } from './retailUi';
 
@@ -19,8 +20,7 @@ export default function RetailCustomer({ ownerId }: { ownerId: string }) {
   const { id } = useParams();
   const source = useSource(`relationship:${ownerId}:${id ?? ''}`, async () => {
     if (!id || !accountId.test(id)) throw new Error('The relationship link is invalid.');
-    const result = await readBook('Account', ownerId, { record: id, count: 1 });
-    return result.rows[0] ?? null;
+    return readVisibleAccount(id);
   });
   const { params } = useFilters();
   const rawReturn = params.get('returnTo');
@@ -28,9 +28,9 @@ export default function RetailCustomer({ ownerId }: { ownerId: string }) {
   if (!source.data) return <>
     <Link className="text-button" to={back}>Relationships</Link>
     <SourceNotice source={source} />
-    {!source.loading && <section className="surface"><Title title="Relationship unavailable" description="This account could not be verified in the current book." /></section>}
+    {!source.loading && <section className="surface"><Title title="Relationship unavailable" description="This account could not be found or accessed in Salesforce." /></section>}
   </>;
-  return <Dossier key={`${ownerId}:${source.data.Id}`} customer={source.data} ownerId={ownerId} back={back} />;
+  return <Dossier key={`${ownerId}:${source.data.Id}`} customer={source.data} ownerId={label(source.data, 'OwnerId', ownerId)} back={back} />;
 }
 
 type Props = { customer: BookNode; ownerId: string };

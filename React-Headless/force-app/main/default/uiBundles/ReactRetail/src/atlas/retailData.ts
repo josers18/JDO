@@ -88,7 +88,7 @@ export async function readBook(root: ObjectName, ownerId: string, options: BookO
   if (!ownerIdPattern.test(ownerId)) throw new Error('The selected banker could not be verified.');
   const config = detail[root];
   if (options.forCustomer && (!options.customerId || !accountId.test(options.customerId))) throw new Error('The customer could not be verified.');
-  const customerScoped = options.forCustomer && ['Event','Task'].includes(root);
+  const customerScoped = options.forCustomer && ['Event', 'Task', 'Opportunity', 'Case', 'FinancialGoal', 'PersonLifeEvent'].includes(root);
   const predicates = customerScoped ? [] : [ownership(root, ownerId)];
   if (!options.record && !options.forCustomer && !options.wonSince && ['Task', 'Opportunity', 'Case'].includes(root)) predicates.push('IsClosed: { eq: false }');
   if (!options.record && root === 'Event' && options.upcoming) predicates.push('ActivityDateTime: { gte: { literal: TODAY } }');

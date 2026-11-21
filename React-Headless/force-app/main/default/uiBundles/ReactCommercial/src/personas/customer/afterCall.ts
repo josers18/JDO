@@ -218,3 +218,33 @@ export async function approveAfterCall(ctx: AfterCallContext, d: AfterCallDraft)
   if (failed.length) throw new Error(`${failed.length} of ${writes.length} writes failed: ${(failed[0] as PromiseRejectedResult).reason?.message ?? 'unknown error'}`);
   return writes.length;
 }
+
+export interface CallRecord {
+  kycStatus: string;
+  kycSummary: string;
+  notes: { id: string; title: string; date: string; body: string }[];
+}
+
+/** What CRM holds now (Account KYC + latest Meeting Notes), read directly so a just-approved
+ *  draft shows after a reload without waiting for the Data Cloud stream refresh. */
+export async function fetchCallRecord(accountId: string): Promise<CallRecord | null> {
+  const acct = accountId.replace(/[^A-Za-z0-9]/g, '');
+  const data = await executeGraphQL<ContextShape>(`query CallRecord {
+  uiapi { query {
+    Account(first: 1, where: { Id: { eq: "${acct}" } }) {
+      edges { node { Id FinServ__KYCStatus__c @optional { value } KYC_Summary__c @optional { value } } }
+    }
+    Meeting_Note__c(first: 3, where: { Account__c: { eq: "${acct}" } }, orderBy: { Date__c: { order: DESC } }) {
+      edges { node { Id Title__c @optional { value } Date__c @optional { value } Notes__c @optional { value } } }
+    }
+  } }
+}`);
+  const q = data.uiapi?.query;
+  const a = q?.Account?.edges?.[0]?.node;
+  if (!a) return null;
+  return {
+    kycStatus: gs(a, 'FinServ__KYCStatus__c'),
+    kycSummary: gs(a, 'KYC_Summary__c'),
+    notes: (q?.Meeting_Note__c?.edges ?? []).map(({ node }) => ({ id: String(node.Id ?? ''), title: gs(node, 'Title__c'), date: gs(node, 'Date__c'), body: gs(node, 'Notes__c') })),
+  };
+}

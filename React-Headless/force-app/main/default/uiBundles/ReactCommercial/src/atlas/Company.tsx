@@ -1,3 +1,4 @@
+import { readVisibleAccount } from '@shared/data/visibleAccount';
 import { PropertyTab } from '../personas/customer/Full360Tabs';
 import { useState, type ReactNode } from 'react';
 import { RelationshipFacts, RelationshipPacket, RelationshipProfile, type PacketSection } from '@shared/components/atlas/AtlasRelationshipScenes';
@@ -8,12 +9,13 @@ import { fetchCommercialCompanyWhoToCall, type CommercialWhoToCallRow } from '@s
 import { AGENTFORCE_FLOWS } from '../personas/customer/agentforceFlows';
 import { fetchFull360Real } from '../personas/customer/full360DataReal';
 import type { Full360 } from '../personas/customer/full360Types';
-import { nodes, readCompanyFinance, recordKey, str, verifyAccounts, type RecordNode } from './commercialData';
+import { nodes, readCompanyFinance, recordKey, str, type RecordNode } from './commercialData';
 import { Badge, Button, cash, day, Heading, initials, Inspect, Panel, Pending, RouteLink, useLive } from './controls';
 import { OfferCard, type Offer } from './Growth';
 import { readSignals, type Signal } from './signals';
 import { SignalDetail, type Followup } from './TodayIntel';
 import { ActivityContent } from './Work';
+import { AfterCall, CallRecord } from './AfterCall';
 import type { Draft, DraftEditor } from './drafts';
 
 const tabs = [['overview', 'Command view'], ['profile', 'Profile'], ['finances', 'Cash & accounts'], ['property', 'Property'], ['intel', 'Company Intel'], ['engagement', 'Conversations'], ['growth', 'Treasury'], ['journey', 'Activity & plans'], ['notebook', 'Notebook'], ['screening', 'Screening'], ['tools', 'Notes & tools']] as const;
@@ -196,10 +198,10 @@ export function Company({ drafts, owner, actorScope, accountId, onEdit, followup
   const [search, setSearch] = useSearchParams();
   const selected = search.get('tab');
   const tab = tabs.find(([id]) => id === selected)?.[0] ?? 'overview';
-  const db = useLive(() => verifyAccounts(owner, [accountId]), JSON.stringify([owner, accountId]));
-  const account = db.value?.get(recordKey(accountId));
+  const db = useLive(() => readVisibleAccount(accountId), accountId);
+  const account = db.value;
   return <Pending state={db}>{account ? <Dossier drafts={drafts} owner={owner} actorScope={actorScope} account={account} tab={tab} product={search.get('product')} setTab={tab => setSearch(previous => { const next = new URLSearchParams(previous); next.set('tab', tab); return next; })}
-    onEdit={onEdit} followup={followup} draftOffer={draftOffer} revision={revision} /> : <Heading title="Company unavailable." action={<RouteLink to="/relationships">Return to companies</RouteLink>}>This company could not be verified in the selected book.</Heading>}</Pending>;
+    onEdit={onEdit} followup={followup} draftOffer={draftOffer} revision={revision} /> : <Heading title="Company unavailable." action={<RouteLink to="/relationships">Return to companies</RouteLink>}>This account could not be found or accessed in Salesforce.</Heading>}</Pending>;
 }
 function Dossier({ drafts, owner, actorScope, account, tab, product, setTab, onEdit, followup, draftOffer, revision }: {
   drafts: Draft[]; owner: string; actorScope: string; account: RecordNode; tab: string; product: string | null; setTab: (tab: string) => void; onEdit: DraftEditor; followup: Followup; draftOffer: (offer: Offer) => void; revision: number;
@@ -215,7 +217,8 @@ function Dossier({ drafts, owner, actorScope, account, tab, product, setTab, onE
   };
   const company = str(account, 'Name');
   const accountId = account.Id;
-  const finance = useLive(() => readCompanyFinance(owner, accountId), JSON.stringify([owner, accountId, revision]));
+  const accountOwner = str(account, 'OwnerId') || owner;
+  const finance = useLive(() => readCompanyFinance(accountOwner, accountId), JSON.stringify([accountOwner, accountId, revision]));
   const finances = finance.value?.accounts.status === 'fulfilled' ? finance.value.accounts.value : undefined;
   const transactions = finance.value?.positions.status === 'fulfilled' ? finance.value.positions.value.rows : undefined;
   const detail = useLive(() => fetchFull360Real(accountId), accountId);
@@ -279,7 +282,7 @@ function Dossier({ drafts, owner, actorScope, account, tab, product, setTab, onE
       {(editorial ? relationshipTabs : tabs).map(([id, title]) => <button type="button" key={id} id={`ca-tab-${id}`} aria-controls="ca-company-panel" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>{title}</button>)}
     </div>
     <section id="ca-company-panel" className="ca-company-content" data-relationship-tab={tab} role="tabpanel" aria-labelledby={`ca-tab-${tab}`}>
-      {tab === 'overview' && <div className="ca-company-overview"><CompanyPriority owner={owner} accountId={accountId} company={company} fallback={signals[0]} followup={followup} />
+      {tab === 'overview' && <div className="ca-company-overview"><CompanyPriority owner={accountOwner} accountId={accountId} company={company} fallback={signals[0]} followup={followup} />
         <Panel title="Relationship footprint"><Pending state={detail}><div className="ca-company-vitals"><div><strong>{finances?.FinancialAccounts?.totalCount ?? '—'}</strong><span>Financial accounts shown</span></div><div><strong>{finances?.Opportunity?.totalCount ?? '—'}</strong><span>Open deals shown</span></div><div><strong>{evidence.value ? signals.length : '—'}</strong><span>Source observations shown</span></div></div><Button onClick={() => setTab('finances')}>Review cash & accounts</Button></Pending></Panel>
         <Panel title="Company evidence"><Pending state={evidence}>{signals.map(row => <button type="button" className="ca-source-row" key={row.id} onClick={() => setInspected(row)}><Badge>{row.source}</Badge><span>{row.title}</span><time>{day(row.date)}</time></button>)}{signals.length === 0 && <p>No additional observations returned for this company.</p>}</Pending></Panel>
         <Panel title="Deal and treasury next steps"><Pending state={finance}>{nodes(finances?.Opportunity).map(o => <RouteLink style="ca-source-row" key={o.Id} to={`/pipeline?deal=${o.Id}`}><strong>{str(o, 'Name')}</strong><span>{str(o, 'StageName')}</span><em>{cash(str(o, 'Amount'))}</em></RouteLink>)}</Pending><Button onClick={() => setTab('growth')}>Review treasury evidence</Button></Panel>
@@ -303,19 +306,19 @@ function Dossier({ drafts, owner, actorScope, account, tab, product, setTab, onE
       {tab === 'property' && <Pending state={detail}>{data ? <PropertyTab full={data} /> : <p>No CoreLogic property record available for this company.</p>}</Pending>}
       {tab === 'intel' && <Pending state={detail}>{data && <ProviderData data={data} company={company} />}</Pending>}
       {tab === 'growth' && <CompanyOffers account={account} holdings={nodes(finances?.FinancialAccounts)} opportunities={nodes(finances?.Opportunity)} product={product} draft={draftOffer} />}
-      {tab === 'engagement' && <Pending state={detail}><div className="ca-conversation-dossier"><Panel title="Conversations and meeting notes">{data?.interactions.map(row => <article className="ca-conversation-entry" key={row.id}><time>{row.when}</time><h3>{row.type}</h3><p>{row.summary}</p><Button onClick={newTask}>Draft company follow-up</Button></article>)}{data && !data.interactions.length && !data.meetingNotes.length && <p>No conversation or meeting-note rows returned for this company.</p>}{data?.meetingNotes.map(row => <article className="ca-conversation-entry" key={row.id}><time>{row.date}</time><h3>{row.title}</h3><p>{row.body}</p></article>)}</Panel>
+      {tab === 'engagement' && <Pending state={detail}><div className="ca-conversation-dossier"><CallRecord accountId={accountId} /><Panel title="Conversations and meeting notes">{data?.interactions.map(row => <article className="ca-conversation-entry" key={row.id}><time>{row.when}</time><h3>{row.type}</h3><p>{row.summary}</p><Button onClick={newTask}>Draft company follow-up</Button></article>)}{data && !data.interactions.length && !data.meetingNotes.length && <p>No conversation or meeting-note rows returned for this company.</p>}{data?.meetingNotes.map(row => <article className="ca-conversation-entry" key={row.id}><time>{row.date}</time><h3>{row.title}</h3><p>{row.body}</p></article>)}</Panel>
         <Panel title="Campaign engagement">{data?.campaigns.map(row => <article className="ca-campaign" key={row.id}><Badge>{row.status}</Badge><h3>{row.name}</h3><p>{row.type} · {row.memberSince}</p></article>)}{data && !data.campaigns.length && <p>No campaign sends returned for this company.</p>}</Panel></div></Pending>}
       {tab === 'journey' && <ActivityContent owner={owner} accountId={accountId} onEdit={onEdit} revision={revision} />}
       {tab === 'notebook' && <Notebook storageKey={notebookKey} />}
-      {tab === 'screening' && <Panel title="Screening evidence"><Pending state={evidence}>{signals.filter(row => row.family === 'Screening change').map(row => <article key={row.id}><h3>{row.title}</h3><p>{row.detail}</p><SignalDetail row={row} followup={followup} closeCompany /></article>)}{!signals.some(row => row.family === 'Screening change') && <p>No qualifying change returned. Review the source screening before drawing a conclusion.</p>}</Pending></Panel>}
-      {tab === 'tools' && <div className="ca-relationship-tools">
+      {tab === 'screening' && <><CallRecord accountId={accountId} /><Panel title="Screening evidence"><Pending state={evidence}>{signals.filter(row => row.family === 'Screening change').map(row => <article key={row.id}><h3>{row.title}</h3><p>{row.detail}</p><SignalDetail row={row} followup={followup} closeCompany /></article>)}{!signals.some(row => row.family === 'Screening change') && <p>No qualifying change returned. Review the source screening before drawing a conclusion.</p>}</Pending></Panel></>}
+      {tab === 'tools' && <><AfterCall accountId={accountId} /><div className="ca-relationship-tools">
         <Notebook storageKey={notebookKey} relationship>
           <h3 className="ca-note-drafts-heading">Action drafts for this relationship</h3>
           {drafts.some(draft => draft.accountId === accountId) ? drafts.filter(draft => draft.accountId === accountId).map(draft =>
             <button className="ca-source-row" key={draft.id} onClick={() => onEdit(draft)}><strong>{draft.title}</strong><Badge>Local draft</Badge></button>) : <p>No action drafts yet.</p>}
         </Notebook>
         <RelationshipPacket initialSections={['Profile', 'Finances', 'Goals', 'Evidence']} name={company} renderSection={renderPacket} />
-        <Panel title="Company tools"><div className="ca-actions"><Button onClick={newTask}>Draft task</Button><Button onClick={newMeeting}>Plan meeting</Button><Button onClick={() => onEdit({ kind: 'case', accountId, company })}>Log service case</Button><Button onClick={() => setEmail(true)}>Draft email</Button><Button onClick={() => openBrief('account', 'Prepare company review')}>Prepare company review</Button>{data && <Button onClick={() => setTearsheet(true)}>Build company tearsheet</Button>}<Button onClick={() => setTab('notebook')}>Open company notebook</Button></div></Panel></div>}
+        <Panel title="Company tools"><div className="ca-actions"><Button onClick={newTask}>Draft task</Button><Button onClick={newMeeting}>Plan meeting</Button><Button onClick={() => onEdit({ kind: 'case', accountId, company })}>Log service case</Button><Button onClick={() => setEmail(true)}>Draft email</Button><Button onClick={() => openBrief('account', 'Prepare company review')}>Prepare company review</Button>{data && <Button onClick={() => setTearsheet(true)}>Build company tearsheet</Button>}<Button onClick={() => setTab('notebook')}>Open company notebook</Button></div></Panel></div></>}
     </section>
     {tab === 'profile' ? <p className="ax-source">Profile fields come from the Salesforce Account for {company}.</p> :
       !editorial && <p className="ca-note">{company} · Salesforce and Data 360 records for this company.</p>}
