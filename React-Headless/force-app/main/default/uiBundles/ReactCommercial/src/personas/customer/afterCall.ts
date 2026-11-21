@@ -50,7 +50,7 @@ const contextQuery = (acct: string) => `query AfterCall {
     Account(first: 1, where: { Id: { eq: "${acct}" } }) {
       edges { node { Id Name @optional { value } FinServ__KYCStatus__c @optional { value } } }
     }
-    Meeting_Note__c(first: 1, where: { Account__c: { eq: "${acct}" } }, orderBy: { Date__c: { order: DESC } }) {
+    Meeting_Note__c(first: 10, where: { Account__c: { eq: "${acct}" } }, orderBy: { Date__c: { order: DESC } }) {
       edges { node { Id Title__c @optional { value } Date__c @optional { value } Notes__c @optional { value } } }
     }
     Contact(first: 10, where: { AccountId: { eq: "${acct}" } }) {
@@ -74,7 +74,8 @@ export async function fetchAfterCallContext(accountId: string): Promise<AfterCal
   const q = core.uiapi?.query;
   const a = q?.Account?.edges?.[0]?.node;
   if (!a) return null;
-  const n = q?.Meeting_Note__c?.edges?.[0]?.node;
+  // The panel's own "Call summary — …" notes are newer than the call; always draft from the call itself.
+  const n = q?.Meeting_Note__c?.edges?.map(e => e.node).find(node => !/^call summary\s*[—–-]/i.test(gs(node, 'Title__c')));
   const g = gongRows[0];
   const w = amlRows[0];
   return {
@@ -116,10 +117,14 @@ const longDate = (iso: string) => {
   return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' });
 };
 
+const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+/** A follow-up can't be due in the past: a commitment dated on the (earlier) call day lands today. */
+const notPast = (iso: string, today: string) => (iso < today ? today : iso);
+
 /** Deterministic draft from the transcript + signals. Always available. */
-export function composeAfterCall(ctx: AfterCallContext): AfterCallDraft {
+export function composeAfterCall(ctx: AfterCallContext, today = localToday()): AfterCallDraft {
   const body = ctx.note?.body ?? '';
-  const tasks = parseActionItems(body).slice(0, 3);
+  const tasks = parseActionItems(body).slice(0, 3).map(t => ({ ...t, dueDate: notPast(t.dueDate, today) }));
   const own = ownershipChanges(body);
   const topics = ctx.gong?.topics ?? [];
 
@@ -166,7 +171,7 @@ export function composeAfterCall(ctx: AfterCallContext): AfterCallDraft {
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Merge a model JSON reply onto the composed draft; anything malformed keeps the composed value. */
-export function mergeAiDraft(base: AfterCallDraft, text: string): AfterCallDraft {
+export function mergeAiDraft(base: AfterCallDraft, text: string, today = localToday()): AfterCallDraft {
   const json = text.match(/\{[\s\S]*\}/)?.[0];
   if (!json) return base;
   let o: Record<string, unknown>;
@@ -175,6 +180,7 @@ export function mergeAiDraft(base: AfterCallDraft, text: string): AfterCallDraft
   const tasks = Array.isArray(o.tasks)
     ? (o.tasks as Record<string, unknown>[]).map(t => ({ subject: str(t?.subject), dueDate: str(t?.dueDate) }))
         .filter((t): t is FollowUpTask => !!t.subject && !!t.dueDate && DATE.test(t.dueDate)).slice(0, 3)
+        .map(t => ({ ...t, dueDate: notPast(t.dueDate, today) }))
     : [];
   const gaps = Array.isArray(o.kycGaps) ? (o.kycGaps as unknown[]).map(str).filter((g): g is string => !!g) : [];
   const summary = str(o.summary);
@@ -195,7 +201,7 @@ export async function draftAfterCall(ctx: AfterCallContext): Promise<AfterCallDr
   try {
     const r = await generateText({
       task: 'freeform',
-      prompt: 'You are a commercial banker\'s assistant. From the call transcript and signals, reply with ONLY a JSON object: {"summary": string (3-4 sentences), "tasks": [{"subject": string, "dueDate": "YYYY-MM-DD"}] (exactly 3, the commitments made on the call), "emailSubject": string, "emailBody": string (plain text recap to the client, signed by the RM), "kycGaps": string[] (documents or reviews still needed)}.',
+      prompt: `You are a commercial banker's assistant. From the call transcript and signals, reply with ONLY a JSON object: {"summary": string (3-4 sentences), "tasks": [{"subject": string, "dueDate": "YYYY-MM-DD"}] (exactly 3, the commitments made on the call; never a date before today, ${localToday()} — use today instead, and any dates in the email must match the task due dates), "emailSubject": string, "emailBody": string (plain text recap to the client, signed by the RM), "kycGaps": string[] (documents or reviews still needed)}.`,
       context: JSON.stringify({ client: ctx.accountName, kycStatus: ctx.kycStatus, worldCheck: { pep: ctx.pep, sanctions: ctx.sanctions, adverseMedia: ctx.adverseMedia }, gong: ctx.gong, transcript: ctx.note?.body ?? '', draft: base }),
     });
     return r.source === 'model' && r.text ? mergeAiDraft(base, r.text) : base;

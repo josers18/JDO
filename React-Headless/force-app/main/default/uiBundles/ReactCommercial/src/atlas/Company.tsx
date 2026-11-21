@@ -311,7 +311,7 @@ function Dossier({ drafts, owner, actorScope, account, tab, product, setTab, onE
       {tab === 'journey' && <ActivityContent owner={owner} accountId={accountId} onEdit={onEdit} revision={revision} />}
       {tab === 'notebook' && <Notebook storageKey={notebookKey} />}
       {tab === 'screening' && <><CallRecord accountId={accountId} /><Panel title="Screening evidence"><Pending state={evidence}>{signals.filter(row => row.family === 'Screening change').map(row => <article key={row.id}><h3>{row.title}</h3><p>{row.detail}</p><SignalDetail row={row} followup={followup} closeCompany /></article>)}{!signals.some(row => row.family === 'Screening change') && <p>No qualifying change returned. Review the source screening before drawing a conclusion.</p>}</Pending></Panel></>}
-      {tab === 'tools' && <><AfterCall accountId={accountId} /><div className="ca-relationship-tools">
+      {tab === 'tools' && <><AfterCall accountId={accountId} /><CallRecord accountId={accountId} /><div className="ca-relationship-tools">
         <Notebook storageKey={notebookKey} relationship>
           <h3 className="ca-note-drafts-heading">Action drafts for this relationship</h3>
           {drafts.some(draft => draft.accountId === accountId) ? drafts.filter(draft => draft.accountId === accountId).map(draft =>
